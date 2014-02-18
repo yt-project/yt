@@ -37,6 +37,14 @@ class HaloCatalog(ParallelAnalysisInterface):
     r"""Create a HaloCatalog: an object that allows for the creation and association
     of data with a set of halo objects.
 
+    A HaloCatalog object pairs a simulation dataset and the output from a halo finder, 
+    allowing the user to perform analysis on each of the halos found by the halo finder.
+    Analysis is performed by providing callbacks: functions that accept a Halo object 
+    and perform independent analysis, return a quantity to be associated with the halo, 
+    or return True or False whether a halo meets various criteria.  The resulting set of 
+    quantities associated with each halo is then written out to disk at a "halo catalog."
+    This halo catalog can then be loaded in with yt as any other simulation dataset.
+    
     Parameters
     ----------
     halos_pf : str
@@ -54,6 +62,37 @@ class HaloCatalog(ParallelAnalysisInterface):
 
     Examples
     --------
+
+    # create profiles or overdensity vs. radius for each halo and save to disk
+    >>> from yt.mods import *
+    >>> from yt.analysis_modules.halo_analysis.api import *
+    >>> data_pf = load("DD0064/DD0064")
+    >>> halos_pf = load("rockstar_halos/halos_64.0.bin",
+    ...                 output_dir="halo_catalogs/catalog_0064")
+    >>> hc = HaloCatalog(data_pf=data_pf, halos_pf=halos_pf)
+    # filter out halos with mass < 1e13 Msun
+    >>> hc.add_filter("quantity_value", "particle_mass", ">", 1e13, "Msun")
+    # create a sphere object with radius of 2 times the virial_radius field
+    >>> hc.add_callback("sphere", factor=2.0, radius_field="virial_radius")
+    # make radial profiles
+    >>> hc.add_callback("profile", "radius", [("gas", "overdensity")],
+    ...                 weight_field="cell_volume", accumulation=True)
+    # save the profiles to disk
+    >>> hc.add_callback("save_profiles", output_dir="profiles")
+    # create the catalog
+    >>> hc.create()
+
+
+    # load in the saved halo catalog and all the profile data
+    >>> halos_pf = load("halo_catalogs/catalog_0064/catalog_0064.0.h5")
+    >>> hc = HaloCatalog(halos_pf=halos_pf,
+                         output_dir="halo_catalogs/catalog_0064")
+    >>> hc.add_callback("load_profiles", output_dir="profiles")
+    >>> hc.load()
+
+    See Also
+    --------
+    add_callback, add_filter, add_quantity
     
     """
     
@@ -89,12 +128,72 @@ class HaloCatalog(ParallelAnalysisInterface):
         self.add_default_quantities()
 
     def add_callback(self, callback, *args, **kwargs):
+        r"""
+        Add a callback to the halo catalog action list.
+
+        A callback is a function that accepts and operates on a Halo object and 
+        does not return anything.  Callbacks must exist within the callback_registry.  
+        Give additional args and kwargs to be passed to the callback here.
+
+        Parameters
+        ----------
+        callback : string
+            The name of the callback.
+
+        Examples
+        --------
+
+        # Here, a callback is defined and added to the registry.
+        def _say_something(halo, message):
+            my_id = halo.quantities['particle_identifier']
+            print "Halo %d: here is a message - %s." % (my_id, message)
+        add_callback("hello_world", _say_something)
+
+        # Now this callback is accessible to the HaloCatalog object
+        >>> hc.add_callback("hello_world", "this is my message")
+            
+        """
         callback = callback_registry.find(callback, *args, **kwargs)
         if "output_dir" in kwargs is not None:
             ensure_dir(os.path.join(self.output_dir, kwargs["output_dir"]))
         self.actions.append(("callback", callback))
 
     def add_quantity(self, key, *args, **kwargs):
+        r"""
+        Add a quantity to the halo catalog action list.
+
+        A quantity is a function that accepts a Halo object and return a value or 
+        values.  These values are stored in a "quantities" dictionary associated 
+        with the Halo object.  Quantities must exist within the quantity_registry.  
+        Give additional args and kwargs to be passed to the quantity function here.
+
+        Parameters
+        ----------
+        key : string
+            The name of the callback.
+        field_type : string
+            If not None, the quantity is the value of the field provided by the 
+            key parameter, taken from the halo finder dataset.  This is the way 
+            one pulls values for the halo from the halo dataset.
+            Default : None
+
+        Examples
+        --------
+
+        # pull the virial radius from the halo finder dataset
+        hc.add_quantity("virial_radius", field_type="halos")
+
+        # define a custom quantity and add it to the register
+        def _mass_squared(halo):
+            # assume some entry "particle_mass" exists in the quantities dict
+            return halo.quantities["particle_mass"]**2
+        add_quantity("mass_squared", _mass_squared)
+
+        # add it to the halo catalog action list
+        >>> hc.add_quantity("mass_squared")
+        
+        """
+        
         if "field_type" in kwargs:
             field_type = kwargs.pop("field_type")
         else:
@@ -109,17 +208,138 @@ class HaloCatalog(ParallelAnalysisInterface):
         self.actions.append(("quantity", (key, quantity)))
 
     def add_filter(self, halo_filter, *args, **kwargs):
+        r"""
+        Add a filter to the halo catalog action list.
+
+        A filter is a function that accepts a Halo object and returns either True 
+        or False.  If True, any additional actions added to the list are carried out 
+        and the results are added to the final halo catalog.  If False, any further 
+        actions are skipped and the halo will be omitted from the final catalog.
+        Filters must exist within the filter_registry.  Give additional args and kwargs 
+        to be passed to the filter function here.
+
+        Parameters
+        ----------
+        halo_filter : string
+            The name of the filter.
+
+        Examples
+        --------
+
+        # define a filter and add it to the register.
+        def _my_filter(halo, mass_value):
+            if halo.quantities["particle_mass"] > YTQuantity(mass_value, "Msun"):
+                return True
+            else:
+                return False
+        # add it to the register
+        add_filter("mass_filter", _my_filter)
+
+        # add the filter to the halo catalog actions
+        >>> hc.add_filter("mass_value", 1e12)
+        
+        """
+        
         halo_filter = filter_registry.find(halo_filter, *args, **kwargs)
         self.actions.append(("filter", halo_filter))
 
     def create(self, save_halos=False, save_catalog=True, njobs=-1, dynamic=False):
+        r"""
+        Create the halo catalog given the callbacks, quantities, and filters that 
+        have been provided.
+
+        This is a wrapper around the main _run function with default arguments tuned 
+        for halo catalog creation.  By default, halo objects are not saved but the 
+        halo catalog is written, opposite to the behavior of the load function.
+
+        Parameters
+        ----------
+        save_halos : bool
+            If True, a list of all Halo objects is retained under the "halo_list"
+            attribute.  If False, only the compiles quantities are saved under the 
+            "catalog" attribute.
+            Default: False
+        save_catalog : bool
+            If True, save the final catalog to disk.
+            Default: True
+        njobs : int
+            The number of jobs over which to divide halo analysis.  Choose -1 
+            to allocate one processor per halo.
+            Default: -1
+        dynamic : int
+            If False, halo analysis is divided evenly between all available processors.
+            If True, parallelism is performed via a task queue.
+            Default: False
+
+        See Also
+        --------
+        load
+        
+        """
         self._run(save_halos, save_catalog, njobs=njobs, dynamic=dynamic)
 
     def load(self, save_halos=True, save_catalog=False, njobs=-1, dynamic=False):
+        r"""
+        Load a previously created halo catalog.
+
+        This is a wrapper around the main _run function with default arguments tuned 
+        for reloading halo catalogs and associated data.  By default, halo objects are 
+        saved and the halo catalog is not written, opposite to the behavior of the 
+        create function.
+        
+        Parameters
+        ----------
+        save_halos : bool
+            If True, a list of all Halo objects is retained under the "halo_list"
+            attribute.  If False, only the compiles quantities are saved under the 
+            "catalog" attribute.
+            Default: True
+        save_catalog : bool
+            If True, save the final catalog to disk.
+            Default: False
+        njobs : int
+            The number of jobs over which to divide halo analysis.  Choose -1 
+            to allocate one processor per halo.
+            Default: -1
+        dynamic : int
+            If False, halo analysis is divided evenly between all available processors.
+            If True, parallelism is performed via a task queue.
+            Default: False
+
+        See Also
+        --------
+        create
+        
+        """
         self._run(save_halos, save_catalog, njobs=njobs, dynamic=dynamic)
         
     @parallel_blocking_call
     def _run(self, save_halos, save_catalog, njobs=-1, dynamic=False):
+        r"""
+        Run the requested halo analysis.
+
+        Parameters
+        ----------
+        save_halos : bool
+            If True, a list of all Halo objects is retained under the "halo_list"
+            attribute.  If False, only the compiles quantities are saved under the 
+            "catalog" attribute.
+        save_catalog : bool
+            If True, save the final catalog to disk.
+        njobs : int
+            The number of jobs over which to divide halo analysis.  Choose -1 
+            to allocate one processor per halo.
+            Default: -1
+        dynamic : int
+            If False, halo analysis is divided evenly between all available processors.
+            If True, parallelism is performed via a task queue.
+            Default: False
+
+        See Also
+        --------
+        create, load
+        
+        """
         self.catalog = []
         if save_halos: self.halo_list = []
 
