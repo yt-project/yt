@@ -29,12 +29,7 @@ from yt.utilities.io_handler import \
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 
-from .fields import MoabFieldInfo, KnownMoabFields
-
-def _get_convert(fname):
-    def _conv(data):
-        return data.convert(fname)
-    return _conv
+from .fields import MoabFieldInfo, PyneFieldInfo
 
 class MoabHex8Mesh(SemiStructuredMesh):
     _connectivity_length = 8
@@ -63,39 +58,31 @@ class MoabHex8Hierarchy(UnstructuredGeometryHandler):
                                     coords, self)]
 
     def _detect_output_fields(self):
-        self.field_list = self._fhandle['/tstt/elements/Hex8/tags'].keys()
+        self.field_list = [("moab", f) for f in 
+            self._fhandle['/tstt/elements/Hex8/tags'].keys()]
 
     def _count_grids(self):
-        self.num_grids = 1 #self._fhandle['/grid_parent_id'].shape[0]
+        self.num_grids = 1
 
 class MoabHex8StaticOutput(StaticOutput):
     _hierarchy_class = MoabHex8Hierarchy
-    _fieldinfo_fallback = MoabFieldInfo
-    _fieldinfo_known = KnownMoabFields
+    _field_info_class = MoabFieldInfo
     periodicity = (False, False, False)
 
     def __init__(self, filename, data_style='moab_hex8',
                  storage_filename = None):
+        self.fluid_types += ("moab",)
         StaticOutput.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
         self.filename = filename
         self._handle = h5py.File(self.parameter_filename, "r")
 
-    def _set_units(self):
-        """Generates the conversion to various physical _units based on the parameter file
-        """
-        self.units = {}
-        self.time_units = {}
-        if len(self.parameters) == 0:
-            self._parse_parameter_file()
-        self.time_units['1'] = 1
-        self.units['1'] = 1.0
-        self.units['cm'] = 1.0
-        self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        for unit in mpc_conversion.keys():
-            self.units[unit] = 1.0 * mpc_conversion[unit] / mpc_conversion["cm"]
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = 1.0 / sec_conversion[unit]
+    def _set_code_unit_attributes(self):
+        # Almost everything is regarded as dimensionless in MOAB, so these will
+        # not be used very much or at all.
+        self.length_unit = self.quan(1.0, "cm")
+        self.time_unit = self.quan(1.0, "s")
+        self.mass_unit = self.quan(1.0, "g")
 
     def _parse_parameter_file(self):
         self._handle = f = h5py.File(self.parameter_filename, "r")
@@ -112,8 +99,6 @@ class MoabHex8StaticOutput(StaticOutput):
         self.current_redshift = self.omega_lambda = self.omega_matter \
                               = self.hubble_constant \
                               = self.cosmological_simulation = 0.0
-        self.parameters['Time'] = 1.0 # Hardcode time conversion for now.
-        self.parameters["HydroMethod"] = 0 # Hardcode for now until field staggering is supported.
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -152,43 +137,32 @@ class PyneMeshHex8Hierarchy(UnstructuredGeometryHandler):
                                     vind, coords, self)]
 
     def _detect_output_fields(self):
-        self.field_list = self.pyne_mesh.tags.keys()
+        self.field_list = [("pyne", f) for f in self.pyne_mesh.tags.keys()]
 
     def _count_grids(self):
         self.num_grids = 1
 
-    def _setup_data_io(self):
-        self.io = io_registry[self.data_style](self.parameter_file)
-
 class PyneMoabHex8StaticOutput(StaticOutput):
     _hierarchy_class = PyneMeshHex8Hierarchy
     _fieldinfo_fallback = MoabFieldInfo
-    _fieldinfo_known = KnownMoabFields
+    _field_info_class = PyneFieldInfo
     periodicity = (False, False, False)
 
     def __init__(self, pyne_mesh, data_style='moab_hex8_pyne',
                  storage_filename = None):
+        self.fluid_types += ("pyne",)
         filename = "pyne_mesh_" + str(id(pyne_mesh))
         self.pyne_mesh = pyne_mesh
         StaticOutput.__init__(self, str(filename), data_style)
         self.storage_filename = storage_filename
         self.filename = filename
 
-    def _set_units(self):
-        """Generates the conversion to various physical _units based on the parameter file
-        """
-        self.units = {}
-        self.time_units = {}
-        if len(self.parameters) == 0:
-            self._parse_parameter_file()
-        self.time_units['1'] = 1
-        self.units['1'] = 1.0
-        self.units['cm'] = 1.0
-        self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        for unit in mpc_conversion.keys():
-            self.units[unit] = 1.0 * mpc_conversion[unit] / mpc_conversion["cm"]
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = 1.0 / sec_conversion[unit]
+    def _set_code_unit_attributes(self):
+        # Almost everything is regarded as dimensionless in MOAB, so these will
+        # not be used very much or at all.
+        self.length_unit = self.quan(1.0, "cm")
+        self.time_unit = self.quan(1.0, "s")
+        self.mass_unit = self.quan(1.0, "g")
 
     def _parse_parameter_file(self):
         from itaps import iBase
@@ -206,8 +180,6 @@ class PyneMoabHex8StaticOutput(StaticOutput):
         self.current_redshift = self.omega_lambda = self.omega_matter \
                               = self.hubble_constant \
                               = self.cosmological_simulation = 0.0
-        self.parameters['Time'] = 1.0 # Hardcode time conversion for now.
-        self.parameters["HydroMethod"] = 0 # Hardcode for now until field staggering is supported.
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

@@ -61,7 +61,7 @@ class CameraTest(TestCase):
     def setup_transfer_function(self, camera_type):
         if camera_type in ['perspective', 'camera',
                            'stereopair', 'interactive']:
-            mi, ma = self.pf.h.all_data().quantities['Extrema']("density")[0]
+            mi, ma = self.pf.h.all_data().quantities['Extrema']("density")
             tf = ColorTransferFunction((mi-1., ma+1.), grey_opacity=True)
             tf.map_to_colormap(mi, ma, scale=10., colormap='RdBu_r')
             return tf

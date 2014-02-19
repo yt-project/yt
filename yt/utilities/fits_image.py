@@ -56,13 +56,13 @@ class FITSImageBuffer(HDUList):
         --------
 
         >>> ds = load("sloshing_nomag2_hdf5_plt_cnt_0150")
-        >>> prj = ds.h.proj(2, "TempkeV", weight_field="Density")
-        >>> frb = prj.to_frb((0.5, "mpc"), 800)
+        >>> prj = ds.h.proj(2, "kT", weight_field="density")
+        >>> frb = prj.to_frb((0.5, "Mpc"), 800)
         >>> # This example just uses the FRB and puts the coords in kpc.
-        >>> f_kpc = FITSImageBuffer(frb, fields="TempkeV", units="kpc")
+        >>> f_kpc = FITSImageBuffer(frb, fields="kT", units="kpc")
         >>> # This example specifies sky coordinates.
         >>> scale = [1./3600.]*2 # One arcsec per pixel
-        >>> f_deg = FITSImageBuffer(frb, fields="TempkeV", units="deg",
+        >>> f_deg = FITSImageBuffer(frb, fields="kT", units="deg",
                                     scale=scale, center=(30., 45.))
         >>> f_deg.writeto("temp.fits")
         """
@@ -132,22 +132,14 @@ class FITSImageBuffer(HDUList):
             # FRBs are a special case where we have coordinate
             # information, so we take advantage of this and
             # construct the WCS object
-            dx = (img_data.bounds[1]-img_data.bounds[0])/self.nx
-            dy = (img_data.bounds[3]-img_data.bounds[2])/self.ny
-            dx *= img_data.pf.units[units]
-            dy *= img_data.pf.units[units]
-            xctr = 0.5*(img_data.bounds[1]+img_data.bounds[0])
-            yctr = 0.5*(img_data.bounds[3]+img_data.bounds[2])
-            xctr *= img_data.pf.units[units]
-            yctr *= img_data.pf.units[units]
+            dx = (img_data.bounds[1]-img_data.bounds[0]).in_units(units)/self.nx
+            dy = (img_data.bounds[3]-img_data.bounds[2]).in_units(units)/self.ny
+            xctr = 0.5*(img_data.bounds[1]+img_data.bounds[0]).in_units(units)
+            yctr = 0.5*(img_data.bounds[3]+img_data.bounds[2]).in_units(units)
             center = [xctr, yctr]
         elif isinstance(img_data, YTCoveringGridBase):
-            dx, dy, dz = img_data.dds
-            dx *= img_data.pf.units[units]
-            dy *= img_data.pf.units[units]
-            dz *= img_data.pf.units[units]
-            center = 0.5*(img_data.left_edge+img_data.right_edge)
-            center *= img_data.pf.units[units]
+            dx, dy, dz = img_data.dds.in_units(units)
+            center = 0.5*(img_data.left_edge+img_data.right_edge).in_units(units)
         elif units == "deg" and self.dimensionality == 2:
             dx = -scale[0]
             dy = scale[1]
@@ -177,14 +169,14 @@ class FITSImageBuffer(HDUList):
         h = self.wcs.to_header()
         for img in self:
             for k, v in h.items():
-                img.header.update(k,v)
+                img.header[k] = v
 
     def update_all_headers(self, key, value):
         """
         Update the FITS headers for all images with the
         same *key*, *value* pair.
         """
-        for img in self: img.header.update(key,value)
+        for img in self: img.header[key] = value
             
     def keys(self):
         return [f.name for f in self]

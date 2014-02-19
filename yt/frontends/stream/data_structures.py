@@ -351,6 +351,8 @@ class StreamStaticOutput(StaticOutput):
             else:
                 raise RuntimeError("%s (%s) is invalid." % (attr, unit))
             setattr(self, attr, uq)
+        DW = self.arr(self.domain_right_edge-self.domain_left_edge, "code_length")
+        self.unit_registry.modify("unitary", DW.max())
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -499,6 +501,7 @@ def unitify_data(data):
         else:
             raise RuntimeError
         new_data[new_field] = data[field]
+        field_units[new_field] = field_units.pop(field)
     data = new_data
     return field_units, data
 

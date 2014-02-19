@@ -61,6 +61,7 @@ default_unit_symbol_lut = {
 
     # dimensionless stuff
     "h": (1.0, dimensions.dimensionless), # needs to be added for rho_crit_now
+    "dimensionless": (1.0, dimensions.dimensionless),
 
     # times
     "min": (sec_per_min, dimensions.time),

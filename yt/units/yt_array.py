@@ -58,9 +58,9 @@ def ensure_unitless(func):
 def ensure_same_dimensions(func):
     @wraps(func)
     def wrapped(unit1, unit2):
-        if unit1 is None and not unit2.is_dimensionless():
+        if unit1 is None and not unit2.is_dimensionless:
             raise RuntimeError
-        elif unit2 is None and not unit1.is_dimensionless():
+        elif unit2 is None and not unit1.is_dimensionless:
             raise RuntimeError
         elif unit1.dimensions != unit2.dimensions:
             raise RuntimeError
@@ -721,6 +721,13 @@ class YTArray(np.ndarray):
                 unit2 = Unit()
             elif context[0] is power:
                 unit2 = context[1][1]
+                if isinstance(unit2, np.ndarray):
+                    if isinstance(unit2, YTArray):
+                        if unit2.units.is_dimensionless:
+                            pass
+                        else:
+                            raise YTUnitOperationError(context[0], unit1, unit2)
+                    unit2 = 1.0
             if self._ufunc_registry[context[0]] in \
                (preserve_units, comparison_unit, arctan2_unit):
                 if unit1 != unit2:

@@ -123,7 +123,7 @@ _common_options = dict(
                    help="Textual annotation"),
     field   = dict(short="-f", long="--field",
                    action="store", type=str,
-                   dest="field", default="Density",
+                   dest="field", default="density",
                    help="Field to color by"),
     weight  = dict(short="-g", long="--weight",
                    action="store", type=str,
@@ -1278,9 +1278,9 @@ class YTPlotCmd(YTCommand):
         center = args.center
         if args.center == (-1,-1,-1):
             mylog.info("No center fed in; seeking.")
-            v, center = pf.h.find_max("Density")
+            v, center = pf.h.find_max("density")
         if args.max:
-            v, center = pf.h.find_max("Density")
+            v, center = pf.h.find_max("density")
         elif args.center is None:
             center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
         center = np.array(center)
@@ -1338,7 +1338,7 @@ class YTRenderCmd(YTCommand):
         center = args.center
         if args.center == (-1,-1,-1):
             mylog.info("No center fed in; seeking.")
-            v, center = pf.h.find_max("Density")
+            v, center = pf.h.find_max("density")
         elif args.center is None:
             center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
         center = np.array(center)
@@ -1366,7 +1366,7 @@ class YTRenderCmd(YTCommand):
 
         field = args.field
         if field is None:
-            field = 'Density'
+            field = 'density'
 
         log = args.takelog
         if log is None:
@@ -1575,7 +1575,7 @@ class YTStatsCmd(YTCommand):
         Print stats and max/min value of a given field (if requested),
         for one or more datasets
 
-        (default field is Density)
+        (default field is density)
 
         """
 
