@@ -80,6 +80,16 @@ Table of Contents
      <tr valign="top">
        <td width="25%">
          <p>
+           <a href="units/index.html">Symbolic units</a>
+         </p>
+       </td>
+       <td width="75%">
+         <p class="linkdescr">Learn more about the yt symbolic unit system</p>
+       </td>
+     </tr>
+     <tr valign="top">
+       <td width="25%">
+         <p>
            <a href="developing/index.html">Developing in yt</a>
          </p>
        </td>
@@ -118,6 +128,7 @@ Table of Contents
    visualizing/index
    analyzing/index
    examining/index
+   units/index
    developing/index
    reference/index
    Getting Help <help/index>
