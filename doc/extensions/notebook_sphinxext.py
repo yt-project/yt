@@ -12,7 +12,8 @@ class NotebookDirective(Directive):
     into html suitable for embedding in a Sphinx document.
     """
     required_arguments = 1
-    optional_arguments = 0
+    optional_arguments = 1
+    option_spec = {'skip_exceptions' : directives.flag}
 
     def run(self):
         # check if raw html is supported
@@ -54,8 +55,11 @@ class NotebookDirective(Directive):
         f.write(script_text.encode('utf8'))
         f.close()
 
+        skip_exceptions = 'skip_exceptions' in self.options
+
         try:
-            evaluated_text = evaluate_notebook(nb_abs_path, dest_path_eval)
+            evaluated_text = evaluate_notebook(nb_abs_path, dest_path_eval,
+                                               skip_exceptions=skip_exceptions)
         except:
             # bail
             return []
@@ -129,6 +133,7 @@ def nb_to_html(nb_path):
         '\nh6{font-size:11.049999999999999px;}\nh1 small{font-size:22.75px;}'
         '\nh2 small{font-size:16.25px;}\nh3 small{font-size:13px;}'
         '\nh4 small{font-size:13px;}', '')
+    header = header.replace('body {\n  overflow: visible;\n  padding: 8px;\n}\n', '')
     header = header.replace('background-color:#ffffff;', '', 1)
 
     # concatenate raw html lines
@@ -138,12 +143,12 @@ def nb_to_html(nb_path):
     lines.append('</div>')
     return '\n'.join(lines)
 
-def evaluate_notebook(nb_path, dest_path=None):
+def evaluate_notebook(nb_path, dest_path=None, skip_exceptions=False):
     # Create evaluated version and save it to the dest path.
     # Always use --pylab so figures appear inline
     # perhaps this is questionable?
     nb_runner = NotebookRunner(nb_in=nb_path, pylab=True)
-    nb_runner.run_notebook()
+    nb_runner.run_notebook(skip_exceptions=skip_exceptions)
     if dest_path is None:
         dest_path = 'temp_evaluated.ipynb'
     nb_runner.save_notebook(dest_path)
