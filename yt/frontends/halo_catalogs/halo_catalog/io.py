@@ -23,7 +23,6 @@ from yt.funcs import mylog
 from yt.utilities.io_handler import \
     BaseIOHandler
 
-from .definitions import halo_dt
 from yt.utilities.lib.geometry_utils import compute_morton
 
 from yt.geometry.oct_container import _ORDER_MAX
