@@ -744,8 +744,8 @@ class PWViewerMPL(PlotWindow):
             for i, un in enumerate((unit_x, unit_y)):
                 # Use sympy to factor h out of the unit.  In this context 'un'
                 # is a string, so we call the Unit constructor.
-                expr = Unit(un).expr
-                h_expr = Unit('h').expr
+                expr = Unit(un, registry=self.pf.unit_registry).expr
+                h_expr = Unit('h', registry=self.pf.unit_registry).expr
                 # See http://docs.sympy.org/latest/modules/core.html#sympy.core.expr.Expr
                 h_power = expr.as_coeff_exponent(h_expr)[1]
                 # un is now the original unit, but with h factored out.
