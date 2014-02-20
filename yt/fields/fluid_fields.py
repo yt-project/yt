@@ -114,7 +114,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         t3 = data["index", "dz"] / (data[ftype, "sound_speed"]
                         + np.abs(data[ftype, "velocity_z"]))
         tr = np.minimum(np.minimum(t1, t2), t3)
-        return data.apply_units(tr, field.units)
+        return tr
 
     registry.add_field((ftype, "courant_time_step"),
              function=_courant_time_step,
