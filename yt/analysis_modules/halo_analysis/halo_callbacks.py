@@ -84,12 +84,12 @@ def halo_sphere(halo, radius_field="virial_radius", factor=1.0,
                       for axis in "xyz"]) / dpf.length_unit
     radius = factor * halo.quantities[radius_field] / dpf.length_unit
     if radius <= 0.0:
-        setattr(halo, "data_object", None)
+        halo.data_object = None
         return
     try:
         sphere = dpf.h.sphere(center, (radius, "code_length"))
     except YTSphereTooSmall:
-        setattr(halo, "data_object", None)
+        halo.data_object = None
         return
     if field_parameters is not None:
         for field, par in field_parameters.items():
@@ -98,7 +98,7 @@ def halo_sphere(halo, radius_field="virial_radius", factor=1.0,
             else:
                 value = par
             sphere.set_field_parameter(field, value)
-    setattr(halo, "data_object", sphere)
+    halo.data_object = sphere
 
 add_callback("sphere", halo_sphere)
 
