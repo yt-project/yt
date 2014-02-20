@@ -312,6 +312,7 @@ class GeometryHandler(ParallelAnalysisInterface):
 
     def _add_object_class(self, name, class_name, base, dd):
         self.object_types.append(name)
+        dd.update({'__doc__': base.__doc__})
         obj = type(class_name, (base,), dd)
         setattr(self, name, obj)
 
