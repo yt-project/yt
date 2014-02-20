@@ -649,12 +649,8 @@ class PWViewerMPL(PlotWindow):
         return xc, yc
 
     def _setup_plots(self):
-        if self._current_field is not None:
-            fields = [self._current_field]
-        else:
-            fields = self._frb.keys()
         self._colorbar_valid = True
-        for f in self.data_source._determine_fields(fields):
+        for f in self.data_source._determine_fields(self.fields):
             axis_index = self.data_source.axis
 
             xc, yc = self._setup_origin()
