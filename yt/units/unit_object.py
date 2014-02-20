@@ -463,7 +463,7 @@ def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
     """
     if symbol_str in unit_symbol_lut:
         # lookup successful, return the tuple directly
-        return unit_symbol_lut[symbol_str][0:2]
+        return unit_symbol_lut[symbol_str]
 
     # could still be a known symbol with a prefix
     possible_prefix = symbol_str[0]
