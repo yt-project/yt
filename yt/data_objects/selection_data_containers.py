@@ -407,10 +407,9 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         center = self.center
         self.fields = [k for k in self.field_data.keys()
                        if k not in self._key_fields]
-        from yt.visualization.plot_window import \
-            GetObliqueWindowParameters, PWViewerMPL
+        from yt.visualization.plot_window import get_oblique_window_parameters, PWViewerMPL
         from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
-        (bounds, center_rot) = GetObliqueWindowParameters(normal, center, width, self.pf)
+        (bounds, center_rot) = get_oblique_window_parameters(normal, center, width, self.pf)
         pw = PWViewerMPL(
             self, bounds, fields=self.fields, origin='center-window', 
             periodic=False, oblique=True,
