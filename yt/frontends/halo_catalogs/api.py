@@ -14,11 +14,12 @@ API for yt.frontends.halo_catalogs
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from .data_structures import \
-      RockstarStaticOutput
+from halo_catalog.api import \
+     HaloCatalogStaticOutput, \
+     IOHandlerHaloCatalogHDF5, \
+     HaloCatalogFieldInfo
 
-from .io import \
-      IOHandlerRockstarBinary
-
-from .fields import \
+from rockstar.api import \
+      RockstarStaticOutput, \
+      IOHandlerRockstarBinary, \
       RockstarFieldInfo

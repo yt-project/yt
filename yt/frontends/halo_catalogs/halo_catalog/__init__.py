@@ -1,5 +1,5 @@
 """
-API for halo catalog frontends.
+API for HaloCatalog frontend.
 
 
 

@@ -1,6 +1,5 @@
 """
-API for halo catalog frontends.
-
+Halo Finding methods
 
 
 
@@ -13,3 +12,9 @@ API for halo catalog frontends.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
+
+from .operator_registry import \
+    hf_registry
+
+class HaloFindingMethod(object):
+    pass

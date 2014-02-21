@@ -605,8 +605,9 @@ class PhasePlot(ImagePlotContainer):
 
         if profile is None:
             profile = create_profile(data_source,
-               [x_field, y_field], n_bins=[x_bins, y_bins],
-               fields = ensure_list(z_fields),
+               [x_field, y_field],
+               ensure_list(z_fields),
+               n_bins = [x_bins, y_bins],
                weight_field = weight_field,
                accumulation=accumulation,
                fractional=fractional)
