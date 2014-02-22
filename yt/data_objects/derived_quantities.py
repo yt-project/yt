@@ -221,27 +221,44 @@ class BulkVelocity(DerivedQuantity):
             z += values.pop(0).sum(dtype=np.float64)
             w += values.pop(0).sum(dtype=np.float64)
         return [v/w for v in [x, y, z]]
+
+class WeightedVariance(DerivedQuantity):
     
-def _WeightedVariance(data, field, weight):
-    """
-    This function returns the variance of a field.
+    def count_values(self, fields, weight):
+        # This is a list now
+        self.num_vals = 2 * len(fields) + 1
 
-    :param field: The target field
-    :param weight: The field to weight by
+    def __call__(self, fields, weight):
+        fields = ensure_list(fields)
+        rv = super(WeightedVariance, self).__call__(fields, weight)
+        if len(rv) == 1: rv = rv[0]
+        return rv
 
-    Returns the weighted variance and the weighted mean.
-    """
-    my_weight = data[weight].sum(dtype=np.float64)
-    if my_weight == 0:
-        return 0.0, 0.0, 0.0
-    my_mean = (data[field] * data[weight]).sum(dtype=np.float64) / my_weight
-    my_var2 = (data[weight] * (data[field] - my_mean)**2).sum(dtype=np.float64) / my_weight
-    return my_weight, my_mean, my_var2
-def _combWeightedVariance(data, my_weight, my_mean, my_var2):
-    all_weight = my_weight.sum()
-    all_mean = (my_weight * my_mean).sum() / all_weight
-    return [np.sqrt((my_weight * (my_var2 + (my_mean - all_mean)**2)).sum() / 
-                    all_weight), all_mean]
+    def process_chunk(self, data, fields, weight):
+        my_weight = data[weight].sum(dtype=np.float64)
+        if my_weight == 0:
+            return [0.0 for field in fields] + \
+              [0.0 for field in fields] + [0.0]
+        my_means = [(data[field] *  data[weight]).sum(dtype=np.float64) / my_weight
+                    for field in fields]
+        my_var2s = [(data[weight] * (data[field] -
+                                     my_mean)**2).sum(dtype=np.float64) / my_weight
+                   for field, my_mean in zip(fields, my_means)]
+        return my_means + my_var2s + [my_weight]
+
+    def reduce_intermediate(self, values):
+        my_weight = values.pop(-1)
+        all_weight = my_weight.sum(dtype=np.float64)
+        rvals = []
+        for i in range(len(values) / 2):
+            my_mean = values[i]
+            my_var2 = values[i + len(values) / 2]
+            all_mean = (my_weight * my_mean).sum(dtype=np.float64) / all_weight
+            rvals.append(np.sqrt((my_weight * (my_var2 + 
+                                               (my_mean - all_mean)**2)).sum(dtype=np.float64) / 
+                                               all_weight))
+            rvals.append(all_mean)
+        return rvals
 
 class AngularMomentumVector(WeightedAverageQuantity):
     def __call__(self, ftype = "gas"):
