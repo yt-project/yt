@@ -198,6 +198,7 @@ cdef class PartitionedGrid:
 
 cdef struct ImageContainer:
     np.float64_t *vp_pos, *vp_dir, *center, *image,
+    np.float64_t *zbuffer
     np.float64_t pdx, pdy, bounds[4]
     int nv[2]
     int vp_strides[3]
@@ -213,6 +214,7 @@ cdef class ImageSampler:
     cdef ImageContainer *image
     cdef sampler_function *sampler
     cdef public object avp_pos, avp_dir, acenter, aimage, ax_vec, ay_vec
+    cdef public object azbuffer
     cdef void *supp_data
     cdef np.float64_t width[3]
     def __init__(self, 
@@ -227,6 +229,8 @@ cdef class ImageSampler:
                   *args, **kwargs):
         self.image = <ImageContainer *> malloc(sizeof(ImageContainer))
         cdef ImageContainer *imagec = self.image
+        cdef np.ndarray[np.float64_t, ndim=2] zbuffer
+        zbuffer = kwargs.pop("zbuffer", None)
         self.sampler = NULL
         cdef int i, j
         # These assignments are so we can track the objects and prevent their
@@ -237,12 +241,16 @@ cdef class ImageSampler:
         self.aimage = image
         self.ax_vec = x_vec
         self.ay_vec = y_vec
+        self.azbuffer = zbuffer
         imagec.vp_pos = <np.float64_t *> vp_pos.data
         imagec.vp_dir = <np.float64_t *> vp_dir.data
         imagec.center = <np.float64_t *> center.data
         imagec.image = <np.float64_t *> image.data
         imagec.x_vec = <np.float64_t *> x_vec.data
         imagec.y_vec = <np.float64_t *> y_vec.data
+        imagec.zbuffer = NULL
+        if zbuffer is not None:
+            imagec.zbuffer = <np.float64_t *> zbuffer.data
         imagec.nv[0] = image.shape[0]
         imagec.nv[1] = image.shape[1]
         for i in range(4): imagec.bounds[i] = bounds[i]
@@ -316,7 +324,7 @@ cdef class ImageSampler:
         cdef ImageContainer *im = self.image
         self.setup(pg)
         if self.sampler == NULL: raise RuntimeError
-        cdef np.float64_t *v_pos, *v_dir, rgba[6], extrema[4]
+        cdef np.float64_t *v_pos, *v_dir, rgba[6], extrema[4], max_t
         hit = 0
         cdef np.int64_t nx, ny, size
         if im.vd_strides[0] == -1:
@@ -356,8 +364,12 @@ cdef class ImageSampler:
                     v_pos[2] = im.vp_pos[2]*px + im.vp_pos[5]*py + im.vp_pos[11]
                     offset = im.im_strides[0] * vi + im.im_strides[1] * vj
                     for i in range(Nch): idata.rgba[i] = im.image[i + offset]
+                    if im.zbuffer != NULL:
+                        max_t = im.zbuffer[im.nv[0] * vi + vj]
+                    else:
+                        max_t = 1.0
                     walk_volume(vc, v_pos, im.vp_dir, self.sampler,
-                                (<void *> idata))
+                                (<void *> idata), NULL, max_t)
                     for i in range(Nch): im.image[i + offset] = idata.rgba[i]
                 free(idata)
                 free(v_pos)
@@ -376,8 +388,12 @@ cdef class ImageSampler:
                     # Note that for Nch != 3 we need a different offset into
                     # the image object than for the vectors!
                     for i in range(Nch): idata.rgba[i] = im.image[i + Nch*j]
+                    if im.zbuffer != NULL:
+                        max_t = im.zbuffer[j]
+                    else:
+                        max_t = 1.0
                     walk_volume(vc, v_pos, v_dir, self.sampler, 
-                                (<void *> idata))
+                                (<void *> idata), NULL, max_t)
                     for i in range(Nch): im.image[i + Nch*j] = idata.rgba[i]
                 free(v_dir)
                 free(idata)
@@ -467,9 +483,9 @@ cdef class InterpolatedProjectionSampler(ImageSampler):
                   np.ndarray[np.float64_t, ndim=1] x_vec,
                   np.ndarray[np.float64_t, ndim=1] y_vec,
                   np.ndarray[np.float64_t, ndim=1] width,
-                  n_samples = 10):
+                  n_samples = 10, **kwargs):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
-                               x_vec, y_vec, width)
+                               x_vec, y_vec, width, **kwargs)
         cdef int i
         # Now we handle tf_obj
         self.vra = <VolumeRenderAccumulator *> \
@@ -668,9 +684,9 @@ cdef class VolumeRenderSampler(ImageSampler):
                   np.ndarray[np.float64_t, ndim=1] y_vec,
                   np.ndarray[np.float64_t, ndim=1] width,
                   tf_obj, n_samples = 10,
-                  star_list = None):
+                  star_list = None, **kwargs):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
-                               x_vec, y_vec, width)
+                               x_vec, y_vec, width, **kwargs)
         cdef int i
         cdef np.ndarray[np.float64_t, ndim=1] temp
         # Now we handle tf_obj
@@ -740,9 +756,10 @@ cdef class LightSourceRenderSampler(ImageSampler):
                   np.ndarray[np.float64_t, ndim=1] width,
                   tf_obj, n_samples = 10,
                   light_dir=[1.,1.,1.],
-                  light_rgba=[1.,1.,1.,1.]):
+                  light_rgba=[1.,1.,1.,1.],
+                  **kwargs):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
-                               x_vec, y_vec, width)
+                               x_vec, y_vec, width, **kwargs)
         cdef int i
         cdef np.ndarray[np.float64_t, ndim=1] temp
         # Now we handle tf_obj
@@ -912,12 +929,12 @@ cdef int walk_volume(VolumeContainer *vc,
                      sampler_function *sampler,
                      void *data,
                      np.float64_t *return_t = NULL,
-                     np.float64_t enter_t = -1.0) nogil:
+                     np.float64_t max_t = 1.0) nogil:
     cdef int cur_ind[3], step[3], x, y, i, n, flat_ind, hit, direction
     cdef np.float64_t intersect_t = 1.1
     cdef np.float64_t iv_dir[3]
     cdef np.float64_t tmax[3], tdelta[3]
-    cdef np.float64_t dist, alpha, dt, exit_t
+    cdef np.float64_t dist, alpha, dt, exit_t, enter_t = -1.0
     cdef np.float64_t tr, tl, temp_x, temp_y, dv
     direction = -1
     if vc.left_edge[0] <= v_pos[0] and v_pos[0] <= vc.right_edge[0] and \
@@ -957,7 +974,7 @@ cdef int walk_volume(VolumeContainer *vc,
             direction = i
             intersect_t = tl
     if enter_t >= 0.0: intersect_t = enter_t 
-    if not ((0.0 <= intersect_t) and (intersect_t < 1.0)): return 0
+    if not ((0.0 <= intersect_t) and (intersect_t < max_t)): return 0
     for i in range(3):
         # Two things have to be set inside this loop.
         # cur_ind[i], the current index of the grid cell the ray is in
@@ -1001,12 +1018,12 @@ cdef int walk_volume(VolumeContainer *vc,
                 i = 1
             else:
                 i = 2
-        exit_t = fmin(tmax[i], 1.0)
+        exit_t = fmin(tmax[i], max_t)
         sampler(vc, v_pos, v_dir, enter_t, exit_t, cur_ind, data)
         cur_ind[i] += step[i]
         enter_t = tmax[i]
         tmax[i] += tdelta[i]
-        if cur_ind[i] < 0 or cur_ind[i] >= vc.dims[i] or enter_t >= 1.0:
+        if cur_ind[i] < 0 or cur_ind[i] >= vc.dims[i] or enter_t >= max_t:
             break
     if return_t != NULL: return_t[0] = exit_t
     return hit
