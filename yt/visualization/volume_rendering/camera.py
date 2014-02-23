@@ -550,6 +550,7 @@ class Camera(ParallelAnalysisInterface):
     star_trees = None
     def get_sampler(self, args):
         kwargs = {}
+        kwargs['zbuffer'] = np.ones((self.resolution[0], self.resolution[1]))
         if self.star_trees is not None:
             kwargs = {'star_list': self.star_trees}
         if self.use_light:
