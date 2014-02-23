@@ -569,7 +569,7 @@ class Camera(ParallelAnalysisInterface):
         return sampler
 
     def finalize_image(self, image):
-        view_pos = self.front_center + self.orienter.unit_vectors[2] * 1.0e6 * self.width[2]
+        view_pos = self.front_center - self.orienter.unit_vectors[2] * 1.0e6 * self.width[2]
         image = self.volume.reduce_tree_images(image, view_pos)
         if self.transfer_function.grey_opacity is False:
             image[:,:,3]=1.0
@@ -584,7 +584,7 @@ class Camera(ParallelAnalysisInterface):
                     if np.any(np.isnan(data)):
                         raise RuntimeError
 
-        view_pos = self.back_center - self.orienter.unit_vectors[2] * 1.0e6 * self.width[2]
+        view_pos = self.front_center + self.orienter.unit_vectors[2] * 1.0e6 * self.width[2]
         for brick in self.volume.traverse(view_pos):
             sampler(brick, num_threads=num_threads)
             total_cells += np.prod(brick.my_data[0].shape)
