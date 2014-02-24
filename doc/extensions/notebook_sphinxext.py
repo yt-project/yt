@@ -118,7 +118,7 @@ def nb_to_html(nb_path):
     filter_strings.extend(['h%s{' % (i+1) for i in range(6)])
 
     header_lines = filter(
-        lambda x: not any([s in x for s in filter_strings]), header.split('\n')
+        lambda x: not any([s in x for s in filter_strings]), header.split('\n'))
     header = '\n'.join(header_lines)
 
     # concatenate raw html lines
