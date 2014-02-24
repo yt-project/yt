@@ -111,30 +111,19 @@ def nb_to_html(nb_path):
 
     # http://imgur.com/eR9bMRH
     header = header.replace('<style', '<style scoped="scoped"')
-    header = header.replace('body{background-color:#ffffff;}\n', '')
-    header = header.replace('body{background-color:white;position:absolute;'
-                            'left:0px;right:0px;top:0px;bottom:0px;'
-                            'overflow:visible;}\n', '')
-    header = header.replace('body{margin:0;'
-                            'font-family:"Helvetica Neue",Helvetica,Arial,'
-                            'sans-serif;font-size:13px;line-height:20px;'
-                            'color:#000000;background-color:#ffffff;}', '')
     header = header.replace('\na{color:#0088cc;text-decoration:none;}', '')
-    header = header.replace(
-        'a:focus{color:#005580;text-decoration:underline;}', '')
-    header = header.replace(
-        '\nh1,h2,h3,h4,h5,h6{margin:10px 0;font-family:inherit;font-weight:bold;'
-        'line-height:20px;color:inherit;text-rendering:optimizelegibility;}'
-        'h1 small,h2 small,h3 small,h4 small,h5 small,'
-        'h6 small{font-weight:normal;line-height:1;color:#999999;}'
-        '\nh1,h2,h3{line-height:40px;}\nh1{font-size:35.75px;}'
-        '\nh2{font-size:29.25px;}\nh3{font-size:22.75px;}'
-        '\nh4{font-size:16.25px;}\nh5{font-size:13px;}'
-        '\nh6{font-size:11.049999999999999px;}\nh1 small{font-size:22.75px;}'
-        '\nh2 small{font-size:16.25px;}\nh3 small{font-size:13px;}'
-        '\nh4 small{font-size:13px;}', '')
+    header = header.replace('a:focus{color:#005580;text-decoration:underline;}', '')
     header = header.replace('body {\n  overflow: visible;\n  padding: 8px;\n}\n', '')
     header = header.replace('background-color:#ffffff;', '', 1)
+    # Filter out styles for input, navbar, body, and h1-h6
+    header_lines = header.split('\n')
+    header_lines = filter(lambda x: 'navbar' not in x, header_lines)
+    header_lines = filter(lambda x: 'body{' not in x, header_lines)
+    header_lines = filter(lambda x: 'uneditable-input{' not in x, header_lines)
+    for el in range(6):
+        string = 'h'+str(el+1)+'{'
+        header_lines = filter(lambda x: string not in x, header_lines)
+    header = '\n'.join(header_lines)
 
     # concatenate raw html lines
     lines = ['<div class="ipynotebook">']
