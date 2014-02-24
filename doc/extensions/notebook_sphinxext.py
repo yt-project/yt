@@ -114,7 +114,13 @@ def nb_to_html(nb_path):
     header = header.replace('body {\n  overflow: visible;\n  padding: 8px;\n}\n', '')
 
     # Filter out styles that conflict with the sphinx theme.
-    filter_strings = ['navbar', 'body{', 'alert{', 'uneditable-input{']
+    filter_strings = [
+        'navbar',
+        'body{',
+        'alert{',
+        'uneditable-input{',
+        'collapse{',
+    ]
     filter_strings.extend(['h%s{' % (i+1) for i in range(6)])
 
     header_lines = filter(
