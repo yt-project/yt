@@ -111,19 +111,14 @@ def nb_to_html(nb_path):
 
     # http://imgur.com/eR9bMRH
     header = header.replace('<style', '<style scoped="scoped"')
-    header = header.replace('\na{color:#0088cc;text-decoration:none;}', '')
-    header = header.replace('a:focus{color:#005580;text-decoration:underline;}', '')
     header = header.replace('body {\n  overflow: visible;\n  padding: 8px;\n}\n', '')
-    header = header.replace('background-color:#ffffff;', '', 1)
-    # Filter out styles for input, navbar, body, and h1-h6
-    header_lines = header.split('\n')
-    header_lines = filter(lambda x: 'navbar' not in x, header_lines)
-    header_lines = filter(lambda x: 'body{' not in x, header_lines)
-    header_lines = filter(lambda x: 'alert{' not in x, header_lines)
-    header_lines = filter(lambda x: 'uneditable-input{' not in x, header_lines)
-    for el in range(6):
-        string = 'h'+str(el+1)+'{'
-        header_lines = filter(lambda x: string not in x, header_lines)
+
+    # Filter out styles that conflict with the sphinx theme.
+    filter_strings = ['navbar', 'body{', 'alert{', 'uneditable-input{']
+    filter_strings.extend(['h%s{' % (i+1) for i in range(6)])
+
+    header_lines = filter(
+        lambda x: not any([s in x for s in filter_strings]), header.split('\n')
     header = '\n'.join(header_lines)
 
     # concatenate raw html lines
