@@ -119,6 +119,7 @@ def nb_to_html(nb_path):
     header_lines = header.split('\n')
     header_lines = filter(lambda x: 'navbar' not in x, header_lines)
     header_lines = filter(lambda x: 'body{' not in x, header_lines)
+    header_lines = filter(lambda x: 'alert{' not in x, header_lines)
     header_lines = filter(lambda x: 'uneditable-input{' not in x, header_lines)
     for el in range(6):
         string = 'h'+str(el+1)+'{'
