@@ -1,7 +1,7 @@
 .. _units:
 
-Symbolic units in yt
-====================
+Symbolic Units
+==============
 
 This section describes yt's symbolic unit capabilities. This is provided as
 quick introduction for those who are already familiar with yt but want to learn
