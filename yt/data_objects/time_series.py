@@ -138,6 +138,9 @@ class TimeSeriesData(object):
 
     def __init__(self, outputs, parallel = True, setup_function = None,
                  **kwargs):
+        # This is needed to properly set _pre_outputs for Simulation subclasses.
+        if iterable(outputs) and not isinstance(outputs, basestring):
+            self._pre_outputs = outputs[:]
         self.tasks = AnalysisTaskProxy(self)
         self.params = TimeSeriesParametersContainer(self)
         if setup_function is None:
