@@ -102,13 +102,18 @@ from the bash prompt:
 This variable is set for automated builds on the free ReadTheDocs service but
 can be used by anyone to force a quick, minimal build.
 
-Editing the Sphinx :code:`conf.py` file included in the docs :code:`source`
-directory at the top level of the docs.  The extensions included in the build
-are contained in the :code:`extensions` list.
+It's also possible to create a custom sphinx build that builds a restricted set
+of notebooks or scripts.  This can be accomplished by editing the Sphinx
+:code:`conf.py` file included in the :code:`source` directory at the top level
+of the docs.  The extensions included in the build are contained in the
+:code:`extensions` list.  To disable an extension, simply remove it from the
+list.  Doing so will raise a warning when sphinx encounters the directive in the
+docs and will prevent sphinx from evaluating the directive.
 
-If one wanted to include the :code:`notebook`, and :code:`notebook-cell`
-directives, but not the :code:`python-script` or :code:`autosummary` directives,
-one would just need to comment out the lines that append these extensions to the
-:code:`extensions` list. The resulting docs build will be significantly quicker
-since it would avoid executing the lengthy API docs autogeneration and some slow
-scripts in the plotting examples.
+As a concrete example, if one wanted to include the :code:`notebook`, and
+:code:`notebook-cell` directives, but not the :code:`python-script` or
+:code:`autosummary` directives, one would just need to comment out the lines
+that append these extensions to the :code:`extensions` list. The resulting docs
+build will be significantly quicker since it would avoid executing the lengthy
+API autodocumentation as well as a large number of python script snippets in
+the narrative docs.
