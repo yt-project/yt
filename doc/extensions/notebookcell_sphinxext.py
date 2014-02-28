@@ -17,8 +17,9 @@ class NotebookCellDirective(Directive):
     script into html suitable for embedding in a Sphinx document.
     """
     required_arguments = 0
-    optional_arguments = 0
+    optional_arguments = 1
     has_content = True
+    option_spec = {'skip_exceptions' : directives.flag}
 
     def run(self):
         # check if raw html is supported
@@ -32,8 +33,11 @@ class NotebookCellDirective(Directive):
 
         convert_to_ipynb('temp.py', 'temp.ipynb')
 
+        skip_exceptions = 'skip_exceptions' in self.options
+
         try:
-            evaluated_text = evaluate_notebook('temp.ipynb')
+            evaluated_text = \
+                evaluate_notebook('temp.ipynb', skip_exceptions=skip_exceptions)
         except:
             # bail
             return []

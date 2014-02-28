@@ -1,3 +1,5 @@
+.. _visualizing:
+
 Visualizing Data
 ================
 

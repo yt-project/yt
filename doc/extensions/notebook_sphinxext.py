@@ -12,7 +12,8 @@ class NotebookDirective(Directive):
     into html suitable for embedding in a Sphinx document.
     """
     required_arguments = 1
-    optional_arguments = 0
+    optional_arguments = 1
+    option_spec = {'skip_exceptions' : directives.flag}
 
     def run(self):
         # check if raw html is supported
@@ -54,8 +55,11 @@ class NotebookDirective(Directive):
         f.write(script_text.encode('utf8'))
         f.close()
 
+        skip_exceptions = 'skip_exceptions' in self.options
+
         try:
-            evaluated_text = evaluate_notebook(nb_abs_path, dest_path_eval)
+            evaluated_text = evaluate_notebook(nb_abs_path, dest_path_eval,
+                                               skip_exceptions=skip_exceptions)
         except:
             # bail
             return []
@@ -107,29 +111,21 @@ def nb_to_html(nb_path):
 
     # http://imgur.com/eR9bMRH
     header = header.replace('<style', '<style scoped="scoped"')
-    header = header.replace('body{background-color:#ffffff;}\n', '')
-    header = header.replace('body{background-color:white;position:absolute;'
-                            'left:0px;right:0px;top:0px;bottom:0px;'
-                            'overflow:visible;}\n', '')
-    header = header.replace('body{margin:0;'
-                            'font-family:"Helvetica Neue",Helvetica,Arial,'
-                            'sans-serif;font-size:13px;line-height:20px;'
-                            'color:#000000;background-color:#ffffff;}', '')
-    header = header.replace('\na{color:#0088cc;text-decoration:none;}', '')
-    header = header.replace(
-        'a:focus{color:#005580;text-decoration:underline;}', '')
-    header = header.replace(
-        '\nh1,h2,h3,h4,h5,h6{margin:10px 0;font-family:inherit;font-weight:bold;'
-        'line-height:20px;color:inherit;text-rendering:optimizelegibility;}'
-        'h1 small,h2 small,h3 small,h4 small,h5 small,'
-        'h6 small{font-weight:normal;line-height:1;color:#999999;}'
-        '\nh1,h2,h3{line-height:40px;}\nh1{font-size:35.75px;}'
-        '\nh2{font-size:29.25px;}\nh3{font-size:22.75px;}'
-        '\nh4{font-size:16.25px;}\nh5{font-size:13px;}'
-        '\nh6{font-size:11.049999999999999px;}\nh1 small{font-size:22.75px;}'
-        '\nh2 small{font-size:16.25px;}\nh3 small{font-size:13px;}'
-        '\nh4 small{font-size:13px;}', '')
-    header = header.replace('background-color:#ffffff;', '', 1)
+    header = header.replace('body {\n  overflow: visible;\n  padding: 8px;\n}\n', '')
+
+    # Filter out styles that conflict with the sphinx theme.
+    filter_strings = [
+        'navbar',
+        'body{',
+        'alert{',
+        'uneditable-input{',
+        'collapse{',
+    ]
+    filter_strings.extend(['h%s{' % (i+1) for i in range(6)])
+
+    header_lines = filter(
+        lambda x: not any([s in x for s in filter_strings]), header.split('\n'))
+    header = '\n'.join(header_lines)
 
     # concatenate raw html lines
     lines = ['<div class="ipynotebook">']
@@ -138,12 +134,12 @@ def nb_to_html(nb_path):
     lines.append('</div>')
     return '\n'.join(lines)
 
-def evaluate_notebook(nb_path, dest_path=None):
+def evaluate_notebook(nb_path, dest_path=None, skip_exceptions=False):
     # Create evaluated version and save it to the dest path.
     # Always use --pylab so figures appear inline
     # perhaps this is questionable?
     nb_runner = NotebookRunner(nb_in=nb_path, pylab=True)
-    nb_runner.run_notebook()
+    nb_runner.run_notebook(skip_exceptions=skip_exceptions)
     if dest_path is None:
         dest_path = 'temp_evaluated.ipynb'
     nb_runner.save_notebook(dest_path)

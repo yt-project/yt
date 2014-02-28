@@ -15,21 +15,6 @@ import sys, os, glob, re
 from sphinx.search import WordCollector
 from docutils.nodes import comment, title, Text, SkipNode
 
-# Monkeypatching Sphinx search indexing to avoid indexing embedded
-# images, videos.
-def dispatch_visit(self, node):
-    if node.__class__ is comment:
-        raise SkipNode
-    nodetext = re.sub(r'<img[^<]+?>', '', node.astext())
-    nodetext = re.sub(r'<video[^<]+?>', '', nodetext)
-    nodetext = re.sub(r'<(script).*?</\1>(?s)', '', nodetext)
-    if node.__class__ is Text:
-        self.found_words.extend(self.lang.split(nodetext))
-    elif node.__class__ is title:
-        self.found_title_words.extend(self.lang.split(nodetext))
-
-WordCollector.dispatch_visit = dispatch_visit
-
 on_rtd = os.environ.get("READTHEDOCS", None) == "True"
 
 # If extensions (or modules to document with autodoc) are in another directory,

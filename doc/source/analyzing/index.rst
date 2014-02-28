@@ -1,3 +1,5 @@
+.. _analyzing:
+
 Analyzing Data
 ==============
 
@@ -5,6 +7,7 @@ Analyzing Data
    :maxdepth: 2
 
    objects
+   units/index
    particles
    creating_derived_fields
    generating_processed_data
