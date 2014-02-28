@@ -11,6 +11,5 @@
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
     config = Configuration('extern', parent_package, top_path)
-    config.add_subpackage("progressbar")
     config.make_config_py()
     return config
