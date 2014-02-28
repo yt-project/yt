@@ -27,6 +27,7 @@ from yt.utilities.physical_constants import clight, \
      cm_per_km, erg_per_keV
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.orientation import Orientation
+from yt.utilities.definitions import mpc_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only, get_mpi_type, \
      op_names, parallel_capable
@@ -415,7 +416,8 @@ class PhotonList(object):
     def project_photons(self, L, area_new=None, exp_time_new=None, 
                         redshift_new=None, dist_new=None,
                         absorb_model=None, psf_sigma=None,
-                        sky_center=None, responses=None):
+                        sky_center=None, responses=None,
+                        convolve_energies=False):
         r"""
         Projects photons onto an image plane given a line of sight.
 
@@ -443,8 +445,10 @@ class PhotonList(object):
         sky_center : array_like, optional
             Center RA, Dec of the events in degrees.
         responses : list of strings, optional
-            The names of the ARF and RMF files to convolve the photons with.
-
+            The names of the ARF and/or RMF files to convolve the photons with.
+        convolve_energies : boolean, optional
+            If this is set, the photon energies will be convolved with the RMF.
+            
         Examples
         --------
         >>> L = np.array([0.1,-0.2,0.3])
@@ -486,8 +490,10 @@ class PhotonList(object):
         parameters = {}
         
         if responses is not None:
+            responses = ensure_list(responses)
             parameters["ARF"] = responses[0]
-            parameters["RMF"] = responses[1]
+            if len(responses) == 2:
+                parameters["RMF"] = responses[1]
             area_new = parameters["ARF"]
             
         if (exp_time_new is None and area_new is None and
@@ -509,8 +515,13 @@ class PhotonList(object):
                 elo = f["SPECRESP"].data.field("ENERG_LO")
                 ehi = f["SPECRESP"].data.field("ENERG_HI")
                 eff_area = np.nan_to_num(f["SPECRESP"].data.field("SPECRESP"))
-                weights = self._normalize_arf(parameters["RMF"])
-                eff_area *= weights
+                if "RMF" in parameters:
+                    weights = self._normalize_arf(parameters["RMF"])
+                    eff_area *= weights
+                else:
+                    mylog.warning("You specified an ARF but not an RMF. This is ok if the "+
+                                  "responses are normalized properly. If not, you may "+
+                                  "get inconsistent results.")
                 f.close()
                 Aratio = eff_area.max()/self.parameters["FiducialArea"]
             else:
@@ -523,7 +534,11 @@ class PhotonList(object):
             else:
                 if redshift_new is None:
                     zobs = 0.0
-                    D_A = dist[0]*self.pf.units["kpc"]/self.pf.units[dist[1]]
+                    if dist_new[1] not in mpc_conversion:
+                        mylog.error("Please specify dist_new in one of the following units: %s",
+                                    mpc_conversion.keys())
+                        raise KeyError
+                    D_A = dist_new[0]*mpc_conversion["kpc"]/mpc_conversion[dist_new[1]]
                 else:
                     zobs = redshift_new
                     D_A = self.cosmo.AngularDiameterDistance(0.0,zobs)*1000.
@@ -609,7 +624,7 @@ class PhotonList(object):
             
         if comm.rank == 0: mylog.info("Total number of observed photons: %d" % (num_events))
 
-        if responses is not None:
+        if "RMF" in parameters and convolve_energies:
             events, info = self._convolve_with_rmf(parameters["RMF"], events)
             for k, v in info.items(): parameters[k] = v
                 
@@ -733,8 +748,8 @@ class EventList(object) :
         self.wcs.wcs.cunit = ["deg"]*2                                                
         (self.events["xsky"],
          self.events["ysky"]) = \
-         self.wcs.wcs_pix2world(self.events["xpix"], self.events["ypix"],
-                                1, ra_dec_order=True)
+         self.wcs.wcs_pix2world(self.events["xpix"],
+                                self.events["ypix"], 1)
 
     def keys(self):
         return self.events.keys()

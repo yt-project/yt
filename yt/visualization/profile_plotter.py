@@ -28,7 +28,9 @@ from matplotlib.font_manager import FontProperties
 
 from .plot_window import WindowPlotMPL
 from .base_plot_types import ImagePlotMPL
-from .plot_container import ImagePlotContainer
+from .plot_container import \
+    ImagePlotContainer, \
+    log_transform, linear_transform
 from .image_writer import \
     write_image, apply_colormap
 from yt.data_objects.profiles import \
@@ -532,6 +534,7 @@ class PhasePlot(ImagePlotContainer):
         self.plot_title = {}
         self.z_log = {}
         self.z_title = {}
+        self._initfinished = False
 
         if profile is None:
             profile = create_profile(data_source,
@@ -545,6 +548,7 @@ class PhasePlot(ImagePlotContainer):
                                     figure_size, fontsize)
         # This is a fallback, in case we forget.
         self._setup_plots()
+        self._initfinished = True
 
     def _get_field_title(self, field_z, profile):
         pf = profile.data_source.pf
@@ -621,6 +625,10 @@ class PhasePlot(ImagePlotContainer):
             self.plots[f].axes.xaxis.set_label_text(x_title)
             self.plots[f].axes.yaxis.set_label_text(y_title)
             self.plots[f].cax.yaxis.set_label_text(z_title)
+            if z_scale == "log":
+                self._field_transform[f] = log_transform
+            else:
+                self._field_transform[f] = linear_transform
             if f in self.plot_title:
                 self.plots[f].axes.set_title(self.plot_title[f])
 
@@ -633,6 +641,7 @@ class PhasePlot(ImagePlotContainer):
                   [ax.xaxis.label, ax.yaxis.label, cbax.yaxis.label]
                 for label in labels:
                     label.set_color(self._font_color)
+        self._plot_valid = True
 
     def save(self, name=None, mpl_kwargs=None):
         r"""
@@ -702,6 +711,7 @@ class PhasePlotMPL(WindowPlotMPL):
     def __init__(self, x_data, y_data, data, 
                  x_scale, y_scale, z_scale, cmap,
                  zlim, size, fontsize, figure, axes, cax):
+        self._initfinished = False
         self._draw_colorbar = True
         self._draw_axes = True
         self._cache_layout(size, fontsize)
@@ -723,6 +733,7 @@ class PhasePlotMPL(WindowPlotMPL):
                               figure, axes, cax)
         self._init_image(x_data, y_data, data, x_scale, y_scale, z_scale,
                          zlim, cmap)
+        self._initfinished = True
 
     def _init_image(self, x_data, y_data, image_data, 
                     x_scale, y_scale, z_scale, zlim, cmap):

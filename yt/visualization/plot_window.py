@@ -885,6 +885,7 @@ class ProjectionPlot(PWViewerMPL):
          If set to 'c', 'center' or left blank, the plot is centered on the
          middle of the domain. If set to 'max' or 'm', the center will be at 
          the point of highest density.
+    width : tuple or a float.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:
 
@@ -1149,8 +1150,6 @@ class OffAxisProjectionPlot(PWViewerMPL):
         self.set_axes_unit(axes_unit)
 
     def _recreate_frb(self):
-        if self._frb is not None:
-            raise NotImplementedError
         super(OffAxisProjectionPlot, self)._recreate_frb()
 
 _metadata_template = """

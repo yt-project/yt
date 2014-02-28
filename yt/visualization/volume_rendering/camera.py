@@ -239,8 +239,7 @@ class Camera(ParallelAnalysisInterface):
         else:
             self.use_kd = isinstance(volume, AMRKDTree)
         self.volume = volume        
-        self.center = (self.re + self.le) / 2.0
-        self.region = self.pf.h.region(self.center, self.le, self.re)
+        self.region = None
 
     def _setup_box_properties(self, width, center, unit_vectors):
         self.width = width
@@ -299,6 +298,9 @@ class Camera(ParallelAnalysisInterface):
         >>> write_bitmap(im, 'render_with_grids.png')
 
         """
+        if self.region is None:
+            self.region = self.pf.h.region((self.re + self.le) / 2.0,
+                                           self.le, self.re)
         corners = self.region.grid_corners
         levels = self.region.grid_levels[:,0]
 

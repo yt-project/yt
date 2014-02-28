@@ -15,9 +15,18 @@ import numpy as np
 import os
 from yt.funcs import *
 import h5py
+
+try:
+    import xspec
+except ImportError:
+    pass
+
 try:
     import astropy.io.fits as pyfits
-    import xspec
+except ImportError:
+    pass
+
+try:
     from scipy.integrate import cumtrapz
     from scipy import stats        
 except ImportError:
