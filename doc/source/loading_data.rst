@@ -80,10 +80,6 @@ You would feed it the filename ``pltgmlcs5600``:
    from yt.mods import *
    pf = load("pltgmlcs5600")
 
-.. rubric:: Caveats
-
-* There are no major caveats for Orion usage
-
 .. _loading-flash-data:
 
 FLASH Data
@@ -130,11 +126,11 @@ consistent with the grid structure of the latter), its data may be loaded with t
 RAMSES Data
 -----------
 
-RAMSES data enjoys preliminary support and is cared for by Matthew Turk.  If
-you are interested in taking a development or stewardship role, please contact
-him.  To load a RAMSES dataset, you can use the ``load`` command provided by
-``yt.mods`` and supply to it the ``info*.txt`` filename.  For instance, if you
-were in a directory with the following files:
+In yt-3.0, RAMSES data is fully supported.  If you are interested in taking a
+development or stewardship role, please contact the yt-dev mailing list.  To
+load a RAMSES dataset, you can use the ``load`` command provided by ``yt.mods``
+and supply to it the ``info*.txt`` filename.  For instance, if you were in a
+directory with the following files:
 
 .. code-block:: none
 
@@ -152,21 +148,90 @@ You would feed it the filename ``output_00007/info_00007.txt``:
    from yt.mods import *
    pf = load("output_00007/info_00007.txt")
 
-.. rubric:: Caveats
+.. _loading-gadget-data:
 
-* Please be careful that the units are correctly set!  This may not be the
-  case for RAMSES data
-* Upon instantiation of the hierarchy, yt will attempt to regrid the entire
-  domain to ensure minimum-coverage from a set of grid patches.  (This is
-  described in the yt method paper.)  This is a time-consuming process and it
-  has not yet been written to be stored between calls.
-* Particles are not supported
-* Parallelism will not be terribly efficient for large datasets
-* There may be occasional segfaults on multi-domain data, which do not
-  reflect errors in the calculation
+Gadget Data
+-----------
 
-If you are interested in helping with RAMSES support, we are eager to hear from
-you!
+yt has support for reading Gadget data in both raw binary and HDF5 formats.  It
+is able to access the particles as it would any other particle dataset, and it
+can apply smoothing kernels to the data to produce both quantitative analysis
+and visualization.
+
+Gadget data in HDF5 format can be loaded with the ``load`` command:
+
+.. code-block:: python
+
+   from yt.mods import *
+   pf = load("snapshot_061.hdf5")
+
+However, yt cannot detect raw-binary Gadget data, and so you must specify the
+format as being Gadget:
+
+.. code-block:: python
+
+   from yt.mods import *
+   pf = GadgetStaticOutput("snapshot_061")
+
+Units and Bounding Boxes
+++++++++++++++++++++++++
+
+There are two additional pieces of information that may be needed.  If your
+simulation is cosmological, yt can often guess the bounding box and the units
+of the simulation.  However, for isolated simulations and for cosmological
+simulations with non-standard units, these must be supplied.  For example, if
+a length unit of 1.0 corresponds to a kiloparsec, you can supply this in the
+constructor.  yt can accept units such as ``Mpc``, ``kpc``, ``cm``, ``Mpccm/h``
+and so on.  In particular, note that ``Mpc/h`` and ``Mpccm/h`` (``cm`` for
+comoving here) are usable unit definitions.
+
+yt will attempt to use units for ``mass``, ``length`` and ``time`` as supplied
+in the argument ``unit_base``.  The ``bounding_box`` argument is a list of
+two-item tuples or lists that describe the left and right extents of the
+particles.
+
+.. code-block:: python
+
+   pf = GadgetStaticOutput("snap_004",
+           unit_base = {'length': ('kpc', 1.0)},
+           bounding_box = [[-600.0, 600.0], [-600.0, 600.0], [-600.0, 600.0]])
+
+Indexing Criteria
++++++++++++++++++
+
+yt generates a global mesh index via octree that governs the resolution of
+volume elements.  This is governed by two parameters, ``n_ref`` and
+``over_refine_factor``.  They are weak proxies for each other.  The first,
+``n_ref``, governs how many particles in an oct results in that oct being
+refined into eight child octs.  Lower values mean higher resolution; the
+default is 64.  The secon parameter, ``over_refine_factor``, governs how many
+cells are in a given oct; the default value of 1 corresponds to 8 cells.
+The number of cells in an oct is defined by the expression
+``2**(3*over_refine_factor)``.
+
+It's recommended that if you want higher-resolution, try reducing the value of
+``n_ref`` to 32 or 16.
+
+Field Specifications
+++++++++++++++++++++
+
+Particle Type Definitions
++++++++++++++++++++++++++
+
+.. _loading-moab-data:
+
+MOAB Data
+---------
+
+.. _loading-tipsy-data:
+
+Tipsy Data
+----------
+
+.. _loading-artio-data:
+
+ARTIO Data
+----------
 
 .. _loading-art-data:
 
@@ -336,3 +401,5 @@ setting the ``number_of_particles`` key to each ``grid``'s dict:
   not bounded within another grid at a higher level, so this must be
   ensured by the user prior to loading the grid data. 
 
+Generic Particle Data
+---------------------
