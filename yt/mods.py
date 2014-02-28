@@ -40,6 +40,8 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.performance_counters import yt_counters, time_function
 from yt.config import ytcfg, ytcfg_defaults
 import yt.utilities.physical_constants as physical_constants
+import yt.units as units
+from yt.units.yt_array import YTArray, YTQuantity
 
 from yt.utilities.logger import level as __level
 if __level >= int(ytcfg_defaults["loglevel"]):
