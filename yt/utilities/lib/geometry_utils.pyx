@@ -18,6 +18,7 @@ cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free
 from fp_utils cimport fclip
+from libc.math cimport copysign
 
 cdef extern from "math.h":
     double exp(double x) nogil
@@ -432,3 +433,87 @@ def obtain_rv_vec(data):
                     rvg[1,i,j,k] = vyg[i,j,k] - bv[1]
                     rvg[2,i,j,k] = vzg[i,j,k] - bv[2]
         return rvg
+
+cdef struct PointSet
+cdef struct PointSet:
+    int count
+    # First index is point index, second is xyz
+    np.float64_t points[3][3]
+    PointSet *next
+
+cdef inline void get_intersection(np.float64_t p0[3], np.float64_t p1[3],
+                                  int ax, np.float64_t coord, PointSet *p):
+    cdef np.float64_t vec[3], t
+    for j in range(3):
+        vec[j] = p1[j] - p0[j]
+    t = (coord - p0[ax])/vec[ax]
+    # We know that if they're on opposite sides, it has to intersect.  And we
+    # won't get called otherwise.
+    for j in range(3):
+        p.points[p.count][j] = p0[j] + vec[j] * t
+    p.count += 1
+
+def triangle_plane_intersect(int ax, np.float64_t coord,
+                             np.ndarray[np.float64_t, ndim=3] triangles):
+    cdef np.float64_t p0[3], p1[3], p2[3], p3[3]
+    cdef int i, j, k, count, i0, i1, i2, ntri, nlines
+    nlines = 0
+    ntri = triangles.shape[0]
+    cdef PointSet *first, *last, *points
+    first = last = points = NULL
+    for i in range(ntri):
+        count = 0
+        # Now for each line segment (01, 12, 20) we check to see how many cross
+        # the coordinate.
+        for j in range(3):
+            p3[j] = copysign(1.0, triangles[i, j, ax] - coord)
+        if p3[0] * p3[1] < 0: count += 1
+        if p3[1] * p3[2] < 0: count += 1
+        if p3[2] * p3[0] < 0: count += 1
+        if count == 2:
+            nlines += 1
+        elif count == 3:
+            nlines += 2
+        else:
+            continue
+        points = <PointSet *> malloc(sizeof(PointSet))
+        points.count = 0
+        points.next = NULL
+        if p3[0] * p3[1] < 0:
+            for j in range(3):
+                p0[j] = triangles[i, 0, j]
+                p1[j] = triangles[i, 1, j]
+            get_intersection(p0, p1, ax, coord, points)
+        if p3[1] * p3[2] < 0:
+            for j in range(3):
+                p0[j] = triangles[i, 1, j]
+                p1[j] = triangles[i, 2, j]
+            get_intersection(p0, p1, ax, coord, points)
+        if p3[2] * p3[0] < 0:
+            for j in range(3):
+                p0[j] = triangles[i, 2, j]
+                p1[j] = triangles[i, 0, j]
+            get_intersection(p0, p1, ax, coord, points)
+        if last != NULL:
+            last.next = points
+        if first == NULL:
+            first = points
+        last = points
+    points = first
+    cdef np.ndarray[np.float64_t, ndim=3] line_segments
+    line_segments = np.empty((nlines, 2, 3), dtype="float64")
+    k = 0
+    while points != NULL:
+        for j in range(3):
+            line_segments[k, 0, j] = points.points[0][j]
+            line_segments[k, 1, j] = points.points[1][j]
+        k += 1
+        if points.count == 3:
+            for j in range(3):
+                line_segments[k, 0, j] = points.points[1][j]
+                line_segments[k, 1, j] = points.points[2][j]
+            k += 1
+        last = points
+        points = points.next
+        free(last)
+    return line_segments
