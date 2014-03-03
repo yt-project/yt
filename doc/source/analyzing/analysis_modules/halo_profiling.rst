@@ -113,7 +113,7 @@ profiling with the :meth:`add_profile` method:
 
 .. code-block:: python
 
-  hp.add_profile('CellVolume', weight_field=None, accumulation=True)
+  hp.add_profile('cell_volume', weight_field=None, accumulation=True)
   hp.add_profile('TotalMassMsun', weight_field=None, accumulation=True)
   hp.add_profile('density', weight_field=None, accumulation=False)
   hp.add_profile('temperature', weight_field='CellMassMsun', accumulation=False)

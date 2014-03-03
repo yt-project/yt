@@ -893,7 +893,7 @@ the volume of the cells.
     print n,'n'
     
     # Instantiate our TPF object.
-    tpf = TwoPointFunctions(pf, ['density', 'CellVolume'],
+    tpf = TwoPointFunctions(pf, ['density', 'cell_volume'],
         total_values=1e5, comm_size=10000, 
         length_number=11, length_range=[-1, .5],
         length_type="lin", vol_ratio=1)
