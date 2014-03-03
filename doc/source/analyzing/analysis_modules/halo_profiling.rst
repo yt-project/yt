@@ -424,7 +424,7 @@ temperature for a given halo.
        my_profile = BinnedProfile2D(sphere,
              128, 'density', 1e-30, 1e-24, True,
              128, 'temperature', 1e2, 1e7, True,
-             lazy_reader=True, end_collect=False)
+             end_collect=False)
        my_profile.add_fields('cell_mass', weight=None, fractional=False)
        my_filename = os.path.join(sphere.pf.fullpath, '2D_profiles', 
              'Halo_%04d.h5' % halo['id'])
