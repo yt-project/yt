@@ -59,7 +59,7 @@ add_field("FreeFree_Emission", function=_FreeFree_Emission)
 # Define the luminosity derived quantity
 
 def _FreeFreeLuminosity(data) :
-    return (data["FreeFree_Emission"]*data["CellVolume"]).sum()
+    return (data["FreeFree_Emission"]*data["cell_volume"]).sum()
 
 def _combFreeFreeLuminosity(data, luminosity) :
     return luminosity.sum()

@@ -26,7 +26,7 @@ hp.add_halo_filter(amods.halo_profiler.VirialFilter, must_be_virialized=True,
                    virial_quantities=['TotalMassMsun', 'RadiusMpc'])
 
 # Add profile fields.
-hp.add_profile('CellVolume', weight_field=None, accumulation=True)
+hp.add_profile('cell_volume', weight_field=None, accumulation=True)
 hp.add_profile('TotalMassMsun', weight_field=None, accumulation=True)
 hp.add_profile('density', weight_field='cell_mass', accumulation=False)
 hp.add_profile('temperature', weight_field='cell_mass', accumulation=False)
