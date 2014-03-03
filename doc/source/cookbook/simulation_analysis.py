@@ -10,7 +10,7 @@ my_sim.get_time_series()
 all_storage = {}
 for my_storage, pf in my_sim.piter(storage=all_storage):
     all_data = pf.h.all_data()
-    my_extrema = all_data.quantities['Extrema']('Density')
+    my_extrema = all_data.quantities['Extrema']('density')
 
     # Save to storage so we can get at it afterward.
     my_storage.result = my_extrema

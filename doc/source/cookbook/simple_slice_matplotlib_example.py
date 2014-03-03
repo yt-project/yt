@@ -4,10 +4,10 @@ from yt.mods import *
 pf = load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
 
 # Create a slice object
-slc = SlicePlot(pf,'x','Density',width=(800.0,'kpc'))
+slc = SlicePlot(pf,'x','density',width=(800.0,'kpc'))
 
 # Get a reference to the matplotlib axes object for the plot
-ax = slc.plots['Density'].axes
+ax = slc.plots['density'].axes
 
 # Let's adjust the x axis tick labels
 for label in ax.xaxis.get_ticklabels():
@@ -16,7 +16,7 @@ for label in ax.xaxis.get_ticklabels():
     label.set_fontsize(16)
 
 # Get a reference to the matplotlib figure object for the plot
-fig = slc.plots['Density'].figure
+fig = slc.plots['density'].figure
 
 rect = (0.2,0.2,0.2,0.2)
 new_ax = fig.add_axes(rect)

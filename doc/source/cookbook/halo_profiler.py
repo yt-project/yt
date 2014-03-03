@@ -7,7 +7,7 @@ from yt.analysis_modules.halo_profiler.api import *
 # halo id, center, etc.
 # The second argument is the sphere centered on the halo.
 def get_density_extrema(halo, sphere):
-    my_extrema = sphere.quantities['Extrema']('Density')
+    my_extrema = sphere.quantities['Extrema']('density')
     mylog.info('Halo %d has density extrema: %s',
                halo['id'], my_extrema)
 
@@ -28,7 +28,7 @@ hp.add_halo_filter(amods.halo_profiler.VirialFilter, must_be_virialized=True,
 # Add profile fields.
 hp.add_profile('CellVolume', weight_field=None, accumulation=True)
 hp.add_profile('TotalMassMsun', weight_field=None, accumulation=True)
-hp.add_profile('Density', weight_field='CellMassMsun', accumulation=False)
+hp.add_profile('density', weight_field='CellMassMsun', accumulation=False)
 hp.add_profile('Temperature', weight_field='CellMassMsun', accumulation=False)
 
 # Make profiles and output filtered halo list to FilteredQuantities.h5.
@@ -36,9 +36,9 @@ hp.make_profiles(filename="FilteredQuantities.h5",
                  profile_format='hdf5', njobs=-1)
 
 # Add projection fields.
-hp.add_projection('Density', weight_field=None)
-hp.add_projection('Temperature', weight_field='Density')
-hp.add_projection('Metallicity', weight_field='Density')
+hp.add_projection('density', weight_field=None)
+hp.add_projection('Temperature', weight_field='density')
+hp.add_projection('Metallicity', weight_field='density')
 
 # Make projections just along the x axis using the filtered halo list.
 hp.make_projections(save_cube=False, save_images=True,

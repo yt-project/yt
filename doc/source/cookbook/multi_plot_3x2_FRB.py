@@ -39,7 +39,7 @@ for ax in range(3):
         ax.xaxis.set_visible(False)
         ax.yaxis.set_visible(False)
 
-    plots.append(den_axis.imshow(frb['Density'], norm=LogNorm()))
+    plots.append(den_axis.imshow(frb['density'], norm=LogNorm()))
     plots[-1].set_clim((5e-32, 1e-29))
     plots[-1].set_cmap("bds_highcontrast")
 

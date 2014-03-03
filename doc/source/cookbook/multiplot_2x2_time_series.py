@@ -24,13 +24,13 @@ grid = AxesGrid(fig, (0.075,0.075,0.85,0.85),
 for i, fn in enumerate(fns):
     # Load the data and create a single plot
     pf = load(fn) # load data
-    p = ProjectionPlot(pf, 'z', 'Density', width=(55, 'Mpccm'))
+    p = ProjectionPlot(pf, 'z', 'density', width=(55, 'Mpccm'))
 
     # Ensure the colorbar limits match for all plots
-    p.set_zlim('Density', 1e-4, 1e-2)
+    p.set_zlim('density', 1e-4, 1e-2)
 
     # This forces the ProjectionPlot to redraw itself on the AxesGrid axes.
-    plot = p.plots['Density']
+    plot = p.plots['density']
     plot.figure = fig
     plot.axes = grid[i].axes
     plot.cax = grid.cbar_axes[i]

@@ -19,7 +19,7 @@ Nvec = 512 # Pixels on a side
 north_vector = [0.,0.,1.]
 
 # Find the maximum density location, store it in max_c
-v,max_c = pf.h.find_max('Density')
+v,max_c = pf.h.find_max('density')
 
 # Initialize the Camera
 cam = pf.h.camera(c, L, W, (Nvec,Nvec), tf, north_vector=north_vector)
