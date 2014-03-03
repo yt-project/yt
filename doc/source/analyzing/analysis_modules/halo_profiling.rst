@@ -161,7 +161,7 @@ The process of making projections is similar to that of profiles:
 
   hp.add_projection('density', weight_field=None)
   hp.add_projection('temperature', weight_field='density')
-  hp.add_projection('Metallicity', weight_field='density')
+  hp.add_projection('metallicity', weight_field='density')
   hp.make_projections(axes=[0, 1, 2], save_cube=True, save_images=True, 
                       halo_list="filtered", njobs=-1)
 
