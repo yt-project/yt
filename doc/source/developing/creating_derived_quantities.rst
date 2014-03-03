@@ -16,7 +16,7 @@ single arrays, and returns the final values.  For an example, we look at the
 .. code-block:: python
 
    def _TotalMass(data):
-       baryon_mass = data["CellMassMsun"].sum()
+       baryon_mass = data["cell_mass"].sum()
        particle_mass = data["ParticleMassMsun"].sum()
        return baryon_mass, particle_mass
    def _combTotalMass(data, baryon_mass, particle_mass):

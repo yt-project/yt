@@ -43,7 +43,7 @@ instance:
 
 .. code-block:: python
 
-   print surface["Temperature"].min(), surface["Temperature"].max()
+   print surface["temperature"].min(), surface["temperature"].max()
 
 will return the values 11850.7476943 and 13641.0663899.  These values are
 interpolated to the face centers of every triangle that constitutes a portion
@@ -106,7 +106,7 @@ Now you can run a script like this:
        title = "RD0058 - 5e-27",
        description = "Extraction of Density (colored by Temperature) at 5e-27 " \
                    + "g/cc from a galaxy formation simulation by Ryan Joung."
-       color_field = "Temperature",
+       color_field = "temperature",
        color_map = "hot",
        color_log = True,
        bounds = bounds

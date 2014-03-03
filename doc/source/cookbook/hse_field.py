@@ -164,8 +164,8 @@ sphere_f = pff.h.sphere(pff.domain_center, (200, "kpc"))
 
 # Average "degree of hydrostatic equilibrium" in these spheres
 
-hse_i = sphere_i.quantities["WeightedAverageQuantity"]("HSE", "CellMass")
-hse_f = sphere_f.quantities["WeightedAverageQuantity"]("HSE", "CellMass")
+hse_i = sphere_i.quantities["WeightedAverageQuantity"]("HSE", "cell_mass")
+hse_f = sphere_f.quantities["WeightedAverageQuantity"]("HSE", "cell_mass")
 
 print "Degree of hydrostatic equilibrium initially: ", hse_i
 print "Degree of hydrostatic equilibrium later: ", hse_f

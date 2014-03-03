@@ -61,7 +61,7 @@
    from yt.mods import *
    pf = load("Enzo_64/DD0043/data0043")
    s = SlicePlot(pf, "x", ["density"], center="max")
-   s.annotate_contour("Temperature")
+   s.annotate_contour("temperature")
    s.save()
 
 -------------

@@ -429,7 +429,7 @@ Now, we create a parameter file out of this dataset:
 
    data = {}
    data["density"] = dens
-   data["Temperature"] = temp
+   data["temperature"] = temp
    data["x-velocity"] = np.zeros(ddims)
    data["y-velocity"] = np.zeros(ddims)
    data["z-velocity"] = np.zeros(ddims)

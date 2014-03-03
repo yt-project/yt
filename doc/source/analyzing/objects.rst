@@ -20,11 +20,11 @@ What Types of Fields are There?
 With the 2.3 release of ``yt``, the distinction between these has become more
 clear.  This enables much better specification of which fields are expected to
 exist, and to provide fallbacks for calculating them.  For instance you can now
-say, "Temperature" might exist, but if it doesn't, here's how you calculate it.
+say, "temperature" might exist, but if it doesn't, here's how you calculate it.
 This also provides easier means of translating fields between different
 frontends.  For instance, FLASH may refer to the temperature field as "temp"
-while Enzo calls it "Temperature".  Translator functions ensure that any
-derived field relying on "temp" or "Temperature" works with both output types.
+while Enzo calls it "temperature".  Translator functions ensure that any
+derived field relying on "temp" or "temperature" works with both output types.
 
 When a field is requested, the parameter file first looks to see if that field
 exists on disk.  If it does not, it then queries the list of code-specific
@@ -89,7 +89,7 @@ and then look at the temperature of its cells within it via:
 
 .. code-block:: python
 
-   print sp["Temperature"]
+   print sp["temperature"]
 
 Information about how to create a new type of object can be found in
 :ref:`creating-objects`. The field is returned as a single, flattened
@@ -217,7 +217,7 @@ single arrays, and returns the final values.  For an example, we look at the
 .. code-block:: python
 
    def _TotalMass(data):
-       baryon_mass = data["CellMassMsun"].sum()
+       baryon_mass = data["cell_mass"].sum()
        particle_mass = data["ParticleMassMsun"].sum()
        return baryon_mass, particle_mass
    def _combTotalMass(data, baryon_mass, particle_mass):
@@ -245,11 +245,11 @@ a certain temperature range, as in the following example.
    from yt.mods import *
    pf = load("enzo_tiny_cosmology/DD0046/DD0046")
    ad = pf.h.all_data()
-   total_mass = ad.quantities["TotalQuantity"]("CellMassMsun")
+   total_mass = ad.quantities["TotalQuantity"]("cell_mass")
    # now select only gas with 1e5 K < T < 1e7 K.
-   new_region = ad.cut_region(['grid["Temperature"] > 1e5',
-                               'grid["Temperature"] < 1e7'])
-   cut_mass = new_region.quantities["TotalQuantity"]("CellMassMsun")
+   new_region = ad.cut_region(['grid["temperature"] > 1e5',
+                               'grid["temperature"] < 1e7'])
+   cut_mass = new_region.quantities["TotalQuantity"]("cell_mass")
    print "The fraction of mass in this temperature range is %f." % \
      (cut_mass[0] / total_mass[0])
 

@@ -466,7 +466,7 @@ data object, the field for binning, and a list of fields to be profiled.
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
    my_galaxy = pf.h.disk([0.53, 0.53, 0.53], [0.0, 0.0, 1.0], 0.01, 0.003)
-   plot = ProfilePlot(my_galaxy, "density", ["Temperature"])
+   plot = ProfilePlot(my_galaxy, "density", ["temperature"])
    plot.save()
 
 This will create a :class:`yt.data_objects.data_containers.AMRCylinderBase`
@@ -485,7 +485,7 @@ well.  For instance:
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
    my_sphere = pf.h.sphere([0.53, 0.53, 0.53], (100, "pc"))
-   plot = ProfilePlot(my_sphere, "Temperature", ["CellMassMsun"],
+   plot = ProfilePlot(my_sphere, "temperature", ["cell_mass"],
                       weight_field=None)
    plot.save()
 
@@ -503,12 +503,12 @@ The profiled fields can be accessed from the dictionary ``field_data``.
 
 .. code-block:: python
 
-   plot = ProfilePlot(my_sphere, "Temperature", ["CellMassMsun"],
+   plot = ProfilePlot(my_sphere, "temperature", ["cell_mass"],
                       weight_field=None)
    # print the x field
    print plot.profiles[-1].x
    # print the profiled temperature field
-   print plot.profiles[-1].field_data["Temperature"]
+   print plot.profiles[-1].field_data["temperature"]
 
 Other options, such as the number of bins, are also configurable. See the 
 documentation for 
@@ -543,8 +543,8 @@ method and then given to the ProfilePlot object.
        # Create a data container to hold the whole dataset.
        ad = pf.h.all_data()
        # Create a 1d profile of density vs. temperature.
-       profiles.append(create_profile(ad, ["Temperature"], 
-                                      fields=["CellMassMsun"],
+       profiles.append(create_profile(ad, ["temperature"], 
+                                      fields=["cell_mass"],
                                       weight_field=None,
                                       accumulation=True))
        # Add labels
@@ -591,7 +591,7 @@ either taking the average or the accumulation in a bin.  For example, to generat
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
    my_sphere = pf.h.sphere("c", (50, "kpc"))
-   plot = PhasePlot(my_sphere, "density", "Temperature", ["CellMassMsun"],
+   plot = PhasePlot(my_sphere, "density", "temperature", ["cell_mass"],
                     weight_field=None)
    plot.save()
 
@@ -604,8 +604,8 @@ something like:
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
    my_sphere = pf.h.sphere("c", (50, "kpc"))
-   plot = PhasePlot(my_sphere, "density", "Temperature", ["HI_Fraction"],
-                    weight_field="CellMassMsun")
+   plot = PhasePlot(my_sphere, "density", "temperature", ["HI_Fraction"],
+                    weight_field="cell_mass")
    plot.save()
 
 Probability Distribution Functions and Accumulation

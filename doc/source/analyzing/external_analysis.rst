@@ -24,7 +24,7 @@ them to apply radiative feedback, one could imagine calling it directly:
    for grid in pf.h.grids:
        rt_grid = radtrans.RegularBox(
             grid.LeftEdge, grid.RightEdge,
-            grid["density"], grid["Temperature"], grid["Metallicity"])
+            grid["density"], grid["temperature"], grid["metallicity"])
        rt_grids.append(rt_grid)
        grid.clear_data()
 

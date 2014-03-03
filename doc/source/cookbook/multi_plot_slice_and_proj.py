@@ -16,7 +16,7 @@ pf = load(fn) # load data
 #   bw is the base-width in inches, but 4 is about right for most cases.
 fig, axes, colorbars = get_multi_plot(3, 2, colorbar=orient, bw = 4)
 
-slc = pf.h.slice(2, 0.0, fields=["density","temperature","VelocityMagnitude"], 
+slc = pf.h.slice(2, 0.0, fields=["density","temperature","velocity_magnitude"], 
                  center=pf.domain_center)
 proj = pf.h.proj(2, "density", weight_field="density", center=pf.domain_center)
 
@@ -40,8 +40,8 @@ plots = [dens_axes[0].imshow(slc_frb["density"], origin='lower', norm=LogNorm())
          dens_axes[1].imshow(proj_frb["density"], origin='lower', norm=LogNorm()),
          temp_axes[0].imshow(slc_frb["temperature"], origin='lower'),    
          temp_axes[1].imshow(proj_frb["temperature"], origin='lower'),
-         vels_axes[0].imshow(slc_frb["VelocityMagnitude"], origin='lower', norm=LogNorm()),
-         vels_axes[1].imshow(proj_frb["VelocityMagnitude"], origin='lower', norm=LogNorm())]
+         vels_axes[0].imshow(slc_frb["velocity_magnitude"], origin='lower', norm=LogNorm()),
+         vels_axes[1].imshow(proj_frb["velocity_magnitude"], origin='lower', norm=LogNorm())]
          
 plots[0].set_clim((1.0e-27,1.0e-25))
 plots[0].set_cmap("bds_highcontrast")

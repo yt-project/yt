@@ -48,7 +48,7 @@ engine, so if you include LaTeX it will be rendered appropriately.
 .. that it **does not** need to specify the function name **if** the
 .. function is the name of the field prefixed with an underscore.  If it
 .. is not -- and it won't be for fields in different units (such as
-.. "CellMassMsun") -- then you need to specify it with the argument
+.. "cell_mass") -- then you need to specify it with the argument
 .. ``function``.
 
 We suggest that you name the function that creates a derived field
@@ -238,7 +238,7 @@ The code below creates a new derived field called "Entr" and saves it to disk:
     from yt.utilities.grid_data_format import writer
 
     def _Entropy(field, data) :
-        return data["Temperature"]*data["density"]**(-2./3.)
+        return data["temperature"]*data["density"]**(-2./3.)
     add_field("Entr", function=_Entropy)
 
     pf = load('GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100')
