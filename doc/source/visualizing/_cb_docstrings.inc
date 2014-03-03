@@ -276,7 +276,7 @@
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
    p = ProjectionPlot(pf, 'z', 'density', center=[0.53, 0.53, 0.53], 
                       weight_field='density', width=(20, 'kpc'))
-   p.annotate_quiver('x-velocity', 'y-velocity', 16)
+   p.annotate_quiver('velocity_x', 'y-velocity', 16)
    p.save()
 
 -------------
@@ -316,7 +316,7 @@
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
    s = SlicePlot(pf, 'z', 'density', center=[0.53, 0.53, 0.53], width=(20, 'kpc'))
-   s.annotate_streamlines('x-velocity', 'y-velocity')
+   s.annotate_streamlines('velocity_x', 'y-velocity')
    s.save()
 
 -------------
