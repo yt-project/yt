@@ -116,7 +116,7 @@ profiling with the :meth:`add_profile` method:
   hp.add_profile('cell_volume', weight_field=None, accumulation=True)
   hp.add_profile('TotalMassMsun', weight_field=None, accumulation=True)
   hp.add_profile('density', weight_field=None, accumulation=False)
-  hp.add_profile('temperature', weight_field='CellMassMsun', accumulation=False)
+  hp.add_profile('temperature', weight_field='cell_mass', accumulation=False)
   hp.make_profiles(njobs=-1, prefilters=["halo['mass'] > 1e13"],
                    filename='VirialQuantities.h5')
 
@@ -425,7 +425,7 @@ temperature for a given halo.
              128, 'density', 1e-30, 1e-24, True,
              128, 'temperature', 1e2, 1e7, True,
              lazy_reader=True, end_collect=False)
-       my_profile.add_fields('CellMassMsun', weight=None, fractional=False)
+       my_profile.add_fields('cell_mass', weight=None, fractional=False)
        my_filename = os.path.join(sphere.pf.fullpath, '2D_profiles', 
              'Halo_%04d.h5' % halo['id'])
        my_profile.write_out_h5(my_filename)
