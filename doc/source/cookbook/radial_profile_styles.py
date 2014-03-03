@@ -10,7 +10,7 @@ sphere = pf.h.sphere(pf.domain_center, (500., "kpc"))
 # Bin up the data from the sphere into a radial profile
 
 rad_profile = BinnedProfile1D(sphere, 100, "Radiuskpc", 0.0, 500., log_space=False)
-rad_profile.add_fields("density","Temperature")
+rad_profile.add_fields("density","temperature")
 
 # Make plots using matplotlib
 

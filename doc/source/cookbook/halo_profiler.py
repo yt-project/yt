@@ -29,7 +29,7 @@ hp.add_halo_filter(amods.halo_profiler.VirialFilter, must_be_virialized=True,
 hp.add_profile('CellVolume', weight_field=None, accumulation=True)
 hp.add_profile('TotalMassMsun', weight_field=None, accumulation=True)
 hp.add_profile('density', weight_field='cell_mass', accumulation=False)
-hp.add_profile('Temperature', weight_field='cell_mass', accumulation=False)
+hp.add_profile('temperature', weight_field='cell_mass', accumulation=False)
 
 # Make profiles and output filtered halo list to FilteredQuantities.h5.
 hp.make_profiles(filename="FilteredQuantities.h5",
@@ -37,7 +37,7 @@ hp.make_profiles(filename="FilteredQuantities.h5",
 
 # Add projection fields.
 hp.add_projection('density', weight_field=None)
-hp.add_projection('Temperature', weight_field='density')
+hp.add_projection('temperature', weight_field='density')
 hp.add_projection('Metallicity', weight_field='density')
 
 # Make projections just along the x axis using the filtered halo list.

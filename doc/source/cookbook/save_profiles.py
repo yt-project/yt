@@ -14,7 +14,7 @@ rad_profile = BinnedProfile1D(sp, 100, "Radiuskpc", 0.0, 500., log_space=False)
 
 # Adding density and temperature fields to the profile
 
-rad_profile.add_fields(["density","Temperature"])
+rad_profile.add_fields(["density","temperature"])
 
 # Write profiles to ASCII file
 
@@ -53,7 +53,7 @@ f = h5py.File("%s_profile.h5" % pf, "r")
 # Get the radius and temperature arrays from the file handle
 
 r = f["/Radiuskpc-1d"].attrs["x-axis-Radiuskpc"][:]
-temp = f["/Radiuskpc-1d/Temperature"][:]
+temp = f["/Radiuskpc-1d/temperature"][:]
 
 # Close the file handle
 
@@ -65,5 +65,5 @@ ax = fig2.add_subplot(111)
 ax.plot(r, temp)
 ax.set_xlabel(r"$\mathrm{r\ (kpc)}$")
 ax.set_ylabel(r"$\mathrm{T\ (K)}$")
-ax.set_title("Temperature vs. Radius")
+ax.set_title("temperature vs. Radius")
 fig2.savefig("%s_temp.png" % pf)

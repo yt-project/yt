@@ -66,7 +66,7 @@ lr = LightRay('enzo_cosmology_plus/AMRCosmology.enzo',
             )
 
 # Get all fields that need to be added to the light ray
-fields = ['Temperature']
+fields = ['temperature']
 for s, params in species_dicts.iteritems():
     fields.append(params['field'])
 

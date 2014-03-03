@@ -23,7 +23,7 @@ for stream in streamlines.streamlines:
 
 sphere = pf.h.sphere("max", (1.0, "mpc"))
 surface = pf.h.surface(sphere, "density", 1e-24)
-colors = apply_colormap(np.log10(surface["Temperature"]), cmap_name="hot")
+colors = apply_colormap(np.log10(surface["temperature"]), cmap_name="hot")
 
 p3dc = Poly3DCollection(surface.triangles, linewidth=0.0)
 colors = colors[0,:,:]/255.

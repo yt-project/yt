@@ -10,7 +10,7 @@ fig = plt.figure()
 # See http://matplotlib.org/mpl_toolkits/axes_grid/api/axes_grid_api.html
 # These choices of keyword arguments produce two colorbars, both drawn on the
 # right hand side.  This means there are only two colorbar axes, one for Density
-# and another for Temperature.  In addition, axes labels will be drawn for all
+# and another for temperature.  In addition, axes labels will be drawn for all
 # plots.
 grid = AxesGrid(fig, (0.075,0.075,0.85,0.85),
                 nrows_ncols = (2, 2),
@@ -23,7 +23,7 @@ grid = AxesGrid(fig, (0.075,0.075,0.85,0.85),
                 cbar_pad="0%")
 
 cuts = ['x', 'y', 'z', 'z']
-fields = ['density', 'density', 'density', 'Temperature']
+fields = ['density', 'density', 'density', 'temperature']
 
 for i, (direction, field) in enumerate(zip(cuts, fields)):
     # Load the data and create a single plot
@@ -37,12 +37,12 @@ for i, (direction, field) in enumerate(zip(cuts, fields)):
 
     # Since there are only two colorbar axes, we need to make sure we don't try
     # to set the temperature colorbar to cbar_axes[4], which would if we used i
-    # to index cbar_axes, yielding a plot without a Temperature colorbar.
+    # to index cbar_axes, yielding a plot without a temperature colorbar.
     # This unecessarily redraws the Density colorbar three times, but that has
     # no effect on the final plot.
     if field == 'density':
         plot.cax = grid.cbar_axes[0]
-    elif field == 'Temperature':
+    elif field == 'temperature':
         plot.cax = grid.cbar_axes[1]
 
     # Finally, redraw the plot.

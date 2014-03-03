@@ -43,7 +43,7 @@ for ax in range(3):
     plots[-1].set_clim((5e-32, 1e-29))
     plots[-1].set_cmap("bds_highcontrast")
 
-    plots.append(temp_axis.imshow(frb['Temperature'], norm=LogNorm()))
+    plots.append(temp_axis.imshow(frb['temperature'], norm=LogNorm()))
     plots[-1].set_clim((1e3, 1e8))
     plots[-1].set_cmap("hot")
     
@@ -51,7 +51,7 @@ for ax in range(3):
 # the zip command creates triples from each element of the three lists
 # .  Note that it cuts off after the shortest iterator is exhausted,
 # in this case, titles.
-titles=[r'$\mathrm{Density}\ (\mathrm{g\ cm^{-3}})$', r'$\mathrm{Temperature}\ (\mathrm{K})$']
+titles=[r'$\mathrm{Density}\ (\mathrm{g\ cm^{-3}})$', r'$\mathrm{temperature}\ (\mathrm{K})$']
 for p, cax, t in zip(plots, colorbars,titles):
     # Now we make a colorbar, using the 'image' we stored in plots
     # above. note this is what is *returned* by the imshow method of

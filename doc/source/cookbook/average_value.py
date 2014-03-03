@@ -2,7 +2,7 @@ from yt.mods import *
 
 pf = load("IsolatedGalaxy/galaxy0030/galaxy0030") # load data
 
-field = "Temperature"  # The field to average
+field = "temperature"  # The field to average
 weight = "cell_mass" # The weight for the average
 
 dd = pf.h.all_data() # This is a region describing the entire box,

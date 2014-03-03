@@ -38,7 +38,7 @@ def _FreeFree_Emission(field, data) :
 
     n_e = data["density"]/(mue*mp)
     n_i = data["density"]/(mui*mp)
-    kT = data["Temperature"]*KtokeV
+    kT = data["temperature"]*KtokeV
 
     # Compute the Gaunt factor
 
@@ -47,7 +47,7 @@ def _FreeFree_Emission(field, data) :
     g_ff[Ephoton/kT < 1.] = (sqrt3/np.pi)*np.log((4./expgamma) *
                                                  kT[Ephoton/kT < 1.]/Ephoton)
 
-    eps_E = 1.64e-20*Z*Z*n_e*n_i/np.sqrt(data["Temperature"]) * \
+    eps_E = 1.64e-20*Z*Z*n_e*n_i/np.sqrt(data["temperature"]) * \
         np.exp(-Ephoton/kT)*g_ff
 
     if photon_emission: eps_E /= (Ephoton*keVtoerg)

@@ -6,7 +6,7 @@ from yt.mods import *
 pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
 sphere = pf.h.sphere("max", (1.0, "mpc"))
 surface = pf.h.surface(sphere, "density", 1e-25)
-colors = apply_colormap(np.log10(surface["Temperature"]), cmap_name="hot")
+colors = apply_colormap(np.log10(surface["temperature"]), cmap_name="hot")
 
 fig = plt.figure()
 ax = fig.gca(projection='3d')
