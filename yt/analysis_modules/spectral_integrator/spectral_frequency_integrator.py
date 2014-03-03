@@ -24,7 +24,7 @@ from yt.funcs import \
      mylog, \
      only_on_root
 
-from yt.fields.field_info_container import add_field
+from yt.fields.local_fields import add_field
 from yt.utilities.exceptions import YTException
 from yt.utilities.linear_interpolators import \
     BilinearFieldInterpolator
