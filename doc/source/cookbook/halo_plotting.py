@@ -8,6 +8,6 @@ pf = load("Enzo_64/DD0043/data0043")
 
 halos = HaloFinder(pf)
 
-p = ProjectionPlot(pf, "z", "Density")
+p = ProjectionPlot(pf, "z", "density")
 p.annotate_hop_circles(halos)
 p.save()

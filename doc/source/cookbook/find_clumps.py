@@ -3,7 +3,7 @@ from yt.mods import *
 from yt.analysis_modules.level_sets.api import *
 
 fn = "IsolatedGalaxy/galaxy0030/galaxy0030" # parameter file to load
-field = "Density" # this is the field we look for contours over -- we could do
+field = "density" # this is the field we look for contours over -- we could do
                   # this over anything.  Other common choices are 'AveragedDensity'
                   # and 'Dark_Matter_Density'.
 step = 2.0 # This is the multiplicative interval between contours.

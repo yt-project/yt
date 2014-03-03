@@ -10,7 +10,7 @@ sphere = pf.h.sphere(pf.domain_center, (500., "kpc"))
 # Bin up the data from the sphere into a radial profile
 
 rad_profile = BinnedProfile1D(sphere, 100, "Radiuskpc", 0.0, 500., log_space=False)
-rad_profile.add_fields("Density","Temperature")
+rad_profile.add_fields("density","Temperature")
 
 # Make plots using matplotlib
 
@@ -18,7 +18,7 @@ fig = plt.figure()
 ax = fig.add_subplot(111)
 
 # Plot the density as a log-log plot using the default settings
-dens_plot = ax.loglog(rad_profile["Radiuskpc"], rad_profile["Density"])
+dens_plot = ax.loglog(rad_profile["Radiuskpc"], rad_profile["density"])
 
 # Here we set the labels of the plot axes
 
@@ -54,7 +54,7 @@ ax.lines = []
 # Since the rad_profile object also includes the standard deviation in each bin,
 # we'll use these as errorbars. We have to make a new plot for this:
 
-dens_err_plot = ax.errorbar(rad_profile["Radiuskpc"], rad_profile["Density"],
+dens_err_plot = ax.errorbar(rad_profile["Radiuskpc"], rad_profile["density"],
                             yerr=rad_profile["Density_std"])
                                                         
 fig.savefig("density_profile_with_errorbars.png")

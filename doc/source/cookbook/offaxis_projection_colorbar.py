@@ -28,10 +28,10 @@ Npixels = 512
 # Note that we set no_ghost equal to False, so that we *do* include ghost
 # zones in our data.  This takes longer to calculate, but the results look
 # much cleaner than when you ignore the ghost zones.
-# Also note that we set the field which we want to project as "Density", but
+# Also note that we set the field which we want to project as "density", but
 # really we could use any arbitrary field like "Temperature", "Metallicity"
 # or whatever.
-image = off_axis_projection(pf, c, L, W, Npixels, "Density", no_ghost=False)
+image = off_axis_projection(pf, c, L, W, Npixels, "density", no_ghost=False)
 
 # Image is now an NxN array representing the intensities of the various pixels.
 # And now, we call our direct image saver.  We save the log of the result.

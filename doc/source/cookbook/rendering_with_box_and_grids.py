@@ -8,7 +8,7 @@ pf = load("Enzo_64/DD0043/data0043")
 dd = pf.h.all_data()
 
 # Get the minimum and maximum densities.
-mi, ma = dd.quantities["Extrema"]("Density")[0]
+mi, ma = dd.quantities["Extrema"]("density")[0]
 
 # Create a transfer function to map field values to colors.
 # We bump up our minimum to cut out some of the background fluid

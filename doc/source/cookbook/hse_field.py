@@ -117,9 +117,9 @@ def _Grad_Pressure_z(field, data) :
 
 def _HSE(field, data) :
 
-    gx = data["Density"]*data["Grav_Accel_x"]
-    gy = data["Density"]*data["Grav_Accel_y"]
-    gz = data["Density"]*data["Grav_Accel_z"]
+    gx = data["density"]*data["Grav_Accel_x"]
+    gy = data["density"]*data["Grav_Accel_y"]
+    gz = data["density"]*data["Grav_Accel_z"]
 
     hx = data["Grad_Pressure_x"] - gx
     hy = data["Grad_Pressure_y"] - gy
@@ -172,8 +172,8 @@ print "Degree of hydrostatic equilibrium later: ", hse_f
 
 # Just for good measure, take slices through the center of the domain of the two files
 
-slc_i = SlicePlot(pfi, 2, ["Density","HSE"], center=pfi.domain_center, width=(1.0, "mpc"))
-slc_f = SlicePlot(pff, 2, ["Density","HSE"], center=pff.domain_center, width=(1.0, "mpc"))
+slc_i = SlicePlot(pfi, 2, ["density","HSE"], center=pfi.domain_center, width=(1.0, "mpc"))
+slc_f = SlicePlot(pff, 2, ["density","HSE"], center=pff.domain_center, width=(1.0, "mpc"))
 
 slc_i.save("initial")
 slc_f.save("final")

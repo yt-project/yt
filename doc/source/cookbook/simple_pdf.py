@@ -8,7 +8,7 @@ ad = pf.h.all_data()
 
 # This is identical to the simple phase plot, except we supply 
 # the fractional=True keyword to divide the profile data by the sum. 
-plot = PhasePlot(ad, "Density", "Temperature", "CellMassMsun",
+plot = PhasePlot(ad, "density", "Temperature", "CellMassMsun",
                  weight_field=None, fractional=True)
 
 # Set a new title for the colorbar since it is now fractional.

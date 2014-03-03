@@ -3,7 +3,7 @@ from yt.mods import * # set up our namespace
 # Follow the simple_volume_rendering cookbook for the first part of this.
 pf = load("IsolatedGalaxy/galaxy0030/galaxy0030") # load data
 dd = pf.h.all_data()
-mi, ma = dd.quantities["Extrema"]("Density")[0]
+mi, ma = dd.quantities["Extrema"]("density")[0]
 
 # Set up transfer function
 tf = ColorTransferFunction((np.log10(mi), np.log10(ma)))

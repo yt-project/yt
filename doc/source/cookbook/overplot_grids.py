@@ -4,7 +4,7 @@ from yt.mods import *
 pf = load("Enzo_64/DD0043/data0043")
 
 # Make a density projection.
-p = ProjectionPlot(pf, "y", "Density")
+p = ProjectionPlot(pf, "y", "density")
 
 # Modify the projection
 # The argument specifies the region along the line of sight

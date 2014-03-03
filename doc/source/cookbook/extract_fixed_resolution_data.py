@@ -15,14 +15,14 @@ cube = pf.h.covering_grid(2, # The level we are willing to extract to; higher
                           left_edge=[0.0, 0.0, 0.0], 
                           # And any fields to preload (this is optional!)
                           dims = dims,
-                          fields=["Density"])
+                          fields=["density"])
 
 # Now we open our output file using h5py
 # Note that we open with 'w' which will overwrite existing files!
 f = h5py.File("my_data.h5", "w") 
 
 # We create a dataset at the root note, calling it density...
-f.create_dataset("/density", data=cube["Density"])
+f.create_dataset("/density", data=cube["density"])
 
 # We close our file
 f.close()

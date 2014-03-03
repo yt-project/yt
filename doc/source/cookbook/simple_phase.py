@@ -10,7 +10,7 @@ my_sphere = pf.h.sphere("c", (100.0, "kpc"))
 # Setting weight to None will calculate a sum.
 # Setting weight to a field will calculate an average
 # weighted by that field.
-plot = PhasePlot(my_sphere, "Density", "Temperature", "CellMassMsun",
+plot = PhasePlot(my_sphere, "density", "Temperature", "CellMassMsun",
                  weight_field=None)
 
 # Save the image.

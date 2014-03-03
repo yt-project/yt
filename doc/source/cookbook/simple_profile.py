@@ -7,7 +7,7 @@ pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
 # of the average temperature and average x-velocity 
 # vs. density, weighted by mass.
 sphere = pf.h.sphere("c", (100., "kpc"))
-plot = ProfilePlot(sphere, "Density", ["Temperature", "x-velocity"],
+plot = ProfilePlot(sphere, "density", ["Temperature", "x-velocity"],
                    weight_field="CellMassMsun")
 
 # Save the image.

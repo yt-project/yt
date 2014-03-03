@@ -36,8 +36,8 @@ def _FreeFree_Emission(field, data) :
     else :
         photon_emission = False # Flag for energy or photon emission
 
-    n_e = data["Density"]/(mue*mp)
-    n_i = data["Density"]/(mui*mp)
+    n_e = data["density"]/(mue*mp)
+    n_i = data["density"]/(mui*mp)
     kT = data["Temperature"]*KtokeV
 
     # Compute the Gaunt factor

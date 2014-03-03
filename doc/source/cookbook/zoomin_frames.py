@@ -10,7 +10,7 @@ min_dx = 40   # This is the minimum size in smallest_dx of our last frame.
 pf = load(fn) # load data
 frame_template = "frame_%05i" # Template for frame filenames
 
-p = SlicePlot(pf, "z", "Density") # Add our slice, along z
+p = SlicePlot(pf, "z", "density") # Add our slice, along z
 p.annotate_contour("Temperature") # We'll contour in temperature
 
 # What we do now is a bit fun.  "enumerate" returns a tuple for every item --

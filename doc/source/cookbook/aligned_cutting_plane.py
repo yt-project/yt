@@ -9,10 +9,10 @@ pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
 sp = pf.h.sphere("center", (15.0, "kpc"))
 
 # Get the angular momentum vector for the sphere.
-L = sp.quantities["AngularMomentumVector"]()
+L = sp.quantities.angular_momentum_vector()
 
 print "Angular momentum vector: %s" % (L)
 
 # Create an OffAxisSlicePlot on the object with the L vector as its normal
-p = OffAxisSlicePlot(pf, L, "Density", sp.center, (25, "kpc"))
+p = OffAxisSlicePlot(pf, L, "density", sp.center, (25, "kpc"))
 p.save()

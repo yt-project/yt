@@ -14,7 +14,7 @@ rad_profile = BinnedProfile1D(sp, 100, "Radiuskpc", 0.0, 500., log_space=False)
 
 # Adding density and temperature fields to the profile
 
-rad_profile.add_fields(["Density","Temperature"])
+rad_profile.add_fields(["density","Temperature"])
 
 # Write profiles to ASCII file
 

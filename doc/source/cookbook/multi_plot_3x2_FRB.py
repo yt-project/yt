@@ -6,7 +6,7 @@ fn = "Enzo_64/RD0006/RedshiftOutput0006" # parameter file to load
 
 
 pf = load(fn) # load data
-v, c = pf.h.find_max("Density")
+v, c = pf.h.find_max("density")
 
 # set up our Fixed Resolution Buffer parameters: a width, resolution, and center
 width = (1.0, 'unitary')

@@ -14,7 +14,7 @@ for pf in es:
     # Create a data container to hold the whole dataset.
     ad = pf.h.all_data()
     # Create a 1d profile of density vs. temperature.
-    profiles.append(create_profile(ad, ["Density"], 
+    profiles.append(create_profile(ad, ["density"], 
                                    fields=["Temperature"]))
     # Add labels and linestyles.
     labels.append("z = %.2f" % pf.current_redshift)

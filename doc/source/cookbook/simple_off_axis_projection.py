@@ -14,5 +14,5 @@ L = sp.quantities["AngularMomentumVector"]()
 print "Angular momentum vector: %s" % (L)
 
 # Create an OffAxisSlicePlot on the object with the L vector as its normal
-p = OffAxisProjectionPlot(pf, L, "Density", sp.center, (25, "kpc"))
+p = OffAxisProjectionPlot(pf, L, "density", sp.center, (25, "kpc"))
 p.save()
