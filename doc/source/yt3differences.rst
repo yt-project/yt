@@ -70,7 +70,7 @@ because of the field naming changes (i.e., access-by-tuple) it is better to
 utilize the function ``_get_field_info`` than to directly access the
 ``field_info`` dictionary.  For example::
 
-   finfo = ds._get_field_info("gas", "Density")
+   finfo = ds._get_field_info("gas", "density")
 
 This function respects the special "field type" ``unknown`` and will search all
 field types for the field name.

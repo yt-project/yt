@@ -101,7 +101,7 @@ Example Script
     streamlines = Streamlines(pf, [0.5]*3) 
     streamlines.integrate_through_volume()
     stream = streamlines.path(0)
-    matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')
+    matplotlib.pylab.semilogy(stream['t'], stream['density'], '-x')
 
 
 Running in Parallel

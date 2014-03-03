@@ -90,7 +90,7 @@ logged, you could type:
     
     pf = load("my_data")
     pf.h
-    pf.field_info['Density'].take_log = False
+    pf.field_info['density'].take_log = False
 
 From that point forward, data products such as slices, projections, etc., would
 be presented in linear space. Note that you have to instantiate pf.h before you
@@ -246,7 +246,7 @@ functionality of yt.  For example, if I created a plugin file containing:
 .. code-block:: python
 
    def _myfunc(field, data):
-       return np.random.random(data["Density"].shape)
+       return np.random.random(data["density"].shape)
    add_field("SomeQuantity", function=_myfunc)
 
 then all of my data objects would have access to the field "SomeQuantity"

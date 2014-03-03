@@ -98,7 +98,7 @@ maximum value we want to evaluate:
 
    from yt.mods import *
    ts = TimeSeries.from_filenames("*/*.hierarchy")
-   max_rho = ts.tasks["MaximumValue"]("Density")
+   max_rho = ts.tasks["MaximumValue"]("density")
 
 When we call the task, the time series object executes the task on each
 component parameter file.  The results are then returned to the user.  More
@@ -198,7 +198,7 @@ After this, time series analysis can be done normally.
 
   for pf in my_sim.piter()
       all_data = pf.h.all_data()
-      print all_data.quantities['Extrema']('Density')
+      print all_data.quantities['Extrema']('density')
  
 Additional keywords can be given to :meth:`get_time_series` to select a subset
 of the total data:

@@ -85,8 +85,8 @@ normal, you can access the grid as you would a normal object:
 .. code-block:: python
 
    g = pf.h.grids[1043]
-   print g["Density"]
-   print g["Density"].min()
+   print g["density"]
+   print g["density"].min()
 
 To access the raw data, you have to call the IO handler from the hierarchy
 instead.  This is somewhat more low-level.
@@ -94,7 +94,7 @@ instead.  This is somewhat more low-level.
 .. code-block:: python
 
    g = pf.h.grids[1043]
-   rho = pf.h.io.pop(g, "Density")
+   rho = pf.h.io.pop(g, "density")
 
 This field will be the raw data found in the file.
 
@@ -160,10 +160,10 @@ We can now access our underlying data at the lowest level by specifying what
 
 .. code-block:: python
 
-   print all_data_level_0['Density'].shape
+   print all_data_level_0['density'].shape
    (64, 64, 64)
 
-   print all_data_level_0['Density']
+   print all_data_level_0['density']
     
    array([[[  1.92588925e-31,   1.74647692e-31,   2.54787518e-31, ...,
   
@@ -191,10 +191,10 @@ And let's see what's the density in the central location:
 
 .. code-block:: python
 
-   print all_data_level_2['Density'].shape
+   print all_data_level_2['density'].shape
    (256, 256, 256)
 
-   print all_data_level_2['Density'][128, 128, 128]
+   print all_data_level_2['density'][128, 128, 128]
    1.7747457571203124e-31
 
 There are two different types of covering grids: unsmoothed and smoothed. 
@@ -212,10 +212,10 @@ to reduce edge effects, it is a nearly identical process:
    all_data_level_2_s = pf.h.smoothed_covering_grid(2, [0.0, 0.0, 0.0], 
                                                     pf.domain_dimensions * 2**2)
 
-   print all_data_level_2_s['Density'].shape
+   print all_data_level_2_s['density'].shape
    (256, 256, 256)
 
-   print all_data_level_2_s['Density'][128, 128, 128]
+   print all_data_level_2_s['density'][128, 128, 128]
    1.763744852165591e-31
 
 .. _examining-image-data-in-a-fixed-resolution-array:

@@ -38,14 +38,14 @@ of any data two-dimensional data object:
    from yt.mods import *
    pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
-   c = pf.h.find_max('Density')[1]
-   proj = pf.h.proj(0, 'Density')
+   c = pf.h.find_max('density')[1]
+   proj = pf.h.proj(0, 'density')
 
    width = 10/pf['kpc'] # we want a 1.5 mpc view
    res = [1000, 1000] # create an image with 1000x1000 pixels
    frb = proj.to_frb(width, res, center=c)
 
-   P.imshow(frb['Density'])
+   P.imshow(frb['density'])
    P.savefig('my_perfect_figure.png')
    
 The FRB is a very small object that can be deleted and recreated quickly (in
@@ -71,13 +71,13 @@ This is perhaps the simplest thing to do. ``yt`` provides a number of one dimens
    from yt.mods import *
    import pylab as P
    pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   c = pf.h.find_max("Density")[1]
+   c = pf.h.find_max("density")[1]
    ax = 0 # take a line cut along the x axis
    ray = pf.h.ortho_ray(ax, (c[1], c[2])) # cutting through the y0,z0 such that we hit the max density
 
    P.subplot(211)
-   P.semilogy(ray['x'], ray['Density'])
-   P.ylabel('Density')
+   P.semilogy(ray['x'], ray['density'])
+   P.ylabel('density')
    P.subplot(212)
    P.semilogy(ray['x'], ray['Temperature'])
    P.xlabel('x')

@@ -118,7 +118,7 @@ If you add your star particles separately from the gas cell hierarchy, then it i
 
 .. code-block:: python
 
-	pc.add_projection("Density", 0, "Density")  
+	pc.add_projection("density", 0, "density")  
 
 
 Convergence: High Resolution

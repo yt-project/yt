@@ -113,7 +113,7 @@ ellipsoid container as:
   ell_param[3],
   ell_param[4],
   ell_param[5])
-  dens = ell.quantities['TotalQuantity']('Density')[0]
+  dens = ell.quantities['TotalQuantity']('density')[0]
 
 This way, "ell" will be the ellipsoid container, and "dens" will be
 the total density of the ellipsoid in an unigrid simulation.  One can

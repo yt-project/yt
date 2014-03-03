@@ -36,7 +36,7 @@ value.  For example:
    from yt.mods import *
    pf = load("/data/workshop2012/IsolatedGalaxy/galaxy0030/galaxy0030")
    sphere = pf.h.sphere("max", (1.0, "mpc"))
-   surface = pf.h.surface(sphere, "Density", 1e-27)
+   surface = pf.h.surface(sphere, "density", 1e-27)
 
 This object, ``surface``, can now be queried for values on the surface.  For
 instance:
@@ -100,7 +100,7 @@ Now you can run a script like this:
    bounds = [(dd.center[i] - 100.0/pf['kpc'],
               dd.center[i] + 100.0/pf['kpc']) for i in range(3)]
 
-   surf = pf.h.surface(dd, "Density", rho)
+   surf = pf.h.surface(dd, "density", rho)
 
    upload_id = surf.export_sketchfab(
        title = "RD0058 - 5e-27",
@@ -153,7 +153,7 @@ galaxy simulation:
 
    sphere = pf.h.sphere("max", (1.0, "mpc"))
    for i,r in enumerate(rho):
-       surf = pf.h.surface(sphere, 'Density', r)
+       surf = pf.h.surface(sphere, 'density', r)
        surf.export_obj(filename, transparency = trans[i], color_field='Temperature', plot_index = i)
 
 The calling sequence is fairly similar to the ``export_ply`` function
@@ -224,12 +224,12 @@ to output one more type of variable on your surfaces.  For example:
    filename = './surfaces'
 
    def _Emissivity(field, data):
-       return (data['Density']*data['Density']*np.sqrt(data['Temperature']))
+       return (data['density']*data['density']*np.sqrt(data['Temperature']))
    add_field("Emissivity", function=_Emissivity, units=r"\rm{g K}/\rm{cm}^{6}")
 
    sphere = pf.h.sphere("max", (1.0, "mpc"))
    for i,r in enumerate(rho):
-       surf = pf.h.surface(sphere, 'Density', r)
+       surf = pf.h.surface(sphere, 'density', r)
        surf.export_obj(filename, transparency = trans[i],
                        color_field='Temperature', emit_field = 'Emissivity',
 		       plot_index = i)

@@ -58,7 +58,7 @@ frontend:
 
 .. code-block:: python
 
-   add_field("Density", function=TranslationFunc("density"), take_log=True,
+   add_field("density", function=TranslationFunc("density"), take_log=True,
              units=r"\rm{g} / \rm{cm}^3",
              projected_units =r"\rm{g} / \rm{cm}^2")
 
@@ -73,9 +73,9 @@ protocol for accessing data:
 
 .. code-block:: python
 
-   my_object["Density"]
+   my_object["density"]
 
-where ``"Density"`` can be any field name and ``"my_object"`` any one of
+where ``"density"`` can be any field name and ``"my_object"`` any one of
 the possible data containers listed at :ref:`available-objects`. For
 example, if we wanted to look at the temperature of cells within a
 spherical region of radius 10 kpc, centered at [0.5, 0.5, 0.5] in our
@@ -267,8 +267,8 @@ it as a data_source to a projection.
    from yt.mods import *
    pf = load("enzo_tiny_cosmology/DD0046/DD0046")
    ad = pf.h.all_data()
-   new_region = ad.cut_region(['grid["Density"] > 1e-29'])
-   plot = ProjectionPlot(pf, "x", "Density", weight_field="Density",
+   new_region = ad.cut_region(['grid["density"] > 1e-29'])
+   plot = ProjectionPlot(pf, "x", "density", weight_field="density",
                          data_source=new_region)
    plot.save()
 
@@ -294,7 +294,7 @@ whether or not to conduct it in log space.
 
    sp = pf.h.sphere("max", (1.0, 'pc'))
    contour_values, connected_sets = sp.extract_connected_sets(
-        "Density", 3, 1e-30, 1e-20)
+        "density", 3, 1e-30, 1e-20)
 
 The first item, ``contour_values``, will be an array of the min value for each
 set of level sets.  The second (``connected_sets``) will be a dict of dicts.

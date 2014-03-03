@@ -136,7 +136,7 @@ field:
 
 .. code-block:: python
 
-  field = 'Density'
+  field = 'density'
   lc.project_light_cone(field , weight_field=None, 
                         save_stack=True, 
                         save_slice_images=True)

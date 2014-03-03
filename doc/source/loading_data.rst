@@ -376,7 +376,7 @@ resolution.
    ]
   
    for g in grid_data:
-       g["Density"] = np.random.random(g["dimensions"]) * 2**g["level"]
+       g["density"] = np.random.random(g["dimensions"]) * 2**g["level"]
   
    pf = load_amr_grids(grid_data, [32, 32, 32], 1.0)
 

@@ -44,7 +44,7 @@ Here is a working example for the IsolatedGalaxy dataset from the 2012 yt worksh
 
    pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
    # Choose a field
-   field = 'Density'
+   field = 'density'
    # Do you want the log of the field?
    use_log = True
 
@@ -283,7 +283,7 @@ image from the process.  We have provided a simple interface to this:
 
    pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
    image = camera.allsky_projection(pf, [0.5,0.5,0.5], 100.0/pf['kpc'],
-                                    64, "Density")
+                                    64, "density")
    camera.plot_allsky_healpix(image, 64, "allsky.png", "Column Density [g/cm^2]")
 
 This produces an image like this:

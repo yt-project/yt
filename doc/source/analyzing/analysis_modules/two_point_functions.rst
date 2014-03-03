@@ -639,7 +639,7 @@ requires a gas density of at least 1e-26 g cm^-3 at each point:
       return vdiff
     
     ...
-    tpf = TwoPointFunctions(pf, ["x-velocity", "y-velocity", "z-velocity", "Density"],
+    tpf = TwoPointFunctions(pf, ["x-velocity", "y-velocity", "z-velocity", "density"],
         total_values=1e5, comm_size=10000, 
         length_number=10, length_range=[1./128, .5],
         length_type="log")
@@ -688,7 +688,7 @@ the same time as the velocity differences.
     # Set the number of pairs of points to calculate, how big a data queue to
     # use, the range of pair separations and how many lengths to use, 
     # and how to divide that range (linear or log).
-    tpf = TwoPointFunctions(pf, ["x-velocity", "y-velocity", "z-velocity", "Density"],
+    tpf = TwoPointFunctions(pf, ["x-velocity", "y-velocity", "z-velocity", "density"],
         total_values=1e5, comm_size=10000, 
         length_number=10, length_range=[1./128, .5],
         length_type="log")
@@ -880,7 +880,7 @@ the volume of the cells.
     # We need to find out how many cells (equivalent to the most refined level)
     # are denser than our limit overall.
     def _NumDens(data):
-        select = data["Density"] >= dens
+        select = data["density"] >= dens
         cv = data["CellVolume"][select] / vol_conv / sm
         return (cv.sum(),)
     def _combNumDens(data, d):
@@ -893,7 +893,7 @@ the volume of the cells.
     print n,'n'
     
     # Instantiate our TPF object.
-    tpf = TwoPointFunctions(pf, ['Density', 'CellVolume'],
+    tpf = TwoPointFunctions(pf, ['density', 'CellVolume'],
         total_values=1e5, comm_size=10000, 
         length_number=11, length_range=[-1, .5],
         length_type="lin", vol_ratio=1)

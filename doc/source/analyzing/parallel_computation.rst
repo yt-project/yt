@@ -87,9 +87,9 @@ in the simulation and then makes a plot of the projected density:
 
    from yt.pmods import *
    pf = load("RD0035/RedshiftOutput0035")
-   v, c = pf.h.find_max("Density")
+   v, c = pf.h.find_max("density")
    print v, c
-   p = ProjectionPlot(pf, "x", "Density")
+   p = ProjectionPlot(pf, "x", "density")
    p.save()
 
 If this script is run in parallel, two of the most expensive operations -
@@ -128,8 +128,8 @@ so:
 
    from yt.pmods import *
    pf = load("RD0035/RedshiftOutput0035")
-   v, c = pf.h.find_max("Density")
-   p = ProjectionPlot(pf, "x", "Density")
+   v, c = pf.h.find_max("density")
+   p = ProjectionPlot(pf, "x", "density")
    if is_root():
        print v, c
        p.save()
@@ -152,8 +152,8 @@ how to use it:
        plot.save()
 
    pf = load("RD0035/RedshiftOutput0035")
-   v, c = pf.h.find_max("Density")
-   p = ProjectionPlot(pf, "x", "Density")
+   v, c = pf.h.find_max("density")
+   p = ProjectionPlot(pf, "x", "density")
    only_on_root(print_and_save_plot, v, c, plot, print=True)
 
 Types of Parallelism
@@ -258,10 +258,10 @@ Please see this heavily-commented example:
        # This copies fn and the min/max of density to the local copy of
        # my_storage
        sto.result_id = fn
-       sto.result = dd.quantities["Extrema"]("Density")
+       sto.result = dd.quantities["Extrema"]("density")
 
        # Makes and saves a plot of the gas density.
-       p = ProjectionPlot(pf, "x", "Density")
+       p = ProjectionPlot(pf, "x", "density")
        p.save()
 
    # At this point, as the loop exits, the local copies of my_storage are

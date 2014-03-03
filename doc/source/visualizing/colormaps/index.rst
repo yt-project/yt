@@ -62,12 +62,12 @@ callback:
 .. code-block:: python
 
     pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    p = ProjectionPlot(pf, "z", "Density")
+    p = ProjectionPlot(pf, "z", "density")
 
-    p.set_cmap(field="Density", cmap='jet')
+    p.set_cmap(field="density", cmap='jet')
     p.save('proj_with_jet_cmap.png')
 
-    p.set_cmap(field="Density", cmap='hot')
+    p.set_cmap(field="density", cmap='hot')
     p.save('proj_with_hot_cmap.png')
 
 For more information about the callbacks available to Plot Window objects, 

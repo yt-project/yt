@@ -67,7 +67,7 @@ randomizations, simply by changing the value of the random seed with the
 .. code-block:: python
 
   lr.make_light_ray(seed=8675309,
-                    fields=['Temperature', 'Density'],
+                    fields=['Temperature', 'density'],
                     get_los_velocity=True)
 
 The keyword arguments are:

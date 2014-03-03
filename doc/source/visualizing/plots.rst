@@ -55,7 +55,7 @@ file object ``pf``.  This can be accomplished with the following command:
 
 .. code-block:: python
 
-   >>> slc = SlicePlot(pf, 'z', 'Density')
+   >>> slc = SlicePlot(pf, 'z', 'density')
    >>> slc.save()
 
 These two commands will create a slice object and store it in a variable we've
@@ -66,7 +66,7 @@ around, you can accomplish the same thing in one line:
 
 .. code-block:: python
    
-   >>> SlicePlot(pf, 'z', 'Density').save()
+   >>> SlicePlot(pf, 'z', 'density').save()
 
 It's nice to keep the slice object around if you want to modify the plot.  By
 default, the plot width will be set to the size of the simulation box.  To zoom
@@ -75,7 +75,7 @@ object:
 
 .. code-block:: python
 
-   >>> slc = SlicePlot(pf, 'z', 'Density')
+   >>> slc = SlicePlot(pf, 'z', 'density')
    >>> slc.zoom(10)
    >>> slc.save('zoom')
 
@@ -87,7 +87,7 @@ save it to disk.
 
 .. code-block:: python
 
-   >>> slc = SlicePlot(pf, 'z', 'Density')
+   >>> slc = SlicePlot(pf, 'z', 'density')
    >>> slc.set_width((10,'kpc'))
    >>> slc.save('10kpc')
 
@@ -96,7 +96,7 @@ the width of the plot:
 
 .. code-block:: python
 
-   >>> SlicePlot(pf, 'z', 'Density', center=[0.2, 0.3, 0.8], 
+   >>> SlicePlot(pf, 'z', 'density', center=[0.2, 0.3, 0.8], 
    ...           width = (10,'kpc')).save()
 
 The center must be given in code units.  Optionally, you can supply 'c' or 'm'
@@ -109,7 +109,7 @@ Here is an example that combines all of the options we just discussed.
 
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   slc = SlicePlot(pf, 'z', 'Density', center=[0.53, 0.53, 0.53], width=(20,'kpc'))
+   slc = SlicePlot(pf, 'z', 'density', center=[0.53, 0.53, 0.53], width=(20,'kpc'))
    slc.save()
 
 The above example will display an annotated plot of a slice of the
@@ -175,7 +175,7 @@ example:
  
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   prj = ProjectionPlot(pf, 2, 'Density', center=[0.53, 0.53, 0.53],
+   prj = ProjectionPlot(pf, 2, 'density', center=[0.53, 0.53, 0.53],
                         width=(25, 'kpc'), weight_field=None)
    prj.save()
 
@@ -208,7 +208,7 @@ plane, and the name of the fields to plot.  For example:
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
    L = [1,1,0] # vector normal to cutting plane
    north_vector = [-1,1,0]
-   cut = OffAxisSlicePlot(pf, L, 'Density', width=(25, 'kpc'),
+   cut = OffAxisSlicePlot(pf, L, 'density', width=(25, 'kpc'),
                           center=[0.53, 0.53, 0.53], north_vector=north_vector)
    cut.save()
 
@@ -252,7 +252,7 @@ projection through a simulation.
    W = [0.02, 0.02, 0.02]
    c = [0.53, 0.53, 0.53]
    N = 512
-   image = off_axis_projection(pf, c, L, W, N, "Density")
+   image = off_axis_projection(pf, c, L, W, N, "density")
    write_image(na.log10(image), "%s_offaxis_projection.png" % pf)
 
 Here, ``W`` is the width of the projection in the x, y, *and* z
@@ -271,7 +271,7 @@ to project along, and a field to project.  For example:
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
    L = [1,1,0] # vector normal to cutting plane
    north_vector = [-1,1,0]
-   prj = OffAxisProjectionPlot(pf,L,'Density',width=(25, 'kpc'), 
+   prj = OffAxisProjectionPlot(pf,L,'density',width=(25, 'kpc'), 
                                center=[0.53, 0.53, 0.53], 
                                north_vector=north_vector)
    prj.save()
@@ -466,7 +466,7 @@ data object, the field for binning, and a list of fields to be profiled.
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
    my_galaxy = pf.h.disk([0.53, 0.53, 0.53], [0.0, 0.0, 1.0], 0.01, 0.003)
-   plot = ProfilePlot(my_galaxy, "Density", ["Temperature"])
+   plot = ProfilePlot(my_galaxy, "density", ["Temperature"])
    plot.save()
 
 This will create a :class:`yt.data_objects.data_containers.AMRCylinderBase`
@@ -591,7 +591,7 @@ either taking the average or the accumulation in a bin.  For example, to generat
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
    my_sphere = pf.h.sphere("c", (50, "kpc"))
-   plot = PhasePlot(my_sphere, "Density", "Temperature", ["CellMassMsun"],
+   plot = PhasePlot(my_sphere, "density", "Temperature", ["CellMassMsun"],
                     weight_field=None)
    plot.save()
 
@@ -604,7 +604,7 @@ something like:
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
    my_sphere = pf.h.sphere("c", (50, "kpc"))
-   plot = PhasePlot(my_sphere, "Density", "Temperature", ["HI_Fraction"],
+   plot = PhasePlot(my_sphere, "density", "Temperature", ["HI_Fraction"],
                     weight_field="CellMassMsun")
    plot.save()
 
@@ -652,8 +652,8 @@ Now when you create a plot window you can call ``.show()`` to see it inline:
 
    from yt.imods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   p = ProjectionPlot(pf, "x", "Density", center='m', width=(10,'kpc'),
-                      weight_field='Density')
+   p = ProjectionPlot(pf, "x", "density", center='m', width=(10,'kpc'),
+                      weight_field='density')
    p.show()
 
 The image will appear inline.
@@ -686,7 +686,7 @@ EPS or PDF figure.  For example,
 .. code-block:: python
 
    >>> import yt.visualization.eps_writer as eps
-   >>> slc = SlicePlot(pf, 'z', 'Density')
+   >>> slc = SlicePlot(pf, 'z', 'density')
    >>> slc.set_width(25, 'kpc')
    >>> eps_fig = eps.single_plot(slc)
    >>> eps_fig.save_fig('zoom', format='eps')
@@ -711,7 +711,7 @@ from a PlotWindow.  For example,
 .. code-block:: python
 
    >>> import yt.visualization.eps_writer as eps
-   >>> slc = SlicePlot(pf, 'z', ['Density', 'Temperature', 'Pressure',
+   >>> slc = SlicePlot(pf, 'z', ['density', 'Temperature', 'Pressure',
                        'VelocityMagnitude'])
    >>> slc.set_width(25, 'kpc')
    >>> eps_fig = eps.multiplot_yt(2, 2, slc, bare_axes=True)

@@ -10,7 +10,7 @@
 
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   slc = SlicePlot(pf, 'z', 'Density', width=(10,'kpc'), center='max')
+   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'), center='max')
    slc.annotate_arrow((0.53, 0.53, 0.53), 1/pf['kpc'])
    slc.save()
 
@@ -32,15 +32,15 @@
    data_source = pf.h.disk([0.5, 0.5, 0.5], [0., 0., 1.],
                            8./pf.units['kpc'], 1./pf.units['kpc'])
 
-   c_min = 10**na.floor(na.log10(data_source['Density']).min()  )
-   c_max = 10**na.floor(na.log10(data_source['Density']).max()+1)
+   c_min = 10**na.floor(na.log10(data_source['density']).min()  )
+   c_max = 10**na.floor(na.log10(data_source['density']).max()+1)
 
    function = 'self.data[\'Density\'].size > 20'
-   master_clump = Clump(data_source, None, 'Density', function=function)
+   master_clump = Clump(data_source, None, 'density', function=function)
    find_clumps(master_clump, c_min, c_max, 2.0)
    leaf_clumps = get_lowest_clumps(master_clump)
 
-   prj = ProjectionPlot(pf, 2, 'Density', center='c', width=(20,'kpc'))
+   prj = ProjectionPlot(pf, 2, 'density', center='c', width=(20,'kpc'))
    prj.annotate_clumps(leaf_clumps)
    prj.save('clumps')
 
@@ -60,7 +60,7 @@
    
    from yt.mods import *
    pf = load("Enzo_64/DD0043/data0043")
-   s = SlicePlot(pf, "x", ["Density"], center="max")
+   s = SlicePlot(pf, "x", ["density"], center="max")
    s.annotate_contour("Temperature")
    s.save()
 
@@ -78,7 +78,7 @@
 
    from yt.mods import *
    pf = load("Enzo_64/DD0043/data0043")
-   s = OffAxisSlicePlot(pf, [1,1,0], ["Density"], center="c")
+   s = OffAxisSlicePlot(pf, [1,1,0], ["density"], center="c")
    s.annotate_cquiver('CuttingPlaneVelocityX', 'CuttingPlaneVelocityY', 10)
    s.zoom(1.5)
    s.save()
@@ -98,7 +98,7 @@
 
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   slc = SlicePlot(pf, 'z', 'Density', width=(10,'kpc'), center='max')
+   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'), center='max')
    slc.annotate_grids()
    slc.save()
 
@@ -116,7 +116,7 @@
    from yt.mods import *
    pf = load("Enzo_64/DD0043/data0043")
    halos = HaloFinder(pf)
-   p = ProjectionPlot(pf, "z", "Density")
+   p = ProjectionPlot(pf, "z", "density")
    p.annotate_hop_circles(halos)
    p.save()
 
@@ -137,7 +137,7 @@
    from yt.mods import *
    pf = load("Enzo_64/DD0043/data0043")
    halos = HaloFinder(pf)
-   p = ProjectionPlot(pf, "x", "Density", center='m', width=(10, 'Mpc'))
+   p = ProjectionPlot(pf, "x", "density", center='m', width=(10, 'Mpc'))
    p.annotate_hop_particles(halos, max_number=100, p_size=5.0)
    p.save()
 
@@ -154,7 +154,7 @@
 
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   p = ProjectionPlot(pf, 'z', 'Density', center='m', width=(10, 'kpc'))
+   p = ProjectionPlot(pf, 'z', 'density', center='m', width=(10, 'kpc'))
    p.annotate_image_line((0.3, 0.4), (0.8, 0.9), plot_args={'linewidth':5})
    p.save()
 
@@ -170,7 +170,7 @@
 
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   p = ProjectionPlot(pf, 'z', 'Density', center='m', width=(10, 'kpc'))
+   p = ProjectionPlot(pf, 'z', 'density', center='m', width=(10, 'kpc'))
    p.annotate_line([-6, -4, -2, 0, 2, 4, 6], [3.6, 1.6, 0.4, 0, 0.4, 1.6, 3.6], plot_args={'linewidth':5})
    p.save()
 
@@ -195,7 +195,7 @@
    pf = load("MHDSloshing/virgo_low_res.0054.vtk",
              parameters={"TimeUnits":3.1557e13, "LengthUnits":3.0856e24,
                          "DensityUnits":6.770424595218825e-27})
-   p = ProjectionPlot(pf, 'z', 'Density', center='c', width=(300, 'kpc'))
+   p = ProjectionPlot(pf, 'z', 'density', center='c', width=(300, 'kpc'))
    p.annotate_magnetic_field()
    p.save()
 
@@ -213,7 +213,7 @@
 
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   s = SlicePlot(pf, 'z', 'Density', center='m', width=(10, 'kpc'))
+   s = SlicePlot(pf, 'z', 'density', center='m', width=(10, 'kpc'))
    s.annotate_marker([0.53, 0.53, 0.53], plot_args={'s':10000})
    s.save()   
 
@@ -236,7 +236,7 @@
 
    from yt.mods import *
    pf = load("Enzo_64/DD0043/data0043")
-   p = ProjectionPlot(pf, "x", "Density", center='m', width=(10, 'Mpc'))
+   p = ProjectionPlot(pf, "x", "density", center='m', width=(10, 'Mpc'))
    p.annotate_particles(10/pf['Mpc'])
    p.save()
 
@@ -254,7 +254,7 @@
 
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   p = ProjectionPlot(pf, 'z', 'Density', center='m', width=(10, 'kpc'))
+   p = ProjectionPlot(pf, 'z', 'density', center='m', width=(10, 'kpc'))
    p.annotate_point([0.53, 0.526, 0.53], "What's going on here?", text_args={'size':'xx-large', 'color':'w'})
    p.save()
 
@@ -274,8 +274,8 @@
 
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   p = ProjectionPlot(pf, 'z', 'Density', center=[0.53, 0.53, 0.53], 
-                      weight_field='Density', width=(20, 'kpc'))
+   p = ProjectionPlot(pf, 'z', 'density', center=[0.53, 0.53, 0.53], 
+                      weight_field='density', width=(20, 'kpc'))
    p.annotate_quiver('x-velocity', 'y-velocity', 16)
    p.save()
 
@@ -293,7 +293,7 @@
 
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   p = ProjectionPlot(pf, 'z', 'Density', center=[0.53, 0.53, 0.53], width=(20, 'kpc'))
+   p = ProjectionPlot(pf, 'z', 'density', center=[0.53, 0.53, 0.53], width=(20, 'kpc'))
    p.annotate_sphere([0.53, 0.53, 0.53], 2/pf['kpc'], {'fill':True})
    p.save()
 
@@ -315,7 +315,7 @@
 
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   s = SlicePlot(pf, 'z', 'Density', center=[0.53, 0.53, 0.53], width=(20, 'kpc'))
+   s = SlicePlot(pf, 'z', 'density', center=[0.53, 0.53, 0.53], width=(20, 'kpc'))
    s.annotate_streamlines('x-velocity', 'y-velocity')
    s.save()
 
@@ -334,7 +334,7 @@
 
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   s = SlicePlot(pf, 'z', 'Density', center='m', width=(10, 'kpc'))
+   s = SlicePlot(pf, 'z', 'density', center='m', width=(10, 'kpc'))
    s.annotate_text((0.53, 0.53), 'Sample text', text_args={'size':'xx-large', 'color':'w'})
    s.save()
 
@@ -350,7 +350,7 @@
 
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   p = ProjectionPlot(pf, 'z', 'Density', center=[0.53, 0.53, 0.53], width=(20, 'kpc'))
+   p = ProjectionPlot(pf, 'z', 'density', center=[0.53, 0.53, 0.53], width=(20, 'kpc'))
    p.annotate_title('Density plot')
    p.save()
 
@@ -374,6 +374,6 @@
 
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   p = SlicePlot(pf, 'z', 'Density', center='m', width=(10, 'kpc'))
+   p = SlicePlot(pf, 'z', 'density', center='m', width=(10, 'kpc'))
    p.annotate_velocity()
    p.save()

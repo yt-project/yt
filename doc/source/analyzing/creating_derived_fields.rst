@@ -21,10 +21,10 @@ this approach.
 
    def _Pressure(field, data):
        return (data.pf["Gamma"] - 1.0) * \
-              data["Density"] * data["ThermalEnergy"]
+              data["density"] * data["ThermalEnergy"]
 
 Note that we do a couple different things here.  We access the "Gamma"
-parameter from the parameter file, we access the "Density" field and we access
+parameter from the parameter file, we access the "density" field and we access
 the "ThermalEnergy" field.  "ThermalEnergy" is, in fact, another derived field!
 ("ThermalEnergy" deals with the distinction in storage of energy between dual
 energy formalism and non-DEF.)  We don't do any loops, we don't do any
@@ -238,7 +238,7 @@ The code below creates a new derived field called "Entr" and saves it to disk:
     from yt.utilities.grid_data_format import writer
 
     def _Entropy(field, data) :
-        return data["Temperature"]*data["Density"]**(-2./3.)
+        return data["Temperature"]*data["density"]**(-2./3.)
     add_field("Entr", function=_Entropy)
 
     pf = load('GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100')
