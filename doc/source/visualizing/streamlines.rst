@@ -63,7 +63,7 @@ Example Script
     pos_dx = np.random.random((N,3))*scale-scale/2.
     pos = c+pos_dx
     
-    streamlines = Streamlines(pf,pos,'velocity_x', 'velocity_y', 'z-velocity', length=1.0) 
+    streamlines = Streamlines(pf,pos,'velocity_x', 'velocity_y', 'velocity_z', length=1.0) 
     streamlines.integrate_through_volume()
     
     import matplotlib.pylab as pl
