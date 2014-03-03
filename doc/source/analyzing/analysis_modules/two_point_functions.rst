@@ -55,7 +55,7 @@ step.
     # the number of pairs of points to calculate, how big a data queue to
     # use, the range of pair separations and how many lengths to use, 
     # and how to divide that range (linear or log).
-    tpf = TwoPointFunctions(pf, ["x-velocity", "y-velocity", "z-velocity"],
+    tpf = TwoPointFunctions(pf, ["velocity_x", "velocity_y", "velocity_z"],
         total_values=1e5, comm_size=10000, 
         length_number=10, length_range=[1./128, .5],
         length_type="log")
@@ -639,7 +639,7 @@ requires a gas density of at least 1e-26 g cm^-3 at each point:
       return vdiff
     
     ...
-    tpf = TwoPointFunctions(pf, ["x-velocity", "y-velocity", "z-velocity", "density"],
+    tpf = TwoPointFunctions(pf, ["velocity_x", "velocity_y", "velocity_z", "density"],
         total_values=1e5, comm_size=10000, 
         length_number=10, length_range=[1./128, .5],
         length_type="log")
@@ -688,7 +688,7 @@ the same time as the velocity differences.
     # Set the number of pairs of points to calculate, how big a data queue to
     # use, the range of pair separations and how many lengths to use, 
     # and how to divide that range (linear or log).
-    tpf = TwoPointFunctions(pf, ["x-velocity", "y-velocity", "z-velocity", "density"],
+    tpf = TwoPointFunctions(pf, ["velocity_x", "velocity_y", "velocity_z", "density"],
         total_values=1e5, comm_size=10000, 
         length_number=10, length_range=[1./128, .5],
         length_type="log")
@@ -881,7 +881,7 @@ the volume of the cells.
     # are denser than our limit overall.
     def _NumDens(data):
         select = data["density"] >= dens
-        cv = data["CellVolume"][select] / vol_conv / sm
+        cv = data["cell_volume"][select] / vol_conv / sm
         return (cv.sum(),)
     def _combNumDens(data, d):
         return d.sum()

@@ -21,12 +21,12 @@ this approach.
 
    def _Pressure(field, data):
        return (data.pf["Gamma"] - 1.0) * \
-              data["density"] * data["ThermalEnergy"]
+              data["density"] * data["thermal_energy"]
 
 Note that we do a couple different things here.  We access the "Gamma"
 parameter from the parameter file, we access the "density" field and we access
-the "ThermalEnergy" field.  "ThermalEnergy" is, in fact, another derived field!
-("ThermalEnergy" deals with the distinction in storage of energy between dual
+the "thermal_energy" field.  "thermal_energy" is, in fact, another derived field!
+("thermal_energy" deals with the distinction in storage of energy between dual
 energy formalism and non-DEF.)  We don't do any loops, we don't do any
 type-checking, we can simply multiply the three items together.
 
@@ -37,7 +37,7 @@ look at the most basic ones needed for a simple scalar baryon field.
 
 .. code-block:: python
 
-   add_field("Pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
+   add_field("pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
 
 We feed it the name of the field, the name of the function, and the
 units.  Note that the units parameter is a "raw" string, with some
@@ -148,9 +148,9 @@ We can also define vector fields.
        if data.has_field_parameter("bulk_velocity"):
            bv = data.get_field_parameter("bulk_velocity")
        else: bv = np.zeros(3, dtype='float64')
-       xv = data["x-velocity"] - bv[0]
-       yv = data["y-velocity"] - bv[1]
-       zv = data["z-velocity"] - bv[2]
+       xv = data["velocity_x"] - bv[0]
+       yv = data["velocity_y"] - bv[1]
+       zv = data["velocity_z"] - bv[2]
        center = data.get_field_parameter('center')
        coords = np.array([data['x'],data['y'],data['z']], dtype='float64')
        new_shape = tuple([3] + [1]*(len(coords.shape)-1))
@@ -187,24 +187,24 @@ velocity.
             sl_right = slice(2,None,None)
             div_fac = 2.0
         ds = div_fac * data['dx'].flat[0]
-        f  = data["x-velocity"][sl_right,1:-1,1:-1]/ds
-        f -= data["x-velocity"][sl_left ,1:-1,1:-1]/ds
+        f  = data["velocity_x"][sl_right,1:-1,1:-1]/ds
+        f -= data["velocity_x"][sl_left ,1:-1,1:-1]/ds
         if data.pf.dimensionality > 1:
             ds = div_fac * data['dy'].flat[0]
-            f += data["y-velocity"][1:-1,sl_right,1:-1]/ds
-            f -= data["y-velocity"][1:-1,sl_left ,1:-1]/ds
+            f += data["velocity_y"][1:-1,sl_right,1:-1]/ds
+            f -= data["velocity_y"][1:-1,sl_left ,1:-1]/ds
         if data.pf.dimensionality > 2:
             ds = div_fac * data['dz'].flat[0]
-            f += data["z-velocity"][1:-1,1:-1,sl_right]/ds
-            f -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
-        new_field = np.zeros(data["x-velocity"].shape, dtype='float64')
+            f += data["velocity_z"][1:-1,1:-1,sl_right]/ds
+            f -= data["velocity_z"][1:-1,1:-1,sl_left ]/ds
+        new_field = np.zeros(data["velocity_x"].shape, dtype='float64')
         new_field[1:-1,1:-1,1:-1] = f
         return new_field
     def _convertDivV(data):
         return data.convert("cm")**-1.0
     add_field("DivV", function=_DivV,
                validators=[ValidateSpatial(ghost_zones=1,
-	                   fields=["x-velocity","y-velocity","z-velocity"])],
+	                   fields=["velocity_x","velocity_y","velocity_z"])],
               units=r"\rm{s}^{-1}", take_log=False,
               convert_function=_convertDivV)
 
@@ -214,8 +214,8 @@ is given in the list of *validators* in the call to ``add_field`` with
 *ghost_zones* = 1, specifying that the original grid be padded with one additional 
 cell from the neighboring grids on all sides.  The *fields* keyword simply 
 mandates that the listed fields be present.  With one ghost zone added to all sides 
-of the grid, the data fields (data["x-velocity"], data["y-velocity"], and 
-data["z-velocity"]) will have a shape of (NX+2, NY+2, NZ+2) inside of this function, 
+of the grid, the data fields (data["velocity_x"], data["velocity_y"], and 
+data["velocity_z"]) will have a shape of (NX+2, NY+2, NZ+2) inside of this function, 
 where the original grid has dimension (NX, NY, NZ).  However, when the final field 
 data is returned, the ghost zones will be removed and the shape will again be 
 (NX, NY, NZ).

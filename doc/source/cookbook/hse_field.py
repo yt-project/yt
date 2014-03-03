@@ -69,10 +69,10 @@ def _Grad_Pressure_x(field, data) :
 
     dx = div_fac * data['dx'].flat[0]
 
-    px  = data["Pressure"][sl_right,1:-1,1:-1]/dx
-    px -= data["Pressure"][sl_left, 1:-1,1:-1]/dx
+    px  = data["pressure"][sl_right,1:-1,1:-1]/dx
+    px -= data["pressure"][sl_left, 1:-1,1:-1]/dx
 
-    new_field = np.zeros(data["Pressure"].shape, dtype='float64')
+    new_field = np.zeros(data["pressure"].shape, dtype='float64')
     new_field[1:-1,1:-1,1:-1] = px
 
     return new_field
@@ -87,10 +87,10 @@ def _Grad_Pressure_y(field, data) :
 
     dy = div_fac * data['dy'].flat[0]
 
-    py  = data["Pressure"][1:-1,sl_right,1:-1]/dy
-    py -= data["Pressure"][1:-1,sl_left ,1:-1]/dy
+    py  = data["pressure"][1:-1,sl_right,1:-1]/dy
+    py -= data["pressure"][1:-1,sl_left ,1:-1]/dy
 
-    new_field = np.zeros(data["Pressure"].shape, dtype='float64')
+    new_field = np.zeros(data["pressure"].shape, dtype='float64')
     new_field[1:-1,1:-1,1:-1] = py
 
     return new_field
@@ -105,10 +105,10 @@ def _Grad_Pressure_z(field, data) :
 
     dz = div_fac * data['dz'].flat[0]
 
-    pz  = data["Pressure"][1:-1,1:-1,sl_right]/dz
-    pz -= data["Pressure"][1:-1,1:-1,sl_left ]/dz
+    pz  = data["pressure"][1:-1,1:-1,sl_right]/dz
+    pz -= data["pressure"][1:-1,1:-1,sl_left ]/dz
 
-    new_field = np.zeros(data["Pressure"].shape, dtype='float64')
+    new_field = np.zeros(data["pressure"].shape, dtype='float64')
     new_field[1:-1,1:-1,1:-1] = pz
 
     return new_field
@@ -141,13 +141,13 @@ add_field("Grav_Accel_z", function=_Grav_Accel_z, take_log=False,
           validators=[ValidateSpatial(1,["Grav_Potential"])])
 
 add_field("Grad_Pressure_x", function=_Grad_Pressure_x, take_log=False,
-          validators=[ValidateSpatial(1,["Pressure"])])
+          validators=[ValidateSpatial(1,["pressure"])])
 
 add_field("Grad_Pressure_y", function=_Grad_Pressure_y, take_log=False,
-          validators=[ValidateSpatial(1,["Pressure"])])
+          validators=[ValidateSpatial(1,["pressure"])])
 
 add_field("Grad_Pressure_z", function=_Grad_Pressure_z, take_log=False,
-          validators=[ValidateSpatial(1,["Pressure"])])
+          validators=[ValidateSpatial(1,["pressure"])])
 
 add_field("HSE", function=_HSE, take_log=False)
 

@@ -430,9 +430,9 @@ Now, we create a parameter file out of this dataset:
    data = {}
    data["density"] = dens
    data["temperature"] = temp
-   data["x-velocity"] = np.zeros(ddims)
-   data["y-velocity"] = np.zeros(ddims)
-   data["z-velocity"] = np.zeros(ddims)
+   data["velocity_x"] = np.zeros(ddims)
+   data["velocity_y"] = np.zeros(ddims)
+   data["velocity_z"] = np.zeros(ddims)
 
    bbox = np.array([[-0.5,0.5],[-0.5,0.5],[-0.5,0.5]])
 

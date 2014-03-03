@@ -49,7 +49,7 @@ construction:
 
 .. code-block:: python
 
-   add_field("ThermalEnergy", function=_ThermalEnergy,
+   add_field("thermal_energy", function=_ThermalEnergy,
              units=r"\rm{ergs}/\rm{g}")
 
 To add a translation from one field to another, use the ``TranslationFunc`` as
@@ -117,14 +117,14 @@ parameter file, as well.  All of the field creation options
 .. code-block:: python
 
    pf = load("my_data")
-   print pf.field_info["Pressure"].get_units()
+   print pf.field_info["pressure"].get_units()
 
 This is a fast way to examine the units of a given field, and additionally you
 can use :meth:`yt.utilities.pydot.get_source` to get the source code:
 
 .. code-block:: python
 
-   field = pf.field_info["Pressure"]
+   field = pf.field_info["pressure"]
    print field.get_source()
 
 .. _available-objects:
