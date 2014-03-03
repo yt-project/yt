@@ -901,6 +901,7 @@ class Camera(ParallelAnalysisInterface):
         R = get_rotation_matrix(theta, rot_vector)
 
         normal_vector = self.front_center-self.center
+        normal_vector = normal_vector/np.sqrt((normal_vector**2).sum())
 
         if rotate_all:
             self.switch_view(
