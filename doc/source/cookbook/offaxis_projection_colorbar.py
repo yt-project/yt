@@ -29,7 +29,7 @@ Npixels = 512
 # zones in our data.  This takes longer to calculate, but the results look
 # much cleaner than when you ignore the ghost zones.
 # Also note that we set the field which we want to project as "density", but
-# really we could use any arbitrary field like "temperature", "Metallicity"
+# really we could use any arbitrary field like "temperature", "metallicity"
 # or whatever.
 image = off_axis_projection(pf, c, L, W, Npixels, "density", no_ghost=False)
 

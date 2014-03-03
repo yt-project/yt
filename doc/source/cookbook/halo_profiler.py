@@ -38,7 +38,7 @@ hp.make_profiles(filename="FilteredQuantities.h5",
 # Add projection fields.
 hp.add_projection('density', weight_field=None)
 hp.add_projection('temperature', weight_field='density')
-hp.add_projection('Metallicity', weight_field='density')
+hp.add_projection('metallicity', weight_field='density')
 
 # Make projections just along the x axis using the filtered halo list.
 hp.make_projections(save_cube=False, save_images=True,
