@@ -8,11 +8,11 @@ ad = pf.h.all_data()
 
 # This is identical to the simple phase plot, except we supply 
 # the fractional=True keyword to divide the profile data by the sum. 
-plot = PhasePlot(ad, "density", "Temperature", "CellMassMsun",
+plot = PhasePlot(ad, "density", "Temperature", "cell_mass",
                  weight_field=None, fractional=True)
 
 # Set a new title for the colorbar since it is now fractional.
-plot.z_title["CellMassMsun"] = r"$\mathrm{Mass}\/\mathrm{fraction}$"
+plot.z_title["cell_mass"] = r"$\mathrm{Mass}\/\mathrm{fraction}$"
 
 # Reset the plot so it is redrawn when we save the image.
 plot.reset_plot()

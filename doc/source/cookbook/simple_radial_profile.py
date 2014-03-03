@@ -8,7 +8,7 @@ my_sphere = pf.h.sphere("c", (100.0, "kpc"))
 
 # Create a profile of the average density vs. radius.
 plot = ProfilePlot(my_sphere, "Radiuskpc", "density",
-                   weight_field="CellMassMsun")
+                   weight_field="cell_mass")
 
 # Save the image.
 # Optionally, give a string as an argument

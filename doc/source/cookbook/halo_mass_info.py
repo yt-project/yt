@@ -27,7 +27,7 @@ for halo in halos:
     # We use the quantities[] method to get the total mass in baryons and in
     # particles.
     baryon_mass, particle_mass = sphere.quantities["TotalQuantity"](
-            ["CellMassMsun", "ParticleMassMsun"], lazy_reader=True)
+            ["cell_mass", "ParticleMassMsun"], lazy_reader=True)
     # Now we print out this information, along with the ID.
     f.write("Total mass in HOP group %s is %0.5e (gas = %0.5e / particles = %0.5e)\n" % \
             (halo.id, baryon_mass + particle_mass, baryon_mass, particle_mass))
