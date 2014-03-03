@@ -79,9 +79,9 @@ This is perhaps the simplest thing to do. ``yt`` provides a number of one dimens
    P.semilogy(ray['x'], ray['density'])
    P.ylabel('density')
    P.subplot(212)
-   P.semilogy(ray['x'], ray['Temperature'])
+   P.semilogy(ray['x'], ray['temperature'])
    P.xlabel('x')
-   P.ylabel('Temperature')
+   P.ylabel('temperature')
 
    P.savefig("den_temp_xsweep.png")
 

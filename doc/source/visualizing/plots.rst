@@ -711,7 +711,7 @@ from a PlotWindow.  For example,
 .. code-block:: python
 
    >>> import yt.visualization.eps_writer as eps
-   >>> slc = SlicePlot(pf, 'z', ['density', 'Temperature', 'Pressure',
+   >>> slc = SlicePlot(pf, 'z', ['density', 'temperature', 'Pressure',
                        'VelocityMagnitude'])
    >>> slc.set_width(25, 'kpc')
    >>> eps_fig = eps.multiplot_yt(2, 2, slc, bare_axes=True)

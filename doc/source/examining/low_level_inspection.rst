@@ -167,7 +167,7 @@ We can now access our underlying data at the lowest level by specifying what
     
    array([[[  1.92588925e-31,   1.74647692e-31,   2.54787518e-31, ...,
   
-   print all_data_level_0['Temperature'].shape
+   print all_data_level_0['temperature'].shape
    (64, 64, 64)
 
 If you create a covering grid that spans two child grids of a single parent 

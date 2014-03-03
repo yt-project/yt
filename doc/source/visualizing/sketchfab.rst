@@ -154,7 +154,7 @@ galaxy simulation:
    sphere = pf.h.sphere("max", (1.0, "mpc"))
    for i,r in enumerate(rho):
        surf = pf.h.surface(sphere, 'density', r)
-       surf.export_obj(filename, transparency = trans[i], color_field='Temperature', plot_index = i)
+       surf.export_obj(filename, transparency = trans[i], color_field='temperature', plot_index = i)
 
 The calling sequence is fairly similar to the ``export_ply`` function
 `previously used <http://blog.yt-project.org/post/3DSurfacesAndSketchFab.html>`_
@@ -224,14 +224,14 @@ to output one more type of variable on your surfaces.  For example:
    filename = './surfaces'
 
    def _Emissivity(field, data):
-       return (data['density']*data['density']*np.sqrt(data['Temperature']))
+       return (data['density']*data['density']*np.sqrt(data['temperature']))
    add_field("Emissivity", function=_Emissivity, units=r"\rm{g K}/\rm{cm}^{6}")
 
    sphere = pf.h.sphere("max", (1.0, "mpc"))
    for i,r in enumerate(rho):
        surf = pf.h.surface(sphere, 'density', r)
        surf.export_obj(filename, transparency = trans[i],
-                       color_field='Temperature', emit_field = 'Emissivity',
+                       color_field='temperature', emit_field = 'Emissivity',
 		       plot_index = i)
 
 will output the same OBJ and MTL as in our previous example, but it will scale
