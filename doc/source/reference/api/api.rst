@@ -39,28 +39,55 @@ These are the objects that act as physical selections of data, describing a
 region in space.  These are not typically addressed directly; see
 :ref:`available-objects` for more information.
 
+Base Classes
+++++++++++++
+
+These will almost never need to be instantiated on their own.
+
 .. autosummary::
    :toctree: generated/
 
-   ~yt.data_objects.data_containers.AMRCoveringGridBase
-   ~yt.data_objects.data_containers.AMRCuttingPlaneBase
-   ~yt.data_objects.data_containers.AMRCylinderBase
-   ~yt.data_objects.data_containers.AMRGridCollectionBase
-   ~yt.data_objects.data_containers.AMRRayBase
-   ~yt.data_objects.data_containers.AMROrthoRayBase
-   ~yt.data_objects.data_containers.AMRStreamlineBase
-   ~yt.data_objects.data_containers.AMRQuadTreeProjBase
-   ~yt.data_objects.data_containers.AMRProjBase
-   ~yt.data_objects.data_containers.AMRRegionBase
-   ~yt.data_objects.data_containers.AMRPeriodicRegionBase
-   ~yt.data_objects.data_containers.AMRRegionStrictBase
-   ~yt.data_objects.data_containers.AMRSliceBase
-   ~yt.data_objects.data_containers.AMRSmoothedCoveringGridBase
-   ~yt.data_objects.data_containers.AMRSphereBase
-   ~yt.data_objects.data_containers.AMRSurfaceBase
-   ~yt.data_objects.data_containers.AMRBooleanRegionBase
-   ~yt.data_objects.data_containers.ExtractedRegionBase
-   ~yt.data_objects.data_containers.AMRSurfaceBase
+   ~yt.data_objects.data_containers.YTSelectionContainer
+   ~yt.data_objects.data_containers.YTSelectionContainer1D
+   ~yt.data_objects.data_containers.YTSelectionContainer2D
+   ~yt.data_objects.data_containers.YTSelectionContainer3D
+
+Selection Objects
++++++++++++++++++
+
+These objects are defined by some selection method or mechanism.  Most are
+geometric.
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.data_objects.selection_data_containers.YTOrthoRayBase
+   ~yt.data_objects.selection_data_containers.YTRayBase
+   ~yt.data_objects.selection_data_containers.YTSliceBase
+   ~yt.data_objects.selection_data_containers.YTCuttingPlaneBase
+   ~yt.data_objects.selection_data_containers.YTDiskBase
+   ~yt.data_objects.selection_data_containers.YTRegionBase
+   ~yt.data_objects.selection_data_containers.YTDataCollectionBase
+   ~yt.data_objects.selection_data_containers.YTSphereBase
+   ~yt.data_objects.selection_data_containers.YTEllipsoidBase
+   ~yt.data_objects.selection_data_containers.YTCutRegionBase
+
+Construction Objects
+++++++++++++++++++++
+
+These objects typically require some effort to build.  Often this means
+integrating through the simulation in some way, or creating some large or
+expensive set of intermediate data.
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.data_objects.construction_data_containers.YTStreamlineBase
+   ~yt.data_objects.construction_data_containers.YTQuadTreeProjBase
+   ~yt.data_objects.construction_data_containers.YTCoveringGridBase
+   ~yt.data_objects.construction_data_containers.YTArbitraryGridBase
+   ~yt.data_objects.construction_data_containers.YTSmoothedCoveringGridBase
+   ~yt.data_objects.construction_data_containers.YTSurfaceBase
 
 Time Series Objects
 ^^^^^^^^^^^^^^^^^^^
@@ -82,90 +109,23 @@ Frontends
 .. autosummary::
    :toctree: generated/
 
-   ~yt.data_objects.grid_patch.AMRGridPatch
-   ~yt.data_objects.hierarchy.AMRHierarchy
-   ~yt.data_objects.static_output.StaticOutput
-
-Enzo
-^^^^
-
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.frontends.enzo.data_structures.EnzoGrid
-   ~yt.frontends.enzo.data_structures.EnzoHierarchy
-   ~yt.frontends.enzo.data_structures.EnzoStaticOutput
-
-Orion
+ARTIO
 ^^^^^
 
-
 .. autosummary::
    :toctree: generated/
 
-   ~yt.frontends.orion.data_structures.OrionGrid
-   ~yt.frontends.orion.data_structures.OrionHierarchy
-   ~yt.frontends.orion.data_structures.OrionStaticOutput
+   ~yt.frontends.artio.data_structures.ARTIOGeometryHandler
+   ~yt.frontends.artio.data_structures.ARTIOOctreeSubset
+   ~yt.frontends.artio.data_structures.ARTIORootMeshSubset
+   ~yt.frontends.artio.data_structures.ARTIOStaticOutput
+   ~yt.frontends.artio.definitions.ARTIOconstants
+   ~yt.frontends.artio.fields.ARTIOFieldInfo
+   ~yt.frontends.artio.io.IOHandlerARTIO
 
-FLASH
-^^^^^
-
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.frontends.flash.data_structures.FLASHGrid
-   ~yt.frontends.flash.data_structures.FLASHHierarchy
-   ~yt.frontends.flash.data_structures.FLASHStaticOutput
-
-Chombo
-^^^^^^
-
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.frontends.chombo.data_structures.ChomboGrid
-   ~yt.frontends.chombo.data_structures.ChomboHierarchy
-   ~yt.frontends.chombo.data_structures.ChomboStaticOutput
-
-Pluto
-^^^^^
-
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.frontends.pluto.data_structures.PlutoGrid
-   ~yt.frontends.pluto.data_structures.PlutoHierarchy
-   ~yt.frontends.pluto.data_structures.PlutoStaticOutput
-
-Stream
-^^^^^^
-
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.frontends.stream.data_structures.StreamGrid
-   ~yt.frontends.stream.data_structures.StreamHierarchy
-   ~yt.frontends.stream.data_structures.StreamStaticOutput
-
-Nyx
-^^^
-
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.frontends.nyx.data_structures.NyxGrid
-   ~yt.frontends.nyx.data_structures.NyxHierarchy
-   ~yt.frontends.nyx.data_structures.NyxStaticOutput
 
 Athena
 ^^^^^^
-
 
 .. autosummary::
    :toctree: generated/
@@ -173,17 +133,165 @@ Athena
    ~yt.frontends.athena.data_structures.AthenaGrid
    ~yt.frontends.athena.data_structures.AthenaHierarchy
    ~yt.frontends.athena.data_structures.AthenaStaticOutput
+   ~yt.frontends.athena.fields.AthenaFieldInfo
+   ~yt.frontends.athena.io.IOHandlerAthena
 
-GDF
-^^^
-
+Boxlib
+^^^^^^
 
 .. autosummary::
    :toctree: generated/
 
-   ~yt.frontends.gdf.data_structures.GDFGrid
-   ~yt.frontends.gdf.data_structures.GDFHierarchy
-   ~yt.frontends.gdf.data_structures.GDFStaticOutput
+   ~yt.frontends.boxlib.data_structures.BoxlibGrid
+   ~yt.frontends.boxlib.data_structures.BoxlibHierarchy
+   ~yt.frontends.boxlib.data_structures.BoxlibStaticOutput
+   ~yt.frontends.boxlib.data_structures.CastroStaticOutput
+   ~yt.frontends.boxlib.data_structures.MaestroStaticOutput
+   ~yt.frontends.boxlib.data_structures.NyxHierarchy
+   ~yt.frontends.boxlib.data_structures.NyxStaticOutput
+   ~yt.frontends.boxlib.data_structures.OrionHierarchy
+   ~yt.frontends.boxlib.data_structures.OrionStaticOutput
+   ~yt.frontends.boxlib.fields.BoxlibFieldInfo
+   ~yt.frontends.boxlib.io.IOHandlerBoxlib
+   ~yt.frontends.boxlib.io.IOHandlerCastro
+   ~yt.frontends.boxlib.io.IOHandlerNyx
+   ~yt.frontends.boxlib.io.IOHandlerOrion
+
+Enzo
+^^^^
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.frontends.enzo.answer_testing_support.ShockTubeTest
+   ~yt.frontends.enzo.data_structures.EnzoGrid
+   ~yt.frontends.enzo.data_structures.EnzoGridGZ
+   ~yt.frontends.enzo.data_structures.EnzoGridInMemory
+   ~yt.frontends.enzo.data_structures.EnzoHierarchy1D
+   ~yt.frontends.enzo.data_structures.EnzoHierarchy2D
+   ~yt.frontends.enzo.data_structures.EnzoHierarchy
+   ~yt.frontends.enzo.data_structures.EnzoHierarchyInMemory
+   ~yt.frontends.enzo.data_structures.EnzoStaticOutputInMemory
+   ~yt.frontends.enzo.data_structures.EnzoStaticOutput
+   ~yt.frontends.enzo.fields.EnzoFieldInfo
+   ~yt.frontends.enzo.io.IOHandlerInMemory
+   ~yt.frontends.enzo.io.IOHandlerPacked1D
+   ~yt.frontends.enzo.io.IOHandlerPacked2D
+   ~yt.frontends.enzo.io.IOHandlerPackedHDF5
+   ~yt.frontends.enzo.io.IOHandlerPackedHDF5GhostZones
+   ~yt.frontends.enzo.simulation_handling.EnzoCosmology
+   ~yt.frontends.enzo.simulation_handling.EnzoSimulation
+
+FITS
+^^^^
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.frontends.fits.data_structures.FITSGrid
+   ~yt.frontends.fits.data_structures.FITSHierarchy
+   ~yt.frontends.fits.data_structures.FITSStaticOutput
+   ~yt.frontends.fits.fields.FITSFieldInfo
+   ~yt.frontends.fits.io.IOHandlerFITS
+
+FLASH
+^^^^^
+
+.. autosummary::
+   :toctree: generated/
+   
+   ~yt.frontends.flash.data_structures.FLASHGrid
+   ~yt.frontends.flash.data_structures.FLASHHierarchy
+   ~yt.frontends.flash.data_structures.FLASHStaticOutput
+   ~yt.frontends.flash.fields.FLASHFieldInfo
+   ~yt.frontends.flash.io.IOHandlerFLASH
+
+Halo Catalogs
+^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.frontends.halo_catalogs.data_structures.RockstarBinaryFile
+   ~yt.frontends.halo_catalogs.data_structures.RockstarStaticOutput
+   ~yt.frontends.halo_catalogs.fields.RockstarFieldInfo
+   ~yt.frontends.halo_catalogs.io.IOHandlerRockstarBinary
+
+MOAB
+^^^^
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.frontends.moab.data_structures.MoabHex8Hierarchy
+   ~yt.frontends.moab.data_structures.MoabHex8Mesh
+   ~yt.frontends.moab.data_structures.MoabHex8StaticOutput
+   ~yt.frontends.moab.data_structures.PyneHex8Mesh
+   ~yt.frontends.moab.data_structures.PyneMeshHex8Hierarchy
+   ~yt.frontends.moab.data_structures.PyneMoabHex8StaticOutput
+   ~yt.frontends.moab.io.IOHandlerMoabH5MHex8
+   ~yt.frontends.moab.io.IOHandlerMoabPyneHex8
+
+RAMSES
+^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.frontends.ramses.data_structures.RAMSESDomainFile
+   ~yt.frontends.ramses.data_structures.RAMSESDomainSubset
+   ~yt.frontends.ramses.data_structures.RAMSESGeometryHandler
+   ~yt.frontends.ramses.data_structures.RAMSESStaticOutput
+   ~yt.frontends.ramses.fields.RAMSESFieldInfo
+   ~yt.frontends.ramses.io.IOHandlerRAMSES
+
+SPH and Particle Codes
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.frontends.sph.data_structures.GadgetBinaryFile
+   ~yt.frontends.sph.data_structures.GadgetHDF5StaticOutput
+   ~yt.frontends.sph.data_structures.GadgetStaticOutput
+   ~yt.frontends.sph.data_structures.HTTPParticleFile
+   ~yt.frontends.sph.data_structures.HTTPStreamStaticOutput
+   ~yt.frontends.sph.data_structures.OWLSStaticOutput
+   ~yt.frontends.sph.data_structures.ParticleStaticOutput
+   ~yt.frontends.sph.data_structures.TipsyFile
+   ~yt.frontends.sph.data_structures.TipsyStaticOutput
+   ~yt.frontends.sph.fields.SPHFieldInfo
+   ~yt.frontends.sph.io.IOHandlerGadgetBinary
+   ~yt.frontends.sph.io.IOHandlerGadgetHDF5
+   ~yt.frontends.sph.io.IOHandlerHTTPStream
+   ~yt.frontends.sph.io.IOHandlerOWLS
+   ~yt.frontends.sph.io.IOHandlerTipsyBinary
+
+Stream
+^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.frontends.stream.data_structures.StreamDictFieldHandler
+   ~yt.frontends.stream.data_structures.StreamGrid
+   ~yt.frontends.stream.data_structures.StreamHandler
+   ~yt.frontends.stream.data_structures.StreamHexahedralHierarchy
+   ~yt.frontends.stream.data_structures.StreamHexahedralMesh
+   ~yt.frontends.stream.data_structures.StreamHexahedralStaticOutput
+   ~yt.frontends.stream.data_structures.StreamHierarchy
+   ~yt.frontends.stream.data_structures.StreamOctreeHandler
+   ~yt.frontends.stream.data_structures.StreamOctreeStaticOutput
+   ~yt.frontends.stream.data_structures.StreamOctreeSubset
+   ~yt.frontends.stream.data_structures.StreamParticleFile
+   ~yt.frontends.stream.data_structures.StreamParticleGeometryHandler
+   ~yt.frontends.stream.data_structures.StreamParticlesStaticOutput
+   ~yt.frontends.stream.data_structures.StreamStaticOutput
+   ~yt.frontends.stream.fields.StreamFieldInfo
+   ~yt.frontends.stream.io.IOHandlerStream
+   ~yt.frontends.stream.io.IOHandlerStreamHexahedral
+   ~yt.frontends.stream.io.IOHandlerStreamOctree
+   ~yt.frontends.stream.io.StreamParticleIOHandler
 
 Derived Datatypes
 -----------------
@@ -297,17 +405,16 @@ operations acting on two spatially-distinct points in a data source.  See also
 Field Types
 -----------
 
-
 .. autosummary::
    :toctree: generated/
 
-   ~yt.data_objects.field_info_container.DerivedField
-   ~yt.data_objects.field_info_container.FieldInfoContainer
-   ~yt.data_objects.field_info_container.ValidateDataField
-   ~yt.data_objects.field_info_container.ValidateGridType
-   ~yt.data_objects.field_info_container.ValidateParameter
-   ~yt.data_objects.field_info_container.ValidateProperty
-   ~yt.data_objects.field_info_container.ValidateSpatial
+   ~yt.fields.field_info_container.FieldInfoContainer
+   ~yt.fields.derived_field.DerivedField
+   ~yt.fields.derived_field.ValidateDataField
+   ~yt.fields.derived_field.ValidateGridType
+   ~yt.fields.derived_field.ValidateParameter
+   ~yt.fields.derived_field.ValidateProperty
+   ~yt.fields.derived_field.ValidateSpatial
 
 Image Handling
 --------------
@@ -466,12 +573,10 @@ where colorbars are unnecessary or for volume rendering.
    ~yt.visualization.image_writer.multi_image_composite
    ~yt.visualization.image_writer.write_bitmap
    ~yt.visualization.image_writer.write_projection
-   ~yt.visualization.image_writer.write_fits
    ~yt.visualization.image_writer.write_image
    ~yt.visualization.image_writer.map_to_colors
    ~yt.visualization.image_writer.strip_colormap_data
    ~yt.visualization.image_writer.splat_points
-   ~yt.visualization.image_writer.annotate_image
    ~yt.visualization.image_writer.scale_image
 
 We also provide a module that is very good for generating EPS figures,
@@ -497,17 +602,18 @@ See :ref:`derived-quantities`.
 .. autosummary::
    :toctree: generated/
 
-   ~yt.data_objects.derived_quantities._AngularMomentumVector
-   ~yt.data_objects.derived_quantities._BaryonSpinParameter
-   ~yt.data_objects.derived_quantities._BulkVelocity
-   ~yt.data_objects.derived_quantities._CenterOfMass
-   ~yt.data_objects.derived_quantities._Extrema
-   ~yt.data_objects.derived_quantities._IsBound
-   ~yt.data_objects.derived_quantities._MaxLocation
-   ~yt.data_objects.derived_quantities._ParticleSpinParameter
-   ~yt.data_objects.derived_quantities._TotalMass
-   ~yt.data_objects.derived_quantities._TotalQuantity
-   ~yt.data_objects.derived_quantities._WeightedAverageQuantity
+   ~yt.data_objects.derived_quantities.DerivedQuantity
+   ~yt.data_objects.derived_quantities.DerivedQuantityCollection
+   ~yt.data_objects.derived_quantities.WeightedAverage
+   ~yt.data_objects.derived_quantities.TotalValue
+   ~yt.data_objects.derived_quantities.TotalMass
+   ~yt.data_objects.derived_quantities.CenterOfMass
+   ~yt.data_objects.derived_quantities.BulkVelocity
+   ~yt.data_objects.derived_quantities.AngularMomentumVector
+   ~yt.data_objects.derived_quantities.ParticleAngularMomentumVector
+   ~yt.data_objects.derived_quantities.Extrema
+   ~yt.data_objects.derived_quantities.MaxLocation
+   ~yt.data_objects.derived_quantities.MinLocation
 
 .. _callback-api:
 
