@@ -29,8 +29,9 @@ from yt.utilities.exceptions import YTException
 from yt.utilities.linear_interpolators import \
     BilinearFieldInterpolator
 from yt.utilities.physical_constants import \
-    erg_per_eV, \
-    keV_per_Hz
+    erg_per_eV, hcgs
+from yt.units import keV, Hz
+keV_per_Hz = keV/Hz/hcgs
 
 xray_data_version = 1
 
