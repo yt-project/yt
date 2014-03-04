@@ -376,7 +376,7 @@ cdef inline void get_spos(VolumeContainer *vc, int i, int j, int k,
 cdef inline int spos_contained(VolumeContainer *vc, np.float64_t *spos):
     cdef int i
     for i in range(3):
-        if spos[i] < vc.left_edge[i] or spos[i] > vc.right_edge[i]: return 0
+        if spos[i] < vc.left_edge[i] or spos[i] >= vc.right_edge[i]: return 0
     return 1
 
 @cython.boundscheck(False)
