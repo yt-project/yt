@@ -323,10 +323,10 @@ cdef class TileContourTree:
                             if not (0 <= off_j < nj): continue
                             for ok in range(3):
                                 if oi == oj == ok == 1: continue
-                                if off_k > k and off_j > j and off_i > i:
-                                    continue
                                 off_k = ok - 1 + k
                                 if not (0 <= off_k < nk): continue
+                                if off_k > k and off_j > j and off_i > i:
+                                    continue
                                 offset = off_i*nj*nk + off_j*nk + off_k
                                 c2 = container[offset]
                                 if c2 == NULL: continue
@@ -376,7 +376,7 @@ cdef inline void get_spos(VolumeContainer *vc, int i, int j, int k,
 cdef inline int spos_contained(VolumeContainer *vc, np.float64_t *spos):
     cdef int i
     for i in range(3):
-        if spos[i] < vc.left_edge[i] or spos[i] >= vc.right_edge[i]: return 0
+        if spos[i] < vc.left_edge[i] or spos[i] > vc.right_edge[i]: return 0
     return 1
 
 @cython.boundscheck(False)
