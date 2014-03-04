@@ -1,5 +1,5 @@
 """
-Halo Catalog-specific fields
+Rockstar-specific fields
 
 
 

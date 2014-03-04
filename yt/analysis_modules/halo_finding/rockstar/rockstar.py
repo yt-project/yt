@@ -13,11 +13,14 @@ Operations to get Rockstar loaded up
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.mods import *
+from yt.config import ytcfg
+from yt.data_objects.time_series import \
+     TimeSeriesData
+from yt.funcs import \
+     is_root
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, ProcessorPool, Communicator
 from yt.analysis_modules.halo_finding.halo_objects import * #Halos & HaloLists
-from yt.config import ytcfg
 from yt.utilities.exceptions import YTRockstarMultiMassNotSupported
 
 import rockstar_interface
@@ -80,7 +83,7 @@ class StandardRunner(ParallelAnalysisInterface):
         else:
             self.num_writers = min(num_writers, psize)
         if self.num_readers + self.num_writers + 1 != psize:
-            mylog.error('%i reader + %i writers != %i mpi',
+            mylog.error('%i reader + %i writers + 1 server != %i mpi',
                     self.num_readers, self.num_writers, psize)
             raise RuntimeError
     
@@ -143,7 +146,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         the width of the smallest grid element in the simulation from the
         last data snapshot (i.e. the one where time has evolved the
         longest) in the time series:
-        ``pf_last.h.get_smallest_dx() * pf_last['mpch']``.
+        ``pf_last.h.get_smallest_dx().in_units("Mpc/h")``.
     total_particles : int
         If supplied, this is a pre-calculated total number of particles present
         in the simulation. For example, this is useful when analyzing a series
@@ -163,26 +166,42 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
 
     Examples
     --------
+    
     To use the script below you must run it using MPI:
-    mpirun -np 3 python test_rockstar.py --parallel
+    mpirun -np 4 python run_rockstar.py --parallel
 
-    test_rockstar.py:
+    run_rockstar.py:
 
-    from yt.analysis_modules.halo_finding.rockstar.api import RockstarHaloFinder
     from yt.mods import *
-    import sys
 
-    ts = TimeSeriesData.from_filenames('/u/cmoody3/data/a*')
-    pm = 7.81769027e+11
-    rh = RockstarHaloFinder(ts)
+    from yt.analysis_modules.halo_finding.rockstar.api import \
+        RockstarHaloFinder
+    from yt.data_objects.particle_filters import \
+        particle_filter
+
+    # create a particle filter to remove star particles
+    @particle_filter("dark_matter", requires=["creation_time"])
+    def _dm_filter(pfilter, data):
+        return data["creation_time"] <= 0.0
+
+    def setup_pf(pf):
+        pf.add_particle_filter("dark_matter")
+
+    es = simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
+    es.get_time_series(setup_function=setup_pf, redshift_data=False)
+
+    rh = RockstarHaloFinder(es, num_readers=1, num_writers=2,
+                            particle_type="dark_matter")
     rh.run()
+
     """
     def __init__(self, ts, num_readers = 1, num_writers = None,
             outbase="rockstar_halos", particle_type="all",
             force_res=None, total_particles=None, dm_only=False,
             particle_mass=None):
-        mylog.warning("The citation for the Rockstar halo finder can be found at")
-        mylog.warning("http://adsabs.harvard.edu/abs/2013ApJ...762..109B")
+        if is_root():
+            mylog.info("The citation for the Rockstar halo finder can be found at")
+            mylog.info("http://adsabs.harvard.edu/abs/2013ApJ...762..109B")
         ParallelAnalysisInterface.__init__(self)
         # Decide how we're working.
         if ytcfg.getboolean("yt", "inline") == True:
@@ -203,7 +222,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         self.outbase = outbase
         if force_res is None:
             tpf = ts[-1] # Cache a reference
-            self.force_res = tpf.h.get_smallest_dx() * tpf['mpch']
+            self.force_res = tpf.h.get_smallest_dx().in_units("Mpc/h")
             # We have to delete now to wipe the hierarchy
             del tpf
         else:
@@ -230,26 +249,24 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
 
         particle_mass = self.particle_mass
         if particle_mass is None:
-            pmass_min, pmass_max = dd.quantities["Extrema"](
-                (ptype, "ParticleMassMsun"), non_zero = True)[0]
+            pmass_min, pmass_max = dd.quantities.extrema(
+                (ptype, "particle_mass"), non_zero = True)
             if pmass_min != pmass_max:
                 raise YTRockstarMultiMassNotSupported(pmass_min, pmass_max,
                     ptype)
             particle_mass = pmass_min
-        # NOTE: We want to take our Msun and turn it into Msun/h .  Its value
-        # should be such that dividing by little h gives the original value.
-        particle_mass *= tpf.hubble_constant
 
         p = {}
         if self.total_particles is None:
             # Get total_particles in parallel.
-            tp = dd.quantities['TotalQuantity']((ptype, "particle_ones"))[0]
+            tp = dd.quantities.total_quantity((ptype, "particle_ones"))
             p['total_particles'] = int(tp)
             mylog.warning("Total Particle Count: %0.3e", int(tp))
         p['left_edge'] = tpf.domain_left_edge
         p['right_edge'] = tpf.domain_right_edge
         p['center'] = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
         p['particle_mass'] = self.particle_mass = particle_mass
+        p['particle_mass'].convert_to_units("Msun / h")
         return p
 
     def __del__(self):

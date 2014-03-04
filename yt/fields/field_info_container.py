@@ -17,7 +17,7 @@ native.
 
 import numpy as np
 
-from yt.funcs import mylog
+from yt.funcs import mylog, only_on_root
 from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray
 from .derived_field import \
@@ -127,8 +127,8 @@ class FieldInfoContainer(dict):
         loaded = []
         for n in sorted(field_plugins):
             loaded += self.load_plugin(n, ftype)
-            mylog.info("Loaded %s (%s new fields)",
-                n, len(loaded))
+            only_on_root(mylog.info, "Loaded %s (%s new fields)",
+                         n, len(loaded))
         self.find_dependencies(loaded)
 
     def load_plugin(self, plugin_name, ftype = "gas", skip_check = False):

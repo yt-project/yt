@@ -51,7 +51,14 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
     registry.add_field((ftype, "matter_density"),
                        function=_matter_density, 
                        units="g/cm**3")
-        
+
+    def _matter_mass(field, data):
+        return data[ftype, "matter_density"] * data["index", "cell_volume"]
+
+    registry.add_field((ftype, "matter_mass"),
+                       function=_matter_mass,
+                       units="g")
+
     # rho_total / rho_cr(z).
     def _overdensity(field, data):
         if not hasattr(data.pf, "cosmological_simulation") or \
