@@ -190,7 +190,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         for node in kd_traverse(self.tree.trunk, viewpoint=viewpoint):
             grid = self.pf.h.grids[node.grid - self._id_offset]
             dds = grid.dds
-            gle = grid.LeftEdge
+            gle = grid.LeftEdge.in_units("code_length").ndarray_view()
             nle = get_left_edge(node)
             nre = get_right_edge(node)
             li = np.rint((nle-gle)/dds).astype('int32')
