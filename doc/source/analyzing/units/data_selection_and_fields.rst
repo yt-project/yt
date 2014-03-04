@@ -3,7 +3,7 @@
 Data selection and fields
 =========================
 
-.. notebook:: 2)_Data_selection_and_fields.ipynb
+.. notebook:: 2)_Data_Selection_and_fields.ipynb
 
 Derived Fields
 --------------

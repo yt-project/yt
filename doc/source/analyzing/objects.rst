@@ -247,8 +247,8 @@ a certain temperature range, as in the following example.
    ad = pf.h.all_data()
    total_mass = ad.quantities["TotalQuantity"]("cell_mass")
    # now select only gas with 1e5 K < T < 1e7 K.
-   new_region = ad.cut_region(['grid["temperature"] > 1e5',
-                               'grid["temperature"] < 1e7'])
+   new_region = ad.cut_region(['obj["temperature"] > 1e5',
+                               'obj["temperature"] < 1e7'])
    cut_mass = new_region.quantities["TotalQuantity"]("cell_mass")
    print "The fraction of mass in this temperature range is %f." % \
      (cut_mass[0] / total_mass[0])
@@ -267,7 +267,7 @@ it as a data_source to a projection.
    from yt.mods import *
    pf = load("enzo_tiny_cosmology/DD0046/DD0046")
    ad = pf.h.all_data()
-   new_region = ad.cut_region(['grid["density"] > 1e-29'])
+   new_region = ad.cut_region(['obj["density"] > 1e-29'])
    plot = ProjectionPlot(pf, "x", "density", weight_field="density",
                          data_source=new_region)
    plot.save()
