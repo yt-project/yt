@@ -99,6 +99,7 @@ from yt.frontends.ramses.api import \
     RAMSESStaticOutput, RAMSESFieldInfo
 
 from yt.frontends.halo_catalogs.api import \
+    HaloCatalogStaticOutput, HaloCatalogFieldInfo, \
     RockstarStaticOutput, RockstarFieldInfo
 
 #from yt.frontends.chombo.api import \

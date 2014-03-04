@@ -1,5 +1,5 @@
 """
-Data structures for a generic SPH/Gadget frontend.
+Data structures for Rockstar frontend.
 
 
 
@@ -14,7 +14,6 @@ Data structures for a generic SPH/Gadget frontend.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
 import numpy as np
 import stat
 import weakref
@@ -38,8 +37,7 @@ from yt.units.yt_array import \
     YTQuantity
 
 from .definitions import \
-    header_dt, \
-    halo_dt
+    header_dt
 
 class RockstarBinaryFile(ParticleFile):
     def __init__(self, pf, io, filename, file_id):
