@@ -18,7 +18,6 @@ import numpy as np
 cimport numpy as np
 cimport cython
 cimport kdtree_utils
-from fp_utils cimport i64clip
 
 cdef struct VolumeContainer:
     int n_fields
@@ -69,6 +68,4 @@ cdef inline int vc_pos_index(VolumeContainer *vc, np.float64_t *spos):
     cdef int i, index[3]
     for i in range(3):
         index[i] = <int> ((spos[i] - vc.left_edge[i]) * vc.idds[i])
-        # We assume this is inside the grid
-        index[i] = i64clip(index[i], 0, vc.dims[i] - 1)
     return vc_index(vc, index[0], index[1], index[2])
