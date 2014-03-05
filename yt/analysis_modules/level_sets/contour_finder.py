@@ -28,6 +28,7 @@ def identify_contours(data_source, field, min_val, max_val,
     contours = {}
     empty_mask = np.ones((1,1,1), dtype="uint8")
     node_ids = []
+    DLE = data_source.pf.domain_left_edge
     for (g, node, (sl, dims, gi)) in data_source.tiles.slice_traverse():
         node.node_ind = len(node_ids)
         nid = node.node_id
@@ -40,8 +41,9 @@ def identify_contours(data_source, field, min_val, max_val,
         tree.add_contours(new_contours)
         # Now we can create a partitioned grid with the contours.
         pg = amr_utils.PartitionedGrid(g.id,
-            [contour_ids.view("float64")],
-            empty_mask, g.dds * gi, g.dds * (gi + dims),
+            [contour_ids.view("float64")], empty_mask,
+            DLE + g.dds * gi, 
+            DLE + g.dds * (gi + dims),
             dims.astype("int64"))
         contours[nid] = (g.Level, node.node_ind, pg, sl)
     node_ids = np.array(node_ids)
