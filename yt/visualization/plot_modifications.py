@@ -14,7 +14,6 @@ Callbacksr to add additional functionality on to plots.
 #-----------------------------------------------------------------------------
 
 import numpy as np
-import h5py
 
 from yt.funcs import *
 from _mpl_imports import *
@@ -1337,26 +1336,20 @@ class MaterialBoundaryCallback(ContourCallback):
 
 class TriangleFacetsCallback(PlotCallback):
     """ 
-    annotate_triangle_facets(triangles)
+    annotate_triangle_facets(triangle_vertices, plot_args=None )
 
     Over plot *x* and *y* with *plot_args* fed into the plot.
     """
     _type_name = "triangle_facets"
-    def __init__(self, triangles, ax, coord, plot_args=None):
+    def __init__(self, triangle_vertices, plot_args=None):
         super(TriangleFacetsCallback, self).__init__()
-        self.ax = ax
-        self.coord = coord
         self.plot_args = {} if plot_args is None else plot_args
-        f = h5py.File(triangles, "r")
-        coords = f["/tstt/nodes/coordinates"][:]
-        conn = f["/tstt/elements/Tri3/connectivity"][:]
-        self.points = coords[conn-1]
-        f.close()
+        self.vertices = triangle_vertices
 
     def __call__(self, plot):
         plot._axes.hold(True)
-        xax, yax = x_dict[self.ax], y_dict[self.ax]
-        l_cy = triangle_plane_intersect(self.ax, self.coord, self.points)[:,:,(xax, yax)]
+        xax, yax = x_dict[plot.data.axis], y_dict[plot.data.axis]
+        l_cy = triangle_plane_intersect(plot.data.axis, plot.data.coord, self.vertices)[:,:,(xax, yax)]
         lc = matplotlib.collections.LineCollection(l_cy, **self.plot_args)
         plot._axes.add_collection(lc)
         plot._axes.hold(False)
