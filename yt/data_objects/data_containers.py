@@ -85,6 +85,7 @@ class YTDataContainer(object):
     _skip_add = False
     _container_fields = ()
     _field_cache = None
+    _index = None
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):

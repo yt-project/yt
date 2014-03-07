@@ -49,7 +49,6 @@ class Index(ParallelAnalysisInterface):
     _unsupported_objects = ()
 
     def __init__(self, pf, dataset_type):
-        self.filtered_particle_types = []
         ParallelAnalysisInterface.__init__(self)
         self.parameter_file = weakref.proxy(pf)
         self.pf = self.parameter_file
@@ -80,46 +79,6 @@ class Index(ParallelAnalysisInterface):
         self._data_mode = None
         self._max_locations = {}
         self.num_grids = None
-
-    def _setup_particle_types(self, ptypes = None):
-        df = []
-        if ptypes is None: ptypes = self.pf.particle_types_raw
-        for ptype in set(ptypes):
-            df += self.pf._setup_particle_type(ptype)
-        return df
-
-    def _setup_field_registry(self):
-        self.derived_field_list = []
-        self.filtered_particle_types = []
-
-    def _setup_filtered_type(self, filter):
-        if not filter.available(self.derived_field_list):
-            return False
-        fi = self.parameter_file.field_info
-        fd = self.parameter_file.field_dependencies
-        available = False
-        for fn in self.derived_field_list:
-            if fn[0] == filter.filtered_type:
-                # Now we can add this
-                available = True
-                self.derived_field_list.append(
-                    (filter.name, fn[1]))
-                fi[filter.name, fn[1]] = filter.wrap_func(fn, fi[fn])
-                # Now we append the dependencies
-                fd[filter.name, fn[1]] = fd[fn]
-        if available:
-            self.parameter_file.particle_types += (filter.name,)
-            self.filtered_particle_types.append(filter.name)
-            self._setup_particle_types([filter.name])
-        return available
-
-    # Now all the object related stuff
-    def all_data(self, find_max=False):
-        pf = self.parameter_file
-        if find_max: c = self.find_max("Density")[1]
-        else: c = (pf.domain_right_edge + pf.domain_left_edge)/2.0
-        return self.region(c,
-            pf.domain_left_edge, pf.domain_right_edge)
 
     def _initialize_data_storage(self):
         if not ytcfg.getboolean('yt','serialize'): return
@@ -261,18 +220,6 @@ class Index(ParallelAnalysisInterface):
             self._data_file.close()
             del self._data_file
             self._data_file = None
-
-    def find_max(self, field):
-        """
-        Returns (value, center) of location of maximum for a given field.
-        """
-        mylog.debug("Searching for maximum value of %s", field)
-        source = self.all_data()
-        max_val, maxi, mx, my, mz = \
-            source.quantities["MaxLocation"](field)
-        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f", 
-              max_val, mx, my, mz)
-        return max_val, np.array([mx, my, mz], dtype="float64")
 
     def _split_fields(self, fields):
         # This will split fields into either generated or read fields

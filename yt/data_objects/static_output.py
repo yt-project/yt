@@ -268,9 +268,14 @@ class Dataset(object):
                 v = getattr(self, a)
                 mylog.info("Parameters: %-25s = %s", a, v)
 
+    @property
+    def field_list(self):
+        return self.index.field_list
+
     def create_field_info(self):
         self.field_dependencies = {}
         self.derived_field_list = []
+        self.filtered_particle_types = []
         self.field_info = self._field_info_class(self, self.field_list)
         self.coordinates.setup_fields(self.field_info)
         self.field_info.setup_fluid_fields()
@@ -318,7 +323,7 @@ class Dataset(object):
         self.field_list.extend(fields)
         # Give ourselves a chance to add them here, first, then...
         # ...if we can't find them, we set them up as defaults.
-        new_fields = self.index._setup_particle_types([union.name])
+        new_fields = self._setup_particle_types([union.name])
         rv = self.field_info.find_dependencies(new_fields)
 
     def add_particle_filter(self, filter):
@@ -329,21 +334,50 @@ class Dataset(object):
         if isinstance(filter, types.StringTypes):
             used = False
             for f in filter_registry[filter]:
-                used = self.index._setup_filtered_type(f)
+                used = self._setup_filtered_type(f)
                 if used:
                     filter = f
                     break
         else:
-            used = self.index._setup_filtered_type(filter)
+            used = self._setup_filtered_type(filter)
         if not used:
             self.known_filters.pop(n, None)
             return False
         self.known_filters[filter.name] = filter
         return True
 
+    def _setup_filtered_type(self, filter):
+        if not filter.available(self.derived_field_list):
+            return False
+        fi = self.field_info
+        fd = self.field_dependencies
+        available = False
+        for fn in self.derived_field_list:
+            if fn[0] == filter.filtered_type:
+                # Now we can add this
+                available = True
+                self.derived_field_list.append(
+                    (filter.name, fn[1]))
+                fi[filter.name, fn[1]] = filter.wrap_func(fn, fi[fn])
+                # Now we append the dependencies
+                fd[filter.name, fn[1]] = fd[fn]
+        if available:
+            self.particle_types += (filter.name,)
+            self.filtered_particle_types.append(filter.name)
+            self._setup_particle_types([filter.name])
+        return available
+
+    def _setup_particle_types(self, ptypes = None):
+        df = []
+        if ptypes is None: ptypes = self.pf.particle_types_raw
+        for ptype in set(ptypes):
+            df += self._setup_particle_type(ptype)
+        return df
+
     _last_freq = (None, None)
     _last_finfo = None
     def _get_field_info(self, ftype, fname = None):
+        self.index
         if fname is None:
             ftype, fname = "unknown", ftype
         guessing_type = False
@@ -415,6 +449,25 @@ class Dataset(object):
         dd.update({'__doc__': base.__doc__})
         obj = type(class_name, (base,), dd)
         setattr(self, name, obj)
+
+    def find_max(self, field):
+        """
+        Returns (value, center) of location of maximum for a given field.
+        """
+        mylog.debug("Searching for maximum value of %s", field)
+        source = self.all_data()
+        max_val, maxi, mx, my, mz = \
+            source.quantities["MaxLocation"](field)
+        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f", 
+              max_val, mx, my, mz)
+        return max_val, np.array([mx, my, mz], dtype="float64")
+
+    # Now all the object related stuff
+    def all_data(self, find_max=False):
+        if find_max: c = self.find_max("Density")[1]
+        else: c = (self.domain_right_edge + self.domain_left_edge)/2.0
+        return self.region(c,
+            self.domain_left_edge, self.domain_right_edge)
 
     def _setup_particle_type(self, ptype):
         orig = set(self.field_info.items())
