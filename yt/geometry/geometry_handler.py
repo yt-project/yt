@@ -87,31 +87,6 @@ class Index(ParallelAnalysisInterface):
         self._max_locations = {}
         self.num_grids = None
 
-    def _setup_classes(self, dd):
-        # Called by subclass
-        self.object_types = []
-        self.objects = []
-        self.plots = []
-        for name, cls in sorted(data_object_registry.items()):
-            if name in self._unsupported_objects:
-                setattr(self, name,
-                    _unsupported_object(self.parameter_file, name))
-                continue
-            cname = cls.__name__
-            if cname.endswith("Base"): cname = cname[:-4]
-            self._add_object_class(name, cname, cls, dd)
-        if self.pf.refine_by != 2 and hasattr(self, 'proj') and \
-            hasattr(self, 'overlap_proj'):
-            mylog.warning("Refine by something other than two: reverting to"
-                        + " overlap_proj")
-            self.proj = self.overlap_proj
-        if self.pf.dimensionality < 3 and hasattr(self, 'proj') and \
-            hasattr(self, 'overlap_proj'):
-            mylog.warning("Dimensionality less than 3: reverting to"
-                        + " overlap_proj")
-            self.proj = self.overlap_proj
-        self.object_types.sort()
-
     def _setup_particle_types(self, ptypes = None):
         df = []
         if ptypes is None: ptypes = self.pf.particle_types_raw
