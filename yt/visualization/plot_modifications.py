@@ -28,6 +28,7 @@ from yt.utilities.physical_constants import \
     sec_per_day, sec_per_hr
 from yt.units.yt_array import YTQuantity, YTArray
 from yt.visualization.image_writer import apply_colormap
+from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 
 import _MPL
 
@@ -1333,3 +1334,28 @@ class MaterialBoundaryCallback(ContourCallback):
     def __call__(self, plot):
         super(MaterialBoundaryCallback, self).__call__(plot)
 
+class TriangleFacetsCallback(PlotCallback):
+    """ 
+    annotate_triangle_facets(triangle_vertices, plot_args=None )
+
+    Intended for representing a slice of a triangular faceted 
+    geometry in a slice plot. 
+
+    Uses a set of *triangle_vertices* to find all trangles the plane of a 
+    SlicePlot intersects with. The lines between the intersection points 
+    of the triangles are then added to the plot to create an outline
+    of the geometry represented by the triangles. 
+    """
+    _type_name = "triangle_facets"
+    def __init__(self, triangle_vertices, plot_args=None):
+        super(TriangleFacetsCallback, self).__init__()
+        self.plot_args = {} if plot_args is None else plot_args
+        self.vertices = triangle_vertices
+
+    def __call__(self, plot):
+        plot._axes.hold(True)
+        xax, yax = x_dict[plot.data.axis], y_dict[plot.data.axis]
+        l_cy = triangle_plane_intersect(plot.data.axis, plot.data.coord, self.vertices)[:,:,(xax, yax)]
+        lc = matplotlib.collections.LineCollection(l_cy, **self.plot_args)
+        plot._axes.add_collection(lc)
+        plot._axes.hold(False)
