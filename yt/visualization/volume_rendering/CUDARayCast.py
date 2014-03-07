@@ -36,7 +36,7 @@ if __name__ == "__main__":
     cuda.init()
     assert (cuda.Device.count() >= 1)
 
-    print "Extracting hierarchy."
+    print "Extracting index."
     opf = load("/u/ki/mturk/ki05/MSM96-SIM3-restart-J64/DataDump0081.dir/DataDump0081")
     pf = hs.ExtractedParameterFile(opf, 20)
 

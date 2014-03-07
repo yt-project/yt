@@ -317,6 +317,6 @@ class OutputSelector(HasTraits):
 def pan_and_scan_directory(dir_name):
     import glob, os
     fns = [ fn[:-10] for fn in
-            glob.glob(os.path.join(dir_name, "**", "*.hierarchy")) ]
+            glob.glob(os.path.join(dir_name, "**", "*.index")) ]
     selector = OutputSelector(outputs = fns)
     return selector

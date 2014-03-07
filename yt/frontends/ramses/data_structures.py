@@ -327,9 +327,9 @@ class RAMSESIndex(OctreeIndex):
         self.fluid_field_list = pf._fields_in_file
         self.data_style = data_style
         self.parameter_file = weakref.proxy(pf)
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.directory = os.path.dirname(self.hierarchy_filename)
+        # for now, the index file is the parameter file!
+        self.index_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.index_filename)
         self.max_level = None
 
         self.float_type = np.float64

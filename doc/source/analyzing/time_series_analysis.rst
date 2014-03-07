@@ -53,7 +53,7 @@ those filenames will be sorted and returned.  Here is an example:
 .. code-block:: python
 
    from yt.mods import *
-   ts = DatasetSeries.from_filenames("*/*.hierarchy")
+   ts = DatasetSeries.from_filenames("*/*.index")
 
 Analyzing Each Dataset In Sequence
 ----------------------------------
@@ -65,7 +65,7 @@ is returned for iteration:
 .. code-block:: python
 
    from yt.mods import *
-   ts = DatasetSeries.from_filenames("*/*.hierarchy")
+   ts = DatasetSeries.from_filenames("*/*.index")
    for pf in ts:
        print pf.current_time
 
@@ -97,7 +97,7 @@ maximum value we want to evaluate:
 .. code-block:: python
 
    from yt.mods import *
-   ts = TimeSeries.from_filenames("*/*.hierarchy")
+   ts = TimeSeries.from_filenames("*/*.index")
    max_rho = ts.tasks["MaximumValue"]("density")
 
 When we call the task, the time series object executes the task on each
@@ -122,7 +122,7 @@ this script:
 .. code-block:: python
 
    from yt.mods import *
-   ts = TimeSeries.from_filenames("*/*.hierarchy")
+   ts = TimeSeries.from_filenames("*/*.index")
    sphere = ts.sphere("max", (1.0, "pc"))
    L_vecs = sphere.quantities["AngularMomentumVector"]()
 

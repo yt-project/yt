@@ -43,9 +43,9 @@ def _get_convert(fname):
 class GDFGrid(AMRGridPatch):
     _id_offset = 0
 
-    def __init__(self, id, hierarchy, level, start, dimensions):
-        AMRGridPatch.__init__(self, id, filename=hierarchy.hierarchy_filename,
-                              hierarchy=hierarchy)
+    def __init__(self, id, index, level, start, dimensions):
+        AMRGridPatch.__init__(self, id, filename=index.index_filename,
+                              index=index)
         self.Parent = []
         self.Children = []
         self.Level = level
@@ -60,8 +60,8 @@ class GDFGrid(AMRGridPatch):
         if len(self.Parent) > 0:
             self.dds = self.Parent[0].dds / self.pf.refine_by
         else:
-            LE, RE = self.hierarchy.grid_left_edge[id, :], \
-                self.hierarchy.grid_right_edge[id, :]
+            LE, RE = self.index.grid_left_edge[id, :], \
+                self.index.grid_right_edge[id, :]
             self.dds = np.array((RE - LE) / self.ActiveDimensions)
         if self.pf.data_software != "piernik":
             if self.pf.dimensionality < 2:
@@ -79,20 +79,20 @@ class GDFHierarchy(GridIndex):
 
     def __init__(self, pf, data_style='grid_data_format'):
         self.parameter_file = weakref.proxy(pf)
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        h5f = h5py.File(self.hierarchy_filename, 'r')
+        self.index_filename = self.parameter_file.parameter_filename
+        h5f = h5py.File(self.index_filename, 'r')
         self.data_style = data_style
         GridIndex.__init__(self, pf, data_style)
         self.max_level = 10  # FIXME
-        # for now, the hierarchy file is the parameter file!
-        self.directory = os.path.dirname(self.hierarchy_filename)
+        # for now, the index file is the parameter file!
+        self.directory = os.path.dirname(self.index_filename)
         h5f.close()
 
     def _initialize_data_storage(self):
         pass
 
     def _detect_fields(self):
-        h5f = h5py.File(self.hierarchy_filename, 'r')
+        h5f = h5py.File(self.index_filename, 'r')
         self.field_list = h5f['field_types'].keys()
         h5f.close()
 
@@ -102,12 +102,12 @@ class GDFHierarchy(GridIndex):
         self.object_types.sort()
 
     def _count_grids(self):
-        h5f = h5py.File(self.hierarchy_filename, 'r')
+        h5f = h5py.File(self.index_filename, 'r')
         self.num_grids = h5f['/grid_parent_id'].shape[0]
         h5f.close()
 
-    def _parse_hierarchy(self):
-        h5f = h5py.File(self.hierarchy_filename, 'r')
+    def _parse_index(self):
+        h5f = h5py.File(self.index_filename, 'r')
         dxs = []
         self.grids = np.empty(self.num_grids, dtype='object')
         levels = (h5f['grid_level'][:]).copy()

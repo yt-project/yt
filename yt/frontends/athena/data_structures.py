@@ -39,11 +39,11 @@ def _get_convert(fname):
 
 class AthenaGrid(AMRGridPatch):
     _id_offset = 0
-    def __init__(self, id, hierarchy, level, start, dimensions):
-        df = hierarchy.parameter_file.filename[4:-4]
-        gname = hierarchy.grid_filenames[id]
+    def __init__(self, id, index, level, start, dimensions):
+        df = index.parameter_file.filename[4:-4]
+        gname = index.grid_filenames[id]
         AMRGridPatch.__init__(self, id, filename = gname,
-                              hierarchy = hierarchy)
+                              index = index)
         self.filename = gname
         self.Parent = []
         self.Children = []
@@ -59,8 +59,8 @@ class AthenaGrid(AMRGridPatch):
         if len(self.Parent) > 0:
             self.dds = self.Parent[0].dds / self.pf.refine_by
         else:
-            LE, RE = self.hierarchy.grid_left_edge[id,:], \
-                     self.hierarchy.grid_right_edge[id,:]
+            LE, RE = self.index.grid_left_edge[id,:], \
+                     self.index.grid_right_edge[id,:]
             self.dds = self.pf.arr((RE-LE)/self.ActiveDimensions, "code_length")
         if self.pf.dimensionality < 2: self.dds[1] = 1.0
         if self.pf.dimensionality < 3: self.dds[2] = 1.0
@@ -106,17 +106,17 @@ class AthenaHierarchy(GridIndex):
         self.parameter_file = weakref.proxy(pf)
         self.directory = os.path.dirname(self.parameter_file.filename)
         self.data_style = data_style
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.filename
-        #self.directory = os.path.dirname(self.hierarchy_filename)
-        self._fhandle = file(self.hierarchy_filename,'rb')
+        # for now, the index file is the parameter file!
+        self.index_filename = self.parameter_file.filename
+        #self.directory = os.path.dirname(self.index_filename)
+        self._fhandle = file(self.index_filename,'rb')
         GridIndex.__init__(self, pf, data_style)
 
         self._fhandle.close()
 
     def _detect_output_fields(self):
         field_map = {}
-        f = open(self.hierarchy_filename,'rb')
+        f = open(self.index_filename,'rb')
         line = f.readline()
         while line != '':
             splitup = line.strip().split()
@@ -168,8 +168,8 @@ class AthenaHierarchy(GridIndex):
     def _count_grids(self):
         self.num_grids = self.parameter_file.nvtk
 
-    def _parse_hierarchy(self):
-        f = open(self.hierarchy_filename,'rb')
+    def _parse_index(self):
+        f = open(self.index_filename,'rb')
         grid = {}
         grid['read_field'] = None
         grid['read_type'] = None
@@ -198,14 +198,14 @@ class AthenaHierarchy(GridIndex):
             raise TypeError
 
         # Need to determine how many grids: self.num_grids
-        dataset_dir = os.path.dirname(self.hierarchy_filename)
-        dname = os.path.split(self.hierarchy_filename)[-1]
+        dataset_dir = os.path.dirname(self.index_filename)
+        dname = os.path.split(self.index_filename)[-1]
         if dataset_dir.endswith("id0"):
             dname = "id0/"+dname
             dataset_dir = dataset_dir[:-3]
                         
         gridlistread = glob.glob(os.path.join(dataset_dir, 'id*/%s-id*%s' % (dname[4:-9],dname[-9:])))
-        gridlistread.insert(0,self.hierarchy_filename)
+        gridlistread.insert(0,self.index_filename)
         if 'id0' in dname :
             gridlistread += glob.glob(os.path.join(dataset_dir, 'id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:])))
         else :
@@ -354,7 +354,7 @@ class AthenaDataset(Dataset):
         if storage_filename is None:
             storage_filename = '%s.yt' % filename.split('/')[-1]
         self.storage_filename = storage_filename
-        # Unfortunately we now have to mandate that the hierarchy gets 
+        # Unfortunately we now have to mandate that the index gets 
         # instantiated so that we can make sure we have the correct left 
         # and right domain edges.
         self.h

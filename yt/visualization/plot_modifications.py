@@ -1315,7 +1315,7 @@ class MaterialBoundaryCallback(ContourCallback):
                                clim=(0.9, 1.0), **kwargs):
 
     Add the limiting contours of *field* to the plot.  Nominally, *field* is 
-    the target material but may be any other field present in the hierarchy.
+    the target material but may be any other field present in the index.
     The number of contours generated is given by *ncount*, *factor* governs 
     the number of points used in the interpolation, and *clim* gives the 
     (upper, lower) limits for contouring.  For this to truly be the boundary

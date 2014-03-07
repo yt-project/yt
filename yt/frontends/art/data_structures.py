@@ -68,8 +68,8 @@ class ARTIndex(OctreeIndex):
         self.fluid_field_list = fluid_fields
         self.data_style = data_style
         self.parameter_file = weakref.proxy(pf)
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.directory = os.path.dirname(self.hierarchy_filename)
+        self.index_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.index_filename)
         self.max_level = pf.max_level
         self.float_type = np.float64
         super(ARTIndex, self).__init__(pf, data_style)

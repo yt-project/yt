@@ -40,10 +40,10 @@ class MoabHex8Hierarchy(UnstructuredIndex):
     def __init__(self, pf, data_style='h5m'):
         self.parameter_file = weakref.proxy(pf)
         self.data_style = data_style
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.directory = os.path.dirname(self.hierarchy_filename)
-        self._fhandle = h5py.File(self.hierarchy_filename,'r')
+        # for now, the index file is the parameter file!
+        self.index_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.index_filename)
+        self._fhandle = h5py.File(self.index_filename,'r')
 
         UnstructuredIndex.__init__(self, pf, data_style)
 
@@ -54,7 +54,7 @@ class MoabHex8Hierarchy(UnstructuredIndex):
         con = np.asarray(con, dtype="int64")
         coords = self._fhandle["/tstt/nodes/coordinates"][:]
         coords = np.asarray(coords, dtype="float64")
-        self.meshes = [MoabHex8Mesh(0, self.hierarchy_filename, con,
+        self.meshes = [MoabHex8Mesh(0, self.index_filename, con,
                                     coords, self)]
 
     def _detect_output_fields(self):
@@ -117,8 +117,8 @@ class PyneMeshHex8Hierarchy(UnstructuredIndex):
     def __init__(self, pf, data_style='moab_hex8_pyne'):
         self.parameter_file = weakref.proxy(pf)
         self.data_style = data_style
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.parameter_filename
+        # for now, the index file is the parameter file!
+        self.index_filename = self.parameter_file.parameter_filename
         self.directory = os.getcwd()
         self.pyne_mesh = pf.pyne_mesh
 
@@ -133,7 +133,7 @@ class PyneMeshHex8Hierarchy(UnstructuredIndex):
             iBase.Type.vertex)[1].indices.data.astype("int64")
         # Divide by float so it throws an error if it's not 8
         vind.shape = (vind.shape[0] / 8.0, 8)
-        self.meshes = [PyneHex8Mesh(0, self.hierarchy_filename,
+        self.meshes = [PyneHex8Mesh(0, self.index_filename,
                                     vind, coords, self)]
 
     def _detect_output_fields(self):

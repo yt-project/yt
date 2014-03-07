@@ -163,7 +163,7 @@ Line Queries and Planar Integrals
 
 To calculate the values along a line connecting two points in a simulation, you
 can use the object :class:`~yt.data_objects.data_containers.AMRRayBase`,
-accessible as the ``ray`` property on a hierarchy.  (See :ref:`using-objects`
+accessible as the ``ray`` property on a index.  (See :ref:`using-objects`
 for more information on this.)  To do so, you can supply two points and access
 fields within the returned object.  For instance, this code will generate a ray
 between the points (0.3, 0.5, 0.9) and (0.1, 0.8, 0.5) and examine the density

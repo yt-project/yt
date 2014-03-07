@@ -11,7 +11,7 @@ different in some ways.
 
 Additionally, this list is current as of the latest alpha release.  Several
 more changes are planned that are considerably more disruptive: these include
-unit handling, index/hierarchy handling, and field naming.
+unit handling, index/index handling, and field naming.
 
 .. warning:: This document covers *current* API changes.  As API changes occur
              it will be updated.

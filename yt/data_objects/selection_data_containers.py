@@ -40,7 +40,7 @@ class YTOrthoRayBase(YTSelectionContainer1D):
     coordinate.
 
     This object is typically accessed through the `ortho_ray` object that
-    hangs off of hierarchy objects.  The resulting arrays have their
+    hangs off of index objects.  The resulting arrays have their
     dimensionality reduced to one, and an ordered list of points at an
     (x,y) tuple along `axis` are available.
 
@@ -90,7 +90,7 @@ class YTRayBase(YTSelectionContainer1D):
     specific coordinate.
 
     This object is typically accessed through the `ray` object that hangs
-    off of hierarchy objects.  The resulting arrays have their
+    off of index objects.  The resulting arrays have their
     dimensionality reduced to one, and an ordered list of points at an
     (x,y) tuple along `axis` are available, as is the `t` field, which
     corresponds to a unitless measurement along the ray from start to
@@ -133,7 +133,7 @@ class YTRayBase(YTSelectionContainer1D):
 
     def _generate_container_field(self, field):
         if self._current_chunk is None:
-            self.hierarchy._identify_base_chunk(self)
+            self.index._identify_base_chunk(self)
         if field == "dts":
             return self._current_chunk.dtcoords
         elif field == "t":
@@ -147,7 +147,7 @@ class YTSliceBase(YTSelectionContainer2D):
     domain.
 
     This object is typically accessed through the `slice` object that hangs
-    off of hierarchy objects.  AMRSlice is an orthogonal slice through the
+    off of index objects.  AMRSlice is an orthogonal slice through the
     data, taking all the points at the finest resolution available and then
     indexing them.  It is more appropriately thought of as a slice
     'operator' than an object, however, as its field and coordinate can
@@ -193,7 +193,7 @@ class YTSliceBase(YTSelectionContainer2D):
 
     def _generate_container_field(self, field):
         if self._current_chunk is None:
-            self.hierarchy._identify_base_chunk(self)
+            self.index._identify_base_chunk(self)
         if field == "px":
             return self._current_chunk.fcoords[:,x_dict[self.axis]]
         elif field == "py":
@@ -229,7 +229,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     simulation domain.
 
     This object is typically accessed through the `cutting` object
-    that hangs off of hierarchy objects.  AMRCuttingPlane is an oblique
+    that hangs off of index objects.  AMRCuttingPlane is an oblique
     plane through the data, defined by a normal vector and a coordinate.
     It attempts to guess an 'up' vector, which cannot be overridden, and
     then it pixelizes the appropriate data onto the plane without
@@ -355,7 +355,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
 
     def _generate_container_field(self, field):
         if self._current_chunk is None:
-            self.hierarchy._identify_base_chunk(self)
+            self.index._identify_base_chunk(self)
         if field == "px":
             x = self._current_chunk.fcoords[:,0] - self.center[0]
             y = self._current_chunk.fcoords[:,1] - self.center[1]
@@ -558,9 +558,9 @@ class YTSphereBase(YTSelectionContainer3D):
         super(YTSphereBase, self).__init__(center, pf, field_parameters)
         # Unpack the radius, if necessary
         radius = fix_length(radius, self.pf)
-        if radius < self.hierarchy.get_smallest_dx():
+        if radius < self.index.get_smallest_dx():
             raise YTSphereTooSmall(pf, radius.in_units("code_length"),
-                                   self.hierarchy.get_smallest_dx().in_units("code_length"))
+                                   self.index.get_smallest_dx().in_units("code_length"))
         self.set_field_parameter('radius',radius)
         self.radius = radius
 
@@ -606,8 +606,8 @@ class YTEllipsoidBase(YTSelectionContainer3D):
         self._A = self.pf.quan(A, 'code_length')
         self._B = self.pf.quan(B, 'code_length')
         self._C = self.pf.quan(C, 'code_length')
-        if self._C < self.hierarchy.get_smallest_dx():
-            raise YTSphereTooSmall(pf, self._C, self.hierarchy.get_smallest_dx())
+        if self._C < self.index.get_smallest_dx():
+            raise YTSphereTooSmall(pf, self._C, self.index.get_smallest_dx())
         self._e0 = e0 = e0 / (e0**2.0).sum()**0.5
         self._tilt = tilt
         
@@ -681,7 +681,7 @@ class YTCutRegionBase(YTSelectionContainer3D):
     def chunks(self, fields, chunking_style, **kwargs):
         # We actually want to chunk the sub-chunk, not ourselves.  We have no
         # chunks to speak of, as we do not data IO.
-        for chunk in self.hierarchy._chunk(self.base_object,
+        for chunk in self.index._chunk(self.base_object,
                                            chunking_style,
                                            **kwargs):
             with self.base_object._chunked_read(chunk):

@@ -416,7 +416,7 @@ class PlotCollection(object):
             coord = center[axis]
         if obj is None:
             if field_parameters is None: field_parameters = {}
-            obj = self.pf.hierarchy.slice(axis, coord, center=center,
+            obj = self.pf.index.slice(axis, coord, center=center,
                             field_parameters = field_parameters)
         p = self._add_plot(PCSlicePlot(
                          obj, field, use_colorbar=use_colorbar,
@@ -577,7 +577,7 @@ class PlotCollection(object):
             center = self.c
         if not obj:
             if field_parameters is None: field_parameters = {}
-            cp = self.pf.hierarchy.cutting(normal, center, 
+            cp = self.pf.index.cutting(normal, center, 
                     field_parameters = field_parameters)
         else:
             cp = obj
@@ -675,7 +675,7 @@ class PlotCollection(object):
         if center == None:
             center = self.c
         if obj is None:
-            obj = self.pf.hierarchy.proj(field, axis, weight_field,
+            obj = self.pf.index.proj(field, axis, weight_field,
                                          data_source = data_source, center=center,
                                          field_parameters = field_parameters)
         p = self._add_plot(PCProjectionPlot(obj, field,
@@ -769,7 +769,7 @@ class PlotCollection(object):
         LE[axis] -= thickness/2.0
         RE[axis] += thickness/2.0
         region = self.pf.h.region(center, LE, RE)
-        obj = self.pf.hierarchy.proj(field, axis, weight_field,
+        obj = self.pf.index.proj(field, axis, weight_field,
                                      data_source = region, center=center,
                                      field_parameters = field_parameters)
         p = self._add_plot(PCProjectionPlot(obj, field,
@@ -935,7 +935,7 @@ class PlotCollection(object):
         if center is None:
             center = self.c
         r = radius/self.pf[unit]
-        sphere = self.pf.hierarchy.sphere(center, r)
+        sphere = self.pf.index.sphere(center, r)
         p = self.add_profile_object(sphere, fields, weight, accumulation,
                            x_bins, x_log, x_bounds, id,
                            figure=figure, axes=axes)
@@ -1152,7 +1152,7 @@ class PlotCollection(object):
 
         if center is None: center = self.c
         r = radius/self.pf[unit]
-        data_source = self.pf.hierarchy.sphere(center, r)
+        data_source = self.pf.index.sphere(center, r)
         p = self.add_phase_object(data_source, fields, cmap,
                              weight, accumulation,
                              x_bins, x_log, x_bounds,

@@ -237,7 +237,7 @@ class Index(ParallelAnalysisInterface):
 
     def _get_data_reader_dict(self):
         dd = { 'pf' : self.parameter_file, # Already weak
-               'hierarchy': weakref.proxy(self) }
+               'index': weakref.proxy(self) }
         return dd
 
     def _reset_save_data(self,round_robin=False):

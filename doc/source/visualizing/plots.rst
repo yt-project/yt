@@ -181,7 +181,7 @@ example:
 
 will create a projection of Density field along the x axis, plot it,
 and then save it to a png image file.  The projection is only carried
-out to level 2 of the AMR hierarchy and no weighting is applied.
+out to level 2 of the AMR index and no weighting is applied.
 
 Like :ref:`slice-plots`, annotations and modifications can be applied
 after creating the ``ProjectionPlot`` object.  Annotations are

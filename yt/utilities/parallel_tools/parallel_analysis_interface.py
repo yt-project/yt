@@ -1048,10 +1048,10 @@ class ParallelAnalysisInterface(object):
         pass
 
 
-    def partition_hierarchy_2d(self, axis):
+    def partition_index_2d(self, axis):
         if not self._distributed:
-           return False, self.hierarchy.grid_collection(self.center, 
-                                                        self.hierarchy.grids)
+           return False, self.index.grid_collection(self.center, 
+                                                        self.index.grids)
 
         xax, yax = x_dict[axis], y_dict[axis]
         cc = MPI.Compute_dims(self.comm.size, 2)
@@ -1069,10 +1069,10 @@ class ParallelAnalysisInterface(object):
         RE[yax] = y[1] * (DRE[yax]-DLE[yax]) + DLE[yax]
         mylog.debug("Dimensions: %s %s", LE, RE)
 
-        reg = self.hierarchy.region(self.center, LE, RE)
+        reg = self.index.region(self.center, LE, RE)
         return True, reg
 
-    def partition_hierarchy_3d(self, ds, padding=0.0, rank_ratio = 1):
+    def partition_index_3d(self, ds, padding=0.0, rank_ratio = 1):
         LE, RE = np.array(ds.left_edge), np.array(ds.right_edge)
         # We need to establish if we're looking at a subvolume, in which case
         # we *do* want to pad things.
@@ -1085,7 +1085,7 @@ class ParallelAnalysisInterface(object):
             return False, LE, RE, ds
         if not self._distributed and subvol:
             return True, LE, RE, \
-            self.hierarchy.region(self.center, LE-padding, RE+padding)
+            self.index.region(self.center, LE-padding, RE+padding)
         elif ytcfg.getboolean("yt", "inline"):
             # At this point, we want to identify the root grid tile to which
             # this processor is assigned.
@@ -1098,7 +1098,7 @@ class ParallelAnalysisInterface(object):
             #raise KeyError
             LE = root_grids[0].LeftEdge
             RE = root_grids[0].RightEdge
-            return True, LE, RE, self.hierarchy.region(self.center, LE, RE)
+            return True, LE, RE, self.index.region(self.center, LE, RE)
 
         cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
         mi = self.comm.rank % (self.comm.size / rank_ratio)
@@ -1112,10 +1112,10 @@ class ParallelAnalysisInterface(object):
 
         if padding > 0:
             return True, \
-                LE, RE, self.hierarchy.region(self.center,
+                LE, RE, self.index.region(self.center,
                 LE-padding, RE+padding)
 
-        return False, LE, RE, self.hierarchy.region(self.center, LE, RE)
+        return False, LE, RE, self.index.region(self.center, LE, RE)
 
     def partition_region_3d(self, left_edge, right_edge, padding=0.0,
             rank_ratio = 1):
@@ -1140,14 +1140,14 @@ class ParallelAnalysisInterface(object):
 
         if padding > 0:
             return True, \
-                LE, RE, self.hierarchy.region(self.center, LE-padding,
+                LE, RE, self.index.region(self.center, LE-padding,
                     RE+padding)
 
-        return False, LE, RE, self.hierarchy.region(self.center, LE, RE)
+        return False, LE, RE, self.index.region(self.center, LE, RE)
 
-    def partition_hierarchy_3d_bisection_list(self):
+    def partition_index_3d_bisection_list(self):
         """
-        Returns an array that is used to drive _partition_hierarchy_3d_bisection,
+        Returns an array that is used to drive _partition_index_3d_bisection,
         below.
         """
 

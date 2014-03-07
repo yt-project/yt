@@ -114,7 +114,7 @@ This snippet locates the cell containing a star and returns the grid and grid id
 Sanity Check: Gas & Stars Line Up
 ---------------------------------
 
-If you add your star particles separately from the gas cell hierarchy, then it is worth checking that they still lined up once they've been loaded into Sunrise. This is fairly easy to do with a useful 'auxiliary' run. In Sunrise, set all of your rays to zero, (nrays_nonscatter, nrays_scatter,nrays_intensity,nrays_ir ) except for nrays_aux, and this will produce an mcrx FITS file with a gas map, a metals map, a temperature*gass_mass map and a stellar map for each camera. As long as you keep some cameras at theta,phi = 0,0 or 90,0, etc., then a standard yt projection down the code's xyz axes should look identical:
+If you add your star particles separately from the gas cell index, then it is worth checking that they still lined up once they've been loaded into Sunrise. This is fairly easy to do with a useful 'auxiliary' run. In Sunrise, set all of your rays to zero, (nrays_nonscatter, nrays_scatter,nrays_intensity,nrays_ir ) except for nrays_aux, and this will produce an mcrx FITS file with a gas map, a metals map, a temperature*gass_mass map and a stellar map for each camera. As long as you keep some cameras at theta,phi = 0,0 or 90,0, etc., then a standard yt projection down the code's xyz axes should look identical:
 
 .. code-block:: python
 

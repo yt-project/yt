@@ -81,13 +81,13 @@ class StreamGrid(AMRGridPatch):
 
     __slots__ = ['proc_num']
     _id_offset = 0
-    def __init__(self, id, hierarchy):
+    def __init__(self, id, index):
         """
         Returns an instance of StreamGrid with *id*, associated with *filename*
-        and *hierarchy*.
+        and *index*.
         """
         #All of the field parameters will be passed to us as needed.
-        AMRGridPatch.__init__(self, id, filename = None, hierarchy = hierarchy)
+        AMRGridPatch.__init__(self, id, filename = None, index = index)
         self._children_ids = []
         self._parent_id = -1
         self.Level = -1
@@ -101,8 +101,8 @@ class StreamGrid(AMRGridPatch):
         self.start_index = rf*(ParentLeftIndex + self.Parent.get_global_startindex()).astype('int64')
         self.LeftEdge = self.Parent.LeftEdge + self.Parent.dds * ParentLeftIndex
         self.RightEdge = self.LeftEdge + self.ActiveDimensions*self.dds
-        self.hierarchy.grid_left_edge[my_ind,:] = self.LeftEdge
-        self.hierarchy.grid_right_edge[my_ind,:] = self.RightEdge
+        self.index.grid_left_edge[my_ind,:] = self.LeftEdge
+        self.index.grid_right_edge[my_ind,:] = self.RightEdge
         self._child_mask = None
         self._child_index_mask = None
         self._child_indices = None
@@ -117,11 +117,11 @@ class StreamGrid(AMRGridPatch):
     @property
     def Parent(self):
         if self._parent_id == -1: return None
-        return self.hierarchy.grids[self._parent_id - self._id_offset]
+        return self.index.grids[self._parent_id - self._id_offset]
 
     @property
     def Children(self):
-        return [self.hierarchy.grids[cid - self._id_offset]
+        return [self.index.grids[cid - self._id_offset]
                 for cid in self._children_ids]
 
 class StreamHandler(object):
@@ -171,7 +171,7 @@ class StreamHierarchy(GridIndex):
     def _count_grids(self):
         self.num_grids = self.stream_handler.num_grids
 
-    def _parse_hierarchy(self):
+    def _parse_index(self):
         self.grid_dimensions = self.stream_handler.dimensions
         self.grid_left_edge[:] = self.stream_handler.left_edges
         self.grid_right_edge[:] = self.stream_handler.right_edges
@@ -410,7 +410,7 @@ def assign_particle_data(pf, pdata) :
     
     # Note: what we need to do here is a bit tricky.  Because occasionally this
     # gets called before we property handle the field detection, we cannot use
-    # any information about the hierarchy.  Fortunately for us, we can generate
+    # any information about the index.  Fortunately for us, we can generate
     # most of the GridTree utilizing information we already have from the
     # stream handler.
     
@@ -681,7 +681,7 @@ def load_amr_grids(grid_data, domain_dimensions, length_units=None,
         * Some functions may behave oddly, and parallelism will be
           disappointing or non-existent in most cases.
         * Particles may be difficult to integrate.
-        * No consistency checks are performed on the hierarchy
+        * No consistency checks are performed on the index
 Parameters
     ----------
     grid_data : list of dicts
@@ -1091,7 +1091,7 @@ class StreamHexahedralHierarchy(UnstructuredIndex):
         coords = self.stream_handler.fields.pop('coordinates')
         connec = self.stream_handler.fields.pop('connectivity')
         self.meshes = [StreamHexahedralMesh(0,
-          self.hierarchy_filename, connec, coords, self)]
+          self.index_filename, connec, coords, self)]
 
     def _setup_data_io(self):
         if self.stream_handler.io is not None:
@@ -1214,7 +1214,7 @@ class StreamOctreeSubset(OctreeSubset):
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.pf = pf
-        self.hierarchy = self.pf.hierarchy
+        self.index = self.pf.index
         self.oct_handler = oct_handler
         self._last_mask = None
         self._last_selector_id = None

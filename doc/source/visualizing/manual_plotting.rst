@@ -15,7 +15,7 @@ matplotlib or another python library are easiest, but these methods allow you to
 take your data and plot it in gnuplot, or any unnamed commercial plotting
 packages.
 
-Note that the hierarchy object associated with your snapshot file contains a
+Note that the index object associated with your snapshot file contains a
 list of plots you've made in ``pf.h.plots``.
 
 .. _fixed-resolution-buffers:
@@ -64,7 +64,7 @@ matplotlib can be found in the cookbook.
 Line Plots
 ----------
 
-This is perhaps the simplest thing to do. ``yt`` provides a number of one dimensional objects, and these return a 1-D numpy array of their contents with direct dictionary access. As a simple example, take a :class:`~yt.data_objects.data_containers.AMROrthoRayBase` object, which can be created from a hierarchy by calling ``pf.h.ortho_ray(axis, center)``. 
+This is perhaps the simplest thing to do. ``yt`` provides a number of one dimensional objects, and these return a 1-D numpy array of their contents with direct dictionary access. As a simple example, take a :class:`~yt.data_objects.data_containers.AMROrthoRayBase` object, which can be created from a index by calling ``pf.h.ortho_ray(axis, center)``. 
 
 .. python-script::
 

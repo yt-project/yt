@@ -83,7 +83,7 @@ class IOCommunicator(BaseIOHandler):
             return np.array([],dtype='float64')
         try:
             temp = self.pf.h.io._read_data_set(g, f)
-        except:# self.pf.hierarchy.io._read_exception as exc:
+        except:# self.pf.index.io._read_exception as exc:
             if fi.not_in_all:
                 temp = np.zeros(g.ActiveDimensions, dtype='float64')
             else:

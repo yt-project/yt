@@ -101,10 +101,10 @@ class YTDataContainer(object):
         """
         if pf != None:
             self.pf = pf
-            self.hierarchy = pf.hierarchy
+            self.index = pf.index
         self._current_particle_type = "all"
         self._current_fluid_type = self.pf.default_fluid_type
-        self.hierarchy.objects.append(weakref.proxy(self))
+        self.index.objects.append(weakref.proxy(self))
         mylog.debug("Appending object to %s (type: %s)", self.pf, type(self))
         self.field_data = YTFieldData()
         if field_parameters is None: field_parameters = {}
@@ -275,7 +275,7 @@ class YTDataContainer(object):
                     with o._activate_cache():
                         ind += o.select(self.selector, self[field], rv, ind)
         else:
-            chunks = self.hierarchy._chunk(self, "spatial", ngz = ngz)
+            chunks = self.index._chunk(self, "spatial", ngz = ngz)
             for i, chunk in enumerate(chunks):
                 with self._chunked_read(chunk):
                     gz = self._current_chunk.objs[0]
@@ -372,7 +372,7 @@ class YTDataContainer(object):
             ds[name] = self
             ds.close()
         else:
-            self.hierarchy.save_object(self, name)
+            self.index.save_object(self, name)
 
     def to_glue(self, fields, label="yt"):
         """
@@ -504,7 +504,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         # This is an iterator that will yield the necessary chunks.
         self.get_data() # Ensure we have built ourselves
         if fields is None: fields = []
-        for chunk in self.hierarchy._chunk(self, chunking_style, **kwargs):
+        for chunk in self.index._chunk(self, chunking_style, **kwargs):
             with self._chunked_read(chunk):
                 self.get_data(fields)
                 # NOTE: we yield before releasing the context
@@ -541,7 +541,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
 
     def get_data(self, fields=None):
         if self._current_chunk is None:
-            self.hierarchy._identify_base_chunk(self)
+            self.index._identify_base_chunk(self)
         if fields is None: return
         nfields = []
         apply_fields = defaultdict(list)
@@ -595,12 +595,12 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         # The _read method will figure out which fields it needs to get from
         # disk, and return a dict of those fields along with the fields that
         # need to be generated.
-        read_fluids, gen_fluids = self.hierarchy._read_fluid_fields(
+        read_fluids, gen_fluids = self.index._read_fluid_fields(
                                         fluids, self, self._current_chunk)
         for f, v in read_fluids.items():
             self.field_data[f] = self.pf.arr(v, input_units = finfos[f].units)
 
-        read_particles, gen_particles = self.hierarchy._read_particle_fields(
+        read_particles, gen_particles = self.index._read_particle_fields(
                                         particles, self, self._current_chunk)
         for f, v in read_particles.items():
             self.field_data[f] = self.pf.arr(v, input_units = finfos[f].units)
@@ -675,25 +675,25 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     @property
     def icoords(self):
         if self._current_chunk is None:
-            self.hierarchy._identify_base_chunk(self)
+            self.index._identify_base_chunk(self)
         return self._current_chunk.icoords
 
     @property
     def fcoords(self):
         if self._current_chunk is None:
-            self.hierarchy._identify_base_chunk(self)
+            self.index._identify_base_chunk(self)
         return self._current_chunk.fcoords
 
     @property
     def ires(self):
         if self._current_chunk is None:
-            self.hierarchy._identify_base_chunk(self)
+            self.index._identify_base_chunk(self)
         return self._current_chunk.ires
 
     @property
     def fwidth(self):
         if self._current_chunk is None:
-            self.hierarchy._identify_base_chunk(self)
+            self.index._identify_base_chunk(self)
         return self._current_chunk.fwidth
 
 class YTSelectionContainer1D(YTSelectionContainer):

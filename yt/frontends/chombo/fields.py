@@ -122,7 +122,7 @@ add_field("z-velocity",function=_zVelocity, take_log=False,
 
 def particle_func(p_field, dtype='float64'):
     def _Particles(field, data):
-        io = data.hierarchy.io
+        io = data.index.io
         if not data.NumberOfParticles > 0:
             return np.array([], dtype=dtype)
         else:

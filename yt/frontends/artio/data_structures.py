@@ -59,7 +59,7 @@ class ARTIOOctreeSubset(OctreeSubset):
         self.sfc_end = sfc_end
         self.oct_handler = oct_handler
         self.pf = pf
-        self.hierarchy = self.pf.hierarchy
+        self.index = self.pf.index
         self._last_mask = None
         self._last_selector_id = None
         self._current_particle_type = 'all'
@@ -166,9 +166,9 @@ class ARTIOIndex(Index):
     def __init__(self, pf, data_style='artio'):
         self.data_style = data_style
         self.parameter_file = weakref.proxy(pf)
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.directory = os.path.dirname(self.hierarchy_filename)
+        # for now, the index file is the parameter file!
+        self.index_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.index_filename)
 
         self.max_level = pf.max_level
         self.float_type = np.float64

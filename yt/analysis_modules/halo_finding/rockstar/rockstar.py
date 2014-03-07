@@ -223,7 +223,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         if force_res is None:
             tpf = ts[-1] # Cache a reference
             self.force_res = tpf.h.get_smallest_dx().in_units("Mpc/h")
-            # We have to delete now to wipe the hierarchy
+            # We have to delete now to wipe the index
             del tpf
         else:
             self.force_res = force_res

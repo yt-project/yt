@@ -18,7 +18,7 @@ Continuum Emission
 
 To compute thermal emission intensities, RADMC-3D needs a file called
 "dust_density.inp" that specifies the density of dust for every cell in the AMR
-hierarchy. To generate this file, first import the RADMC-3D exporter, which 
+index. To generate this file, first import the RADMC-3D exporter, which 
 is not loaded into your environment by default:
 
 .. code-block:: python
@@ -73,7 +73,7 @@ Line Emission
 
 The file format required for line emission is slightly different. The following script will generate 
 two files, one called "numderdens_co.inp", which contains the number density of CO molecules
-for every cell in the hierarchy, and another called "gas-velocity.inp", which is useful if you want 
+for every cell in the index, and another called "gas-velocity.inp", which is useful if you want 
 to include doppler broadening.
 
 .. code-block:: python

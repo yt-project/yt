@@ -22,7 +22,7 @@ specify criteria that clumps must meet in order to be kept.  The most obvious ex
 selecting only those clumps that are gravitationally bound.
 
 Once the clump-finder has finished, the user can write out a set of quantities for each clump in the 
-hierarchy.  Additional info items can also be added.  We also provide a recipe
+index.  Additional info items can also be added.  We also provide a recipe
 for finding clumps in :ref:`cookbook-find_clumps`.
 
 Treecode Optimization
@@ -151,7 +151,7 @@ number of cells is varied on the L=3 dataset by slowly expanding a spherical
 region of analysis. Up to about 100,000 cells,
 the treecode is actually slower than the brute-force method. This is due to
 the fact that with fewer cells, smaller geometric distances,
-and a shallow AMR hierarchy, the treecode
+and a shallow AMR index, the treecode
 method has very little chance to be applied. The calculation is overall
 slower due to the overhead of the treecode method & startup costs. This
 explanation is further strengthened by the fact that the accuracy of the

@@ -246,7 +246,7 @@ class IOHandlerInMemory(BaseIOHandler):
         coef1 = max((grid.Time - t1)/(grid.Time - t2), 0.0)
         coef2 = 1.0 - coef1
         t1 = enzo.yt_parameter_file["InitialTime"]
-        t2 = enzo.hierarchy_information["GridOldTimes"][grid.id]
+        t2 = enzo.index_information["GridOldTimes"][grid.id]
         return (coef1*self.grids_in_memory[grid.id][field] + \
                 coef2*self.old_grids_in_memory[grid.id][field])\
                 [self.my_slice]

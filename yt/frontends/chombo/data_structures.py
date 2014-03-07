@@ -53,9 +53,9 @@ from .fields import ChomboFieldInfo, KnownChomboFields
 class ChomboGrid(AMRGridPatch):
     _id_offset = 0
     __slots__ = ["_level_id", "stop_index"]
-    def __init__(self, id, hierarchy, level, start, stop):
-        AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
-                              hierarchy = hierarchy)
+    def __init__(self, id, index, level, start, stop):
+        AMRGridPatch.__init__(self, id, filename = index.index_filename,
+                              index = index)
         self.Parent = []
         self.Children = []
         self.Level = level
@@ -80,8 +80,8 @@ class ChomboGrid(AMRGridPatch):
         return self.start_index
 
     def _setup_dx(self):
-        # has already been read in and stored in hierarchy
-        self.dds = self.hierarchy.dds_list[self.Level]
+        # has already been read in and stored in index
+        self.dds = self.index.dds_list[self.Level]
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
 class ChomboHierarchy(GridIndex):
@@ -94,8 +94,8 @@ class ChomboHierarchy(GridIndex):
         self.data_style = data_style
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = os.path.abspath(
+        # for now, the index file is the parameter file!
+        self.index_filename = os.path.abspath(
             self.parameter_file.parameter_filename)
         self.directory = pf.fullpath
         self._handle = pf._handle
@@ -107,7 +107,7 @@ class ChomboHierarchy(GridIndex):
         self._fhandle.close()
 
     def _read_particles(self):
-        self.particle_filename = self.hierarchy_filename[:-4] + 'sink'
+        self.particle_filename = self.index_filename[:-4] + 'sink'
         if not os.path.exists(self.particle_filename): return
         with open(self.particle_filename, 'r') as f:
             lines = f.readlines()
@@ -148,7 +148,7 @@ class ChomboHierarchy(GridIndex):
         for lev in self._levels:
             self.num_grids += self._handle[lev]['Processors'].len()
 
-    def _parse_hierarchy(self):
+    def _parse_index(self):
         f = self._handle # shortcut
 
         # this relies on the first Group in the H5 file being

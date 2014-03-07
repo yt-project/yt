@@ -114,7 +114,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         self.nlevels = pf.h.max_level
         self.period = self.pf.domain_right_edge - self.pf.domain_left_edge
         self.min_edge = min(self.period)
-        self.hierarchy = pf.h
+        self.index = pf.h
         self.center = (pf.domain_right_edge + pf.domain_left_edge)/2.0
         # Figure out the range of ruler lengths.
         if length_range == None:
@@ -151,7 +151,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
             # compatibility. This is not the best policy, if I'm honest.
             ds = pf.h.region([0.]*3, self.left_edge, self.right_edge)
             padded, self.LE, self.RE, self.ds = \
-            self.partition_hierarchy_3d(ds = ds, padding=0.,
+            self.partition_index_3d(ds = ds, padding=0.,
                 rank_ratio = self.vol_ratio)
         else:
             self.left_edge = left_edge

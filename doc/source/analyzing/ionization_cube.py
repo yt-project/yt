@@ -8,7 +8,7 @@ import h5py, glob, time
 def IonizedHydrogen(field, data):
     return data["HII_Density"]/(data["HI_Density"]+data["HII_Density"])
 
-ts = DatasetSeries.from_filenames("SED800/DD*/*.hierarchy", parallel = 8)
+ts = DatasetSeries.from_filenames("SED800/DD*/*.index", parallel = 8)
 
 ionized_z = np.zeros(ts[0].domain_dimensions, dtype="float32")
 

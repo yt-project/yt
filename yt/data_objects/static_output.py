@@ -228,19 +228,19 @@ class Dataset(object):
         """
         return key in self.parameters
 
-    _instantiated_hierarchy = None
+    _instantiated_index = None
     @property
-    def hierarchy(self):
-        if self._instantiated_hierarchy is None:
+    def index(self):
+        if self._instantiated_index is None:
             if self._index_class == None:
                 raise RuntimeError("You should not instantiate Dataset.")
-            self._instantiated_hierarchy = self._index_class(
+            self._instantiated_index = self._index_class(
                 self, data_style=self.data_style)
-            # Now we do things that we need an instantiated hierarchy for
+            # Now we do things that we need an instantiated index for
             # ...first off, we create our field_info now.
             self.create_field_info()
-        return self._instantiated_hierarchy
-    h = hierarchy  # alias
+        return self._instantiated_index
+    h = index  # alias
 
     @parallel_root_only
     def print_key_parameters(self):

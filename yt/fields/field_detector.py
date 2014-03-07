@@ -60,7 +60,7 @@ class FieldDetector(defaultdict):
             pf.periodicity = (True, True, True)
         self.pf = pf
 
-        class fake_hierarchy(object):
+        class fake_index(object):
             class fake_io(object):
                 def _read_data_set(io_self, data, field):
                     return self._read_data(field)
@@ -69,7 +69,7 @@ class FieldDetector(defaultdict):
             def get_smallest_dx(self):
                 return 1.0
 
-        self.hierarchy = fake_hierarchy()
+        self.index = fake_index()
         self.requested = []
         self.requested_parameters = []
         if not self.flat:

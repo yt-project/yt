@@ -39,9 +39,9 @@ from yt.units.yt_array import YTQuantity
 class FLASHGrid(AMRGridPatch):
     _id_offset = 1
     #__slots__ = ["_level_id", "stop_index"]
-    def __init__(self, id, hierarchy, level):
-        AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
-                              hierarchy = hierarchy)
+    def __init__(self, id, index, level):
+        AMRGridPatch.__init__(self, id, filename = index.index_filename,
+                              index = index)
         self.Parent = None
         self.Children = []
         self.Level = level
@@ -58,9 +58,9 @@ class FLASHHierarchy(GridIndex):
         self.data_style = data_style
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.directory = os.path.dirname(self.hierarchy_filename)
+        # for now, the index file is the parameter file!
+        self.index_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.index_filename)
         self._handle = pf._handle
         self._particle_handle = pf._particle_handle
         self.float_type = np.float64
@@ -88,7 +88,7 @@ class FLASHHierarchy(GridIndex):
         except KeyError:
             self.num_grids = self._handle["/simulation parameters"][0][0]
         
-    def _parse_hierarchy(self):
+    def _parse_index(self):
         f = self._handle # shortcut
         pf = self.parameter_file # shortcut
         f_part = self._particle_handle # shortcut

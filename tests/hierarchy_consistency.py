@@ -10,7 +10,7 @@ class HierarchyInconsistent(RegressionTestException):
 
 
 class HierarchyConsistency(YTDatasetTest):
-    name = "hierarchy_consistency"
+    name = "index_consistency"
 
     def run(self):
         self.result = \

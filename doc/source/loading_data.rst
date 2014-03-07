@@ -20,7 +20,7 @@ contains no extension.  For instance, if you have the following files:
 
    DD0010/
    DD0010/data0010
-   DD0010/data0010.hierarchy
+   DD0010/data0010.index
    DD0010/data0010.cpu0000
    DD0010/data0010.cpu0001
    DD0010/data0010.cpu0002
@@ -589,7 +589,7 @@ setting the ``number_of_particles`` key to each ``grid``'s dict:
 * Units will be incorrect unless the data has already been converted to cgs.
 * Some functions may behave oddly, and parallelism will be disappointing or
   non-existent in most cases.
-* No consistency checks are performed on the hierarchy
+* No consistency checks are performed on the index
 * Data must already reside in memory.
 * Consistency between particle positions and grids is not checked;
   ``load_amr_grids`` assumes that particle positions associated with one grid are

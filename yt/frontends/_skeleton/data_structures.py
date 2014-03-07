@@ -21,7 +21,7 @@ import weakref
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
     AMRGridPatch
-from yt.data_objects.hierarchy import \
+from yt.data_objects.index import \
     AMRHierarchy
 from yt.data_objects.static_output import \
     Dataset
@@ -37,9 +37,9 @@ from yt.fields.field_info_container import \
 class SkeletonGrid(AMRGridPatch):
     _id_offset = 0
     #__slots__ = ["_level_id", "stop_index"]
-    def __init__(self, id, hierarchy, level):
-        AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
-                              hierarchy = hierarchy)
+    def __init__(self, id, index, level):
+        AMRGridPatch.__init__(self, id, filename = index.index_filename,
+                              index = index)
         self.Parent = None
         self.Children = []
         self.Level = level
@@ -55,9 +55,9 @@ class SkeletonHierarchy(AMRHierarchy):
     def __init__(self, pf, data_style='skeleton'):
         self.data_style = data_style
         self.parameter_file = weakref.proxy(pf)
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.directory = os.path.dirname(self.hierarchy_filename)
+        # for now, the index file is the parameter file!
+        self.index_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.index_filename)
         AMRHierarchy.__init__(self, pf, data_style)
 
     def _initialize_data_storage(self):
@@ -72,7 +72,7 @@ class SkeletonHierarchy(AMRHierarchy):
         # This needs to set self.num_grids
         pass
         
-    def _parse_hierarchy(self):
+    def _parse_index(self):
         # This needs to fill the following arrays, where N is self.num_grids:
         #   self.grid_left_edge         (N, 3) <= float64
         #   self.grid_right_edge        (N, 3) <= float64

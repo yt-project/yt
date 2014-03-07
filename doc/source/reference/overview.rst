@@ -209,7 +209,7 @@ In list form,
 
    Code Objects
      These are things that are on the disk that the AMR code knows about --
-     things like grids, data dumps, the grid hierarchy and so on.
+     things like grids, data dumps, the grid index and so on.
    Physical Objects
      These are objects like spheres, rectangular prisms, slices, and
      so on. These are collections of related data arranged by physical

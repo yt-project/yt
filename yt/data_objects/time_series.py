@@ -94,7 +94,7 @@ class DatasetSeries(object):
     filenames : list or pattern
         This can either be a list of filenames (such as ["DD0001/DD0001",
         "DD0002/DD0002"]) or a pattern to match, such as
-        "DD*/DD*.hierarchy").  If it's the former, they will be loaded in
+        "DD*/DD*.index").  If it's the former, they will be loaded in
         order.  The latter will be identified with the glob module and then
         sorted.
     parallel : True, False or int
@@ -215,7 +215,7 @@ class DatasetSeries(object):
         Here is an example of iteration when the results do not need to be
         stored.  One processor will be assigned to each parameter file.
 
-        >>> ts = DatasetSeries("DD*/DD*.hierarchy")
+        >>> ts = DatasetSeries("DD*/DD*.index")
         >>> for pf in ts.piter():
         ...    SlicePlot(pf, "x", "Density").save()
         ...
@@ -225,7 +225,7 @@ class DatasetSeries(object):
         >>> def print_time(pf):
         ...     print pf.current_time
         ...
-        >>> ts = DatasetSeries("DD*/DD*.hierarchy",
+        >>> ts = DatasetSeries("DD*/DD*.index",
         ...             setup_function = print_time )
         ...
         >>> my_storage = {}
@@ -239,7 +239,7 @@ class DatasetSeries(object):
 
         This shows how to dispatch 4 processors to each dataset:
 
-        >>> ts = DatasetSeries("DD*/DD*.hierarchy",
+        >>> ts = DatasetSeries("DD*/DD*.index",
         ...                     parallel = 4)
         >>> for pf in ts.piter():
         ...     ProjectionPlot(pf, "x", "Density").save()
@@ -294,7 +294,7 @@ class DatasetSeries(object):
         filenames : list or pattern
             This can either be a list of filenames (such as ["DD0001/DD0001",
             "DD0002/DD0002"]) or a pattern to match, such as
-            "DD*/DD*.hierarchy").  If it's the former, they will be loaded in
+            "DD*/DD*.index").  If it's the former, they will be loaded in
             order.  The latter will be identified with the glob module and then
             sorted.
         parallel : True, False or int
@@ -371,7 +371,7 @@ class DatasetSeriesObject(object):
 
     def get(self, pf):
         # We get the type name, which corresponds to an attribute of the
-        # hierarchy
+        # index
         cls = getattr(pf.h, self.data_object_name)
         return cls(*self._args, **self._kwargs)
 

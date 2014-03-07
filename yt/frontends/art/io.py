@@ -221,7 +221,7 @@ def _count_art_octs(f, offset,
         nLevCells = nLevel * nchild
         ntot = ntot + nLevel
 
-        # Skip all the oct hierarchy data
+        # Skip all the oct index data
         ns = peek_record_size(f, endian='>')
         size = struct.calcsize('>i') + ns + struct.calcsize('>i')
         f.seek(f.tell()+size * nLevel)
@@ -247,7 +247,7 @@ def _read_art_level_info(f, level_oct_offsets, level, coarse_grid=128,
 
     # fortran indices start at 1
 
-    # Skip all the oct hierarchy data
+    # Skip all the oct index data
     le = np.zeros((nLevel, 3), dtype='int64')
     fl = np.ones((nLevel, 6), dtype='int64')
     iocts = np.zeros(nLevel+1, dtype='int64')

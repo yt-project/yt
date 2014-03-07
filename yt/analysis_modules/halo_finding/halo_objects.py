@@ -314,7 +314,7 @@ class Halo(object):
             center = self.maximum_density_location()
         radius = self.maximum_radius()
         # A bit of a long-reach here...
-        sphere = self.data.hierarchy.sphere(
+        sphere = self.data.index.sphere(
                         center, radius=radius)
         return sphere
 
@@ -677,7 +677,7 @@ class RockstarHalo(Halo):
         >>> ell = halos[0].get_ellipsoid()
         """
         ep = self.get_ellipsoid_parameters()
-        ell = self.data.hierarchy.ellipsoid(ep[0], ep[1], ep[2], ep[3],
+        ell = self.data.index.ellipsoid(ep[0], ep[1], ep[2], ep[3],
             ep[4], ep[5])
         return ell
     
@@ -960,7 +960,7 @@ class LoadedHalo(Halo):
         >>> ell = halos[0].get_ellipsoid()
         """
         ep = self.get_ellipsoid_parameters()
-        ell = self.pf.hierarchy.ellipsoid(ep[0], ep[1], ep[2], ep[3],
+        ell = self.pf.index.ellipsoid(ep[0], ep[1], ep[2], ep[3],
             ep[4], ep[5])
         return ell
 
@@ -1083,10 +1083,10 @@ class HaloList(object):
         gc.collect()
 
     def _get_dm_indices(self):
-        if 'creation_time' in self._data_source.hierarchy.field_list:
+        if 'creation_time' in self._data_source.index.field_list:
             mylog.debug("Differentiating based on creation time")
             return (self._data_source["creation_time"] <= 0)
-        elif 'particle_type' in self._data_source.hierarchy.field_list:
+        elif 'particle_type' in self._data_source.index.field_list:
             mylog.debug("Differentiating based on particle type")
             return (self._data_source["particle_type"] == 1)
         else:
@@ -1793,7 +1793,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
     def __init__(self, pf, ds, dm_only=True, padding=0.0):
         ParallelAnalysisInterface.__init__(self)
         self.pf = pf
-        self.hierarchy = pf.h
+        self.index = pf.h
         self.center = (np.array(ds.right_edge) + np.array(ds.left_edge)) / 2.0
 
     def _parse_halolist(self, threshold_adjustment):
@@ -2083,7 +2083,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         topbounds = np.array([[0., 0., 0.], period])
         # Cut up the volume evenly initially, with no padding.
         padded, LE, RE, self._data_source = \
-            self.partition_hierarchy_3d(ds=self._data_source,
+            self.partition_index_3d(ds=self._data_source,
             padding=self.padding)
         # also get the total mass of particles
         yt_counters("Reading Data")
@@ -2094,7 +2094,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         if ytcfg.getboolean("yt", "inline") == False and \
             resize and self.comm.size != 1 and subvolume is None:
             random.seed(self.comm.rank)
-            cut_list = self.partition_hierarchy_3d_bisection_list()
+            cut_list = self.partition_index_3d_bisection_list()
             root_points = self._subsample_points()
             self.bucket_bounds = []
             if self.comm.rank == 0:
@@ -2103,11 +2103,11 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                 self.comm.mpi_bcast(self.bucket_bounds)
             my_bounds = self.bucket_bounds[self.comm.rank]
             LE, RE = my_bounds[0], my_bounds[1]
-            self._data_source = self.hierarchy.region([0.] * 3, LE, RE)
+            self._data_source = self.index.region([0.] * 3, LE, RE)
         # If this isn't parallel, define the region as an AMRRegionStrict so
         # particle IO works.
         if self.comm.size == 1:
-            self._data_source = self.hierarchy.region([0.5] * 3,
+            self._data_source = self.index.region([0.5] * 3,
                 LE, RE)
         # get the average spacing between particles for this region
         # The except is for the serial case where the full box is what we want.
@@ -2196,7 +2196,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
             self._data_source = pf.h.region([0.] * 3, ds_LE, ds_RE)
             # Cut up the volume.
             padded, LE, RE, self._data_source = \
-                self.partition_hierarchy_3d(ds=self._data_source,
+                self.partition_index_3d(ds=self._data_source,
                 padding=0.)
         self.bounds = (LE, RE)
         (LE_padding, RE_padding) = self.padding
@@ -2375,7 +2375,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         # a small part is actually going to be used.
         self.padding = 0.0
         padded, LE, RE, self._data_source = \
-            self.partition_hierarchy_3d(ds=self._data_source,
+            self.partition_index_3d(ds=self._data_source,
                 padding=self.padding)
         # For scaling the threshold, note that it's a passthrough
         if total_mass is None:
@@ -2395,7 +2395,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
             self._data_source = pf.h.all_data()
         self.padding = padding  # * pf["unitary"] # This should be clevererer
         padded, LE, RE, self._data_source = \
-            self.partition_hierarchy_3d(ds=self._data_source,
+            self.partition_index_3d(ds=self._data_source,
             padding=self.padding)
         self.bounds = (LE, RE)
         # sub_mass can be skipped if subvolume is not used and this is not
@@ -2462,7 +2462,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
             ds_RE = np.array(subvolume.right_edge)
         self.period = pf.domain_right_edge - pf.domain_left_edge
         self.pf = pf
-        self.hierarchy = pf.h
+        self.index = pf.h
         self.redshift = pf.current_redshift
         self._data_source = pf.h.all_data()
         GenericHaloFinder.__init__(self, pf, self._data_source, dm_only,
@@ -2470,7 +2470,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         self.padding = 0.0  # * pf["unitary"] # This should be clevererer
         # get the total number of particles across all procs, with no padding
         padded, LE, RE, self._data_source = \
-            self.partition_hierarchy_3d(ds=self._data_source,
+            self.partition_index_3d(ds=self._data_source,
             padding=self.padding)
         if link > 0.0:
             n_parts = self.comm.mpi_allreduce(self._data_source["particle_position_x"].size, op='sum')
@@ -2491,7 +2491,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         else:
             self._data_source = pf.h.all_data()
         padded, LE, RE, self._data_source = \
-            self.partition_hierarchy_3d(ds=self._data_source,
+            self.partition_index_3d(ds=self._data_source,
             padding=self.padding)
         self.bounds = (LE, RE)
         # reflect particles around the periodic boundary

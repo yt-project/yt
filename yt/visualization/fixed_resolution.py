@@ -92,7 +92,7 @@ class FixedResolutionBuffer(object):
         self.axis = data_source.axis
         self.periodic = periodic
 
-        h = getattr(data_source, "hierarchy", None)
+        h = getattr(data_source, "index", None)
         if h is not None:
             h.plots.append(weakref.proxy(self))
 
@@ -320,7 +320,7 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
         self.antialias = antialias
         self.data = {}
         
-        h = getattr(data_source, "hierarchy", None)
+        h = getattr(data_source, "index", None)
         if h is not None:
             h.plots.append(weakref.proxy(self))
 

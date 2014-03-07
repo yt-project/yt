@@ -28,9 +28,9 @@ class UnstructuredIndex(Index):
     def __init__(self, pf, data_style):
         self.data_style = data_style
         self.parameter_file = weakref.proxy(pf)
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.directory = os.path.dirname(self.hierarchy_filename)
+        # for now, the index file is the parameter file!
+        self.index_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.index_filename)
         self.float_type = np.float64
         super(UnstructuredIndex, self).__init__(pf, data_style)
 

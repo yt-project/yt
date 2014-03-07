@@ -29,7 +29,7 @@ def _fix_pf(arg):
     elif os.path.isdir("%s.dir" % arg) and \
         os.path.exists("%s.dir/%s" % (arg,arg)):
         pf = load("%s.dir/%s" % (arg,arg))
-    elif arg.endswith(".hierarchy"):
+    elif arg.endswith(".index"):
         pf = load(arg[:-10])
     else:
         pf = load(arg)
@@ -1510,7 +1510,7 @@ class YTGUICmd(YTCommand):
                  help="Port to listen on"),
             dict(short="-f", long="--find", action="store_true",
                  default = False, dest="find",
-                 help="At startup, find all *.hierarchy files in the CWD"),
+                 help="At startup, find all *.index files in the CWD"),
             dict(short="-d", long="--debug", action="store_true",
                  default = False, dest="debug",
                  help="Add a debugging mode for cell execution"),
@@ -1556,7 +1556,7 @@ class YTGUICmd(YTCommand):
         command_line = ["pfs = []"]
         if args.find:
             # We just have to find them and store references to them.
-            for fn in sorted(glob.glob("*/*.hierarchy")):
+            for fn in sorted(glob.glob("*/*.index")):
                 command_line.append("pfs.append(load('%s'))" % fn[:-10])
         hr.execute("\n".join(command_line))
         bottle.debug()

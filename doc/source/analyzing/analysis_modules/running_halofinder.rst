@@ -493,7 +493,7 @@ Designing the python script itself is straightforward:
   from yt.analysis_modules.halo_finding.rockstar.api import RockstarHaloFinder
 
   #find all of our simulation files
-  files = glob.glob("Enzo_64/DD*/\*hierarchy")
+  files = glob.glob("Enzo_64/DD*/\*index")
   #hopefully the file name order is chronological
   files.sort()
   ts = DatasetSeries.from_filenames(files[:])

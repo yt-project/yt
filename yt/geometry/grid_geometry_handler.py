@@ -1,5 +1,5 @@
 """
-AMR hierarchy container class
+AMR index container class
 
 
 
@@ -47,13 +47,13 @@ class GridIndex(Index):
         mylog.debug("Initializing grid arrays.")
         self._initialize_grid_arrays()
 
-        mylog.debug("Parsing hierarchy.")
-        self._parse_hierarchy()
+        mylog.debug("Parsing index.")
+        self._parse_index()
 
         mylog.debug("Constructing grid objects.")
         self._populate_grid_objects()
 
-        mylog.debug("Re-examining hierarchy")
+        mylog.debug("Re-examining index")
         self._initialize_level_stats()
 
     @property

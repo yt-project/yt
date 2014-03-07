@@ -58,7 +58,7 @@ class IOHandlerBoxlib(BaseIOHandler):
             if g.filename is None:
                 continue
             grids_by_file[g.filename].append(g)
-        dtype = self.pf.hierarchy._dtype
+        dtype = self.pf.index._dtype
         bpr = dtype.itemsize
         for filename in grids_by_file:
             grids = grids_by_file[filename]
@@ -69,7 +69,7 @@ class IOHandlerBoxlib(BaseIOHandler):
                 grid._seek(f)
                 count = grid.ActiveDimensions.prod()
                 size = count * bpr
-                for field in self.pf.hierarchy.field_order:
+                for field in self.pf.index.field_order:
                     if field in fields:
                         # We read it ...
                         v = np.fromfile(f, dtype=dtype, count=count)

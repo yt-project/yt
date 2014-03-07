@@ -73,7 +73,7 @@ Hierarchy
 ^^^^^^^^^
 
 To set up data localization, an ``AMRHierarchy`` subclass must be added in the
-file ``data_structures.py``. The hierarchy object must override the following
+file ``data_structures.py``. The index object must override the following
 methods:
 
  * ``_detect_fields``: ``self.field_list`` must be populated as a list of
@@ -82,7 +82,7 @@ methods:
    ``AMRHierarchy`` subclasses.
  * ``_count_grids``: this must set self.num_grids to be the total number of
    grids in the simulation.
- * ``_parse_hierarchy``: this must fill in ``grid_left_edge``,
+ * ``_parse_index``: this must fill in ``grid_left_edge``,
    ``grid_right_edge``, ``grid_particle_count``, ``grid_dimensions`` and
    ``grid_levels`` with the appropriate information. Additionally, ``grids``
    must be an array of grid objects that already know their IDs.
@@ -93,7 +93,7 @@ methods:
    already know, this is where you make a guess at it.
  * ``_setup_derived_fields``: ``self.derived_field_list`` needs to be made a
    list of strings that correspond to all derived fields valid for this
-   hierarchy.
+   index.
 
 For the most part, the ``ChomboHierarchy`` should be the first place to look for
 hints on how to do this; ``EnzoHierarchy`` is also instructive.
@@ -110,9 +110,9 @@ that is needed:
     class ChomboGrid(AMRGridPatch):
         _id_offset = 0
         __slots__ = ["_level_id"]
-        def __init__(self, id, hierarchy, level = -1):
-            AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
-                                  hierarchy = hierarchy)
+        def __init__(self, id, index, level = -1):
+            AMRGridPatch.__init__(self, id, filename = index.index_filename,
+                                  index = index)
             self.Parent = []
             self.Children = []
             self.Level = level

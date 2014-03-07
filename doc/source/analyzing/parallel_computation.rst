@@ -166,7 +166,7 @@ will decompose the information in different ways based on the task.
 Spatial Decomposition
 +++++++++++++++++++++
 
-During this process, the hierarchy will be decomposed along either all three
+During this process, the index will be decomposed along either all three
 axes or along an image plane, if the process is that of projection.  This type
 of parallelism is overall less efficient than grid-based parallelism, but it
 has been shown to obtain good results overall.

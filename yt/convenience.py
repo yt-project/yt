@@ -97,7 +97,7 @@ def load(*args ,**kwargs):
 
 def projload(pf, axis, weight_field = None):
     # This is something of a hack, so that we can just get back a projection
-    # and not utilize any of the intermediate hierarchy objects.
+    # and not utilize any of the intermediate index objects.
     class ProjMock(dict):
         pass
     import h5py

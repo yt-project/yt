@@ -44,9 +44,9 @@ all_units = angle_units + mpc_conversion.keys()
 
 class FITSGrid(AMRGridPatch):
     _id_offset = 0
-    def __init__(self, id, hierarchy, level):
-        AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
-                              hierarchy = hierarchy)
+    def __init__(self, id, index, level):
+        AMRGridPatch.__init__(self, id, filename = index.index_filename,
+                              index = index)
         self.Parent = None
         self.Children = []
         self.Level = 0
@@ -62,9 +62,9 @@ class FITSHierarchy(GridIndex):
         self.data_style = data_style
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.directory = os.path.dirname(self.hierarchy_filename)
+        # for now, the index file is the parameter file!
+        self.index_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.index_filename)
         self._handle = pf._handle
         self.float_type = np.float64
         GridIndex.__init__(self,pf,data_style)
@@ -86,7 +86,7 @@ class FITSHierarchy(GridIndex):
     def _count_grids(self):
         self.num_grids = self.pf.nprocs
                 
-    def _parse_hierarchy(self):
+    def _parse_index(self):
         f = self._handle # shortcut
         pf = self.parameter_file # shortcut
 

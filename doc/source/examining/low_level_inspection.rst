@@ -23,11 +23,11 @@ Examining Grid Hierarchies
 yt organizes grids in a hierarchical fashion; a coarser grid that contains (or
 overlaps with) a finer grid is referred to as its parent.  yt organizes these
 only a single level of refinement at a time.  To access grids, the ``grids``
-attribute on a :class:`~yt.data_objects.hierarchy.AMRHierarchy` object.  (For
+attribute on a :class:`~yt.data_objects.index.AMRHierarchy` object.  (For
 fast operations, a number of additional arrays prefixed with ``grid`` are also
 available, such as ``grid_left_edges`` and so on.)  This returns an instance of
 :class:`~yt.data_objects.grid_patch.AMRGridPatch`, which can be queried for
-either data or hierarchy information.
+either data or index information.
 
 The :class:`~yt.data_objects.grid_patch.AMRGridPatch` object itself provides
 the following attributes:
@@ -88,7 +88,7 @@ normal, you can access the grid as you would a normal object:
    print g["density"]
    print g["density"].min()
 
-To access the raw data, you have to call the IO handler from the hierarchy
+To access the raw data, you have to call the IO handler from the index
 instead.  This is somewhat more low-level.
 
 .. code-block:: python
@@ -107,12 +107,12 @@ One of the most common questions asked of data is, what is the value *at this
 specific point*.  While there are several ways to find out the answer to this
 question, a few helper routines are provided as well.  To identify the
 finest-resolution (i.e., most canonical) data at a given point, use
-:meth:`~yt.data_objects.hierarchy.AMRHierarchy.find_field_value_at_point`.
+:meth:`~yt.data_objects.index.AMRHierarchy.find_field_value_at_point`.
 This accepts a position (in coordinates of the domain) and returns the field
 values for one or multiple fields.
 
 To identify all the grids that intersect a given point, the function 
-:meth:`~yt.data_objects.hierarchy.AMRHierarchy.find_point` will return indices
+:meth:`~yt.data_objects.index.AMRHierarchy.find_point` will return indices
 and objects that correspond to it.  For instance:
 
 .. code-block:: python

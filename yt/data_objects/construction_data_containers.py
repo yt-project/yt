@@ -78,7 +78,7 @@ class YTStreamlineBase(YTSelectionContainer1D):
         If you want the object to pre-retrieve a set of fields, supply them
         here.  This is not necessary.
     pf : Parameter file object
-        Passed in to access the hierarchy
+        Passed in to access the index
     kwargs : dict of items
         Any additional values are passed as field parameters that can be
         accessed by generated fields.
@@ -119,7 +119,7 @@ class YTStreamlineBase(YTSelectionContainer1D):
         min_streampoint = np.min(self.positions, axis=0)
         max_streampoint = np.max(self.positions, axis=0)
         p = np.all((min_streampoint <= RE) & (max_streampoint > LE), axis=1)
-        self._grids = self.hierarchy.grids[p]
+        self._grids = self.index.grids[p]
 
     def _get_data_from_grid(self, grid, field):
         # No child masking here; it happens inside the mask cut
@@ -157,7 +157,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     simulation domain.
 
     This object is typically accessed through the `proj` object that
-    hangs off of hierarchy objects.  AMRQuadProj is a projection of a
+    hangs off of index objects.  AMRQuadProj is a projection of a
     `field` along an `axis`.  The field can have an associated
     `weight_field`, in which case the values are multiplied by a weight
     before being summed, and then divided by the sum of that weight; the

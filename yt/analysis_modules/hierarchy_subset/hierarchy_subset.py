@@ -1,5 +1,5 @@
 """
-A means of extracting a subset of the hierarchy
+A means of extracting a subset of the index
 
 
 
@@ -31,7 +31,7 @@ class DummyHierarchy(object):
 class ConstructedRootGrid(AMRGridPatch):
     __slots__ = ['base_grid', 'id', 'base_pf']
     _id_offset = 1
-    def __init__(self, base_pf, pf, hierarchy, level, left_edge, right_edge):
+    def __init__(self, base_pf, pf, index, level, left_edge, right_edge):
         """
         This is a fake root grid, constructed by creating a
         :class:`yt.data_objects.api.CoveringGridBase` at a given *level* between
@@ -42,7 +42,7 @@ class ConstructedRootGrid(AMRGridPatch):
         self.field_parameters = {}
         self.NumberOfParticles = 0
         self.id = 1
-        self.hierarchy = hierarchy
+        self.index = index
         self._child_mask = self._child_indices = self._child_index_mask = None
         self.Level = level
         self.LeftEdge = left_edge
@@ -71,11 +71,11 @@ class ConstructedRootGrid(AMRGridPatch):
 class AMRExtractedGridProxy(AMRGridPatch):
     __slots__ = ['base_grid']
     _id_offset = 1
-    def __init__(self, grid_id, base_grid, hierarchy):
+    def __init__(self, grid_id, base_grid, index):
         # We make a little birdhouse in our soul for the base_grid
         # (they're the only bee in our bonnet!)
         self.base_grid = base_grid
-        AMRGridPatch.__init__(self, grid_id, filename = None, hierarchy=hierarchy)
+        AMRGridPatch.__init__(self, grid_id, filename = None, index=index)
         self.Parent = None
         self.Children = []
         self.Level = -1
@@ -88,7 +88,7 @@ class OldExtractedHierarchy(object):
     def __init__(self, pf, min_level, max_level = -1, offset = None,
                  always_copy=False):
         """
-        This is a class that extracts a hierarchy from another hierarchy,
+        This is a class that extracts a index from another index,
         filling in regions as necessary.  It accepts a parameter file (*pf*), a
         *min_level*, a *max_level*, and alternately an *offset*.  This class is
         typically or exclusively used to extract for the purposes of visualization.
@@ -164,7 +164,7 @@ class OldExtractedHierarchy(object):
         grid_node.attrs['dims'] = grid.ActiveDimensions[::-1].astype('int32')
         if not self.always_copy and self.pf.h.data_style == 6 \
            and field in self.pf.h.field_list:
-            if grid.hierarchy.data_style == -1: # constructed grid
+            if grid.index.data_style == -1: # constructed grid
                 # if we can get conversion in amira we won't need to do this
                 ff = grid[field].astype('float32')
                 ff /= self.pf.conversion_factors.get(field, 1.0)
@@ -233,8 +233,8 @@ class ExtractedHierarchy(GridIndex):
             len(self.base_pf.h.select_grids(level)) 
                 for level in range(self.min_level+1, self.max_level)) )
 
-    def _parse_hierarchy(self):
-        # Here we need to set up the grid info, which for the Enzo hierarchy
+    def _parse_index(self):
+        # Here we need to set up the grid info, which for the Enzo index
         # is done like:
         # self.grid_dimensions.flat[:] = ei
         # self.grid_dimensions -= np.array(si, self.float_type)
@@ -333,8 +333,8 @@ class ExtractedParameterFile(Dataset):
     def __getattr__(self, name):
         # This won't get called if 'name' is found already
         # and we'd like it to raise AttributeError if it's not anywhere
-        if name in ['h', 'hierarchy']:
-            return Dataset._get_hierarchy(self)
+        if name in ['h', 'index']:
+            return Dataset._get_index(self)
         return getattr(self.base_pf, name)
 
     def __getitem__(self, key):

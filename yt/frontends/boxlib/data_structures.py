@@ -74,8 +74,8 @@ class BoxlibGrid(AMRGridPatch):
     _offset = -1
 
     def __init__(self, grid_id, offset, filename = None,
-                 hierarchy = None):
-        super(BoxlibGrid, self).__init__(grid_id, filename, hierarchy)
+                 index = None):
+        super(BoxlibGrid, self).__init__(grid_id, filename, index)
         self._base_offset = offset
         self._parent_id = []
         self._children_ids = []
@@ -83,15 +83,15 @@ class BoxlibGrid(AMRGridPatch):
     def _prepare_grid(self):
         super(BoxlibGrid, self)._prepare_grid()
         my_ind = self.id - self._id_offset
-        self.start_index = self.hierarchy.grid_start_index[my_ind]
+        self.start_index = self.index.grid_start_index[my_ind]
 
     def get_global_startindex(self):
         return self.start_index
 
     def _setup_dx(self):
-        # has already been read in and stored in hierarchy
+        # has already been read in and stored in index
         my_ind = self.id - self._id_offset
-        self.dds = self.hierarchy.level_dds[self.Level,:]
+        self.dds = self.index.level_dds[self.Level,:]
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     def __repr__(self):
@@ -101,12 +101,12 @@ class BoxlibGrid(AMRGridPatch):
     def Parent(self):
         if len(self._parent_id) == 0:
             return None
-        return [self.hierarchy.grids[pid - self._id_offset]
+        return [self.index.grids[pid - self._id_offset]
                 for pid in self._parent_id]
 
     @property
     def Children(self):
-        return [self.hierarchy.grids[cid - self._id_offset]
+        return [self.index.grids[cid - self._id_offset]
                 for cid in self._children_ids]
 
     def _seek(self, f):
@@ -153,7 +153,7 @@ class BoxlibHierarchy(GridIndex):
 
         #self._read_particles()
 
-    def _parse_hierarchy(self):
+    def _parse_index(self):
         """
         read the global header file for an Boxlib plotfile output.
         """
@@ -358,7 +358,7 @@ class BoxlibHierarchy(GridIndex):
 class BoxlibDataset(Dataset):
     """
     This class is a stripped down class that simply reads and parses
-    *filename*, without looking at the Boxlib hierarchy.
+    *filename*, without looking at the Boxlib index.
     """
     _index_class = BoxlibHierarchy
     _field_info_class = BoxlibFieldInfo
@@ -526,7 +526,7 @@ class BoxlibDataset(Dataset):
 
         self.dimensionality = int(header_file.readline())
         self.current_time = float(header_file.readline())
-        # This is traditionally a hierarchy attribute, so we will set it, but
+        # This is traditionally a index attribute, so we will set it, but
         # in a slightly hidden variable.
         self._max_level = int(header_file.readline()) 
         self.domain_left_edge = np.array(header_file.readline().split(),

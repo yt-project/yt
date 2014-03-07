@@ -32,7 +32,7 @@ class HomogenizedVolume(ParallelAnalysisInterface):
     def __init__(self, fields = "Density", source = None, pf = None,
                  log_fields = None, no_ghost = False,
                  max_level = 48):
-        # Typically, initialized as hanging off a hierarchy.  But, not always.
+        # Typically, initialized as hanging off a index.  But, not always.
         ParallelAnalysisInterface.__init__(self)
         self.no_ghost = no_ghost
         if pf is not None: self.pf = pf
@@ -106,7 +106,7 @@ class HomogenizedVolume(ParallelAnalysisInterface):
 
     def initialize_bricks(self, bricks):
         NB = len(bricks)
-        # Now we set up our (local for now) hierarchy.  Note that to calculate
+        # Now we set up our (local for now) index.  Note that to calculate
         # intersection, we only need to do the left edge & right edge.
         #
         # We're going to double up a little bit here in memory.
