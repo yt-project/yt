@@ -54,11 +54,6 @@ class UnstructuredIndex(Index):
     def _initialize_mesh(self):
         raise NotImplementedError
 
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        super(UnstructuredIndex, self)._setup_classes(dd)
-        self.object_types.sort()
-
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
             dobj._chunk_info = self.meshes

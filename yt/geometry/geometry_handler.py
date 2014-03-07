@@ -26,8 +26,6 @@ import copy
 
 from yt.funcs import *
 from yt.config import ytcfg
-from yt.data_objects.data_containers import \
-    data_object_registry
 from yt.units.yt_array import \
     uconcatenate
 from yt.fields.field_info_container import \
@@ -60,10 +58,6 @@ class Index(ParallelAnalysisInterface):
 
         mylog.debug("Initializing data storage.")
         self._initialize_data_storage()
-
-        # Must be defined in subclass
-        mylog.debug("Setting up classes.")
-        self._setup_classes()
 
         mylog.debug("Setting up domain geometry.")
         self._setup_geometry()
@@ -279,12 +273,6 @@ class Index(ParallelAnalysisInterface):
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f", 
               max_val, mx, my, mz)
         return max_val, np.array([mx, my, mz], dtype="float64")
-
-    def _add_object_class(self, name, class_name, base, dd):
-        self.object_types.append(name)
-        dd.update({'__doc__': base.__doc__})
-        obj = type(class_name, (base,), dd)
-        setattr(self, name, obj)
 
     def _split_fields(self, fields):
         # This will split fields into either generated or read fields

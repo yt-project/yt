@@ -101,10 +101,9 @@ class YTDataContainer(object):
         """
         if pf != None:
             self.pf = pf
-            self.index = pf.index
         self._current_particle_type = "all"
         self._current_fluid_type = self.pf.default_fluid_type
-        self.index.objects.append(weakref.proxy(self))
+        self.pf.objects.append(weakref.proxy(self))
         mylog.debug("Appending object to %s (type: %s)", self.pf, type(self))
         self.field_data = YTFieldData()
         if field_parameters is None: field_parameters = {}
@@ -112,6 +111,10 @@ class YTDataContainer(object):
         for key, val in field_parameters.items():
             mylog.debug("Setting %s to %s", key, val)
             self.set_field_parameter(key, val)
+
+    @property
+    def index(self):
+        return self.pf.index
 
     def _set_default_field_parameters(self):
         self.field_parameters = {}

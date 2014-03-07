@@ -36,6 +36,8 @@ from yt.data_objects.particle_filters import \
     filter_registry
 from yt.data_objects.particle_unions import \
     ParticleUnion
+from yt.data_objects.data_containers import \
+    data_object_registry
 from yt.utilities.minimal_representation import \
     MinimalDataset
 from yt.units.yt_array import \
@@ -382,13 +384,13 @@ class Dataset(object):
                     return self._last_finfo
         raise YTFieldNotFound((ftype, fname), self)
 
-    def _setup_classes(self, dd):
+    def _setup_classes(self):
         # Called by subclass
         self.object_types = []
         self.objects = []
         self.plots = []
         for name, cls in sorted(data_object_registry.items()):
-            if name in self._unsupported_objects:
+            if name in self._index_class._unsupported_objects:
                 setattr(self, name,
                     _unsupported_object(self, name))
                 continue
@@ -406,6 +408,12 @@ class Dataset(object):
                         + " overlap_proj")
             self.proj = self.overlap_proj
         self.object_types.sort()
+
+    def _add_object_class(self, name, class_name, base, dd):
+        self.object_types.append(name)
+        dd.update({'__doc__': base.__doc__})
+        obj = type(class_name, (base,), dd)
+        setattr(self, name, obj)
 
     def _setup_particle_type(self, ptype):
         orig = set(self.field_info.items())
