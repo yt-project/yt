@@ -1117,13 +1117,13 @@ class YTLoadCmd(YTCommand):
             api_version = '0.11'
 
         local_ns = yt.mods.__dict__.copy()
-        local_ns['pf'] = args.pf
+        local_ns['ds'] = args.pf
 
         if api_version == '0.10':
             shell = IPython.Shell.IPShellEmbed()
             shell(local_ns = local_ns,
                   header =
-                  "\nHi there!  Welcome to yt.\n\nWe've loaded your parameter file as 'pf'.  Enjoy!"
+                  "\nHi there!  Welcome to yt.\n\nWe've loaded your parameter file as 'ds'.  Enjoy!"
                   )
         else:
             from IPython.config.loader import Config
