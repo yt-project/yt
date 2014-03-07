@@ -1338,7 +1338,13 @@ class TriangleFacetsCallback(PlotCallback):
     """ 
     annotate_triangle_facets(triangle_vertices, plot_args=None )
 
-    Over plot *x* and *y* with *plot_args* fed into the plot.
+    Intended for representing a slice of a triangular faceted 
+    geometry in a slice plot. 
+
+    Uses a set of *triangle_vertices* to find all trangles the plane of a 
+    SlicePlot intersects with. The lines between the intersection points 
+    of the triangles are then added to the plot to create an outline
+    of the geometry represented by the triangles. 
     """
     _type_name = "triangle_facets"
     def __init__(self, triangle_vertices, plot_args=None):
