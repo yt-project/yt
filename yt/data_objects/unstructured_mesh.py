@@ -48,8 +48,8 @@ class SemiStructuredMesh(YTSelectionContainer):
         # This is where we set up the connectivity information
         self.connectivity_indices = connectivity_indices
         self.connectivity_coords = connectivity_coords
-        if index: self.index = weakref.proxy(index)
-        self.pf = self.index.parameter_file  # weakref already
+        self.pf = index.parameter_file
+        self._index = index
         self._last_mask = None
         self._last_count = -1
         self._last_selector_id = None

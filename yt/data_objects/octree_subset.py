@@ -66,7 +66,7 @@ class OctreeSubset(YTSelectionContainer):
         self.domain = domain
         self.domain_id = domain.domain_id
         self.pf = domain.pf
-        self.index = self.pf.index
+        self._index = self.pf.index
         self.oct_handler = domain.oct_handler
         self._last_mask = None
         self._last_selector_id = None
@@ -271,7 +271,7 @@ class ParticleOctreeSubset(OctreeSubset):
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.pf = pf
-        self.index = self.pf.index
+        self._index = self.pf.index
         self.oct_handler = pf.h.oct_handler
         self.min_ind = min_ind
         if max_ind == 0: max_ind = (1 << 63)
