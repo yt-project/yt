@@ -136,7 +136,7 @@ class TestFieldAccess(object):
                 res = dd2.apply_units(res, field.units)
             assert_array_almost_equal_nulp(v1, res, 4)
         if not skip_grids:
-            for g in pf.h.grids:
+            for g in pf.grids:
                 g.field_parameters.update(sp)
                 v1 = g[self.field_name]
                 g.clear_data()

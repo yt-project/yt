@@ -39,7 +39,7 @@ def spherical_regrid(pf, nr, ntheta, nphi, rmax, fields,
     new_grid['x'] = r*np.sin(theta)*np.cos(phi) + center[0]
     new_grid['y'] = r*np.sin(theta)*np.sin(phi) + center[1]
     new_grid['z'] = r*np.cos(theta)             + center[2]
-    sphere = pf.h.sphere(center, rmax)
+    sphere = pf.sphere(center, rmax)
     return arbitrary_regrid(new_grid, sphere, fields, smoothed)
 
 def arbitrary_regrid(new_grid, data_source, fields, smoothed=True):

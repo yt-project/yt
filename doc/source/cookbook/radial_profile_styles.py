@@ -5,7 +5,7 @@ pf = load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
 
 # Get a sphere object
 
-sphere = pf.h.sphere(pf.domain_center, (500., "kpc"))
+sphere = pf.sphere(pf.domain_center, (500., "kpc"))
 
 # Bin up the data from the sphere into a radial profile
 

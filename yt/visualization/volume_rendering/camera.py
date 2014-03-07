@@ -270,7 +270,7 @@ class Camera(ParallelAnalysisInterface):
         >>> write_bitmap(im, 'render_with_grids.png')
 
         """
-        region = self.pf.h.region((self.re + self.le) / 2.0,
+        region = self.pf.region((self.re + self.le) / 2.0,
                                   self.le, self.re)
         corners = region.grid_corners
         levels = region.grid_levels[:,0]
@@ -2072,7 +2072,7 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
     vs *= radius
     uv = np.ones(3, dtype='float64')
     if data_source is None:
-        data_source = pf.h.sphere(center, radius)
+        data_source = pf.sphere(center, radius)
     sampler = ProjectionSampler(positions, vs, center, (0.0, 0.0, 0.0, 0.0),
                                 image, uv, uv, np.zeros(3, dtype='float64'))
     for i, (grid, mask) in enumerate(data_source.blocks):
@@ -2216,7 +2216,7 @@ class ProjectionCamera(Camera):
                     np.minimum(mi, this_point, mi)
                     np.maximum(ma, this_point, ma)
         # Now we have a bounding box.
-        data_source = pf.h.region(self.center, mi, ma)
+        data_source = pf.region(self.center, mi, ma)
 
         for i, (grid, mask) in enumerate(data_source.blocks):
             data = [(grid[field] * mask).astype("float64") for field in fields]

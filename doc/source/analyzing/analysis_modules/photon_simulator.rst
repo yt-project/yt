@@ -89,7 +89,7 @@ center of the domain, with a radius of 250 kpc:
 
 .. code:: python
 
-    sp = pf.h.sphere("c", (250., "kpc"))
+    sp = pf.sphere("c", (250., "kpc"))
 
 This will serve as our ``data_source`` that we will use later. Next, we
 need to create the ``SpectralModel`` instance that will determine how
@@ -445,7 +445,7 @@ example:
 
 .. code:: python
 
-   sphere = pf.h.sphere(pf.domain_center, 1.0/pf["mpc"])
+   sphere = pf.sphere(pf.domain_center, 1.0/pf["mpc"])
        
    A = 6000.
    exp_time = 2.0e5

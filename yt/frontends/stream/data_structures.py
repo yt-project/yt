@@ -838,7 +838,7 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
     # If we have particle data, set it aside for now
 
     number_of_particles = np.sum([grid.NumberOfParticles
-                                  for grid in base_pf.h.grids])
+                                  for grid in base_pf.grids])
 
     if number_of_particles > 0 :
         pdata = {}
@@ -848,7 +848,7 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
             fi = base_pf._get_field_info(*field)
             if fi.particle_type :
                 pdata[field] = uconcatenate([grid[field]
-                                               for grid in base_pf.h.grids])
+                                               for grid in base_pf.grids])
         pdata["number_of_particles"] = number_of_particles
         
     last_gc = base_pf.h.num_grids
@@ -859,11 +859,11 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
     while pf.h.max_level < max_level and last_gc != cur_gc:
         mylog.info("Refining another level.  Current max level: %s",
                   pf.h.max_level)
-        last_gc = pf.h.grids.size
+        last_gc = pf.grids.size
         for m in fluid_operators: m.apply(pf)
         if callback is not None: callback(pf)
         grid_data = []
-        for g in pf.h.grids:
+        for g in pf.grids:
             gd = dict( left_edge = g.LeftEdge,
                        right_edge = g.RightEdge,
                        level = g.Level,
@@ -881,7 +881,7 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
             for sg in nsg:
                 LE = sg.left_index * g.dds + pf.domain_left_edge
                 dims = sg.dimensions * pf.refine_by
-                grid = pf.h.smoothed_covering_grid(g.Level + 1, LE, dims)
+                grid = pf.smoothed_covering_grid(g.Level + 1, LE, dims)
                 gd = dict(left_edge = LE, right_edge = grid.right_edge,
                           level = g.Level + 1, dimensions = dims)
                 for field in pf.h.field_list:

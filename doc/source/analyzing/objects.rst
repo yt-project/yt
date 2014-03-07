@@ -83,7 +83,7 @@ simulation box, we would create a sphere object with:
 
 .. code-block:: python
 
-   sp = pf.h.sphere([0.5, 0.5, 0.5], 10.0/pf['kpc'])
+   sp = pf.sphere([0.5, 0.5, 0.5], 10.0/pf['kpc'])
 
 and then look at the temperature of its cells within it via:
 
@@ -144,7 +144,7 @@ object.  To access them, you would do something like this (as for a
 
    from yt.mods import *
    pf = load("RedshiftOutput0005")
-   reg = pf.h.region([0.5, 0.5, 0.5], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
+   reg = pf.region([0.5, 0.5, 0.5], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
 
 .. include:: _obj_docstrings.inc
 
@@ -292,7 +292,7 @@ whether or not to conduct it in log space.
 
 .. code-block:: python
 
-   sp = pf.h.sphere("max", (1.0, 'pc'))
+   sp = pf.sphere("max", (1.0, 'pc'))
    contour_values, connected_sets = sp.extract_connected_sets(
         "density", 3, 1e-30, 1e-20)
 
@@ -376,7 +376,7 @@ the index or as a standalone file.  For instance, using
 
    from yt.mods import *
    pf = load("my_data")
-   sp = pf.h.sphere([0.5, 0.5, 0.5], 10.0/pf['kpc'])
+   sp = pf.sphere([0.5, 0.5, 0.5], 10.0/pf['kpc'])
 
    pf.h.save_object(sp, "sphere_to_analyze_later")
 
@@ -399,7 +399,7 @@ we can save the object directly:
    from yt.mods import *
 
    pf = load("my_data")
-   sp = pf.h.sphere([0.5, 0.5, 0.5], 10.0/pf['kpc'])
+   sp = pf.sphere([0.5, 0.5, 0.5], 10.0/pf['kpc'])
 
    sp.save_object("my_sphere", "my_storage_file.cpkl")
 

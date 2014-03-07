@@ -22,7 +22,7 @@ left_corner[0] = center[0] - 0.5 * depth / pf.units['mpc']
 left_corner[0] = center[0] + 0.5 * depth / pf.units['mpc']
 
 # Create the region
-region = pf.h.region(center, left_corner, right_corner)
+region = pf.region(center, left_corner, right_corner)
 
 # Create a density projection and supply the region we have just created.
 # Only cells within the region will be included in the projection.

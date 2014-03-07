@@ -53,7 +53,7 @@ class ConstructedRootGrid(AMRGridPatch):
         dims = (self.RightEdge-self.LeftEdge)/self.dds
         self.ActiveDimensions = dims
         print "Constructing base grid of size %s" % (self.ActiveDimensions)
-        self.base_grid = base_pf.h.smoothed_covering_grid(level, self.LeftEdge,
+        self.base_grid = base_pf.smoothed_covering_grid(level, self.LeftEdge,
                         self.RightEdge, dims=dims)
         self.base_grid.Level = self.base_grid.level
         self.field_data = YTFieldData()
@@ -62,7 +62,7 @@ class ConstructedRootGrid(AMRGridPatch):
         self.Children = []
 
     def get_vertex_centered_data(self, field, smoothed=True):
-        vc = self.base_pf.h.smoothed_covering_grid(self.base_grid.Level,
+        vc = self.base_pf.smoothed_covering_grid(self.base_grid.Level,
                 self.base_grid.LeftEdge - self.base_grid.dds*0.5,
                 self.base_grid.RightEdge + self.base_grid.dds*0.5,
                 dims = self.ActiveDimensions + 1)

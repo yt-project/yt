@@ -82,7 +82,7 @@ if __name__ == "__main__":
     c = np.array([0.47284317, 0.48062515, 0.58282089], dtype='float32')
 
     print "Getting cutting plane."
-    cp = pf.h.cutting(cpu['v_dir'], c)
+    cp = pf.cutting(cpu['v_dir'], c)
 
     W = 2000.0/pf['au']
     W = 0.25

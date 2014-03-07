@@ -54,7 +54,7 @@ def test_slice():
             yax = y_dict[ax]
             for wf in ["density", None]:
                 fns = []
-                slc = pf.h.slice(ax, slc_pos)
+                slc = pf.slice(ax, slc_pos)
                 yield assert_equal, slc["ones"].sum(), slc["ones"].size
                 yield assert_equal, slc["ones"].min(), 1.0
                 yield assert_equal, slc["ones"].max(), 1.0
@@ -92,14 +92,14 @@ def test_slice():
 
 def test_slice_over_edges():
     pf = fake_random_pf(64, nprocs=8, fields=["density"], negative=[False])
-    slc = pf.h.slice(0, 0.0)
+    slc = pf.slice(0, 0.0)
     slc["density"]
-    slc = pf.h.slice(1, 0.5)
+    slc = pf.slice(1, 0.5)
     slc["density"]
 
 
 def test_slice_over_outer_boundary():
     pf = fake_random_pf(64, nprocs=8, fields=["density"], negative=[False])
-    slc = pf.h.slice(2, 1.0)
+    slc = pf.slice(2, 1.0)
     slc["density"]
     yield assert_equal, slc["density"].size, 0

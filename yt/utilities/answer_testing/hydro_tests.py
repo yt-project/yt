@@ -27,7 +27,7 @@ class TestProjection(YTDatasetTest):
     def run(self):
         # First we get our flattened projection -- this is the
         # Density, px, py, pdx, and pdy
-        proj = self.pf.h.proj(self.field, self.axis, 
+        proj = self.pf.proj(self.field, self.axis, 
                               weight_field=self.weight_field)
         # Now let's stick it in a buffer
         pixelized_proj = self.pixelize(proj, self.field)
@@ -98,7 +98,7 @@ class TestRay(YTDatasetTest):
             self.pf.domain_left_edge
 
         # Here proj will just be the data array.
-        ray = self.pf.h.ray(start_point, end_point, field=self.field)
+        ray = self.pf.ray(start_point, end_point, field=self.field)
 
         # values.
         self.result = ray[self.field]
@@ -119,7 +119,7 @@ class TestSlice(YTDatasetTest):
 
     def run(self):
         # Here proj will just be the data array.
-        slice = self.pf.h.slice(self.axis, 
+        slice = self.pf.slice(self.axis, 
                                 (0.5 * (self.pf.domain_left_edge + 
                                         self.pf.domain_right_edge))[self.axis],
                                 fields=self.field)

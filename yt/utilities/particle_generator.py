@@ -138,7 +138,7 @@ class ParticleGenerator(object) :
         >>> particles.map_grid_fields_to_particles(field_map)
         """
         pbar = get_pbar("Mapping fields to particles", self.num_grids)
-        for i, grid in enumerate(self.pf.h.grids) :
+        for i, grid in enumerate(self.pf.grids) :
             pbar.update(i)
             if self.NumberOfParticles[i] > 0:
                 start = self.ParticleGridIndices[i]
@@ -165,7 +165,7 @@ class ParticleGenerator(object) :
         and clobber=False, do not overwrite them, but add the new ones to them. 
         """
         grid_data = []
-        for i,g in enumerate(self.pf.h.grids) :
+        for i,g in enumerate(self.pf.grids) :
             data = {}
             if clobber :
                 data["number_of_particles"] = self.NumberOfParticles[i]
@@ -331,7 +331,7 @@ class WithDensityParticleGenerator(ParticleGenerator) :
             
         Examples
         --------
-        >>> sphere = pf.h.sphere(pf.domain_center, 0.5)
+        >>> sphere = pf.sphere(pf.domain_center, 0.5)
         >>> num_p = 100000
         >>> fields = ["particle_position_x","particle_position_y",
         >>>           "particle_position_z",

@@ -23,7 +23,7 @@ def test_cutting_plane():
         center = [0.5,0.5,0.5]
         normal = [1,1,1]
         fns = []
-        cut = pf.h.cutting(normal, center)
+        cut = pf.cutting(normal, center)
         yield assert_equal, cut["ones"].sum(), cut["ones"].size
         yield assert_equal, cut["ones"].min(), 1.0
         yield assert_equal, cut["ones"].max(), 1.0

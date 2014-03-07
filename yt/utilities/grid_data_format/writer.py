@@ -115,7 +115,7 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name, field_param
 
     # now add actual data, grid by grid
     g = fhandle["data"]     
-    for grid in pf.h.grids:
+    for grid in pf.grids:
 
         # set field parameters, if specified
         if field_parameters is not None:
@@ -201,21 +201,21 @@ def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
     ###
     # root datasets -- info about the grids
     ###
-    f["grid_dimensions"] = pf.h.grid_dimensions
+    f["grid_dimensions"] = pf.grid_dimensions
     f["grid_left_index"] = np.array(
-            [g.get_global_startindex() for g in pf.h.grids]
-    ).reshape(pf.h.grid_dimensions.shape[0], 3)
-    f["grid_level"] = pf.h.grid_levels
+            [g.get_global_startindex() for g in pf.grids]
+    ).reshape(pf.grid_dimensions.shape[0], 3)
+    f["grid_level"] = pf.grid_levels
     # @todo: Fill with proper values
-    f["grid_parent_id"] = -np.ones(pf.h.grid_dimensions.shape[0])
-    f["grid_particle_count"] = pf.h.grid_particle_count
+    f["grid_parent_id"] = -np.ones(pf.grid_dimensions.shape[0])
+    f["grid_particle_count"] = pf.grid_particle_count
 
     ###
     # "data" group -- where we should spend the most time
     ###
     
     g = f.create_group("data")
-    for grid in pf.h.grids:
+    for grid in pf.grids:
         # add group for this grid
         grid_group = g.create_group("grid_%010i" % (grid.id - grid._id_offset))
         # add group for the particles on this grid

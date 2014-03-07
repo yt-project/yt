@@ -113,8 +113,8 @@ class YTStreamlineBase(YTSelectionContainer1D):
 
     def _get_list_of_grids(self):
         # Get the value of the line at each LeftEdge and RightEdge
-        LE = self.pf.h.grid_left_edge
-        RE = self.pf.h.grid_right_edge
+        LE = self.pf.grid_left_edge
+        RE = self.pf.grid_right_edge
         # Check left faces first
         min_streampoint = np.min(self.positions, axis=0)
         max_streampoint = np.max(self.positions, axis=0)
@@ -398,7 +398,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
 
     Examples
     --------
-    >>> cube = pf.h.covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
+    >>> cube = pf.covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
     ...                          dims=[128, 128, 128])
     """
     _spatial = True
@@ -473,7 +473,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         return tuple(self.ActiveDimensions.tolist())
 
     def _setup_data_source(self):
-        self._data_source = self.pf.h.region(self.center,
+        self._data_source = self.pf.region(self.center,
             self.left_edge - self.base_dds,
             self.right_edge + self.base_dds)
         self._data_source.min_level = 0
@@ -590,7 +590,7 @@ class YTArbitraryGridBase(YTCoveringGridBase):
 
     Examples
     --------
-    >>> obj = pf.h.arbitrary_grid([0.0, 0.0, 0.0], [0.99, 0.99, 0.99],
+    >>> obj = pf.arbitrary_grid([0.0, 0.0, 0.0], [0.99, 0.99, 0.99],
     ...                          dims=[128, 128, 128])
     """
     _spatial = True
@@ -654,7 +654,7 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
 
     Example
     -------
-    cube = pf.h.smoothed_covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
+    cube = pf.smoothed_covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
                               dims=[128, 128, 128])
     """
     _type_name = "smoothed_covering_grid"
@@ -672,7 +672,7 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         if level_state is None: return
         # We need a buffer region to allow for zones that contribute to the
         # interpolation but are not directly inside our bounds
-        level_state.data_source = self.pf.h.region(
+        level_state.data_source = self.pf.region(
             self.center,
             self.left_edge - level_state.current_dx,
             self.right_edge + level_state.current_dx)
@@ -779,8 +779,8 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
     This will create a data object, find a nice value in the center, and
     output the vertices to "triangles.obj" after rescaling them.
 
-    >>> sp = pf.h.sphere("max", (10, "kpc")
-    >>> surf = pf.h.surface(sp, "Density", 5e-27)
+    >>> sp = pf.sphere("max", (10, "kpc")
+    >>> surf = pf.surface(sp, "Density", 5e-27)
     >>> print surf["Temperature"]
     >>> print surf.vertices
     >>> bounds = [(sp.center[i] - 5.0/pf['kpc'],
@@ -903,8 +903,8 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         This will create a data object, find a nice value in the center, and
         calculate the metal flux over it.
 
-        >>> sp = pf.h.sphere("max", (10, "kpc")
-        >>> surf = pf.h.surface(sp, "Density", 5e-27)
+        >>> sp = pf.sphere("max", (10, "kpc")
+        >>> surf = pf.surface(sp, "Density", 5e-27)
         >>> flux = surf.calculate_flux(
         ...     "velocity_x", "velocity_y", "velocity_z", "Metal_Density")
         """
@@ -987,25 +987,25 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         Examples
         --------
 
-        >>> sp = pf.h.sphere("max", (10, "kpc"))
+        >>> sp = pf.sphere("max", (10, "kpc"))
         >>> trans = 1.0
         >>> distf = 3.1e18*1e3 # distances into kpc
-        >>> surf = pf.h.surface(sp, "Density", 5e-27)
+        >>> surf = pf.surface(sp, "Density", 5e-27)
         >>> surf.export_obj("my_galaxy", transparency=trans, dist_fac = distf)
 
-        >>> sp = pf.h.sphere("max", (10, "kpc"))
+        >>> sp = pf.sphere("max", (10, "kpc"))
         >>> mi, ma = sp.quantities['Extrema']('Temperature')[0]
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
         >>> distf = 3.1e18*1e3 # distances into kpc
         >>> for i, r in enumerate(rhos):
-        ...     surf = pf.h.surface(sp,'Density',r)
+        ...     surf = pf.surface(sp,'Density',r)
         ...     surf.export_obj("my_galaxy", transparency=trans[i], 
         ...                      color_field='Temperature', dist_fac = distf, 
         ...                      plot_index = i, color_field_max = ma, 
         ...                      color_field_min = mi)
 
-        >>> sp = pf.h.sphere("max", (10, "kpc"))
+        >>> sp = pf.sphere("max", (10, "kpc"))
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
         >>> distf = 3.1e18*1e3 # distances into kpc
@@ -1013,7 +1013,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         ...     return (data['Density']*data['Density']*np.sqrt(data['Temperature']))
         >>> add_field("Emissivity", function=_Emissivity, units=r"\rm{g K}/\rm{cm}^{6}")
         >>> for i, r in enumerate(rhos):
-        ...     surf = pf.h.surface(sp,'Density',r)
+        ...     surf = pf.surface(sp,'Density',r)
         ...     surf.export_obj("my_galaxy", transparency=trans[i], 
         ...                      color_field='Temperature', emit_field = 'Emissivity', 
         ...                      dist_fac = distf, plot_index = i)
@@ -1185,8 +1185,8 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         Examples
         --------
 
-        >>> sp = pf.h.sphere("max", (10, "kpc")
-        >>> surf = pf.h.surface(sp, "Density", 5e-27)
+        >>> sp = pf.sphere("max", (10, "kpc")
+        >>> surf = pf.surface(sp, "Density", 5e-27)
         >>> print surf["Temperature"]
         >>> print surf.vertices
         >>> bounds = [(sp.center[i] - 5.0/pf['kpc'],
@@ -1322,12 +1322,12 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
 
         >>> from yt.mods import *
         >>> pf = load("redshift0058")
-        >>> dd = pf.h.sphere("max", (200, "kpc"))
+        >>> dd = pf.sphere("max", (200, "kpc"))
         >>> rho = 5e-27
         >>> bounds = [(dd.center[i] - 100.0/pf['kpc'],
         ...            dd.center[i] + 100.0/pf['kpc']) for i in range(3)]
         ...
-        >>> surf = pf.h.surface(dd, "Density", rho)
+        >>> surf = pf.surface(dd, "Density", rho)
         >>> rv = surf.export_sketchfab(
         ...     title = "Testing Upload",
         ...     description = "A simple test of the uploader",

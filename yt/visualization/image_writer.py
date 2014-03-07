@@ -187,7 +187,7 @@ def write_image(image, filename, color_bounds = None, cmap_name = "algae", func 
     Examples
     --------
 
-    >>> sl = pf.h.slice(0, 0.5, "Density")
+    >>> sl = pf.slice(0, 0.5, "Density")
     >>> frb1 = FixedResolutionBuffer(sl, (0.2, 0.3, 0.4, 0.5),
                     (1024, 1024))
     >>> write_image(frb1["Density"], "saved.png")

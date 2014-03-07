@@ -487,7 +487,7 @@ class PlotCollection(object):
         RE = self.pf.domain_right_edge.copy()
         LE[axis] = self.c[axis] - width/2.0
         RE[axis] = self.c[axis] + width/2.0
-        if data_source is None: data_source = self.pf.h.region(self.c, LE, RE)
+        if data_source is None: data_source = self.pf.region(self.c, LE, RE)
         data_source.axis = axis
         p = self._add_plot(ParticlePlot(data_source, axis,
                                         width, p_size, col, stride, figure,
@@ -568,7 +568,7 @@ class PlotCollection(object):
 
         >>> pf = load("RD0005-mine/RedshiftOutput0005")
         >>> v, c = pf.h.find_max("Density")
-        >>> sp = pf.h.sphere(c, 1000.0/pf['au'])
+        >>> sp = pf.sphere(c, 1000.0/pf['au'])
         >>> L = sp.quantities["AngularMomentumVector"]()
         >>> pc = PlotCollection(pf)
         >>> p = pc.add_cutting_plane("Density", L)
@@ -768,7 +768,7 @@ class PlotCollection(object):
         LE[axis] = RE[axis] = center[axis]
         LE[axis] -= thickness/2.0
         RE[axis] += thickness/2.0
-        region = self.pf.h.region(center, LE, RE)
+        region = self.pf.region(center, LE, RE)
         obj = self.pf.index.proj(field, axis, weight_field,
                                      data_source = region, center=center,
                                      field_parameters = field_parameters)
@@ -842,7 +842,7 @@ class PlotCollection(object):
         Examples
         --------
 
-        >>> reg = pf.h.region([0.1, 0.2, 0.3], [0.0, 0.1, 0.2],
+        >>> reg = pf.region([0.1, 0.2, 0.3], [0.0, 0.1, 0.2],
                               [0.2, 0.3, 0.4])
         >>> pc.add_profile_object(reg, ["Density", "Temperature"])
         """
@@ -1029,7 +1029,7 @@ class PlotCollection(object):
         This will show the mass-distribution in the Density-Temperature plane.
         
         >>> pf = load("RD0005-mine/RedshiftOutput0005")
-        >>> reg = pf.h.region([0.1, 0.2, 0.3], [0.0, 0.1, 0.2],
+        >>> reg = pf.region([0.1, 0.2, 0.3], [0.0, 0.1, 0.2],
         ...                   [0.2, 0.3, 0.4])
         >>> pc.add_phase_object(reg, ["Density", "Temperature", "CellMassMsun"],
         ...                     weight = None)
@@ -1202,7 +1202,7 @@ class PlotCollection(object):
         Examples
         --------
 
-        >>> reg = pf.h.region([0.1, 0.2, 0.3], [0.0, 0.1, 0.2],
+        >>> reg = pf.region([0.1, 0.2, 0.3], [0.0, 0.1, 0.2],
                               [0.2, 0.3, 0.4])
         >>> pc.add_scatter_plot(reg, ["Density", "Temperature"],
         >>>                     plot_options = {'color':'b'})
@@ -1259,7 +1259,7 @@ class PlotCollection(object):
         angular momentum vector.
 
         >>> pf = load("RD0005-mine/RedshiftOutput0005")
-        >>> proj = pf.h.proj("Density", 0)
+        >>> proj = pf.proj("Density", 0)
         >>> frb = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5), (512, 512))
         >>> p = pc.add_fixed_resolution_plot(frb, "Density")
         """
@@ -1326,7 +1326,7 @@ class PlotCollection(object):
         axis = fix_axis(axis)
         if field_parameters is None: field_parameters = {}
         if plot_options is None: plot_options = {}
-        data_source = self.pf.h.ortho_ray(axis, coords, 
+        data_source = self.pf.ortho_ray(axis, coords, 
                         field_parameters = field_parameters)
         p = self._add_plot(LineQueryPlot(data_source,
                 [axis_names[axis], field], self._get_new_id(),
@@ -1386,7 +1386,7 @@ class PlotCollection(object):
         """
         if field_parameters is None: field_parameters = {}
         if plot_options is None: plot_options = {}
-        data_source = self.pf.h.ray(start_point, end_point, 
+        data_source = self.pf.ray(start_point, end_point, 
                                     field_parameters = field_parameters)
         p = self._add_plot(LineQueryPlot(data_source,
                 ['t', field], self._get_new_id(),
@@ -1641,7 +1641,7 @@ def matplotlib_widget(data_source, field, npix):
     --------
 
     >>> pf = load("DD0030/DD0030")
-    >>> p = pf.h.proj("Density", "z")
+    >>> p = pf.proj("Density", "z")
     >>> matplotlib_widget(p, "Density", 1024)
 
     """

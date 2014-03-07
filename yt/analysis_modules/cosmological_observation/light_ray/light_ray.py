@@ -420,7 +420,7 @@ class LightRay(CosmologySplice):
             for sub_segment in sub_segments:
                 mylog.info("Getting subsegment: %s to %s." %
                            (list(sub_segment[0]), list(sub_segment[1])))
-                sub_ray = pf.h.ray(sub_segment[0], sub_segment[1])
+                sub_ray = pf.ray(sub_segment[0], sub_segment[1])
                 sub_data['dl'] = np.concatenate([sub_data['dl'],
                                                  (sub_ray['dts'] *
                                                   vector_length(sub_segment[0],

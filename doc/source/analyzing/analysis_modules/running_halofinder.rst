@@ -448,7 +448,7 @@ Below is a simple example for HOP; the other halo finders use the same
   pf = load('data0458')
   # Note that the first term below, [0.5]*3, defines the center of
   # the region and is not used. It can be any value.
-  sv = pf.h.region([0.5]*3, [0.21, .21, .72], [.28, .28, .79])
+  sv = pf.region([0.5]*3, [0.21, .21, .72], [.28, .28, .79])
   halos = HaloFinder(pf, subvolume = sv)
   halos.write_out("sv.out")
 

@@ -108,9 +108,9 @@ class Halo(object):
         pid = self.__getitem__('particle_index')
         # This is from the sphere.
         if self._name == "RockstarHalo":
-            ds = self.pf.h.sphere(self.CoM, self._radjust * self.max_radius)
+            ds = self.pf.sphere(self.CoM, self._radjust * self.max_radius)
         elif self._name == "LoadedHalo":
-            ds = self.pf.h.sphere(self.CoM, self._radjust * self.max_radius)
+            ds = self.pf.sphere(self.CoM, self._radjust * self.max_radius)
         sp_pid = ds['particle_index']
         self._ds_sort = sp_pid.argsort()
         sp_pid = sp_pid[self._ds_sort]
@@ -606,7 +606,7 @@ class RockstarHalo(Halo):
         # We won't store this field below in saved_fields because
         # that would mean keeping two copies of it, one in the yt
         # machinery and one here.
-        ds = self.pf.h.sphere(self.CoM, 4 * self.max_radius)
+        ds = self.pf.sphere(self.CoM, 4 * self.max_radius)
         return np.take(ds[key][self._ds_sort], self.particle_mask)
 
     def _get_particle_data(self, halo, fnames, size, field):
@@ -867,7 +867,7 @@ class LoadedHalo(Halo):
         # We won't store this field below in saved_fields because
         # that would mean keeping two copies of it, one in the yt
         # machinery and one here.
-        ds = self.pf.h.sphere(self.CoM, 1.05 * self.max_radius)
+        ds = self.pf.sphere(self.CoM, 1.05 * self.max_radius)
         return np.take(ds[key][self._ds_sort], self.particle_mask)
 
     def _get_particle_data(self, halo, fnames, size, field):
@@ -991,7 +991,7 @@ class LoadedHalo(Halo):
         """
         cen = self.center_of_mass()
         r = self.maximum_radius()
-        return self.pf.h.sphere(cen, r)
+        return self.pf.sphere(cen, r)
 
 class TextHalo(LoadedHalo):
     def __init__(self, pf, id, size=None, CoM=None,
@@ -2193,7 +2193,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                 np.zeros(3, dtype='float64'))
         # If we're using a subvolume, we now re-divide.
         if subvolume is not None:
-            self._data_source = pf.h.region([0.] * 3, ds_LE, ds_RE)
+            self._data_source = pf.region([0.] * 3, ds_LE, ds_RE)
             # Cut up the volume.
             padded, LE, RE, self._data_source = \
                 self.partition_index_3d(ds=self._data_source,
@@ -2390,7 +2390,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         # object representing the entire domain and sum it "lazily" with
         # Derived Quantities.
         if subvolume is not None:
-            self._data_source = pf.h.region([0.] * 3, ds_LE, ds_RE)
+            self._data_source = pf.region([0.] * 3, ds_LE, ds_RE)
         else:
             self._data_source = pf.h.all_data()
         self.padding = padding  # * pf["unitary"] # This should be clevererer
@@ -2486,7 +2486,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
             linking_length = np.abs(link)
         self.padding = padding
         if subvolume is not None:
-            self._data_source = pf.h.region([0.] * 3, ds_LE,
+            self._data_source = pf.region([0.] * 3, ds_LE,
                 ds_RE)
         else:
             self._data_source = pf.h.all_data()

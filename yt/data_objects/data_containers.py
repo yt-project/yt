@@ -774,7 +774,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
         Examples
         --------
 
-        >>> proj = pf.h.proj("Density", 0)
+        >>> proj = pf.proj("Density", 0)
         >>> frb = proj.to_frb( (100.0, 'kpc'), 1024)
         >>> write_image(np.log10(frb["Density"]), 'density_100kpc.png')
         """
@@ -843,7 +843,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> cr = ad.cut_region(["obj['Temperature'] > 1e6"])
         >>> print cr.quantities["TotalQuantity"]("CellMassMsun")
         """
-        cr = self.pf.h.cut_region(self, field_cuts,
+        cr = self.pf.cut_region(self, field_cuts,
                                   field_parameters = field_parameters)
         return cr
 
@@ -1183,7 +1183,7 @@ class YTSelectedIndicesBase(YTSelectionContainer3D):
                                         # It is not cyclic
         if isinstance(indices, types.DictType):
             self._indices = indices
-            self._grids = self._base_region.pf.h.grids[self._indices.keys()]
+            self._grids = self._base_region.pf.grids[self._indices.keys()]
         else:
             self._grids = None
             self._base_indices = indices
@@ -1265,7 +1265,7 @@ class YTSelectedIndicesBase(YTSelectionContainer3D):
         ng = {}
         gs = set(self._indices.keys() + other._indices.keys())
         for g in gs:
-            grid = self.pf.h.grids[g]
+            grid = self.pf.grids[g]
             if g in other._indices and g in self._indices:
                 # We now join the indices
                 ind = np.zeros(grid.ActiveDimensions, dtype='bool')
@@ -1279,10 +1279,10 @@ class YTSelectedIndicesBase(YTSelectionContainer3D):
             # Okay we have indices
             if ind is not None: ind = ind.copy()
             ng[g] = ind
-        gl = self.pf.h.grids[list(gs)]
-        gc = self.pf.h.grid_collection(
+        gl = self.pf.grids[list(gs)]
+        gc = self.pf.grid_collection(
             self._base_region.get_field_parameter("center"), gl)
-        return self.pf.h.extracted_region(gc, ng)
+        return self.pf.extracted_region(gc, ng)
 
 
 class YTValueCutExtractionBase(YTSelectionContainer3D):
@@ -1327,13 +1327,13 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
     
     Examples
     --------
-    >>> re1 = pf.h.region([0.5, 0.5, 0.5], [0.4, 0.4, 0.4],
+    >>> re1 = pf.region([0.5, 0.5, 0.5], [0.4, 0.4, 0.4],
         [0.6, 0.6, 0.6])
-    >>> re2 = pf.h.region([0.5, 0.5, 0.5], [0.45, 0.45, 0.45],
+    >>> re2 = pf.region([0.5, 0.5, 0.5], [0.45, 0.45, 0.45],
         [0.55, 0.55, 0.55])
-    >>> sp1 = pf.h.sphere([0.575, 0.575, 0.575], .03)
-    >>> toroid_shape = pf.h.boolean([re1, "NOT", re2])
-    >>> toroid_shape_with_hole = pf.h.boolean([re1, "NOT", "(", re2, "OR",
+    >>> sp1 = pf.sphere([0.575, 0.575, 0.575], .03)
+    >>> toroid_shape = pf.boolean([re1, "NOT", re2])
+    >>> toroid_shape_with_hole = pf.boolean([re1, "NOT", "(", re2, "OR",
         sp1, ")"])
     """
     _type_name = "boolean"

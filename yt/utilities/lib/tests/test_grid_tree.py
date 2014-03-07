@@ -53,16 +53,16 @@ def test_grid_tree():
     grid_tree = test_pf.h.get_grid_tree()
     indices, levels, nchild, children = grid_tree.return_tree_info()
 
-    grid_levels = [grid.Level for grid in test_pf.h.grids]
+    grid_levels = [grid.Level for grid in test_pf.grids]
 
-    grid_indices = [grid.id - grid._id_offset for grid in test_pf.h.grids]
-    grid_nchild = [len(grid.Children) for grid in test_pf.h.grids]
+    grid_indices = [grid.id - grid._id_offset for grid in test_pf.grids]
+    grid_nchild = [len(grid.Children) for grid in test_pf.grids]
 
     yield assert_equal, levels, grid_levels
     yield assert_equal, indices, grid_indices
     yield assert_equal, nchild, grid_nchild
 
-    for i, grid in enumerate(test_pf.h.grids):
+    for i, grid in enumerate(test_pf.grids):
         if grid_nchild[i] > 0:
             grid_children = np.array([child.id - child._id_offset
                                       for child in grid.Children])
@@ -91,7 +91,7 @@ def test_find_points():
         pos = np.array([ixx, iyy, izz])
         pt_level = -1
 
-        for grid in test_pf.h.grids:
+        for grid in test_pf.grids:
 
             if np.all(pos >= grid.LeftEdge) and \
                np.all(pos <= grid.RightEdge) and \

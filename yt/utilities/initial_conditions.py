@@ -18,7 +18,7 @@ from yt.units.yt_array import YTQuantity
 
 class FluidOperator(object):
     def apply(self, pf):
-        for g in pf.h.grids: self(g)
+        for g in pf.grids: self(g)
 
 class TopHatSphere(FluidOperator):
     def __init__(self, radius, center, fields):

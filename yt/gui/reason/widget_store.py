@@ -63,7 +63,7 @@ class WidgetStore(dict):
             center = np.array(center)
         axis = inv_axis_names[axis.lower()]
         coord = center[axis]
-        sl = pf.h.slice(axis, coord, center = center)
+        sl = pf.slice(axis, coord, center = center)
         xax, yax = x_dict[axis], y_dict[axis]
         DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
         pw = PWViewerExtJS(sl, (DLE[xax], DRE[xax], DLE[yax], DRE[yax]), 
@@ -83,7 +83,7 @@ class WidgetStore(dict):
     def create_proj(self, pf, axis, field, weight):
         if weight == "None": weight = None
         axis = inv_axis_names[axis.lower()]
-        proj = pf.h.proj(field, axis, weight_field=weight)
+        proj = pf.proj(field, axis, weight_field=weight)
         xax, yax = x_dict[axis], y_dict[axis]
         DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
         pw = PWViewerExtJS(proj, (DLE[xax], DRE[xax], DLE[yax], DRE[yax]),
@@ -99,13 +99,13 @@ class WidgetStore(dict):
         self._add_widget(pw, widget_data)
 
     def create_grid_dataview(self, pf):
-        levels = pf.h.grid_levels
-        left_edge = pf.h.grid_left_edge
-        right_edge = pf.h.grid_right_edge
-        dimensions = pf.h.grid_dimensions
-        cell_counts = pf.h.grid_dimensions.prod(axis=1)
+        levels = pf.grid_levels
+        left_edge = pf.grid_left_edge
+        right_edge = pf.grid_right_edge
+        dimensions = pf.grid_dimensions
+        cell_counts = pf.grid_dimensions.prod(axis=1)
         # This is annoying, and not ... that happy for memory.
-        i = pf.h.grids[0]._id_offset
+        i = pf.grids[0]._id_offset
         vals = []
         for i, (L, LE, RE, dim, cell) in enumerate(zip(
             levels, left_edge, right_edge, dimensions, cell_counts)):

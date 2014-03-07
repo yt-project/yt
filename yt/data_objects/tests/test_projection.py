@@ -33,7 +33,7 @@ def test_projection():
             yax = y_dict[ax]
             for wf in ["density", None]:
                 fns = []
-                proj = pf.h.proj(["ones", "density"], ax, weight_field = wf)
+                proj = pf.proj(["ones", "density"], ax, weight_field = wf)
                 yield assert_equal, proj["ones"].sum(), proj["ones"].size
                 yield assert_equal, proj["ones"].min(), 1.0
                 yield assert_equal, proj["ones"].max(), 1.0

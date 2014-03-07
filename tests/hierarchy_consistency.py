@@ -14,7 +14,7 @@ class HierarchyConsistency(YTDatasetTest):
 
     def run(self):
         self.result = \
-            all(g in ensure_list(c.Parent) for g in self.pf.h.grids
+            all(g in ensure_list(c.Parent) for g in self.pf.grids
                                             for c in g.Children)
 
     def compare(self, old_result):
@@ -25,11 +25,11 @@ class GridLocationsProperties(YTDatasetTest):
     name = "level_consistency"
 
     def run(self):
-        self.result = dict(grid_left_edge=self.pf.h.grid_left_edge,
-                           grid_right_edge=self.pf.h.grid_right_edge,
-                           grid_levels=self.pf.h.grid_levels,
-                           grid_particle_count=self.pf.h.grid_particle_count,
-                           grid_dimensions=self.pf.h.grid_dimensions)
+        self.result = dict(grid_left_edge=self.pf.grid_left_edge,
+                           grid_right_edge=self.pf.grid_right_edge,
+                           grid_levels=self.pf.grid_levels,
+                           grid_particle_count=self.pf.grid_particle_count,
+                           grid_dimensions=self.pf.grid_dimensions)
 
     def compare(self, old_result):
         # We allow now difference between these values
@@ -47,7 +47,7 @@ class GridRelationships(YTDatasetTest):
     def run(self):
         self.result = [[p.id for p in ensure_list(g.Parent) \
             if g.Parent is not None]
-            for g in self.pf.h.grids]
+            for g in self.pf.grids]
 
     def compare(self, old_result):
         if len(old_result) != len(self.result):
@@ -63,7 +63,7 @@ class GridGlobalIndices(YTDatasetTest):
 
     def run(self):
         self.result = na.array([g.get_global_startindex()
-                                for g in self.pf.h.grids])
+                                for g in self.pf.grids])
 
     def compare(self, old_result):
         self.compare_array_delta(old_result, self.result, 0.0)

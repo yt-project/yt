@@ -147,7 +147,7 @@ class RadMC3DWriter:
         self.layers.append(base_layer)
         self.cell_count += np.product(pf.domain_dimensions)
 
-        sorted_grids = sorted(pf.h.grids, key=lambda x: x.Level)
+        sorted_grids = sorted(pf.grids, key=lambda x: x.Level)
         for grid in sorted_grids:
             if grid.Level <= self.max_level:
                 self._add_grid_to_layers(grid)
@@ -238,7 +238,7 @@ class RadMC3DWriter:
         grid_file.close()
 
     def _write_layer_data_to_file(self, fhandle, field, level, LE, dim):
-        cg = self.pf.h.covering_grid(level, LE, dim, num_ghost_zones=1)
+        cg = self.pf.covering_grid(level, LE, dim, num_ghost_zones=1)
         if isinstance(field, list):
             data_x = cg[field[0]]
             data_y = cg[field[1]]

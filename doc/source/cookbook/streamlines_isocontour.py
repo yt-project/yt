@@ -21,8 +21,8 @@ for stream in streamlines.streamlines:
     ax.plot3D(stream[:,0], stream[:,1], stream[:,2], alpha=0.1)
 
 
-sphere = pf.h.sphere("max", (1.0, "mpc"))
-surface = pf.h.surface(sphere, "density", 1e-24)
+sphere = pf.sphere("max", (1.0, "mpc"))
+surface = pf.surface(sphere, "density", 1e-24)
 colors = apply_colormap(np.log10(surface["temperature"]), cmap_name="hot")
 
 p3dc = Poly3DCollection(surface.triangles, linewidth=0.0)

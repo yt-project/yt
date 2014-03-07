@@ -13,7 +13,7 @@ pf = load(fn) # load data
 # We want to find clumps over the entire dataset, so we'll just grab the whole
 # thing!  This is a convenience parameter that prepares an object that covers
 # the whole domain.  Note, though, that it will load on demand and not before!
-data_source = pf.h.disk([0.5, 0.5, 0.5], [0., 0., 1.], 
+data_source = pf.disk([0.5, 0.5, 0.5], [0., 0., 1.], 
                         8./pf.units['kpc'], 1./pf.units['kpc'])
 
 # Now we set some sane min/max values between which we want to find contours.

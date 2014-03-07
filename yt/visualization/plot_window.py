@@ -947,7 +947,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         axis = fix_axis(axis)
         (bounds, center) = get_window_parameters(axis, center, width, pf)
         if field_parameters is None: field_parameters = {}
-        slc = pf.h.slice(axis, center[axis],
+        slc = pf.slice(axis, center[axis],
             field_parameters = field_parameters, center=center)
         slc.get_data(fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin,
@@ -1073,7 +1073,7 @@ class ProjectionPlot(PWViewerMPL):
         axis = fix_axis(axis)
         (bounds, center) = get_window_parameters(axis, center, width, pf)
         if field_parameters is None: field_parameters = {}
-        proj = pf.h.proj(fields, axis, weight_field=weight_field,
+        proj = pf.proj(fields, axis, weight_field=weight_field,
                          center=center, data_source=data_source,
                          field_parameters = field_parameters, style = proj_style)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
@@ -1153,7 +1153,7 @@ class OffAxisSlicePlot(PWViewerMPL):
                  field_parameters=None):
         (bounds, center_rot) = get_oblique_window_parameters(normal,center,width,pf)
         if field_parameters is None: field_parameters = {}
-        cutting = pf.h.cutting(normal, center, north_vector = north_vector,
+        cutting = pf.cutting(normal, center, north_vector = north_vector,
                               field_parameters = field_parameters)
         cutting.get_data(fields)
         # Hard-coding the origin keyword since the other two options

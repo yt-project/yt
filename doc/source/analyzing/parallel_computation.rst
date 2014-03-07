@@ -310,7 +310,7 @@ in the DatasetSeries object:
    ts = DatasetSeries.from_filenames("DD*/output_*", parallel = True)
    my_storage = {}
    for sto,pf in ts.piter(storage=my_storage):
-       sphere = pf.h.sphere("max", (1.0, "pc"))
+       sphere = pf.sphere("max", (1.0, "pc"))
        L_vec = sphere.quantities["AngularMomentumVector"]()
        sto.result_id = pf.parameter_filename
        sto.result = L_vec

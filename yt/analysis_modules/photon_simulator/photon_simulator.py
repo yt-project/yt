@@ -188,7 +188,7 @@ class PhotonList(object):
         >>> redshift = 0.05
         >>> area = 6000.0
         >>> time = 2.0e5
-        >>> sp = pf.h.sphere("c", (500., "kpc"))
+        >>> sp = pf.sphere("c", (500., "kpc"))
         >>> my_photons = PhotonList.from_user_model(sp, redshift, area,
         ...                                         time, thermal_model)
 

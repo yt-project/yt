@@ -41,12 +41,12 @@ def test_cantor_5():
     yield assert_almost_equal, dd["CellVolumeCode"].sum(dtype="float64"), 1.0, 10
     for offset_1 in [1e-9, 1e-4, 0.1]:
         for offset_2 in [1e-9, 1e-4, 0.1]:
-            ray = pf.h.ray(pf.domain_left_edge + offset_1,
+            ray = pf.ray(pf.domain_left_edge + offset_1,
                            pf.domain_right_edge - offset_2)
             yield assert_almost_equal, ray["dts"].sum(dtype="float64"), 1.0, 8
     for i, p1 in enumerate(np.random.random((5, 3))):
         for j, p2 in enumerate(np.random.random((5, 3))):
-            ray = pf.h.ray(p1, p2)
+            ray = pf.ray(p1, p2)
             yield assert_almost_equal, ray["dts"].sum(dtype="float64"), 1.0, 8
     for field in _fields:
         for ds in dso:

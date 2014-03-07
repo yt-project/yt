@@ -64,7 +64,7 @@ class YTOrthoRayBase(YTSelectionContainer1D):
     --------
 
     >>> pf = load("RedshiftOutput0005")
-    >>> oray = pf.h.ortho_ray(0, (0.2, 0.74))
+    >>> oray = pf.ortho_ray(0, (0.2, 0.74))
     >>> print oray["Density"]
     """
     _key_fields = ['x','y','z','dx','dy','dz']
@@ -113,7 +113,7 @@ class YTRayBase(YTSelectionContainer1D):
     --------
 
     >>> pf = load("RedshiftOutput0005")
-    >>> ray = pf.h.ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
+    >>> ray = pf.ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
     >>> print ray["Density"], ray["t"], ray["dts"]
     """
     _type_name = "ray"
@@ -177,7 +177,7 @@ class YTSliceBase(YTSelectionContainer2D):
     --------
 
     >>> pf = load("RedshiftOutput0005")
-    >>> slice = pf.h.slice(0, 0.25)
+    >>> slice = pf.slice(0, 0.25)
     >>> print slice["Density"]
     """
     _top_node = "/Slices"
@@ -264,7 +264,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     --------
 
     >>> pf = load("RedshiftOutput0005")
-    >>> cp = pf.h.cutting([0.1, 0.2, -0.9], [0.5, 0.42, 0.6])
+    >>> cp = pf.cutting([0.1, 0.2, -0.9], [0.5, 0.42, 0.6])
     >>> print cp["Density"]
     """
     _plane = None
@@ -331,9 +331,9 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         --------
 
         >>> v, c = pf.h.find_max("Density")
-        >>> sp = pf.h.sphere(c, (100.0, 'au'))
+        >>> sp = pf.sphere(c, (100.0, 'au'))
         >>> L = sp.quantities["AngularMomentumVector"]()
-        >>> cutting = pf.h.cutting(L, c)
+        >>> cutting = pf.cutting(L, c)
         >>> frb = cutting.to_frb( (1.0, 'pc'), 1024)
         >>> write_image(np.log10(frb["Density"]), 'density_1pc.png')
         """
@@ -451,9 +451,9 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         --------
 
         >>> v, c = pf.h.find_max("Density")
-        >>> sp = pf.h.sphere(c, (100.0, 'au'))
+        >>> sp = pf.sphere(c, (100.0, 'au'))
         >>> L = sp.quantities["AngularMomentumVector"]()
-        >>> cutting = pf.h.cutting(L, c)
+        >>> cutting = pf.cutting(L, c)
         >>> frb = cutting.to_frb( (1.0, 'pc'), 1024)
         >>> write_image(np.log10(frb["Density"]), 'density_1pc.png')
         """
@@ -550,7 +550,7 @@ class YTSphereBase(YTSelectionContainer3D):
     --------
     >>> pf = load("DD0010/moving7_0010")
     >>> c = [0.5,0.5,0.5]
-    >>> sphere = pf.h.sphere(c,1.*pf['kpc'])
+    >>> sphere = pf.sphere(c,1.*pf['kpc'])
     """
     _type_name = "sphere"
     _con_args = ('center', 'radius')
@@ -592,7 +592,7 @@ class YTEllipsoidBase(YTSelectionContainer3D):
     --------
     >>> pf = load("DD####/DD####")
     >>> c = [0.5,0.5,0.5]
-    >>> ell = pf.h.ellipsoid(c, 0.1, 0.1, 0.1, np.array([0.1, 0.1, 0.1]), 0.2)
+    >>> ell = pf.ellipsoid(c, 0.1, 0.1, 0.1, np.array([0.1, 0.1, 0.1]), 0.2)
     """
     _type_name = "ellipsoid"
     _con_args = ('center', '_A', '_B', '_C', '_e0', '_tilt')
@@ -660,8 +660,8 @@ class YTCutRegionBase(YTSelectionContainer3D):
     --------
 
     >>> pf = load("DD0010/moving7_0010")
-    >>> sp = pf.h.sphere("max", (1.0, 'mpc'))
-    >>> cr = pf.h.cut_region(sp, ["obj['temperature'] < 1e3"])
+    >>> sp = pf.sphere("max", (1.0, 'mpc'))
+    >>> cr = pf.cut_region(sp, ["obj['temperature'] < 1e3"])
     """
     _type_name = "cut_region"
     _con_args = ("base_object", "conditionals")

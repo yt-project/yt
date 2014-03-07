@@ -48,7 +48,7 @@ class ParticleTrajectories(object):
     >>>           "particle_position_z", "particle_velocity_x",
     >>>           "particle_velocity_y", "particle_velocity_z"]
     >>> pf = load(my_fns[0])
-    >>> init_sphere = pf.h.sphere(pf.domain_center, (.5, "unitary"))
+    >>> init_sphere = pf.sphere(pf.domain_center, (.5, "unitary"))
     >>> indices = init_sphere["particle_index"].astype("int")
     >>> trajs = ParticleTrajectories(my_fns, indices, fields=fields)
     >>> for t in trajs :

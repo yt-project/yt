@@ -26,7 +26,7 @@ class StandardRadialAnalysis(object):
         # center here, so we will pass it to the sphere creator.
         # Note also that the sphere can handle (val, unit) for radius, so we
         # will grab that from the sphere as well
-        self.obj = pf.h.sphere(center, radius)
+        self.obj = pf.sphere(center, radius)
         if inner_radius is None:
             inner_radius = pf.h.get_smallest_dx() * pf['cm']
         self.inner_radius = inner_radius

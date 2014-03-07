@@ -22,20 +22,20 @@ def register_object(func):
 def centered_sphere(tobj):
     center = 0.5 * (tobj.pf.domain_right_edge + tobj.pf.domain_left_edge)
     width = (tobj.pf.domain_right_edge - tobj.pf.domain_left_edge).max()
-    tobj.data_object = tobj.pf.h.sphere(center, width / 0.25)
+    tobj.data_object = tobj.pf.sphere(center, width / 0.25)
 
 
 @register_object
 def off_centered_sphere(tobj):
     center = 0.5 * (tobj.pf.domain_right_edge + tobj.pf.domain_left_edge)
     width = (tobj.pf.domain_right_edge - tobj.pf.domain_left_edge).max()
-    tobj.data_object = tobj.pf.h.sphere(center - 0.25 * width, width / 0.25)
+    tobj.data_object = tobj.pf.sphere(center - 0.25 * width, width / 0.25)
 
 
 @register_object
 def corner_sphere(tobj):
     width = (tobj.pf.domain_right_edge - tobj.pf.domain_left_edge).max()
-    tobj.data_object = tobj.pf.h.sphere(tobj.pf.domain_left_edge, width / 0.25)
+    tobj.data_object = tobj.pf.sphere(tobj.pf.domain_left_edge, width / 0.25)
 
 
 @register_object
@@ -44,7 +44,7 @@ def disk(self):
     radius = (self.pf.domain_right_edge - self.pf.domain_left_edge).max() / 10.
     height = (self.pf.domain_right_edge - self.pf.domain_left_edge).max() / 10.
     normal = na.array([1.] * 3)
-    self.data_object = self.pf.h.disk(center, normal, radius, height)
+    self.data_object = self.pf.disk(center, normal, radius, height)
 
 
 @register_object

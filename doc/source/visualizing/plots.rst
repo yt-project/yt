@@ -465,7 +465,7 @@ data object, the field for binning, and a list of fields to be profiled.
 
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   my_galaxy = pf.h.disk([0.53, 0.53, 0.53], [0.0, 0.0, 1.0], 0.01, 0.003)
+   my_galaxy = pf.disk([0.53, 0.53, 0.53], [0.0, 0.0, 1.0], 0.01, 0.003)
    plot = ProfilePlot(my_galaxy, "density", ["temperature"])
    plot.save()
 
@@ -484,7 +484,7 @@ well.  For instance:
 
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   my_sphere = pf.h.sphere([0.53, 0.53, 0.53], (100, "pc"))
+   my_sphere = pf.sphere([0.53, 0.53, 0.53], (100, "pc"))
    plot = ProfilePlot(my_sphere, "temperature", ["cell_mass"],
                       weight_field=None)
    plot.save()
@@ -590,7 +590,7 @@ either taking the average or the accumulation in a bin.  For example, to generat
 
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   my_sphere = pf.h.sphere("c", (50, "kpc"))
+   my_sphere = pf.sphere("c", (50, "kpc"))
    plot = PhasePlot(my_sphere, "density", "temperature", ["cell_mass"],
                     weight_field=None)
    plot.save()
@@ -603,7 +603,7 @@ something like:
 
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   my_sphere = pf.h.sphere("c", (50, "kpc"))
+   my_sphere = pf.sphere("c", (50, "kpc"))
    plot = PhasePlot(my_sphere, "density", "temperature", ["HI_Fraction"],
                     weight_field="cell_mass")
    plot.save()

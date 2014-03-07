@@ -46,7 +46,7 @@ def test_etc():
     apec_model = TableApecModel(APEC, 0.1, 20.0, 2000)
     tbabs_model = TableAbsorbModel(TBABS, 0.1)
 
-    sphere = pf.h.sphere("max", (0.5, "mpc"))
+    sphere = pf.sphere("max", (0.5, "mpc"))
 
     thermal_model = ThermalPhotonModel(apec_model, Zmet=0.3)
     photons = PhotonList.from_scratch(sphere, redshift, A, exp_time,

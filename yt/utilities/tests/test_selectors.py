@@ -21,7 +21,7 @@ def test_sphere_selector():
                 [0.25, 0.75, 0.25] ]
 
     for center in spheres:
-        data = pf.h.sphere(center, 0.25)
+        data = pf.sphere(center, 0.25)
         # WARNING: this value has not be externally verified
         dd = pf.h.all_data()
         dd.set_field_parameter("center", YTArray(center, 'code_length'))
@@ -50,7 +50,7 @@ def test_ellipsoid_selector():
     # spherical ellipsoid tests
     ratios = 3*[0.25]
     for center in ellipsoids:
-        data = pf.h.ellipsoid(center, ratios[0], ratios[1], ratios[2], 
+        data = pf.ellipsoid(center, ratios[0], ratios[1], ratios[2], 
                               np.array([1., 0., 0.]), 0.)
         data.get_data()
 
@@ -71,7 +71,7 @@ def test_ellipsoid_selector():
     # aligned ellipsoid tests
     ratios = [0.25, 0.1, 0.1]
     for center in ellipsoids: 
-        data = pf.h.ellipsoid(center, ratios[0], ratios[1], ratios[2], 
+        data = pf.ellipsoid(center, ratios[0], ratios[1], ratios[2], 
                               np.array([1., 0., 0.]), 0.)
         
         # hack to compute elliptic distance
@@ -94,7 +94,7 @@ def test_slice_selector():
 
     for i,d in enumerate('xyz'):
         for coord in np.arange(0.0,1.0,0.1):
-            data = pf.h.slice(i, coord)
+            data = pf.slice(i, coord)
             data.get_data()
             v = data[d].to_ndarray()
             yield assert_equal, data.shape[0], 64**2
@@ -115,9 +115,9 @@ def test_cutting_plane_selector():
             center = np.zeros(3)
             center[i] = coord
 
-            data = pf.h.slice(i, coord)
+            data = pf.slice(i, coord)
             data.get_data()
-            data2 = pf.h.cutting(norm, center)
+            data2 = pf.cutting(norm, center)
             data2.get_data()
 
             assert(data.shape[0] == data2.shape[0])

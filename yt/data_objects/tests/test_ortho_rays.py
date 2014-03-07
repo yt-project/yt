@@ -9,7 +9,7 @@ def test_ortho_ray():
     for ax, an in enumerate(axes):
         ocoord = pf.arr(np.random.random(2), 'code_length')
 
-        my_oray = pf.h.ortho_ray(ax, ocoord)
+        my_oray = pf.ortho_ray(ax, ocoord)
 
         my_axes = range(3)
         del my_axes[ax]

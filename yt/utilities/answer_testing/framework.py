@@ -435,7 +435,7 @@ class ProjectionValuesTest(AnswerTestingTest):
         else:
             obj = None
         if self.pf.domain_dimensions[self.axis] == 1: return None
-        proj = self.pf.h.proj(self.field, self.axis,
+        proj = self.pf.proj(self.field, self.axis,
                               weight_field=self.weight_field,
                               data_source = obj)
         return proj.field_data
@@ -484,7 +484,7 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
             obj = create_obj(self.pf, self.obj_type)
         else:
             obj = None
-        proj = self.pf.h.proj(self.field, self.axis,
+        proj = self.pf.proj(self.field, self.axis,
                               weight_field=self.weight_field,
                               data_source = obj)
         frb = proj.to_frb((1.0, 'unitary'), 256)
@@ -513,7 +513,7 @@ class GridValuesTest(AnswerTestingTest):
 
     def run(self):
         hashes = {}
-        for g in self.pf.h.grids:
+        for g in self.pf.grids:
             hashes[g.id] = hashlib.md5(g[self.field].tostring()).hexdigest()
             g.clear_data()
         return hashes
@@ -551,11 +551,11 @@ class GridHierarchyTest(AnswerTestingTest):
 
     def run(self):
         result = {}
-        result["grid_dimensions"] = self.pf.h.grid_dimensions
-        result["grid_left_edges"] = self.pf.h.grid_left_edge
-        result["grid_right_edges"] = self.pf.h.grid_right_edge
-        result["grid_levels"] = self.pf.h.grid_levels
-        result["grid_particle_count"] = self.pf.h.grid_particle_count
+        result["grid_dimensions"] = self.pf.grid_dimensions
+        result["grid_left_edges"] = self.pf.grid_left_edge
+        result["grid_right_edges"] = self.pf.grid_right_edge
+        result["grid_levels"] = self.pf.grid_levels
+        result["grid_particle_count"] = self.pf.grid_particle_count
         return result
 
     def compare(self, new_result, old_result):
@@ -569,7 +569,7 @@ class ParentageRelationshipsTest(AnswerTestingTest):
         result = {}
         result["parents"] = []
         result["children"] = []
-        for g in self.pf.h.grids:
+        for g in self.pf.grids:
             p = g.Parent
             if p is None:
                 result["parents"].append(None)

@@ -87,7 +87,7 @@ def halo_sphere(halo, radius_field="virial_radius", factor=1.0,
         halo.data_object = None
         return
     try:
-        sphere = dpf.h.sphere(center, (radius, "code_length"))
+        sphere = dpf.sphere(center, (radius, "code_length"))
     except YTSphereTooSmall:
         halo.data_object = None
         return
@@ -120,7 +120,7 @@ def sphere_field_max_recenter(halo, field):
     old_sphere = halo.data_object
     max_vals = old_sphere.quantities.max_location(field)
     new_center = s_pf.arr(max_vals[2:])
-    new_sphere = s_pf.h.sphere(new_center.in_units("code_length"),
+    new_sphere = s_pf.sphere(new_center.in_units("code_length"),
                                old_sphere.radius.in_units("code_length"))
     mylog.info("Moving sphere center from %s to %s." % (old_sphere.center,
                                                         new_sphere.center))
