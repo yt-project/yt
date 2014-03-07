@@ -20,7 +20,7 @@ from octree_subset import \
     OctreeSubset
 
 from static_output import \
-    StaticOutput
+    Dataset
 
 from particle_io import \
     ParticleIOHandler, \

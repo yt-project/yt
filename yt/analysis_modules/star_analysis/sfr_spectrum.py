@@ -34,7 +34,7 @@ class StarFormationRate(object):
     
     Parameters
     ----------
-    pf : EnzoStaticOutput object
+    pf : EnzoDataset object
     data_source : AMRRegion object, optional
         The region from which stars are extracted for analysis. If this
         is not supplied, the next three must be, otherwise the next
@@ -248,7 +248,7 @@ class SpectrumBuilder(object):
     
     Parameters
     ----------
-    pf : EnzoStaticOutput object
+    pf : EnzoDataset object
     bcdir : String
         Path to directory containing Bruzual & Charlot h5 fit files.
     model : String

@@ -14,9 +14,9 @@ Default tests
 #-----------------------------------------------------------------------------
 
 from yt.mods import *
-from output_tests import YTStaticOutputTest, create_test
+from output_tests import YTDatasetTest, create_test
 
-class TestFieldStatistics(YTStaticOutputTest):
+class TestFieldStatistics(YTDatasetTest):
 
     tolerance = None
 
@@ -39,7 +39,7 @@ class TestFieldStatistics(YTStaticOutputTest):
                 ni = self.result[field][i]
                 self.compare_value_delta(oi, ni, self.tolerance)
 
-class TestAllProjections(YTStaticOutputTest):
+class TestAllProjections(YTDatasetTest):
 
     tolerance = None
 

@@ -24,7 +24,7 @@ from yt.data_objects.grid_patch import \
 from yt.geometry.grid_geometry_handler import \
     GridGeometryHandler
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.utilities.definitions import \
@@ -177,14 +177,14 @@ class GDFHierarchy(GridGeometryHandler):
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
 
 
-class GDFStaticOutput(StaticOutput):
+class GDFDataset(Dataset):
     _hierarchy_class = GDFHierarchy
     _fieldinfo_fallback = GDFFieldInfo
     _fieldinfo_known = KnownGDFFields
 
     def __init__(self, filename, data_style='grid_data_format',
                  storage_filename=None):
-        StaticOutput.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
         self.filename = filename
 

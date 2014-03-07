@@ -27,7 +27,7 @@ from yt.geometry.grid_geometry_handler import \
 from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.io_handler import \
@@ -177,7 +177,7 @@ class FLASHHierarchy(GridGeometryHandler):
                 g.dds[1] = DD
         self.max_level = self.grid_levels.max()
 
-class FLASHStaticOutput(StaticOutput):
+class FLASHDataset(Dataset):
     _hierarchy_class = FLASHHierarchy
     _field_info_class = FLASHFieldInfo
     _handle = None
@@ -203,7 +203,7 @@ class FLASHStaticOutput(StaticOutput):
             except :
                 raise IOError(self.particle_filename)
                                                                 
-        StaticOutput.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
 
         # These should be explicitly obtained from the file, but for now that
@@ -240,7 +240,7 @@ class FLASHStaticOutput(StaticOutput):
         #self.conversion_factors['temp'] = (1.0 + self.current_redshift)**-2.0
 
     def set_code_units(self):
-        super(FLASHStaticOutput, self).set_code_units()
+        super(FLASHDataset, self).set_code_units()
         from yt.units.dimensions import dimensionless
         self.unit_registry.modify("code_temperature",
             self.temperature_unit.value)

@@ -50,7 +50,7 @@ class RadialColumnDensity(ParallelAnalysisInterface):
     
     Parameters
     ----------
-    pf : `StaticOutput`
+    pf : `Dataset`
         The dataset to operate on.
     field : string
         The name of the basis field over which to

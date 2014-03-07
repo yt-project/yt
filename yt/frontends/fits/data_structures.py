@@ -29,7 +29,7 @@ from yt.geometry.grid_geometry_handler import \
 from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.io_handler import \
@@ -133,7 +133,7 @@ class FITSHierarchy(GridGeometryHandler):
     def _setup_data_io(self):
         self.io = io_registry[self.data_style](self.parameter_file)
 
-class FITSStaticOutput(StaticOutput):
+class FITSDataset(Dataset):
     _hierarchy_class = FITSHierarchy
     _field_info_class = FITSFieldInfo
     _data_style = "fits"
@@ -183,7 +183,7 @@ class FITSStaticOutput(StaticOutput):
             self.new_unit = self.file_unit
             self.pixel_scale = self.wcs.wcs.cdelt[idx]
 
-        StaticOutput.__init__(self, fname, data_style)
+        Dataset.__init__(self, fname, data_style)
         self.storage_filename = storage_filename
             
         self.refine_by = 2

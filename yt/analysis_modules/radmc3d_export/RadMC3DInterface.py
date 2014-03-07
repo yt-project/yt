@@ -69,7 +69,7 @@ class RadMC3DWriter:
     Parameters
     ----------
 
-    pf : `StaticOutput`
+    pf : `Dataset`
         This is the parameter file object corresponding to the
         simulation output to be written out.
 

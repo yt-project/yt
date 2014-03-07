@@ -60,7 +60,7 @@ Variable Names and Enzo-isms
  * Avoid Enzo-isms.  This includes but is not limited to:
    * Hard-coding parameter names that are the same as those in Enzo.  The
      following translation table should be of some help.  Note that the
-     parameters are now properties on a StaticOutput subclass: you access them
+     parameters are now properties on a Dataset subclass: you access them
      like pf.refine_by .
      * RefineBy => refine_by
      * TopGridRank => dimensionality

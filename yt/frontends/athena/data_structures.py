@@ -23,7 +23,7 @@ from yt.data_objects.grid_patch import \
 from yt.geometry.grid_geometry_handler import \
     GridGeometryHandler
 from yt.data_objects.static_output import \
-           StaticOutput
+           Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.lib.misc_utilities import \
@@ -338,7 +338,7 @@ class AthenaHierarchy(GridGeometryHandler):
         mask[grid_ind] = True
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
 
-class AthenaStaticOutput(StaticOutput):
+class AthenaDataset(Dataset):
     _hierarchy_class = AthenaHierarchy
     _field_info_class = AthenaFieldInfo
     _data_style = "athena"
@@ -349,7 +349,7 @@ class AthenaStaticOutput(StaticOutput):
         if parameters is None:
             parameters = {}
         self.specified_parameters = parameters
-        StaticOutput.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, data_style)
         self.filename = filename
         if storage_filename is None:
             storage_filename = '%s.yt' % filename.split('/')[-1]

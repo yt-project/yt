@@ -27,7 +27,7 @@ import numpy as np
 from yt.funcs import *
 from yt.data_objects.grid_patch import AMRGridPatch
 from yt.geometry.grid_geometry_handler import GridGeometryHandler
-from yt.data_objects.static_output import StaticOutput
+from yt.data_objects.static_output import Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -355,7 +355,7 @@ class BoxlibHierarchy(GridGeometryHandler):
     def _setup_data_io(self):
         self.io = io_registry[self.data_style](self.parameter_file)
 
-class BoxlibStaticOutput(StaticOutput):
+class BoxlibDataset(Dataset):
     """
     This class is a stripped down class that simply reads and parses
     *filename*, without looking at the Boxlib hierarchy.
@@ -385,7 +385,7 @@ class BoxlibStaticOutput(StaticOutput):
         self.fparam_filename = self._localize_check(fparam_filename)
         self.storage_filename = storage_filename
 
-        StaticOutput.__init__(self, output_dir, data_style)
+        Dataset.__init__(self, output_dir, data_style)
 
         # These are still used in a few places.
         self.parameters["HydroMethod"] = 'boxlib'
@@ -682,7 +682,7 @@ class OrionHierarchy(BoxlibHierarchy):
                     self.grids[ind].NumberOfParticles += 1
         return True
                 
-class OrionStaticOutput(BoxlibStaticOutput):
+class OrionDataset(BoxlibDataset):
 
     _hierarchy_class = OrionHierarchy
 
@@ -692,7 +692,7 @@ class OrionStaticOutput(BoxlibStaticOutput):
                  data_style='orion_native',
                  storage_filename = None):
 
-        BoxlibStaticOutput.__init__(self, output_dir,
+        BoxlibDataset.__init__(self, output_dir,
                  cparam_filename, fparam_filename, data_style)
           
     @classmethod
@@ -721,7 +721,7 @@ class OrionStaticOutput(BoxlibStaticOutput):
         if any(("geometry.prob_lo" in line for line in lines)): return True
         return False
 
-class CastroStaticOutput(BoxlibStaticOutput):
+class CastroDataset(BoxlibDataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -739,7 +739,7 @@ class CastroStaticOutput(BoxlibStaticOutput):
         if any(line.startswith("Castro   ") for line in lines): return True
         return False
 
-class MaestroStaticOutput(BoxlibStaticOutput):
+class MaestroDataset(BoxlibDataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -798,7 +798,7 @@ class NyxHierarchy(BoxlibHierarchy):
 
         self.grid_particle_count[:, 0] = grid_info[:, 1]
 
-class NyxStaticOutput(BoxlibStaticOutput):
+class NyxDataset(BoxlibDataset):
 
     _hierarchy_class = NyxHierarchy
 
@@ -823,7 +823,7 @@ class NyxStaticOutput(BoxlibStaticOutput):
         return nyx
 
     def _parse_parameter_file(self):
-        super(NyxStaticOutput, self)._parse_parameter_file()
+        super(NyxDataset, self)._parse_parameter_file()
         #return
         # Nyx is always cosmological.
         self.cosmological_simulation = 1

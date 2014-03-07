@@ -29,7 +29,7 @@ from yt.utilities.cosmology import Cosmology
 from yt.geometry.particle_geometry_handler import \
     ParticleGeometryHandler
 from yt.data_objects.static_output import \
-    StaticOutput, \
+    Dataset, \
     ParticleFile
 import yt.utilities.fortran_utils as fpu
 from yt.units.yt_array import \
@@ -49,7 +49,7 @@ class RockstarBinaryFile(ParticleFile):
 
         super(RockstarBinaryFile, self).__init__(pf, io, filename, file_id)
 
-class RockstarStaticOutput(StaticOutput):
+class RockstarDataset(Dataset):
     _hierarchy_class = ParticleGeometryHandler
     _file_class = RockstarBinaryFile
     _field_info_class = RockstarFieldInfo
@@ -61,7 +61,7 @@ class RockstarStaticOutput(StaticOutput):
                  n_ref = 16, over_refine_factor = 1):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
-        super(RockstarStaticOutput, self).__init__(filename, data_style)
+        super(RockstarDataset, self).__init__(filename, data_style)
 
     def _parse_parameter_file(self):
         with open(self.parameter_filename, "rb") as f:

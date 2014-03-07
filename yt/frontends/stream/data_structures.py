@@ -52,7 +52,7 @@ from yt.geometry.oct_container import \
 from yt.geometry.unstructured_mesh_handler import \
            UnstructuredGeometryHandler
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 from yt.utilities.logger import ytLogger as mylog
 from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
@@ -291,7 +291,7 @@ class StreamHierarchy(GridGeometryHandler):
         self.pf.particle_types = tuple(set(self.pf.particle_types))
 
 
-class StreamStaticOutput(StaticOutput):
+class StreamDataset(Dataset):
     _hierarchy_class = StreamHierarchy
     _field_info_class = StreamFieldInfo
     _data_style = 'stream'
@@ -306,7 +306,7 @@ class StreamStaticOutput(StaticOutput):
         name = "InMemoryParameterFile_%s" % (uuid.uuid4().hex)
         from yt.data_objects.static_output import _cached_pfs
         _cached_pfs[name] = self
-        StaticOutput.__init__(self, name, self._data_style)
+        Dataset.__init__(self, name, self._data_style)
 
     def _parse_parameter_file(self):
         self.basename = self.stream_handler.name
@@ -651,7 +651,7 @@ Parameters
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamStaticOutput(handler)
+    spf = StreamDataset(handler)
 
     # Now figure out where the particles go
     if number_of_particles > 0 :
@@ -804,7 +804,7 @@ Parameters
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamStaticOutput(handler)
+    spf = StreamDataset(handler)
     return spf
 
 def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
@@ -814,7 +814,7 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
 
     Parameters
     ----------
-    base_pf : StaticOutput
+    base_pf : Dataset
         This is any static output.  It can also be a stream static output, for
         instance as returned by load_uniform_data.
     refinement_critera : list of :class:`~yt.utilities.flagging_methods.FlaggingMethod`
@@ -931,7 +931,7 @@ class StreamParticleGeometryHandler(ParticleGeometryHandler):
 class StreamParticleFile(ParticleFile):
     pass
 
-class StreamParticlesStaticOutput(StreamStaticOutput):
+class StreamParticlesDataset(StreamDataset):
     _hierarchy_class = StreamParticleGeometryHandler
     _file_class = StreamParticleFile
     _field_info_class = StreamFieldInfo
@@ -1052,7 +1052,7 @@ def load_particles(data, length_unit = None, bbox=None,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamParticlesStaticOutput(handler)
+    spf = StreamParticlesDataset(handler)
     spf.n_ref = n_ref
     spf.over_refine_factor = over_refine_factor
 
@@ -1102,7 +1102,7 @@ class StreamHexahedralHierarchy(UnstructuredGeometryHandler):
     def _detect_output_fields(self):
         self.field_list = list(set(self.stream_handler.get_fields()))
 
-class StreamHexahedralStaticOutput(StreamStaticOutput):
+class StreamHexahedralDataset(StreamDataset):
     _hierarchy_class = StreamHexahedralHierarchy
     _field_info_class = StreamFieldInfo
     _data_style = "stream_hexahedral"
@@ -1201,7 +1201,7 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamHexahedralStaticOutput(handler)
+    spf = StreamHexahedralDataset(handler)
 
     return spf
 
@@ -1304,7 +1304,7 @@ class StreamOctreeHandler(OctreeGeometryHandler):
         fl.update(set(getattr(self, "field_list", [])))
         self.field_list = list(fl)
 
-class StreamOctreeStaticOutput(StreamStaticOutput):
+class StreamOctreeDataset(StreamDataset):
     _hierarchy_class = StreamOctreeHandler
     _field_info_class = StreamFieldInfo
     _data_style = "stream_octree"
@@ -1387,7 +1387,7 @@ def load_octree(octree_mask, data, sim_unit_to_cm,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamOctreeStaticOutput(handler)
+    spf = StreamOctreeDataset(handler)
     spf.octree_mask = octree_mask
     spf.partial_coverage = partial_coverage
     spf.units["cm"] = sim_unit_to_cm

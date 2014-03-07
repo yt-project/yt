@@ -851,7 +851,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
 
     Parameters
     ----------
-    pf : `StaticOutput`
+    pf : `Dataset`
          This is the parameter file object corresponding to the
          simulation output to be plotted.
     axis : int or one of 'x', 'y', 'z'
@@ -968,7 +968,7 @@ class ProjectionPlot(PWViewerMPL):
 
     Parameters
     ----------
-    pf : `StaticOutput`
+    pf : `Dataset`
         This is the parameter file object corresponding to the
         simulation output to be plotted.
     axis : int or one of 'x', 'y', 'z'
@@ -1094,7 +1094,7 @@ class OffAxisSlicePlot(PWViewerMPL):
 
     Parameters
     ----------
-    pf : :class:`yt.data_objects.api.StaticOutput`
+    pf : :class:`yt.data_objects.api.Dataset`
          This is the parameter file object corresponding to the
          simulation output to be plotted.
     normal : a sequence of floats
@@ -1205,7 +1205,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
 
     Parameters
     ----------
-    pf : :class:`yt.data_objects.api.StaticOutput`
+    pf : :class:`yt.data_objects.api.Dataset`
         This is the parameter file object corresponding to the
         simulation output to be plotted.
     normal : a sequence of floats
@@ -1671,7 +1671,7 @@ def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
 
     Parameters
     ----------
-    pf : :class:`yt.data_objects.api.StaticOutput`
+    pf : :class:`yt.data_objects.api.Dataset`
         This is the parameter file object corresponding to the
         simulation output to be plotted.
     normal : int or one of 'x', 'y', 'z', or sequence of floats

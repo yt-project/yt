@@ -16,11 +16,11 @@ API for yt.frontends.orion
 from .data_structures import \
       BoxlibGrid, \
       BoxlibHierarchy, \
-      BoxlibStaticOutput, \
+      BoxlibDataset, \
       OrionHierarchy, \
-      OrionStaticOutput, \
-      CastroStaticOutput, \
-      MaestroStaticOutput
+      OrionDataset, \
+      CastroDataset, \
+      MaestroDataset
 
 from .fields import \
       BoxlibFieldInfo

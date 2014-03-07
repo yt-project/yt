@@ -624,7 +624,7 @@ Here is an example ``user_script.py``:
     
     def main():
         import enzo
-        pf = EnzoStaticOutputInMemory()
+        pf = EnzoDatasetInMemory()
         mine = ytcfg.getint('yt','__topcomm_parallel_rank')
         size = ytcfg.getint('yt','__topcomm_parallel_size')
 

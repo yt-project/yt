@@ -118,7 +118,7 @@ ARTIO
    ~yt.frontends.artio.data_structures.ARTIOGeometryHandler
    ~yt.frontends.artio.data_structures.ARTIOOctreeSubset
    ~yt.frontends.artio.data_structures.ARTIORootMeshSubset
-   ~yt.frontends.artio.data_structures.ARTIOStaticOutput
+   ~yt.frontends.artio.data_structures.ARTIODataset
    ~yt.frontends.artio.definitions.ARTIOconstants
    ~yt.frontends.artio.fields.ARTIOFieldInfo
    ~yt.frontends.artio.io.IOHandlerARTIO
@@ -132,7 +132,7 @@ Athena
 
    ~yt.frontends.athena.data_structures.AthenaGrid
    ~yt.frontends.athena.data_structures.AthenaHierarchy
-   ~yt.frontends.athena.data_structures.AthenaStaticOutput
+   ~yt.frontends.athena.data_structures.AthenaDataset
    ~yt.frontends.athena.fields.AthenaFieldInfo
    ~yt.frontends.athena.io.IOHandlerAthena
 
@@ -144,13 +144,13 @@ Boxlib
 
    ~yt.frontends.boxlib.data_structures.BoxlibGrid
    ~yt.frontends.boxlib.data_structures.BoxlibHierarchy
-   ~yt.frontends.boxlib.data_structures.BoxlibStaticOutput
-   ~yt.frontends.boxlib.data_structures.CastroStaticOutput
-   ~yt.frontends.boxlib.data_structures.MaestroStaticOutput
+   ~yt.frontends.boxlib.data_structures.BoxlibDataset
+   ~yt.frontends.boxlib.data_structures.CastroDataset
+   ~yt.frontends.boxlib.data_structures.MaestroDataset
    ~yt.frontends.boxlib.data_structures.NyxHierarchy
-   ~yt.frontends.boxlib.data_structures.NyxStaticOutput
+   ~yt.frontends.boxlib.data_structures.NyxDataset
    ~yt.frontends.boxlib.data_structures.OrionHierarchy
-   ~yt.frontends.boxlib.data_structures.OrionStaticOutput
+   ~yt.frontends.boxlib.data_structures.OrionDataset
    ~yt.frontends.boxlib.fields.BoxlibFieldInfo
    ~yt.frontends.boxlib.io.IOHandlerBoxlib
    ~yt.frontends.boxlib.io.IOHandlerCastro
@@ -171,8 +171,8 @@ Enzo
    ~yt.frontends.enzo.data_structures.EnzoHierarchy2D
    ~yt.frontends.enzo.data_structures.EnzoHierarchy
    ~yt.frontends.enzo.data_structures.EnzoHierarchyInMemory
-   ~yt.frontends.enzo.data_structures.EnzoStaticOutputInMemory
-   ~yt.frontends.enzo.data_structures.EnzoStaticOutput
+   ~yt.frontends.enzo.data_structures.EnzoDatasetInMemory
+   ~yt.frontends.enzo.data_structures.EnzoDataset
    ~yt.frontends.enzo.fields.EnzoFieldInfo
    ~yt.frontends.enzo.io.IOHandlerInMemory
    ~yt.frontends.enzo.io.IOHandlerPacked1D
@@ -190,7 +190,7 @@ FITS
 
    ~yt.frontends.fits.data_structures.FITSGrid
    ~yt.frontends.fits.data_structures.FITSHierarchy
-   ~yt.frontends.fits.data_structures.FITSStaticOutput
+   ~yt.frontends.fits.data_structures.FITSDataset
    ~yt.frontends.fits.fields.FITSFieldInfo
    ~yt.frontends.fits.io.IOHandlerFITS
 
@@ -202,7 +202,7 @@ FLASH
    
    ~yt.frontends.flash.data_structures.FLASHGrid
    ~yt.frontends.flash.data_structures.FLASHHierarchy
-   ~yt.frontends.flash.data_structures.FLASHStaticOutput
+   ~yt.frontends.flash.data_structures.FLASHDataset
    ~yt.frontends.flash.fields.FLASHFieldInfo
    ~yt.frontends.flash.io.IOHandlerFLASH
 
@@ -213,7 +213,7 @@ Halo Catalogs
    :toctree: generated/
 
    ~yt.frontends.halo_catalogs.data_structures.RockstarBinaryFile
-   ~yt.frontends.halo_catalogs.data_structures.RockstarStaticOutput
+   ~yt.frontends.halo_catalogs.data_structures.RockstarDataset
    ~yt.frontends.halo_catalogs.fields.RockstarFieldInfo
    ~yt.frontends.halo_catalogs.io.IOHandlerRockstarBinary
 
@@ -225,10 +225,10 @@ MOAB
 
    ~yt.frontends.moab.data_structures.MoabHex8Hierarchy
    ~yt.frontends.moab.data_structures.MoabHex8Mesh
-   ~yt.frontends.moab.data_structures.MoabHex8StaticOutput
+   ~yt.frontends.moab.data_structures.MoabHex8Dataset
    ~yt.frontends.moab.data_structures.PyneHex8Mesh
    ~yt.frontends.moab.data_structures.PyneMeshHex8Hierarchy
-   ~yt.frontends.moab.data_structures.PyneMoabHex8StaticOutput
+   ~yt.frontends.moab.data_structures.PyneMoabHex8Dataset
    ~yt.frontends.moab.io.IOHandlerMoabH5MHex8
    ~yt.frontends.moab.io.IOHandlerMoabPyneHex8
 
@@ -241,7 +241,7 @@ RAMSES
    ~yt.frontends.ramses.data_structures.RAMSESDomainFile
    ~yt.frontends.ramses.data_structures.RAMSESDomainSubset
    ~yt.frontends.ramses.data_structures.RAMSESGeometryHandler
-   ~yt.frontends.ramses.data_structures.RAMSESStaticOutput
+   ~yt.frontends.ramses.data_structures.RAMSESDataset
    ~yt.frontends.ramses.fields.RAMSESFieldInfo
    ~yt.frontends.ramses.io.IOHandlerRAMSES
 
@@ -252,14 +252,14 @@ SPH and Particle Codes
    :toctree: generated/
 
    ~yt.frontends.sph.data_structures.GadgetBinaryFile
-   ~yt.frontends.sph.data_structures.GadgetHDF5StaticOutput
-   ~yt.frontends.sph.data_structures.GadgetStaticOutput
+   ~yt.frontends.sph.data_structures.GadgetHDF5Dataset
+   ~yt.frontends.sph.data_structures.GadgetDataset
    ~yt.frontends.sph.data_structures.HTTPParticleFile
-   ~yt.frontends.sph.data_structures.HTTPStreamStaticOutput
-   ~yt.frontends.sph.data_structures.OWLSStaticOutput
-   ~yt.frontends.sph.data_structures.ParticleStaticOutput
+   ~yt.frontends.sph.data_structures.HTTPStreamDataset
+   ~yt.frontends.sph.data_structures.OWLSDataset
+   ~yt.frontends.sph.data_structures.ParticleDataset
    ~yt.frontends.sph.data_structures.TipsyFile
-   ~yt.frontends.sph.data_structures.TipsyStaticOutput
+   ~yt.frontends.sph.data_structures.TipsyDataset
    ~yt.frontends.sph.fields.SPHFieldInfo
    ~yt.frontends.sph.io.IOHandlerGadgetBinary
    ~yt.frontends.sph.io.IOHandlerGadgetHDF5
@@ -278,15 +278,15 @@ Stream
    ~yt.frontends.stream.data_structures.StreamHandler
    ~yt.frontends.stream.data_structures.StreamHexahedralHierarchy
    ~yt.frontends.stream.data_structures.StreamHexahedralMesh
-   ~yt.frontends.stream.data_structures.StreamHexahedralStaticOutput
+   ~yt.frontends.stream.data_structures.StreamHexahedralDataset
    ~yt.frontends.stream.data_structures.StreamHierarchy
    ~yt.frontends.stream.data_structures.StreamOctreeHandler
-   ~yt.frontends.stream.data_structures.StreamOctreeStaticOutput
+   ~yt.frontends.stream.data_structures.StreamOctreeDataset
    ~yt.frontends.stream.data_structures.StreamOctreeSubset
    ~yt.frontends.stream.data_structures.StreamParticleFile
    ~yt.frontends.stream.data_structures.StreamParticleGeometryHandler
-   ~yt.frontends.stream.data_structures.StreamParticlesStaticOutput
-   ~yt.frontends.stream.data_structures.StreamStaticOutput
+   ~yt.frontends.stream.data_structures.StreamParticlesDataset
+   ~yt.frontends.stream.data_structures.StreamDataset
    ~yt.frontends.stream.fields.StreamFieldInfo
    ~yt.frontends.stream.io.IOHandlerStream
    ~yt.frontends.stream.io.IOHandlerStreamHexahedral

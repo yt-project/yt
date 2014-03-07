@@ -18,7 +18,7 @@ The code outlined here is a barebones Sunrise export:
 	from yt.mods import *
 	import numpy as na
 
-	pf = ARTStaticOutput(file_amr)
+	pf = ARTDataset(file_amr)
 	potential_value,center=pf.h.find_min('Potential_New')
 	root_cells = pf.domain_dimensions[0]
 	le = np.floor(root_cells*center) #left edge

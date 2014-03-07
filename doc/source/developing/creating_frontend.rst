@@ -39,10 +39,10 @@ If you are interested in adding a new code, be sure to drop us a line on
 To get started, make a new directory in ``yt/frontends`` with the name of your
 code -- you can start by copying into it the contents of the ``stream``
 directory, which is a pretty empty format. You'll then have to create a subclass
-of ``StaticOutput``. This subclass will need to handle conversion between the
+of ``Dataset``. This subclass will need to handle conversion between the
 different physical units and the code units; for the most part, the examples of
-``OrionStaticOutput`` and ``EnzoStaticOutput`` should be followed, but
-``ChomboStaticOutput``, as a slightly newer addition, can also be used as an
+``OrionDataset`` and ``EnzoDataset`` should be followed, but
+``ChomboDataset``, as a slightly newer addition, can also be used as an
 instructive example -- be sure to add an ``_is_valid`` classmethod that will
 verify if a filename is valid for that output type, as that is how "load" works.
 

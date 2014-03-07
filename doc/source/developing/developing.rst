@@ -306,7 +306,7 @@ are in the yt subdirectory.  Feel free to explore here.
       This is where interfaces to codes are created.  Within each subdirectory of
       yt/frontends/ there must exist the following files, even if empty:
 
-      * ``data_structures.py``, where subclasses of AMRGridPatch, StaticOutput
+      * ``data_structures.py``, where subclasses of AMRGridPatch, Dataset
         and AMRHierarchy are defined.
       * ``io.py``, where a subclass of IOHandler is defined.
       * ``misc.py``, where any miscellaneous functions or classes are defined.
@@ -417,7 +417,7 @@ Variable Names and Enzo-isms
 
    + Hard-coding parameter names that are the same as those in Enzo.  The
      following translation table should be of some help.  Note that the
-     parameters are now properties on a StaticOutput subclass: you access them
+     parameters are now properties on a Dataset subclass: you access them
      like ``pf.refine_by`` .
 
      - ``RefineBy `` => `` refine_by``

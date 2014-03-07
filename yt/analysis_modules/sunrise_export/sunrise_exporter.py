@@ -41,7 +41,7 @@ def export_to_sunrise(pf, fn, star_particle_type, fc, fwidth, ncells_wide=None,
 
     Parameters
     ----------
-    pf : `StaticOutput`
+    pf : `Dataset`
        The parameter file to convert.
     fn : string
        The filename of the output FITS file.
@@ -106,7 +106,7 @@ def export_to_sunrise_from_halolist(pf,fni,star_particle_type,
 
     Parameters
     ----------
-    pf : `StaticOutput`
+    pf : `Dataset`
         The parameter file to convert. We use the root grid to specify the domain.
     fni : string
         The filename of the output FITS file, but depends on the domain. The

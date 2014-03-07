@@ -24,7 +24,7 @@ from yt.data_objects.grid_patch import \
 from yt.data_objects.hierarchy import \
     AMRHierarchy
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.io_handler import \
@@ -94,7 +94,7 @@ class SkeletonHierarchy(AMRHierarchy):
         # identified.
         pass
 
-class SkeletonStaticOutput(StaticOutput):
+class SkeletonDataset(Dataset):
     _hierarchy_class = SkeletonHierarchy
     _fieldinfo_fallback = SkeletonFieldInfo
     _fieldinfo_known = KnownSkeletonFields
@@ -107,7 +107,7 @@ class SkeletonStaticOutput(StaticOutput):
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
 
-        StaticOutput.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, data_style)
         self.storage_filename = storage_filename
 
     def _set_units(self):

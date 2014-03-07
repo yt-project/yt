@@ -23,7 +23,7 @@ from yt.utilities.answer_testing.framework import \
     PixelizedProjectionValuesTest, \
     FieldValuesTest, \
     create_obj
-from yt.frontends.sph.api import TipsyStaticOutput
+from yt.frontends.sph.api import TipsyDataset
 
 _fields = (("deposit", "all_density"),
            ("deposit", "all_count"),
@@ -42,7 +42,7 @@ def test_pkdgrav():
                   cosmology_parameters = cosmology_parameters,
                   unit_base = {'mpchcm': 1.0/60.0},
                   n_ref = 64)
-    pf = data_dir_load(pkdgrav, TipsyStaticOutput, (), kwargs)
+    pf = data_dir_load(pkdgrav, TipsyDataset, (), kwargs)
     yield assert_equal, str(pf), "halo1e11_run1.00400"
     dso = [ None, ("sphere", ("c", (0.3, 'unitary')))]
     dd = pf.h.all_data()
@@ -73,7 +73,7 @@ def test_gasoline():
     kwargs = dict(cosmology_parameters = cosmology_parameters,
                   unit_base = {'mpchcm': 1.0/60.0},
                   n_ref = 64)
-    pf = data_dir_load(gasoline, TipsyStaticOutput, (), kwargs)
+    pf = data_dir_load(gasoline, TipsyDataset, (), kwargs)
     yield assert_equal, str(pf), "agora_1e11.00400"
     dso = [ None, ("sphere", ("c", (0.3, 'unitary')))]
     dd = pf.h.all_data()

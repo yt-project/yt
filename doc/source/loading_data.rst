@@ -171,7 +171,7 @@ format as being Gadget:
 .. code-block:: python
 
    from yt.mods import *
-   pf = GadgetStaticOutput("snapshot_061")
+   pf = GadgetDataset("snapshot_061")
 
 .. _particle-bbox:
 
@@ -194,7 +194,7 @@ particles.
 
 .. code-block:: python
 
-   pf = GadgetStaticOutput("snap_004",
+   pf = GadgetDataset("snap_004",
            unit_base = {'length': ('kpc', 1.0)},
            bounding_box = [[-600.0, 600.0], [-600.0, 600.0], [-600.0, 600.0]])
 
@@ -223,7 +223,7 @@ Field Specifications
 
 Binary Gadget outputs often have additional fields or particle types that are
 non-standard from the default Gadget distribution format.  These can be
-specified in the call to ``GadgetStaticOutput`` by either supplying one of the
+specified in the call to ``GadgetDataset`` by either supplying one of the
 sets of field specifications as a string or by supplying a field specification
 itself.  As an example, yt has built-in definitions for ``default`` (the
 default) and ``agora_unlv``.  Field specifications must be tuples, and must be
@@ -278,7 +278,7 @@ Particle Type Definitions
 
 In some cases, research groups add new particle types or re-order them.  You
 can supply alternate particle types by using the keyword ``ptype_spec`` to the
-``GadgetStaticOutput`` call.  The default for Gadget binary data is:
+``GadgetDataset`` call.  The default for Gadget binary data is:
 
 .. code-block:: python
 
@@ -377,7 +377,7 @@ similar to the following:
 
 .. code-block:: python
 
-    ds = TipsyStaticOutput('test.00169',
+    ds = TipsyDataset('test.00169',
         parameter_file='test.param',
         endian = '<',
         domain_left_edge = domain_left_edge,
@@ -394,7 +394,7 @@ with:
 
 .. code-block:: python
 
-    ds = TipsyStaticOutput("./halo1e11_run1.00400", endian="<",
+    ds = TipsyDataset("./halo1e11_run1.00400", endian="<",
                            field_dtypes = {"Coordinates": "d"})
 
 .. _specifying-cosmology-tipsy:
