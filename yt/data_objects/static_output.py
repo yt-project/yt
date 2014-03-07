@@ -143,6 +143,7 @@ class Dataset(object):
 
         self.set_units()
         self._set_derived_attrs()
+        self._setup_classes()
 
     def _set_derived_attrs(self):
         self.domain_center = 0.5 * (self.domain_right_edge + self.domain_left_edge)
@@ -240,7 +241,10 @@ class Dataset(object):
             # ...first off, we create our field_info now.
             self.create_field_info()
         return self._instantiated_index
-    h = index  # alias
+    
+    @property
+    def h(self):
+        return self
 
     @parallel_root_only
     def print_key_parameters(self):
@@ -386,17 +390,17 @@ class Dataset(object):
         for name, cls in sorted(data_object_registry.items()):
             if name in self._unsupported_objects:
                 setattr(self, name,
-                    _unsupported_object(self.parameter_file, name))
+                    _unsupported_object(self, name))
                 continue
             cname = cls.__name__
             if cname.endswith("Base"): cname = cname[:-4]
-            self._add_object_class(name, cname, cls, dd)
-        if self.pf.refine_by != 2 and hasattr(self, 'proj') and \
+            self._add_object_class(name, cname, cls, {'pf':self})
+        if self.refine_by != 2 and hasattr(self, 'proj') and \
             hasattr(self, 'overlap_proj'):
             mylog.warning("Refine by something other than two: reverting to"
                         + " overlap_proj")
             self.proj = self.overlap_proj
-        if self.pf.dimensionality < 3 and hasattr(self, 'proj') and \
+        if self.dimensionality < 3 and hasattr(self, 'proj') and \
             hasattr(self, 'overlap_proj'):
             mylog.warning("Dimensionality less than 3: reverting to"
                         + " overlap_proj")

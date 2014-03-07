@@ -210,11 +210,6 @@ class Index(ParallelAnalysisInterface):
 
     save_data = parallel_splitter(_save_data, _reload_data_file)
 
-    def _get_data_reader_dict(self):
-        dd = { 'pf' : self.parameter_file, # Already weak
-               'index': weakref.proxy(self) }
-        return dd
-
     def _reset_save_data(self,round_robin=False):
         if round_robin:
             self.save_data = self._save_data
