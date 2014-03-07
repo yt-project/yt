@@ -57,11 +57,11 @@ class RockstarDataset(Dataset):
     _particle_coordinates_name = "Coordinates"
     _suffix = ".bin"
 
-    def __init__(self, filename, data_style="rockstar_binary",
+    def __init__(self, filename, dataset_type="rockstar_binary",
                  n_ref = 16, over_refine_factor = 1):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
-        super(RockstarDataset, self).__init__(filename, data_style)
+        super(RockstarDataset, self).__init__(filename, dataset_type)
 
     def _parse_parameter_file(self):
         with open(self.parameter_filename, "rb") as f:

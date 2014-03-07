@@ -85,7 +85,7 @@ class GadgetDataset(ParticleDataset):
     _particle_velocity_name = "Velocities"
     _suffix = ""
 
-    def __init__(self, filename, data_style="gadget_binary",
+    def __init__(self, filename, dataset_type="gadget_binary",
                  additional_fields=(),
                  unit_base=None, n_ref=64,
                  over_refine_factor=1,
@@ -115,7 +115,7 @@ class GadgetDataset(ParticleDataset):
             self.domain_right_edge = bbox[:,1]
         else:
             self.domain_left_edge = self.domain_right_edge = None
-        super(GadgetDataset, self).__init__(filename, data_style)
+        super(GadgetDataset, self).__init__(filename, dataset_type)
 
     def _setup_binary_spec(self, spec, spec_dict):
         if isinstance(spec, types.StringTypes):
@@ -249,14 +249,14 @@ class GadgetHDF5Dataset(GadgetDataset):
     _particle_mass_name = "Masses"
     _suffix = ".hdf5"
 
-    def __init__(self, filename, data_style="gadget_hdf5", 
+    def __init__(self, filename, dataset_type="gadget_hdf5", 
                  unit_base = None, n_ref=64,
                  over_refine_factor=1,
                  bounding_box = None):
         self.storage_filename = None
         filename = os.path.abspath(filename)
         super(GadgetHDF5Dataset, self).__init__(
-            filename, data_style, unit_base=unit_base, n_ref=n_ref,
+            filename, dataset_type, unit_base=unit_base, n_ref=n_ref,
             over_refine_factor=over_refine_factor,
             bounding_box = bounding_box)
 
@@ -366,7 +366,7 @@ class TipsyDataset(ParticleDataset):
                     ('nstar',   'i'),
                     ('dummy',   'i'))
 
-    def __init__(self, filename, data_style="tipsy",
+    def __init__(self, filename, dataset_type="tipsy",
                  endian=">",
                  field_dtypes=None,
                  domain_left_edge=None,
@@ -399,7 +399,7 @@ class TipsyDataset(ParticleDataset):
             parameter_file = os.path.abspath(parameter_file)
         self._param_file = parameter_file
         filename = os.path.abspath(filename)
-        super(TipsyDataset, self).__init__(filename, data_style)
+        super(TipsyDataset, self).__init__(filename, dataset_type)
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename)
@@ -532,14 +532,14 @@ class HTTPStreamDataset(ParticleDataset):
     filename_template = ""
     
     def __init__(self, base_url,
-                 data_style = "http_particle_stream",
+                 dataset_type = "http_particle_stream",
                  n_ref = 64, over_refine_factor=1):
         if requests is None:
             raise RuntimeError
         self.base_url = base_url
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
-        super(HTTPStreamDataset, self).__init__("", data_style)
+        super(HTTPStreamDataset, self).__init__("", dataset_type)
 
     def __repr__(self):
         return self.base_url

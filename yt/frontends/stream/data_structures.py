@@ -159,14 +159,14 @@ class StreamHierarchy(GridIndex):
 
     grid = StreamGrid
 
-    def __init__(self, pf, data_style = None):
-        self.data_style = data_style
+    def __init__(self, pf, dataset_type = None):
+        self.dataset_type = dataset_type
         self.float_type = 'float64'
         self.parameter_file = weakref.proxy(pf) # for _obtain_enzo
         self.stream_handler = pf.stream_handler
         self.float_type = "float64"
         self.directory = os.getcwd()
-        GridIndex.__init__(self, pf, data_style)
+        GridIndex.__init__(self, pf, dataset_type)
 
     def _count_grids(self):
         self.num_grids = self.stream_handler.num_grids
@@ -252,7 +252,7 @@ class StreamHierarchy(GridIndex):
         if self.stream_handler.io is not None:
             self.io = self.stream_handler.io
         else:
-            self.io = io_registry[self.data_style](self.pf)
+            self.io = io_registry[self.dataset_type](self.pf)
 
     def update_data(self, data, units = None):
 
@@ -294,7 +294,7 @@ class StreamHierarchy(GridIndex):
 class StreamDataset(Dataset):
     _index_class = StreamHierarchy
     _field_info_class = StreamFieldInfo
-    _data_style = 'stream'
+    _dataset_type = 'stream'
 
     def __init__(self, stream_handler, storage_filename = None):
         #if parameter_override is None: parameter_override = {}
@@ -306,7 +306,7 @@ class StreamDataset(Dataset):
         name = "InMemoryParameterFile_%s" % (uuid.uuid4().hex)
         from yt.data_objects.static_output import _cached_pfs
         _cached_pfs[name] = self
-        Dataset.__init__(self, name, self._data_style)
+        Dataset.__init__(self, name, self._dataset_type)
 
     def _parse_parameter_file(self):
         self.basename = self.stream_handler.name
@@ -918,15 +918,15 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
 class StreamParticleIndex(ParticleIndex):
 
     
-    def __init__(self, pf, data_style = None):
+    def __init__(self, pf, dataset_type = None):
         self.stream_handler = pf.stream_handler
-        super(StreamParticleIndex, self).__init__(pf, data_style)
+        super(StreamParticleIndex, self).__init__(pf, dataset_type)
 
     def _setup_data_io(self):
         if self.stream_handler.io is not None:
             self.io = self.stream_handler.io
         else:
-            self.io = io_registry[self.data_style](self.pf)
+            self.io = io_registry[self.dataset_type](self.pf)
 
 class StreamParticleFile(ParticleFile):
     pass
@@ -935,7 +935,7 @@ class StreamParticlesDataset(StreamDataset):
     _index_class = StreamParticleIndex
     _file_class = StreamParticleFile
     _field_info_class = StreamFieldInfo
-    _data_style = "stream_particles"
+    _dataset_type = "stream_particles"
     file_count = 1
     filename_template = "stream_file"
     n_ref = 64
@@ -1083,9 +1083,9 @@ class StreamHexahedralMesh(SemiStructuredMesh):
 
 class StreamHexahedralHierarchy(UnstructuredIndex):
 
-    def __init__(self, pf, data_style = None):
+    def __init__(self, pf, dataset_type = None):
         self.stream_handler = pf.stream_handler
-        super(StreamHexahedralHierarchy, self).__init__(pf, data_style)
+        super(StreamHexahedralHierarchy, self).__init__(pf, dataset_type)
 
     def _initialize_mesh(self):
         coords = self.stream_handler.fields.pop('coordinates')
@@ -1097,7 +1097,7 @@ class StreamHexahedralHierarchy(UnstructuredIndex):
         if self.stream_handler.io is not None:
             self.io = self.stream_handler.io
         else:
-            self.io = io_registry[self.data_style](self.pf)
+            self.io = io_registry[self.dataset_type](self.pf)
 
     def _detect_output_fields(self):
         self.field_list = list(set(self.stream_handler.get_fields()))
@@ -1105,7 +1105,7 @@ class StreamHexahedralHierarchy(UnstructuredIndex):
 class StreamHexahedralDataset(StreamDataset):
     _index_class = StreamHexahedralHierarchy
     _field_info_class = StreamFieldInfo
-    _data_style = "stream_hexahedral"
+    _dataset_type = "stream_hexahedral"
 
 def load_hexahedral_mesh(data, connectivity, coordinates,
                          length_unit = None, bbox=None, sim_time=0.0,
@@ -1240,16 +1240,16 @@ class StreamOctreeSubset(OctreeSubset):
 
 class StreamOctreeHandler(OctreeIndex):
 
-    def __init__(self, pf, data_style = None):
+    def __init__(self, pf, dataset_type = None):
         self.stream_handler = pf.stream_handler
-        self.data_style = data_style
-        super(StreamOctreeHandler, self).__init__(pf, data_style)
+        self.dataset_type = dataset_type
+        super(StreamOctreeHandler, self).__init__(pf, dataset_type)
 
     def _setup_data_io(self):
         if self.stream_handler.io is not None:
             self.io = self.stream_handler.io
         else:
-            self.io = io_registry[self.data_style](self.pf)
+            self.io = io_registry[self.dataset_type](self.pf)
 
     def _initialize_oct_handler(self):
         header = dict(dims = [1, 1, 1],
@@ -1307,7 +1307,7 @@ class StreamOctreeHandler(OctreeIndex):
 class StreamOctreeDataset(StreamDataset):
     _index_class = StreamOctreeHandler
     _field_info_class = StreamFieldInfo
-    _data_style = "stream_octree"
+    _dataset_type = "stream_octree"
 
 def load_octree(octree_mask, data, sim_unit_to_cm,
                 bbox=None, sim_time=0.0, periodicity=(True, True, True),

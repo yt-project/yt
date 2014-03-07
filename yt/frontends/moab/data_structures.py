@@ -37,15 +37,15 @@ class MoabHex8Mesh(SemiStructuredMesh):
 
 class MoabHex8Hierarchy(UnstructuredIndex):
 
-    def __init__(self, pf, data_style='h5m'):
+    def __init__(self, pf, dataset_type='h5m'):
         self.parameter_file = weakref.proxy(pf)
-        self.data_style = data_style
+        self.dataset_type = dataset_type
         # for now, the index file is the parameter file!
         self.index_filename = self.parameter_file.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
         self._fhandle = h5py.File(self.index_filename,'r')
 
-        UnstructuredIndex.__init__(self, pf, data_style)
+        UnstructuredIndex.__init__(self, pf, dataset_type)
 
         self._fhandle.close()
 
@@ -69,10 +69,10 @@ class MoabHex8Dataset(Dataset):
     _field_info_class = MoabFieldInfo
     periodicity = (False, False, False)
 
-    def __init__(self, filename, data_style='moab_hex8',
+    def __init__(self, filename, dataset_type='moab_hex8',
                  storage_filename = None):
         self.fluid_types += ("moab",)
-        Dataset.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
         self.filename = filename
         self._handle = h5py.File(self.parameter_filename, "r")
@@ -114,15 +114,15 @@ class PyneHex8Mesh(SemiStructuredMesh):
 
 class PyneMeshHex8Hierarchy(UnstructuredIndex):
 
-    def __init__(self, pf, data_style='moab_hex8_pyne'):
+    def __init__(self, pf, dataset_type='moab_hex8_pyne'):
         self.parameter_file = weakref.proxy(pf)
-        self.data_style = data_style
+        self.dataset_type = dataset_type
         # for now, the index file is the parameter file!
         self.index_filename = self.parameter_file.parameter_filename
         self.directory = os.getcwd()
         self.pyne_mesh = pf.pyne_mesh
 
-        super(PyneMeshHex8Hierarchy, self).__init__(pf, data_style)
+        super(PyneMeshHex8Hierarchy, self).__init__(pf, dataset_type)
 
     def _initialize_mesh(self):
         from itaps import iBase, iMesh
@@ -148,12 +148,12 @@ class PyneMoabHex8Dataset(Dataset):
     _field_info_class = PyneFieldInfo
     periodicity = (False, False, False)
 
-    def __init__(self, pyne_mesh, data_style='moab_hex8_pyne',
+    def __init__(self, pyne_mesh, dataset_type='moab_hex8_pyne',
                  storage_filename = None):
         self.fluid_types += ("pyne",)
         filename = "pyne_mesh_" + str(id(pyne_mesh))
         self.pyne_mesh = pyne_mesh
-        Dataset.__init__(self, str(filename), data_style)
+        Dataset.__init__(self, str(filename), dataset_type)
         self.storage_filename = storage_filename
         self.filename = filename
 

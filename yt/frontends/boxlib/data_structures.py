@@ -143,12 +143,12 @@ class BoxlibGrid(AMRGridPatch):
 
 class BoxlibHierarchy(GridIndex):
     grid = BoxlibGrid
-    def __init__(self, pf, data_style='boxlib_native'):
-        self.data_style = data_style
+    def __init__(self, pf, dataset_type='boxlib_native'):
+        self.dataset_type = dataset_type
         self.header_filename = os.path.join(pf.output_dir, 'Header')
         self.directory = pf.output_dir
 
-        GridIndex.__init__(self, pf, data_style)
+        GridIndex.__init__(self, pf, dataset_type)
         self._cache_endianness(self.grids[-1])
 
         #self._read_particles()
@@ -353,7 +353,7 @@ class BoxlibHierarchy(GridIndex):
         self.object_types.sort()
 
     def _setup_data_io(self):
-        self.io = io_registry[self.data_style](self.parameter_file)
+        self.io = io_registry[self.dataset_type](self.parameter_file)
 
 class BoxlibDataset(Dataset):
     """
@@ -370,13 +370,13 @@ class BoxlibDataset(Dataset):
     def __init__(self, output_dir,
                  cparam_filename = "inputs",
                  fparam_filename = "probin",
-                 data_style='boxlib_native',
+                 dataset_type='boxlib_native',
                  storage_filename = None):
         """
         The paramfile is usually called "inputs"
         and there may be a fortran inputs file usually called "probin"
         plotname here will be a directory name
-        as per BoxLib, data_style will be Native (implemented here), IEEE (not
+        as per BoxLib, dataset_type will be Native (implemented here), IEEE (not
         yet implemented) or ASCII (not yet implemented.)
         """
         self.fluid_types += ("boxlib",)
@@ -385,7 +385,7 @@ class BoxlibDataset(Dataset):
         self.fparam_filename = self._localize_check(fparam_filename)
         self.storage_filename = storage_filename
 
-        Dataset.__init__(self, output_dir, data_style)
+        Dataset.__init__(self, output_dir, dataset_type)
 
         # These are still used in a few places.
         self.parameters["HydroMethod"] = 'boxlib'
@@ -631,8 +631,8 @@ class BoxlibDataset(Dataset):
 
 class OrionHierarchy(BoxlibHierarchy):
     
-    def __init__(self, pf, data_style='orion_native'):
-        BoxlibHierarchy.__init__(self, pf, data_style)
+    def __init__(self, pf, dataset_type='orion_native'):
+        BoxlibHierarchy.__init__(self, pf, dataset_type)
         self._read_particles()
         #self.io = IOHandlerOrion
 
@@ -689,11 +689,11 @@ class OrionDataset(BoxlibDataset):
     def __init__(self, output_dir,
                  cparam_filename = "inputs",
                  fparam_filename = "probin",
-                 data_style='orion_native',
+                 dataset_type='orion_native',
                  storage_filename = None):
 
         BoxlibDataset.__init__(self, output_dir,
-                 cparam_filename, fparam_filename, data_style)
+                 cparam_filename, fparam_filename, dataset_type)
           
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -760,8 +760,8 @@ class MaestroDataset(BoxlibDataset):
 
 class NyxHierarchy(BoxlibHierarchy):
 
-    def __init__(self, pf, data_style='nyx_native'):
-        super(NyxHierarchy, self).__init__(pf, data_style)
+    def __init__(self, pf, dataset_type='nyx_native'):
+        super(NyxHierarchy, self).__init__(pf, dataset_type)
         self._read_particle_header()
 
     def _read_particle_header(self):

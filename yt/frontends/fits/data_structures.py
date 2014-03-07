@@ -58,8 +58,8 @@ class FITSHierarchy(GridIndex):
 
     grid = FITSGrid
     
-    def __init__(self,pf,data_style='fits'):
-        self.data_style = data_style
+    def __init__(self,pf,dataset_type='fits'):
+        self.dataset_type = dataset_type
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         # for now, the index file is the parameter file!
@@ -67,7 +67,7 @@ class FITSHierarchy(GridIndex):
         self.directory = os.path.dirname(self.index_filename)
         self._handle = pf._handle
         self.float_type = np.float64
-        GridIndex.__init__(self,pf,data_style)
+        GridIndex.__init__(self,pf,dataset_type)
 
     def _initialize_data_storage(self):
         pass
@@ -131,15 +131,15 @@ class FITSHierarchy(GridIndex):
                 self.parameter_file.conversion_factors[field] = 1.0 
                 
     def _setup_data_io(self):
-        self.io = io_registry[self.data_style](self.parameter_file)
+        self.io = io_registry[self.dataset_type](self.parameter_file)
 
 class FITSDataset(Dataset):
     _index_class = FITSHierarchy
     _field_info_class = FITSFieldInfo
-    _data_style = "fits"
+    _dataset_type = "fits"
     _handle = None
     
-    def __init__(self, filename, data_style='fits',
+    def __init__(self, filename, dataset_type='fits',
                  primary_header = None,
                  sky_conversion = None,
                  storage_filename = None,
@@ -183,7 +183,7 @@ class FITSDataset(Dataset):
             self.new_unit = self.file_unit
             self.pixel_scale = self.wcs.wcs.cdelt[idx]
 
-        Dataset.__init__(self, fname, data_style)
+        Dataset.__init__(self, fname, dataset_type)
         self.storage_filename = storage_filename
             
         self.refine_by = 2

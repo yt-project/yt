@@ -50,7 +50,7 @@ class Index(ParallelAnalysisInterface):
     _global_mesh = True
     _unsupported_objects = ()
 
-    def __init__(self, pf, data_style):
+    def __init__(self, pf, dataset_type):
         self.filtered_particle_types = []
         ParallelAnalysisInterface.__init__(self)
         self.parameter_file = weakref.proxy(pf)
@@ -200,7 +200,7 @@ class Index(ParallelAnalysisInterface):
 
     def _setup_data_io(self):
         if getattr(self, "io", None) is not None: return
-        self.io = io_registry[self.data_style](self.parameter_file)
+        self.io = io_registry[self.dataset_type](self.parameter_file)
 
     def _save_data(self, array, node, name, set_attr=None, force=False, passthrough = False):
         """

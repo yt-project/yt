@@ -31,7 +31,7 @@ _particle_position_names = {}
 
 class IOHandlerPackedHDF5(BaseIOHandler):
 
-    _data_style = "enzo_packed_3d"
+    _dataset_type = "enzo_packed_3d"
     _base = slice(None)
 
     def _read_field_names(self, grid):
@@ -203,7 +203,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         return rv
 
 class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
-    _data_style = "enzo_packed_3d_gz"
+    _dataset_type = "enzo_packed_3d_gz"
 
     def __init__(self, *args, **kwargs):
         super(IOHandlerPackgedHDF5GhostZones, self).__init__(*args, **kwargs)
@@ -220,7 +220,7 @@ class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
 
 class IOHandlerInMemory(BaseIOHandler):
 
-    _data_style = "enzo_inline"
+    _dataset_type = "enzo_inline"
 
     def __init__(self, pf, ghost_zones=3):
         self.pf = pf
@@ -339,7 +339,7 @@ class IOHandlerInMemory(BaseIOHandler):
 
 class IOHandlerPacked2D(IOHandlerPackedHDF5):
 
-    _data_style = "enzo_packed_2d"
+    _dataset_type = "enzo_packed_2d"
     _particle_reader = False
 
     def _read_data_set(self, grid, field):
@@ -393,7 +393,7 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
 
 class IOHandlerPacked1D(IOHandlerPackedHDF5):
 
-    _data_style = "enzo_packed_1d"
+    _dataset_type = "enzo_packed_1d"
     _particle_reader = False
 
     def _read_data_set(self, grid, field):

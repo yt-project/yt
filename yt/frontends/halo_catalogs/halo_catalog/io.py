@@ -28,7 +28,7 @@ from yt.utilities.lib.geometry_utils import compute_morton
 from yt.geometry.oct_container import _ORDER_MAX
 
 class IOHandlerHaloCatalogHDF5(BaseIOHandler):
-    _data_style = "halocatalog_hdf5"
+    _dataset_type = "halocatalog_hdf5"
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError

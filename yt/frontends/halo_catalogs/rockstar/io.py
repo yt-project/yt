@@ -30,7 +30,7 @@ from yt.utilities.lib.geometry_utils import compute_morton
 from yt.geometry.oct_container import _ORDER_MAX
 
 class IOHandlerRockstarBinary(BaseIOHandler):
-    _data_style = "rockstar_binary"
+    _dataset_type = "rockstar_binary"
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError

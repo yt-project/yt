@@ -37,7 +37,7 @@ def grid_sequences(grids):
 
 class IOHandlerFLASH(BaseIOHandler):
     _particle_reader = False
-    _data_style = "flash_hdf5"
+    _dataset_type = "flash_hdf5"
 
     def __init__(self, pf):
         super(IOHandlerFLASH, self).__init__(pf)

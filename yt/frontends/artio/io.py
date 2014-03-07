@@ -20,7 +20,7 @@ from yt.utilities.io_handler import \
 
 
 class IOHandlerARTIO(BaseIOHandler):
-    _data_style = "artio"
+    _dataset_type = "artio"
 
     def _read_fluid_selection(self, chunks, selector, fields):
         tr = dict((ftuple, np.empty(0, dtype='float64')) for ftuple in fields)

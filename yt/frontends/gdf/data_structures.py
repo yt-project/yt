@@ -77,12 +77,12 @@ class GDFHierarchy(GridIndex):
     grid = GDFGrid
     filtered_particle_types = []
 
-    def __init__(self, pf, data_style='grid_data_format'):
+    def __init__(self, pf, dataset_type='grid_data_format'):
         self.parameter_file = weakref.proxy(pf)
         self.index_filename = self.parameter_file.parameter_filename
         h5f = h5py.File(self.index_filename, 'r')
-        self.data_style = data_style
-        GridIndex.__init__(self, pf, data_style)
+        self.dataset_type = dataset_type
+        GridIndex.__init__(self, pf, dataset_type)
         self.max_level = 10  # FIXME
         # for now, the index file is the parameter file!
         self.directory = os.path.dirname(self.index_filename)
@@ -182,9 +182,9 @@ class GDFDataset(Dataset):
     _fieldinfo_fallback = GDFFieldInfo
     _fieldinfo_known = KnownGDFFields
 
-    def __init__(self, filename, data_style='grid_data_format',
+    def __init__(self, filename, dataset_type='grid_data_format',
                  storage_filename=None):
-        Dataset.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
         self.filename = filename
 

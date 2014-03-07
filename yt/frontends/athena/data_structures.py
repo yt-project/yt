@@ -99,18 +99,18 @@ def parse_line(line, grid):
 class AthenaHierarchy(GridIndex):
 
     grid = AthenaGrid
-    _data_style='athena'
+    _dataset_type='athena'
     _data_file = None
     
-    def __init__(self, pf, data_style='athena'):
+    def __init__(self, pf, dataset_type='athena'):
         self.parameter_file = weakref.proxy(pf)
         self.directory = os.path.dirname(self.parameter_file.filename)
-        self.data_style = data_style
+        self.dataset_type = dataset_type
         # for now, the index file is the parameter file!
         self.index_filename = self.parameter_file.filename
         #self.directory = os.path.dirname(self.index_filename)
         self._fhandle = file(self.index_filename,'rb')
-        GridIndex.__init__(self, pf, data_style)
+        GridIndex.__init__(self, pf, dataset_type)
 
         self._fhandle.close()
 
@@ -341,15 +341,15 @@ class AthenaHierarchy(GridIndex):
 class AthenaDataset(Dataset):
     _index_class = AthenaHierarchy
     _field_info_class = AthenaFieldInfo
-    _data_style = "athena"
+    _dataset_type = "athena"
 
-    def __init__(self, filename, data_style='athena',
+    def __init__(self, filename, dataset_type='athena',
                  storage_filename=None, parameters=None):
         self.fluid_types += ("athena",)
         if parameters is None:
             parameters = {}
         self.specified_parameters = parameters
-        Dataset.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, dataset_type)
         self.filename = filename
         if storage_filename is None:
             storage_filename = '%s.yt' % filename.split('/')[-1]

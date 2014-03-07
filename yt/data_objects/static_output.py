@@ -99,12 +99,12 @@ class Dataset(object):
             obj = _cached_pfs[apath]
         return obj
 
-    def __init__(self, filename, data_style=None, file_style=None):
+    def __init__(self, filename, dataset_type=None, file_style=None):
         """
         Base class for generating new output types.  Principally consists of
-        a *filename* and a *data_style* which will be passed on to children.
+        a *filename* and a *dataset_type* which will be passed on to children.
         """
-        self.data_style = data_style
+        self.dataset_type = dataset_type
         self.file_style = file_style
         self.conversion_factors = {}
         self.parameters = {}
@@ -235,7 +235,7 @@ class Dataset(object):
             if self._index_class == None:
                 raise RuntimeError("You should not instantiate Dataset.")
             self._instantiated_index = self._index_class(
-                self, data_style=self.data_style)
+                self, dataset_type=self.dataset_type)
             # Now we do things that we need an instantiated index for
             # ...first off, we create our field_info now.
             self.create_field_info()

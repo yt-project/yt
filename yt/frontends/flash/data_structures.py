@@ -54,8 +54,8 @@ class FLASHHierarchy(GridIndex):
     grid = FLASHGrid
     _preload_implemented = True
     
-    def __init__(self,pf,data_style='flash_hdf5'):
-        self.data_style = data_style
+    def __init__(self,pf,dataset_type='flash_hdf5'):
+        self.dataset_type = dataset_type
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         # for now, the index file is the parameter file!
@@ -64,7 +64,7 @@ class FLASHHierarchy(GridIndex):
         self._handle = pf._handle
         self._particle_handle = pf._particle_handle
         self.float_type = np.float64
-        GridIndex.__init__(self,pf,data_style)
+        GridIndex.__init__(self,pf,dataset_type)
 
     def _initialize_data_storage(self):
         pass
@@ -182,7 +182,7 @@ class FLASHDataset(Dataset):
     _field_info_class = FLASHFieldInfo
     _handle = None
     
-    def __init__(self, filename, data_style='flash_hdf5',
+    def __init__(self, filename, dataset_type='flash_hdf5',
                  storage_filename = None,
                  particle_filename = None, 
                  conversion_override = None):
@@ -203,7 +203,7 @@ class FLASHDataset(Dataset):
             except :
                 raise IOError(self.particle_filename)
                                                                 
-        Dataset.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
         # These should be explicitly obtained from the file, but for now that

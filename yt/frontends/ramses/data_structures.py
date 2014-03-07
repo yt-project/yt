@@ -322,10 +322,10 @@ class RAMSESDomainSubset(OctreeSubset):
 
 class RAMSESIndex(OctreeIndex):
 
-    def __init__(self, pf, data_style='ramses'):
+    def __init__(self, pf, dataset_type='ramses'):
         self._pf = pf # TODO: Figure out the class composition better!
         self.fluid_field_list = pf._fields_in_file
-        self.data_style = data_style
+        self.dataset_type = dataset_type
         self.parameter_file = weakref.proxy(pf)
         # for now, the index file is the parameter file!
         self.index_filename = self.parameter_file.parameter_filename
@@ -333,7 +333,7 @@ class RAMSESIndex(OctreeIndex):
         self.max_level = None
 
         self.float_type = np.float64
-        super(RAMSESIndex, self).__init__(pf, data_style)
+        super(RAMSESIndex, self).__init__(pf, dataset_type)
 
     def _initialize_oct_handler(self):
         self.domains = [RAMSESDomainFile(self.parameter_file, i + 1)
@@ -443,7 +443,7 @@ class RAMSESDataset(Dataset):
     _particle_mass_name = "ParticleMass"
     _particle_coordinates_name = "Coordinates"
     
-    def __init__(self, filename, data_style='ramses',
+    def __init__(self, filename, dataset_type='ramses',
                  fields = None, storage_filename = None):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, types.StringTypes):
@@ -453,7 +453,7 @@ class RAMSESDataset(Dataset):
                 If set to None, will try a default set of fields
         '''
         self._fields_in_file = fields
-        Dataset.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
     def __repr__(self):
