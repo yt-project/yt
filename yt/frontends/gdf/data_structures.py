@@ -22,7 +22,7 @@ from yt.funcs import \
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
-    GridGeometryHandler
+    GridIndex
 from yt.data_objects.static_output import \
     Dataset
 from yt.utilities.lib.misc_utilities import \
@@ -72,7 +72,7 @@ class GDFGrid(AMRGridPatch):
             self.dds
 
 
-class GDFHierarchy(GridGeometryHandler):
+class GDFHierarchy(GridIndex):
 
     grid = GDFGrid
     filtered_particle_types = []
@@ -82,7 +82,7 @@ class GDFHierarchy(GridGeometryHandler):
         self.hierarchy_filename = self.parameter_file.parameter_filename
         h5f = h5py.File(self.hierarchy_filename, 'r')
         self.data_style = data_style
-        GridGeometryHandler.__init__(self, pf, data_style)
+        GridIndex.__init__(self, pf, data_style)
         self.max_level = 10  # FIXME
         # for now, the hierarchy file is the parameter file!
         self.directory = os.path.dirname(self.hierarchy_filename)
@@ -98,7 +98,7 @@ class GDFHierarchy(GridGeometryHandler):
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        GridGeometryHandler._setup_classes(self, dd)
+        GridIndex._setup_classes(self, dd)
         self.object_types.sort()
 
     def _count_grids(self):

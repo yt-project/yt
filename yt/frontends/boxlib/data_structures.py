@@ -26,7 +26,7 @@ import numpy as np
 
 from yt.funcs import *
 from yt.data_objects.grid_patch import AMRGridPatch
-from yt.geometry.grid_geometry_handler import GridGeometryHandler
+from yt.geometry.grid_geometry_handler import GridIndex
 from yt.data_objects.static_output import Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
@@ -141,14 +141,14 @@ class BoxlibGrid(AMRGridPatch):
              startIndex[1]:endIndex[1],
              startIndex[2]:endIndex[2]] = tofill
 
-class BoxlibHierarchy(GridGeometryHandler):
+class BoxlibHierarchy(GridIndex):
     grid = BoxlibGrid
     def __init__(self, pf, data_style='boxlib_native'):
         self.data_style = data_style
         self.header_filename = os.path.join(pf.output_dir, 'Header')
         self.directory = pf.output_dir
 
-        GridGeometryHandler.__init__(self, pf, data_style)
+        GridIndex.__init__(self, pf, data_style)
         self._cache_endianness(self.grids[-1])
 
         #self._read_particles()
@@ -349,7 +349,7 @@ class BoxlibHierarchy(GridGeometryHandler):
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        GridGeometryHandler._setup_classes(self, dd)
+        GridIndex._setup_classes(self, dd)
         self.object_types.sort()
 
     def _setup_data_io(self):

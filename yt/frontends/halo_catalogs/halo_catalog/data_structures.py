@@ -28,7 +28,7 @@ from .fields import \
 
 from yt.utilities.cosmology import Cosmology
 from yt.geometry.particle_geometry_handler import \
-    ParticleGeometryHandler
+    ParticleIndex
 from yt.data_objects.static_output import \
     Dataset, \
     ParticleFile
@@ -46,7 +46,7 @@ class HaloCatalogHDF5File(ParticleFile):
         super(HaloCatalogHDF5File, self).__init__(pf, io, filename, file_id)
     
 class HaloCatalogDataset(Dataset):
-    _hierarchy_class = ParticleGeometryHandler
+    _hierarchy_class = ParticleIndex
     _file_class = HaloCatalogHDF5File
     _field_info_class = HaloCatalogFieldInfo
     _particle_mass_name = "particle_mass"

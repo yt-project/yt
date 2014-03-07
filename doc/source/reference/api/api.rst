@@ -115,7 +115,7 @@ ARTIO
 .. autosummary::
    :toctree: generated/
 
-   ~yt.frontends.artio.data_structures.ARTIOGeometryHandler
+   ~yt.frontends.artio.data_structures.ARTIOIndex
    ~yt.frontends.artio.data_structures.ARTIOOctreeSubset
    ~yt.frontends.artio.data_structures.ARTIORootMeshSubset
    ~yt.frontends.artio.data_structures.ARTIODataset
@@ -240,7 +240,7 @@ RAMSES
 
    ~yt.frontends.ramses.data_structures.RAMSESDomainFile
    ~yt.frontends.ramses.data_structures.RAMSESDomainSubset
-   ~yt.frontends.ramses.data_structures.RAMSESGeometryHandler
+   ~yt.frontends.ramses.data_structures.RAMSESIndex
    ~yt.frontends.ramses.data_structures.RAMSESDataset
    ~yt.frontends.ramses.fields.RAMSESFieldInfo
    ~yt.frontends.ramses.io.IOHandlerRAMSES
@@ -284,7 +284,7 @@ Stream
    ~yt.frontends.stream.data_structures.StreamOctreeDataset
    ~yt.frontends.stream.data_structures.StreamOctreeSubset
    ~yt.frontends.stream.data_structures.StreamParticleFile
-   ~yt.frontends.stream.data_structures.StreamParticleGeometryHandler
+   ~yt.frontends.stream.data_structures.StreamParticleIndex
    ~yt.frontends.stream.data_structures.StreamParticlesDataset
    ~yt.frontends.stream.data_structures.StreamDataset
    ~yt.frontends.stream.fields.StreamFieldInfo

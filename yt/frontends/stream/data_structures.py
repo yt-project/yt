@@ -36,13 +36,13 @@ from yt.data_objects.static_output import \
 from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.geometry.grid_geometry_handler import \
-    GridGeometryHandler
+    GridIndex
 from yt.data_objects.octree_subset import \
     OctreeSubset
 from yt.geometry.oct_geometry_handler import \
-    OctreeGeometryHandler
+    OctreeIndex
 from yt.geometry.particle_geometry_handler import \
-    ParticleGeometryHandler
+    ParticleIndex
 from yt.fields.particle_fields import \
     particle_vector_functions, \
     particle_deposition_functions, \
@@ -50,7 +50,7 @@ from yt.fields.particle_fields import \
 from yt.geometry.oct_container import \
     OctreeContainer
 from yt.geometry.unstructured_mesh_handler import \
-           UnstructuredGeometryHandler
+           UnstructuredIndex
 from yt.data_objects.static_output import \
     Dataset
 from yt.utilities.logger import ytLogger as mylog
@@ -155,7 +155,7 @@ class StreamHandler(object):
         else :
             return False
         
-class StreamHierarchy(GridGeometryHandler):
+class StreamHierarchy(GridIndex):
 
     grid = StreamGrid
 
@@ -166,7 +166,7 @@ class StreamHierarchy(GridGeometryHandler):
         self.stream_handler = pf.stream_handler
         self.float_type = "float64"
         self.directory = os.getcwd()
-        GridGeometryHandler.__init__(self, pf, data_style)
+        GridIndex.__init__(self, pf, data_style)
 
     def _count_grids(self):
         self.num_grids = self.stream_handler.num_grids
@@ -228,12 +228,12 @@ class StreamHierarchy(GridGeometryHandler):
                 self.stream_handler.parent_ids[child.id] = i
 
     def _initialize_grid_arrays(self):
-        GridGeometryHandler._initialize_grid_arrays(self)
+        GridIndex._initialize_grid_arrays(self)
         self.grid_procs = np.zeros((self.num_grids,1),'int32')
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        GridGeometryHandler._setup_classes(self, dd)
+        GridIndex._setup_classes(self, dd)
 
     def _detect_output_fields(self):
         # NOTE: Because particle unions add to the actual field list, without
@@ -915,12 +915,12 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
     
     return pf
 
-class StreamParticleGeometryHandler(ParticleGeometryHandler):
+class StreamParticleIndex(ParticleIndex):
 
     
     def __init__(self, pf, data_style = None):
         self.stream_handler = pf.stream_handler
-        super(StreamParticleGeometryHandler, self).__init__(pf, data_style)
+        super(StreamParticleIndex, self).__init__(pf, data_style)
 
     def _setup_data_io(self):
         if self.stream_handler.io is not None:
@@ -932,7 +932,7 @@ class StreamParticleFile(ParticleFile):
     pass
 
 class StreamParticlesDataset(StreamDataset):
-    _hierarchy_class = StreamParticleGeometryHandler
+    _hierarchy_class = StreamParticleIndex
     _file_class = StreamParticleFile
     _field_info_class = StreamFieldInfo
     _data_style = "stream_particles"
@@ -1081,7 +1081,7 @@ class StreamHexahedralMesh(SemiStructuredMesh):
     _connectivity_length = 8
     _index_offset = 0
 
-class StreamHexahedralHierarchy(UnstructuredGeometryHandler):
+class StreamHexahedralHierarchy(UnstructuredIndex):
 
     def __init__(self, pf, data_style = None):
         self.stream_handler = pf.stream_handler
@@ -1238,7 +1238,7 @@ class StreamOctreeSubset(OctreeSubset):
                                        dest, content, offset)
         return count
 
-class StreamOctreeHandler(OctreeGeometryHandler):
+class StreamOctreeHandler(OctreeIndex):
 
     def __init__(self, pf, data_style = None):
         self.stream_handler = pf.stream_handler

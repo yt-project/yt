@@ -27,7 +27,7 @@ import types
 from yt.utilities.fortran_utils import read_record
 from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.particle_geometry_handler import \
-    ParticleGeometryHandler
+    ParticleIndex
 from yt.data_objects.static_output import \
     Dataset, ParticleFile
 from yt.utilities.definitions import \
@@ -77,7 +77,7 @@ class ParticleDataset(Dataset):
 
 
 class GadgetDataset(ParticleDataset):
-    _hierarchy_class = ParticleGeometryHandler
+    _hierarchy_class = ParticleIndex
     _file_class = GadgetBinaryFile
     _field_info_class = SPHFieldInfo
     _particle_mass_name = "Mass"
@@ -353,7 +353,7 @@ class TipsyFile(ParticleFile):
 
 
 class TipsyDataset(ParticleDataset):
-    _hierarchy_class = ParticleGeometryHandler
+    _hierarchy_class = ParticleIndex
     _file_class = TipsyFile
     _field_info_class = SPHFieldInfo
     _particle_mass_name = "Mass"
@@ -523,7 +523,7 @@ class HTTPParticleFile(ParticleFile):
     pass
 
 class HTTPStreamDataset(ParticleDataset):
-    _hierarchy_class = ParticleGeometryHandler
+    _hierarchy_class = ParticleIndex
     _file_class = HTTPParticleFile
     _field_info_class = SPHFieldInfo
     _particle_mass_name = "Mass"

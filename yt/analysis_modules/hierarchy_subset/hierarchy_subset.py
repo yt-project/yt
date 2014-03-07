@@ -23,7 +23,7 @@ from yt.data_objects.grid_patch import \
 from yt.data_objects.static_output import \
     Dataset
 from yt.geometry.grid_geometry_handler import \
-    GridGeometryHandler
+    GridIndex
 
 class DummyHierarchy(object):
     pass
@@ -185,7 +185,7 @@ class OldExtractedHierarchy(object):
     def _convert_coords(self, val):
         return (val - self.left_edge_offset)*self.mult_factor
 
-class ExtractedHierarchy(GridGeometryHandler):
+class ExtractedHierarchy(GridIndex):
 
     grid = AMRExtractedGridProxy
 
@@ -218,7 +218,7 @@ class ExtractedHierarchy(GridGeometryHandler):
         # Now we utilize the existing machinery for generating the appropriate
         # arrays of grids, etc etc.
         self.base_pf = pf.base_pf
-        GridGeometryHandler.__init__(self, pf, data_style)
+        GridIndex.__init__(self, pf, data_style)
 
         # Now a few cleanups
         self.pf.override["DomainRightEdge"] = self.max_right_edge
@@ -313,7 +313,7 @@ class ExtractedHierarchy(GridGeometryHandler):
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        GridGeometryHandler._setup_classes(self, dd)
+        GridIndex._setup_classes(self, dd)
         self.object_types.sort()
 
 class ExtractedParameterFile(Dataset):

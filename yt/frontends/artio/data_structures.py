@@ -33,7 +33,7 @@ from yt.fields.particle_fields import \
 
 from yt.funcs import *
 from yt.geometry.geometry_handler import \
-    GeometryHandler, YTDataChunk
+    Index, YTDataChunk
 import yt.geometry.particle_deposit as particle_deposit
 from yt.data_objects.static_output import \
     Dataset
@@ -161,7 +161,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
         if vals is None: return
         return np.asfortranarray(vals)
 
-class ARTIOGeometryHandler(GeometryHandler):
+class ARTIOIndex(Index):
 
     def __init__(self, pf, data_style='artio'):
         self.data_style = data_style
@@ -172,7 +172,7 @@ class ARTIOGeometryHandler(GeometryHandler):
 
         self.max_level = pf.max_level
         self.float_type = np.float64
-        super(ARTIOGeometryHandler, self).__init__(pf, data_style)
+        super(ARTIOIndex, self).__init__(pf, data_style)
 
     @property
     def max_range(self):
@@ -236,7 +236,7 @@ class ARTIOGeometryHandler(GeometryHandler):
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        super(ARTIOGeometryHandler, self)._setup_classes(dd)
+        super(ARTIOIndex, self)._setup_classes(dd)
         self.object_types.sort()
 
     def _identify_base_chunk(self, dobj):
@@ -327,7 +327,7 @@ class ARTIOGeometryHandler(GeometryHandler):
 
 class ARTIODataset(Dataset):
     _handle = None
-    _hierarchy_class = ARTIOGeometryHandler
+    _hierarchy_class = ARTIOIndex
     _field_info_class = ARTIOFieldInfo
     _particle_mass_name = "particle_mass"
     _particle_coordinates_name = "Coordinates"
