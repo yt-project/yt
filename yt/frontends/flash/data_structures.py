@@ -178,7 +178,7 @@ class FLASHHierarchy(GridIndex):
         self.max_level = self.grid_levels.max()
 
 class FLASHDataset(Dataset):
-    _hierarchy_class = FLASHHierarchy
+    _index_class = FLASHHierarchy
     _field_info_class = FLASHFieldInfo
     _handle = None
     

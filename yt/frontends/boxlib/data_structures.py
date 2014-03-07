@@ -360,7 +360,7 @@ class BoxlibDataset(Dataset):
     This class is a stripped down class that simply reads and parses
     *filename*, without looking at the Boxlib hierarchy.
     """
-    _hierarchy_class = BoxlibHierarchy
+    _index_class = BoxlibHierarchy
     _field_info_class = BoxlibFieldInfo
     _output_prefix = None
 
@@ -588,7 +588,7 @@ class BoxlibDataset(Dataset):
         self.velocity_unit = YTQuantity(1.0, "cm/s")
 
     def _setup1d(self):
-#        self._hierarchy_class = BoxlibHierarchy1D
+#        self._index_class = BoxlibHierarchy1D
 #        self._fieldinfo_fallback = Orion1DFieldInfo
         self.domain_left_edge = \
             np.concatenate([self.domain_left_edge, [0.0, 0.0]])
@@ -602,7 +602,7 @@ class BoxlibDataset(Dataset):
         self.periodicity = ensure_tuple(tmp)
         
     def _setup2d(self):
-#        self._hierarchy_class = BoxlibHierarchy2D
+#        self._index_class = BoxlibHierarchy2D
 #        self._fieldinfo_fallback = Orion2DFieldInfo
         self.domain_left_edge = \
             np.concatenate([self.domain_left_edge, [0.0]])
@@ -684,7 +684,7 @@ class OrionHierarchy(BoxlibHierarchy):
                 
 class OrionDataset(BoxlibDataset):
 
-    _hierarchy_class = OrionHierarchy
+    _index_class = OrionHierarchy
 
     def __init__(self, output_dir,
                  cparam_filename = "inputs",
@@ -800,7 +800,7 @@ class NyxHierarchy(BoxlibHierarchy):
 
 class NyxDataset(BoxlibDataset):
 
-    _hierarchy_class = NyxHierarchy
+    _index_class = NyxHierarchy
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):

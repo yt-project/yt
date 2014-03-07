@@ -438,7 +438,7 @@ class RAMSESIndex(OctreeIndex):
             yield YTDataChunk(dobj, "io", [subset], None, cache = cache)
 
 class RAMSESDataset(Dataset):
-    _hierarchy_class = RAMSESIndex
+    _index_class = RAMSESIndex
     _field_info_class = RAMSESFieldInfo
     _particle_mass_name = "ParticleMass"
     _particle_coordinates_name = "Coordinates"

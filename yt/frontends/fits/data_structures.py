@@ -134,7 +134,7 @@ class FITSHierarchy(GridIndex):
         self.io = io_registry[self.data_style](self.parameter_file)
 
 class FITSDataset(Dataset):
-    _hierarchy_class = FITSHierarchy
+    _index_class = FITSHierarchy
     _field_info_class = FITSFieldInfo
     _data_style = "fits"
     _handle = None

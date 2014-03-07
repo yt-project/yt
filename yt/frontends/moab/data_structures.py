@@ -65,7 +65,7 @@ class MoabHex8Hierarchy(UnstructuredIndex):
         self.num_grids = 1
 
 class MoabHex8Dataset(Dataset):
-    _hierarchy_class = MoabHex8Hierarchy
+    _index_class = MoabHex8Hierarchy
     _field_info_class = MoabFieldInfo
     periodicity = (False, False, False)
 
@@ -143,7 +143,7 @@ class PyneMeshHex8Hierarchy(UnstructuredIndex):
         self.num_grids = 1
 
 class PyneMoabHex8Dataset(Dataset):
-    _hierarchy_class = PyneMeshHex8Hierarchy
+    _index_class = PyneMeshHex8Hierarchy
     _fieldinfo_fallback = MoabFieldInfo
     _field_info_class = PyneFieldInfo
     periodicity = (False, False, False)

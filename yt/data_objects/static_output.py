@@ -232,9 +232,9 @@ class Dataset(object):
     @property
     def hierarchy(self):
         if self._instantiated_hierarchy is None:
-            if self._hierarchy_class == None:
+            if self._index_class == None:
                 raise RuntimeError("You should not instantiate Dataset.")
-            self._instantiated_hierarchy = self._hierarchy_class(
+            self._instantiated_hierarchy = self._index_class(
                 self, data_style=self.data_style)
             # Now we do things that we need an instantiated hierarchy for
             # ...first off, we create our field_info now.

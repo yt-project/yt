@@ -199,7 +199,7 @@ class ChomboHierarchy(GridIndex):
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
 
 class ChomboDataset(Dataset):
-    _hierarchy_class = ChomboHierarchy
+    _index_class = ChomboHierarchy
     _fieldinfo_fallback = ChomboFieldInfo
     _fieldinfo_known = KnownChomboFields
 

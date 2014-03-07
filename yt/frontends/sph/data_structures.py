@@ -77,7 +77,7 @@ class ParticleDataset(Dataset):
 
 
 class GadgetDataset(ParticleDataset):
-    _hierarchy_class = ParticleIndex
+    _index_class = ParticleIndex
     _file_class = GadgetBinaryFile
     _field_info_class = SPHFieldInfo
     _particle_mass_name = "Mass"
@@ -353,7 +353,7 @@ class TipsyFile(ParticleFile):
 
 
 class TipsyDataset(ParticleDataset):
-    _hierarchy_class = ParticleIndex
+    _index_class = ParticleIndex
     _file_class = TipsyFile
     _field_info_class = SPHFieldInfo
     _particle_mass_name = "Mass"
@@ -523,7 +523,7 @@ class HTTPParticleFile(ParticleFile):
     pass
 
 class HTTPStreamDataset(ParticleDataset):
-    _hierarchy_class = ParticleIndex
+    _index_class = ParticleIndex
     _file_class = HTTPParticleFile
     _field_info_class = SPHFieldInfo
     _particle_mass_name = "Mass"

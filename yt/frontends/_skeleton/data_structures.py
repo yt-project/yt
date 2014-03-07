@@ -95,7 +95,7 @@ class SkeletonHierarchy(AMRHierarchy):
         pass
 
 class SkeletonDataset(Dataset):
-    _hierarchy_class = SkeletonHierarchy
+    _index_class = SkeletonHierarchy
     _fieldinfo_fallback = SkeletonFieldInfo
     _fieldinfo_known = KnownSkeletonFields
     _handle = None

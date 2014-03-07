@@ -292,7 +292,7 @@ class StreamHierarchy(GridIndex):
 
 
 class StreamDataset(Dataset):
-    _hierarchy_class = StreamHierarchy
+    _index_class = StreamHierarchy
     _field_info_class = StreamFieldInfo
     _data_style = 'stream'
 
@@ -932,7 +932,7 @@ class StreamParticleFile(ParticleFile):
     pass
 
 class StreamParticlesDataset(StreamDataset):
-    _hierarchy_class = StreamParticleIndex
+    _index_class = StreamParticleIndex
     _file_class = StreamParticleFile
     _field_info_class = StreamFieldInfo
     _data_style = "stream_particles"
@@ -1103,7 +1103,7 @@ class StreamHexahedralHierarchy(UnstructuredIndex):
         self.field_list = list(set(self.stream_handler.get_fields()))
 
 class StreamHexahedralDataset(StreamDataset):
-    _hierarchy_class = StreamHexahedralHierarchy
+    _index_class = StreamHexahedralHierarchy
     _field_info_class = StreamFieldInfo
     _data_style = "stream_hexahedral"
 
@@ -1305,7 +1305,7 @@ class StreamOctreeHandler(OctreeIndex):
         self.field_list = list(fl)
 
 class StreamOctreeDataset(StreamDataset):
-    _hierarchy_class = StreamOctreeHandler
+    _index_class = StreamOctreeHandler
     _field_info_class = StreamFieldInfo
     _data_style = "stream_octree"
 

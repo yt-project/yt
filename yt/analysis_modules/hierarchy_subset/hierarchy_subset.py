@@ -317,7 +317,7 @@ class ExtractedHierarchy(GridIndex):
         self.object_types.sort()
 
 class ExtractedParameterFile(Dataset):
-    _hierarchy_class = ExtractedHierarchy
+    _index_class = ExtractedHierarchy
     data_style = "extracted"
     
     def __init__(self, base_pf, min_level, max_level = -1, offset = None):

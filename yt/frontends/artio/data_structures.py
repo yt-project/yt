@@ -327,7 +327,7 @@ class ARTIOIndex(Index):
 
 class ARTIODataset(Dataset):
     _handle = None
-    _hierarchy_class = ARTIOIndex
+    _index_class = ARTIOIndex
     _field_info_class = ARTIOFieldInfo
     _particle_mass_name = "particle_mass"
     _particle_coordinates_name = "Coordinates"

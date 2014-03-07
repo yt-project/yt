@@ -339,7 +339,7 @@ class AthenaHierarchy(GridIndex):
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
 
 class AthenaDataset(Dataset):
-    _hierarchy_class = AthenaHierarchy
+    _index_class = AthenaHierarchy
     _field_info_class = AthenaFieldInfo
     _data_style = "athena"
 

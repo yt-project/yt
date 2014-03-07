@@ -178,7 +178,7 @@ class GDFHierarchy(GridIndex):
 
 
 class GDFDataset(Dataset):
-    _hierarchy_class = GDFHierarchy
+    _index_class = GDFHierarchy
     _fieldinfo_fallback = GDFFieldInfo
     _fieldinfo_known = KnownGDFFields
 

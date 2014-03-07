@@ -639,7 +639,7 @@ class EnzoDataset(Dataset):
     """
     Enzo-specific output, set at a fixed time.
     """
-    _hierarchy_class = EnzoHierarchy
+    _index_class = EnzoHierarchy
     _field_info_class = EnzoFieldInfo
     _particle_mass_name = "ParticleMass"
     _particle_coordinates_name = "Coordinates"
@@ -669,14 +669,14 @@ class EnzoDataset(Dataset):
         Dataset.__init__(self, filename, data_style, file_style=file_style)
 
     def _setup_1d(self):
-        self._hierarchy_class = EnzoHierarchy1D
+        self._index_class = EnzoHierarchy1D
         self.domain_left_edge = \
             np.concatenate([[self.domain_left_edge], [0.0, 0.0]])
         self.domain_right_edge = \
             np.concatenate([[self.domain_right_edge], [1.0, 1.0]])
 
     def _setup_2d(self):
-        self._hierarchy_class = EnzoHierarchy2D
+        self._index_class = EnzoHierarchy2D
         self.domain_left_edge = \
             np.concatenate([self.domain_left_edge, [0.0]])
         self.domain_right_edge = \
@@ -895,7 +895,7 @@ class EnzoDataset(Dataset):
         return os.path.exists("%s.hierarchy" % args[0])
 
 class EnzoDatasetInMemory(EnzoDataset):
-    _hierarchy_class = EnzoHierarchyInMemory
+    _index_class = EnzoHierarchyInMemory
     _data_style = 'enzo_inline'
 
     def __new__(cls, *args, **kwargs):

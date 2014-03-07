@@ -169,7 +169,7 @@ class PlutoHierarchy(GridIndex):
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
 
 class PlutoDataset(Dataset):
-    _hierarchy_class = PlutoHierarchy
+    _index_class = PlutoHierarchy
     _fieldinfo_fallback = PlutoFieldInfo
     _fieldinfo_known = KnownPlutoFields
 

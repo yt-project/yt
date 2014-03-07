@@ -179,7 +179,7 @@ class ARTIndex(OctreeIndex):
 
 
 class ARTDataset(Dataset):
-    _hierarchy_class = ARTIndex
+    _index_class = ARTIndex
     _fieldinfo_fallback = ARTFieldInfo
     _fieldinfo_known = KnownARTFields
 
