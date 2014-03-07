@@ -21,7 +21,7 @@ them to apply radiative feedback, one could imagine calling it directly:
    pf = load("DD0010/DD0010")
    rt_grids = []
 
-   for grid in pf.grids:
+   for grid in pf.index.grids:
        rt_grid = radtrans.RegularBox(
             grid.LeftEdge, grid.RightEdge,
             grid["density"], grid["temperature"], grid["metallicity"])

@@ -513,7 +513,7 @@ class GridValuesTest(AnswerTestingTest):
 
     def run(self):
         hashes = {}
-        for g in self.pf.grids:
+        for g in self.pf.index.grids:
             hashes[g.id] = hashlib.md5(g[self.field].tostring()).hexdigest()
             g.clear_data()
         return hashes
@@ -569,7 +569,7 @@ class ParentageRelationshipsTest(AnswerTestingTest):
         result = {}
         result["parents"] = []
         result["children"] = []
-        for g in self.pf.grids:
+        for g in self.pf.index.grids:
             p = g.Parent
             if p is None:
                 result["parents"].append(None)

@@ -115,7 +115,7 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name, field_param
 
     # now add actual data, grid by grid
     g = fhandle["data"]     
-    for grid in pf.grids:
+    for grid in pf.index.grids:
 
         # set field parameters, if specified
         if field_parameters is not None:
@@ -203,7 +203,7 @@ def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
     ###
     f["grid_dimensions"] = pf.grid_dimensions
     f["grid_left_index"] = np.array(
-            [g.get_global_startindex() for g in pf.grids]
+            [g.get_global_startindex() for g in pf.index.grids]
     ).reshape(pf.grid_dimensions.shape[0], 3)
     f["grid_level"] = pf.grid_levels
     # @todo: Fill with proper values
@@ -215,7 +215,7 @@ def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
     ###
     
     g = f.create_group("data")
-    for grid in pf.grids:
+    for grid in pf.index.grids:
         # add group for this grid
         grid_group = g.create_group("grid_%010i" % (grid.id - grid._id_offset))
         # add group for the particles on this grid

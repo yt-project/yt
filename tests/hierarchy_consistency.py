@@ -14,7 +14,7 @@ class HierarchyConsistency(YTDatasetTest):
 
     def run(self):
         self.result = \
-            all(g in ensure_list(c.Parent) for g in self.pf.grids
+            all(g in ensure_list(c.Parent) for g in self.pf.index.grids
                                             for c in g.Children)
 
     def compare(self, old_result):
@@ -47,7 +47,7 @@ class GridRelationships(YTDatasetTest):
     def run(self):
         self.result = [[p.id for p in ensure_list(g.Parent) \
             if g.Parent is not None]
-            for g in self.pf.grids]
+            for g in self.pf.index.grids]
 
     def compare(self, old_result):
         if len(old_result) != len(self.result):
@@ -63,7 +63,7 @@ class GridGlobalIndices(YTDatasetTest):
 
     def run(self):
         self.result = na.array([g.get_global_startindex()
-                                for g in self.pf.grids])
+                                for g in self.pf.index.grids])
 
     def compare(self, old_result):
         self.compare_array_delta(old_result, self.result, 0.0)

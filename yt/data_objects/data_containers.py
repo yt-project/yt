@@ -1190,7 +1190,7 @@ class YTSelectedIndicesBase(YTSelectionContainer3D):
                                         # It is not cyclic
         if isinstance(indices, types.DictType):
             self._indices = indices
-            self._grids = self._base_region.pf.grids[self._indices.keys()]
+            self._grids = self._base_region.pf.index.grids[self._indices.keys()]
         else:
             self._grids = None
             self._base_indices = indices
@@ -1272,7 +1272,7 @@ class YTSelectedIndicesBase(YTSelectionContainer3D):
         ng = {}
         gs = set(self._indices.keys() + other._indices.keys())
         for g in gs:
-            grid = self.pf.grids[g]
+            grid = self.pf.index.grids[g]
             if g in other._indices and g in self._indices:
                 # We now join the indices
                 ind = np.zeros(grid.ActiveDimensions, dtype='bool')
@@ -1286,7 +1286,7 @@ class YTSelectedIndicesBase(YTSelectionContainer3D):
             # Okay we have indices
             if ind is not None: ind = ind.copy()
             ng[g] = ind
-        gl = self.pf.grids[list(gs)]
+        gl = self.pf.index.grids[list(gs)]
         gc = self.pf.grid_collection(
             self._base_region.get_field_parameter("center"), gl)
         return self.pf.extracted_region(gc, ng)

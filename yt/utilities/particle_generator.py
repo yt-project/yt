@@ -36,7 +36,7 @@ class ParticleGenerator(object) :
                            "\n".join(self.default_fields))
         self.index_index = self.field_list.index(("io", "particle_index"))
         
-        self.num_grids = self.pf.h.num_grids
+        self.num_grids = self.pf.index.num_grids
         self.NumberOfParticles = np.zeros((self.num_grids), dtype='int64')
         self.ParticleGridIndices = np.zeros(self.num_grids + 1, dtype='int64')
         
@@ -138,7 +138,7 @@ class ParticleGenerator(object) :
         >>> particles.map_grid_fields_to_particles(field_map)
         """
         pbar = get_pbar("Mapping fields to particles", self.num_grids)
-        for i, grid in enumerate(self.pf.grids) :
+        for i, grid in enumerate(self.pf.index.grids) :
             pbar.update(i)
             if self.NumberOfParticles[i] > 0:
                 start = self.ParticleGridIndices[i]
@@ -165,7 +165,7 @@ class ParticleGenerator(object) :
         and clobber=False, do not overwrite them, but add the new ones to them. 
         """
         grid_data = []
-        for i,g in enumerate(self.pf.grids) :
+        for i,g in enumerate(self.pf.index.grids) :
             data = {}
             if clobber :
                 data["number_of_particles"] = self.NumberOfParticles[i]

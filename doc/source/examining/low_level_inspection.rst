@@ -42,13 +42,13 @@ the following attributes:
    multiple a field by this attribute.
  * ``child_indices``: a mask of booleans, where False indicates no finer data
    is available.  This is essentially the inverse of ``child_mask``.
- * ``child_index_mask``: a mask of indices into the ``pf.grids`` array of the
+ * ``child_index_mask``: a mask of indices into the ``pf.index.grids`` array of the
    child grids.
  * ``LeftEdge``: the left edge, in native code coordinates, of this grid
  * ``RightEdge``: the right edge, in native code coordinates, of this grid
  * ``dds``: the width of a cell in this grid
  * ``id``: the id (not necessarily the index) of this grid.  Defined such that
-   subtracting the property ``_id_offset`` gives the index into ``pf.grids``.
+   subtracting the property ``_id_offset`` gives the index into ``pf.index.grids``.
  * ``NumberOfParticles``: the number of particles in this grid
  * ``OverlappingSiblings``: a list of sibling grids that this grid overlaps
    with.  Likely only defined for Octree-based codes.
@@ -64,7 +64,7 @@ To traverse a series of grids, this type of construction can be used:
 
 .. code-block:: python
 
-   g = pf.grids[1043]
+   g = pf.index.grids[1043]
    g2 = g.Children[1].Children[0]
    print g2.LeftEdge
 
@@ -84,7 +84,7 @@ normal, you can access the grid as you would a normal object:
 
 .. code-block:: python
 
-   g = pf.grids[1043]
+   g = pf.index.grids[1043]
    print g["density"]
    print g["density"].min()
 
@@ -93,7 +93,7 @@ instead.  This is somewhat more low-level.
 
 .. code-block:: python
 
-   g = pf.grids[1043]
+   g = pf.index.grids[1043]
    rho = pf.h.io.pop(g, "density")
 
 This field will be the raw data found in the file.

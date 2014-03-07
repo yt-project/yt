@@ -669,7 +669,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                 mylog.info('Setting bulk velocity with value at max %s.' % self.velocity_center[1])
                 max_val, maxi, mx, my, mz, mg = sphere.quantities['MaxLocation'](self.velocity_center[1])
                                                                                  
-                max_grid = self.pf.grids[mg]
+                max_grid = self.pf.index.grids[mg]
                 max_cell = np.unravel_index(maxi, max_grid.ActiveDimensions)
                 sphere.set_field_parameter('bulk_velocity', [max_grid['x-velocity'][max_cell],
                                                              max_grid['y-velocity'][max_cell],

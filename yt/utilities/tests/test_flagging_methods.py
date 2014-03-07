@@ -8,5 +8,5 @@ def setup():
 
 def test_over_density():
     od_flag = flagging_method_registry["overdensity"](0.75) 
-    criterion = (pf.grids[0]["density"] > 0.75)
-    assert( np.all( od_flag(pf.grids[0]) == criterion) )
+    criterion = (pf.index.grids[0]["density"] > 0.75)
+    assert( np.all( od_flag(pf.index.grids[0]) == criterion) )

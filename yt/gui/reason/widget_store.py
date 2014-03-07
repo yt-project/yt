@@ -105,7 +105,7 @@ class WidgetStore(dict):
         dimensions = pf.grid_dimensions
         cell_counts = pf.grid_dimensions.prod(axis=1)
         # This is annoying, and not ... that happy for memory.
-        i = pf.grids[0]._id_offset
+        i = pf.index.grids[0]._id_offset
         vals = []
         for i, (L, LE, RE, dim, cell) in enumerate(zip(
             levels, left_edge, right_edge, dimensions, cell_counts)):

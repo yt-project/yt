@@ -491,7 +491,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         if len(gen) > 0: self._generate_fields(gen)
 
     def _split_fields(self, fields_to_get):
-        fill, gen = self.pf.h._split_fields(fields_to_get)
+        fill, gen = self.index._split_fields(fields_to_get)
         particles = []
         for field in gen:
             finfo = self.pf._get_field_info(*field)

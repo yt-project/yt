@@ -36,7 +36,7 @@ def setup():
     ytcfg["yt", "__withintesting"] = "True"
 
 def full_szpack3d(pf, xo):
-    data = pf.grids[0]
+    data = pf.index.grids[0]
     dz = pf.h.get_smallest_dx().in_units("cm")
     nx,ny,nz = data["density"].shape
     dn = np.zeros((nx,ny,nz))

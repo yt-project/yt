@@ -51,7 +51,7 @@ def test_covering_grid():
             yield assert_equal, cg["ones"].min(), 1.0
             yield assert_equal, cg["grid_level"], 0
             yield assert_equal, cg["cell_volume"].sum(), pf.domain_width.prod()
-            for g in pf.grids:
+            for g in pf.index.grids:
                 di = g.get_global_startindex()
                 dd = g.ActiveDimensions
                 for i in range(dn):
@@ -71,7 +71,7 @@ def test_smoothed_covering_grid():
             yield assert_equal, cg["ones"].max(), 1.0
             yield assert_equal, cg["ones"].min(), 1.0
             yield assert_equal, cg["cell_volume"].sum(), pf.domain_width.prod()
-            for g in pf.grids:
+            for g in pf.index.grids:
                 if level != g.Level: continue
                 di = g.get_global_startindex()
                 dd = g.ActiveDimensions

@@ -147,7 +147,7 @@ class RadMC3DWriter:
         self.layers.append(base_layer)
         self.cell_count += np.product(pf.domain_dimensions)
 
-        sorted_grids = sorted(pf.grids, key=lambda x: x.Level)
+        sorted_grids = sorted(pf.index.grids, key=lambda x: x.Level)
         for grid in sorted_grids:
             if grid.Level <= self.max_level:
                 self._add_grid_to_layers(grid)

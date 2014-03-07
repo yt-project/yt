@@ -69,7 +69,7 @@ The code snippet below finds the location of every star under 10 Myr and looks u
 
 	for x,a in enumerate(zip(pos,age)): #loop over stars
 	    center = x*pf['kpc']
-	    grid,idx = find_cell(pf.grids[0],center)
+	    grid,idx = find_cell(pf.index.grids[0],center)
 	    pk[i] = grid['Pk'][idx]
 
 This code is how Sunrise calculates the pressure, so we can add our own derived field:

@@ -207,8 +207,8 @@ def prepare_octree(pf,ile,start_level=0,debug=True,dd=None,center=None):
     for l in range(100): 
         levels_finest[l]=0
         levels_all[l]=0
-    pbar = get_pbar("Initializing octs ",len(pf.grids))
-    for gi,g in enumerate(pf.grids):
+    pbar = get_pbar("Initializing octs ",len(pf.index.grids))
+    for gi,g in enumerate(pf.index.grids):
         ff = np.array([g[f] for f in fields])
         og = amr_utils.OctreeGrid(
                 g.child_index_mask.astype('int32'),
