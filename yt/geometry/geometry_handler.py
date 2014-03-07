@@ -39,11 +39,6 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_splitter
 from yt.utilities.exceptions import YTFieldNotFound
 
-def _unsupported_object(pf, obj_name):
-    def _raise_unsupp(*args, **kwargs):
-        raise YTObjectNotImplemented(pf, obj_name)
-    return _raise_unsupp
-
 class Index(ParallelAnalysisInterface):
     _global_mesh = True
     _unsupported_objects = ()

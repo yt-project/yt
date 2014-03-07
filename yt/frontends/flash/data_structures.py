@@ -197,14 +197,14 @@ class FLASHDataset(Dataset):
                 self._particle_handle = h5py.File(self.particle_filename, "r")
             except :
                 raise IOError(self.particle_filename)
-                                                                
-        Dataset.__init__(self, filename, dataset_type)
-        self.storage_filename = storage_filename
-
         # These should be explicitly obtained from the file, but for now that
         # will wait until a reorganization of the source tree and better
         # generalization.
         self.refine_by = 2
+                                                                
+        Dataset.__init__(self, filename, dataset_type)
+        self.storage_filename = storage_filename
+
         self.parameters["HydroMethod"] = 'flash' # always PPM DE
         self.parameters["Time"] = 1. # default unit is 1...
         

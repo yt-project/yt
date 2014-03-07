@@ -58,6 +58,11 @@ from yt.geometry.cylindrical_coordinates import \
 _cached_pfs = weakref.WeakValueDictionary()
 _pf_store = ParameterFileStore()
 
+def _unsupported_object(pf, obj_name):
+    def _raise_unsupp(*args, **kwargs):
+        raise YTObjectNotImplemented(pf, obj_name)
+    return _raise_unsupp
+
 class Dataset(object):
 
     default_fluid_type = "gas"
