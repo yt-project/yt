@@ -50,6 +50,11 @@ try:
 except ImportError:
     requests = None
 
+def _fix_unit_ordering(unit):
+    if isinstance(unit[0], types.StringTypes):
+        unit = unit[1], unit[0]
+    return unit
+
 class GadgetBinaryFile(ParticleFile):
     def __init__(self, pf, io, filename, file_id):
         with open(filename, "rb") as f:
@@ -197,36 +202,39 @@ class GadgetStaticOutput(ParticleStaticOutput):
         # Set a sane default for cosmological simulations.
         if self._unit_base is None and self.cosmological_simulation == 1:
             mylog.info("Assuming length units are in Mpc/h (comoving)")
-            self._unit_base = dict(length = ("Mpccm/h", 1.0))
+            self._unit_base = dict(length = (1.0, "Mpccm/h"))
         # The other same defaults we will use from the standard Gadget
         # defaults.
         unit_base = self._unit_base or {}
         if "length" in unit_base:
             length_unit = unit_base["length"]
         elif "UnitLength_in_cm" in unit_base:
-            length_unit = ("cm", unit_base["UnitLength_in_cm"])
+            length_unit = (unit_base["UnitLength_in_cm"], "cm")
         else:
             raise RuntimeError
-        self.length_unit = self.quan(length_unit[1], length_unit[0])
+        length_unit = _fix_unit_ordering(length_unit)
+        self.length_unit = self.quan(length_unit[0], length_unit[1])
 
         unit_base = self._unit_base or {}
         if "velocity" in unit_base:
             velocity_unit = unit_base["velocity"]
         elif "UnitVelocity_in_cm_per_s" in unit_base:
-            velocity_unit = ("cm/s", unit_base["UnitVelocity_in_cm_per_s"])
+            velocity_unit = (unit_base["UnitVelocity_in_cm_per_s"], "cm/s")
         else:
-            velocity_unit = ("cm/s", 1e5)
-        self.velocity_unit = self.quan(velocity_unit[1], velocity_unit[0])
+            velocity_unit = (1e5, "cm/s")
+        velocity_unit = _fix_unit_ordering(velocity_unit)
+        self.velocity_unit = self.quan(velocity_unit[0], velocity_unit[1])
         # We set hubble_constant = 1.0 for non-cosmology, so this is safe.
         # Default to 1e10 Msun/h if mass is not specified.
         if "mass" in unit_base:
             mass_unit = unit_base["mass"]
         elif "UnitMass_in_g" in unit_base:
-            mass_unit = ("g", unit_base["UnitMass_in_g"])
+            mass_unit = (unit_base["UnitMass_in_g"], "g")
         else:
             # Sane default
-            mass_unit = ("1e10*Msun/h", 1.0)
-        self.mass_unit = self.quan(mass_unit[1], mass_unit[0])
+            mass_unit = (1.0, "1e10*Msun/h")
+        mass_unit = _fix_unit_ordering(mass_unit)
+        self.mass_unit = self.quan(mass_unit[0], mass_unit[1])
         self.time_unit = self.length_unit / self.velocity_unit
 
     @classmethod
@@ -489,7 +497,7 @@ class TipsyStaticOutput(ParticleStaticOutput):
         # Set a sane default for cosmological simulations.
         if self._unit_base is None and self.cosmological_simulation == 1:
             mylog.info("Assuming length units are in Mpc/h (comoving)")
-            self._unit_base.update(dict(length = ("Mpccm/h", 1.0)))
+            self._unit_base.update(dict(length = (1.0, "Mpccm/h")))
         if self.cosmological_simulation:
             length_units = self._unit_base['length']
             DW = self.quan(1./length_units[1], length_units[0])
