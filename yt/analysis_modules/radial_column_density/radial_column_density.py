@@ -134,10 +134,10 @@ class RadialColumnDensity(ParallelAnalysisInterface):
         # specified radius. Column density inside the same cell as our 
         # center is kind of ill-defined, anyway.
         if self.base == 'lin':
-            self.bins = np.linspace(self.pf.h.get_smallest_dx(), self.max_radius,
+            self.bins = np.linspace(self.pf.index.get_smallest_dx(), self.max_radius,
                 self.steps)
         elif self.base == 'log':
-            self.bins = np.logspace(np.log10(self.pf.h.get_smallest_dx()),
+            self.bins = np.logspace(np.log10(self.pf.index.get_smallest_dx()),
                 np.log10(self.max_radius), self.steps)
     
     def _build_surfaces(self, field):

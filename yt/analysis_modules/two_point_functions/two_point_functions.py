@@ -118,7 +118,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         self.center = (pf.domain_right_edge + pf.domain_left_edge)/2.0
         # Figure out the range of ruler lengths.
         if length_range == None:
-            length_range = [math.sqrt(3) * self.pf.h.get_smallest_dx(),
+            length_range = [math.sqrt(3) * self.pf.index.get_smallest_dx(),
                 self.min_edge/2.]
         else:
             if len(length_range) != 2:
@@ -130,8 +130,8 @@ class TwoPointFunctions(ParallelAnalysisInterface):
                 mylog.info("Automatically adjusting length_range[1] to half the shortest box edge.")
         if length_range[0] == -1 or length_range[0] == -1.:
             mylog.info("Automatically adjusting length_range[0] to %1.5e." % \
-                (math.sqrt(3) * self.pf.h.get_smallest_dx()))
-            length_range[0] = math.sqrt(3) * self.pf.h.get_smallest_dx()
+                (math.sqrt(3) * self.pf.index.get_smallest_dx()))
+            length_range[0] = math.sqrt(3) * self.pf.index.get_smallest_dx()
         # Make the list of ruler lengths.
         if length_type == "lin":
             self.lengths = np.linspace(length_range[0], length_range[1],

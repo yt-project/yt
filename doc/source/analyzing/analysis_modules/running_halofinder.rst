@@ -522,7 +522,7 @@ The RockstarHaloFinder class has these options:
     the width of the smallest grid element in the simulation from the
     last data snapshot (i.e. the one where time has evolved the
     longest) in the time series:
-    ``pf_last.h.get_smallest_dx() * pf_last['mpch']``.
+    ``pf_last.index.get_smallest_dx() * pf_last['mpch']``.
   * ``total_particles``, if supplied, this is a pre-calculated
     total number of dark matter
     particles present in the simulation. For example, this is useful

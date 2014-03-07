@@ -144,7 +144,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         self.current_saved_grids = []
         self.bricks = []
         self.brick_dimensions = []
-        self.sdx = pf.h.get_smallest_dx()
+        self.sdx = pf.index.get_smallest_dx()
 
         self._initialized = False
         try:

@@ -28,7 +28,7 @@ class StandardRadialAnalysis(object):
         # will grab that from the sphere as well
         self.obj = pf.sphere(center, radius)
         if inner_radius is None:
-            inner_radius = pf.h.get_smallest_dx() * pf['cm']
+            inner_radius = pf.index.get_smallest_dx() * pf['cm']
         self.inner_radius = inner_radius
         self.outer_radius = self.obj.radius * pf['cm']
         self.n_bins = n_bins

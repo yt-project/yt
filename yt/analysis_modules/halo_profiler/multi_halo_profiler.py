@@ -575,7 +575,7 @@ class HaloProfiler(ParallelAnalysisInterface):
         newProfile = profile is None
         if newProfile:
 
-            r_min = 2 * self.pf.h.get_smallest_dx() * self.pf['mpc']
+            r_min = 2 * self.pf.index.get_smallest_dx() * self.pf['mpc']
             if (halo['r_max'] / r_min < PROFILE_RADIUS_THRESHOLD):
                 mylog.debug("Skipping halo with r_max / r_min = %f." % (halo['r_max']/r_min))
                 return None

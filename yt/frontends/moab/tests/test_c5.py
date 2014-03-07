@@ -36,7 +36,7 @@ def test_cantor_5():
     dso = [ None, ("sphere", ("c", (0.1, 'unitary'))),
                   ("sphere", ("c", (0.2, 'unitary')))]
     dd = pf.h.all_data()
-    yield assert_almost_equal, pf.h.get_smallest_dx(), 0.00411522633744843, 10
+    yield assert_almost_equal, pf.index.get_smallest_dx(), 0.00411522633744843, 10
     yield assert_equal, dd["x"].shape[0], 63*63*63
     yield assert_almost_equal, dd["CellVolumeCode"].sum(dtype="float64"), 1.0, 10
     for offset_1 in [1e-9, 1e-4, 0.1]:

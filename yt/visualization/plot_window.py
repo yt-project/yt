@@ -1329,7 +1329,7 @@ class PWViewerExtJS(PlotWindow):
         if self._colorbar_valid == False:
             addl_keys['colorbar_image'] = self._get_cbar_image()
             self._colorbar_valid = True
-        min_zoom = 200*self.pf.h.get_smallest_dx() * self.pf['unitary']
+        min_zoom = 200*self.pf.index.get_smallest_dx() * self.pf['unitary']
         for field in fields:
             to_plot = apply_colormap(self._frb[field],
                 func = self._field_transform[field],
@@ -1443,7 +1443,7 @@ class PWViewerExtJS(PlotWindow):
         # We accept value from 0..100, and assume it has been set from the
         # scroll bar.  In that case, we undo the logic for calcualting
         # 'zoom_fac' from above.
-        min_val = 200*self.pf.h.get_smallest_dx()
+        min_val = 200*self.pf.index.get_smallest_dx()
         unit = self.pf['unitary']
         width = (min_val**(value/100.0))/unit
         self.set_width(width)
