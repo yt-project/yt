@@ -311,11 +311,6 @@ class ExtractedHierarchy(GridIndex):
     def _initialize_data_storage(self):
         self._data_file = None
 
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        GridIndex._setup_classes(self, dd)
-        self.object_types.sort()
-
 class ExtractedParameterFile(Dataset):
     _index_class = ExtractedHierarchy
     dataset_type = "extracted"

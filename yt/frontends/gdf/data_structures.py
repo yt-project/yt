@@ -96,11 +96,6 @@ class GDFHierarchy(GridIndex):
         self.field_list = h5f['field_types'].keys()
         h5f.close()
 
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        GridIndex._setup_classes(self, dd)
-        self.object_types.sort()
-
     def _count_grids(self):
         h5f = h5py.File(self.index_filename, 'r')
         self.num_grids = h5f['/grid_parent_id'].shape[0]

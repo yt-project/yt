@@ -217,11 +217,6 @@ class EnzoHierarchy(GridIndex):
         # sync it back
         self.parameter_file.dataset_type = self.dataset_type
 
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        GridIndex._setup_classes(self, dd)
-        self.object_types.sort()
-
     def _count_grids(self):
         self.num_grids = None
         test_grid = test_grid_id = None

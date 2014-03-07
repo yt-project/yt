@@ -347,11 +347,6 @@ class BoxlibHierarchy(GridIndex):
         # avoid that possibility.
         self.field_order = [f for f in self.field_list]
 
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        GridIndex._setup_classes(self, dd)
-        self.object_types.sort()
-
     def _setup_data_io(self):
         self.io = io_registry[self.dataset_type](self.parameter_file)
 

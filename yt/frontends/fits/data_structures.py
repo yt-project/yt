@@ -78,11 +78,6 @@ class FITSHierarchy(GridIndex):
             if h.is_image:
                 self.field_list.append(("fits", h.name.lower()))
                         
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        GridIndex._setup_classes(self, dd)
-        self.object_types.sort()
-
     def _count_grids(self):
         self.num_grids = self.pf.nprocs
                 
