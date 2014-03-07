@@ -273,6 +273,10 @@ class Dataset(object):
                 v = getattr(self, a)
                 mylog.info("Parameters: %-25s = %s", a, v)
 
+    @parallel_root_only
+    def print_stats(self):
+        self.index.print_stats()
+
     @property
     def field_list(self):
         return self.index.field_list
