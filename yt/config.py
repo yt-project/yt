@@ -48,7 +48,6 @@ ytcfg_defaults = dict(
     enzo_db = '',
     hub_url = 'https://hub.yt-project.org/upload',
     hub_api_key = '',
-    ipython_notebook = 'False',
     notebook_password = '',
     answer_testing_tolerance = '3',
     answer_testing_bitwise = 'False',

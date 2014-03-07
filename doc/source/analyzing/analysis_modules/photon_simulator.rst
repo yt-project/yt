@@ -35,7 +35,7 @@ Creating an X-ray observation of a dataset on disk
 
 .. code:: python
 
-    from yt.imods import *
+    from yt.mods import *
     from yt.analysis_modules.api import *
     from yt.utilities.cosmology import Cosmology
 
