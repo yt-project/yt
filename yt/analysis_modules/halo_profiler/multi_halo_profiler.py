@@ -31,7 +31,7 @@ from .halo_filters import \
     VirialFilter
 from .centering_methods import \
     centering_registry
-from yt.fields.field_info_container import \
+from yt.fields.local_fields import \
     add_field
 from yt.data_objects.static_output import \
     StaticOutput

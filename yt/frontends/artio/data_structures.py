@@ -331,12 +331,12 @@ class ARTIOStaticOutput(StaticOutput):
     _field_info_class = ARTIOFieldInfo
     _particle_mass_name = "particle_mass"
     _particle_coordinates_name = "Coordinates"
-    max_range = 1024
 
     def __init__(self, filename, data_style='artio',
-                 storage_filename=None):
+                 storage_filename=None, max_range = 1024):
         if self._handle is not None:
             return
+        self.max_range = max_range
         self.fluid_types += ("artio",)
         self._filename = filename
         self._fileset_prefix = filename[:-4]

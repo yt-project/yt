@@ -8,7 +8,11 @@ radio telescope data, weather simulations, and nuclear engineering simulations.
 yt is developed in Python under the open-source model. 
 
 We provide sample data for *many* of the different codes supported by ``yt``.
-See :ref:`getting-sample-data` for more information.
+See :ref:`getting-sample-data` for more information, or just stop by our `data
+page <http://yt-project.org/data/>`_.
+
+If you're coming to ``yt`` 3.0 from previous versions of ``yt``, be sure to
+check out :ref:`yt3differences`.
 
 Table of Contents
 -----------------
@@ -35,6 +39,16 @@ Table of Contents
        </td>
        <td width="75%">
          <p class="linkdescr">Demonstrations of what yt can do</p>
+       </td>
+     </tr>
+     <tr valign="top">
+       <td width="25%">
+         <p>
+           <a href="yt3differences.html">yt 3.0</a>
+         </p>
+       </td>
+       <td width="75%">
+         <p class="linkdescr">Differences from past versions</p>
        </td>
      </tr>
      <tr valign="top">
@@ -114,6 +128,7 @@ Table of Contents
 
    installing
    yt Bootcamp <bootcamp/index>
+   yt3differences
    cookbook/index
    visualizing/index
    analyzing/index

@@ -425,7 +425,7 @@ class EnzoHierarchy(GridGeometryHandler):
             for apt in aps:
                 dd = field._copy_def()
                 dd.pop("name")
-                add_field((apt, fname), **dd)
+                self.pf.field_info.add_field((apt, fname), **dd)
 
     def _detect_output_fields(self):
         self.field_list = []
