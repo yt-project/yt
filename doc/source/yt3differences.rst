@@ -25,11 +25,10 @@ Here's a quick reference for how to update your code to work with yt-3.0.
     fluid_name)``.
   * Fields on-disk will be in code units, and will be named ``(code_name,
     FieldName)``.
-  * Fields that yt knows about will be of the form ``("gas", "density")``,
-    where the
   * Previously, yt would use "Enzo-isms" for field names.  We now very
     specifically define fields as lowercase with underscores.  For instance,
     what used to be ``VelocityMagnitude`` would not be ``velocity_magnitude``.
+  * Particles are either named by their type or default to the type ``io``.
   * Axis names are now at the *end* of field names, not the beginning.
     ``x-velocity`` is now ``velocity_x``.
   * Any derived quantities that *always* returned lists (like ``Extrema``,
@@ -65,16 +64,35 @@ easily.
 Particle Deposition
 +++++++++++++++++++
 
+In yt-3.0, we provide mechanisms for describing and creating fields generated
+by depositing particles into one or a handful of zones.  This could include
+deposited mass or density, average values, and the like.  For instance, the
+total stellar mass in some region can be deposited and averaged.
+
 Particle Filters and Unions
 +++++++++++++++++++++++++++
+
+Throughout yt, the notion of "particle types" has been more deeply embedded.
+These particle types can be dynamically defined at runtime, for instance by
+taking a filter of a given type or the union of several different types.  This
+might be, for instance, defining a new type called ``young_stars`` that is a
+filtering of ``star_age`` to be fewer than a given threshold, or ``fast`` that
+filters based on the velocity of a particle.  Unions could be the joining of
+multiple types of particles -- the default union of which is ``all``,
+representing all particle types in the simulation.
 
 Units
 +++++
 
+yt now has units.  This is one of the bigger features, and in essence it means
+that you can convert units between anything.  See :ref:`units` for more
+information.
+
 Non-Cartesian Coordinates
 +++++++++++++++++++++++++
 
-Preliminary support for non-cartesian coordinates has been added.
+Preliminary support for non-cartesian coordinates has been added.  We expect
+this to be considerably solidified and expanded in yt 3.1.
 
 API Changes
 -----------
@@ -95,10 +113,17 @@ expressed through a two-key description.  For example::
 
 will return the gas field density.  This extends to particle types as well.  By
 default you do *not* need to use the field "type" key, but in case of ambiguity
-it will utilize the default value in its place.
+it will utilize the default value in its place.  This should therefore be
+identical to::
+
+   my_object["density"]
 
 Units of Fields
 +++++++++++++++
+
+Fields now are all subclasses of NumPy arrays, the ``YTArray``, which carries
+along with it units.  This means that if you want to manipulate fields, you
+have to modify them in a unitful way.
 
 Field Info
 ++++++++++
@@ -146,4 +171,3 @@ Boolean Regions
 +++++++++++++++
 
 Boolean regions are not yet implemented in yt 3.0.
-
