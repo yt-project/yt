@@ -178,7 +178,7 @@ class ParticleGenerator(object) :
                     # We have particles in this grid
                     if g.NumberOfParticles > 0 and not clobber:
                         # Particles already exist
-                        if field in self.pf.h.field_list :
+                        if field in self.pf.field_list :
                             # This field already exists
                             prev_particles = g[field]
                         else :

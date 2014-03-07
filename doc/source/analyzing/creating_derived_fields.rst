@@ -88,7 +88,7 @@ http://yt-project.org/data :
 
    >>> from yt.mods import *
    >>> pf = load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100")
-   >>> pf.h.field_list
+   >>> pf.field_list
    ['dens', 'temp', 'pres', 'gpot', 'divb', 'velx', 'vely', 'velz', 'magx', 'magy', 'magz', 'magp']
    >>> pf.field_info['dens']._units
    '\\rm{g}/\\rm{cm}^{3}'

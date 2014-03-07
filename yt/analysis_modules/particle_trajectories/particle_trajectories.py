@@ -93,7 +93,7 @@ class ParticleTrajectories(object):
         # and then return the field. 
 
         pf = self.pfs[0]
-        self.derived_field_list = pf.h.derived_field_list
+        self.derived_field_list = pf.derived_field_list
         self.particle_fields = [field for field in self.derived_field_list
                                 if pf.field_info[field].particle_type]
 

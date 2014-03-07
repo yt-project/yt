@@ -103,7 +103,7 @@ class TestFieldAccess(object):
         self.nproc = nproc
 
     def __call__(self):
-        if self.field_name in base_pf.h.field_list:
+        if self.field_name in base_pf.field_list:
             # Don't know how to test this.  We need some way of having fields
             # that are fallbacks be tested, but we don't have that now.
             return

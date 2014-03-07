@@ -45,7 +45,7 @@ class IOHandlerAthena(BaseIOHandler):
             grid_dims = grid.ActiveDimensions
             grid0_ncells = np.prod(grid.index.grid_dimensions[0,:])
             read_table_offset = get_read_table_offset(f)
-            for field in self.pf.h.field_list:
+            for field in self.pf.field_list:
                 dtype, offsetr = grid.index._field_map[field]
                 if grid_ncells != grid0_ncells:
                     offset = offsetr + ((grid_ncells-grid0_ncells) * (offsetr//grid0_ncells))

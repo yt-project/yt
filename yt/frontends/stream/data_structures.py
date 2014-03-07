@@ -842,7 +842,7 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
 
     if number_of_particles > 0 :
         pdata = {}
-        for field in base_pf.h.field_list :
+        for field in base_pf.field_list :
             if not isinstance(field, tuple):
                 field = ("unknown", field)
             fi = base_pf._get_field_info(*field)
@@ -868,7 +868,7 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
                        right_edge = g.RightEdge,
                        level = g.Level,
                        dimensions = g.ActiveDimensions )
-            for field in pf.h.field_list:
+            for field in pf.field_list:
                 if not isinstance(field, tuple):
                     field = ("unknown", field)
                 fi = pf._get_field_info(*field)
@@ -884,7 +884,7 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
                 grid = pf.smoothed_covering_grid(g.Level + 1, LE, dims)
                 gd = dict(left_edge = LE, right_edge = grid.right_edge,
                           level = g.Level + 1, dimensions = dims)
-                for field in pf.h.field_list:
+                for field in pf.field_list:
                     if not isinstance(field, tuple):
                         field = ("unknown", field)
                     fi = pf._get_field_info(*field)

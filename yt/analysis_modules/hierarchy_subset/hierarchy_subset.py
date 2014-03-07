@@ -163,7 +163,7 @@ class OldExtractedHierarchy(object):
         grid_node.attrs['numGhostzones'] = np.zeros(3, dtype='int32')
         grid_node.attrs['dims'] = grid.ActiveDimensions[::-1].astype('int32')
         if not self.always_copy and self.pf.h.dataset_type == 6 \
-           and field in self.pf.h.field_list:
+           and field in self.pf.field_list:
             if grid.index.dataset_type == -1: # constructed grid
                 # if we can get conversion in amira we won't need to do this
                 ff = grid[field].astype('float32')
@@ -300,13 +300,13 @@ class ExtractedHierarchy(GridIndex):
         return (val - self.left_edge_offset)*self.mult_factor
 
     def _detect_output_fields(self):
-        self.field_list = self.base_pf.h.field_list[:]
+        self.field_list = self.base_pf.field_list[:]
 
     def _setup_unknown_fields(self):
         pass # Done in the base_h
 
     def _setup_derived_fields(self):
-        self.derived_field_list = self.base_pf.h.derived_field_list[:]
+        self.derived_field_list = self.base_pf.derived_field_list[:]
 
     def _initialize_data_storage(self):
         self._data_file = None

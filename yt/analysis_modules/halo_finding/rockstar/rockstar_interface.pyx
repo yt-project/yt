@@ -182,7 +182,7 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
 
     SCALE_NOW = 1.0/(pf.current_redshift+1.0)
     # Now we want to grab data from only a subset of the grids for each reader.
-    all_fields = set(pf.h.derived_field_list + pf.h.field_list)
+    all_fields = set(pf.derived_field_list + pf.field_list)
 
     # First we need to find out how many this reader is going to read in
     # if the number of readers > 1.

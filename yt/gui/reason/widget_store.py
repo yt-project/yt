@@ -69,7 +69,7 @@ class WidgetStore(dict):
         pw = PWViewerExtJS(sl, (DLE[xax], DRE[xax], DLE[yax], DRE[yax]), 
                            setup = False, plot_type='SlicePlot')
         pw.set_current_field(field)
-        field_list = list(set(pf.h.field_list + pf.h.derived_field_list))
+        field_list = list(set(pf.field_list + pf.derived_field_list))
         field_list = [dict(text = f) for f in sorted(field_list)]
         cb = pw._get_cbar_image()
         trans = pw._field_transform[pw._current_field].name
@@ -89,7 +89,7 @@ class WidgetStore(dict):
         pw = PWViewerExtJS(proj, (DLE[xax], DRE[xax], DLE[yax], DRE[yax]),
                            setup = False, plot_type='ProjectionPlot')
         pw.set_current_field(field)
-        field_list = list(set(pf.h.field_list + pf.h.derived_field_list))
+        field_list = list(set(pf.field_list + pf.derived_field_list))
         field_list = [dict(text = f) for f in sorted(field_list)]
         cb = pw._get_cbar_image()
         widget_data = {'fields': field_list,
@@ -155,8 +155,8 @@ class WidgetStore(dict):
     def create_scene(self, pf):
         '''Creates 3D XTK-based scene'''
         widget = SceneWidget(pf)
-        field_list = list(set(pf.h.field_list
-                            + pf.h.derived_field_list))
+        field_list = list(set(pf.field_list
+                            + pf.derived_field_list))
         field_list.sort()
         widget_data = {'title':'Scene for %s' % pf,
                        'fields': field_list}
@@ -171,8 +171,8 @@ class ParameterFileWidget(object):
         self.pf = weakref.proxy(pf)
 
     def _field_list(self):
-        field_list = list(set(self.pf.h.field_list
-                            + self.pf.h.derived_field_list))
+        field_list = list(set(self.pf.field_list
+                            + self.pf.derived_field_list))
         field_list.sort()
         return [dict(text = field) for field in field_list]
 

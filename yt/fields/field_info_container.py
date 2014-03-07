@@ -142,8 +142,8 @@ class FieldInfoContainer(dict):
         deps, unavailable = self.check_derived_fields(loaded)
         self.pf.field_dependencies.update(deps)
         # Note we may have duplicated
-        dfl = set(self.pf.h.derived_field_list).union(deps.keys())
-        self.pf.h.derived_field_list = list(sorted(dfl))
+        dfl = set(self.pf.derived_field_list).union(deps.keys())
+        self.pf.derived_field_list = list(sorted(dfl))
         return loaded, unavailable
 
     def add_output_field(self, name, **kwargs):
@@ -283,6 +283,6 @@ class FieldInfoContainer(dict):
             fd.requested = set(fd.requested)
             deps[field] = fd
             mylog.debug("Succeeded with %s (needs %s)", field, fd.requested)
-        dfl = set(self.pf.h.derived_field_list).union(deps.keys())
-        self.pf.h.derived_field_list = list(sorted(dfl))
+        dfl = set(self.pf.derived_field_list).union(deps.keys())
+        self.pf.derived_field_list = list(sorted(dfl))
         return deps, unavailable

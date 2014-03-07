@@ -38,7 +38,7 @@ def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
                        particle_type_name)
 
     # now add the fields one-by-one
-    for field_name in pf.h.field_list:
+    for field_name in pf.field_list:
         _write_field_to_gdf(pf, f, field_name, particle_type_name)
 
     # don't forget to close the file.

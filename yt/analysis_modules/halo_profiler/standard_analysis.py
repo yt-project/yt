@@ -51,7 +51,7 @@ class StandardRadialAnalysis(object):
             else:
                 field, weight = fspec, "CellMassMsun"
             by_weights[weight].append(field)
-        known_fields = set(self.pf.h.field_list + self.pf.h.derived_field_list)
+        known_fields = set(self.pf.field_list + self.pf.derived_field_list)
         for weight, fields in by_weights.items():
             fields = set(fields)
             fields.intersection_update(known_fields)

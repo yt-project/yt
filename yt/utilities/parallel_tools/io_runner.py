@@ -55,9 +55,9 @@ class IOCommunicator(BaseIOHandler):
 
     def initialize_data(self):
         pf = self.pf
-        fields = [f for f in pf.h.field_list
+        fields = [f for f in pf.field_list
                   if not pf.field_info[f].particle_type]
-        pfields = [f for f in pf.h.field_list
+        pfields = [f for f in pf.field_list
                    if pf.field_info[f].particle_type]
         # Preload is only defined for Enzo ...
         if pf.h.io._dataset_type == "enzo_packed_3d":

@@ -107,8 +107,8 @@ potentially-accessible derived fields is available in the property
 .. code-block:: python
 
    pf = load("my_data")
-   print pf.h.field_list
-   print pf.h.derived_field_list
+   print pf.field_list
+   print pf.derived_field_list
 
 When a field is added, it is added to a container that hangs off of the
 parameter file, as well.  All of the field creation options

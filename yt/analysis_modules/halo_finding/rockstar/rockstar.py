@@ -244,7 +244,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
 
         dd = tpf.h.all_data()
         # Get DM particle mass.
-        all_fields = set(tpf.h.derived_field_list + tpf.h.field_list)
+        all_fields = set(tpf.derived_field_list + tpf.field_list)
         has_particle_type = ("particle_type" in all_fields)
 
         particle_mass = self.particle_mass

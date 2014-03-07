@@ -23,7 +23,7 @@ class TestFieldStatistics(YTDatasetTest):
     def run(self):
         # We're going to calculate the field statistics for every single field.
         results = {}
-        for field in self.pf.h.field_list:
+        for field in self.pf.field_list:
             # Do it here so that it gets wiped each iteration
             dd = self.pf.h.all_data() 
             results[field] = (dd[field].std(),
@@ -45,7 +45,7 @@ class TestAllProjections(YTDatasetTest):
 
     def run(self):
         results = {}
-        for field in self.pf.h.field_list:
+        for field in self.pf.field_list:
             if self.pf.field_info[field].particle_type: continue
             results[field] = []
             for ax in range(3):
