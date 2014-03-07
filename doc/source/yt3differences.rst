@@ -1,3 +1,5 @@
+.. _yt3differences:
+
 What's New and Different in yt 3.0?
 ===================================
 
