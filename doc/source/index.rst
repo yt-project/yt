@@ -128,6 +128,7 @@ Table of Contents
 
    installing
    yt Bootcamp <bootcamp/index>
+   yt3differences
    cookbook/index
    visualizing/index
    analyzing/index
