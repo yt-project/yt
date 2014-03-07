@@ -177,7 +177,7 @@ class EnzoGridGZ(EnzoGrid):
         sl = [slice(start_zone, end_zone) for i in range(3)]
         if fields is None: return cube
         for field in ensure_list(fields):
-            if field in self.index.field_list:
+            if field in self.field_list:
                 conv_factor = 1.0
                 if self.pf.field_info.has_key(field):
                     conv_factor = self.pf.field_info[field]._convert_function(self)

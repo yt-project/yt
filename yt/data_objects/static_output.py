@@ -270,8 +270,8 @@ class Dataset(object):
 
     def create_field_info(self):
         self.field_dependencies = {}
-        self.index.derived_field_list = []
-        self.field_info = self._field_info_class(self, self.index.field_list)
+        self.derived_field_list = []
+        self.field_info = self._field_info_class(self, self.field_list)
         self.coordinates.setup_fields(self.field_info)
         self.field_info.setup_fluid_fields()
         for ptype in self.particle_types:
@@ -315,7 +315,7 @@ class Dataset(object):
         self.particle_types += (union.name,)
         self.particle_unions[union.name] = union
         fields = [ (union.name, field) for field in fields]
-        self.index.field_list.extend(fields)
+        self.field_list.extend(fields)
         # Give ourselves a chance to add them here, first, then...
         # ...if we can't find them, we set them up as defaults.
         new_fields = self.index._setup_particle_types([union.name])
@@ -424,7 +424,7 @@ class Dataset(object):
     @property
     def particle_fields_by_type(self):
         fields = defaultdict(list)
-        for field in self.index.field_list:
+        for field in self.field_list:
             if field[0] in self.particle_types_raw:
                 fields[field[0]].append(field[1])
         return fields
