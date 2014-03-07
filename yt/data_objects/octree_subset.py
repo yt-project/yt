@@ -272,7 +272,7 @@ class ParticleOctreeSubset(OctreeSubset):
         self.field_parameters = {}
         self.pf = pf
         self._index = self.pf.index
-        self.oct_handler = pf.h.oct_handler
+        self.oct_handler = pf.index.oct_handler
         self.min_ind = min_ind
         if max_ind == 0: max_ind = (1 << 63)
         self.max_ind = max_ind

@@ -196,7 +196,7 @@ class ParticleGenerator(object) :
                     # We don't have particles in this grid
                     data[field] = np.array([], dtype='float64')
             grid_data.append(data)
-        self.pf.h.update_data(grid_data)
+        self.pf.index.update_data(grid_data)
 
 class FromListParticleGenerator(ParticleGenerator) :
 
