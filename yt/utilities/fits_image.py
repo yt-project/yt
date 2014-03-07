@@ -56,7 +56,7 @@ class FITSImageBuffer(HDUList):
         --------
 
         >>> ds = load("sloshing_nomag2_hdf5_plt_cnt_0150")
-        >>> prj = ds.h.proj(2, "kT", weight_field="density")
+        >>> prj = ds.proj(2, "kT", weight_field="density")
         >>> frb = prj.to_frb((0.5, "Mpc"), 800)
         >>> # This example just uses the FRB and puts the coords in kpc.
         >>> f_kpc = FITSImageBuffer(frb, fields="kT", units="kpc")

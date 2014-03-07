@@ -165,7 +165,7 @@ Object Renaming
 Nearly all internal objects have been renamed.  Typically this means either
 removing ``AMR`` from the prefix or replacing it with ``YT``.  All names of
 objects remain the same for the purposes of selecting data and creating them;
-i.e., you will not need to change ``ds.h.sphere`` to something else.
+i.e., you will not need to change ``ds.sphere`` to something else.
 
 Boolean Regions
 +++++++++++++++
