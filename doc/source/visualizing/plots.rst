@@ -638,19 +638,14 @@ type:
 
 at the command line.  This will prompt you for a password (so that if you're on
 a shared user machine no one else can pretend to be you!) and then spawn an
-IPython notebook you can connect to.  You need to additionally change the
-import statement you use:
+IPython notebook you can connect to.
+
+If you want to see yt plots inline inside your notebook, you need only create a
+plot and then call ``.show()``:
 
 .. notebook-cell::
 
-   from yt.imods import *
-
-This will set up a number of helper functions and enable interactive plotting.
-Now when you create a plot window you can call ``.show()`` to see it inline:
-
-.. notebook-cell::
-
-   from yt.imods import *
+   from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
    p = ProjectionPlot(pf, "x", "density", center='m', width=(10,'kpc'),
                       weight_field='density')

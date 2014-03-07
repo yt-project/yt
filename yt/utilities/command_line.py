@@ -1487,13 +1487,6 @@ class YTNotebookCmd(YTCommand):
         print
         print "If you are using %s on your machine already, try -L8889:localhost:%s" % (app.port, app.port)
         print
-        print "Additionally, while in the notebook, we recommend you start by"
-        print "replacing 'yt.mods' with 'yt.imods' like so:"
-        print
-        print "    from yt.imods import *"
-        print
-        print "This will enable some IPython-specific extensions to yt."
-        print
         print "***************************************************************"
         print
         app.start()
