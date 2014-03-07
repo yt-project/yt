@@ -201,7 +201,7 @@ class EnzoHierarchy(GridIndex):
         else:
             self._bn = "%s.cpu%%04i"
         self.index_filename = os.path.abspath(
-            "%s.index" % (pf.parameter_filename))
+            "%s.hierarchy" % (pf.parameter_filename))
         if os.path.getsize(self.index_filename) == 0:
             raise IOError(-1,"File empty", self.index_filename)
         self.directory = os.path.dirname(self.index_filename)
@@ -885,9 +885,9 @@ class EnzoDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        if ("%s" % (args[0])).endswith(".index"):
+        if ("%s" % (args[0])).endswith(".hierarchy"):
             return True
-        return os.path.exists("%s.index" % args[0])
+        return os.path.exists("%s.hierarchy" % args[0])
 
 class EnzoDatasetInMemory(EnzoDataset):
     _index_class = EnzoHierarchyInMemory

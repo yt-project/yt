@@ -57,8 +57,9 @@ class AMRGridPatch(YTSelectionContainer):
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.id = id
-        self.pf = index.parameter_file  # weakref already
         self._child_mask = self._child_indices = self._child_index_mask = None
+        self.pf = index.parameter_file
+        self._index = index
         self.start_index = None
         self.filename = filename
         self._last_mask = None

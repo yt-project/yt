@@ -246,6 +246,7 @@ class Dataset(object):
     
     @property
     def h(self):
+        self.index
         return self
 
     @parallel_root_only
@@ -269,8 +270,8 @@ class Dataset(object):
 
     def create_field_info(self):
         self.field_dependencies = {}
-        self.h.derived_field_list = []
-        self.field_info = self._field_info_class(self, self.h.field_list)
+        self.index.derived_field_list = []
+        self.field_info = self._field_info_class(self, self.index.field_list)
         self.coordinates.setup_fields(self.field_info)
         self.field_info.setup_fluid_fields()
         for ptype in self.particle_types:
@@ -314,10 +315,10 @@ class Dataset(object):
         self.particle_types += (union.name,)
         self.particle_unions[union.name] = union
         fields = [ (union.name, field) for field in fields]
-        self.h.field_list.extend(fields)
+        self.index.field_list.extend(fields)
         # Give ourselves a chance to add them here, first, then...
         # ...if we can't find them, we set them up as defaults.
-        new_fields = self.h._setup_particle_types([union.name])
+        new_fields = self.index._setup_particle_types([union.name])
         rv = self.field_info.find_dependencies(new_fields)
 
     def add_particle_filter(self, filter):
@@ -328,12 +329,12 @@ class Dataset(object):
         if isinstance(filter, types.StringTypes):
             used = False
             for f in filter_registry[filter]:
-                used = self.h._setup_filtered_type(f)
+                used = self.index._setup_filtered_type(f)
                 if used:
                     filter = f
                     break
         else:
-            used = self.h._setup_filtered_type(filter)
+            used = self.index._setup_filtered_type(filter)
         if not used:
             self.known_filters.pop(n, None)
             return False
@@ -423,7 +424,7 @@ class Dataset(object):
     @property
     def particle_fields_by_type(self):
         fields = defaultdict(list)
-        for field in self.h.field_list:
+        for field in self.index.field_list:
             if field[0] in self.particle_types_raw:
                 fields[field[0]].append(field[1])
         return fields
