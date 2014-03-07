@@ -13,7 +13,7 @@ fns.sort()
 
 # Construct the time series object
 
-ts = TimeSeriesData.from_filenames(fns)
+ts = DatasetSeries.from_filenames(fns)
 
 storage = {}
 

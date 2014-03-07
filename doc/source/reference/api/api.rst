@@ -98,8 +98,8 @@ datasets.
 .. autosummary::
    :toctree: generated/
 
-   ~yt.data_objects.time_series.TimeSeriesData
-   ~yt.data_objects.time_series.TimeSeriesDataObject
+   ~yt.data_objects.time_series.DatasetSeries
+   ~yt.data_objects.time_series.DatasetSeriesObject
    ~yt.data_objects.time_series.TimeSeriesQuantitiesContainer
    ~yt.data_objects.time_series.AnalysisTaskProxy
 

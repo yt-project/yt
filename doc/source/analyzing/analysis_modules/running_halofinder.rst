@@ -496,7 +496,7 @@ Designing the python script itself is straightforward:
   files = glob.glob("Enzo_64/DD*/\*hierarchy")
   #hopefully the file name order is chronological
   files.sort()
-  ts = TimeSeriesData.from_filenames(files[:])
+  ts = DatasetSeries.from_filenames(files[:])
   rh = RockstarHaloFinder(ts)
   rh.run()
 
@@ -629,7 +629,7 @@ Here is an example ``user_script.py``:
         size = ytcfg.getint('yt','__topcomm_parallel_size')
 
         # Call rockstar.
-        ts = TimeSeriesData([pf])
+        ts = DatasetSeries([pf])
         outbase = "./rockstar_halos_%04d" % pf['NumberOfPythonTopGridCalls']
         rh = RockstarHaloFinder(ts, num_readers = size,
             outbase = outbase)

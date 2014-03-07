@@ -38,8 +38,8 @@ from profiles import \
     Profile3D
 
 from time_series import \
-    TimeSeriesData, \
-    TimeSeriesDataObject
+    DatasetSeries, \
+    DatasetSeriesObject
 
 from analyzer_objects import \
     AnalysisTask, analysis_task

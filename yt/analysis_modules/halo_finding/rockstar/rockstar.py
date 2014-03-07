@@ -15,7 +15,7 @@ Operations to get Rockstar loaded up
 
 from yt.config import ytcfg
 from yt.data_objects.time_series import \
-     TimeSeriesData
+     DatasetSeries
 from yt.funcs import \
      is_root
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -117,11 +117,11 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
 
     Parameters
     ----------
-    ts   : TimeSeriesData, Dataset
+    ts   : DatasetSeries, Dataset
         This is the data source containing the DM particles. Because 
         halo IDs may change from one snapshot to the next, the only
         way to keep a consistent halo ID across time is to feed 
-        Rockstar a set of snapshots, ie, via TimeSeriesData.
+        Rockstar a set of snapshots, ie, via DatasetSeries.
     num_readers: int
         The number of reader can be increased from the default
         of 1 in the event that a single snapshot is split among
@@ -215,8 +215,8 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         # Note that Rockstar does not support subvolumes.
         # We assume that all of the snapshots in the time series
         # use the same domain info as the first snapshots.
-        if not isinstance(ts, TimeSeriesData):
-            ts = TimeSeriesData([ts])
+        if not isinstance(ts, DatasetSeries):
+            ts = DatasetSeries([ts])
         self.ts = ts
         self.particle_type = particle_type
         self.outbase = outbase

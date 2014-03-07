@@ -283,7 +283,7 @@ Parallel Time Series Analysis
 -----------------------------
 
 The same :func:`parallel_objects` machinery discussed above is turned on by
-default when using a ``TimeSeriesData`` object (see :ref:`time-series-analysis`)
+default when using a ``DatasetSeries`` object (see :ref:`time-series-analysis`)
 to iterate over simulation outputs.  The syntax for this is very simple.  As an
 example, we can use the following script to find the angular momentum vector in
 a 1 pc sphere centered on the maximum density cell in a large number of
@@ -292,7 +292,7 @@ simulation outputs:
 .. code-block:: python
 
    from yt.pmods import *
-   ts = TimeSeriesData.from_filenames("DD*/output_*", parallel = True)
+   ts = DatasetSeries.from_filenames("DD*/output_*", parallel = True)
    sphere = ts.sphere("max", (1.0, "pc"))
    L_vecs = sphere.quantities["AngularMomentumVector"]()
 
@@ -302,12 +302,12 @@ processor.  By default, parallel is set to ``True``, so you do not have to
 explicitly set ``parallel = True`` as in the above example. 
 
 One could get the same effect by iterating over the individual parameter files
-in the TimeSeriesData object:
+in the DatasetSeries object:
 
 .. code-block:: python
 
    from yt.pmods import *
-   ts = TimeSeriesData.from_filenames("DD*/output_*", parallel = True)
+   ts = DatasetSeries.from_filenames("DD*/output_*", parallel = True)
    my_storage = {}
    for sto,pf in ts.piter(storage=my_storage):
        sphere = pf.h.sphere("max", (1.0, "pc"))
@@ -329,7 +329,7 @@ whereas parallel=True will run with Nprocs workgroups.
 .. code-block:: python
 
    from yt.pmods import *
-   ts = TimeSeriesData.from_filenames("DD*/output_*", parallel = 4)
+   ts = DatasetSeries.from_filenames("DD*/output_*", parallel = 4)
    sphere = ts.sphere("max", (1.0, "pc))
    L_vecs = sphere.quantities["AngularMomentumVector"]()
 

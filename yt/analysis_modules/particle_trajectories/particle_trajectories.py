@@ -11,7 +11,7 @@ Particle trajectories
 #-----------------------------------------------------------------------------
 
 from yt.data_objects.data_containers import YTFieldData
-from yt.data_objects.time_series import TimeSeriesData
+from yt.data_objects.time_series import DatasetSeries
 from yt.utilities.lib.CICDeposit import CICSample_3
 from yt.funcs import *
 
@@ -28,7 +28,7 @@ class ParticleTrajectories(object):
     Parameters
     ----------
     filenames : list of strings
-        A time-sorted list of filenames to construct the TimeSeriesData
+        A time-sorted list of filenames to construct the DatasetSeries
         object.
     indices : array_like
         An integer array of particle indices whose trajectories we
@@ -68,7 +68,7 @@ class ParticleTrajectories(object):
         indices.sort() # Just in case the caller wasn't careful
         
         self.field_data = YTFieldData()
-        self.pfs = TimeSeriesData.from_filenames(filenames)
+        self.pfs = DatasetSeries.from_filenames(filenames)
         self.masks = []
         self.sorts = []
         self.indices = indices

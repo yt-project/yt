@@ -56,7 +56,7 @@ from yt.utilities.exceptions import \
      YTNotInsideNotebook
 
 from yt.data_objects.time_series import \
-    TimeSeriesData
+    DatasetSeries
 from yt.units.yt_array import YTArray, YTQuantity
     
 # Some magic for dealing with pyparsing being included or not
@@ -280,9 +280,9 @@ class PlotWindow(ImagePlotContainer):
         self._initfinished = True
 
     def _initialize_dataset(self, ts):
-        if not isinstance(ts, TimeSeriesData):
+        if not isinstance(ts, DatasetSeries):
             if not iterable(ts): ts = [ts]
-            ts = TimeSeriesData(ts)
+            ts = DatasetSeries(ts)
         return ts
 
     def __iter__(self):
