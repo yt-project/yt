@@ -63,11 +63,23 @@ def _unsupported_object(pf, obj_name):
         raise YTObjectNotImplemented(pf, obj_name)
     return _raise_unsupp
 
-def _index_property(name):
-    @property
-    def _prop(self):
-        return getattr(self.index, name)
-    return _prop
+class IndexProxy(object):
+    # This is a simple proxy for Index objects.  It enables backwards
+    # compatibility so that operations like .h.sphere, .h.print_stats and
+    # .h.grid_left_edge will correctly pass through to the various dataset or
+    # index objects.
+    def __init__(self, ds):
+        self.ds = weakref.proxy(ds)
+        ds.index
+
+    def __getattr__(self, name):
+        # Check the ds first
+        if hasattr(self.ds, name):
+            return getattr(self.ds, name)
+        # Now for a subset of the available items, check the ds.index.
+        elif name in self.ds.index._index_properties:
+            return getattr(self.ds.index, name)
+        raise AttributeError
 
 class Dataset(object):
 
@@ -89,9 +101,6 @@ class Dataset(object):
     class __metaclass__(type):
         def __init__(cls, name, b, d):
             type.__init__(cls, name, b, d)
-            if cls._index_class is not None:
-                for prop in cls._index_class._index_properties:
-                    setattr(cls, prop, _index_property(prop))
             output_type_registry[name] = cls
             mylog.debug("Registering: %s as %s", name, cls)
 
@@ -259,10 +268,13 @@ class Dataset(object):
             self.create_field_info()
         return self._instantiated_index
     
+    _index_proxy = None
     @property
     def h(self):
-        self.index
-        return self
+        if self._index_proxy is None:
+            self._index_proxy = IndexProxy(self)
+        return self._index_proxy
+    hierarchy = h
 
     @parallel_root_only
     def print_key_parameters(self):
