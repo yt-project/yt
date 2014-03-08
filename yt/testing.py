@@ -12,6 +12,8 @@
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import md5
+import cPickle
 import itertools as it
 import numpy as np
 import importlib
@@ -514,3 +516,100 @@ _amr_grid_hierarchy = [
   [44,48,48],
  ],
 ]
+
+def check_results(func):
+    r"""This is a decorator for a function to verify that the (numpy ndarray)
+    result of a function is what it should be.
+
+    This function is designed to be used for very light answer testing.
+    Essentially, it wraps around a larger function that returns a numpy array,
+    and that has results that should not change.  It is not necessarily used
+    inside the testing scripts themselves, but inside testing scripts written
+    by developers during the testing of pull requests and new functionality.
+    If a hash is specified, it "wins" and the others are ignored.  Otherwise,
+    tolerance is 1e-8 (just above single precision.)
+
+    The correct results will be stored if the command line contains
+    --answer-reference , and otherwise it will compare against the results on
+    disk.  The filename will be func_results_ref_FUNCNAME.cpkl where FUNCNAME
+    is the name of the function being tested.
+
+    If you would like more control over the name of the pickle file the results
+    are stored in, you can pass the result_basename keyword argument to the
+    function you are testing.  The check_results decorator will use the value
+    of the keyword to construct the filename of the results data file.  If
+    result_basename is not specified, the name of the testing function is used.
+
+    This will raise an exception if the results are not correct.
+
+    Examples
+    --------
+
+    @check_results
+    def my_func(pf):
+        return pf.domain_width
+
+    my_func(pf)
+
+    @check_results
+    def field_checker(dd, field_name):
+        return dd[field_name]
+
+    field_cheker(pf.h.all_data(), 'density', result_basename='density')
+
+    """
+    def compute_results(func):
+        def _func(*args, **kwargs):
+            name = kwargs.pop("result_basename", func.func_name)
+            rv = func(*args, **kwargs)
+            if hasattr(rv, "convert_to_cgs"):
+                rv.convert_to_cgs()
+                _rv = rv.ndarray_view()
+            else:
+                _rv = rv
+            mi = _rv.min()
+            ma = _rv.max()
+            st = _rv.std(dtype="float64")
+            su = _rv.sum(dtype="float64")
+            si = _rv.size
+            ha = md5.md5(_rv.tostring()).hexdigest()
+            fn = "func_results_ref_%s.cpkl" % (name)
+            with open(fn, "wb") as f:
+                cPickle.dump( (mi, ma, st, su, si, ha), f)
+            return rv
+        return _func
+    from yt.mods import unparsed_args
+    if "--answer-reference" in unparsed_args:
+        return compute_results(func)
+    
+    def compare_results(func):
+        def _func(*args, **kwargs):
+            name = kwargs.pop("result_basename", func.func_name)
+            rv = func(*args, **kwargs)
+            if hasattr(rv, "convert_to_cgs"):
+                rv.convert_to_cgs()
+                _rv = rv.ndarray_view()
+            else:
+                _rv = rv
+            vals = (_rv.min(),
+                    _rv.max(),
+                    _rv.std(dtype="float64"),
+                    _rv.sum(dtype="float64"),
+                    _rv.size,
+                    md5.md5(_rv.tostring()).hexdigest() )
+            fn = "func_results_ref_%s.cpkl" % (name)
+            if not os.path.exists(fn):
+                print "Answers need to be created with --answer-reference ."
+                return False
+            with open(fn, "rb") as f:
+                ref = cPickle.load(f)
+            print "Sizes: %s (%s, %s)" % (vals[4] == ref[4], vals[4], ref[4])
+            assert_allclose(vals[0], ref[0], 1e-8, err_msg="min")
+            assert_allclose(vals[1], ref[1], 1e-8, err_msg="max")
+            assert_allclose(vals[2], ref[2], 1e-8, err_msg="std")
+            assert_allclose(vals[3], ref[3], 1e-8, err_msg="sum")
+            assert_equal(vals[4], ref[4])
+            print "Hashes equal: %s" % (vals[-1] == ref[-1])
+            return rv
+        return _func
+    return compare_results(func)

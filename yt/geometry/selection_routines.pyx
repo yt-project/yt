@@ -59,8 +59,8 @@ ctypedef fused anyfloat:
 def convert_mask_to_indices(np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
             int count, int transpose = 0):
     cdef int i, j, k, cpos
-    cdef np.ndarray[np.int32_t, ndim=2] indices 
-    indices = np.zeros((count, 3), dtype='int32')
+    cdef np.ndarray[np.int64_t, ndim=2] indices 
+    indices = np.zeros((count, 3), dtype='int64')
     cpos = 0
     for i in range(mask.shape[0]):
         for j in range(mask.shape[1]):
@@ -1212,6 +1212,20 @@ cdef class RaySelector(SelectorObject):
         if ia.hits > 0:
             return 1
         return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_cell(self, np.float64_t pos[3],
+                               np.float64_t dds[3]) nogil:
+        # This is terribly inefficient for Octrees.  For grids, it will never
+        # get called.
+        cdef int i
+        cdef np.float64_t left_edge[3], right_edge[3]
+        for i in range(3):
+            left_edge[i] = pos[i] - dds[i]/2.0
+            right_edge[i] = pos[i] + dds[i]/2.0
+        return self.select_bbox(left_edge, right_edge)
 
     def _hash_vals(self):
         return (self.p1[0], self.p1[1], self.p1[2],

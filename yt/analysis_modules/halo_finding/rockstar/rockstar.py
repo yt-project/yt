@@ -222,6 +222,10 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         if self.workgroup.name != "readers": return None
         tpf = ts[0]
         ptype = self.particle_type
+        if ptype not in tpf.particle_types and ptype != 'all':
+            has_particle_filter = tpf.add_particle_filter(ptype)
+            if not has_particle_filter:
+                raise RuntimeError("Particle type (filter) %s not found." % (ptype))
 
         dd = tpf.h.all_data()
         # Get DM particle mass.
@@ -250,6 +254,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         p['right_edge'] = tpf.domain_right_edge
         p['center'] = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
         p['particle_mass'] = self.particle_mass = particle_mass
+        del tpf
         return p
 
     def __del__(self):
@@ -282,15 +287,37 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             (server_address, port))
         self.port = str(self.port)
 
-    def run(self, block_ratio = 1, callbacks = None):
+    def run(self, block_ratio = 1, callbacks = None, restart = False):
         """
         
         """
         if block_ratio != 1:
             raise NotImplementedError
         self._get_hosts()
+        # Find restart output number
+        num_outputs = len(self.ts)
+        if restart:
+            restart_file = os.path.join(self.outbase, "restart.cfg")
+            if not os.path.exists(restart_file):
+                raise RuntimeError("Restart file %s not found" % (restart_file))
+            with open(restart_file) as restart_fh:
+                for l in restart_fh:
+                    if l.startswith("RESTART_SNAP"):
+                        restart_num = int(l.split("=")[1])
+                    if l.startswith("NUM_WRITERS"):
+                        num_writers = int(l.split("=")[1])
+            if num_writers != self.num_writers:
+                raise RuntimeError(
+                    "Number of writers in restart has changed from the original "
+                    "run (OLD = %d, NEW = %d).  To avoid problems in the "
+                    "restart, choose the same number of writers." % \
+                        (num_writers, self.num_writers))
+            # Remove the datasets that were already analyzed
+            self.ts._pre_outputs = self.ts._pre_outputs[restart_num:]
+        else:
+            restart_num = 0
         self.handler.setup_rockstar(self.server_address, self.port,
-                    len(self.ts), self.total_particles, 
+                    num_outputs, self.total_particles, 
                     self.particle_type,
                     particle_mass = self.particle_mass,
                     parallel = self.comm.size > 1,
@@ -300,11 +327,12 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                     block_ratio = block_ratio,
                     outbase = self.outbase,
                     force_res = self.force_res,
-                    callbacks = callbacks)
+                    callbacks = callbacks,
+                    restart_num = restart_num)
         # Make the directory to store the halo lists in.
         if not self.outbase:
             self.outbase = os.getcwd()
-        if self.comm.rank == 0:
+        if self.comm.rank == 0 and not restart:
             if not os.path.exists(self.outbase):
                 os.makedirs(self.outbase)
             # Make a record of which dataset corresponds to which set of
