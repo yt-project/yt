@@ -63,6 +63,12 @@ def _unsupported_object(pf, obj_name):
         raise YTObjectNotImplemented(pf, obj_name)
     return _raise_unsupp
 
+def _index_property(name):
+    @property
+    def _prop(self):
+        return getattr(self.index, name)
+    return _prop
+
 class Dataset(object):
 
     default_fluid_type = "gas"
@@ -78,10 +84,14 @@ class Dataset(object):
     _particle_velocity_name = None
     particle_unions = None
     known_filters = None
+    _index_class = None
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):
             type.__init__(cls, name, b, d)
+            if cls._index_class is not None:
+                for prop in cls._index_class._index_properties:
+                    setattr(cls, prop, _index_property(prop))
             output_type_registry[name] = cls
             mylog.debug("Registering: %s as %s", name, cls)
 
@@ -240,7 +250,7 @@ class Dataset(object):
     @property
     def index(self):
         if self._instantiated_index is None:
-            if self._index_class == None:
+            if self._index_class is None:
                 raise RuntimeError("You should not instantiate Dataset.")
             self._instantiated_index = self._index_class(
                 self, dataset_type=self.dataset_type)

@@ -39,6 +39,9 @@ from yt.data_objects.data_containers import data_object_registry
 class GridIndex(Index):
     float_type = 'float64'
     _preload_implemented = False
+    _index_properties = ("grid_left_edge", "grid_right_edge",
+                         "grid_levels", "grid_particle_count",
+                         "grid_dimensions")
 
     def _setup_geometry(self):
         mylog.debug("Counting grids.")

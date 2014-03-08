@@ -42,6 +42,7 @@ from yt.utilities.exceptions import YTFieldNotFound
 class Index(ParallelAnalysisInterface):
     _global_mesh = True
     _unsupported_objects = ()
+    _index_properties = ()
 
     def __init__(self, pf, dataset_type):
         ParallelAnalysisInterface.__init__(self)
