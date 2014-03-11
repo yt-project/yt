@@ -680,8 +680,10 @@ class PWViewerMPL(PlotWindow):
             else:
                 (unit_x, unit_y) = self._axes_unit_names
 
-            extentx = [float((self.xlim[i] - xc).in_units(unit_x)) for i in (0, 1)]
-            extenty = [float((self.ylim[i] - yc).in_units(unit_y)) for i in (0, 1)]
+            aspect = np.float64(self.pf.quan(1.0, unit_y)/self.pf.quan(1.0, unit_x))
+
+            extentx = [(self.xlim[i] - xc).in_units(unit_x) for i in (0, 1)]
+            extenty = [(self.ylim[i] - yc).in_units(unit_y) for i in (0, 1)]
 
             extent = extentx + extenty
 
@@ -715,7 +717,7 @@ class PWViewerMPL(PlotWindow):
                 image, self._field_transform[f].name,
                 self._colormaps[f], extent, zlim,
                 self.figure_size, fp.get_size(),
-                fig, axes, cax)
+                aspect, fig, axes, cax)
 
             axes_unit_labels = ['', '']
             comoving = False
@@ -1518,7 +1520,7 @@ class PWViewerExtJS(PlotWindow):
 
 class WindowPlotMPL(ImagePlotMPL):
     def __init__(self, data, cbname, cmap, extent, zlim, figure_size, fontsize,
-                 figure, axes, cax):
+                 aspect, figure, axes, cax):
         self._draw_colorbar = True
         self._draw_axes = True
         self._fontsize = fontsize
@@ -1532,7 +1534,7 @@ class WindowPlotMPL(ImagePlotMPL):
         super(WindowPlotMPL, self).__init__(
             size, axrect, caxrect, zlim, figure, axes, cax)
 
-        self._init_image(data, cbname, cmap, extent)
+        self._init_image(data, cbname, cmap, extent, aspect)
 
         self.image.axes.ticklabel_format(scilimits=(-2, 3))
         if cbname == 'linear':
@@ -1584,9 +1586,9 @@ class WindowPlotMPL(ImagePlotMPL):
             cb_text_frac = 0.0
 
         if self._draw_axes:
-            x_ax_frac = 0.85*norm_size*self._fontscale
+            x_ax_frac = 1.0*norm_size*self._fontscale
             y_ax_frac = 0.75*norm_size*self._fontscale
-            top_buff = 0.2*norm_size
+            top_buff = 0.3*norm_size
         else:
             x_ax_frac = 0.0
             y_ax_frac = 0.0

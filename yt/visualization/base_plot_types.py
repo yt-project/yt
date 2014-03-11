@@ -100,7 +100,7 @@ class ImagePlotMPL(PlotMPL):
             cax.set_position(caxrect)
             self.cax = cax
 
-    def _init_image(self, data, cbnorm, cmap, extent):
+    def _init_image(self, data, cbnorm, cmap, extent, aspect):
         """Store output of imshow in image variable"""
         if (cbnorm == 'log10'):
             norm = matplotlib.colors.LogNorm()
@@ -109,7 +109,7 @@ class ImagePlotMPL(PlotMPL):
         extent = [float(e) for e in extent]
         self.image = self.axes.imshow(data.to_ndarray(), origin='lower',
                                       extent=extent, norm=norm, vmin=self.zmin,
-                                      aspect=1.0, vmax=self.zmax, cmap=cmap)
+                                      aspect=aspect, vmax=self.zmax, cmap=cmap)
         self.cb = self.figure.colorbar(self.image, self.cax)
 
     def _repr_png_(self):
