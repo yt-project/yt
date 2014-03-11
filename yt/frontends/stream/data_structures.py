@@ -672,9 +672,9 @@ Parameters
     
     return spf
 
-def load_amr_grids(grid_data, domain_dimensions, length_units=None,
+def load_amr_grids(grid_data, domain_dimensions,
                    field_units=None, bbox=None, sim_time=0.0, length_unit=None,
-                   mass_unit = None, time_unit = None, velocity_unit=None,
+                   mass_unit=None, time_unit=None, velocity_unit=None,
                    periodicity=(True, True, True)):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -697,13 +697,19 @@ Parameters
         modified in place and can't be assumed to be static.
     domain_dimensions : array_like
         This is the domain dimensions of the grid
+    field_units : dict
+        A dictionary mapping string field names to string unit specifications.  The field
+        names must correspond to the fields in grid_data.
     length_unit : string or float
         Unit to use for lengths.  Defaults to unitless.  If set to be a string, the bbox
         dimensions are assumed to be in the corresponding units.  If set to a float, the
         value is a assumed to be the conversion from bbox dimensions to centimeters.
-    field_units : dict
-        A dictionary mapping string field names to string unit specifications.  The field
-        names must correspond to the fields in grid_data.
+    mass_unit : string or float
+        Unit to use for masses.  Defaults to unitless.
+    time_unit : string or float
+        Unit to use for times.  Defaults to unitless.
+    velocity_unit : string or float
+        Unit to use for velocities.  Defaults to unitless.
     bbox : array_like (xdim:zdim, LE:RE), optional
         Size of computational domain in units specified by length_unit.
         Defaults to a cubic unit-length domain.
