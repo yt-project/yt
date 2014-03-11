@@ -20,8 +20,7 @@ from .data_structures import \
       ARTStaticOutput
 
 from .fields import \
-      ARTFieldInfo, \
-      add_art_field
+      ARTFieldInfo
 
 from .io import \
       IOHandlerART

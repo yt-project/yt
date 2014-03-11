@@ -115,8 +115,8 @@ from yt.frontends.moab.api import \
 from yt.frontends.athena.api import \
     AthenaStaticOutput, AthenaFieldInfo
 
-#from yt.frontends.art.api import \
-#    ARTStaticOutput, ARTFieldInfo, add_art_field
+from yt.frontends.art.api import \
+    ARTStaticOutput, ARTFieldInfo
 
 #from yt.frontends.pluto.api import \
 #     PlutoStaticOutput, PlutoFieldInfo, add_pluto_field

@@ -35,7 +35,7 @@ from yt.geometry.oct_container import \
 from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
 from .fields import \
-    ARTFieldInfo, add_art_field, KnownARTFields
+    ARTFieldInfo
 from yt.utilities.definitions import \
     mpc_conversion
 from yt.utilities.io_handler import \
@@ -44,12 +44,10 @@ from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 
 from yt.frontends.art.definitions import *
-from yt.utilities.fortran_utils import *
+import yt.utilities.fortran_utils as fpu
 from .io import _read_art_level_info
-from .io import _read_child_mask_level
 from .io import _read_child_level
 from .io import _read_root_level
-from .io import _count_art_octs
 from .io import b2t
 
 from .fields import ARTFieldInfo, KnownARTFields
@@ -180,8 +178,7 @@ class ARTGeometryHandler(OctreeGeometryHandler):
 
 class ARTStaticOutput(StaticOutput):
     _hierarchy_class = ARTGeometryHandler
-    _fieldinfo_fallback = ARTFieldInfo
-    _fieldinfo_known = KnownARTFields
+    _field_info_class = ARTFieldInfo
 
     def __init__(self, filename, data_style='art',
                  fields=None, storage_filename=None,
@@ -329,10 +326,10 @@ class ARTStaticOutput(StaticOutput):
         self.parameters['Time'] = 1.0
         # read the amr header
         with open(self._file_amr, 'rb') as f:
-            amr_header_vals = read_attrs(f, amr_header_struct, '>')
+            amr_header_vals = fpu.read_attrs(f, amr_header_struct, '>')
             for to_skip in ['tl', 'dtl', 'tlold', 'dtlold', 'iSO']:
                 skipped = skip(f, endian='>')
-            (self.ncell) = read_vector(f, 'i', '>')[0]
+            (self.ncell) = fpu.read_vector(f, 'i', '>')[0]
             # Try to figure out the root grid dimensions
             est = int(np.rint(self.ncell**(1.0/3.0)))
             # Note here: this is the number of *cells* on the root grid.
@@ -344,7 +341,7 @@ class ARTStaticOutput(StaticOutput):
             self.root_ncells = self.root_nocts*8
             mylog.debug("Estimating %i cells on a root grid side," +
                         "%i root octs", est, self.root_nocts)
-            self.root_iOctCh = read_vector(f, 'i', '>')[:self.root_ncells]
+            self.root_iOctCh = fpu.read_vector(f, 'i', '>')[:self.root_ncells]
             self.root_iOctCh = self.root_iOctCh.reshape(self.domain_dimensions,
                                                         order='F')
             self.root_grid_offset = f.tell()
@@ -356,7 +353,7 @@ class ARTStaticOutput(StaticOutput):
             assert self.root_nvar % self.root_ncells == 0
             self.nhydro_variables = ((self.root_nhvar+self.root_nvar) /
                                      self.root_ncells)
-            self.iOctFree, self.nOct = read_vector(f, 'i', '>')
+            self.iOctFree, self.nOct = fpu.read_vector(f, 'i', '>')
             self.child_grid_offset = f.tell()
             self.parameters.update(amr_header_vals)
             self.parameters['ncell0'] = self.parameters['ng']**3
@@ -371,7 +368,7 @@ class ARTStaticOutput(StaticOutput):
         # read the particle header
         if not self.skip_particles and self._file_particle_header:
             with open(self._file_particle_header, "rb") as fh:
-                particle_header_vals = read_attrs(
+                particle_header_vals = fpu.read_attrs(
                     fh, particle_header_struct, '>')
                 fh.seek(seek_extras)
                 n = particle_header_vals['Nspecies']
@@ -422,7 +419,7 @@ class ARTStaticOutput(StaticOutput):
         if not os.path.isfile(f): return False
         with open(f, 'rb') as fh:
             try:
-                amr_header_vals = read_attrs(fh, amr_header_struct, '>')
+                amr_header_vals = fpu.read_attrs(fh, amr_header_struct, '>')
                 return True
             except:
                 return False
@@ -523,8 +520,8 @@ class ARTDomainFile(object):
         # We now have to open the file and calculate it
         f = open(self.pf._file_amr, "rb")
         nhydrovars, inoll, _level_oct_offsets, _level_child_offsets = \
-            _count_art_octs(f,  self.pf.child_grid_offset, self.pf.min_level,
-                            self.pf.max_level)
+            self._count_art_octs(f,  self.pf.child_grid_offset,
+                self.pf.min_level, self.pf.max_level)
         # remember that the root grid is by itself; manually add it back in
         inoll[0] = self.pf.domain_dimensions.prod()/8
         _level_child_offsets[0] = self.pf.root_grid_offset
@@ -534,6 +531,45 @@ class ARTDomainFile(object):
         self._level_child_offsets = _level_child_offsets
         self._level_count = inoll
         return self._level_oct_offsets
+
+    def _count_art_octs(self, f, offset, MinLev, MaxLevelNow):
+        level_oct_offsets = [0, ]
+        level_child_offsets = [0, ]
+        f.seek(offset)
+        nchild, ntot = 8, 0
+        Level = np.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
+        iNOLL = np.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
+        iHOLL = np.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
+        for Lev in xrange(MinLev + 1, MaxLevelNow+1):
+            level_oct_offsets.append(f.tell())
+
+            # Get the info for this level, skip the rest
+            # print "Reading oct tree data for level", Lev
+            # print 'offset:',f.tell()
+            Level[Lev], iNOLL[Lev], iHOLL[Lev] = read_vector(f, 'i', '>')
+            # print 'Level %i : '%Lev, iNOLL
+            # print 'offset after level record:',f.tell()
+            iOct = iHOLL[Lev] - 1
+            nLevel = iNOLL[Lev]
+            nLevCells = nLevel * nchild
+            ntot = ntot + nLevel
+
+            # Skip all the oct hierarchy data
+            ns = peek_record_size(f, endian='>')
+            size = struct.calcsize('>i') + ns + struct.calcsize('>i')
+            f.seek(f.tell()+size * nLevel)
+
+            level_child_offsets.append(f.tell())
+            # Skip the child vars data
+            ns = peek_record_size(f, endian='>')
+            size = struct.calcsize('>i') + ns + struct.calcsize('>i')
+            f.seek(f.tell()+size * nLevel*nchild)
+
+            # find nhydrovars
+            nhydrovars = 8+2
+        f.seek(offset)
+        return nhydrovars, iNOLL, level_oct_offsets, level_child_offsets
+
 
     def _read_amr_level(self, oct_handler):
         """Open the oct file, read in octs level-by-level.
