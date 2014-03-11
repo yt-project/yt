@@ -32,8 +32,6 @@ from yt.data_objects.octree_subset import \
     OctreeSubset
 from yt.geometry.oct_container import \
     ARTOctreeContainer
-from yt.fields.field_info_container import \
-    FieldInfoContainer, NullFunc
 from .fields import \
     ARTFieldInfo
 from yt.utilities.definitions import \
@@ -50,7 +48,6 @@ from .io import _read_child_level
 from .io import _read_root_level
 from .io import b2t
 
-from .fields import ARTFieldInfo, KnownARTFields
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.io_handler import \
@@ -230,16 +227,11 @@ class ARTStaticOutput(StaticOutput):
     def __repr__(self):
         return self._file_amr.split('/')[-1]
 
-    def _set_units(self):
+    def _set_code_unit_attributes(self):
         """
         Generates the conversion to various physical units based
                 on the parameters from the header
         """
-        self.units = {}
-        self.time_units = {}
-        self.time_units['1'] = 1
-        self.units['1'] = 1.0
-        self.units['unitary'] = 1.0
 
         # spatial units
         z = self.current_redshift
@@ -247,12 +239,7 @@ class ARTStaticOutput(StaticOutput):
         boxcm_cal = self.parameters["boxh"]
         boxcm_uncal = boxcm_cal / h
         box_proper = boxcm_uncal/(1+z)
-        aexpn = self["aexpn"]
-        for unit in mpc_conversion:
-            self.units[unit] = mpc_conversion[unit] * box_proper
-            self.units[unit+'h'] = mpc_conversion[unit] * box_proper * h
-            self.units[unit+'cm'] = mpc_conversion[unit] * boxcm_uncal
-            self.units[unit+'hcm'] = mpc_conversion[unit] * boxcm_cal
+        aexpn = self.parameters["aexpn"]
 
         # all other units
         wmu = self.parameters["wmu"]
@@ -300,16 +287,18 @@ class ARTStaticOutput(StaticOutput):
         cf["particle_mass"] = cf['Mass']
         cf["particle_mass_initial"] = cf['Mass']
         self.cosmological_simulation = True
-        self.conversion_factors = cf
 
-        for ax in 'xyz':
-            self.conversion_factors["%s-velocity" % ax] = cf["Velocity"]
-            self.conversion_factors["particle_velocity_%s" % ax] = cf["Velocity"]
-        for pt in particle_fields:
-            if pt not in self.conversion_factors.keys():
-                self.conversion_factors[pt] = 1.0
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = 1.0 / sec_conversion[unit]
+        # I have left much of the old code above.for historical reference, but
+        # it is largely or completely vestigial.  The subsequent unit setting
+        # is from ARTIO, which I have been assured has identical units to
+        # NMSU-ART for hydrodynamic quantities..
+        #
+        # That being said, these are a bit uncertain to me.
+
+        self.mass_unit = self.quan(cf["Mass"], "g")
+        self.length_unit = self.quan(box_proper, "Mpc")
+        self.velocity_unit = self.quan(cf["Velocity"], "cm/s")
+        self.time_unit = self.length_unit / self.velocity_unit
 
     def _parse_parameter_file(self):
         """
@@ -328,7 +317,7 @@ class ARTStaticOutput(StaticOutput):
         with open(self._file_amr, 'rb') as f:
             amr_header_vals = fpu.read_attrs(f, amr_header_struct, '>')
             for to_skip in ['tl', 'dtl', 'tlold', 'dtlold', 'iSO']:
-                skipped = skip(f, endian='>')
+                skipped = fpu.skip(f, endian='>')
             (self.ncell) = fpu.read_vector(f, 'i', '>')[0]
             # Try to figure out the root grid dimensions
             est = int(np.rint(self.ncell**(1.0/3.0)))
@@ -345,8 +334,8 @@ class ARTStaticOutput(StaticOutput):
             self.root_iOctCh = self.root_iOctCh.reshape(self.domain_dimensions,
                                                         order='F')
             self.root_grid_offset = f.tell()
-            self.root_nhvar = skip(f, endian='>')
-            self.root_nvar = skip(f, endian='>')
+            self.root_nhvar = fpu.skip(f, endian='>')
+            self.root_nvar = fpu.skip(f, endian='>')
             # make sure that the number of root variables is a multiple of
             # rootcells
             assert self.root_nhvar % self.root_ncells == 0
@@ -546,7 +535,7 @@ class ARTDomainFile(object):
             # Get the info for this level, skip the rest
             # print "Reading oct tree data for level", Lev
             # print 'offset:',f.tell()
-            Level[Lev], iNOLL[Lev], iHOLL[Lev] = read_vector(f, 'i', '>')
+            Level[Lev], iNOLL[Lev], iHOLL[Lev] = fpu.read_vector(f, 'i', '>')
             # print 'Level %i : '%Lev, iNOLL
             # print 'offset after level record:',f.tell()
             iOct = iHOLL[Lev] - 1
@@ -555,13 +544,13 @@ class ARTDomainFile(object):
             ntot = ntot + nLevel
 
             # Skip all the oct hierarchy data
-            ns = peek_record_size(f, endian='>')
+            ns = fpu.peek_record_size(f, endian='>')
             size = struct.calcsize('>i') + ns + struct.calcsize('>i')
             f.seek(f.tell()+size * nLevel)
 
             level_child_offsets.append(f.tell())
             # Skip the child vars data
-            ns = peek_record_size(f, endian='>')
+            ns = fpu.peek_record_size(f, endian='>')
             size = struct.calcsize('>i') + ns + struct.calcsize('>i')
             f.seek(f.tell()+size * nLevel*nchild)
 
