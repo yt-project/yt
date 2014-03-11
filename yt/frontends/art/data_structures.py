@@ -293,7 +293,7 @@ class ARTStaticOutput(StaticOutput):
         #
         # That being said, these are a bit uncertain to me.
 
-        self.mass_unit = self.quan(cf["Mass"], "g")
+        self.mass_unit = self.quan(cf["Mass"], "g*%s" % ng**3)
         self.length_unit = self.quan(box_proper, "Mpc")
         self.velocity_unit = self.quan(cf["Velocity"], "cm/s")
         self.time_unit = self.length_unit / self.velocity_unit
