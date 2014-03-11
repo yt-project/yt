@@ -11,13 +11,11 @@ from .tick_locators import LogLocator, LinearLocator
 from .color_maps import yt_colormaps, is_colormap
 from .plot_modifications import \
     callback_registry
-from .plot_window import \
-    CallbackWrapper
 from .base_plot_types import CallbackWrapper
 
 from yt.funcs import \
     defaultdict, get_image_suffix, \
-    get_ipython_api_version, ensure_list
+    get_ipython_api_version
 from yt.utilities.definitions import axis_names
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
@@ -109,7 +107,7 @@ class ImagePlotContainer(object):
 
     def __init__(self, data_source, figure_size, fontsize):
         self.data_source = data_source
-        self.figure_size = figure_size
+        self.figure_size = float(figure_size)
         self.plots = PlotDictionary(data_source)
         self._callbacks = []
         self._field_transform = {}
@@ -367,7 +365,7 @@ class ImagePlotContainer(object):
             The size of the figure on the longest axis (in units of inches),
             including the margins but not the colorbar.
         """
-        self.figure_size = size
+        self.figure_size = float(size)
         return self
 
     def save(self, name=None, mpl_kwargs=None):

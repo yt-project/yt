@@ -40,6 +40,8 @@ class CallbackWrapper(object):
             self._type_name = "CuttingPlane"
         else:
             self._type_name = viewer._plot_type
+
+
 class PlotMPL(object):
     """A base class for all yt plots made using matplotlib.
 
@@ -89,7 +91,7 @@ class ImagePlotMPL(PlotMPL):
     """
     def __init__(self, fsize, axrect, caxrect, zlim, figure, axes, cax):
         """Initialize ImagePlotMPL class object"""
-        PlotMPL.__init__(self, fsize, axrect, figure, axes)
+        super(ImagePlotMPL, self).__init__(fsize, axrect, figure, axes)
         self.zmin, self.zmax = zlim
         if cax is None:
             self.cax = self.figure.add_axes(caxrect)
@@ -98,7 +100,7 @@ class ImagePlotMPL(PlotMPL):
             cax.set_position(caxrect)
             self.cax = cax
 
-    def _init_image(self, data, cbnorm, cmap, extent, aspect):
+    def _init_image(self, data, cbnorm, cmap, extent):
         """Store output of imshow in image variable"""
         if (cbnorm == 'log10'):
             norm = matplotlib.colors.LogNorm()
@@ -107,7 +109,7 @@ class ImagePlotMPL(PlotMPL):
         extent = [float(e) for e in extent]
         self.image = self.axes.imshow(data.to_ndarray(), origin='lower',
                                       extent=extent, norm=norm, vmin=self.zmin,
-                                      aspect=aspect, vmax=self.zmax, cmap=cmap)
+                                      aspect=1.0, vmax=self.zmax, cmap=cmap)
         self.cb = self.figure.colorbar(self.image, self.cax)
 
     def _repr_png_(self):
