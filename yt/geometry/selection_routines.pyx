@@ -62,8 +62,8 @@ def _ensure_code(arr):
 def convert_mask_to_indices(np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
             int count, int transpose = 0):
     cdef int i, j, k, cpos
-    cdef np.ndarray[np.int32_t, ndim=2] indices 
-    indices = np.zeros((count, 3), dtype='int32')
+    cdef np.ndarray[np.int64_t, ndim=2] indices 
+    indices = np.zeros((count, 3), dtype='int64')
     cpos = 0
     for i in range(mask.shape[0]):
         for j in range(mask.shape[1]):
