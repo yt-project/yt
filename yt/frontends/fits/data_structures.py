@@ -34,7 +34,6 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.io_handler import \
     io_registry
-from yt.utilities.physical_constants import cm_per_mpc
 from .fields import FITSFieldInfo
 from yt.utilities.decompose import \
     decompose_array, get_psize
@@ -187,6 +186,8 @@ class FITSStaticOutput(StaticOutput):
         self.storage_filename = storage_filename
             
         self.refine_by = 2
+        # For plotting to APLpy
+        self.hdu_list = self._handle
 
     def _set_code_unit_attributes(self):
         """
@@ -194,17 +195,15 @@ class FITSStaticOutput(StaticOutput):
         """
         if self.new_unit is not None:
             length_factor = self.pixel_scale
-            length_unit = self.new_unit
+            length_unit = str(self.new_unit)
         else:
             mylog.warning("No length conversion provided. Assuming 1 = 1 cm.")
             length_factor = 1.0
             length_unit = "cm"
-        self.length_unit = self.quan(length_factor,length_unit).in_cgs()
+        self.length_unit = self.quan(length_factor,length_unit)
         self.mass_unit = self.quan(1.0, "g")
         self.time_unit = self.quan(1.0, "s")
         self.velocity_unit = self.quan(1.0, "cm/s")        
-        DW = self.domain_right_edge-self.domain_left_edge
-        self.unit_registry.modify("unitary", DW[:self.dimensionality].max())
 
     def _parse_parameter_file(self):
         self.unique_identifier = \

@@ -859,6 +859,8 @@ class EnzoStaticOutput(StaticOutput):
         self.unit_registry.modify("code_mass", self.mass_unit)
         self.unit_registry.modify("code_time", self.time_unit)
         self.unit_registry.modify("code_velocity", self.velocity_unit)
+        DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
+        self.unit_registry.modify("unitary", DW.max())
 
     def cosmology_get_units(self):
         """

@@ -343,16 +343,16 @@ class StreamStaticOutput(StaticOutput):
         cgs_units = ('cm', 'g', 's', 'cm/s')
         for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
             if isinstance(unit, basestring):
-                uq = YTQuantity(1.0, unit)
+                uq = self.quan(1.0, unit)
             elif isinstance(unit, numeric_type):
-                uq = YTQuantity(unit, cgs_unit)
+                uq = self.quan(unit, cgs_unit)
             elif isinstance(unit, YTQuantity):
                 uq = unit
+            elif isinstance(unit, tuple):
+                uq = self.quan(unit[0], unit[1])
             else:
                 raise RuntimeError("%s (%s) is invalid." % (attr, unit))
             setattr(self, attr, uq)
-        DW = self.arr(self.domain_right_edge-self.domain_left_edge, "code_length")
-        self.unit_registry.modify("unitary", DW.max())
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -538,11 +538,15 @@ Parameters
         If greater than 1, will create this number of subarrays out of data
     sim_time : float, optional
         The simulation time in seconds
+    mass_unit : string
+        Unit to use for masses.  Defaults to unitless.
+    time_unit : string
+        Unit to use for times.  Defaults to unitless.
+    velocity_unit : string
+        Unit to use for velocities.  Defaults to unitless.
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
-    units : dict
-        Specification for units of fields in the data.
 
     Examples
     --------
