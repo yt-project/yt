@@ -80,9 +80,9 @@ class GadgetStaticOutput(ParticleStaticOutput):
     _hierarchy_class = ParticleGeometryHandler
     _file_class = GadgetBinaryFile
     _field_info_class = SPHFieldInfo
-    _particle_mass_name = "particle_mass"
-    _particle_coordinates_name = "particle_position"
-    _particle_velocity_name = "particle_velocity"
+    _particle_mass_name = "Mass"
+    _particle_coordinates_name = "Coordinates"
+    _particle_velocity_name = "Velocities"
     _suffix = ""
 
     def __init__(self, filename, data_style="gadget_binary",
@@ -356,8 +356,8 @@ class TipsyStaticOutput(ParticleStaticOutput):
     _hierarchy_class = ParticleGeometryHandler
     _file_class = TipsyFile
     _field_info_class = SPHFieldInfo
-    _particle_mass_name = "particle_mass"
-    _particle_coordinates_name = "particle_position"
+    _particle_mass_name = "Mass"
+    _particle_coordinates_name = "Coordinates"
     _header_spec = (('time',    'd'),
                     ('nbodies', 'i'),
                     ('ndim',    'i'),
@@ -527,8 +527,8 @@ class HTTPStreamStaticOutput(ParticleStaticOutput):
     _file_class = HTTPParticleFile
     _field_info_class = SPHFieldInfo
     _particle_mass_name = "Mass"
-    _particle_coordinates_name = "particle_position"
-    _particle_velocity_name = "particle_velocity"
+    _particle_coordinates_name = "Coordinates"
+    _particle_velocity_name = "Velocities"
     filename_template = ""
     
     def __init__(self, base_url,

@@ -66,9 +66,6 @@ class StaticOutput(object):
     coordinates = None
     max_level = 99
     storage_filename = None
-    _particle_mass_name = None
-    _particle_coordinates_name = None
-    _particle_velocity_name = None
     particle_unions = None
     known_filters = None
 

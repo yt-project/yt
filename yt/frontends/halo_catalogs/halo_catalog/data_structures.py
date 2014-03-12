@@ -49,8 +49,6 @@ class HaloCatalogStaticOutput(StaticOutput):
     _hierarchy_class = ParticleGeometryHandler
     _file_class = HaloCatalogHDF5File
     _field_info_class = HaloCatalogFieldInfo
-    _particle_mass_name = "particle_mass"
-    _particle_coordinates_name = "particle_position"
     _suffix = ".h5"
 
     def __init__(self, filename, data_style="halocatalog_hdf5",
