@@ -54,7 +54,7 @@ class RockstarStaticOutput(StaticOutput):
     _file_class = RockstarBinaryFile
     _field_info_class = RockstarFieldInfo
     _particle_mass_name = "particle_mass"
-    _particle_coordinates_name = "Coordinates"
+    _particle_coordinates_name = "particle_position"
     _suffix = ".bin"
 
     def __init__(self, filename, data_style="rockstar_binary",

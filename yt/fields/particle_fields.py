@@ -190,11 +190,11 @@ def particle_vector_functions(ptype, coord_names, vel_names, registry):
             c = np.column_stack(v)
             return data.apply_units(c, field.units)
         return particle_vectors
-    registry.add_field((ptype, "Coordinates"),
+    registry.add_field((ptype, "particle_position"),
                        function=_get_vec_func(ptype, coord_names),
                        units = "code_length",
                        particle_type=True)
-    registry.add_field((ptype, "Velocities"),
+    registry.add_field((ptype, "particle_velocity"),
                        function=_get_vec_func(ptype, vel_names),
                        units = "cm / s",
                        particle_type=True)
@@ -459,7 +459,7 @@ def standard_particle_fields(registry, ptype,
             Create a grid field for particle quantities weighted by particle
             mass, using cloud-in-cell deposit.
             """
-            pos = data[ptype, 'Coordinates']
+            pos = data[ptype, "particle_position"]
             # Get back into density
             pden = data[ptype, 'particle_mass'] / data["index", "cell_volume"] 
             top = data.deposit(pos, [data[('all', particle_field)]*pden],
@@ -483,7 +483,7 @@ def add_particle_average(registry, ptype, field_name,
                          density = True):
     field_units = registry[ptype, field_name].units
     def _pfunc_avg(field, data):
-        pos = data[ptype, "Coordinates"]
+        pos = data[ptype, "particle_position"]
         f = data[ptype, field_name]
         wf = data[ptype, weight]
         f *= wf

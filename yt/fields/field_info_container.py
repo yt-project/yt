@@ -80,7 +80,7 @@ class FieldInfoContainer(dict):
                    self.pf._particle_coordinates_name,
                    self.pf._particle_velocity_name,
                    self)
-        particle_deposition_functions(ptype, "Coordinates",
+        particle_deposition_functions(ptype, "particle_position",
             "particle_mass", self)
         standard_particle_fields(self, ptype)
         # Now we check for any leftover particle fields

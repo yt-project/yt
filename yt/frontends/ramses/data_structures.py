@@ -441,7 +441,7 @@ class RAMSESStaticOutput(StaticOutput):
     _hierarchy_class = RAMSESGeometryHandler
     _field_info_class = RAMSESFieldInfo
     _particle_mass_name = "ParticleMass"
-    _particle_coordinates_name = "Coordinates"
+    _particle_coordinates_name = "particle_position"
     
     def __init__(self, filename, data_style='ramses',
                  fields = None, storage_filename = None):
