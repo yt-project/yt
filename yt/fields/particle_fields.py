@@ -159,7 +159,6 @@ def particle_scalar_functions(ptype, coord_name, vel_name, registry):
     # elsewhere, and stop using these.
     
     # Note that we pass in _ptype here so that it's defined inside the closure.
-    orig = set(registry.keys())
 
     def _get_coord_funcs(axi, _ptype):
         def _particle_velocity(field, data):
@@ -176,12 +175,9 @@ def particle_scalar_functions(ptype, coord_name, vel_name, registry):
             particle_type = True, function = p,
             units = "code_length")
 
-    return list(set(registry.keys()).difference(orig))
-
 def particle_vector_functions(ptype, coord_names, vel_names, registry):
 
     # This will column_stack a set of scalars to create vector fields.
-    orig = set(registry.keys())
 
     def _get_vec_func(_ptype, names):
         def particle_vectors(field, data):
@@ -198,7 +194,6 @@ def particle_vector_functions(ptype, coord_names, vel_names, registry):
                        function=_get_vec_func(ptype, vel_names),
                        units = "cm / s",
                        particle_type=True)
-    return list(set(registry.keys()).difference(orig))
 
 def standard_particle_fields(registry, ptype,
                              spos = "particle_position_%s",
