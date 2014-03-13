@@ -98,6 +98,32 @@ cdict = {'red':   ((0.0, 0.0, 0.0),
 
 add_cmap('black_green', cdict)
 
+# This one is a variant of a colormap commonly
+# used for X-ray observations by Maxim Markevitch
+
+cdict = {'red': ((0.0, 0.0, 0.0),
+                 (0.3, 0.0, 0.0),
+                 (0.352, 0.245, 0.245),
+                 (0.42, 0.5, 0.5),
+                 (0.51, 0.706, 0.706),
+                 (0.613, 0.882, 0.882),
+                 (0.742, 1.0, 1.0),
+                 (1.0, 1.0, 1.0)),
+         'green': ((0.0, 0.0, 0.0),
+                   (0.585, 0.0, 0.0),
+                   (0.613, 0.196, 0.196),
+                   (0.693, 0.48, 0.48),
+                   (0.785, 0.696, 0.696),
+                   (0.885, 0.882, 0.882),
+                   (1.0, 1.0, 1.0)),
+         'blue': ((0.0, 0.0, 0.0),
+                  (0.136, 0.0, 0.0),
+                  (0.136, 0.373, 0.373),
+                  (0.391, 1.0, 1.0),
+                  (1.0, 1.0, 1.0))}
+
+add_cmap("purple_mm", cdict)
+
 # This one comes from
 # http://permalink.gmane.org/gmane.comp.python.matplotlib.devel/10518
 # and is an implementation of http://arxiv.org/abs/1108.5083
