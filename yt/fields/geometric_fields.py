@@ -140,11 +140,11 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
     def _cylindrical_r(field, data):
         center = data.get_field_parameter("center")
         normal = data.get_field_parameter("normal")
-        coords = data.pf.arr(obtain_rvec(data), "code_length")
+        coords = obtain_rvec(data)
         coords[0,...] -= center[0]
         coords[1,...] -= center[1]
         coords[2,...] -= center[2]
-        return get_cyl_r(coords, normal).in_cgs()
+        return data.pf.arr(get_cyl_r(coords, normal), "code_length").in_cgs()
 
     registry.add_field(("index", "cylindrical_r"),
              function=_cylindrical_r,
