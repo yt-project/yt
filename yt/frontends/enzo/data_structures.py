@@ -654,7 +654,7 @@ class EnzoDataset(Dataset):
         of {fieldname : conversion_to_cgs} that will override the #DataCGS.
         """
         self.fluid_types += ("enzo",)
-        if filename.endswith(".index"): filename = filename[:-10]
+        if filename.endswith(".hierarchy"): filename = filename[:-10]
         if parameter_override is None: parameter_override = {}
         self._parameter_override = parameter_override
         if conversion_override is None: conversion_override = {}
