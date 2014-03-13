@@ -120,7 +120,7 @@ class ParticleGeometryHandler(GeometryHandler):
         units = {}
         for dom in self.data_files:
             fl, _units = self.io._identify_fields(dom)
-            units.update(units)
+            units.update(_units)
             dom._calculate_offsets(fl)
             for f in fl:
                 if f not in pfl: pfl.append(f)
