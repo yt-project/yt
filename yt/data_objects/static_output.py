@@ -307,6 +307,12 @@ class StaticOutput(object):
         f = self.particle_fields_by_type
         fields = set_intersection([f[s] for s in union
                                    if s in self.particle_types_raw])
+        for field in fields:
+            units = set([])
+            for s in union:
+                units.add(self.field_units.get((s, field), ""))
+            if len(units) == 1:
+                self.field_units[union.name, field] = list(units)[0]
         self.particle_types += (union.name,)
         self.particle_unions[union.name] = union
         fields = [ (union.name, field) for field in fields]
