@@ -110,7 +110,7 @@ class Clump(object):
         nj, cids = identify_contours(self.data, self.field, min_val, max_val)
         for cid in range(nj):
             new_clump = self.data.cut_region(
-                    ["obj['Contours'] == %s" % (cid + 1)],
+                    ["obj['contours'] == %s" % (cid + 1)],
                     {'contour_slices': cids})
             self.children.append(Clump(new_clump, self, self.field,
                                        self.cached_fields,function=self.function,

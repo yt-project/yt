@@ -21,7 +21,7 @@ from yt.funcs import \
 from yt.utilities.definitions import axis_names
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
-
+from ._mpl_imports import FigureCanvasAgg
 
 def invalidate_data(f):
     @wraps(f)

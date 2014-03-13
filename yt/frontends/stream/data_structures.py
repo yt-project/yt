@@ -339,16 +339,16 @@ class StreamDataset(Dataset):
         cgs_units = ('cm', 'g', 's', 'cm/s')
         for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
             if isinstance(unit, basestring):
-                uq = YTQuantity(1.0, unit)
+                uq = self.quan(1.0, unit)
             elif isinstance(unit, numeric_type):
-                uq = YTQuantity(unit, cgs_unit)
+                uq = self.quan(unit, cgs_unit)
             elif isinstance(unit, YTQuantity):
                 uq = unit
+            elif isinstance(unit, tuple):
+                uq = self.quan(unit[0], unit[1])
             else:
                 raise RuntimeError("%s (%s) is invalid." % (attr, unit))
             setattr(self, attr, uq)
-        DW = self.arr(self.domain_right_edge-self.domain_left_edge, "code_length")
-        self.unit_registry.modify("unitary", DW.max())
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -534,11 +534,15 @@ Parameters
         If greater than 1, will create this number of subarrays out of data
     sim_time : float, optional
         The simulation time in seconds
+    mass_unit : string
+        Unit to use for masses.  Defaults to unitless.
+    time_unit : string
+        Unit to use for times.  Defaults to unitless.
+    velocity_unit : string
+        Unit to use for velocities.  Defaults to unitless.
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
-    units : dict
-        Specification for units of fields in the data.
 
     Examples
     --------
@@ -664,9 +668,9 @@ Parameters
     
     return spf
 
-def load_amr_grids(grid_data, domain_dimensions, length_units=None,
+def load_amr_grids(grid_data, domain_dimensions,
                    field_units=None, bbox=None, sim_time=0.0, length_unit=None,
-                   mass_unit = None, time_unit = None, velocity_unit=None,
+                   mass_unit=None, time_unit=None, velocity_unit=None,
                    periodicity=(True, True, True)):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -689,13 +693,19 @@ Parameters
         modified in place and can't be assumed to be static.
     domain_dimensions : array_like
         This is the domain dimensions of the grid
+    field_units : dict
+        A dictionary mapping string field names to string unit specifications.  The field
+        names must correspond to the fields in grid_data.
     length_unit : string or float
         Unit to use for lengths.  Defaults to unitless.  If set to be a string, the bbox
         dimensions are assumed to be in the corresponding units.  If set to a float, the
         value is a assumed to be the conversion from bbox dimensions to centimeters.
-    field_units : dict
-        A dictionary mapping string field names to string unit specifications.  The field
-        names must correspond to the fields in grid_data.
+    mass_unit : string or float
+        Unit to use for masses.  Defaults to unitless.
+    time_unit : string or float
+        Unit to use for times.  Defaults to unitless.
+    velocity_unit : string or float
+        Unit to use for velocities.  Defaults to unitless.
     bbox : array_like (xdim:zdim, LE:RE), optional
         Size of computational domain in units specified by length_unit.
         Defaults to a cubic unit-length domain.

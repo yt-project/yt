@@ -115,8 +115,8 @@ from yt.frontends.moab.api import \
 from yt.frontends.athena.api import \
     AthenaDataset, AthenaFieldInfo
 
-#from yt.frontends.art.api import \
-#    ARTDataset, ARTFieldInfo, add_art_field
+from yt.frontends.art.api import \
+    ARTDataset, ARTFieldInfo
 
 #from yt.frontends.pluto.api import \
 #     PlutoDataset, PlutoFieldInfo, add_pluto_field

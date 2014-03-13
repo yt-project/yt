@@ -578,8 +578,6 @@ class Dataset(object):
         return new_unit
 
     def set_code_units(self):
-        # domain_width does not yet exist
-        DW = self.domain_right_edge - self.domain_left_edge
         self._set_code_unit_attributes()
         self.unit_registry.modify("code_length", self.length_unit)
         self.unit_registry.modify("code_mass", self.mass_unit)
@@ -587,6 +585,8 @@ class Dataset(object):
         vel_unit = getattr(self, "code_velocity",
                     self.length_unit / self.time_unit)
         self.unit_registry.modify("code_velocity", vel_unit)
+        # domain_width does not yet exist
+        DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
         self.unit_registry.modify("unitary", DW.max())
 
     _arr = None

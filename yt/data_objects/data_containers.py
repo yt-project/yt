@@ -1069,7 +1069,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
             nj, cids = identify_contours(self, field, cons[level], mv)
             for cid in range(nj):
                 contours[level][cid] = self.cut_region(
-                    ["obj['Contours'] == %s" % (cid + 1)],
+                    ["obj['contours'] == %s" % (cid + 1)],
                     {'contour_slices': cids})
         return cons, contours
 

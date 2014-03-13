@@ -372,8 +372,6 @@ class AthenaDataset(Dataset):
                                   (self.time_unit**2 * self.length_unit))
         self.magnetic_unit.convert_to_units("gauss")
         self.unit_registry.modify("code_magnetic", self.magnetic_unit)
-        DW = self.domain_right_edge-self.domain_left_edge
-        self.unit_registry.modify("unitary", DW.max())
 
     def _parse_parameter_file(self):
         self._handle = open(self.parameter_filename, "rb")

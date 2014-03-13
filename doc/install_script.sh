@@ -503,10 +503,8 @@ function do_setup_py
     cd $LIB
     if [ ! -z `echo $LIB | grep h5py` ]
     then
-        shift
 	( ${DEST_DIR}/bin/python2.7 setup.py build --hdf5=${HDF5_DIR} $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
     else
-        shift
         ( ${DEST_DIR}/bin/python2.7 setup.py build   $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
     fi
     ( ${DEST_DIR}/bin/python2.7 setup.py install    2>&1 ) 1>> ${LOG_FILE} || do_exit
