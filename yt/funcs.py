@@ -713,3 +713,15 @@ def memory_checker(interval = 15):
     mem_check.start()
     yield
     e.set()
+
+def deprecated_class(cls):
+    @wraps(cls)
+    def _func(*args, **kwargs):
+        # Note we use SyntaxWarning because by default, DeprecationWarning is
+        # not shown.
+        warnings.warn(
+            "This usage is deprecated.  Please use %s instead." % cls.__name__,
+            SyntaxWarning, stacklevel=2)
+        return cls(*args, **kwargs)
+    return _func
+    

@@ -131,6 +131,10 @@ from yt.frontends.sph.api import \
     GadgetDataset, GadgetHDF5Dataset, \
     TipsyDataset
 
+# For backwards compatibility
+GadgetStaticOutput = deprecated_class(GadgetDataset)
+TipsyStaticOutput = deprecated_class(TipsyDataset)
+
 #from yt.analysis_modules.list_modules import \
 #    get_available_modules, amods
 #available_analysis_modules = get_available_modules()
