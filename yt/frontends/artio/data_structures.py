@@ -324,8 +324,6 @@ class ARTIODataset(Dataset):
     _handle = None
     _index_class = ARTIOIndex
     _field_info_class = ARTIOFieldInfo
-    _particle_mass_name = "particle_mass"
-    _particle_coordinates_name = "Coordinates"
 
     def __init__(self, filename, dataset_type='artio',
                  storage_filename=None, max_range = 1024):

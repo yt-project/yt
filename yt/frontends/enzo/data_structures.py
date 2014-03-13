@@ -636,8 +636,6 @@ class EnzoDataset(Dataset):
     """
     _index_class = EnzoHierarchy
     _field_info_class = EnzoFieldInfo
-    _particle_mass_name = "ParticleMass"
-    _particle_coordinates_name = "Coordinates"
 
     def __init__(self, filename, dataset_type=None,
                  file_style = None,

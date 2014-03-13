@@ -53,8 +53,6 @@ class RockstarDataset(Dataset):
     _index_class = ParticleIndex
     _file_class = RockstarBinaryFile
     _field_info_class = RockstarFieldInfo
-    _particle_mass_name = "particle_mass"
-    _particle_coordinates_name = "Coordinates"
     _suffix = ".bin"
 
     def __init__(self, filename, dataset_type="rockstar_binary",

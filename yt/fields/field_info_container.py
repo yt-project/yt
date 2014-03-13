@@ -70,17 +70,17 @@ class FieldInfoContainer(dict):
             for alias in aliases:
                 self.alias((ptype, alias), (ptype, f))
 
-        if self.pf._particle_coordinates_name is None:
+        # We'll either have particle_position or particle_position_[xyz]
+        if (ptype, "particle_position") in self.field_list:
+            particle_scalar_functions(ptype,
+                   "particle_position", "particle_velocity",
+                   self)
+        else:
             particle_vector_functions(ptype,
                     ["particle_position_%s" % ax for ax in 'xyz'],
                     ["particle_velocity_%s" % ax for ax in 'xyz'],
                     self)
-        else:
-            particle_scalar_functions(ptype,
-                   self.pf._particle_coordinates_name,
-                   self.pf._particle_velocity_name,
-                   self)
-        particle_deposition_functions(ptype, "Coordinates",
+        particle_deposition_functions(ptype, "particle_position",
             "particle_mass", self)
         standard_particle_fields(self, ptype)
         # Now we check for any leftover particle fields

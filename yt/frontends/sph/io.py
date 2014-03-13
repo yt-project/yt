@@ -421,7 +421,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 if tp[ptype] == 0: continue
                 f.seek(poff[ptype], os.SEEK_SET)
                 p = np.fromfile(f, self._pdtypes[ptype], count=tp[ptype])
-                d = [p['Coordinates'][ax].astype("float64") for ax in 'xyz']
+                d = [p["Coordinates"][ax].astype("float64") for ax in 'xyz']
                 del p
                 yield ptype, d
 
@@ -439,9 +439,9 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 f.seek(poff[ptype], os.SEEK_SET)
                 p = np.fromfile(f, self._pdtypes[ptype], count=tp[ptype])
                 mask = selector.select_points(
-                    p['Coordinates']['x'].astype("float64"),
-                    p['Coordinates']['y'].astype("float64"),
-                    p['Coordinates']['z'].astype("float64"))
+                    p["Coordinates"]['x'].astype("float64"),
+                    p["Coordinates"]['y'].astype("float64"),
+                    p["Coordinates"]['z'].astype("float64"))
                 if mask is None: continue
                 tf = self._fill_fields(field_list, p, mask)
                 for field in field_list:

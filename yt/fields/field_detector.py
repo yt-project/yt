@@ -127,9 +127,8 @@ class FieldDetector(defaultdict):
                 else: self[item] = vv.ravel()
                 return self[item]
         elif finfo is not None and finfo.particle_type:
-            if item == "Coordinates" or item[1] == "Coordinates" or \
-               item == "Velocities" or item[1] == "Velocities" or \
-               item == "Velocity" or item[1] == "Velocity":
+            if "particle_position" in (item, item[1]) or \
+               "particle_velocity" in (item, item[1]):
                 # A vector
                 self[item] = \
                   YTArray(np.ones((self.NumberOfParticles, 3)),

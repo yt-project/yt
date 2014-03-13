@@ -36,9 +36,9 @@ class SPHFieldInfo(FieldInfoContainer):
     known_particle_fields = (
         ("Mass", ("code_mass", ["particle_mass"], None)),
         ("Masses", ("code_mass", ["particle_mass"], None)),
-        ("Coordinates", ("code_length", [], None)),
-        ("Velocity", ("code_velocity", ["velocity"], None)),
-        ("Velocities", ("code_velocity", ["velocity"], None)),
+        ("Coordinates", ("code_length", ["particle_position"], None)),
+        ("Velocity", ("code_velocity", ["particle_velocity"], None)),
+        ("Velocities", ("code_velocity", ["particle_velocity"], None)),
         ("ParticleIDs", ("", ["particle_index"], None)),
         ("InternalEnergy", ("", ["thermal_energy"], None)),
         ("SmoothingLength", ("code_length", ["smoothing_length"], None)),
