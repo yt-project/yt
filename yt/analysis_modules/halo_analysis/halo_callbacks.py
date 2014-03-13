@@ -427,8 +427,12 @@ def virial_quantities(halo, fields, critical_overdensity=200,
             return            
     else:
         # take first instance of downward intersection with critical value
-        index = np.where((vod[:-1] >= critical_overdensity) &
-                         (vod[1:] < critical_overdensity))[0][0]
+        intersections = (vod[:-1] >= critical_overdensity) & \
+            (vod[1:] < critical_overdensity)
+        if not intersections.any():
+            halo.quantities.update(vquantities)
+            return            
+        index = np.where(intersections)[0][0]
 
     for field in fields:
         v_prof = profile_data[field][dfilter].to_ndarray()

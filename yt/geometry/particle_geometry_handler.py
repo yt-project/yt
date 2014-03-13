@@ -117,8 +117,10 @@ class ParticleIndex(Index):
     def _detect_output_fields(self):
         # TODO: Add additional fields
         pfl = []
+        units = {}
         for dom in self.data_files:
-            fl = self.io._identify_fields(dom)
+            fl, _units = self.io._identify_fields(dom)
+            units.update(_units)
             dom._calculate_offsets(fl)
             for f in fl:
                 if f not in pfl: pfl.append(f)
@@ -127,6 +129,7 @@ class ParticleIndex(Index):
         pf.particle_types = tuple(set(pt for pt, pf in pfl))
         # This is an attribute that means these particle types *actually*
         # exist.  As in, they are real, in the dataset.
+        pf.field_units.update(units)
         pf.particle_types_raw = pf.particle_types
 
     def _identify_base_chunk(self, dobj):
