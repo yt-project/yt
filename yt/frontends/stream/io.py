@@ -161,7 +161,7 @@ class StreamParticleIOHandler(BaseIOHandler):
         return {'io': npart}
 
     def _identify_fields(self, data_file):
-        return self.fields[data_file.filename].keys()
+        return self.fields[data_file.filename].keys(), {}
 
 class IOHandlerStreamHexahedral(BaseIOHandler):
     _data_style = "stream_hexahedral"

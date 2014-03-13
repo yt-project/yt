@@ -162,7 +162,7 @@ class IOHandlerOWLS(BaseIOHandler):
                 # We'll append it anyway.
                 fields.append((ptype, mname))
         f.close()
-        return fields
+        return fields, {}
 
 class IOHandlerGadgetHDF5(IOHandlerOWLS):
     _data_style = "gadget_hdf5"
@@ -345,7 +345,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
                     elif req != ptype:
                         continue
                 field_list.append((ptype, field))
-        return field_list
+        return field_list, {}
 
 class IOHandlerTipsyBinary(BaseIOHandler):
     _data_style = "tipsy"
@@ -527,7 +527,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         return self._field_list
 
     def _identify_fields(self, data_file):
-        return self._field_list
+        return self._field_list, {}
 
     def _calculate_particle_offsets(self, data_file):
         field_offsets = {}
@@ -567,7 +567,7 @@ class IOHandlerHTTPStream(BaseIOHandler):
         f = []
         for ftype, fname in self.pf.parameters["field_list"]:
             f.append((str(ftype), str(fname)))
-        return f
+        return f, {}
 
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
