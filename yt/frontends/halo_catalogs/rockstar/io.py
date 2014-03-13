@@ -123,4 +123,4 @@ class IOHandlerRockstarBinary(BaseIOHandler):
     def _identify_fields(self, data_file):
         fields = [("halos", f) for f in halo_dt.fields if
                   "padding" not in f]
-        return fields
+        return fields, {}
