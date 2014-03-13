@@ -129,7 +129,7 @@ class ParticleGeometryHandler(GeometryHandler):
         pf.particle_types = tuple(set(pt for pt, pf in pfl))
         # This is an attribute that means these particle types *actually*
         # exist.  As in, they are real, in the dataset.
-        self.field_units = units
+        pf.field_units.update(units)
         pf.particle_types_raw = pf.particle_types
 
     def _setup_classes(self):

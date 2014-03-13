@@ -71,6 +71,7 @@ class StaticOutput(object):
     _particle_velocity_name = None
     particle_unions = None
     known_filters = None
+    field_units = None
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):
@@ -110,6 +111,7 @@ class StaticOutput(object):
         self.parameters = {}
         self.known_filters = self.known_filters or {}
         self.particle_unions = self.particle_unions or {}
+        self.field_units = self.field_units or {}
 
         # path stuff
         self.parameter_filename = str(filename)
