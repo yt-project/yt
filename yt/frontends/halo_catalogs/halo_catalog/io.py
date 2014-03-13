@@ -114,4 +114,6 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
     def _identify_fields(self, data_file):
         with h5py.File(data_file.filename, "r") as f:
             fields = [("halos", field) for field in f]
-        return fields
+            units = dict([(("halos", field), 
+                           f[field].attrs["units"]) for field in f])
+        return fields, units
