@@ -329,8 +329,6 @@ class ARTIOStaticOutput(StaticOutput):
     _handle = None
     _hierarchy_class = ARTIOGeometryHandler
     _field_info_class = ARTIOFieldInfo
-    _particle_mass_name = "particle_mass"
-    _particle_coordinates_name = "Coordinates"
 
     def __init__(self, filename, data_style='artio',
                  storage_filename=None, max_range = 1024):
