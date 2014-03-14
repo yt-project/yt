@@ -135,6 +135,9 @@ _elements = (
     (115, 288.0000000000, "Ununpentium", "Uup"),
     (116, 292.0000000000, "Ununhexium", "Uuh"),
     (118, 294.0000000000, "Ununoctium", "Uuo"),
+    # Now some special cases that are *not* elements
+    (-1, 2.014102, "Deuterium", "D"),
+    (-1, 0.00054858, "Electron", "De"),
 )
 
 class Element:
