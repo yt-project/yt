@@ -255,7 +255,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         if particle_mass is None:
             pmass_min, pmass_max = dd.quantities.extrema(
                 (ptype, "particle_mass"), non_zero = True)
-            if pmass_min != pmass_max:
+            if np.abs(pmass_max - pmass_min) / pmass_max > 0.01:
                 raise YTRockstarMultiMassNotSupported(pmass_min, pmass_max,
                     ptype)
             particle_mass = pmass_min

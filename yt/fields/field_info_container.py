@@ -90,7 +90,8 @@ class FieldInfoContainer(dict):
                 raise RuntimeError
             if field[0] not in self.pf.particle_types:
                 continue
-            self.add_output_field(field, units = "",
+            self.add_output_field(field, 
+                                  units = self.pf.field_units.get(field, ""),
                                   particle_type = True)
 
     def setup_fluid_aliases(self):
