@@ -355,6 +355,8 @@ class Dataset(object):
         rv = self.field_info.find_dependencies(new_fields)
 
     def add_particle_filter(self, filter):
+        # This requires an index
+        self.index
         # This is a dummy, which we set up to enable passthrough of "all"
         # concatenation fields.
         n = getattr(filter, "name", filter)
