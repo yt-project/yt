@@ -31,6 +31,7 @@ from yt.fields.particle_fields import \
     standard_particle_fields
 from yt.utilities.physical_constants import \
     mh, \
-    mass_sun_cgs
+    mass_sun_cgs, \
+    periodic_table
 from yt.funcs import *
 
