@@ -28,7 +28,7 @@ fig, axes, colorbars = get_multi_plot( 2, 3, colorbar=orient, bw = 6)
 # over the columns, which will become axes of slicing.
 plots = []
 for ax in range(3):
-    sli = pf.h.slice(ax, c[ax])
+    sli = pf.slice(ax, c[ax])
     frb = sli.to_frb(width, res)
     den_axis = axes[ax][0]
     temp_axis = axes[ax][1]

@@ -18,21 +18,21 @@ import weakref
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger as mylog
-from yt.geometry.geometry_handler import GeometryHandler, YTDataChunk
+from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.utilities.lib.mesh_utilities import smallest_fwidth
 
-class UnstructuredGeometryHandler(GeometryHandler):
+class UnstructuredIndex(Index):
     _global_mesh = False
     _unsupported_objects = ('proj', 'covering_grid', 'smoothed_covering_grid')
 
-    def __init__(self, pf, data_style):
-        self.data_style = data_style
+    def __init__(self, pf, dataset_type):
+        self.dataset_type = dataset_type
         self.parameter_file = weakref.proxy(pf)
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.directory = os.path.dirname(self.hierarchy_filename)
+        # for now, the index file is the parameter file!
+        self.index_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.index_filename)
         self.float_type = np.float64
-        super(UnstructuredGeometryHandler, self).__init__(pf, data_style)
+        super(UnstructuredIndex, self).__init__(pf, dataset_type)
 
     def _setup_geometry(self):
         mylog.debug("Initializing Unstructured Mesh Geometry Handler.")
@@ -53,11 +53,6 @@ class UnstructuredGeometryHandler(GeometryHandler):
 
     def _initialize_mesh(self):
         raise NotImplementedError
-
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        super(UnstructuredGeometryHandler, self)._setup_classes(dd)
-        self.object_types.sort()
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:

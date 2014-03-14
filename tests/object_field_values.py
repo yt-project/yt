@@ -2,7 +2,7 @@ import hashlib
 import numpy as na
 
 from yt.utilities.answer_testing.output_tests import \
-    YTStaticOutputTest, RegressionTestException, create_test
+    YTDatasetTest, RegressionTestException, create_test
 from yt.funcs import ensure_list, iterable
 from fields_to_test import field_list, particle_field_list
 
@@ -22,20 +22,20 @@ def register_object(func):
 def centered_sphere(tobj):
     center = 0.5 * (tobj.pf.domain_right_edge + tobj.pf.domain_left_edge)
     width = (tobj.pf.domain_right_edge - tobj.pf.domain_left_edge).max()
-    tobj.data_object = tobj.pf.h.sphere(center, width / 0.25)
+    tobj.data_object = tobj.pf.sphere(center, width / 0.25)
 
 
 @register_object
 def off_centered_sphere(tobj):
     center = 0.5 * (tobj.pf.domain_right_edge + tobj.pf.domain_left_edge)
     width = (tobj.pf.domain_right_edge - tobj.pf.domain_left_edge).max()
-    tobj.data_object = tobj.pf.h.sphere(center - 0.25 * width, width / 0.25)
+    tobj.data_object = tobj.pf.sphere(center - 0.25 * width, width / 0.25)
 
 
 @register_object
 def corner_sphere(tobj):
     width = (tobj.pf.domain_right_edge - tobj.pf.domain_left_edge).max()
-    tobj.data_object = tobj.pf.h.sphere(tobj.pf.domain_left_edge, width / 0.25)
+    tobj.data_object = tobj.pf.sphere(tobj.pf.domain_left_edge, width / 0.25)
 
 
 @register_object
@@ -44,7 +44,7 @@ def disk(self):
     radius = (self.pf.domain_right_edge - self.pf.domain_left_edge).max() / 10.
     height = (self.pf.domain_right_edge - self.pf.domain_left_edge).max() / 10.
     normal = na.array([1.] * 3)
-    self.data_object = self.pf.h.disk(center, normal, radius, height)
+    self.data_object = self.pf.disk(center, normal, radius, height)
 
 
 @register_object
@@ -70,7 +70,7 @@ for field in ["Density"]:  # field_list:
 known_objects.update(_new_known_objects)
 
 
-class YTFieldValuesTest(YTStaticOutputTest):
+class YTFieldValuesTest(YTDatasetTest):
 
     def run(self):
         vals = self.data_object[self.field].copy()
@@ -81,7 +81,7 @@ class YTFieldValuesTest(YTStaticOutputTest):
         if self.result != old_result: raise FieldHashesDontMatch
 
     def setup(self):
-        YTStaticOutputTest.setup(self)
+        YTDatasetTest.setup(self)
         known_objects[self.object_name](self)
 
 
@@ -126,10 +126,10 @@ for object_name in known_objects:
                 object_name=object_name)
 
 
-class YTDerivedQuantityTest(YTStaticOutputTest):
+class YTDerivedQuantityTest(YTDatasetTest):
 
     def setup(self):
-        YTStaticOutputTest.setup(self)
+        YTDatasetTest.setup(self)
         known_objects[self.object_name](self)
 
     def compare(self, old_result):

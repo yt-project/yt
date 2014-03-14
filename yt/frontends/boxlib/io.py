@@ -24,7 +24,7 @@ from yt.funcs import mylog, defaultdict
 
 class IOHandlerBoxlib(BaseIOHandler):
 
-    _data_style = "boxlib_native"
+    _dataset_type = "boxlib_native"
 
     def __init__(self, pf, *args, **kwargs):
         self.pf = pf
@@ -58,7 +58,7 @@ class IOHandlerBoxlib(BaseIOHandler):
             if g.filename is None:
                 continue
             grids_by_file[g.filename].append(g)
-        dtype = self.pf.hierarchy._dtype
+        dtype = self.pf.index._dtype
         bpr = dtype.itemsize
         for filename in grids_by_file:
             grids = grids_by_file[filename]
@@ -69,7 +69,7 @@ class IOHandlerBoxlib(BaseIOHandler):
                 grid._seek(f)
                 count = grid.ActiveDimensions.prod()
                 size = count * bpr
-                for field in self.pf.hierarchy.field_order:
+                for field in self.pf.index.field_order:
                     if field in fields:
                         # We read it ...
                         v = np.fromfile(f, dtype=dtype, count=count)
@@ -80,7 +80,7 @@ class IOHandlerBoxlib(BaseIOHandler):
         return data
 
 class IOHandlerOrion(IOHandlerBoxlib):
-    _data_style = "orion_native"
+    _dataset_type = "orion_native"
 
     def _read_particles(self, grid, field): 
         """
@@ -160,7 +160,7 @@ class IOHandlerOrion(IOHandlerBoxlib):
         return np.array(particles)
 
 class IOHandlerCastro(IOHandlerBoxlib):
-    _data_style = "castro_native"
+    _dataset_type = "castro_native"
 
     def _read_particle_field(self, grid, field):
         offset = grid._particle_offset
@@ -178,7 +178,7 @@ nyx_particle_field_names = ['particle_position_%s' % ax for ax in 'xyz'] + \
                            ['particle_velocity_%s' % ax for ax in 'xyz']
 
 class IOHandlerNyx(IOHandlerBoxlib):
-    _data_style = "nyx_native"
+    _dataset_type = "nyx_native"
 
     def _read_particle_coords(self, chunks, ptf):
         offset = grid._particle_offset

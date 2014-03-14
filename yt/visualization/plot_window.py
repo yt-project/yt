@@ -52,7 +52,7 @@ from yt.utilities.exceptions import \
     YTUnitNotRecognized, YTInvalidWidthError, YTCannotParseUnitDisplayName
 
 from yt.data_objects.time_series import \
-    TimeSeriesData
+    DatasetSeries
 from yt.units.yt_array import YTArray, YTQuantity
 
 # Some magic for dealing with pyparsing being included or not
@@ -276,9 +276,9 @@ class PlotWindow(ImagePlotContainer):
         self._initfinished = True
 
     def _initialize_dataset(self, ts):
-        if not isinstance(ts, TimeSeriesData):
+        if not isinstance(ts, DatasetSeries):
             if not iterable(ts): ts = [ts]
-            ts = TimeSeriesData(ts)
+            ts = DatasetSeries(ts)
         return ts
 
     def __iter__(self):
@@ -836,7 +836,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
 
     Parameters
     ----------
-    pf : `StaticOutput`
+    pf : `Dataset`
          This is the parameter file object corresponding to the
          simulation output to be plotted.
     axis : int or one of 'x', 'y', 'z'
@@ -932,7 +932,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         axis = fix_axis(axis)
         (bounds, center) = get_window_parameters(axis, center, width, pf)
         if field_parameters is None: field_parameters = {}
-        slc = pf.h.slice(axis, center[axis],
+        slc = pf.slice(axis, center[axis],
             field_parameters = field_parameters, center=center)
         slc.get_data(fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin,
@@ -953,7 +953,7 @@ class ProjectionPlot(PWViewerMPL):
 
     Parameters
     ----------
-    pf : `StaticOutput`
+    pf : `Dataset`
         This is the parameter file object corresponding to the
         simulation output to be plotted.
     axis : int or one of 'x', 'y', 'z'
@@ -1058,7 +1058,7 @@ class ProjectionPlot(PWViewerMPL):
         axis = fix_axis(axis)
         (bounds, center) = get_window_parameters(axis, center, width, pf)
         if field_parameters is None: field_parameters = {}
-        proj = pf.h.proj(fields, axis, weight_field=weight_field,
+        proj = pf.proj(fields, axis, weight_field=weight_field,
                          center=center, data_source=data_source,
                          field_parameters = field_parameters, style = proj_style)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
@@ -1079,7 +1079,7 @@ class OffAxisSlicePlot(PWViewerMPL):
 
     Parameters
     ----------
-    pf : :class:`yt.data_objects.api.StaticOutput`
+    pf : :class:`yt.data_objects.api.Dataset`
          This is the parameter file object corresponding to the
          simulation output to be plotted.
     normal : a sequence of floats
@@ -1138,7 +1138,7 @@ class OffAxisSlicePlot(PWViewerMPL):
                  field_parameters=None):
         (bounds, center_rot) = get_oblique_window_parameters(normal,center,width,pf)
         if field_parameters is None: field_parameters = {}
-        cutting = pf.h.cutting(normal, center, north_vector = north_vector,
+        cutting = pf.cutting(normal, center, north_vector = north_vector,
                               field_parameters = field_parameters)
         cutting.get_data(fields)
         # Hard-coding the origin keyword since the other two options
@@ -1190,7 +1190,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
 
     Parameters
     ----------
-    pf : :class:`yt.data_objects.api.StaticOutput`
+    pf : :class:`yt.data_objects.api.Dataset`
         This is the parameter file object corresponding to the
         simulation output to be plotted.
     normal : a sequence of floats
@@ -1314,7 +1314,7 @@ class PWViewerExtJS(PlotWindow):
         if self._colorbar_valid == False:
             addl_keys['colorbar_image'] = self._get_cbar_image()
             self._colorbar_valid = True
-        min_zoom = 200*self.pf.h.get_smallest_dx() * self.pf['unitary']
+        min_zoom = 200*self.pf.index.get_smallest_dx() * self.pf['unitary']
         for field in fields:
             to_plot = apply_colormap(self._frb[field],
                 func = self._field_transform[field],
@@ -1428,7 +1428,7 @@ class PWViewerExtJS(PlotWindow):
         # We accept value from 0..100, and assume it has been set from the
         # scroll bar.  In that case, we undo the logic for calcualting
         # 'zoom_fac' from above.
-        min_val = 200*self.pf.h.get_smallest_dx()
+        min_val = 200*self.pf.index.get_smallest_dx()
         unit = self.pf['unitary']
         width = (min_val**(value/100.0))/unit
         self.set_width(width)
@@ -1643,7 +1643,7 @@ def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
 
     Parameters
     ----------
-    pf : :class:`yt.data_objects.api.StaticOutput`
+    pf : :class:`yt.data_objects.api.Dataset`
         This is the parameter file object corresponding to the
         simulation output to be plotted.
     normal : int or one of 'x', 'y', 'z', or sequence of floats

@@ -4,7 +4,7 @@ from yt.mods import *
 pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
 # Create a sphere of radius 100 kpc in the center of the domain.
-my_sphere = pf.h.sphere("c", (100.0, "kpc"))
+my_sphere = pf.sphere("c", (100.0, "kpc"))
 
 # Create a PhasePlot object.
 # Setting weight to None will calculate a sum.

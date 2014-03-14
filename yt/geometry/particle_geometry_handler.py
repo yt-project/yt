@@ -26,7 +26,7 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
 from yt.fields.field_info_container import NullFunc
-from yt.geometry.geometry_handler import GeometryHandler, YTDataChunk
+from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.particle_oct_container import \
     ParticleOctreeContainer, ParticleRegions
 from yt.utilities.definitions import MAXLEVEL
@@ -37,17 +37,17 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.data_objects.data_containers import data_object_registry
 from yt.data_objects.octree_subset import ParticleOctreeSubset
 
-class ParticleGeometryHandler(GeometryHandler):
+class ParticleIndex(Index):
     _global_mesh = False
 
-    def __init__(self, pf, data_style):
-        self.data_style = data_style
+    def __init__(self, pf, dataset_type):
+        self.dataset_type = dataset_type
         self.parameter_file = weakref.proxy(pf)
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.directory = os.path.dirname(self.hierarchy_filename)
+        # for now, the index file is the parameter file!
+        self.index_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.index_filename)
         self.float_type = np.float64
-        super(ParticleGeometryHandler, self).__init__(pf, data_style)
+        super(ParticleIndex, self).__init__(pf, dataset_type)
 
     def _setup_geometry(self):
         mylog.debug("Initializing Particle Geometry Handler.")
@@ -117,8 +117,10 @@ class ParticleGeometryHandler(GeometryHandler):
     def _detect_output_fields(self):
         # TODO: Add additional fields
         pfl = []
+        units = {}
         for dom in self.data_files:
-            fl = self.io._identify_fields(dom)
+            fl, _units = self.io._identify_fields(dom)
+            units.update(_units)
             dom._calculate_offsets(fl)
             for f in fl:
                 if f not in pfl: pfl.append(f)
@@ -127,12 +129,8 @@ class ParticleGeometryHandler(GeometryHandler):
         pf.particle_types = tuple(set(pt for pt, pf in pfl))
         # This is an attribute that means these particle types *actually*
         # exist.  As in, they are real, in the dataset.
+        pf.field_units.update(units)
         pf.particle_types_raw = pf.particle_types
-
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        super(ParticleGeometryHandler, self)._setup_classes(dd)
-        self.object_types.sort()
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:

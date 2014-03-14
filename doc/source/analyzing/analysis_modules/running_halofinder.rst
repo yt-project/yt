@@ -448,7 +448,7 @@ Below is a simple example for HOP; the other halo finders use the same
   pf = load('data0458')
   # Note that the first term below, [0.5]*3, defines the center of
   # the region and is not used. It can be any value.
-  sv = pf.h.region([0.5]*3, [0.21, .21, .72], [.28, .28, .79])
+  sv = pf.region([0.5]*3, [0.21, .21, .72], [.28, .28, .79])
   halos = HaloFinder(pf, subvolume = sv)
   halos.write_out("sv.out")
 
@@ -493,10 +493,10 @@ Designing the python script itself is straightforward:
   from yt.analysis_modules.halo_finding.rockstar.api import RockstarHaloFinder
 
   #find all of our simulation files
-  files = glob.glob("Enzo_64/DD*/\*hierarchy")
+  files = glob.glob("Enzo_64/DD*/\*index")
   #hopefully the file name order is chronological
   files.sort()
-  ts = TimeSeriesData.from_filenames(files[:])
+  ts = DatasetSeries.from_filenames(files[:])
   rh = RockstarHaloFinder(ts)
   rh.run()
 
@@ -522,7 +522,7 @@ The RockstarHaloFinder class has these options:
     the width of the smallest grid element in the simulation from the
     last data snapshot (i.e. the one where time has evolved the
     longest) in the time series:
-    ``pf_last.h.get_smallest_dx() * pf_last['mpch']``.
+    ``pf_last.index.get_smallest_dx() * pf_last['mpch']``.
   * ``total_particles``, if supplied, this is a pre-calculated
     total number of dark matter
     particles present in the simulation. For example, this is useful
@@ -624,12 +624,12 @@ Here is an example ``user_script.py``:
     
     def main():
         import enzo
-        pf = EnzoStaticOutputInMemory()
+        pf = EnzoDatasetInMemory()
         mine = ytcfg.getint('yt','__topcomm_parallel_rank')
         size = ytcfg.getint('yt','__topcomm_parallel_size')
 
         # Call rockstar.
-        ts = TimeSeriesData([pf])
+        ts = DatasetSeries([pf])
         outbase = "./rockstar_halos_%04d" % pf['NumberOfPythonTopGridCalls']
         rh = RockstarHaloFinder(ts, num_readers = size,
             outbase = outbase)

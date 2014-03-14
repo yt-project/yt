@@ -66,7 +66,7 @@ class OctreeSubset(YTSelectionContainer):
         self.domain = domain
         self.domain_id = domain.domain_id
         self.pf = domain.pf
-        self.hierarchy = self.pf.hierarchy
+        self._index = self.pf.index
         self.oct_handler = domain.oct_handler
         self._last_mask = None
         self._last_selector_id = None
@@ -77,7 +77,7 @@ class OctreeSubset(YTSelectionContainer):
 
     def _generate_container_field(self, field):
         if self._current_chunk is None:
-            self.hierarchy._identify_base_chunk(self)
+            self.index._identify_base_chunk(self)
         if isinstance(field, tuple): field = field[1]
         if field == "dx":
             return self._current_chunk.fwidth[:,0]
@@ -271,8 +271,8 @@ class ParticleOctreeSubset(OctreeSubset):
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.pf = pf
-        self.hierarchy = self.pf.hierarchy
-        self.oct_handler = pf.h.oct_handler
+        self._index = self.pf.index
+        self.oct_handler = pf.index.oct_handler
         self.min_ind = min_ind
         if max_ind == 0: max_ind = (1 << 63)
         self.max_ind = max_ind

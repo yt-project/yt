@@ -21,7 +21,7 @@ contains no extension.  For instance, if you have the following files:
 
    DD0010/
    DD0010/data0010
-   DD0010/data0010.hierarchy
+   DD0010/data0010.index
    DD0010/data0010.cpu0000
    DD0010/data0010.cpu0001
    DD0010/data0010.cpu0002

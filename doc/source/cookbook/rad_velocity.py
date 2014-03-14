@@ -5,7 +5,7 @@ pf = load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
 
 # Get the first sphere
 
-sphere0 = pf.h.sphere(pf.domain_center, (500., "kpc"))
+sphere0 = pf.sphere(pf.domain_center, (500., "kpc"))
 
 # Compute the bulk velocity from the cells in this sphere
 
@@ -13,7 +13,7 @@ bulk_vel = sphere0.quantities["BulkVelocity"]()
 
 # Get the second sphere
 
-sphere1 = pf.h.sphere(pf.domain_center, (500., "kpc"))
+sphere1 = pf.sphere(pf.domain_center, (500., "kpc"))
 
 # Set the bulk velocity field parameter 
 sphere1.set_field_parameter("bulk_velocity", bulk_vel)

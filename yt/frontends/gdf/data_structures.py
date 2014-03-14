@@ -22,9 +22,9 @@ from yt.funcs import \
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
-    GridGeometryHandler
+    GridIndex
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.utilities.definitions import \
@@ -43,9 +43,9 @@ def _get_convert(fname):
 class GDFGrid(AMRGridPatch):
     _id_offset = 0
 
-    def __init__(self, id, hierarchy, level, start, dimensions):
-        AMRGridPatch.__init__(self, id, filename=hierarchy.hierarchy_filename,
-                              hierarchy=hierarchy)
+    def __init__(self, id, index, level, start, dimensions):
+        AMRGridPatch.__init__(self, id, filename=index.index_filename,
+                              index=index)
         self.Parent = []
         self.Children = []
         self.Level = level
@@ -60,8 +60,8 @@ class GDFGrid(AMRGridPatch):
         if len(self.Parent) > 0:
             self.dds = self.Parent[0].dds / self.pf.refine_by
         else:
-            LE, RE = self.hierarchy.grid_left_edge[id, :], \
-                self.hierarchy.grid_right_edge[id, :]
+            LE, RE = self.index.grid_left_edge[id, :], \
+                self.index.grid_right_edge[id, :]
             self.dds = np.array((RE - LE) / self.ActiveDimensions)
         if self.pf.data_software != "piernik":
             if self.pf.dimensionality < 2:
@@ -72,42 +72,37 @@ class GDFGrid(AMRGridPatch):
             self.dds
 
 
-class GDFHierarchy(GridGeometryHandler):
+class GDFHierarchy(GridIndex):
 
     grid = GDFGrid
     filtered_particle_types = []
 
-    def __init__(self, pf, data_style='grid_data_format'):
+    def __init__(self, pf, dataset_type='grid_data_format'):
         self.parameter_file = weakref.proxy(pf)
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        h5f = h5py.File(self.hierarchy_filename, 'r')
-        self.data_style = data_style
-        GridGeometryHandler.__init__(self, pf, data_style)
+        self.index_filename = self.parameter_file.parameter_filename
+        h5f = h5py.File(self.index_filename, 'r')
+        self.dataset_type = dataset_type
+        GridIndex.__init__(self, pf, dataset_type)
         self.max_level = 10  # FIXME
-        # for now, the hierarchy file is the parameter file!
-        self.directory = os.path.dirname(self.hierarchy_filename)
+        # for now, the index file is the parameter file!
+        self.directory = os.path.dirname(self.index_filename)
         h5f.close()
 
     def _initialize_data_storage(self):
         pass
 
     def _detect_fields(self):
-        h5f = h5py.File(self.hierarchy_filename, 'r')
+        h5f = h5py.File(self.index_filename, 'r')
         self.field_list = h5f['field_types'].keys()
         h5f.close()
 
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        GridGeometryHandler._setup_classes(self, dd)
-        self.object_types.sort()
-
     def _count_grids(self):
-        h5f = h5py.File(self.hierarchy_filename, 'r')
+        h5f = h5py.File(self.index_filename, 'r')
         self.num_grids = h5f['/grid_parent_id'].shape[0]
         h5f.close()
 
-    def _parse_hierarchy(self):
-        h5f = h5py.File(self.hierarchy_filename, 'r')
+    def _parse_index(self):
+        h5f = h5py.File(self.index_filename, 'r')
         dxs = []
         self.grids = np.empty(self.num_grids, dtype='object')
         levels = (h5f['grid_level'][:]).copy()
@@ -177,14 +172,14 @@ class GDFHierarchy(GridGeometryHandler):
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
 
 
-class GDFStaticOutput(StaticOutput):
-    _hierarchy_class = GDFHierarchy
+class GDFDataset(Dataset):
+    _index_class = GDFHierarchy
     _fieldinfo_fallback = GDFFieldInfo
     _fieldinfo_known = KnownGDFFields
 
-    def __init__(self, filename, data_style='grid_data_format',
+    def __init__(self, filename, dataset_type='grid_data_format',
                  storage_filename=None):
-        StaticOutput.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
         self.filename = filename
 

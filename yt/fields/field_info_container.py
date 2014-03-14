@@ -70,17 +70,17 @@ class FieldInfoContainer(dict):
             for alias in aliases:
                 self.alias((ptype, alias), (ptype, f))
 
-        if self.pf._particle_coordinates_name is None:
+        # We'll either have particle_position or particle_position_[xyz]
+        if (ptype, "particle_position") in self.field_list:
+            particle_scalar_functions(ptype,
+                   "particle_position", "particle_velocity",
+                   self)
+        else:
             particle_vector_functions(ptype,
                     ["particle_position_%s" % ax for ax in 'xyz'],
                     ["particle_velocity_%s" % ax for ax in 'xyz'],
                     self)
-        else:
-            particle_scalar_functions(ptype,
-                   self.pf._particle_coordinates_name,
-                   self.pf._particle_velocity_name,
-                   self)
-        particle_deposition_functions(ptype, "Coordinates",
+        particle_deposition_functions(ptype, "particle_position",
             "particle_mass", self)
         standard_particle_fields(self, ptype)
         # Now we check for any leftover particle fields
@@ -90,7 +90,8 @@ class FieldInfoContainer(dict):
                 raise RuntimeError
             if field[0] not in self.pf.particle_types:
                 continue
-            self.add_output_field(field, units = "",
+            self.add_output_field(field, 
+                                  units = self.pf.field_units.get(field, ""),
                                   particle_type = True)
 
     def setup_fluid_aliases(self):
@@ -142,8 +143,8 @@ class FieldInfoContainer(dict):
         deps, unavailable = self.check_derived_fields(loaded)
         self.pf.field_dependencies.update(deps)
         # Note we may have duplicated
-        dfl = set(self.pf.h.derived_field_list).union(deps.keys())
-        self.pf.h.derived_field_list = list(sorted(dfl))
+        dfl = set(self.pf.derived_field_list).union(deps.keys())
+        self.pf.derived_field_list = list(sorted(dfl))
         return loaded, unavailable
 
     def add_output_field(self, name, **kwargs):
@@ -283,6 +284,6 @@ class FieldInfoContainer(dict):
             fd.requested = set(fd.requested)
             deps[field] = fd
             mylog.debug("Succeeded with %s (needs %s)", field, fd.requested)
-        dfl = set(self.pf.h.derived_field_list).union(deps.keys())
-        self.pf.h.derived_field_list = list(sorted(dfl))
+        dfl = set(self.pf.derived_field_list).union(deps.keys())
+        self.pf.derived_field_list = list(sorted(dfl))
         return deps, unavailable

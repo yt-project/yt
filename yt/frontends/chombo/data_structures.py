@@ -36,9 +36,9 @@ from yt.funcs import *
 from yt.data_objects.grid_patch import \
      AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
-     GridGeometryHandler
+     GridIndex
 from yt.data_objects.static_output import \
-     StaticOutput
+     Dataset
 from yt.utilities.definitions import \
      mpc_conversion, sec_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -53,9 +53,9 @@ from .fields import ChomboFieldInfo, KnownChomboFields
 class ChomboGrid(AMRGridPatch):
     _id_offset = 0
     __slots__ = ["_level_id", "stop_index"]
-    def __init__(self, id, hierarchy, level, start, stop):
-        AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
-                              hierarchy = hierarchy)
+    def __init__(self, id, index, level, start, stop):
+        AMRGridPatch.__init__(self, id, filename = index.index_filename,
+                              index = index)
         self.Parent = []
         self.Children = []
         self.Level = level
@@ -80,34 +80,34 @@ class ChomboGrid(AMRGridPatch):
         return self.start_index
 
     def _setup_dx(self):
-        # has already been read in and stored in hierarchy
-        self.dds = self.hierarchy.dds_list[self.Level]
+        # has already been read in and stored in index
+        self.dds = self.index.dds_list[self.Level]
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
-class ChomboHierarchy(GridGeometryHandler):
+class ChomboHierarchy(GridIndex):
 
     grid = ChomboGrid
 
-    def __init__(self,pf,data_style='chombo_hdf5'):
+    def __init__(self,pf,dataset_type='chombo_hdf5'):
         self.domain_left_edge = pf.domain_left_edge
         self.domain_right_edge = pf.domain_right_edge
-        self.data_style = data_style
+        self.dataset_type = dataset_type
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = os.path.abspath(
+        # for now, the index file is the parameter file!
+        self.index_filename = os.path.abspath(
             self.parameter_file.parameter_filename)
         self.directory = pf.fullpath
         self._handle = pf._handle
 
         self.float_type = self._handle['/level_0']['data:datatype=0'].dtype.name
         self._levels = self._handle.keys()[1:]
-        GridGeometryHandler.__init__(self,pf,data_style)
+        GridIndex.__init__(self,pf,dataset_type)
         self._read_particles()
         self._fhandle.close()
 
     def _read_particles(self):
-        self.particle_filename = self.hierarchy_filename[:-4] + 'sink'
+        self.particle_filename = self.index_filename[:-4] + 'sink'
         if not os.path.exists(self.particle_filename): return
         with open(self.particle_filename, 'r') as f:
             lines = f.readlines()
@@ -138,17 +138,12 @@ class ChomboHierarchy(GridGeometryHandler):
         ncomp = int(self._handle['/'].attrs['num_components'])
         self.field_list = [c[1] for c in self._handle['/'].attrs.items()[-ncomp:]]
           
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        GridGeometryHandler._setup_classes(self, dd)
-        self.object_types.sort()
-
     def _count_grids(self):
         self.num_grids = 0
         for lev in self._levels:
             self.num_grids += self._handle[lev]['Processors'].len()
 
-    def _parse_hierarchy(self):
+    def _parse_index(self):
         f = self._handle # shortcut
 
         # this relies on the first Group in the H5 file being
@@ -198,18 +193,18 @@ class ChomboHierarchy(GridGeometryHandler):
         mask[grid_ind] = True
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
 
-class ChomboStaticOutput(StaticOutput):
-    _hierarchy_class = ChomboHierarchy
+class ChomboDataset(Dataset):
+    _index_class = ChomboHierarchy
     _fieldinfo_fallback = ChomboFieldInfo
     _fieldinfo_known = KnownChomboFields
 
-    def __init__(self, filename, data_style='chombo_hdf5',
+    def __init__(self, filename, dataset_type='chombo_hdf5',
                  storage_filename = None, ini_filename = None):
         self._handle = h5py.File(filename,'r')
         self.current_time = self._handle.attrs['time']
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)
-        StaticOutput.__init__(self,filename,data_style)
+        Dataset.__init__(self,filename,dataset_type)
         self.storage_filename = storage_filename
         self.cosmological_simulation = False
 

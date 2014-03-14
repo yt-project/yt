@@ -52,7 +52,7 @@ in mpc as a float
   from yt.mods import *
   from yt.analysis_modules.star_analysis.api import *
   pf = load("data0030")
-  re = pf.h.region([0.5,0.5,0.5], [0.4,0.5,0.6], [0.5,0.6,0.7])
+  re = pf.region([0.5,0.5,0.5], [0.4,0.5,0.6], [0.5,0.6,0.7])
   # This puts the particle data for *all* the particles in the region re
   # into the arrays sm and ct.
   sm = re["ParticleMassMsun"]
@@ -148,7 +148,7 @@ information. Continuing from the above example:
 
 .. code-block:: python
 
-  re = pf.h.region([0.5,0.5,0.5], [0.4,0.5,0.6], [0.5,0.6,0.7])
+  re = pf.region([0.5,0.5,0.5], [0.4,0.5,0.6], [0.5,0.6,0.7])
   spec.calculate_spectrum(data_source=re)
 
 If a subset of stars are desired, call it like this. ``star_mass`` is in units
@@ -157,7 +157,7 @@ units.
 
 .. code-block:: python
 
-  re = pf.h.region([0.5,0.5,0.5], [0.4,0.5,0.6], [0.5,0.6,0.7])
+  re = pf.region([0.5,0.5,0.5], [0.4,0.5,0.6], [0.5,0.6,0.7])
   # This puts the particle data for *all* the particles in the region re
   # into the arrays sm, ct and metal.
   sm = re["ParticleMassMsun"]

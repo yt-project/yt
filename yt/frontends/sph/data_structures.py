@@ -27,9 +27,9 @@ import types
 from yt.utilities.fortran_utils import read_record
 from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.particle_geometry_handler import \
-    ParticleGeometryHandler
+    ParticleIndex
 from yt.data_objects.static_output import \
-    StaticOutput, ParticleFile
+    Dataset, ParticleFile
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.physical_constants import \
@@ -71,13 +71,13 @@ class GadgetBinaryFile(ParticleFile):
             self._position_offset, self._file_size)
 
 
-class ParticleStaticOutput(StaticOutput):
+class ParticleDataset(Dataset):
     _unit_base = None
     over_refine_factor = 1
 
 
-class GadgetStaticOutput(ParticleStaticOutput):
-    _hierarchy_class = ParticleGeometryHandler
+class GadgetDataset(ParticleDataset):
+    _index_class = ParticleIndex
     _file_class = GadgetBinaryFile
     _field_info_class = SPHFieldInfo
     _particle_mass_name = "Mass"
@@ -85,7 +85,7 @@ class GadgetStaticOutput(ParticleStaticOutput):
     _particle_velocity_name = "Velocities"
     _suffix = ""
 
-    def __init__(self, filename, data_style="gadget_binary",
+    def __init__(self, filename, dataset_type="gadget_binary",
                  additional_fields=(),
                  unit_base=None, n_ref=64,
                  over_refine_factor=1,
@@ -115,7 +115,7 @@ class GadgetStaticOutput(ParticleStaticOutput):
             self.domain_right_edge = bbox[:,1]
         else:
             self.domain_left_edge = self.domain_right_edge = None
-        super(GadgetStaticOutput, self).__init__(filename, data_style)
+        super(GadgetDataset, self).__init__(filename, dataset_type)
 
     def _setup_binary_spec(self, spec, spec_dict):
         if isinstance(spec, types.StringTypes):
@@ -243,20 +243,20 @@ class GadgetStaticOutput(ParticleStaticOutput):
         return False
 
 
-class GadgetHDF5StaticOutput(GadgetStaticOutput):
+class GadgetHDF5Dataset(GadgetDataset):
     _file_class = ParticleFile
     _field_info_class = SPHFieldInfo
     _particle_mass_name = "Masses"
     _suffix = ".hdf5"
 
-    def __init__(self, filename, data_style="gadget_hdf5", 
+    def __init__(self, filename, dataset_type="gadget_hdf5", 
                  unit_base = None, n_ref=64,
                  over_refine_factor=1,
                  bounding_box = None):
         self.storage_filename = None
         filename = os.path.abspath(filename)
-        super(GadgetHDF5StaticOutput, self).__init__(
-            filename, data_style, unit_base=unit_base, n_ref=n_ref,
+        super(GadgetHDF5Dataset, self).__init__(
+            filename, dataset_type, unit_base=unit_base, n_ref=n_ref,
             over_refine_factor=over_refine_factor,
             bounding_box = bounding_box)
 
@@ -282,7 +282,7 @@ class GadgetHDF5StaticOutput(GadgetStaticOutput):
             pass
         return False
 
-class OWLSStaticOutput(GadgetHDF5StaticOutput):
+class OWLSDataset(GadgetHDF5Dataset):
     _particle_mass_name = "Mass"
 
     def _parse_parameter_file(self):
@@ -352,8 +352,8 @@ class TipsyFile(ParticleFile):
         io._create_dtypes(self)
 
 
-class TipsyStaticOutput(ParticleStaticOutput):
-    _hierarchy_class = ParticleGeometryHandler
+class TipsyDataset(ParticleDataset):
+    _index_class = ParticleIndex
     _file_class = TipsyFile
     _field_info_class = SPHFieldInfo
     _particle_mass_name = "Mass"
@@ -366,7 +366,7 @@ class TipsyStaticOutput(ParticleStaticOutput):
                     ('nstar',   'i'),
                     ('dummy',   'i'))
 
-    def __init__(self, filename, data_style="tipsy",
+    def __init__(self, filename, dataset_type="tipsy",
                  endian=">",
                  field_dtypes=None,
                  domain_left_edge=None,
@@ -399,7 +399,7 @@ class TipsyStaticOutput(ParticleStaticOutput):
             parameter_file = os.path.abspath(parameter_file)
         self._param_file = parameter_file
         filename = os.path.abspath(filename)
-        super(TipsyStaticOutput, self).__init__(filename, data_style)
+        super(TipsyDataset, self).__init__(filename, dataset_type)
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename)
@@ -522,8 +522,8 @@ class TipsyStaticOutput(ParticleStaticOutput):
 class HTTPParticleFile(ParticleFile):
     pass
 
-class HTTPStreamStaticOutput(ParticleStaticOutput):
-    _hierarchy_class = ParticleGeometryHandler
+class HTTPStreamDataset(ParticleDataset):
+    _index_class = ParticleIndex
     _file_class = HTTPParticleFile
     _field_info_class = SPHFieldInfo
     _particle_mass_name = "Mass"
@@ -532,14 +532,14 @@ class HTTPStreamStaticOutput(ParticleStaticOutput):
     filename_template = ""
     
     def __init__(self, base_url,
-                 data_style = "http_particle_stream",
+                 dataset_type = "http_particle_stream",
                  n_ref = 64, over_refine_factor=1):
         if requests is None:
             raise RuntimeError
         self.base_url = base_url
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
-        super(HTTPStreamStaticOutput, self).__init__("", data_style)
+        super(HTTPStreamDataset, self).__init__("", dataset_type)
 
     def __repr__(self):
         return self.base_url
@@ -583,7 +583,7 @@ class HTTPStreamStaticOutput(ParticleStaticOutput):
         self._unit_base = {}
         self._unit_base['cm'] = 1.0/length_unit
         self._unit_base['s'] = 1.0/time_unit
-        super(HTTPStreamStaticOutput, self)._set_units()
+        super(HTTPStreamDataset, self)._set_units()
         self.conversion_factors["velocity"] = velocity_unit
         self.conversion_factors["mass"] = mass_unit
         self.conversion_factors["density"] = density_unit

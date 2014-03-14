@@ -31,12 +31,12 @@ def test_cut_region():
         dd = pf.h.all_data()
         cr = dd.cut_region(["obj['ones'] > 0"])
         for weight in [None, "density"]:
-            p1 = pf.h.proj("density", 0, data_source=dd, weight_field=weight)
-            p2 = pf.h.proj("density", 0, data_source=cr, weight_field=weight)
+            p1 = pf.proj("density", 0, data_source=dd, weight_field=weight)
+            p2 = pf.proj("density", 0, data_source=cr, weight_field=weight)
             for f in p1.field_data:
                 yield assert_almost_equal, p1[f], p2[f]
         cr = dd.cut_region(["obj['density'] > 0.25"])
-        p2 = pf.h.proj("density", 2, data_source=cr)
+        p2 = pf.proj("density", 2, data_source=cr)
         yield assert_equal, p2["density"].max() > 0.25, True
-        p2 = pf.h.proj("density", 2, data_source=cr, weight_field = "density")
+        p2 = pf.proj("density", 2, data_source=cr, weight_field = "density")
         yield assert_equal, p2["density"].max() > 0.25, True

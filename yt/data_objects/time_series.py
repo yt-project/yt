@@ -80,11 +80,11 @@ class TimeSeriesParametersContainer(object):
             return self.data_object.eval(get_pf_prop(attr)())
         raise AttributeError(attr)
 
-class TimeSeriesData(object):
-    r"""The TimeSeriesData object is a container of multiple datasets,
+class DatasetSeries(object):
+    r"""The DatasetSeries object is a container of multiple datasets,
     allowing easy iteration and computation on them.
 
-    TimeSeriesData objects are designed to provide easy ways to access,
+    DatasetSeries objects are designed to provide easy ways to access,
     analyze, parallelize and visualize multiple datasets sequentially.  This is
     primarily expressed through iteration, but can also be constructed via
     analysis tasks (see :ref:`time-series-analysis`).
@@ -94,12 +94,12 @@ class TimeSeriesData(object):
     filenames : list or pattern
         This can either be a list of filenames (such as ["DD0001/DD0001",
         "DD0002/DD0002"]) or a pattern to match, such as
-        "DD*/DD*.hierarchy").  If it's the former, they will be loaded in
+        "DD*/DD*.index").  If it's the former, they will be loaded in
         order.  The latter will be identified with the glob module and then
         sorted.
     parallel : True, False or int
         This parameter governs the behavior when .piter() is called on the
-        resultant TimeSeriesData object.  If this is set to False, the time
+        resultant DatasetSeries object.  If this is set to False, the time
         series will not iterate in parallel when .piter() is called.  If
         this is set to either True or an integer, it will be iterated with
         1 or that integer number of processors assigned to each parameter
@@ -110,7 +110,7 @@ class TimeSeriesData(object):
     Examples
     --------
 
-    >>> ts = TimeSeriesData(
+    >>> ts = DatasetSeries(
             "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0")
     >>> for pf in ts:
     ...     SlicePlot(pf, "x", "Density").save()
@@ -118,7 +118,7 @@ class TimeSeriesData(object):
     >>> def print_time(pf):
     ...     print pf.current_time
     ...
-    >>> ts = TimeSeriesData(
+    >>> ts = DatasetSeries(
     ...     "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0",
     ...      setup_function = print_time)
     ...
@@ -129,7 +129,7 @@ class TimeSeriesData(object):
     def __new__(cls, outputs, *args, **kwargs):
         if isinstance(outputs, basestring):
             outputs = get_filenames_from_glob_pattern(outputs)
-        ret = super(TimeSeriesData, cls).__new__(cls, outputs, *args, **kwargs)
+        ret = super(DatasetSeries, cls).__new__(cls, outputs, *args, **kwargs)
         try:
             ret._pre_outputs = outputs[:]
         except TypeError:
@@ -148,7 +148,7 @@ class TimeSeriesData(object):
         self._setup_function = setup_function
         for type_name in data_object_registry:
             setattr(self, type_name, functools.partial(
-                TimeSeriesDataObject, self, type_name))
+                DatasetSeriesObject, self, type_name))
         self.parallel = parallel
         self.kwargs = kwargs
 
@@ -167,7 +167,7 @@ class TimeSeriesData(object):
             if isinstance(key.start, types.FloatType):
                 return self.get_range(key.start, key.stop)
             # This will return a sliced up object!
-            return TimeSeriesData(self._pre_outputs[key], self.parallel)
+            return DatasetSeries(self._pre_outputs[key], self.parallel)
         o = self._pre_outputs[key]
         if isinstance(o, types.StringTypes):
             o = load(o, **self.kwargs)
@@ -188,7 +188,7 @@ class TimeSeriesData(object):
         individual components of that time series to different processors or
         processor groups.  If the parallelism strategy was set to be
         multi-processor (by "parallel = N" where N is an integer when the
-        TimeSeriesData was created) this will issue each dataset to an
+        DatasetSeries was created) this will issue each dataset to an
         N-processor group.  For instance, this would allow you to start a 1024
         processor job, loading up 100 datasets in a time series and creating 8
         processor groups of 128 processors each, each of which would be
@@ -215,7 +215,7 @@ class TimeSeriesData(object):
         Here is an example of iteration when the results do not need to be
         stored.  One processor will be assigned to each parameter file.
 
-        >>> ts = TimeSeriesData("DD*/DD*.hierarchy")
+        >>> ts = DatasetSeries("DD*/DD*.index")
         >>> for pf in ts.piter():
         ...    SlicePlot(pf, "x", "Density").save()
         ...
@@ -225,7 +225,7 @@ class TimeSeriesData(object):
         >>> def print_time(pf):
         ...     print pf.current_time
         ...
-        >>> ts = TimeSeriesData("DD*/DD*.hierarchy",
+        >>> ts = DatasetSeries("DD*/DD*.index",
         ...             setup_function = print_time )
         ...
         >>> my_storage = {}
@@ -239,7 +239,7 @@ class TimeSeriesData(object):
 
         This shows how to dispatch 4 processors to each dataset:
 
-        >>> ts = TimeSeriesData("DD*/DD*.hierarchy",
+        >>> ts = DatasetSeries("DD*/DD*.index",
         ...                     parallel = 4)
         >>> for pf in ts.piter():
         ...     ProjectionPlot(pf, "x", "Density").save()
@@ -267,7 +267,7 @@ class TimeSeriesData(object):
                         arg = pf
                     elif style == 'data_object':
                         if obj == None:
-                            obj = TimeSeriesDataObject(self, "all_data")
+                            obj = DatasetSeriesObject(self, "all_data")
                         arg = obj.get(pf)
                     rv = task.eval(arg)
                 # We catch and store YT-originating exceptions
@@ -285,7 +285,7 @@ class TimeSeriesData(object):
         filenames.
 
         This method provides an easy way to create a
-        :class:`~yt.data_objects.time_series.TimeSeriesData`, given a set of
+        :class:`~yt.data_objects.time_series.DatasetSeries`, given a set of
         filenames or a pattern that matches them.  Additionally, it can set the
         parallelism strategy.
 
@@ -294,12 +294,12 @@ class TimeSeriesData(object):
         filenames : list or pattern
             This can either be a list of filenames (such as ["DD0001/DD0001",
             "DD0002/DD0002"]) or a pattern to match, such as
-            "DD*/DD*.hierarchy").  If it's the former, they will be loaded in
+            "DD*/DD*.index").  If it's the former, they will be loaded in
             order.  The latter will be identified with the glob module and then
             sorted.
         parallel : True, False or int
             This parameter governs the behavior when .piter() is called on the
-            resultant TimeSeriesData object.  If this is set to False, the time
+            resultant DatasetSeries object.  If this is set to False, the time
             series will not iterate in parallel when .piter() is called.  If
             this is set to either True or an integer, it will be iterated with
             1 or that integer number of processors assigned to each parameter
@@ -313,7 +313,7 @@ class TimeSeriesData(object):
         >>> def print_time(pf):
         ...     print pf.current_time
         ...
-        >>> ts = TimeSeriesData.from_filenames(
+        >>> ts = DatasetSeries.from_filenames(
         ...     "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0",
         ...      setup_function = print_time)
         ...
@@ -357,7 +357,7 @@ class TimeSeriesQuantitiesContainer(object):
             return run_quantity
         return run_quantity_wrapper(q, key)
 
-class TimeSeriesDataObject(object):
+class DatasetSeriesObject(object):
     def __init__(self, time_series, data_object_name, *args, **kwargs):
         self.time_series = weakref.proxy(time_series)
         self.data_object_name = data_object_name
@@ -371,12 +371,12 @@ class TimeSeriesDataObject(object):
 
     def get(self, pf):
         # We get the type name, which corresponds to an attribute of the
-        # hierarchy
+        # index
         cls = getattr(pf.h, self.data_object_name)
         return cls(*self._args, **self._kwargs)
 
 
-class SimulationTimeSeries(TimeSeriesData):
+class SimulationTimeSeries(DatasetSeries):
     class __metaclass__(type):
         def __init__(cls, name, b, d):
             type.__init__(cls, name, b, d)

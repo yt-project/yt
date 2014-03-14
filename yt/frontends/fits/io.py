@@ -24,7 +24,7 @@ from yt.utilities.logger import ytLogger as mylog
 
 class IOHandlerFITS(BaseIOHandler):
     _particle_reader = False
-    _data_style = "fits"
+    _dataset_type = "fits"
 
     def __init__(self, pf):
         super(IOHandlerFITS, self).__init__(pf)

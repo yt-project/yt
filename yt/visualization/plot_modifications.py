@@ -14,6 +14,7 @@ Callbacksr to add additional functionality on to plots.
 #-----------------------------------------------------------------------------
 
 import numpy as np
+import h5py
 
 from yt.funcs import *
 from _mpl_imports import *
@@ -1146,7 +1147,7 @@ class ParticleCallback(PlotCallback):
             and np.all(self.region.left_edge <= LE) \
             and np.all(self.region.right_edge >= RE):
             return self.region
-        self.region = data.pf.h.region(data.center, LE, RE)
+        self.region = data.pf.region(data.center, LE, RE)
         return self.region
 
 class TitleCallback(PlotCallback):
@@ -1314,7 +1315,7 @@ class MaterialBoundaryCallback(ContourCallback):
                                clim=(0.9, 1.0), **kwargs):
 
     Add the limiting contours of *field* to the plot.  Nominally, *field* is 
-    the target material but may be any other field present in the hierarchy.
+    the target material but may be any other field present in the index.
     The number of contours generated is given by *ncount*, *factor* governs 
     the number of points used in the interpolation, and *clim* gives the 
     (upper, lower) limits for contouring.  For this to truly be the boundary
@@ -1359,3 +1360,4 @@ class TriangleFacetsCallback(PlotCallback):
         lc = matplotlib.collections.LineCollection(l_cy, **self.plot_args)
         plot._axes.add_collection(lc)
         plot._axes.hold(False)
+

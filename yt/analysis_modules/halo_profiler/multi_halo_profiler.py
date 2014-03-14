@@ -34,7 +34,7 @@ from .centering_methods import \
 from yt.fields.local_fields import \
     add_field
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 
 from yt.utilities.exceptions import \
     YTException
@@ -270,7 +270,7 @@ class HaloProfiler(ParallelAnalysisInterface):
             return None
 
         # Create dataset object.
-        if isinstance(self.dataset, StaticOutput):
+        if isinstance(self.dataset, Dataset):
             self.pf = self.dataset
         else:
             self.pf = load(self.dataset)
@@ -575,7 +575,7 @@ class HaloProfiler(ParallelAnalysisInterface):
         newProfile = profile is None
         if newProfile:
 
-            r_min = 2 * self.pf.h.get_smallest_dx() * self.pf['mpc']
+            r_min = 2 * self.pf.index.get_smallest_dx() * self.pf['mpc']
             if (halo['r_max'] / r_min < PROFILE_RADIUS_THRESHOLD):
                 mylog.debug("Skipping halo with r_max / r_min = %f." % (halo['r_max']/r_min))
                 return None
@@ -625,7 +625,7 @@ class HaloProfiler(ParallelAnalysisInterface):
         and calculates bulk velocities.
         """
 
-        sphere = self.pf.h.sphere(halo['center'], halo['r_max']/self.pf.units['mpc'])
+        sphere = self.pf.sphere(halo['center'], halo['r_max']/self.pf.units['mpc'])
         new_sphere = False
 
         if self.recenter:
@@ -651,7 +651,7 @@ class HaloProfiler(ParallelAnalysisInterface):
             new_sphere = True
 
         if new_sphere:
-            sphere = self.pf.h.sphere(halo['center'], halo['r_max']/self.pf.units['mpc'])
+            sphere = self.pf.sphere(halo['center'], halo['r_max']/self.pf.units['mpc'])
 
         if self._need_bulk_velocity:
             # Set bulk velocity to zero out radial velocity profiles.
@@ -669,7 +669,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                 mylog.info('Setting bulk velocity with value at max %s.' % self.velocity_center[1])
                 max_val, maxi, mx, my, mz, mg = sphere.quantities['MaxLocation'](self.velocity_center[1])
                                                                                  
-                max_grid = self.pf.h.grids[mg]
+                max_grid = self.pf.index.grids[mg]
                 max_cell = np.unravel_index(maxi, max_grid.ActiveDimensions)
                 sphere.set_field_parameter('bulk_velocity', [max_grid['x-velocity'][max_cell],
                                                              max_grid['y-velocity'][max_cell],
@@ -787,7 +787,7 @@ class HaloProfiler(ParallelAnalysisInterface):
             # We use the same type of region regardless.  The selection will be
             # correct, but we need the need_per variable for projection
             # shifting.
-            region = self.pf.h.region(halo['center'], leftEdge, rightEdge)
+            region = self.pf.region(halo['center'], leftEdge, rightEdge)
 
             # Make projections.
             if not isinstance(axes, types.ListType): axes = list([axes])
@@ -800,7 +800,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                 y_axis = coords[1]
 
                 for hp in self.projection_fields:
-                    projections.append(self.pf.h.proj(hp['field'], w,
+                    projections.append(self.pf.proj(hp['field'], w,
                                                       weight_field=hp['weight_field'],
                                                       data_source=region,
                                                       center=halo['center']))

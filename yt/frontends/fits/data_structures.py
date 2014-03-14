@@ -25,16 +25,15 @@ from yt.funcs import *
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
-    GridGeometryHandler
+    GridIndex
 from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.io_handler import \
     io_registry
-from yt.utilities.physical_constants import cm_per_mpc
 from .fields import FITSFieldInfo
 from yt.utilities.decompose import \
     decompose_array, get_psize
@@ -44,9 +43,9 @@ all_units = angle_units + mpc_conversion.keys()
 
 class FITSGrid(AMRGridPatch):
     _id_offset = 0
-    def __init__(self, id, hierarchy, level):
-        AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
-                              hierarchy = hierarchy)
+    def __init__(self, id, index, level):
+        AMRGridPatch.__init__(self, id, filename = index.index_filename,
+                              index = index)
         self.Parent = None
         self.Children = []
         self.Level = 0
@@ -54,20 +53,20 @@ class FITSGrid(AMRGridPatch):
     def __repr__(self):
         return "FITSGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
     
-class FITSHierarchy(GridGeometryHandler):
+class FITSHierarchy(GridIndex):
 
     grid = FITSGrid
     
-    def __init__(self,pf,data_style='fits'):
-        self.data_style = data_style
+    def __init__(self,pf,dataset_type='fits'):
+        self.dataset_type = dataset_type
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.directory = os.path.dirname(self.hierarchy_filename)
+        # for now, the index file is the parameter file!
+        self.index_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.index_filename)
         self._handle = pf._handle
         self.float_type = np.float64
-        GridGeometryHandler.__init__(self,pf,data_style)
+        GridIndex.__init__(self,pf,dataset_type)
 
     def _initialize_data_storage(self):
         pass
@@ -78,15 +77,10 @@ class FITSHierarchy(GridGeometryHandler):
             if h.is_image:
                 self.field_list.append(("fits", h.name.lower()))
                         
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        GridGeometryHandler._setup_classes(self, dd)
-        self.object_types.sort()
-
     def _count_grids(self):
         self.num_grids = self.pf.nprocs
                 
-    def _parse_hierarchy(self):
+    def _parse_index(self):
         f = self._handle # shortcut
         pf = self.parameter_file # shortcut
 
@@ -131,15 +125,15 @@ class FITSHierarchy(GridGeometryHandler):
                 self.parameter_file.conversion_factors[field] = 1.0 
                 
     def _setup_data_io(self):
-        self.io = io_registry[self.data_style](self.parameter_file)
+        self.io = io_registry[self.dataset_type](self.parameter_file)
 
-class FITSStaticOutput(StaticOutput):
-    _hierarchy_class = FITSHierarchy
+class FITSDataset(Dataset):
+    _index_class = FITSHierarchy
     _field_info_class = FITSFieldInfo
-    _data_style = "fits"
+    _dataset_type = "fits"
     _handle = None
     
-    def __init__(self, filename, data_style='fits',
+    def __init__(self, filename, dataset_type='fits',
                  primary_header = None,
                  sky_conversion = None,
                  storage_filename = None,
@@ -183,10 +177,12 @@ class FITSStaticOutput(StaticOutput):
             self.new_unit = self.file_unit
             self.pixel_scale = self.wcs.wcs.cdelt[idx]
 
-        StaticOutput.__init__(self, fname, data_style)
+        Dataset.__init__(self, fname, dataset_type)
         self.storage_filename = storage_filename
             
         self.refine_by = 2
+        # For plotting to APLpy
+        self.hdu_list = self._handle
 
     def _set_code_unit_attributes(self):
         """
@@ -194,17 +190,15 @@ class FITSStaticOutput(StaticOutput):
         """
         if self.new_unit is not None:
             length_factor = self.pixel_scale
-            length_unit = self.new_unit
+            length_unit = str(self.new_unit)
         else:
             mylog.warning("No length conversion provided. Assuming 1 = 1 cm.")
             length_factor = 1.0
             length_unit = "cm"
-        self.length_unit = self.quan(length_factor,length_unit).in_cgs()
+        self.length_unit = self.quan(length_factor,length_unit)
         self.mass_unit = self.quan(1.0, "g")
         self.time_unit = self.quan(1.0, "s")
         self.velocity_unit = self.quan(1.0, "cm/s")        
-        DW = self.domain_right_edge-self.domain_left_edge
-        self.unit_registry.modify("unitary", DW[:self.dimensionality].max())
 
     def _parse_parameter_file(self):
         self.unique_identifier = \

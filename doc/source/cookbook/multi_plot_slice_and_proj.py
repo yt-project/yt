@@ -16,9 +16,9 @@ pf = load(fn) # load data
 #   bw is the base-width in inches, but 4 is about right for most cases.
 fig, axes, colorbars = get_multi_plot(3, 2, colorbar=orient, bw = 4)
 
-slc = pf.h.slice(2, 0.0, fields=["density","temperature","velocity_magnitude"], 
+slc = pf.slice(2, 0.0, fields=["density","temperature","velocity_magnitude"], 
                  center=pf.domain_center)
-proj = pf.h.proj(2, "density", weight_field="density", center=pf.domain_center)
+proj = pf.proj(2, "density", weight_field="density", center=pf.domain_center)
 
 slc_frb = slc.to_frb((1.0, "mpc"), 512)
 proj_frb = proj.to_frb((1.0, "mpc"), 512)

@@ -37,7 +37,7 @@ class TransferFunctionHelper(object):
 
         Parameters
         ----------
-        pf: A StaticOutput instance
+        pf: A Dataset instance
             A static output that is currently being rendered. This is used to
             help set up data bounds.
 

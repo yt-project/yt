@@ -217,21 +217,21 @@ numpy array \texttt{a}. Similarly for other data containers.\\
 in the snapshot. \\
 \texttt{val, loc = pf.h.find\_max("Density")} \textemdash\ Find the \texttt{val}ue of
 the maximum of the field \texttt{Density} and its \texttt{loc}ation. \\
-\texttt{sp = pf.h.sphere(}{\it cen}\texttt{,}{\it radius}\texttt{)} \textemdash\   Create a spherical data 
+\texttt{sp = pf.sphere(}{\it cen}\texttt{,}{\it radius}\texttt{)} \textemdash\   Create a spherical data 
 container. {\it cen} may be a coordinate, or ``max'' which 
 centers on the max density point. {\it radius} may be a float in 
 code units or a tuple of ({\it length, unit}).\\
 
-\texttt{re = pf.h.region({\it cen}, {\it left edge}, {\it right edge})} \textemdash\ Create a
+\texttt{re = pf.region({\it cen}, {\it left edge}, {\it right edge})} \textemdash\ Create a
 rectilinear data container. {\it cen} is required but not used.
 {\it left} and {\it right edge} are coordinate values that define the region.
 
-\texttt{di = pf.h.disk({\it cen}, {\it normal}, {\it radius}, {\it height})} \textemdash\ 
+\texttt{di = pf.disk({\it cen}, {\it normal}, {\it radius}, {\it height})} \textemdash\ 
 Create a cylindrical data container centered at {\it cen} along the 
 direction set by {\it normal},with total length
  2$\times${\it height} and with radius {\it radius}. \\
  
- \texttt{bl = pf.h.boolean({\it constructor})} \textemdash\ Create a boolean data
+ \texttt{bl = pf.boolean({\it constructor})} \textemdash\ Create a boolean data
  container. {\it constructor} is a list of pre-defined non-boolean 
  data containers with nested boolean logic using the
  ``AND'', ``NOT'', or ``OR'' operators. E.g. {\it constructor=}

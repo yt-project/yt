@@ -258,7 +258,7 @@ def add_xray_luminosity_field(e_min, e_max, filename=None,
     >>> from yt.analysis_modules.spectral_integrator.api import *
     >>> add_xray_luminosity_field(0.5, 2)
     >>> pf = load(dataset)
-    >>> sp = pf.h.sphere('max', (2., 'mpc'))
+    >>> sp = pf.sphere('max', (2., 'mpc'))
     >>> print sp.quantities['TotalQuantity']('Xray_Luminosity_0.5_2keV')
     
     """

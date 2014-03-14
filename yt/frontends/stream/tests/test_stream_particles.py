@@ -33,7 +33,7 @@ def test_stream_particles() :
 
     grid_data = []
     
-    for grid in amr0.h.grids :
+    for grid in amr0.index.grids :
         
         data = dict(left_edge = grid.LeftEdge,
                     right_edge = grid.RightEdge,
@@ -65,8 +65,8 @@ def test_stream_particles() :
 
     # Check to make sure the number of particles is the same
 
-    number_of_particles1 = np.sum([grid.NumberOfParticles for grid in ug1.h.grids])
-    number_of_particles2 = np.sum([grid.NumberOfParticles for grid in ug2.h.grids])
+    number_of_particles1 = np.sum([grid.NumberOfParticles for grid in ug1.index.grids])
+    number_of_particles2 = np.sum([grid.NumberOfParticles for grid in ug2.index.grids])
     
     yield assert_equal, number_of_particles1, num_particles
     yield assert_equal, number_of_particles1, number_of_particles2
@@ -95,7 +95,7 @@ def test_stream_particles() :
     
     grid_data = []
     
-    for grid in amr1.h.grids :
+    for grid in amr1.index.grids :
         
         data = dict(left_edge = grid.LeftEdge,
                     right_edge = grid.RightEdge,
@@ -113,8 +113,8 @@ def test_stream_particles() :
 
     # Check everything again
 
-    number_of_particles1 = [grid.NumberOfParticles for grid in amr1.h.grids]
-    number_of_particles2 = [grid.NumberOfParticles for grid in amr2.h.grids]
+    number_of_particles1 = [grid.NumberOfParticles for grid in amr1.index.grids]
+    number_of_particles2 = [grid.NumberOfParticles for grid in amr2.index.grids]
     
     yield assert_equal, np.sum(number_of_particles1), num_particles
     yield assert_equal, number_of_particles1, number_of_particles2

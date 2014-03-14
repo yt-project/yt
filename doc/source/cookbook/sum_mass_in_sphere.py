@@ -4,7 +4,7 @@ from yt.mods import *
 pf = load("Enzo_64/DD0029/data0029")
 
 # Create a 1 Mpc radius sphere, centered on the max density.
-sp = pf.h.sphere("max", (1.0, "mpc"))
+sp = pf.sphere("max", (1.0, "mpc"))
 
 # Use the TotalQuantity derived quantity to sum up the
 # values of the cell_mass and particle_mass fields

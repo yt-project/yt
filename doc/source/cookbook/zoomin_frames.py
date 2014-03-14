@@ -20,7 +20,7 @@ p.annotate_contour("temperature") # We'll contour in temperature
 # maximum and the number of items to generate.  It returns 10^power of each
 # item it generates.
 for i,v in enumerate(np.logspace(
-            0, np.log10(pf.h.get_smallest_dx()*min_dx), n_frames)):
+            0, np.log10(pf.index.get_smallest_dx()*min_dx), n_frames)):
     # We set our width as necessary for this frame ...
     p.set_width(v, '1')
     # ... and we save!

@@ -35,7 +35,7 @@ def test_ellipsoid():
                 C = max(C, min_dx[2])
                 e0 = e0s[:,i]
                 tilt = tilts[i]
-                ell = pf.h.ellipsoid(c, A, B, C, e0, tilt)
+                ell = pf.ellipsoid(c, A, B, C, e0, tilt)
                 yield assert_array_less, ell["radius"], A
                 p = np.array([ell[ax] for ax in 'xyz'])
                 dot_evec = [np.zeros_like(ell["radius"]) for i in range(3)]

@@ -21,9 +21,9 @@ from yt.funcs import mylog
 from yt.data_objects.unstructured_mesh import \
            SemiStructuredMesh
 from yt.geometry.unstructured_mesh_handler import \
-           UnstructuredGeometryHandler
+           UnstructuredIndex
 from yt.data_objects.static_output import \
-           StaticOutput
+           Dataset
 from yt.utilities.io_handler import \
     io_registry
 from yt.utilities.definitions import \
@@ -35,17 +35,17 @@ class MoabHex8Mesh(SemiStructuredMesh):
     _connectivity_length = 8
     _index_offset = 1
 
-class MoabHex8Hierarchy(UnstructuredGeometryHandler):
+class MoabHex8Hierarchy(UnstructuredIndex):
 
-    def __init__(self, pf, data_style='h5m'):
+    def __init__(self, pf, dataset_type='h5m'):
         self.parameter_file = weakref.proxy(pf)
-        self.data_style = data_style
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.directory = os.path.dirname(self.hierarchy_filename)
-        self._fhandle = h5py.File(self.hierarchy_filename,'r')
+        self.dataset_type = dataset_type
+        # for now, the index file is the parameter file!
+        self.index_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.index_filename)
+        self._fhandle = h5py.File(self.index_filename,'r')
 
-        UnstructuredGeometryHandler.__init__(self, pf, data_style)
+        UnstructuredIndex.__init__(self, pf, dataset_type)
 
         self._fhandle.close()
 
@@ -54,7 +54,7 @@ class MoabHex8Hierarchy(UnstructuredGeometryHandler):
         con = np.asarray(con, dtype="int64")
         coords = self._fhandle["/tstt/nodes/coordinates"][:]
         coords = np.asarray(coords, dtype="float64")
-        self.meshes = [MoabHex8Mesh(0, self.hierarchy_filename, con,
+        self.meshes = [MoabHex8Mesh(0, self.index_filename, con,
                                     coords, self)]
 
     def _detect_output_fields(self):
@@ -64,15 +64,15 @@ class MoabHex8Hierarchy(UnstructuredGeometryHandler):
     def _count_grids(self):
         self.num_grids = 1
 
-class MoabHex8StaticOutput(StaticOutput):
-    _hierarchy_class = MoabHex8Hierarchy
+class MoabHex8Dataset(Dataset):
+    _index_class = MoabHex8Hierarchy
     _field_info_class = MoabFieldInfo
     periodicity = (False, False, False)
 
-    def __init__(self, filename, data_style='moab_hex8',
+    def __init__(self, filename, dataset_type='moab_hex8',
                  storage_filename = None):
         self.fluid_types += ("moab",)
-        StaticOutput.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
         self.filename = filename
         self._handle = h5py.File(self.parameter_filename, "r")
@@ -112,17 +112,17 @@ class PyneHex8Mesh(SemiStructuredMesh):
     _connectivity_length = 8
     _index_offset = 0
 
-class PyneMeshHex8Hierarchy(UnstructuredGeometryHandler):
+class PyneMeshHex8Hierarchy(UnstructuredIndex):
 
-    def __init__(self, pf, data_style='moab_hex8_pyne'):
+    def __init__(self, pf, dataset_type='moab_hex8_pyne'):
         self.parameter_file = weakref.proxy(pf)
-        self.data_style = data_style
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.parameter_filename
+        self.dataset_type = dataset_type
+        # for now, the index file is the parameter file!
+        self.index_filename = self.parameter_file.parameter_filename
         self.directory = os.getcwd()
         self.pyne_mesh = pf.pyne_mesh
 
-        super(PyneMeshHex8Hierarchy, self).__init__(pf, data_style)
+        super(PyneMeshHex8Hierarchy, self).__init__(pf, dataset_type)
 
     def _initialize_mesh(self):
         from itaps import iBase, iMesh
@@ -133,7 +133,7 @@ class PyneMeshHex8Hierarchy(UnstructuredGeometryHandler):
             iBase.Type.vertex)[1].indices.data.astype("int64")
         # Divide by float so it throws an error if it's not 8
         vind.shape = (vind.shape[0] / 8.0, 8)
-        self.meshes = [PyneHex8Mesh(0, self.hierarchy_filename,
+        self.meshes = [PyneHex8Mesh(0, self.index_filename,
                                     vind, coords, self)]
 
     def _detect_output_fields(self):
@@ -142,18 +142,18 @@ class PyneMeshHex8Hierarchy(UnstructuredGeometryHandler):
     def _count_grids(self):
         self.num_grids = 1
 
-class PyneMoabHex8StaticOutput(StaticOutput):
-    _hierarchy_class = PyneMeshHex8Hierarchy
+class PyneMoabHex8Dataset(Dataset):
+    _index_class = PyneMeshHex8Hierarchy
     _fieldinfo_fallback = MoabFieldInfo
     _field_info_class = PyneFieldInfo
     periodicity = (False, False, False)
 
-    def __init__(self, pyne_mesh, data_style='moab_hex8_pyne',
+    def __init__(self, pyne_mesh, dataset_type='moab_hex8_pyne',
                  storage_filename = None):
         self.fluid_types += ("pyne",)
         filename = "pyne_mesh_" + str(id(pyne_mesh))
         self.pyne_mesh = pyne_mesh
-        StaticOutput.__init__(self, str(filename), data_style)
+        Dataset.__init__(self, str(filename), dataset_type)
         self.storage_filename = storage_filename
         self.filename = filename
 

@@ -23,11 +23,11 @@ Examining Grid Hierarchies
 yt organizes grids in a hierarchical fashion; a coarser grid that contains (or
 overlaps with) a finer grid is referred to as its parent.  yt organizes these
 only a single level of refinement at a time.  To access grids, the ``grids``
-attribute on a :class:`~yt.data_objects.hierarchy.AMRHierarchy` object.  (For
+attribute on a :class:`~yt.data_objects.index.AMRHierarchy` object.  (For
 fast operations, a number of additional arrays prefixed with ``grid`` are also
 available, such as ``grid_left_edges`` and so on.)  This returns an instance of
 :class:`~yt.data_objects.grid_patch.AMRGridPatch`, which can be queried for
-either data or hierarchy information.
+either data or index information.
 
 The :class:`~yt.data_objects.grid_patch.AMRGridPatch` object itself provides
 the following attributes:
@@ -42,13 +42,13 @@ the following attributes:
    multiple a field by this attribute.
  * ``child_indices``: a mask of booleans, where False indicates no finer data
    is available.  This is essentially the inverse of ``child_mask``.
- * ``child_index_mask``: a mask of indices into the ``pf.h.grids`` array of the
+ * ``child_index_mask``: a mask of indices into the ``pf.index.grids`` array of the
    child grids.
  * ``LeftEdge``: the left edge, in native code coordinates, of this grid
  * ``RightEdge``: the right edge, in native code coordinates, of this grid
  * ``dds``: the width of a cell in this grid
  * ``id``: the id (not necessarily the index) of this grid.  Defined such that
-   subtracting the property ``_id_offset`` gives the index into ``pf.h.grids``.
+   subtracting the property ``_id_offset`` gives the index into ``pf.index.grids``.
  * ``NumberOfParticles``: the number of particles in this grid
  * ``OverlappingSiblings``: a list of sibling grids that this grid overlaps
    with.  Likely only defined for Octree-based codes.
@@ -64,7 +64,7 @@ To traverse a series of grids, this type of construction can be used:
 
 .. code-block:: python
 
-   g = pf.h.grids[1043]
+   g = pf.index.grids[1043]
    g2 = g.Children[1].Children[0]
    print g2.LeftEdge
 
@@ -84,16 +84,16 @@ normal, you can access the grid as you would a normal object:
 
 .. code-block:: python
 
-   g = pf.h.grids[1043]
+   g = pf.index.grids[1043]
    print g["density"]
    print g["density"].min()
 
-To access the raw data, you have to call the IO handler from the hierarchy
+To access the raw data, you have to call the IO handler from the index
 instead.  This is somewhat more low-level.
 
 .. code-block:: python
 
-   g = pf.h.grids[1043]
+   g = pf.index.grids[1043]
    rho = pf.h.io.pop(g, "density")
 
 This field will be the raw data found in the file.
@@ -107,12 +107,12 @@ One of the most common questions asked of data is, what is the value *at this
 specific point*.  While there are several ways to find out the answer to this
 question, a few helper routines are provided as well.  To identify the
 finest-resolution (i.e., most canonical) data at a given point, use
-:meth:`~yt.data_objects.hierarchy.AMRHierarchy.find_field_value_at_point`.
+:meth:`~yt.data_objects.index.AMRHierarchy.find_field_value_at_point`.
 This accepts a position (in coordinates of the domain) and returns the field
 values for one or multiple fields.
 
 To identify all the grids that intersect a given point, the function 
-:meth:`~yt.data_objects.hierarchy.AMRHierarchy.find_point` will return indices
+:meth:`~yt.data_objects.index.AMRHierarchy.find_point` will return indices
 and objects that correspond to it.  For instance:
 
 .. code-block:: python
@@ -144,7 +144,7 @@ lowest level data, we run:
 
    from yt.mods import *
    pf = load('Enzo_64/DD0043/data0043')
-   all_data_level_0 = pf.h.covering_grid(level=0, left_edge=[0,0.0,0.0], 
+   all_data_level_0 = pf.covering_grid(level=0, left_edge=[0,0.0,0.0], 
                                          dims=[64, 64, 64])
 
 Note that we can also get the same result and rely on the dataset to know 
@@ -152,7 +152,7 @@ its own underlying dimensions:
 
 .. code-block:: python
 
-   all_data_level_0 = pf.h.covering_grid(level=0, left_edge=[0,0.0,0.0], 
+   all_data_level_0 = pf.covering_grid(level=0, left_edge=[0,0.0,0.0], 
                                          dims=pf.domain_dimensions)
 
 We can now access our underlying data at the lowest level by specifying what
@@ -184,7 +184,7 @@ larger dataset:
 
 .. code-block:: python
 
-   all_data_level_2 = pf.h.covering_grid(level=2, left_edge=[0,0.0,0.0], 
+   all_data_level_2 = pf.covering_grid(level=2, left_edge=[0,0.0,0.0], 
                                          dims=pf.domain_dimensions * 2**2)
 
 And let's see what's the density in the central location:
@@ -209,7 +209,7 @@ to reduce edge effects, it is a nearly identical process:
 
 .. code-block:: python
 
-   all_data_level_2_s = pf.h.smoothed_covering_grid(2, [0.0, 0.0, 0.0], 
+   all_data_level_2_s = pf.smoothed_covering_grid(2, [0.0, 0.0, 0.0], 
                                                     pf.domain_dimensions * 2**2)
 
    print all_data_level_2_s['density'].shape

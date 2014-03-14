@@ -15,11 +15,11 @@ API for yt.frontends.halo_catalogs
 #-----------------------------------------------------------------------------
 
 from halo_catalog.api import \
-     HaloCatalogStaticOutput, \
+     HaloCatalogDataset, \
      IOHandlerHaloCatalogHDF5, \
      HaloCatalogFieldInfo
 
 from rockstar.api import \
-      RockstarStaticOutput, \
+      RockstarDataset, \
       IOHandlerRockstarBinary, \
       RockstarFieldInfo

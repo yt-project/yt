@@ -72,7 +72,7 @@ class FixedResolutionBuffer(object):
     To make a projection and then several images, you can generate a
     single FRB and then access multiple fields:
 
-    >>> proj = pf.h.proj(0, "Density")
+    >>> proj = pf.proj(0, "Density")
     >>> frb1 = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5),
                     (1024, 1024))
     >>> print frb1["Density"].max()
@@ -92,9 +92,9 @@ class FixedResolutionBuffer(object):
         self.axis = data_source.axis
         self.periodic = periodic
 
-        h = getattr(data_source, "hierarchy", None)
-        if h is not None:
-            h.plots.append(weakref.proxy(self))
+        #h = getattr(data_source, "index", None)
+        #if h is not None:
+        #    h.plots.append(weakref.proxy(self))
 
         # Handle periodicity, just in case
         if self.data_source.axis < 3:
@@ -320,7 +320,7 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
         self.antialias = antialias
         self.data = {}
         
-        h = getattr(data_source, "hierarchy", None)
+        h = getattr(data_source, "index", None)
         if h is not None:
             h.plots.append(weakref.proxy(self))
 

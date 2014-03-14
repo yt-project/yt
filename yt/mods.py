@@ -65,78 +65,82 @@ from yt.fields.api import \
 from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
     data_object_registry, \
-    TimeSeriesData, AnalysisTask, analysis_task, \
+    DatasetSeries, AnalysisTask, analysis_task, \
     ImageArray, particle_filter, create_profile, \
     Profile1D, Profile2D, Profile3D
 
 from yt.frontends.enzo.api import \
-    EnzoStaticOutput, EnzoStaticOutputInMemory, \
+    EnzoDataset, EnzoDatasetInMemory, \
     EnzoSimulation, EnzoFieldInfo, add_enzo_field
 
 # Boxlib stuff
 from yt.frontends.boxlib.api import \
-    BoxlibStaticOutput
+    BoxlibDataset
 
 # Orion stuff
 #from yt.frontends.boxlib.api import \
-#    OrionStaticOutput, OrionFieldInfo, add_orion_field
+#    OrionDataset, OrionFieldInfo, add_orion_field
 
 # Maestro stuff
 #from yt.frontends.boxlib.api import \
-#    MaestroStaticOutput
+#    MaestroDataset
 
 # Castro stuff
 #from yt.frontends.boxlib.api import \
-#    CastroStaticOutput
+#    CastroDataset
 
 from yt.frontends.flash.api import \
-    FLASHStaticOutput, FLASHFieldInfo
+    FLASHDataset, FLASHFieldInfo
 
 from yt.frontends.artio.api import \
-    ARTIOStaticOutput, ARTIOFieldInfo
+    ARTIODataset, ARTIOFieldInfo
 
 from yt.frontends.ramses.api import \
-    RAMSESStaticOutput, RAMSESFieldInfo
+    RAMSESDataset, RAMSESFieldInfo
 
 from yt.frontends.halo_catalogs.api import \
-    HaloCatalogStaticOutput, HaloCatalogFieldInfo, \
-    RockstarStaticOutput, RockstarFieldInfo
+    HaloCatalogDataset, HaloCatalogFieldInfo, \
+    RockstarDataset, RockstarFieldInfo
 
 #from yt.frontends.chombo.api import \
-#    ChomboStaticOutput, ChomboFieldInfo, add_chombo_field
+#    ChomboDataset, ChomboFieldInfo, add_chombo_field
 
 #from yt.frontends.gdf.api import \
-#    GDFStaticOutput, GDFFieldInfo, add_gdf_field
+#    GDFDataset, GDFFieldInfo, add_gdf_field
 
 from yt.frontends.moab.api import \
-    MoabHex8StaticOutput, MoabFieldInfo, \
-    PyneMoabHex8StaticOutput, PyneFieldInfo
+    MoabHex8Dataset, MoabFieldInfo, \
+    PyneMoabHex8Dataset, PyneFieldInfo
 
 from yt.frontends.athena.api import \
-    AthenaStaticOutput, AthenaFieldInfo
+    AthenaDataset, AthenaFieldInfo
 
-#from yt.frontends.art.api import \
-#    ARTStaticOutput, ARTFieldInfo, add_art_field
+from yt.frontends.art.api import \
+    ARTDataset, ARTFieldInfo
 
 #from yt.frontends.pluto.api import \
-#     PlutoStaticOutput, PlutoFieldInfo, add_pluto_field
+#     PlutoDataset, PlutoFieldInfo, add_pluto_field
 
 from yt.frontends.stream.api import \
-    StreamStaticOutput, \
+    StreamDataset, \
     StreamHandler, load_uniform_grid, load_amr_grids, \
     load_particles, load_hexahedral_mesh, load_octree
 
 from yt.frontends.sph.api import \
-    OWLSStaticOutput, SPHFieldInfo, \
-    GadgetStaticOutput, GadgetHDF5StaticOutput, \
-    TipsyStaticOutput
+    OWLSDataset, SPHFieldInfo, \
+    GadgetDataset, GadgetHDF5Dataset, \
+    TipsyDataset
+
+# For backwards compatibility
+GadgetStaticOutput = deprecated_class(GadgetDataset)
+TipsyStaticOutput = deprecated_class(TipsyDataset)
 
 #from yt.analysis_modules.list_modules import \
 #    get_available_modules, amods
 #available_analysis_modules = get_available_modules()
 
 from yt.frontends.fits.api import \
-    FITSStaticOutput, FITSFieldInfo
+    FITSDataset, FITSFieldInfo
 
 # Import our analysis modules
 from yt.analysis_modules.halo_finding.api import \

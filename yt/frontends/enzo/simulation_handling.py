@@ -22,7 +22,7 @@ import os
 from yt.convenience import \
     load
 from yt.data_objects.time_series import \
-    SimulationTimeSeries, TimeSeriesData
+    SimulationTimeSeries, DatasetSeries
 from yt.units import dimensions
 from yt.units.unit_registry import \
      UnitRegistry
@@ -48,7 +48,7 @@ class EnzoSimulation(SimulationTimeSeries):
     are calculated and stored in all_outputs.  A time units dictionary is
     instantiated to allow for time outputs to be requested with physical
     time units.  The get_time_series can be used to generate a
-    TimeSeriesData object.
+    DatasetSeries object.
 
     parameter_filename : str
         The simulation parameter file.
@@ -107,9 +107,9 @@ class EnzoSimulation(SimulationTimeSeries):
                         parallel=True, setup_function=None):
 
         """
-        Instantiate a TimeSeriesData object for a set of outputs.
+        Instantiate a DatasetSeries object for a set of outputs.
 
-        If no additional keywords given, a TimeSeriesData object will be
+        If no additional keywords given, a DatasetSeries object will be
         created with all potential datasets created by the simulation.
 
         Outputs can be gather by specifying a time or redshift range
@@ -176,7 +176,7 @@ class EnzoSimulation(SimulationTimeSeries):
             nearest output is always taken.
             Default: None.
         parallel : bool/int
-            If True, the generated TimeSeriesData will divide the work
+            If True, the generated DatasetSeries will divide the work
             such that a single processor works on each dataset.  If an
             integer is supplied, the work will be divided into that
             number of jobs.
@@ -229,7 +229,7 @@ class EnzoSimulation(SimulationTimeSeries):
             raise InvalidSimulationTimeSeries('Both time_data and redshift_data are False.')
 
         if not my_all_outputs:
-            TimeSeriesData.__init__(self, outputs=[], parallel=parallel)
+            DatasetSeries.__init__(self, outputs=[], parallel=parallel)
             mylog.info("0 outputs loaded into time series.")
             return
 
@@ -294,7 +294,7 @@ class EnzoSimulation(SimulationTimeSeries):
             if os.path.exists(output['filename']):
                 init_outputs.append(output['filename'])
             
-        TimeSeriesData.__init__(self, outputs=init_outputs, parallel=parallel,
+        DatasetSeries.__init__(self, outputs=init_outputs, parallel=parallel,
                                 setup_function=setup_function)
         mylog.info("%d outputs loaded into time series.", len(init_outputs))
 

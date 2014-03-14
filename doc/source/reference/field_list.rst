@@ -9,7 +9,7 @@ type of code that each field is supported by.  "Universal" fields are available
 everywhere, "Enzo" fields in Enzo datasets, "Orion" fields in Orion datasets,
 and so on.
 
-Try using the ``pf.h.field_list`` and ``pf.h.derived_field_list`` to view the
+Try using the ``pf.field_list`` and ``pf.derived_field_list`` to view the
 native and derived fields available for your dataset respectively. For example
 to display the native fields in alphabetical order:
 
@@ -17,7 +17,7 @@ to display the native fields in alphabetical order:
 
   from yt.mods import *
   pf = load("Enzo_64/DD0043/data0043")
-  for i in sorted(pf.h.field_list):
+  for i in sorted(pf.field_list):
     print i
 
 .. note:: Universal fields will be overridden by a code-specific field.
@@ -5336,7 +5336,7 @@ particle_mass
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           try:
@@ -5718,7 +5718,7 @@ particle_angmomen_x
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -5739,7 +5739,7 @@ particle_angmomen_y
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -5760,7 +5760,7 @@ particle_angmomen_z
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -5781,7 +5781,7 @@ particle_burnstate
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -5802,7 +5802,7 @@ particle_id
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -5823,7 +5823,7 @@ particle_luminosity
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -5844,7 +5844,7 @@ particle_mass
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -5865,7 +5865,7 @@ particle_mdeut
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -5886,7 +5886,7 @@ particle_mdot
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -5907,7 +5907,7 @@ particle_mlast
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -5928,7 +5928,7 @@ particle_momentum_x
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -5949,7 +5949,7 @@ particle_momentum_y
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -5970,7 +5970,7 @@ particle_momentum_z
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -5991,7 +5991,7 @@ particle_n
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -6012,7 +6012,7 @@ particle_position_x
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -6033,7 +6033,7 @@ particle_position_y
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -6054,7 +6054,7 @@ particle_position_z
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -6075,7 +6075,7 @@ particle_r
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -7780,7 +7780,7 @@ particle_angmomen_x
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -7801,7 +7801,7 @@ particle_angmomen_y
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -7822,7 +7822,7 @@ particle_angmomen_z
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -7843,7 +7843,7 @@ particle_burnstate
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -7864,7 +7864,7 @@ particle_id
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -7885,7 +7885,7 @@ particle_luminosity
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -7906,7 +7906,7 @@ particle_mass
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -7927,7 +7927,7 @@ particle_mdeut
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -7948,7 +7948,7 @@ particle_mdot
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -7969,7 +7969,7 @@ particle_mlast
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -7990,7 +7990,7 @@ particle_momentum_x
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -8011,7 +8011,7 @@ particle_momentum_y
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -8032,7 +8032,7 @@ particle_momentum_z
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -8053,7 +8053,7 @@ particle_n
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -8074,7 +8074,7 @@ particle_position_x
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -8095,7 +8095,7 @@ particle_position_y
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -8116,7 +8116,7 @@ particle_position_z
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:
@@ -8137,7 +8137,7 @@ particle_r
 .. code-block:: python
 
       def _Particles(field, data):
-          io = data.hierarchy.io
+          io = data.index.io
           if not data.NumberOfParticles > 0:
               return np.array([], dtype=dtype)
           else:

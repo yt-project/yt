@@ -181,7 +181,7 @@ def fake_random_pf(
 def fake_amr_pf(fields = ("Density",)):
     from yt.frontends.stream.api import load_amr_grids
     data = []
-    for gspec in _amr_grid_hierarchy:
+    for gspec in _amr_grid_index:
         level, left_edge, right_edge, dims = gspec
         gdata = dict(level = level,
                      left_edge = left_edge,
@@ -323,8 +323,8 @@ def requires_file(req_file):
             return ffalse
                                         
 # This is an export of the 40 grids in IsolatedGalaxy that are of level 4 or
-# lower.  It's just designed to give a sample AMR hierarchy to deal with.
-_amr_grid_hierarchy = [
+# lower.  It's just designed to give a sample AMR index to deal with.
+_amr_grid_index = [
  [ 0,
   [0.0,0.0,0.0],
   [1.0,1.0,1.0],

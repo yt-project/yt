@@ -246,4 +246,4 @@ def get_centers(pf, filename, center_cols, radius_col, unit='1'):
         vals = line.split()
         x,y,z = [float(vals[i]) for i in center_cols]
         r = float(vals[radius_col])
-        yield pf.h.sphere([x,y,z], r/pf[unit])
+        yield pf.sphere([x,y,z], r/pf[unit])

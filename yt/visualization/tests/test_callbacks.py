@@ -137,7 +137,7 @@ def test_contour_callback():
         p.save()
 
         p = SlicePlot(pf, "x", "density")
-        s2 = pf.h.slice(0, 0.2)
+        s2 = pf.slice(0, 0.2)
         p.annotate_contour("temperature", ncont=10, factor=8,
             take_log=False, clim=(0.4, 0.6),
             plot_args={'lw':2.0}, label=True,

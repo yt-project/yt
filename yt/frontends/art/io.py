@@ -29,7 +29,7 @@ from yt.utilities.physical_constants import sec_per_year
 
 
 class IOHandlerART(BaseIOHandler):
-    _data_style = "art"
+    _dataset_type = "art"
     tb, ages = None, None
     cache = None
     masks = None
@@ -198,46 +198,6 @@ def interpolate_ages(data, file_stars, interp_tb=None, interp_ages=None,
     return interp_tb, interp_ages, temp
 
 
-def _count_art_octs(f, offset,
-                    MinLev, MaxLevelNow):
-    level_oct_offsets = [0, ]
-    level_child_offsets = [0, ]
-    f.seek(offset)
-    nchild, ntot = 8, 0
-    Level = np.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
-    iNOLL = np.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
-    iHOLL = np.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
-    for Lev in xrange(MinLev + 1, MaxLevelNow+1):
-        level_oct_offsets.append(f.tell())
-
-        # Get the info for this level, skip the rest
-        # print "Reading oct tree data for level", Lev
-        # print 'offset:',f.tell()
-        Level[Lev], iNOLL[Lev], iHOLL[Lev] = read_vector(f, 'i', '>')
-        # print 'Level %i : '%Lev, iNOLL
-        # print 'offset after level record:',f.tell()
-        iOct = iHOLL[Lev] - 1
-        nLevel = iNOLL[Lev]
-        nLevCells = nLevel * nchild
-        ntot = ntot + nLevel
-
-        # Skip all the oct hierarchy data
-        ns = peek_record_size(f, endian='>')
-        size = struct.calcsize('>i') + ns + struct.calcsize('>i')
-        f.seek(f.tell()+size * nLevel)
-
-        level_child_offsets.append(f.tell())
-        # Skip the child vars data
-        ns = peek_record_size(f, endian='>')
-        size = struct.calcsize('>i') + ns + struct.calcsize('>i')
-        f.seek(f.tell()+size * nLevel*nchild)
-
-        # find nhydrovars
-        nhydrovars = 8+2
-    f.seek(offset)
-    return nhydrovars, iNOLL, level_oct_offsets, level_child_offsets
-
-
 def _read_art_level_info(f, level_oct_offsets, level, coarse_grid=128,
                          ncell0=None, root_level=None):
     pos = f.tell()
@@ -247,7 +207,7 @@ def _read_art_level_info(f, level_oct_offsets, level, coarse_grid=128,
 
     # fortran indices start at 1
 
-    # Skip all the oct hierarchy data
+    # Skip all the oct index data
     le = np.zeros((nLevel, 3), dtype='int64')
     fl = np.ones((nLevel, 6), dtype='int64')
     iocts = np.zeros(nLevel+1, dtype='int64')

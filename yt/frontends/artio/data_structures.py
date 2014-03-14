@@ -33,10 +33,10 @@ from yt.fields.particle_fields import \
 
 from yt.funcs import *
 from yt.geometry.geometry_handler import \
-    GeometryHandler, YTDataChunk
+    Index, YTDataChunk
 import yt.geometry.particle_deposit as particle_deposit
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 from yt.data_objects.octree_subset import \
     OctreeSubset
 from yt.data_objects.data_containers import \
@@ -59,7 +59,7 @@ class ARTIOOctreeSubset(OctreeSubset):
         self.sfc_end = sfc_end
         self.oct_handler = oct_handler
         self.pf = pf
-        self.hierarchy = self.pf.hierarchy
+        self.index = self.pf.index
         self._last_mask = None
         self._last_selector_id = None
         self._current_particle_type = 'all'
@@ -161,18 +161,18 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
         if vals is None: return
         return np.asfortranarray(vals)
 
-class ARTIOGeometryHandler(GeometryHandler):
+class ARTIOIndex(Index):
 
-    def __init__(self, pf, data_style='artio'):
-        self.data_style = data_style
+    def __init__(self, pf, dataset_type='artio'):
+        self.dataset_type = dataset_type
         self.parameter_file = weakref.proxy(pf)
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.directory = os.path.dirname(self.hierarchy_filename)
+        # for now, the index file is the parameter file!
+        self.index_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.index_filename)
 
         self.max_level = pf.max_level
         self.float_type = np.float64
-        super(ARTIOGeometryHandler, self).__init__(pf, data_style)
+        super(ARTIOIndex, self).__init__(pf, dataset_type)
 
     @property
     def max_range(self):
@@ -233,11 +233,6 @@ class ARTIOGeometryHandler(GeometryHandler):
                        if art_to_yt[self.pf.particle_species[i]] == ptype):
                     fields.add((ptype, art_to_yt[f]))
         return list(fields)
-
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        super(ARTIOGeometryHandler, self)._setup_classes(dd)
-        self.object_types.sort()
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
@@ -325,14 +320,12 @@ class ARTIOGeometryHandler(GeometryHandler):
         return fields_to_return, fields_to_generate
 
 
-class ARTIOStaticOutput(StaticOutput):
+class ARTIODataset(Dataset):
     _handle = None
-    _hierarchy_class = ARTIOGeometryHandler
+    _index_class = ARTIOIndex
     _field_info_class = ARTIOFieldInfo
-    _particle_mass_name = "particle_mass"
-    _particle_coordinates_name = "Coordinates"
 
-    def __init__(self, filename, data_style='artio',
+    def __init__(self, filename, dataset_type='artio',
                  storage_filename=None, max_range = 1024):
         if self._handle is not None:
             return
@@ -343,7 +336,7 @@ class ARTIOStaticOutput(StaticOutput):
         self._handle = artio_fileset(self._fileset_prefix)
         self.artio_parameters = self._handle.parameters
         # Here we want to initiate a traceback, if the reader is not built.
-        StaticOutput.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):

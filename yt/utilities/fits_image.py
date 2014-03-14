@@ -24,7 +24,7 @@ except ImportError:
 class FITSImageBuffer(HDUList):
 
     def __init__(self, data, fields=None, units="cm",
-                 center=None, scale=None):
+                 center=None, scale=None, wcs=None):
         r""" Initialize a FITSImageBuffer object.
 
         FITSImageBuffer contains a list of FITS ImageHDU instances, and optionally includes
@@ -51,12 +51,14 @@ class FITSImageBuffer(HDUList):
             Pixel scale in unit *units*. Will be ignored if *data* is
             a FixedResolutionBuffer or a YTCoveringGrid. Must be
             specified otherwise, or if *units* is "deg".
+        wcs : `astropy.wcs.WCS` instance, optional
+            Supply an AstroPy WCS instance to override automatic WCS creation.
 
         Examples
         --------
 
         >>> ds = load("sloshing_nomag2_hdf5_plt_cnt_0150")
-        >>> prj = ds.h.proj(2, "kT", weight_field="density")
+        >>> prj = ds.proj(2, "kT", weight_field="density")
         >>> frb = prj.to_frb((0.5, "Mpc"), 800)
         >>> # This example just uses the FRB and puts the coords in kpc.
         >>> f_kpc = FITSImageBuffer(frb, fields="kT", units="kpc")
@@ -128,38 +130,43 @@ class FITSImageBuffer(HDUList):
 
         proj_type = ["linear"]*self.dimensionality
 
-        if isinstance(img_data, FixedResolutionBuffer) and units != "deg":
-            # FRBs are a special case where we have coordinate
-            # information, so we take advantage of this and
-            # construct the WCS object
-            dx = (img_data.bounds[1]-img_data.bounds[0]).in_units(units)/self.nx
-            dy = (img_data.bounds[3]-img_data.bounds[2]).in_units(units)/self.ny
-            xctr = 0.5*(img_data.bounds[1]+img_data.bounds[0]).in_units(units)
-            yctr = 0.5*(img_data.bounds[3]+img_data.bounds[2]).in_units(units)
-            center = [xctr, yctr]
-        elif isinstance(img_data, YTCoveringGridBase):
-            dx, dy, dz = img_data.dds.in_units(units)
-            center = 0.5*(img_data.left_edge+img_data.right_edge).in_units(units)
-        elif units == "deg" and self.dimensionality == 2:
-            dx = -scale[0]
-            dy = scale[1]
-            proj_type = ["RA---TAN","DEC--TAN"]
-        else:
-            dx = scale[0]
-            dy = scale[1]
-            if self.dimensionality == 3: dz = scale[2]
+        if wcs is None:
+            if isinstance(img_data, FixedResolutionBuffer) and units != "deg":
+                # FRBs are a special case where we have coordinate
+                # information, so we take advantage of this and
+                # construct the WCS object
+                dx = (img_data.bounds[1]-img_data.bounds[0]).in_units(units)/self.nx
+                dy = (img_data.bounds[3]-img_data.bounds[2]).in_units(units)/self.ny
+                xctr = 0.5*(img_data.bounds[1]+img_data.bounds[0]).in_units(units)
+                yctr = 0.5*(img_data.bounds[3]+img_data.bounds[2]).in_units(units)
+                center = [xctr, yctr]
+            elif isinstance(img_data, YTCoveringGridBase):
+                dx, dy, dz = img_data.dds.in_units(units)
+                center = 0.5*(img_data.left_edge+img_data.right_edge).in_units(units)
+            elif units == "deg" and self.dimensionality == 2:
+                dx = -scale[0]
+                dy = scale[1]
+                proj_type = ["RA---TAN","DEC--TAN"]
+            else:
+                dx = scale[0]
+                dy = scale[1]
+                if self.dimensionality == 3: dz = scale[2]
             
-        w.wcs.crval = center
-        w.wcs.cunit = [units]*self.dimensionality
-        w.wcs.ctype = proj_type
+            w.wcs.crval = center
+            w.wcs.cunit = [units]*self.dimensionality
+            w.wcs.ctype = proj_type
         
-        if self.dimensionality == 2:
-            w.wcs.cdelt = [dx,dy]
-        elif self.dimensionality == 3:
-            w.wcs.cdelt = [dx,dy,dz]
+            if self.dimensionality == 2:
+                w.wcs.cdelt = [dx,dy]
+            elif self.dimensionality == 3:
+                w.wcs.cdelt = [dx,dy,dz]
 
-        self._set_wcs(w)
-            
+            self._set_wcs(w)
+
+        else:
+
+            self._set_wcs(wcs)
+
     def _set_wcs(self, wcs):
         """
         Set the WCS coordinate information for all images
@@ -212,11 +219,13 @@ class FITSImageBuffer(HDUList):
         elif self.dimensionality == 3:
             return self.nx, self.ny, self.nz
 
-    def to_glue(self, label="yt"):
+    def to_glue(self, label="yt", data_collection=None):
         """
         Takes the data in the FITSImageBuffer and exports it to
         Glue (http://www.glueviz.org) for interactive
-        analysis. Optionally add a *label*. 
+        analysis. Optionally add a *label*. If you are already within
+        the Glue environment, you can pass a *data_collection* object,
+        otherwise Glue will be started.
         """
         from glue.core import DataCollection, Data
         from glue.core.coordinates import coordinates_from_header
@@ -228,10 +237,22 @@ class FITSImageBuffer(HDUList):
         image.coords = coordinates_from_header(self.wcs.to_header())
         for k,v in field_dict.items():
             image.add_component(v, k)
-        dc = DataCollection([image])
+        if data_collection is None:
+            dc = DataCollection([image])
+            app = GlueApplication(dc)
+            app.start()
+        else:
+            data_collection.append(image)
 
-        app = GlueApplication(dc)
-        app.start()
+    def to_aplpy(self, **kwargs):
+        """
+        Use APLpy (http://aplpy.github.io) for plotting. Returns an `aplpy.FITSFigure`
+        instance. All keyword arguments are passed to the
+        `aplpy.FITSFigure` constructor.
+        """
+        import aplpy
+        return aplpy.FITSFigure(self, **kwargs)
+
 
         
 

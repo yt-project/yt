@@ -1,5 +1,5 @@
 """
-AMR hierarchy container class
+AMR index container class
 
 
 

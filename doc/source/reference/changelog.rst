@@ -479,7 +479,7 @@ finder (see :ref:`halo_finding`)
  * Rewritten, faster and better contouring engine for clump identification
  * Spectral Energy Distribution calculation for stellar populations
    (see :ref:`synthetic_spectrum`)
- * Optimized data structures such as the hierarchy
+ * Optimized data structures such as the index
  * Star particle analysis routines
    (see :ref:`star_analysis`)
  * Halo mass function routines (see :ref:`hmf_howto`)

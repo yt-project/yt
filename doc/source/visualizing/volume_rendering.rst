@@ -155,7 +155,7 @@ includes a stereoscopic camera
 
 Much like most data objects, the
 :class:`~yt.visualization.volume_rendering.camera.Camera` object hangs off of
-the hierarchy file, and can be instantiated in that manner.
+the index file, and can be instantiated in that manner.
 
 .. warning::  The keyword *no_ghost* has been set to True by default
               for speed considerations.  However, because this turns off ghost

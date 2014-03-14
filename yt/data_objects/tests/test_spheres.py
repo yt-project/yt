@@ -7,4 +7,4 @@ def setup():
 
 def test_domain_sphere():
     pf = fake_random_pf(16, fields = ("density"))
-    sp = pf.h.sphere(pf.domain_center, pf.domain_width[0])
+    sp = pf.sphere(pf.domain_center, pf.domain_width[0])

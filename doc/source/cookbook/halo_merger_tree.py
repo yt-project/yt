@@ -12,7 +12,7 @@ from yt.analysis_modules.halo_finding.api import *
 from yt.analysis_modules.halo_merger_tree.api import *
 
 # Makes a TimeSeries object from all of whatever files you have
-ts = TimeSeriesData.from_filenames("enzo_tiny_cosmology/DD????/DD????")
+ts = DatasetSeries.from_filenames("enzo_tiny_cosmology/DD????/DD????")
 
 # For each datadump in our timeseries, run the friends of friends
 # halo finder on it (this has only been tested with FOF currently).

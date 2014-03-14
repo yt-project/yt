@@ -23,19 +23,17 @@ import glob
 
 from yt.funcs import *
 from yt.geometry.oct_geometry_handler import \
-    OctreeGeometryHandler
+    OctreeIndex
 from yt.geometry.geometry_handler import \
-    GeometryHandler, YTDataChunk
+    Index, YTDataChunk
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 from yt.data_objects.octree_subset import \
     OctreeSubset
 from yt.geometry.oct_container import \
     ARTOctreeContainer
-from yt.fields.field_info_container import \
-    FieldInfoContainer, NullFunc
 from .fields import \
-    ARTFieldInfo, add_art_field, KnownARTFields
+    ARTFieldInfo
 from yt.utilities.definitions import \
     mpc_conversion
 from yt.utilities.io_handler import \
@@ -44,15 +42,12 @@ from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 
 from yt.frontends.art.definitions import *
-from yt.utilities.fortran_utils import *
+import yt.utilities.fortran_utils as fpu
 from .io import _read_art_level_info
-from .io import _read_child_mask_level
 from .io import _read_child_level
 from .io import _read_root_level
-from .io import _count_art_octs
 from .io import b2t
 
-from .fields import ARTFieldInfo, KnownARTFields
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.io_handler import \
@@ -63,16 +58,16 @@ from yt.utilities.physical_constants import \
     mass_hydrogen_cgs, sec_per_Gyr
 
 
-class ARTGeometryHandler(OctreeGeometryHandler):
-    def __init__(self, pf, data_style="art"):
+class ARTIndex(OctreeIndex):
+    def __init__(self, pf, dataset_type="art"):
         self.fluid_field_list = fluid_fields
-        self.data_style = data_style
+        self.dataset_type = dataset_type
         self.parameter_file = weakref.proxy(pf)
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.directory = os.path.dirname(self.hierarchy_filename)
+        self.index_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.index_filename)
         self.max_level = pf.max_level
         self.float_type = np.float64
-        super(ARTGeometryHandler, self).__init__(pf, data_style)
+        super(ARTIndex, self).__init__(pf, dataset_type)
 
     def get_smallest_dx(self):
         """
@@ -107,10 +102,8 @@ class ARTGeometryHandler(OctreeGeometryHandler):
         self.oct_handler.finalize()
 
     def _detect_output_fields(self):
-        self.particle_field_list = particle_fields
+        self.particle_field_list = [("io", f) for f in particle_fields]
         self.field_list = [("gas", f) for f in fluid_fields]
-        self.field_list += set(particle_fields + particle_star_fields \
-                               + fluid_fields)
         # now generate all of the possible particle fields
         if "wspecies" in self.parameter_file.parameters.keys():
             wspecies = self.parameter_file.parameters['wspecies']
@@ -126,11 +119,6 @@ class ARTGeometryHandler(OctreeGeometryHandler):
             for pfield in self.particle_field_list:
                 pfn = (ptype, pfield)
                 self.field_list.append(pfn)
-
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        super(ARTGeometryHandler, self)._setup_classes(dd)
-        self.object_types.sort()
 
     def _identify_base_chunk(self, dobj):
         """
@@ -178,12 +166,11 @@ class ARTGeometryHandler(OctreeGeometryHandler):
                               cache = cache)
 
 
-class ARTStaticOutput(StaticOutput):
-    _hierarchy_class = ARTGeometryHandler
-    _fieldinfo_fallback = ARTFieldInfo
-    _fieldinfo_known = KnownARTFields
+class ARTDataset(Dataset):
+    _index_class = ARTIndex
+    _field_info_class = ARTFieldInfo
 
-    def __init__(self, filename, data_style='art',
+    def __init__(self, filename, dataset_type='art',
                  fields=None, storage_filename=None,
                  skip_particles=False, skip_stars=False,
                  limit_level=None, spread_age=True,
@@ -207,7 +194,7 @@ class ARTStaticOutput(StaticOutput):
         self.spread_age = spread_age
         self.domain_left_edge = np.zeros(3, dtype='float')
         self.domain_right_edge = np.zeros(3, dtype='float')+1.0
-        StaticOutput.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
     def _find_files(self, file_amr):
@@ -233,16 +220,11 @@ class ARTStaticOutput(StaticOutput):
     def __repr__(self):
         return self._file_amr.split('/')[-1]
 
-    def _set_units(self):
+    def _set_code_unit_attributes(self):
         """
         Generates the conversion to various physical units based
                 on the parameters from the header
         """
-        self.units = {}
-        self.time_units = {}
-        self.time_units['1'] = 1
-        self.units['1'] = 1.0
-        self.units['unitary'] = 1.0
 
         # spatial units
         z = self.current_redshift
@@ -250,12 +232,7 @@ class ARTStaticOutput(StaticOutput):
         boxcm_cal = self.parameters["boxh"]
         boxcm_uncal = boxcm_cal / h
         box_proper = boxcm_uncal/(1+z)
-        aexpn = self["aexpn"]
-        for unit in mpc_conversion:
-            self.units[unit] = mpc_conversion[unit] * box_proper
-            self.units[unit+'h'] = mpc_conversion[unit] * box_proper * h
-            self.units[unit+'cm'] = mpc_conversion[unit] * boxcm_uncal
-            self.units[unit+'hcm'] = mpc_conversion[unit] * boxcm_cal
+        aexpn = self.parameters["aexpn"]
 
         # all other units
         wmu = self.parameters["wmu"]
@@ -303,16 +280,18 @@ class ARTStaticOutput(StaticOutput):
         cf["particle_mass"] = cf['Mass']
         cf["particle_mass_initial"] = cf['Mass']
         self.cosmological_simulation = True
-        self.conversion_factors = cf
 
-        for ax in 'xyz':
-            self.conversion_factors["%s-velocity" % ax] = cf["Velocity"]
-            self.conversion_factors["particle_velocity_%s" % ax] = cf["Velocity"]
-        for pt in particle_fields:
-            if pt not in self.conversion_factors.keys():
-                self.conversion_factors[pt] = 1.0
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = 1.0 / sec_conversion[unit]
+        # I have left much of the old code above.for historical reference, but
+        # it is largely or completely vestigial.  The subsequent unit setting
+        # is from ARTIO, which I have been assured has identical units to
+        # NMSU-ART for hydrodynamic quantities..
+        #
+        # That being said, these are a bit uncertain to me.
+
+        self.mass_unit = self.quan(cf["Mass"], "g*%s" % ng**3)
+        self.length_unit = self.quan(box_proper, "Mpc")
+        self.velocity_unit = self.quan(cf["Velocity"], "cm/s")
+        self.time_unit = self.length_unit / self.velocity_unit
 
     def _parse_parameter_file(self):
         """
@@ -329,10 +308,10 @@ class ARTStaticOutput(StaticOutput):
         self.parameters['Time'] = 1.0
         # read the amr header
         with open(self._file_amr, 'rb') as f:
-            amr_header_vals = read_attrs(f, amr_header_struct, '>')
+            amr_header_vals = fpu.read_attrs(f, amr_header_struct, '>')
             for to_skip in ['tl', 'dtl', 'tlold', 'dtlold', 'iSO']:
-                skipped = skip(f, endian='>')
-            (self.ncell) = read_vector(f, 'i', '>')[0]
+                skipped = fpu.skip(f, endian='>')
+            (self.ncell) = fpu.read_vector(f, 'i', '>')[0]
             # Try to figure out the root grid dimensions
             est = int(np.rint(self.ncell**(1.0/3.0)))
             # Note here: this is the number of *cells* on the root grid.
@@ -344,19 +323,19 @@ class ARTStaticOutput(StaticOutput):
             self.root_ncells = self.root_nocts*8
             mylog.debug("Estimating %i cells on a root grid side," +
                         "%i root octs", est, self.root_nocts)
-            self.root_iOctCh = read_vector(f, 'i', '>')[:self.root_ncells]
+            self.root_iOctCh = fpu.read_vector(f, 'i', '>')[:self.root_ncells]
             self.root_iOctCh = self.root_iOctCh.reshape(self.domain_dimensions,
                                                         order='F')
             self.root_grid_offset = f.tell()
-            self.root_nhvar = skip(f, endian='>')
-            self.root_nvar = skip(f, endian='>')
+            self.root_nhvar = fpu.skip(f, endian='>')
+            self.root_nvar = fpu.skip(f, endian='>')
             # make sure that the number of root variables is a multiple of
             # rootcells
             assert self.root_nhvar % self.root_ncells == 0
             assert self.root_nvar % self.root_ncells == 0
             self.nhydro_variables = ((self.root_nhvar+self.root_nvar) /
                                      self.root_ncells)
-            self.iOctFree, self.nOct = read_vector(f, 'i', '>')
+            self.iOctFree, self.nOct = fpu.read_vector(f, 'i', '>')
             self.child_grid_offset = f.tell()
             self.parameters.update(amr_header_vals)
             self.parameters['ncell0'] = self.parameters['ng']**3
@@ -371,7 +350,7 @@ class ARTStaticOutput(StaticOutput):
         # read the particle header
         if not self.skip_particles and self._file_particle_header:
             with open(self._file_particle_header, "rb") as fh:
-                particle_header_vals = read_attrs(
+                particle_header_vals = fpu.read_attrs(
                     fh, particle_header_struct, '>')
                 fh.seek(seek_extras)
                 n = particle_header_vals['Nspecies']
@@ -422,7 +401,7 @@ class ARTStaticOutput(StaticOutput):
         if not os.path.isfile(f): return False
         with open(f, 'rb') as fh:
             try:
-                amr_header_vals = read_attrs(fh, amr_header_struct, '>')
+                amr_header_vals = fpu.read_attrs(fh, amr_header_struct, '>')
                 return True
             except:
                 return False
@@ -523,8 +502,8 @@ class ARTDomainFile(object):
         # We now have to open the file and calculate it
         f = open(self.pf._file_amr, "rb")
         nhydrovars, inoll, _level_oct_offsets, _level_child_offsets = \
-            _count_art_octs(f,  self.pf.child_grid_offset, self.pf.min_level,
-                            self.pf.max_level)
+            self._count_art_octs(f,  self.pf.child_grid_offset,
+                self.pf.min_level, self.pf.max_level)
         # remember that the root grid is by itself; manually add it back in
         inoll[0] = self.pf.domain_dimensions.prod()/8
         _level_child_offsets[0] = self.pf.root_grid_offset
@@ -534,6 +513,45 @@ class ARTDomainFile(object):
         self._level_child_offsets = _level_child_offsets
         self._level_count = inoll
         return self._level_oct_offsets
+
+    def _count_art_octs(self, f, offset, MinLev, MaxLevelNow):
+        level_oct_offsets = [0, ]
+        level_child_offsets = [0, ]
+        f.seek(offset)
+        nchild, ntot = 8, 0
+        Level = np.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
+        iNOLL = np.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
+        iHOLL = np.zeros(MaxLevelNow+1 - MinLev, dtype='int64')
+        for Lev in xrange(MinLev + 1, MaxLevelNow+1):
+            level_oct_offsets.append(f.tell())
+
+            # Get the info for this level, skip the rest
+            # print "Reading oct tree data for level", Lev
+            # print 'offset:',f.tell()
+            Level[Lev], iNOLL[Lev], iHOLL[Lev] = fpu.read_vector(f, 'i', '>')
+            # print 'Level %i : '%Lev, iNOLL
+            # print 'offset after level record:',f.tell()
+            iOct = iHOLL[Lev] - 1
+            nLevel = iNOLL[Lev]
+            nLevCells = nLevel * nchild
+            ntot = ntot + nLevel
+
+            # Skip all the oct hierarchy data
+            ns = fpu.peek_record_size(f, endian='>')
+            size = struct.calcsize('>i') + ns + struct.calcsize('>i')
+            f.seek(f.tell()+size * nLevel)
+
+            level_child_offsets.append(f.tell())
+            # Skip the child vars data
+            ns = fpu.peek_record_size(f, endian='>')
+            size = struct.calcsize('>i') + ns + struct.calcsize('>i')
+            f.seek(f.tell()+size * nLevel*nchild)
+
+            # find nhydrovars
+            nhydrovars = 8+2
+        f.seek(offset)
+        return nhydrovars, iNOLL, level_oct_offsets, level_child_offsets
+
 
     def _read_amr_level(self, oct_handler):
         """Open the oct file, read in octs level-by-level.

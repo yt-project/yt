@@ -29,7 +29,7 @@
    from yt.analysis_modules.level_sets.api import *
 
    pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   data_source = pf.h.disk([0.5, 0.5, 0.5], [0., 0., 1.],
+   data_source = pf.disk([0.5, 0.5, 0.5], [0., 0., 1.],
                            8./pf.units['kpc'], 1./pf.units['kpc'])
 
    c_min = 10**na.floor(na.log10(data_source['density']).min()  )

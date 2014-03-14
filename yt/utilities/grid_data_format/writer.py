@@ -27,7 +27,7 @@ def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
 
     Parameters
     ----------
-    pf : StaticOutput object
+    pf : Dataset object
         The yt data to write out.
     gdf_path : string
         The path of the file to output.
@@ -38,7 +38,7 @@ def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
                        particle_type_name)
 
     # now add the fields one-by-one
-    for field_name in pf.h.field_list:
+    for field_name in pf.field_list:
         _write_field_to_gdf(pf, f, field_name, particle_type_name)
 
     # don't forget to close the file.
@@ -51,7 +51,7 @@ def save_field(pf, field_name, field_parameters=None):
 
     Parameters
     ----------
-    pf : StaticOutput object
+    pf : Dataset object
         The yt parameter file that the field is associated with.
     field_name : string
         The name of the field to save.
@@ -115,7 +115,7 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name, field_param
 
     # now add actual data, grid by grid
     g = fhandle["data"]     
-    for grid in pf.h.grids:
+    for grid in pf.index.grids:
 
         # set field parameters, if specified
         if field_parameters is not None:
@@ -201,21 +201,21 @@ def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
     ###
     # root datasets -- info about the grids
     ###
-    f["grid_dimensions"] = pf.h.grid_dimensions
+    f["grid_dimensions"] = pf.grid_dimensions
     f["grid_left_index"] = np.array(
-            [g.get_global_startindex() for g in pf.h.grids]
-    ).reshape(pf.h.grid_dimensions.shape[0], 3)
-    f["grid_level"] = pf.h.grid_levels
+            [g.get_global_startindex() for g in pf.index.grids]
+    ).reshape(pf.grid_dimensions.shape[0], 3)
+    f["grid_level"] = pf.grid_levels
     # @todo: Fill with proper values
-    f["grid_parent_id"] = -np.ones(pf.h.grid_dimensions.shape[0])
-    f["grid_particle_count"] = pf.h.grid_particle_count
+    f["grid_parent_id"] = -np.ones(pf.grid_dimensions.shape[0])
+    f["grid_particle_count"] = pf.grid_particle_count
 
     ###
     # "data" group -- where we should spend the most time
     ###
     
     g = f.create_group("data")
-    for grid in pf.h.grids:
+    for grid in pf.index.grids:
         # add group for this grid
         grid_group = g.create_group("grid_%010i" % (grid.id - grid._id_offset))
         # add group for the particles on this grid

@@ -47,7 +47,7 @@ class Tree(object):
 
         self.pf = pf
         try:
-            self._id_offset = pf.h.grids[0]._id_offset
+            self._id_offset = pf.index.grids[0]._id_offset
         except AttributeError:
             self._id_offset = 0
 
@@ -90,7 +90,7 @@ class Tree(object):
         for node in depth_traverse(self.trunk):
             if node.grid == -1:
                 continue
-            grid = self.pf.h.grids[node.grid - self._id_offset]
+            grid = self.pf.index.grids[node.grid - self._id_offset]
             dds = grid.dds
             gle = grid.LeftEdge
             gre = grid.RightEdge
@@ -116,7 +116,7 @@ class Tree(object):
                 continue
             if not all_cells and not kd_is_leaf(node):
                 continue
-            grid = self.pf.h.grids[node.grid - self._id_offset]
+            grid = self.pf.index.grids[node.grid - self._id_offset]
             dds = grid.dds
             gle = grid.LeftEdge
             nle = get_left_edge(node)
@@ -144,11 +144,11 @@ class AMRKDTree(ParallelAnalysisInterface):
         self.current_saved_grids = []
         self.bricks = []
         self.brick_dimensions = []
-        self.sdx = pf.h.get_smallest_dx()
+        self.sdx = pf.index.get_smallest_dx()
 
         self._initialized = False
         try:
-            self._id_offset = pf.h.grids[0]._id_offset
+            self._id_offset = pf.index.grids[0]._id_offset
         except AttributeError:
             self._id_offset = 0
 
@@ -188,7 +188,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         if not hasattr(self.pf.h, "grid"):
             raise NotImplementedError
         for node in kd_traverse(self.tree.trunk, viewpoint=viewpoint):
-            grid = self.pf.h.grids[node.grid - self._id_offset]
+            grid = self.pf.index.grids[node.grid - self._id_offset]
             dds = grid.dds
             gle = grid.LeftEdge.in_units("code_length").ndarray_view()
             nle = get_left_edge(node)
@@ -253,7 +253,7 @@ class AMRKDTree(ParallelAnalysisInterface):
 
     def get_brick_data(self, node):
         if node.data is not None: return node.data
-        grid = self.pf.h.grids[node.grid - self._id_offset]
+        grid = self.pf.index.grids[node.grid - self._id_offset]
         dds = grid.dds.ndarray_view()
         gle = grid.LeftEdge.ndarray_view()
         nle = get_left_edge(node)
@@ -348,7 +348,7 @@ class AMRKDTree(ParallelAnalysisInterface):
 
         if (in_grid != True).sum()>0:
             grids[in_grid != True] = \
-                [self.pf.h.grids[self.locate_brick(new_positions[i]).grid -
+                [self.pf.index.grids[self.locate_brick(new_positions[i]).grid -
                                  self._id_offset]
                  for i in get_them]
             cis[in_grid != True] = \
@@ -386,7 +386,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         
         """
         position = np.array(position)
-        grid = self.pf.h.grids[self.locate_brick(position).grid -
+        grid = self.pf.index.grids[self.locate_brick(position).grid -
                                self._id_offset]
         ci = ((position-grid.LeftEdge)/grid.dds).astype('int64')
         return self.locate_neighbors(grid,ci)

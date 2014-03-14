@@ -181,7 +181,7 @@ example:
 
 will create a projection of Density field along the x axis, plot it,
 and then save it to a png image file.  The projection is only carried
-out to level 2 of the AMR hierarchy and no weighting is applied.
+out to level 2 of the AMR index and no weighting is applied.
 
 Like :ref:`slice-plots`, annotations and modifications can be applied
 after creating the ``ProjectionPlot`` object.  Annotations are
@@ -465,7 +465,7 @@ data object, the field for binning, and a list of fields to be profiled.
 
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   my_galaxy = pf.h.disk([0.53, 0.53, 0.53], [0.0, 0.0, 1.0], 0.01, 0.003)
+   my_galaxy = pf.disk([0.53, 0.53, 0.53], [0.0, 0.0, 1.0], 0.01, 0.003)
    plot = ProfilePlot(my_galaxy, "density", ["temperature"])
    plot.save()
 
@@ -484,7 +484,7 @@ well.  For instance:
 
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   my_sphere = pf.h.sphere([0.53, 0.53, 0.53], (100, "pc"))
+   my_sphere = pf.sphere([0.53, 0.53, 0.53], (100, "pc"))
    plot = ProfilePlot(my_sphere, "temperature", ["cell_mass"],
                       weight_field=None)
    plot.save()
@@ -590,7 +590,7 @@ either taking the average or the accumulation in a bin.  For example, to generat
 
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   my_sphere = pf.h.sphere("c", (50, "kpc"))
+   my_sphere = pf.sphere("c", (50, "kpc"))
    plot = PhasePlot(my_sphere, "density", "temperature", ["cell_mass"],
                     weight_field=None)
    plot.save()
@@ -603,7 +603,7 @@ something like:
 
    from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   my_sphere = pf.h.sphere("c", (50, "kpc"))
+   my_sphere = pf.sphere("c", (50, "kpc"))
    plot = PhasePlot(my_sphere, "density", "temperature", ["HI_Fraction"],
                     weight_field="cell_mass")
    plot.save()
@@ -638,19 +638,14 @@ type:
 
 at the command line.  This will prompt you for a password (so that if you're on
 a shared user machine no one else can pretend to be you!) and then spawn an
-IPython notebook you can connect to.  You need to additionally change the
-import statement you use:
+IPython notebook you can connect to.
+
+If you want to see yt plots inline inside your notebook, you need only create a
+plot and then call ``.show()``:
 
 .. notebook-cell::
 
-   from yt.imods import *
-
-This will set up a number of helper functions and enable interactive plotting.
-Now when you create a plot window you can call ``.show()`` to see it inline:
-
-.. notebook-cell::
-
-   from yt.imods import *
+   from yt.mods import *
    pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
    p = ProjectionPlot(pf, "x", "density", center='m', width=(10,'kpc'),
                       weight_field='density')

@@ -20,8 +20,8 @@ from .data_structures import \
       EnzoHierarchyInMemory, \
       EnzoHierarchy1D, \
       EnzoHierarchy2D, \
-      EnzoStaticOutput, \
-      EnzoStaticOutputInMemory
+      EnzoDataset, \
+      EnzoDatasetInMemory
 
 from .simulation_handling import \
     EnzoSimulation

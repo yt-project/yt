@@ -63,7 +63,7 @@ from .halo_profiler.api import \
     HaloProfiler, \
     FakeProfile
 
-from .hierarchy_subset.api import \
+from .index_subset.api import \
     ConstructedRootGrid, \
     AMRExtractedGridProxy, \
     ExtractedHierarchy, \
@@ -75,9 +75,9 @@ from .level_sets.api import \
     Clump, \
     find_clumps, \
     get_lowest_clumps, \
-    write_clump_hierarchy, \
+    write_clump_index, \
     write_clumps, \
-    write_old_clump_hierarchy, \
+    write_old_clump_index, \
     write_old_clumps, \
     write_old_clump_info, \
     _DistanceToMainClump, \

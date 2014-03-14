@@ -1,5 +1,5 @@
 """
-AMR hierarchy container class
+AMR index container class
 
 
 
@@ -26,7 +26,7 @@ from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
 from yt.fields.field_info_container import NullFunc
 from yt.geometry.geometry_handler import \
-    GeometryHandler, YTDataChunk, ChunkDataCache
+    Index, YTDataChunk, ChunkDataCache
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.physical_constants import sec_per_year
 from yt.utilities.io_handler import io_registry
@@ -36,9 +36,12 @@ from yt.utilities.lib.GridTree import GridTree, MatchPointsToGrids
 
 from yt.data_objects.data_containers import data_object_registry
 
-class GridGeometryHandler(GeometryHandler):
+class GridIndex(Index):
     float_type = 'float64'
     _preload_implemented = False
+    _index_properties = ("grid_left_edge", "grid_right_edge",
+                         "grid_levels", "grid_particle_count",
+                         "grid_dimensions")
 
     def _setup_geometry(self):
         mylog.debug("Counting grids.")
@@ -47,14 +50,22 @@ class GridGeometryHandler(GeometryHandler):
         mylog.debug("Initializing grid arrays.")
         self._initialize_grid_arrays()
 
-        mylog.debug("Parsing hierarchy.")
-        self._parse_hierarchy()
+        mylog.debug("Parsing index.")
+        self._parse_index()
 
         mylog.debug("Constructing grid objects.")
         self._populate_grid_objects()
 
-        mylog.debug("Re-examining hierarchy")
+        mylog.debug("Re-examining index")
         self._initialize_level_stats()
+
+    def __del__(self):
+        del self.grid_dimensions
+        del self.grid_left_edge
+        del self.grid_right_edge
+        del self.grid_levels
+        del self.grid_particle_count
+        del self.grids
 
     @property
     def parameters(self):

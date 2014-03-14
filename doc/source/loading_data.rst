@@ -20,7 +20,7 @@ contains no extension.  For instance, if you have the following files:
 
    DD0010/
    DD0010/data0010
-   DD0010/data0010.hierarchy
+   DD0010/data0010.index
    DD0010/data0010.cpu0000
    DD0010/data0010.cpu0001
    DD0010/data0010.cpu0002
@@ -171,7 +171,7 @@ format as being Gadget:
 .. code-block:: python
 
    from yt.mods import *
-   pf = GadgetStaticOutput("snapshot_061")
+   pf = GadgetDataset("snapshot_061")
 
 .. _particle-bbox:
 
@@ -194,7 +194,7 @@ particles.
 
 .. code-block:: python
 
-   pf = GadgetStaticOutput("snap_004",
+   pf = GadgetDataset("snap_004",
            unit_base = {'length': ('kpc', 1.0)},
            bounding_box = [[-600.0, 600.0], [-600.0, 600.0], [-600.0, 600.0]])
 
@@ -223,7 +223,7 @@ Field Specifications
 
 Binary Gadget outputs often have additional fields or particle types that are
 non-standard from the default Gadget distribution format.  These can be
-specified in the call to ``GadgetStaticOutput`` by either supplying one of the
+specified in the call to ``GadgetDataset`` by either supplying one of the
 sets of field specifications as a string or by supplying a field specification
 itself.  As an example, yt has built-in definitions for ``default`` (the
 default) and ``agora_unlv``.  Field specifications must be tuples, and must be
@@ -278,7 +278,7 @@ Particle Type Definitions
 
 In some cases, research groups add new particle types or re-order them.  You
 can supply alternate particle types by using the keyword ``ptype_spec`` to the
-``GadgetStaticOutput`` call.  The default for Gadget binary data is:
+``GadgetDataset`` call.  The default for Gadget binary data is:
 
 .. code-block:: python
 
@@ -377,7 +377,7 @@ similar to the following:
 
 .. code-block:: python
 
-    ds = TipsyStaticOutput('test.00169',
+    ds = TipsyDataset('test.00169',
         parameter_file='test.param',
         endian = '<',
         domain_left_edge = domain_left_edge,
@@ -394,7 +394,7 @@ with:
 
 .. code-block:: python
 
-    ds = TipsyStaticOutput("./halo1e11_run1.00400", endian="<",
+    ds = TipsyDataset("./halo1e11_run1.00400", endian="<",
                            field_dtypes = {"Coordinates": "d"})
 
 .. _specifying-cosmology-tipsy:
@@ -589,7 +589,7 @@ setting the ``number_of_particles`` key to each ``grid``'s dict:
 * Units will be incorrect unless the data has already been converted to cgs.
 * Some functions may behave oddly, and parallelism will be disappointing or
   non-existent in most cases.
-* No consistency checks are performed on the hierarchy
+* No consistency checks are performed on the index
 * Data must already reside in memory.
 * Consistency between particle positions and grids is not checked;
   ``load_amr_grids`` assumes that particle positions associated with one grid are

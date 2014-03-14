@@ -26,8 +26,6 @@ import copy
 
 from yt.funcs import *
 from yt.config import ytcfg
-from yt.data_objects.data_containers import \
-    data_object_registry
 from yt.units.yt_array import \
     uconcatenate
 from yt.fields.field_info_container import \
@@ -41,17 +39,12 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_splitter
 from yt.utilities.exceptions import YTFieldNotFound
 
-def _unsupported_object(pf, obj_name):
-    def _raise_unsupp(*args, **kwargs):
-        raise YTObjectNotImplemented(pf, obj_name)
-    return _raise_unsupp
-
-class GeometryHandler(ParallelAnalysisInterface):
+class Index(ParallelAnalysisInterface):
     _global_mesh = True
     _unsupported_objects = ()
+    _index_properties = ()
 
-    def __init__(self, pf, data_style):
-        self.filtered_particle_types = []
+    def __init__(self, pf, dataset_type):
         ParallelAnalysisInterface.__init__(self)
         self.parameter_file = weakref.proxy(pf)
         self.pf = self.parameter_file
@@ -60,10 +53,6 @@ class GeometryHandler(ParallelAnalysisInterface):
 
         mylog.debug("Initializing data storage.")
         self._initialize_data_storage()
-
-        # Must be defined in subclass
-        mylog.debug("Setting up classes.")
-        self._setup_classes()
 
         mylog.debug("Setting up domain geometry.")
         self._setup_geometry()
@@ -86,71 +75,6 @@ class GeometryHandler(ParallelAnalysisInterface):
         self._data_mode = None
         self._max_locations = {}
         self.num_grids = None
-
-    def _setup_classes(self, dd):
-        # Called by subclass
-        self.object_types = []
-        self.objects = []
-        self.plots = []
-        for name, cls in sorted(data_object_registry.items()):
-            if name in self._unsupported_objects:
-                setattr(self, name,
-                    _unsupported_object(self.parameter_file, name))
-                continue
-            cname = cls.__name__
-            if cname.endswith("Base"): cname = cname[:-4]
-            self._add_object_class(name, cname, cls, dd)
-        if self.pf.refine_by != 2 and hasattr(self, 'proj') and \
-            hasattr(self, 'overlap_proj'):
-            mylog.warning("Refine by something other than two: reverting to"
-                        + " overlap_proj")
-            self.proj = self.overlap_proj
-        if self.pf.dimensionality < 3 and hasattr(self, 'proj') and \
-            hasattr(self, 'overlap_proj'):
-            mylog.warning("Dimensionality less than 3: reverting to"
-                        + " overlap_proj")
-            self.proj = self.overlap_proj
-        self.object_types.sort()
-
-    def _setup_particle_types(self, ptypes = None):
-        df = []
-        if ptypes is None: ptypes = self.pf.particle_types_raw
-        for ptype in set(ptypes):
-            df += self.pf._setup_particle_type(ptype)
-        return df
-
-    def _setup_field_registry(self):
-        self.derived_field_list = []
-        self.filtered_particle_types = []
-
-    def _setup_filtered_type(self, filter):
-        if not filter.available(self.derived_field_list):
-            return False
-        fi = self.parameter_file.field_info
-        fd = self.parameter_file.field_dependencies
-        available = False
-        for fn in self.derived_field_list:
-            if fn[0] == filter.filtered_type:
-                # Now we can add this
-                available = True
-                self.derived_field_list.append(
-                    (filter.name, fn[1]))
-                fi[filter.name, fn[1]] = filter.wrap_func(fn, fi[fn])
-                # Now we append the dependencies
-                fd[filter.name, fn[1]] = fd[fn]
-        if available:
-            self.parameter_file.particle_types += (filter.name,)
-            self.filtered_particle_types.append(filter.name)
-            self._setup_particle_types([filter.name])
-        return available
-
-    # Now all the object related stuff
-    def all_data(self, find_max=False):
-        pf = self.parameter_file
-        if find_max: c = self.find_max("Density")[1]
-        else: c = (pf.domain_right_edge + pf.domain_left_edge)/2.0
-        return self.region(c,
-            pf.domain_left_edge, pf.domain_right_edge)
 
     def _initialize_data_storage(self):
         if not ytcfg.getboolean('yt','serialize'): return
@@ -200,7 +124,7 @@ class GeometryHandler(ParallelAnalysisInterface):
 
     def _setup_data_io(self):
         if getattr(self, "io", None) is not None: return
-        self.io = io_registry[self.data_style](self.parameter_file)
+        self.io = io_registry[self.dataset_type](self.parameter_file)
 
     def _save_data(self, array, node, name, set_attr=None, force=False, passthrough = False):
         """
@@ -234,11 +158,6 @@ class GeometryHandler(ParallelAnalysisInterface):
         self._data_file = h5py.File(self.__data_filename, self._data_mode)
 
     save_data = parallel_splitter(_save_data, _reload_data_file)
-
-    def _get_data_reader_dict(self):
-        dd = { 'pf' : self.parameter_file, # Already weak
-               'hierarchy': weakref.proxy(self) }
-        return dd
 
     def _reset_save_data(self,round_robin=False):
         if round_robin:
@@ -297,24 +216,6 @@ class GeometryHandler(ParallelAnalysisInterface):
             self._data_file.close()
             del self._data_file
             self._data_file = None
-
-    def find_max(self, field):
-        """
-        Returns (value, center) of location of maximum for a given field.
-        """
-        mylog.debug("Searching for maximum value of %s", field)
-        source = self.all_data()
-        max_val, maxi, mx, my, mz = \
-            source.quantities["MaxLocation"](field)
-        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f", 
-              max_val, mx, my, mz)
-        return max_val, np.array([mx, my, mz], dtype="float64")
-
-    def _add_object_class(self, name, class_name, base, dd):
-        self.object_types.append(name)
-        dd.update({'__doc__': base.__doc__})
-        obj = type(class_name, (base,), dd)
-        setattr(self, name, obj)
 
     def _split_fields(self, fields):
         # This will split fields into either generated or read fields
