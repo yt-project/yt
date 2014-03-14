@@ -1,5 +1,5 @@
 """
-A simple periodic table.
+Very basic chemical formula parser.
 
 
 
