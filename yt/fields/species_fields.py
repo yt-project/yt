@@ -15,23 +15,56 @@ Fields based on species of molecules or atoms.
 
 import numpy as np
 
-from yt.fields.field_info_container import \
-    FieldInfoContainer, \
-    NullFunc, \
-    TranslationFunc, \
-    FieldInfo, \
-    ValidateParameter, \
-    ValidateDataField, \
-    ValidateProperty, \
-    ValidateSpatial, \
-    ValidateGridType
-from yt.fields.particle_fields import \
-    particle_deposition_functions, \
-    particle_vector_functions, \
-    standard_particle_fields
 from yt.utilities.physical_constants import \
     mh, \
     mass_sun_cgs, \
-    periodic_table
+    amu_cgs
 from yt.funcs import *
+from yt.utilities.chemical_formulas import \
+    ChemicalFormula
 
+# See YTEP-0003 for details, but we want to ensure these fields are all
+# populated:
+#
+#   * _mass
+#   * _density
+#   * _fraction
+#   * _number_density
+#
+
+def _create_fraction_func(ftype, species):
+    def _frac(field, data):
+        return data[ftype, "%s_density" % species] \
+             / data[ftype, "density"]
+    return _frac
+
+def _create_mass_func(ftype, species):
+    def _mass(field, data):
+        return data[ftype, "%s_density" % species] \
+             * data["index", "cell_volume"]
+    return _mass
+
+def _create_number_density_func(ftype, species):
+    formula = ChemicalFormula(species)
+    weight = formula.weight # This is in AMU
+    weight *= amu_cgs
+    def _number_density(field, data):
+        return data[ftype, "%s_density" % species] \
+             / amu_cgs
+    return _number_density
+
+def add_species_field_by_density(registry, ftype, species):
+    """
+    This takes a field registry, a fluid type, and a species name and then
+    adds the other fluids based on that.  This assumes that the field
+    "SPECIES_density" already exists and refers to mass density.
+    """
+    registry.add_field((ftype, "%s_fraction" % species), 
+                        function = _create_fraction_func(ftype, species),
+                        units = "")
+    registry.add_field((ftype, "%s_mass" % species),
+                        function = _create_mass_func(ftype, species),
+                        units = "g")
+    registry.add_field((ftype, "%s_number_density" % species),
+                        function = _create_number_density_func(ftype, species),
+                        units = "cm**-3")
