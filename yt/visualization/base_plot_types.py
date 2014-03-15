@@ -184,7 +184,6 @@ class ImagePlotMPL(PlotMPL):
     def _toggle_colorbar(self, choice):
         self._draw_colorbar = choice
         self.cax.set_visible(choice)
-        self.cax.set_frame_on(choice)
         size, axrect, caxrect = self._get_best_layout()
         self.axes.set_position(axrect)
         self.cax.set_position(caxrect)
