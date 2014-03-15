@@ -24,6 +24,7 @@ from yt.utilities.lib import new_bin_profile1d, new_bin_profile2d, \
                              new_bin_profile3d
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_objects
+from yt.utilities.exceptions import YTEmptyProfileData
 
 def preserve_source_parameters(func):
     def save_state(*args, **kwargs):
@@ -80,7 +81,7 @@ class BinnedProfile(ParallelAnalysisInterface):
         for ds in self._data_source.chunks(chunk_fields, chunking_style = "io"):
             try:
                 args = self._get_bins(ds, check_cut=True)
-            except EmptyProfileData:
+            except YTEmptyProfileData:
                 # No bins returned for this grid, so forget it!
                 continue
             for field in fields:
