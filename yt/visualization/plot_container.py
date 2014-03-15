@@ -319,9 +319,29 @@ class ImagePlotContainer(object):
             font_dict = {}
         if 'color' in font_dict:
             self._font_color = font_dict.pop('color')
+        # Set default values if the user does not explicitly set them.
+        # this prevents reverting to the matplotlib defaults.
+        if 'family' not in font_dict:
+            font_dict['family'] = 'stixgeneral'
+        if 'size' not in font_dict:
+            font_dict['size'] = 18
         self._font_properties = \
             FontProperties(**font_dict)
         return self
+
+    def set_font_size(self, size):
+        """Set the size of the font used in the plot
+
+        This sets the font size by calling the set_font function.  See set_font
+        for more font customization options.
+
+        Parameters
+        ----------
+        size : float
+        The absolute size of the font in points (1 pt = 1/72 inch).
+
+        """
+        return self.set_font({'size': size})
 
     @invalidate_plot
     def set_cmap(self, field, cmap):
