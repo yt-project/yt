@@ -381,11 +381,13 @@ class YTDataContainer(object):
         else:
             self.index.save_object(self, name)
 
-    def to_glue(self, fields, label="yt"):
+    def to_glue(self, fields, label="yt", data_collection=None):
         """
         Takes specific *fields* in the container and exports them to
         Glue (http://www.glueviz.org) for interactive
-        analysis. Optionally add a *label*.  
+        analysis. Optionally add a *label*. If you are already within
+        the Glue environment, you can pass a *data_collection* object,
+        otherwise Glue will be started.
         """
         from glue.core import DataCollection, Data
         from glue.core.coordinates import coordinates_from_header
@@ -394,11 +396,14 @@ class YTDataContainer(object):
         gdata = Data(label=label)
         for component_name in fields:
             gdata.add_component(self[component_name], component_name)
-        dc = DataCollection([gdata])
 
-        app = GlueApplication(dc)
-        app.start()
-
+        if data_collection is None:
+            dc = DataCollection([gdata])
+            app = GlueApplication(dc)
+            app.start()
+        else:
+            data_collection.append(gdata)
+        
     def __reduce__(self):
         args = tuple([self.pf._hash(), self._type_name] +
                      [getattr(self, n) for n in self._con_args] +

@@ -349,12 +349,6 @@ class YTRockstarMultiMassNotSupported(YTException):
             self.ma)
         return v
 
-class YTFITSHeaderNotUnderstood(YTException):
-    def __str__(self):
-        return "This FITS header is not recognizable in its current form.\n" + \
-                "If you would like to force loading, specify: \n" + \
-                "ignore_unit_names = True"
-
 class YTEmptyProfileData(Exception):
     pass
 
