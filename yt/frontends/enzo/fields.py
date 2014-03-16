@@ -85,6 +85,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         ("PhotoGamma", (ra_units, ["photo_gamma"], None)),
         ("Density", (rho_units, ["density"], None)),
         ("Metal_Density", (rho_units, ["metal_density"], None)),
+        ("SN_Colour", (rho_units, [], None)),
         # Note: we do not alias Electron_Density to anything
         ("Electron_Density", (rho_units, [], None)),
     )
