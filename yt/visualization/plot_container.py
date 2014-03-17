@@ -321,10 +321,8 @@ class ImagePlotContainer(object):
             self._font_color = font_dict.pop('color')
         # Set default values if the user does not explicitly set them.
         # this prevents reverting to the matplotlib defaults.
-        if 'family' not in font_dict:
-            font_dict['family'] = 'stixgeneral'
-        if 'size' not in font_dict:
-            font_dict['size'] = 18
+        font_dict.setdefault('family', 'stixgeneral')
+        font_dict.setdefault('size', 18)
         self._font_properties = \
             FontProperties(**font_dict)
         return self
