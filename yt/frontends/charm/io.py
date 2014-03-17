@@ -87,3 +87,66 @@ class IOHandlerCharmHDF5(BaseIOHandler):
     
         data = self._handle['level_0/particles:data'][offsets[grid.id]:offsets[grid.id + 1]]
         return data[field_index::items_per_particle]
+
+class IOHandlerCharm2DHDF5(IOHandlerCharmHDF5):
+    _data_style = "charm2d_hdf5"
+    _offset_string = 'data:offsets=0'
+    _data_string = 'data:datatype=0'
+
+    def __init__(self, pf, *args, **kwargs):
+        BaseIOHandler.__init__(self, *args, **kwargs)
+        self.pf = pf
+        self._handle = pf._handle
+
+    def _read_particles(self, grid, name):
+
+        particle_field_index = {'position_x': 0,
+                                'position_y': 1,
+                                'velocity_x': 2,
+                                'velocity_y': 3,
+                                'acceleration_x': 4,
+                                'acceleration_y': 5,
+                                'mass': 6}
+
+        field_index = particle_field_index[name]
+
+        particles_per_cell = self._handle['level_0/particles:offsets'].value
+        items_per_particle = len(particle_field_index)
+
+        # compute global offset position
+        offsets = items_per_particle * np.cumsum(particles_per_cell)
+        offsets = np.append(np.array([0]), offsets)
+        offsets = np.array(offsets, dtype=np.int64)
+           
+        data = self._handle['level_0/particles:data'][offsets[grid.id]:offsets[grid.id + 1]]
+        return data[field_index::items_per_particle]
+
+class IOHandlerCharm1DHDF5(IOHandlerCharmHDF5):
+    _data_style = "charm1d_hdf5"
+    _offset_string = 'data:offsets=0'
+    _data_string = 'data:datatype=0'
+
+    def __init__(self, pf, *args, **kwargs):
+        BaseIOHandler.__init__(self, *args, **kwargs)
+        self.pf = pf
+        self._handle = pf._handle
+
+    def _read_particles(self, grid, name):
+
+        particle_field_index = {'position_x': 0,
+                                'velocity_x': 1,
+                                'acceleration_x': 2,
+                                'mass': 3}
+
+        field_index = particle_field_index[name]
+
+        particles_per_cell = self._handle['level_0/particles:offsets'].value
+        items_per_particle = len(particle_field_index)
+
+        # compute global offset position
+        offsets = items_per_particle * np.cumsum(particles_per_cell)
+        offsets = np.append(np.array([0]), offsets)
+        offsets = np.array(offsets, dtype=np.int64)
+           
+        data = self._handle['level_0/particles:data'][offsets[grid.id]:offsets[grid.id + 1]]
+        return data[field_index::items_per_particle]

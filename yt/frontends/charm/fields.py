@@ -25,11 +25,11 @@ from yt.data_objects.field_info_container import \
 import yt.data_objects.universal_fields
 import numpy as np
 
-KnownCharmFields = FieldInfoContainer()
-add_charm_field = KnownCharmFields.add_field
-
 CharmFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
 add_field = CharmFieldInfo.add_field
+
+KnownCharmFields = FieldInfoContainer()
+add_charm_field = KnownCharmFields.add_field
 
 add_charm_field("potential", function=NullFunc, take_log=False,
                 validators = [ValidateDataField("potential")],
@@ -37,6 +37,18 @@ add_charm_field("potential", function=NullFunc, take_log=False,
 
 add_charm_field("density", function=NullFunc, take_log=False,
                 validators = [ValidateDataField("density")],
+                units=r"")
+
+add_charm_field("gravitational_field_x", function=NullFunc, take_log=False,
+                validators = [ValidateDataField("gravitational_field_x")],
+                units=r"")
+
+add_charm_field("gravitational_field_y", function=NullFunc, take_log=False,
+                validators = [ValidateDataField("gravitational_field_y")],
+                units=r"")
+
+add_charm_field("gravitational_field_z", function=NullFunc, take_log=False,
+                validators = [ValidateDataField("gravitational_field_z")],
                 units=r"")
 
 def _Density(field, data):
@@ -85,3 +97,54 @@ add_field("ParticleMass",
 add_field("ParticleMassMsun",
           function=_ParticleMassMsun, validators=[ValidateSpatial(0)],
           particle_type=True)
+
+#do overrides for 2D
+
+Charm2DFieldInfo = FieldInfoContainer.create_with_fallback(CharmFieldInfo)
+add_charm_2d_field = Charm2DFieldInfo.add_field
+
+def _gravitational_field_z(field, data):
+    return np.zeros(data['gravitational_field_x'].shape,
+                    dtype='float64')
+add_charm_2d_field("gravitational_field_z", function=_gravitational_field_z)
+
+def _particle_position_z(field, data):
+    return np.zeros(data['particle_position_x'].shape, dtype='float64')
+add_charm_2d_field("particle_position_z", function=_particle_position_z)
+
+def _particle_velocity_z(field, data):
+    return np.zeros(data['particle_velocity_x'].shape, dtype='float64')
+add_charm_2d_field("particle_velocity_z", function=_particle_velocity_z)
+
+def _particle_acceleration_z(field, data):
+    return np.zeros(data['particle_acceleration_x'].shape, dtype='float64')
+add_charm_2d_field("particle_acceleration_z", function=_particle_acceleration_z)
+
+#do overrides for 1D
+
+Charm1DFieldInfo = FieldInfoContainer.create_with_fallback(CharmFieldInfo)
+add_charm_1d_field = Charm1DFieldInfo.add_field
+
+def _gravitational_field_y(field, data):
+    return np.zeros(data['gravitational_field_y'].shape,
+                    dtype='float64')
+
+def _particle_position_y(field, data):
+    return np.zeros(data['particle_position_x'].shape, dtype='float64')
+
+def _particle_velocity_y(field, data):
+    return np.zeros(data['particle_velocity_x'].shape, dtype='float64')
+
+def _particle_acceleration_y(field, data):
+    return np.zeros(data['particle_acceleration_x'].shape, dtype='float64')
+
+add_charm_1d_field("gravitational_field_z", function=_gravitational_field_z)
+add_charm_1d_field("gravitational_field_y", function=_gravitational_field_y)
+
+add_charm_1d_field("particle_position_z", function=_particle_position_z)
+add_charm_1d_field("particle_velocity_z", function=_particle_velocity_z)
+add_charm_1d_field("particle_acceleration_z", function=_particle_acceleration_z)
+
+add_charm_1d_field("particle_position_y", function=_particle_position_y)
+add_charm_1d_field("particle_velocity_y", function=_particle_velocity_y)
+add_charm_1d_field("particle_acceleration_y", function=_particle_acceleration_y)

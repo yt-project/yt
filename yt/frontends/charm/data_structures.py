@@ -48,7 +48,10 @@ from yt.utilities.io_handler import \
 
 from yt.data_objects.field_info_container import \
     FieldInfoContainer, NullFunc
-from .fields import CharmFieldInfo, KnownCharmFields
+from .fields import \
+    CharmFieldInfo, Charm2DFieldInfo, Charm1DFieldInfo, \
+    add_charm_field, add_charm_2d_field, add_charm_1d_field, \
+    KnownCharmFields
 
 class CharmGrid(AMRGridPatch):
     _id_offset = 0
@@ -92,6 +95,12 @@ class CharmHierarchy(AMRHierarchy):
         self.domain_left_edge = pf.domain_left_edge
         self.domain_right_edge = pf.domain_right_edge
         self.data_style = data_style
+
+        if pf.dimensionality == 1:
+            self.data_style = "charm1d_hdf5"
+        if pf.dimensionality == 2:
+            self.data_style = "charm2d_hdf5"
+
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         # for now, the hierarchy file is the parameter file!
@@ -141,20 +150,38 @@ class CharmHierarchy(AMRHierarchy):
         grids = []
         self.dds_list = []
         i = 0
-        for lev in self._levels:
+        D = self.parameter_file.dimensionality
+        for lev_index, lev in enumerate(self._levels):
             level_number = int(re.match('level_(\d+)',lev).groups()[0])
             boxes = f[lev]['boxes'].value
             dx = f[lev].attrs['dx']
             self.dds_list.append(dx * np.ones(3))
+
+            if D == 1:
+                self.dds_list[lev_index][1] = 1.0
+                self.dds_list[lev_index][2] = 1.0
+
+            if D == 2:
+                self.dds_list[lev_index][2] = 1.0
+
             for level_id, box in enumerate(boxes):
-                si = np.array([box['lo_%s' % ax] for ax in 'ijk'])
-                ei = np.array([box['hi_%s' % ax] for ax in 'ijk'])
+                si = np.array([box['lo_%s' % ax] for ax in 'ijk'[:D]])
+                ei = np.array([box['hi_%s' % ax] for ax in 'ijk'[:D]])
+                
+                if D == 1:
+                    si = np.concatenate((si, [0.0, 0.0]))
+                    ei = np.concatenate((ei, [0.0, 0.0]))
+
+                if D == 2:
+                    si = np.concatenate((si, [0.0]))
+                    ei = np.concatenate((ei, [0.0]))
+
                 pg = self.grid(len(grids),self,level=level_number,
                                start = si, stop = ei)
                 grids.append(pg)
                 grids[-1]._level_id = level_id
-                self.grid_left_edge[i] = dx*si.astype(self.float_type)
-                self.grid_right_edge[i] = dx*(ei.astype(self.float_type)+1)
+                self.grid_left_edge[i] = self.dds_list[lev_index]*si.astype(self.float_type)
+                self.grid_right_edge[i] = self.dds_list[lev_index]*(ei.astype(self.float_type)+1)
                 self.grid_particle_count[i] = 0
                 self.grid_dimensions[i] = ei - si + 1
                 i += 1
@@ -242,62 +269,48 @@ class CharmStaticOutput(StaticOutput):
         return f
 
     def _parse_parameter_file(self):
-        """
-        Check to see whether an 'orion2.ini' file
-        exists in the plot file directory. If one does, attempt to parse it.
-        Otherwise grab the dimensions from the hdf5 file.
-        """
         
-        if os.path.isfile('orion2.ini'): self._parse_inputs_file('orion2.ini')
         self.unique_identifier = \
                                int(os.stat(self.parameter_filename)[ST_CTIME])
+        self.dimensionality = self._handle['Chombo_global/'].attrs['SpaceDim']
         self.domain_left_edge = self.__calc_left_edge()
         self.domain_right_edge = self.__calc_right_edge()
         self.domain_dimensions = self.__calc_domain_dimensions()
-        self.dimensionality = 3
-        self.refine_by = self._handle['/level_0'].attrs['ref_ratio']
-        self.periodicity = (True, True, True)
 
-    def _parse_inputs_file(self, ini_filename):
-        self.fullplotdir = os.path.abspath(self.parameter_filename)
-        self.ini_filename = self._localize( \
-            self.ini_filename, ini_filename)
-        self.unique_identifier = \
-                               int(os.stat(self.parameter_filename)[ST_CTIME])
-        lines = open(self.ini_filename).readlines()
-        # read the file line by line, storing important parameters
-        for lineI, line in enumerate(lines):
-            try:
-                param, sep, vals = map(rstrip,line.partition(' '))
-            except ValueError:
-                mylog.error("ValueError: '%s'", line)
-            if charm2enzoDict.has_key(param):
-                paramName = charm2enzoDict[param]
-                t = map(parameterDict[paramName], vals.split())
-                if len(t) == 1:
-                    self.parameters[paramName] = t[0]
-                else:
-                    if paramName == "RefineBy":
-                        self.parameters[paramName] = t[0]
-                    else:
-                        self.parameters[paramName] = t
+        if self.dimensionality == 1:
+            self._fieldinfo_fallback = Charm1DFieldInfo
+            self.domain_left_edge = np.concatenate((self.domain_left_edge, [0.0, 0.0]))
+            self.domain_right_edge = np.concatenate((self.domain_right_edge, [1.0, 1.0]))
+            self.domain_dimensions = np.concatenate((self.domain_dimensions, [1, 1]))
+
+        if self.dimensionality == 2:
+            self._fieldinfo_fallback = Charm2DFieldInfo
+            self.domain_left_edge = np.concatenate((self.domain_left_edge, [0.0]))
+            self.domain_right_edge = np.concatenate((self.domain_right_edge, [1.0]))
+            self.domain_dimensions = np.concatenate((self.domain_dimensions, [1]))
+        
+        self.refine_by = self._handle['/level_0'].attrs['ref_ratio']
+        self.periodicity = (True,) * self.dimensionality
 
     def __calc_left_edge(self):
         fileh = self._handle
         dx0 = fileh['/level_0'].attrs['dx']
-        LE = dx0*((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:3])
+        D = self.dimensionality
+        LE = dx0*((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:D])
         return LE
 
     def __calc_right_edge(self):
         fileh = self._handle
         dx0 = fileh['/level_0'].attrs['dx']
-        RE = dx0*((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[3:] + 1)
+        D = self.dimensionality
+        RE = dx0*((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[D:] + 1)
         return RE
 
     def __calc_domain_dimensions(self):
         fileh = self._handle
-        L_index = ((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:3])
-        R_index = ((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[3:] + 1)
+        D = self.dimensionality
+        L_index = ((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:D])
+        R_index = ((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[D:] + 1)
         return R_index - L_index
 
     @classmethod
