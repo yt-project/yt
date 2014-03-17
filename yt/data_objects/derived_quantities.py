@@ -259,20 +259,47 @@ class WeightedVariance(DerivedQuantity):
                                                all_weight))
             rvals.append(all_mean)
         return rvals
+    
+class AngularMomentumVector(DerivedQuantity):
+    def count_values(self, use_gas=True, use_particles=True):
+        include_gas = use_gas & \
+          (("gas", "cell_mass") in self.data_source.pf.field_info)
+        include_particles = use_particles & \
+          (("all", "particle_mass") in self.data_source.pf.field_info)
+        num_vals = 0
+        if include_gas: num_vals += 4
+        if include_particles: num_vals += 4
+        self.num_vals = num_vals
 
-class AngularMomentumVector(WeightedAverageQuantity):
-    def __call__(self, ftype = "gas"):
-        fields = [(ftype, "specific_angular_momentum_%s" % ax)
-                  for ax in 'xyz']
-        weight = (ftype, "cell_mass")
-        return super(AngularMomentumVector, self).__call__(fields, weight)
+    def process_chunk(self, data, use_gas=True, use_particles=True):
+        include_gas = use_gas & \
+          (("gas", "cell_mass") in self.data_source.pf.field_info)
+        include_particles = use_particles & \
+          (("all", "particle_mass") in self.data_source.pf.field_info)
+        rvals = []
+        if include_gas:
+            rvals.extend([(data["gas", "specific_angular_momentum_%s" % axis] *
+                           data["gas", "cell_mass"]).sum(dtype=np.float64) \
+                          for axis in "xyz"])
+            rvals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
+        if include_particles:
+            rvals.extend([(data["all", "particle_specific_angular_momentum_%s" % axis] *
+                           data["all", "particle_mass"]).sum(dtype=np.float64) \
+                          for axis in "xyz"])
+            rvals.append(data["all", "particle_mass"].sum(dtype=np.float64))
+        return rvals
 
-class ParticleAngularMomentumVector(WeightedAverageQuantity):
-    def __call__(self, ptype = "all"):
-        fields = [(ptype, "particle_specific_angular_momentum_%s" % ax)
-                  for ax in 'xyz']
-        weight = (ptype, "particle_mass")
-        return super(ParticleAngularMomentumVector, self).__call__(fields, weight)
+    def reduce_intermediate(self, values):
+        jx = values.pop(0).sum(dtype=np.float64)
+        jy = values.pop(0).sum(dtype=np.float64)
+        jz = values.pop(0).sum(dtype=np.float64)
+        m  = values.pop(0).sum(dtype=np.float64)
+        if values:
+            jx += values.pop(0).sum(dtype=np.float64)
+            jy += values.pop(0).sum(dtype=np.float64)
+            jz += values.pop(0).sum(dtype=np.float64)            
+            m  += values.pop(0).sum(dtype=np.float64)
+        return (jx / m, jy / m, jz / m)
 
 class Extrema(DerivedQuantity):
     def count_values(self, fields, non_zero):
