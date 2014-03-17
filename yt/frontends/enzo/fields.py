@@ -31,22 +31,6 @@ ra_units = "code_length / code_time**2"
 rho_units = "code_mass / code_length**3"
 vel_units = "code_velocity"
 
-known_species_masses = dict(
-  (sp, mh * v) for sp, v in [
-                ("HI", 1.0),
-                ("HII", 1.0),
-                ("De", 1.0),
-                ("HeI", 4.0),
-                ("HeII", 4.0),
-                ("HeIII", 4.0),
-                ("H2I", 2.0),
-                ("H2II", 2.0),
-                ("HM", 1.0),
-                ("DI", 2.0),
-                ("DII", 2.0),
-                ("HDI", 3.0),
-    ])
-
 known_species_names = {
     'HI'      : 'H',
     'HII'     : 'H_p1',
