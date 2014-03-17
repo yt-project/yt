@@ -114,7 +114,7 @@ class WeightedAverageQuantity(DerivedQuantity):
     >>> ad = pf.all_data()
     >>> print ad.quantities.weighted_average_quantity([("gas", "density"),
     ...                                                ("gas", "temperature")],
-                                                      ("gas", "cell_mass"))
+    ...                                               ("gas", "cell_mass"))
     
     """
     def count_values(self, fields, weight):
@@ -349,7 +349,7 @@ class WeightedVariance(DerivedQuantity):
     >>> ad = pf.all_data()
     >>> print ad.quantities.weighted_variance([("gas", "density"),
     ...                                        ("gas", "temperature")],
-                                              ("gas", "cell_mass"))
+    ...                                       ("gas", "cell_mass"))
     
     """
     def count_values(self, fields, weight):
@@ -471,7 +471,7 @@ class Extrema(DerivedQuantity):
     >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = pf.all_data()
     >>> print ad.quantities.extrema([("gas", "density"),
-                                     ("gas", "temperature")])
+    ...                              ("gas", "temperature")])
     
     """
     def count_values(self, fields, non_zero):
@@ -616,6 +616,7 @@ class SpinParameter(DerivedQuantity):
     >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = pf.all_data()
     >>> print ad.quantities.center_of_mass()
+    
     """
     def count_values(self, **kwargs):
         self.num_vals = 3
