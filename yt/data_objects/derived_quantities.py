@@ -111,7 +111,7 @@ class WeightedAverageQuantity(DerivedQuantity):
     --------
 
     >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = pf.h.all_data()
+    >>> ad = pf.all_data()
     >>> print ad.quantities.weighted_average_quantity([("gas", "density"),
     ...                                                ("gas", "temperature")],
                                                       ("gas", "cell_mass"))
@@ -150,7 +150,7 @@ class TotalQuantity(DerivedQuantity):
     --------
 
     >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = pf.h.all_data()
+    >>> ad = pf.all_data()
     >>> print ad.quantities.total_quantity([("gas", "cell_mass")])
     
     """
@@ -180,7 +180,7 @@ class TotalMass(TotalQuantity):
     --------
 
     >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = pf.h.all_data()
+    >>> ad = pf.all_data()
     >>> print ad.quantities.total_mass()
     
     """
@@ -215,7 +215,7 @@ class CenterOfMass(DerivedQuantity):
     --------
 
     >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = pf.h.all_data()
+    >>> ad = pf.all_data()
     >>> print ad.quantities.center_of_mass()
     
     """
@@ -284,7 +284,7 @@ class BulkVelocity(DerivedQuantity):
     --------
 
     >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = pf.h.all_data()
+    >>> ad = pf.all_data()
     >>> print ad.quantities.bulk_velocity()
     
     """
@@ -346,7 +346,7 @@ class WeightedVariance(DerivedQuantity):
     --------
 
     >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = pf.h.all_data()
+    >>> ad = pf.all_data()
     >>> print ad.quantities.weighted_variance([("gas", "density"),
     ...                                        ("gas", "temperature")],
                                               ("gas", "cell_mass"))
@@ -409,7 +409,7 @@ class AngularMomentumVector(DerivedQuantity):
     --------
 
     >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = pf.h.all_data()
+    >>> ad = pf.all_data()
     >>> print ad.quantities.angular_momentum_vector()
     
     """
@@ -469,7 +469,7 @@ class Extrema(DerivedQuantity):
     --------
 
     >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = pf.h.all_data()
+    >>> ad = pf.all_data()
     >>> print ad.quantities.extrema([("gas", "density"),
                                      ("gas", "temperature")])
     
@@ -515,7 +515,7 @@ class MaxLocation(DerivedQuantity):
     --------
 
     >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = pf.h.all_data()
+    >>> ad = pf.all_data()
     >>> print ad.quantities.max_location(("gas", "density"))
     
     """
@@ -558,7 +558,7 @@ class MinLocation(DerivedQuantity):
     --------
 
     >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = pf.h.all_data()
+    >>> ad = pf.all_data()
     >>> print ad.quantities.min_location(("gas", "density"))
     
     """
@@ -614,7 +614,7 @@ class SpinParameter(DerivedQuantity):
     --------
 
     >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = pf.h.all_data()
+    >>> ad = pf.all_data()
     >>> print ad.quantities.center_of_mass()
     """
     def count_values(self, **kwargs):
