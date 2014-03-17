@@ -354,41 +354,32 @@ class MinLocation(DerivedQuantity):
         i = np.argmin(values[0]) # ma is values[0]
         return [val[i] for val in values]
 
-def _BaryonSpinParameter(data):
-    """
-    This function returns the spin parameter for the baryons, but it uses
-    the particles in calculating enclosed mass.
-    """
-    m_enc = _TotalMass(data)
-    amx = data["specific_angular_momentum_x"]*data["cell_mass"]
-    amy = data["specific_angular_momentum_y"]*data["cell_mass"]
-    amz = data["specific_angular_momentum_z"]*data["cell_mass"]
-    j_mag = np.array([amx.sum(dtype=np.float64), amy.sum(dtype=np.float64), amz.sum(dtype=np.float64)])
-    e_term_pre = np.sum(data["cell_mass"]*data["velocity_magnitude"]**2.0,dtype=np.float64)
-    weight=data["cell_mass"].sum(dtype=np.float64)
-    return j_mag, m_enc, e_term_pre, weight
-def _combBaryonSpinParameter(data, j_mag, m_enc, e_term_pre, weight):
-    # Because it's a vector field, we have to ensure we have enough dimensions
-    if len(j_mag.shape) < 2: j_mag = np.expand_dims(j_mag, 0)
-    W = weight.sum()
-    M = m_enc.sum()
-    J = np.sqrt(((j_mag.sum(axis=0))**2.0).sum())/W
-    E = np.sqrt(e_term_pre.sum()/W)
-    spin = J * E / (M * mass_sun_cgs * gravitational_constant_cgs)
-    return spin
+class SpinParameter(DerivedQuantity):
+    def count_values(self, **kwargs):
+        self.num_vals = 3
 
-def _ParticleSpinParameter(data):
-    """
-    This function returns the spin parameter for the baryons, but it uses
-    the particles in calculating enclosed mass.
-    """
-    m_enc = _TotalMass(data)
-    amx = data["particle_specific_angular_momentum_x"]*data["particle_mass"]
-    if amx.size == 0: return (np.zeros((3,), dtype=np.float64), m_enc, 0, 0)
-    amy = data["particle_specific_angular_momentum_y"]*data["particle_mass"]
-    amz = data["particle_specific_angular_momentum_z"]*data["particle_mass"]
-    j_mag = np.array([amx.sum(dtype=np.float64), amy.sum(dtype=np.float64), amz.sum(dtype=np.float64)])
-    e_term_pre = np.sum(data["particle_mass"]
-                       *data["particle_velocity_magnitude"]**2.0,dtype=np.float64)
-    weight=data["particle_mass"].sum(dtype=np.float64)
-    return j_mag, m_enc, e_term_pre, weight
+    def process_chunk(self, data, use_gas=True, use_particles=True):
+        include_gas = use_gas & \
+          (("gas", "cell_mass") in self.data_source.pf.field_info)
+        include_particles = use_particles & \
+          (("all", "particle_mass") in self.data_source.pf.field_info)
+        e = data.pf.quan(0., "erg")
+        j = data.pf.quan(0., "g*cm**2/s")
+        m = data.pf.quan(0., "g")
+        if include_gas:
+            e += (data["gas", "kinetic_energy"] *
+                  data["index", "cell_volume"]).sum(dtype=np.float64)
+            j += data["gas", "angular_momentum_magnitude"].sum(dtype=np.float64)
+            m += data["gas", "cell_mass"].sum(dtype=np.float64)
+        if include_particles:
+            e += (data["all", "particle_velocity_magnitude"]**2 *
+                  data["all", "particle_mass"]).sum(dtype=np.float64)
+            j += data["all", "particle_angular_momentum_magnitude"].sum(dtype=np.float64)
+            m += data["all", "particle_mass"].sum(dtype=np.float64)
+        return (e, j, m)
+
+    def reduce_intermediate(self, values):
+        e = values.pop(0).sum(dtype=np.float64)
+        j = values.pop(0).sum(dtype=np.float64)
+        m = values.pop(0).sum(dtype=np.float64)
+        return j * np.sqrt(e) / m**2.5 / gravitational_constant_cgs
