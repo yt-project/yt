@@ -220,27 +220,27 @@ class CenterOfMass(DerivedQuantity):
     
     """
     def count_values(self, use_gas = True, use_particles = False):
-        include_gas = use_gas & \
+        use_gas &= \
           (("gas", "cell_mass") in self.data_source.pf.field_info)
-        include_particles = use_particles & \
+        use_particles &= \
           (("all", "particle_mass") in self.data_source.pf.field_info)
         self.num_vals = 0
-        if include_gas:
+        if use_gas:
             self.num_vals += 4
-        if include_particles:
+        if use_particles:
             self.num_vals += 4
 
     def process_chunk(self, data, use_gas = True, use_particles = False):
-        include_gas = use_gas & \
+        use_gas &= \
           (("gas", "cell_mass") in self.data_source.pf.field_info)
-        include_particles = use_particles & \
+        use_particles &= \
           (("all", "particle_mass") in self.data_source.pf.field_info)
         vals = []
-        if include_gas:
+        if use_gas:
             vals += [(data[ax] * data["cell_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
             vals.append(data["cell_mass"].sum(dtype=np.float64))
-        if include_particles:
+        if use_particles:
             vals += [(data["particle_position_%s" % ax] *
                       data["particle_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
@@ -414,27 +414,27 @@ class AngularMomentumVector(DerivedQuantity):
     
     """
     def count_values(self, use_gas=True, use_particles=True):
-        include_gas = use_gas & \
+        use_gas &= \
           (("gas", "cell_mass") in self.data_source.pf.field_info)
-        include_particles = use_particles & \
+        use_particles &= \
           (("all", "particle_mass") in self.data_source.pf.field_info)
         num_vals = 0
-        if include_gas: num_vals += 4
-        if include_particles: num_vals += 4
+        if use_gas: num_vals += 4
+        if use_particles: num_vals += 4
         self.num_vals = num_vals
 
     def process_chunk(self, data, use_gas=True, use_particles=True):
-        include_gas = use_gas & \
+        use_gas &= \
           (("gas", "cell_mass") in self.data_source.pf.field_info)
-        include_particles = use_particles & \
+        use_particles &= \
           (("all", "particle_mass") in self.data_source.pf.field_info)
         rvals = []
-        if include_gas:
+        if use_gas:
             rvals.extend([(data["gas", "specific_angular_momentum_%s" % axis] *
                            data["gas", "cell_mass"]).sum(dtype=np.float64) \
                           for axis in "xyz"])
             rvals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
-        if include_particles:
+        if use_particles:
             rvals.extend([(data["all", "particle_specific_angular_momentum_%s" % axis] *
                            data["all", "particle_mass"]).sum(dtype=np.float64) \
                           for axis in "xyz"])
@@ -621,19 +621,19 @@ class SpinParameter(DerivedQuantity):
         self.num_vals = 3
 
     def process_chunk(self, data, use_gas=True, use_particles=True):
-        include_gas = use_gas & \
+        use_gas &= \
           (("gas", "cell_mass") in self.data_source.pf.field_info)
-        include_particles = use_particles & \
+        use_particles &= \
           (("all", "particle_mass") in self.data_source.pf.field_info)
         e = data.pf.quan(0., "erg")
         j = data.pf.quan(0., "g*cm**2/s")
         m = data.pf.quan(0., "g")
-        if include_gas:
+        if use_gas:
             e += (data["gas", "kinetic_energy"] *
                   data["index", "cell_volume"]).sum(dtype=np.float64)
             j += data["gas", "angular_momentum_magnitude"].sum(dtype=np.float64)
             m += data["gas", "cell_mass"].sum(dtype=np.float64)
-        if include_particles:
+        if use_particles:
             e += (data["all", "particle_velocity_magnitude"]**2 *
                   data["all", "particle_mass"]).sum(dtype=np.float64)
             j += data["all", "particle_angular_momentum_magnitude"].sum(dtype=np.float64)
