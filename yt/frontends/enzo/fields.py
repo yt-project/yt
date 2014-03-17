@@ -59,7 +59,7 @@ known_species_names = {
     'DI'      : 'D',
     'DII'     : 'D_p1',
     'HD'      : 'HD',
-    'Electron': 'De'
+    'Electron': 'El'
 }
 
 class EnzoFieldInfo(FieldInfoContainer):
@@ -145,7 +145,7 @@ class EnzoFieldInfo(FieldInfoContainer):
                          if sp in known_species_names]
         def _electron_density(field, data):
             return data["Electron_Density"] * (me/mp)
-        self.add_field(("gas", "De_density"),
+        self.add_field(("gas", "El_density"),
                        function = _electron_density,
                        units = "g/cm**3")
         for sp in species_names:
