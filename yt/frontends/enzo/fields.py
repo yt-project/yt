@@ -83,6 +83,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         ("z-velocity", (vel_units, ["velocity_z"], None)),
         ("RaySegments", ("", ["ray_segments"], None)),
         ("PhotoGamma", (ra_units, ["photo_gamma"], None)),
+        ("PotentialField", ("code_velocity**2", ["gravitational_potential"], None)),
         ("Density", (rho_units, ["density"], None)),
         ("Metal_Density", (rho_units, ["metal_density"], None)),
         ("SN_Colour", (rho_units, [], None)),
@@ -173,13 +174,13 @@ class EnzoFieldInfo(FieldInfoContainer):
 
         if self.pf.parameters["HydroMethod"] == 2:
             self.add_output_field(("enzo", te_name),
-                units="code_length**2/code_time**2")
+                units="code_velocity**2")
             self.alias(("gas", "thermal_energy"), ("enzo", te_name))
 
         elif self.pf.parameters["DualEnergyFormalism"] == 1:
             self.add_output_field(
                 ("enzo", ge_name),
-                units="code_length**2/code_time**2")
+                units="code_velocity**2")
             self.alias(
                 ("gas", "thermal_energy"),
                 ("enzo", ge_name),
@@ -187,7 +188,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         elif self.pf.parameters["HydroMethod"] in (4, 6):
             self.add_output_field(
                 ("enzo", te_name),
-                units="code_length**2/code_time**2")
+                units="code_velocity**2")
             # Subtract off B-field energy
             def _sub_b(field, data):
                 return data[te_name] - 0.5*(
@@ -201,7 +202,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         else: # Otherwise, we assume TotalEnergy is kinetic+thermal
             self.add_output_field(
                 ("enzo", te_name),
-                units = "code_length**2/code_time**2")
+                units = "code_velocity**2")
             def _tot_minus_kin(field, data):
                 return data[te_name] - 0.5*(
                     data["x-velocity"]**2.0
