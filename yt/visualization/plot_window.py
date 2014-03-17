@@ -239,7 +239,7 @@ class PlotWindow(ImagePlotContainer):
     _frb = None
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True,
                  periodic=True, origin='center-window', oblique=False,
-                 window_size=6.0, fields=None, fontsize=18, setup=False):
+                 window_size=8.0, fields=None, fontsize=18, setup=False):
         if not hasattr(self, "pf"):
             self.pf = data_source.pf
             ts = self._initialize_dataset(self.pf)

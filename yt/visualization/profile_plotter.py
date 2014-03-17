@@ -557,7 +557,7 @@ class PhasePlot(ImagePlotContainer):
         Default: "black"
     figure_size : int
         Size in inches of the image.
-        Default: 6 (6x6)
+        Default: 8 (8x8)
 
     Examples
     --------
@@ -586,7 +586,7 @@ class PhasePlot(ImagePlotContainer):
     def __init__(self, data_source, x_field, y_field, z_fields,
                  weight_field="cell_mass", x_bins=128, y_bins=128,
                  accumulation=False, fractional=False,
-                 profile=None, fontsize=18, font_color="black", figure_size=6.0):
+                 profile=None, fontsize=18, font_color="black", figure_size=8.0):
         self.plot_title = {}
         self.z_log = {}
         self.z_title = {}
