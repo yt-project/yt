@@ -28,6 +28,9 @@ from .derived_field import \
 from .field_plugin_registry import \
     register_field_plugin
 
+from .vector_operations import \
+     create_magnitude_field
+    
 from yt.utilities.lib.geometry_utils import \
     obtain_rvec, obtain_rv_vec
 
@@ -79,6 +82,9 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
                         units="cm**2/s",
                         validators=[ValidateParameter("center")])
 
+    create_magnitude_field(registry, "specific_angular_momentum",
+                           "cm**2 / s", ftype=ftype)
+    
     def _angular_momentum_x(field, data):
         return data[ftype, "cell_mass"] \
              * data[ftype, "specific_angular_momentum_x"]
@@ -103,3 +109,6 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
                        units="g * cm**2 / s",
                        validators=[ValidateParameter('center')])
 
+    create_magnitude_field(registry, "angular_momentum",
+                           "g * cm**2 / s", ftype=ftype)
+                           
