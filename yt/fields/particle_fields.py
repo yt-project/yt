@@ -39,7 +39,10 @@ from yt.utilities.math_utils import \
     get_cyl_z, get_sph_r, \
     get_sph_theta, get_sph_phi, \
     periodic_dist, euclidean_dist
-     
+
+from .vector_operations import \
+     create_magnitude_field
+    
 def _field_concat(fname):
     def _AllFields(field, data):
         v = []
@@ -210,7 +213,7 @@ def standard_particle_fields(registry, ptype,
                      + (data[ptype, svel % 'y'] - bulk_velocity[1])**2
                      + (data[ptype, svel % 'z'] - bulk_velocity[2])**2 )
     
-        registry.add_field((ptype, "particle_velocity_magnitude"),
+    registry.add_field((ptype, "particle_velocity_magnitude"),
                   function=_particle_velocity_magnitude,
                   particle_type=True,
                   take_log=False,
@@ -293,6 +296,9 @@ def standard_particle_fields(registry, ptype,
               units="cm**2/s",
               validators=[ValidateParameter("center")])
 
+    create_magnitude_field(registry, "particle_specific_angular_momentum",
+                           "cm**2/s", ftype=ptype, particle_type=True)
+    
     def _particle_angular_momentum(field, data):
         return data[ptype, "particle_mass"] \
              * data[ptype, "particle_specific_angular_momentum"]
@@ -321,6 +327,9 @@ def standard_particle_fields(registry, ptype,
              units="g*cm**2/s", particle_type=True,
              validators=[ValidateParameter('center')])
 
+    create_magnitude_field(registry, "particle_angular_momentum",
+                           "g*cm**2/s", ftype=ptype, particle_type=True)
+    
     from .field_functions import \
         get_radius
 

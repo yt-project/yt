@@ -41,7 +41,7 @@ from yt.utilities.lib.misc_utilities import obtain_rvec, obtain_rv_vec
 
 def create_magnitude_field(registry, basename, field_units,
                            ftype = "gas", slice_info = None,
-                           validators = None):
+                           validators = None, particle_type=False):
 
     xn, yn, zn = [(ftype, "%s_%s" % (basename, ax)) for ax in 'xyz']
 
@@ -59,7 +59,7 @@ def create_magnitude_field(registry, basename, field_units,
 
     registry.add_field((ftype, "%s_magnitude" % basename),
                        function = _magnitude, units = field_units,
-                       validators = validators)
+                       validators = validators, particle_type = particle_type)
 
 def create_vector_fields(registry, basename, field_units,
                          ftype = "gas", slice_info = None):
