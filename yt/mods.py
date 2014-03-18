@@ -21,8 +21,6 @@ from __future__ import absolute_import
 #
 
 # First module imports
-import sys, types, os, glob, cPickle, time
-import numpy as na # For historical reasons
 import numpy as np # For modern purposes
 import numpy # In case anyone wishes to use it by name
 
@@ -35,9 +33,23 @@ import numpy # In case anyone wishes to use it by name
 import yt.startup_tasks as __startup_tasks
 unparsed_args = __startup_tasks.unparsed_args
 
-from yt.funcs import *
+from yt.funcs import \
+    iterable, \
+    get_memory_usage, \
+    print_tb, \
+    rootonly, \
+    insert_ipython, \
+    get_pbar, \
+    only_on_root, \
+    is_root, \
+    get_version_stack, \
+    get_yt_supp, \
+    get_yt_version, \
+    parallel_profile, \
+    enable_plugins, \
+    memory_checker, \
+    deprecated_class
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.performance_counters import yt_counters, time_function
 from yt.config import ytcfg, ytcfg_defaults
 import yt.utilities.physical_constants as physical_constants
 import yt.units as units
@@ -64,8 +76,7 @@ from yt.fields.api import \
 
 from yt.data_objects.api import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
-    data_object_registry, \
-    DatasetSeries, AnalysisTask, analysis_task, \
+    DatasetSeries, \
     ImageArray, particle_filter, create_profile, \
     Profile1D, Profile2D, Profile3D
 
@@ -82,32 +93,24 @@ GadgetStaticOutput = deprecated_class(GadgetDataset)
 TipsyDataset = frontends.sph.TipsyDataset
 TipsyStaticOutput = deprecated_class(TipsyDataset)
 
-# Import our analysis modules
-from yt.analysis_modules.halo_finding.api import \
-    HaloFinder
-
-from yt.utilities.definitions import \
-    axis_names, x_dict, y_dict, inv_axis_names
-
 # Now individual component imports from the visualization API
 from yt.visualization.api import \
     PlotCollection, PlotCollectionInteractive, \
     get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
-    callback_registry, write_bitmap, write_image, \
+    write_bitmap, write_image, \
     apply_colormap, scale_image, write_projection, \
     SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, \
     ProjectionPlot, OffAxisProjectionPlot, \
     show_colormaps, ProfilePlot, PhasePlot
 
 from yt.visualization.volume_rendering.api import \
-    ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \
-    HomogenizedVolume, Camera, off_axis_projection, MosaicFisheyeCamera
+    off_axis_projection
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects
 
 from yt.convenience import \
-    load, projload, simulation
+    load, simulation
 
 # Import some helpful math utilities
 from yt.utilities.math_utils import \
@@ -121,12 +124,4 @@ from yt.utilities.math_utils import \
 # Unfortunately, for now, I think the easiest and simplest way of doing
 # this is also the most dangerous way.
 if ytcfg.getboolean("yt","loadfieldplugins"):
-    my_plugin_name = ytcfg.get("yt","pluginfilename")
-    # We assume that it is with respect to the $HOME/.yt directory
-    if os.path.isfile(my_plugin_name):
-        _fn = my_plugin_name
-    else:
-        _fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
-    if os.path.isfile(_fn):
-        mylog.info("Loading plugins from %s", _fn)
-        execfile(_fn)
+    enable_plugins()
