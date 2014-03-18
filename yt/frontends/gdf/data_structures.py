@@ -14,6 +14,7 @@ Data structures for GDF.
 #-----------------------------------------------------------------------------
 
 import h5py
+import types
 import numpy as np
 import weakref
 import os
@@ -163,6 +164,7 @@ class GDFDataset(Dataset):
 
     def __init__(self, filename, dataset_type='grid_data_format',
                  storage_filename=None):
+        self.fluid_types += ("gdf",)
         Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
         self.filename = filename
@@ -178,13 +180,16 @@ class GDFDataset(Dataset):
         for field_name in h5f["/field_types"]:
             current_field = h5f["/field_types/%s" % field_name]
             if 'field_to_cgs' in current_field.attrs:
-                self.field_units[field_name] = current_field.attrs['field_to_cgs']
-            if 'field_units' in current_field.attrs:
-                if type(current_field.attrs['field_units']) == str:
+                field_conv = current_field.attrs['field_to_cgs']
+                self.field_units[field_name] = just_one(field_conv)
+            elif 'field_units' in current_field.attrs:
+                field_units = current_field.attrs['field_units']
+                if isinstance(field_units, types.StringTypes):
                     current_fields_unit = current_field.attrs['field_units']
                 else:
                     current_fields_unit = \
                         just_one(current_field.attrs['field_units'])
+                self.field_units[field_name] = current_field_units
             else:
                 current_fields_unit = ""
         h5f.close()

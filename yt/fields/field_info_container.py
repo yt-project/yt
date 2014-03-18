@@ -16,6 +16,7 @@ native.
 #-----------------------------------------------------------------------------
 
 import numpy as np
+import types
 
 from yt.funcs import mylog, only_on_root
 from yt.units.unit_object import Unit
@@ -104,6 +105,12 @@ class FieldInfoContainer(dict):
             args = known_other_fields.get(
                 field[1], ("", [], None))
             units, aliases, display_name = args
+            # We allow field_units to override this.  First we check if the
+            # field *name* is in there, then the field *tuple*.
+            units = self.pf.field_units.get(field[1], units)
+            units = self.pf.field_units.get(field, units)
+            if not isinstance(units, types.StringTypes):
+                units = "((%s)*%s)" % (args[0], units)
             self.add_output_field(field, units = units,
                                   display_name = display_name)
             for alias in aliases:
