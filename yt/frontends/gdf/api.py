@@ -18,9 +18,8 @@ from .data_structures import \
       GDFDataset
 
 from .fields import \
-      GDFFieldInfo, \
-      KnownGDFFields, \
-      add_gdf_field
+      GDFFieldInfo
+add_gdf_field = GDFFieldInfo.add_field
 
 from .io import \
       IOHandlerGDFHDF5
