@@ -14,6 +14,7 @@ This is a simple mechanism for interfacing with Profile and Phase plots
 #-----------------------------------------------------------------------------
 
 
+import __builtin__
 import base64
 import types
 
@@ -26,6 +27,7 @@ import cStringIO
 
 from matplotlib.font_manager import FontProperties
 
+from ._mpl_imports import FigureCanvasAgg
 from .plot_window import WindowPlotMPL
 from .base_plot_types import ImagePlotMPL
 from .plot_container import \
@@ -44,7 +46,8 @@ from yt.utilities.logger import ytLogger as mylog
 import _mpl_imports as mpl
 from yt.funcs import \
      ensure_list, \
-     get_image_suffix
+     get_image_suffix, \
+     get_ipython_api_version
 
 def get_canvas(name):
     suffix = get_image_suffix(name)
