@@ -828,10 +828,6 @@ class YTQuantity(YTArray):
     def __repr__(self):
         return str(self)
 
-    @property
-    def value(self):
-        return np.array(self)
-
 def uconcatenate(arrs, *args, **kwargs):
     v = np.concatenate(arrs, *args, **kwargs)
     if not any(isinstance(a, YTArray) for a in arrs):
