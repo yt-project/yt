@@ -51,7 +51,7 @@ def get_canvas(name):
         canvas_cls = mpl.FigureCanvasPS
     else:
         mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
-        canvas_cls = FigureCanvasAgg
+        canvas_cls = mpl.FigureCanvasAgg
     return canvas_cls
 
 def invalidate_plot(f):
