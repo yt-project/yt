@@ -478,6 +478,10 @@ class YTCoveringGridBase(YTSelectionContainer3D):
             self.right_edge + self.base_dds)
         self._data_source.min_level = 0
         self._data_source.max_level = self.level
+        self._pdata_source = self.pf.region(self.center,
+            self.left_edge, self.right_edge)
+        self._pdata_source.min_level = 0
+        self._pdata_source.max_level = self.level
 
     def get_data(self, fields = None):
         if fields is None: return
@@ -509,7 +513,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
 
     def _fill_particles(self, part):
         for p in part:
-            self[p] = self._data_source[p]
+            self[p] = self._pdata_source[p]
 
     def _fill_fields(self, fields):
         output_fields = [np.zeros(self.ActiveDimensions, dtype="float64")
