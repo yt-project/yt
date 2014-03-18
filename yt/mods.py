@@ -69,78 +69,18 @@ from yt.data_objects.api import \
     ImageArray, particle_filter, create_profile, \
     Profile1D, Profile2D, Profile3D
 
-from yt.frontends.enzo.api import \
-    EnzoDataset, EnzoDatasetInMemory, \
-    EnzoSimulation, EnzoFieldInfo, add_enzo_field
-
-# Boxlib stuff
-from yt.frontends.boxlib.api import \
-    BoxlibDataset
-
-# Orion stuff
-#from yt.frontends.boxlib.api import \
-#    OrionDataset, OrionFieldInfo, add_orion_field
-
-# Maestro stuff
-#from yt.frontends.boxlib.api import \
-#    MaestroDataset
-
-# Castro stuff
-#from yt.frontends.boxlib.api import \
-#    CastroDataset
-
-from yt.frontends.flash.api import \
-    FLASHDataset, FLASHFieldInfo
-
-from yt.frontends.artio.api import \
-    ARTIODataset, ARTIOFieldInfo
-
-from yt.frontends.ramses.api import \
-    RAMSESDataset, RAMSESFieldInfo
-
-from yt.frontends.halo_catalogs.api import \
-    HaloCatalogDataset, HaloCatalogFieldInfo, \
-    RockstarDataset, RockstarFieldInfo
-
-#from yt.frontends.chombo.api import \
-#    ChomboDataset, ChomboFieldInfo, add_chombo_field
-
-#from yt.frontends.gdf.api import \
-#    GDFDataset, GDFFieldInfo, add_gdf_field
-
-from yt.frontends.moab.api import \
-    MoabHex8Dataset, MoabFieldInfo, \
-    PyneMoabHex8Dataset, PyneFieldInfo
-
-from yt.frontends.athena.api import \
-    AthenaDataset, AthenaFieldInfo
-
-from yt.frontends.art.api import \
-    ARTDataset, ARTFieldInfo
-
-#from yt.frontends.pluto.api import \
-#     PlutoDataset, PlutoFieldInfo, add_pluto_field
+from yt.frontends.api import _frontend_container
+frontends = _frontend_container()
 
 from yt.frontends.stream.api import \
-    StreamDataset, \
-    StreamHandler, load_uniform_grid, load_amr_grids, \
+    load_uniform_grid, load_amr_grids, \
     load_particles, load_hexahedral_mesh, load_octree
 
-from yt.frontends.sph.api import \
-    OWLSDataset, SPHFieldInfo, \
-    GadgetDataset, GadgetHDF5Dataset, \
-    TipsyDataset
-
 # For backwards compatibility
+GadgetDataset = frontends.sph.GadgetDataset
 GadgetStaticOutput = deprecated_class(GadgetDataset)
+TipsyDataset = frontends.sph.TipsyDataset
 TipsyStaticOutput = deprecated_class(TipsyDataset)
-
-#from yt.analysis_modules.list_modules import \
-#    get_available_modules, amods
-#available_analysis_modules = get_available_modules()
-
-from yt.frontends.fits.api import \
-    FITSDataset, FITSFieldInfo
 
 # Import our analysis modules
 from yt.analysis_modules.halo_finding.api import \
@@ -165,9 +105,6 @@ from yt.visualization.volume_rendering.api import \
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects
-
-for name, cls in callback_registry.items():
-    exec("%s = cls" % name)
 
 from yt.convenience import \
     load, projload, simulation
