@@ -102,7 +102,7 @@ class ARTIndex(OctreeIndex):
         self.oct_handler.finalize()
 
     def _detect_output_fields(self):
-        self.particle_field_list = [("io", f) for f in particle_fields]
+        self.particle_field_list = [f for f in particle_fields]
         self.field_list = [("gas", f) for f in fluid_fields]
         # now generate all of the possible particle fields
         if "wspecies" in self.parameter_file.parameters.keys():
@@ -418,7 +418,7 @@ class ARTDomainSubset(OctreeSubset):
         the order they are in in the octhandler.
         """
         oct_handler = self.oct_handler
-        all_fields = self.domain.pf.h.fluid_field_list
+        all_fields = self.domain.pf.index.fluid_field_list
         fields = [f for ft, f in ftfields]
         field_idxs = [all_fields.index(f) for f in fields]
         source, tr = {}, {}
@@ -600,5 +600,5 @@ class ARTDomainFile(object):
         return True
         if getattr(selector, "domain_id", None) is not None:
             return selector.domain_id == self.domain_id
-        domain_ids = self.pf.h.oct_handler.domain_identify(selector)
+        domain_ids = self.pf.index.oct_handler.domain_identify(selector)
         return self.domain_id in domain_ids
