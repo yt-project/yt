@@ -105,8 +105,8 @@ from yt.frontends.halo_catalogs.api import \
 #from yt.frontends.chombo.api import \
 #    ChomboDataset, ChomboFieldInfo, add_chombo_field
 
-#from yt.frontends.gdf.api import \
-#    GDFDataset, GDFFieldInfo, add_gdf_field
+from yt.frontends.gdf.api import \
+    GDFDataset, GDFFieldInfo, add_gdf_field
 
 from yt.frontends.moab.api import \
     MoabHex8Dataset, MoabFieldInfo, \
