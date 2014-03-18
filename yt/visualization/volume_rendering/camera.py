@@ -18,6 +18,7 @@ import numpy as np
 
 from yt.funcs import *
 from yt.utilities.math_utils import *
+from yt.utilities.exceptions import YTNotInsideNotebook
 from copy import deepcopy
 
 from .grid_partitioner import HomogenizedVolume
