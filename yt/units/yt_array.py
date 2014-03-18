@@ -16,19 +16,18 @@ YTArray class.
 import copy
 
 import numpy as np
-import sympy
 
 from functools import wraps
 from numpy import \
-     add, subtract, multiply, divide, logaddexp, logaddexp2, true_divide, \
-     floor_divide, negative, power, remainder, mod, fmod, absolute, rint, \
-     sign, conj, exp, exp2, log, log2, log10, expm1, log1p, sqrt, square, \
-     reciprocal, ones_like, sin, cos, tan, arcsin, arccos, arctan, arctan2, \
-     hypot, sinh, cosh, tanh, arcsinh, arccosh, arctanh, deg2rad, rad2deg, \
-     greater, greater_equal, less, less_equal, not_equal, equal, logical_and, \
-     logical_or, logical_xor, logical_not, maximum, minimum, isreal, iscomplex, \
-     isfinite, isinf, isnan, signbit, copysign, nextafter, modf, frexp, \
-     floor, ceil, trunc, fmax, fmin
+    add, subtract, multiply, divide, logaddexp, logaddexp2, true_divide, \
+    floor_divide, negative, power, remainder, mod, fmod, absolute, rint, \
+    sign, conj, exp, exp2, log, log2, log10, expm1, log1p, sqrt, square, \
+    reciprocal, ones_like, sin, cos, tan, arcsin, arccos, arctan, arctan2, \
+    hypot, sinh, cosh, tanh, arcsinh, arccosh, arctanh, deg2rad, rad2deg, \
+    greater, greater_equal, less, less_equal, not_equal, equal, logical_and, \
+    logical_or, logical_xor, logical_not, maximum, minimum, isreal, iscomplex, \
+    isfinite, isinf, isnan, signbit, copysign, nextafter, modf, frexp, \
+    floor, ceil, trunc, fmax, fmin
 
 from yt.units.unit_object import Unit
 from yt.units.unit_registry import UnitRegistry
@@ -49,7 +48,7 @@ def ensure_unitless(func):
     def wrapped(unit):
         if unit != Unit():
             raise RuntimeError(
-                "This operation is only defined for unitless quantities. " \
+                "This operation is only defined for unitless quantities. "
                 "Received unit (%s)" % unit
                 )
         return func(unit)
