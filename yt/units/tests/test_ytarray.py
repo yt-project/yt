@@ -549,3 +549,25 @@ def test_ufuncs():
 
         for pair in itertools.product([a,b,c,d,e], repeat=2):
             yield binary_ufunc_comparison, ufunc, pair[0], pair[1]
+
+def test_convenience():
+
+    arr = YTArray([1, 2, 3], 'cm')
+
+    yield assert_equal, arr.unit_quantity, YTQuantity(1, 'cm')
+    yield assert_equal, arr.uq, YTQuantity(1, 'cm')
+    yield assert_isinstance, arr.unit_quantity, YTQuantity
+    yield assert_isinstance, arr.uq, YTQuantity
+
+    yield assert_array_equal, arr.unit_array, YTArray(np.ones_like(arr), 'cm')
+    yield assert_array_equal, arr.ua, YTArray(np.ones_like(arr), 'cm')
+    yield assert_isinstance, arr.unit_array, YTArray
+    yield assert_isinstance, arr.ua, YTArray
+
+    yield assert_array_equal, arr.data, arr.view(np.ndarray)
+    yield assert_array_equal, arr.d, arr.view(np.ndarray)
+    yield assert_true, arr.data.base is arr.base
+    yield assert_true, arr.d.base is arr.base
+
+    yield assert_array_equal, arr.value, np.array(arr)
+    yield assert_array_equal, arr.v, np.array(arr)

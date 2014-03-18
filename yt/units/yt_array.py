@@ -398,6 +398,34 @@ class YTArray(np.ndarray):
     #
 
     #
+    # Start convenience methods
+    #
+
+    @property
+    def value(self):
+        return np.array(self)
+
+    v = value
+
+    @property
+    def data(self):
+        return self.ndarray_view()
+
+    d = data
+
+    @property
+    def unit_quantity(self):
+        return YTQuantity(1.0, self.units)
+
+    uq = unit_quantity
+
+    @property
+    def unit_array(self):
+        return np.ones_like(self)
+
+    ua = unit_array
+
+    #
     # Start operation methods
     #
 
