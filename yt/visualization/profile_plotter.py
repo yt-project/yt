@@ -37,7 +37,10 @@ from .image_writer import \
     write_image, apply_colormap
 from yt.data_objects.profiles import \
      create_profile
-from yt.utilities.png_writer import write_png_to_string
+from yt.utilities.exceptions import \
+     YTNotInsideNotebook
+from yt.utilities.lib import \
+    write_png_to_string
 from yt.data_objects.profiles import \
     BinnedProfile1D, \
     BinnedProfile2D
