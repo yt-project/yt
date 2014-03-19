@@ -14,6 +14,7 @@ Data structures for GDF.
 #-----------------------------------------------------------------------------
 
 import h5py
+import types
 import numpy as np
 import weakref
 import os
@@ -27,18 +28,10 @@ from yt.data_objects.static_output import \
     Dataset
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
-from yt.utilities.definitions import \
-    mpc_conversion, sec_conversion
+from yt.units.yt_array import \
+    uconcatenate, YTArray
 
-from .fields import GDFFieldInfo, KnownGDFFields
-from yt.data_objects.field_info_container import \
-    NullFunc
-
-def _get_convert(fname):
-    def _conv(data):
-        return 1.0  # data.convert(fname) FIXME
-    return _conv
-
+from .fields import GDFFieldInfo
 
 class GDFGrid(AMRGridPatch):
     _id_offset = 0
@@ -75,7 +68,6 @@ class GDFGrid(AMRGridPatch):
 class GDFHierarchy(GridIndex):
 
     grid = GDFGrid
-    filtered_particle_types = []
 
     def __init__(self, pf, dataset_type='grid_data_format'):
         self.parameter_file = weakref.proxy(pf)
@@ -88,12 +80,9 @@ class GDFHierarchy(GridIndex):
         self.directory = os.path.dirname(self.index_filename)
         h5f.close()
 
-    def _initialize_data_storage(self):
-        pass
-
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         h5f = h5py.File(self.index_filename, 'r')
-        self.field_list = h5f['field_types'].keys()
+        self.field_list = [("gdf", str(f)) for f in h5f['field_types'].keys()]
         h5f.close()
 
     def _count_grids(self):
@@ -121,8 +110,8 @@ class GDFHierarchy(GridIndex):
                   self.parameter_file.domain_left_edge) / \
                 self.parameter_file.domain_dimensions
             dx[active_dims] /= self.parameter_file.refine_by ** levels[i]
-            dxs.append(dx)
-        dx = np.array(dxs)
+            dxs.append(dx.in_units("code_length"))
+        dx = self.parameter_file.arr(dxs, input_units="code_length")
         self.grid_left_edge = self.parameter_file.domain_left_edge + dx * glis
         self.grid_dimensions = gdims.astype("int32")
         self.grid_right_edge = self.grid_left_edge + dx * self.grid_dimensions
@@ -152,9 +141,6 @@ class GDFHierarchy(GridIndex):
                 g.OverlappingSiblings = siblings.tolist()
         self.max_level = self.grid_levels.max()
 
-    def _setup_derived_fields(self):
-        super(GDFHierarchy, self)._setup_derived_fields()
-
     def _get_box_grids(self, left_edge, right_edge):
         """
         Gets back all the grids between a left edge and right edge
@@ -174,55 +160,42 @@ class GDFHierarchy(GridIndex):
 
 class GDFDataset(Dataset):
     _index_class = GDFHierarchy
-    _fieldinfo_fallback = GDFFieldInfo
-    _fieldinfo_known = KnownGDFFields
+    _field_info_class = GDFFieldInfo
 
     def __init__(self, filename, dataset_type='grid_data_format',
                  storage_filename=None):
+        self.fluid_types += ("gdf",)
         Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
         self.filename = filename
 
-    def _set_units(self):
+    def _set_code_unit_attributes(self):
         """
         Generates the conversion to various physical _units
         based on the parameter file
         """
-        self.units = {}
-        self.time_units = {}
-        if len(self.parameters) == 0:
-            self._parse_parameter_file()
-        self.time_units['1'] = 1
-        self.units['1'] = 1.0
-        self.units['cm'] = 1.0
-        self.units['unitary'] = 1.0 / (self.domain_right_edge -
-                                       self.domain_left_edge).max()
-        for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = 1.0 / sec_conversion[unit]
 
         # This should be improved.
         h5f = h5py.File(self.parameter_filename, "r")
         for field_name in h5f["/field_types"]:
             current_field = h5f["/field_types/%s" % field_name]
             if 'field_to_cgs' in current_field.attrs:
-                self.units[field_name] = current_field.attrs['field_to_cgs']
-            else:
-                self.units[field_name] = 1.0
-            if 'field_units' in current_field.attrs:
-                if type(current_field.attrs['field_units']) == str:
+                field_conv = current_field.attrs['field_to_cgs']
+                self.field_units[field_name] = just_one(field_conv)
+            elif 'field_units' in current_field.attrs:
+                field_units = current_field.attrs['field_units']
+                if isinstance(field_units, types.StringTypes):
                     current_fields_unit = current_field.attrs['field_units']
                 else:
                     current_fields_unit = \
                         just_one(current_field.attrs['field_units'])
+                self.field_units[field_name] = current_field_units
             else:
                 current_fields_unit = ""
-            self._fieldinfo_known.add_field(
-                field_name, function=NullFunc, take_log=False,
-                units=current_fields_unit, projected_units="")
-
         h5f.close()
+        self.length_unit = self.quan(1.0, "cm")
+        self.mass_unit = self.quan(1.0, "g")
+        self.time_unit = self.quan(1.0, "s")
 
     def _parse_parameter_file(self):
         self._handle = h5py.File(self.parameter_filename, "r")
