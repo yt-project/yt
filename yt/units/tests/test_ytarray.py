@@ -564,9 +564,9 @@ def test_convenience():
     yield assert_isinstance, arr.unit_array, YTArray
     yield assert_isinstance, arr.ua, YTArray
 
-    yield assert_array_equal, arr.data, arr.view(np.ndarray)
+    yield assert_array_equal, arr.ndview, arr.view(np.ndarray)
     yield assert_array_equal, arr.d, arr.view(np.ndarray)
-    yield assert_true, arr.data.base is arr.base
+    yield assert_true, arr.ndview.base is arr.base
     yield assert_true, arr.d.base is arr.base
 
     yield assert_array_equal, arr.value, np.array(arr)
