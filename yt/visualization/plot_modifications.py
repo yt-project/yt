@@ -1356,6 +1356,13 @@ class TriangleFacetsCallback(PlotCallback):
         plot._axes.hold(True)
         xax, yax = x_dict[plot.data.axis], y_dict[plot.data.axis]
         l_cy = triangle_plane_intersect(plot.data.axis, plot.data.coord, self.vertices)[:,:,(xax, yax)]
+        # Convert numpy array to a YT array
+        l_cy = [YTArray(line, input_units="code_length") for line in l_cy]
+        # Convert points individually
+        for line in l_cy:
+            line[0] = self.convert_to_plot(plot,line[0])
+            line[1] = self.convert_to_plot(plot,line[1])
+        # create the line collection using the new points
         lc = matplotlib.collections.LineCollection(l_cy, **self.plot_args)
         plot._axes.add_collection(lc)
         plot._axes.hold(False)
