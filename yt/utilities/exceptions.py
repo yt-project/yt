@@ -157,7 +157,7 @@ class YTUnitNotRecognized(YTException):
     def __str__(self):
         return "This parameter file doesn't recognize %s" % self.unit
 
-class YTUnitOperationError(YTException):
+class YTUnitOperationError(YTException, ValueError):
     def __init__(self, operation, unit1, unit2=None):
         self.operation = operation
         self.unit1 = unit1
