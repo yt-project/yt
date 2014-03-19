@@ -59,7 +59,6 @@ int compute_tags(int ng, double boxsize, double **r, int np,
 	i = par(x,y,z,ng);
 	/* First just along the Cartesian axes */
 	/* x-direction */
-	if (m[i] % 2 > 0) {
 	  for (h=1; h<ng4; h++) {
 	    i2 = par((x+h)%ng,y,z,ng);
 	    dx = r[0][i2]-r[0][i];
@@ -67,14 +66,15 @@ int compute_tags(int ng, double boxsize, double **r, int np,
 	    if (dx > b2) dx -= boxsize;
 	    if (dx < 0.) {
 	      /*printf("x:%d %d %d %d %f\n",x,y,z,h,dx);*/
+	    if (m[i] % 2 > 0) {
 	      m[i] *= 2;
+	    }
 	      if (m[i2] % 2 > 0){
 		m[i2] *= 2;
 	      }
+	    break;
 	    }
 	  }
-	}
-	if (m[i] % 3 > 0) {
 	  for (h=1; h<ng4; h++) {
 	    i2 = par(x,(y+h)%ng,z,ng);
 	    dx = r[1][i2]-r[1][i];
@@ -82,15 +82,15 @@ int compute_tags(int ng, double boxsize, double **r, int np,
 	    if (dx > b2) dx -= boxsize;
 	    if (dx < 0.) {
 	      /*printf("y:%d %d %d %d %f\n",x,y,z,h,dx);*/
+	    if (m[i] % 3 > 0) {
 	      m[i] *= 3;
+	    }
 	      if (m[i2] % 3 > 0){
 		m[i2] *= 3;
 	      }
 	      break;
 	    }
 	  }
-	}
-	if (m[i] % 5 > 0) {
 	  for (h=1; h<ng4; h++) {
 	    i2 = par(x,y,(z+h)%ng,ng);
 	    dx = r[2][i2]-r[2][i];
@@ -98,14 +98,15 @@ int compute_tags(int ng, double boxsize, double **r, int np,
 	    if (dx > b2) dx -= boxsize;
 	    if (dx < 0.) {
 	      /*printf("z:%d %d %d %d %f\n",x,y,z,h,dx);*/
+	    if (m[i] % 5 > 0) {
 	      m[i] *= 5;
+	    }
 	      if (m[i2] % 5 > 0){
 		m[i2] *= 5;
 	      }
 	      break;
 	    }
 	  }
-	}
 	// Now do diagonal directions 
 	for (h=1; h<ng4; h = -h + isneg(h)) {
 	  i2 = par(x,goodmod(y+h,ng),goodmod(z+h,ng),ng);

@@ -21,12 +21,19 @@ cdef extern from "origami_tags.h":
     int compute_tags(int ng, double boxsize, double **r, int npart,
                      unsigned char *m)
 
+cdef int printed_citation = 0
+
 def run_origami(np.ndarray[np.float64_t, ndim=1] pos_x,
                 np.ndarray[np.float64_t, ndim=1] pos_y,
                 np.ndarray[np.float64_t, ndim=1] pos_z,
                 double boxsize):
     # We assume these have been passed in in the correct order and
     # C-contiguous.
+    global printed_citation
+    if printed_citation == 0:
+        print "ORIGAMI was developed by Bridget Falck and Mark Neyrinck."
+        print "Please cite Falck, Neyrinck, & Szalay 2012, ApJ, 754, 2, 125."
+        printed_citation = 1
     cdef int npart = pos_x.size
     if npart == 1:
         return np.zeros(1, dtype="uint8")
