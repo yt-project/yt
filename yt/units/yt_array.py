@@ -403,24 +403,28 @@ class YTArray(np.ndarray):
 
     @property
     def value(self):
+        """Get a copy of the array data as a numpy ndarray"""
         return np.array(self)
 
     v = value
 
     @property
-    def data(self):
+    def ndview(self):
+        """Get a view of the array data."""
         return self.ndarray_view()
 
-    d = data
+    d = ndview
 
     @property
     def unit_quantity(self):
+        """Get a YTQuantity with the same unit as this array and a value of 1.0"""
         return YTQuantity(1.0, self.units)
 
     uq = unit_quantity
 
     @property
     def unit_array(self):
+        """Get a YTArray filled with ones with the same unit and shape as this array"""
         return np.ones_like(self)
 
     ua = unit_array
