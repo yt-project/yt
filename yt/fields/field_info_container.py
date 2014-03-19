@@ -59,6 +59,7 @@ class FieldInfoContainer(dict):
         self.field_list = field_list
         self.slice_info = slice_info
         self.setup_fluid_aliases()
+        self.field_aliases = {}
 
     def setup_fluid_fields(self):
         pass
@@ -73,7 +74,8 @@ class FieldInfoContainer(dict):
                 self.alias((ptype, alias), (ptype, f))
 
         # We'll either have particle_position or particle_position_[xyz]
-        if (ptype, "particle_position") in self.field_list:
+        if (ptype, "particle_position") in self.field_list or \
+           (ptype, "particle_position") in self.field_aliases:
             particle_scalar_functions(ptype,
                    "particle_position", "particle_velocity",
                    self)
@@ -173,6 +175,7 @@ class FieldInfoContainer(dict):
             u = Unit(self[original_name].units,
                       registry = self.pf.unit_registry)
             units = str(u.get_cgs_equivalent())
+        self.field_aliases[alias_name] = original_name
         self.add_field(alias_name,
             function = TranslationFunc(original_name),
             particle_type = self[original_name].particle_type,
