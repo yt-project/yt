@@ -1383,6 +1383,7 @@ class FisheyeCamera(Camera):
         self.center = np.array(center, dtype='float64')
         self.radius = radius
         self.fov = fov
+        self.no_ghost = no_ghost
         if iterable(resolution):
             raise RuntimeError("Resolution must be a single int")
         self.resolution = resolution
@@ -1392,11 +1393,16 @@ class FisheyeCamera(Camera):
         if fields is None: fields = ["density"]
         self.fields = fields
         self.sub_samples = sub_samples
+        dd = self.pf.h.all_data()
+        efields = dd._determine_fields(self.fields)
         self.log_fields = log_fields
+        if self.log_fields is None:
+            self.log_fields = [self.pf._get_field_info(*f).take_log for f in efields]
         if volume is None:
-            volume = AMRKDTree(self.pf, fields=self.fields, no_ghost=no_ghost,
-                               log_fields=log_fields)
+            volume = AMRKDTree(self.pf)
         self.volume = volume
+
+        self.initialize_source()
 
     def get_information(self):
         return {}

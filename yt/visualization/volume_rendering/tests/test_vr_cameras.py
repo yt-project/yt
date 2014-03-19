@@ -22,7 +22,8 @@ from yt.testing import \
 import numpy as np
 from yt.mods import ColorTransferFunction, ProjectionTransferFunction
 from yt.visualization.volume_rendering.api import \
-    PerspectiveCamera, StereoPairCamera, InteractiveCamera, ProjectionCamera
+    PerspectiveCamera, StereoPairCamera, InteractiveCamera, ProjectionCamera, \
+    FisheyeCamera
 from yt.visualization.tests.test_plotwindow import assert_fname
 from unittest import TestCase
 
@@ -156,3 +157,10 @@ class CameraTest(TestCase):
             snap
         cam.snapshot('final.png')
         assert_fname('final.png')
+
+    def test_fisheye(self):
+        pf = self.pf
+        tf = self.setup_transfer_function('camera')
+        cam = FisheyeCamera(pf.domain_center, pf.domain_width[0],
+                            360.0, 256, transfer_function=tf, pf=pf)
+        cam.snapshot('fisheye.png')
