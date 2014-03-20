@@ -47,6 +47,12 @@ def turn_on_parallelism():
             if ytcfg.getboolean("yt","LogFile"):
                 ytcfg["yt","LogFile"] = "False"
                 yt.utilities.logger.disable_file_logging()
+        # Now we have to turn on the parallelism from the perspective of the
+        # parallel_analysis_interface
+        from yt.utilities.parallel_tools.parallel_analysis_interface import \
+            enable_parallelism
+
+        enable_parallelism()
     return parallel_capable
 
 # This fallback is for Paraview:
