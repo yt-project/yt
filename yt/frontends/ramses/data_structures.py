@@ -296,7 +296,7 @@ class RAMSESDomainSubset(OctreeSubset):
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.
         oct_handler = self.oct_handler
-        all_fields = self.domain.pf.h.fluid_field_list
+        all_fields = self.domain.pf.index.fluid_field_list
         fields = [f for ft, f in fields]
         tr = {}
         cell_count = selector.count_oct_cells(self.oct_handler, self.domain_id)
