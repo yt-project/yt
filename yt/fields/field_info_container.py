@@ -39,7 +39,8 @@ from .particle_fields import \
     particle_deposition_functions, \
     particle_vector_functions, \
     particle_scalar_functions, \
-    standard_particle_fields
+    standard_particle_fields, \
+    add_volume_weighted_smoothed_field
 
 class FieldInfoContainer(dict):
     """
@@ -97,6 +98,26 @@ class FieldInfoContainer(dict):
             self.add_output_field(field, 
                                   units = self.pf.field_units.get(field, ""),
                                   particle_type = True)
+        self.setup_smoothed_fields(ptype)
+
+    def setup_smoothed_fields(self, ptype, num_neighbors = 64, ftype = "gas"):
+        # We can in principle compute this, but it is not yet implemented.
+        if (ptype, "density") not in self:
+            return
+        if (ptype, "smoothing_length") in self:
+            sml_name = "smoothing_length"
+        else:
+            sml_name = None
+        new_aliases = []
+        for _, alias_name in self.field_aliases:
+            fn = add_volume_weighted_smoothed_field(ptype,
+                "particle_position", "particle_mass",
+                sml_name, "density", alias_name, self,
+                num_neighbors)
+            new_aliases.append(((ftype, alias_name), fn[0]))
+        for alias, source in new_aliases:
+            #print "Aliasing %s => %s" % (alias, source)
+            self.alias(alias, source)
 
     def setup_fluid_aliases(self):
         known_other_fields = dict(self.known_other_fields)
