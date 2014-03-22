@@ -99,6 +99,10 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("Octree", 
                 ["yt/utilities/lib/Octree.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
+    config.add_extension("origami", 
+                ["yt/utilities/lib/origami.pyx",
+                 "yt/utilities/lib/origami_tags.c"],
+                depends=["yt/utilities/lib/origami_tags.h"])
     config.add_extension("image_utilities", 
                          ["yt/utilities/lib/image_utilities.pyx"],
                          libraries=["m"],
