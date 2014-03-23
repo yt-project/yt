@@ -18,6 +18,8 @@ cimport numpy as np
 cimport cython
 #cimport healpix_interface
 from libc.stdlib cimport malloc, free, abs
+from libc.math cimport exp, floor, log2, \
+    lrint, fabs, atan, asin, cos, sin, sqrt
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
 from field_interpolation_tables cimport \
     FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
@@ -27,25 +29,6 @@ from fixed_interpolator cimport *
 from cython.parallel import prange, parallel, threadid
 
 DEF Nch = 4
-
-cdef extern from "math.h":
-    double exp(double x) nogil
-    float expf(float x) nogil
-    long double expl(long double x) nogil
-    double floor(double x) nogil
-    double ceil(double x) nogil
-    double fmod(double x, double y) nogil
-    double log2(double x) nogil
-    long int lrint(double x) nogil
-    double nearbyint(double x) nogil
-    double fabs(double x) nogil
-    double atan(double x) nogil
-    double atan2(double y, double x) nogil
-    double acos(double x) nogil
-    double asin(double x) nogil
-    double cos(double x) nogil
-    double sin(double x) nogil
-    double sqrt(double x) nogil
 
 ctypedef void sampler_function(
                 VolumeContainer *vc,
