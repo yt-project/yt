@@ -178,9 +178,9 @@ class BoxlibHierarchy(GridIndex):
                 dx[i].append(DRE[2] - DLE[1])
         self.level_dds = np.array(dx, dtype="float64")
         if int(header_file.next()) != 0:
-            raise RunTimeError("yt only supports cartesian coordinates.")
+            raise RuntimeError("yt only supports cartesian coordinates.")
         if int(header_file.next()) != 0:
-            raise RunTimeError("INTERNAL ERROR! This should be a zero.")
+            raise RuntimeError("INTERNAL ERROR! This should be a zero.")
 
         # each level is one group with ngrids on it. 
         # each grid has self.dimensionality number of lines of 2 reals 
