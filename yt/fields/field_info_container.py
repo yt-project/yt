@@ -42,6 +42,8 @@ from .particle_fields import \
     standard_particle_fields, \
     add_volume_weighted_smoothed_field
 
+_show_field_errors = []
+
 class FieldInfoContainer(dict):
     """
     This is a generic field container.  It contains a list of potential derived
@@ -309,6 +311,8 @@ class FieldInfoContainer(dict):
             try:
                 fd = fi.get_dependencies(pf = self.pf)
             except Exception as e:
+                if field in _show_field_errors:
+                    raise
                 if type(e) != YTFieldNotFound:
                     mylog.debug("Raises %s during field %s detection.",
                                 str(type(e)), field)
