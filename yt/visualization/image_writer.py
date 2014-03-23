@@ -17,6 +17,7 @@ import os
 import numpy as np
 
 from yt.funcs import *
+from yt.utilities.exceptions import YTNotInsideNotebook
 import _colormap_data as cmd
 import yt.utilities.lib as au
 import __builtin__
