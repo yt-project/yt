@@ -472,7 +472,7 @@ class TipsyDataset(ParticleDataset):
             print "Often this can be fixed by changing the 'endian' parameter."
             print "This defaults to '>' but may in fact be '<'."
             raise RuntimeError
-        if self.parameters.get('bComove', True):
+        if self.parameters.get('bComove', False):
             self.cosmological_simulation = 1
             cosm = self._cosmology_parameters or {}
             dcosm = dict(current_redshift=0.0,
