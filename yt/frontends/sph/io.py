@@ -14,6 +14,13 @@ Gadget-specific data-file handling function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+
+
+    
+                                  
+
+
+
 import h5py
 import numpy as np
 from .definitions import gadget_ptypes, ghdf5_ptypes
@@ -52,6 +59,9 @@ class IOHandlerOWLS(BaseIOHandler):
     _vector_fields = ("Coordinates", "Velocity", "Velocities")
     _known_ptypes = ghdf5_ptypes
     _var_mass = None
+    _element_fields = ('Hydrogen', 'Helium', 'Carbon', 'Nitrogen', 'Oxygen', 
+                       'Neon', 'Magnesium', 'Silicon', 'Iron' )
+
 
     @property
     def var_mass(self):
@@ -99,13 +109,20 @@ class IOHandlerOWLS(BaseIOHandler):
                 del coords
                 if mask is None: continue
                 for field in field_list:
+                    
                     if field in ("Mass", "Masses") and \
                         ptype not in self.var_mass:
                         data = np.empty(mask.sum(), dtype="float64")
                         ind = self._known_ptypes.index(ptype) 
                         data[:] = self.pf["Massarr"][ind]
+
+                    elif field in self._element_fields:
+                        rfield = 'ElementAbundance/' + field
+                        data = g[rfield][:][mask,...]
+
                     else:
                         data = g[field][:][mask,...]
+
                     yield (ptype, field), data
             f.close()
 
@@ -143,24 +160,46 @@ class IOHandlerOWLS(BaseIOHandler):
         npart = dict(("PartType%s" % (i), v) for i, v in enumerate(pcount)) 
         return npart
 
+
     def _identify_fields(self, data_file):
         f = _get_h5_handle(data_file.filename)
         fields = []
-        cname = self.pf._particle_coordinates_name
-        mname = self.pf._particle_mass_name
-        for key in f.keys():
+        cname = self.pf._particle_coordinates_name  # Coordinates
+        mname = self.pf._particle_mass_name  # Mass
+
+        # loop over all keys in OWLS hdf5 file
+        #--------------------------------------------------
+        for key in f.keys():   
+
+            # only want particle data
+            #--------------------------------------
             if not key.startswith("PartType"): continue
+
+            # particle data group
+            #--------------------------------------
             g = f[key]
             if cname not in g: continue
+
+            # note str => not unicode!
+
             #ptype = int(key[8:])
             ptype = str(key)
+
+            # loop over all keys in PartTypeX group
+            #----------------------------------------
             for k in g.keys():
-                if not hasattr(g[k], "shape"): continue
-                # str => not unicode!
-                fields.append((ptype, str(k)))
-            if mname not in g.keys():
-                # We'll append it anyway.
-                fields.append((ptype, mname))
+
+                if k == 'ElementAbundance':
+                    gp = g[k]
+                    for j in gp.keys():
+                        kk = j
+                        fields.append((ptype, str(kk)))
+                else:
+                    kk = k
+                    if not hasattr(g[kk], "shape"): continue
+                    fields.append((ptype, str(kk)))
+
+
         f.close()
         return fields, {}
 
