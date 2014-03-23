@@ -49,6 +49,8 @@ class BoxlibFieldInfo(FieldInfoContainer):
         ("ymom", (mom_units, ["momentum_y"], None)),
         ("zmom", (mom_units, ["momentum_z"], None)),
         ("temperature", ("K", ["temperature"], None)),
+        ("x_velocity", ("cm/s", ["velocity_x"], None)),
+        ("y_velocity", ("cm/s", ["velocity_y"], None)),
     )
 
     known_particle_fields = (
