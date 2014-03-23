@@ -36,54 +36,37 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         registry.add_field(("index", "dy"), function=_unknown_coord)
         registry.add_field(("index", "x"), function=_unknown_coord)
         registry.add_field(("index", "y"), function=_unknown_coord)
+        def _get_coord_fields(axi, units = "code_length"):
+            def _dds(field, data):
+                rv = data.pf.arr(data.fwidth[...,axi], units)
+                return data._reshape_vals(rv)
+            def _coords(field, data):
+                rv = data.pf.arr(data.fcoords[...,axi], units)
+                return data._reshape_vals(rv)
+            return _dds, _coords
+        f1, f2 = _get_coord_fields(0)
+        registry.add_field(("index", "dr"), function = f1,
+                           display_field = False,
+                           units = "code_length")
+        registry.add_field(("index", "r"), function = f2,
+                           display_field = False,
+                           units = "code_length")
 
-        def _dr(field, data):
-            return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
-        registry.add_field(("index", "dr"),
-                 function=_dr,
-                 display_field=False,
-                 validators=[ValidateSpatial(0)])
+        f1, f2 = _get_coord_fields(1)
+        registry.add_field(("index", "dz"), function = f1,
+                           display_field = False,
+                           units = "code_length")
+        registry.add_field(("index", "z"), function = f2,
+                           display_field = False,
+                           units = "code_length")
 
-        def _dz(field, data):
-            return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
-        registry.add_field(("index", "dz"),
-                 function=_dz,
-                 display_field=False,
-                 validators=[ValidateSpatial(0)])
-
-        def _dtheta(field, data):
-            return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[2]
-        registry.add_field(("index", "dtheta"),
-                 function=_dtheta,
-                 display_field=False,
-                 validators=[ValidateSpatial(0)])
-
-        def _coordR(field, data):
-            dim = data.ActiveDimensions[0]
-            return (np.ones(data.ActiveDimensions, dtype='float64')
-                           * np.arange(data.ActiveDimensions[0])[:,None,None]
-                    +0.5) * data["index", "dr"] + data.LeftEdge[0]
-        registry.add_field(("index", "r"),
-                 function=_coordR, display_field=False,
-                 validators=[ValidateSpatial(0)])
-
-        def _coordZ(field, data):
-            dim = data.ActiveDimensions[1]
-            return (np.ones(data.ActiveDimensions, dtype='float64')
-                           * np.arange(data.ActiveDimensions[1])[None,:,None]
-                    +0.5) * data["index", "dz"] + data.LeftEdge[1]
-        registry.add_field(("index", "z"),
-                 function=_coordZ, display_field=False,
-                 validators=[ValidateSpatial(0)])
-
-        def _coordTheta(field, data):
-            dim = data.ActiveDimensions[2]
-            return (np.ones(data.ActiveDimensions, dtype='float64')
-                           * np.arange(data.ActiveDimensions[2])[None,None,:]
-                    +0.5) * data["index", "dtheta"] + data.LeftEdge[2]
-        registry.add_field(("index", "theta"),
-                 function=_coordTheta, display_field=False,
-                 validators=[ValidateSpatial(0)])
+        f1, f2 = _get_coord_fields(2, "")
+        registry.add_field(("index", "dtheta"), function = f1,
+                           display_field = False,
+                           units = "")
+        registry.add_field(("index", "theta"), function = f2,
+                           display_field = False,
+                           units = "")
 
         def _CylindricalVolume(field, data):
             return data["index", "dtheta"] \
@@ -91,7 +74,8 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                  * data["index", "dr"] \
                  * data["index", "dz"]
         registry.add_field(("index", "cell_volume"),
-                 function=_CylindricalVolume)
+                 function=_CylindricalVolume,
+                 units = "code_length**3")
 
 
     def pixelize(self, dimension, data_source, field, bounds, size, antialias = True):
