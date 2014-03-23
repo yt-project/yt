@@ -138,7 +138,7 @@ def evaluate_notebook(nb_path, dest_path=None, skip_exceptions=False):
     # Create evaluated version and save it to the dest path.
     # Always use --pylab so figures appear inline
     # perhaps this is questionable?
-    nb_runner = NotebookRunner(nb_in=nb_path, pylab=True)
+    nb_runner = NotebookRunner(nb_path, pylab=False)
     nb_runner.run_notebook(skip_exceptions=skip_exceptions)
     if dest_path is None:
         dest_path = 'temp_evaluated.ipynb'
