@@ -43,12 +43,15 @@ from yt.utilities.definitions import \
      mpc_conversion, sec_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      parallel_root_only
+from yt.units.yt_array import \
+    YTArray, \
+    YTQuantity
+from yt.utilities.lib.misc_utilities import \
+    get_box_grids_level
 from yt.utilities.io_handler import \
     io_registry
 
-from yt.fields.field_info_container import \
-    FieldInfoContainer, NullFunc
-from .fields import ChomboFieldInfo, KnownChomboFields
+from .fields import ChomboFieldInfo
 
 class ChomboGrid(AMRGridPatch):
     _id_offset = 0
@@ -104,7 +107,7 @@ class ChomboHierarchy(GridIndex):
         self._levels = self._handle.keys()[1:]
         GridIndex.__init__(self,pf,dataset_type)
         self._read_particles()
-        self._fhandle.close()
+        self._handle.close()
 
     def _read_particles(self):
         self.particle_filename = self.index_filename[:-4] + 'sink'
@@ -136,7 +139,7 @@ class ChomboHierarchy(GridIndex):
 
     def _detect_output_fields(self):
         ncomp = int(self._handle['/'].attrs['num_components'])
-        self.field_list = [c[1] for c in self._handle['/'].attrs.items()[-ncomp:]]
+        self.field_list = [("chombo", c[1]) for c in self._handle['/'].attrs.items()[-ncomp:]]
           
     def _count_grids(self):
         self.num_grids = 0
@@ -174,32 +177,38 @@ class ChomboHierarchy(GridIndex):
 #        self.grids = np.array(self.grids, dtype='object')
 
     def _populate_grid_objects(self):
+        self._reconstruct_parent_child()
         for g in self.grids:
             g._prepare_grid()
             g._setup_dx()
-
-        for g in self.grids:
-            g.Children = self._get_grid_children(g)
-            for g1 in g.Children:
-                g1.Parent.append(g)
         self.max_level = self.grid_levels.max()
 
     def _setup_derived_fields(self):
         self.derived_field_list = []
 
-    def _get_grid_children(self, grid):
-        mask = np.zeros(self.num_grids, dtype='bool')
-        grids, grid_ind = self.get_box_grids(grid.LeftEdge, grid.RightEdge)
-        mask[grid_ind] = True
-        return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
+    def _reconstruct_parent_child(self):
+        mask = np.empty(len(self.grids), dtype='int32')
+        mylog.debug("First pass; identifying child grids")
+        for i, grid in enumerate(self.grids):
+            get_box_grids_level(self.grid_left_edge[i,:],
+                                self.grid_right_edge[i,:],
+                                self.grid_levels[i] + 1,
+                                self.grid_left_edge, self.grid_right_edge,
+                                self.grid_levels, mask)
+            ids = np.where(mask.astype("bool")) # where is a tuple
+            grid._children_ids = ids[0] + grid._id_offset 
+        mylog.debug("Second pass; identifying parents")
+        for i, grid in enumerate(self.grids): # Second pass
+            for child in grid.Children:
+                child._parent_id.append(i + grid._id_offset)
 
 class ChomboDataset(Dataset):
     _index_class = ChomboHierarchy
-    _fieldinfo_fallback = ChomboFieldInfo
-    _fieldinfo_known = KnownChomboFields
+    _field_info_class = ChomboFieldInfo
 
     def __init__(self, filename, dataset_type='chombo_hdf5',
                  storage_filename = None, ini_filename = None):
+        self.fluid_types += ("chombo",)
         self._handle = h5py.File(filename,'r')
         self.current_time = self._handle.attrs['time']
         self.ini_filename = ini_filename
@@ -216,34 +225,11 @@ class ChomboDataset(Dataset):
     def __del__(self):
         self._handle.close()
 
-    def _set_units(self):
-        """
-        Generates the conversion to various physical _units based on the parameter file
-        """
-        self.units = {}
-        self.time_units = {}
-        if len(self.parameters) == 0:
-            self._parse_parameter_file()
-        self._setup_nounits_units()
-        self.conversion_factors = defaultdict(lambda: 1.0)
-        self.time_units['1'] = 1
-        self.units['1'] = 1.0
-        self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        seconds = 1 #self["Time"]
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = seconds / sec_conversion[unit]
-        for key in yt2chomboFieldsDict:
-            self.conversion_factors[key] = 1.0
-
-    def _setup_nounits_units(self):
-        z = 0
-        mylog.warning("Setting 1.0 in code units to be 1.0 cm")
-        if not self.has_key("TimeUnits"):
-            mylog.warning("No time units.  Setting 1.0 = 1 second.")
-            self.conversion_factors["Time"] = 1.0
-        for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
-
+    def _set_code_unit_attributes(self):
+        self.length_unit = YTQuantity(1.0, "cm")
+        self.mass_unit = YTQuantity(1.0, "g")
+        self.time_unit = YTQuantity(1.0, "s")
+        self.velocity_unit = YTQuantity(1.0, "cm/s")
 
     def _localize(self, f, default):
         if f is None:

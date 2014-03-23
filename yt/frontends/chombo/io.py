@@ -26,8 +26,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
     _data_string = 'data:datatype=0'
 
     def __init__(self, pf, *args, **kwargs):
-        BaseIOHandler.__init__(self, *args, **kwargs)
-        self.pf = pf
+        BaseIOHandler.__init__(self, pf)
         self._handle = pf._handle
 
     _field_dict = None

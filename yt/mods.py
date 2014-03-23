@@ -102,8 +102,8 @@ from yt.frontends.halo_catalogs.api import \
     HaloCatalogDataset, HaloCatalogFieldInfo, \
     RockstarDataset, RockstarFieldInfo
 
-#from yt.frontends.chombo.api import \
-#    ChomboDataset, ChomboFieldInfo, add_chombo_field
+from yt.frontends.chombo.api import \
+    ChomboDataset, ChomboFieldInfo, add_chombo_field
 
 from yt.frontends.gdf.api import \
     GDFDataset, GDFFieldInfo, add_gdf_field
