@@ -391,10 +391,10 @@ def test_fix_length():
     """
     Test fixing the length of an array. Used in spheres and other data objects
     """
-    pf = fake_random_pf(64, nprocs=1)
+    pf = fake_random_pf(64, nprocs=1, length_unit=10)
     length = pf.quan(1.0,'code_length')
     new_length = fix_length(length, pf=pf)
-    yield assert_equal, length, new_length
+    yield assert_equal, YTQuantity(10, 'cm'), new_length
 
 def test_ytarray_pickle():
     pf = fake_random_pf(64, nprocs=1)
