@@ -24,5 +24,12 @@ def configuration(parent_package='',top_path=None):
                          include_dirs=[rd,
                                        os.path.join(rd, "io"),
                                        os.path.join(rd, "util")])
+    config.add_extension("rockstar_groupies",
+                         "yt/analysis_modules/halo_finding/rockstar/rockstar_groupies.pyx",
+                         library_dirs=[rd],
+                         libraries=["rockstar"],
+                         include_dirs=[rd,
+                                       os.path.join(rd, "io"),
+                                       os.path.join(rd, "util")])
     return config
 
