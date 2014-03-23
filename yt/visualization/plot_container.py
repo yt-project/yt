@@ -426,6 +426,7 @@ class ImagePlotContainer(object):
         for k, v in sorted(self.plots.iteritems()):
             # Due to a quirk in the matplotlib API, we need to create
             # a dummy canvas variable here that is never used.
+            from ._mpl_imports import FigureCanvasAgg
             canvas = FigureCanvasAgg(v.figure)  # NOQA
             display(v.figure)
 
