@@ -796,8 +796,11 @@ class PWViewerMPL(PlotWindow):
 
             self.run_callbacks(f)
 
-            self.plots[f]._toggle_axes(draw_axes)
-            self.plots[f]._toggle_colorbar(draw_colorbar)
+            if draw_axes is False:
+                self.plots[f]._toggle_axes(draw_axes)
+
+            if draw_colorbar is False:
+                self.plots[f]._toggle_colorbar(draw_colorbar)
 
             if self._font_color is not None:
                 ax = self.plots[f].axes
