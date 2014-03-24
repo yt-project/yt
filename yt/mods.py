@@ -102,8 +102,8 @@ from yt.frontends.halo_catalogs.api import \
     HaloCatalogDataset, HaloCatalogFieldInfo, \
     RockstarDataset, RockstarFieldInfo
 
-#from yt.frontends.chombo.api import \
-#    ChomboDataset, ChomboFieldInfo, add_chombo_field
+from yt.frontends.chombo.api import \
+    ChomboDataset, ChomboFieldInfo, add_chombo_field
 
 from yt.frontends.gdf.api import \
     GDFDataset, GDFFieldInfo, add_gdf_field
@@ -161,7 +161,7 @@ from yt.visualization.api import \
 
 from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \
-    HomogenizedVolume, Camera, off_axis_projection, MosaicFisheyeCamera
+    Camera, off_axis_projection, MosaicFisheyeCamera
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects

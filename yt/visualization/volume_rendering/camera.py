@@ -21,7 +21,6 @@ from yt.utilities.math_utils import *
 from yt.units.yt_array import YTArray
 from copy import deepcopy
 
-from .grid_partitioner import HomogenizedVolume
 from .transfer_functions import ProjectionTransferFunction
 
 from yt.utilities.lib.grid_traversal import \
@@ -1513,12 +1512,10 @@ class MosaicCamera(Camera):
 
     def build_volume(self, volume, fields, log_fields, l_max, no_ghost, tree_type, le, re):
         if volume is None:
-            if self.use_kd:
-                volume = AMRKDTree(self.pf, l_max=l_max, fields=self.fields, 
-                                   no_ghost=no_ghost, tree_type=tree_type, 
-                                   log_fields=log_fields, le=le, re=re)
-            else:
-                volume = HomogenizedVolume(fields, pf=self.pf, log_fields=log_fields)
+            if self.use_kd: raise NotImplementedError
+            volume = AMRKDTree(self.pf, l_max=l_max, fields=self.fields, 
+                               no_ghost=no_ghost, tree_type=tree_type, 
+                               log_fields=log_fields, le=le, re=re)
         else:
             self.use_kd = isinstance(volume, AMRKDTree)
         return volume

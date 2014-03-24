@@ -517,7 +517,7 @@ class Dataset(object):
 
     # Now all the object related stuff
     def all_data(self, find_max=False):
-        if find_max: c = self.find_max("Density")[1]
+        if find_max: c = self.find_max("density")[1]
         else: c = (self.domain_right_edge + self.domain_left_edge)/2.0
         return self.region(c,
             self.domain_left_edge, self.domain_right_edge)

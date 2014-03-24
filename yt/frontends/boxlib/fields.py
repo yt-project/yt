@@ -24,8 +24,6 @@ rho_units = "code_mass / code_length**3"
 mom_units = "code_mass * code_length / code_time"
 eden_units = "code_mass / (code_time**2 * code_length)" # erg / cm^3
 
-
-
 def _thermal_energy_density(field, data):
     ke = 0.5 * ( data["momentum_x"]**2
                + data["momentum_y"]**2
