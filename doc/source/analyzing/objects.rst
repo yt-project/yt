@@ -40,8 +40,7 @@ frontend, call the function ``add_frontend_field`` where you replace
 
    add_enzo_field("Cooling_Time", units=r"\rm{s}",
                   function=NullFunc,
-                  validators=ValidateDataField("Cooling_Time"),
-                  projection_conversion="1")
+                  validators=ValidateDataField("Cooling_Time"))
 
 Note that we used the ``NullFunc`` function here.  To add a derived field,
 which is not expected to necessarily exist on disk, use the standard
