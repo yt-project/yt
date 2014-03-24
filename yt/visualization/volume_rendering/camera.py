@@ -65,4 +65,3 @@ class Camera(Orientation):
         super(Camera, self).__init__(self.focus - self.position,
                                      self.north_vector, steady_north=True)
         self._moved = True
-

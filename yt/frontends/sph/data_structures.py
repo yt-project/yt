@@ -38,7 +38,7 @@ from yt.utilities.physical_constants import \
     mass_sun_cgs
 from yt.utilities.cosmology import Cosmology
 from .fields import \
-    SPHFieldInfo
+    SPHFieldInfo, OWLSFieldInfo
 from .definitions import \
     gadget_header_specs, \
     gadget_field_specs, \
@@ -284,6 +284,7 @@ class GadgetHDF5Dataset(GadgetDataset):
 
 class OWLSDataset(GadgetHDF5Dataset):
     _particle_mass_name = "Mass"
+    _field_info_class = OWLSFieldInfo
 
     def _parse_parameter_file(self):
         handle = h5py.File(self.parameter_filename, mode="r")
@@ -472,7 +473,7 @@ class TipsyDataset(ParticleDataset):
             print "Often this can be fixed by changing the 'endian' parameter."
             print "This defaults to '>' but may in fact be '<'."
             raise RuntimeError
-        if self.parameters.get('bComove', True):
+        if self.parameters.get('bComove', False):
             self.cosmological_simulation = 1
             cosm = self._cosmology_parameters or {}
             dcosm = dict(current_redshift=0.0,

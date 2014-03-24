@@ -99,6 +99,10 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("Octree", 
                 ["yt/utilities/lib/Octree.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
+    config.add_extension("origami", 
+                ["yt/utilities/lib/origami.pyx",
+                 "yt/utilities/lib/origami_tags.c"],
+                depends=["yt/utilities/lib/origami_tags.h"])
     config.add_extension("image_utilities", 
                          ["yt/utilities/lib/image_utilities.pyx"],
                          libraries=["m"],
@@ -112,19 +116,6 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("RayIntegrators", 
                 ["yt/utilities/lib/RayIntegrators.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
-    config.add_extension("VolumeIntegrator", 
-               ["yt/utilities/lib/VolumeIntegrator.pyx",
-                "yt/utilities/lib/FixedInterpolator.c",
-                "yt/utilities/lib/kdtree.c"],
-               include_dirs=["yt/utilities/lib/"],
-               libraries=["m"], 
-               depends = ["yt/utilities/lib/VolumeIntegrator.pyx",
-                          "yt/utilities/lib/fp_utils.pxd",
-                          "yt/utilities/lib/healpix_interface.pxd",
-                          "yt/utilities/lib/endian_swap.h",
-                          "yt/utilities/lib/FixedInterpolator.h",
-                          "yt/utilities/lib/kdtree.h"],
-          )
     config.add_extension("mesh_utilities",
               ["yt/utilities/lib/mesh_utilities.pyx"],
                include_dirs=["yt/utilities/lib/"],

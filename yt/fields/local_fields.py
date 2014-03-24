@@ -18,7 +18,8 @@ import numpy as np
 from .field_plugin_registry import \
     register_field_plugin
 
-from .field_info_container import FieldInfoContainer
+from .field_info_container import \
+    FieldInfoContainer
 
 # Empty FieldInfoContainer
 local_fields = FieldInfoContainer(None, [], None)
@@ -31,4 +32,6 @@ def setup_local_fields(registry, ftype = "gas", slice_info = None):
     # info container, and since they are not mutable in any real way, we are
     # fine.
     # Note that we actually don't care about the ftype here.
+    for f in local_fields:
+        registry._show_field_errors.append(f)
     registry.update(local_fields)

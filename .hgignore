@@ -36,6 +36,7 @@ yt/utilities/lib/kdtree.c
 yt/utilities/lib/mesh_utilities.c
 yt/utilities/lib/misc_utilities.c
 yt/utilities/lib/Octree.c
+yt/utilities/lib/origami.c
 yt/utilities/lib/png_writer.c
 yt/utilities/lib/PointsInVolume.c
 yt/utilities/lib/QuadTree.c
