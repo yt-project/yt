@@ -551,11 +551,11 @@ class GridHierarchyTest(AnswerTestingTest):
 
     def run(self):
         result = {}
-        result["grid_dimensions"] = self.pf.grid_dimensions
-        result["grid_left_edges"] = self.pf.grid_left_edge
-        result["grid_right_edges"] = self.pf.grid_right_edge
-        result["grid_levels"] = self.pf.grid_levels
-        result["grid_particle_count"] = self.pf.grid_particle_count
+        result["grid_dimensions"] = self.pf.index.grid_dimensions
+        result["grid_left_edges"] = self.pf.index.grid_left_edge
+        result["grid_right_edges"] = self.pf.index.grid_right_edge
+        result["grid_levels"] = self.pf.index.grid_levels
+        result["grid_particle_count"] = self.pf.index.grid_particle_count
         return result
 
     def compare(self, new_result, old_result):
