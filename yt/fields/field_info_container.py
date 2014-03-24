@@ -110,7 +110,7 @@ class FieldInfoContainer(dict):
         else:
             sml_name = None
         new_aliases = []
-        for _, alias_name in self.field_aliases:            
+        for _, alias_name in self.field_aliases:
             fn = add_volume_weighted_smoothed_field(ptype,
                 "particle_position", "particle_mass",
                 sml_name, "density", alias_name, self,
