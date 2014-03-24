@@ -59,7 +59,6 @@ class ARTIOOctreeSubset(OctreeSubset):
         self.sfc_end = sfc_end
         self.oct_handler = oct_handler
         self.pf = pf
-        self.index = self.pf.index
         self._last_mask = None
         self._last_selector_id = None
         self._current_particle_type = 'all'
