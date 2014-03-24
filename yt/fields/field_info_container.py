@@ -172,8 +172,11 @@ class FieldInfoContainer(dict):
         self.find_dependencies(loaded)
 
     def load_plugin(self, plugin_name, ftype = "gas", skip_check = False):
+        if callable(plugin_name):
+            f = plugin_name
+        else:
+            f = field_plugins[plugin_name]
         orig = set(self.items())
-        f = field_plugins[plugin_name]
         f(self, ftype, slice_info = self.slice_info)
         loaded = [n for n, v in set(self.items()).difference(orig)]
         return loaded
