@@ -202,6 +202,7 @@ class ARTDataset(Dataset):
         particle header, star files, etc.
         """
         base_prefix, base_suffix = filename_pattern['amr']
+        aexpstr = 'a'+file_amr.rsplit('a',1)[1].replace(base_suffix,'')
         possibles = glob.glob(os.path.dirname(file_amr)+"/*")
         for filetype, (prefix, suffix) in filename_pattern.iteritems():
             # if this attribute is already set skip it
@@ -209,7 +210,7 @@ class ARTDataset(Dataset):
                 continue
             match = None
             for possible in possibles:
-                if possible.endswith(suffix):
+                if possible.endswith(aexpstr+suffix):
                     if os.path.basename(possible).startswith(prefix):
                         match = possible
             if match is not None:
