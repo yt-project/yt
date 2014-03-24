@@ -107,7 +107,6 @@ class ChomboHierarchy(GridIndex):
         self._levels = self._handle.keys()[1:]
         GridIndex.__init__(self,pf,dataset_type)
         self._read_particles()
-        self._handle.close()
 
     def _read_particles(self):
         self.particle_filename = self.index_filename[:-4] + 'sink'
