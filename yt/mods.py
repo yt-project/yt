@@ -161,7 +161,7 @@ from yt.visualization.api import \
 
 from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \
-    HomogenizedVolume, Camera
+    Camera
 
 # Not Currently Supported
 # from yt.visualization.volume_rendering.api import \
