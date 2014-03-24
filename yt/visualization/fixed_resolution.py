@@ -18,7 +18,7 @@ from yt.utilities.definitions import \
     x_dict, \
     y_dict, \
     axis_names
-from .volume_rendering.api import off_axis_projection
+#from .volume_rendering.api import off_axis_projection
 from yt.data_objects.image_array import ImageArray
 from yt.utilities.lib.misc_utilities import \
     pixelize_cylinder
@@ -373,11 +373,12 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         width = self.pf.arr((self.bounds[1] - self.bounds[0],
                              self.bounds[3] - self.bounds[2],
                              self.bounds[5] - self.bounds[4]))
-        buff = off_axis_projection(ds.pf, ds.center, ds.normal_vector,
-                                   width, ds.resolution, item,
-                                   weight=ds.weight_field, volume=ds.volume,
-                                   no_ghost=ds.no_ghost, interpolated=ds.interpolated,
-                                   north_vector=ds.north_vector)
+        raise NotImplementedError
+        # buff = off_axis_projection(ds.pf, ds.center, ds.normal_vector,
+        #                            width, ds.resolution, item,
+        #                            weight=ds.weight_field, volume=ds.volume,
+        #                            no_ghost=ds.no_ghost, interpolated=ds.interpolated,
+        #                            north_vector=ds.north_vector)
         ia = ImageArray(buff.swapaxes(0,1), info=self._get_info(item))
         self[item] = ia
         return ia 
