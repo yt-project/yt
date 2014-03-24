@@ -39,34 +39,43 @@ except ImportError:
     pass
 
 vlist = "xyz"
+def setup_sunyaev_zeldovich_fields(registry, ftype, sl_info):
+    def _t_squared(field, data):
+        return data["gas","density"]*data["gas","kT"]*data["gas","kT"]
+    registry.add_field(("gas", "t_squared"),
+                       function = _t_squared,
+                       units="g*keV**2/cm**3")
+    def _beta_perp_squared(field, data):
+        return data["gas","density"]*data["gas","velocity_magnitude"]**2/clight/clight - data["gas","beta_par_squared"]
+    registry.add_field(("gas","beta_perp_squared"), 
+                       function = _beta_perp_squared,
+                       units="g/cm**3")
 
-@derived_field(name=("gas","t_squared"), units="g*keV**2/cm**3", user_field=False)
-def _t_squared(field, data):
-    return data["gas","density"]*data["gas","kT"]*data["gas","kT"]
+    def _beta_par_squared(field, data):
+        return data["gas","beta_par"]**2/data["gas","density"]
+    registry.add_field("gas","beta_par_squared",
+                       function = _beta_par_squared,
+                       units="g/cm**3")
 
-@derived_field(name=("gas","beta_perp_squared"), units="g/cm**3", user_field=False)
-def _beta_perp_squared(field, data):
-    return data["gas","density"]*data["gas","velocity_magnitude"]**2/clight/clight - data["gas","beta_par_squared"]
+    def _t_beta_par(field, data):
+        return data["gas","kT"]*data["gas","beta_par"]
+    registry.add_field(("gas","t_beta_par"),
+                       function = _t_beta_par,
+                       units="keV*g/cm**3")
 
-@derived_field(name=("gas","beta_par_squared"), units="g/cm**3", user_field=False)
-def _beta_par_squared(field, data):
-    return data["gas","beta_par"]**2/data["gas","density"]
+    def _t_sz(field, data):
+        return data["gas","density"]*data["gas","kT"]
+    registry.add_field(("gas","t_sz"),
+                       function = _t_sz,
+                       units="keV*g/cm**3")
 
-@derived_field(name=("gas","t_beta_par"), units="keV*g/cm**3", user_field=False)
-def _t_beta_par(field, data):
-    return data["gas","kT"]*data["gas","beta_par"]
-
-@derived_field(name=("gas","t_sz"), units="keV*g/cm**3", user_field=False)
-def _t_sz(field, data):
-    return data["gas","density"]*data["gas","kT"]
-
-@derived_field(name=("gas", "beta_par"), units="g/cm**3", user_field=False)
-def _beta_par(field, data):
-    L = data.get_field_parameter('normal')
-    vpar = data["density"]*(data["velocity_x"]*L[0]+
+def generate_beta_par(L):
+    def _beta_par(field, data):
+        vpar = data["density"]*(data["velocity_x"]*L[0]+
                                 data["velocity_y"]*L[1]+
                                 data["velocity_z"]*L[2])
-    return vpar/clight
+        return vpar/clight
+    return _beta_par
 
 class SZProjection(object):
     r""" Initialize a SZProjection object.
@@ -90,6 +99,7 @@ class SZProjection(object):
     def __init__(self, pf, freqs, mue=1.143, high_order=False):
 
         self.pf = pf
+        pf.field_info.load_plugin(setup_sunyaev_zeldovich_fields)
         self.num_freqs = len(freqs)
         self.high_order = high_order
         self.freqs = pf.arr(freqs, "GHz")
@@ -136,9 +146,9 @@ class SZProjection(object):
 
         L = np.zeros((3))
         L[axis] = 1.0
-        source.set_field_parameter('normal', L)
 
-        proj = self.pf.proj("density", axis, center=ctr, data_source=source)
+        beta_par = generate_beta_par(L)
+        self.pf.field_info.add_field(name=("gas","beta_par"), function=beta_par, units="g/cm**3")
         frb = proj.to_frb(width, nx)
         dens = frb["density"]
         Te = frb["t_sz"]/dens
