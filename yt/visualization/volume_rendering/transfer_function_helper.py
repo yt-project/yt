@@ -65,7 +65,7 @@ class TransferFunctionHelper(object):
             in the dataset.  This can be slow for very large datasets.
         """
         if bounds is None:
-            bounds = self.pf.h.all_data().quantities['Extrema'](self.field)[0]
+            bounds = self.pf.h.all_data().quantities['Extrema'](self.field)
         self.bounds = bounds
 
         # Do some error checking.
@@ -129,6 +129,12 @@ class TransferFunctionHelper(object):
                                         grey_opacity=self.grey_opacity,
                                         nbins=512)
         return self.tf
+
+    def setup_default(self):
+        """docstring for setup_default"""
+        mi, ma = self.bounds
+        print 'I AM MAPPING BETWEEN', mi, ma
+        self.tf.map_to_colormap(mi, ma, scale=10.0, colormap='RdBu_r')
 
     def plot(self, fn=None, profile_field=None, profile_weight=None):
         """
