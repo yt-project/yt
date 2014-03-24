@@ -50,3 +50,31 @@ class SPHFieldInfo(FieldInfoContainer):
         ("Phi", ("code_length", [], None)),
         ("FormationTime", ("code_time", ["creation_time"], None)),
     )
+
+
+
+
+class OWLSFieldInfo(SPHFieldInfo):
+
+    # override
+    #--------------------------------------------------------------
+    def __init__(self, *args, **kwargs):
+        
+        new_particle_fields = (
+            ('Hydrogen', ('', ['H_fraction'], None)),
+            ('Helium', ('', ['He_fraction'], None)),
+            ('Carbon', ('', ['C_fraction'], None)),
+            ('Nitrogen', ('', ['N_fraction'], None)),
+            ('Oxygen', ('', ['O_fraction'], None)),
+            ('Neon', ('', ['Ne_fraction'], None)),
+            ('Magnesium', ('', ['Mg_fraction'], None)),
+            ('Silicon', ('', ['Si_fraction'], None)),
+            ('Iron', ('', ['Fe_fraction'], None))
+            )
+
+        self.known_particle_fields += new_particle_fields
+        
+        super(OWLSFieldInfo,self).__init__( *args, **kwargs )
+
+
+                        
