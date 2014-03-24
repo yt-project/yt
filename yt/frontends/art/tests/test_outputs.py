@@ -22,7 +22,7 @@ from yt.utilities.answer_testing.framework import \
     data_dir_load
 from yt.frontends.art.api import ARTDataset
 
-_fields = ("Density", "particle_mass", ("all", "particle_position_x"))
+_fields = ("density", "particle_mass", ("all", "particle_position_x"))
 
 sfg1 = "10MpcBox_csf512_a0.330.d"
 
@@ -35,7 +35,7 @@ def test_sfg1():
     for field in _fields:
         for axis in [0, 1, 2]:
             for ds in dso:
-                for weight_field in [None, "Density"]:
+                for weight_field in [None, "density"]:
                     yield PixelizedProjectionValuesTest(
                         sfg1, axis, field, weight_field,
                         ds)

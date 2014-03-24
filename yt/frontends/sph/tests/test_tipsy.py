@@ -40,7 +40,7 @@ def test_pkdgrav():
     kwargs = dict(endian="<",
                   field_dtypes = {"Coordinates": "d"},
                   cosmology_parameters = cosmology_parameters,
-                  unit_base = {'mpchcm': 1.0/60.0},
+                  unit_base = {'length': (1.0/60.0, "Mpccm/h")},
                   n_ref = 64)
     pf = data_dir_load(pkdgrav, TipsyDataset, (), kwargs)
     yield assert_equal, str(pf), "halo1e11_run1.00400"
@@ -53,13 +53,13 @@ def test_pkdgrav():
     for ds in dso:
         for field in _fields:
             for axis in [0, 1, 2]:
-                for weight_field in [None, "Density"]:
+                for weight_field in [None, "density"]:
                     yield PixelizedProjectionValuesTest(
                         pf, axis, field, weight_field,
                         ds)
             yield FieldValuesTest(pf, field, ds)
         dobj = create_obj(pf, ds)
-        s1 = dobj["Ones"].sum()
+        s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2
 
@@ -71,7 +71,7 @@ def test_gasoline():
                                 omega_matter = 0.272,
                                 hubble_constant = 0.702)
     kwargs = dict(cosmology_parameters = cosmology_parameters,
-                  unit_base = {'mpchcm': 1.0/60.0},
+                  unit_base = {'length': (1.0/60.0, "Mpccm/h")},
                   n_ref = 64)
     pf = data_dir_load(gasoline, TipsyDataset, (), kwargs)
     yield assert_equal, str(pf), "agora_1e11.00400"
@@ -84,12 +84,12 @@ def test_gasoline():
     for ds in dso:
         for field in _fields:
             for axis in [0, 1, 2]:
-                for weight_field in [None, "Density"]:
+                for weight_field in [None, "density"]:
                     yield PixelizedProjectionValuesTest(
                         pf, axis, field, weight_field,
                         ds)
             yield FieldValuesTest(pf, field, ds)
         dobj = create_obj(pf, ds)
-        s1 = dobj["Ones"].sum()
+        s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2

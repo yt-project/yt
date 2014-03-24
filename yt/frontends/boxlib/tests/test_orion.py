@@ -21,7 +21,8 @@ from yt.utilities.answer_testing.framework import \
     data_dir_load
 from yt.frontends.boxlib.api import OrionDataset
 
-_fields = ("Temperature", "Density", "VelocityMagnitude", "DivV")
+_fields = ("temperature", "density", "velocity_magnitude",
+           "velocity_divergence")
 
 radadvect = "RadAdvect/plt00000"
 @requires_pf(radadvect)
