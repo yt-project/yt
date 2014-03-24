@@ -53,9 +53,10 @@ def _create_number_density_func(ftype, species):
              / amu_cgs
     return _number_density
 
-def _create_density_function(ftype, species):
+def _create_density_func(ftype, species):
     def _density(field, data):
-        return data[ftype, "%s_fraction" % species]
+        return data[ftype, "%s_fraction" % species] \
+            * data[ftype,'density']
     return _density
 
 def add_species_field_by_density(registry, ftype, species):

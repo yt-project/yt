@@ -23,6 +23,10 @@ from .definitions import \
     gadget_ptypes, \
     ghdf5_ptypes
 
+from yt.fields.species_fields import add_species_field_by_fraction
+
+
+
 # Here are helper functions for things like vector fields and so on.
 
 def _get_conv(cf):
@@ -56,6 +60,10 @@ class SPHFieldInfo(FieldInfoContainer):
 
 class OWLSFieldInfo(SPHFieldInfo):
 
+    _species_fractions = ['H_fraction', 'He_fraction', 'C_fraction',
+                          'N_fraction', 'O_fraction', 'Ne_fraction',
+                          'Mg_fraction', 'Si_fraction', 'Fe_fraction']
+
     # override
     #--------------------------------------------------------------
     def __init__(self, *args, **kwargs):
@@ -77,4 +85,9 @@ class OWLSFieldInfo(SPHFieldInfo):
         super(OWLSFieldInfo,self).__init__( *args, **kwargs )
 
 
-                        
+        
+    def setup_fluid_fields(self):
+        # here species_name is "H", "He", etc
+        for s in self._species_fractions:
+            species_name = s.split('_')[0]
+            add_species_field_by_fraction(self, "gas", species_name)
