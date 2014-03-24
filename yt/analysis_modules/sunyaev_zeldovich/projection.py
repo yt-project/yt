@@ -39,7 +39,7 @@ except ImportError:
     pass
 
 vlist = "xyz"
-def setup_sunyaev_zeldovich_fields(registry, ftype, sl_info):
+def setup_sunyaev_zeldovich_fields(registry, ftype = "gas", slice_info = None):
     def _t_squared(field, data):
         return data["gas","density"]*data["gas","kT"]*data["gas","kT"]
     registry.add_field(("gas", "t_squared"),
