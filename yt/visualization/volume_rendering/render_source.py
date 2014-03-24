@@ -13,10 +13,12 @@ RenderSource Class
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.data_objects.api import ImageArray
+import numpy as np
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.utilities.amr_kdtree.api import AMRKDTree
+from transfer_function_helper import TransferFunctionHelper
+from engine import PlaneParallelEngine
 
 
 class RenderSource(ParallelAnalysisInterface):
@@ -37,10 +39,19 @@ class VolumeSource(RenderSource):
 
     """docstring for VolumeSource"""
 
-    def __init__(self, data_source):
+    def __init__(self, scene, data_source, field=None):
         super(VolumeSource, self).__init__()
+        self.scene = scene
         self.data_source = data_source
         self.volume = None
+        self.field = field
+        self.current_image = None
+        self.engine = None
+        self.setup()
+
+        # In the future these will merge
+        self.transfer_function = None
+        self.tfh = None
         self.setup()
 
     def validate(self):
@@ -51,9 +62,31 @@ class VolumeSource(RenderSource):
         if self.volume is None:
             raise RuntimeError("Volume not initialized")
 
+        if self.transfer_function is None:
+            raise RuntimeError("Transfer Function not Supplied")
+
     def setup(self):
         """setup VolumeSource"""
-        self.volume = AMRKDTree(self.data_source)
+        self.current_image = self.new_image()
+        self.tfh = \
+            TransferFunctionHelper(self.data_source.pf)
+        self.tfh.set_field(self.field)
+        self.tfh.set_bounds([0.0, 1.0])
+        self.tfh.set_log(False)
+        self.tfh.build_transfer_function()
+        self.tfh.setup_default()
+        self.transfer_function = self.tfh.tf
+        self.engine = PlaneParallelEngine(self.scene, self)
+        self.volume = AMRKDTree(self.data_source.pf,
+                                data_source=self.data_source)
+        self.volume.initialize_source([self.field], [False], True)
+
+    def new_image(self):
+        cam = self.scene.camera
+        image = np.zeros((cam.resolution[0],
+                          cam.resolution[1], 4),
+                         dtype='float64', order='C')
+        return image
 
     def teardown(self):
         """docstring for teardown"""
@@ -65,25 +98,5 @@ class VolumeSource(RenderSource):
 
     def request(self, *args, **kwargs):
         """docstring for request"""
-        pass
-
-    def _render(self, double_check, num_threads, image, sampler):
-        pbar = get_pbar("Ray casting",
-                        (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
-        total_cells = 0
-        if double_check:
-            for brick in self.volume.bricks:
-                for data in brick.my_data:
-                    if np.any(np.isnan(data)):
-                        raise RuntimeError
-
-        for brick in self.volume.traverse(self.front_center):
-            sampler(brick, num_threads=num_threads)
-            total_cells += np.prod(brick.my_data[0].shape)
-            pbar.update(total_cells)
-
-        pbar.finish()
-        image = self.finalize_image(sampler.aimage)
-        return image
-
-
+        self.engine.run()
+        return self.current_image
