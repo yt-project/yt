@@ -19,7 +19,7 @@ import numpy as np
 from yt.funcs import *
 from yt.utilities.math_utils import get_rotation_matrix
 
-class Orientation:
+class Orientation(object):
     def __init__(self, normal_vector, north_vector=None, steady_north=False):
         r"""An object that returns a set of basis vectors for orienting
         cameras a data containers.
