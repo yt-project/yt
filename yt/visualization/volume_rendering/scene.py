@@ -12,7 +12,10 @@
 #-----------------------------------------------------------------------------
 
 
+from yt.funcs import mylog
 from yt.data_objects.static_output import Dataset
+from camera import Camera
+from render_source import VolumeSource
 
 
 class Scene(object):
@@ -26,6 +29,7 @@ class Scene(object):
         self.datasets = []
         self.camera = None
         self.sources = {}
+        self.camera_path = None
 
     def request(self):
         pass
@@ -57,21 +61,37 @@ class RenderScene(Scene):
 
     """docstring for RenderScene"""
 
-    def __init__(self, data_source=None,):
+    def __init__(self, data_source=None, field=None):
         super(RenderScene, self).__init__()
         if isinstance(data_source, Dataset):
             self.ds = data_source
-            data_source = ds.all_data()
+            data_source = data_source.all_data()
         else:
             self.ds = data_source.pf
-        self.data_source = data_source
 
+        print 'DATA SOURCE: ', data_source
+        self.data_source = data_source
         self.camera = Camera(data_source)
+        self.field = field
         self.render_sources = {}
-        self.camera_path = CameraPath()
+        self.default_setup()
+
+    def default_setup(self):
+        """docstring for default_setup"""
+        if self.field is None:
+            self.ds.field_list
+            self.field = self.ds.field_list[0]
+            print 'WHAT FIELD AM I: ', self.field
+            mylog.info('Setting default field to %s' % self.field.__repr__())
 
         if self.data_source:
-            self.render_sources['vr1'] = VolumeSource(self.data_source)
+            self.render_sources['vr1'] = \
+                VolumeSource(self, self.data_source, self.field)
 
+    def render(self):
+        ims = {}
+        for k, v in self.render_sources.iteritems():
+            print 'Running', k, v
+            ims[k] = v.request()
 
-
+        return ims
