@@ -18,8 +18,8 @@ import numpy as np
 from yt.units.yt_array import YTArray
 from .coordinate_handler import \
     CoordinateHandler, \
-    _unknown_coord
-
+    _unknown_coord, \
+    _get_coord_fields
 #
 # Cylindrical fields
 #
@@ -36,14 +36,6 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         registry.add_field(("index", "dy"), function=_unknown_coord)
         registry.add_field(("index", "x"), function=_unknown_coord)
         registry.add_field(("index", "y"), function=_unknown_coord)
-        def _get_coord_fields(axi, units = "code_length"):
-            def _dds(field, data):
-                rv = data.pf.arr(data.fwidth[...,axi], units)
-                return data._reshape_vals(rv)
-            def _coords(field, data):
-                rv = data.pf.arr(data.fcoords[...,axi], units)
-                return data._reshape_vals(rv)
-            return _dds, _coords
         f1, f2 = _get_coord_fields(0)
         registry.add_field(("index", "dr"), function = f1,
                            display_field = False,
