@@ -55,6 +55,7 @@ class FieldInfoContainer(dict):
     known_particle_fields = ()
 
     def __init__(self, pf, field_list, slice_info = None):
+        self._show_field_errors = []
         self.pf = pf
         # Now we start setting things up.
         self.field_list = field_list
@@ -309,6 +310,8 @@ class FieldInfoContainer(dict):
             try:
                 fd = fi.get_dependencies(pf = self.pf)
             except Exception as e:
+                if field in self._show_field_errors:
+                    raise
                 if type(e) != YTFieldNotFound:
                     mylog.debug("Raises %s during field %s detection.",
                                 str(type(e)), field)
