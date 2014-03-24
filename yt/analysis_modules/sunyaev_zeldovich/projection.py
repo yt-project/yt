@@ -60,13 +60,13 @@ def _t_beta_par(field, data):
 def _t_sz(field, data):
     return data["gas","density"]*data["gas","kT"]
 
-def generate_beta_par(L):
-    def _beta_par(field, data):
-        vpar = data["density"]*(data["velocity_x"]*L[0]+
+@derived_field(name=("gas", "beta_par"), units="g/cm**3")
+def _beta_par(field, data):
+    L = data.get_field_parameter('normal')
+    vpar = data["density"]*(data["velocity_x"]*L[0]+
                                 data["velocity_y"]*L[1]+
                                 data["velocity_z"]*L[2])
-        return vpar/clight
-    return _beta_par
+    return vpar/clight
 
 class SZProjection(object):
     r""" Initialize a SZProjection object.
@@ -136,9 +136,8 @@ class SZProjection(object):
 
         L = np.zeros((3))
         L[axis] = 1.0
+        source.set_field_parameter('normal', L)
 
-        beta_par = generate_beta_par(L)
-        self.pf.field_info.add_field(name=("gas","beta_par"), function=beta_par, units="g/cm**3")
         proj = self.pf.proj("density", axis, center=ctr, data_source=source)
         frb = proj.to_frb(width, nx)
         dens = frb["density"]

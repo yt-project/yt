@@ -143,8 +143,8 @@ def amrspace(extent, levels=7, cells=8):
 
 def fake_random_pf(
         ndims, peak_value = 1.0,
-        fields = ("density", "velocity_x", "velocity_y", "velocity_z"),
-        units = ('g/cm**3', 'cm/s', 'cm/s', 'cm/s'),
+        fields = ("density", "temperature", "velocity_x", "velocity_y", "velocity_z"),
+        units = ('g/cm**3', 'K', 'cm/s', 'cm/s', 'cm/s'),
         negative = False, nprocs = 1, particles = 0, length_unit=1.0):
     from yt.data_objects.api import data_object_registry
     from yt.frontends.stream.api import load_uniform_grid
