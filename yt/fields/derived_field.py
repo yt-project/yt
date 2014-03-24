@@ -78,14 +78,14 @@ class DerivedField(object):
        Used for baryon fields from the data that are not in all the grids
     display_name : str
        A name used in the plots
-    projection_conversion : unit
-       which unit should we multiply by in a projection?
+    user_field : boolean
+       This can be set to avoid triggering field detection.  This is mostly
+       useful for fields that are part of yt rather than in user scripts.
     """
     def __init__(self, name, function, units=None,
                  take_log=True, validators=None,
                  particle_type=False, vector_field=False, display_field=True,
-                 not_in_all=False, display_name=None,
-                 projection_conversion="cm"):
+                 not_in_all=False, display_name=None, user_field=False):
         self.name = name
         self.take_log = take_log
         self.display_name = display_name
@@ -93,6 +93,7 @@ class DerivedField(object):
         self.display_field = display_field
         self.particle_type = particle_type
         self.vector_field = vector_field
+        self.user_field = user_field
 
         self._function = function
 
@@ -124,7 +125,6 @@ class DerivedField(object):
         dd['display_field'] = True
         dd['not_in_all'] = self.not_in_all
         dd['display_name'] = self.display_name
-        dd['projection_conversion'] = self.projection_conversion
         return dd
 
     def get_units(self):
