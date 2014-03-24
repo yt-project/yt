@@ -177,10 +177,20 @@ class BoxlibHierarchy(GridIndex):
             if self.dimensionality < 3:
                 dx[i].append(DRE[2] - DLE[1])
         self.level_dds = np.array(dx, dtype="float64")
+        coordinate_type = int(header_file.next())
+        if self.pf.geometry == "cartesian":
+            default_ybounds = (0.0, 1.0)
+            default_zbounds = (0.0, 1.0)
+        elif self.pf.geometry == "cylindrical":
+            # Now we check for dimensionality issues
+            if self.dimensionality != 2:
+                raise RuntimeError("yt needs cylindrical to be 2D")
+            self.level_dds[:,2] = 2*np.pi
+            default_zbounds = (0.0, 2*np.pi)
+        else:
+            raise RuntimeError("yt only supports cartesian and cylindrical coordinates.")
         if int(header_file.next()) != 0:
-            raise RunTimeError("yt only supports cartesian coordinates.")
-        if int(header_file.next()) != 0:
-            raise RunTimeError("INTERNAL ERROR! This should be a zero.")
+            raise RuntimeError("INTERNAL ERROR! This should be a zero.")
 
         # each level is one group with ngrids on it. 
         # each grid has self.dimensionality number of lines of 2 reals 
@@ -196,11 +206,11 @@ class BoxlibHierarchy(GridIndex):
                 if self.dimensionality > 1:
                     ylo, yhi = [float(v) for v in header_file.next().split()]
                 else:
-                    ylo, yhi = 0.0, 1.0
+                    ylo, yhi = default_ybounds
                 if self.dimensionality > 2:
                     zlo, zhi = [float(v) for v in header_file.next().split()]
                 else:
-                    zlo, zhi = 0.0, 1.0
+                    zlo, zhi = default_zbounds
                 self.grid_left_edge[grid_counter + gi, :] = [xlo, ylo, zlo]
                 self.grid_right_edge[grid_counter + gi, :] = [xhi, yhi, zhi]
             # Now we get to the level header filename, which we open and parse.
@@ -569,6 +579,14 @@ class BoxlibDataset(Dataset):
         # Skip timesteps per level
         header_file.readline()
         self._header_mesh_start = header_file.tell()
+        header_file.next()
+        coordinate_type = int(header_file.next())
+        if coordinate_type == 0:
+            self.geometry = "cartesian"
+        elif coordinate_type == 1:
+            self.geometry = "cylindrical"
+        else:
+            raise RuntimeError("yt does not yet support spherical geometry")
 
         # overrides for 1/2-dimensional data
         if self.dimensionality == 1: 
@@ -597,12 +615,12 @@ class BoxlibDataset(Dataset):
         self.periodicity = ensure_tuple(tmp)
         
     def _setup2d(self):
-#        self._index_class = BoxlibHierarchy2D
-#        self._fieldinfo_fallback = Orion2DFieldInfo
         self.domain_left_edge = \
             np.concatenate([self.domain_left_edge, [0.0]])
         self.domain_right_edge = \
             np.concatenate([self.domain_right_edge, [1.0]])
+        if self.geometry == "cylindrical":
+            self.domain_right_edge[2] = 2.0 * np.pi
         tmp = self.domain_dimensions.tolist()
         tmp.append(1)
         self.domain_dimensions = np.array(tmp)
