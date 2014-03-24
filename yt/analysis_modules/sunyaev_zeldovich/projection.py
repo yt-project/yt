@@ -53,7 +53,7 @@ def setup_sunyaev_zeldovich_fields(registry, ftype = "gas", slice_info = None):
 
     def _beta_par_squared(field, data):
         return data["gas","beta_par"]**2/data["gas","density"]
-    registry.add_field("gas","beta_par_squared",
+    registry.add_field(("gas","beta_par_squared"),
                        function = _beta_par_squared,
                        units="g/cm**3")
 
@@ -148,7 +148,7 @@ class SZProjection(object):
         L[axis] = 1.0
 
         beta_par = generate_beta_par(L)
-        self.pf.field_info.add_field(name=("gas","beta_par"), function=beta_par, units="g/cm**3")
+        self.pf.field_info.add_field(("gas","beta_par"), function=beta_par, units="g/cm**3")
         frb = proj.to_frb(width, nx)
         dens = frb["density"]
         Te = frb["t_sz"]/dens
@@ -211,7 +211,7 @@ class SZProjection(object):
             raise NotImplementedError
 
         beta_par = generate_beta_par(L)
-        self.pf.field_info.add_field(name=("gas","beta_par"), function=beta_par, units="g/cm**3")
+        self.pf.field_info.add_field(("gas","beta_par"), function=beta_par, units="g/cm**3")
 
         dens    = off_axis_projection(self.pf, ctr, L, w, nx, "density")
         Te      = off_axis_projection(self.pf, ctr, L, w, nx, "t_sz")/dens
