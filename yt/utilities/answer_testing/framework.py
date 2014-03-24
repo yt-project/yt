@@ -345,7 +345,7 @@ class AnswerTestingTest(object):
         This is a helper function to return the location of the most dense
         point.
         """
-        return self.pf.h.find_max("Density")[1]
+        return self.pf.h.find_max("density")[1]
 
     @property
     def entire_simulation(self):
@@ -378,9 +378,9 @@ class FieldValuesTest(AnswerTestingTest):
 
     def run(self):
         obj = create_obj(self.pf, self.obj_type)
-        avg = obj.quantities["WeightedAverageQuantity"](self.field,
-                             weight="Ones")
-        (mi, ma), = obj.quantities["Extrema"](self.field)
+        avg = obj.quantities.weighted_average_quantity(
+            self.field, weight="ones")
+        mi, ma = obj.quantities.extrema(self.field)
         return np.array([avg, mi, ma])
 
     def compare(self, new_result, old_result):
@@ -710,7 +710,7 @@ def small_patch_amr(pf_fn, fields):
         yield GridValuesTest(pf_fn, field)
         for axis in [0, 1, 2]:
             for ds in dso:
-                for weight_field in [None, "Density"]:
+                for weight_field in [None, "density"]:
                     yield ProjectionValuesTest(
                         pf_fn, axis, field, weight_field,
                         ds)
@@ -726,7 +726,7 @@ def big_patch_amr(pf_fn, fields):
         yield GridValuesTest(pf_fn, field)
         for axis in [0, 1, 2]:
             for ds in dso:
-                for weight_field in [None, "Density"]:
+                for weight_field in [None, "density"]:
                     yield PixelizedProjectionValuesTest(
                         pf_fn, axis, field, weight_field,
                         ds)
