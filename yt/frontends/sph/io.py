@@ -452,12 +452,12 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                     raise RuntimeError
             
         # Use the mask to slice out the appropriate particle type data
-        if mask.size == data_file.total_particles['DarkMatter']:
-            return auxdata[:data_file.total_particles['DarkMatter']]
-        elif mask.size == data_file.total_particles['Gas']:
-            return auxdata[data_file.total_particles['DarkMatter']:data_file.total_particles['Stars']]
+        if mask.size == data_file.total_particles['Gas']:
+            return auxdata[:data_file.total_particles['Gas']]
+        elif mask.size == data_file.total_particles['DarkMatter']:
+            return auxdata[data_file.total_particles['Gas']:-data_file.total_particles['DarkMatter']]
         else:
-            return auxdata[data_file.total_particles['Stars']:]
+            return auxdata[-data_file.total_particles['Stars']:]
 
     def _fill_fields(self, fields, vals, mask, data_file):
         if mask is None:
