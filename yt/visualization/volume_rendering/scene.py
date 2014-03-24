@@ -15,7 +15,7 @@
 from yt.funcs import mylog
 from yt.data_objects.static_output import Dataset
 from camera import Camera
-from render_source import VolumeSource
+from render_source import VolumeSource, OpaqueSource
 
 
 class Scene(object):
@@ -31,7 +31,48 @@ class Scene(object):
         self.sources = {}
         self.camera_path = None
 
+    def set_camera(self, camera):
+        self.camera = camera
+
+        for source in self.sources.values():
+            source.set_camera(self.camera)
+
+    def setup_camera_links(self):
+        """
+        The camera object needs to be linked to:
+            * Engines
+            * Render Sources
+        """
+        if self.camera is None:
+            raise RuntimeError("Camera does not exist")
+
+        for source in self.sources.values():
+            source.set_camera(self.camera)
+
+    def iter_opaque_sources(self):
+        """
+        Iterate over opaque RenderSource objects,
+        returning a tuple of (key, source)
+        """
+        for k, source in self.sources.iteritems():
+            if isinstance(source, OpaqueSource):
+                yield k, source
+
+    def validate(self):
+        if self.camera is None:
+            for k, source in self.sources.iteritems():
+                try:
+                    self.camera = Camera(source.data_source)
+                    return
+                except:
+                    pass
+                raise RuntimeError("Couldn't build default camera")
+        return
+
     def request(self):
+        pass
+
+    def composite(self):
         pass
 
     @property
@@ -44,17 +85,29 @@ class Scene(object):
         """Add a dataset to the scene"""
         self.datasets.append(ds)
 
-    def add_volume_rendering(self):
-        """docstring for add_volume_rendering"""
-        pass
+    def add_source(self, render_source, keyname=None):
+        """
+        Add a render source to the scene.  This will autodetect the
+        type of source.
+        """
+        if keyname is None:
+            keyname = 'source_%02i' % len(self.sources)
 
-    def add_slice(self):
-        """docstring for add_slice"""
-        pass
+        render_source.set_scene(self)
 
-    def add_streamlines(self):
-        """docstring for add_streamlines"""
-        pass
+        self.sources[keyname] = render_source
+
+        return self
+
+    def render(self):
+        self.validate()
+        ims = {}
+        for k, v in self.sources.iteritems():
+            v.validate()
+            print 'Running', k, v
+            ims[k] = v.request()
+
+        return ims
 
 
 class RenderScene(Scene):
@@ -69,7 +122,6 @@ class RenderScene(Scene):
         else:
             self.ds = data_source.pf
 
-        print 'DATA SOURCE: ', data_source
         self.data_source = data_source
         self.camera = Camera(data_source)
         self.field = field
@@ -81,17 +133,11 @@ class RenderScene(Scene):
         if self.field is None:
             self.ds.field_list
             self.field = self.ds.field_list[0]
-            print 'WHAT FIELD AM I: ', self.field
             mylog.info('Setting default field to %s' % self.field.__repr__())
 
         if self.data_source:
-            self.render_sources['vr1'] = \
-                VolumeSource(self, self.data_source, self.field)
+            render_source = VolumeSource(self.data_source, self.field)
+            self.add_source(render_source)
+            render_source.build_defaults()
 
-    def render(self):
-        ims = {}
-        for k, v in self.render_sources.iteritems():
-            print 'Running', k, v
-            ims[k] = v.request()
 
-        return ims

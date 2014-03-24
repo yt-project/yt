@@ -23,12 +23,27 @@ class Camera(Orientation):
 
     r"""    """
 
-    def __init__(self, data_source):
+    _moved = True
+
+    def __init__(self, data_source=None):
         """Initialize a Camera Instance"""
         self.data_source = data_source
-        self.position = data_source.pf.domain_right_edge
+        self.position = None
         self.north_vector = np.array([0.0, 0.0, 1.0])
-        self.resolution = (512, 512)
+        self.resolution = (256, 256)
+        self.light = None
+        self.width = None
+        self.focus = np.zeros(3)
+        self.position = np.ones(3)
+        if data_source is not None:
+            self.inherit_default_from_data_source()
+        else:
+            super(Camera, self).__init__(self.focus - self.position,
+                                         self.north_vector, steady_north=True)
+
+    def inherit_default_from_data_source(self):
+        data_source = self.data_source
+        self.position = data_source.pf.domain_right_edge
 
         width = data_source.pf.domain_width.max()
         focus = data_source.pf.domain_center
@@ -43,22 +58,11 @@ class Camera(Orientation):
             width = self.data_source.pf.arr(width, input_units="code_length")
         if not isinstance(focus, YTArray):
             focus = self.pf.arr(focus, input_units="code_length")
+
         self.width = width
         self.focus = focus
 
         super(Camera, self).__init__(self.focus - self.position,
                                      self.north_vector, steady_north=True)
+        self._moved = True
 
-        self._setup_box_properties()
-        self.light = None
-
-    def _setup_box_properties(self):
-        unit_vectors = self.unit_vectors
-        width = self.width
-        center = self.focus
-        self.box_vectors = YTArray([unit_vectors[0] * width[0],
-                                    unit_vectors[1] * width[1],
-                                    unit_vectors[2] * width[2]])
-        self.origin = center - 0.5 * width.dot(YTArray(unit_vectors, ""))
-        self.back_center = center - 0.5 * width[2] * unit_vectors[2]
-        self.front_center = center + 0.5 * width[2] * unit_vectors[2]

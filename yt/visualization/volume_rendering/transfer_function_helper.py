@@ -125,6 +125,7 @@ class TransferFunctionHelper(object):
             mi, ma = np.log10(self.bounds[0]), np.log10(self.bounds[1])
         else:
             mi, ma = self.bounds
+
         self.tf = ColorTransferFunction((mi, ma),
                                         grey_opacity=self.grey_opacity,
                                         nbins=512)
