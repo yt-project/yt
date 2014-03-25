@@ -19,6 +19,26 @@ from render_source import VolumeSource, OpaqueSource
 from yt.data_objects.api import ImageArray
 import numpy as np
 
+class SceneHandle(object):
+    """docstring for SceneHandle"""
+    def __init__(self, scene, camera, source, engine):
+        self.scene = scene
+        self.camera = camera
+        self.source = source
+        self.engine = engine
+
+    def __repr__(self):
+        desc = super(SceneHandle, self).__repr__()
+        desc += str(self)
+        return desc
+
+    def __str__(self):
+        desc = "Scene Handler\n"
+        desc += ".scene: " + self.scene.__repr__() + "\n"
+        desc += ".camera: " + self.camera.__repr__() + "\n"
+        desc += ".source: " + self.source.__repr__() + "\n"
+        desc += ".engine: " + self.engine.__repr__() + "\n"
+        return desc
 
 class Scene(object):
 
@@ -28,7 +48,6 @@ class Scene(object):
 
     def __init__(self):
         super(Scene, self).__init__()
-        self.datasets = []
         self.camera = None
         self.sources = {}
         self.camera_path = None
@@ -39,17 +58,14 @@ class Scene(object):
         for source in self.sources.values():
             source.set_camera(self.camera)
 
-    def setup_camera_links(self):
-        """
-        The camera object needs to be linked to:
-            * Engines
-            * Render Sources
-        """
-        if self.camera is None:
-            raise RuntimeError("Camera does not exist")
+    def get_handle(self, key=None):
+        """docstring for get_handle"""
 
-        for source in self.sources.values():
-            source.set_camera(self.camera)
+        if key is None:
+            key = self.sources.keys()[0]
+        handle = SceneHandle(self, self.camera, self.sources[key],
+                             self.sources[key].engine)
+        return handle
 
     def iter_opaque_sources(self):
         """
@@ -83,10 +99,6 @@ class Scene(object):
             self.request()
         return self._current
 
-    def register_dataset(self, ds):
-        """Add a dataset to the scene"""
-        self.datasets.append(ds)
-
     def add_source(self, render_source, keyname=None):
         """
         Add a render source to the scene.  This will autodetect the
@@ -101,7 +113,7 @@ class Scene(object):
 
         return self
 
-    def render(self, fname=None):
+    def render(self, fname=None, clip_ratio=None):
         self.validate()
         ims = {}
         for k, v in self.sources.iteritems():
@@ -116,7 +128,7 @@ class Scene(object):
         assert(isinstance(bmp, ImageArray))
 
         if fname is not None:
-            bmp.write_png(fname, clip_ratio=4.0)
+            bmp.write_png(fname, clip_ratio=clip_ratio)
         return bmp
 
 
