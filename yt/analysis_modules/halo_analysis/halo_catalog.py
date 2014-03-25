@@ -418,6 +418,9 @@ class HaloCatalog(ParallelAnalysisInterface):
             rh.run()
             halos_pf = RockstarDataset('{0}/rockstar_halos/halos_0.0.bin'.format(self.output_prefix))
             halos_pf.create_field_info()
+        else:
+            raise RuntimeError("finder_method must be 'fof', 'hop', or 'rockstar'")
+
 
         return halos_pf
 
