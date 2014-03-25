@@ -554,6 +554,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                     ind += c
         pf.domain_left_edge = np.ones(3)*pf.domain_left_edge
         pf.domain_right_edge = np.ones(3)*pf.domain_right_edge
+        pf.domain_width = np.ones(3)*2*pf.domain_right_edge
 
     def _initialize_index(self, data_file, regions):
         pf = data_file.pf
