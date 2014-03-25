@@ -20,9 +20,9 @@ import shutil
 from yt.testing import \
     fake_random_pf
 import numpy as np
-from yt.mods import ColorTransferFunction, ProjectionTransferFunction
 from yt.visualization.volume_rendering.api import \
-    PerspectiveCamera, StereoPairCamera, InteractiveCamera, ProjectionCamera
+    PerspectiveCamera, StereoPairCamera, InteractiveCamera, ProjectionCamera, \
+    ColorTransferFunction, ProjectionTransferFunction
 from yt.visualization.tests.test_plotwindow import assert_fname
 from unittest import TestCase
 
