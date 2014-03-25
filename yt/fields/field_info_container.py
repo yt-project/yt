@@ -55,6 +55,7 @@ class FieldInfoContainer(dict):
     known_particle_fields = ()
 
     def __init__(self, pf, field_list, slice_info = None):
+        self._show_field_errors = []
         self.pf = pf
         # Now we start setting things up.
         self.field_list = field_list
@@ -171,8 +172,11 @@ class FieldInfoContainer(dict):
         self.find_dependencies(loaded)
 
     def load_plugin(self, plugin_name, ftype = "gas", skip_check = False):
+        if callable(plugin_name):
+            f = plugin_name
+        else:
+            f = field_plugins[plugin_name]
         orig = set(self.items())
-        f = field_plugins[plugin_name]
         f(self, ftype, slice_info = self.slice_info)
         loaded = [n for n, v in set(self.items()).difference(orig)]
         return loaded
@@ -309,6 +313,8 @@ class FieldInfoContainer(dict):
             try:
                 fd = fi.get_dependencies(pf = self.pf)
             except Exception as e:
+                if field in self._show_field_errors:
+                    raise
                 if type(e) != YTFieldNotFound:
                     mylog.debug("Raises %s during field %s detection.",
                                 str(type(e)), field)

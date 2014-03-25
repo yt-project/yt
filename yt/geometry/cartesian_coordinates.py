@@ -17,7 +17,8 @@ Cartesian fields
 import numpy as np
 from .coordinate_handler import \
     CoordinateHandler, \
-    _unknown_coord
+    _unknown_coord, \
+    _get_coord_fields
 
 class CartesianCoordinateHandler(CoordinateHandler):
 
@@ -25,16 +26,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
         super(CartesianCoordinateHandler, self).__init__(pf)
 
     def setup_fields(self, registry):
-        def _get_coord_fields(axi, ax):
-            def _dds(field, data):
-                rv = data.pf.arr(data.fwidth[...,axi], 'code_length')
-                return data._reshape_vals(rv)
-            def _coords(field, data):
-                rv = data.pf.arr(data.fcoords[...,axi], 'code_length')
-                return data._reshape_vals(rv)
-            return _dds, _coords
         for axi, ax in enumerate('xyz'):
-            f1, f2 = _get_coord_fields(axi, ax)
+            f1, f2 = _get_coord_fields(axi)
             registry.add_field(("index", "d%s" % ax), function = f1,
                                display_field = False,
                                units = "code_length")

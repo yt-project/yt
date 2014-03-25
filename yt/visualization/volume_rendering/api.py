@@ -17,9 +17,6 @@ from transfer_functions import TransferFunction, ColorTransferFunction, \
                              PlanckTransferFunction, \
                              MultiVariateTransferFunction, \
                              ProjectionTransferFunction
-from grid_partitioner import HomogenizedVolume, \
-                             export_partitioned_grids, \
-                             import_partitioned_grids
 from image_handling import export_rgba, import_rgba, \
                            plot_channel, plot_rgb
 

@@ -605,6 +605,8 @@ def fix_length(length, pf=None):
     else:
         registry = None
     if isinstance(length, YTArray):
+        if registry is not None:
+            length.units.registry = registry
         return length.in_units("code_length")
     if isinstance(length, numeric_type):
         return YTArray(length, 'code_length', registry=registry)
