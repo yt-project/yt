@@ -28,8 +28,9 @@ from yt.funcs import \
     just_one
 
 from .vector_operations import \
-     create_magnitude_field
-    
+     create_magnitude_field, \
+     create_squared_field
+
 @register_field_plugin
 def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
     # slice_info would be the left, the right, and the factor.
@@ -126,6 +127,9 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
     create_magnitude_field(registry, "vorticity", "1/s",
                            ftype=ftype, slice_info=slice_info,
                            validators=vort_validators)
+    create_squared_field(registry, "vorticity", "1/s**2",
+                         ftype=ftype, slice_info=slice_info,
+                         validators=vort_validators)
 
     def _vorticity_stretching_x(field, data):
         return data[ftype, "velocity_divergence"] * data[ftype, "vorticity_x"]

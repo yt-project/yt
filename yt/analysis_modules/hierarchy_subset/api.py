@@ -1,5 +1,5 @@
 """
-API for index_subset
+API for hierarchy_subset
 
 
 
@@ -13,7 +13,7 @@ API for index_subset
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from .index_subset import \
+from .hierarchy_subset import \
     ConstructedRootGrid, \
     AMRExtractedGridProxy, \
     ExtractedHierarchy, \
