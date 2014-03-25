@@ -48,6 +48,7 @@ class BoxlibFieldInfo(FieldInfoContainer):
         ("ymom", (mom_units, ["momentum_y"], None)),
         ("zmom", (mom_units, ["momentum_z"], None)),
         ("temperature", ("K", ["temperature"], None)),
+        ("Temp", ("K", ["temperature"], None)),
         ("x_velocity", ("cm/s", ["velocity_x"], None)),
         ("y_velocity", ("cm/s", ["velocity_y"], None)),
     )
@@ -89,5 +90,7 @@ class BoxlibFieldInfo(FieldInfoContainer):
         self.add_field(("gas", "thermal_energy_density"),
                        function = _thermal_energy_density,
                        units = "erg/cm**3")
-        self.add_field(("gas", "temperature"), function=_temperature,
-                       units="K")
+        if ("gas", "temperature") not in self.field_aliases:
+            self.add_field(("gas", "temperature"),
+                           function=_temperature,
+                           units="K")

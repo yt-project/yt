@@ -177,7 +177,7 @@ class BoxlibHierarchy(GridIndex):
             if self.dimensionality < 3:
                 dx[i].append(DRE[2] - DLE[1])
         self.level_dds = np.array(dx, dtype="float64")
-        coordinate_type = int(header_file.next())
+        header_file.next()
         if self.pf.geometry == "cartesian":
             default_ybounds = (0.0, 1.0)
             default_zbounds = (0.0, 1.0)
@@ -582,7 +582,11 @@ class BoxlibDataset(Dataset):
         header_file.readline()
         self._header_mesh_start = header_file.tell()
         header_file.next()
-        coordinate_type = int(header_file.next())
+        next_line = header_file.next()
+        if len(next_line.split()) == 1:
+            coordinate_type = int(next_line)
+        else:
+            coordinate_type = 0
         if coordinate_type == 0:
             self.geometry = "cartesian"
         elif coordinate_type == 1:
