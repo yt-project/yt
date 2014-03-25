@@ -375,7 +375,18 @@ class TipsyDataset(ParticleDataset):
                  n_ref=64, over_refine_factor=1):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
-        self.endian = self._validate_header(filename)[1]
+        success, self.endian = self._validate_header(filename)
+        if not success:
+            print "SOMETHING HAS GONE WRONG.  NBODIES != SUM PARTICLES."
+            print "%s != (%s == %s + %s + %s)" % (
+                self.parameters['nbodies'],
+                tot,
+                self.parameters['nsph'],
+                self.parameters['ndark'],
+                self.parameters['nstar'])
+            print "Often this can be fixed by changing the 'endian' parameter."
+            print "This defaults to '>' but may in fact be '<'."
+            raise RuntimeError
         self.storage_filename = None
 
         # My understanding is that dtypes are set on a field by field basis,
@@ -453,19 +464,6 @@ class TipsyDataset(ParticleDataset):
             self.domain_right_edge = np.zeros(3, "float64") + 0.5*self.parameters.get('dPeriod', 1)
         else:
             self.periodicity = (False, False, False)
-        tot = sum(self.parameters[ptype] for ptype
-                  in ('nsph', 'ndark', 'nstar'))
-        if tot != self.parameters['nbodies']:
-            print "SOMETHING HAS GONE WRONG.  NBODIES != SUM PARTICLES."
-            print "%s != (%s == %s + %s + %s)" % (
-                self.parameters['nbodies'],
-                tot,
-                self.parameters['nsph'],
-                self.parameters['ndark'],
-                self.parameters['nstar'])
-            print "Often this can be fixed by changing the 'endian' parameter."
-            print "This defaults to '>' but may in fact be '<'."
-            raise RuntimeError
         if self.parameters.get('bComove', False):
             self.cosmological_simulation = 1
             cosm = self._cosmology_parameters or {}
