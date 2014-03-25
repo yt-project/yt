@@ -33,9 +33,39 @@ from yt.units.unit_registry import UnitRegistry
 
 parallel_capable = ytcfg.getboolean("yt", "__parallel")
 
+dtype_names = dict(
+        float32 = "MPI.FLOAT",
+        float64 = "MPI.DOUBLE",
+        int32   = "MPI.INT",
+        int64   = "MPI.LONG",
+        c       = "MPI.CHAR",
+)
+op_names = dict(
+        sum = "MPI.SUM",
+        min = "MPI.MIN",
+        max = "MPI.MAX"
+)
+
 # Set up translation table and import things
-if parallel_capable:
+
+exe_name = os.path.basename(sys.executable)
+def enable_parallelism():
+    global parallel_capable
     from mpi4py import MPI
+    parallel_capable = (MPI.COMM_WORLD.size > 1)
+    if not parallel_capable: return False
+    mylog.info("Global parallel computation enabled: %s / %s",
+               MPI.COMM_WORLD.rank, MPI.COMM_WORLD.size)
+    ytcfg["yt","__global_parallel_rank"] = str(MPI.COMM_WORLD.rank)
+    ytcfg["yt","__global_parallel_size"] = str(MPI.COMM_WORLD.size)
+    ytcfg["yt","__parallel"] = "True"
+    if exe_name == "embed_enzo" or \
+        ("_parallel" in dir(sys) and sys._parallel == True):
+        ytcfg["yt","inline"] = "True"
+    if MPI.COMM_WORLD.rank > 0:
+        if ytcfg.getboolean("yt","LogFile"):
+            ytcfg["yt","LogFile"] = "False"
+            yt.utilities.logger.disable_file_logging()
     yt.utilities.logger.uncolorize_logging()
     # Even though the uncolorize function already resets the format string,
     # we reset it again so that it includes the processor.
@@ -48,32 +78,19 @@ if parallel_capable:
     if ytcfg.getint("yt","LogLevel") < 20:
         yt.utilities.logger.ytLogger.warning(
           "Log Level is set low -- this could affect parallel performance!")
-    dtype_names = dict(
+    dtype_names.update(dict(
             float32 = MPI.FLOAT,
             float64 = MPI.DOUBLE,
             int32   = MPI.INT,
             int64   = MPI.LONG,
             c       = MPI.CHAR,
-    )
-    op_names = dict(
+    ))
+    op_names.update(dict(
         sum = MPI.SUM,
         min = MPI.MIN,
         max = MPI.MAX
-    )
-
-else:
-    dtype_names = dict(
-            float32 = "MPI.FLOAT",
-            float64 = "MPI.DOUBLE",
-            int32   = "MPI.INT",
-            int64   = "MPI.LONG",
-            c       = "MPI.CHAR",
-    )
-    op_names = dict(
-            sum = "MPI.SUM",
-            min = "MPI.MIN",
-            max = "MPI.MAX"
-    )
+    ))
+    return True
 
 # Because the dtypes will == correctly but do not hash the same, we need this
 # function for dictionary access.

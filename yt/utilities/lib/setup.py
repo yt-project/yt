@@ -2,8 +2,6 @@
 import setuptools
 import os, sys, os.path, glob, \
     tempfile, subprocess, shutil
-from yt.utilities.setup import \
-    check_for_dependencies
 
 def check_for_openmp():
     # Create a temporary directory
