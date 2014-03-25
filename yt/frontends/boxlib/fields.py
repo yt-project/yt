@@ -36,8 +36,9 @@ def _thermal_energy(field, data):
     return data["thermal_energy_density"] / data["density"]
 
 def _temperature(field,data):
-    mu = data.get_field_parameter("mu")
-    return ( (data.pf.gamma-1.0) * mu * mh *
+    mu = data.pf.parameters["mu"]
+    gamma = data.pf.parameters["gamma"]
+    return ( gamma * mu * mh *
              data["thermal_energy"] / (kboltz * data["density"]) )
 
 
@@ -74,17 +75,19 @@ class BoxlibFieldInfo(FieldInfoContainer):
     )
 
     def setup_fluid_fields(self):
+        self._show_field_errors.append(("gas", "temperature"))
         def _get_vel(axis):
             def velocity(field, data):
-                return data["%smom" % ax]/data["density"]
+                return data["%smom" % axis]/data["density"]
         for ax in 'xyz':
-            self.add_field("velocity_%s" % ax, function = _get_vel(ax),
+            self.add_field(("gas", "velocity_%s" % ax),
+                           function = _get_vel(ax),
                            units = "cm/s")
-        self.add_field("thermal_energy",
+        self.add_field(("gas", "thermal_energy"),
                        function = _thermal_energy,
                        units = "erg/g")
-        self.add_field("thermal_energy_density",
+        self.add_field(("gas", "thermal_energy_density"),
                        function = _thermal_energy_density,
                        units = "erg/cm**3")
-        self.add_field("temperature", function=_temperature,
+        self.add_field(("gas", "temperature"), function=_temperature,
                        units="K")
