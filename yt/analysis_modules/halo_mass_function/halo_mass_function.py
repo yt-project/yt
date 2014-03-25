@@ -26,8 +26,8 @@ from yt.utilities.physical_ratios import \
 
 class HaloMassFcn(ParallelAnalysisInterface):
     """
-    Initalize a HaloMassFcn object to analyze the distribution of haloes
-    as a function of mass.
+    Initalize a HaloMassFcn object to analyze the distribution of halos as 
+    a function of mass.
     :param ds (str): The loaded simulation dataset.
     Default=None.
     :param halos_ds (str): The loaded halo dataset.
@@ -109,18 +109,16 @@ class HaloMassFcn(ParallelAnalysisInterface):
                 self.hubble0 = self.halos_ds.hubble_constant
                 self.this_redshift = self.halos_ds.current_redshift
             # Check that all the parameters for the analytic function have been set
-            '''
-            if omega_matter0 == None or omega_lambda0 == None or \
-            hubble0 == None or this_redshift == None or log_mass_min == None or\
-            log_mass_max == None:            
+            if self.omega_matter0 == None or self.omega_lambda0 == None or \
+            self.hubble0 == None or self.this_redshift == None or \
+            self.log_mass_min == None or self.log_mass_max == None:            
                 mylog.error("All of these parameters need to be set:")
                 mylog.error("[omega_matter0, omega_lambda0, \
-                hubble0, this_redshift, log_mass_min, log_mass_max]")
-                mylog.error("[%s,%s,%s,%s,%s,%s]" % (omega_matter0,\
-                omega_lambda0, hubble0, this_redshift,\
-                log_mass_min, log_mass_max))
+hubble0, this_redshift, log_mass_min, log_mass_max]")
+                mylog.error("[%s,%s,%s,%s,%s,%s]" % (self.omega_matter0,\
+                self.omega_lambda0, self.hubble0, self.this_redshift,\
+                self.log_mass_min, self.log_mass_max))
                 return None
-            '''
             # Do the calculations.
             self.sigmaM()
             self.dndm()
@@ -129,6 +127,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
         If a halo file has been supplied, make a mass function for the simulated halos.
         """
         if halos_ds is not None:
+            self.make_simulated=True
             self.create_sim_hmf()
 
     """
@@ -141,28 +140,28 @@ class HaloMassFcn(ParallelAnalysisInterface):
         # Determine the size of the simulation volume in comoving Mpc**3
         sim_volume = (self.halos_ds.domain_width.in_units('Mpccm')).prod()
         # Get rid of the densities that correspond to repeated halo masses
-        dn_dM_sim = np.arange(len(masses_sim),0,-1)
+        n_cumulative_sim = np.arange(len(masses_sim),0,-1)
         # We don't want repeated halo masses, and the uniques indices tell us which 
         # densities are representative.
         self.masses_sim, unique_indices = np.unique(masses_sim, return_index=True)
         # Now make this an actual number density
-        self.dn_dM_sim = dn_dM_sim[unique_indices]/sim_volume
-        # masses_sim and dn_dM_sim are now set, but remember that the log10 quantities
+        self.n_cumulative_sim = n_cumulative_sim[unique_indices]/sim_volume
+        # masses_sim and n_cumulative_sim are now set, but remember that the log10 quantities
         # are what is usually plotted for a halo mass function.
 
-    def write_out(self, prefix='HMF', fit=True, haloes=True):
+    def write_out(self, prefix='HMF', analytic=True, simulated=True):
         """
         Writes out the halo mass functions to file(s) with prefix *prefix*.
         """
-        # First the fit file.
-        if fit:
-            fitname = prefix + '-fit.dat'
+        # First the analytic file.
+        if self.make_analytic==True and analytic:
+            fitname = prefix + '-analytic.dat'
             fp = self.comm.write_on_root(fitname)
             line = \
             """#Columns:
 #1. log10 of mass (Msolar, NOT Msolar/h)
 #2. mass (Msolar/h)
-#3. (dn/dM)*dM (differential number density of haloes, per Mpc^3 (NOT h^3/Mpc^3)
+#3. (dn/dM)*dM (differential number density of halos, per Mpc^3 (NOT h^3/Mpc^3)
 #4. cumulative number density of halos (per Mpc^3, NOT h^3/Mpc^3)
 """
             fp.write(line)
@@ -171,19 +170,20 @@ class HaloMassFcn(ParallelAnalysisInterface):
                 self.dn_M_z[i], self.nofmz_cum[i])
                 fp.write(line)
             fp.close()
-        if self.mode == 'haloes' and haloes:
-            haloname = prefix + '-haloes.dat'
+        if self.make_simulated==True and simulated:
+            haloname = prefix + '-simulated.dat'
             fp = self.comm.write_on_root(haloname)
             line = \
             """#Columns:
 #1. log10 of mass (Msolar, NOT Msolar/h)
 #2. mass (Msolar/h)
-#3. cumulative number density of haloes (per Mpc^3, NOT h^3/Mpc^3)
+#3. cumulative number density of halos (per Mpc^3, NOT h^3/Mpc^3)
 """
             fp.write(line)
-            for i in xrange(self.logmassarray.size - 1):
-                line = "%e\t%e\t%e\n" % (self.logmassarray[i], self.massarray[i],
-                self.dis[i])
+            for i in xrange(self.masses_sim.size - 1):
+                line = "%e\t%e\t%e\n" % (np.log10(self.masses_sim[i]), 
+                self.masses_sim[i]/self.hubble0,
+                self.n_cumulative_sim[i])
                 fp.write(line)
             fp.close()
 
@@ -268,13 +268,12 @@ class HaloMassFcn(ParallelAnalysisInterface):
             # All done!
 
     def dndm(self):
-        
         # constants - set these before calling any functions!
         # rho0 in units of h^2 Msolar/Mpc^3
         rho0 = YTQuantity(self.omega_matter0 * rho_crit_g_cm3_h2, 'g/cm**3')\
                .in_units('Msun/Mpc**3')
         rho0 = rho0.value.item()
-        print rho0
+
         self.delta_c0 = 1.69;  # critical density for turnaround (Press-Schechter)
         
         nofmz_cum = 0.0;  # keep track of cumulative number density
