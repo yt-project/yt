@@ -351,7 +351,7 @@ class TipsyFile(ParticleFile):
         assert file_id == 0
         super(TipsyFile, self).__init__(pf, io, filename, file_id)
         io._create_dtypes(self)
-        io._update_domain(self)
+        io._update_domain(self)#Check automatically what the domain size is
 
 
 class TipsyDataset(ParticleDataset):
@@ -461,6 +461,7 @@ class TipsyDataset(ParticleDataset):
         self.domain_dimensions = np.ones(3, "int32") * nz
         if self.parameters.get('bPeriodic', True):
             self.periodicity = (True, True, True)
+            # If we are periodic, that sets our domain width to either 1 or dPeriod.
             self.domain_left_edge = np.zeros(3, "float64") - 0.5*self.parameters.get('dPeriod', 1)
             self.domain_right_edge = np.zeros(3, "float64") + 0.5*self.parameters.get('dPeriod', 1)
         else:
@@ -511,6 +512,12 @@ class TipsyDataset(ParticleDataset):
 
     @staticmethod
     def _validate_header(filename):
+        '''
+        This method automatically detects whether the tipsy file is big/little endian
+        and is not corrupt/invalid.  It returns a tuple of (Valid, endianswap) where
+        Valid is a boolean that is true if the file is a tipsy file, and endianswap is 
+        the endianness character '>' or '<'.
+        '''
         try:
             f = open(filename,'rb')
         except:
