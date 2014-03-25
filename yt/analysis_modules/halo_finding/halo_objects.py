@@ -150,8 +150,10 @@ class Halo(object):
             sel = (c[i] <= (self.pf.domain_width[i]/2))
             c[i][sel] += self.pf.domain_width[i]
             com.append(c[i])
-        com = np.array(com)
+
         c = (com * pm).sum(axis=1) / pm.sum()
+        c = self.pf.arr(c, 'code_length')
+
         return c%self.pf.domain_width + self.pf.domain_left_edge
 
     def maximum_density(self):
@@ -435,13 +437,13 @@ class Halo(object):
         z = self.pf.current_redshift
         period = self.pf.domain_right_edge - \
             self.pf.domain_left_edge
-        cm = self.pf["cm"]
+        #cm = self.pf["cm"]
         thissize = self.get_size()
         rho_crit = rho_crit_g_cm3_h2 * h ** 2.0 * Om_matter  # g cm^-3
         Msun2g = mass_sun_cgs
         rho_crit = rho_crit * ((1.0 + z) ** 3.0)
         # Get some pertinent information about the halo.
-        self.mass_bins = np.zeros(self.bin_count + 1, dtype='float64')
+        self.mass_bins = YTArray(np.zeros(self.bin_count + 1, dtype='float64'),'Msun')
         dist = np.empty(thissize, dtype='float64')
         cen = self.center_of_mass()
         mark = 0
@@ -456,6 +458,7 @@ class Halo(object):
         # Multiply min and max to prevent issues with digitize below.
         self.radial_bins = np.logspace(math.log10(min(dist) * .99 + TINY),
             math.log10(max(dist) * 1.01 + 2 * TINY), num=self.bin_count + 1)
+        self.radial_bins = self.pf.arr(self.radial_bins,'code_length')
         # Find out which bin each particle goes into, and add the particle
         # mass to that bin.
         inds = np.digitize(dist, self.radial_bins) - 1
@@ -468,8 +471,8 @@ class Halo(object):
             self.mass_bins[i + 1] += self.mass_bins[i]
         # Calculate the over densities in the bins.
         self.overdensity = self.mass_bins * Msun2g / \
-        (4./3. * math.pi * rho_crit * \
-        (self.radial_bins * cm)**3.0)
+            (4./3. * math.pi * rho_crit * \
+            (self.radial_bins )**3.0)
         
     def _get_ellipsoid_parameters_basic(self):
         np.seterr(all='ignore')
@@ -740,6 +743,8 @@ class parallelHOPHalo(Halo, ParallelAnalysisInterface):
         # Multiply min and max to prevent issues with digitize below.
         self.radial_bins = np.logspace(math.log10(dist_min * .99 + TINY),
             math.log10(dist_max * 1.01 + 2 * TINY), num=self.bin_count + 1)
+        self.radial_bins = pf.arr(self.radial_bins, 'code_length')
+
         if self.indices is not None and self.indices.size > 1:
             # Find out which bin each particle goes into, and add the particle
             # mass to that bin.
@@ -755,7 +760,9 @@ class parallelHOPHalo(Halo, ParallelAnalysisInterface):
         # Calculate the over densities in the bins.
         self.overdensity = self.mass_bins * Msun2g / \
         (4. / 3. * math.pi * rho_crit * \
-        (self.radial_bins * self.data.pf["cm"]) ** 3.0)
+        (self.radial_bins) ** 3.0)
+        print self.overdensity
+        print self.radial_bins
 
     def _get_ellipsoid_parameters_basic(self):
         mylog.error("Ellipsoid calculation does not work for parallelHF halos." + \
