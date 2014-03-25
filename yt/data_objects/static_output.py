@@ -279,7 +279,10 @@ class Dataset(object):
                 self, dataset_type=self.dataset_type)
             # Now we do things that we need an instantiated index for
             # ...first off, we create our field_info now.
+            oldsettings = np.geterr()
+            np.seterr(all='ignore')
             self.create_field_info()
+            np.seterr(**oldsettings)
         return self._instantiated_index
     
     _index_proxy = None
