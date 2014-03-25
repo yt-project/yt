@@ -149,6 +149,8 @@ class SZProjection(object):
 
         beta_par = generate_beta_par(L)
         self.pf.field_info.add_field(("gas","beta_par"), function=beta_par, units="g/cm**3")
+        proj = self.pf.h.proj("density", axis, center=ctr, data_source=source)
+        proj.set_field_parameter("axis", axis)
         frb = proj.to_frb(width, nx)
         dens = frb["density"]
         Te = frb["t_sz"]/dens
