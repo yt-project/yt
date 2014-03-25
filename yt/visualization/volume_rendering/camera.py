@@ -113,6 +113,29 @@ class Camera(Orientation):
                                          north_vector=north_vector)
         self._moved = True
 
+
+
+    # MOVE THIS
+    def get_sampler(self, args):
+        kwargs = {}
+        kwargs['zbuffer'] = np.ones((self.resolution[0], self.resolution[1]))
+        if self.star_trees is not None:
+            kwargs = {'star_list': self.star_trees}
+        if self.use_light:
+            if self.light_dir is None:
+                self.set_default_light_dir()
+            temp_dir = np.empty(3,dtype='float64')
+            temp_dir = self.light_dir[0] * self.orienter.unit_vectors[1] + \
+                    self.light_dir[1] * self.orienter.unit_vectors[2] + \
+                    self.light_dir[2] * self.orienter.unit_vectors[0]
+            if self.light_rgba is None:
+                self.set_default_light_rgba()
+            sampler = LightSourceRenderSampler(*args, light_dir=temp_dir,
+                    light_rgba=self.light_rgba, **kwargs)
+        else:
+            sampler = self._sampler_object(*args, **kwargs)
+        return sampler
+
     def pitch(self, theta):
         r"""Rotate by a given angle about the horizontal axis
 

@@ -553,6 +553,7 @@ class Camera(ParallelAnalysisInterface):
     star_trees = None
     def get_sampler(self, args):
         kwargs = {}
+        kwargs['zbuffer'] = np.ones((self.resolution[0], self.resolution[1]))
         if self.star_trees is not None:
             kwargs = {'star_list': self.star_trees}
         if self.use_light:
@@ -586,7 +587,7 @@ class Camera(ParallelAnalysisInterface):
                     if np.any(np.isnan(data)):
                         raise RuntimeError
 
-        view_pos = self.front_center + self.orienter.unit_vectors[2] * 1.0e6 * self.width[2]
+        view_pos = self.back_center - self.orienter.unit_vectors[2] * 1.0e6 * self.width[2]
         for brick in self.volume.traverse(view_pos):
             sampler(brick, num_threads=num_threads)
             total_cells += np.prod(brick.my_data[0].shape)
@@ -2173,8 +2174,8 @@ class ProjectionCamera(Camera):
             pass
 
     def get_sampler_args(self, image):
-        rotp = np.concatenate([self.orienter.inv_mat.ravel('F'), self.back_center.ravel()])
-        args = (rotp, self.box_vectors[2], self.back_center,
+        rotp = np.concatenate([self.orienter.inv_mat.ravel('F'), self.front_center.ravel()])
+        args = (rotp, -self.box_vectors[2], self.front_center,
             (-self.width[0]/2., self.width[0]/2.,
              -self.width[1]/2., self.width[1]/2.),
             image, self.orienter.unit_vectors[0], self.orienter.unit_vectors[1],
