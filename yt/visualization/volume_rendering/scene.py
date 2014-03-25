@@ -17,6 +17,7 @@ from yt.data_objects.static_output import Dataset
 from camera import Camera
 from render_source import VolumeSource, OpaqueSource
 from yt.data_objects.api import ImageArray
+from zbuffer_array import ZBuffer
 import numpy as np
 
 class SceneHandle(object):
@@ -97,10 +98,19 @@ class Scene(object):
                 raise RuntimeError("Couldn't build default camera")
         return
 
-    def request(self):
-        pass
-
     def composite(self):
+        opaque = ZBuffer(
+            np.zeros(self.camera.resolution[0],
+                     self.camera.resolution[1],
+                     4),
+            np.ones(self.camera.resolution) * np.inf)
+
+        for k, source in self.iter_opaque_sources():
+            opaque = opaque + source.zbuffer
+
+        for k, source in self.iter_transparent_sources():
+            source.render(zbuffer=opaque)
+            opaque = opaque + source.zbuffer
         pass
 
     @property
