@@ -16,6 +16,8 @@ from yt.funcs import mylog
 from yt.data_objects.static_output import Dataset
 from camera import Camera
 from render_source import VolumeSource, OpaqueSource
+from yt.data_objects.api import ImageArray
+import numpy as np
 
 
 class Scene(object):
@@ -99,7 +101,7 @@ class Scene(object):
 
         return self
 
-    def render(self):
+    def render(self, fname=None):
         self.validate()
         ims = {}
         for k, v in self.sources.iteritems():
@@ -107,14 +109,42 @@ class Scene(object):
             print 'Running', k, v
             ims[k] = v.request()
 
-        return ims
+        bmp = np.zeros_like(ims.values()[0])
+        for k, v in ims.iteritems():
+            bmp += v
+        bmp = ImageArray(bmp.d)
+        assert(isinstance(bmp, ImageArray))
 
+        if fname is not None:
+            bmp.write_png(fname, clip_ratio=4.0)
+        return bmp
+
+
+def create_volume_rendering(data_source, field=None):
+    if isinstance(data_source, Dataset):
+        pf = data_source
+        data_source = data_source.all_data()
+    else:
+        pf = data_source.pf
+
+    sc = Scene()
+    camera = Camera(data_source)
+    if field is None:
+        pf.field_list
+        field = pf.field_list[0]
+        mylog.info('Setting default field to %s' % field.__repr__())
+    render_source = VolumeSource(data_source, field)
+
+    sc.set_camera(camera)
+    sc.add_source(render_source)
+    render_source.build_defaults()
+    return sc
 
 class RenderScene(Scene):
 
     """docstring for RenderScene"""
 
-    def __init__(self, data_source=None, field=None):
+    def __init__(self, data_source, field=None):
         super(RenderScene, self).__init__()
         if isinstance(data_source, Dataset):
             self.ds = data_source
@@ -139,5 +169,3 @@ class RenderScene(Scene):
             render_source = VolumeSource(self.data_source, self.field)
             self.add_source(render_source)
             render_source.build_defaults()
-
-

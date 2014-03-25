@@ -45,8 +45,11 @@ class Camera(Orientation):
         data_source = self.data_source
         self.position = data_source.pf.domain_right_edge
 
-        width = data_source.pf.domain_width.max()
-        focus = data_source.pf.domain_center
+        width = 1.5 * data_source.pf.domain_width.max()
+        (xmi, xma), (ymi, yma), (zmi, zma) = \
+            data_source.quantities['Extrema'](['x', 'y', 'z'])
+        width = np.sqrt((xma-xmi)**2 + (yma-ymi)**2 + (zma-zmi)**2)
+        focus = data_source.get_field_parameter('center')
 
         if iterable(width) and len(width) > 1 and isinstance(width[1], str):
             width = self.pf.quan(width[0], input_units=width[1])

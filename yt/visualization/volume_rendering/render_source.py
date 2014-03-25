@@ -14,6 +14,7 @@ RenderSource Class
 #-----------------------------------------------------------------------------
 
 import numpy as np
+from yt.data_objects.api import ImageArray
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.utilities.amr_kdtree.api import AMRKDTree
@@ -103,7 +104,7 @@ class VolumeSource(RenderSource):
         self.volume = AMRKDTree(self.data_source.pf,
                                 data_source=self.data_source)
         log_fields = [self.data_source.pf.field_info[self.field].take_log]
-        self.volume.set_fields([self.field], log_fields, False)
+        self.volume.set_fields([self.field], log_fields, True)
 
     def set_scene(self, scene):
         self.scene = scene
@@ -124,8 +125,10 @@ class VolumeSource(RenderSource):
         if cam is None:
             cam = Camera(self.data_source)
             self.scene.camera = cam
-        self.current_image = np.zeros((cam.resolution[0], cam.resolution[1],
-                                       4), dtype='float64', order='C')
+        self.current_image = ImageArray(
+            np.zeros((cam.resolution[0], cam.resolution[1],
+                      4), dtype='float64', order='C'),
+            info={'imtype': 'rendering'})
         return self.current_image
 
     def teardown(self):

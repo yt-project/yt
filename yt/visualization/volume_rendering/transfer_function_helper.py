@@ -49,7 +49,7 @@ class TransferFunctionHelper(object):
         self.log = False
         self.tf = None
         self.bounds = None
-        self.grey_opacity = True
+        self.grey_opacity = False
         self.profiles = {}
 
     def set_bounds(self, bounds=None):
@@ -66,7 +66,8 @@ class TransferFunctionHelper(object):
         """
         if bounds is None:
             bounds = self.pf.h.all_data().quantities['Extrema'](self.field)
-        self.bounds = bounds
+            bounds = [b.ndarray_view() for b in bounds]
+            self.bounds = bounds
 
         # Do some error checking.
         assert(len(self.bounds) == 2)
@@ -85,6 +86,7 @@ class TransferFunctionHelper(object):
             The field to be rendered.
         """
         self.field = field
+        self.log = self.pf._get_field_info(self.field).take_log
 
     def set_log(self, log):
         """
@@ -133,9 +135,11 @@ class TransferFunctionHelper(object):
 
     def setup_default(self):
         """docstring for setup_default"""
-        mi, ma = self.bounds
-        print 'I AM MAPPING BETWEEN', mi, ma
-        self.tf.map_to_colormap(mi, ma, scale=10.0, colormap='RdBu_r')
+        if self.log:
+            mi, ma = np.log10(self.bounds[0]), np.log10(self.bounds[1])
+        else:
+            mi, ma = self.bounds
+        self.tf.add_layers(7, col_bounds=[mi, ma], colormap='RdBu_r')
 
     def plot(self, fn=None, profile_field=None, profile_weight=None):
         """
