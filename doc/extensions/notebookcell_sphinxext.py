@@ -35,12 +35,7 @@ class NotebookCellDirective(Directive):
 
         skip_exceptions = 'skip_exceptions' in self.options
 
-        try:
-            evaluated_text = \
-                evaluate_notebook('temp.ipynb', skip_exceptions=skip_exceptions)
-        except:
-            # bail
-            return []
+        evaluated_text = evaluate_notebook('temp.ipynb', skip_exceptions=skip_exceptions)
 
         # create notebook node
         attributes = {'format': 'html', 'source': 'nb_path'}
