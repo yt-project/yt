@@ -78,7 +78,6 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
 
     registry.add_field(("index", "zeros"), function=_zeros,
               units = "",
-              projection_conversion="unitary",
               display_field=False)
 
     def _ones(field, data):
@@ -88,7 +87,6 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
         return data.apply_units(arr, field.units)
 
     registry.add_field(("index", "ones"), function=_ones,
-              projection_conversion="unitary",
               units = "",
               display_field=False)
 

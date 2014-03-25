@@ -295,8 +295,6 @@ options available, but the only mandatory ones are ``name`` and possibly
      (*Advanced*) Should this field appear in the dropdown box in Reason?
    ``not_in_all``
      (*Advanced*) If this is *True*, the field may not be in all the grids.
-   ``projection_conversion``
-     (*Advanced*) Which unit should we multiply by in a projection?
 
 How Do Units Work?
 ------------------

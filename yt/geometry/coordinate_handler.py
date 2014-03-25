@@ -32,6 +32,15 @@ import yt.visualization._MPL as _MPL
 def _unknown_coord(field, data):
     raise YTCoordinateNotImplemented
 
+def _get_coord_fields(axi, units = "code_length"):
+    def _dds(field, data):
+        rv = data.pf.arr(data.fwidth[...,axi], units)
+        return data._reshape_vals(rv)
+    def _coords(field, data):
+        rv = data.pf.arr(data.fcoords[...,axi], units)
+        return data._reshape_vals(rv)
+    return _dds, _coords
+
 class CoordinateHandler(object):
     
     def __init__(self, pf):

@@ -80,8 +80,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     registry.add_field(("deposit", "%s_count" % ptype),
              function = particle_count,
              validators = [ValidateSpatial()],
-             display_name = "\\mathrm{%s Count}" % ptype,
-             projection_conversion = '1')
+             display_name = "\\mathrm{%s Count}" % ptype)
 
     def particle_mass(field, data):
         pos = data[ptype, coord_name]
