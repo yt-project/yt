@@ -21,12 +21,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelDummy, \
     ParallelAnalysisInterface, \
     parallel_blocking_call
-'''
-from yt.utilities.physical_constants import \
-    cm_per_mpc, \
-    mass_sun_cgs, \
-    rho_crit_now
-'''
+from yt.utilities.physical_ratios import \
+    rho_crit_g_cm3_h2
 
 class HaloMassFcn(ParallelAnalysisInterface):
     """
@@ -113,6 +109,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
                 self.hubble0 = self.halos_ds.hubble_constant
                 self.this_redshift = self.halos_ds.current_redshift
             # Check that all the parameters for the analytic function have been set
+            '''
             if omega_matter0 == None or omega_lambda0 == None or \
             hubble0 == None or this_redshift == None or log_mass_min == None or\
             log_mass_max == None:            
@@ -123,6 +120,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
                 omega_lambda0, hubble0, this_redshift,\
                 log_mass_min, log_mass_max))
                 return None
+            '''
             # Do the calculations.
             self.sigmaM()
             self.dndm()
@@ -132,6 +130,25 @@ class HaloMassFcn(ParallelAnalysisInterface):
         """
         if halos_ds is not None:
             self.create_sim_hmf()
+
+    """
+    Here's where we create the halo mass functions from simulated halos
+    """
+    def create_sim_hmf(self):
+        data_source = self.halos_ds.all_data()
+        # We're going to use indices to count the number of halos above a given mass
+        masses_sim = np.sort(data_source['ParticleMassMsun'])
+        # Determine the size of the simulation volume in comoving Mpc**3
+        sim_volume = (self.halos_ds.domain_width.in_units('Mpccm')).prod()
+        # Get rid of the densities that correspond to repeated halo masses
+        dn_dM_sim = np.arange(len(masses_sim),0,-1)
+        # We don't want repeated halo masses, and the uniques indices tell us which 
+        # densities are representative.
+        self.masses_sim, unique_indices = np.unique(masses_sim, return_index=True)
+        # Now make this an actual number density
+        self.dn_dM_sim = dn_dM_sim[unique_indices]/sim_volume
+        # masses_sim and dn_dM_sim are now set, but remember that the log10 quantities
+        # are what is usually plotted for a halo mass function.
 
     def write_out(self, prefix='HMF', fit=True, haloes=True):
         """
@@ -169,47 +186,6 @@ class HaloMassFcn(ParallelAnalysisInterface):
                 self.dis[i])
                 fp.write(line)
             fp.close()
-        
-    def read_haloes(self):
-        """
-        Read in the virial masses of the haloes.
-        """
-        mylog.info("Reading halo masses from %s" % self.halo_file)
-        f = open(self.halo_file,'r')
-        line = f.readline()
-        if line == "":
-            self.haloes = np.array([])
-            return
-        while line[0] == '#':
-            line = f.readline()
-        self.haloes = []
-        while line:
-            line = line.split()
-            mass = float(line[self.mass_column])
-            if mass > 0:
-                self.haloes.append(float(line[self.mass_column]))
-            line = f.readline()
-        f.close()
-        self.haloes = np.array(self.haloes)
-
-    """
-    Here's where we create the halo mass functions from simulated halos
-    """
-    def create_sim_hmf(self):
-        data_source = self.halos_ds.all_data()
-        # We're going to use indices to count the number of halos above a given mass
-        masses_sim = np.sort(data_source['ParticleMassMsun'])
-        # Determine the size of the simulation volume in (Mpc/h)**3
-        sim_volume = (self.halos_ds.domain_width.in_units('Mpccm')/self.halos_ds.hubble_constant).prod()
-        # Get rid of the densities that correspond to repeated halo masses
-        dn_dM_sim = np.arange(len(masses_sim),0,-1)
-        # We don't want repeated halo masses, and the uniques indices tell us which 
-        # densities are representative.
-        self.masses_sim, unique_indices = np.unique(masses_sim, return_index=True)
-        # Now make this an actual number density
-        self.dn_dM_sim = dn_dM_sim[unique_indices]/sim_volume
-        # masses_sim and dn_dM_sim are now set, but remember that the log10 quantities
-        # are what is usually plotted for a halo mass function.
 
     def sigmaM(self):
         """
@@ -257,8 +233,9 @@ class HaloMassFcn(ParallelAnalysisInterface):
         sigma_normalization = self.sigma8input / sigma8_unnorm;
 
         # rho0 in units of h^2 Msolar/Mpc^3
-        rho0 = self.omega_matter0 * \
-                rho_crit_now * cm_per_mpc**3 / mass_sun_cgs
+        rho0 = YTQuantity(self.omega_matter0 * rho_crit_g_cm3_h2, 'g/cm**3')\
+               .in_units('Msun/Mpc**3')
+        rho0 = rho0.value.item()       
 
         # spacing in mass of our sigma calculation
         dm = (float(self.log_mass_max) - self.log_mass_min)/self.num_sigma_bins;
@@ -294,8 +271,10 @@ class HaloMassFcn(ParallelAnalysisInterface):
         
         # constants - set these before calling any functions!
         # rho0 in units of h^2 Msolar/Mpc^3
-        rho0 = self.omega_matter0 * \
-                rho_crit_now * cm_per_mpc**3 / mass_sun_cgs
+        rho0 = YTQuantity(self.omega_matter0 * rho_crit_g_cm3_h2, 'g/cm**3')\
+               .in_units('Msun/Mpc**3')
+        rho0 = rho0.value.item()
+        print rho0
         self.delta_c0 = 1.69;  # critical density for turnaround (Press-Schechter)
         
         nofmz_cum = 0.0;  # keep track of cumulative number density

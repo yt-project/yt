@@ -79,6 +79,7 @@ eV_per_erg = 1.0 / erg_per_eV
 # flux
 jansky_cgs = 1.0e-23
 # Cosmological constants
+# Calculated with H = 100 km/s/Mpc
 rho_crit_g_cm3_h2 = 1.8788e-29
 
 # Misc. Approximations
