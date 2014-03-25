@@ -16,29 +16,35 @@ Orion-specific fields
 import numpy as np
 
 from yt.utilities.physical_constants import \
-    mh, kboltz
+    mh, boltzmann_constant_cgs, amu_cgs
 from yt.fields.field_info_container import \
     FieldInfoContainer
 
 rho_units = "code_mass / code_length**3"
-mom_units = "code_mass * code_length / code_time"
+mom_units = "code_mass / (code_time * code_length**2)"
 eden_units = "code_mass / (code_time**2 * code_length)" # erg / cm^3
 
 def _thermal_energy_density(field, data):
+    # What we've got here is UEINT:
+    # u here is velocity
+    # E is energy density from the file
+    #   rho e = rho E - rho * u * u / 2
     ke = 0.5 * ( data["momentum_x"]**2
                + data["momentum_y"]**2
                + data["momentum_z"]**2) / data["density"]
     return data["eden"] - ke
 
 def _thermal_energy(field, data):
+    # This is little e, so we take thermal_energy_density and divide by density
     return data["thermal_energy_density"] / data["density"]
 
 def _temperature(field,data):
     mu = data.pf.parameters["mu"]
     gamma = data.pf.parameters["gamma"]
-    return ( gamma * mu * mh *
-             data["thermal_energy"] / (kboltz * data["density"]) )
-
+    tr  = data["thermal_energy_density"] / data["density"]
+    tr *= mu * amu_cgs / boltzmann_constant_cgs
+    tr *= (gamma - 1.0)
+    return tr
 
 class BoxlibFieldInfo(FieldInfoContainer):
     known_other_fields = (
