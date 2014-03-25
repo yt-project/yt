@@ -142,8 +142,7 @@ The primary interface here is through the creation of an instance of
 :class:`~yt.visualization.volume_rendering.camera.Camera`, which represents a
 viewpoint into a volume.  The camera optionally accepts a volume, which can be
 either an instance of
-:class:`~yt.visualization.volume_rendering.grid_partitioner.HomogenizedVolume`
-or an instance of :class:`~yt.utilities.amr_kdtree.amr_kdtree.AMRKDTree` that
+:class:`~yt.utilities.amr_kdtree.amr_kdtree.AMRKDTree` that
 has already been initialized.  If one is not supplied, the camera will generate
 one itself.  This can also be specified if you wish to save bricks between
 repeated calls, thus saving considerable amounts of time.

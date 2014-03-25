@@ -604,13 +604,12 @@ See :ref:`derived-quantities`.
 
    ~yt.data_objects.derived_quantities.DerivedQuantity
    ~yt.data_objects.derived_quantities.DerivedQuantityCollection
-   ~yt.data_objects.derived_quantities.WeightedAverage
-   ~yt.data_objects.derived_quantities.TotalValue
+   ~yt.data_objects.derived_quantities.WeightedAverageQuantity
+   ~yt.data_objects.derived_quantities.TotalQuantity
    ~yt.data_objects.derived_quantities.TotalMass
    ~yt.data_objects.derived_quantities.CenterOfMass
    ~yt.data_objects.derived_quantities.BulkVelocity
    ~yt.data_objects.derived_quantities.AngularMomentumVector
-   ~yt.data_objects.derived_quantities.ParticleAngularMomentumVector
    ~yt.data_objects.derived_quantities.Extrema
    ~yt.data_objects.derived_quantities.MaxLocation
    ~yt.data_objects.derived_quantities.MinLocation
@@ -719,12 +718,11 @@ Miscellaneous Types
 
    ~yt.config.YTConfigParser
    ~yt.utilities.parameter_file_storage.ParameterFileStore
-   ~yt.data_objects.data_containers.FakeGridForParticles
    ~yt.utilities.parallel_tools.parallel_analysis_interface.ObjectIterator
    ~yt.utilities.parallel_tools.parallel_analysis_interface.ParallelAnalysisInterface
    ~yt.utilities.parallel_tools.parallel_analysis_interface.ParallelObjectIterator
-   ~yt.analysis_modules.index_subset.index_subset.ConstructedRootGrid
-   ~yt.analysis_modules.index_subset.index_subset.ExtractedHierarchy
+   ~yt.analysis_modules.hierarchy_subset.hierarchy_subset.ConstructedRootGrid
+   ~yt.analysis_modules.hierarchy_subset.hierarchy_subset.ExtractedHierarchy
 
 
 Testing Infrastructure

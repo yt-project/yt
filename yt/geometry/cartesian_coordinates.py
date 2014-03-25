@@ -27,7 +27,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
     def setup_fields(self, registry):
         for axi, ax in enumerate('xyz'):
-            f1, f2 = _get_coord_fields(axi, ax)
+            f1, f2 = _get_coord_fields(axi)
             registry.add_field(("index", "d%s" % ax), function = f1,
                                display_field = False,
                                units = "code_length")

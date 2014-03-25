@@ -23,6 +23,10 @@ from .definitions import \
     gadget_ptypes, \
     ghdf5_ptypes
 
+from yt.fields.species_fields import add_species_field_by_fraction
+
+
+
 # Here are helper functions for things like vector fields and so on.
 
 def _get_conv(cf):
@@ -50,3 +54,70 @@ class SPHFieldInfo(FieldInfoContainer):
         ("Phi", ("code_length", [], None)),
         ("FormationTime", ("code_time", ["creation_time"], None)),
     )
+
+
+
+class TipsyFieldInfo(SPHFieldInfo):
+
+    def __init__(self, pf, field_list, slice_info = None):
+        aux_particle_fields = {
+                'uDotFB':("uDotFB", ("code_mass * code_velocity**2", ["uDotFB"], None)),
+                'uDotAV':("uDotAV", ("code_mass * code_velocity**2", ["uDotAV"], None)),
+                'uDotPdV':("uDotPdV", ("code_mass * code_velocity**2", ["uDotPdV"], None)),
+                'uDotHydro':("uDotHydro", ("code_mass * code_velocity**2", ["uDotHydro"], None)),
+                'uDotDiff':("uDotDiff", ("code_mass * code_velocity**2", ["uDotDiff"], None)),
+                'uDot':("uDot", ("code_mass * code_velocity**2", ["uDot"], None)),
+                'coolontime':("coolontime", ("code_time", ["coolontime"], None)),
+                'timeform':("timeform", ("code_time", ["timeform"], None)),
+                'massform':("massform", ("code_mass", ["massform"], None)),
+                'HI':("HI", ("dimensionless", ["HI"], None)),
+                'HII':("HII", ("dimensionless", ["HII"], None)),
+                'HeI':("HeI", ("dimensionless", ["HeI"], None)),
+                'HeII':("HeII", ("dimensionless", ["HeII"], None)),
+                'OxMassFrac':("OxMassFrac", ("dimensionless", ["OxMassFrac"], None)),
+                'FeMassFrac':("FeMassFrac", ("dimensionless", ["FeMassFrac"], None)),
+                'c':("c", ("code_velocity", ["c"], None)),
+                'acc':("acc", ("code_velocity / code_time", ["acc"], None)),
+                'accg':("accg", ("code_velocity / code_time", ["accg"], None))}
+        for field in field_list:
+            if field[1] in aux_particle_fields.keys() and \
+                aux_particle_fields[field[1]] not in self.known_particle_fields:
+                self.known_particle_fields += (aux_particle_fields[field[1]],)
+        super(TipsyFieldInfo,self).__init__(pf, field_list, slice_info)
+
+
+        
+
+class OWLSFieldInfo(SPHFieldInfo):
+
+    _species_fractions = ['H_fraction', 'He_fraction', 'C_fraction',
+                          'N_fraction', 'O_fraction', 'Ne_fraction',
+                          'Mg_fraction', 'Si_fraction', 'Fe_fraction']
+
+    # override
+    #--------------------------------------------------------------
+    def __init__(self, *args, **kwargs):
+        
+        new_particle_fields = (
+            ('Hydrogen', ('', ['H_fraction'], None)),
+            ('Helium', ('', ['He_fraction'], None)),
+            ('Carbon', ('', ['C_fraction'], None)),
+            ('Nitrogen', ('', ['N_fraction'], None)),
+            ('Oxygen', ('', ['O_fraction'], None)),
+            ('Neon', ('', ['Ne_fraction'], None)),
+            ('Magnesium', ('', ['Mg_fraction'], None)),
+            ('Silicon', ('', ['Si_fraction'], None)),
+            ('Iron', ('', ['Fe_fraction'], None))
+            )
+
+        self.known_particle_fields += new_particle_fields
+        
+        super(OWLSFieldInfo,self).__init__( *args, **kwargs )
+
+
+        
+    def setup_fluid_fields(self):
+        # here species_name is "H", "He", etc
+        for s in self._species_fractions:
+            species_name = s.split('_')[0]
+            add_species_field_by_fraction(self, "gas", species_name)

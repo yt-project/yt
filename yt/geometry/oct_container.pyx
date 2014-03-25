@@ -492,7 +492,7 @@ cdef class OctreeContainer:
             coords[:,i] += self.DLE[i]
         return coords
 
-    def save_octree(self):
+    def save_octree(self, always_descend = False):
         # Get the header
         header = dict(dims = (self.nn[0], self.nn[1], self.nn[2]),
                       left_edge = (self.DLE[0], self.DLE[1], self.DLE[2]),
@@ -507,9 +507,15 @@ cdef class OctreeContainer:
         data.nz = 8
         cdef np.ndarray[np.uint8_t, ndim=1] ref_mask
         ref_mask = np.zeros(self.nocts * 8, dtype="uint8") - 1
-        data.array = <void *> ref_mask.data
+        cdef void *p[2]
+        cdef np.uint8_t ad = int(always_descend)
+        p[0] = <void *> &ad
+        p[1] = ref_mask.data
+        data.array = p
         # Enforce partial_coverage here
         self.visit_all_octs(selector, oct_visitors.store_octree, &data, 1)
+        if always_descend:
+            ref_mask = ref_mask[:data.index-1]
         header['octree'] = ref_mask
         return header
 

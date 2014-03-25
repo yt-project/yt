@@ -176,9 +176,14 @@ cdef void count_by_domain(Oct *o, OctVisitorData *data, np.uint8_t selected):
     arr[o.domain - 1] += 1
 
 cdef void store_octree(Oct *o, OctVisitorData *data, np.uint8_t selected):
-    cdef np.uint8_t *arr, res, ii
+    cdef np.uint8_t *arr, res, ii, *always_descend
     ii = cind(data.ind[0], data.ind[1], data.ind[2])
-    arr = <np.uint8_t *> data.array
+    cdef void **p = <void **> data.array
+    always_descend = <np.uint8_t *> p[0]
+    arr = <np.uint8_t *> p[1]
+    if always_descend[0] == 1 and data.last == o.domain_ind:
+        return
+    data.last = o.domain_ind
     if o.children == NULL or o.children[ii] == NULL:
         res = 0
     else:

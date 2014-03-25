@@ -216,7 +216,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     """
     _key_fields = YTSelectionContainer2D._key_fields + ['weight_field']
     _type_name = "proj"
-    _con_args = ('axis', 'weight_field')
+    _con_args = ('axis', 'field', 'weight_field')
     _container_fields = ('px', 'py', 'pdx', 'pdy', 'weight_field')
     def __init__(self, field, axis, weight_field = None,
                  center = None, pf = None, data_source=None, 
@@ -239,6 +239,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     @property
     def blocks(self):
         return self.data_source.blocks
+
+    @property
+    def field(self):
+        return [k for k in self.field_data.keys() if k not in self._container_fields]
 
     @property
     def _mrep(self):

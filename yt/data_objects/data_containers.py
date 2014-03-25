@@ -802,6 +802,8 @@ class YTSelectionContainer2D(YTSelectionContainer):
             if center is None:
                 center = (self.pf.domain_right_edge
                         + self.pf.domain_left_edge)/2.0
+        elif iterable(center) and not isinstance(center, YTArray):
+            center = self.pf.arr(center, 'code_length')
         if iterable(width):
             w, u = width
             width = self.pf.arr(w, input_units = u)
@@ -1262,8 +1264,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
     def _get_cut_mask(self, grid, field=None):
         if self._is_fully_enclosed(grid):
             return True # We do not want child masking here
-        if not isinstance(grid, (FakeGridForParticles,)) \
-             and grid.id in self._cut_masks:
+        if grid.id in self._cut_masks:
             return self._cut_masks[grid.id]
         # If we get this far, we have to generate the cut_mask.
         return self._get_level_mask(self.regions, grid)
@@ -1320,6 +1321,5 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
                     this_cut_mask)
             if item == "OR":
                 np.bitwise_or(this_cut_mask, level_masks[i+1], this_cut_mask)
-        if not isinstance(grid, FakeGridForParticles):
-            self._cut_masks[grid.id] = this_cut_mask
+        self._cut_masks[grid.id] = this_cut_mask
         return this_cut_mask

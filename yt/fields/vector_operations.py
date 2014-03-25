@@ -61,6 +61,28 @@ def create_magnitude_field(registry, basename, field_units,
                        function = _magnitude, units = field_units,
                        validators = validators, particle_type = particle_type)
 
+def create_squared_field(registry, basename, field_units,
+                         ftype = "gas", slice_info = None,
+                         validators = None, particle_type=False):
+
+    xn, yn, zn = [(ftype, "%s_%s" % (basename, ax)) for ax in 'xyz']
+
+    # Is this safe?
+    if registry.pf.dimensionality < 3:
+        zn = ("index", "zeros")
+    if registry.pf.dimensionality < 2:
+        yn = ("index", "zeros")
+
+    def _squared(field, data):
+        squared  = data[xn] * data[xn]
+        squared += data[yn] * data[yn]
+        squared += data[zn] * data[zn]
+        return squared
+
+    registry.add_field((ftype, "%s_squared" % basename),
+                       function = _squared, units = field_units,
+                       validators = validators, particle_type = particle_type)
+
 def create_vector_fields(registry, basename, field_units,
                          ftype = "gas", slice_info = None):
     # slice_info would be the left, the right, and the factor.
