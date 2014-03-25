@@ -53,7 +53,7 @@ class IOHandlerOWLS(BaseIOHandler):
     _vector_fields = ("Coordinates", "Velocity", "Velocities")
     _known_ptypes = ghdf5_ptypes
     _var_mass = None
-    _element_fields = ('Hydrogen', 'Helium', 'Carbon', 'Nitrogen', 'Oxygen', 
+    _element_names = ('Hydrogen', 'Helium', 'Carbon', 'Nitrogen', 'Oxygen', 
                        'Neon', 'Magnesium', 'Silicon', 'Iron' )
 
 
@@ -110,7 +110,7 @@ class IOHandlerOWLS(BaseIOHandler):
                         ind = self._known_ptypes.index(ptype) 
                         data[:] = self.pf["Massarr"][ind]
 
-                    elif field in self._element_fields:
+                    elif field in self._element_names:
                         rfield = 'ElementAbundance/' + field
                         data = g[rfield][:][mask,...]
 
