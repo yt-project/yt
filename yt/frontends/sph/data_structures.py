@@ -540,6 +540,32 @@ class TipsyDataset(ParticleDataset):
         f.close()
         return True, endianswap
 
+    @staticmethod
+    def _validate_header(filename):
+        try:
+            f = open(filename,'rb')
+        except:
+            return False, 1
+        fs = len(f.read())
+        f.seek(0)
+        #Read in the header
+        t, n, ndim, ng, nd, ns = struct.unpack("<diiiii", f.read(28))
+        endianswap = "<"
+        #Check Endianness
+        if (ndim < 1 or ndim > 3):
+            endianswap = ">"
+            f.seek(0)
+            t, n, ndim, ng, nd, ns = struct.unpack(">diiiii", f.read(28))
+        #Catch for 4 byte padding
+        if (fs == 32+48*ng+36*nd+44*ns):
+            f.read(4)
+        #File is borked if this is true
+        elif (fs != 28+48*ng+36*nd+44*ns):
+            f.close()
+            return False, 0
+        f.close()
+        return True, endianswap
+
     @classmethod
     def _is_valid(self, *args, **kwargs):
         return TipsyDataset._validate_header(args[0])[0]
