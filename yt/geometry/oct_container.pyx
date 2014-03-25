@@ -514,7 +514,9 @@ cdef class OctreeContainer:
         data.array = p
         # Enforce partial_coverage here
         self.visit_all_octs(selector, oct_visitors.store_octree, &data, 1)
-        header['octree'] = ref_mask[:data.index-1]
+        if always_descend:
+            ref_mask = ref_mask[:data.index-1]
+        header['octree'] = ref_mask
         return header
 
     def selector_fill(self, SelectorObject selector,
