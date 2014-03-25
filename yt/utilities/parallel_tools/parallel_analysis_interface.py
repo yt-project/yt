@@ -48,11 +48,24 @@ op_names = dict(
 
 # Set up translation table and import things
 
+exe_name = os.path.basename(sys.executable)
 def enable_parallelism():
     global parallel_capable
-    parallel_capable = ytcfg.getboolean("yt", "__parallel")
-    if not parallel_capable: return False
     from mpi4py import MPI
+    parallel_capable = (MPI.COMM_WORLD.size > 1)
+    if not parallel_capable: return False
+    mylog.info("Global parallel computation enabled: %s / %s",
+               MPI.COMM_WORLD.rank, MPI.COMM_WORLD.size)
+    ytcfg["yt","__global_parallel_rank"] = str(MPI.COMM_WORLD.rank)
+    ytcfg["yt","__global_parallel_size"] = str(MPI.COMM_WORLD.size)
+    ytcfg["yt","__parallel"] = "True"
+    if exe_name == "embed_enzo" or \
+        ("_parallel" in dir(sys) and sys._parallel == True):
+        ytcfg["yt","inline"] = "True"
+    if MPI.COMM_WORLD.rank > 0:
+        if ytcfg.getboolean("yt","LogFile"):
+            ytcfg["yt","LogFile"] = "False"
+            yt.utilities.logger.disable_file_logging()
     yt.utilities.logger.uncolorize_logging()
     # Even though the uncolorize function already resets the format string,
     # we reset it again so that it includes the processor.
@@ -77,6 +90,7 @@ def enable_parallelism():
         min = MPI.MIN,
         max = MPI.MAX
     ))
+    return True
 
 # Because the dtypes will == correctly but do not hash the same, we need this
 # function for dictionary access.

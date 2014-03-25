@@ -146,7 +146,7 @@ from yt.visualization.volume_rendering.api import \
     off_axis_projection
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_objects
+    parallel_objects, enable_parallelism
 
 from yt.convenience import \
     load, simulation
@@ -154,5 +154,4 @@ from yt.convenience import \
 # Import some helpful math utilities
 from yt.utilities.math_utils import \
     ortho_find, quartiles, periodic_position
-
 
