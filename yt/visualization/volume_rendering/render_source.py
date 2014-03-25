@@ -141,5 +141,6 @@ class VolumeSource(RenderSource):
 
     def request(self, *args, **kwargs):
         """docstring for request"""
+        self.prepare()
         self.engine.run()
         return self.current_image

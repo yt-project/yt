@@ -13,6 +13,7 @@ Engine Classes
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from yt.funcs import mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.utilities.lib.grid_traversal import \
@@ -62,6 +63,8 @@ class PlaneParallelEngine(Engine):
     def camera_updated(self):
         if self.camera._moved:
             self._setup_box_properties()
+            self.sampler = self.get_sampler()
+            self.camera._moved = False
 
     def _setup_box_properties(self):
         unit_vectors = self.camera.unit_vectors
@@ -73,6 +76,9 @@ class PlaneParallelEngine(Engine):
         self.origin = center - 0.5 * width.dot(YTArray(unit_vectors, ""))
         self.back_center = center - 0.5 * width[2] * unit_vectors[2]
         self.front_center = center + 0.5 * width[2] * unit_vectors[2]
+        mylog.debug('Setting box properties')
+        mylog.debug(self.back_center)
+        mylog.debug(self.front_center)
 
     def get_sampler(self):
         self.render_source.prepare()
@@ -85,11 +91,12 @@ class PlaneParallelEngine(Engine):
                 image, self.camera.unit_vectors[
                     0], self.camera.unit_vectors[1],
                 np.array(self.camera.width, dtype='float64'),
-                self.transfer_function, self.sub_samples)
+                self.render_source.transfer_function, self.sub_samples)
         sampler = VolumeRenderSampler(*args)
         return sampler
 
     def run(self):
+        self.camera_updated()
         total_cells = 0
         if self.double_check:
             for brick in self.render_source.volume.bricks:
