@@ -76,6 +76,16 @@ class Scene(object):
             if isinstance(source, OpaqueSource):
                 yield k, source
 
+    def iter_transparent_sources(self):
+        """
+        Iterate over opaque RenderSource objects,
+        returning a tuple of (key, source)
+        """
+        for k, source in self.sources.iteritems():
+            if not isinstance(source, OpaqueSource):
+                yield k, source
+
+
     def validate(self):
         if self.camera is None:
             for k, source in self.sources.iteritems():
@@ -119,7 +129,7 @@ class Scene(object):
         for k, v in self.sources.iteritems():
             v.validate()
             print 'Running', k, v
-            ims[k] = v.request()
+            ims[k] = v.render()
 
         bmp = np.zeros_like(ims.values()[0])
         for k, v in ims.iteritems():

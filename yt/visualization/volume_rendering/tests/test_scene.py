@@ -63,11 +63,13 @@ pf = fake_random_pf(64)
 ds = pf.h.sphere(pf.domain_center, pf.domain_width[0] / 2)
 sc = create_volume_rendering(ds, field=('gas', 'density'))
 sc.render('test.png')
+
 h = sc.get_handle()
 h.source.transfer_function.grey_opacity = True
-h.source.transfer_function.map_to_colormap(-0.5, -0.2, scale=50.0, colormap='RdBu_r')
+h.source.transfer_function.map_to_colormap(-2, 0.0, scale=50.0, colormap='RdBu_r')
+
 cam = h.camera
-for i in range(10):
-    cam.yaw(np.pi / 10.)
+for i in range(36):
+    cam.pitch(-2*np.pi / 36.)
     sc.render('test_%04i.png' % i)
 

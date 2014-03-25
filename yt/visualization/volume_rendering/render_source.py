@@ -32,14 +32,15 @@ class RenderSource(ParallelAnalysisInterface):
         super(RenderSource, self).__init__()
         self.opaque = False
 
-    def request(self, *args, **kwargs):
-        """returns a new ImageArray"""
-        pass
-
     def setup(self):
         """Set up data needed to render"""
         pass
 
+    def render(self, zbuffer=None):
+        """docstring for request"""
+        self.prepare()
+        self.engine.run()
+        return self.current_image
 
 class OpaqueSource(RenderSource):
     """docstring for OpaqueSource"""
@@ -139,7 +140,7 @@ class VolumeSource(RenderSource):
         """docstring for add_sampler"""
         pass
 
-    def request(self, *args, **kwargs):
+    def render(self, zbuffer=None):
         """docstring for request"""
         self.prepare()
         self.engine.run()

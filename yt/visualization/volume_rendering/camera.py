@@ -30,7 +30,7 @@ class Camera(Orientation):
         """Initialize a Camera Instance"""
         self.data_source = data_source
         self.position = None
-        self.north_vector = np.array([0.0, 0.0, 1.0])
+        self.north_vector = None
         self.resolution = (256, 256)
         self.light = None
         self.width = None
@@ -40,7 +40,7 @@ class Camera(Orientation):
             self.inherit_default_from_data_source()
         else:
             super(Camera, self).__init__(self.focus - self.position,
-                                         self.north_vector, steady_north=True)
+                                         self.north_vector, steady_north=False)
 
     def inherit_default_from_data_source(self):
         data_source = self.data_source
@@ -68,7 +68,7 @@ class Camera(Orientation):
         self.focus = focus
 
         super(Camera, self).__init__(self.focus - self.position,
-                                     self.north_vector, steady_north=True)
+                                     self.north_vector, steady_north=False)
         self._moved = True
 
     def switch_orientation(self, normal_vector=None, north_vector=None):

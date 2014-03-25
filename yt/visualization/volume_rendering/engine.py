@@ -45,7 +45,7 @@ class PlaneParallelEngine(Engine):
         self.render_source = render_source
         self.transfer_function = self.render_source.transfer_function
         self.sub_samples = 5
-        self.num_threads = 1
+        self.num_threads = 0
         self.double_check = False
         self.box_vectors = None
         self.origin = None
