@@ -10,14 +10,6 @@ FITS-specific data structures
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-try:
-    import astropy.io.fits as pyfits
-    import astropy.wcs as pywcs
-    from astropy import log
-    log.disable_exception_logging()
-except ImportError:
-    pass
-
 import stat
 import numpy as np
 import weakref
@@ -40,6 +32,37 @@ from yt.utilities.io_handler import \
 from .fields import FITSFieldInfo
 from yt.utilities.decompose import \
     decompose_array, get_psize
+
+class astropy_imports:
+    _pyfits = None
+    @property
+    def pyfits(self):
+        if self._pyfits is None:
+            import astropy.io.fits as pyfits
+            self._pyfits = pyfits
+        return self._pyfits
+
+    _pywcs = None
+    @property
+    def pywcs(self):
+        if self._pywcs is None:
+            import astropy.wcs as pywcs
+            self._pywcs = pywcs
+        return self._pywcs
+
+    _log = None
+    @property
+    def log(self):
+        if self._log is None:
+            from astropy import log
+            try:
+                log.disable_exception_logging()
+            except:
+                pass
+            self._log = log
+        return self._log
+
+ap = astropy_imports()
 
 angle_units = ["deg","arcsec","arcmin","mas"]
 all_units = angle_units + mpc_conversion.keys()
@@ -145,11 +168,11 @@ class FITSDataset(Dataset):
         self.fluid_types += ("fits",)
         self.mask_nans = mask_nans
         self.nprocs = nprocs
-        if isinstance(filename, pyfits.HDUList):
+        if isinstance(filename, ap.pyfits.HDUList):
             self._handle = filename
             fname = filename.filename()
         else:
-            self._handle = pyfits.open(filename)
+            self._handle = ap.pyfits.open(filename)
             fname = filename
         for i, h in enumerate(self._handle):
             if h.is_image and h.data is not None:
@@ -162,7 +185,7 @@ class FITSDataset(Dataset):
             self.primary_header = primary_header
         self.shape = self._handle[self.first_image].shape
 
-        self.wcs = pywcs.WCS(header=self.primary_header)
+        self.wcs = ap.pywcs.WCS(header=self.primary_header)
 
         self.file_unit = None
         for i, unit in enumerate(self.wcs.wcs.cunit):
@@ -246,7 +269,13 @@ class FITSDataset(Dataset):
     @classmethod
     def _is_valid(self, *args, **kwargs):
         try:
-            if isinstance(args[0], pyfits.HDUList):
+            ext = args[0].rsplit(".", 1)[-1]
+        except:
+            return False
+        if ext.upper() not in ("FITS", "FTS"):
+            return False
+        try:
+            if isinstance(args[0], ap.pyfits.HDUList):
                 for h in args[0]:
                     if h.is_image and h.data is not None:
                         return True
@@ -255,7 +284,7 @@ class FITSDataset(Dataset):
         try:
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore', category=UserWarning, append=True)
-                fileh = pyfits.open(args[0])
+                fileh = ap.pyfits.open(args[0])
             for h in fileh:
                 if h.is_image and h.data is not None:
                     fileh.close()
