@@ -368,7 +368,6 @@ class TipsyDataset(ParticleDataset):
                     ('dummy',   'i'))
 
     def __init__(self, filename, dataset_type="tipsy",
-                 endian=">",
                  field_dtypes=None,
                  domain_left_edge=None,
                  domain_right_edge=None,
@@ -378,7 +377,7 @@ class TipsyDataset(ParticleDataset):
                  n_ref=64, over_refine_factor=1):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
-        self.endian = endian
+        self.endian = self._validate_header(filename)[1]
         self.storage_filename = None
         if domain_left_edge is None:
             domain_left_edge = np.zeros(3, "float64") - 0.5
@@ -515,10 +514,35 @@ class TipsyDataset(ParticleDataset):
             density_unit = self.mass_unit / self.length_unit**3
         self.time_unit = 1.0 / np.sqrt(G * density_unit)
 
+    @staticmethod
+    def _validate_header(filename):
+        try:
+            f = open(filename,'rb')
+        except:
+            return False, 1
+        fs = len(f.read())
+        f.seek(0)
+        #Read in the header
+        t, n, ndim, ng, nd, ns = struct.unpack("<diiiii", f.read(28))
+        endianswap = "<"
+        #Check Endianness
+        if (ndim < 1 or ndim > 3):
+            endianswap = ">"
+            f.seek(0)
+            t, n, ndim, ng, nd, ns = struct.unpack(">diiiii", f.read(28))
+        #Catch for 4 byte padding
+        if (fs == 32+48*ng+36*nd+44*ns):
+            f.read(4)
+        #File is borked if this is true
+        elif (fs != 28+48*ng+36*nd+44*ns):
+            f.close()
+            return False, 0
+        f.close()
+        return True, endianswap
+
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        # We do not allow load() of these files.
-        return False
+        return TipsyDataset._validate_header(args[0])[0]
 
 class HTTPParticleFile(ParticleFile):
     pass
