@@ -68,6 +68,7 @@ class FieldInfoContainer(dict):
 
     def setup_particle_fields(self, ptype):
         for f, (units, aliases, dn) in sorted(self.known_particle_fields):
+            units = self.pf.field_units.get((ptype, f), units)
             self.add_output_field((ptype, f),
                 units = units, particle_type = True, display_name = dn)
             if (ptype, f) not in self.field_list:
