@@ -21,18 +21,24 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelDummy, \
     ParallelAnalysisInterface, \
     parallel_blocking_call
+'''
 from yt.utilities.physical_constants import \
     cm_per_mpc, \
     mass_sun_cgs, \
     rho_crit_now
-
+'''
 
 class HaloMassFcn(ParallelAnalysisInterface):
     """
     Initalize a HaloMassFcn object to analyze the distribution of haloes
     as a function of mass.
-    :param halo_file (str): The filename of the output of the Halo Profiler.
+    :param ds (str): The loaded simulation dataset.
     Default=None.
+    :param halos_ds (str): The loaded halo dataset.
+    Default=None.
+    :param make_analytic (bool): Are we going to calculate an analytic mass
+    function, True for yes, False for no.
+    Default=False.
     :param omega_matter0 (float): The fraction of the universe made up of
     matter (dark and baryonic). Default=None.
     :param omega_lambda0 (float): The fraction of the universe made up of
@@ -67,16 +73,14 @@ class HaloMassFcn(ParallelAnalysisInterface):
     1 = Press-schechter, 2 = Jenkins, 3 = Sheth-Tormen, 4 = Warren fit
     5 = Tinker
     Default=4.
-    :param mass_column (int): The column of halo_file that contains the
-    masses of the haloes. Default=4.
     """
-    def __init__(self, pf, halo_file=None, omega_matter0=None, omega_lambda0=None,
-    omega_baryon0=0.05, hubble0=None, sigma8input=0.86, primordial_index=1.0,
-    this_redshift=None, log_mass_min=None, log_mass_max=None, num_sigma_bins=360,
-    fitting_function=4, mass_column=5):
+    def __init__(self, ds=None, halos_ds=None, make_analytic=False, omega_matter0=None, 
+    omega_lambda0=None, omega_baryon0=0.05, hubble0=None, sigma8input=0.86, 
+    primordial_index=1.0, this_redshift=None, log_mass_min=None, log_mass_max=None, 
+    num_sigma_bins=360, fitting_function=4):
         ParallelAnalysisInterface.__init__(self)
-        self.pf = pf
-        self.halo_file = halo_file
+        self.ds = ds
+        self.halos_ds = halos_ds
         self.omega_matter0 = omega_matter0
         self.omega_lambda0 = omega_lambda0
         self.omega_baryon0 = omega_baryon0
@@ -88,30 +92,30 @@ class HaloMassFcn(ParallelAnalysisInterface):
         self.log_mass_max = log_mass_max
         self.num_sigma_bins = num_sigma_bins
         self.fitting_function = fitting_function
-        self.mass_column = mass_column
-        
-        # Determine the run mode.
-        if halo_file is None:
-            # We are hand-picking our various cosmological parameters
-            self.mode = 'single'
-        else:
-            # Make the fit using the same cosmological parameters as the dataset.
-            self.mode = 'haloes'
-            self.omega_matter0 = self.pf.omega_matter
-            self.omega_lambda0 = self.pf.omega_lambda
-            self.hubble0 = self.pf.hubble_constant
-            self.this_redshift = self.pf.current_redshift
-            self.read_haloes()
-            if self.log_mass_min == None:
-                self.log_mass_min = math.log10(min(self.haloes))
-            if self.log_mass_max == None:
-                self.log_mass_max = math.log10(max(self.haloes))
+        self.make_analytic = make_analytic
 
-        # Input error check.
-        if self.mode == 'single':
+        """
+        If we want to make an analytic mass function, grab what we can from either the 
+        halo file or the data set, and make sure that the user supplied everything else
+        that is needed.
+        """
+        if make_analytic == True:
+            # First try to get it from the ds
+            if ds is not None:
+                self.omega_matter0 = self.ds.omega_matter
+                self.omega_lambda0 = self.ds.omega_lambda
+                self.hubble0 = self.ds.hubble_constant
+                self.this_redshift = self.ds.current_redshift
+            # If we can't do that, try to get it from the halos_ds
+            if ds is None and halos_ds is not None:
+                self.omega_matter0 = self.halos_ds.omega_matter
+                self.omega_lambda0 = self.halos_ds.omega_lambda
+                self.hubble0 = self.halos_ds.hubble_constant
+                self.this_redshift = self.halos_ds.current_redshift
+            # Check that all the parameters for the analytic function have been set
             if omega_matter0 == None or omega_lambda0 == None or \
             hubble0 == None or this_redshift == None or log_mass_min == None or\
-            log_mass_max == None:
+            log_mass_max == None:            
                 mylog.error("All of these parameters need to be set:")
                 mylog.error("[omega_matter0, omega_lambda0, \
                 hubble0, this_redshift, log_mass_min, log_mass_max]")
@@ -119,21 +123,15 @@ class HaloMassFcn(ParallelAnalysisInterface):
                 omega_lambda0, hubble0, this_redshift,\
                 log_mass_min, log_mass_max))
                 return None
-        
-        # Poke the user to make sure they're doing it right.
-        mylog.info(
+            # Do the calculations.
+            self.sigmaM()
+            self.dndm()
+
         """
-        Please make sure these are the correct values! They are
-        not stored in enzo datasets, so must be entered by hand.
-        sigma8input=%f primordial_index=%f omega_baryon0=%f
-        """ % (self.sigma8input, self.primordial_index, self.omega_baryon0))
-        
-        # Do the calculations.
-        self.sigmaM()
-        self.dndm()
-        
-        if self.mode == 'haloes':
-            self.bin_haloes()
+        If a halo file has been supplied, make a mass function for the simulated halos.
+        """
+        if halos_ds is not None:
+            self.create_sim_hmf()
 
     def write_out(self, prefix='HMF', fit=True, haloes=True):
         """
@@ -194,20 +192,24 @@ class HaloMassFcn(ParallelAnalysisInterface):
         f.close()
         self.haloes = np.array(self.haloes)
 
-    def bin_haloes(self):
-        """
-        With the list of virial masses, find the halo mass function.
-        """
-        bins = np.logspace(self.log_mass_min,
-            self.log_mass_max,self.num_sigma_bins)
-        avgs = (bins[1:]+bins[:-1])/2.
-        dis, bins = np.histogram(self.haloes,bins)
-        # add right to left
-        for i,b in enumerate(dis):
-            dis[self.num_sigma_bins-i-3] += dis[self.num_sigma_bins-i-2]
-            if i == (self.num_sigma_bins - 3): break
-
-        self.dis = dis  / (self.pf.domain_width * self.pf.units["mpccm"]).prod()
+    """
+    Here's where we create the halo mass functions from simulated halos
+    """
+    def create_sim_hmf(self):
+        data_source = self.halos_ds.all_data()
+        # We're going to use indices to count the number of halos above a given mass
+        masses_sim = np.sort(data_source['ParticleMassMsun'])
+        # Determine the size of the simulation volume in (Mpc/h)**3
+        sim_volume = self.halos_ds.domain_width.in_units('Mpccm').prod()
+        # Get rid of the densities that correspond to repeated halo masses
+        dn_dM_sim = np.arange(len(masses_sim),0,-1)
+        # We don't want repeated halo masses, and the uniques indices tell us which 
+        # densities are representative.
+        self.masses_sim, unique_indices = np.unique(masses_sim, return_index=True)
+        # Now make this an actual number density
+        self.dn_dM_sim = dn_dM_sim[unique_indices]/sim_volume
+        # masses_sim and dn_dM_sim are now set, but remember that the log10 quantities
+        # are what is usually plotted for a halo mass function.
 
     def sigmaM(self):
         """
