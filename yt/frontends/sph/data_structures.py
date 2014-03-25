@@ -38,7 +38,7 @@ from yt.utilities.physical_constants import \
     mass_sun_cgs
 from yt.utilities.cosmology import Cosmology
 from .fields import \
-    SPHFieldInfo, OWLSFieldInfo
+    SPHFieldInfo, OWLSFieldInfo, TipsyFieldInfo
 from .definitions import \
     gadget_header_specs, \
     gadget_field_specs, \
@@ -356,7 +356,7 @@ class TipsyFile(ParticleFile):
 class TipsyDataset(ParticleDataset):
     _index_class = ParticleIndex
     _file_class = TipsyFile
-    _field_info_class = SPHFieldInfo
+    _field_info_class = TipsyFieldInfo
     _particle_mass_name = "Mass"
     _particle_coordinates_name = "Coordinates"
     _header_spec = (('time',    'd'),
