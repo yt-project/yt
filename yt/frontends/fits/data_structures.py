@@ -14,7 +14,6 @@ try:
     import astropy.io.fits as pyfits
     import astropy.wcs as pywcs
     from astropy import log
-    log.disable_warnings_logging()
     log.disable_exception_logging()
 except ImportError:
     pass
