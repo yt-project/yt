@@ -369,8 +369,6 @@ class TipsyDataset(ParticleDataset):
 
     def __init__(self, filename, dataset_type="tipsy",
                  field_dtypes=None,
-                 domain_left_edge=None,
-                 domain_right_edge=None,
                  unit_base=None,
                  cosmology_parameters=None,
                  parameter_file=None,
@@ -379,13 +377,6 @@ class TipsyDataset(ParticleDataset):
         self.over_refine_factor = over_refine_factor
         self.endian = self._validate_header(filename)[1]
         self.storage_filename = None
-        if domain_left_edge is None:
-            domain_left_edge = np.zeros(3, "float64") - 0.5
-        if domain_right_edge is None:
-            domain_right_edge = np.zeros(3, "float64") + 0.5
-
-        self.domain_left_edge = np.array(domain_left_edge, dtype="float64")
-        self.domain_right_edge = np.array(domain_right_edge, dtype="float64")
 
         # My understanding is that dtypes are set on a field by field basis,
         # not on a (particle type, field) basis
@@ -420,6 +411,7 @@ class TipsyDataset(ParticleDataset):
         self.dimensionality = 3
         self.refine_by = 2
         self.parameters["HydroMethod"] = "sph"
+
 
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
@@ -457,6 +449,8 @@ class TipsyDataset(ParticleDataset):
         self.domain_dimensions = np.ones(3, "int32") * nz
         if self.parameters.get('bPeriodic', True):
             self.periodicity = (True, True, True)
+            self.domain_left_edge = np.zeros(3, "float64") - 0.5*self.parameters.get('dPeriod', 1)
+            self.domain_right_edge = np.zeros(3, "float64") + 0.5*self.parameters.get('dPeriod', 1)
         else:
             self.periodicity = (False, False, False)
         tot = sum(self.parameters[ptype] for ptype
