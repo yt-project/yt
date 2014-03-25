@@ -39,8 +39,6 @@ from yt.data_objects.profiles import \
      create_profile
 from yt.utilities.exceptions import \
      YTNotInsideNotebook
-from yt.utilities.lib import \
-    write_png_to_string
 from yt.data_objects.profiles import \
     BinnedProfile1D, \
     BinnedProfile2D
