@@ -200,7 +200,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
         # We're going to use indices to count the number of halos above a given mass
         masses_sim = np.sort(data_source['ParticleMassMsun'])
         # Determine the size of the simulation volume in (Mpc/h)**3
-        sim_volume = self.halos_ds.domain_width.in_units('Mpccm').prod()
+        sim_volume = (self.halos_ds.domain_width.in_units('Mpccm')/self.halos_ds.hubble_constant).prod()
         # Get rid of the densities that correspond to repeated halo masses
         dn_dM_sim = np.arange(len(masses_sim),0,-1)
         # We don't want repeated halo masses, and the uniques indices tell us which 
