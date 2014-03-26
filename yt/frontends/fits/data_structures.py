@@ -40,6 +40,7 @@ class astropy_imports:
     def pyfits(self):
         if self._pyfits is None:
             import astropy.io.fits as pyfits
+            self.log
             self._pyfits = pyfits
         return self._pyfits
 
@@ -48,6 +49,7 @@ class astropy_imports:
     def pywcs(self):
         if self._pywcs is None:
             import astropy.wcs as pywcs
+            self.log
             self._pywcs = pywcs
         return self._pywcs
 
