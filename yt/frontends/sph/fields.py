@@ -116,7 +116,6 @@ class OWLSFieldInfo(SPHFieldInfo):
               ("_number_density", "_density", "_mass", "_fraction") }
 
 
-        loaded = []
 
         # we add particle element fields for stars and gas
         #-----------------------------------------------------
@@ -136,13 +135,24 @@ class OWLSFieldInfo(SPHFieldInfo):
         # add_species_field_by_fraction for some reason ...
         # not sure why yet. 
         #-------------------------------------------------------
-        super(OWLSFieldInfo,self).setup_particle_fields(ptype)
+        if ptype == 'PartType0':
+            ftype='gas'
+        elif ptype == 'PartType1':
+            ftype='dm'
+        elif ptype == 'PartType4':
+            ftype='star'
+        elif ptype == 'all':
+            ftype='all'
+        
+        super(OWLSFieldInfo,self).setup_particle_fields(
+            ptype, num_neighbors=self._num_neighbors, ftype=ftype)
 
 
         # and now we add the smoothed versions
         #-----------------------------------------------------
         if ptype in self._add_elements:
 
+            loaded = []
             for s in self._elements:
                 for sfx in smoothed_suffixes[ptype]:
                     fname = s + sfx
@@ -156,6 +166,8 @@ class OWLSFieldInfo(SPHFieldInfo):
                         self.alias(("gas", fname), fn[0])
                     elif ptype == "PartType4":
                         self.alias(("star", fname), fn[0])
+            self._show_field_errors += loaded
+            self.find_dependencies(loaded)
 
 
         # we only add ion fields for gas.  this takes some 
@@ -208,6 +220,7 @@ class OWLSFieldInfo(SPHFieldInfo):
                 pstr = "_p" + str(roman-1)
                 yt_ion = symbol + pstr
 
+                loaded = []
                 for sfx in smoothed_suffixes[ptype]:
                     fname = yt_ion + sfx
                     fn = add_volume_weighted_smoothed_field( 
@@ -218,10 +231,9 @@ class OWLSFieldInfo(SPHFieldInfo):
 
                     self.alias(("gas", fname), fn[0])
 
+                self._show_field_errors += loaded
+                self.find_dependencies(loaded)
 
-
-        self._show_field_errors += loaded
-        self.find_dependencies(loaded)
 
 
     def setup_gas_ion_density_particle_fields( self, ptype ):
