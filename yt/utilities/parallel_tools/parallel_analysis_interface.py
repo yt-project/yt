@@ -37,13 +37,10 @@ from yt.units.unit_registry import UnitRegistry
 from yt.utilities.exceptions import YTNoDataInObjectError
 from yt.utilities.logger import ytLogger as mylog
 
-parallel_capable = ytcfg.getboolean("yt", "__parallel")
-if parallel_capable:
-    try:
-        from mpi4py import MPI
-    except ImportError:
-        mylog.info("mpi4py was not found. Disabling parallel computation")
-        parallel_capable = False
+# We default to *no* parallelism unless it gets turned on, in which case this
+# will be changed.
+MPI = None
+parallel_capable = False
 
 dtype_names = dict(
         float32 = "MPI.FLOAT",
@@ -60,13 +57,21 @@ op_names = dict(
 
 # Set up translation table and import things
 
-exe_name = os.path.basename(sys.executable)
 def enable_parallelism():
-    global parallel_capable
+    global parallel_capable, MPI
+    try:
+        from mpi4py import MPI as _MPI
+    except ImportError:
+        mylog.info("mpi4py was not found. Disabling parallel computation")
+        parallel_capable = False
+        return
+    MPI = _MPI
+    exe_name = os.path.basename(sys.executable)
     parallel_capable = (MPI.COMM_WORLD.size > 1)
     if not parallel_capable: return False
     mylog.info("Global parallel computation enabled: %s / %s",
                MPI.COMM_WORLD.rank, MPI.COMM_WORLD.size)
+    communication_system.push(MPI.COMM_WORLD)
     ytcfg["yt","__global_parallel_rank"] = str(MPI.COMM_WORLD.rank)
     ytcfg["yt","__global_parallel_size"] = str(MPI.COMM_WORLD.size)
     ytcfg["yt","__parallel"] = "True"
@@ -594,10 +599,7 @@ class CommunicationSystem(object):
     communicators = []
 
     def __init__(self):
-        if parallel_capable:
-            self.communicators.append(Communicator(MPI.COMM_WORLD))
-        else:
-            self.communicators.append(Communicator(None))
+        self.communicators.append(Communicator(None))
 
     def push(self, new_comm):
         if not isinstance(new_comm, Communicator):
@@ -1024,9 +1026,6 @@ class Communicator(object):
                 break
 
 communication_system = CommunicationSystem()
-if parallel_capable:
-    ranks = np.arange(MPI.COMM_WORLD.size)
-    communication_system.push_with_ids(ranks)
 
 class ParallelAnalysisInterface(object):
     comm = None
