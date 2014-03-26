@@ -532,7 +532,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         self.dataset_type = dataset_type
         self.float_type = 'float64'
         self.parameter_file = weakref.proxy(pf) # for _obtain_enzo
-        self.float_type = self.enzo.index_information["GridLeftEdge"].dtype
+        self.float_type = self.enzo.hierarchy_information["GridLeftEdge"].dtype
         self.directory = os.getcwd()
         GridIndex.__init__(self, pf, dataset_type)
 
@@ -540,12 +540,12 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         pass
 
     def _count_grids(self):
-        self.num_grids = self.enzo.index_information["GridDimensions"].shape[0]
+        self.num_grids = self.enzo.hierarchy_information["GridDimensions"].shape[0]
 
     def _parse_index(self):
         self._copy_index_structure()
         mylog.debug("Copying reverse tree")
-        reverse_tree = self.enzo.index_information["GridParentIDs"].ravel().tolist()
+        reverse_tree = self.enzo.hierarchy_information["GridParentIDs"].ravel().tolist()
         # Initial setup:
         mylog.debug("Reconstructing parent-child relationships")
         grids = []
@@ -574,14 +574,14 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
 
     def _copy_index_structure(self):
         # Dimensions are important!
-        self.grid_dimensions[:] = self.enzo.index_information["GridEndIndices"][:]
-        self.grid_dimensions -= self.enzo.index_information["GridStartIndices"][:]
+        self.grid_dimensions[:] = self.enzo.hierarchy_information["GridEndIndices"][:]
+        self.grid_dimensions -= self.enzo.hierarchy_information["GridStartIndices"][:]
         self.grid_dimensions += 1
-        self.grid_left_edge[:] = self.enzo.index_information["GridLeftEdge"][:]
-        self.grid_right_edge[:] = self.enzo.index_information["GridRightEdge"][:]
-        self.grid_levels[:] = self.enzo.index_information["GridLevels"][:]
-        self.grid_procs = self.enzo.index_information["GridProcs"].copy()
-        self.grid_particle_count[:] = self.enzo.index_information["GridNumberOfParticles"][:]
+        self.grid_left_edge[:] = self.enzo.hierarchy_information["GridLeftEdge"][:]
+        self.grid_right_edge[:] = self.enzo.hierarchy_information["GridRightEdge"][:]
+        self.grid_levels[:] = self.enzo.hierarchy_information["GridLevels"][:]
+        self.grid_procs = self.enzo.hierarchy_information["GridProcs"].copy()
+        self.grid_particle_count[:] = self.enzo.hierarchy_information["GridNumberOfParticles"][:]
 
     def save_data(self, *args, **kwargs):
         pass
@@ -829,13 +829,16 @@ class EnzoDataset(Dataset):
         else:
             if "LengthUnits" in self.parameters:
                 length_unit = self.parameters["LengthUnits"]
-                mass_unit = self.parameters["MassUnits"]
                 time_unit = self.parameters["TimeUnits"]
             else:
                 mylog.warning("Setting 1.0 in code units to be 1.0 cm")
                 mylog.warning("Setting 1.0 in code units to be 1.0 s")
-                mylog.warning("Setting 1.0 in code units to be 1.0 g")
                 length_unit = mass_unit = time_unit = 1.0
+            if "MassUnits" in self.parameters:
+                mass_unit = self.parameters["MassUnits"]
+            else:
+                mylog.warning("Setting 1.0 in code units to be 1.0 g")
+                mass_unit = 1.0
 
             self.length_unit = self.quan(length_unit, "cm")
             self.mass_unit = self.quan(mass_unit, "g")
