@@ -269,6 +269,7 @@ class FITSDataset(Dataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+        return False
         if isinstance(args[0], types.StringTypes):
             ext = args[0].rsplit(".", 1)[-1]
             if ext.upper() == "GZ":
