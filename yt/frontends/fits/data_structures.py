@@ -14,7 +14,8 @@ try:
     import astropy.io.fits as pyfits
     import astropy.wcs as pywcs
     from astropy import log
-    log.disable_exception_logging()
+    if log.exception_logging_enabled():
+        log.disable_exception_logging()
 except ImportError:
     pass
 
@@ -55,11 +56,11 @@ class FITSGrid(AMRGridPatch):
 
     def __repr__(self):
         return "FITSGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
-    
+
 class FITSHierarchy(GridIndex):
 
     grid = FITSGrid
-    
+
     def __init__(self,pf,dataset_type='fits'):
         self.dataset_type = dataset_type
         self.field_indexes = {}
@@ -79,10 +80,10 @@ class FITSHierarchy(GridIndex):
         for h in self._handle[self.parameter_file.first_image:]:
             if h.is_image:
                 self.field_list.append(("fits", h.name.lower()))
-                        
+
     def _count_grids(self):
         self.num_grids = self.pf.nprocs
-                
+
     def _parse_index(self):
         f = self._handle # shortcut
         pf = self.parameter_file # shortcut
@@ -101,12 +102,12 @@ class FITSHierarchy(GridIndex):
             self.grid_left_edge[0,:] = pf.domain_left_edge
             self.grid_right_edge[0,:] = pf.domain_right_edge
             self.grid_dimensions[0] = pf.domain_dimensions
-        
+
         self.grid_levels.flat[:] = 0
         self.grids = np.empty(self.num_grids, dtype='object')
         for i in xrange(self.num_grids):
             self.grids[i] = self.grid(i, self, self.grid_levels[i,0])
-        
+
     def _populate_grid_objects(self):
         for i in xrange(self.num_grids):
             self.grids[i]._prepare_grid()
@@ -115,7 +116,7 @@ class FITSHierarchy(GridIndex):
 
     def _setup_derived_fields(self):
         super(FITSHierarchy, self)._setup_derived_fields()
-        [self.parameter_file.conversion_factors[field] 
+        [self.parameter_file.conversion_factors[field]
          for field in self.field_list]
         for field in self.field_list:
             if field not in self.derived_field_list:
@@ -125,8 +126,8 @@ class FITSHierarchy(GridIndex):
             f = self.parameter_file.field_info[field]
             if f._function.func_name == "_TranslationFunc":
                 # Translating an already-converted field
-                self.parameter_file.conversion_factors[field] = 1.0 
-                
+                self.parameter_file.conversion_factors[field] = 1.0
+
     def _setup_data_io(self):
         self.io = io_registry[self.dataset_type](self.parameter_file)
 
@@ -135,7 +136,7 @@ class FITSDataset(Dataset):
     _field_info_class = FITSFieldInfo
     _dataset_type = "fits"
     _handle = None
-    
+
     def __init__(self, filename, dataset_type='fits',
                  primary_header = None,
                  sky_conversion = None,
@@ -155,7 +156,7 @@ class FITSDataset(Dataset):
             if h.is_image and h.data is not None:
                 self.first_image = i
                 break
-        
+
         if primary_header is None:
             self.primary_header = self._handle[self.first_image].header
         else:
@@ -182,7 +183,7 @@ class FITSDataset(Dataset):
 
         Dataset.__init__(self, fname, dataset_type)
         self.storage_filename = storage_filename
-            
+
         self.refine_by = 2
         # For plotting to APLpy
         self.hdu_list = self._handle
@@ -201,7 +202,7 @@ class FITSDataset(Dataset):
         self.length_unit = self.quan(length_factor,length_unit)
         self.mass_unit = self.quan(1.0, "g")
         self.time_unit = self.quan(1.0, "s")
-        self.velocity_unit = self.quan(1.0, "cm/s")        
+        self.velocity_unit = self.quan(1.0, "cm/s")
 
     def _parse_parameter_file(self):
         self.unique_identifier = \
@@ -219,14 +220,14 @@ class FITSDataset(Dataset):
         if self.dimensionality == 2:
             self.domain_dimensions = np.append(self.domain_dimensions,
                                                [int(1)])
-            
+
         self.domain_left_edge = np.array([0.5]*3)
         self.domain_right_edge = np.array([float(dim)+0.5 for dim in self.domain_dimensions])
 
         if self.dimensionality == 2:
             self.domain_left_edge[-1] = 0.5
             self.domain_right_edge[-1] = 1.5
-            
+
         # Get the simulation time
         try:
             self.current_time = self.parameters["time"]
@@ -234,7 +235,7 @@ class FITSDataset(Dataset):
             mylog.warning("Cannot find time")
             self.current_time = 0.0
             pass
-        
+
         # For now we'll ignore these
         self.periodicity = (False,)*3
         self.current_redshift = self.omega_lambda = self.omega_matter = \
