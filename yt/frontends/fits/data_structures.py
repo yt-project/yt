@@ -271,6 +271,9 @@ class FITSDataset(Dataset):
     def _is_valid(self, *args, **kwargs):
         if isinstance(args[0], types.StringTypes):
             ext = args[0].rsplit(".", 1)[-1]
+            if ext.upper() == "GZ":
+                # We don't know for sure that there will be > 1
+                ext = args[0].rsplit(".", 1)[0].rsplit(".", 1)[-1]
             if ext.upper() not in ("FITS", "FTS"):
                 return False
         try:
