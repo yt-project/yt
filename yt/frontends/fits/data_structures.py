@@ -11,6 +11,7 @@ FITS-specific data structures
 #-----------------------------------------------------------------------------
 
 import stat
+import types
 import numpy as np
 import weakref
 import warnings
@@ -268,14 +269,12 @@ class FITSDataset(Dataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        try:
+        if isinstance(args[0], types.StringTypes):
             ext = args[0].rsplit(".", 1)[-1]
-        except:
-            return False
-        if ext.upper() not in ("FITS", "FTS"):
-            return False
+            if ext.upper() not in ("FITS", "FTS"):
+                return False
         try:
-            if isinstance(args[0], ap.pyfits.HDUList):
+            if args[0].__class__.__name__ == "HDUList":
                 for h in args[0]:
                     if h.is_image and h.data is not None:
                         return True
