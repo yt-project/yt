@@ -77,8 +77,13 @@ class OWLSFieldInfo(SPHFieldInfo):
 
     _elements = ("H", "He", "C", "N", "O", "Ne", "Mg", "Si", "Fe")
 
-    # override
-    #--------------------------------------------------------------
+    _num_neighbors = 48
+
+    _add_elements = ("PartType0", "PartType4")
+
+    _add_ions = ("PartType0")
+
+
     def __init__(self, *args, **kwargs):
         
         new_particle_fields = (
@@ -99,30 +104,70 @@ class OWLSFieldInfo(SPHFieldInfo):
 
 
 
-
-
-
     def setup_particle_fields(self, ptype):
-        """ additional particle fields that are not on disk """ 
+        """ additional particle fields derived from those in snapshot.
+        we also need to add the smoothed fields here b/c setup_fluid_fields
+        is called before setup_particle_fields. """ 
 
-        super(OWLSFieldInfo,self).setup_particle_fields(ptype)
+        smoothed_suffixes = \
+            { "PartType0": 
+              ("_number_density", "_density", "_mass"),
+              "PartType4": 
+              ("_number_density", "_density", "_mass", "_fraction") }
 
-        if ptype == "PartType0":
+
+        loaded = []
+
+        # we add particle element fields for stars and gas
+        #-----------------------------------------------------
+        if ptype in self._add_elements:
+
 
             # this adds the particle element fields
             # X_density, X_mass, and X_number_density
-            # where X is an element of self._elements.
-            # X_fraction are defined in file
+            # where X is an item of self._elements.
+            # X_fraction are defined in snapshot
             #-----------------------------------------------
             for s in self._elements:
                 add_species_field_by_fraction(self, ptype, s,
                                               particle_type=True)
 
-            # this defines the ion density on particles
-            # X_density 
-            #-----------------------------------------------
-            self.setup_ion_density_particle_fields()
+        # this needs to be called after the call to 
+        # add_species_field_by_fraction for some reason ...
+        # not sure why yet. 
+        #-------------------------------------------------------
+        super(OWLSFieldInfo,self).setup_particle_fields(ptype)
 
+
+        # and now we add the smoothed versions
+        #-----------------------------------------------------
+        if ptype in self._add_elements:
+
+            for s in self._elements:
+                for sfx in smoothed_suffixes[ptype]:
+                    fname = s + sfx
+                    fn = add_volume_weighted_smoothed_field( 
+                        ptype, "particle_position", "particle_mass",
+                        "smoothing_length", "density", fname, self,
+                        self._num_neighbors)
+                    loaded += fn
+
+                    if ptype == "PartType0":
+                        self.alias(("gas", fname), fn[0])
+                    elif ptype == "PartType4":
+                        self.alias(("star", fname), fn[0])
+
+
+        # we only add ion fields for gas.  this takes some 
+        # time as the ion abundances have to be interpolated
+        # from cloudy tables (optically thin)
+        #-----------------------------------------------------
+        if ptype in self._add_ions:
+
+            # this defines the ion density on particles
+            # X_density for all items in self._ions
+            #-----------------------------------------------
+            self.setup_gas_ion_density_particle_fields( ptype )
 
             # this adds the rest of the ion particle fields
             # X_fraction, X_mass, X_number_density
@@ -141,34 +186,18 @@ class OWLSFieldInfo(SPHFieldInfo):
                 pstr = "_p" + str(roman-1)
                 yt_ion = symbol + pstr
 
+                # add particle field
+                #---------------------------------------------------
                 add_species_field_by_density(self, ptype, yt_ion,
                                              particle_type=True)
-
-
-
-            ptype = 'PartType0'
-            num_neighbors = 48
-            loaded = []
-
-            # add smoothed element fields
-            #-----------------------------------------------
-            for s in self._elements:
-                fname = s + '_number_density'
-                fn = add_volume_weighted_smoothed_field( 
-                    ptype, "particle_position", "particle_mass",
-                    "smoothing_length", "density", fname, self,
-                    num_neighbors)
-                loaded += fn
-
-                self.alias(("gas", fname), fn[0])
-
-            self._show_field_errors += loaded
 
 
             # add smoothed ion fields
             #-----------------------------------------------
             for ion in self._ions:
 
+                # construct yt name for ion
+                #---------------------------------------------------
                 if ion[0:2].isalpha():
                     symbol = ion[0:2].capitalize()
                     roman = int(ion[2:])
@@ -179,36 +208,27 @@ class OWLSFieldInfo(SPHFieldInfo):
                 pstr = "_p" + str(roman-1)
                 yt_ion = symbol + pstr
 
-                fname = yt_ion + '_number_density'
-                fn = add_volume_weighted_smoothed_field( 
-                    ptype, "particle_position", "particle_mass",
-                    "smoothing_length", "density", fname, self,
-                    num_neighbors)
-                loaded += fn
+                for sfx in smoothed_suffixes[ptype]:
+                    fname = yt_ion + sfx
+                    fn = add_volume_weighted_smoothed_field( 
+                        ptype, "particle_position", "particle_mass",
+                        "smoothing_length", "density", fname, self,
+                        self._num_neighbors)
+                    loaded += fn
 
-                self.alias(("gas", fname), fn[0])
-
-            self._show_field_errors += loaded
-
-
-            # find dependencies
-            #-----------------------------------------------
-            self.find_dependencies(loaded)
-
-
-            return
+                    self.alias(("gas", fname), fn[0])
 
 
 
+        self._show_field_errors += loaded
+        self.find_dependencies(loaded)
 
 
-
-    def setup_ion_density_particle_fields( self ):
-        """ Sets up particle fields for ion densities. """ 
+    def setup_gas_ion_density_particle_fields( self, ptype ):
+        """ Sets up particle fields for gas ion densities. """ 
 
         # loop over all ions and make fields
         #----------------------------------------------
-#        for ion in ("h1",): # self._ions:
         for ion in self._ions:
 
             # construct yt name for ion
@@ -222,7 +242,7 @@ class OWLSFieldInfo(SPHFieldInfo):
 
             pstr = "_p" + str(roman-1)
             yt_ion = symbol + pstr
-            ftype = "PartType0"
+            ftype = ptype
 
             # add ion density field for particles
             #---------------------------------------------------
@@ -288,29 +308,6 @@ class OWLSFieldInfo(SPHFieldInfo):
 
         return
 
-
-        # these add the smoothed element fields
-        #-----------------------------------------------
-        for s in self._elements:
-            add_species_field_by_fraction(self, "gas", s)
-
-        
-
-        # this should add the smoothed ion fields
-        #-----------------------------------------------
-        for ion in self._ions:
-
-            if ion[0:2].isalpha():
-                symbol = ion[0:2].capitalize()
-                roman = int(ion[2:])
-            else:
-                symbol = ion[0:1].capitalize()
-                roman = int(ion[1:])
-
-            pstr = "_p" + str(roman-1)
-            yt_ion = symbol + pstr
-
-            add_species_field_by_density(self, "gas", yt_ion)
 
 
     # this function returns the owls_ion_data directory. if it doesn't
