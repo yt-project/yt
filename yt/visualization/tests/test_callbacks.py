@@ -163,5 +163,4 @@ def test_grids_callback():
         p.annotate_grids(alpha=0.7, min_pix=10, min_pix_ids=30,
             draw_ids=True, periodic=False, min_level=2,
             max_level=3, cmap="gist_stern")
-        p.save()
-
+        p.save(prefix)
