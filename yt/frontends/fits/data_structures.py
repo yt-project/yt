@@ -209,7 +209,6 @@ class FITSDataset(Dataset):
         Dataset.__init__(self, fname, dataset_type)
         self.storage_filename = storage_filename
 
-        self.refine_by = 2
         # For plotting to APLpy
         self.hdu_list = self._handle
 
