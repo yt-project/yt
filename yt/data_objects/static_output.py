@@ -279,7 +279,10 @@ class Dataset(object):
                 self, dataset_type=self.dataset_type)
             # Now we do things that we need an instantiated index for
             # ...first off, we create our field_info now.
+            oldsettings = np.geterr()
+            np.seterr(all='ignore')
             self.create_field_info()
+            np.seterr(**oldsettings)
         return self._instantiated_index
     
     _index_proxy = None
@@ -361,11 +364,16 @@ class Dataset(object):
         # No string lookups here, we need an actual union.
         f = self.particle_fields_by_type
         fields = set_intersection([f[s] for s in union
-                                   if s in self.particle_types_raw])
+                                   if s in self.particle_types_raw
+                                   and len(f[s]) > 0])
         for field in fields:
             units = set([])
             for s in union:
-                units.add(self.field_units.get((s, field), ""))
+                # First we check our existing fields for units
+                funits = self._get_field_info(s, field).units
+                # Then we override with field_units settings.
+                funits = self.field_units.get((s, field), funits)
+                units.add(funits)
             if len(units) == 1:
                 self.field_units[union.name, field] = list(units)[0]
         self.particle_types += (union.name,)

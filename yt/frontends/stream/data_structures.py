@@ -498,6 +498,13 @@ def unitify_data(data):
             raise RuntimeError
         new_data[new_field] = data[field]
         field_units[new_field] = field_units.pop(field)
+        known_fields = StreamFieldInfo.known_particle_fields \
+                     + StreamFieldInfo.known_other_fields
+        # We do not want to override any of the known ones, if it's not
+        # overridden here.
+        if any(f[0] == new_field[1] for f in known_fields) and \
+           field_units[new_field] == "":
+            field_units.pop(new_field)
     data = new_data
     return field_units, data
 

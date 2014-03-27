@@ -52,13 +52,7 @@ class IOHandlerStream(BaseIOHandler):
             raise NotImplementedError
         rv = {}
         for field in fields:
-            ftype, fname = field
-            try:
-                field_units = self.field_units[fname]
-            except KeyError:
-                field_units = self.field_units[field]
-            rv[field] = self.pf.arr(np.empty(size, dtype="float64"),
-                                    field_units)
+            rv[field] = self.pf.arr(np.empty(size, dtype="float64"))
         ng = sum(len(c.objs) for c in chunks)
         mylog.debug("Reading %s cells of %s fields in %s blocks",
                     size, [f2 for f1, f2 in fields], ng)
