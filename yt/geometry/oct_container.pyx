@@ -504,9 +504,8 @@ cdef class OctreeContainer:
         cdef OctVisitorData data
         self.setup_data(&data, -1)
         data.oref = 1
-        data.nz = 8
         cdef np.ndarray[np.uint8_t, ndim=1] ref_mask
-        ref_mask = np.zeros(self.nocts * 8, dtype="uint8") - 1
+        ref_mask = np.zeros(self.nocts * data.nz, dtype="uint8") - 1
         cdef void *p[2]
         cdef np.uint8_t ad = int(always_descend)
         p[0] = <void *> &ad
@@ -514,8 +513,6 @@ cdef class OctreeContainer:
         data.array = p
         # Enforce partial_coverage here
         self.visit_all_octs(selector, oct_visitors.store_octree, &data, 1)
-        if always_descend:
-            ref_mask = ref_mask[:data.index-1]
         header['octree'] = ref_mask
         return header
 

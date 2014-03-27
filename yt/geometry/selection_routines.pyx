@@ -214,6 +214,12 @@ cdef class SelectorObject:
         # Now we visit all our children.  We subtract off sdds for the first
         # pass because we center it on the first cell.
         cdef int iter = 1 - visit_covered # 2 if 1, 1 if 0.
+        # So the order here goes like so.  If visit_covered is 1, which usually
+        # comes from "partial_coverage", we visit the components of a zone even
+        # if it has children.  But in general, the first iteration through, we
+        # visit each cell.  This means that only if visit_covered is true do we
+        # visit potentially covered cells.  The next time through, we visit
+        # child cells.
         while iter < 2:
             spos[0] = pos[0] - sdds[0]/2.0
             for i in range(2):

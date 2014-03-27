@@ -1002,7 +1002,7 @@ def load_particles(data, length_unit = None, bbox=None,
 
     """
 
-    domain_dimensions = np.ones(3, "int32") * 2
+    domain_dimensions = np.ones(3, "int32") * (1<<over_refine_factor)
     nprocs = 1
     if bbox is None:
         bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], 'float64')
