@@ -364,7 +364,8 @@ class Dataset(object):
         # No string lookups here, we need an actual union.
         f = self.particle_fields_by_type
         fields = set_intersection([f[s] for s in union
-                                   if s in self.particle_types_raw])
+                                   if s in self.particle_types_raw
+                                   and len(f[s]) > 0])
         for field in fields:
             units = set([])
             for s in union:
