@@ -502,7 +502,6 @@ def unitify_data(data):
                      + StreamFieldInfo.known_other_fields
         # We do not want to override any of the known ones, if it's not
         # overridden here.
-        if new_field == ("all", "particle_position_x"): raise RuntimeError
         if any(f[0] == new_field[1] for f in known_fields) and \
            field_units[new_field] == "":
             field_units.pop(new_field)
