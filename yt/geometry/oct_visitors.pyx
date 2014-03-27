@@ -185,6 +185,7 @@ cdef void store_octree(Oct *o, OctVisitorData *data, np.uint8_t selected):
         return
     data.last = o.domain_ind
     if o.children == NULL or o.children[ii] == NULL:
+        # Not refined.
         res = 0
     else:
         res = 1
