@@ -255,7 +255,7 @@ class IOHandlerInMemory(BaseIOHandler):
         return field.swapaxes(0,2)
 
     def _read_field_names(self, grid):
-        return self.grids_in_memory[grid.id].keys()
+        return [("enzo", field) for field in self.grids_in_memory[grid.id].keys()]
 
     def _read_data_slice(self, grid, field, axis, coord):
         sl = [slice(3,-3), slice(3,-3), slice(3,-3)]

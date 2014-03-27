@@ -829,16 +829,12 @@ class EnzoDataset(Dataset):
         else:
             if "LengthUnits" in self.parameters:
                 length_unit = self.parameters["LengthUnits"]
+                mass_unit = self.parameters["DensityUnits"] * length_unit**3
                 time_unit = self.parameters["TimeUnits"]
             else:
                 mylog.warning("Setting 1.0 in code units to be 1.0 cm")
                 mylog.warning("Setting 1.0 in code units to be 1.0 s")
                 length_unit = mass_unit = time_unit = 1.0
-            if "MassUnits" in self.parameters:
-                mass_unit = self.parameters["MassUnits"]
-            else:
-                mylog.warning("Setting 1.0 in code units to be 1.0 g")
-                mass_unit = 1.0
 
             self.length_unit = self.quan(length_unit, "cm")
             self.mass_unit = self.quan(mass_unit, "g")
@@ -902,6 +898,7 @@ class EnzoDatasetInMemory(EnzoDataset):
         return obj
 
     def __init__(self, parameter_override=None, conversion_override=None):
+        self.fluid_types += ("enzo",)
         if parameter_override is None: parameter_override = {}
         self._parameter_override = parameter_override
         if conversion_override is None: conversion_override = {}
