@@ -14,12 +14,10 @@ import numpy as np
 from yt.funcs import mylog, iterable
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
 from yt.data_objects.construction_data_containers import YTCoveringGridBase
-
-try:
-    from astropy.io.fits import HDUList, ImageHDU
-    from astropy import wcs as pywcs
-except ImportError:
-    HDUList = object
+from yt.frontends.fits.data_structures import ap
+HDUList = ap.pyfits.HDUList
+ImageHDU = ap.pyfits.ImageHDU
+pywcs = ap.pywcs
 
 class FITSImageBuffer(HDUList):
 

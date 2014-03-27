@@ -280,16 +280,11 @@ class FixedResolutionBuffer(object):
             requested.
         """
 
-        try:
-            import astropy.io.fits as pyfits
-        except:
-            mylog.error("You don't have AstroPy installed!")
-            raise ImportError
         from yt.utilities.fits_image import FITSImageBuffer
 
         extra_fields = ['x','y','z','px','py','pz','pdx','pdy','pdz','weight_field']
         if fields is None: 
-            fields = [field for field in self.data_source.fields 
+            fields = [field[-1] for field in self.data_source.field_data
                       if field not in extra_fields]
 
         fib = FITSImageBuffer(self, fields=fields, units=units)
