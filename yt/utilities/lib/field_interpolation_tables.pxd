@@ -16,6 +16,7 @@ Field Interpolation Tables
 cimport cython
 cimport numpy as np
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, fabs
+from libc.math cimport isnormal
 
 DEF Nch = 4
 
@@ -58,6 +59,7 @@ cdef inline np.float64_t FIT_get_value(FieldInterpolationTable *fit,
     cdef np.float64_t bv, dy, dd, tf, rv
     cdef int bin_id
     if dvs[fit.field_id] >= fit.bounds[1] or dvs[fit.field_id] <= fit.bounds[0]: return 0.0
+    if not isnormal(dvs[fit.field_id]): return 0.0
     bin_id = <int> ((dvs[fit.field_id] - fit.bounds[0]) * fit.idbin)
     bin_id = iclip(bin_id, 0, fit.nbins-2)
     dd = dvs[fit.field_id] - (fit.bounds[0] + bin_id * fit.dbin) # x - x0
