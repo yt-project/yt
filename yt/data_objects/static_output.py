@@ -368,7 +368,11 @@ class Dataset(object):
         for field in fields:
             units = set([])
             for s in union:
-                units.add(self.field_units.get((s, field), ""))
+                # First we check our existing fields for units
+                funits = self._get_field_info(s, field).units
+                # Then we override with field_units settings.
+                funits = self.field_units.get((s, field), funits)
+                units.add(funits)
             if len(units) == 1:
                 self.field_units[union.name, field] = list(units)[0]
         self.particle_types += (union.name,)
