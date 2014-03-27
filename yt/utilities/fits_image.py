@@ -14,14 +14,11 @@ import numpy as np
 from yt.funcs import mylog, iterable
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
 from yt.data_objects.construction_data_containers import YTCoveringGridBase
+from yt.frontends.fits.data_structures import ap
+pyfits = ap.pyfits
+pywcs = ap.pywcs
 
-try:
-    from astropy.io.fits import HDUList, ImageHDU
-    from astropy import wcs as pywcs
-except ImportError:
-    HDUList = object
-
-class FITSImageBuffer(HDUList):
+class FITSImageBuffer(pyfits.HDUList):
 
     def __init__(self, data, fields=None, units="cm",
                  center=None, scale=None, wcs=None):
@@ -69,7 +66,7 @@ class FITSImageBuffer(HDUList):
         >>> f_deg.writeto("temp.fits")
         """
         
-        super(HDUList, self).__init__()
+        super(pyfits.HDUList, self).__init__()
 
         if isinstance(fields, basestring): fields = [fields]
             
@@ -96,10 +93,10 @@ class FITSImageBuffer(HDUList):
             if key not in exclude_fields:
                 mylog.info("Making a FITS image of field %s" % (key))
                 if first:
-                    hdu = PrimaryHDU(np.array(img_data[key]))
+                    hdu = pyfits.PrimaryHDU(np.array(img_data[key]))
                     hdu.name = key
                 else:
-                    hdu = ImageHDU(np.array(img_data[key]), name=key)
+                    hdu = pyfits.ImageHDU(np.array(img_data[key]), name=key)
                 self.append(hdu)
 
         self.dimensionality = len(self[0].data.shape)
@@ -210,7 +207,7 @@ class FITSImageBuffer(HDUList):
         return FITSImageBuffer(new_buffer, wcs=new_wcs)
 
     def writeto(self, fileobj, **kwargs):
-        HDUList(self).writeto(fileobj, **kwargs)
+        pyfits.HDUList(self).writeto(fileobj, **kwargs)
         
     @property
     def shape(self):
