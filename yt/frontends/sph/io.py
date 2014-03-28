@@ -418,7 +418,8 @@ class IOHandlerTipsyBinary(BaseIOHandler):
 
     def _read_aux_fields(self, field, mask, data_file):
         """
-        Read in auxiliary files from gasoline/pkdgrav 
+        Read in auxiliary files from gasoline/pkdgrav.
+        This method will automatically detect the format of the file.
         """
         filename = data_file.filename+'.'+field
         dtype = None
@@ -527,6 +528,41 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 for field in field_list:
                     yield (ptype, field), tf.pop(field)
             f.close()
+
+    def _update_domain(self, data_file):
+        '''
+        This method is used to determine the size needed for a box that will 
+        bound the particles.  It simply finds the largest position of the
+        whole set of particles, and sets the domain to +/- that value.
+        '''
+        pf = data_file.pf
+        ind = 0
+        # Check to make sure that the domain hasn't already been set
+        # by the parameter file 
+        if pf.domain_left_edge is not None and pf.domain_right_edge is not None:
+            return
+        with open(data_file.filename, "rb") as f:
+            f.seek(pf._header_offset)
+            for iptype, ptype in enumerate(self._ptypes):
+                # We'll just add the individual types separately
+                count = data_file.total_particles[ptype]
+                if count == 0: continue
+                start, stop = ind, ind + count
+                while ind < stop:
+                    c = min(CHUNKSIZE, stop - ind)
+                    pp = np.fromfile(f, dtype = self._pdtypes[ptype],
+                                     count = c)
+                    for ax in 'xyz':
+                        mi = pp["Coordinates"][ax].min()
+                        ma = pp["Coordinates"][ax].max()
+                        outlier = YTArray(np.max(np.abs((mi,ma))), 'code_length')
+                    if outlier > pf.domain_right_edge or -outlier < pf.domain_left_edge:
+                        pf.domain_left_edge = -outlier
+                        pf.domain_right_edge = outlier
+                    ind += c
+        pf.domain_left_edge = np.ones(3)*pf.domain_left_edge
+        pf.domain_right_edge = np.ones(3)*pf.domain_right_edge
+        pf.domain_width = np.ones(3)*2*pf.domain_right_edge
 
     def _initialize_index(self, data_file, regions):
         pf = data_file.pf

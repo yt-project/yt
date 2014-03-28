@@ -351,6 +351,7 @@ class TipsyFile(ParticleFile):
         assert file_id == 0
         super(TipsyFile, self).__init__(pf, io, filename, file_id)
         io._create_dtypes(self)
+        io._update_domain(self)#Check automatically what the domain size is
 
 
 class TipsyDataset(ParticleDataset):
@@ -369,23 +370,25 @@ class TipsyDataset(ParticleDataset):
 
     def __init__(self, filename, dataset_type="tipsy",
                  field_dtypes=None,
-                 domain_left_edge=None,
-                 domain_right_edge=None,
                  unit_base=None,
                  cosmology_parameters=None,
                  parameter_file=None,
                  n_ref=64, over_refine_factor=1):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
-        self.endian = self._validate_header(filename)[1]
+        success, self.endian = self._validate_header(filename)
+        if not success:
+            print "SOMETHING HAS GONE WRONG.  NBODIES != SUM PARTICLES."
+            print "%s != (%s == %s + %s + %s)" % (
+                self.parameters['nbodies'],
+                tot,
+                self.parameters['nsph'],
+                self.parameters['ndark'],
+                self.parameters['nstar'])
+            print "Often this can be fixed by changing the 'endian' parameter."
+            print "This defaults to '>' but may in fact be '<'."
+            raise RuntimeError
         self.storage_filename = None
-        if domain_left_edge is None:
-            domain_left_edge = np.zeros(3, "float64") - 0.5
-        if domain_right_edge is None:
-            domain_right_edge = np.zeros(3, "float64") + 0.5
-
-        self.domain_left_edge = np.array(domain_left_edge, dtype="float64")
-        self.domain_right_edge = np.array(domain_right_edge, dtype="float64")
 
         # My understanding is that dtypes are set on a field by field basis,
         # not on a (particle type, field) basis
@@ -420,6 +423,7 @@ class TipsyDataset(ParticleDataset):
         self.dimensionality = 3
         self.refine_by = 2
         self.parameters["HydroMethod"] = "sph"
+
 
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
@@ -457,21 +461,13 @@ class TipsyDataset(ParticleDataset):
         self.domain_dimensions = np.ones(3, "int32") * nz
         if self.parameters.get('bPeriodic', True):
             self.periodicity = (True, True, True)
+            # If we are periodic, that sets our domain width to either 1 or dPeriod.
+            self.domain_left_edge = np.zeros(3, "float64") - 0.5*self.parameters.get('dPeriod', 1)
+            self.domain_right_edge = np.zeros(3, "float64") + 0.5*self.parameters.get('dPeriod', 1)
         else:
             self.periodicity = (False, False, False)
-        tot = sum(self.parameters[ptype] for ptype
-                  in ('nsph', 'ndark', 'nstar'))
-        if tot != self.parameters['nbodies']:
-            print "SOMETHING HAS GONE WRONG.  NBODIES != SUM PARTICLES."
-            print "%s != (%s == %s + %s + %s)" % (
-                self.parameters['nbodies'],
-                tot,
-                self.parameters['nsph'],
-                self.parameters['ndark'],
-                self.parameters['nstar'])
-            print "Often this can be fixed by changing the 'endian' parameter."
-            print "This defaults to '>' but may in fact be '<'."
-            raise RuntimeError
+            self.domain_left_edge = None
+            self.domain_right_edge = None
         if self.parameters.get('bComove', False):
             self.cosmological_simulation = 1
             cosm = self._cosmology_parameters or {}
@@ -516,6 +512,12 @@ class TipsyDataset(ParticleDataset):
 
     @staticmethod
     def _validate_header(filename):
+        '''
+        This method automatically detects whether the tipsy file is big/little endian
+        and is not corrupt/invalid.  It returns a tuple of (Valid, endianswap) where
+        Valid is a boolean that is true if the file is a tipsy file, and endianswap is 
+        the endianness character '>' or '<'.
+        '''
         try:
             f = open(filename,'rb')
         except:

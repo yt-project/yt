@@ -367,16 +367,11 @@ Tipsy Data
 yt also supports loading Tipsy data.  Many of its characteristics are similar
 to how Gadget data is loaded; specifically, it shares its definition of
 indexing and mesh-identification with that described in
-:ref:`particle-indexing-criteria`.  However, unlike Gadget, the Tipsy frontend
-has not yet implemented header specifications, field specifications, or
-particle type specifications.  *These are all excellent projects for new
-contributors!*
-
+:ref:`particle-indexing-criteria`.  
 
 .. code-block:: python
 
-    ds = TipsyDataset("./halo1e11_run1.00400", endian="<",
-                           field_dtypes = {"Coordinates": "d"})
+    ds = load("./halo1e11_run1.00400")
 
 .. _specifying-cosmology-tipsy:
 
