@@ -152,7 +152,7 @@ class ARTIndex(OctreeIndex):
                 g = og
             yield YTDataChunk(dobj, "spatial", [g], None)
 
-    def _chunk_io(self, dobj, cache = True):
+    def _chunk_io(self, dobj, cache = True, local_only = False):
         """
         Since subsets are calculated per domain,
         i.e. per file, yield each domain at a time to
