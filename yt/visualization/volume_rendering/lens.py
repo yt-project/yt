@@ -1,5 +1,5 @@
 """
-Engine Classes
+Lens Classes
 
 
 
@@ -23,24 +23,24 @@ from yt.units.yt_array import YTArray
 import numpy as np
 
 
-class Engine(ParallelAnalysisInterface):
+class Lens(ParallelAnalysisInterface):
 
-    """docstring for Engine"""
+    """docstring for Lens"""
 
     def __init__(self, ):
-        super(Engine, self).__init__()
+        super(Lens, self).__init__()
 
     def camera_updated(self):
         """docstring for update_camera"""
         pass
 
 
-class PlaneParallelEngine(Engine):
+class PlaneParallelLens(Lens):
 
-    """docstring for PlaneParallelEngine"""
+    """docstring for PlaneParallelLens"""
 
     def __init__(self, scene, render_source):
-        super(PlaneParallelEngine, self).__init__()
+        super(PlaneParallelLens, self).__init__()
         self.scene = scene
         self.camera = scene.camera
         self.render_source = render_source
@@ -57,7 +57,7 @@ class PlaneParallelEngine(Engine):
         self.sampler = self.get_sampler()
 
     def set_camera(self, camera):
-        """set the camera for this engine"""
+        """set the camera for this lens"""
         self.camera = camera
 
     def camera_updated(self):

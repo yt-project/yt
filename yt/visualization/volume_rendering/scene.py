@@ -23,11 +23,11 @@ import numpy as np
 
 class SceneHandle(object):
     """docstring for SceneHandle"""
-    def __init__(self, scene, camera, source, engine):
+    def __init__(self, scene, camera, source, lens):
         self.scene = scene
         self.camera = camera
         self.source = source
-        self.engine = engine
+        self.lens = lens
 
     def __repr__(self):
         desc = super(SceneHandle, self).__repr__()
@@ -39,7 +39,7 @@ class SceneHandle(object):
         desc += ".scene: " + self.scene.__repr__() + "\n"
         desc += ".camera: " + self.camera.__repr__() + "\n"
         desc += ".source: " + self.source.__repr__() + "\n"
-        desc += ".engine: " + self.engine.__repr__() + "\n"
+        desc += ".lens: " + self.lens.__repr__() + "\n"
         return desc
 
 
@@ -149,7 +149,7 @@ class Scene(object):
         if key is None:
             key = self.sources.keys()[0]
         handle = SceneHandle(self, self.camera, self.sources[key],
-                             self.sources[key].engine)
+                             self.sources[key].lens)
         return handle
 
 

@@ -19,7 +19,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from transfer_function_helper import TransferFunctionHelper
-from engine import PlaneParallelEngine
+from lens import PlaneParallelLens
 from camera import Camera
 
 
@@ -31,7 +31,7 @@ class RenderSource(ParallelAnalysisInterface):
     def __init__(self):
         super(RenderSource, self).__init__()
         self.opaque = False
-        self.engine = None
+        self.lens = None
         self.zbuffer = None
 
     def setup(self):
@@ -40,8 +40,8 @@ class RenderSource(ParallelAnalysisInterface):
 
     def set_scene(self, scene):
         self.scene = scene
-        if self.engine is not None:
-            self.engine.set_camera(scene.camera)
+        if self.lens is not None:
+            self.lens.set_camera(scene.camera)
 
     def render(self, zbuffer=None):
         pass
@@ -80,7 +80,7 @@ class VolumeSource(RenderSource):
         self.scene = None
         self.volume = None
         self.current_image = None
-        self.engine = None
+        self.lens = None
 
         # In the future these will merge
         self.transfer_function = None
@@ -90,7 +90,7 @@ class VolumeSource(RenderSource):
     def build_defaults(self):
         if self.data_source is not None:
             self.build_default_transfer_function()
-            self.build_default_engine()
+            self.build_default_lens()
 
     def validate(self):
         """Make sure that all dependencies have been met"""
@@ -103,8 +103,8 @@ class VolumeSource(RenderSource):
         if self.volume is None:
             raise RuntimeError("Volume not initialized")
 
-        if self.engine is None:
-            raise RuntimeError("Engine not initialized")
+        if self.lens is None:
+            raise RuntimeError("Lens not initialized")
 
         if self.transfer_function is None:
             raise RuntimeError("Transfer Function not Supplied")
@@ -123,8 +123,8 @@ class VolumeSource(RenderSource):
         self.scene.validate()
         self.new_image()
 
-    def build_default_engine(self):
-        self.engine = PlaneParallelEngine(self.scene, self)
+    def build_default_lens(self):
+        self.lens = PlaneParallelLens(self.scene, self)
 
     def build_default_volume(self):
         self.volume = AMRKDTree(self.data_source.pf,
@@ -134,7 +134,7 @@ class VolumeSource(RenderSource):
 
     def set_camera(self, camera):
         """Set camera in this object, as well as any attributes"""
-        self.engine.set_camera(camera)
+        self.lens.set_camera(camera)
 
     def teardown(self):
         """docstring for teardown"""
@@ -148,7 +148,7 @@ class VolumeSource(RenderSource):
         """docstring for request"""
         self.zbuffer = zbuffer
         self.prepare()
-        self.engine.run()
+        self.lens.run()
 
         self.camera_updated()
         total_cells = 0
