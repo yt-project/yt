@@ -18,6 +18,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.utilities.lib.grid_traversal import \
     VolumeRenderSampler
+from camera import Camera
 from yt.units.yt_array import YTArray
 import numpy as np
 
@@ -43,7 +44,6 @@ class PlaneParallelEngine(Engine):
         self.scene = scene
         self.camera = scene.camera
         self.render_source = render_source
-        self.transfer_function = self.render_source.transfer_function
         self.sub_samples = 5
         self.num_threads = 0
         self.double_check = False
@@ -66,6 +66,17 @@ class PlaneParallelEngine(Engine):
             self.sampler = self.get_sampler()
             self.camera._moved = False
 
+    def new_image(self):
+        cam = self.scene.camera
+        if cam is None:
+            cam = Camera(self.data_source)
+            self.scene.camera = cam
+        self.current_image = ImageArray(
+            np.zeros((cam.resolution[0], cam.resolution[1],
+                      4), dtype='float64', order='C'),
+            info={'imtype': 'rendering'})
+        return self.current_image
+
     def _setup_box_properties(self):
         unit_vectors = self.camera.unit_vectors
         width = self.camera.width
@@ -81,6 +92,10 @@ class PlaneParallelEngine(Engine):
         mylog.debug(self.front_center)
 
     def get_sampler(self):
+        self._setup_box_properties()
+        kwargs = {}
+        if self.render_source.zbuffer is not None:
+            kwargs['zbuffer'] = self.render_source.zbuffer.z
         self.render_source.prepare()
         image = self.render_source.current_image
         rotp = np.concatenate([self.scene.camera.inv_mat.ravel('F'),
@@ -92,7 +107,7 @@ class PlaneParallelEngine(Engine):
                     0], self.camera.unit_vectors[1],
                 np.array(self.camera.width, dtype='float64'),
                 self.render_source.transfer_function, self.sub_samples)
-        sampler = VolumeRenderSampler(*args)
+        sampler = VolumeRenderSampler(*args, **kwargs)
         return sampler
 
     def run(self):
@@ -114,11 +129,4 @@ class PlaneParallelEngine(Engine):
             self.finalize_image(self.sampler.aimage)
         return
 
-    def finalize_image(self, image):
-        cam = self.scene.camera
-        view_pos = self.front_center + cam.unit_vectors[2] * \
-            1.0e6 * cam.width[2]
-        image = self.render_source.volume.reduce_tree_images(image, view_pos)
-        if self.transfer_function.grey_opacity is False:
-            image[:, :, 3] = 1.0
-        return image
+

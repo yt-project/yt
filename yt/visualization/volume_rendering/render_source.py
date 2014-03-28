@@ -31,16 +31,34 @@ class RenderSource(ParallelAnalysisInterface):
     def __init__(self):
         super(RenderSource, self).__init__()
         self.opaque = False
+        self.engine = None
+        self.zbuffer = None
 
     def setup(self):
         """Set up data needed to render"""
         pass
 
+    def set_scene(self, scene):
+        self.scene = scene
+        if self.engine is not None:
+            self.engine.set_camera(scene.camera)
+
     def render(self, zbuffer=None):
-        """docstring for request"""
-        self.prepare()
-        self.engine.run()
-        return self.current_image
+        pass
+
+    def validate(self):
+        pass
+
+    def new_image(self):
+        pass
+
+    def prepare(self):
+        pass
+
+    def get_default_camera(self):
+        """If possible, create a camera based on the render source"""
+        return None
+
 
 class OpaqueSource(RenderSource):
     """docstring for OpaqueSource"""
@@ -48,6 +66,8 @@ class OpaqueSource(RenderSource):
         super(OpaqueSource, self).__init__()
         self.opaque = True
 
+    def set_zbuffer(self, zbuffer):
+        self.zbuffer = zbuffer
 
 class VolumeSource(RenderSource):
 
@@ -98,6 +118,11 @@ class VolumeSource(RenderSource):
         self.tfh.setup_default()
         self.transfer_function = self.tfh.tf
 
+    def prepare(self):
+        """prepare for rendering"""
+        self.scene.validate()
+        self.new_image()
+
     def build_default_engine(self):
         self.engine = PlaneParallelEngine(self.scene, self)
 
@@ -107,30 +132,9 @@ class VolumeSource(RenderSource):
         log_fields = [self.data_source.pf.field_info[self.field].take_log]
         self.volume.set_fields([self.field], log_fields, True)
 
-    def set_scene(self, scene):
-        self.scene = scene
-        if self.engine is not None:
-            self.engine.set_camera(scene.camera)
-
     def set_camera(self, camera):
         """Set camera in this object, as well as any attributes"""
         self.engine.set_camera(camera)
-
-    def prepare(self):
-        """prepare for rendering"""
-        self.scene.validate()
-        self.new_image()
-
-    def new_image(self):
-        cam = self.scene.camera
-        if cam is None:
-            cam = Camera(self.data_source)
-            self.scene.camera = cam
-        self.current_image = ImageArray(
-            np.zeros((cam.resolution[0], cam.resolution[1],
-                      4), dtype='float64', order='C'),
-            info={'imtype': 'rendering'})
-        return self.current_image
 
     def teardown(self):
         """docstring for teardown"""
@@ -142,6 +146,34 @@ class VolumeSource(RenderSource):
 
     def render(self, zbuffer=None):
         """docstring for request"""
+        self.zbuffer = zbuffer
         self.prepare()
         self.engine.run()
+
+        self.camera_updated()
+        total_cells = 0
+        if self.double_check:
+            for brick in self.render_source.volume.bricks:
+                for data in brick.my_data:
+                    if np.any(np.isnan(data)):
+                        raise RuntimeError
+
+        view_pos = self.front_center + \
+            self.camera.unit_vectors[2] * 1.0e6 * self.camera.width[2]
+        for brick in self.render_source.volume.traverse(view_pos):
+            self.sampler(brick, num_threads=self.num_threads)
+            total_cells += np.prod(brick.my_data[0].shape)
+
+        self.current_image = \
+            self.finalize_image(self.sampler.aimage)
+
         return self.current_image
+
+    def finalize_image(self, image):
+        cam = self.scene.camera
+        view_pos = self.front_center + cam.unit_vectors[2] * \
+            1.0e6 * cam.width[2]
+        image = self.render_source.volume.reduce_tree_images(image, view_pos)
+        if self.transfer_function.grey_opacity is False:
+            image[:, :, 3] = 1.0
+        return image

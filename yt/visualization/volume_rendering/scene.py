@@ -20,6 +20,7 @@ from yt.data_objects.api import ImageArray
 from zbuffer_array import ZBuffer
 import numpy as np
 
+
 class SceneHandle(object):
     """docstring for SceneHandle"""
     def __init__(self, scene, camera, source, engine):
@@ -41,6 +42,7 @@ class SceneHandle(object):
         desc += ".engine: " + self.engine.__repr__() + "\n"
         return desc
 
+
 class Scene(object):
 
     """Skeleton Class for 3D Scenes"""
@@ -49,24 +51,8 @@ class Scene(object):
 
     def __init__(self):
         super(Scene, self).__init__()
-        self.camera = None
         self.sources = {}
-        self.camera_path = None
-
-    def set_camera(self, camera):
-        self.camera = camera
-
-        for source in self.sources.values():
-            source.set_camera(self.camera)
-
-    def get_handle(self, key=None):
-        """docstring for get_handle"""
-
-        if key is None:
-            key = self.sources.keys()[0]
-        handle = SceneHandle(self, self.camera, self.sources[key],
-                             self.sources[key].engine)
-        return handle
+        self.default_camera = None
 
     def iter_opaque_sources(self):
         """
@@ -86,38 +72,20 @@ class Scene(object):
             if not isinstance(source, OpaqueSource):
                 yield k, source
 
-
-    def validate(self):
-        if self.camera is None:
-            for k, source in self.sources.iteritems():
-                try:
-                    self.camera = Camera(source.data_source)
-                    return
-                except:
-                    pass
-                raise RuntimeError("Couldn't build default camera")
-        return
-
-    def composite(self):
-        opaque = ZBuffer(
-            np.zeros(self.camera.resolution[0],
-                     self.camera.resolution[1],
-                     4),
-            np.ones(self.camera.resolution) * np.inf)
-
-        for k, source in self.iter_opaque_sources():
-            opaque = opaque + source.zbuffer
-
-        for k, source in self.iter_transparent_sources():
-            source.render(zbuffer=opaque)
-            opaque = opaque + source.zbuffer
-        pass
-
-    @property
-    def current(self):
-        if self._current is None:
-            self.request()
-        return self._current
+    def get_default_camera(self):
+        """
+        Use exisiting sources and their data sources to
+        build a default camera. If no useful source is
+        available, create a default Camera at 1,1,1 in the
+        1,0,0 direction"""
+        for k, source in self.sources.iteritems():
+            cam = source.get_default_camera()
+            if cam is not None:
+                break
+        if cam is None:
+            cam = Camera()
+        self.default_camera = cam
+        return cam
 
     def add_source(self, render_source, keyname=None):
         """
@@ -151,6 +119,39 @@ class Scene(object):
             bmp.write_png(fname, clip_ratio=clip_ratio)
         return bmp
 
+    def validate(self):
+        for k, source in self.sources.iteritems():
+            source.validate()
+        return
+
+    def composite(self):
+        opaque = ZBuffer(
+            np.zeros(self.camera.resolution[0],
+                     self.camera.resolution[1],
+                     4),
+            np.ones(self.camera.resolution) * np.inf)
+
+        for k, source in self.iter_opaque_sources():
+            if source.zbuffer is not None:
+                opaque = opaque + source.zbuffer
+
+        for k, source in self.iter_transparent_sources():
+            source.render(zbuffer=opaque)
+            opaque = opaque + source.zbuffer
+        pass
+
+    def set_default_camera(self, camera):
+        self.default_camera = camera
+
+    def get_handle(self, key=None):
+        """docstring for get_handle"""
+
+        if key is None:
+            key = self.sources.keys()[0]
+        handle = SceneHandle(self, self.camera, self.sources[key],
+                             self.sources[key].engine)
+        return handle
+
 
 def create_volume_rendering(data_source, field=None):
     if isinstance(data_source, Dataset):
@@ -171,33 +172,3 @@ def create_volume_rendering(data_source, field=None):
     sc.add_source(render_source)
     render_source.build_defaults()
     return sc
-
-class RenderScene(Scene):
-
-    """docstring for RenderScene"""
-
-    def __init__(self, data_source, field=None):
-        super(RenderScene, self).__init__()
-        if isinstance(data_source, Dataset):
-            self.ds = data_source
-            data_source = data_source.all_data()
-        else:
-            self.ds = data_source.pf
-
-        self.data_source = data_source
-        self.camera = Camera(data_source)
-        self.field = field
-        self.render_sources = {}
-        self.default_setup()
-
-    def default_setup(self):
-        """docstring for default_setup"""
-        if self.field is None:
-            self.ds.field_list
-            self.field = self.ds.field_list[0]
-            mylog.info('Setting default field to %s' % self.field.__repr__())
-
-        if self.data_source:
-            render_source = VolumeSource(self.data_source, self.field)
-            self.add_source(render_source)
-            render_source.build_defaults()
