@@ -109,7 +109,7 @@ class OWLSFieldInfo(SPHFieldInfo):
         we also need to add the smoothed fields here b/c setup_fluid_fields
         is called before setup_particle_fields. """ 
 
-        smoothed_suffixes = ("_number_density", "_density", "_mass"),
+        smoothed_suffixes = ("_number_density", "_density", "_mass")
 
 
 
@@ -215,7 +215,7 @@ class OWLSFieldInfo(SPHFieldInfo):
                 yt_ion = symbol + pstr
 
                 loaded = []
-                for sfx in smoothed_suffixes[ptype]:
+                for sfx in smoothed_suffixes:
                     fname = yt_ion + sfx
                     fn = add_volume_weighted_smoothed_field( 
                         ptype, "particle_position", "particle_mass",
