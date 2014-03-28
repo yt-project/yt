@@ -32,6 +32,8 @@ from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
     GridIndex
+from yt.geometry.geometry_handler import \
+    YTDataChunk
 from yt.data_objects.static_output import \
     Dataset
 from yt.fields.field_info_container import \
@@ -562,7 +564,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         self.grids = np.empty(len(grids), dtype='object')
         for i, grid in enumerate(grids):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
-            grid.filename = None
+            grid.filename = "Inline_processor_%07i" % (self.grid_procs[i,0])
             grid._prepare_grid()
             grid.proc_num = self.grid_procs[i,0]
             self.grids[i] = grid
@@ -599,6 +601,20 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         else:
             random_sample = np.mgrid[0:max(len(my_grids)-1,1)].astype("int32")
         return my_grids[(random_sample,)]
+
+    def _chunk_io(self, dobj, cache = True, local_only = False):
+        gfiles = defaultdict(list)
+        gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+        for g in gobjs:
+            gfiles[g.filename].append(g)
+        for fn in sorted(gfiles):
+            if local_only:
+                gobjs = [g for g in gfiles[fn] if g.proc_num == self.comm.rank]
+                gfiles[fn] = gobjs
+            gs = gfiles[fn]
+            count = self._count_selection(dobj, gs)
+            yield YTDataChunk(dobj, "io", gs, count, cache = cache)
+
 
 class EnzoHierarchy1D(EnzoHierarchy):
 
