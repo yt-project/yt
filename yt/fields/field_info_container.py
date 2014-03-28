@@ -66,7 +66,7 @@ class FieldInfoContainer(dict):
     def setup_fluid_fields(self):
         pass
 
-    def setup_particle_fields(self, ptype):
+    def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64 ):
         for f, (units, aliases, dn) in sorted(self.known_particle_fields):
             units = self.pf.field_units.get((ptype, f), units)
             self.add_output_field((ptype, f),
@@ -100,7 +100,9 @@ class FieldInfoContainer(dict):
             self.add_output_field(field, 
                                   units = self.pf.field_units.get(field, ""),
                                   particle_type = True)
-        self.setup_smoothed_fields(ptype)
+        self.setup_smoothed_fields(ptype, 
+                                   num_neighbors=num_neighbors,
+                                   ftype=ftype)
 
     def setup_smoothed_fields(self, ptype, num_neighbors = 64, ftype = "gas"):
         # We can in principle compute this, but it is not yet implemented.

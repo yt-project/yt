@@ -209,7 +209,10 @@ class GadgetDataset(ParticleDataset):
         if "length" in unit_base:
             length_unit = unit_base["length"]
         elif "UnitLength_in_cm" in unit_base:
-            length_unit = (unit_base["UnitLength_in_cm"], "cm")
+            if self.cosmological_simulation == 0:
+                length_unit = (unit_base["UnitLength_in_cm"], "cm")
+            else:
+                length_unit = (unit_base["UnitLength_in_cm"], "cmcm/h")
         else:
             raise RuntimeError
         length_unit = _fix_unit_ordering(length_unit)
@@ -229,7 +232,10 @@ class GadgetDataset(ParticleDataset):
         if "mass" in unit_base:
             mass_unit = unit_base["mass"]
         elif "UnitMass_in_g" in unit_base:
-            mass_unit = (unit_base["UnitMass_in_g"], "g")
+            if self.cosmological_simulation == 0:
+                mass_unit = (unit_base["UnitMass_in_g"], "g")
+            else:
+                mass_unit = (unit_base["UnitMass_in_g"], "g/h")
         else:
             # Sane default
             mass_unit = (1.0, "1e10*Msun/h")
@@ -285,6 +291,8 @@ class GadgetHDF5Dataset(GadgetDataset):
 class OWLSDataset(GadgetHDF5Dataset):
     _particle_mass_name = "Mass"
     _field_info_class = OWLSFieldInfo
+
+
 
     def _parse_parameter_file(self):
         handle = h5py.File(self.parameter_filename, mode="r")

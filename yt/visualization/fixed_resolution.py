@@ -25,6 +25,8 @@ from yt.utilities.lib.misc_utilities import \
 import _MPL
 import numpy as np
 import weakref
+import re
+import string
 
 class FixedResolutionBuffer(object):
     r"""
@@ -147,6 +149,41 @@ class FixedResolutionBuffer(object):
             if f not in exclude and f[0] not in self.data_source.pf.particle_types:
                 self[f]
 
+
+    def _is_ion( self, fname ):
+        p = re.compile("_p[0-9]+_")
+        result = False
+        if p.search( fname ) != None:
+            result = True
+        return result
+
+    def _ion_to_label( self, fname ):
+        pnum2rom = {
+            "0":"I", "1":"II", "2":"III", "3":"IV", "4":"V",
+            "5":"VI", "6":"VII", "7":"VIII", "8":"IX", "9":"X",
+            "10":"XI", "11":"XII", "12":"XIII", "13":"XIV", "14":"XV",
+            "15":"XVI", "16":"XVII", "17":"XVIII", "18":"XIX", "19":"XX"}
+
+        p = re.compile("_p[0-9]+_")
+        m = p.search( fname )
+        if m != None:
+            pstr = m.string[m.start()+1:m.end()-1]
+            segments = fname.split("_")
+            for i,s in enumerate(segments):
+                segments[i] = string.capitalize(s)
+                if s == pstr:
+                    ipstr = i
+            element = segments[ipstr-1]
+            roman = pnum2rom[pstr[1:]] 
+            label = element + '\/' + roman + '\/' + \
+                string.join( segments[ipstr+1:], '\/' ) 
+        else:
+            label = fname
+        return label
+
+
+
+
     def _get_info(self, item):
         info = {}
         ftype, fname = field = self.data_source._determine_fields(item)[0]
@@ -172,8 +209,13 @@ class FixedResolutionBuffer(object):
         
         info['label'] = finfo.display_name
         if info['label'] is None:
-            info['label'] = r'$\rm{'+fname+r'}$'
-            info['label'] = r'$\rm{'+fname.replace('_','\/').title()+r'}$'
+            if self._is_ion( fname ):
+                fname = self._ion_to_label( fname )
+                info['label'] = r'$\rm{'+fname+r'}$'
+                info['label'] = r'$\rm{'+fname.replace('_','\/')+r'}$'
+            else:    
+                info['label'] = r'$\rm{'+fname+r'}$'
+                info['label'] = r'$\rm{'+fname.replace('_','\/').title()+r'}$'
         elif info['label'].find('$') == -1:
             info['label'] = info['label'].replace(' ','\/')
             info['label'] = r'$\rm{'+info['label']+r'}$'
