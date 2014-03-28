@@ -266,7 +266,7 @@ class IOHandlerInMemory(BaseIOHandler):
                 for field in fields:
                     ftype, fname = field
                     data_view = self.grids_in_memory[g.id][fname][self.my_slice]
-                    nd = g.select(selector, data_view, rv[field], ind)
+                    ind += g.select(selector, data_view, rv[field], ind)
         return rv
 
     def _read_particle_coords(self, chunks, ptf):
