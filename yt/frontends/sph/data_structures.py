@@ -466,8 +466,8 @@ class TipsyDataset(ParticleDataset):
             self.domain_right_edge = np.zeros(3, "float64") + 0.5*self.parameters.get('dPeriod', 1)
         else:
             self.periodicity = (False, False, False)
-            self.domain_left_edge = 0
-            self.domain_right_edge = 0
+            self.domain_left_edge = None
+            self.domain_right_edge = None
         if self.parameters.get('bComove', False):
             self.cosmological_simulation = 1
             cosm = self._cosmology_parameters or {}

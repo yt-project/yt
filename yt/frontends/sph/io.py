@@ -539,7 +539,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         ind = 0
         # Check to make sure that the domain hasn't already been set
         # by the parameter file 
-        if pf.domain_left_edge != 0 and pf.domain_right_edge != 0:
+        if pf.domain_left_edge is not None and pf.domain_right_edge is not None:
             return
         with open(data_file.filename, "rb") as f:
             f.seek(pf._header_offset)
