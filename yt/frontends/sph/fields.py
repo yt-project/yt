@@ -109,11 +109,7 @@ class OWLSFieldInfo(SPHFieldInfo):
         we also need to add the smoothed fields here b/c setup_fluid_fields
         is called before setup_particle_fields. """ 
 
-        smoothed_suffixes = \
-            { "PartType0": 
-              ("_number_density", "_density", "_mass"),
-              "PartType4": 
-              ("_number_density", "_density", "_mass", "_fraction") }
+        smoothed_suffixes = ("_number_density", "_density", "_mass"),
 
 
 
@@ -148,13 +144,13 @@ class OWLSFieldInfo(SPHFieldInfo):
             ptype, num_neighbors=self._num_neighbors, ftype=ftype)
 
 
-        # and now we add the smoothed versions
+        # and now we add the smoothed versions for PartType0
         #-----------------------------------------------------
-        if ptype in self._add_elements:
+        if ptype == 'PartType0':
 
             loaded = []
             for s in self._elements:
-                for sfx in smoothed_suffixes[ptype]:
+                for sfx in smoothed_suffixes:
                     fname = s + sfx
                     fn = add_volume_weighted_smoothed_field( 
                         ptype, "particle_position", "particle_mass",
@@ -162,19 +158,17 @@ class OWLSFieldInfo(SPHFieldInfo):
                         self._num_neighbors)
                     loaded += fn
 
-                    if ptype == "PartType0":
-                        self.alias(("gas", fname), fn[0])
-                    elif ptype == "PartType4":
-                        self.alias(("star", fname), fn[0])
+                    self.alias(("gas", fname), fn[0])
+
             self._show_field_errors += loaded
             self.find_dependencies(loaded)
 
 
-        # we only add ion fields for gas.  this takes some 
-        # time as the ion abundances have to be interpolated
-        # from cloudy tables (optically thin)
-        #-----------------------------------------------------
-        if ptype in self._add_ions:
+            # we only add ion fields for gas.  this takes some 
+            # time as the ion abundances have to be interpolated
+            # from cloudy tables (optically thin)
+            #-----------------------------------------------------
+    
 
             # this defines the ion density on particles
             # X_density for all items in self._ions
