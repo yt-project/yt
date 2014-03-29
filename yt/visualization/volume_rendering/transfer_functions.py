@@ -740,7 +740,9 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             dist = (col_bounds[1] - col_bounds[0])
             if mi is None: mi = col_bounds[0] + dist/(10.0*N)
             if ma is None: ma = col_bounds[1] - dist/(10.0*N)
-        if w is None: w = 0.001 * (ma-mi)/N
+        if w is None:
+            w = 0.001 * (ma - mi) / N
+            w = max(w, 1.0 / self.nbins)
         if alpha is None and self.grey_opacity:
             alpha = np.ones(N, dtype="float64")
         elif alpha is None and not self.grey_opacity:

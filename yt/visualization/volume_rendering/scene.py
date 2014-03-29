@@ -52,7 +52,7 @@ class Scene(object):
     def __init__(self):
         super(Scene, self).__init__()
         self.sources = {}
-        self.default_camera = None
+        self.camera = None
 
     def iter_opaque_sources(self):
         """

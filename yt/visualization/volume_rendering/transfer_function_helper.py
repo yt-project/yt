@@ -139,7 +139,7 @@ class TransferFunctionHelper(object):
             mi, ma = np.log10(self.bounds[0]), np.log10(self.bounds[1])
         else:
             mi, ma = self.bounds
-        self.tf.add_layers(7, col_bounds=[mi, ma], colormap='RdBu_r')
+        self.tf.add_layers(10, colormap='spectral')
 
     def plot(self, fn=None, profile_field=None, profile_weight=None):
         """

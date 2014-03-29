@@ -14,6 +14,7 @@ RenderSource Class
 #-----------------------------------------------------------------------------
 
 import numpy as np
+from yt.funcs import mylog
 from yt.data_objects.api import ImageArray
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
@@ -90,7 +91,6 @@ class VolumeSource(RenderSource):
     def build_defaults(self):
         if self.data_source is not None:
             self.build_default_transfer_function()
-            self.build_default_lens()
 
     def validate(self):
         """Make sure that all dependencies have been met"""
@@ -103,12 +103,16 @@ class VolumeSource(RenderSource):
         if self.volume is None:
             raise RuntimeError("Volume not initialized")
 
-        if self.lens is None:
-            raise RuntimeError("Lens not initialized")
+        #if self.lens is None:
+        #    raise RuntimeError("Lens not initialized")
 
         if self.transfer_function is None:
             raise RuntimeError("Transfer Function not Supplied")
         self.setup()
+
+    def switch_field(self, field):
+        self.volume.set_fields([self.field], log_fields, True)
+
 
     def build_default_transfer_function(self):
         self.tfh = \
@@ -123,13 +127,11 @@ class VolumeSource(RenderSource):
         self.scene.validate()
         self.new_image()
 
-    def build_default_lens(self):
-        self.lens = PlaneParallelLens(self.scene, self)
-
     def build_default_volume(self):
         self.volume = AMRKDTree(self.data_source.pf,
                                 data_source=self.data_source)
         log_fields = [self.data_source.pf.field_info[self.field].take_log]
+        mylog.debug('Log Fields:' + str(log_fields))
         self.volume.set_fields([self.field], log_fields, True)
 
     def set_camera(self, camera):
@@ -169,11 +171,3 @@ class VolumeSource(RenderSource):
 
         return self.current_image
 
-    def finalize_image(self, image):
-        cam = self.scene.camera
-        view_pos = self.front_center + cam.unit_vectors[2] * \
-            1.0e6 * cam.width[2]
-        image = self.render_source.volume.reduce_tree_images(image, view_pos)
-        if self.transfer_function.grey_opacity is False:
-            image[:, :, 3] = 1.0
-        return image

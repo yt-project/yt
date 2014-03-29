@@ -26,9 +26,9 @@ class Camera(Orientation):
 
     _moved = True
 
-    def __init__(self, data_source=None):
+    def __init__(self):
         """Initialize a Camera Instance"""
-        self.data_source = data_source
+        self.lens = None
         self.position = None
         self.north_vector = None
         self.resolution = (256, 256)
@@ -36,21 +36,25 @@ class Camera(Orientation):
         self.width = None
         self.focus = np.zeros(3)
         self.position = np.ones(3)
-        if data_source is not None:
-            self.inherit_default_from_data_source()
-        else:
-            super(Camera, self).__init__(self.focus - self.position,
-                                         self.north_vector, steady_north=False)
+        super(Camera, self).__init__(self.focus - self.position,
+                                     self.north_vector, steady_north=False)
 
-    def inherit_default_from_data_source(self):
-        data_source = self.data_source
+    def set_lens(self, lens):
+        self.lens = lens
+
+    def get_lens(self, lens):
+        if self.lens is None:
+            raise RuntimeError("I have no lens!")
+        return self.lens
+
+    def set_defaults_from_data_source(self, data_source):
         self.position = data_source.pf.domain_right_edge
 
         width = 1.5 * data_source.pf.domain_width.max()
         (xmi, xma), (ymi, yma), (zmi, zma) = \
             data_source.quantities['Extrema'](['x', 'y', 'z'])
-        width = np.sqrt((xma-xmi)**2 + (yma-ymi)**2 + (zma-zmi)**2) /\
-            np.sqrt(3)
+        width = np.sqrt((xma - xmi) ** 2 + (yma - ymi) ** 2 +
+                        (zma - zmi) ** 2) / np.sqrt(3)
         focus = data_source.get_field_parameter('center')
 
         if iterable(width) and len(width) > 1 and isinstance(width[1], str):
@@ -60,7 +64,7 @@ class Camera(Orientation):
         if not iterable(width):
             width = (width, width, width)  # left/right, top/bottom, front/back
         if not isinstance(width, YTArray):
-            width = self.data_source.pf.arr(width, input_units="code_length")
+            width = data_source.pf.arr(width, input_units="code_length")
         if not isinstance(focus, YTArray):
             focus = self.pf.arr(focus, input_units="code_length")
 
@@ -72,10 +76,11 @@ class Camera(Orientation):
         self._moved = True
 
     def switch_orientation(self, normal_vector=None, north_vector=None):
-        r"""Change the view direction based on any of the orientation parameters.
+        r"""
+        Change the view direction based on any of the orientation parameters.
 
-        This will recalculate all the necessary vectors and vector planes related
-        to an orientable object.
+        This will recalculate all the necessary vectors and vector planes
+        related to an orientable object.
 
         Parameters
         ----------
@@ -110,7 +115,7 @@ class Camera(Orientation):
         if normal_vector is None:
             normal_vector = self.normal_vector
         self.switch_orientation(normal_vector=normal_vector,
-                                         north_vector=north_vector)
+                                north_vector=north_vector)
         self._moved = True
 
     def pitch(self, theta):
@@ -126,6 +131,7 @@ class Camera(Orientation):
         Examples
         --------
 
+        >>> cam = Camera()
         >>> cam.roll(np.pi/4)
         """
         rot_vector = self.unit_vectors[0]
@@ -149,6 +155,7 @@ class Camera(Orientation):
         Examples
         --------
 
+        >>> cam = Camera()
         >>> cam.roll(np.pi/4)
         """
         rot_vector = self.unit_vectors[1]
@@ -169,6 +176,7 @@ class Camera(Orientation):
         Examples
         --------
 
+        >>> cam = Camera()
         >>> cam.roll(np.pi/4)
         """
         rot_vector = self.unit_vectors[2]
@@ -178,4 +186,3 @@ class Camera(Orientation):
             north_vector=np.dot(R, self.unit_vectors[1]))
         if self.steady_north:
             self.north_vector = np.dot(R, self.north_vector)
-
