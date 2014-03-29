@@ -100,6 +100,7 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("origami", 
                 ["yt/utilities/lib/origami.pyx",
                  "yt/utilities/lib/origami_tags.c"],
+                include_dirs=["yt/utilities/lib/"],
                 depends=["yt/utilities/lib/origami_tags.h"])
     config.add_extension("image_utilities", 
                          ["yt/utilities/lib/image_utilities.pyx"],
