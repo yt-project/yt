@@ -56,6 +56,9 @@ class Scene(object):
         self.sources = {}
         self.default_camera = None
 
+    def get_source(self, source_num):
+        return self.sources.values()[source_num]
+
     def iter_opaque_sources(self):
         """
         Iterate over opaque RenderSource objects,
