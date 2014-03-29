@@ -13,10 +13,12 @@ Import the components of the volume rendering extension
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.funcs import iterable
+from yt.funcs import iterable, mylog
 from yt.utilities.orientation import Orientation
 from yt.units.yt_array import YTArray
 from yt.utilities.math_utils import get_rotation_matrix
+from utils import data_source_or_all
+from lens import lenses
 import numpy as np
 
 
@@ -26,7 +28,8 @@ class Camera(Orientation):
 
     _moved = True
 
-    def __init__(self):
+    def __init__(self, data_source=None, lens_type='plane-parallel'):
+        mylog.debug("Entering %s" % str(self))
         """Initialize a Camera Instance"""
         self.lens = None
         self.position = None
@@ -36,16 +39,24 @@ class Camera(Orientation):
         self.width = None
         self.focus = np.zeros(3)
         self.position = np.ones(3)
+        self.set_lens(lens_type)
+        if data_source is not None:
+            data_source = data_source_or_all(data_source)
+            self.set_defaults_from_data_source(data_source)
+
         super(Camera, self).__init__(self.focus - self.position,
                                      self.north_vector, steady_north=False)
 
-    def set_lens(self, lens):
-        self.lens = lens
+    def get_sampler_params(self):
+        lens_params = self.lens.get_sampler_params(self)
+        lens_params.update(width=self.width)
+        return lens_params
 
-    def get_lens(self, lens):
-        if self.lens is None:
-            raise RuntimeError("I have no lens!")
-        return self.lens
+    def set_lens(self, lens_type):
+        if lens_type not in lenses:
+            mylog.error("Lens type not available")
+            raise RuntimeError()
+        self.lens = lenses[lens_type]()
 
     def set_defaults_from_data_source(self, data_source):
         self.position = data_source.pf.domain_right_edge

@@ -16,9 +16,6 @@ Lens Classes
 from yt.funcs import mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
-from yt.utilities.lib.grid_traversal import \
-    VolumeRenderSampler
-from camera import Camera
 from yt.units.yt_array import YTArray
 from yt.data_objects.image_array import ImageArray
 import numpy as np
@@ -29,7 +26,9 @@ class Lens(ParallelAnalysisInterface):
     """docstring for Lens"""
 
     def __init__(self, ):
+        mylog.debug("Entering %s" % str(self))
         super(Lens, self).__init__()
+        self.viewpoint = None
 
 
 class PlaneParallelLens(Lens):
@@ -37,6 +36,7 @@ class PlaneParallelLens(Lens):
     """docstring for PlaneParallelLens"""
 
     def __init__(self):
+        mylog.debug("Entering %s" % str(self))
         super(PlaneParallelLens, self).__init__()
         self.sub_samples = 5
         self.num_threads = 0
@@ -46,6 +46,10 @@ class PlaneParallelLens(Lens):
         self.back_center = None
         self.front_center = None
         self.sampler = None
+        self.viewpoint = None
+
+    def set_camera(self, camera):
+        self.setup_box_properties(camera)
 
     def expose(self, scene, camera, render_source):
         self.setup_box_properties(camera)
@@ -53,11 +57,8 @@ class PlaneParallelLens(Lens):
         self.cast_rays(camera, self.sampler, render_source)
 
     def new_image(self, camera):
-        cam = camera
-        if cam is None:
-            cam = Camera(self.data_source)
         self.current_image = ImageArray(
-            np.zeros((cam.resolution[0], cam.resolution[1],
+            np.zeros((camera.resolution[0], camera.resolution[1],
                       4), dtype='float64', order='C'),
             info={'imtype': 'rendering'})
         return self.current_image
@@ -73,55 +74,40 @@ class PlaneParallelLens(Lens):
         self.back_center = center - 0.5 * width[2] * unit_vectors[2]
         self.front_center = center + 0.5 * width[2] * unit_vectors[2]
 
-    def get_sampler(self, scene, camera, render_source):
-        kwargs = {}
-        if render_source.zbuffer is not None:
-            kwargs['zbuffer'] = render_source.zbuffer.z
-        render_source.prepare()
-        image = render_source.current_image
-        image = self.new_image(camera)
-        rotp = np.concatenate([camera.inv_mat.ravel('F'),
-                               self.back_center.ravel()])
-        args = (rotp, self.box_vectors[2], self.back_center,
-                (-camera.width[0] / 2.0, camera.width[0] / 2.0,
-                 -camera.width[1] / 2.0, camera.width[1] / 2.0),
-                image, camera.unit_vectors[
-                    0], camera.unit_vectors[1],
-                np.array(camera.width, dtype='float64'),
-                render_source.transfer_function, self.sub_samples)
-        sampler = VolumeRenderSampler(*args, **kwargs)
-        return sampler
-
-    def cast_rays(self, camera, sampler, render_source):
-        mylog.debug("Casting rays")
-        total_cells = 0
-        if self.double_check:
-            for brick in render_source.volume.bricks:
-                for data in brick.my_data:
-                    if np.any(np.isnan(data)):
-                        raise RuntimeError
-
         # This is a hack that should be replaced by an alternate plane-parallel
         # traversal. Put the camera really far away so that the effective
         # viewpoint is infinitely far away, making for parallel rays.
-        view_pos = self.front_center + \
+        self.viewpoint = self.front_center + \
             camera.unit_vectors[2] * 1.0e6 * camera.width[2]
 
-        for brick in render_source.volume.traverse(view_pos):
-            sampler(brick, num_threads=self.num_threads)
-            total_cells += np.prod(brick.my_data[0].shape)
-        mylog.debug("Done casting rays")
+    def get_sampler_params(self, camera):
+        sampler_params =\
+            dict(vp_pos=np.concatenate([camera.inv_mat.ravel('F'),
+                                        self.back_center.ravel()]),
+                 vp_dir=self.box_vectors[2],  # All the same
+                 center=self.back_center,
+                 bounds=(-camera.width[0] / 2.0, camera.width[0] / 2.0,
+                         -camera.width[1] / 2.0, camera.width[1] / 2.0),
+                 x_vec=camera.unit_vectors[0],
+                 y_vec=camera.unit_vectors[1],
+                 width=np.array(camera.width, dtype='float64'),
+                 image=self.new_image(camera))
+        return sampler_params
 
-        render_source.current_image = \
-            self.finalize_image(camera, render_source,
-                                         self.sampler.aimage)
-        return
 
-    def finalize_image(self, camera, render_source, image):
-        cam = camera
-        view_pos = self.front_center + cam.unit_vectors[2] * \
-            1.0e6 * cam.width[2]
-        image = render_source.volume.reduce_tree_images(image, view_pos)
-        if render_source.transfer_function.grey_opacity is False:
-            image[:, :, 3] = 1.0
-        return image
+class PerspectiveLens(Lens):
+    """docstring for PerspectiveLens"""
+    def __init__(self):
+        super(PerspectiveLens, self).__init__()
+        raise NotImplementedError
+
+
+class FisheyeLens(Lens):
+    """docstring for FisheyeLens"""
+    def __init__(self):
+        super(FisheyeLens, self).__init__()
+        raise NotImplementedError
+
+lenses = {'plane-parallel': PlaneParallelLens,
+          'perspective': PerspectiveLens,
+          'fisheye': FisheyeLens}

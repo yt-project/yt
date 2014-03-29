@@ -18,8 +18,7 @@ from yt.mods import *
 from yt.testing import \
     fake_random_pf
 from yt.visualization.volume_rendering.scene import Scene, \
-    create_volume_rendering
-from yt.visualization.volume_rendering.lens import PlaneParallelLens
+    volume_render
 from yt.visualization.volume_rendering.camera import Camera
 from yt.visualization.volume_rendering.render_source import VolumeSource
 
@@ -30,37 +29,10 @@ ds = pf.h.sphere(pf.domain_center, pf.domain_width[0] / 50)
 
 sc = Scene()
 vol = VolumeSource(ds, field=('gas', 'density'))
-cam = Camera()
-cam.resolution = (512, 512)
-lens = PlaneParallelLens()
-sc.camera = cam
-
-vol.build_defaults()
-vol.transfer_function.grey_opacity=False
+cam = Camera(ds)
+sc.set_default_camera(cam)
 sc.add_source(vol)
-cam.set_defaults_from_data_source(ds)
-cam.set_lens(lens)
+sc.render('test.png')
 
-lens.expose(sc, cam, vol)
-vol.current_image.write_png('test.png', clip_ratio=6.0)
-
-vol.set_field(('io','Density'))
-vol.build_defaults()
-lens.expose(sc, cam, vol)
-vol.current_image.write_png('test_op.png', clip_ratio=6.0)
-
-#sc.render()
-
-
-#sc = create_volume_rendering(ds, field=('gas', 'density'))
-#sc.render('test.png')
-#
-#h = sc.get_handle()
-#h.source.transfer_function.grey_opacity = True
-#h.source.transfer_function.map_to_colormap(-2, 0.0, scale=50.0, colormap='RdBu_r')
-#
-#cam = h.camera
-#for i in range(36):
-#    cam.pitch(-2*np.pi / 36.)
-#    sc.render('test_%04i.png' % i)
-
+im, sc2 = volume_render(ds, field=('gas', 'temperature'))
+im.write_png('test2.png')

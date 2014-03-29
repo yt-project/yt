@@ -13,17 +13,18 @@
 
 
 from yt.funcs import mylog
-from yt.data_objects.static_output import Dataset
 from camera import Camera
 from render_source import VolumeSource, OpaqueSource
 from yt.data_objects.api import ImageArray
 from zbuffer_array import ZBuffer
+from .utils import data_source_or_all
 import numpy as np
 
 
 class SceneHandle(object):
     """docstring for SceneHandle"""
     def __init__(self, scene, camera, source, lens):
+        mylog.debug("Entering %s" % str(self))
         self.scene = scene
         self.camera = camera
         self.source = source
@@ -50,9 +51,10 @@ class Scene(object):
     _current = None
 
     def __init__(self):
+        mylog.debug("Entering %s" % str(self))
         super(Scene, self).__init__()
         self.sources = {}
-        self.camera = None
+        self.default_camera = None
 
     def iter_opaque_sources(self):
         """
@@ -95,19 +97,20 @@ class Scene(object):
         if keyname is None:
             keyname = 'source_%02i' % len(self.sources)
 
-        render_source.set_scene(self)
-
         self.sources[keyname] = render_source
 
         return self
 
-    def render(self, fname=None, clip_ratio=None):
+    def render(self, fname=None, clip_ratio=None, camera=None):
+        if camera is None:
+            camera = self.default_camera
+        assert(camera is not None)
         self.validate()
         ims = {}
         for k, v in self.sources.iteritems():
             v.validate()
             print 'Running', k, v
-            ims[k] = v.render()
+            ims[k] = v.render(camera)
 
         bmp = np.zeros_like(ims.values()[0])
         for k, v in ims.iteritems():
@@ -153,22 +156,16 @@ class Scene(object):
         return handle
 
 
-def create_volume_rendering(data_source, field=None):
-    if isinstance(data_source, Dataset):
-        pf = data_source
-        data_source = data_source.all_data()
-    else:
-        pf = data_source.pf
-
+def volume_render(data_source, field=None, fname=None):
+    data_source = data_source_or_all(data_source)
     sc = Scene()
-    camera = Camera(data_source)
     if field is None:
-        pf.field_list
-        field = pf.field_list[0]
+        data_source.pf.index
+        field = data_source.pf.field_list[0]
         mylog.info('Setting default field to %s' % field.__repr__())
-    render_source = VolumeSource(data_source, field)
 
-    sc.set_camera(camera)
-    sc.add_source(render_source)
-    render_source.build_defaults()
-    return sc
+    vol = VolumeSource(data_source, field=field)
+    cam = Camera(data_source)
+    sc.set_default_camera(cam)
+    sc.add_source(vol)
+    return sc.render(fname=fname), sc
