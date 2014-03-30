@@ -86,7 +86,7 @@ class Camera(ParallelAnalysisInterface):
         vector.  Makes it easier to do rotations along a single
         axis.  If north_vector is specified, is switched to
         True. Default: False
-    volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
+    volume : `yt.extensions.volume_rendering.AMRKDTree`, optional
         The volume to ray cast through.  Can be specified for finer-grained
         control, but otherwise will be automatically generated.
     fields : list of fields, optional
@@ -1616,7 +1616,7 @@ class MosaicFisheyeCamera(Camera):
         The radial distance to cast to
     resolution : int
         The number of pixels in each direction.  Must be a single int.
-    volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
+    volume : `yt.extensions.volume_rendering.AMRKDTree`, optional
         The volume to ray cast through.  Can be specified for finer-grained
         control, but otherwise will be automatically generated.
     fields : list of fields, optional
@@ -2308,7 +2308,7 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
         If supplied, the field will be pre-multiplied by this, then divided by
         the integrated value of this field.  This returns an average rather
         than a sum.
-    volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
+    volume : `yt.extensions.volume_rendering.AMRKDTree`, optional
         The volume to ray cast through.  Can be specified for finer-grained
         control, but otherwise will be automatically generated.
     no_ghost: bool, optional

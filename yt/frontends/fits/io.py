@@ -11,10 +11,6 @@ FITS-specific IO functions
 #-----------------------------------------------------------------------------
 
 import numpy as np
-try:
-    import astropy.io.fits as pyfits
-except ImportError:
-    pass
 
 from yt.utilities.math_utils import prec_accum
 

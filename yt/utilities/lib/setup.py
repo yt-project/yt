@@ -2,8 +2,6 @@
 import setuptools
 import os, sys, os.path, glob, \
     tempfile, subprocess, shutil
-from yt.utilities.setup import \
-    check_for_dependencies
 
 def check_for_openmp():
     # Create a temporary directory
@@ -131,8 +129,7 @@ def configuration(parent_package='',top_path=None):
                libraries=["m"], 
                extra_compile_args=omp_args,
                extra_link_args=omp_args,
-               depends = ["yt/utilities/lib/VolumeIntegrator.pyx",
-                          "yt/utilities/lib/fp_utils.pxd",
+               depends = ["yt/utilities/lib/fp_utils.pxd",
                           "yt/utilities/lib/kdtree.h",
                           "yt/utilities/lib/FixedInterpolator.h",
                           "yt/utilities/lib/fixed_interpolator.pxd",

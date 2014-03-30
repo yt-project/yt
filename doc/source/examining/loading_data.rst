@@ -367,35 +367,11 @@ Tipsy Data
 yt also supports loading Tipsy data.  Many of its characteristics are similar
 to how Gadget data is loaded; specifically, it shares its definition of
 indexing and mesh-identification with that described in
-:ref:`particle-indexing-criteria`.  However, unlike Gadget, the Tipsy frontend
-has not yet implemented header specifications, field specifications, or
-particle type specifications.  *These are all excellent projects for new
-contributors!*
-
-Tipsy data cannot be automatically detected.  You can load it with a command
-similar to the following:
+:ref:`particle-indexing-criteria`.  
 
 .. code-block:: python
 
-    ds = TipsyDataset('test.00169',
-        parameter_file='test.param',
-        endian = '<',
-        domain_left_edge = domain_left_edge,
-        domain_right_edge = domain_right_edge,
-    )
-
-Not all of these arguments are necessary; additionally, yt accepts the
-arguments ``n_ref``, ``over_refine_factor``, ``cosmology_parameters``, and
-``unit_base``.  By default, yt will not utilize a parameter file, and by
-default it will assume the data is "big" endian (`>`).  Optionally, you may
-specify ``field_dtypes``, which describe the size of various fields.  For
-example, if you have stored positions as 64-bit floats, you can specify this
-with:
-
-.. code-block:: python
-
-    ds = TipsyDataset("./halo1e11_run1.00400", endian="<",
-                           field_dtypes = {"Coordinates": "d"})
+    ds = load("./halo1e11_run1.00400")
 
 .. _specifying-cosmology-tipsy:
 
