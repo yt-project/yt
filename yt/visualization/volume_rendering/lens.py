@@ -20,6 +20,9 @@ from yt.units.yt_array import YTArray
 from yt.data_objects.image_array import ImageArray
 import numpy as np
 
+from yt.utilities.lib.grid_traversal import \
+    arr_fisheye_vectors
+
 
 class Lens(ParallelAnalysisInterface):
 
@@ -180,7 +183,55 @@ class FisheyeLens(Lens):
 
     def __init__(self):
         super(FisheyeLens, self).__init__()
-        raise NotImplementedError
+        self.fov = 180.0
+        self.radius = 1.0
+        self.center = None
+        self.rotation_matrix = np.eye(3)
+
+    def setup_box_properties(self, camera):
+        self.radius = camera.width.max()
+        super(FisheyeLens, self).setup_box_properties(camera)
+
+    def new_image(self, camera):
+        self.current_image = ImageArray(
+            np.zeros((camera.resolution[0]**2, 1,
+                      4), dtype='float64', order='C'),
+            info={'imtype': 'rendering'})
+        return self.current_image
+
+    def get_sampler_params(self, camera):
+        vp = arr_fisheye_vectors(camera.resolution[0], self.fov)
+        vp.shape = (camera.resolution[0]**2, 1, 3)
+        vp2 = vp.copy()
+        for i in range(3):
+            vp[:, :, i] = (vp2 * self.rotation_matrix[:, i]).sum(axis=2)
+        del vp2
+        vp *= self.radius
+        uv = np.ones(3, dtype='float64')
+        positions = np.ones((camera.resolution[0]**2, 1, 3),
+                            dtype='float64') * camera.position
+
+        image = self.new_image(camera)
+
+        sampler_params =\
+            dict(vp_pos=positions,
+                 vp_dir=vp,
+                 center=self.center,
+                 bounds=(0.0, 1.0, 0.0, 1.0),
+                 x_vec=uv,
+                 y_vec=uv,
+                 width=np.zeros(3, dtype='float64'),
+                 image=image
+                 )
+
+        return sampler_params
+
+    def set_viewpoint(self, camera):
+        """
+        For a PerspectiveLens, the viewpoint is the front center.
+        """
+        self.viewpoint = self.center
+
 
 lenses = {'plane-parallel': PlaneParallelLens,
           'perspective': PerspectiveLens,

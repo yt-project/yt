@@ -92,6 +92,10 @@ class Camera(Orientation):
         self.width = width
         self.switch_orientation()
 
+    def set_position(self, position):
+        self.position = position
+        self.switch_orientation()
+
     def switch_orientation(self, normal_vector=None, north_vector=None):
         r"""
         Change the view direction based on any of the orientation parameters.
