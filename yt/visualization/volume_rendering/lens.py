@@ -29,15 +29,6 @@ class Lens(ParallelAnalysisInterface):
         mylog.debug("Entering %s" % str(self))
         super(Lens, self).__init__()
         self.viewpoint = None
-
-
-class PlaneParallelLens(Lens):
-
-    """docstring for PlaneParallelLens"""
-
-    def __init__(self):
-        mylog.debug("Entering %s" % str(self))
-        super(PlaneParallelLens, self).__init__()
         self.sub_samples = 5
         self.num_threads = 0
         self.double_check = False
@@ -46,15 +37,9 @@ class PlaneParallelLens(Lens):
         self.back_center = None
         self.front_center = None
         self.sampler = None
-        self.viewpoint = None
 
     def set_camera(self, camera):
         self.setup_box_properties(camera)
-
-    def expose(self, scene, camera, render_source):
-        self.setup_box_properties(camera)
-        self.sampler = self.get_sampler(scene, camera, render_source)
-        self.cast_rays(camera, self.sampler, render_source)
 
     def new_image(self, camera):
         self.current_image = ImageArray(
@@ -74,11 +59,24 @@ class PlaneParallelLens(Lens):
         self.back_center = center - 0.5 * width[2] * unit_vectors[2]
         self.front_center = center + 0.5 * width[2] * unit_vectors[2]
 
-        # This is a hack that should be replaced by an alternate plane-parallel
-        # traversal. Put the camera really far away so that the effective
-        # viewpoint is infinitely far away, making for parallel rays.
-        self.viewpoint = self.front_center + \
-            camera.unit_vectors[2] * 1.0e6 * camera.width[2]
+        self.set_viewpoint(camera)
+
+    def set_viewpoint(self, camera):
+        """
+        Set the viewpoint used for AMRKDTree traversal such that you yield
+        bricks from back to front or front to back from with respect to this
+        point.  Must be implemented for each Lens type.
+        """
+        raise NotImplementedError("Need to choose viewpoint for this class")
+
+
+class PlaneParallelLens(Lens):
+
+    """docstring for PlaneParallelLens"""
+
+    def __init__(self, ):
+        mylog.debug("Entering %s" % str(self))
+        super(PlaneParallelLens, self).__init__()
 
     def get_sampler_params(self, camera):
         sampler_params =\
@@ -94,16 +92,92 @@ class PlaneParallelLens(Lens):
                  image=self.new_image(camera))
         return sampler_params
 
+    def set_viewpoint(self, camera):
+        # This is a hack that should be replaced by an alternate plane-parallel
+        # traversal. Put the camera really far away so that the effective
+        # viewpoint is infinitely far away, making for parallel rays.
+        self.viewpoint = self.front_center + \
+            camera.unit_vectors[2] * 1.0e6 * camera.width[2]
+
 
 class PerspectiveLens(Lens):
+
     """docstring for PerspectiveLens"""
+
     def __init__(self):
         super(PerspectiveLens, self).__init__()
-        raise NotImplementedError
+        self.expand_factor = 1.5
+
+    def new_image(self, camera):
+        self.current_image = ImageArray(
+            np.zeros((camera.resolution[0]*camera.resolution[1], 1,
+                      4), dtype='float64', order='C'),
+            info={'imtype': 'rendering'})
+        return self.current_image
+
+    def get_sampler_params(self, camera):
+        # We should move away from pre-generation of vectors like this and into
+        # the usage of on-the-fly generation in the VolumeIntegrator module
+        # We might have a different width and back_center
+        #dl = (self.back_center - self.front_center)
+        #self.front_center += self.expand_factor*dl
+        #self.back_center -= dl
+
+        px = np.linspace(-camera.width[0]/2.0, camera.width[0]/2.0,
+                         camera.resolution[0])[:, None].d
+        py = np.linspace(-camera.width[1]/2.0, camera.width[1]/2.0,
+                         camera.resolution[1])[None, :].d
+        inv_mat = camera.inv_mat.d
+        positions = np.zeros((camera.resolution[0], camera.resolution[1], 3),
+                             dtype='float64', order='C')
+        positions[:, :, 0] = inv_mat[0, 0]*px + \
+            inv_mat[0, 1]*py + self.back_center.d[0]
+        positions[:, :, 1] = inv_mat[1, 0]*px + \
+            inv_mat[1, 1]*py + self.back_center.d[1]
+        positions[:, :, 2] = inv_mat[2, 0]*px + \
+            inv_mat[2, 1]*py + self.back_center.d[2]
+        # Can we use bounds for anything here?
+        # bounds = (px.min(), px.max(), py.min(), py.max())
+
+        # We are likely adding on an odd cutting condition here
+        vectors = self.front_center.d - positions
+        vectors = vectors / (vectors**2).sum()**0.5
+        positions = self.front_center.d - 1.0 * \
+            (((self.back_center.d-self.front_center.d)**2).sum())**0.5*vectors
+        vectors = (self.back_center.d - positions)
+
+        uv = np.ones(3, dtype='float64')
+        vectors.shape = (camera.resolution[0]**2, 1, 3)
+        positions.shape = (camera.resolution[0]**2, 1, 3)
+        image = self.new_image(camera)
+
+        sampler_params =\
+            dict(vp_pos=positions,
+                 vp_dir=vectors,
+                 center=self.back_center.d,
+                 bounds=(0.0, 1.0, 0.0, 1.0),
+                 x_vec=uv,
+                 y_vec=uv,
+                 width=np.zeros(3, dtype='float64'),
+                 image=image
+                 )
+
+        mylog.debug(positions)
+        mylog.debug(vectors)
+
+        return sampler_params
+
+    def set_viewpoint(self, camera):
+        """
+        For a PerspectiveLens, the viewpoint is the front center.
+        """
+        self.viewpoint = self.front_center
 
 
 class FisheyeLens(Lens):
+
     """docstring for FisheyeLens"""
+
     def __init__(self):
         super(FisheyeLens, self).__init__()
         raise NotImplementedError

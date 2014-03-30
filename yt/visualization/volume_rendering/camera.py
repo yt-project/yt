@@ -69,7 +69,7 @@ class Camera(Orientation):
         focus = data_source.get_field_parameter('center')
 
         if iterable(width) and len(width) > 1 and isinstance(width[1], str):
-            width = self.pf.quan(width[0], input_units=width[1])
+            width = data_source.pf.quan(width[0], input_units=width[1])
             # Now convert back to code length for subsequent manipulation
             width = width.in_units("code_length").value
         if not iterable(width):
@@ -85,6 +85,12 @@ class Camera(Orientation):
         super(Camera, self).__init__(self.focus - self.position,
                                      self.north_vector, steady_north=False)
         self._moved = True
+
+    def set_width(self, width):
+        if not iterable(width):
+            width = YTArray([width, width, width], input_units="code_length")
+        self.width = width
+        self.switch_orientation()
 
     def switch_orientation(self, normal_vector=None, north_vector=None):
         r"""
