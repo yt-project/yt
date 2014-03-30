@@ -90,6 +90,7 @@ class CharmGrid(AMRGridPatch):
 class CharmHierarchy(AMRHierarchy):
 
     grid = CharmGrid
+    _data_file = None
 
     def __init__(self,pf,data_style='charm_hdf5'):
         self.domain_left_edge = pf.domain_left_edge
@@ -109,7 +110,7 @@ class CharmHierarchy(AMRHierarchy):
         self.directory = pf.fullpath
         self._handle = pf._handle
 
-        self.float_type = self._handle['/level_0']['data:datatype=0'].dtype.name
+        self.float_type = self._handle['Chombo_global'].attrs['testReal'].dtype.name
         self._levels = [key for key in self._handle.keys() if key.startswith('level')]
         AMRHierarchy.__init__(self,pf,data_style)
         self._read_particles()
@@ -117,11 +118,13 @@ class CharmHierarchy(AMRHierarchy):
     def _read_particles(self):
         
         self.num_particles = 0
+        particles_per_grid = []
         for key, val in self._handle.items():
             if key.startswith('level'):
-                self.num_particles += val['particles:offsets'][:].sum()
+                level_particles = val['particles:offsets'][:]
+                self.num_particles += level_particles.sum()
+                particles_per_grid = np.concatenate((particles_per_grid, level_particles))
 
-        particles_per_grid = self._handle["level_0/particles:offsets"]
         for i, grid in enumerate(self.grids):
             self.grids[i].NumberOfParticles = particles_per_grid[i]
             self.grid_particle_count[i] = particles_per_grid[i]
@@ -153,7 +156,10 @@ class CharmHierarchy(AMRHierarchy):
         D = self.parameter_file.dimensionality
         for lev_index, lev in enumerate(self._levels):
             level_number = int(re.match('level_(\d+)',lev).groups()[0])
-            boxes = f[lev]['boxes'].value
+            try:
+                boxes = f[lev]['boxes'].value
+            except KeyError:
+                boxes = f[lev]['particles:boxes'].value
             dx = f[lev].attrs['dx']
             self.dds_list.append(dx * np.ones(3))
 
