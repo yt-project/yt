@@ -142,8 +142,8 @@ from yt.visualization.api import \
     ProjectionPlot, OffAxisProjectionPlot, \
     show_colormaps, ProfilePlot, PhasePlot
 
-from yt.visualization.volume_rendering.api import \
-    off_axis_projection
+#from yt.visualization.volume_rendering.api import \
+#    off_axis_projection
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, enable_parallelism
