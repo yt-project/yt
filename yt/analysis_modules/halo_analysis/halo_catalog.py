@@ -421,6 +421,12 @@ class HaloCatalog(ParallelAnalysisInterface):
         else:
             raise RuntimeError("finder_method must be 'fof', 'hop', or 'rockstar'")
 
+        for attr in ["current_redshift", "current_time",
+                     "domain_dimensions",
+                     "cosmological_simulation", "omega_lambda",
+                     "omega_matter", "hubble_constant"]:
+            attr_val = getattr(self.data_pf, attr)
+            setattr(halos_pf, attr, attr_val)
 
         return halos_pf
 
