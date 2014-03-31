@@ -90,11 +90,18 @@ class ChomboGrid(AMRGridPatch):
 class ChomboHierarchy(GridIndex):
 
     grid = ChomboGrid
+    _data_file = None
 
     def __init__(self,pf,dataset_type='chombo_hdf5'):
         self.domain_left_edge = pf.domain_left_edge
         self.domain_right_edge = pf.domain_right_edge
         self.dataset_type = dataset_type
+
+        if pf.dimensionality == 1:
+            self.dataset_type = "chombo1d_hdf5"
+        if pf.dimensionality == 2:
+            self.dataset_type = "chombo2d_hdf5"        
+
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
         # for now, the index file is the parameter file!
@@ -103,38 +110,26 @@ class ChomboHierarchy(GridIndex):
         self.directory = pf.fullpath
         self._handle = pf._handle
 
-        self.float_type = self._handle['/level_0']['data:datatype=0'].dtype.name
-        self._levels = self._handle.keys()[1:]
+        self.float_type = self._handle['Chombo_global'].attrs['testReal'].dtype.name
+        self._levels = [key for key in self._handle.keys() if key.startswith('level')]
         GridIndex.__init__(self,pf,dataset_type)
         self._read_particles()
 
     def _read_particles(self):
-        self.particle_filename = self.index_filename[:-4] + 'sink'
-        if not os.path.exists(self.particle_filename): return
-        with open(self.particle_filename, 'r') as f:
-            lines = f.readlines()
-            self.num_stars = int(lines[0].strip().split(' ')[0])
-            for line in lines[1:]:
-                particle_position_x = float(line.split(' ')[1])
-                particle_position_y = float(line.split(' ')[2])
-                particle_position_z = float(line.split(' ')[3])
-                coord = [particle_position_x, particle_position_y, particle_position_z]
-                # for each particle, determine which grids contain it
-                # copied from object_finding_mixin.py
-                mask=np.ones(self.num_grids)
-                for i in xrange(len(coord)):
-                    np.choose(np.greater(self.grid_left_edge[:,i],coord[i]), (mask,0), mask)
-                    np.choose(np.greater(self.grid_right_edge[:,i],coord[i]), (0,mask), mask)
-                ind = np.where(mask == 1)
-                selected_grids = self.grids[ind]
-                # in orion, particles always live on the finest level.
-                # so, we want to assign the particle to the finest of
-                # the grids we just found
-                if len(selected_grids) != 0:
-                    grid = sorted(selected_grids, key=lambda grid: grid.Level)[-1]
-                    ind = np.where(self.grids == grid)[0][0]
-                    self.grid_particle_count[ind] += 1
-                    self.grids[ind].NumberOfParticles += 1
+        
+        self.num_particles = 0
+        particles_per_grid = []
+        for key, val in self._handle.items():
+            if key.startswith('level'):
+                level_particles = val['particles:offsets'][:]
+                self.num_particles += level_particles.sum()
+                particles_per_grid = np.concatenate((particles_per_grid, level_particles))
+
+        for i, grid in enumerate(self.grids):
+            self.grids[i].NumberOfParticles = particles_per_grid[i]
+            self.grid_particle_count[i] = particles_per_grid[i]
+
+        assert(self.num_particles == self.grid_particle_count.sum())
 
     def _detect_output_fields(self):
         ncomp = int(self._handle['/'].attrs['num_components'])
@@ -148,32 +143,49 @@ class ChomboHierarchy(GridIndex):
     def _parse_index(self):
         f = self._handle # shortcut
 
-        # this relies on the first Group in the H5 file being
-        # 'Chombo_global'
-        levels = f.keys()[1:]
         grids = []
         self.dds_list = []
         i = 0
-        for lev in levels:
+        D = self.parameter_file.dimensionality
+        for lev_index, lev in enumerate(self._levels):
             level_number = int(re.match('level_(\d+)',lev).groups()[0])
-            boxes = f[lev]['boxes'].value
+            try:
+                boxes = f[lev]['boxes'].value
+            except KeyError:
+                boxes = f[lev]['particles:boxes'].value
             dx = f[lev].attrs['dx']
             self.dds_list.append(dx * np.ones(3))
+
+            if D == 1:
+                self.dds_list[lev_index][1] = 1.0
+                self.dds_list[lev_index][2] = 1.0
+
+            if D == 2:
+                self.dds_list[lev_index][2] = 1.0
+
             for level_id, box in enumerate(boxes):
-                si = np.array([box['lo_%s' % ax] for ax in 'ijk'])
-                ei = np.array([box['hi_%s' % ax] for ax in 'ijk'])
+                si = np.array([box['lo_%s' % ax] for ax in 'ijk'[:D]])
+                ei = np.array([box['hi_%s' % ax] for ax in 'ijk'[:D]])
+                
+                if D == 1:
+                    si = np.concatenate((si, [0.0, 0.0]))
+                    ei = np.concatenate((ei, [0.0, 0.0]))
+
+                if D == 2:
+                    si = np.concatenate((si, [0.0]))
+                    ei = np.concatenate((ei, [0.0]))
+
                 pg = self.grid(len(grids),self,level=level_number,
                                start = si, stop = ei)
                 grids.append(pg)
                 grids[-1]._level_id = level_id
-                self.grid_left_edge[i] = dx*si.astype(self.float_type)
-                self.grid_right_edge[i] = dx*(ei.astype(self.float_type)+1)
+                self.grid_left_edge[i] = self.dds_list[lev_index]*si.astype(self.float_type)
+                self.grid_right_edge[i] = self.dds_list[lev_index]*(ei.astype(self.float_type)+1)
                 self.grid_particle_count[i] = 0
                 self.grid_dimensions[i] = ei - si + 1
                 i += 1
         self.grids = np.empty(len(grids), dtype='object')
         for gi, g in enumerate(grids): self.grids[gi] = g
-#        self.grids = np.array(self.grids, dtype='object')
 
     def _populate_grid_objects(self):
         self._reconstruct_parent_child()
@@ -236,6 +248,115 @@ class ChomboDataset(Dataset):
         return f
 
     def _parse_parameter_file(self):
+        
+        self.unique_identifier = \
+                               int(os.stat(self.parameter_filename)[ST_CTIME])
+        self.dimensionality = self._handle['Chombo_global/'].attrs['SpaceDim']
+        self.domain_left_edge = self._calc_left_edge()
+        self.domain_right_edge = self._calc_right_edge()
+        self.domain_dimensions = self._calc_domain_dimensions()
+
+        if self.dimensionality == 1:
+            self._fieldinfo_fallback = Chombo1DFieldInfo
+            self.domain_left_edge = np.concatenate((self.domain_left_edge, [0.0, 0.0]))
+            self.domain_right_edge = np.concatenate((self.domain_right_edge, [1.0, 1.0]))
+            self.domain_dimensions = np.concatenate((self.domain_dimensions, [1, 1]))
+
+        if self.dimensionality == 2:
+            self._fieldinfo_fallback = Chombo2DFieldInfo
+            self.domain_left_edge = np.concatenate((self.domain_left_edge, [0.0]))
+            self.domain_right_edge = np.concatenate((self.domain_right_edge, [1.0]))
+            self.domain_dimensions = np.concatenate((self.domain_dimensions, [1]))
+        
+        self.refine_by = self._handle['/level_0'].attrs['ref_ratio']
+        self.periodicity = (True,) * self.dimensionality
+
+    def _calc_left_edge(self):
+        fileh = self._handle
+        dx0 = fileh['/level_0'].attrs['dx']
+        LE = dx0*((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:3])
+        return LE
+
+    def _calc_right_edge(self):
+        fileh = h5py.File(self.parameter_filename,'r')
+        dx0 = fileh['/level_0'].attrs['dx']
+        RE = dx0*((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[3:] + 1)
+        fileh.close()
+        return RE
+
+    def _calc_domain_dimensions(self):
+        fileh = self._handle
+        L_index = ((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:3])
+        R_index = ((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[3:] + 1)
+        return R_index - L_index
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        if not (os.path.isfile('pluto.ini') and os.path.isfile('orion2.ini')):
+            try:
+                fileh = h5py.File(args[0],'r')
+                valid = "Chombo_global" in fileh["/"]
+                valid = not ('CeilVA_mass' in fileh.attrs.keys())
+                fileh.close()
+                return valid
+            except:
+                pass
+        return False
+
+    @parallel_root_only
+    def print_key_parameters(self):
+        for a in ["current_time", "domain_dimensions", "domain_left_edge",
+                  "domain_right_edge"]:
+            if not hasattr(self, a):
+                mylog.error("Missing %s in parameter file definition!", a)
+                continue
+            v = getattr(self, a)
+            mylog.info("Parameters: %-25s = %s", a, v)
+
+class Orion2Hierarchy(ChomboHierarchy):
+
+    def __init__(self, pf, dataset_type="orion_chombo_native"):
+        ChomboHierarchy.__init__(self, pf, dataset_type)
+
+    def _read_particles(self):
+        self.particle_filename = self.index_filename[:-4] + 'sink'
+        if not os.path.exists(self.particle_filename): return
+        with open(self.particle_filename, 'r') as f:
+            lines = f.readlines()
+            self.num_stars = int(lines[0].strip().split(' ')[0])
+            for line in lines[1:]:
+                particle_position_x = float(line.split(' ')[1])
+                particle_position_y = float(line.split(' ')[2])
+                particle_position_z = float(line.split(' ')[3])
+                coord = [particle_position_x, particle_position_y, particle_position_z]
+                # for each particle, determine which grids contain it
+                # copied from object_finding_mixin.py
+                mask=np.ones(self.num_grids)
+                for i in xrange(len(coord)):
+                    np.choose(np.greater(self.grid_left_edge[:,i],coord[i]), (mask,0), mask)
+                    np.choose(np.greater(self.grid_right_edge[:,i],coord[i]), (0,mask), mask)
+                ind = np.where(mask == 1)
+                selected_grids = self.grids[ind]
+                # in orion, particles always live on the finest level.
+                # so, we want to assign the particle to the finest of
+                # the grids we just found
+                if len(selected_grids) != 0:
+                    grid = sorted(selected_grids, key=lambda grid: grid.Level)[-1]
+                    ind = np.where(self.grids == grid)[0][0]
+                    self.grid_particle_count[ind] += 1
+                    self.grids[ind].NumberOfParticles += 1
+
+class Orion2Dataset(ChomboDataset):
+
+    _index_class = Orion2Hierarchy
+
+    def __init__(self, filename, dataset_type='orion_chombo_native',
+                 storage_filename = None, ini_filename = None):
+
+        ChomboDataset.__init__(self, filename, dataset_type, 
+            storage_filename, ini_filename)
+
+    def _parse_parameter_file(self):
         """
         Check to see whether an 'orion2.ini' file
         exists in the plot file directory. If one does, attempt to parse it.
@@ -245,9 +366,9 @@ class ChomboDataset(Dataset):
         if os.path.isfile('orion2.ini'): self._parse_inputs_file('orion2.ini')
         self.unique_identifier = \
                                int(os.stat(self.parameter_filename)[ST_CTIME])
-        self.domain_left_edge = self.__calc_left_edge()
-        self.domain_right_edge = self.__calc_right_edge()
-        self.domain_dimensions = self.__calc_domain_dimensions()
+        self.domain_left_edge = self._calc_left_edge()
+        self.domain_right_edge = self._calc_right_edge()
+        self.domain_dimensions = self._calc_domain_dimensions()
         self.dimensionality = 3
         self.refine_by = self._handle['/level_0'].attrs['ref_ratio']
         self.periodicity = (True, True, True)
@@ -279,43 +400,20 @@ class ChomboDataset(Dataset):
                     else:
                         self.parameters[paramName] = t
 
-    def __calc_left_edge(self):
-        fileh = self._handle
-        dx0 = fileh['/level_0'].attrs['dx']
-        LE = dx0*((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:3])
-        return LE
-
-    def __calc_right_edge(self):
-        fileh = h5py.File(self.parameter_filename,'r')
-        dx0 = fileh['/level_0'].attrs['dx']
-        RE = dx0*((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[3:] + 1)
-        fileh.close()
-        return RE
-
-    def __calc_domain_dimensions(self):
-        fileh = self._handle
-        L_index = ((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:3])
-        R_index = ((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[3:] + 1)
-        return R_index - L_index
-
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        if not os.path.isfile('pluto.ini'):
+        
+        if (os.path.isfile('orion2.ini')):
+            return True
+
+        if not (os.path.isfile('pluto.ini')):
             try:
                 fileh = h5py.File(args[0],'r')
                 valid = "Chombo_global" in fileh["/"]
+                valid = 'CeilVA_mass' in fileh.attrs.keys()
                 fileh.close()
                 return valid
             except:
                 pass
         return False
 
-    @parallel_root_only
-    def print_key_parameters(self):
-        for a in ["current_time", "domain_dimensions", "domain_left_edge",
-                  "domain_right_edge"]:
-            if not hasattr(self, a):
-                mylog.error("Missing %s in parameter file definition!", a)
-                continue
-            v = getattr(self, a)
-            mylog.info("Parameters: %-25s = %s", a, v)

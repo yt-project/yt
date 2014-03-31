@@ -27,8 +27,19 @@ class IOHandlerChomboHDF5(BaseIOHandler):
     _data_string = 'data:datatype=0'
 
     def __init__(self, pf, *args, **kwargs):
-        BaseIOHandler.__init__(self, pf)
+        BaseIOHandler.__init__(self, pf, *args, **kwargs)
+        self.pf = pf
         self._handle = pf._handle
+        self._particle_field_index = {'position_x': 0,
+                                      'position_y': 1,
+                                      'position_z': 2,
+                                      'velocity_x': 3,
+                                      'velocity_y': 4,
+                                      'velocity_z': 5,
+                                      'acceleration_x': 6,
+                                      'acceleration_y': 7,
+                                      'acceleration_z': 8,
+                                      'mass': 9}
 
     _field_dict = None
     @property
@@ -44,7 +55,6 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         
     def _read_field_names(self,grid):
         ncomp = int(self._handle['/'].attrs['num_components'])
-
         fns = [c[1] for c in f['/'].attrs.items()[-ncomp-1:-1]]
     
     def _read_data(self,grid,field):
@@ -106,6 +116,64 @@ class IOHandlerChomboHDF5(BaseIOHandler):
                     nd = g.select(selector, data, rv[field], ind) # caches
                 ind += nd
         return rv
+
+    def _read_particles(self, grid, name):
+
+        field_index = self._particle_field_index[name]
+        lev = 'level_%s' % grid.Level
+
+        particles_per_grid = self._handle[lev]['particles:offsets'].value
+        items_per_particle = len(self._particle_field_index)
+
+        # compute global offset position
+        offsets = items_per_particle * np.cumsum(particles_per_grid)
+        offsets = np.append(np.array([0]), offsets)
+        offsets = np.array(offsets, dtype=np.int64)
+
+        # convert between the global grid id and the id on this level            
+        grid_levels = np.array([g.Level for g in self.pf.h.grids])
+        grid_ids    = np.array([g.id    for g in self.pf.h.grids])
+        grid_level_offset = grid_ids[np.where(grid_levels == grid.Level)[0][0]]
+        lo = grid.id - grid_level_offset
+        hi = lo + 1
+
+        data = self._handle[lev]['particles:data'][offsets[lo]:offsets[hi]]
+        return data[field_index::items_per_particle]
+
+class IOHandlerChombo2DHDF5(IOHandlerChomboHDF5):
+    _dataset_type = "chombo2d_hdf5"
+    _offset_string = 'data:offsets=0'
+    _data_string = 'data:datatype=0'
+
+    def __init__(self, pf, *args, **kwargs):
+        BaseIOHandler.__init__(self, pf, *args, **kwargs)
+        self.pf = pf
+        self._handle = pf._handle
+        self._particle_field_index = {'position_x': 0,
+                                      'position_y': 1,
+                                      'velocity_x': 2,
+                                      'velocity_y': 3,
+                                      'acceleration_x': 4,
+                                      'acceleration_y': 5,
+                                      'mass': 6}
+
+
+class IOHandlerChombo1DHDF5(IOHandlerChomboHDF5):
+    _dataset_type = "chombo1d_hdf5"
+    _offset_string = 'data:offsets=0'
+    _data_string = 'data:datatype=0'
+
+    def __init__(self, pf, *args, **kwargs):
+        BaseIOHandler.__init__(self, pf, *args, **kwargs)
+        self.pf = pf
+        self._handle = pf._handle
+        self._particle_field_index = {'position_x': 0,
+                                      'velocity_x': 1,
+                                      'acceleration_x': 2,
+                                      'mass': 3}    
+
+class IOHandlerOrion2HDF5(IOHandlerChomboHDF5):
+    _dataset_type = "orion_chombo_native"
 
     def _read_particles(self, grid, field):
         """
