@@ -437,7 +437,6 @@ class Halo(object):
         z = self.pf.current_redshift
         period = self.pf.domain_right_edge - \
             self.pf.domain_left_edge
-        #cm = self.pf["cm"]
         thissize = self.get_size()
         rho_crit = rho_crit_g_cm3_h2 * h ** 2.0 * Om_matter  # g cm^-3
         Msun2g = mass_sun_cgs
@@ -761,8 +760,6 @@ class parallelHOPHalo(Halo, ParallelAnalysisInterface):
         self.overdensity = self.mass_bins * Msun2g / \
         (4. / 3. * math.pi * rho_crit * \
         (self.radial_bins) ** 3.0)
-        print self.overdensity
-        print self.radial_bins
 
     def _get_ellipsoid_parameters_basic(self):
         mylog.error("Ellipsoid calculation does not work for parallelHF halos." + \
