@@ -119,6 +119,9 @@ from yt.data_objects.api import \
     ImageArray, particle_filter, create_profile, \
     Profile1D, Profile2D, Profile3D
 
+# For backwards compatibility
+TimeSeriesData = deprecated_class(DatasetSeries)
+
 from yt.frontends.api import _frontend_container
 frontends = _frontend_container()
 
