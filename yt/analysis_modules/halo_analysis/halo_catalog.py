@@ -428,6 +428,8 @@ class HaloCatalog(ParallelAnalysisInterface):
             attr_val = getattr(self.data_pf, attr)
             setattr(halos_pf, attr, attr_val)
 
+        ds = halos_pf.all_data()
+
         return halos_pf
 
     def _parse_old_halo_list(self, halo_list):
@@ -440,7 +442,7 @@ class HaloCatalog(ParallelAnalysisInterface):
         new_fields = ['particle_identifier', 'particle_mass', 'particle_position_x', 
             'particle_position_y','particle_position_z',
             'virial_radius']
-        new_units = [ '', 'Msun', 'code_length', 'code_length','code_length','code_length']
+        new_units = [ '', 'g', 'cm', 'cm','cm','cm']
 
         # Set up a dictionary based on those fields 
         # with empty arrays where we will fill in their values
@@ -451,21 +453,21 @@ class HaloCatalog(ParallelAnalysisInterface):
         # and filling in the properties dictionary
         for i,halo in enumerate(halo_list):
             halo_properties['particle_identifier'][0][i] = i
-            halo_properties['particle_mass'][0][i] = halo.virial_mass()
-            halo_properties['virial_radius'][0][i] = halo.virial_radius()
+            halo_properties['particle_mass'][0][i] = halo.virial_mass().in_cgs()
+            halo_properties['virial_radius'][0][i] = halo.virial_radius().in_cgs()
 
-            com = halo.center_of_mass()
+            com = halo.center_of_mass().in_cgs()
             halo_properties['particle_position_x'][0][i] = com[0]
             halo_properties['particle_position_y'][0][i] = com[1]
             halo_properties['particle_position_z'][0][i] = com[2]
 
         # Define a bounding box based on original data pf
-        bbox = data_pf.arr([data_pf.domain_left_edge,
-                data_pf.domain_right_edge], 'code_length').to_ndarray().T
+        bbox = np.array([data_pf.domain_left_edge.in_cgs(),
+                data_pf.domain_right_edge.in_cgs()]).T
 
         # Create a pf with the halos as particles
         particle_pf = load_particles(halo_properties, 
-                bbox=bbox, length_unit = data_pf.length_unit)
+                bbox=bbox, length_unit = 1, mass_unit=1)
 
         # Create the field info dictionary so we can reference those fields
         particle_pf.create_field_info()
