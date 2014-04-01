@@ -23,59 +23,140 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_blocking_call
 from yt.utilities.physical_ratios import \
     rho_crit_g_cm3_h2
+from yt.utilities.logger import ytLogger as mylog
 
 class HaloMassFcn(ParallelAnalysisInterface):
-    """
+    r"""
     Initalize a HaloMassFcn object to analyze the distribution of halos as 
-    a function of mass.
-    :param ds (str): The loaded simulation dataset.
-    Default=None.
-    :param halos_ds (str): The loaded halo dataset.
-    Default=None.
-    :param make_analytic (bool): Are we going to calculate an analytic mass
-    function, True for yes, False for no.
-    Default=False.
-    :param omega_matter0 (float): The fraction of the universe made up of
-    matter (dark and baryonic). Default=None.
-    :param omega_lambda0 (float): The fraction of the universe made up of
-    dark energy. Default=None.
-    :param omega_baryon0 (float): The fraction of the universe made up of
-    ordinary baryonic matter. This should match the value
-    used to create the initial conditions, using 'inits'. This is 
-    *not* stored in the enzo datset so it must be checked by hand.
-    Default=0.05.
-    :param hubble0 (float): The expansion rate of the universe in units of
-    100 km/s/Mpc. Default=None.
-    :param sigma8input (float): The amplitude of the linear power
-    spectrum at z=0 as specified by the rms amplitude of mass-fluctuations
-    in a top-hat sphere of radius 8 Mpc/h. This should match the value
-    used to create the initial conditions, using 'inits'. This is 
-    *not* stored in the enzo datset so it must be checked by hand.
-    Default=0.86.
-    :param primoridal_index (float): This is the index of the mass power
-    spectrum before modification by the transfer function. A value of 1
-    corresponds to the scale-free primordial spectrum. This should match
-    the value used to make the initial conditions using 'inits'. This is 
-    *not* stored in the enzo datset so it must be checked by hand.
-    Default=1.0.
-    :param this_redshift (float): The current redshift. Default=None.
-    :param log_mass_min (float): The log10 of the mass of the minimum of the
-    halo mass range. Default=None.
-    :param log_mass_max (float): The log10 of the mass of the maximum of the
-    halo mass range. Default=None.
-    :param num_sigma_bins (float): The number of bins (points) to use for
-    the calculations and generated fit. Default=360.
-    :param fitting_function (int): Which fitting function to use.
-    1 = Press-schechter, 2 = Jenkins, 3 = Sheth-Tormen, 4 = Warren fit
-    5 = Tinker
-    Default=4.
+    a function of mass.  A mass function can be created for a set of 
+    simulated halos, an analytic fit to can be created for a redshift and 
+    set of cosmological parameters, or both can be created.
+
+    Provided with a halo dataset object, this will make a the mass function 
+    for simulated halos.  Prodiving a simulation dataset will set as many 
+    of the cosmological parameters as possible for the creation of the 
+    analytic mass function.
+
+    The HaloMassFcn object has arrays hanging off of it containing the mass
+    function information.
+
+    masses_sim : Array 
+        Halo masses from simulated halos.
+    n_cumulative_sim : Array
+        Number density of halos with mass greater than the corresponding 
+        mass in masses_sim (simulated).
+    massarray : Array
+        Masses used for the generation of the analytic mass function.
+    nofmz_cum : Array
+        Number density of halos with mass greater then the corresponding
+        mass in massarray (analytic).
+
+    The HaloMassFcn object also has a convenience function write_out() that
+    will write out the data to disk.
+
+    Creating a HaloMassFcn object with no arguments will produce an analytic
+    mass function at redshift = 0 using default cosmolocigal values.
+
+    Parameters
+    ----------
+    simulation_ds : Simulation dataset object
+        The loaded simulation dataset, used to set cosmological paramters.
+        Default : None.
+    halos_ds : Halo dataset object
+        The halos from a simulation to be used for creation of the 
+        halo mass function in the simulation.
+        Default : None.
+    make_analytic : bool 
+        Whether or not to calculate the analytic mass function to go with 
+        the simulated halo mass function.  Automatically set to true if a 
+        simulation dataset is provided.
+        Default : False.
+    omega_matter0 : float
+        The fraction of the universe made up of matter (dark and baryonic). 
+        Default : 0.2726.
+    omega_lambda0 : float
+        The fraction of the universe made up of dark energy. 
+        Default : 0.7274.
+    omega_baryon0  : float 
+        The fraction of the universe made up of baryonic matter. This is not 
+        always stored in the datset and should be checked by hand.
+        Default : 0.0456.
+    hubble0 : float 
+        The expansion rate of the universe in units of 100 km/s/Mpc. 
+        Default : 0.704.
+    sigma8input : float 
+        The amplitude of the linear power spectrum at z=0 as specified by 
+        the rms amplitude of mass-fluctuations in a top-hat sphere of radius 
+        8 Mpc/h. This is not always stored in the datset and should be 
+        checked by hand.
+        Default : 0.86.
+    primoridal_index : float 
+        This is the index of the mass power spectrum before modification by 
+        the transfer function. A value of 1 corresponds to the scale-free 
+        primordial spectrum. This is not always stored in the datset and 
+        should be checked by hand.
+        Default : 1.0.
+    this_redshift : float 
+        The current redshift. 
+        Default : 0.
+    log_mass_min : float 
+        The log10 of the mass of the minimum of the halo mass range. This is
+        set automatically by the range of halo masses if a simulated halo 
+        dataset is provided. If a halo dataset if not provided and no value
+        is specified, it will be set to 5.
+        Default : None.
+    log_mass_max : float 
+        The log10 of the mass of the maximum of the halo mass range. This is
+        set automatically by the range of halo masses if a simulated halo 
+        dataset is provided. If a halo dataset if not provided and no value
+        is specified, it will be set to 15.
+        Default : None.
+    num_sigma_bins : float
+        The number of bins (points) to use for the calculation of the 
+        analytic mass function. 
+        Default : 360.
+    fitting_function : int
+        Which fitting function to use. 1 = Press-Schechter, 2 = Jenkins, 
+        3 = Sheth-Tormen, 4 = Warren, 5 = Tinker
+        Default : 4.
+
+    Examples
+    --------
+
+    This creates the halo mass function for a halo dataset from a simulation
+    and the analytic mass function at the same redshift as the dataset,
+    using as many cosmological parameters as can be pulled from the dataset.
+
+    >>> halos_ds = load("rockstar_halos/halo_0.0.bin")
+    >>> hmf = HaloMassFcn(halos_ds=halos_ds, make_analytic=True)
+    >>> plt.loglog(hmf.masses_sim, hmf.n_cumulative_sim)
+    >>> plt.loglog(hmf.massarray, hmf.nofmz_cum)
+    >>> plt.savefig("mass_function.png")
+
+    This creates only the analytic halo mass function for a simulation
+    dataset, with default values for cosmological paramters not stored in 
+    the dataset.
+
+    >>> ds = load("enzo_tiny_cosmology/DD0046/DD0046")
+    >>> hmf = HaloMassFcn(ds=ds)
+    >>> plt.loglog(hmf.massarray, hmf.nofmz_cum)
+    >>> plt.savefig("mass_function.png")
+    
+    This creates the analytic mass function for an arbitrary set of 
+    cosmological parameters, without either a simulation or halo dataset.
+
+    >>> hmf = HaloMassFcn(omega_baryon0=0.05, omega_matter0=0.27, 
+                          omega_lambda0=0.73, hubble0=0.7, this_redshift=10,
+                          log_mass_min=5, log_mass_max=9)
+    >>> plt.loglog(hmf.massarray, hmf.nofmz_cum)
+    >>> plt.savefig("mass_function.png")
     """
-    def __init__(self, ds=None, halos_ds=None, make_analytic=False, omega_matter0=None, 
-    omega_lambda0=None, omega_baryon0=0.05, hubble0=None, sigma8input=0.86, 
-    primordial_index=1.0, this_redshift=None, log_mass_min=None, log_mass_max=None, 
-    num_sigma_bins=360, fitting_function=4):
+    def __init__(self, simulation_ds=None, halos_ds=None, make_analytic=False, 
+    omega_matter0=0.2726, omega_lambda0=0.7274, omega_baryon0=0.0456, hubble0=0.704, 
+    sigma8input=0.86, primordial_index=1.0, this_redshift=0, log_mass_min=None, 
+    log_mass_max=None, num_sigma_bins=360, fitting_function=4):
         ParallelAnalysisInterface.__init__(self)
-        self.ds = ds
+        self.simulation_ds = simulation_ds
         self.halos_ds = halos_ds
         self.omega_matter0 = omega_matter0
         self.omega_lambda0 = omega_lambda0
@@ -89,36 +170,49 @@ class HaloMassFcn(ParallelAnalysisInterface):
         self.num_sigma_bins = num_sigma_bins
         self.fitting_function = fitting_function
         self.make_analytic = make_analytic
-
+        self.make_simulated = False
         """
         If we want to make an analytic mass function, grab what we can from either the 
         halo file or the data set, and make sure that the user supplied everything else
         that is needed.
         """
-        if make_analytic == True:
-            # First try to get it from the ds
-            if ds is not None:
-                self.omega_matter0 = self.ds.omega_matter
-                self.omega_lambda0 = self.ds.omega_lambda
-                self.hubble0 = self.ds.hubble_constant
-                self.this_redshift = self.ds.current_redshift
-            # If we can't do that, try to get it from the halos_ds
-            if ds is None and halos_ds is not None:
+        # If we don't have any datasets, make the analytic function with user values
+        if simulation_ds is None and halos_ds is None:
+            self.make_analytic=True
+            # Set a reasonable mass min and max if none were provided
+            if log_mass_min is None:
+                self.log_mass_min = 5
+            if log_mass_max is None:
+                self.log_mass_max = 15
+
+        # If we are given a simulation dataset, make the analytic mass function
+        if simulation_ds is not None:
+            self.make_analytic = True
+
+        # If we're making the analytic function...
+        if self.make_analytic == True:
+            # Try to set cosmological parameters from the simulation dataset
+            if simulation_ds is not None:
+                self.omega_matter0 = self.simulation_ds.omega_matter
+                self.omega_lambda0 = self.simulation_ds.omega_lambda
+                self.hubble0 = self.simulation_ds.hubble_constant
+                self.this_redshift = self.simulation_ds.current_redshift
+                # Set a reasonable mass min and max if none were provided
+                if log_mass_min is None:
+                    self.log_mass_min = 5
+                if log_mass_max is None:
+                    self.log_mass_max = 15
+            # If we have a halo dataset but not a simulation dataset, use that instead
+            if simulation_ds is None and halos_ds is not None:
                 self.omega_matter0 = self.halos_ds.omega_matter
                 self.omega_lambda0 = self.halos_ds.omega_lambda
                 self.hubble0 = self.halos_ds.hubble_constant
                 self.this_redshift = self.halos_ds.current_redshift
-            # Check that all the parameters for the analytic function have been set
-            if self.omega_matter0 == None or self.omega_lambda0 == None or \
-            self.hubble0 == None or self.this_redshift == None or \
-            self.log_mass_min == None or self.log_mass_max == None:            
-                mylog.error("All of these parameters need to be set:")
-                mylog.error("[omega_matter0, omega_lambda0, \
-hubble0, this_redshift, log_mass_min, log_mass_max]")
-                mylog.error("[%s,%s,%s,%s,%s,%s]" % (self.omega_matter0,\
-                self.omega_lambda0, self.hubble0, self.this_redshift,\
-                self.log_mass_min, self.log_mass_max))
-                return None
+                # If the user didn't specify mass min and max, set them from the halos
+                if log_mass_min is None:
+                    self.set_mass_from_halos("min_mass")
+                if log_mass_max is None:
+                    self.set_mass_from_halos("max_mass")
             # Do the calculations.
             self.sigmaM()
             self.dndm()
@@ -127,9 +221,22 @@ hubble0, this_redshift, log_mass_min, log_mass_max]")
         If a halo file has been supplied, make a mass function for the simulated halos.
         """
         if halos_ds is not None:
+            # Used to check if a simulated halo mass funciton exists to write out
             self.make_simulated=True
+            # Calculate the simulated halo mass function
             self.create_sim_hmf()
 
+    """
+    If we're making an analytic fit and have a halo dataset, but don't have log_mass_min 
+    or log_mass_max from the user, set it from the range of halo masses.
+    """
+    def set_mass_from_halos(self, which_limit):
+        data_source = self.halos_ds.all_data()
+        if which_limit is "min_mass":
+            self.log_mass_min = int(np.log10(np.amin(data_source['ParticleMassMsun'])))
+        if which_limit is "max_mass":
+            self.log_mass_max = int(np.log10(np.amax(data_source['ParticleMassMsun'])))+1
+    
     """
     Here's where we create the halo mass functions from simulated halos
     """
@@ -139,12 +246,11 @@ hubble0, this_redshift, log_mass_min, log_mass_max]")
         masses_sim = np.sort(data_source['ParticleMassMsun'])
         # Determine the size of the simulation volume in comoving Mpc**3
         sim_volume = (self.halos_ds.domain_width.in_units('Mpccm')).prod()
-        # Get rid of the densities that correspond to repeated halo masses
         n_cumulative_sim = np.arange(len(masses_sim),0,-1)
-        # We don't want repeated halo masses, and the uniques indices tell us which 
-        # densities are representative.
+        # We don't want repeated halo masses, and the unique indices tell us which values 
+        # correspond to distinct halo masses.
         self.masses_sim, unique_indices = np.unique(masses_sim, return_index=True)
-        # Now make this an actual number density
+        # Now make this an actual number density of halos as a function of mass.
         self.n_cumulative_sim = n_cumulative_sim[unique_indices]/sim_volume
         # masses_sim and n_cumulative_sim are now set, but remember that the log10 quantities
         # are what is usually plotted for a halo mass function.
@@ -153,39 +259,53 @@ hubble0, this_redshift, log_mass_min, log_mass_max]")
         """
         Writes out the halo mass functions to file(s) with prefix *prefix*.
         """
-        # First the analytic file.
-        if self.make_analytic==True and analytic:
-            fitname = prefix + '-analytic.dat'
-            fp = self.comm.write_on_root(fitname)
-            line = \
-            """#Columns:
+        # First the analytic file, check that analytic fit exists and was requested
+        if analytic:
+            if self.make_analytic:
+                fitname = prefix + '-analytic.dat'
+                fp = self.comm.write_on_root(fitname)
+                line = \
+                """#Columns:
 #1. log10 of mass (Msolar, NOT Msolar/h)
 #2. mass (Msolar/h)
 #3. (dn/dM)*dM (differential number density of halos, per Mpc^3 (NOT h^3/Mpc^3)
 #4. cumulative number density of halos (per Mpc^3, NOT h^3/Mpc^3)
 """
-            fp.write(line)
-            for i in xrange(self.logmassarray.size - 1):
-                line = "%e\t%e\t%e\t%e\n" % (self.logmassarray[i], self.massarray[i],
-                self.dn_M_z[i], self.nofmz_cum[i])
                 fp.write(line)
-            fp.close()
-        if self.make_simulated==True and simulated:
-            haloname = prefix + '-simulated.dat'
-            fp = self.comm.write_on_root(haloname)
-            line = \
-            """#Columns:
+                for i in xrange(self.logmassarray.size - 1):
+                    line = "%e\t%e\t%e\t%e\n" % (self.logmassarray[i], self.massarray[i],
+                    self.dn_M_z[i], self.nofmz_cum[i])
+                    fp.write(line)
+                fp.close()
+            # If the analytic halo mass function wasn't created, warn the user
+            else:
+                mylog.warning("The analytic halo mass function was not created and cannot be written \
+out! Specify its creation with HaloMassFcn(make_analytic=True, other_args) \
+when creating the HaloMassFcn object.")
+        # Write out the simulated mass fucntion if it exists and was requested
+        if simulated:
+            if self.make_simulated:
+                haloname = prefix + '-simulated.dat'
+                fp = self.comm.write_on_root(haloname)
+                line = \
+                """#Columns:
 #1. log10 of mass (Msolar, NOT Msolar/h)
 #2. mass (Msolar/h)
 #3. cumulative number density of halos (per Mpc^3, NOT h^3/Mpc^3)
 """
-            fp.write(line)
-            for i in xrange(self.masses_sim.size - 1):
-                line = "%e\t%e\t%e\n" % (np.log10(self.masses_sim[i]), 
-                self.masses_sim[i]/self.hubble0,
-                self.n_cumulative_sim[i])
                 fp.write(line)
-            fp.close()
+                for i in xrange(self.masses_sim.size - 1):
+                    line = "%e\t%e\t%e\n" % (np.log10(self.masses_sim[i]), 
+                    self.masses_sim[i]/self.hubble0,
+                    self.n_cumulative_sim[i])
+                    fp.write(line)
+                fp.close()
+            # If the simulated halo mass function wasn't created, warn the user
+            else:
+                mylog.warning("The simulated halo mass function was not created and cannot be written \
+out! Specify its creation by providing a loaded halo dataset with \
+HaloMassFcn(ds_halos=loaded_halo_dataset, other_args) when creating \
+the HaloMassFcn object.")
 
     def sigmaM(self):
         """

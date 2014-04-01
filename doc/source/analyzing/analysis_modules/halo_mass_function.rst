@@ -6,7 +6,7 @@ Halo Mass Function
 .. versionadded:: 1.6
 
 The Halo Mass Function extension is capable of outputting the halo mass function
-for a collection haloes (input), and/or an analytical fit over a given mass range
+for a collection halos (input), and/or an analytical fit over a given mass range
 for a set of specified cosmological parameters.
 
 This extension is based on code generously provided by Brian O'Shea.
@@ -14,7 +14,7 @@ This extension is based on code generously provided by Brian O'Shea.
 General Overview
 ----------------
 
-In order to run this extension on a dataset, the haloes need to be located
+In order to run this extension on a dataset, the halos need to be located
 (using HOP, FOF or Parallel HOP, see :ref:`halo_finding`),
 and their virial masses determined using the
 HaloProfiler (see :ref:`halo_profiling`).
@@ -24,7 +24,32 @@ If an optional analytical fit is desired, the correct initial
 cosmological parameters will need to be input as well. These initial parameters
 are not stored in an Enzo dataset, so they must be set by hand.
 An analytical fit can be found without referencing a particular dataset or
-set of haloes, but all the cosmological parameters need to be set by hand.
+set of halos, but all the cosmological parameters need to be set by hand.
+
+Basic Halo Mass Function Creation
+---------------------------------
+
+Creating the halo mass function of simulated halos requires only loading a halo
+dataset and passing this to HaloMassFnc().
+
+.. code-block:: python
+  from yt.mods import *
+  from yt.analysis_modules.halo_mass_function.api import *
+  halos_ds = load("rockstar_halos/halos_0.0.bin")
+  hmf = HaloMassFcn(halos_ds=halos_ds)
+
+If an analytic fit is also desired, additionally set `make_analytic=True', 
+changing the last line above to the following:
+
+.. code-block:: python
+  hmf = HaloMassFcn(halos_ds=halos_ds, make_analytic=True)
+
+`hmf' is a HaloMassFnc object off which arrays holding the simulated halo masses,
+cumulative halo density
+
+
+
+
 
 Analytical Fits
 ---------------
@@ -45,38 +70,41 @@ The Warren fitting function is the default (equivalent to not specifying
 The Tinker fit is for the :math:`\Delta=300` fits given in the paper, which
 appears to fit HOP threshold=80.0 fairly well.
 
-Analyze Simulated Haloes
+Analyze Simulated halos
 ------------------------
 
-If an analytical fit is not needed, it is simple to analyze a set of 
-haloes. The ``halo_file`` needs to be specified, and
-``fitting_function`` does not need to be specified.
-``num_sigma_bins`` is how many bins the halo masses are sorted into.
-The default is 360. ``mass_column`` is the zero-indexed column of the
-``halo_file`` file that contains the halo masses. The default is 5, which
-corresponds to the sixth column of data in the file.
+To create the halo mass function of halos found in a simulation, only the 
+loaded halo dataset needs to be specified.
 
 .. code-block:: python
-
   from yt.mods import *
   from yt.analysis_modules.halo_mass_function.api import *
-  pf = load("data0030")
-  hmf = HaloMassFcn(pf, halo_file="FilteredQuantities.out", num_sigma_bins=200,
-  mass_column=5)
+  halos_ds = load("rockstar_halos/halos_0.0.bin")
+  hmf = HaloMassFcn(halos_ds=halos_ds)
 
-Attached to ``hmf`` is the convenience function ``write_out``, which saves
-the halo mass function to a text file. By default, both the halo analysis (``haloes``) and
-fit (``fit``) are written to (different) text files, but they can be turned on or off
-explicitly. ``prefix`` sets the name used for the file(s). The haloes file
-is named ``prefix-haloes.dat``, and the fit file ``prefix-fit.dat``.
+This will calculate the cumulative halo mass function for the halo dataset and
+create ``hmf'', a HaloMassFcn object with the arrays ``masses_sim'' and 
+``n_cumulative_sim'' hanging off of it. These arrays hold the halo masses in 
+units of solar mass and the cumulative number density of halos above that mass 
+in comoving Mpc^3, respectively.  
+
+Attached to ``hmf`` is the convenience function ``write_out``, which saves the 
+halo mass function to a text file. 
+
+
+
+By default, both the mass function of the
+simulated halos (``simulated``) and analytic fit (``analytic``) are written to 
+text files, but they can be turned on or off explicitly. ``prefix`` sets the name used for the file(s). The halos file
+is named ``prefix-halos.dat``, and the fit file ``prefix-fit.dat``.
 Continued from above, invoking this command:
 
 .. code-block:: python
 
-  hmf.write_out(prefix='hmf', fit=False, haloes=True)
+  hmf.write_out(prefix='hmf', fit=False, halos=True)
 
-will save the haloes data to a file named ``hmf-haloes.dat``. The contents
-of the ``-haloes.dat`` file is three columns:
+will save the halos data to a file named ``hmf-halos.dat``. The contents
+of the ``-halos.dat`` file is three columns:
 
   1. log10 of mass (Msolar, NOT Msolar/h) for this bin.
   2. mass (Msolar/h) for this bin.
@@ -85,9 +113,43 @@ of the ``-haloes.dat`` file is three columns:
 Analytical Halo Mass Function Fit
 ---------------------------------
 
+To create an analytic mass function, several additional parameters which are 
+not necessarily attached to the dataset will need to be provided. If a halo 
+or simulation dataset is provided, the values that can be extracted directly 
+from it will be used. The following parameters will need to be set:
+
+`make_analytic=True'
+
+:math:`\Omega_{m}', `omega_matter0', Default=0.2726
+
+:math:`\Omega_{\Lambda}', `omega_lambda0', Default=0.7274
+
+:math:`\Omega_{b}', `omega_baryon0', Default=0.0456
+
+:math:`h', `hubble0', Default=0.704
+
+:math:`\sigma_8', `sigma8input', Default=0.86
+
+primordial index, `primordial_index', Default=1.0
+
+redshift, `this_redshift', Default=None
+
+log of the minimum halo mass, :math:`log_{10}M_{min}', `log_mass_min', Default=None
+
+log of the maximum halo mass, :math:`log_{10}M_{max}', `log_mass_max', Default=None
+
+Providing a simulation or halo dataset will generally set `omega_matter0',
+`omega_lambda0', `hubble0', and `this_redshift'. If `log_mass_min' or 
+`log_mass_max' are not specified but a halo dataset has been provided, the 
+range of halo masses will be used to set these parameters.
+
+
+
+
+
 When an analytical fit is desired, in nearly all cases several cosmological
 parameters will need to be specified by hand. These parameters are not
-stored with Enzo datasets. In the case where both the haloes and an analytical
+stored with Enzo datasets. In the case where both the halos and an analytical
 fit are desired, the analysis is instantiated as below.
 ``sigma8input``, ``primordial_index`` and ``omega_baryon0`` should be set to
 the same values as
@@ -108,7 +170,7 @@ fits above.
   fitting_function=4)
   hmf.write_out(prefix='hmf')
 
-Both the ``-haloes.dat`` and ``-fit.dat`` files are written to disk.
+Both the ``-halos.dat`` and ``-fit.dat`` files are written to disk.
 The contents of the ``-fit.dat`` file is four columns:
 
   1. log10 of mass (Msolar, NOT Msolar/h) for this bin.
@@ -116,12 +178,12 @@ The contents of the ``-fit.dat`` file is four columns:
   3. (dn/dM)*dM (differential number density of halos, per Mpc^3 (NOT h^3/Mpc^3) in this bin.
   4. cumulative number density of halos (per Mpc^3, NOT h^3/Mpc^3) in this bin.
 
-Below is an example of the output for both the haloes and the (Warren)
+Below is an example of the output for both the halos and the (Warren)
 analytical fit, for three datasets. The black lines are the calculated
 halo mass functions, and the blue lines the analytical fit set by initial
 conditions. This simulation shows typical behavior, in that there are too
-few small haloes compared to the fit due to lack of mass and gravity resolution
-for small haloes. But at higher mass ranges, the simulated haloes are quite close
+few small halos compared to the fit due to lack of mass and gravity resolution
+for small halos. But at higher mass ranges, the simulated halos are quite close
 to the analytical fit.
 
 .. image:: _images/halo_mass_function.png
@@ -145,7 +207,7 @@ you wish to calculate the fit.
   omega_baryon0=0.06, hubble0=.7, this_redshift=0., log_mass_min=8.,
   log_mass_max=13., sigma8input=0.9, primordial_index=1.,
   fitting_function=1)
-  hmf.write_out(prefix="hmf-press-schechter", fit=True, haloes=False)
+  hmf.write_out(prefix="hmf-press-schechter", fit=True, halos=False)
 
 It is possible to access the output of the halo mass function without saving
 to disk. The content is stored in arrays hanging off the ``HaloMassFcn``
