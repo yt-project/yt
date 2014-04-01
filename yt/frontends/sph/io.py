@@ -542,6 +542,8 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         if pf.domain_left_edge is not None and pf.domain_right_edge is not None:
             return
         with open(data_file.filename, "rb") as f:
+            pf.domain_left_edge = 0
+            pf.domain_right_edge = 0
             f.seek(pf._header_offset)
             for iptype, ptype in enumerate(self._ptypes):
                 # We'll just add the individual types separately
