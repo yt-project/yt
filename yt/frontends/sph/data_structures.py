@@ -530,7 +530,10 @@ class TipsyDataset(ParticleDataset):
             f = open(filename,'rb')
         except:
             return False, 1
-        fs = len(f.read())
+        try:
+            fs = len(f.read())
+        except IOError:
+            return False, 1
         f.seek(0)
         #Read in the header
         t, n, ndim, ng, nd, ns = struct.unpack("<diiiii", f.read(28))

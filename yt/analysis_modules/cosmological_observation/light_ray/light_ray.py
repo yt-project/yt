@@ -25,7 +25,6 @@ from yt.analysis_modules.halo_profiler.multi_halo_profiler import \
      HaloProfiler
 from yt.convenience import load
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    only_on_root, \
     parallel_objects, \
     parallel_root_only
 from yt.utilities.physical_constants import \
