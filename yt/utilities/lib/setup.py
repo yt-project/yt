@@ -100,6 +100,7 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("origami", 
                 ["yt/utilities/lib/origami.pyx",
                  "yt/utilities/lib/origami_tags.c"],
+                include_dirs=["yt/utilities/lib/"],
                 depends=["yt/utilities/lib/origami_tags.h"])
     config.add_extension("image_utilities", 
                          ["yt/utilities/lib/image_utilities.pyx"],
@@ -129,8 +130,7 @@ def configuration(parent_package='',top_path=None):
                libraries=["m"], 
                extra_compile_args=omp_args,
                extra_link_args=omp_args,
-               depends = ["yt/utilities/lib/VolumeIntegrator.pyx",
-                          "yt/utilities/lib/fp_utils.pxd",
+               depends = ["yt/utilities/lib/fp_utils.pxd",
                           "yt/utilities/lib/kdtree.h",
                           "yt/utilities/lib/FixedInterpolator.h",
                           "yt/utilities/lib/fixed_interpolator.pxd",

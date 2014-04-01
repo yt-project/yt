@@ -26,7 +26,6 @@ from yt.convenience import \
 from yt.utilities.cosmology import \
      Cosmology
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    only_on_root, \
     parallel_objects, \
     parallel_root_only
 from yt.visualization.image_writer import \
