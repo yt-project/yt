@@ -539,7 +539,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         ind = 0
         # Check to make sure that the domain hasn't already been set
         # by the parameter file 
-        if pf.domain_left_edge is not None and pf.domain_right_edge is not None:
+        if np.all(np.isfinite(pf.domain_left_edge)) and np.all(np.isfinite(pf.domain_right_edge)):
             return
         with open(data_file.filename, "rb") as f:
             pf.domain_left_edge = 0
@@ -558,9 +558,9 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                         mi = pp["Coordinates"][ax].min()
                         ma = pp["Coordinates"][ax].max()
                         outlier = YTArray(np.max(np.abs((mi,ma))), 'code_length')
-                    if outlier > pf.domain_right_edge or -outlier < pf.domain_left_edge:
-                        pf.domain_left_edge = -outlier
-                        pf.domain_right_edge = outlier
+                        if outlier > pf.domain_right_edge or -outlier < pf.domain_left_edge:
+                            pf.domain_left_edge = -1.01*outlier
+                            pf.domain_right_edge = 1.01*outlier
                     ind += c
         pf.domain_left_edge = np.ones(3)*pf.domain_left_edge
         pf.domain_right_edge = np.ones(3)*pf.domain_right_edge
