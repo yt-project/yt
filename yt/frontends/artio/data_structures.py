@@ -297,7 +297,7 @@ class ARTIOIndex(Index):
                 g = og
             yield YTDataChunk(dobj, "spatial", [g], None, cache = True)
 
-    def _chunk_io(self, dobj, cache = True):
+    def _chunk_io(self, dobj, cache = True, local_only = False):
         # _current_chunk is made from identify_base_chunk
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for chunk in oobjs:
