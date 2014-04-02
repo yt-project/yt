@@ -16,19 +16,18 @@ YTArray class.
 import copy
 
 import numpy as np
-import sympy
 
 from functools import wraps
 from numpy import \
-     add, subtract, multiply, divide, logaddexp, logaddexp2, true_divide, \
-     floor_divide, negative, power, remainder, mod, fmod, absolute, rint, \
-     sign, conj, exp, exp2, log, log2, log10, expm1, log1p, sqrt, square, \
-     reciprocal, ones_like, sin, cos, tan, arcsin, arccos, arctan, arctan2, \
-     hypot, sinh, cosh, tanh, arcsinh, arccosh, arctanh, deg2rad, rad2deg, \
-     greater, greater_equal, less, less_equal, not_equal, equal, logical_and, \
-     logical_or, logical_xor, logical_not, maximum, minimum, isreal, iscomplex, \
-     isfinite, isinf, isnan, signbit, copysign, nextafter, modf, frexp, \
-     floor, ceil, trunc, fmax, fmin
+    add, subtract, multiply, divide, logaddexp, logaddexp2, true_divide, \
+    floor_divide, negative, power, remainder, mod, fmod, absolute, rint, \
+    sign, conj, exp, exp2, log, log2, log10, expm1, log1p, sqrt, square, \
+    reciprocal, ones_like, sin, cos, tan, arcsin, arccos, arctan, arctan2, \
+    hypot, sinh, cosh, tanh, arcsinh, arccosh, arctanh, deg2rad, rad2deg, \
+    greater, greater_equal, less, less_equal, not_equal, equal, logical_and, \
+    logical_or, logical_xor, logical_not, maximum, minimum, isreal, iscomplex, \
+    isfinite, isinf, isnan, signbit, copysign, nextafter, modf, frexp, \
+    floor, ceil, trunc, fmax, fmin
 
 from yt.units.unit_object import Unit
 from yt.units.unit_registry import UnitRegistry
@@ -49,7 +48,7 @@ def ensure_unitless(func):
     def wrapped(unit):
         if unit != Unit():
             raise RuntimeError(
-                "This operation is only defined for unitless quantities. " \
+                "This operation is only defined for unitless quantities. "
                 "Received unit (%s)" % unit
                 )
         return func(unit)
@@ -397,6 +396,38 @@ class YTArray(np.ndarray):
     #
     # End unit conversion methods
     #
+
+    #
+    # Start convenience methods
+    #
+
+    @property
+    def value(self):
+        """Get a copy of the array data as a numpy ndarray"""
+        return np.array(self)
+
+    v = value
+
+    @property
+    def ndview(self):
+        """Get a view of the array data."""
+        return self.ndarray_view()
+
+    d = ndview
+
+    @property
+    def unit_quantity(self):
+        """Get a YTQuantity with the same unit as this array and a value of 1.0"""
+        return YTQuantity(1.0, self.units)
+
+    uq = unit_quantity
+
+    @property
+    def unit_array(self):
+        """Get a YTArray filled with ones with the same unit and shape as this array"""
+        return np.ones_like(self)
+
+    ua = unit_array
 
     #
     # Start operation methods
@@ -800,10 +831,6 @@ class YTQuantity(YTArray):
 
     def __repr__(self):
         return str(self)
-
-    @property
-    def value(self):
-        return np.array(self)
 
 def uconcatenate(arrs, *args, **kwargs):
     v = np.concatenate(arrs, *args, **kwargs)

@@ -11,6 +11,7 @@
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 import numpy as np
+from itertools import izip
 
 import matplotlib
 import matplotlib.colors as cc
@@ -82,9 +83,9 @@ _kamae_blu = np.minimum(255,
                 194.5*_vs**2.88+99.72*np.exp(-77.24*(_vs-0.742)**2.0)
               + 45.40*_vs**0.089+10.0)/255.0
 
-cdict = {'red':zip(_vs,_kamae_red,_kamae_red),
-         'green':zip(_vs,_kamae_grn,_kamae_grn),
-         'blue':zip(_vs,_kamae_blu,_kamae_blu)}
+cdict = {'red':izip(_vs,_kamae_red,_kamae_red),
+         'green':izip(_vs,_kamae_grn,_kamae_grn),
+         'blue':izip(_vs,_kamae_blu,_kamae_blu)}
 add_cmap('kamae', cdict)
 
 # This one is a simple black & green map
@@ -97,6 +98,32 @@ cdict = {'red':   ((0.0, 0.0, 0.0),
                    (1.0, 0.0, 0.0))}
 
 add_cmap('black_green', cdict)
+
+# This one is a variant of a colormap commonly
+# used for X-ray observations by Maxim Markevitch
+
+cdict = {'red': ((0.0, 0.0, 0.0),
+                 (0.3, 0.0, 0.0),
+                 (0.352, 0.245, 0.245),
+                 (0.42, 0.5, 0.5),
+                 (0.51, 0.706, 0.706),
+                 (0.613, 0.882, 0.882),
+                 (0.742, 1.0, 1.0),
+                 (1.0, 1.0, 1.0)),
+         'green': ((0.0, 0.0, 0.0),
+                   (0.585, 0.0, 0.0),
+                   (0.613, 0.196, 0.196),
+                   (0.693, 0.48, 0.48),
+                   (0.785, 0.696, 0.696),
+                   (0.885, 0.882, 0.882),
+                   (1.0, 1.0, 1.0)),
+         'blue': ((0.0, 0.0, 0.0),
+                  (0.136, 0.0, 0.0),
+                  (0.136, 0.373, 0.373),
+                  (0.391, 1.0, 1.0),
+                  (1.0, 1.0, 1.0))}
+
+add_cmap("purple_mm", cdict)
 
 # This one comes from
 # http://permalink.gmane.org/gmane.comp.python.matplotlib.devel/10518
@@ -121,9 +148,9 @@ add_cmap("cubehelix", _cubehelix_data)
 _vs = np.linspace(0,1,255)
 for k,v in _cm.color_map_luts.iteritems():
     if k not in yt_colormaps and k not in mcm.cmap_d:
-        cdict = { 'red': zip(_vs,v[0],v[0]),
-                  'green': zip(_vs,v[1],v[1]),
-                  'blue': zip(_vs,v[2],v[2]) }
+        cdict = { 'red': izip(_vs,v[0],v[0]),
+                  'green': izip(_vs,v[1],v[1]),
+                  'blue': izip(_vs,v[2],v[2]) }
         add_cmap(k, cdict)
 
 def _extract_lookup_table(cmap_name):

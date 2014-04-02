@@ -526,7 +526,7 @@ class PCSlicePlot(VMPlot):
         xf = "%s-velocity" % (axis_names[xax])
         yf = "%s-velocity" % (axis_names[yax])
         if bv_radius is not None:
-            sp = self.data.pf.h.sphere(self.data.center, bv_radius)
+            sp = self.data.pf.sphere(self.data.center, bv_radius)
             bv = sp.quantities["BulkVelocity"]()
             self.data[xf + "_bv"] = self.data[xf] - bv[xax]
             self.data[yf + "_bv"] = self.data[yf] - bv[yax]

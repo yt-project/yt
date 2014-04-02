@@ -145,7 +145,7 @@ def fake_random_pf(
         ndims, peak_value = 1.0,
         fields = ("density", "velocity_x", "velocity_y", "velocity_z"),
         units = ('g/cm**3', 'cm/s', 'cm/s', 'cm/s'),
-        negative = False, nprocs = 1, particles = 0):
+        negative = False, nprocs = 1, particles = 0, length_unit=1.0):
     from yt.data_objects.api import data_object_registry
     from yt.frontends.stream.api import load_uniform_grid
     if not iterable(ndims):
@@ -175,13 +175,13 @@ def fake_random_pf(
             data[f] = (np.random.random(size = particles) - 0.5, 'cm/s')
         data['particle_mass'] = (np.random.random(particles), 'g')
         data['number_of_particles'] = particles
-    ug = load_uniform_grid(data, ndims, 1.0, nprocs=nprocs)
+    ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs)
     return ug
 
 def fake_amr_pf(fields = ("Density",)):
     from yt.frontends.stream.api import load_amr_grids
     data = []
-    for gspec in _amr_grid_hierarchy:
+    for gspec in _amr_grid_index:
         level, left_edge, right_edge, dims = gspec
         gdata = dict(level = level,
                      left_edge = left_edge,
@@ -323,8 +323,8 @@ def requires_file(req_file):
             return ffalse
                                         
 # This is an export of the 40 grids in IsolatedGalaxy that are of level 4 or
-# lower.  It's just designed to give a sample AMR hierarchy to deal with.
-_amr_grid_hierarchy = [
+# lower.  It's just designed to give a sample AMR index to deal with.
+_amr_grid_index = [
  [ 0,
   [0.0,0.0,0.0],
   [1.0,1.0,1.0],
@@ -624,3 +624,25 @@ def check_results(func):
         return _func
     return compare_results(func)
 
+def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False):
+    import nose, os, sys, yt
+    from yt.funcs import mylog
+    orig_level = mylog.getEffectiveLevel()
+    mylog.setLevel(50)
+    nose_argv = sys.argv
+    nose_argv += ['--exclude=answer_testing','--detailed-errors']
+    if verbose:
+        nose_argv.append('-v')
+    if run_answer_tests:
+        nose_argv.append('--with-answer-testing')
+    if answer_big_data:
+        nose_argv.append('--answer-big-data')
+    initial_dir = os.getcwd()
+    yt_file = os.path.abspath(yt.__file__)
+    yt_dir = os.path.dirname(yt_file)
+    os.chdir(yt_dir)
+    try:
+        nose.run(argv=nose_argv)
+    finally:
+        os.chdir(initial_dir)
+        mylog.setLevel(orig_level)

@@ -78,7 +78,7 @@ class YTStreamlineBase(YTSelectionContainer1D):
         If you want the object to pre-retrieve a set of fields, supply them
         here.  This is not necessary.
     pf : Parameter file object
-        Passed in to access the hierarchy
+        Passed in to access the index
     kwargs : dict of items
         Any additional values are passed as field parameters that can be
         accessed by generated fields.
@@ -113,13 +113,13 @@ class YTStreamlineBase(YTSelectionContainer1D):
 
     def _get_list_of_grids(self):
         # Get the value of the line at each LeftEdge and RightEdge
-        LE = self.pf.h.grid_left_edge
-        RE = self.pf.h.grid_right_edge
+        LE = self.pf.grid_left_edge
+        RE = self.pf.grid_right_edge
         # Check left faces first
         min_streampoint = np.min(self.positions, axis=0)
         max_streampoint = np.max(self.positions, axis=0)
         p = np.all((min_streampoint <= RE) & (max_streampoint > LE), axis=1)
-        self._grids = self.hierarchy.grids[p]
+        self._grids = self.index.grids[p]
 
     def _get_data_from_grid(self, grid, field):
         # No child masking here; it happens inside the mask cut
@@ -157,7 +157,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     simulation domain.
 
     This object is typically accessed through the `proj` object that
-    hangs off of hierarchy objects.  AMRQuadProj is a projection of a
+    hangs off of index objects.  AMRQuadProj is a projection of a
     `field` along an `axis`.  The field can have an associated
     `weight_field`, in which case the values are multiplied by a weight
     before being summed, and then divided by the sum of that weight; the
@@ -216,7 +216,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     """
     _key_fields = YTSelectionContainer2D._key_fields + ['weight_field']
     _type_name = "proj"
-    _con_args = ('axis', 'weight_field')
+    _con_args = ('axis', 'field', 'weight_field')
     _container_fields = ('px', 'py', 'pdx', 'pdy', 'weight_field')
     def __init__(self, field, axis, weight_field = None,
                  center = None, pf = None, data_source=None, 
@@ -239,6 +239,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     @property
     def blocks(self):
         return self.data_source.blocks
+
+    @property
+    def field(self):
+        return [k for k in self.field_data.keys() if k not in self._container_fields]
 
     @property
     def _mrep(self):
@@ -269,12 +273,12 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             chunk_fields.append(self.weight_field)
         tree = self._get_tree(len(fields))
         # We do this once
-        for chunk in self.data_source.chunks([], "io"):
+        for chunk in self.data_source.chunks([], "io", local_only = False):
             self._initialize_chunk(chunk, tree)
         # This needs to be parallel_objects-ified
         with self.data_source._field_parameter_state(self.field_parameters):
             for chunk in parallel_objects(self.data_source.chunks(
-                                          chunk_fields, "io")): 
+                                          chunk_fields, "io", local_only = True)): 
                 mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)", chunk.ires.size,
                     get_memory_usage()/1024.)
                 self._handle_chunk(chunk, fields, tree)
@@ -398,7 +402,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
 
     Examples
     --------
-    >>> cube = pf.h.covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
+    >>> cube = pf.covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
     ...                          dims=[128, 128, 128])
     """
     _spatial = True
@@ -473,11 +477,15 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         return tuple(self.ActiveDimensions.tolist())
 
     def _setup_data_source(self):
-        self._data_source = self.pf.h.region(self.center,
+        self._data_source = self.pf.region(self.center,
             self.left_edge - self.base_dds,
             self.right_edge + self.base_dds)
         self._data_source.min_level = 0
         self._data_source.max_level = self.level
+        self._pdata_source = self.pf.region(self.center,
+            self.left_edge, self.right_edge)
+        self._pdata_source.min_level = 0
+        self._pdata_source.max_level = self.level
 
     def get_data(self, fields = None):
         if fields is None: return
@@ -491,7 +499,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         if len(gen) > 0: self._generate_fields(gen)
 
     def _split_fields(self, fields_to_get):
-        fill, gen = self.pf.h._split_fields(fields_to_get)
+        fill, gen = self.index._split_fields(fields_to_get)
         particles = []
         for field in gen:
             finfo = self.pf._get_field_info(*field)
@@ -509,7 +517,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
 
     def _fill_particles(self, part):
         for p in part:
-            self[p] = self._data_source[p]
+            self[p] = self._pdata_source[p]
 
     def _fill_fields(self, fields):
         output_fields = [np.zeros(self.ActiveDimensions, dtype="float64")
@@ -590,7 +598,7 @@ class YTArbitraryGridBase(YTCoveringGridBase):
 
     Examples
     --------
-    >>> obj = pf.h.arbitrary_grid([0.0, 0.0, 0.0], [0.99, 0.99, 0.99],
+    >>> obj = pf.arbitrary_grid([0.0, 0.0, 0.0], [0.99, 0.99, 0.99],
     ...                          dims=[128, 128, 128])
     """
     _spatial = True
@@ -654,7 +662,7 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
 
     Example
     -------
-    cube = pf.h.smoothed_covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
+    cube = pf.smoothed_covering_grid(2, left_edge=[0.0, 0.0, 0.0], \
                               dims=[128, 128, 128])
     """
     _type_name = "smoothed_covering_grid"
@@ -672,7 +680,7 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         if level_state is None: return
         # We need a buffer region to allow for zones that contribute to the
         # interpolation but are not directly inside our bounds
-        level_state.data_source = self.pf.h.region(
+        level_state.data_source = self.pf.region(
             self.center,
             self.left_edge - level_state.current_dx,
             self.right_edge + level_state.current_dx)
@@ -779,8 +787,8 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
     This will create a data object, find a nice value in the center, and
     output the vertices to "triangles.obj" after rescaling them.
 
-    >>> sp = pf.h.sphere("max", (10, "kpc")
-    >>> surf = pf.h.surface(sp, "Density", 5e-27)
+    >>> sp = pf.sphere("max", (10, "kpc")
+    >>> surf = pf.surface(sp, "Density", 5e-27)
     >>> print surf["Temperature"]
     >>> print surf.vertices
     >>> bounds = [(sp.center[i] - 5.0/pf['kpc'],
@@ -903,8 +911,8 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         This will create a data object, find a nice value in the center, and
         calculate the metal flux over it.
 
-        >>> sp = pf.h.sphere("max", (10, "kpc")
-        >>> surf = pf.h.surface(sp, "Density", 5e-27)
+        >>> sp = pf.sphere("max", (10, "kpc")
+        >>> surf = pf.surface(sp, "Density", 5e-27)
         >>> flux = surf.calculate_flux(
         ...     "velocity_x", "velocity_y", "velocity_z", "Metal_Density")
         """
@@ -987,25 +995,25 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         Examples
         --------
 
-        >>> sp = pf.h.sphere("max", (10, "kpc"))
+        >>> sp = pf.sphere("max", (10, "kpc"))
         >>> trans = 1.0
         >>> distf = 3.1e18*1e3 # distances into kpc
-        >>> surf = pf.h.surface(sp, "Density", 5e-27)
+        >>> surf = pf.surface(sp, "Density", 5e-27)
         >>> surf.export_obj("my_galaxy", transparency=trans, dist_fac = distf)
 
-        >>> sp = pf.h.sphere("max", (10, "kpc"))
+        >>> sp = pf.sphere("max", (10, "kpc"))
         >>> mi, ma = sp.quantities['Extrema']('Temperature')[0]
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
         >>> distf = 3.1e18*1e3 # distances into kpc
         >>> for i, r in enumerate(rhos):
-        ...     surf = pf.h.surface(sp,'Density',r)
+        ...     surf = pf.surface(sp,'Density',r)
         ...     surf.export_obj("my_galaxy", transparency=trans[i], 
         ...                      color_field='Temperature', dist_fac = distf, 
         ...                      plot_index = i, color_field_max = ma, 
         ...                      color_field_min = mi)
 
-        >>> sp = pf.h.sphere("max", (10, "kpc"))
+        >>> sp = pf.sphere("max", (10, "kpc"))
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
         >>> distf = 3.1e18*1e3 # distances into kpc
@@ -1013,7 +1021,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         ...     return (data['Density']*data['Density']*np.sqrt(data['Temperature']))
         >>> add_field("Emissivity", function=_Emissivity, units=r"\rm{g K}/\rm{cm}^{6}")
         >>> for i, r in enumerate(rhos):
-        ...     surf = pf.h.surface(sp,'Density',r)
+        ...     surf = pf.surface(sp,'Density',r)
         ...     surf.export_obj("my_galaxy", transparency=trans[i], 
         ...                      color_field='Temperature', emit_field = 'Emissivity', 
         ...                      dist_fac = distf, plot_index = i)
@@ -1185,8 +1193,8 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         Examples
         --------
 
-        >>> sp = pf.h.sphere("max", (10, "kpc")
-        >>> surf = pf.h.surface(sp, "Density", 5e-27)
+        >>> sp = pf.sphere("max", (10, "kpc")
+        >>> surf = pf.surface(sp, "Density", 5e-27)
         >>> print surf["Temperature"]
         >>> print surf.vertices
         >>> bounds = [(sp.center[i] - 5.0/pf['kpc'],
@@ -1322,12 +1330,12 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
 
         >>> from yt.mods import *
         >>> pf = load("redshift0058")
-        >>> dd = pf.h.sphere("max", (200, "kpc"))
+        >>> dd = pf.sphere("max", (200, "kpc"))
         >>> rho = 5e-27
         >>> bounds = [(dd.center[i] - 100.0/pf['kpc'],
         ...            dd.center[i] + 100.0/pf['kpc']) for i in range(3)]
         ...
-        >>> surf = pf.h.surface(dd, "Density", rho)
+        >>> surf = pf.surface(dd, "Density", rho)
         >>> rv = surf.export_sketchfab(
         ...     title = "Testing Upload",
         ...     description = "A simple test of the uploader",

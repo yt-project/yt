@@ -21,11 +21,11 @@ import cStringIO
 
 from yt.funcs import *
 from yt.geometry.oct_geometry_handler import \
-    OctreeGeometryHandler
+    OctreeIndex
 from yt.geometry.geometry_handler import \
-    GeometryHandler, YTDataChunk
+    Index, YTDataChunk
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 from yt.data_objects.octree_subset import \
     OctreeSubset
 
@@ -296,7 +296,7 @@ class RAMSESDomainSubset(OctreeSubset):
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.
         oct_handler = self.oct_handler
-        all_fields = self.domain.pf.h.fluid_field_list
+        all_fields = self.domain.pf.index.fluid_field_list
         fields = [f for ft, f in fields]
         tr = {}
         cell_count = selector.count_oct_cells(self.oct_handler, self.domain_id)
@@ -320,20 +320,20 @@ class RAMSESDomainSubset(OctreeSubset):
             oct_handler.fill_level(level, levels, cell_inds, file_inds, tr, temp)
         return tr
 
-class RAMSESGeometryHandler(OctreeGeometryHandler):
+class RAMSESIndex(OctreeIndex):
 
-    def __init__(self, pf, data_style='ramses'):
+    def __init__(self, pf, dataset_type='ramses'):
         self._pf = pf # TODO: Figure out the class composition better!
         self.fluid_field_list = pf._fields_in_file
-        self.data_style = data_style
+        self.dataset_type = dataset_type
         self.parameter_file = weakref.proxy(pf)
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.directory = os.path.dirname(self.hierarchy_filename)
+        # for now, the index file is the parameter file!
+        self.index_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.index_filename)
         self.max_level = None
 
         self.float_type = np.float64
-        super(RAMSESGeometryHandler, self).__init__(pf, data_style)
+        super(RAMSESIndex, self).__init__(pf, dataset_type)
 
     def _initialize_oct_handler(self):
         self.domains = [RAMSESDomainFile(self.parameter_file, i + 1)
@@ -432,18 +432,16 @@ class RAMSESGeometryHandler(OctreeGeometryHandler):
                 g = og
             yield YTDataChunk(dobj, "spatial", [g], None)
 
-    def _chunk_io(self, dobj, cache = True):
+    def _chunk_io(self, dobj, cache = True, local_only = False):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in oobjs:
             yield YTDataChunk(dobj, "io", [subset], None, cache = cache)
 
-class RAMSESStaticOutput(StaticOutput):
-    _hierarchy_class = RAMSESGeometryHandler
+class RAMSESDataset(Dataset):
+    _index_class = RAMSESIndex
     _field_info_class = RAMSESFieldInfo
-    _particle_mass_name = "ParticleMass"
-    _particle_coordinates_name = "Coordinates"
     
-    def __init__(self, filename, data_style='ramses',
+    def __init__(self, filename, dataset_type='ramses',
                  fields = None, storage_filename = None):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, types.StringTypes):
@@ -453,7 +451,7 @@ class RAMSESStaticOutput(StaticOutput):
                 If set to None, will try a default set of fields
         '''
         self._fields_in_file = fields
-        StaticOutput.__init__(self, filename, data_style)
+        Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
     def __repr__(self):

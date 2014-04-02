@@ -63,13 +63,13 @@ class WidgetStore(dict):
             center = np.array(center)
         axis = inv_axis_names[axis.lower()]
         coord = center[axis]
-        sl = pf.h.slice(axis, coord, center = center)
+        sl = pf.slice(axis, coord, center = center)
         xax, yax = x_dict[axis], y_dict[axis]
         DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
         pw = PWViewerExtJS(sl, (DLE[xax], DRE[xax], DLE[yax], DRE[yax]), 
                            setup = False, plot_type='SlicePlot')
         pw.set_current_field(field)
-        field_list = list(set(pf.h.field_list + pf.h.derived_field_list))
+        field_list = list(set(pf.field_list + pf.derived_field_list))
         field_list = [dict(text = f) for f in sorted(field_list)]
         cb = pw._get_cbar_image()
         trans = pw._field_transform[pw._current_field].name
@@ -83,13 +83,13 @@ class WidgetStore(dict):
     def create_proj(self, pf, axis, field, weight):
         if weight == "None": weight = None
         axis = inv_axis_names[axis.lower()]
-        proj = pf.h.proj(field, axis, weight_field=weight)
+        proj = pf.proj(field, axis, weight_field=weight)
         xax, yax = x_dict[axis], y_dict[axis]
         DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
         pw = PWViewerExtJS(proj, (DLE[xax], DRE[xax], DLE[yax], DRE[yax]),
                            setup = False, plot_type='ProjectionPlot')
         pw.set_current_field(field)
-        field_list = list(set(pf.h.field_list + pf.h.derived_field_list))
+        field_list = list(set(pf.field_list + pf.derived_field_list))
         field_list = [dict(text = f) for f in sorted(field_list)]
         cb = pw._get_cbar_image()
         widget_data = {'fields': field_list,
@@ -99,13 +99,13 @@ class WidgetStore(dict):
         self._add_widget(pw, widget_data)
 
     def create_grid_dataview(self, pf):
-        levels = pf.h.grid_levels
-        left_edge = pf.h.grid_left_edge
-        right_edge = pf.h.grid_right_edge
-        dimensions = pf.h.grid_dimensions
-        cell_counts = pf.h.grid_dimensions.prod(axis=1)
+        levels = pf.grid_levels
+        left_edge = pf.grid_left_edge
+        right_edge = pf.grid_right_edge
+        dimensions = pf.grid_dimensions
+        cell_counts = pf.grid_dimensions.prod(axis=1)
         # This is annoying, and not ... that happy for memory.
-        i = pf.h.grids[0]._id_offset
+        i = pf.index.grids[0]._id_offset
         vals = []
         for i, (L, LE, RE, dim, cell) in enumerate(zip(
             levels, left_edge, right_edge, dimensions, cell_counts)):
@@ -155,8 +155,8 @@ class WidgetStore(dict):
     def create_scene(self, pf):
         '''Creates 3D XTK-based scene'''
         widget = SceneWidget(pf)
-        field_list = list(set(pf.h.field_list
-                            + pf.h.derived_field_list))
+        field_list = list(set(pf.field_list
+                            + pf.derived_field_list))
         field_list.sort()
         widget_data = {'title':'Scene for %s' % pf,
                        'fields': field_list}
@@ -171,8 +171,8 @@ class ParameterFileWidget(object):
         self.pf = weakref.proxy(pf)
 
     def _field_list(self):
-        field_list = list(set(self.pf.h.field_list
-                            + self.pf.h.derived_field_list))
+        field_list = list(set(self.pf.field_list
+                            + self.pf.derived_field_list))
         field_list.sort()
         return [dict(text = field) for field in field_list]
 

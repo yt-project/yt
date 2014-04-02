@@ -13,7 +13,7 @@ pf = load(fn) # load data
 # We want to find clumps over the entire dataset, so we'll just grab the whole
 # thing!  This is a convenience parameter that prepares an object that covers
 # the whole domain.  Note, though, that it will load on demand and not before!
-data_source = pf.h.disk([0.5, 0.5, 0.5], [0., 0., 1.], 
+data_source = pf.disk([0.5, 0.5, 0.5], [0., 0., 1.], 
                         8./pf.units['kpc'], 1./pf.units['kpc'])
 
 # Now we set some sane min/max values between which we want to find contours.
@@ -37,9 +37,9 @@ find_clumps(master_clump, c_min, c_max, step)
 
 # As it goes, it appends the information about all the sub-clumps to the
 # master-clump.  Among different ways we can examine it, there's a convenience
-# function for outputting the full hierarchy to a file.
-f = open('%s_clump_hierarchy.txt' % pf,'w')
-amods.level_sets.write_clump_hierarchy(master_clump,0,f)
+# function for outputting the full index to a file.
+f = open('%s_clump_index.txt' % pf,'w')
+amods.level_sets.write_clump_index(master_clump,0,f)
 f.close()
 
 # We can also output some handy information, as well.
@@ -47,7 +47,7 @@ f = open('%s_clumps.txt' % pf,'w')
 amods.level_sets.write_clumps(master_clump,0,f)
 f.close()
 
-# We can traverse the clump hierarchy to get a list of all of the 'leaf' clumps
+# We can traverse the clump index to get a list of all of the 'leaf' clumps
 leaf_clumps = get_lowest_clumps(master_clump)
 
 # If you'd like to visualize these clumps, a list of clumps can be supplied to

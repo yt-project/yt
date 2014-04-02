@@ -15,12 +15,11 @@ API for yt.frontends.gdf
 from .data_structures import \
       GDFGrid, \
       GDFHierarchy, \
-      GDFStaticOutput
+      GDFDataset
 
 from .fields import \
-      GDFFieldInfo, \
-      KnownGDFFields, \
-      add_gdf_field
+      GDFFieldInfo
+add_gdf_field = GDFFieldInfo.add_field
 
 from .io import \
       IOHandlerGDFHDF5

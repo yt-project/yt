@@ -36,13 +36,13 @@ from yt.data_objects.static_output import \
 from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.geometry.grid_geometry_handler import \
-    GridGeometryHandler
+    GridIndex
 from yt.data_objects.octree_subset import \
     OctreeSubset
 from yt.geometry.oct_geometry_handler import \
-    OctreeGeometryHandler
+    OctreeIndex
 from yt.geometry.particle_geometry_handler import \
-    ParticleGeometryHandler
+    ParticleIndex
 from yt.fields.particle_fields import \
     particle_vector_functions, \
     particle_deposition_functions, \
@@ -50,9 +50,9 @@ from yt.fields.particle_fields import \
 from yt.geometry.oct_container import \
     OctreeContainer
 from yt.geometry.unstructured_mesh_handler import \
-           UnstructuredGeometryHandler
+           UnstructuredIndex
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 from yt.utilities.logger import ytLogger as mylog
 from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
@@ -81,13 +81,13 @@ class StreamGrid(AMRGridPatch):
 
     __slots__ = ['proc_num']
     _id_offset = 0
-    def __init__(self, id, hierarchy):
+    def __init__(self, id, index):
         """
         Returns an instance of StreamGrid with *id*, associated with *filename*
-        and *hierarchy*.
+        and *index*.
         """
         #All of the field parameters will be passed to us as needed.
-        AMRGridPatch.__init__(self, id, filename = None, hierarchy = hierarchy)
+        AMRGridPatch.__init__(self, id, filename = None, index = index)
         self._children_ids = []
         self._parent_id = -1
         self.Level = -1
@@ -101,8 +101,8 @@ class StreamGrid(AMRGridPatch):
         self.start_index = rf*(ParentLeftIndex + self.Parent.get_global_startindex()).astype('int64')
         self.LeftEdge = self.Parent.LeftEdge + self.Parent.dds * ParentLeftIndex
         self.RightEdge = self.LeftEdge + self.ActiveDimensions*self.dds
-        self.hierarchy.grid_left_edge[my_ind,:] = self.LeftEdge
-        self.hierarchy.grid_right_edge[my_ind,:] = self.RightEdge
+        self.index.grid_left_edge[my_ind,:] = self.LeftEdge
+        self.index.grid_right_edge[my_ind,:] = self.RightEdge
         self._child_mask = None
         self._child_index_mask = None
         self._child_indices = None
@@ -117,11 +117,11 @@ class StreamGrid(AMRGridPatch):
     @property
     def Parent(self):
         if self._parent_id == -1: return None
-        return self.hierarchy.grids[self._parent_id - self._id_offset]
+        return self.index.grids[self._parent_id - self._id_offset]
 
     @property
     def Children(self):
-        return [self.hierarchy.grids[cid - self._id_offset]
+        return [self.index.grids[cid - self._id_offset]
                 for cid in self._children_ids]
 
 class StreamHandler(object):
@@ -155,23 +155,23 @@ class StreamHandler(object):
         else :
             return False
         
-class StreamHierarchy(GridGeometryHandler):
+class StreamHierarchy(GridIndex):
 
     grid = StreamGrid
 
-    def __init__(self, pf, data_style = None):
-        self.data_style = data_style
+    def __init__(self, pf, dataset_type = None):
+        self.dataset_type = dataset_type
         self.float_type = 'float64'
         self.parameter_file = weakref.proxy(pf) # for _obtain_enzo
         self.stream_handler = pf.stream_handler
         self.float_type = "float64"
         self.directory = os.getcwd()
-        GridGeometryHandler.__init__(self, pf, data_style)
+        GridIndex.__init__(self, pf, dataset_type)
 
     def _count_grids(self):
         self.num_grids = self.stream_handler.num_grids
 
-    def _parse_hierarchy(self):
+    def _parse_index(self):
         self.grid_dimensions = self.stream_handler.dimensions
         self.grid_left_edge[:] = self.stream_handler.left_edges
         self.grid_right_edge[:] = self.stream_handler.right_edges
@@ -228,12 +228,8 @@ class StreamHierarchy(GridGeometryHandler):
                 self.stream_handler.parent_ids[child.id] = i
 
     def _initialize_grid_arrays(self):
-        GridGeometryHandler._initialize_grid_arrays(self)
+        GridIndex._initialize_grid_arrays(self)
         self.grid_procs = np.zeros((self.num_grids,1),'int32')
-
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        GridGeometryHandler._setup_classes(self, dd)
 
     def _detect_output_fields(self):
         # NOTE: Because particle unions add to the actual field list, without
@@ -252,7 +248,7 @@ class StreamHierarchy(GridGeometryHandler):
         if self.stream_handler.io is not None:
             self.io = self.stream_handler.io
         else:
-            self.io = io_registry[self.data_style](self.pf)
+            self.io = io_registry[self.dataset_type](self.pf)
 
     def update_data(self, data, units = None):
 
@@ -291,10 +287,10 @@ class StreamHierarchy(GridGeometryHandler):
         self.pf.particle_types = tuple(set(self.pf.particle_types))
 
 
-class StreamStaticOutput(StaticOutput):
-    _hierarchy_class = StreamHierarchy
+class StreamDataset(Dataset):
+    _index_class = StreamHierarchy
     _field_info_class = StreamFieldInfo
-    _data_style = 'stream'
+    _dataset_type = 'stream'
 
     def __init__(self, stream_handler, storage_filename = None):
         #if parameter_override is None: parameter_override = {}
@@ -306,7 +302,7 @@ class StreamStaticOutput(StaticOutput):
         name = "InMemoryParameterFile_%s" % (uuid.uuid4().hex)
         from yt.data_objects.static_output import _cached_pfs
         _cached_pfs[name] = self
-        StaticOutput.__init__(self, name, self._data_style)
+        Dataset.__init__(self, name, self._dataset_type)
 
     def _parse_parameter_file(self):
         self.basename = self.stream_handler.name
@@ -343,16 +339,16 @@ class StreamStaticOutput(StaticOutput):
         cgs_units = ('cm', 'g', 's', 'cm/s')
         for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
             if isinstance(unit, basestring):
-                uq = YTQuantity(1.0, unit)
+                uq = self.quan(1.0, unit)
             elif isinstance(unit, numeric_type):
-                uq = YTQuantity(unit, cgs_unit)
+                uq = self.quan(unit, cgs_unit)
             elif isinstance(unit, YTQuantity):
                 uq = unit
+            elif isinstance(unit, tuple):
+                uq = self.quan(unit[0], unit[1])
             else:
                 raise RuntimeError("%s (%s) is invalid." % (attr, unit))
             setattr(self, attr, uq)
-        DW = self.arr(self.domain_right_edge-self.domain_left_edge, "code_length")
-        self.unit_registry.modify("unitary", DW.max())
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -410,7 +406,7 @@ def assign_particle_data(pf, pdata) :
     
     # Note: what we need to do here is a bit tricky.  Because occasionally this
     # gets called before we property handle the field detection, we cannot use
-    # any information about the hierarchy.  Fortunately for us, we can generate
+    # any information about the index.  Fortunately for us, we can generate
     # most of the GridTree utilizing information we already have from the
     # stream handler.
     
@@ -502,6 +498,13 @@ def unitify_data(data):
             raise RuntimeError
         new_data[new_field] = data[field]
         field_units[new_field] = field_units.pop(field)
+        known_fields = StreamFieldInfo.known_particle_fields \
+                     + StreamFieldInfo.known_other_fields
+        # We do not want to override any of the known ones, if it's not
+        # overridden here.
+        if any(f[0] == new_field[1] for f in known_fields) and \
+           field_units[new_field] == "":
+            field_units.pop(new_field)
     data = new_data
     return field_units, data
 
@@ -538,11 +541,15 @@ Parameters
         If greater than 1, will create this number of subarrays out of data
     sim_time : float, optional
         The simulation time in seconds
+    mass_unit : string
+        Unit to use for masses.  Defaults to unitless.
+    time_unit : string
+        Unit to use for times.  Defaults to unitless.
+    velocity_unit : string
+        Unit to use for velocities.  Defaults to unitless.
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
-    units : dict
-        Specification for units of fields in the data.
 
     Examples
     --------
@@ -651,7 +658,7 @@ Parameters
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamStaticOutput(handler)
+    spf = StreamDataset(handler)
 
     # Now figure out where the particles go
     if number_of_particles > 0 :
@@ -668,9 +675,9 @@ Parameters
     
     return spf
 
-def load_amr_grids(grid_data, domain_dimensions, length_units=None,
+def load_amr_grids(grid_data, domain_dimensions,
                    field_units=None, bbox=None, sim_time=0.0, length_unit=None,
-                   mass_unit = None, time_unit = None, velocity_unit=None,
+                   mass_unit=None, time_unit=None, velocity_unit=None,
                    periodicity=(True, True, True)):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -681,7 +688,7 @@ def load_amr_grids(grid_data, domain_dimensions, length_units=None,
         * Some functions may behave oddly, and parallelism will be
           disappointing or non-existent in most cases.
         * Particles may be difficult to integrate.
-        * No consistency checks are performed on the hierarchy
+        * No consistency checks are performed on the index
 Parameters
     ----------
     grid_data : list of dicts
@@ -693,13 +700,19 @@ Parameters
         modified in place and can't be assumed to be static.
     domain_dimensions : array_like
         This is the domain dimensions of the grid
+    field_units : dict
+        A dictionary mapping string field names to string unit specifications.  The field
+        names must correspond to the fields in grid_data.
     length_unit : string or float
         Unit to use for lengths.  Defaults to unitless.  If set to be a string, the bbox
         dimensions are assumed to be in the corresponding units.  If set to a float, the
         value is a assumed to be the conversion from bbox dimensions to centimeters.
-    field_units : dict
-        A dictionary mapping string field names to string unit specifications.  The field
-        names must correspond to the fields in grid_data.
+    mass_unit : string or float
+        Unit to use for masses.  Defaults to unitless.
+    time_unit : string or float
+        Unit to use for times.  Defaults to unitless.
+    velocity_unit : string or float
+        Unit to use for velocities.  Defaults to unitless.
     bbox : array_like (xdim:zdim, LE:RE), optional
         Size of computational domain in units specified by length_unit.
         Defaults to a cubic unit-length domain.
@@ -804,7 +817,7 @@ Parameters
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamStaticOutput(handler)
+    spf = StreamDataset(handler)
     return spf
 
 def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
@@ -814,7 +827,7 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
 
     Parameters
     ----------
-    base_pf : StaticOutput
+    base_pf : Dataset
         This is any static output.  It can also be a stream static output, for
         instance as returned by load_uniform_data.
     refinement_critera : list of :class:`~yt.utilities.flagging_methods.FlaggingMethod`
@@ -842,20 +855,20 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
     # If we have particle data, set it aside for now
 
     number_of_particles = np.sum([grid.NumberOfParticles
-                                  for grid in base_pf.h.grids])
+                                  for grid in base_pf.index.grids])
 
     if number_of_particles > 0 :
         pdata = {}
-        for field in base_pf.h.field_list :
+        for field in base_pf.field_list :
             if not isinstance(field, tuple):
                 field = ("unknown", field)
             fi = base_pf._get_field_info(*field)
             if fi.particle_type :
                 pdata[field] = uconcatenate([grid[field]
-                                               for grid in base_pf.h.grids])
+                                               for grid in base_pf.index.grids])
         pdata["number_of_particles"] = number_of_particles
         
-    last_gc = base_pf.h.num_grids
+    last_gc = base_pf.index.num_grids
     cur_gc = -1
     pf = base_pf    
     bbox = np.array( [ (pf.domain_left_edge[i], pf.domain_right_edge[i])
@@ -863,16 +876,16 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
     while pf.h.max_level < max_level and last_gc != cur_gc:
         mylog.info("Refining another level.  Current max level: %s",
                   pf.h.max_level)
-        last_gc = pf.h.grids.size
+        last_gc = pf.index.grids.size
         for m in fluid_operators: m.apply(pf)
         if callback is not None: callback(pf)
         grid_data = []
-        for g in pf.h.grids:
+        for g in pf.index.grids:
             gd = dict( left_edge = g.LeftEdge,
                        right_edge = g.RightEdge,
                        level = g.Level,
                        dimensions = g.ActiveDimensions )
-            for field in pf.h.field_list:
+            for field in pf.field_list:
                 if not isinstance(field, tuple):
                     field = ("unknown", field)
                 fi = pf._get_field_info(*field)
@@ -885,10 +898,10 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
             for sg in nsg:
                 LE = sg.left_index * g.dds + pf.domain_left_edge
                 dims = sg.dimensions * pf.refine_by
-                grid = pf.h.smoothed_covering_grid(g.Level + 1, LE, dims)
+                grid = pf.smoothed_covering_grid(g.Level + 1, LE, dims)
                 gd = dict(left_edge = LE, right_edge = grid.right_edge,
                           level = g.Level + 1, dimensions = dims)
-                for field in pf.h.field_list:
+                for field in pf.field_list:
                     if not isinstance(field, tuple):
                         field = ("unknown", field)
                     fi = pf._get_field_info(*field)
@@ -909,33 +922,33 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
                 pdata = pdata_ftype
             assign_particle_data(pf, pdata)
             # We need to reassign the field list here.
-        cur_gc = pf.h.num_grids
+        cur_gc = pf.index.num_grids
 
     # Now reassign particle data to grids
     
     return pf
 
-class StreamParticleGeometryHandler(ParticleGeometryHandler):
+class StreamParticleIndex(ParticleIndex):
 
     
-    def __init__(self, pf, data_style = None):
+    def __init__(self, pf, dataset_type = None):
         self.stream_handler = pf.stream_handler
-        super(StreamParticleGeometryHandler, self).__init__(pf, data_style)
+        super(StreamParticleIndex, self).__init__(pf, dataset_type)
 
     def _setup_data_io(self):
         if self.stream_handler.io is not None:
             self.io = self.stream_handler.io
         else:
-            self.io = io_registry[self.data_style](self.pf)
+            self.io = io_registry[self.dataset_type](self.pf)
 
 class StreamParticleFile(ParticleFile):
     pass
 
-class StreamParticlesStaticOutput(StreamStaticOutput):
-    _hierarchy_class = StreamParticleGeometryHandler
+class StreamParticlesDataset(StreamDataset):
+    _index_class = StreamParticleIndex
     _file_class = StreamParticleFile
     _field_info_class = StreamFieldInfo
-    _data_style = "stream_particles"
+    _dataset_type = "stream_particles"
     file_count = 1
     filename_template = "stream_file"
     n_ref = 64
@@ -989,7 +1002,7 @@ def load_particles(data, length_unit = None, bbox=None,
 
     """
 
-    domain_dimensions = np.ones(3, "int32") * 2
+    domain_dimensions = np.ones(3, "int32") * (1<<over_refine_factor)
     nprocs = 1
     if bbox is None:
         bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], 'float64')
@@ -1052,7 +1065,7 @@ def load_particles(data, length_unit = None, bbox=None,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamParticlesStaticOutput(handler)
+    spf = StreamParticlesDataset(handler)
     spf.n_ref = n_ref
     spf.over_refine_factor = over_refine_factor
 
@@ -1081,31 +1094,31 @@ class StreamHexahedralMesh(SemiStructuredMesh):
     _connectivity_length = 8
     _index_offset = 0
 
-class StreamHexahedralHierarchy(UnstructuredGeometryHandler):
+class StreamHexahedralHierarchy(UnstructuredIndex):
 
-    def __init__(self, pf, data_style = None):
+    def __init__(self, pf, dataset_type = None):
         self.stream_handler = pf.stream_handler
-        super(StreamHexahedralHierarchy, self).__init__(pf, data_style)
+        super(StreamHexahedralHierarchy, self).__init__(pf, dataset_type)
 
     def _initialize_mesh(self):
         coords = self.stream_handler.fields.pop('coordinates')
         connec = self.stream_handler.fields.pop('connectivity')
         self.meshes = [StreamHexahedralMesh(0,
-          self.hierarchy_filename, connec, coords, self)]
+          self.index_filename, connec, coords, self)]
 
     def _setup_data_io(self):
         if self.stream_handler.io is not None:
             self.io = self.stream_handler.io
         else:
-            self.io = io_registry[self.data_style](self.pf)
+            self.io = io_registry[self.dataset_type](self.pf)
 
     def _detect_output_fields(self):
         self.field_list = list(set(self.stream_handler.get_fields()))
 
-class StreamHexahedralStaticOutput(StreamStaticOutput):
-    _hierarchy_class = StreamHexahedralHierarchy
+class StreamHexahedralDataset(StreamDataset):
+    _index_class = StreamHexahedralHierarchy
     _field_info_class = StreamFieldInfo
-    _data_style = "stream_hexahedral"
+    _dataset_type = "stream_hexahedral"
 
 def load_hexahedral_mesh(data, connectivity, coordinates,
                          length_unit = None, bbox=None, sim_time=0.0,
@@ -1201,7 +1214,7 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamHexahedralStaticOutput(handler)
+    spf = StreamHexahedralDataset(handler)
 
     return spf
 
@@ -1214,7 +1227,7 @@ class StreamOctreeSubset(OctreeSubset):
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.pf = pf
-        self.hierarchy = self.pf.hierarchy
+        self.index = self.pf.index
         self.oct_handler = oct_handler
         self._last_mask = None
         self._last_selector_id = None
@@ -1238,18 +1251,18 @@ class StreamOctreeSubset(OctreeSubset):
                                        dest, content, offset)
         return count
 
-class StreamOctreeHandler(OctreeGeometryHandler):
+class StreamOctreeHandler(OctreeIndex):
 
-    def __init__(self, pf, data_style = None):
+    def __init__(self, pf, dataset_type = None):
         self.stream_handler = pf.stream_handler
-        self.data_style = data_style
-        super(StreamOctreeHandler, self).__init__(pf, data_style)
+        self.dataset_type = dataset_type
+        super(StreamOctreeHandler, self).__init__(pf, dataset_type)
 
     def _setup_data_io(self):
         if self.stream_handler.io is not None:
             self.io = self.stream_handler.io
         else:
-            self.io = io_registry[self.data_style](self.pf)
+            self.io = io_registry[self.dataset_type](self.pf)
 
     def _initialize_oct_handler(self):
         header = dict(dims = [1, 1, 1],
@@ -1287,7 +1300,7 @@ class StreamOctreeHandler(OctreeGeometryHandler):
                 g = og
             yield YTDataChunk(dobj, "spatial", [g])
 
-    def _chunk_io(self, dobj, cache = True):
+    def _chunk_io(self, dobj, cache = True, local_only = False):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in oobjs:
             yield YTDataChunk(dobj, "io", [subset], None, cache = cache)
@@ -1304,10 +1317,10 @@ class StreamOctreeHandler(OctreeGeometryHandler):
         fl.update(set(getattr(self, "field_list", [])))
         self.field_list = list(fl)
 
-class StreamOctreeStaticOutput(StreamStaticOutput):
-    _hierarchy_class = StreamOctreeHandler
+class StreamOctreeDataset(StreamDataset):
+    _index_class = StreamOctreeHandler
     _field_info_class = StreamFieldInfo
-    _data_style = "stream_octree"
+    _dataset_type = "stream_octree"
 
 def load_octree(octree_mask, data, sim_unit_to_cm,
                 bbox=None, sim_time=0.0, periodicity=(True, True, True),
@@ -1387,7 +1400,7 @@ def load_octree(octree_mask, data, sim_unit_to_cm,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamOctreeStaticOutput(handler)
+    spf = StreamOctreeDataset(handler)
     spf.octree_mask = octree_mask
     spf.partial_coverage = partial_coverage
     spf.units["cm"] = sim_unit_to_cm

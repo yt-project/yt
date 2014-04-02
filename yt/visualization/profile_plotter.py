@@ -17,29 +17,20 @@ This is a simple mechanism for interfacing with Profile and Phase plots
 import base64
 import types
 
-from collections import defaultdict
 from functools import wraps
-from itertools import izip, repeat
+from itertools import izip
 import matplotlib
 import numpy as np
 import cStringIO
 import __builtin__
 
-from matplotlib.font_manager import FontProperties
 
-from .plot_window import WindowPlotMPL
 from .base_plot_types import ImagePlotMPL
 from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform
-from .image_writer import \
-    write_image, apply_colormap
 from yt.data_objects.profiles import \
-     create_profile
-from yt.utilities.png_writer import write_png_to_string
-from yt.data_objects.profiles import \
-    BinnedProfile1D, \
-    BinnedProfile2D
+    create_profile
 from yt.utilities.logger import ytLogger as mylog
 import _mpl_imports as mpl
 from yt.funcs import \
@@ -60,7 +51,7 @@ def get_canvas(name):
         canvas_cls = mpl.FigureCanvasPS
     else:
         mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
-        canvas_cls = FigureCanvasAgg
+        canvas_cls = mpl.FigureCanvasAgg
     return canvas_cls
 
 def invalidate_plot(f):
@@ -566,7 +557,7 @@ class PhasePlot(ImagePlotContainer):
         Default: "black"
     figure_size : int
         Size in inches of the image.
-        Default: 10 (10x10)
+        Default: 8 (8x8)
 
     Examples
     --------
@@ -612,7 +603,7 @@ class PhasePlot(ImagePlotContainer):
                accumulation=accumulation,
                fractional=fractional)
         self.profile = profile
-        ImagePlotContainer.__init__(self, data_source, figure_size, fontsize)
+        super(PhasePlot, self).__init__(data_source, figure_size, fontsize)
         # This is a fallback, in case we forget.
         self._setup_plots()
         self._initfinished = True
@@ -675,47 +666,56 @@ class PhasePlot(ImagePlotContainer):
             fig = None
             axes = None
             cax = None
+            draw_colorbar = True
+            draw_axes = True
             if f in self.plots:
+                draw_colorbar = self.plots[f]._draw_colorbar
+                draw_axes = self.plots[f]._draw_axes
                 if self.plots[f].figure is not None:
                     fig = self.plots[f].figure
                     axes = self.plots[f].axes
                     cax = self.plots[f].cax
 
-            size = (self.figure_size, self.figure_size)
             x_scale, y_scale, z_scale = self._get_field_log(f, self.profile)
             x_title, y_title, z_title = self._get_field_title(f, self.profile)
+
             if z_scale == 'log':
                 zmin = data[data > 0.0].min()
-            else:
-                zmin = data.min()
-            zlim = [zmin, data.max()]
-            
-            fp = self._font_properties
-            f = self.profile.data_source._determine_fields(f)[0]
-            self.plots[f] = PhasePlotMPL(self.profile.x, self.profile.y, data, 
-                                         x_scale, y_scale, z_scale,
-                                         self._colormaps[f], np.array(zlim), 
-                                         size, fp.get_size(),
-                                         fig, axes, cax)
-            self.plots[f].axes.xaxis.set_label_text(x_title)
-            self.plots[f].axes.yaxis.set_label_text(y_title)
-            self.plots[f].cax.yaxis.set_label_text(z_title)
-            if z_scale == "log":
                 self._field_transform[f] = log_transform
             else:
+                zmin = data.min()
                 self._field_transform[f] = linear_transform
+            zlim = [zmin, data.max()]
+
+            fp = self._font_properties
+            f = self.profile.data_source._determine_fields(f)[0]
+
+            self.plots[f] = PhasePlotMPL(self.profile.x, self.profile.y, data,
+                                         x_scale, y_scale, z_scale,
+                                         self._colormaps[f], np.array(zlim),
+                                         self.figure_size, fp.get_size(),
+                                         fig, axes, cax)
+
+            self.plots[f]._toggle_axes(draw_axes)
+            self.plots[f]._toggle_colorbar(draw_colorbar)
+
+            self.plots[f].axes.xaxis.set_label_text(x_title, fontproperties=fp)
+            self.plots[f].axes.yaxis.set_label_text(y_title, fontproperties=fp)
+            self.plots[f].cax.yaxis.set_label_text(z_title, fontproperties=fp)
+
             if f in self.plot_title:
                 self.plots[f].axes.set_title(self.plot_title[f])
 
-            if self._font_color is not None:
-                ax = self.plots[f].axes
-                cbax = self.plots[f].cb.ax
-                labels = \
-                  ax.xaxis.get_ticklabels() + ax.yaxis.get_ticklabels() + \
-                  cbax.yaxis.get_ticklabels() + \
-                  [ax.xaxis.label, ax.yaxis.label, cbax.yaxis.label]
-                for label in labels:
+            ax = self.plots[f].axes
+            cbax = self.plots[f].cb.ax
+            labels = ((ax.xaxis.get_ticklabels() + ax.yaxis.get_ticklabels() +
+                       cbax.yaxis.get_ticklabels()) +
+                      [ax.xaxis.label, ax.yaxis.label, cbax.yaxis.label])
+            for label in labels:
+                label.set_fontproperties(fp)
+                if self._font_color is not None:
                     label.set_color(self._font_color)
+
         self._plot_valid = True
 
     def save(self, name=None, mpl_kwargs=None):
@@ -835,35 +835,37 @@ class PhasePlot(ImagePlotContainer):
     def setup_callbacks(self, *args):
         raise NotImplementedError
 
-class PhasePlotMPL(WindowPlotMPL):
-    def __init__(self, x_data, y_data, data, 
+
+class PhasePlotMPL(ImagePlotMPL):
+    def __init__(self, x_data, y_data, data,
                  x_scale, y_scale, z_scale, cmap,
-                 zlim, size, fontsize, figure, axes, cax):
+                 zlim, figure_size, fontsize, figure, axes, cax):
         self._initfinished = False
         self._draw_colorbar = True
         self._draw_axes = True
-        self._cache_layout(size, fontsize)
-
-        # Make room for a colorbar
-        self.input_size = size
-        self.fsize = [size[0] + self._cbar_inches[self._draw_colorbar], size[1]]
+        self._figure_size = figure_size
 
         # Compute layout
-        axrect, caxrect = self._get_best_layout(fontsize=fontsize)
-        if np.any(np.array(axrect) < 0):
-            mylog.warning('The axis ratio of the requested plot is very narrow.  '
-                          'There is a good chance the plot will not look very good, '
-                          'consider making the plot manually using FixedResolutionBuffer '
-                          'and matplotlib.')
-            axrect  = (0.07, 0.10, 0.80, 0.80)
-            caxrect = (0.87, 0.10, 0.04, 0.80)
-        ImagePlotMPL.__init__(self, self.fsize, axrect, caxrect, zlim,
-                              figure, axes, cax)
+        fontscale = float(fontsize) / 18.0
+        if fontscale < 1.0:
+            fontscale = np.sqrt(fontscale)
+
+        self._cb_size = 0.0375*figure_size
+        self._ax_text_size = [1.1*fontscale, 0.9*fontscale]
+        self._top_buff_size = 0.30*fontscale
+        self._aspect = 1.0
+
+        size, axrect, caxrect = self._get_best_layout()
+
+        super(PhasePlotMPL, self).__init__(size, axrect, caxrect, zlim,
+                                           figure, axes, cax)
+
         self._init_image(x_data, y_data, data, x_scale, y_scale, z_scale,
                          zlim, cmap)
+
         self._initfinished = True
 
-    def _init_image(self, x_data, y_data, image_data, 
+    def _init_image(self, x_data, y_data, image_data,
                     x_scale, y_scale, z_scale, zlim, cmap):
         """Store output of imshow in image variable"""
         if (z_scale == 'log'):

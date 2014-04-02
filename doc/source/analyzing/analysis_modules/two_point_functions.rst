@@ -872,7 +872,7 @@ the volume of the cells.
     
     # We work in simulation's units, these are for conversion.
     vol_conv = pf['cm'] ** 3
-    sm = pf.h.get_smallest_dx()**3
+    sm = pf.index.get_smallest_dx()**3
     
     # Our density limit, in gm/cm**3
     dens = 2e-31

@@ -15,7 +15,7 @@ API for Rockstar frontend
 #-----------------------------------------------------------------------------
 
 from .data_structures import \
-     RockstarStaticOutput
+     RockstarDataset
 
 from .io import \
      IOHandlerRockstarBinary

@@ -10,7 +10,7 @@ dims = pf.domain_dimensions * pf.refine_by**level
 
 # Now, we construct an object that describes the data region and structure we
 # want
-cube = pf.h.covering_grid(2, # The level we are willing to extract to; higher
+cube = pf.covering_grid(2, # The level we are willing to extract to; higher
                              # levels than this will not contribute to the data!
                           left_edge=[0.0, 0.0, 0.0], 
                           # And any fields to preload (this is optional!)

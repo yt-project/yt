@@ -36,8 +36,8 @@ def setup():
     ytcfg["yt", "__withintesting"] = "True"
 
 def full_szpack3d(pf, xo):
-    data = pf.h.grids[0]
-    dz = pf.h.get_smallest_dx().in_units("cm")
+    data = pf.index.grids[0]
+    dz = pf.index.get_smallest_dx().in_units("cm")
     nx,ny,nz = data["density"].shape
     dn = np.zeros((nx,ny,nz))
     Dtau = np.array(sigma_thompson*data["density"]/(mh*mue)*dz)

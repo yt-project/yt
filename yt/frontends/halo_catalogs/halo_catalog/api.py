@@ -15,7 +15,7 @@ API for HaloCatalog frontend
 #-----------------------------------------------------------------------------
 
 from .data_structures import \
-     HaloCatalogStaticOutput
+     HaloCatalogDataset
 
 from .io import \
      IOHandlerHaloCatalogHDF5

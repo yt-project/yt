@@ -391,10 +391,10 @@ def test_fix_length():
     """
     Test fixing the length of an array. Used in spheres and other data objects
     """
-    pf = fake_random_pf(64, nprocs=1)
+    pf = fake_random_pf(64, nprocs=1, length_unit=10)
     length = pf.quan(1.0,'code_length')
     new_length = fix_length(length, pf=pf)
-    yield assert_equal, length, new_length
+    yield assert_equal, YTQuantity(10, 'cm'), new_length
 
 def test_ytarray_pickle():
     pf = fake_random_pf(64, nprocs=1)
@@ -549,3 +549,25 @@ def test_ufuncs():
 
         for pair in itertools.product([a,b,c,d,e], repeat=2):
             yield binary_ufunc_comparison, ufunc, pair[0], pair[1]
+
+def test_convenience():
+
+    arr = YTArray([1, 2, 3], 'cm')
+
+    yield assert_equal, arr.unit_quantity, YTQuantity(1, 'cm')
+    yield assert_equal, arr.uq, YTQuantity(1, 'cm')
+    yield assert_isinstance, arr.unit_quantity, YTQuantity
+    yield assert_isinstance, arr.uq, YTQuantity
+
+    yield assert_array_equal, arr.unit_array, YTArray(np.ones_like(arr), 'cm')
+    yield assert_array_equal, arr.ua, YTArray(np.ones_like(arr), 'cm')
+    yield assert_isinstance, arr.unit_array, YTArray
+    yield assert_isinstance, arr.ua, YTArray
+
+    yield assert_array_equal, arr.ndview, arr.view(np.ndarray)
+    yield assert_array_equal, arr.d, arr.view(np.ndarray)
+    yield assert_true, arr.ndview.base is arr.base
+    yield assert_true, arr.d.base is arr.base
+
+    yield assert_array_equal, arr.value, np.array(arr)
+    yield assert_array_equal, arr.v, np.array(arr)

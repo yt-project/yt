@@ -40,6 +40,8 @@ class CallbackWrapper(object):
             self._type_name = "CuttingPlane"
         else:
             self._type_name = viewer._plot_type
+
+
 class PlotMPL(object):
     """A base class for all yt plots made using matplotlib.
 
@@ -89,7 +91,7 @@ class ImagePlotMPL(PlotMPL):
     """
     def __init__(self, fsize, axrect, caxrect, zlim, figure, axes, cax):
         """Initialize ImagePlotMPL class object"""
-        PlotMPL.__init__(self, fsize, axrect, figure, axes)
+        super(ImagePlotMPL, self).__init__(fsize, axrect, figure, axes)
         self.zmin, self.zmax = zlim
         if cax is None:
             self.cax = self.figure.add_axes(caxrect)
@@ -116,6 +118,92 @@ class ImagePlotMPL(PlotMPL):
         canvas.print_figure(f)
         f.seek(0)
         return f.read()
+
+    def _get_best_layout(self):
+        if self._draw_colorbar:
+            cb_size = self._cb_size
+            cb_text_size = self._ax_text_size[1] + 0.45
+        else:
+            cb_size = 0.0
+            cb_text_size = 0.0
+
+        if self._draw_axes:
+            x_axis_size = self._ax_text_size[0]
+            y_axis_size = self._ax_text_size[1]
+        else:
+            x_axis_size = 0.0
+            y_axis_size = 0.0
+
+        if self._draw_axes or self._draw_colorbar:
+            top_buff_size = self._top_buff_size
+        else:
+            top_buff_size = 0.0
+
+        # Ensure the figure size along the long axis is always equal to _figure_size
+        if self._aspect >= 1.0:
+            x_fig_size = self._figure_size
+            y_fig_size = self._figure_size/self._aspect
+        if self._aspect < 1.0:
+            x_fig_size = self._figure_size*self._aspect
+            y_fig_size = self._figure_size
+
+        xbins = np.array([x_axis_size, x_fig_size, cb_size, cb_text_size])
+        ybins = np.array([y_axis_size, y_fig_size, top_buff_size])
+
+        size = [xbins.sum(), ybins.sum()]
+
+        x_frac_widths = xbins/size[0]
+        y_frac_widths = ybins/size[1]
+
+        axrect = (
+            x_frac_widths[0],
+            y_frac_widths[0],
+            x_frac_widths[1],
+            y_frac_widths[1],
+        )
+
+        caxrect = (
+            x_frac_widths[0]+x_frac_widths[1],
+            y_frac_widths[0],
+            x_frac_widths[2],
+            y_frac_widths[1],
+        )
+
+        return size, axrect, caxrect
+
+    def _toggle_axes(self, choice):
+        self._draw_axes = choice
+        self.axes.get_xaxis().set_visible(choice)
+        self.axes.get_yaxis().set_visible(choice)
+        self.axes.set_frame_on(choice)
+        size, axrect, caxrect = self._get_best_layout()
+        self.axes.set_position(axrect)
+        self.cax.set_position(caxrect)
+        self.figure.set_size_inches(*size)
+
+    def _toggle_colorbar(self, choice):
+        self._draw_colorbar = choice
+        self.cax.set_visible(choice)
+        size, axrect, caxrect = self._get_best_layout()
+        self.axes.set_position(axrect)
+        self.cax.set_position(caxrect)
+        self.figure.set_size_inches(*size)
+
+    def hide_axes(self):
+        self._toggle_axes(False)
+        return self
+
+    def show_axes(self):
+        self._toggle_axes(True)
+        return self
+
+    def hide_colorbar(self):
+        self._toggle_colorbar(False)
+        return self
+
+    def show_colorbar(self):
+        self._toggle_colorbar(True)
+        return self
 
 def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
                    cbar_padding = 0.4):

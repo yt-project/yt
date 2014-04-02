@@ -6,7 +6,7 @@ from yt.mods import *
 pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
 # Create a sphere of radius 1000 kpc centered on the max density.
-sphere = pf.h.sphere("max", (1000, "kpc"))
+sphere = pf.sphere("max", (1000, "kpc"))
 
 # Calculate and store the bulk velocity for the sphere.
 bulk_velocity = sphere.quantities['BulkVelocity']()

@@ -33,11 +33,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt import units
 from yt.units.yt_array import YTQuantity
 import h5py
-try:
-    import astropy.io.fits as pyfits
-    import astropy.wcs as pywcs
-except ImportError:
-    pass
+from yt.frontends.fits.data_structures import ap
+pyfits = ap.pyfits
+pywcs = ap.pywcs
 
 comm = communication_system.communicators[-1]
 
@@ -188,7 +186,7 @@ class PhotonList(object):
         >>> redshift = 0.05
         >>> area = 6000.0
         >>> time = 2.0e5
-        >>> sp = pf.h.sphere("c", (500., "kpc"))
+        >>> sp = pf.sphere("c", (500., "kpc"))
         >>> my_photons = PhotonList.from_user_model(sp, redshift, area,
         ...                                         time, thermal_model)
 

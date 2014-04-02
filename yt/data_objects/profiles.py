@@ -54,8 +54,8 @@ class BinnedProfile(ParallelAnalysisInterface):
         self.field_data = YTFieldData()
 
     @property
-    def hierarchy(self):
-        return self.pf.hierarchy
+    def index(self):
+        return self.pf.index
 
     def _get_dependencies(self, fields):
         return ParallelAnalysisInterface._get_dependencies(
@@ -715,7 +715,7 @@ class BinnedProfile3D(BinnedProfile):
     def store_profile(self, name, force=False):
         """
         By identifying the profile with a fixed, user-input *name* we can
-        store it in the serialized data section of the hierarchy file.  *force*
+        store it in the serialized data section of the index file.  *force*
         governs whether or not an existing profile with that name will be
         overwritten.
         """
@@ -740,7 +740,7 @@ class BinnedProfile3D(BinnedProfile):
             order.append(field)
             values.append(self[field].ravel())
         values = np.array(values).transpose()
-        self._data_source.hierarchy.save_data(values, "/Profiles", name,
+        self._data_source.index.save_data(values, "/Profiles", name,
                                               set_attr, force=force)
 
 class ProfileFieldAccumulator(object):
@@ -759,6 +759,7 @@ class ProfileND(ParallelAnalysisInterface):
         self.field_data = YTFieldData()
         self.weight_field = weight_field
         self.field_units = {}
+        ParallelAnalysisInterface.__init__(self, comm=data_source.comm)
 
     def add_fields(self, fields):
         fields = ensure_list(fields)
@@ -792,7 +793,9 @@ class ProfileND(ParallelAnalysisInterface):
     def _finalize_storage(self, fields, temp_storage):
         # We use our main comm here
         # This also will fill _field_data
-        # FIXME: Add parallelism and combining std stuff
+        temp_storage.values = self.comm.mpi_allreduce(temp_storage.values, op="sum", dtype="float64")
+        temp_storage.weight_values = self.comm.mpi_allreduce(temp_storage.weight_values, op="sum", dtype="float64")
+        temp_storage.used = self.comm.mpi_allreduce(temp_storage.used, op="sum", dtype="bool")
         blank = ~temp_storage.used
         self.used = temp_storage.used
         if self.weight_field is not None:

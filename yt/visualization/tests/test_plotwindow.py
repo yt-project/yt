@@ -229,7 +229,7 @@ class TestPlotWindowSave(unittest.TestCase):
     def setUpClass(cls):
         test_pf = fake_random_pf(64)
         normal = [1, 1, 1]
-        ds_region = test_pf.h.region([0.5] * 3, [0.4] * 3, [0.6] * 3)
+        ds_region = test_pf.region([0.5] * 3, [0.4] * 3, [0.6] * 3)
         projections = []
         projections_ds = []
         projections_c = []

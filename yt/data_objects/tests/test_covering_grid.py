@@ -12,7 +12,7 @@ def test_covering_grid():
         for nprocs in [1, 2, 4, 8]:
             pf = fake_random_pf(16, nprocs = nprocs)
             dn = pf.refine_by**level 
-            cg = pf.h.covering_grid(level, [0.0, 0.0, 0.0],
+            cg = pf.covering_grid(level, [0.0, 0.0, 0.0],
                     dn * pf.domain_dimensions)
             # Test coordinate generation
             yield assert_equal, np.unique(cg["dx"]).size, 1
@@ -51,7 +51,7 @@ def test_covering_grid():
             yield assert_equal, cg["ones"].min(), 1.0
             yield assert_equal, cg["grid_level"], 0
             yield assert_equal, cg["cell_volume"].sum(), pf.domain_width.prod()
-            for g in pf.h.grids:
+            for g in pf.index.grids:
                 di = g.get_global_startindex()
                 dd = g.ActiveDimensions
                 for i in range(dn):
@@ -66,12 +66,12 @@ def test_smoothed_covering_grid():
         for nprocs in [1, 2, 4, 8]:
             pf = fake_random_pf(16, nprocs = nprocs)
             dn = pf.refine_by**level 
-            cg = pf.h.smoothed_covering_grid(level, [0.0, 0.0, 0.0],
+            cg = pf.smoothed_covering_grid(level, [0.0, 0.0, 0.0],
                     dn * pf.domain_dimensions)
             yield assert_equal, cg["ones"].max(), 1.0
             yield assert_equal, cg["ones"].min(), 1.0
             yield assert_equal, cg["cell_volume"].sum(), pf.domain_width.prod()
-            for g in pf.h.grids:
+            for g in pf.index.grids:
                 if level != g.Level: continue
                 di = g.get_global_startindex()
                 dd = g.ActiveDimensions

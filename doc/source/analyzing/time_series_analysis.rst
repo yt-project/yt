@@ -17,11 +17,11 @@ loop:
        process_output(pf)
 
 But this is not really very nice.  This ends up requiring a lot of maintenance.
-The :class:`~yt.data_objects.time_series.TimeSeriesData` object has been
+The :class:`~yt.data_objects.time_series.DatasetSeries` object has been
 designed to remove some of this clunkiness and present an easier, more unified
 approach to analyzing sets of data.  Even better,
-:class:`~yt.data_objects.time_series.TimeSeriesData` works in parallel by
-default (see :ref:`parallel-computation`), so you can use a ``TimeSeriesData``
+:class:`~yt.data_objects.time_series.DatasetSeries` works in parallel by
+default (see :ref:`parallel-computation`), so you can use a ``DatasetSeries``
 object to quickly and easily parallelize your analysis.  Since doing the same
 analysis task on many simulation outputs is 'embarrassingly' parallel, this
 naturally allows for almost arbitrary speedup - limited only by the number of
@@ -33,9 +33,9 @@ distinct.  There are several operators provided, as well as facilities for
 creating your own, and these operators can be applied either to datasets on the
 whole or to subregions of individual datasets.
 
-The simplest mechanism for creating a ``TimeSeriesData`` object is to use the
+The simplest mechanism for creating a ``DatasetSeries`` object is to use the
 class method
-:meth:`~yt.data_objects.time_series.TimeSeriesData.from_filenames`.  This
+:meth:`~yt.data_objects.time_series.DatasetSeries.from_filenames`.  This
 method accepts a list of strings that can be supplied to ``load``.  For
 example:
 
@@ -43,7 +43,7 @@ example:
 
    from yt.mods import *
    filenames = ["DD0030/output_0030", "DD0040/output_0040"]
-   ts = TimeSeriesData.from_filenames(filenames)
+   ts = DatasetSeries.from_filenames(filenames)
 
 This will create a new time series, populated with the output files ``DD0030``
 and ``DD0040``.  This object, here called ``ts``, can now be analyzed in bulk.
@@ -53,29 +53,29 @@ those filenames will be sorted and returned.  Here is an example:
 .. code-block:: python
 
    from yt.mods import *
-   ts = TimeSeriesData.from_filenames("*/*.hierarchy")
+   ts = DatasetSeries.from_filenames("*/*.index")
 
 Analyzing Each Dataset In Sequence
 ----------------------------------
 
-The :class:`~yt.data_objects.time_series.TimeSeriesData` object has two primary
+The :class:`~yt.data_objects.time_series.DatasetSeries` object has two primary
 methods of iteration.  The first is a very simple iteration, where each object
 is returned for iteration:
 
 .. code-block:: python
 
    from yt.mods import *
-   ts = TimeSeriesData.from_filenames("*/*.hierarchy")
+   ts = DatasetSeries.from_filenames("*/*.index")
    for pf in ts:
        print pf.current_time
 
 This can also operate in parallel, using
-:meth:`~yt.data_objects.time_series.TimeSeriesData.piter`.  For more examples,
+:meth:`~yt.data_objects.time_series.DatasetSeries.piter`.  For more examples,
 see:
 
  * :ref:`parallel-time-series-analysis`
  * The cookbook recipe for :ref:`cookbook-time-series-analysis`
- * :class:`~yt.data_objects.time_series.TimeSeriesData`
+ * :class:`~yt.data_objects.time_series.DatasetSeries`
 
 Prepared Time Series Analysis
 -----------------------------
@@ -97,13 +97,13 @@ maximum value we want to evaluate:
 .. code-block:: python
 
    from yt.mods import *
-   ts = TimeSeries.from_filenames("*/*.hierarchy")
+   ts = TimeSeries.from_filenames("*/*.index")
    max_rho = ts.tasks["MaximumValue"]("density")
 
 When we call the task, the time series object executes the task on each
 component parameter file.  The results are then returned to the user.  More
 complex, multi-task evaluations can be conducted by using the
-:meth:`~yt.data_objects.time_series.TimeSeriesData.eval` call, which accepts a
+:meth:`~yt.data_objects.time_series.DatasetSeries.eval` call, which accepts a
 list of analysis tasks.
 
 Analysis Tasks Applied to Objects
@@ -122,7 +122,7 @@ this script:
 .. code-block:: python
 
    from yt.mods import *
-   ts = TimeSeries.from_filenames("*/*.hierarchy")
+   ts = TimeSeries.from_filenames("*/*.index")
    sphere = ts.sphere("max", (1.0, "pc"))
    L_vecs = sphere.quantities["AngularMomentumVector"]()
 
@@ -155,7 +155,7 @@ analysis_task. Here we have done so:
    print ms
 
 This allows you to create your own analysis tasks that will be then available
-to time series data objects.  Since ``TimeSeriesData`` objects iterate over
+to time series data objects.  Since ``DatasetSeries`` objects iterate over
 filenames in parallel by default, this allows for transparent parallelization. 
 
 .. _analyzing-an-entire-simulation:
@@ -165,7 +165,7 @@ Analyzing an Entire Simulation
 
 The parameter file used to run a simulation contains all the information 
 necessary to know what datasets should be available.  The ``simulation`` 
-convenience function allows one to create a ``TimeSeriesData`` object of all 
+convenience function allows one to create a ``DatasetSeries`` object of all 
 or a subset of all data created by a single simulation.
 
 .. note:: Currently only implemented for Enzo.  Other simulation types coming 
@@ -179,7 +179,7 @@ To instantiate, give the parameter file and the simulation type.
   my_sim = simulation('enzo_tiny_cosmology/32Mpc_32.enzo', 'Enzo',
                       find_outputs=False)
 
-Then, create a ``TimeSeriesData`` object with the :meth:`get_time_series` 
+Then, create a ``DatasetSeries`` object with the :meth:`get_time_series` 
 function.  With no additional keywords, the time series will include every 
 dataset.  If the **find_outputs** keyword is set to True, a search of the 
 simulation directory will be performed looking for potential datasets.  These 
@@ -249,7 +249,7 @@ of the total data:
    the requested times or redshifts.  If None, the nearest output is always 
    taken.  Default: None.
 
- * **parallel** (*bool*/*int*): If True, the generated TimeSeriesData will 
+ * **parallel** (*bool*/*int*): If True, the generated DatasetSeries will 
    divide the work such that a single processor works on each dataset.  If an
    integer is supplied, the work will be divided into that number of jobs.
    Default: True.

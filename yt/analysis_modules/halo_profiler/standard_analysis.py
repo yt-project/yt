@@ -26,9 +26,9 @@ class StandardRadialAnalysis(object):
         # center here, so we will pass it to the sphere creator.
         # Note also that the sphere can handle (val, unit) for radius, so we
         # will grab that from the sphere as well
-        self.obj = pf.h.sphere(center, radius)
+        self.obj = pf.sphere(center, radius)
         if inner_radius is None:
-            inner_radius = pf.h.get_smallest_dx() * pf['cm']
+            inner_radius = pf.index.get_smallest_dx() * pf['cm']
         self.inner_radius = inner_radius
         self.outer_radius = self.obj.radius * pf['cm']
         self.n_bins = n_bins
@@ -51,7 +51,7 @@ class StandardRadialAnalysis(object):
             else:
                 field, weight = fspec, "CellMassMsun"
             by_weights[weight].append(field)
-        known_fields = set(self.pf.h.field_list + self.pf.h.derived_field_list)
+        known_fields = set(self.pf.field_list + self.pf.derived_field_list)
         for weight, fields in by_weights.items():
             fields = set(fields)
             fields.intersection_update(known_fields)

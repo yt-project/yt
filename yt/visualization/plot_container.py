@@ -11,13 +11,11 @@ from .tick_locators import LogLocator, LinearLocator
 from .color_maps import yt_colormaps, is_colormap
 from .plot_modifications import \
     callback_registry
-from .plot_window import \
-    CallbackWrapper
 from .base_plot_types import CallbackWrapper
 
 from yt.funcs import \
     defaultdict, get_image_suffix, \
-    get_ipython_api_version, ensure_list
+    get_ipython_api_version
 from yt.utilities.definitions import axis_names
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
@@ -95,6 +93,10 @@ class PlotDictionary(dict):
         item = self.data_source._determine_fields(item)[0]
         return dict.__getitem__(self, item)
 
+    def __contains__(self, item):
+        item = self.data_source._determine_fields(item)[0]
+        return dict.__contains__(self, item)
+
     def __init__(self, data_source, *args):
         self.data_source = data_source
         return dict.__init__(self, args)
@@ -109,7 +111,7 @@ class ImagePlotContainer(object):
 
     def __init__(self, data_source, figure_size, fontsize):
         self.data_source = data_source
-        self.figure_size = figure_size
+        self.figure_size = float(figure_size)
         self.plots = PlotDictionary(data_source)
         self._callbacks = []
         self._field_transform = {}
@@ -252,7 +254,7 @@ class ImagePlotContainer(object):
         ds = self.data_source
         name = ds._type_name
         kwargs = dict((n, getattr(ds, n)) for n in ds._con_args)
-        new_ds = getattr(new_pf.h, name)(**kwargs)
+        new_ds = getattr(new_pf, name)(**kwargs)
         self.pf = new_pf
         self.data_source = new_ds
         self._data_valid = self._plot_valid = False
@@ -321,9 +323,27 @@ class ImagePlotContainer(object):
             font_dict = {}
         if 'color' in font_dict:
             self._font_color = font_dict.pop('color')
+        # Set default values if the user does not explicitly set them.
+        # this prevents reverting to the matplotlib defaults.
+        font_dict.setdefault('family', 'stixgeneral')
+        font_dict.setdefault('size', 18)
         self._font_properties = \
             FontProperties(**font_dict)
         return self
+
+    def set_font_size(self, size):
+        """Set the size of the font used in the plot
+
+        This sets the font size by calling the set_font function.  See set_font
+        for more font customization options.
+
+        Parameters
+        ----------
+        size : float
+        The absolute size of the font in points (1 pt = 1/72 inch).
+
+        """
+        return self.set_font({'size': size})
 
     @invalidate_plot
     def set_cmap(self, field, cmap):
@@ -367,7 +387,7 @@ class ImagePlotContainer(object):
             The size of the figure on the longest axis (in units of inches),
             including the margins but not the colorbar.
         """
-        self.figure_size = size
+        self.figure_size = float(size)
         return self
 
     def save(self, name=None, mpl_kwargs=None):

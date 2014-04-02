@@ -13,14 +13,18 @@ Parallel data mapping techniques for yt
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import cPickle
 import cStringIO
 import itertools
 import logging
 import numpy as np
 import sys
+import os
+import traceback
+import types
+from functools import wraps
 
-from yt.funcs import *
+from yt.funcs import \
+    ensure_list, iterable, traceback_writer_hook
 
 from yt.config import ytcfg
 from yt.utilities.definitions import \
@@ -30,12 +34,54 @@ from yt.utilities.lib.QuadTree import \
     QuadTree, merge_quadtrees
 from yt.units.yt_array import YTArray
 from yt.units.unit_registry import UnitRegistry
+from yt.utilities.exceptions import YTNoDataInObjectError
+from yt.utilities.logger import ytLogger as mylog
 
-parallel_capable = ytcfg.getboolean("yt", "__parallel")
+# We default to *no* parallelism unless it gets turned on, in which case this
+# will be changed.
+MPI = None
+parallel_capable = False
+
+dtype_names = dict(
+        float32 = "MPI.FLOAT",
+        float64 = "MPI.DOUBLE",
+        int32   = "MPI.INT",
+        int64   = "MPI.LONG",
+        c       = "MPI.CHAR",
+)
+op_names = dict(
+        sum = "MPI.SUM",
+        min = "MPI.MIN",
+        max = "MPI.MAX"
+)
 
 # Set up translation table and import things
-if parallel_capable:
-    from mpi4py import MPI
+
+def enable_parallelism():
+    global parallel_capable, MPI
+    try:
+        from mpi4py import MPI as _MPI
+    except ImportError:
+        mylog.info("mpi4py was not found. Disabling parallel computation")
+        parallel_capable = False
+        return
+    MPI = _MPI
+    exe_name = os.path.basename(sys.executable)
+    parallel_capable = (MPI.COMM_WORLD.size > 1)
+    if not parallel_capable: return False
+    mylog.info("Global parallel computation enabled: %s / %s",
+               MPI.COMM_WORLD.rank, MPI.COMM_WORLD.size)
+    communication_system.push(MPI.COMM_WORLD)
+    ytcfg["yt","__global_parallel_rank"] = str(MPI.COMM_WORLD.rank)
+    ytcfg["yt","__global_parallel_size"] = str(MPI.COMM_WORLD.size)
+    ytcfg["yt","__parallel"] = "True"
+    if exe_name == "embed_enzo" or \
+        ("_parallel" in dir(sys) and sys._parallel == True):
+        ytcfg["yt","inline"] = "True"
+    if MPI.COMM_WORLD.rank > 0:
+        if ytcfg.getboolean("yt","LogFile"):
+            ytcfg["yt","LogFile"] = "False"
+            yt.utilities.logger.disable_file_logging()
     yt.utilities.logger.uncolorize_logging()
     # Even though the uncolorize function already resets the format string,
     # we reset it again so that it includes the processor.
@@ -48,32 +94,19 @@ if parallel_capable:
     if ytcfg.getint("yt","LogLevel") < 20:
         yt.utilities.logger.ytLogger.warning(
           "Log Level is set low -- this could affect parallel performance!")
-    dtype_names = dict(
+    dtype_names.update(dict(
             float32 = MPI.FLOAT,
             float64 = MPI.DOUBLE,
             int32   = MPI.INT,
             int64   = MPI.LONG,
             c       = MPI.CHAR,
-    )
-    op_names = dict(
+    ))
+    op_names.update(dict(
         sum = MPI.SUM,
         min = MPI.MIN,
         max = MPI.MAX
-    )
-
-else:
-    dtype_names = dict(
-            float32 = "MPI.FLOAT",
-            float64 = "MPI.DOUBLE",
-            int32   = "MPI.INT",
-            int64   = "MPI.LONG",
-            c       = "MPI.CHAR",
-    )
-    op_names = dict(
-            sum = "MPI.SUM",
-            min = "MPI.MIN",
-            max = "MPI.MAX"
-    )
+    ))
+    return True
 
 # Because the dtypes will == correctly but do not hash the same, we need this
 # function for dictionary access.
@@ -109,7 +142,7 @@ class ObjectIterator(object):
 
     def __iter__(self):
         for obj in self._objs: yield obj
-        
+
 class ParallelObjectIterator(ObjectIterator):
     """
     This takes an object, *pobj*, that implements ParallelAnalysisInterface,
@@ -132,7 +165,7 @@ class ParallelObjectIterator(ObjectIterator):
                                 np.arange(len(self._objs)), self._skip)[self._offset]
             else:
                 self.my_obj_ids = np.arange(len(self._objs))[self._offset::self._skip]
-        
+
     def __iter__(self):
         for gid in self.my_obj_ids:
             yield self._objs[gid]
@@ -281,7 +314,7 @@ class ProcessorPool(object):
         self.ranks = range(self.size)
         self.available_ranks = range(self.size)
         self.workgroups = []
-    
+
     def add_workgroup(self, size=None, ranks=None, name=None):
         if size is None:
             size = len(self.available_ranks)
@@ -292,14 +325,14 @@ class ProcessorPool(object):
         if ranks is None:
             ranks = [self.available_ranks.pop(0) for i in range(size)]
         # Default name to the workgroup number.
-        if name is None: 
+        if name is None:
             name = str(len(self.workgroups))
         group = self.comm.comm.Get_group().Incl(ranks)
         new_comm = self.comm.comm.Create(group)
         if self.comm.rank in ranks:
             communication_system.communicators.append(Communicator(new_comm))
         self.workgroups.append(Workgroup(len(ranks), ranks, new_comm, name))
-    
+
     def free_workgroup(self, workgroup):
         # If you want to actually delete the workgroup you will need to
         # pop it out of the self.workgroups list so you don't have references
@@ -307,7 +340,7 @@ class ProcessorPool(object):
         for i in workgroup.ranks:
             if self.comm.rank == i:
                 communication_system.communicators.pop()
-            self.available_ranks.append(i) 
+            self.available_ranks.append(i)
         self.available_ranks.sort()
 
     def free_all(self):
@@ -357,7 +390,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
     Calls to this function can be nested.
 
     This should not be used to iterate over parameter files --
-    :class:`~yt.data_objects.time_series.TimeSeriesData` provides a much nicer
+    :class:`~yt.data_objects.time_series.DatasetSeries` provides a much nicer
     interface for that.
 
     Parameters
@@ -396,7 +429,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
 
     >>> storage = {}
     >>> for sto, c in parallel_objects(centers, njobs=4, storage=storage):
-    ...     sp = pf.h.sphere(c, (100, "kpc"))
+    ...     sp = pf.sphere(c, (100, "kpc"))
     ...     sto.result = sp.quantities["AngularMomentumVector"]()
     ...
     >>> for sphere_id, L in sorted(storage.items()):
@@ -410,7 +443,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
                                                storage=storage):
             yield my_obj
         return
-    
+
     if not parallel_capable:
         njobs = 1
     my_communicator = communication_system.communicators[-1]
@@ -490,13 +523,13 @@ def parallel_ring(objects, generator_func, mutable = False):
     Here is a simple example of a ring loop around a set of integers, with a
     custom dtype.
 
-    >>> dt = numpy.dtype([('x', 'float64'), ('y', 'float64'), ('z', 'float64')])
+    >>> dt = np.dtype([('x', 'float64'), ('y', 'float64'), ('z', 'float64')])
     >>> def gfunc(o):
-    ...     numpy.random.seed(o)
+    ...     np.random.seed(o)
     ...     rv = np.empty(1000, dtype=dt)
-    ...     rv['x'] = numpy.random.random(1000)
-    ...     rv['y'] = numpy.random.random(1000)
-    ...     rv['z'] = numpy.random.random(1000)
+    ...     rv['x'] = np.random.random(1000)
+    ...     rv['y'] = np.random.random(1000)
+    ...     rv['z'] = np.random.random(1000)
     ...     return rv
     ...
     >>> obj = range(8)
@@ -566,10 +599,7 @@ class CommunicationSystem(object):
     communicators = []
 
     def __init__(self):
-        if parallel_capable:
-            self.communicators.append(Communicator(MPI.COMM_WORLD))
-        else:
-            self.communicators.append(Communicator(None))
+        self.communicators.append(Communicator(None))
 
     def push(self, new_comm):
         if not isinstance(new_comm, Communicator):
@@ -707,7 +737,7 @@ class Communicator(object):
             return data
         elif datatype == "list" and op == "cat":
             recv_data = self.comm.allgather(data)
-            # Now flatten into a single list, since this 
+            # Now flatten into a single list, since this
             # returns us a list of lists.
             data = []
             while recv_data:
@@ -760,7 +790,7 @@ class Communicator(object):
             if dtype != data.dtype:
                 data = data.astype(dtype)
             temp = data.copy()
-            self.comm.Allreduce([temp,get_mpi_type(dtype)], 
+            self.comm.Allreduce([temp,get_mpi_type(dtype)],
                                      [data,get_mpi_type(dtype)], op)
             return data
         else:
@@ -867,7 +897,7 @@ class Communicator(object):
         self.comm.Send([buf[0], MPI.INT], dest=target)
         self.comm.Send([buf[1], MPI.DOUBLE], dest=target)
         self.comm.Send([buf[2], MPI.DOUBLE], dest=target)
-        
+
     def recv_quadtree(self, target, tgd, args):
         sizebuf = np.zeros(1, 'int64')
         self.comm.Recv(sizebuf, source=target)
@@ -965,7 +995,7 @@ class Communicator(object):
         if len(send.shape) > 1:
             recv = []
             for i in range(send.shape[0]):
-                recv.append(self.alltoallv_array(send[i,:].copy(), 
+                recv.append(self.alltoallv_array(send[i,:].copy(),
                                                  total_size, offsets, sizes))
             recv = np.array(recv)
             return recv
@@ -996,9 +1026,6 @@ class Communicator(object):
                 break
 
 communication_system = CommunicationSystem()
-if parallel_capable:
-    ranks = np.arange(MPI.COMM_WORLD.size)
-    communication_system.push_with_ids(ranks)
 
 class ParallelAnalysisInterface(object):
     comm = None
@@ -1048,10 +1075,10 @@ class ParallelAnalysisInterface(object):
         pass
 
 
-    def partition_hierarchy_2d(self, axis):
+    def partition_index_2d(self, axis):
         if not self._distributed:
-           return False, self.hierarchy.grid_collection(self.center, 
-                                                        self.hierarchy.grids)
+           return False, self.index.grid_collection(self.center,
+                                                        self.index.grids)
 
         xax, yax = x_dict[axis], y_dict[axis]
         cc = MPI.Compute_dims(self.comm.size, 2)
@@ -1069,10 +1096,10 @@ class ParallelAnalysisInterface(object):
         RE[yax] = y[1] * (DRE[yax]-DLE[yax]) + DLE[yax]
         mylog.debug("Dimensions: %s %s", LE, RE)
 
-        reg = self.hierarchy.region(self.center, LE, RE)
+        reg = self.index.region(self.center, LE, RE)
         return True, reg
 
-    def partition_hierarchy_3d(self, ds, padding=0.0, rank_ratio = 1):
+    def partition_index_3d(self, ds, padding=0.0, rank_ratio = 1):
         LE, RE = np.array(ds.left_edge), np.array(ds.right_edge)
         # We need to establish if we're looking at a subvolume, in which case
         # we *do* want to pad things.
@@ -1085,7 +1112,7 @@ class ParallelAnalysisInterface(object):
             return False, LE, RE, ds
         if not self._distributed and subvol:
             return True, LE, RE, \
-            self.hierarchy.region(self.center, LE-padding, RE+padding)
+            self.index.region(self.center, LE-padding, RE+padding)
         elif ytcfg.getboolean("yt", "inline"):
             # At this point, we want to identify the root grid tile to which
             # this processor is assigned.
@@ -1098,7 +1125,7 @@ class ParallelAnalysisInterface(object):
             #raise KeyError
             LE = root_grids[0].LeftEdge
             RE = root_grids[0].RightEdge
-            return True, LE, RE, self.hierarchy.region(self.center, LE, RE)
+            return True, LE, RE, self.index.region(self.center, LE, RE)
 
         cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
         mi = self.comm.rank % (self.comm.size / rank_ratio)
@@ -1112,10 +1139,10 @@ class ParallelAnalysisInterface(object):
 
         if padding > 0:
             return True, \
-                LE, RE, self.hierarchy.region(self.center,
+                LE, RE, self.index.region(self.center,
                 LE-padding, RE+padding)
 
-        return False, LE, RE, self.hierarchy.region(self.center, LE, RE)
+        return False, LE, RE, self.index.region(self.center, LE, RE)
 
     def partition_region_3d(self, left_edge, right_edge, padding=0.0,
             rank_ratio = 1):
@@ -1126,7 +1153,7 @@ class ParallelAnalysisInterface(object):
         LE, RE = left_edge[:], right_edge[:]
         if not self._distributed:
             raise NotImplemented
-            return LE, RE, re
+            return LE, RE #, re
 
         cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
         mi = self.comm.rank % (self.comm.size / rank_ratio)
@@ -1140,14 +1167,14 @@ class ParallelAnalysisInterface(object):
 
         if padding > 0:
             return True, \
-                LE, RE, self.hierarchy.region(self.center, LE-padding,
+                LE, RE, self.index.region(self.center, LE-padding,
                     RE+padding)
 
-        return False, LE, RE, self.hierarchy.region(self.center, LE, RE)
+        return False, LE, RE, self.index.region(self.center, LE, RE)
 
-    def partition_hierarchy_3d_bisection_list(self):
+    def partition_index_3d_bisection_list(self):
         """
-        Returns an array that is used to drive _partition_hierarchy_3d_bisection,
+        Returns an array that is used to drive _partition_index_3d_bisection,
         below.
         """
 
@@ -1165,10 +1192,10 @@ class ParallelAnalysisInterface(object):
 
         cc = MPI.Compute_dims(self.comm.size, 3)
         si = self.comm.size
-        
+
         factors = factor(si)
         xyzfactors = [factor(cc[0]), factor(cc[1]), factor(cc[2])]
-        
+
         # Each entry of cuts is a two element list, that is:
         # [cut dim, number of cuts]
         cuts = []
@@ -1187,7 +1214,7 @@ class ParallelAnalysisInterface(object):
                     break
                 nextdim = (nextdim + 1) % 3
         return cuts
-    
+
 class GroupOwnership(ParallelAnalysisInterface):
     def __init__(self, items):
         ParallelAnalysisInterface.__init__(self)
@@ -1212,7 +1239,7 @@ class GroupOwnership(ParallelAnalysisInterface):
             self.pointer += 1
         if self.item is not old_item:
             self.switch()
-            
+
     def dec(self, n = -1):
         old_item = self.item
         if n == -1: n = self.comm.size

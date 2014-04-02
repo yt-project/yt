@@ -78,14 +78,11 @@ class DerivedField(object):
        Used for baryon fields from the data that are not in all the grids
     display_name : str
        A name used in the plots
-    projection_conversion : unit
-       which unit should we multiply by in a projection?
     """
     def __init__(self, name, function, units=None,
                  take_log=True, validators=None,
                  particle_type=False, vector_field=False, display_field=True,
-                 not_in_all=False, display_name=None,
-                 projection_conversion="cm"):
+                 not_in_all=False, display_name=None):
         self.name = name
         self.take_log = take_log
         self.display_name = display_name
@@ -124,7 +121,6 @@ class DerivedField(object):
         dd['display_field'] = True
         dd['not_in_all'] = self.not_in_all
         dd['display_name'] = self.display_name
-        dd['projection_conversion'] = self.projection_conversion
         return dd
 
     def get_units(self):
@@ -244,7 +240,7 @@ class ValidateDataField(FieldValidator):
         doesnt_have = []
         if isinstance(data, FieldDetector): return True
         for f in self.fields:
-            if f not in data.hierarchy.field_list:
+            if f not in data.index.field_list:
                 doesnt_have.append(f)
         if len(doesnt_have) > 0:
             raise NeedsDataField(doesnt_have)

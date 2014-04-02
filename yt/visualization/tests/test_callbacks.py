@@ -137,7 +137,7 @@ def test_contour_callback():
         p.save()
 
         p = SlicePlot(pf, "x", "density")
-        s2 = pf.h.slice(0, 0.2)
+        s2 = pf.slice(0, 0.2)
         p.annotate_contour("temperature", ncont=10, factor=8,
             take_log=False, clim=(0.4, 0.6),
             plot_args={'lw':2.0}, label=True,
@@ -163,5 +163,4 @@ def test_grids_callback():
         p.annotate_grids(alpha=0.7, min_pix=10, min_pix_ids=30,
             draw_ids=True, periodic=False, min_level=2,
             max_level=3, cmap="gist_stern")
-        p.save()
-
+        p.save(prefix)

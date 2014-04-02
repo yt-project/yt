@@ -36,7 +36,7 @@ class ParticleGenerator(object) :
                            "\n".join(self.default_fields))
         self.index_index = self.field_list.index(("io", "particle_index"))
         
-        self.num_grids = self.pf.h.num_grids
+        self.num_grids = self.pf.index.num_grids
         self.NumberOfParticles = np.zeros((self.num_grids), dtype='int64')
         self.ParticleGridIndices = np.zeros(self.num_grids + 1, dtype='int64')
         
@@ -99,7 +99,7 @@ class ParticleGenerator(object) :
         Assigns grids to particles and sets up particle positions. *setup_fields* is
         a dict of fields other than the particle positions to set up. 
         """
-        particle_grids, particle_grid_inds = self.pf.h.find_points(x,y,z)
+        particle_grids, particle_grid_inds = self.pf.index.find_points(x,y,z)
         idxs = np.argsort(particle_grid_inds)
         self.particles[:,self.posx_index] = x[idxs]
         self.particles[:,self.posy_index] = y[idxs]
@@ -138,7 +138,7 @@ class ParticleGenerator(object) :
         >>> particles.map_grid_fields_to_particles(field_map)
         """
         pbar = get_pbar("Mapping fields to particles", self.num_grids)
-        for i, grid in enumerate(self.pf.h.grids) :
+        for i, grid in enumerate(self.pf.index.grids) :
             pbar.update(i)
             if self.NumberOfParticles[i] > 0:
                 start = self.ParticleGridIndices[i]
@@ -165,7 +165,7 @@ class ParticleGenerator(object) :
         and clobber=False, do not overwrite them, but add the new ones to them. 
         """
         grid_data = []
-        for i,g in enumerate(self.pf.h.grids) :
+        for i,g in enumerate(self.pf.index.grids) :
             data = {}
             if clobber :
                 data["number_of_particles"] = self.NumberOfParticles[i]
@@ -178,7 +178,7 @@ class ParticleGenerator(object) :
                     # We have particles in this grid
                     if g.NumberOfParticles > 0 and not clobber:
                         # Particles already exist
-                        if field in self.pf.h.field_list :
+                        if field in self.pf.field_list :
                             # This field already exists
                             prev_particles = g[field]
                         else :
@@ -196,7 +196,7 @@ class ParticleGenerator(object) :
                     # We don't have particles in this grid
                     data[field] = np.array([], dtype='float64')
             grid_data.append(data)
-        self.pf.h.update_data(grid_data)
+        self.pf.index.update_data(grid_data)
 
 class FromListParticleGenerator(ParticleGenerator) :
 
@@ -206,7 +206,7 @@ class FromListParticleGenerator(ParticleGenerator) :
 
         Parameters
         ----------
-        pf : `StaticOutput`
+        pf : `Dataset`
             The parameter file which will serve as the base for these particles.
         num_particles : int
             The number of particles in the dict.
@@ -254,7 +254,7 @@ class LatticeParticleGenerator(ParticleGenerator) :
 
         Parameters
         ----------
-        pf : `StaticOutput`
+        pf : `Dataset`
             The parameter file which will serve as the base for these particles.
         particles_dims : int, array-like 
             The number of particles along each dimension
@@ -317,7 +317,7 @@ class WithDensityParticleGenerator(ParticleGenerator) :
 
         Parameters
         ----------
-        pf : `StaticOutput`
+        pf : `Dataset`
             The parameter file which will serve as the base for these particles.
         data_source : `yt.data_objects.api.AMRData`
             The data source containing the density field.
@@ -331,7 +331,7 @@ class WithDensityParticleGenerator(ParticleGenerator) :
             
         Examples
         --------
-        >>> sphere = pf.h.sphere(pf.domain_center, 0.5)
+        >>> sphere = pf.sphere(pf.domain_center, 0.5)
         >>> num_p = 100000
         >>> fields = ["particle_position_x","particle_position_y",
         >>>           "particle_position_z",

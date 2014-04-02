@@ -25,6 +25,8 @@ from yt.utilities.lib.misc_utilities import \
 import _MPL
 import numpy as np
 import weakref
+import re
+import string
 
 class FixedResolutionBuffer(object):
     r"""
@@ -72,7 +74,7 @@ class FixedResolutionBuffer(object):
     To make a projection and then several images, you can generate a
     single FRB and then access multiple fields:
 
-    >>> proj = pf.h.proj(0, "Density")
+    >>> proj = pf.proj(0, "Density")
     >>> frb1 = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5),
                     (1024, 1024))
     >>> print frb1["Density"].max()
@@ -92,9 +94,9 @@ class FixedResolutionBuffer(object):
         self.axis = data_source.axis
         self.periodic = periodic
 
-        h = getattr(data_source, "hierarchy", None)
-        if h is not None:
-            h.plots.append(weakref.proxy(self))
+        #h = getattr(data_source, "index", None)
+        #if h is not None:
+        #    h.plots.append(weakref.proxy(self))
 
         # Handle periodicity, just in case
         if self.data_source.axis < 3:
@@ -147,6 +149,41 @@ class FixedResolutionBuffer(object):
             if f not in exclude and f[0] not in self.data_source.pf.particle_types:
                 self[f]
 
+
+    def _is_ion( self, fname ):
+        p = re.compile("_p[0-9]+_")
+        result = False
+        if p.search( fname ) != None:
+            result = True
+        return result
+
+    def _ion_to_label( self, fname ):
+        pnum2rom = {
+            "0":"I", "1":"II", "2":"III", "3":"IV", "4":"V",
+            "5":"VI", "6":"VII", "7":"VIII", "8":"IX", "9":"X",
+            "10":"XI", "11":"XII", "12":"XIII", "13":"XIV", "14":"XV",
+            "15":"XVI", "16":"XVII", "17":"XVIII", "18":"XIX", "19":"XX"}
+
+        p = re.compile("_p[0-9]+_")
+        m = p.search( fname )
+        if m != None:
+            pstr = m.string[m.start()+1:m.end()-1]
+            segments = fname.split("_")
+            for i,s in enumerate(segments):
+                segments[i] = string.capitalize(s)
+                if s == pstr:
+                    ipstr = i
+            element = segments[ipstr-1]
+            roman = pnum2rom[pstr[1:]] 
+            label = element + '\/' + roman + '\/' + \
+                string.join( segments[ipstr+1:], '\/' ) 
+        else:
+            label = fname
+        return label
+
+
+
+
     def _get_info(self, item):
         info = {}
         ftype, fname = field = self.data_source._determine_fields(item)[0]
@@ -172,8 +209,13 @@ class FixedResolutionBuffer(object):
         
         info['label'] = finfo.display_name
         if info['label'] is None:
-            info['label'] = r'$\rm{'+fname+r'}$'
-            info['label'] = r'$\rm{'+fname.replace('_','\/').title()+r'}$'
+            if self._is_ion( fname ):
+                fname = self._ion_to_label( fname )
+                info['label'] = r'$\rm{'+fname+r'}$'
+                info['label'] = r'$\rm{'+fname.replace('_','\/')+r'}$'
+            else:    
+                info['label'] = r'$\rm{'+fname+r'}$'
+                info['label'] = r'$\rm{'+fname.replace('_','\/').title()+r'}$'
         elif info['label'].find('$') == -1:
             info['label'] = info['label'].replace(' ','\/')
             info['label'] = r'$\rm{'+info['label']+r'}$'
@@ -280,16 +322,11 @@ class FixedResolutionBuffer(object):
             requested.
         """
 
-        try:
-            import astropy.io.fits as pyfits
-        except:
-            mylog.error("You don't have AstroPy installed!")
-            raise ImportError
         from yt.utilities.fits_image import FITSImageBuffer
 
         extra_fields = ['x','y','z','px','py','pz','pdx','pdy','pdz','weight_field']
         if fields is None: 
-            fields = [field for field in self.data_source.fields 
+            fields = [field[-1] for field in self.data_source.field_data
                       if field not in extra_fields]
 
         fib = FITSImageBuffer(self, fields=fields, units=units)
@@ -320,7 +357,7 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
         self.antialias = antialias
         self.data = {}
         
-        h = getattr(data_source, "hierarchy", None)
+        h = getattr(data_source, "index", None)
         if h is not None:
             h.plots.append(weakref.proxy(self))
 

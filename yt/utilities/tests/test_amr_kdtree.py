@@ -48,7 +48,7 @@ def test_amr_kdtree_coverage():
     for node in depth_traverse(kd.tree.trunk):
         if node.grid is None:
             continue
-        grid = pf.h.grids[node.grid - kd._id_offset]
+        grid = pf.index.grids[node.grid - kd._id_offset]
         dds = grid.dds
         gle = grid.LeftEdge
         nle = get_left_edge(node)

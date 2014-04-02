@@ -28,7 +28,7 @@ class Streamlines(ParallelAnalysisInterface):
 
     Parameters
     ----------
-    pf : `~yt.data_objects.StaticOutput`
+    pf : `~yt.data_objects.Dataset`
         This is the parameter file to streamline
     pos : array_like
         An array of initial starting positions of the streamlines.
@@ -41,7 +41,7 @@ class Streamlines(ParallelAnalysisInterface):
     zfield: field, optional
         The z component of the vector field to be streamlined.
         Default:'velocity_z'
-    volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
+    volume : `yt.extensions.volume_rendering.AMRKDTree`, optional
         The volume to be streamlined.  Can be specified for
         finer-grained control, but otherwise will be automatically
         generated.  At this point it must use the AMRKDTree. 
@@ -104,7 +104,7 @@ class Streamlines(ParallelAnalysisInterface):
             volume.join_parallel_trees()
         self.volume = volume
         if dx is None:
-            dx = self.pf.h.get_smallest_dx()
+            dx = self.pf.index.get_smallest_dx()
         self.dx = dx
         if length is None:
             length = np.max(self.pf.domain_right_edge-self.pf.domain_left_edge)

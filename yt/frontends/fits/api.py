@@ -13,7 +13,7 @@ API for yt.frontends.fits
 from .data_structures import \
       FITSGrid, \
       FITSHierarchy, \
-      FITSStaticOutput
+      FITSDataset
 
 from .fields import \
       FITSFieldInfo

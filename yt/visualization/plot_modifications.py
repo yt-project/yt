@@ -1,5 +1,5 @@
 """
-Callbacksr to add additional functionality on to plots.
+Callbacks to add additional functionality on to plots.
 
 
 
@@ -14,6 +14,7 @@ Callbacksr to add additional functionality on to plots.
 #-----------------------------------------------------------------------------
 
 import numpy as np
+import h5py
 
 from yt.funcs import *
 from _mpl_imports import *
@@ -53,30 +54,32 @@ class PlotCallback(object):
         # Convert the data and plot limits to tiled numpy arrays so that
         # convert_to_plot is automatically vectorized.
 
-        x0 = np.tile(plot.xlim[0],ncoord)
-        x1 = np.tile(plot.xlim[1],ncoord)
+        x0 = np.array(np.tile(plot.xlim[0],ncoord))
+        x1 = np.array(np.tile(plot.xlim[1],ncoord))
         xx0 = np.tile(plot._axes.get_xlim()[0],ncoord)
         xx1 = np.tile(plot._axes.get_xlim()[1],ncoord)
-        
-        y0 = np.tile(plot.ylim[0],ncoord)
-        y1 = np.tile(plot.ylim[1],ncoord)
+
+        y0 = np.array(np.tile(plot.ylim[0],ncoord))
+        y1 = np.array(np.tile(plot.ylim[1],ncoord))
         yy0 = np.tile(plot._axes.get_ylim()[0],ncoord)
         yy1 = np.tile(plot._axes.get_ylim()[1],ncoord)
-        
+
+        ccoord = np.array(coord)
+
         # We need a special case for when we are only given one coordinate.
-        if np.array(coord).shape == (2,):
-            return ((coord[0]-x0)/(x1-x0)*(xx1-xx0) + xx0,
-                    (coord[1]-y0)/(y1-y0)*(yy1-yy0) + yy0)
+        if ccoord.shape == (2,):
+            return ((ccoord[0]-x0)/(x1-x0)*(xx1-xx0) + xx0,
+                    (ccoord[1]-y0)/(y1-y0)*(yy1-yy0) + yy0)
         else:
-            return ((coord[0][:]-x0)/(x1-x0)*(xx1-xx0) + xx0,
-                    (coord[1][:]-y0)/(y1-y0)*(yy1-yy0) + yy0)
+            return ((ccoord[0][:]-x0)/(x1-x0)*(xx1-xx0) + xx0,
+                    (ccoord[1][:]-y0)/(y1-y0)*(yy1-yy0) + yy0)
 
     def pixel_scale(self,plot):
-        x0, x1 = plot.xlim
+        x0, x1 = np.array(plot.xlim)
         xx0, xx1 = plot._axes.get_xlim()
         dx = (xx1 - xx0)/(x1 - x0)
-        
-        y0, y1 = plot.ylim
+
+        y0, y1 = np.array(plot.ylim)
         yy0, yy1 = plot._axes.get_ylim()
         dy = (yy1 - yy0)/(y1 - y0)
 
@@ -119,7 +122,7 @@ class VelocityCallback(PlotCallback):
             if bv is not None:
                 bv_x = bv[x_dict[plot.data.axis]]
                 bv_y = bv[y_dict[plot.data.axis]]
-            else: bv_x = bv_y = 0
+            else: bv_x = bv_y = YTQuantity(0, 'cm/s')
 
             qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, 
                                  scale_units=self.scale_units, 
@@ -404,10 +407,10 @@ class GridBoundaryCallback(PlotCallback):
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
             pxo = px_off * DW[px_index]
             pyo = py_off * DW[py_index]
-            left_edge_x = np.array((GLE[:,px_index]+pxo-x0)*dx + xx0)
-            left_edge_y = np.array((GLE[:,py_index]+pyo-y0)*dy + yy0)
-            right_edge_x = np.array((GRE[:,px_index]+pxo-x0)*dx + xx0)
-            right_edge_y = np.array((GRE[:,py_index]+pyo-y0)*dy + yy0)
+            left_edge_x = np.array((GLE[:,px_index]+pxo-x0)*dx) + xx0
+            left_edge_y = np.array((GLE[:,py_index]+pyo-y0)*dy) + yy0
+            right_edge_x = np.array((GRE[:,px_index]+pxo-x0)*dx) + xx0
+            right_edge_y = np.array((GRE[:,py_index]+pyo-y0)*dy) + yy0
             visible =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix ) & \
                        ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix ) & \
                        ( levels >= min_level) & \
@@ -458,7 +461,6 @@ class StreamlineCallback(PlotCallback):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
-        self.bv_x = self.bv_y = 0
         self.factor = factor
         self.dens = density
         if plot_args is None: plot_args = {}
@@ -476,14 +478,14 @@ class StreamlineCallback(PlotCallback):
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
-                             plot.data[self.field_x] - self.bv_x,
+                             plot.data[self.field_x],
                              int(nx), int(ny),
                              (x0, x1, y0, y1),).transpose()
         pixY = _MPL.Pixelize(plot.data['px'],
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
-                             plot.data[self.field_y] - self.bv_y,
+                             plot.data[self.field_y],
                              int(nx), int(ny),
                              (x0, x1, y0, y1),).transpose()
         X,Y = (np.linspace(xx0,xx1,nx,endpoint=True),
@@ -749,6 +751,8 @@ class ArrowCallback(PlotCallback):
     _type_name = "arrow"
     def __init__(self, pos, code_size, plot_args = None):
         self.pos = pos
+        if isinstance(code_size, YTArray):
+            code_size = code_size.in_units('code_length')
         if not iterable(code_size):
             code_size = (code_size, code_size)
         self.code_size = code_size
@@ -760,6 +764,9 @@ class ArrowCallback(PlotCallback):
             pos = (self.pos[x_dict[plot.data.axis]],
                    self.pos[y_dict[plot.data.axis]])
         else: pos = self.pos
+        if isinstance(self.code_size[1], basestring):
+            code_size = plot.data.pf.quan(*self.code_size).value
+            self.code_size = (code_size, code_size)
         from matplotlib.patches import Arrow
         # Now convert the pixels to code information
         x, y = self.convert_to_plot(plot, pos)
@@ -845,7 +852,11 @@ class SphereCallback(PlotCallback):
 
     def __call__(self, plot):
         from matplotlib.patches import Circle
-        
+
+        if iterable(self.radius):
+            self.radius = plot.data.pf.quan(self.radius[0], self.radius[1])
+            self.radius = np.float64(self.radius)
+
         radius = self.radius * self.pixel_scale(plot)[0]
 
         if plot.data.axis == 4:
@@ -1100,6 +1111,8 @@ class ParticleCallback(PlotCallback):
 
     def __call__(self, plot):
         data = plot.data
+        if iterable(self.width):
+            self.width = np.float64(plot.data.pf.quan(self.width[0], self.width[1]))
         # we construct a recantangular prism
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
@@ -1124,8 +1137,8 @@ class ParticleCallback(PlotCallback):
             if gg.sum() == 0: return
         plot._axes.hold(True)
         px, py = self.convert_to_plot(plot,
-                    [reg[field_x][gg][::self.stride],
-                     reg[field_y][gg][::self.stride]])
+                    [np.array(reg[field_x][gg][::self.stride]),
+                     np.array(reg[field_y][gg][::self.stride])])
         plot._axes.scatter(px, py, edgecolors='None', marker=self.marker,
                            s=self.p_size, c=self.color,alpha=self.alpha)
         plot._axes.set_xlim(xx0,xx1)
@@ -1140,13 +1153,13 @@ class ParticleCallback(PlotCallback):
         zax = axis
         LE[xax], RE[xax] = xlim
         LE[yax], RE[yax] = ylim
-        LE[zax] = data.center[zax] - self.width*0.5
-        RE[zax] = data.center[zax] + self.width*0.5
+        LE[zax] = data.center[zax].ndarray_view() - self.width*0.5
+        RE[zax] = data.center[zax].ndarray_view() + self.width*0.5
         if self.region is not None \
             and np.all(self.region.left_edge <= LE) \
             and np.all(self.region.right_edge >= RE):
             return self.region
-        self.region = data.pf.h.region(data.center, LE, RE)
+        self.region = data.pf.region(data.center, LE, RE)
         return self.region
 
 class TitleCallback(PlotCallback):
@@ -1314,7 +1327,7 @@ class MaterialBoundaryCallback(ContourCallback):
                                clim=(0.9, 1.0), **kwargs):
 
     Add the limiting contours of *field* to the plot.  Nominally, *field* is 
-    the target material but may be any other field present in the hierarchy.
+    the target material but may be any other field present in the index.
     The number of contours generated is given by *ncount*, *factor* governs 
     the number of points used in the interpolation, and *clim* gives the 
     (upper, lower) limits for contouring.  For this to truly be the boundary
@@ -1366,3 +1379,4 @@ class TriangleFacetsCallback(PlotCallback):
         lc = matplotlib.collections.LineCollection(l_cy, **self.plot_args)
         plot._axes.add_collection(lc)
         plot._axes.hold(False)
+

@@ -108,13 +108,13 @@ Here is an example that combines all of the options we just discussed.
 .. python-script::
 
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   slc = SlicePlot(pf, 'z', 'density', center=[0.53, 0.53, 0.53], width=(20,'kpc'))
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(pf, 'z', 'density', center=[0.5, 0.5, 0.5], width=(20,'kpc'))
    slc.save()
 
 The above example will display an annotated plot of a slice of the
 Density field in a 20 kpc square window centered on the coordinate
-(0.53,0.53) in the x-y plane.  The axis to slice along is keyed to the
+(0.5, 0.5, 0.5) in the x-y plane.  The axis to slice along is keyed to the
 letter 'z', corresponding to the z-axis.  Finally, the image is saved to
 a png file.
 
@@ -124,18 +124,19 @@ into the data. For example:
 .. python-script::
 
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   slc = SlicePlot(pf, 'z','Pressure', center=[0.53, 0.53, 0.53])
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(pf, 'z', 'pressure', center='c')
    slc.save()
    slc.zoom(30)
    slc.save('zoom')
 
-will save a slice of the pressure field in a slice along the z
+will save a plot of the pressure field in a slice along the z
 axis across the entire simulation domain followed by another plot that
 is zoomed in by a factor of 30 with respect to the original
-image. With these sorts of manipulations, one can easily pan and zoom
-onto an interesting region in the simulation and adjust the
-boundaries of the region to visualize on the fly.
+image. Both plots will be centered on the center of the simulation box. 
+With these sorts of manipulations, one can easily pan and zoom onto an 
+interesting region in the simulation and adjust the boundaries of the
+region to visualize on the fly.
 
 A slice object can also add annotations like a title, an overlying
 quiver plot, the location of grid boundaries, halo-finder annotations,
@@ -145,12 +146,12 @@ For example:
 .. python-script::
 
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   slc = SlicePlot(pf, 'z', 'VorticitySquared', width=(10,'kpc'), center='max')
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
    slc.annotate_grids()
    slc.save()
 
-will plot the VorticitySquared in a 10 kiloparsec slice through the
+will plot the density field in a 10 kiloparsec slice through the
 z-axis centered on the highest density point in the simulation domain.
 Before saving the plot, the script annotates it with the grid
 boundaries, which are drawn as thick black lines by default.
@@ -174,14 +175,14 @@ example:
 .. python-script::
  
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   prj = ProjectionPlot(pf, 2, 'density', center=[0.53, 0.53, 0.53],
-                        width=(25, 'kpc'), weight_field=None)
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   prj = ProjectionPlot(pf, 2, 'density', width=(25, 'kpc'), 
+                        weight_field=None)
    prj.save()
 
 will create a projection of Density field along the x axis, plot it,
 and then save it to a png image file.  The projection is only carried
-out to level 2 of the AMR hierarchy and no weighting is applied.
+out to level 2 of the AMR index and no weighting is applied.
 
 Like :ref:`slice-plots`, annotations and modifications can be applied
 after creating the ``ProjectionPlot`` object.  Annotations are
@@ -205,11 +206,11 @@ plane, and the name of the fields to plot.  For example:
 .. python-script::
 
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
    L = [1,1,0] # vector normal to cutting plane
    north_vector = [-1,1,0]
-   cut = OffAxisSlicePlot(pf, L, 'density', width=(25, 'kpc'),
-                          center=[0.53, 0.53, 0.53], north_vector=north_vector)
+   cut = OffAxisSlicePlot(pf, L, 'density', width=(25, 'kpc'), 
+                          north_vector=north_vector)
    cut.save()
 
 creates an off-axis slice in the plane perpendicular to ``L``,
@@ -246,11 +247,11 @@ projection through a simulation.
 .. python-script::
 
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
    L = [1,1,0] # vector normal to cutting plane
    north_vector = [-1,1,0]
    W = [0.02, 0.02, 0.02]
-   c = [0.53, 0.53, 0.53]
+   c = [0.5, 0.5, 0.5]
    N = 512
    image = off_axis_projection(pf, c, L, W, N, "density")
    write_image(na.log10(image), "%s_offaxis_projection.png" % pf)
@@ -268,11 +269,10 @@ to project along, and a field to project.  For example:
 .. python-script::
 
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
    L = [1,1,0] # vector normal to cutting plane
    north_vector = [-1,1,0]
    prj = OffAxisProjectionPlot(pf,L,'density',width=(25, 'kpc'), 
-                               center=[0.53, 0.53, 0.53], 
                                north_vector=north_vector)
    prj.save()
 
@@ -292,8 +292,8 @@ will modify the following plot.
 .. python-script::
 
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   slc = SlicePlot(pf, 'z', 'VorticitySquared', width=(10,'kpc'), center='max')
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
    slc.save()
 
 Panning and zooming
@@ -307,9 +307,10 @@ units.
 .. python-script::
 
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   slc = SlicePlot(pf, 'z', 'VorticitySquared', width=(10,'kpc'), center='max')
-   slc.pan((2/pf['kpc'],2/pf['kpc']))
+   from yt.units import kpc
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
+   slc.pan((2*kpc, 2*kpc))
    slc.save()
 
 :class:`~yt.visualization.plot_window.SlicePlot.pan_rel` accepts deltas in units relative
@@ -318,8 +319,8 @@ to the field of view of the plot.
 .. python-script::
 
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   slc = SlicePlot(pf, 'z', 'VorticitySquared', width=(10,'kpc'), center='max')
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
    slc.pan_rel((0.1, -0.1))
    slc.save()
 
@@ -328,8 +329,8 @@ to the field of view of the plot.
 .. python-script::
 
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   slc = SlicePlot(pf, 'z', 'VorticitySquared', width=(10,'kpc'), center='max')
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
    slc.zoom(2)
    slc.save()
 
@@ -342,8 +343,8 @@ the axes unit labels.
 .. python-script::
 
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   slc = SlicePlot(pf, 'z', 'VorticitySquared', width=(10,'kpc'), center='max')
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
    slc.set_axes_unit('Mpc')
    slc.save()
 
@@ -356,9 +357,9 @@ center for the plot, in code units.  New centers must be two element tuples.
 .. python-script::
 
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   slc = SlicePlot(pf, 'z', 'VorticitySquared', width=(10,'kpc'), center='max')
-   slc.set_center((0.53, 0.53))
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
+   slc.set_center((0.5, 0.5))
    slc.save()
 
 Fonts
@@ -369,8 +370,8 @@ Fonts
 .. python-script::
 
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   slc = SlicePlot(pf, 'z', 'VorticitySquared', width=(10,'kpc'), center='max')
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
    slc.set_font({'family': 'sans-serif', 'style': 'italic','weight': 'bold', 'size': 24})
    slc.save()
 
@@ -388,9 +389,9 @@ colormaps listed in the :ref:`colormaps` section.
 .. python-script::
 
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   slc = SlicePlot(pf, 'z', 'VorticitySquared', width=(10,'kpc'), center='max')
-   slc.set_cmap('VorticitySquared', 'RdBu_r')
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
+   slc.set_cmap('density', 'RdBu_r')
    slc.save()
 
 The :class:`~yt.visualization.plot_window.SlicePlot.set_log` function accepts a field name
@@ -400,9 +401,9 @@ be log scaled.  If it is `False` the colormap will be linear.
 .. python-script::
 
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   slc = SlicePlot(pf, 'z', 'VorticitySquared', width=(10,'kpc'), center='max')
-   slc.set_log('VorticitySquared', False)
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
+   slc.set_log('density', False)
    slc.save()
 
 Lastly, the :class:`~yt.visualization.plot_window.SlicePlot.set_zlim` function makes it
@@ -411,9 +412,9 @@ possible to set a custom colormap range.
 .. python-script::
 
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   slc = SlicePlot(pf, 'z', 'VorticitySquared', width=(10,'kpc'), center='max')
-   slc.set_zlim('VorticitySquared', 1e-30, 1e-25)
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
+   slc.set_zlim('density', 1e-30, 1e-25)
    slc.save()
 
 Set the size of the plot
@@ -427,8 +428,8 @@ image to see the difference more clearly.
 .. python-script::
 
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   slc = SlicePlot(pf, 'z', 'VorticitySquared', width=(10,'kpc'), center='max')
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
    slc.set_window_size(10)
    slc.save()
 
@@ -438,8 +439,8 @@ To change the resolution of the image, call the
 .. python-script::
 
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   slc = SlicePlot(pf, 'z', 'VorticitySquared', width=(10,'kpc'), center='max')
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
    slc.set_buff_size(1600)
    slc.save()
 
@@ -464,8 +465,8 @@ data object, the field for binning, and a list of fields to be profiled.
 .. python-script::
 
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   my_galaxy = pf.h.disk([0.53, 0.53, 0.53], [0.0, 0.0, 1.0], 0.01, 0.003)
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   my_galaxy = pf.disk([0.5, 0.5, 0.5], [0.0, 0.0, 1.0], 0.01, 0.003)
    plot = ProfilePlot(my_galaxy, "density", ["temperature"])
    plot.save()
 
@@ -483,8 +484,8 @@ well.  For instance:
 .. python-script::
 
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   my_sphere = pf.h.sphere([0.53, 0.53, 0.53], (100, "pc"))
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   my_sphere = pf.sphere([0.5, 0.5, 0.5], (100, "kpc"))
    plot = ProfilePlot(my_sphere, "temperature", ["cell_mass"],
                       weight_field=None)
    plot.save()
@@ -589,8 +590,8 @@ either taking the average or the accumulation in a bin.  For example, to generat
 .. python-script::
 
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   my_sphere = pf.h.sphere("c", (50, "kpc"))
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   my_sphere = pf.sphere("c", (50, "kpc"))
    plot = PhasePlot(my_sphere, "density", "temperature", ["cell_mass"],
                     weight_field=None)
    plot.save()
@@ -602,9 +603,9 @@ something like:
 .. python-script::
 
    from yt.mods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
-   my_sphere = pf.h.sphere("c", (50, "kpc"))
-   plot = PhasePlot(my_sphere, "density", "temperature", ["HI_Fraction"],
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   my_sphere = pf.sphere("c", (50, "kpc"))
+   plot = PhasePlot(my_sphere, "density", "temperature", ["H_fraction"],
                     weight_field="cell_mass")
    plot.save()
 
@@ -638,20 +639,15 @@ type:
 
 at the command line.  This will prompt you for a password (so that if you're on
 a shared user machine no one else can pretend to be you!) and then spawn an
-IPython notebook you can connect to.  You need to additionally change the
-import statement you use:
+IPython notebook you can connect to.
+
+If you want to see yt plots inline inside your notebook, you need only create a
+plot and then call ``.show()``:
 
 .. notebook-cell::
 
-   from yt.imods import *
-
-This will set up a number of helper functions and enable interactive plotting.
-Now when you create a plot window you can call ``.show()`` to see it inline:
-
-.. notebook-cell::
-
-   from yt.imods import *
-   pf = load("HiresIsolatedGalaxy/DD0044/DD0044")
+   from yt.mods import *
+   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
    p = ProjectionPlot(pf, "x", "density", center='m', width=(10,'kpc'),
                       weight_field='density')
    p.show()

@@ -47,7 +47,7 @@ def deliver_image(im):
     ph.add_payload(payload)
 
 def get_list_of_datasets():
-    # Note that this instantiates the hierarchy.  This can be a costly
+    # Note that this instantiates the index.  This can be a costly
     # event.  However, we're going to assume that it's okay, if you have
     # decided to load up the parameter file.
     from yt.data_objects.static_output import _cached_pfs
@@ -56,8 +56,8 @@ def get_list_of_datasets():
         objs = []
         pf_varname = "_cached_pfs['%s']" % (fn)
         field_list = []
-        if pf._instantiated_hierarchy is not None: 
-            field_list = list(set(pf.h.field_list + pf.h.derived_field_list))
+        if pf._instantiated_index is not None: 
+            field_list = list(set(pf.field_list + pf.derived_field_list))
             field_list = [dict(text = f) for f in sorted(field_list)]
             for i,obj in enumerate(pf.h.objects):
                 try:

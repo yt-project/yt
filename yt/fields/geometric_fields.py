@@ -78,7 +78,6 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
 
     registry.add_field(("index", "zeros"), function=_zeros,
               units = "",
-              projection_conversion="unitary",
               display_field=False)
 
     def _ones(field, data):
@@ -88,18 +87,17 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
         return data.apply_units(arr, field.units)
 
     registry.add_field(("index", "ones"), function=_ones,
-              projection_conversion="unitary",
               units = "",
               display_field=False)
 
     ### spherical coordinates: r (radius)
     def _spherical_r(field, data):
         center = data.get_field_parameter("center")
-        coords = obtain_rvec(data)
+        coords = data.pf.arr(obtain_rvec(data), "code_length")
         coords[0,...] -= center[0]
         coords[1,...] -= center[1]
         coords[2,...] -= center[2]
-        return get_sph_r(coords)
+        return get_sph_r(coords).in_cgs()
 
     registry.add_field(("index", "spherical_r"),
              function=_spherical_r,
@@ -144,7 +142,7 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
         coords[0,...] -= center[0]
         coords[1,...] -= center[1]
         coords[2,...] -= center[2]
-        return get_cyl_r(coords, normal)
+        return data.pf.arr(get_cyl_r(coords, normal), "code_length").in_cgs()
 
     registry.add_field(("index", "cylindrical_r"),
              function=_cylindrical_r,
@@ -156,11 +154,11 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
     def _cylindrical_z(field, data):
         center = data.get_field_parameter("center")
         normal = data.get_field_parameter("normal")
-        coords = obtain_rvec(data)
+        coords = data.pf.arr(obtain_rvec(data), "code_length")
         coords[0,...] -= center[0]
         coords[1,...] -= center[1]
         coords[2,...] -= center[2]
-        return get_cyl_z(coords, normal)
+        return get_cyl_z(coords, normal).in_cgs()
 
     registry.add_field(("index", "cylindrical_z"),
              function=_cylindrical_z,

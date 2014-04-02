@@ -103,7 +103,7 @@ class TestFieldAccess(object):
         self.nproc = nproc
 
     def __call__(self):
-        if self.field_name in base_pf.h.field_list:
+        if self.field_name in base_pf.field_list:
             # Don't know how to test this.  We need some way of having fields
             # that are fallbacks be tested, but we don't have that now.
             return
@@ -136,7 +136,7 @@ class TestFieldAccess(object):
                 res = dd2.apply_units(res, field.units)
             assert_array_almost_equal_nulp(v1, res, 4)
         if not skip_grids:
-            for g in pf.h.grids:
+            for g in pf.index.grids:
                 g.field_parameters.update(sp)
                 v1 = g[self.field_name]
                 g.clear_data()

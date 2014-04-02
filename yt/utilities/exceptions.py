@@ -139,12 +139,6 @@ class YTNotInsideNotebook(YTException):
     def __str__(self):
         return "This function only works from within an IPython Notebook."
 
-class YTNotDeclaredInsideNotebook(YTException):
-    def __str__(self):
-        return "You have not declared yourself to be inside the IPython" + \
-               "Notebook.  Do so with this command:\n\n" + \
-               "ytcfg['yt','ipython_notebook'] = 'True'"
-
 class YTGeometryNotSupported(YTException):
     def __init__(self, geom):
         self.geom = geom
@@ -163,7 +157,7 @@ class YTUnitNotRecognized(YTException):
     def __str__(self):
         return "This parameter file doesn't recognize %s" % self.unit
 
-class YTUnitOperationError(YTException):
+class YTUnitOperationError(YTException, ValueError):
     def __init__(self, operation, unit1, unit2=None):
         self.operation = operation
         self.unit1 = unit1
@@ -354,12 +348,6 @@ class YTRockstarMultiMassNotSupported(YTException):
         v += "mass %0.3e.  Multi-mass particles are not currently supported." % (
             self.ma)
         return v
-
-class YTFITSHeaderNotUnderstood(YTException):
-    def __str__(self):
-        return "This FITS header is not recognizable in its current form.\n" + \
-                "If you would like to force loading, specify: \n" + \
-                "ignore_unit_names = True"
 
 class YTEmptyProfileData(Exception):
     pass

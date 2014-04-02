@@ -32,31 +32,9 @@ def _field_dname(grid_id, field_name):
 
 # TODO all particle bits were removed
 class IOHandlerGDFHDF5(BaseIOHandler):
-    _data_style = "grid_data_format"
+    _dataset_type = "grid_data_format"
     _offset_string = 'data:offsets=0'
     _data_string = 'data:datatype=0'
-
-    def _read_field_names(self, grid):
-        if grid.filename is None:
-            return []
-        print 'grid.filename = %', grid.filename
-        h5f = h5py.File(grid.filename, mode="r")
-        group = h5f[_grid_dname(grid.id)]
-        fields = []
-        for name, v in group.iteritems():
-            # NOTE: This won't work with 1D datasets.
-            if not hasattr(v, "shape"):
-                continue
-            elif len(v.dims) == 1:
-                fields.append(("io", str(name)))
-            else:
-                fields.append(("gas", str(name)))
-        h5f.close()
-        return fields
-
-    @property
-    def _read_exception(self):
-        return (exceptions.KeyError, )
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         rv = {}
@@ -79,7 +57,7 @@ class IOHandlerGDFHDF5(BaseIOHandler):
             size = sum((grid.count(selector) for chunk in chunks
                         for grid in chunk.objs))
 
-        if any((ftype != "gas" for ftype, fname in fields)):
+        if any((ftype != "gdf" for ftype, fname in fields)):
             raise NotImplementedError
 
         for field in fields:

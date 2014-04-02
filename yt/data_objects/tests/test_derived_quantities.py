@@ -9,7 +9,7 @@ def test_extrema():
     for nprocs in [1, 2, 4, 8]:
         pf = fake_random_pf(16, nprocs = nprocs, fields = ("density",
                 "velocity_x", "velocity_y", "velocity_z"))
-        sp = pf.h.sphere("c", (0.25, 'unitary'))
+        sp = pf.sphere("c", (0.25, 'unitary'))
         mi, ma = sp.quantities["Extrema"]("density")
         yield assert_equal, mi, np.nanmin(sp["density"])
         yield assert_equal, ma, np.nanmax(sp["density"])
@@ -17,7 +17,7 @@ def test_extrema():
         mi, ma = dd.quantities["Extrema"]("density")
         yield assert_equal, mi, np.nanmin(dd["density"])
         yield assert_equal, ma, np.nanmax(dd["density"])
-        sp = pf.h.sphere("max", (0.25, 'unitary'))
+        sp = pf.sphere("max", (0.25, 'unitary'))
         yield assert_equal, np.any(np.isnan(sp["radial_velocity"])), False
         mi, ma = dd.quantities["Extrema"]("radial_velocity")
         yield assert_equal, mi, np.nanmin(dd["radial_velocity"])

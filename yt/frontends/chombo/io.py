@@ -16,18 +16,18 @@ import h5py
 import os
 import re
 import numpy as np
+from yt.utilities.logger import ytLogger as mylog
 
 from yt.utilities.io_handler import \
            BaseIOHandler
 
 class IOHandlerChomboHDF5(BaseIOHandler):
-    _data_style = "chombo_hdf5"
+    _dataset_type = "chombo_hdf5"
     _offset_string = 'data:offsets=0'
     _data_string = 'data:datatype=0'
 
     def __init__(self, pf, *args, **kwargs):
-        BaseIOHandler.__init__(self, *args, **kwargs)
-        self.pf = pf
+        BaseIOHandler.__init__(self, pf)
         self._handle = pf._handle
 
     _field_dict = None
@@ -60,6 +60,52 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         data = lev[self._data_string][start:stop]
         
         return data.reshape(dims, order='F')
+
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        rv = {}
+        chunks = list(chunks)
+        fields.sort(key=lambda a: self.field_dict[a[1]])
+        if selector.__class__.__name__ == "GridSelector":
+            if not (len(chunks) == len(chunks[0].objs) == 1):
+                raise RuntimeError
+            grid = chunks[0].objs[0]
+            lstring = 'level_%i' % grid.Level
+            lev = self._handle[lstring]
+            grid_offset = lev[self._offset_string][grid._level_id]
+            boxsize = grid.ActiveDimensions.prod()
+            for ftype, fname in fields:
+                start = grid_offset+self.field_dict[fname]*boxsize
+                stop = start + boxsize
+                data = lev[self._data_string][start:stop]
+                rv[ftype, fname] = data.reshape(grid.ActiveDimensions,
+                                        order='F')
+            return rv
+        if size is None:
+            size = sum((g.count(selector) for chunk in chunks
+                        for g in chunk.objs))
+        for field in fields:
+            ftype, fname = field
+            fsize = size
+            rv[field] = np.empty(fsize, dtype="float64")
+        ng = sum(len(c.objs) for c in chunks)
+        mylog.debug("Reading %s cells of %s fields in %s grids",
+                   size, [f2 for f1, f2 in fields], ng)
+        ind = 0
+        for chunk in chunks:
+            for g in chunk.objs:
+                lstring = 'level_%i' % g.Level
+                lev = self._handle[lstring]
+                grid_offset = lev[self._offset_string][g._level_id]
+                boxsize = g.ActiveDimensions.prod()
+                nd = 0
+                for field in fields:
+                    start = grid_offset+self.field_dict[fname]*boxsize
+                    stop = start + boxsize
+                    data = lev[self._data_string][start:stop]
+                    data = data.reshape(g.ActiveDimensions, order='F')
+                    nd = g.select(selector, data, rv[field], ind) # caches
+                ind += nd
+        return rv
 
     def _read_particles(self, grid, field):
         """

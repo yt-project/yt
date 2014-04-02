@@ -39,7 +39,10 @@ from yt.utilities.math_utils import \
     get_cyl_z, get_sph_r, \
     get_sph_theta, get_sph_phi, \
     periodic_dist, euclidean_dist
-     
+
+from .vector_operations import \
+     create_magnitude_field
+    
 def _field_concat(fname):
     def _AllFields(field, data):
         v = []
@@ -77,8 +80,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     registry.add_field(("deposit", "%s_count" % ptype),
              function = particle_count,
              validators = [ValidateSpatial()],
-             display_name = "\\mathrm{%s Count}" % ptype,
-             projection_conversion = '1')
+             display_name = "\\mathrm{%s Count}" % ptype)
 
     def particle_mass(field, data):
         pos = data[ptype, coord_name]
@@ -159,7 +161,6 @@ def particle_scalar_functions(ptype, coord_name, vel_name, registry):
     # elsewhere, and stop using these.
     
     # Note that we pass in _ptype here so that it's defined inside the closure.
-    orig = set(registry.keys())
 
     def _get_coord_funcs(axi, _ptype):
         def _particle_velocity(field, data):
@@ -176,12 +177,9 @@ def particle_scalar_functions(ptype, coord_name, vel_name, registry):
             particle_type = True, function = p,
             units = "code_length")
 
-    return list(set(registry.keys()).difference(orig))
-
 def particle_vector_functions(ptype, coord_names, vel_names, registry):
 
     # This will column_stack a set of scalars to create vector fields.
-    orig = set(registry.keys())
 
     def _get_vec_func(_ptype, names):
         def particle_vectors(field, data):
@@ -190,15 +188,14 @@ def particle_vector_functions(ptype, coord_names, vel_names, registry):
             c = np.column_stack(v)
             return data.apply_units(c, field.units)
         return particle_vectors
-    registry.add_field((ptype, "Coordinates"),
+    registry.add_field((ptype, "particle_position"),
                        function=_get_vec_func(ptype, coord_names),
                        units = "code_length",
                        particle_type=True)
-    registry.add_field((ptype, "Velocities"),
+    registry.add_field((ptype, "particle_velocity"),
                        function=_get_vec_func(ptype, vel_names),
                        units = "cm / s",
                        particle_type=True)
-    return list(set(registry.keys()).difference(orig))
 
 def standard_particle_fields(registry, ptype,
                              spos = "particle_position_%s",
@@ -215,7 +212,7 @@ def standard_particle_fields(registry, ptype,
                      + (data[ptype, svel % 'y'] - bulk_velocity[1])**2
                      + (data[ptype, svel % 'z'] - bulk_velocity[2])**2 )
     
-        registry.add_field((ptype, "particle_velocity_magnitude"),
+    registry.add_field((ptype, "particle_velocity_magnitude"),
                   function=_particle_velocity_magnitude,
                   particle_type=True,
                   take_log=False,
@@ -298,6 +295,9 @@ def standard_particle_fields(registry, ptype,
               units="cm**2/s",
               validators=[ValidateParameter("center")])
 
+    create_magnitude_field(registry, "particle_specific_angular_momentum",
+                           "cm**2/s", ftype=ptype, particle_type=True)
+    
     def _particle_angular_momentum(field, data):
         return data[ptype, "particle_mass"] \
              * data[ptype, "particle_specific_angular_momentum"]
@@ -326,6 +326,9 @@ def standard_particle_fields(registry, ptype,
              units="g*cm**2/s", particle_type=True,
              validators=[ValidateParameter('center')])
 
+    create_magnitude_field(registry, "particle_angular_momentum",
+                           "g*cm**2/s", ftype=ptype, particle_type=True)
+    
     from .field_functions import \
         get_radius
 
@@ -459,7 +462,7 @@ def standard_particle_fields(registry, ptype,
             Create a grid field for particle quantities weighted by particle
             mass, using cloud-in-cell deposit.
             """
-            pos = data[ptype, 'Coordinates']
+            pos = data[ptype, "particle_position"]
             # Get back into density
             pden = data[ptype, 'particle_mass'] / data["index", "cell_volume"] 
             top = data.deposit(pos, [data[('all', particle_field)]*pden],
@@ -483,7 +486,7 @@ def add_particle_average(registry, ptype, field_name,
                          density = True):
     field_units = registry[ptype, field_name].units
     def _pfunc_avg(field, data):
-        pos = data[ptype, "Coordinates"]
+        pos = data[ptype, "particle_position"]
         f = data[ptype, field_name]
         wf = data[ptype, weight]
         f *= wf

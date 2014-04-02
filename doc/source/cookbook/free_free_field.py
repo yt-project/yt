@@ -69,7 +69,7 @@ add_quantity("FreeFree_Luminosity", function=_FreeFreeLuminosity,
 
 pf = load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
 
-sphere = pf.h.sphere(pf.domain_center, (100., "kpc"))
+sphere = pf.sphere(pf.domain_center, (100., "kpc"))
 
 # Print out the total luminosity at 1 keV for the sphere
 

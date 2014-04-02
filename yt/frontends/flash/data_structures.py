@@ -23,11 +23,11 @@ from yt.funcs import *
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
-    GridGeometryHandler
+    GridIndex
 from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.io_handler import \
@@ -39,9 +39,9 @@ from yt.units.yt_array import YTQuantity
 class FLASHGrid(AMRGridPatch):
     _id_offset = 1
     #__slots__ = ["_level_id", "stop_index"]
-    def __init__(self, id, hierarchy, level):
-        AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
-                              hierarchy = hierarchy)
+    def __init__(self, id, index, level):
+        AMRGridPatch.__init__(self, id, filename = index.index_filename,
+                              index = index)
         self.Parent = None
         self.Children = []
         self.Level = level
@@ -49,22 +49,22 @@ class FLASHGrid(AMRGridPatch):
     def __repr__(self):
         return "FLASHGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
-class FLASHHierarchy(GridGeometryHandler):
+class FLASHHierarchy(GridIndex):
 
     grid = FLASHGrid
     _preload_implemented = True
     
-    def __init__(self,pf,data_style='flash_hdf5'):
-        self.data_style = data_style
+    def __init__(self,pf,dataset_type='flash_hdf5'):
+        self.dataset_type = dataset_type
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.directory = os.path.dirname(self.hierarchy_filename)
+        # for now, the index file is the parameter file!
+        self.index_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.index_filename)
         self._handle = pf._handle
         self._particle_handle = pf._particle_handle
         self.float_type = np.float64
-        GridGeometryHandler.__init__(self,pf,data_style)
+        GridIndex.__init__(self,pf,dataset_type)
 
     def _initialize_data_storage(self):
         pass
@@ -76,11 +76,6 @@ class FLASHHierarchy(GridGeometryHandler):
             self.field_list += [("io", "particle_" + s[0].strip()) for s
                                 in self._particle_handle["/particle names"][:]]
     
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        GridGeometryHandler._setup_classes(self, dd)
-        self.object_types.sort()
-
     def _count_grids(self):
         try:
             self.num_grids = self.parameter_file._find_parameter(
@@ -88,7 +83,7 @@ class FLASHHierarchy(GridGeometryHandler):
         except KeyError:
             self.num_grids = self._handle["/simulation parameters"][0][0]
         
-    def _parse_hierarchy(self):
+    def _parse_index(self):
         f = self._handle # shortcut
         pf = self.parameter_file # shortcut
         f_part = self._particle_handle # shortcut
@@ -177,12 +172,12 @@ class FLASHHierarchy(GridGeometryHandler):
                 g.dds[1] = DD
         self.max_level = self.grid_levels.max()
 
-class FLASHStaticOutput(StaticOutput):
-    _hierarchy_class = FLASHHierarchy
+class FLASHDataset(Dataset):
+    _index_class = FLASHHierarchy
     _field_info_class = FLASHFieldInfo
     _handle = None
     
-    def __init__(self, filename, data_style='flash_hdf5',
+    def __init__(self, filename, dataset_type='flash_hdf5',
                  storage_filename = None,
                  particle_filename = None, 
                  conversion_override = None):
@@ -202,14 +197,14 @@ class FLASHStaticOutput(StaticOutput):
                 self._particle_handle = h5py.File(self.particle_filename, "r")
             except :
                 raise IOError(self.particle_filename)
-                                                                
-        StaticOutput.__init__(self, filename, data_style)
-        self.storage_filename = storage_filename
-
         # These should be explicitly obtained from the file, but for now that
         # will wait until a reorganization of the source tree and better
         # generalization.
         self.refine_by = 2
+                                                                
+        Dataset.__init__(self, filename, dataset_type)
+        self.storage_filename = storage_filename
+
         self.parameters["HydroMethod"] = 'flash' # always PPM DE
         self.parameters["Time"] = 1. # default unit is 1...
         
@@ -240,7 +235,7 @@ class FLASHStaticOutput(StaticOutput):
         #self.conversion_factors['temp'] = (1.0 + self.current_redshift)**-2.0
 
     def set_code_units(self):
-        super(FLASHStaticOutput, self).set_code_units()
+        super(FLASHDataset, self).set_code_units()
         from yt.units.dimensions import dimensionless
         self.unit_registry.modify("code_temperature",
             self.temperature_unit.value)

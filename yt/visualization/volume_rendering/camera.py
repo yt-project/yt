@@ -21,7 +21,6 @@ from yt.utilities.math_utils import *
 from yt.units.yt_array import YTArray
 from copy import deepcopy
 
-from .grid_partitioner import HomogenizedVolume
 from .transfer_functions import ProjectionTransferFunction
 
 from yt.utilities.lib.grid_traversal import \
@@ -87,7 +86,7 @@ class Camera(ParallelAnalysisInterface):
         vector.  Makes it easier to do rotations along a single
         axis.  If north_vector is specified, is switched to
         True. Default: False
-    volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
+    volume : `yt.extensions.volume_rendering.AMRKDTree`, optional
         The volume to ray cast through.  Can be specified for finer-grained
         control, but otherwise will be automatically generated.
     fields : list of fields, optional
@@ -98,7 +97,7 @@ class Camera(ParallelAnalysisInterface):
         the volume rendering mechanism.
     sub_samples : int, optional
         The number of samples to take inside every cell per ray.
-    pf : `~yt.data_objects.api.StaticOutput`
+    pf : `~yt.data_objects.api.Dataset`
         For now, this is a require parameter!  But in the future it will become
         optional.  This is the parameter file to volume render.
     use_kd: bool, optional
@@ -131,7 +130,7 @@ class Camera(ParallelAnalysisInterface):
     >>> from yt.mods import *
     >>> import yt.visualization.volume_rendering.api as vr
     
-    >>> pf = EnzoStaticOutput('DD1701') # Load pf
+    >>> pf = EnzoDataset('DD1701') # Load pf
     >>> c = [0.5]*3 # Center
     >>> L = [1.0,1.0,1.0] # Viewpoint
     >>> W = np.sqrt(3) # Width
@@ -270,7 +269,7 @@ class Camera(ParallelAnalysisInterface):
         >>> write_bitmap(im, 'render_with_grids.png')
 
         """
-        region = self.pf.h.region((self.re + self.le) / 2.0,
+        region = self.pf.region((self.re + self.le) / 2.0,
                                   self.le, self.re)
         corners = region.grid_corners
         levels = region.grid_levels[:,0]
@@ -1513,12 +1512,10 @@ class MosaicCamera(Camera):
 
     def build_volume(self, volume, fields, log_fields, l_max, no_ghost, tree_type, le, re):
         if volume is None:
-            if self.use_kd:
-                volume = AMRKDTree(self.pf, l_max=l_max, fields=self.fields, 
-                                   no_ghost=no_ghost, tree_type=tree_type, 
-                                   log_fields=log_fields, le=le, re=re)
-            else:
-                volume = HomogenizedVolume(fields, pf=self.pf, log_fields=log_fields)
+            if self.use_kd: raise NotImplementedError
+            volume = AMRKDTree(self.pf, l_max=l_max, fields=self.fields, 
+                               no_ghost=no_ghost, tree_type=tree_type, 
+                               log_fields=log_fields, le=le, re=re)
         else:
             self.use_kd = isinstance(volume, AMRKDTree)
         return volume
@@ -1612,7 +1609,7 @@ class MosaicFisheyeCamera(Camera):
         The radial distance to cast to
     resolution : int
         The number of pixels in each direction.  Must be a single int.
-    volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
+    volume : `yt.extensions.volume_rendering.AMRKDTree`, optional
         The volume to ray cast through.  Can be specified for finer-grained
         control, but otherwise will be automatically generated.
     fields : list of fields, optional
@@ -1623,7 +1620,7 @@ class MosaicFisheyeCamera(Camera):
         the volume rendering mechanism.
     sub_samples : int, optional
         The number of samples to take inside every cell per ray.
-    pf : `~yt.data_objects.api.StaticOutput`
+    pf : `~yt.data_objects.api.Dataset`
         For now, this is a require parameter!  But in the future it will become
         optional.  This is the parameter file to volume render.
     l_max: int, optional
@@ -1996,7 +1993,7 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
 
     Parameters
     ----------
-    pf : `~yt.data_objects.api.StaticOutput`
+    pf : `~yt.data_objects.api.Dataset`
         This is the parameter file to volume render.
     center : array_like
         The current "center" of the view port -- the focal point for the
@@ -2072,7 +2069,7 @@ def allsky_projection(pf, center, radius, nside, field, weight = None,
     vs *= radius
     uv = np.ones(3, dtype='float64')
     if data_source is None:
-        data_source = pf.h.sphere(center, radius)
+        data_source = pf.sphere(center, radius)
     sampler = ProjectionSampler(positions, vs, center, (0.0, 0.0, 0.0, 0.0),
                                 image, uv, uv, np.zeros(3, dtype='float64'))
     for i, (grid, mask) in enumerate(data_source.blocks):
@@ -2216,7 +2213,7 @@ class ProjectionCamera(Camera):
                     np.minimum(mi, this_point, mi)
                     np.maximum(ma, this_point, ma)
         # Now we have a bounding box.
-        data_source = pf.h.region(self.center, mi, ma)
+        data_source = pf.region(self.center, mi, ma)
 
         for i, (grid, mask) in enumerate(data_source.blocks):
             data = [(grid[field] * mask).astype("float64") for field in fields]
@@ -2286,7 +2283,7 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
 
     Parameters
     ----------
-    pf : `~yt.data_objects.api.StaticOutput`
+    pf : `~yt.data_objects.api.Dataset`
         This is the parameter file to volume render.
     center : array_like
         The current 'center' of the view port -- the focal point for the
@@ -2304,7 +2301,7 @@ def off_axis_projection(pf, center, normal_vector, width, resolution,
         If supplied, the field will be pre-multiplied by this, then divided by
         the integrated value of this field.  This returns an average rather
         than a sum.
-    volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
+    volume : `yt.extensions.volume_rendering.AMRKDTree`, optional
         The volume to ray cast through.  Can be specified for finer-grained
         control, but otherwise will be automatically generated.
     no_ghost: bool, optional

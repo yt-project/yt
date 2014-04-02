@@ -107,7 +107,7 @@ ellipsoid container as:
 
 .. code-block:: python
 
-  ell = pf.h.ellipsoid(ell_param[0],
+  ell = pf.ellipsoid(ell_param[0],
   ell_param[1],
   ell_param[2],
   ell_param[3],

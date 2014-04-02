@@ -20,9 +20,9 @@ import shutil
 from yt.testing import \
     fake_random_pf
 import numpy as np
-from yt.mods import ColorTransferFunction, ProjectionTransferFunction
 from yt.visualization.volume_rendering.api import \
-    PerspectiveCamera, StereoPairCamera, InteractiveCamera, ProjectionCamera
+    PerspectiveCamera, StereoPairCamera, InteractiveCamera, ProjectionCamera, \
+    ColorTransferFunction, ProjectionTransferFunction
 from yt.visualization.tests.test_plotwindow import assert_fname
 from unittest import TestCase
 
@@ -81,7 +81,7 @@ class CameraTest(TestCase):
     def test_data_source_camera(self):
         pf = self.pf
         tf = self.setup_transfer_function('camera')
-        data_source = pf.h.sphere(pf.domain_center, pf.domain_width[0]*0.5)
+        data_source = pf.sphere(pf.domain_center, pf.domain_width[0]*0.5)
 
         cam = pf.h.camera(self.c, self.L, self.W, self.N, log_fields=[False],
                           transfer_function=tf, data_source=data_source)

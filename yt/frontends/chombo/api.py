@@ -16,11 +16,11 @@ API for yt.frontends.chombo
 from .data_structures import \
       ChomboGrid, \
       ChomboHierarchy, \
-      ChomboStaticOutput
+      ChomboDataset
 
 from .fields import \
-      ChomboFieldInfo, \
-      add_chombo_field
+      ChomboFieldInfo
+add_chombo_field = ChomboFieldInfo.add_field
 
 from .io import \
       IOHandlerChomboHDF5

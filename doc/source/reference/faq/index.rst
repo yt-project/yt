@@ -119,8 +119,8 @@ available, look at the properties ``field_list`` and ``derived_field_list``:
 
 .. code-block:: python
 
-   print pf.h.field_list
-   print pf.h.derived_field_list
+   print pf.field_list
+   print pf.derived_field_list
 
 .. _faq-old-data:
 

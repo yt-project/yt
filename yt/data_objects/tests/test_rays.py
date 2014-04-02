@@ -19,7 +19,7 @@ def test_ray():
             p1 = pf.arr(pp1[:,i] + 1e-8 * np.random.random(3), 'code_length')
             p2 = pf.arr(pp2[:,i] + 1e-8 * np.random.random(3), 'code_length')
 
-            my_ray = pf.h.ray(p1, p2)
+            my_ray = pf.ray(p1, p2)
             yield assert_rel_equal, my_ray['dts'].sum(), unitary, 14
             ray_cells = my_ray['dts'] > 0
 

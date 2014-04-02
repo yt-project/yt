@@ -7,7 +7,7 @@ def test_obtain_rvec():
     pf = fake_random_pf(64, nprocs=8, fields=_fields, 
            negative = [False, True, True, True])
     
-    dd = pf.h.sphere((0.5,0.5,0.5), 0.2)
+    dd = pf.sphere((0.5,0.5,0.5), 0.2)
 
     coords = obtain_rvec(dd)
 

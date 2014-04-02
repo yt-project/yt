@@ -27,7 +27,7 @@ def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
 
     Parameters
     ----------
-    pf : StaticOutput object
+    pf : Dataset object
         The yt data to write out.
     gdf_path : string
         The path of the file to output.
@@ -35,14 +35,15 @@ def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
     """
 
     f = _create_new_gdf(pf, gdf_path, data_author, data_comment,
-                       particle_type_name)
+                        particle_type_name)
 
     # now add the fields one-by-one
-    for field_name in pf.h.field_list:
+    for field_name in pf.field_list:
         _write_field_to_gdf(pf, f, field_name, particle_type_name)
 
     # don't forget to close the file.
     f.close()
+
 
 def save_field(pf, field_name, field_parameters=None):
     """
@@ -51,7 +52,7 @@ def save_field(pf, field_name, field_parameters=None):
 
     Parameters
     ----------
-    pf : StaticOutput object
+    pf : Dataset object
         The yt parameter file that the field is associated with.
     field_name : string
         The name of the field to save.
@@ -63,25 +64,29 @@ def save_field(pf, field_name, field_parameters=None):
         field_name = field_name[1]
     field_obj = pf._get_field_info(field_name)
     if field_obj.particle_type:
-        print( "Saving particle fields currently not supported." )
+        print("Saving particle fields currently not supported.")
         return
-    
+
     backup_filename = pf.backup_filename
     if os.path.exists(backup_filename):
         # backup file already exists, open it
         f = h5py.File(backup_filename, "r+")
     else:
         # backup file does not exist, create it
-        f = _create_new_gdf(pf, backup_filename, data_author=None, data_comment=None,
-                       particle_type_name="dark_matter")
+        f = _create_new_gdf(pf, backup_filename, data_author=None,
+                            data_comment=None,
+                            particle_type_name="dark_matter")
 
     # now save the field
-    _write_field_to_gdf(pf, f, field_name, particle_type_name="dark_matter", field_parameters=field_parameters)
+    _write_field_to_gdf(pf, f, field_name, particle_type_name="dark_matter",
+                        field_parameters=field_parameters)
 
     # don't forget to close the file.
     f.close()
-        
-def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name, field_parameters=None):
+
+
+def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name,
+                        field_parameters=None):
 
     # add field info to field_types group
     g = fhandle["field_types"]
@@ -94,7 +99,7 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name, field_param
     except ValueError:
         print "Error - File already contains field called " + field_name
         sys.exit(1)
-        
+
     # grab the display name and units from the field info container.
     display_name = fi.display_name
     units = fi.get_units()
@@ -114,13 +119,13 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name, field_param
     sg.attrs["staggering"] = 0
 
     # now add actual data, grid by grid
-    g = fhandle["data"]     
-    for grid in pf.h.grids:
+    g = fhandle["data"]
+    for grid in pf.index.grids:
 
         # set field parameters, if specified
         if field_parameters is not None:
-            for k,v in field_parameters.iteritems():
-                grid.set_field_parameter(k,v)
+            for k, v in field_parameters.iteritems():
+                grid.set_field_parameter(k, v)
 
         grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
         particles_group = grid_group["particles"]
@@ -133,15 +138,17 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name, field_param
         else:  # a field
             grid_group[field_name] = grid[field_name]
 
+
 def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
-                   particle_type_name="dark_matter"):
+                    particle_type_name="dark_matter"):
     # Make sure we have the absolute path to the file first
     gdf_path = os.path.abspath(gdf_path)
 
     # Stupid check -- is the file already there?
     # @todo: make this a specific exception/error.
     if os.path.exists(gdf_path):
-        raise IOError("A file already exists in the location: %s. Please provide a new one or remove that file." % gdf_path)
+        raise IOError("A file already exists in the location: %s. Please \
+                      provide a new one or remove that file." % gdf_path)
 
     ###
     # Create and open the file with h5py
@@ -201,21 +208,21 @@ def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
     ###
     # root datasets -- info about the grids
     ###
-    f["grid_dimensions"] = pf.h.grid_dimensions
+    f["grid_dimensions"] = pf.index.grid_dimensions
     f["grid_left_index"] = np.array(
-            [g.get_global_startindex() for g in pf.h.grids]
-    ).reshape(pf.h.grid_dimensions.shape[0], 3)
-    f["grid_level"] = pf.h.grid_levels
+        [grid.get_global_startindex() for grid in pf.index.grids]
+    ).reshape(pf.index.grid_dimensions.shape[0], 3)
+    f["grid_level"] = pf.index.grid_levels
     # @todo: Fill with proper values
-    f["grid_parent_id"] = -np.ones(pf.h.grid_dimensions.shape[0])
-    f["grid_particle_count"] = pf.h.grid_particle_count
+    f["grid_parent_id"] = -np.ones(pf.index.grid_dimensions.shape[0])
+    f["grid_particle_count"] = pf.index.grid_particle_count
 
     ###
     # "data" group -- where we should spend the most time
     ###
-    
+
     g = f.create_group("data")
-    for grid in pf.h.grids:
+    for grid in pf.index.grids:
         # add group for this grid
         grid_group = g.create_group("grid_%010i" % (grid.id - grid._id_offset))
         # add group for the particles on this grid
@@ -223,4 +230,3 @@ def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
         pt_group = particles_group.create_group(particle_type_name)
 
     return f
-

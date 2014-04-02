@@ -1,0 +1,40 @@
+diff -r ce576a114f13 yt/data_objects/grid_patch.py
+--- a/yt/data_objects/grid_patch.py	Mon Jul 08 08:56:00 2013 -0400
++++ b/yt/data_objects/grid_patch.py	Wed Jul 10 09:29:30 2013 -0400
+@@ -51,6 +51,7 @@
+     _num_ghost_zones = 0
+     _grids = None
+     _id_offset = 1
++    _blanked = False
+ 
+     _type_name = 'grid'
+     _skip_add = True
+@@ -268,6 +269,8 @@
+     def _get_child_mask(self):
+         if self._child_mask == None:
+             self.__generate_child_mask()
++        if self._blanked:
++            self._child_mask[:] = False
+         return self._child_mask
+ 
+     def _get_child_indices(self):
+@@ -491,6 +494,8 @@
+         return vals.reshape(self.ActiveDimensions, order="C")
+ 
+     def _get_selector_mask(self, selector):
++        if self._blanked == True:
++            return None
+         if id(selector) == self._last_selector_id:
+             mask = self._last_mask
+         else:
+diff -r ce576a114f13 yt/visualization/volume_rendering/camera.py
+--- a/yt/visualization/volume_rendering/camera.py	Mon Jul 08 08:56:00 2013 -0400
++++ b/yt/visualization/volume_rendering/camera.py	Wed Jul 10 09:29:30 2013 -0400
+@@ -2141,6 +2141,7 @@
+         source = pf.region(self.center, mi, ma)
+ 
+         for i, (grid, mask) in enumerate(source.blocks):
++            mask[:] = 1
+             data = [(grid[field] * mask).astype("float64") for field in fields]
+             pg = PartitionedGrid(
+                 grid.id, data,

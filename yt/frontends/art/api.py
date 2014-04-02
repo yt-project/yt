@@ -16,12 +16,11 @@ API for yt.frontends.art
 from .data_structures import \
       ARTDomainFile,\
       ARTDomainSubset,\
-      ARTGeometryHandler,\
-      ARTStaticOutput
+      ARTIndex,\
+      ARTDataset
 
 from .fields import \
-      ARTFieldInfo, \
-      add_art_field
+      ARTFieldInfo
 
 from .io import \
       IOHandlerART

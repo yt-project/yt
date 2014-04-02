@@ -87,7 +87,7 @@ def halo_sphere(halo, radius_field="virial_radius", factor=1.0,
         halo.data_object = None
         return
     try:
-        sphere = dpf.h.sphere(center, (radius, "code_length"))
+        sphere = dpf.sphere(center, (radius, "code_length"))
     except YTSphereTooSmall:
         halo.data_object = None
         return
@@ -120,7 +120,7 @@ def sphere_field_max_recenter(halo, field):
     old_sphere = halo.data_object
     max_vals = old_sphere.quantities.max_location(field)
     new_center = s_pf.arr(max_vals[2:])
-    new_sphere = s_pf.h.sphere(new_center.in_units("code_length"),
+    new_sphere = s_pf.sphere(new_center.in_units("code_length"),
                                old_sphere.radius.in_units("code_length"))
     mylog.info("Moving sphere center from %s to %s." % (old_sphere.center,
                                                         new_sphere.center))
@@ -427,8 +427,12 @@ def virial_quantities(halo, fields, critical_overdensity=200,
             return            
     else:
         # take first instance of downward intersection with critical value
-        index = np.where((vod[:-1] >= critical_overdensity) &
-                         (vod[1:] < critical_overdensity))[0][0]
+        intersections = (vod[:-1] >= critical_overdensity) & \
+            (vod[1:] < critical_overdensity)
+        if not intersections.any():
+            halo.quantities.update(vquantities)
+            return            
+        index = np.where(intersections)[0][0]
 
     for field in fields:
         v_prof = profile_data[field][dfilter].to_ndarray()

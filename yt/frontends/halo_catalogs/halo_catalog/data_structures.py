@@ -28,9 +28,9 @@ from .fields import \
 
 from yt.utilities.cosmology import Cosmology
 from yt.geometry.particle_geometry_handler import \
-    ParticleGeometryHandler
+    ParticleIndex
 from yt.data_objects.static_output import \
-    StaticOutput, \
+    Dataset, \
     ParticleFile
 import yt.utilities.fortran_utils as fpu
 from yt.units.yt_array import \
@@ -45,19 +45,17 @@ class HaloCatalogHDF5File(ParticleFile):
 
         super(HaloCatalogHDF5File, self).__init__(pf, io, filename, file_id)
     
-class HaloCatalogStaticOutput(StaticOutput):
-    _hierarchy_class = ParticleGeometryHandler
+class HaloCatalogDataset(Dataset):
+    _index_class = ParticleIndex
     _file_class = HaloCatalogHDF5File
     _field_info_class = HaloCatalogFieldInfo
-    _particle_mass_name = "particle_mass"
-    _particle_coordinates_name = "Coordinates"
     _suffix = ".h5"
 
-    def __init__(self, filename, data_style="halocatalog_hdf5",
+    def __init__(self, filename, dataset_type="halocatalog_hdf5",
                  n_ref = 16, over_refine_factor = 1):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
-        super(HaloCatalogStaticOutput, self).__init__(filename, data_style)
+        super(HaloCatalogDataset, self).__init__(filename, dataset_type)
 
     def _parse_parameter_file(self):
         with h5py.File(self.parameter_filename, "r") as f:

@@ -16,7 +16,7 @@ API for yt.frontends.stream
 from .data_structures import \
       StreamGrid, \
       StreamHierarchy, \
-      StreamStaticOutput, \
+      StreamDataset, \
       StreamHandler, \
       load_uniform_grid, \
       load_amr_grids, \

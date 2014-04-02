@@ -34,7 +34,7 @@ class StarFormationRate(object):
     
     Parameters
     ----------
-    pf : EnzoStaticOutput object
+    pf : EnzoDataset object
     data_source : AMRRegion object, optional
         The region from which stars are extracted for analysis. If this
         is not supplied, the next three must be, otherwise the next
@@ -52,7 +52,7 @@ class StarFormationRate(object):
     --------
     
     >>> pf = load("RedshiftOutput0000")
-    >>> sp = pf.h.sphere([0.5,0.5,0.5], [.1])
+    >>> sp = pf.sphere([0.5,0.5,0.5], [.1])
     >>> sfr = StarFormationRate(pf, sp)
     """
     def __init__(self, pf, data_source=None, star_mass=None,
@@ -248,7 +248,7 @@ class SpectrumBuilder(object):
     
     Parameters
     ----------
-    pf : EnzoStaticOutput object
+    pf : EnzoDataset object
     bcdir : String
         Path to directory containing Bruzual & Charlot h5 fit files.
     model : String
@@ -330,7 +330,7 @@ class SpectrumBuilder(object):
         
         Examples
         --------
-        >>> sp = pf.h.sphere([0.5,0.5,0.5], [.1])
+        >>> sp = pf.sphere([0.5,0.5,0.5], [.1])
         >>> spec.calculate_spectrum(data_source=sp, min_age = 1.e6)
         """
         # Initialize values

@@ -31,7 +31,7 @@ _particle_position_names = {}
 
 class IOHandlerPackedHDF5(BaseIOHandler):
 
-    _data_style = "enzo_packed_3d"
+    _dataset_type = "enzo_packed_3d"
     _base = slice(None)
 
     def _read_field_names(self, grid):
@@ -41,8 +41,8 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         fields = []
         add_io = "io" in grid.pf.particle_types
         for name, v in group.iteritems():
-            # NOTE: This won't work with 1D datasets.
-            if not hasattr(v, "shape"):
+            # NOTE: This won't work with 1D datasets or references.
+            if not hasattr(v, "shape") or v.dtype == "O":
                 continue
             elif len(v.dims) == 1:
                 if add_io: fields.append( ("io", str(name)) )
@@ -203,7 +203,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         return rv
 
 class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
-    _data_style = "enzo_packed_3d_gz"
+    _dataset_type = "enzo_packed_3d_gz"
 
     def __init__(self, *args, **kwargs):
         super(IOHandlerPackgedHDF5GhostZones, self).__init__(*args, **kwargs)
@@ -220,7 +220,7 @@ class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
 
 class IOHandlerInMemory(BaseIOHandler):
 
-    _data_style = "enzo_inline"
+    _dataset_type = "enzo_inline"
 
     def __init__(self, pf, ghost_zones=3):
         self.pf = pf
@@ -233,37 +233,8 @@ class IOHandlerInMemory(BaseIOHandler):
                       slice(ghost_zones,-ghost_zones))
         BaseIOHandler.__init__(self, pf)
 
-    def _read_data_set(self, grid, field):
-        if grid.id not in self.grids_in_memory:
-            mylog.error("Was asked for %s but I have %s", grid.id, self.grids_in_memory.keys())
-            raise KeyError
-        tr = self.grids_in_memory[grid.id][field]
-        # If it's particles, we copy.
-        if len(tr.shape) == 1: return tr.copy()
-        # New in-place unit conversion breaks if we don't copy first
-        return tr.swapaxes(0,2)[self.my_slice].copy()
-        # We don't do this, because we currently do not interpolate
-        coef1 = max((grid.Time - t1)/(grid.Time - t2), 0.0)
-        coef2 = 1.0 - coef1
-        t1 = enzo.yt_parameter_file["InitialTime"]
-        t2 = enzo.hierarchy_information["GridOldTimes"][grid.id]
-        return (coef1*self.grids_in_memory[grid.id][field] + \
-                coef2*self.old_grids_in_memory[grid.id][field])\
-                [self.my_slice]
-
-    def modify(self, field):
-        return field.swapaxes(0,2)
-
     def _read_field_names(self, grid):
-        return self.grids_in_memory[grid.id].keys()
-
-    def _read_data_slice(self, grid, field, axis, coord):
-        sl = [slice(3,-3), slice(3,-3), slice(3,-3)]
-        sl[axis] = slice(coord + 3, coord + 4)
-        sl = tuple(reversed(sl))
-        tr = self.grids_in_memory[grid.id][field][sl].swapaxes(0,2)
-        # In-place unit conversion requires we return a copy
-        return tr.copy()
+        return [("enzo", field) for field in self.grids_in_memory[grid.id].keys()]
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         rv = {}
@@ -279,7 +250,6 @@ class IOHandlerInMemory(BaseIOHandler):
         if size is None:
             size = sum((g.count(selector) for chunk in chunks
                         for g in chunk.objs))
-
         for field in fields:
             ftype, fname = field
             fsize = size
@@ -291,14 +261,14 @@ class IOHandlerInMemory(BaseIOHandler):
         ind = 0
         for chunk in chunks:
             for g in chunk.objs:
-                if g.id not in self.grids_in_memory: continue
-
-                data = np.empty(g.ActiveDimensions[::-1], dtype="float64")
-                data_view = data.swapaxes(0,2)
+                # We want a *hard error* here.
+                #if g.id not in self.grids_in_memory: continue
                 for field in fields:
                     ftype, fname = field
-                    data_view = self.grids_in_memory[g.id][fname]
+                    data_view = self.grids_in_memory[g.id][fname][self.my_slice].swapaxes(0,2)
                     nd = g.select(selector, data_view, rv[field], ind)
+                ind += nd
+        assert(ind == fsize)
         return rv
 
     def _read_particle_coords(self, chunks, ptf):
@@ -333,13 +303,9 @@ class IOHandlerInMemory(BaseIOHandler):
                             data = data * g.dds.prod(dtype="f8")
                         yield (ptype, field), data[mask]
 
-    @property
-    def _read_exception(self):
-        return KeyError
-
 class IOHandlerPacked2D(IOHandlerPackedHDF5):
 
-    _data_style = "enzo_packed_2d"
+    _dataset_type = "enzo_packed_2d"
     _particle_reader = False
 
     def _read_data_set(self, grid, field):
@@ -393,7 +359,7 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
 
 class IOHandlerPacked1D(IOHandlerPackedHDF5):
 
-    _data_style = "enzo_packed_1d"
+    _dataset_type = "enzo_packed_1d"
     _particle_reader = False
 
     def _read_data_set(self, grid, field):

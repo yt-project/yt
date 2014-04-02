@@ -60,7 +60,7 @@ class FieldDetector(defaultdict):
             pf.periodicity = (True, True, True)
         self.pf = pf
 
-        class fake_hierarchy(object):
+        class fake_index(object):
             class fake_io(object):
                 def _read_data_set(io_self, data, field):
                     return self._read_data(field)
@@ -69,7 +69,7 @@ class FieldDetector(defaultdict):
             def get_smallest_dx(self):
                 return 1.0
 
-        self.hierarchy = fake_hierarchy()
+        self.index = fake_index()
         self.requested = []
         self.requested_parameters = []
         if not self.flat:
@@ -127,9 +127,10 @@ class FieldDetector(defaultdict):
                 else: self[item] = vv.ravel()
                 return self[item]
         elif finfo is not None and finfo.particle_type:
-            if item == "Coordinates" or item[1] == "Coordinates" or \
-               item == "Velocities" or item[1] == "Velocities" or \
-               item == "Velocity" or item[1] == "Velocity":
+            if "particle_position" in (item, item[1]) or \
+               "particle_velocity" in (item, item[1]) or \
+               "Velocity" in (item, item[1]) or \
+               "Coordinates" in (item, item[1]):
                 # A vector
                 self[item] = \
                   YTArray(np.ones((self.NumberOfParticles, 3)),
@@ -187,6 +188,8 @@ class FieldDetector(defaultdict):
             return rv
         elif param == "fof_groups":
             return None
+        elif param == "mu":
+            return 1.0
         else:
             return 0.0
 

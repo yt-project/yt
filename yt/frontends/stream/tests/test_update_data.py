@@ -7,11 +7,11 @@ def test_update_data() :
     pf.h
     dims = (32,32,32)
     grid_data = [{"temperature":uniform(size=dims)}
-                 for i in xrange(pf.h.num_grids)]
-    pf.h.update_data(grid_data, {'temperature':'K'})
-    prj = pf.h.proj("temperature", 2)
+                 for i in xrange(pf.index.num_grids)]
+    pf.index.update_data(grid_data, {'temperature':'K'})
+    prj = pf.proj("temperature", 2)
     prj["temperature"]
-    dd = pf.h.all_data()
+    dd = pf.all_data()
     profile = BinnedProfile1D(dd, 10, "density",
                               dd["density"].min(),
                               dd["density"].max())

@@ -36,8 +36,10 @@ from yt.data_objects.particle_filters import \
     filter_registry
 from yt.data_objects.particle_unions import \
     ParticleUnion
+from yt.data_objects.data_containers import \
+    data_object_registry
 from yt.utilities.minimal_representation import \
-    MinimalStaticOutput
+    MinimalDataset
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
@@ -51,12 +53,49 @@ from yt.geometry.cylindrical_coordinates import \
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is contant up
-# to here, and then have it instantiate EnzoStaticOutputs as appropriate.
+# to here, and then have it instantiate EnzoDatasets as appropriate.
 
 _cached_pfs = weakref.WeakValueDictionary()
 _pf_store = ParameterFileStore()
 
-class StaticOutput(object):
+def _unsupported_object(pf, obj_name):
+    def _raise_unsupp(*args, **kwargs):
+        raise YTObjectNotImplemented(pf, obj_name)
+    return _raise_unsupp
+
+class IndexProxy(object):
+    # This is a simple proxy for Index objects.  It enables backwards
+    # compatibility so that operations like .h.sphere, .h.print_stats and
+    # .h.grid_left_edge will correctly pass through to the various dataset or
+    # index objects.
+    def __init__(self, ds):
+        self.ds = weakref.proxy(ds)
+        ds.index
+
+    def __getattr__(self, name):
+        # Check the ds first
+        if hasattr(self.ds, name):
+            return getattr(self.ds, name)
+        # Now for a subset of the available items, check the ds.index.
+        elif name in self.ds.index._index_properties:
+            return getattr(self.ds.index, name)
+        raise AttributeError
+
+def requires_index(attr_name):
+    @property
+    def ireq(self):
+        self.index
+        # By now it should have been set
+        attr = self.__dict__[attr_name]
+        return attr
+
+    @ireq.setter
+    def ireq(self, value):
+        self.__dict__[attr_name] = value
+
+    return ireq
+
+class Dataset(object):
 
     default_fluid_type = "gas"
     fluid_types = ("gas", "deposit", "index")
@@ -66,11 +105,11 @@ class StaticOutput(object):
     coordinates = None
     max_level = 99
     storage_filename = None
-    _particle_mass_name = None
-    _particle_coordinates_name = None
-    _particle_velocity_name = None
     particle_unions = None
     known_filters = None
+    _index_class = None
+    field_units = None
+    derived_field_list = requires_index("derived_field_list")
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):
@@ -99,17 +138,18 @@ class StaticOutput(object):
             obj = _cached_pfs[apath]
         return obj
 
-    def __init__(self, filename, data_style=None, file_style=None):
+    def __init__(self, filename, dataset_type=None, file_style=None):
         """
         Base class for generating new output types.  Principally consists of
-        a *filename* and a *data_style* which will be passed on to children.
+        a *filename* and a *dataset_type* which will be passed on to children.
         """
-        self.data_style = data_style
+        self.dataset_type = dataset_type
         self.file_style = file_style
         self.conversion_factors = {}
         self.parameters = {}
         self.known_filters = self.known_filters or {}
         self.particle_unions = self.particle_unions or {}
+        self.field_units = self.field_units or {}
 
         # path stuff
         self.parameter_filename = str(filename)
@@ -143,10 +183,15 @@ class StaticOutput(object):
 
         self.set_units()
         self._set_derived_attrs()
+        self._setup_classes()
 
     def _set_derived_attrs(self):
-        self.domain_center = 0.5 * (self.domain_right_edge + self.domain_left_edge)
-        self.domain_width = self.domain_right_edge - self.domain_left_edge
+        if self.domain_left_edge is None or self.domain_right_edge is None:
+            self.domain_center = np.zeros(3)
+            self.domain_width = np.zeros(3)
+        else:
+            self.domain_center = 0.5 * (self.domain_right_edge + self.domain_left_edge)
+            self.domain_width = self.domain_right_edge - self.domain_left_edge
         if not isinstance(self.current_time, YTQuantity):
             self.current_time = self.quan(self.current_time, "code_time")
         # need to do this if current_time was set before units were set
@@ -177,7 +222,7 @@ class StaticOutput(object):
 
     @property
     def _mrep(self):
-        return MinimalStaticOutput(self)
+        return MinimalDataset(self)
 
     @property
     def _skip_cache(self):
@@ -228,19 +273,29 @@ class StaticOutput(object):
         """
         return key in self.parameters
 
-    _instantiated_hierarchy = None
+    _instantiated_index = None
     @property
-    def hierarchy(self):
-        if self._instantiated_hierarchy is None:
-            if self._hierarchy_class == None:
-                raise RuntimeError("You should not instantiate StaticOutput.")
-            self._instantiated_hierarchy = self._hierarchy_class(
-                self, data_style=self.data_style)
-            # Now we do things that we need an instantiated hierarchy for
+    def index(self):
+        if self._instantiated_index is None:
+            if self._index_class is None:
+                raise RuntimeError("You should not instantiate Dataset.")
+            self._instantiated_index = self._index_class(
+                self, dataset_type=self.dataset_type)
+            # Now we do things that we need an instantiated index for
             # ...first off, we create our field_info now.
+            oldsettings = np.geterr()
+            np.seterr(all='ignore')
             self.create_field_info()
-        return self._instantiated_hierarchy
-    h = hierarchy  # alias
+            np.seterr(**oldsettings)
+        return self._instantiated_index
+    
+    _index_proxy = None
+    @property
+    def h(self):
+        if self._index_proxy is None:
+            self._index_proxy = IndexProxy(self)
+        return self._index_proxy
+    hierarchy = h
 
     @parallel_root_only
     def print_key_parameters(self):
@@ -261,10 +316,19 @@ class StaticOutput(object):
                 v = getattr(self, a)
                 mylog.info("Parameters: %-25s = %s", a, v)
 
+    @parallel_root_only
+    def print_stats(self):
+        self.index.print_stats()
+
+    @property
+    def field_list(self):
+        return self.index.field_list
+
     def create_field_info(self):
         self.field_dependencies = {}
-        self.h.derived_field_list = []
-        self.field_info = self._field_info_class(self, self.h.field_list)
+        self.derived_field_list = []
+        self.filtered_particle_types = []
+        self.field_info = self._field_info_class(self, self.field_list)
         self.coordinates.setup_fields(self.field_info)
         self.field_info.setup_fluid_fields()
         for ptype in self.particle_types:
@@ -304,17 +368,30 @@ class StaticOutput(object):
         # No string lookups here, we need an actual union.
         f = self.particle_fields_by_type
         fields = set_intersection([f[s] for s in union
-                                   if s in self.particle_types_raw])
+                                   if s in self.particle_types_raw
+                                   and len(f[s]) > 0])
+        for field in fields:
+            units = set([])
+            for s in union:
+                # First we check our existing fields for units
+                funits = self._get_field_info(s, field).units
+                # Then we override with field_units settings.
+                funits = self.field_units.get((s, field), funits)
+                units.add(funits)
+            if len(units) == 1:
+                self.field_units[union.name, field] = list(units)[0]
         self.particle_types += (union.name,)
         self.particle_unions[union.name] = union
         fields = [ (union.name, field) for field in fields]
-        self.h.field_list.extend(fields)
+        self.field_list.extend(fields)
         # Give ourselves a chance to add them here, first, then...
         # ...if we can't find them, we set them up as defaults.
-        new_fields = self.h._setup_particle_types([union.name])
+        new_fields = self._setup_particle_types([union.name])
         rv = self.field_info.find_dependencies(new_fields)
 
     def add_particle_filter(self, filter):
+        # This requires an index
+        self.index
         # This is a dummy, which we set up to enable passthrough of "all"
         # concatenation fields.
         n = getattr(filter, "name", filter)
@@ -322,21 +399,50 @@ class StaticOutput(object):
         if isinstance(filter, types.StringTypes):
             used = False
             for f in filter_registry[filter]:
-                used = self.h._setup_filtered_type(f)
+                used = self._setup_filtered_type(f)
                 if used:
                     filter = f
                     break
         else:
-            used = self.h._setup_filtered_type(filter)
+            used = self._setup_filtered_type(filter)
         if not used:
             self.known_filters.pop(n, None)
             return False
         self.known_filters[filter.name] = filter
         return True
 
+    def _setup_filtered_type(self, filter):
+        if not filter.available(self.derived_field_list):
+            return False
+        fi = self.field_info
+        fd = self.field_dependencies
+        available = False
+        for fn in self.derived_field_list:
+            if fn[0] == filter.filtered_type:
+                # Now we can add this
+                available = True
+                self.derived_field_list.append(
+                    (filter.name, fn[1]))
+                fi[filter.name, fn[1]] = filter.wrap_func(fn, fi[fn])
+                # Now we append the dependencies
+                fd[filter.name, fn[1]] = fd[fn]
+        if available:
+            self.particle_types += (filter.name,)
+            self.filtered_particle_types.append(filter.name)
+            self._setup_particle_types([filter.name])
+        return available
+
+    def _setup_particle_types(self, ptypes = None):
+        df = []
+        if ptypes is None: ptypes = self.pf.particle_types_raw
+        for ptype in set(ptypes):
+            df += self._setup_particle_type(ptype)
+        return df
+
     _last_freq = (None, None)
     _last_finfo = None
     def _get_field_info(self, ftype, fname = None):
+        self.index
         if fname is None:
             ftype, fname = "unknown", ftype
         guessing_type = False
@@ -378,6 +484,56 @@ class StaticOutput(object):
                     return self._last_finfo
         raise YTFieldNotFound((ftype, fname), self)
 
+    def _setup_classes(self):
+        # Called by subclass
+        self.object_types = []
+        self.objects = []
+        self.plots = []
+        for name, cls in sorted(data_object_registry.items()):
+            if name in self._index_class._unsupported_objects:
+                setattr(self, name,
+                    _unsupported_object(self, name))
+                continue
+            cname = cls.__name__
+            if cname.endswith("Base"): cname = cname[:-4]
+            self._add_object_class(name, cname, cls, {'pf':self})
+        if self.refine_by != 2 and hasattr(self, 'proj') and \
+            hasattr(self, 'overlap_proj'):
+            mylog.warning("Refine by something other than two: reverting to"
+                        + " overlap_proj")
+            self.proj = self.overlap_proj
+        if self.dimensionality < 3 and hasattr(self, 'proj') and \
+            hasattr(self, 'overlap_proj'):
+            mylog.warning("Dimensionality less than 3: reverting to"
+                        + " overlap_proj")
+            self.proj = self.overlap_proj
+        self.object_types.sort()
+
+    def _add_object_class(self, name, class_name, base, dd):
+        self.object_types.append(name)
+        dd.update({'__doc__': base.__doc__})
+        obj = type(class_name, (base,), dd)
+        setattr(self, name, obj)
+
+    def find_max(self, field):
+        """
+        Returns (value, center) of location of maximum for a given field.
+        """
+        mylog.debug("Searching for maximum value of %s", field)
+        source = self.all_data()
+        max_val, maxi, mx, my, mz = \
+            source.quantities["MaxLocation"](field)
+        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f", 
+              max_val, mx, my, mz)
+        return max_val, np.array([mx, my, mz], dtype="float64")
+
+    # Now all the object related stuff
+    def all_data(self, find_max=False):
+        if find_max: c = self.find_max("density")[1]
+        else: c = (self.domain_right_edge + self.domain_left_edge)/2.0
+        return self.region(c,
+            self.domain_left_edge, self.domain_right_edge)
+
     def _setup_particle_type(self, ptype):
         orig = set(self.field_info.items())
         self.field_info.setup_particle_fields(ptype)
@@ -386,7 +542,7 @@ class StaticOutput(object):
     @property
     def particle_fields_by_type(self):
         fields = defaultdict(list)
-        for field in self.h.field_list:
+        for field in self.field_list:
             if field[0] in self.particle_types_raw:
                 fields[field[0]].append(field[1])
         return fields
@@ -456,8 +612,6 @@ class StaticOutput(object):
         return new_unit
 
     def set_code_units(self):
-        # domain_width does not yet exist
-        DW = self.domain_right_edge - self.domain_left_edge
         self._set_code_unit_attributes()
         self.unit_registry.modify("code_length", self.length_unit)
         self.unit_registry.modify("code_mass", self.mass_unit)
@@ -465,6 +619,11 @@ class StaticOutput(object):
         vel_unit = getattr(self, "code_velocity",
                     self.length_unit / self.time_unit)
         self.unit_registry.modify("code_velocity", vel_unit)
+        # domain_width does not yet exist
+        if self.domain_left_edge is None or self.domain_right_edge is None:
+            DW = np.zeros(3)
+        else:
+            DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
         self.unit_registry.modify("unitary", DW.max())
 
     _arr = None

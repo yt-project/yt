@@ -11,7 +11,7 @@ Particle trajectories
 #-----------------------------------------------------------------------------
 
 from yt.data_objects.data_containers import YTFieldData
-from yt.data_objects.time_series import TimeSeriesData
+from yt.data_objects.time_series import DatasetSeries
 from yt.utilities.lib.CICDeposit import CICSample_3
 from yt.funcs import *
 
@@ -28,7 +28,7 @@ class ParticleTrajectories(object):
     Parameters
     ----------
     filenames : list of strings
-        A time-sorted list of filenames to construct the TimeSeriesData
+        A time-sorted list of filenames to construct the DatasetSeries
         object.
     indices : array_like
         An integer array of particle indices whose trajectories we
@@ -48,7 +48,7 @@ class ParticleTrajectories(object):
     >>>           "particle_position_z", "particle_velocity_x",
     >>>           "particle_velocity_y", "particle_velocity_z"]
     >>> pf = load(my_fns[0])
-    >>> init_sphere = pf.h.sphere(pf.domain_center, (.5, "unitary"))
+    >>> init_sphere = pf.sphere(pf.domain_center, (.5, "unitary"))
     >>> indices = init_sphere["particle_index"].astype("int")
     >>> trajs = ParticleTrajectories(my_fns, indices, fields=fields)
     >>> for t in trajs :
@@ -68,7 +68,7 @@ class ParticleTrajectories(object):
         indices.sort() # Just in case the caller wasn't careful
         
         self.field_data = YTFieldData()
-        self.pfs = TimeSeriesData.from_filenames(filenames)
+        self.pfs = DatasetSeries.from_filenames(filenames)
         self.masks = []
         self.sorts = []
         self.indices = indices
@@ -93,7 +93,7 @@ class ParticleTrajectories(object):
         # and then return the field. 
 
         pf = self.pfs[0]
-        self.derived_field_list = pf.h.derived_field_list
+        self.derived_field_list = pf.derived_field_list
         self.particle_fields = [field for field in self.derived_field_list
                                 if pf.field_info[field].particle_type]
 

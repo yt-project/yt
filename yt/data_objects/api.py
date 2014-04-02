@@ -20,7 +20,7 @@ from octree_subset import \
     OctreeSubset
 
 from static_output import \
-    StaticOutput
+    Dataset
 
 from particle_io import \
     ParticleIOHandler, \
@@ -38,8 +38,8 @@ from profiles import \
     Profile3D
 
 from time_series import \
-    TimeSeriesData, \
-    TimeSeriesDataObject
+    DatasetSeries, \
+    DatasetSeriesObject
 
 from analyzer_objects import \
     AnalysisTask, analysis_task
