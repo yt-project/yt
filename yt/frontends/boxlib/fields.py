@@ -57,6 +57,10 @@ class BoxlibFieldInfo(FieldInfoContainer):
         ("Temp", ("K", ["temperature"], None)),
         ("x_velocity", ("cm/s", ["velocity_x"], None)),
         ("y_velocity", ("cm/s", ["velocity_y"], None)),
+        ("z_velocity", ("cm/s", ["velocity_z"], None)),
+        ("xvel", ("cm/s", ["velocity_x"], None)),
+        ("yvel", ("cm/s", ["velocity_y"], None)),
+        ("zvel", ("cm/s", ["velocity_z"], None)),
     )
 
     known_particle_fields = (
@@ -82,14 +86,9 @@ class BoxlibFieldInfo(FieldInfoContainer):
     )
 
     def setup_fluid_fields(self):
-        self._show_field_errors.append(("gas", "temperature"))
-        def _get_vel(axis):
-            def velocity(field, data):
-                return data["%smom" % axis]/data["density"]
-        for ax in 'xyz':
-            self.add_field(("gas", "velocity_%s" % ax),
-                           function = _get_vel(ax),
-                           units = "cm/s")
+        # Now, let's figure out what fields are included.
+        if any(f[1] == "xmom" for f in self.field_list):
+            self.setup_momentum_to_velocity()
         self.add_field(("gas", "thermal_energy"),
                        function = _thermal_energy,
                        units = "erg/g")
@@ -100,3 +99,12 @@ class BoxlibFieldInfo(FieldInfoContainer):
             self.add_field(("gas", "temperature"),
                            function=_temperature,
                            units="K")
+
+    def setup_momentum_to_velocity(self):
+        def _get_vel(axis):
+            def velocity(field, data):
+                return data["%smom" % axis]/data["density"]
+        for ax in 'xyz':
+            self.add_field(("gas", "velocity_%s" % ax),
+                           function = _get_vel(ax),
+                           units = "cm/s")
