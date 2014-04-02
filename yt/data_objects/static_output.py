@@ -186,8 +186,12 @@ class Dataset(object):
         self._setup_classes()
 
     def _set_derived_attrs(self):
-        self.domain_center = 0.5 * (self.domain_right_edge + self.domain_left_edge)
-        self.domain_width = self.domain_right_edge - self.domain_left_edge
+        if self.domain_left_edge is None or self.domain_right_edge is None:
+            self.domain_center = np.zeros(3)
+            self.domain_width = np.zeros(3)
+        else:
+            self.domain_center = 0.5 * (self.domain_right_edge + self.domain_left_edge)
+            self.domain_width = self.domain_right_edge - self.domain_left_edge
         if not isinstance(self.current_time, YTQuantity):
             self.current_time = self.quan(self.current_time, "code_time")
         # need to do this if current_time was set before units were set
@@ -616,7 +620,10 @@ class Dataset(object):
                     self.length_unit / self.time_unit)
         self.unit_registry.modify("code_velocity", vel_unit)
         # domain_width does not yet exist
-        DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
+        if self.domain_left_edge is None or self.domain_right_edge is None:
+            DW = np.zeros(3)
+        else:
+            DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
         self.unit_registry.modify("unitary", DW.max())
 
     _arr = None
