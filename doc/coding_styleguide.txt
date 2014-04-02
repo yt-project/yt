@@ -34,11 +34,11 @@ API Guide
  * Do not import "*" from anything other than "yt.funcs".
  * Internally, only import from source files directly -- instead of:
 
-   from yt.visualization.api import PlotCollection
+   from yt.visualization.api import ProjectionPlot
 
    do:
 
-   from yt.visualization.plot_collection import PlotCollection
+   from yt.visualization.plot_window import ProjectionPlot
 
  * Numpy is to be imported as "np", after a long time of using "na".
  * Do not use too many keyword arguments.  If you have a lot of keyword
