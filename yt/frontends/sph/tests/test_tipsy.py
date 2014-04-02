@@ -37,8 +37,7 @@ def test_pkdgrav():
                                 omega_lambda = 0.728,
                                 omega_matter = 0.272,
                                 hubble_constant = 0.702)
-    kwargs = dict(endian="<",
-                  field_dtypes = {"Coordinates": "d"},
+    kwargs = dict(field_dtypes = {"Coordinates": "d"},
                   cosmology_parameters = cosmology_parameters,
                   unit_base = {'length': (1.0/60.0, "Mpccm/h")},
                   n_ref = 64)

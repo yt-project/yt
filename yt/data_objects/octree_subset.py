@@ -176,7 +176,7 @@ class OctreeSubset(YTSelectionContainer):
     def smooth(self, positions, fields = None, index_fields = None,
                method = None, create_octree = False, nneighbors = 64):
         # Here we perform our particle deposition.
-        positions.convert_to("code_length")
+        positions.convert_to_units("code_length")
         if create_octree:
             morton = compute_morton(
                 positions[:,0], positions[:,1], positions[:,2],
