@@ -178,6 +178,8 @@ class IOHandlerOWLS(BaseIOHandler):
 
             #ptype = int(key[8:])
             ptype = str(key)
+            if ptype not in self.var_mass:
+                fields.append((ptype, mname))
 
             # loop over all keys in PartTypeX group
             #----------------------------------------
