@@ -427,8 +427,7 @@ class HaloCatalog(ParallelAnalysisInterface):
                      "omega_matter", "hubble_constant"]:
             attr_val = getattr(self.data_pf, attr)
             setattr(halos_pf, attr, attr_val)
-
-        ds = halos_pf.all_data()
+        halos_pf.current_time = halos_pf.current_time.in_cgs()
 
         return halos_pf
 
