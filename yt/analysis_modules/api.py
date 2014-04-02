@@ -63,14 +63,13 @@ from .halo_profiler.api import \
     HaloProfiler, \
     FakeProfile
 
-from .index_subset.api import \
+from .hierarchy_subset.api import \
     ConstructedRootGrid, \
     AMRExtractedGridProxy, \
     ExtractedHierarchy, \
     ExtractedParameterFile
 
 from .level_sets.api import \
-    coalesce_join_tree, \
     identify_contours, \
     Clump, \
     find_clumps, \

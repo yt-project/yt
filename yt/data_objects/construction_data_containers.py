@@ -216,7 +216,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     """
     _key_fields = YTSelectionContainer2D._key_fields + ['weight_field']
     _type_name = "proj"
-    _con_args = ('axis', 'weight_field')
+    _con_args = ('axis', 'field', 'weight_field')
     _container_fields = ('px', 'py', 'pdx', 'pdy', 'weight_field')
     def __init__(self, field, axis, weight_field = None,
                  center = None, pf = None, data_source=None, 
@@ -239,6 +239,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     @property
     def blocks(self):
         return self.data_source.blocks
+
+    @property
+    def field(self):
+        return [k for k in self.field_data.keys() if k not in self._container_fields]
 
     @property
     def _mrep(self):
@@ -269,12 +273,12 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             chunk_fields.append(self.weight_field)
         tree = self._get_tree(len(fields))
         # We do this once
-        for chunk in self.data_source.chunks([], "io"):
+        for chunk in self.data_source.chunks([], "io", local_only = False):
             self._initialize_chunk(chunk, tree)
         # This needs to be parallel_objects-ified
         with self.data_source._field_parameter_state(self.field_parameters):
             for chunk in parallel_objects(self.data_source.chunks(
-                                          chunk_fields, "io")): 
+                                          chunk_fields, "io", local_only = True)): 
                 mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)", chunk.ires.size,
                     get_memory_usage()/1024.)
                 self._handle_chunk(chunk, fields, tree)

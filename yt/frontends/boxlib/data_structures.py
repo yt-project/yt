@@ -90,8 +90,7 @@ class BoxlibGrid(AMRGridPatch):
 
     def _setup_dx(self):
         # has already been read in and stored in index
-        my_ind = self.id - self._id_offset
-        self.dds = self.index.level_dds[self.Level,:]
+        self.dds = self.index.pf.arr(self.index.level_dds[self.Level, :], 'code_length')
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     def __repr__(self):

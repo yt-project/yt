@@ -53,7 +53,7 @@ class IOHandlerOWLS(BaseIOHandler):
     _vector_fields = ("Coordinates", "Velocity", "Velocities")
     _known_ptypes = ghdf5_ptypes
     _var_mass = None
-    _element_fields = ('Hydrogen', 'Helium', 'Carbon', 'Nitrogen', 'Oxygen', 
+    _element_names = ('Hydrogen', 'Helium', 'Carbon', 'Nitrogen', 'Oxygen', 
                        'Neon', 'Magnesium', 'Silicon', 'Iron' )
 
 
@@ -110,7 +110,7 @@ class IOHandlerOWLS(BaseIOHandler):
                         ind = self._known_ptypes.index(ptype) 
                         data[:] = self.pf["Massarr"][ind]
 
-                    elif field in self._element_fields:
+                    elif field in self._element_names:
                         rfield = 'ElementAbundance/' + field
                         data = g[rfield][:][mask,...]
 
@@ -418,7 +418,8 @@ class IOHandlerTipsyBinary(BaseIOHandler):
 
     def _read_aux_fields(self, field, mask, data_file):
         """
-        Read in auxiliary files from gasoline/pkdgrav 
+        Read in auxiliary files from gasoline/pkdgrav.
+        This method will automatically detect the format of the file.
         """
         filename = data_file.filename+'.'+field
         dtype = None
@@ -527,6 +528,43 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 for field in field_list:
                     yield (ptype, field), tf.pop(field)
             f.close()
+
+    def _update_domain(self, data_file):
+        '''
+        This method is used to determine the size needed for a box that will 
+        bound the particles.  It simply finds the largest position of the
+        whole set of particles, and sets the domain to +/- that value.
+        '''
+        pf = data_file.pf
+        ind = 0
+        # Check to make sure that the domain hasn't already been set
+        # by the parameter file 
+        if np.all(np.isfinite(pf.domain_left_edge)) and np.all(np.isfinite(pf.domain_right_edge)):
+            return
+        with open(data_file.filename, "rb") as f:
+            pf.domain_left_edge = 0
+            pf.domain_right_edge = 0
+            f.seek(pf._header_offset)
+            for iptype, ptype in enumerate(self._ptypes):
+                # We'll just add the individual types separately
+                count = data_file.total_particles[ptype]
+                if count == 0: continue
+                start, stop = ind, ind + count
+                while ind < stop:
+                    c = min(CHUNKSIZE, stop - ind)
+                    pp = np.fromfile(f, dtype = self._pdtypes[ptype],
+                                     count = c)
+                    for ax in 'xyz':
+                        mi = pp["Coordinates"][ax].min()
+                        ma = pp["Coordinates"][ax].max()
+                        outlier = YTArray(np.max(np.abs((mi,ma))), 'code_length')
+                        if outlier > pf.domain_right_edge or -outlier < pf.domain_left_edge:
+                            pf.domain_left_edge = -1.01*outlier # scale these up so the domain is slightly
+                            pf.domain_right_edge = 1.01*outlier # larger than the most distant particle position
+                    ind += c
+        pf.domain_left_edge = np.ones(3)*pf.domain_left_edge
+        pf.domain_right_edge = np.ones(3)*pf.domain_right_edge
+        pf.domain_width = np.ones(3)*2*pf.domain_right_edge
 
     def _initialize_index(self, data_file, regions):
         pf = data_file.pf

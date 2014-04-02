@@ -32,6 +32,8 @@ from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
     GridIndex
+from yt.geometry.geometry_handler import \
+    YTDataChunk
 from yt.data_objects.static_output import \
     Dataset
 from yt.fields.field_info_container import \
@@ -532,7 +534,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         self.dataset_type = dataset_type
         self.float_type = 'float64'
         self.parameter_file = weakref.proxy(pf) # for _obtain_enzo
-        self.float_type = self.enzo.index_information["GridLeftEdge"].dtype
+        self.float_type = self.enzo.hierarchy_information["GridLeftEdge"].dtype
         self.directory = os.getcwd()
         GridIndex.__init__(self, pf, dataset_type)
 
@@ -540,12 +542,12 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         pass
 
     def _count_grids(self):
-        self.num_grids = self.enzo.index_information["GridDimensions"].shape[0]
+        self.num_grids = self.enzo.hierarchy_information["GridDimensions"].shape[0]
 
     def _parse_index(self):
         self._copy_index_structure()
         mylog.debug("Copying reverse tree")
-        reverse_tree = self.enzo.index_information["GridParentIDs"].ravel().tolist()
+        reverse_tree = self.enzo.hierarchy_information["GridParentIDs"].ravel().tolist()
         # Initial setup:
         mylog.debug("Reconstructing parent-child relationships")
         grids = []
@@ -562,7 +564,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         self.grids = np.empty(len(grids), dtype='object')
         for i, grid in enumerate(grids):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
-            grid.filename = None
+            grid.filename = "Inline_processor_%07i" % (self.grid_procs[i,0])
             grid._prepare_grid()
             grid.proc_num = self.grid_procs[i,0]
             self.grids[i] = grid
@@ -574,14 +576,14 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
 
     def _copy_index_structure(self):
         # Dimensions are important!
-        self.grid_dimensions[:] = self.enzo.index_information["GridEndIndices"][:]
-        self.grid_dimensions -= self.enzo.index_information["GridStartIndices"][:]
+        self.grid_dimensions[:] = self.enzo.hierarchy_information["GridEndIndices"][:]
+        self.grid_dimensions -= self.enzo.hierarchy_information["GridStartIndices"][:]
         self.grid_dimensions += 1
-        self.grid_left_edge[:] = self.enzo.index_information["GridLeftEdge"][:]
-        self.grid_right_edge[:] = self.enzo.index_information["GridRightEdge"][:]
-        self.grid_levels[:] = self.enzo.index_information["GridLevels"][:]
-        self.grid_procs = self.enzo.index_information["GridProcs"].copy()
-        self.grid_particle_count[:] = self.enzo.index_information["GridNumberOfParticles"][:]
+        self.grid_left_edge[:] = self.enzo.hierarchy_information["GridLeftEdge"][:]
+        self.grid_right_edge[:] = self.enzo.hierarchy_information["GridRightEdge"][:]
+        self.grid_levels[:] = self.enzo.hierarchy_information["GridLevels"][:]
+        self.grid_procs = self.enzo.hierarchy_information["GridProcs"].copy()
+        self.grid_particle_count[:] = self.enzo.hierarchy_information["GridNumberOfParticles"][:]
 
     def save_data(self, *args, **kwargs):
         pass
@@ -599,6 +601,20 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         else:
             random_sample = np.mgrid[0:max(len(my_grids)-1,1)].astype("int32")
         return my_grids[(random_sample,)]
+
+    def _chunk_io(self, dobj, cache = True, local_only = False):
+        gfiles = defaultdict(list)
+        gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+        for g in gobjs:
+            gfiles[g.filename].append(g)
+        for fn in sorted(gfiles):
+            if local_only:
+                gobjs = [g for g in gfiles[fn] if g.proc_num == self.comm.rank]
+                gfiles[fn] = gobjs
+            gs = gfiles[fn]
+            count = self._count_selection(dobj, gs)
+            yield YTDataChunk(dobj, "io", gs, count, cache = cache)
+
 
 class EnzoHierarchy1D(EnzoHierarchy):
 
@@ -829,12 +845,11 @@ class EnzoDataset(Dataset):
         else:
             if "LengthUnits" in self.parameters:
                 length_unit = self.parameters["LengthUnits"]
-                mass_unit = self.parameters["MassUnits"]
+                mass_unit = self.parameters["DensityUnits"] * length_unit**3
                 time_unit = self.parameters["TimeUnits"]
             else:
                 mylog.warning("Setting 1.0 in code units to be 1.0 cm")
                 mylog.warning("Setting 1.0 in code units to be 1.0 s")
-                mylog.warning("Setting 1.0 in code units to be 1.0 g")
                 length_unit = mass_unit = time_unit = 1.0
 
             self.length_unit = self.quan(length_unit, "cm")
@@ -899,6 +914,7 @@ class EnzoDatasetInMemory(EnzoDataset):
         return obj
 
     def __init__(self, parameter_override=None, conversion_override=None):
+        self.fluid_types += ("enzo",)
         if parameter_override is None: parameter_override = {}
         self._parameter_override = parameter_override
         if conversion_override is None: conversion_override = {}

@@ -1,9 +1,10 @@
-import os, shutil, string, glob
+import os, shutil, string, glob, re
 from sphinx.util.compat import Directive
 from docutils import nodes
 from docutils.parsers.rst import directives
 from IPython.nbconvert import html, python
-from runipy.notebook_runner import NotebookRunner
+from IPython.nbformat.current import read, write
+from runipy.notebook_runner import NotebookRunner, NotebookError
 
 class NotebookDirective(Directive):
     """Insert an evaluated notebook into a document
@@ -57,12 +58,8 @@ class NotebookDirective(Directive):
 
         skip_exceptions = 'skip_exceptions' in self.options
 
-        try:
-            evaluated_text = evaluate_notebook(nb_abs_path, dest_path_eval,
-                                               skip_exceptions=skip_exceptions)
-        except:
-            # bail
-            return []
+        evaluated_text = evaluate_notebook(nb_abs_path, dest_path_eval,
+                                           skip_exceptions=skip_exceptions)
 
         # Create link to notebook and script files
         link_rst = "(" + \
@@ -138,11 +135,20 @@ def evaluate_notebook(nb_path, dest_path=None, skip_exceptions=False):
     # Create evaluated version and save it to the dest path.
     # Always use --pylab so figures appear inline
     # perhaps this is questionable?
-    nb_runner = NotebookRunner(nb_path, pylab=False)
-    nb_runner.run_notebook(skip_exceptions=skip_exceptions)
+    notebook = read(open(nb_path), 'json')
+    nb_runner = NotebookRunner(notebook, pylab=False)
+    try:
+        nb_runner.run_notebook(skip_exceptions=skip_exceptions)
+    except NotebookError as e:
+        print ''
+        print e
+        # Return the traceback, filtering out ANSI color codes.
+        # http://stackoverflow.com/questions/13506033/filtering-out-ansi-escape-sequences
+        return 'Notebook conversion failed with the following traceback: \n%s' % \
+            re.sub(r'\\033[\[\]]([0-9]{1,2}([;@][0-9]{0,2})*)*[mKP]?', '', str(e))
     if dest_path is None:
         dest_path = 'temp_evaluated.ipynb'
-    nb_runner.save_notebook(dest_path)
+    write(nb_runner.nb, open(dest_path, 'w'), 'json')
     ret = nb_to_html(dest_path)
     if dest_path is 'temp_evaluated.ipynb':
         os.remove(dest_path)

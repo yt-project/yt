@@ -186,8 +186,12 @@ class Dataset(object):
         self._setup_classes()
 
     def _set_derived_attrs(self):
-        self.domain_center = 0.5 * (self.domain_right_edge + self.domain_left_edge)
-        self.domain_width = self.domain_right_edge - self.domain_left_edge
+        if self.domain_left_edge is None or self.domain_right_edge is None:
+            self.domain_center = np.zeros(3)
+            self.domain_width = np.zeros(3)
+        else:
+            self.domain_center = 0.5 * (self.domain_right_edge + self.domain_left_edge)
+            self.domain_width = self.domain_right_edge - self.domain_left_edge
         if not isinstance(self.current_time, YTQuantity):
             self.current_time = self.quan(self.current_time, "code_time")
         # need to do this if current_time was set before units were set
@@ -279,7 +283,10 @@ class Dataset(object):
                 self, dataset_type=self.dataset_type)
             # Now we do things that we need an instantiated index for
             # ...first off, we create our field_info now.
+            oldsettings = np.geterr()
+            np.seterr(all='ignore')
             self.create_field_info()
+            np.seterr(**oldsettings)
         return self._instantiated_index
     
     _index_proxy = None
@@ -361,11 +368,16 @@ class Dataset(object):
         # No string lookups here, we need an actual union.
         f = self.particle_fields_by_type
         fields = set_intersection([f[s] for s in union
-                                   if s in self.particle_types_raw])
+                                   if s in self.particle_types_raw
+                                   and len(f[s]) > 0])
         for field in fields:
             units = set([])
             for s in union:
-                units.add(self.field_units.get((s, field), ""))
+                # First we check our existing fields for units
+                funits = self._get_field_info(s, field).units
+                # Then we override with field_units settings.
+                funits = self.field_units.get((s, field), funits)
+                units.add(funits)
             if len(units) == 1:
                 self.field_units[union.name, field] = list(units)[0]
         self.particle_types += (union.name,)
@@ -608,7 +620,10 @@ class Dataset(object):
                     self.length_unit / self.time_unit)
         self.unit_registry.modify("code_velocity", vel_unit)
         # domain_width does not yet exist
-        DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
+        if self.domain_left_edge is None or self.domain_right_edge is None:
+            DW = np.zeros(3)
+        else:
+            DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
         self.unit_registry.modify("unitary", DW.max())
 
     _arr = None

@@ -47,8 +47,7 @@ mpc_conversion = {'Mpc'   : mpc_per_mpc,
                   'cm'    : cm_per_mpc}
 
 # Nicely formatted versions of common length units
-formatted_length_unit_names = {'mpc'     : 'Mpc',
-                               'au'      : 'AU',
+formatted_length_unit_names = {'au'      : 'AU',
                                'rsun'    : 'R_\odot',
                                'code_length': 'code\/length'}
 

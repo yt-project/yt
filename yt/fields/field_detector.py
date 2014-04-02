@@ -188,6 +188,8 @@ class FieldDetector(defaultdict):
             return rv
         elif param == "fof_groups":
             return None
+        elif param == "mu":
+            return 1.0
         else:
             return 0.0
 

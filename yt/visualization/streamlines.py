@@ -41,7 +41,7 @@ class Streamlines(ParallelAnalysisInterface):
     zfield: field, optional
         The z component of the vector field to be streamlined.
         Default:'velocity_z'
-    volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
+    volume : `yt.extensions.volume_rendering.AMRKDTree`, optional
         The volume to be streamlined.  Can be specified for
         finer-grained control, but otherwise will be automatically
         generated.  At this point it must use the AMRKDTree. 

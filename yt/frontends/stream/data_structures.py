@@ -498,6 +498,13 @@ def unitify_data(data):
             raise RuntimeError
         new_data[new_field] = data[field]
         field_units[new_field] = field_units.pop(field)
+        known_fields = StreamFieldInfo.known_particle_fields \
+                     + StreamFieldInfo.known_other_fields
+        # We do not want to override any of the known ones, if it's not
+        # overridden here.
+        if any(f[0] == new_field[1] for f in known_fields) and \
+           field_units[new_field] == "":
+            field_units.pop(new_field)
     data = new_data
     return field_units, data
 
@@ -995,7 +1002,7 @@ def load_particles(data, length_unit = None, bbox=None,
 
     """
 
-    domain_dimensions = np.ones(3, "int32") * 2
+    domain_dimensions = np.ones(3, "int32") * (1<<over_refine_factor)
     nprocs = 1
     if bbox is None:
         bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], 'float64')
@@ -1293,7 +1300,7 @@ class StreamOctreeHandler(OctreeIndex):
                 g = og
             yield YTDataChunk(dobj, "spatial", [g])
 
-    def _chunk_io(self, dobj, cache = True):
+    def _chunk_io(self, dobj, cache = True, local_only = False):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in oobjs:
             yield YTDataChunk(dobj, "io", [subset], None, cache = cache)

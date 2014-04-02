@@ -242,15 +242,15 @@ a certain temperature range, as in the following example.
 .. notebook-cell::
 
    from yt.mods import *
-   pf = load("enzo_tiny_cosmology/DD0046/DD0046")
-   ad = pf.h.all_data()
-   total_mass = ad.quantities["TotalQuantity"]("cell_mass")
+   ds = load("enzo_tiny_cosmology/DD0046/DD0046")
+   ad = ds.all_data()
+   total_mass = ad.quantities.total_mass()
    # now select only gas with 1e5 K < T < 1e7 K.
    new_region = ad.cut_region(['obj["temperature"] > 1e5',
                                'obj["temperature"] < 1e7'])
-   cut_mass = new_region.quantities["TotalQuantity"]("cell_mass")
+   cut_mass = new_region.quantities.total_mass()
    print "The fraction of mass in this temperature range is %f." % \
-     (cut_mass[0] / total_mass[0])
+     (cut_mass / total_mass)
 
 The ``cut_region`` function generates a new object containing only the cells 
 that meet all of the specified criteria.  The sole argument to ``cut_region`` 

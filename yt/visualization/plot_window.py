@@ -301,6 +301,8 @@ class PlotWindow(ImagePlotContainer):
             bounds = self.xlim+self.ylim+self.zlim
         else:
             bounds = self.xlim+self.ylim
+        if self._frb_generator is ObliqueFixedResolutionBuffer:
+            bounds = np.array(bounds)
         self._frb = self._frb_generator(self.data_source,
                                         bounds, self.buff_size,
                                         self.antialias,

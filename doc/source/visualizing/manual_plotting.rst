@@ -39,13 +39,13 @@ of any data two-dimensional data object:
    pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
    c = pf.h.find_max('density')[1]
-   proj = pf.proj(0, 'density')
+   proj = pf.proj('density', 0)
 
-   width = 10/pf['kpc'] # we want a 1.5 mpc view
+   width = (10, 'kpc') # we want a 1.5 mpc view
    res = [1000, 1000] # create an image with 1000x1000 pixels
    frb = proj.to_frb(width, res, center=c)
 
-   P.imshow(frb['density'])
+   P.imshow(np.array(frb['density']))
    P.savefig('my_perfect_figure.png')
    
 The FRB is a very small object that can be deleted and recreated quickly (in
@@ -76,10 +76,10 @@ This is perhaps the simplest thing to do. ``yt`` provides a number of one dimens
    ray = pf.ortho_ray(ax, (c[1], c[2])) # cutting through the y0,z0 such that we hit the max density
 
    P.subplot(211)
-   P.semilogy(ray['x'], ray['density'])
+   P.semilogy(np.array(ray['x']), np.array(ray['density']))
    P.ylabel('density')
    P.subplot(212)
-   P.semilogy(ray['x'], ray['temperature'])
+   P.semilogy(np.array(ray['x']), np.array(ray['temperature']))
    P.xlabel('x')
    P.ylabel('temperature')
 

@@ -59,34 +59,46 @@ def _create_density_func(ftype, species):
             * data[ftype,'density']
     return _density
 
-def add_species_field_by_density(registry, ftype, species):
+def add_species_field_by_density(registry, ftype, species, 
+                                 particle_type = False):
     """
     This takes a field registry, a fluid type, and a species name and then
     adds the other fluids based on that.  This assumes that the field
     "SPECIES_density" already exists and refers to mass density.
     """
     registry.add_field((ftype, "%s_fraction" % species), 
-                        function = _create_fraction_func(ftype, species),
-                        units = "")
-    registry.add_field((ftype, "%s_mass" % species),
-                        function = _create_mass_func(ftype, species),
-                        units = "g")
-    registry.add_field((ftype, "%s_number_density" % species),
-                        function = _create_number_density_func(ftype, species),
-                        units = "cm**-3")
+                       function = _create_fraction_func(ftype, species),
+                       particle_type = particle_type,
+                       units = "")
 
-def add_species_field_by_fraction(registry, ftype, species):
+    registry.add_field((ftype, "%s_mass" % species),
+                       function = _create_mass_func(ftype, species),
+                       particle_type = particle_type,
+                       units = "g")
+
+    registry.add_field((ftype, "%s_number_density" % species),
+                       function = _create_number_density_func(ftype, species),
+                       particle_type = particle_type,
+                       units = "cm**-3")
+
+def add_species_field_by_fraction(registry, ftype, species, 
+                                  particle_type = False):
     """
     This takes a field registry, a fluid type, and a species name and then
     adds the other fluids based on that.  This assumes that the field
     "SPECIES_fraction" already exists and refers to mass fraction.
     """
     registry.add_field((ftype, "%s_density" % species), 
-                        function = _create_density_func(ftype, species),
-                        units = "g/cm**3")
+                       function = _create_density_func(ftype, species),
+                       particle_type = particle_type,
+                       units = "g/cm**3")
+
     registry.add_field((ftype, "%s_mass" % species),
-                        function = _create_mass_func(ftype, species),
-                        units = "g")
+                       function = _create_mass_func(ftype, species),
+                       particle_type = particle_type,
+                       units = "g")
+
     registry.add_field((ftype, "%s_number_density" % species),
-                        function = _create_number_density_func(ftype, species),
-                        units = "cm**-3")
+                       function = _create_number_density_func(ftype, species),
+                       particle_type = particle_type,
+                       units = "cm**-3")
