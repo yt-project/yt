@@ -16,7 +16,6 @@ Field Interpolation Tables
 cimport cython
 cimport numpy as np
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, fabs
-from libc.math cimport isnormal
 
 DEF Nch = 4
 
@@ -34,6 +33,7 @@ cdef struct FieldInterpolationTable:
 
 cdef extern from "math.h": 
     double expf(double x) nogil 
+    int isnormal(double x) nogil
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
