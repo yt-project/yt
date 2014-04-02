@@ -172,7 +172,8 @@ class DerivedField(object):
         original_fields = data.keys() # Copy
         if self._function is NullFunc:
             raise RuntimeError(
-                "Something has gone terribly wrong, _function is NullFunc")
+                "Something has gone terribly wrong, _function is NullFunc " +
+                "for %s" % (self.name,))
         with self.unit_registry(data):
             dd = self._function(self, data)
         for field_name in data.keys():
