@@ -201,9 +201,8 @@ class EnzoSimulation(SimulationTimeSeries):
 
         >>> # after calling get_time_series
         >>> for pf in es.piter():
-        ...     pc = PlotCollection(pf, 'c')
-        ...     pc.add_projection('Density', 0)
-        ...     pc.save()
+        ...     p = ProjectionPlot(pf, 'x', "density")
+        ...     p.save()
 
         >>> # An example using the setup_function keyword
         >>> def print_time(pf):
