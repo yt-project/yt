@@ -117,15 +117,22 @@ class AthenaHierarchy(GridIndex):
     def _detect_output_fields(self):
         field_map = {}
         f = open(self.index_filename,'rb')
-        line = f.readline()
+        def check_readline(fl):
+            line = fl.readline()
+            if "SCALARS" in line and not line.startswith("SCALARS"):
+                line = line[line.find("SCALARS"):]
+            if "VECTORS" in line and not line.startswith("VECTORS"):
+                line = line[line.find("VECTORS"):]
+            return line
+        line = check_readline(f)
         while line != '':
             splitup = line.strip().split()
             if "DIMENSIONS" in splitup:
                 grid_dims = np.array(splitup[-3:]).astype('int')
-                line = f.readline()
+                line = check_readline(f)
             elif "CELL_DATA" in splitup:
                 grid_ncells = int(splitup[-1])
-                line = f.readline()
+                line = check_readline(f)
                 if np.prod(grid_dims) != grid_ncells:
                     grid_dims -= 1
                     grid_dims[grid_dims==0]=1
@@ -135,15 +142,19 @@ class AthenaHierarchy(GridIndex):
                     raise TypeError
                 break
             else:
-                line = f.readline()
+                line = check_readline(f)
         read_table = False
         read_table_offset = f.tell()
         while line != '':
             splitup = line.strip().split()
+            if 'SCALARS' in line and 'SCALARS' not in splitup:
+                splitup = line[line.find('SCALARS'):].strip().split()
+            if 'VECTORS' in line and 'VECTORS' not in splitup:
+                splitup = line[line.find('VECTORS'):].strip().split()
             if 'SCALARS' in splitup:
                 field = ("athena", splitup[1])
                 if not read_table:
-                    line = f.readline() # Read the lookup table line
+                    line = check_readline(f) # Read the lookup table line
                     read_table = True
                 field_map[field] = ('scalar', f.tell() - read_table_offset)
                 read_table=False
@@ -153,7 +164,7 @@ class AthenaHierarchy(GridIndex):
                 for ax in 'xyz':
                     field_map[("athena","%s_%s" % (field, ax))] =\
                             ('vector', f.tell() - read_table_offset)
-            line = f.readline()
+            line = check_readline(f)
 
         f.close()
 
@@ -205,6 +216,8 @@ class AthenaHierarchy(GridIndex):
             gridlistread += glob.glob(os.path.join(dataset_dir, 'id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:])))
         else :
             gridlistread += glob.glob(os.path.join(dataset_dir, 'lev*/%s*-lev*%s' % (dname[:-9],dname[-9:])))
+        ndots = dname.count(".")
+        gridlistread = [fn for fn in gridlistread if os.path.basename(fn).count(".") == ndots]
         self.num_grids = len(gridlistread)
         dxs=[]
         self.grids = np.empty(self.num_grids, dtype='object')
@@ -432,6 +445,8 @@ class AthenaDataset(Dataset):
             gridlistread += glob.glob(os.path.join(dataset_dir, 'id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:])))
         else :
             gridlistread += glob.glob(os.path.join(dataset_dir, 'lev*/%s*-lev*%s' % (dname[:-9],dname[-9:])))
+        ndots = dname.count(".")
+        gridlistread = [fn for fn in gridlistread if os.path.basename(fn).count(".") == ndots]
         self.nvtk = len(gridlistread)+1 
 
         self.current_redshift = self.omega_lambda = self.omega_matter = \
