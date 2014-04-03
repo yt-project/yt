@@ -42,7 +42,7 @@ known_species_names = {
     'HM'      : 'H_m1',
     'DI'      : 'D',
     'DII'     : 'D_p1',
-    'HD'      : 'HD',
+    'HDI'     : 'HD',
     'Electron': 'El'
 }
 
