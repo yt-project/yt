@@ -442,6 +442,7 @@ class AthenaDataset(Dataset):
             self.parameters["Gamma"] = self.specified_parameters["gamma"]
         else :
             self.parameters["Gamma"] = 5./3. 
+        self.geometry = self.specified_parameters.get("geometry", "cartesian")
         self._handle.close()
 
 
