@@ -23,3 +23,5 @@ from image_handling import export_rgba, import_rgba, \
 from camera import Camera, PerspectiveCamera, StereoPairCamera, \
     off_axis_projection, FisheyeCamera, MosaicFisheyeCamera, \
     HEALpixCamera, InteractiveCamera, ProjectionCamera
+
+from transfer_function_helper import TransferFunctionHelper
