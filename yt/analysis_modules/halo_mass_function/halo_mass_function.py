@@ -41,15 +41,18 @@ class HaloMassFcn(ParallelAnalysisInterface):
     function information.
 
     masses_sim : Array 
-        Halo masses from simulated halos.
+        Halo masses from simulated halos. Units: M_solar.
     n_cumulative_sim : Array
         Number density of halos with mass greater than the corresponding 
-        mass in masses_sim (simulated).
-    massarray : Array
-        Masses used for the generation of the analytic mass function.
-    nofmz_cum : Array
+        mass in masses_sim (simulated). Units: comoving (Mpc/h)^-3
+    masses_analytic : Array
+        Masses used for the generation of the analytic mass function, Units:
+        M_solar.
+    n_cumulative_analytic : Array
         Number density of halos with mass greater then the corresponding
-        mass in massarray (analytic).
+        mass in masses_analytic (analytic). Units: comoving (Mpc/h)^-3
+    dndM_dM_analytic : Array
+        Differential number density of halos, (dn/dM)*dM (analytic).
 
     The HaloMassFcn object also has a convenience function write_out() that
     will write out the data to disk.
@@ -103,13 +106,13 @@ class HaloMassFcn(ParallelAnalysisInterface):
         The log10 of the mass of the minimum of the halo mass range. This is
         set automatically by the range of halo masses if a simulated halo 
         dataset is provided. If a halo dataset if not provided and no value
-        is specified, it will be set to 5.
+        is specified, it will be set to 5. Units: M_solar
         Default : None.
     log_mass_max : float 
         The log10 of the mass of the maximum of the halo mass range. This is
         set automatically by the range of halo masses if a simulated halo 
         dataset is provided. If a halo dataset if not provided and no value
-        is specified, it will be set to 15.
+        is specified, it will be set to 15. Units: M_solar
         Default : None.
     num_sigma_bins : float
         The number of bins (points) to use for the calculation of the 
@@ -130,7 +133,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
     >>> halos_ds = load("rockstar_halos/halo_0.0.bin")
     >>> hmf = HaloMassFcn(halos_ds=halos_ds, make_analytic=True)
     >>> plt.loglog(hmf.masses_sim, hmf.n_cumulative_sim)
-    >>> plt.loglog(hmf.massarray, hmf.nofmz_cum)
+    >>> plt.loglog(hmf.masses_analytic, hmf.n_cumulative_analytic)
     >>> plt.savefig("mass_function.png")
 
     This creates only the analytic halo mass function for a simulation
@@ -139,7 +142,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
 
     >>> ds = load("enzo_tiny_cosmology/DD0046/DD0046")
     >>> hmf = HaloMassFcn(ds=ds)
-    >>> plt.loglog(hmf.massarray, hmf.nofmz_cum)
+    >>> plt.loglog(hmf.masses_analytic, hmf.n_cumulative_analytic)
     >>> plt.savefig("mass_function.png")
     
     This creates the analytic mass function for an arbitrary set of 
@@ -148,7 +151,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
     >>> hmf = HaloMassFcn(omega_baryon0=0.05, omega_matter0=0.27, 
                           omega_lambda0=0.73, hubble0=0.7, this_redshift=10,
                           log_mass_min=5, log_mass_max=9)
-    >>> plt.loglog(hmf.massarray, hmf.nofmz_cum)
+    >>> plt.loglog(hmf.masses_analytic, hmf.n_cumulative_analytic)
     >>> plt.savefig("mass_function.png")
     """
     def __init__(self, simulation_ds=None, halos_ds=None, make_analytic=False, 
@@ -216,6 +219,8 @@ class HaloMassFcn(ParallelAnalysisInterface):
             # Do the calculations.
             self.sigmaM()
             self.dndm()
+            # Return the mass array in M_solar rather than M_solar/h
+            self.masses_analytic *= self.hubble0
 
         """
         If a halo file has been supplied, make a mass function for the simulated halos.
@@ -245,7 +250,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
         # We're going to use indices to count the number of halos above a given mass
         masses_sim = np.sort(data_source['ParticleMassMsun'])
         # Determine the size of the simulation volume in comoving Mpc**3
-        sim_volume = (self.halos_ds.domain_width.in_units('Mpccm')).prod()
+        sim_volume = (self.halos_ds.domain_width.in_units('Mpccm')/self.hubble0).prod()
         n_cumulative_sim = np.arange(len(masses_sim),0,-1)
         # We don't want repeated halo masses, and the unique indices tell us which values 
         # correspond to distinct halo masses.
@@ -266,15 +271,14 @@ class HaloMassFcn(ParallelAnalysisInterface):
                 fp = self.comm.write_on_root(fitname)
                 line = \
                 """#Columns:
-#1. log10 of mass (Msolar, NOT Msolar/h)
-#2. mass (Msolar/h)
-#3. (dn/dM)*dM (differential number density of halos, per Mpc^3 (NOT h^3/Mpc^3)
-#4. cumulative number density of halos (per Mpc^3, NOT h^3/Mpc^3)
+#1. mass (M_solar)
+#2. (dn/dM)*dM (differential number density of halos, per Mpc^3 (NOT h^3/Mpc^3)
+#3. cumulative number density of halos (comoving (Mpc/h)^3)
 """
                 fp.write(line)
-                for i in xrange(self.logmassarray.size - 1):
-                    line = "%e\t%e\t%e\t%e\n" % (self.logmassarray[i], self.massarray[i],
-                    self.dn_M_z[i], self.nofmz_cum[i])
+                for i in xrange(self.masses_analytic.size - 1):
+                    line = "%e\t%e\t%e\n" % (self.masses_analytic[i],
+                    self.dndM_dM_analytic[i], self.n_cumulative_analytic[i])
                     fp.write(line)
                 fp.close()
             # If the analytic halo mass function wasn't created, warn the user
@@ -289,14 +293,14 @@ when creating the HaloMassFcn object.")
                 fp = self.comm.write_on_root(haloname)
                 line = \
                 """#Columns:
-#1. log10 of mass (Msolar, NOT Msolar/h)
-#2. mass (Msolar/h)
-#3. cumulative number density of halos (per Mpc^3, NOT h^3/Mpc^3)
+#1. log10 of mass (M_solar)
+#2. mass (M_solar)
+#3. cumulative number density of halos (comoving (Mpc/h)^3)
 """
                 fp.write(line)
                 for i in xrange(self.masses_sim.size - 1):
                     line = "%e\t%e\t%e\n" % (np.log10(self.masses_sim[i]), 
-                    self.masses_sim[i]/self.hubble0,
+                    self.masses_sim[i],
                     self.n_cumulative_sim[i])
                     fp.write(line)
                 fp.close()
@@ -321,10 +325,8 @@ the HaloMassFcn object.")
         
          Outputs: four columns of data containing the following information:
 
-         1) log mass (Msolar)
-         2) mass (Msolar/h)
-         3) Radius (comoving Mpc/h)
-         4) sigma (normalized) using Msun/h as the input
+         1) mass (Msolar/h)
+         2) sigma (normalized) using Msun/h as the input
          
          The arrays output are used later.
         """
@@ -337,13 +339,9 @@ the HaloMassFcn object.")
             mylog.error("You should probably fix your cosmology parameters!")
 
         # output arrays
-        # 1) log10 of mass (Msolar, NOT Msolar/h)
-        self.Rarray = np.empty(self.num_sigma_bins,dtype='float64')
-        # 2) mass (Msolar/h)
-        self.logmassarray = np.empty(self.num_sigma_bins, dtype='float64')
-        # 3) spatial scale corresponding to that radius (Mpc/h)
-        self.massarray = np.empty(self.num_sigma_bins, dtype='float64')
-        # 4) sigma(M, z=0, where mass is in Msun/h)
+        # 1) mass (M_solar/h), changed to M_solar/h at output
+        self.masses_analytic = np.empty(self.num_sigma_bins, dtype='float64')
+        # 2) sigma(M, z=0, where mass is in Msun/h)
         self.sigmaarray = np.empty(self.num_sigma_bins, dtype='float64')
 
         # get sigma_8 normalization
@@ -379,9 +377,7 @@ the HaloMassFcn object.")
     
             R = thisradius; # h^-1 Mpc (comoving)
     
-            self.Rarray[i] = thisradius;  # h^-1 Mpc (comoving)
-            self.logmassarray[i] = thislogmass;  # Msun (NOT Msun/h)
-            self.massarray[i] = thismass;  # Msun/h
+            self.masses_analytic[i] = thismass;  # Msun/h
     
             # get normalized sigma(R)
             self.sigmaarray[i] = math.sqrt(self.sigma_squared_of_R(R)) * sigma_normalization;
@@ -396,16 +392,16 @@ the HaloMassFcn object.")
 
         self.delta_c0 = 1.69;  # critical density for turnaround (Press-Schechter)
         
-        nofmz_cum = 0.0;  # keep track of cumulative number density
+        n_cumulative_analytic = 0.0;  # keep track of cumulative number density
         
         # Loop over masses, going BACKWARD, and calculate dn/dm as well as the 
         # cumulative mass function.
         
         # output arrays
         # 5) (dn/dM)*dM (differential number density of halos, per Mpc^3 (NOT h^3/Mpc^3)
-        self.dn_M_z = np.empty(self.num_sigma_bins, dtype='float64')
+        self.dndM_dM_analytic = np.empty(self.num_sigma_bins, dtype='float64')
         # 6) cumulative number density of halos (per Mpc^3, NOT h^3/Mpc^3)
-        self.nofmz_cum = np.zeros(self.num_sigma_bins, dtype='float64')
+        self.n_cumulative_analytic = np.zeros(self.num_sigma_bins, dtype='float64')
         
         for j in xrange(self.num_sigma_bins - 1):
             i = (self.num_sigma_bins - 2) - j
@@ -413,25 +409,25 @@ the HaloMassFcn object.")
             thissigma = self.sigmaof_M_z(i, self.this_redshift);
             nextsigma = self.sigmaof_M_z(i+1, self.this_redshift);
             
-            # calc dsigmadm - has units of h (since massarray has units of h^-1)
-            dsigmadm = (nextsigma-thissigma) / (self.massarray[i+1] - self.massarray[i]);
+            # calc dsigmadm - has units of h (since masses_analytic has units of h^-1)
+            dsigmadm = (nextsigma-thissigma) / (self.masses_analytic[i+1] - self.masses_analytic[i]);
 
             # calculate dn(M,z) (dn/dM * dM)
             # this has units of h^3 since rho0 has units of h^2, dsigmadm
-            # has units of h, and massarray has units of h^-1
-            dn_M_z = -1.0 / thissigma * dsigmadm * rho0 / self.massarray[i] * \
-            self.multiplicityfunction(thissigma)*(self.massarray[i+1] - self.massarray[i]);
+            # has units of h, and masses_analytic has units of h^-1
+            dndM_dM_analytic = -1.0 / thissigma * dsigmadm * rho0 / self.masses_analytic[i] * \
+            self.multiplicityfunction(thissigma)*(self.masses_analytic[i+1] - self.masses_analytic[i]);
 
             # scale by h^3 to get rid of all factors of h
-            dn_M_z *= math.pow(self.hubble0, 3.0);
+            dndM_dM_analytic *= math.pow(self.hubble0, 3.0);
             
             # keep track of cumulative number density
-            if dn_M_z > 1.0e-20:
-                nofmz_cum += dn_M_z;
+            if dndM_dM_analytic > 1.0e-20:
+                n_cumulative_analytic += dndM_dM_analytic;
             
             # Store this.
-            self.nofmz_cum[i] = nofmz_cum
-            self.dn_M_z[i] = dn_M_z
+            self.n_cumulative_analytic[i] = n_cumulative_analytic
+            self.dndM_dM_analytic[i] = dndM_dM_analytic
         
 
     def sigma_squared_of_R(self, R):
