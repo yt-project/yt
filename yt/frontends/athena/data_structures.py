@@ -416,7 +416,7 @@ class AthenaDataset(Dataset):
         if 'periodicity' in self.specified_parameters:
             self.periodicity = ensure_tuple(self.specified_parameters['periodicity'])
         else:
-            self.periodicity = (True,)*self.dimensionality
+            self.periodicity = (True,True,True,)
         if 'gamma' in self.specified_parameters:
             self.gamma = float(self.specified_parameters['gamma'])
         else:
