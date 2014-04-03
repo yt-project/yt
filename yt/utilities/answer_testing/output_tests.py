@@ -212,7 +212,7 @@ class YTDatasetTest(SingleOutputTest):
         This is a helper function to return the location of the most dense
         point.
         """
-        return self.pf.h.find_max("Density")[1]
+        return self.pf.h.find_max("density")[1]
 
     @property
     def entire_simulation(self):

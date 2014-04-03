@@ -141,14 +141,14 @@ class TestSlice(YTDatasetTest):
 # function, which is a relatively simple function that takes the base class,
 # a name, and any parameters that the test requires.
 for axis in range(3):
-    for field in ["Density", "Temperature"]:
+    for field in ["density", "temperature"]:
         create_test(TestProjection, "projection_test_%s_%s" % (axis, field),
                     field = field, axis = axis)
 
 class TestGasDistribution(YTDatasetTest):
     field_x = None
     field_y = None
-    weight = "CellMassMsun"
+    weight = "cell_mass"
     n_bins = 32
 
     def run(self):
@@ -172,14 +172,14 @@ class TestGasDistribution(YTDatasetTest):
 
 # Now we create all our tests, but we're only going to check the binning
 # against Density for now.
-for field in ["Temperature", "velocity_x"]:
+for field in ["temperature", "velocity_x"]:
     create_test(TestGasDistribution, "profile_density_test_%s" % field,
-                field_x = "Density", field_y = field)
+                field_x = "density", field_y = field)
 
 class Test2DGasDistribution(TestGasDistribution):
     x_bins = 128
     y_bins = 128
-    field_z = "CellMassMsun"
+    field_z = "cell_mass"
     weight = None
     def run(self):
         # We're NOT going to use the low-level profiling API here,

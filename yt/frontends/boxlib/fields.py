@@ -16,28 +16,35 @@ Orion-specific fields
 import numpy as np
 
 from yt.utilities.physical_constants import \
-    mh, kboltz
+    mh, boltzmann_constant_cgs, amu_cgs
 from yt.fields.field_info_container import \
     FieldInfoContainer
 
 rho_units = "code_mass / code_length**3"
-mom_units = "code_mass * code_length / code_time"
+mom_units = "code_mass / (code_time * code_length**2)"
 eden_units = "code_mass / (code_time**2 * code_length)" # erg / cm^3
 
 def _thermal_energy_density(field, data):
+    # What we've got here is UEINT:
+    # u here is velocity
+    # E is energy density from the file
+    #   rho e = rho E - rho * u * u / 2
     ke = 0.5 * ( data["momentum_x"]**2
                + data["momentum_y"]**2
                + data["momentum_z"]**2) / data["density"]
     return data["eden"] - ke
 
 def _thermal_energy(field, data):
+    # This is little e, so we take thermal_energy_density and divide by density
     return data["thermal_energy_density"] / data["density"]
 
 def _temperature(field,data):
-    mu = data.get_field_parameter("mu")
-    return ( (data.pf.gamma-1.0) * mu * mh *
-             data["thermal_energy"] / (kboltz * data["density"]) )
-
+    mu = data.pf.parameters["mu"]
+    gamma = data.pf.parameters["gamma"]
+    tr  = data["thermal_energy_density"] / data["density"]
+    tr *= mu * amu_cgs / boltzmann_constant_cgs
+    tr *= (gamma - 1.0)
+    return tr
 
 class BoxlibFieldInfo(FieldInfoContainer):
     known_other_fields = (
@@ -47,8 +54,13 @@ class BoxlibFieldInfo(FieldInfoContainer):
         ("ymom", (mom_units, ["momentum_y"], None)),
         ("zmom", (mom_units, ["momentum_z"], None)),
         ("temperature", ("K", ["temperature"], None)),
+        ("Temp", ("K", ["temperature"], None)),
         ("x_velocity", ("cm/s", ["velocity_x"], None)),
         ("y_velocity", ("cm/s", ["velocity_y"], None)),
+        ("z_velocity", ("cm/s", ["velocity_z"], None)),
+        ("xvel", ("cm/s", ["velocity_x"], None)),
+        ("yvel", ("cm/s", ["velocity_y"], None)),
+        ("zvel", ("cm/s", ["velocity_z"], None)),
     )
 
     known_particle_fields = (
@@ -74,17 +86,25 @@ class BoxlibFieldInfo(FieldInfoContainer):
     )
 
     def setup_fluid_fields(self):
-        def _get_vel(axis):
-            def velocity(field, data):
-                return data["%smom" % ax]/data["density"]
-        for ax in 'xyz':
-            self.add_field("velocity_%s" % ax, function = _get_vel(ax),
-                           units = "cm/s")
-        self.add_field("thermal_energy",
+        # Now, let's figure out what fields are included.
+        if any(f[1] == "xmom" for f in self.field_list):
+            self.setup_momentum_to_velocity()
+        self.add_field(("gas", "thermal_energy"),
                        function = _thermal_energy,
                        units = "erg/g")
-        self.add_field("thermal_energy_density",
+        self.add_field(("gas", "thermal_energy_density"),
                        function = _thermal_energy_density,
                        units = "erg/cm**3")
-        self.add_field("temperature", function=_temperature,
-                       units="K")
+        if ("gas", "temperature") not in self.field_aliases:
+            self.add_field(("gas", "temperature"),
+                           function=_temperature,
+                           units="K")
+
+    def setup_momentum_to_velocity(self):
+        def _get_vel(axis):
+            def velocity(field, data):
+                return data["%smom" % axis]/data["density"]
+        for ax in 'xyz':
+            self.add_field(("gas", "velocity_%s" % ax),
+                           function = _get_vel(ax),
+                           units = "cm/s")

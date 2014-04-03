@@ -21,7 +21,7 @@ from yt.utilities.answer_testing.framework import \
     data_dir_load
 from yt.frontends.flash.api import FLASHDataset
 
-_fields = ("Temperature", "Density", "VelocityMagnitude", "DivV")
+_fields = ("temperature", "density", "velocity_magnitude", "velocity_divergence")
 
 sloshing = "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300"
 @requires_pf(sloshing, big_data=True)
@@ -32,7 +32,7 @@ def test_sloshing():
         test_sloshing.__name__ = test.description
         yield test
 
-_fields_2d = ("Temperature", "Density")
+_fields_2d = ("temperature", "density")
 
 wt = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
 @requires_pf(wt)

@@ -21,7 +21,8 @@ from yt.utilities.answer_testing.framework import \
     data_dir_load
 from yt.frontends.enzo.api import EnzoDataset
 
-_fields = ("Temperature", "Density", "VelocityMagnitude", "DivV")
+_fields = ("temperature", "density", "velocity_magnitude",
+           "velocity_divergence")
 
 m7 = "DD0010/moving7_0010"
 @requires_pf(m7)

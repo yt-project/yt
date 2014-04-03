@@ -395,6 +395,8 @@ class BoxlibDataset(Dataset):
         self.parameters["HydroMethod"] = 'boxlib'
         self.parameters["Time"] = 1. # default unit is 1...
         self.parameters["EOSType"] = -1 # default
+        self.parameters["gamma"] = self.parameters.get(
+            "materials.gamma", 1.6667)
 
     def _localize_check(self, fn):
         # If the file exists, use it.  If not, set it to None.

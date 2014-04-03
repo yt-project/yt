@@ -24,7 +24,9 @@ from yt.units.yt_array import \
 
 from yt.utilities.physical_constants import \
     mh, \
-    mass_sun_cgs
+    mass_sun_cgs, \
+    boltzmann_constant_cgs, \
+    amu_cgs
 
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"
@@ -43,7 +45,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
         ("HVAR_MOMENTUM_X", (mom_units, ["momentum_x"], None)),
         ("HVAR_MOMENTUM_Y", (mom_units, ["momentum_y"], None)),
         ("HVAR_MOMENTUM_Z", (mom_units, ["momentum_z"], None)),
-        ("HVAR_GAMMA", ("", "gamma", None)),
+        ("HVAR_GAMMA", ("", ["gamma"], None)),
         ("HVAR_METAL_DENSITY_Ia", (rho_units, ["metal_ia_density"], None)),
         ("HVAR_METAL_DENSITY_II", (rho_units, ["metal_ii_density"], None)),
         ("VAR_POTENTIAL", ("", ["potential"], None)),
@@ -69,9 +71,11 @@ class ARTIOFieldInfo(FieldInfoContainer):
     def setup_fluid_fields(self):
         def _get_vel(axis):
             def velocity(field, data):
-                return data["momentum_%s" % ax]/data["density"]
+                return data["momentum_%s" % axis]/data["density"]
+            return velocity
         for ax in 'xyz':
-            self.add_field("velocity_%s" % ax, function = _get_vel(ax),
+            self.add_field(("gas", "velocity_%s" % ax),
+                           function = _get_vel(ax),
                            units = "cm/s")
 
         def _temperature(field, data):
@@ -79,26 +83,31 @@ class ARTIOFieldInfo(FieldInfoContainer):
             # We want this to match *exactly* what ARTIO would compute
             # internally.  We therefore use the exact values that are internal
             # to ARTIO, rather than yt's own internal constants.
-            amu = 1.660538782e-24
-            mH  = 1.007825*amu
-            mHe = 4.002602*amu
+            mH  = 1.007825*amu_cgs
+            mHe = 4.002602*amu_cgs
             Yp    = 0.24
             XH    = 1.0 - Yp
             XHe   = 0.25*Yp
             mb = XH*mH + XHe*mHe
             wmu   = 4.0/(8.0-5.0*Yp)
             # Note that we have gamma = 5.0/3.0 here
-            return tr * wmu * (data["gamma"] - 1)
+            tr *= (data["gamma"] - 1.0)
+            tr *= wmu
+            tr *= mb/boltzmann_constant_cgs
+            return tr
         # TODO: The conversion factor here needs to be addressed, as previously
         # it was set as:
         # unit_T = unit_v**2.0*mb / constants.k
-        self.add_field("temperature", function = _temperature, units = "")
+        self.add_field(("gas", "temperature"), function = _temperature,
+                       units = "K")
 
         def _metal_density(field, data):
             tr = data["metal_ia_density"]
             tr += data["metal_ii_density"]
             return tr
-        self.add_field("metal_density", function=_metal_density, units="g/cm**3",
+        self.add_field(("gas","metal_density"),
+                       function=_metal_density,
+                       units="g/cm**3",
                        take_log=True)
 
     def setup_particle_fields(self, ptype):

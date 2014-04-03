@@ -21,7 +21,9 @@ from yt.utilities.answer_testing.framework import \
     data_dir_load
 from yt.frontends.boxlib.api import OrionDataset
 
-_fields = ("Temperature", "Density", "VelocityMagnitude", "DivV")
+# We don't do anything needing ghost zone generation right now, because these
+# are non-periodic datasets.
+_fields = ("temperature", "density", "velocity_magnitude")
 
 radadvect = "RadAdvect/plt00000"
 @requires_pf(radadvect)
