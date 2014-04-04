@@ -108,7 +108,6 @@ class SphericalCoordinateHandler(CoordinateHandler):
             factor = 2.0
         else:
             raise RuntimeError
-        print size, bounds
         buff = pixelize_cylinder(data_source['r'],
                                  data_source['dr'],
                                  data_source[af] * factor,
