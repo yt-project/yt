@@ -20,6 +20,7 @@ from .coordinate_handler import \
     CoordinateHandler, \
     _unknown_coord, \
     _get_coord_fields
+import yt.visualization._MPL as _MPL
 #
 # Cylindrical fields
 #
