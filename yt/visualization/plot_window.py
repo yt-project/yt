@@ -161,8 +161,12 @@ def get_sanitized_center(center, pf):
     return center
 
 def get_window_parameters(axis, center, width, pf):
-    width = get_sanitized_width(axis, width, None, pf)
-    center = get_sanitized_center(center, pf)
+    if pf.geometry == "cartesian":
+        width = get_sanitized_width(axis, width, None, pf)
+        center = get_sanitized_center(center, pf)
+    elif pf.geometry in ("polar", "cylindrical"):
+        width = [pf.domain_right_edge[0]/2, pf.domain_right_edge[0]/2]
+        center = pf.arr([0.0, 0.0, 0.0], "code_length")
     bounds = (center[x_dict[axis]]-width[0] / 2,
               center[x_dict[axis]]+width[0] / 2,
               center[y_dict[axis]]-width[1] / 2,

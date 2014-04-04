@@ -19,6 +19,8 @@ from .coordinate_handler import \
     CoordinateHandler, \
     _unknown_coord, \
     _get_coord_fields
+from yt.utilities.lib.misc_utilities import \
+    pixelize_cylinder
 
 class PolarCoordinateHandler(CoordinateHandler):
 
@@ -68,7 +70,7 @@ class PolarCoordinateHandler(CoordinateHandler):
             return self._ortho_pixelize(data_source, field, bounds, size,
                                         antialias)
         elif ax_name == "z":
-            return self._cyl_pixelize(data_source, field, bounds, size,
+            return self._polar_pixelize(data_source, field, bounds, size,
                                         antialias)
         else:
             # Pixelizing along a cylindrical surface is a bit tricky
@@ -84,11 +86,13 @@ class PolarCoordinateHandler(CoordinateHandler):
         return buff
 
     def _polar_pixelize(self, data_source, field, bounds, size, antialias):
+        # Out bounds here will *always* be what plot window thinks are x0, x1,
+        # y0, y1, but which will actually be rmin, rmax, thetamin, thetamax.
         buff = pixelize_cylinder(data_source['r'],
-                                 data_source['dr']/2.0,
+                                 data_source['dr'],
                                  data_source['theta'],
-                                 data_source['dtheta']/2.0,
-                                 size[0], data_source[field], bounds[0])
+                                 data_source['dtheta'],
+                                 size[0], data_source[field], bounds[1])
         return buff
 
     axis_name = { 0  : 'r',  1  : 'theta',  2  : 'z',
