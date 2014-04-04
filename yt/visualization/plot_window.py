@@ -173,7 +173,10 @@ def get_window_parameters(axis, center, width, pf):
             center = 0.5*(pf.domain_left_edge +
                 pf.domain_right_edge).in_units("code_length")
         else:
-            raise RuntimeError
+            width = [pf.domain_right_edge[0]*2.0, pf.domain_right_edge[0]*2.0]
+            center = 0.5*(pf.domain_left_edge +
+                pf.domain_right_edge).in_units("code_length")
+            center[0] = 0.0
     else:
         raise NotImplementedError
     bounds = (center[x_dict[axis]]-width[0] / 2,

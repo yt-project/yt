@@ -20,6 +20,8 @@ from .coordinate_handler import \
     _unknown_coord, \
     _get_coord_fields
 import yt.visualization._MPL as _MPL
+from yt.utilities.lib.misc_utilities import \
+    pixelize_cylinder
 
 class SphericalCoordinateHandler(CoordinateHandler):
 
@@ -76,9 +78,11 @@ class SphericalCoordinateHandler(CoordinateHandler):
         if dimension == 0:
             return self._ortho_pixelize(data_source, field, bounds, size,
                                         antialias, dimension, periodic)
+        elif dimension in (1, 2):
+            return self._cyl_pixelize(data_source, field, bounds, size,
+                                          antialias, dimension)
         else:
-            return self._oblique_pixelize(data_source, field, bounds, size,
-                                          antialias)
+            raise NotImplementedError
 
     def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
                         dim, periodic):
@@ -93,6 +97,25 @@ class SphericalCoordinateHandler(CoordinateHandler):
                              bounds, int(antialias),
                              period, int(periodic)).transpose()
         return buff
+
+    def _cyl_pixelize(self, data_source, field, bounds, size, antialias,
+                      dimension):
+        if dimension == 1:
+            af, daf = "phi", "dphi"
+            factor = 1.0
+        elif dimension == 2:
+            af, daf = "theta", "dtheta"
+            factor = 2.0
+        else:
+            raise RuntimeError
+        print size, bounds
+        buff = pixelize_cylinder(data_source['r'],
+                                 data_source['dr'],
+                                 data_source[af] * factor,
+                                 data_source[daf] * factor,
+                                 size[0], data_source[field], bounds[1])
+        return buff
+
 
     def convert_from_cartesian(self, coord):
         raise NotImplementedError

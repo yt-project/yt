@@ -21,6 +21,8 @@ from .coordinate_handler import \
     _unknown_coord, \
     _get_coord_fields
 import yt.visualization._MPL as _MPL
+from yt.utilities.lib.misc_utilities import \
+    pixelize_cylinder
 #
 # Cylindrical fields
 #
