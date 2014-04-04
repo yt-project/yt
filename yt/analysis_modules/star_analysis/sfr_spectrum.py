@@ -148,8 +148,10 @@ class StarFormationRate(object):
             self.redshift.append(self.cosm.ComputeRedshiftFromTime(time * tc))
             self.Msol_yr.append(self.mass_bins[i] / \
                 (self.time_bins_dt[i] * tc / YEAR))
+            # added (1+z)^3 to correctly change to cMpc^3 used in literature
             self.Msol_yr_vol.append(self.mass_bins[i] / \
-                (self.time_bins_dt[i] * tc / YEAR) / vol)
+                (self.time_bins_dt[i] * tc / YEAR) / vol / \
+                (1+self._pf.current_redshift)**3)
             self.Msol.append(self.mass_bins[i])
             self.Msol_cumulative.append(self.cum_mass_bins[i])
         self.time = np.array(self.time)
