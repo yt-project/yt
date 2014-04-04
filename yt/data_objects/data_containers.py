@@ -795,7 +795,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
             (self.pf.geometry == "polar" and self.axis == 2):
             if center is not None and center != (0.0, 0.0):
                 raise NotImplementedError(
-                    "Currently we only support images centered at R=0." +
+                    "Currently we only support images centered at R=0. " +
                     "We plan to generalize this in the near future")
             from yt.visualization.fixed_resolution import CylindricalFixedResolutionBuffer
             if iterable(width): radius = max(width)
