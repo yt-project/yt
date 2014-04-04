@@ -18,7 +18,7 @@ from yt.utilities.physical_ratios import \
     mass_sun_grams, sec_per_year, sec_per_day, sec_per_hr, \
     sec_per_min, temp_sun_kelvin, luminosity_sun_ergs_per_sec, \
     metallicity_sun, erg_per_eV, amu_grams, mass_electron_grams, \
-    cm_per_ang, jansky_cgs
+    cm_per_ang, jansky_cgs, mass_jupiter_grams, mass_earth_grams
 import numpy as np
 
 # Lookup a unit symbol with the symbol string, and provide a tuple with the
@@ -77,6 +77,8 @@ default_unit_symbol_lut = {
     "Lsun": ( luminosity_sun_ergs_per_sec, dimensions.power),
     "Tsun": ( temp_sun_kelvin, dimensions.temperature),
     "Zsun": (metallicity_sun, dimensions.dimensionless),
+    "Mjup": (mass_jupiter_grams, dimensions.mass),
+    "Mearth": (mass_earth_grams, dimensions.mass),
 
     # astro distances
     "AU": (cm_per_au, dimensions.length),
