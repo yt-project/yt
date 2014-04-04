@@ -652,9 +652,13 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         tp = data_file.total_particles
         aux_filenames = glob.glob(data_file.filename+'.*') # Find out which auxiliaries we have
         self._aux_fields = [f[1+len(data_file.filename):] for f in aux_filenames]
-        self._pdtypes = self._compute_dtypes(data_file.pf._field_dtypes)
+        self._pdtypes = self._compute_dtypes(data_file.pf._field_dtypes,
+                                             data_file.pf.endian)
         for ptype, field in self._fields:
-            if tp[ptype] == 0: continue
+            if tp[ptype] == 0:
+                # We do not want out _pdtypes to have empty particles.
+                self._pdtypes.pop(ptype, None)
+                continue
             field_list.append((ptype, field))
         if any(["Gas"==f[0] for f in field_list]): #Add the auxiliary fields to each ptype we have
             field_list += [("Gas",a) for a in self._aux_fields] 
