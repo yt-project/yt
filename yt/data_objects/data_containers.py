@@ -793,8 +793,12 @@ class YTSelectionContainer2D(YTSelectionContainer):
 
         if (self.pf.geometry == "cylindrical" and self.axis == 1) or \
             (self.pf.geometry == "polar" and self.axis == 2):
+            if center is not None and center != (0.0, 0.0):
+                raise NotImplementedError
             from yt.visualization.fixed_resolution import CylindricalFixedResolutionBuffer
-            frb = CylindricalFixedResolutionBuffer(self, width, resolution)
+            if iterable(width): radius = max(width)
+            if iterable(resolution): resolution = max(resolution)
+            frb = CylindricalFixedResolutionBuffer(self, radius, resolution)
             return frb
 
         if center is None:
