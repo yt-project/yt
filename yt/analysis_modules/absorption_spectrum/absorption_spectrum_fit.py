@@ -4,10 +4,9 @@ import h5py
 from yt.analysis_modules.absorption_spectrum.absorption_line \
         import voigt
 
-
 def generate_total_fit(x, fluxData, orderFits, speciesDicts, 
-        minError=1E-5, complexLim=.999,
-        fitLim=.99, minLength=3, 
+        minError=1E-4, complexLim=.995,
+        fitLim=.97, minLength=3, 
         maxLength=1000, splitLim=.99,
         output_file=None):
 
@@ -90,6 +89,7 @@ def generate_total_fit(x, fluxData, orderFits, speciesDicts,
     fluxData[0]=1
     fluxData[-1]=1
 
+
     #Find all regions where lines/groups of lines are present
     cBounds = _find_complexes(x, fluxData, fitLim=fitLim,
             complexLim=complexLim, minLength=minLength,
@@ -111,6 +111,7 @@ def generate_total_fit(x, fluxData, orderFits, speciesDicts,
             yDatBounded=fluxData[b[1]:b[2]]
             yFitBounded=yFit[b[1]:b[2]]
 
+
             #Find init redshift
             z=(xBounded[yDatBounded.argmin()]-initWl)/initWl
 
@@ -121,23 +122,32 @@ def generate_total_fit(x, fluxData, orderFits, speciesDicts,
 
             #Fit Using complex tools
             newLinesP,flag=_complex_fit(xBounded,yDatBounded,yFitBounded,
-                    z,fitLim,minError*(b[2]-b[1]),speciesDict)
-
-            #Check existence of partner lines if applicable
-            if len(speciesDict['wavelength']) != 1:
-                newLinesP = _remove_unaccepted_partners(newLinesP, x, fluxData, 
-                        b, minError*(b[2]-b[1]),
-                        x0, xRes, speciesDict)
+                    z,fitLim,minError,speciesDict)
 
             #If flagged as a bad fit, species is lyman alpha,
             #   and it may be a saturated line, use special tools
             if flag and species=='lya' and min(yDatBounded)<.1:
-                newLinesP=_large_flag_fit(xBounded,yDatBounded,
+               newLinesP=_large_flag_fit(xBounded,yDatBounded,
                         yFitBounded,z,speciesDict,
-                        minSize,minError*(b[2]-b[1]))
+                        minSize,minError)
+
+            if na.size(newLinesP)> 0:
+
+                #Check for EXPLOOOOSIIONNNSSS
+                newLinesP = _check_numerical_instability(x, newLinesP, speciesDict,b)
+
+
+            #Check existence of partner lines if applicable
+            if len(speciesDict['wavelength']) != 1:
+                newLinesP = _remove_unaccepted_partners(newLinesP, x, fluxData, 
+                        b, minError, x0, xRes, speciesDict)
+
+
+
 
             #Adjust total current fit
             yFit=yFit*_gen_flux_lines(x,newLinesP,speciesDict)
+
 
             #Add new group to all fitted lines
             if na.size(newLinesP)>0:
@@ -148,6 +158,7 @@ def generate_total_fit(x, fluxData, orderFits, speciesDicts,
                 speciesLines['group#']=na.append(speciesLines['group#'],groupNums)
 
         allSpeciesLines[species]=speciesLines
+
 
     if output_file:
         _output_fit(allSpeciesLines, output_file)
@@ -205,10 +216,12 @@ def _complex_fit(x, yDat, yFit, initz, minSize, errBound, speciesDict,
     #Setup initial line guesses
     if initP==None: #Regular fit
         initP = [0,0,0] 
-        if min(yDat)<.5: #Large lines get larger initial guess 
-            initP[0] = 10**16
+        if min(yDat)<.01: #Large lines get larger initial guess 
+            initP[0] = speciesDict['init_N']*10**2
+        elif min(yDat)<.5:
+            initP[0] = speciesDict['init_N']*10**1
         elif min(yDat)>.9: #Small lines get smaller initial guess
-            initP[0] = 10**12.5
+            initP[0] = speciesDict['init_N']*10**-1
         else:
             initP[0] = speciesDict['init_N']
         initP[1] = speciesDict['init_b']
@@ -225,9 +238,16 @@ def _complex_fit(x, yDat, yFit, initz, minSize, errBound, speciesDict,
         return [],False
     
     #Values to proceed through first run
-    errSq,prevErrSq=1,1000
+    errSq,prevErrSq,prevLinesP=1,10*len(x),[]
 
+    if errBound == None:
+        errBound = len(yDat)*(max(1-yDat)*1E-2)**2
+    else:
+        errBound = errBound*len(yDat)
+
+    flag = False
     while True:
+
         #Initial parameter guess from joining parameters from all lines
         #   in lines into a single array
         initP = linesP.flatten()
@@ -236,6 +256,7 @@ def _complex_fit(x, yDat, yFit, initz, minSize, errBound, speciesDict,
         fitP,success=optimize.leastsq(_voigt_error,initP,
                 args=(x,yDat,yFit,speciesDict),
                 epsfcn=1E-10,maxfev=1000)
+
 
         #Set results of optimization
         linesP = na.reshape(fitP,(-1,3))
@@ -247,17 +268,23 @@ def _complex_fit(x, yDat, yFit, initz, minSize, errBound, speciesDict,
         #Sum to get idea of goodness of fit
         errSq=sum(dif**2)
 
+        if any(linesP[:,1]==speciesDict['init_b']):
+         #   linesP = prevLinesP
+
+            flag = True
+            break
+            
         #If good enough, break
-        if errSq < errBound: 
+        if errSq < errBound:        
             break
 
         #If last fit was worse, reject the last line and revert to last fit
-        if errSq > prevErrSq*10:
+        if errSq > prevErrSq*10 :
             #If its still pretty damn bad, cut losses and try flag fit tools
             if prevErrSq >1E2*errBound and speciesDict['name']=='HI lya':
                 return [],True
             else:
-                yNewFit=_gen_flux_lines(x,prevLinesP,speciesDict)
+                linesP = prevLinesP
                 break
 
         #If too many lines 
@@ -266,21 +293,26 @@ def _complex_fit(x, yDat, yFit, initz, minSize, errBound, speciesDict,
             if errSq >1E2*errBound and speciesDict['name']=='HI lya':
                 return [],True
             else:
-                break 
+                flag = True
+                break
 
         #Store previous data in case reject next fit
         prevErrSq = errSq
         prevLinesP = linesP
 
-
         #Set up initial condition for new line
         newP = [0,0,0] 
-        if min(dif)<.1:
-            newP[0]=10**12
-        elif min(dif)>.9:
-            newP[0]=10**16
+
+        yAdjusted = 1+yFit*yNewFit-yDat
+ 
+        if min(yAdjusted)<.01: #Large lines get larger initial guess 
+            newP[0] = speciesDict['init_N']*10**2
+        elif min(yAdjusted)<.5:
+            newP[0] = speciesDict['init_N']*10**1
+        elif min(yAdjusted)>.9: #Small lines get smaller initial guess
+            newP[0] = speciesDict['init_N']*10**-1
         else:
-            newP[0]=10**14
+            newP[0] = speciesDict['init_N']
         newP[1] = speciesDict['init_b']
         newP[2]=(x[dif.argmax()]-wl0)/wl0
         linesP=na.append(linesP,[newP],axis=0)
@@ -290,12 +322,12 @@ def _complex_fit(x, yDat, yFit, initz, minSize, errBound, speciesDict,
     #   acceptable range, as given in dict ref
     remove=[]
     for i,p in enumerate(linesP):
-        check=_check_params(na.array([p]),speciesDict)
+        check=_check_params(na.array([p]),speciesDict,x)
         if check: 
             remove.append(i)
     linesP = na.delete(linesP,remove,axis=0)
 
-    return linesP,False
+    return linesP,flag
 
 def _large_flag_fit(x, yDat, yFit, initz, speciesDict, minSize, errBound):
     """
@@ -489,6 +521,9 @@ def _remove_unaccepted_partners(linesP, x, y, b, errBound,
     #List of lines to remove
     removeLines=[]
 
+    #Set error
+
+
     #Iterate through all sets of line parameters
     for i,p in enumerate(linesP):
 
@@ -501,16 +536,23 @@ def _remove_unaccepted_partners(linesP, x, y, b, errBound,
             lb = _get_bounds(p[2],b,wl,x0,xRes)
             xb,yb=x[lb[0]:lb[1]],y[lb[0]:lb[1]]
 
+            if errBound == None:
+                errBound = 10*len(yb)*(max(1-yb)*1E-2)**2
+            else:
+                errBound = 10*errBound*len(yb)
+
             #Generate a fit and find the difference to data
             yFitb=_gen_flux_lines(xb,na.array([p]),speciesDict)
             dif =yb-yFitb
+
+
 
             #Only counts as an error if line is too big ---------------<
             dif = [k for k in dif if k>0]
             err = sum(dif)
 
             #If the fit is too bad then add the line to list of removed lines
-            if err > errBound*1E2:
+            if err > errBound:
                 removeLines.append(i)
                 break
 
@@ -640,21 +682,13 @@ def _find_complexes(x, yDat, complexLim=.999, fitLim=.99,
         #Check if the region needs to be divided
         if b[2]-b[1]>maxLength:
 
-            #Find the minimum absorption in the middle two quartiles of
-            #   the large complex
-            q=(b[2]-b[1])/4
-            cut = yDat[b[1]+q:b[2]-q].argmax()+b[1]+q
+            split = _split_region(yDat,b,splitLim)
 
-            #Only break it up if the minimum absorption is actually low enough
-            if yDat[cut]>splitLim:
-
-                #Get the new two peaks
-                b1Peak = yDat[b[1]:cut].argmin()+b[1]
-                b2Peak = yDat[cut:b[2]].argmin()+cut
+            if split:
 
                 #add the two regions separately
-                cBounds.insert(i+1,[b1Peak,b[1],cut])
-                cBounds.insert(i+2,[b2Peak,cut,b[2]])
+                cBounds.insert(i+1,split[0])
+                cBounds.insert(i+2,split[1])
 
                 #Remove the original region
                 cBounds.pop(i)
@@ -663,7 +697,33 @@ def _find_complexes(x, yDat, complexLim=.999, fitLim=.99,
 
     return cBounds
 
-def _gen_flux_lines(x, linesP, speciesDict):
+
+def _split_region(yDat,b,splitLim):
+        #Find the minimum absorption in the middle two quartiles of
+    #   the large complex
+
+    q=(b[2]-b[1])/4
+    cut = yDat[b[1]+q:b[2]-q].argmax()+b[1]+q
+
+    #Only break it up if the minimum absorption is actually low enough
+    if yDat[cut]>splitLim:
+
+        #Get the new two peaks
+        b1Peak = yDat[b[1]:cut].argmin()+b[1]
+        b2Peak = yDat[cut:b[2]].argmin()+cut
+
+        region_1 = [b1Peak,b[1],cut]
+        region_2 = [b2Peak,cut,b[2]]
+
+        return [region_1,region_2]
+
+    else:
+
+        return []
+
+
+
+def _gen_flux_lines(x, linesP, speciesDict,firstLine=False):
     """
     Calculates the normalized flux for a region of wavelength space
     generated by a set of absorption lines.
@@ -692,6 +752,9 @@ def _gen_flux_lines(x, linesP, speciesDict):
             g=speciesDict['Gamma'][i]
             wl=speciesDict['wavelength'][i]
             y = y+ _gen_tau(x,p,f,g,wl)
+            if firstLine: 
+                break
+
     flux = na.exp(-y)
     return flux
 
@@ -744,21 +807,25 @@ def _voigt_error(pTotal, x, yDat, yFit, speciesDict):
         the difference between the fit generated by the parameters
         given in pTotal multiplied by the previous fit and the desired
         flux profile, w/ first index modified appropriately for bad 
-        parameter choices
+        parameter choices and additional penalty for fitting with a lower
+        flux than observed.
     """
 
     pTotal.shape = (-1,3)
     yNewFit = _gen_flux_lines(x,pTotal,speciesDict)
 
     error = yDat-yFit*yNewFit
-    error[0] = _check_params(pTotal,speciesDict)
+    error_plus = (yDat-yFit*yNewFit).clip(min=0)
+
+    error = error+error_plus
+    error[0] = _check_params(pTotal,speciesDict,x)
 
     return error
 
-def _check_params(p, speciesDict):
+def _check_params(p, speciesDict,xb):
     """
     Check to see if any of the parameters in p fall outside the range 
-        given in speciesDict.
+        given in speciesDict or on the boundaries
 
     Parameters
     ----------
@@ -767,6 +834,8 @@ def _check_params(p, speciesDict):
     speciesDict : dictionary
         dictionary with properties giving the max and min
         values appropriate for each parameter N,b, and z.
+    xb : (N) ndarray
+        wavelength array [nm]
 
     Returns
     -------
@@ -774,16 +843,137 @@ def _check_params(p, speciesDict):
         0 if all values are fine
         999 if any values fall outside acceptable range
     """
+
+    minz = (xb[0])/speciesDict['wavelength'][0]-1
+    maxz = (xb[-1])/speciesDict['wavelength'][0]-1
+
     check = 0
-    if any(p[:,0] > speciesDict['maxN']) or\
-          any(p[:,0] < speciesDict['minN']) or\
-          any(p[:,1] > speciesDict['maxb']) or\
-          any(p[:,1] < speciesDict['minb']) or\
-          any(p[:,2] > speciesDict['maxz']) or\
-          any(p[:,2] < speciesDict['minz']):
+    if any(p[:,0] >= speciesDict['maxN']) or\
+          any(p[:,0] <= speciesDict['minN']) or\
+          any(p[:,1] >= speciesDict['maxb']) or\
+          any(p[:,1] <= speciesDict['minb']) or\
+          any(p[:,2] >= maxz) or\
+          any(p[:,2] <= minz):
               check = 999
+              
     return check
 
+def _check_optimization_init(p,speciesDict,initz,xb,yDat,yFit,minSize,errorBound):
+
+    """
+    Check to see if any of the parameters in p are the
+    same as initial paramters and if so, attempt to 
+    split the region and refit it.
+
+    Parameters
+    ----------
+    p : (3,) ndarray
+        array with form [[N1, b1, z1], ...] 
+    speciesDict : dictionary
+        dictionary with properties giving the max and min
+        values appropriate for each parameter N,b, and z.
+    x : (N) ndarray
+        wavelength array [nm]
+    """
+
+    # Check if anything is a default parameter
+    if any(p[:,0] == speciesDict['init_N']) or\
+          any(p[:,0] == speciesDict['init_N']*10) or\
+          any(p[:,0] == speciesDict['init_N']*100) or\
+          any(p[:,0] == speciesDict['init_N']*.1) or\
+          any(p[:,1] == speciesDict['init_b']) or\
+          any(p[:,1] == speciesDict['maxb']):
+
+            # These are the initial bounds
+            init_bounds = [yDat.argmin(),0,len(xb)-1]
+
+            # Gratitutous limit for splitting region
+            newSplitLim = 1 - (1-min(yDat))*.5
+
+            # Attempt to split region
+            split = _split_region(yDat,init_bounds,newSplitLim)
+            
+            # If we can't split it, just reject it. Its unphysical
+            # to just keep the default parameters and we're out of
+            # options at this point
+            if not split:
+                return []
+
+            # Else set up the bounds for each region and fit separately
+            b1,b2 = split[0][2], split[1][1]
+
+            p1,flag = _complex_fit(xb[:b1], yDat[:b1], yFit[:b1],
+                            initz, minSize, errorBound, speciesDict)
+
+            p2,flag = _complex_fit(xb[b2:], yDat[b2:], yFit[b2:],
+                            initz, minSize, errorBound, speciesDict)
+
+            # Make the final line parameters. Its annoying because
+            # one or both regions may have fit to nothing
+            if na.size(p1)> 0 and na.size(p2)>0:
+                p = na.r_[p1,p2]
+            elif na.size(p1) > 0:
+                p = p1
+            else:
+                p = p2
+
+    return p
+
+
+def _check_numerical_instability(x, p, speciesDict,b):
+
+    """
+    Check to see if any of the parameters in p are causing
+    unstable numerical effects outside the region of fit
+
+    Parameters
+    ----------
+    p : (3,) ndarray
+        array with form [[N1, b1, z1], ...] 
+    speciesDict : dictionary
+        dictionary with properties giving the max and min
+        values appropriate for each parameter N,b, and z.
+    x : (N) ndarray
+        wavelength array [nm]
+    b : (3) list
+        list of integers indicating bounds of region fit in x
+    """
+
+    remove_lines = []
+
+
+    for i,line in enumerate(p):
+
+        # First to check if the line is at risk for instability
+        if line[1]<5 or line[0] < 1E12:
+
+
+            # get all flux that isn't part of fit plus a little wiggle room
+            # max and min to prevent boundary errors
+
+            flux = _gen_flux_lines(x,[line],speciesDict,firstLine=True)
+            flux = na.r_[flux[:max(b[1]-10,0)], flux[min(b[2]+10,len(x)):]]
+
+            #Find regions that are absorbing outside the region we fit
+            flux_dif = 1 - flux
+            absorbing_coefficient = max(abs(flux_dif))
+
+
+            #Really there shouldn't be any absorption outside
+            #the region we fit, but we'll give some leeway.
+            #for high resolution spectra the tiny bits on the edges
+            #can give a non negligible amount of flux. Plus the errors
+            #we are looking for are HUGE.
+            if absorbing_coefficient > .1:
+
+                # we just set it to no fit because we've tried
+                # everything else at this point. this region just sucks :(
+                remove_lines.append(i)
+    
+    if remove_lines:
+        p = na.delete(p, remove_lines, axis=0)
+
+    return p
 
 def _output_fit(lineDic, file_name = 'spectrum_fit.h5'):
     """
@@ -815,4 +1005,5 @@ def _output_fit(lineDic, file_name = 'spectrum_fit.h5'):
         f.create_dataset("{0}/z".format(ion),data=params['z'])
         f.create_dataset("{0}/complex".format(ion),data=params['group#'])
     print 'Writing spectrum fit to {0}'.format(file_name)
+    f.close()
 
