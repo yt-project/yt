@@ -230,6 +230,8 @@ class ChomboDataset(Dataset):
             self.dataset_type = 'chombo1d_hdf5'
         if D == 2:
             self.dataset_type = 'chombo2d_hdf5'
+        if D == 3:
+            self.dataset_type = 'chombo_hdf5'
         try:
             self.current_time = self._handle.attrs['time']
         except KeyError:
