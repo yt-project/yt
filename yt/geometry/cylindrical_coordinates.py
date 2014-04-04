@@ -20,6 +20,7 @@ from .coordinate_handler import \
     CoordinateHandler, \
     _unknown_coord, \
     _get_coord_fields
+import yt.visualization._MPL as _MPL
 #
 # Cylindrical fields
 #
@@ -92,9 +93,9 @@ class CylindricalCoordinateHandler(CoordinateHandler):
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias):
         buff = pixelize_cylinder(data_source['r'],
-                                 data_source['dr']/2.0,
+                                 data_source['dr'],
                                  data_source['theta'],
-                                 data_source['dtheta']/2.0,
+                                 data_source['dtheta'],
                                  size[0], data_source[field], bounds[0])
         return buff
 

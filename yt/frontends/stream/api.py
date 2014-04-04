@@ -22,6 +22,7 @@ from .data_structures import \
       load_amr_grids, \
       load_particles, \
       load_hexahedral_mesh, \
+      hexahedral_connectivity, \
       load_octree, \
       refine_amr
 
