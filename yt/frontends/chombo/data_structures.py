@@ -113,7 +113,7 @@ class ChomboHierarchy(GridIndex):
         self.float_type = self._handle['Chombo_global'].attrs['testReal'].dtype.name
         self._levels = [key for key in self._handle.keys() if key.startswith('level')]
         GridIndex.__init__(self,pf,dataset_type)
-        self._read_particles()
+        #self._read_particles()
 
     def _read_particles(self):
         
@@ -133,7 +133,11 @@ class ChomboHierarchy(GridIndex):
 
     def _detect_output_fields(self):
         ncomp = int(self._handle['/'].attrs['num_components'])
-        self.field_list = [("chombo", c[1]) for c in self._handle['/'].attrs.items()[-ncomp:]]
+        output_fields = []
+        for key, val in self._handle['/'].attrs.items():
+            if key.startswith("component"):
+                output_fields.append(val)
+        self.field_list = [("chombo", c) for c in output_fields]
           
     def _count_grids(self):
         self.num_grids = 0
@@ -220,11 +224,19 @@ class ChomboDataset(Dataset):
     def __init__(self, filename, dataset_type='chombo_hdf5',
                  storage_filename = None, ini_filename = None):
         self.fluid_types += ("chombo",)
-        self._handle = h5py.File(filename,'r')
-        self.current_time = self._handle.attrs['time']
+        self._handle = h5py.File(filename, 'r')
+        D = self._handle['Chombo_global/'].attrs['SpaceDim']
+        if D == 1:
+            self.dataset_type = 'chombo1d_hdf5'
+        if D == 2:
+            self.dataset_type = 'chombo2d_hdf5'
+        try:
+            self.current_time = self._handle.attrs['time']
+        except KeyError:
+            self.current_time = 0.0
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)
-        Dataset.__init__(self,filename,dataset_type)
+        Dataset.__init__(self,filename, self.dataset_type)
         self.storage_filename = storage_filename
         self.cosmological_simulation = False
 
@@ -257,13 +269,13 @@ class ChomboDataset(Dataset):
         self.domain_dimensions = self._calc_domain_dimensions()
 
         if self.dimensionality == 1:
-            self._fieldinfo_fallback = Chombo1DFieldInfo
+#            self._fieldinfo_fallback = Chombo1DFieldInfo
             self.domain_left_edge = np.concatenate((self.domain_left_edge, [0.0, 0.0]))
             self.domain_right_edge = np.concatenate((self.domain_right_edge, [1.0, 1.0]))
             self.domain_dimensions = np.concatenate((self.domain_dimensions, [1, 1]))
 
         if self.dimensionality == 2:
-            self._fieldinfo_fallback = Chombo2DFieldInfo
+#            self._fieldinfo_fallback = Chombo2DFieldInfo
             self.domain_left_edge = np.concatenate((self.domain_left_edge, [0.0]))
             self.domain_right_edge = np.concatenate((self.domain_right_edge, [1.0]))
             self.domain_dimensions = np.concatenate((self.domain_dimensions, [1]))
@@ -274,20 +286,23 @@ class ChomboDataset(Dataset):
     def _calc_left_edge(self):
         fileh = self._handle
         dx0 = fileh['/level_0'].attrs['dx']
-        LE = dx0*((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:3])
+        D = self.dimensionality
+        LE = dx0*((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:D])
         return LE
 
     def _calc_right_edge(self):
         fileh = h5py.File(self.parameter_filename,'r')
         dx0 = fileh['/level_0'].attrs['dx']
-        RE = dx0*((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[3:] + 1)
+        D = self.dimensionality
+        RE = dx0*((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[D:] + 1)
         fileh.close()
         return RE
 
     def _calc_domain_dimensions(self):
         fileh = self._handle
-        L_index = ((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:3])
-        R_index = ((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[3:] + 1)
+        D = self.dimensionality
+        L_index = ((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[0:D])
+        R_index = ((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[D:] + 1)
         return R_index - L_index
 
     @classmethod
@@ -366,10 +381,10 @@ class Orion2Dataset(ChomboDataset):
         if os.path.isfile('orion2.ini'): self._parse_inputs_file('orion2.ini')
         self.unique_identifier = \
                                int(os.stat(self.parameter_filename)[ST_CTIME])
+        self.dimensionality = 3
         self.domain_left_edge = self._calc_left_edge()
         self.domain_right_edge = self._calc_right_edge()
         self.domain_dimensions = self._calc_domain_dimensions()
-        self.dimensionality = 3
         self.refine_by = self._handle['/level_0'].attrs['ref_ratio']
         self.periodicity = (True, True, True)
 

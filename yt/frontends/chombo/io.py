@@ -46,11 +46,12 @@ class IOHandlerChomboHDF5(BaseIOHandler):
     def field_dict(self):
         if self._field_dict is not None:
             return self._field_dict
-        ncomp = int(self._handle['/'].attrs['num_components'])
-        temp =  self._handle['/'].attrs.items()[-ncomp:]
-        val, keys = zip(*temp)
-        val = [int(re.match('component_(\d+)',v).groups()[0]) for v in val]
-        self._field_dict = dict(zip(keys,val))
+        field_dict = {}
+        for key, val in self._handle['/'].attrs.items():
+            if key.startswith('component_'):
+                comp_number = int(re.match('component_(\d)', key).groups()[0])
+                field_dict[val] = comp_number
+        self._field_dict = field_dict
         return self._field_dict
         
     def _read_field_names(self,grid):
