@@ -783,7 +783,6 @@ class AMRStreamlineBase(AMR1DData):
 
     @cache_mask
     def _get_cut_mask(self, grid):
-        #pdb.set_trace()
         points_in_grid = np.all(self.positions > grid.LeftEdge, axis=1) & \
                          np.all(self.positions <= grid.RightEdge, axis=1)
         pids = np.where(points_in_grid)[0]
