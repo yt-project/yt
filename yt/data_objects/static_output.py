@@ -143,6 +143,10 @@ class Dataset(object):
         Base class for generating new output types.  Principally consists of
         a *filename* and a *dataset_type* which will be passed on to children.
         """
+        # We return early and do NOT initialize a second time if this file has
+        # already been initialized.
+        if self.known_filters is not None:
+            return
         self.dataset_type = dataset_type
         self.file_style = file_style
         self.conversion_factors = {}
