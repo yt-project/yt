@@ -73,7 +73,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
         Whether or not to calculate the analytic mass function to go with 
         the simulated halo mass function.  Automatically set to true if a 
         simulation dataset is provided.
-        Default : False.
+        Default : True.
     omega_matter0 : float
         The fraction of the universe made up of matter (dark and baryonic). 
         Default : 0.2726.
@@ -87,7 +87,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
     hubble0 : float 
         The expansion rate of the universe in units of 100 km/s/Mpc. 
         Default : 0.704.
-    sigma8input : float 
+    sigma8 : float 
         The amplitude of the linear power spectrum at z=0 as specified by 
         the rms amplitude of mass-fluctuations in a top-hat sphere of radius 
         8 Mpc/h. This is not always stored in the datset and should be 
@@ -131,7 +131,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
     using as many cosmological parameters as can be pulled from the dataset.
 
     >>> halos_ds = load("rockstar_halos/halo_0.0.bin")
-    >>> hmf = HaloMassFcn(halos_ds=halos_ds, make_analytic=True)
+    >>> hmf = HaloMassFcn(halos_ds=halos_ds)
     >>> plt.loglog(hmf.masses_sim, hmf.n_cumulative_sim)
     >>> plt.loglog(hmf.masses_analytic, hmf.n_cumulative_analytic)
     >>> plt.savefig("mass_function.png")
@@ -146,7 +146,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
     >>> plt.savefig("mass_function.png")
     
     This creates the analytic mass function for an arbitrary set of 
-    cosmological parameters, without either a simulation or halo dataset.
+    cosmological parameters, with neither a simulation nor halo dataset.
 
     >>> hmf = HaloMassFcn(omega_baryon0=0.05, omega_matter0=0.27, 
                           omega_lambda0=0.73, hubble0=0.7, this_redshift=10,
@@ -154,9 +154,9 @@ class HaloMassFcn(ParallelAnalysisInterface):
     >>> plt.loglog(hmf.masses_analytic, hmf.n_cumulative_analytic)
     >>> plt.savefig("mass_function.png")
     """
-    def __init__(self, simulation_ds=None, halos_ds=None, make_analytic=False, 
+    def __init__(self, simulation_ds=None, halos_ds=None, make_analytic=True, 
     omega_matter0=0.2726, omega_lambda0=0.7274, omega_baryon0=0.0456, hubble0=0.704, 
-    sigma8input=0.86, primordial_index=1.0, this_redshift=0, log_mass_min=None, 
+    sigma8=0.86, primordial_index=1.0, this_redshift=0, log_mass_min=None, 
     log_mass_max=None, num_sigma_bins=360, fitting_function=4):
         ParallelAnalysisInterface.__init__(self)
         self.simulation_ds = simulation_ds
@@ -165,7 +165,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
         self.omega_lambda0 = omega_lambda0
         self.omega_baryon0 = omega_baryon0
         self.hubble0 = hubble0
-        self.sigma8input = sigma8input
+        self.sigma8 = sigma8
         self.primordial_index = primordial_index
         self.this_redshift = this_redshift
         self.log_mass_min = log_mass_min
@@ -181,16 +181,11 @@ class HaloMassFcn(ParallelAnalysisInterface):
         """
         # If we don't have any datasets, make the analytic function with user values
         if simulation_ds is None and halos_ds is None:
-            self.make_analytic=True
             # Set a reasonable mass min and max if none were provided
             if log_mass_min is None:
                 self.log_mass_min = 5
             if log_mass_max is None:
                 self.log_mass_max = 15
-
-        # If we are given a simulation dataset, make the analytic mass function
-        if simulation_ds is not None:
-            self.make_analytic = True
 
         # If we're making the analytic function...
         if self.make_analytic == True:
@@ -293,14 +288,14 @@ when creating the HaloMassFcn object.")
                 fp = self.comm.write_on_root(haloname)
                 line = \
                 """#Columns:
-#1. log10 of mass (M_solar)
-#2. mass (M_solar)
+#1. mass (M_solar)
+#2. log10 of mass (M_solar)
 #3. cumulative number density of halos (comoving (Mpc/h)^3)
 """
                 fp.write(line)
                 for i in xrange(self.masses_sim.size - 1):
-                    line = "%e\t%e\t%e\n" % (np.log10(self.masses_sim[i]), 
-                    self.masses_sim[i],
+                    line = "%e\t%e\t%e\n" % (self.masses_sim[i], 
+                    np.log10(self.masses_sim[i])
                     self.n_cumulative_sim[i])
                     fp.write(line)
                 fp.close()
@@ -348,7 +343,7 @@ the HaloMassFcn object.")
         R = 8.0;  # in units of Mpc/h (comoving)
 
         sigma8_unnorm = math.sqrt(self.sigma_squared_of_R(R));
-        sigma_normalization = self.sigma8input / sigma8_unnorm;
+        sigma_normalization = self.sigma8 / sigma8_unnorm;
 
         # rho0 in units of h^2 Msolar/Mpc^3
         rho0 = YTQuantity(self.omega_matter0 * rho_crit_g_cm3_h2, 'g/cm**3')\
