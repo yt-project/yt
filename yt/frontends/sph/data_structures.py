@@ -43,6 +43,8 @@ from .definitions import \
     gadget_header_specs, \
     gadget_field_specs, \
     gadget_ptype_specs
+from .io import \
+    IOHandlerTipsyBinary
 
 try:
     import requests
@@ -384,7 +386,9 @@ class TipsyDataset(ParticleDataset):
                  n_ref=64, over_refine_factor=1):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
-        success, self.endian = self._validate_header(filename)
+        if field_dtypes is None:
+            field_dtypes = {}
+        success, self.endian = self._validate_header(filename, field_dtypes)
         if not success:
             print "SOMETHING HAS GONE WRONG.  NBODIES != SUM PARTICLES."
             print "%s != (%s == %s + %s + %s)" % (
@@ -400,8 +404,6 @@ class TipsyDataset(ParticleDataset):
 
         # My understanding is that dtypes are set on a field by field basis,
         # not on a (particle type, field) basis
-        if field_dtypes is None:
-            field_dtypes = {}
         self._field_dtypes = field_dtypes
 
         self._unit_base = unit_base or {}
@@ -520,7 +522,7 @@ class TipsyDataset(ParticleDataset):
         self.time_unit = 1.0 / np.sqrt(G * density_unit)
 
     @staticmethod
-    def _validate_header(filename):
+    def _validate_header(filename, field_dtypes):
         '''
         This method automatically detects whether the tipsy file is big/little endian
         and is not corrupt/invalid.  It returns a tuple of (Valid, endianswap) where
@@ -544,11 +546,16 @@ class TipsyDataset(ParticleDataset):
             endianswap = ">"
             f.seek(0)
             t, n, ndim, ng, nd, ns = struct.unpack(">diiiii", f.read(28))
+        # Now we construct the sizes of each of the particles.
+        dtypes = IOHandlerTipsyBinary._compute_dtypes(field_dtypes, endianswap)
         #Catch for 4 byte padding
-        if (fs == 32+48*ng+36*nd+44*ns):
+        gas_size = dtypes["Gas"].itemsize
+        dm_size = dtypes["DarkMatter"].itemsize
+        star_size = dtypes["Stars"].itemsize
+        if (fs == 32+gas_size*ng+dm_size*nd+star_size*ns):
             f.read(4)
         #File is borked if this is true
-        elif (fs != 28+48*ng+36*nd+44*ns):
+        elif (fs != 28+gas_size*ng+dm_size*nd+star_size*ns):
             f.close()
             return False, 0
         f.close()
@@ -556,7 +563,8 @@ class TipsyDataset(ParticleDataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        return TipsyDataset._validate_header(args[0])[0]
+        field_dtypes = kwargs.get("field_dtypes", {})
+        return TipsyDataset._validate_header(args[0], field_dtypes)[0]
 
 class HTTPParticleFile(ParticleFile):
     pass

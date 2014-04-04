@@ -392,7 +392,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 "DarkMatter",
                 "Stars" )
 
-    _aux_fields = []
+    _aux_fields = None
     _fields = ( ("Gas", "Mass"),
                 ("Gas", "Coordinates"),
                 ("Gas", "Velocities"),
@@ -414,6 +414,10 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 ("Stars", "Epsilon"),
                 ("Stars", "Phi")
               )
+
+    def __init__(self, *args, **kwargs):
+        self._aux_fields = []
+        super(IOHandlerTipsyBinary, self).__init__(*args, **kwargs)
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
@@ -623,6 +627,22 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         }
         return npart
 
+    @classmethod
+    def _compute_dtypes(cls, field_dtypes, endian = "<"):
+        pds = {}
+        for ptype, field in cls._fields:
+            dtbase = field_dtypes.get(field, 'f')
+            ff = "%s%s" % (endian, dtbase)
+            if field in cls._vector_fields:
+                dt = (field, [('x', ff), ('y', ff), ('z', ff)])
+            else:
+                dt = (field, ff)
+            pds.setdefault(ptype, []).append(dt)
+        pdtypes = {}
+        for ptype in pds:
+            pdtypes[ptype] = np.dtype(pds[ptype])
+        return pdtypes
+
     def _create_dtypes(self, data_file):
         # We can just look at the particle counts.
         self._header_offset = data_file.pf._header_offset
@@ -632,19 +652,10 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         tp = data_file.total_particles
         aux_filenames = glob.glob(data_file.filename+'.*') # Find out which auxiliaries we have
         self._aux_fields = [f[1+len(data_file.filename):] for f in aux_filenames]
+        self._pdtypes = self._compute_dtypes(data_file.pf._field_dtypes)
         for ptype, field in self._fields:
-            pfields = []
             if tp[ptype] == 0: continue
-            dtbase = data_file.pf._field_dtypes.get(field, 'f')
-            ff = "%s%s" % (data_file.pf.endian, dtbase)
-            if field in self._vector_fields:
-                dt = (field, [('x', ff), ('y', ff), ('z', ff)])
-            else:
-                dt = (field, ff)
-            pds.setdefault(ptype, []).append(dt)
             field_list.append((ptype, field))
-        for ptype in pds:
-            self._pdtypes[ptype] = np.dtype(pds[ptype])
         if any(["Gas"==f[0] for f in field_list]): #Add the auxiliary fields to each ptype we have
             field_list += [("Gas",a) for a in self._aux_fields] 
         if any(["DarkMatter"==f[0] for f in field_list]):
