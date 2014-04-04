@@ -60,7 +60,7 @@ class IOHandlerFLASH(BaseIOHandler):
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
         f_part = self._particle_handle
-        p_ind = self.pf.h._particle_indices
+        p_ind = self.pf.index._particle_indices
         px, py, pz = (self._particle_fields["particle_pos%s" % ax]
                       for ax in 'xyz')
         p_fields = f_part["/tracer particles"]
@@ -79,7 +79,7 @@ class IOHandlerFLASH(BaseIOHandler):
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
         f_part = self._particle_handle
-        p_ind = self.pf.h._particle_indices
+        p_ind = self.pf.index._particle_indices
         px, py, pz = (self._particle_fields["particle_pos%s" % ax]
                       for ax in 'xyz')
         p_fields = f_part["/tracer particles"]
