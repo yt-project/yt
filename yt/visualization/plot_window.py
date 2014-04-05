@@ -183,7 +183,6 @@ def get_window_parameters(axis, center, width, pf):
               center[x_dict[axis]]+width[0] / 2,
               center[y_dict[axis]]-width[1] / 2,
               center[y_dict[axis]]+width[1] / 2)
-    print bounds
     return (bounds, center)
 
 def get_oblique_window_parameters(normal, center, width, pf, depth=None):
