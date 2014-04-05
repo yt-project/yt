@@ -236,6 +236,7 @@ class ChomboDataset(Dataset):
             self.current_time = self._handle.attrs['time']
         except KeyError:
             self.current_time = 0.0
+        self.geometry = "cartesian"
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)
         Dataset.__init__(self,filename, self.dataset_type)
