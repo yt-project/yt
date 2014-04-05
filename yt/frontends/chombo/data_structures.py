@@ -283,7 +283,7 @@ class ChomboDataset(Dataset):
             self.domain_dimensions = np.concatenate((self.domain_dimensions, [1]))
         
         self.refine_by = self._handle['/level_0'].attrs['ref_ratio']
-        self.periodicity = (True,) * self.dimensionality
+        self.periodicity = (True, True, True)
 
     def _calc_left_edge(self):
         fileh = self._handle
