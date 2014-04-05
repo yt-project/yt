@@ -92,7 +92,7 @@ class PolarCoordinateHandler(CoordinateHandler):
                                  data_source['dr'],
                                  data_source['theta'],
                                  data_source['dtheta'],
-                                 size[0], data_source[field], bounds[1])
+                                 size, data_source[field], bounds)
         return buff
 
     axis_name = { 0  : 'r',  1  : 'theta',  2  : 'z',

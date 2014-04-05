@@ -101,18 +101,25 @@ class SphericalCoordinateHandler(CoordinateHandler):
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias,
                       dimension):
         if dimension == 1:
-            af, daf = "phi", "dphi"
-            factor = 1.0
+            buff = pixelize_cylinder(data_source['r'],
+                                     data_source['dr'],
+                                     data_source['phi'],
+                                     data_source['dphi'],
+                                     size, data_source[field], bounds)
         elif dimension == 2:
-            af, daf = "theta", "dtheta"
-            factor = 2.0
+            buff = pixelize_cylinder(data_source['r'],
+                                     data_source['dr'],
+                                     data_source['theta'],
+                                     data_source['dtheta'],
+                                     size, data_source[field], bounds)
+            buff = pixelize_cylinder(data_source['r'],
+                                     data_source['dr'],
+                                     2.0*np.pi - data_source['theta'],
+                                     data_source['dtheta'],
+                                     size, data_source[field], bounds,
+                                     input_img = buff)
         else:
             raise RuntimeError
-        buff = pixelize_cylinder(data_source['r'],
-                                 data_source['dr'],
-                                 data_source[af] * factor,
-                                 data_source[daf] * factor,
-                                 size[0], data_source[field], bounds[1])
         return buff
 
 
