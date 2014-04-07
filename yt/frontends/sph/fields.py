@@ -31,7 +31,8 @@ from yt.config import ytcfg
 from yt.utilities.physical_constants import mh
 from yt.fields.species_fields import \
     add_species_field_by_fraction, \
-    add_species_field_by_density
+    add_species_field_by_density, \
+    setup_species_fields
 
 from yt.fields.particle_fields import \
     add_volume_weighted_smoothed_field
@@ -77,14 +78,16 @@ class SPHFieldInfo(FieldInfoContainer):
         ("Metallicity_10", ("", ["Fe_fraction"], None)),
     )
 
-    def setup_particle_fields(self, ptype):
-        super(SPHFieldInfo, self).setup_particle_fields(ptype)
-        for _, fname in self.field_aliases:
-            if _ != ptype: continue
-            if not fname.endswith("_fraction"): continue
-            element, _ = fname.split("_")
-            add_species_field_by_fraction(self, ptype, element,
-                                          particle_type=True)
+    def __init__(self, *args, **kwargs):
+        super(SPHFieldInfo, self).__init__(*args, **kwargs)
+        # Special case for FIRE
+        if ("PartType0", "Metallicity_00") in self.field_list:
+            self.species_names += ["He", "C", "N", "O", "Ne", "Mg", "Si", "S",
+                "Ca", "Fe"]
+
+    def setup_particle_fields(self, ptype, *args, **kwargs):
+        super(SPHFieldInfo, self).setup_particle_fields(ptype, *args, **kwargs)
+        setup_species_fields(self, ptype)
 
 class TipsyFieldInfo(SPHFieldInfo):
 
