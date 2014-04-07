@@ -43,7 +43,7 @@ cam.snapshot("v4.png", clip_ratio=6.0)
 
 tf.clear()
 tf.add_layers(4, 0.01, col_bounds = [-27.5,-25.5],
-        alpha=na.ones(4,dtype='float64'), colormap = 'RdBu_r')
+        alpha=np.ones(4,dtype='float64'), colormap = 'RdBu_r')
 cam.snapshot("v2.png", clip_ratio=6.0)
 
 # This looks better.  Now let's try turning on opacity.
@@ -56,7 +56,7 @@ cam.snapshot("v4.png", clip_ratio=6.0)
 
 tf.clear()
 tf.add_layers(4, 0.01, col_bounds = [-27.5,-25.5],
-        alpha=10.0*na.ones(4,dtype='float64'), colormap = 'RdBu_r')
+        alpha=10.0*np.ones(4,dtype='float64'), colormap = 'RdBu_r')
 cam.snapshot("v3.png", clip_ratio=6.0)
 
 # This looks pretty good, now lets go back to the full resolution AMRKDTree

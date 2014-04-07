@@ -32,8 +32,8 @@
    data_source = pf.disk([0.5, 0.5, 0.5], [0., 0., 1.],
                            (8., 'kpc'), (1., 'kpc'))
 
-   c_min = 10**na.floor(na.log10(data_source['density']).min()  )
-   c_max = 10**na.floor(na.log10(data_source['density']).max()+1)
+   c_min = 10**np.floor(np.log10(data_source['density']).min()  )
+   c_max = 10**np.floor(np.log10(data_source['density']).max()+1)
 
    function = 'self.data[\'Density\'].size > 20'
    master_clump = Clump(data_source, None, 'density', function=function)

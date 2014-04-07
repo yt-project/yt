@@ -254,7 +254,7 @@ projection through a simulation.
    c = [0.5, 0.5, 0.5]
    N = 512
    image = off_axis_projection(pf, c, L, W, N, "density")
-   write_image(na.log10(image), "%s_offaxis_projection.png" % pf)
+   write_image(np.log10(image), "%s_offaxis_projection.png" % pf)
 
 Here, ``W`` is the width of the projection in the x, y, *and* z
 directions.
