@@ -176,32 +176,42 @@ class IonTableOWLS:
         # find inH and fnH
         #-----------------------------------------------------
         inH = np.int32( ( nH - self.nH[0] ) / self.DELTA_nH )
-        fnH = ( nH - self.nH[inH] ) / self.dnH[inH]
 
         indx = np.where( inH < 0 )[0]
         if len(indx) > 0:
             inH[indx] = 0
-            fnH[indx] = 0.0
-
-        indx = np.where( inH >= len(nH) )[0]
+        indx = np.where( inH >= self.nH.size-1 )[0]
         if len(indx) > 0:
-            inH[indx] = len(nH)-2
+            inH[indx] = self.nH.size-2
+
+        fnH = ( nH - self.nH[inH] ) / self.dnH[inH]
+
+        indx = np.where( inH < 0 )[0]
+        if len(indx) > 0:
+            fnH[indx] = 0.0
+        indx = np.where( inH >= self.nH.size-1 )[0]
+        if len(indx) > 0:
             fnH[indx] = 1.0
 
 
         # find iT and fT
         #-----------------------------------------------------
         iT = np.int32( ( T - self.T[0] ) / self.DELTA_T )
-        fT = ( T - self.T[iT] ) / self.dT[iT]
 
         indx = np.where( iT < 0 )[0]
         if len(indx) > 0:
             iT[indx] = 0
-            fT[indx] = 0.0
-
-        indx = np.where( iT >= len(T) )[0]
+        indx = np.where( iT >= self.T.size-1 )[0]
         if len(indx) > 0:
-            iT[indx] = len(T)-2
+            iT[indx] = self.T.size-2
+
+        fT = ( T - self.T[iT] ) / self.dT[iT]
+
+        indx = np.where( iT < 0 )[0]
+        if len(indx) > 0:
+            fT[indx] = 0.0
+        indx = np.where( iT >= self.T.size-1 )[0]
+        if len(indx) > 0:
             fT[indx] = 1.0
 
 
