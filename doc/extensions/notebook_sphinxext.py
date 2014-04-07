@@ -22,7 +22,7 @@ class NotebookDirective(Directive):
         if ' ' in nb_path: raise ValueError(
             "Due to issues with docutils stripping spaces from links, white "
             "space is not allowed in notebook filenames '{0}'".format(nb_path))
-        # check if raw html is supported if not
+        # check if raw html is supported
         if not self.state.document.settings.raw_enabled:
             raise self.warning('"%s" directive disabled.' % self.name)
 
