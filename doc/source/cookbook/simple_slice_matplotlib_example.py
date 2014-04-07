@@ -21,7 +21,7 @@ fig = slc.plots['density'].figure
 rect = (0.2,0.2,0.2,0.2)
 new_ax = fig.add_axes(rect)
 
-n, bins, patches = new_ax.hist(na.random.randn(1000)+20, 50,
+n, bins, patches = new_ax.hist(np.random.randn(1000)+20, 50,
     facecolor='yellow', edgecolor='yellow')
 new_ax.set_xlabel('Dinosaurs per furlong')
 

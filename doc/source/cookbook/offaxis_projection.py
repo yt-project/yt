@@ -31,4 +31,4 @@ image = off_axis_projection(pf, c, L, W, Npixels, "density", no_ghost=False)
 # relating to what our dataset is called.
 # We save the log of the values so that the colors do not span
 # many orders of magnitude.  Try it without and see what happens.
-write_image(na.log10(image), "%s_offaxis_projection.png" % pf)
+write_image(np.log10(image), "%s_offaxis_projection.png" % pf)

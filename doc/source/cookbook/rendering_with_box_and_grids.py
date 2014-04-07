@@ -12,7 +12,7 @@ mi, ma = dd.quantities["Extrema"]("density")[0]
 
 # Create a transfer function to map field values to colors.
 # We bump up our minimum to cut out some of the background fluid
-tf = ColorTransferFunction((na.log10(mi)+2.0, na.log10(ma)))
+tf = ColorTransferFunction((np.log10(mi)+2.0, np.log10(ma)))
 
 # Add three guassians, evenly spaced between the min and
 # max specified above with widths of 0.02 and using the
