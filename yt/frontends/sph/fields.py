@@ -63,8 +63,19 @@ class SPHFieldInfo(FieldInfoContainer):
         ("Metals", ("code_metallicity", ["metallicity"], None)),
         ("Phi", ("code_length", [], None)),
         ("FormationTime", ("code_time", ["creation_time"], None)),
+        # These are metallicity fields that get discovered for FIRE simulations
+        ("Metallicity_00", ("", ["metallicity"], None)),
+        ("Metallicity_01", ("", ["He_fraction"], None)),
+        ("Metallicity_02", ("", ["C_fraction"], None)),
+        ("Metallicity_03", ("", ["N_fraction"], None)),
+        ("Metallicity_04", ("", ["O_fraction"], None)),
+        ("Metallicity_05", ("", ["Ne_fraction"], None)),
+        ("Metallicity_06", ("", ["Mg_fraction"], None)),
+        ("Metallicity_07", ("", ["Si_fraction"], None)),
+        ("Metallicity_08", ("", ["S_fraction"], None)),
+        ("Metallicity_09", ("", ["Ca_fraction"], None)),
+        ("Metallicity_10", ("", ["Fe_fraction"], None)),
     )
-
 
 
 class TipsyFieldInfo(SPHFieldInfo):
