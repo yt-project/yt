@@ -191,7 +191,7 @@ class DerivedField(object):
         """
         Return a data label for the given field, inluding units.
         """
-        name = self.name
+        name = self.name[1]
         if self.display_name is not None:
             name = self.display_name
 
@@ -202,7 +202,7 @@ class DerivedField(object):
         if projected:
             raise NotImplementedError
         else:
-            units = self.units
+            units = Unit(self.units)
         # Add unit label
         if not units.is_dimensionless:
             data_label += r"\/\/ (%s)" % (units)
