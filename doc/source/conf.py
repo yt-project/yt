@@ -59,7 +59,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'yt'
+project = u'The yt Project'
 copyright = u'2013, the yt Project'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -119,10 +119,15 @@ html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 # documentation.
 html_theme_options = dict(
     bootstrap_version = "3",
-    bootswatch_theme = "readable"
+    bootswatch_theme = "readable",
+    navbar_links = [
+        ("How to get help", "help/index.html"),
+        ("Bootcamp notebooks", "bootcamp/index.html"),
+        ("Cookbook", "cookbook/index.html"),
+        ],
+    navbar_sidebarrel = False,
+    globaltoc_depth = 2,
 )
-
-#html_style = "agogo_yt.css"
 
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = []
