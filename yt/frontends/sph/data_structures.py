@@ -381,7 +381,6 @@ class TipsyDataset(ParticleDataset):
     def __init__(self, filename, dataset_type="tipsy",
                  field_dtypes=None,
                  unit_base=None,
-                 cosmology_parameters=None,
                  parameter_file=None,
                  n_ref=64, over_refine_factor=1):
         self.n_ref = n_ref
@@ -407,7 +406,6 @@ class TipsyDataset(ParticleDataset):
         self._field_dtypes = field_dtypes
 
         self._unit_base = unit_base or {}
-        self._cosmology_parameters = cosmology_parameters
         if parameter_file is not None:
             parameter_file = os.path.abspath(parameter_file)
         self._param_file = parameter_file
@@ -467,8 +465,8 @@ class TipsyDataset(ParticleDataset):
                     val = bool(float(val))
                 self.parameters[param] = val
 
-        self.current_time = hvals["time"]
         nz = 1 << self.over_refine_factor
+        self.current_time = hvals["time"]
         self.domain_dimensions = np.ones(3, "int32") * nz
         if self.parameters.get('bPeriodic', True):
             self.periodicity = (True, True, True)
@@ -480,15 +478,14 @@ class TipsyDataset(ParticleDataset):
             self.domain_left_edge = None
             self.domain_right_edge = None
         if self.parameters.get('bComove', False):
+            self.scale_factor = hvals["time"]#In comoving simulations, time stores the scale factor a
             self.cosmological_simulation = 1
-            cosm = self._cosmology_parameters or {}
-            dcosm = dict(current_redshift=0.0,
-                         omega_lambda=0.0,
-                         omega_matter=0.0,
-                         hubble_constant=1.0)
-            for param in ['current_redshift', 'omega_lambda',
-                          'omega_matter', 'hubble_constant']:
-                pval = cosm.get(param, dcosm[param])
+            dcosm = dict(current_redshift=(1.0/self.scale_factor)-1.0,
+                         omega_lambda=self.parameters.get('dLambda', 0.0),
+                         omega_matter=self.parameters.get('dOmega0', 0.0),
+                         hubble_constant=self.parameters.get('dHubble0', 1.0))
+            for param in dcosm.keys():
+                pval = dcosm[param]
                 setattr(self, param, pval)
         else:
             self.cosmological_simulation = 0.0
@@ -501,18 +498,18 @@ class TipsyDataset(ParticleDataset):
         f.close()
 
     def _set_code_unit_attributes(self):
-        # Set a sane default for cosmological simulations.
-        if self._unit_base is None and self.cosmological_simulation == 1:
-            mylog.info("Assuming length units are in Mpc/h (comoving)")
-            self._unit_base.update(dict(length = (1.0, "Mpccm/h")))
         if self.cosmological_simulation:
-            length_units = self._unit_base['length']
-            DW = self.quan(1./length_units[1], length_units[0])
-            cosmo = Cosmology(self.hubble_constant * 100.0,
+            mu = self.parameters.get('dMsolUnit', 1.)
+            lu = self.parameters.get('dKpcUnit', 1000.)
+            # In cosmological runs, lengths are stored as length*scale_factor
+            self.length_unit = self.quan(lu, 'kpc')*self.scale_factor
+            self.mass_unit = self.quan(mu, 'Msun')
+            density_unit = self.mass_unit/ (self.length_unit/self.scale_factor)**3
+            # Gasoline's hubble constant, dHubble0, is stored units of proper code time.
+            self.hubble_constant *= np.sqrt(G.in_units('kpc**3*Msun**-1*s**-2')*density_unit).value/(3.2407793e-18)  
+            cosmo = Cosmology(self.hubble_constant,
                               self.omega_matter, self.omega_lambda)
-            self.length_unit = DW
-            density_unit = cosmo.critical_density(self.current_redshift)
-            self.mass_unit = density_unit * self.length_unit ** 3
+            self.current_time = cosmo.hubble_time(self.current_redshift)
         else:
             mu = self.parameters.get('dMsolUnit', 1.0)
             self.mass_unit = self.quan(mu, 'Msun')
