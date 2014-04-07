@@ -15,19 +15,25 @@ class NotebookDirective(Directive):
     required_arguments = 1
     optional_arguments = 1
     option_spec = {'skip_exceptions' : directives.flag}
+    final_argument_whitespace = True
 
-    def run(self):
-        # check if raw html is supported
+    def run(self): # check if there are spaces in the notebook name
+        nb_path = self.arguments[0]
+        if ' ' in nb_path: raise ValueError(
+            "Due to issues with docutils stripping spaces from links, white "
+            "space is not allowed in notebook filenames '{0}'".format(nb_path))
+        # check if raw html is supported if not
         if not self.state.document.settings.raw_enabled:
             raise self.warning('"%s" directive disabled.' % self.name)
 
         # get path to notebook
         source_dir = os.path.dirname(
             os.path.abspath(self.state.document.current_source))
-        nb_basename = os.path.basename(self.arguments[0])
+        nb_filename = self.arguments[0]
+        nb_basename = os.path.basename(nb_filename)
         rst_file = self.state_machine.document.attributes['source']
         rst_dir = os.path.abspath(os.path.dirname(rst_file))
-        nb_abs_path = os.path.join(rst_dir, nb_basename)
+        nb_abs_path = os.path.abspath(os.path.join(rst_dir, nb_filename))
 
         # Move files around.
         rel_dir = os.path.relpath(rst_dir, setup.confdir)
@@ -89,7 +95,6 @@ class NotebookDirective(Directive):
         return [nb_node]
 
 
-
 class notebook_node(nodes.raw):
     pass
 
@@ -123,6 +128,7 @@ def nb_to_html(nb_path):
 
     line_begin_strings = [
         'pre{',
+        'p{margin'
         ]
 
     header_lines = filter(
