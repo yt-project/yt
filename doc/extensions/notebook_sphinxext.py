@@ -109,6 +109,7 @@ def nb_to_html(nb_path):
     # http://imgur.com/eR9bMRH
     header = header.replace('<style', '<style scoped="scoped"')
     header = header.replace('body {\n  overflow: visible;\n  padding: 8px;\n}\n', '')
+    header = header.replace("code,pre{", "code{")
 
     # Filter out styles that conflict with the sphinx theme.
     filter_strings = [
@@ -120,8 +121,15 @@ def nb_to_html(nb_path):
     ]
     filter_strings.extend(['h%s{' % (i+1) for i in range(6)])
 
+    line_begin_strings = [
+        'pre{',
+        ]
+
     header_lines = filter(
         lambda x: not any([s in x for s in filter_strings]), header.split('\n'))
+    header_lines = filter(
+        lambda x: not any([x.startswith(s) for s in line_begin_strings]), header_lines)
+
     header = '\n'.join(header_lines)
 
     # concatenate raw html lines
