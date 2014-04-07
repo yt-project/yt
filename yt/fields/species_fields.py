@@ -20,10 +20,16 @@ from yt.utilities.physical_constants import \
     mh, \
     mass_sun_cgs, \
     amu_cgs
+from yt.utilities.physical_ratios import \
+    primordial_H_mass_fraction
 from yt.funcs import *
 from yt.utilities.chemical_formulas import \
     ChemicalFormula
 
+_primordial_mass_fraction = \
+  {"H": primordial_H_mass_fraction,
+   "He" : (1 - primordial_H_mass_fraction)}
+    
 # See YTEP-0003 for details, but we want to ensure these fields are all
 # populated:
 #
@@ -112,7 +118,18 @@ def add_nuclei_density_fields(registry, ftype,
                            function = _nuclei_density,
                            particle_type = particle_type,
                            units = "cm**-3")
+    if len(elements) == 0:
+        for element in ["H", "He"]:
+            registry.add_field((ftype, "%s_nuclei_density" % element),
+                               function = _default_nuclei_density,
+                               particle_type = particle_type,
+                               units = "cm**-3")
 
+def _default_nuclei_density(field, data):
+    element = field.name[1][:field.name[1].find("_")]
+    return data["gas", "density"] * _primordial_mass_fraction[element] / \
+      ChemicalFormula(element).weight / amu_cgs
+        
 def _nuclei_density(field, data):
     element = field.name[1][:field.name[1].find("_")]
     field_data = np.zeros_like(data["gas", "%s_number_density" % 

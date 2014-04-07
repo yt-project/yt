@@ -80,6 +80,7 @@ eV_per_erg = 1.0 / erg_per_eV
 jansky_cgs = 1.0e-23
 # Cosmological constants
 rho_crit_g_cm3_h2 = 1.8788e-29
+primordial_H_mass_fraction = 0.76
 
 # Misc. Approximations
 mass_mean_atomic_cosmology = 1.22
