@@ -77,6 +77,14 @@ class SPHFieldInfo(FieldInfoContainer):
         ("Metallicity_10", ("", ["Fe_fraction"], None)),
     )
 
+    def setup_particle_fields(self, ptype):
+        super(SPHFieldInfo, self).setup_particle_fields(ptype)
+        for _, fname in self.field_aliases:
+            if _ != ptype: continue
+            if not fname.endswith("_fraction"): continue
+            element, _ = fname.split("_")
+            add_species_field_by_fraction(self, ptype, element,
+                                          particle_type=True)
 
 class TipsyFieldInfo(SPHFieldInfo):
 
