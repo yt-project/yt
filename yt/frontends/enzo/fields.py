@@ -21,6 +21,7 @@ from yt.fields.field_info_container import \
 from yt.units.yt_array import \
     YTArray
 from yt.fields.species_fields import \
+    add_nuclei_density_fields, \
     add_species_field_by_density
 from yt.utilities.physical_constants import \
     mh, me, mp, \
@@ -135,7 +136,8 @@ class EnzoFieldInfo(FieldInfoContainer):
                        units = "g/cm**3")
         for sp in species_names:
             self.add_species_field(sp)
-
+            self.species_names.append(known_species_names[sp])
+        add_nuclei_density_fields(self, "gas")
 
     def setup_fluid_fields(self):
         # Now we conditionally load a few other things.
