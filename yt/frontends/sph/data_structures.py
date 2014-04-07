@@ -382,6 +382,7 @@ class TipsyDataset(ParticleDataset):
                  field_dtypes=None,
                  unit_base=None,
                  parameter_file=None,
+                 cosmology_parameters=None,
                  n_ref=64, over_refine_factor=1):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
@@ -406,6 +407,7 @@ class TipsyDataset(ParticleDataset):
         self._field_dtypes = field_dtypes
 
         self._unit_base = unit_base or {}
+        self._cosmology_parameters = cosmology_parameters
         if parameter_file is not None:
             parameter_file = os.path.abspath(parameter_file)
         self._param_file = parameter_file
@@ -465,8 +467,8 @@ class TipsyDataset(ParticleDataset):
                     val = bool(float(val))
                 self.parameters[param] = val
 
-        nz = 1 << self.over_refine_factor
         self.current_time = hvals["time"]
+        nz = 1 << self.over_refine_factor
         self.domain_dimensions = np.ones(3, "int32") * nz
         if self.parameters.get('bPeriodic', True):
             self.periodicity = (True, True, True)
@@ -478,12 +480,13 @@ class TipsyDataset(ParticleDataset):
             self.domain_left_edge = None
             self.domain_right_edge = None
         if self.parameters.get('bComove', False):
+            cosm = self._cosmology_parameters or {}
             self.scale_factor = hvals["time"]#In comoving simulations, time stores the scale factor a
             self.cosmological_simulation = 1
             dcosm = dict(current_redshift=(1.0/self.scale_factor)-1.0,
-                         omega_lambda=self.parameters.get('dLambda', 0.0),
-                         omega_matter=self.parameters.get('dOmega0', 0.0),
-                         hubble_constant=self.parameters.get('dHubble0', 1.0))
+                         omega_lambda=self.parameters.get('dLambda', cosm.get('omega_lambda',0.0)),
+                         omega_matter=self.parameters.get('dOmega0', cosm.get('omega_matter',0.0)),
+                         hubble_constant=self.parameters.get('dHubble0', cosm.get('hubble_constant',1.0)))
             for param in dcosm.keys():
                 pval = dcosm[param]
                 setattr(self, param, pval)
