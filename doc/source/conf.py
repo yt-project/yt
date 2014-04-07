@@ -121,9 +121,9 @@ html_theme_options = dict(
     bootstrap_version = "3",
     bootswatch_theme = "readable",
     navbar_links = [
-        ("How to get help", "help/index.html"),
-        ("Bootcamp notebooks", "bootcamp/index.html"),
-        ("Cookbook", "cookbook/index.html"),
+        ("How to get help", "help/index"),
+        ("Bootcamp notebooks", "bootcamp/index"),
+        ("Cookbook", "cookbook/index"),
         ],
     navbar_sidebarrel = False,
     globaltoc_depth = 2,
