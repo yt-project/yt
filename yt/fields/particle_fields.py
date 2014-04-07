@@ -133,12 +133,6 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
                        particle_type = True,
                        units = "")
 
-    registry.alias((ptype, "ParticleMass"), (ptype, mass_name),
-                    units = "g")
-
-    registry.alias((ptype, "ParticleMassMsun"), (ptype, mass_name),
-                    units = "Msun")
-
     def particle_mesh_ids(field, data):
         pos = data[ptype, coord_name]
         ids = np.zeros(pos.shape[0], dtype="float64") - 1
