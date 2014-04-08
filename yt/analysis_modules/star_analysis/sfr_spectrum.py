@@ -41,7 +41,7 @@ class StarFormationRate(object):
     star_creation_time : Ordered array or list of floats
         The creation time for the stars in code units.
     volume : Float
-        The volume of the region for the specified list of stars.
+        The comoving volume of the region for the specified list of stars.
     bins : Integer
         The number of time bins used for binning the stars. Default = 300.
     
@@ -69,7 +69,7 @@ class StarFormationRate(object):
                 If data_source is not provided, all of these paramters need to be set:
                 star_mass (array, Msun),
                 star_creation_time (array, code units),
-                volume (float, Mpc**3).
+                volume (float, cMpc**3).
                 """)
                 return None
             self.mode = 'provided'
