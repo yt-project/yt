@@ -97,7 +97,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         buff = pixelize_cylinder(data_source['r'],
                                  data_source['dr'],
                                  data_source['theta'],
-                                 data_source['dtheta'],
+                                 data_source['dtheta']/2.0, # half-widths
                                  size, data_source[field], bounds)
         return buff
 
