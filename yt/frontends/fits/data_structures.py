@@ -297,6 +297,7 @@ class FITSDataset(Dataset):
 
         self.nprocs = np.around(np.prod(self.domain_dimensions) /
                                 32**self.dimensionality).astype("int")
+        self.nprocs = min(self.nprocs, 2500)
 
     def __del__(self):
         self._handle.close()
@@ -359,6 +360,7 @@ class FITSXYVDataset(FITSDataset):
 
         self.nprocs = np.around(np.prod(self.domain_dimensions) /
                                 32**self.dimensionality).astype("int")
+        self.nprocs = max(self.nprocs, 2500)
 
     @classmethod
     def _check_axes(cls, handle):
