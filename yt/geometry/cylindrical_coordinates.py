@@ -73,11 +73,12 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                  units = "code_length**3")
 
 
-    def pixelize(self, dimension, data_source, field, bounds, size, antialias = True):
+    def pixelize(self, dimension, data_source, field, bounds, size,
+                 antialias = True, periodic = True):
         ax_name = self.axis_name[dimension]
         if ax_name in ('r', 'theta'):
             return self._ortho_pixelize(data_source, field, bounds, size,
-                                        antialias)
+                                        antialias, dimension, periodic)
         elif ax_name == "z":
             return self._cyl_pixelize(data_source, field, bounds, size,
                                         antialias)
@@ -85,12 +86,18 @@ class CylindricalCoordinateHandler(CoordinateHandler):
             # Pixelizing along a cylindrical surface is a bit tricky
             raise NotImplementedError
 
-    def _ortho_pixelize(self, data_source, field, bounds, size, antialias):
+    def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
+                        dim, periodic):
+        period = self.period[:2].copy() # dummy here
+        period[0] = self.period[self.x_axis[dim]]
+        period[1] = self.period[self.y_axis[dim]]
+        if hasattr(period, 'in_units'):
+            period = period.in_units("code_length").d
         buff = _MPL.Pixelize(data_source['px'], data_source['py'],
                              data_source['pdx'], data_source['pdy'],
                              data_source[field], size[0], size[1],
                              bounds, int(antialias),
-                             True, self.period).transpose()
+                             period, int(periodic)).transpose()
         return buff
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias):
