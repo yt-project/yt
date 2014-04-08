@@ -98,7 +98,8 @@ default_unit_symbol_lut = {
     "amu": (amu_grams, dimensions.mass),
     "me": (mass_electron_grams, dimensions.mass),
     "angstrom": (cm_per_ang, dimensions.length),
-    "Jy": (jansky_cgs, dimensions.specific_flux)
+    "Jy": (jansky_cgs, dimensions.specific_flux),
+    "beam": (1.0, dimensions.dimensionless)
 
 }
 
