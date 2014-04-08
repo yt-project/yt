@@ -13,6 +13,7 @@ FITS-specific data structures
 import stat
 import types
 import numpy as np
+import numpy.core.defchararray as np_char
 import weakref
 import warnings
 
@@ -77,6 +78,9 @@ ap = astropy_imports()
 angle_units = ["deg","arcsec","arcmin","mas"]
 all_units = angle_units + mpc_conversion.keys()
 
+known_units = {"k":"K",
+               "jy":"Jy"}
+
 class FITSGrid(AMRGridPatch):
     _id_offset = 0
     def __init__(self, id, index, level):
@@ -107,11 +111,33 @@ class FITSHierarchy(GridIndex):
     def _initialize_data_storage(self):
         pass
 
+    def _detect_image_units(self, fname, header):
+        try:
+            field_units = header["bunit"].lower().strip(" ")
+            # FITS units always return upper-case, so we need to get
+            # the right case by comparing against known units
+            for name in known_units:
+                if field_units.find(name) > -1:
+                    field_units = field_units.replace(name, known_units[name])
+            self.parameter_file.field_units[fname] = field_units
+        except:
+            pass
+
     def _detect_output_fields(self):
         self.field_list = []
+        self._field_map = {}
         for h in self._handle[self.parameter_file.first_image:]:
-            if h.is_image:
-                self.field_list.append(("fits", h.name.lower()))
+            if h.header["naxis"] >= 2:
+                if self.parameter_file.four_dims:
+                    for idx in range(h.header["naxis4"]):
+                        fname = h.name.lower()+"_%d" % (idx)
+                        self._field_map[fname] = idx
+                        self.field_list.append(("fits", fname))
+                        self._detect_image_units(fname, h.header)
+                else:
+                    fname = h.name.lower()
+                    self.field_list.append(("fits", fname))
+                    self._detect_image_units(fname, h.header)
 
     def _count_grids(self):
         self.num_grids = self.pf.nprocs
@@ -170,31 +196,20 @@ class FITSDataset(Dataset):
     _handle = None
 
     def __init__(self, filename, dataset_type='fits',
-                 primary_header = None,
-                 sky_conversion = None,
                  storage_filename = None,
                  mask_nans = True,
                  nprocs=1):
         self.fluid_types += ("fits",)
         self.mask_nans = mask_nans
         self.nprocs = nprocs
-        if isinstance(filename, ap.pyfits.HDUList):
-            self._handle = filename
-            fname = filename.filename()
-        else:
-            self._handle = ap.pyfits.open(filename)
-            fname = filename
+        self._handle = ap.pyfits.open(filename)
         for i, h in enumerate(self._handle):
-            if h.is_image and h.data is not None:
+            if h.header["naxis"] >= 2:
                 self.first_image = i
                 break
 
-        if primary_header is None:
-            self.primary_header = self._handle[self.first_image].header
-        else:
-            self.primary_header = primary_header
+        self.primary_header = self._handle[self.first_image].header
         self.shape = self._handle[self.first_image].shape
-
         self.wcs = ap.pywcs.WCS(header=self.primary_header)
 
         self.file_unit = None
@@ -205,21 +220,15 @@ class FITSDataset(Dataset):
                 break
         self.new_unit = None
         self.pixel_scale = 1.0
-        if self.file_unit in angle_units:
-            if sky_conversion is not None:
-                self.new_unit = sky_conversion[1]
-                self.pixel_scale = np.abs(self.wcs.wcs.cdelt[idx])*sky_conversion[0]
-        elif self.file_unit in mpc_conversion:
+        if self.file_unit in mpc_conversion:
             self.new_unit = self.file_unit
             self.pixel_scale = self.wcs.wcs.cdelt[idx]
 
         self.refine_by = 2
+        self.four_dims = False
 
-        Dataset.__init__(self, fname, dataset_type)
+        Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
-
-        # For plotting to APLpy
-        self.hdu_list = self._handle
 
     def _set_code_unit_attributes(self):
         """
@@ -287,20 +296,101 @@ class FITSDataset(Dataset):
             if ext.upper() not in ("FITS", "FTS"):
                 return False
         try:
-            if args[0].__class__.__name__ == "HDUList":
-                for h in args[0]:
-                    if h.is_image and h.data is not None:
-                        return True
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore', category=UserWarning, append=True)
+                fileh = ap.pyfits.open(args[0])
+            for h in fileh:
+                if h.header["naxis"] >= 2:
+                    axes_names = [h.header["CTYPE%d" % (ax)] for ax in xrange(1,4)]
+                    a = np_char.startswith(axes_names, "RA")
+                    b = np_char.startswith(axes_names, "DEC")
+                    c = np_char.startswith(axes_names, "VEL")
+                    fileh.close()
+                    if (a+b+c).sum() != 3: return True
+            fileh.close()
         except:
             pass
+        return False
+
+#class FITSXYVHierarchy(FITSHierarchy):
+#
+#    grid = FITSGrid
+
+
+class FITSXYVDataset(FITSDataset):
+    _dataset_type = "xyv_fits"
+
+    def __init__(self, filename,
+                 dataset_type='xyv_fits',
+                 storage_filename = None,
+                 mask_nans = True,
+                 nprocs=1):
+
+        super(FITSXYVDataset, self).__init__(filename, dataset_type=dataset_type,
+                                             storage_filename=storage_filename,
+                                             mask_nans=mask_nans, nprocs=nprocs)
+        self.axes_names = [self.primary_header["CTYPE%d" % (ax)] for ax in xrange(1,4)]
+        self.ra_axis = np.where(np_char.startswith(self.axes_names, "RA"))[0][0]
+        self.dec_axis = np.where(np_char.startswith(self.axes_names, "DEC"))[0][0]
+        self.vel_axis = np.where(np_char.startswith(self.axes_names, "VEL"))[0][0]
+
+    def _parse_parameter_file(self):
+
+        self.unique_identifier = \
+            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+        for k, v in self.primary_header.items():
+            self.parameters[k] = v
+
+        # Determine dimensionality
+
+        self.dimensionality = self.primary_header["naxis"]
+        self.geometry = "cartesian"
+        self.four_dims = False
+        if self.dimensionality == 4:
+            self.dimensionality = 3
+            self.four_dims = True
+
+        dims = self._handle[self.first_image].shape[::-1]
+        if self.four_dims: dims = dims[:3]
+
+        self.domain_dimensions = np.array(dims)
+        self.domain_left_edge = np.array([0.5]*3)
+        self.domain_right_edge = np.array([float(dim)+0.5 for dim in self.domain_dimensions])
+
+        # Get the simulation time
+        try:
+            self.current_time = self.parameters["time"]
+        except:
+            mylog.warning("Cannot find time")
+            self.current_time = 0.0
+            pass
+
+        # For now we'll ignore these
+        self.periodicity = (False,)*3
+        self.current_redshift = self.omega_lambda = self.omega_matter = \
+            self.hubble_constant = self.cosmological_simulation = 0.0
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        if isinstance(args[0], types.StringTypes):
+            ext = args[0].rsplit(".", 1)[-1]
+            if ext.upper() == "GZ":
+                # We don't know for sure that there will be > 1
+                ext = args[0].rsplit(".", 1)[0].rsplit(".", 1)[-1]
+            if ext.upper() not in ("FITS", "FTS"):
+                return False
         try:
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore', category=UserWarning, append=True)
                 fileh = ap.pyfits.open(args[0])
             for h in fileh:
-                if h.is_image and h.data is not None:
+                if h.header["naxis"] >= 3:
+                    axes_names = [h.header["CTYPE%d" % (ax)] for ax in xrange(1,4)]
+                    a = np_char.startswith(axes_names, "RA")
+                    b = np_char.startswith(axes_names, "DEC")
+                    c = np_char.startswith(axes_names, "VEL")
                     fileh.close()
-                    return True
+                    if (a+b+c).sum() == 3: return True
             fileh.close()
         except:
             pass
