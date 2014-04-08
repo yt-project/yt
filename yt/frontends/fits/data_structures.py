@@ -323,7 +323,9 @@ class FITSDataset(Dataset):
                 a = np_char.startswith(axes_names, "RA")
                 b = np_char.startswith(axes_names, "DEC")
                 c = np_char.startswith(axes_names, "VEL")
-                if (a+b+c).sum() != 3:
+                d = np_char.startswith(axes_names, "FREQ")
+                e = np_char.startswith(axes_names, "ENER")
+                if (a+b+c+d+e).sum() != 3:
                     handle.close()
                     return True
         return False
@@ -349,7 +351,10 @@ class FITSXYVDataset(FITSDataset):
         self.axes_names = [self.primary_header["CTYPE%d" % (ax)] for ax in xrange(1,4)]
         self.ra_axis = np.where(np_char.startswith(self.axes_names, "RA"))[0][0]
         self.dec_axis = np.where(np_char.startswith(self.axes_names, "DEC"))[0][0]
-        self.vel_axis = np.where(np_char.startswith(self.axes_names, "VEL"))[0][0]
+        self.vel_axis = np_char.startswith(self.axes_names, "VEL")
+        self.vel_axis += np_char.startswith(self.axes_names, "FREQ")
+        self.vel_axis += np_char.startswith(self.axes_names, "ENER")
+        self.vel_axis = np.where(self.vel_axis)[0][0]
 
         self.wcs_2d = ap.pywcs.WCS(naxis=2)
         self.wcs_2d.wcs.crpix = self.wcs.wcs.crpix[[self.ra_axis, self.dec_axis]]
@@ -359,6 +364,13 @@ class FITSXYVDataset(FITSDataset):
                                  str(self.wcs.wcs.cunit[self.dec_axis])]
         self.wcs_2d.wcs.ctype = [self.wcs.wcs.ctype[self.ra_axis],
                                  self.wcs.wcs.ctype[self.dec_axis]]
+
+        self.wcs_1d = ap.pywcs.WCS(naxis=1)
+        self.wcs_1d.wcs.crpix = [self.wcs.wcs.crpix[self.vel_axis]]
+        self.wcs_1d.wcs.cdelt = [self.wcs.wcs.cdelt[self.vel_axis]]
+        self.wcs_1d.wcs.crval = [self.wcs.wcs.crval[self.vel_axis]]
+        self.wcs_1d.wcs.cunit = [str(self.wcs.wcs.cunit[self.vel_axis])]
+        self.wcs_1d.wcs.ctype = [self.wcs.wcs.ctype[self.vel_axis]]
 
     def _parse_parameter_file(self):
 
@@ -383,7 +395,9 @@ class FITSXYVDataset(FITSDataset):
                 a = np_char.startswith(axes_names, "RA")
                 b = np_char.startswith(axes_names, "DEC")
                 c = np_char.startswith(axes_names, "VEL")
-                if (a+b+c).sum() == 3:
+                d = np_char.startswith(axes_names, "FREQ")
+                e = np_char.startswith(axes_names, "ENER")
+                if (a+b+c+d+e).sum() == 3:
                     handle.close()
                     return True
         return False
