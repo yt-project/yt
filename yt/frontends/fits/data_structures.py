@@ -200,7 +200,7 @@ class FITSDataset(Dataset):
         self.fluid_types += ("fits",)
         self.mask_nans = mask_nans
         self.nprocs = nprocs
-        self._handle = ap.pyfits.open(filename, do_not_scale_image_data=True)
+        self._handle = ap.pyfits.open(filename, memmap=True, do_not_scale_image_data=True)
         for i, h in enumerate(self._handle):
             if h.header["naxis"] >= 2:
                 self.first_image = i
