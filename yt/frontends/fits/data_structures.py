@@ -203,6 +203,19 @@ class FITSHierarchy(GridIndex):
     def _setup_data_io(self):
         self.io = io_registry[self.dataset_type](self.parameter_file)
 
+    def _chunk_io(self, dobj, cache = True, local_only = False):
+        # local_only is only useful for inline datasets and requires
+        # implementation by subclasses.
+        gfiles = defaultdict(list)
+        gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+        for g in gobjs:
+            gfiles[g.id].append(g)
+        for fn in sorted(gfiles):
+            gs = gfiles[fn]
+            yield YTDataChunk(dobj, "io", gs, self._count_selection(dobj, gs),
+                              cache = cache)
+
+
 class FITSDataset(Dataset):
     _index_class = FITSHierarchy
     _field_info_class = FITSFieldInfo
