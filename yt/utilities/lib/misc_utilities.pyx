@@ -492,6 +492,7 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
           
     if input_img is None:
         img = np.zeros((buff_size[0], buff_size[1]))
+        img[:] = np.nan
     else:
         img = input_img
     x0, x1, y0, y1 = extents
@@ -520,6 +521,8 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
                 pj = <int>((y - y0)/dy)
                 if pi >= 0 and pi < img.shape[0] and \
                    pj >= 0 and pj < img.shape[1]:
+                    if img[pi, pj] != img[pi, pj]:
+                        img[pi, pj] = 0.0
                     img[pi, pj] = field[i]
                 r_i += 0.5*dx 
             theta_i += dthetamin
