@@ -19,17 +19,11 @@ class FITSFieldInfo(FieldInfoContainer):
     known_other_fields = ()
     def _get_wcs(self, data, axis):
         if data.pf.dimensionality == 2:
-            xw, yw = data.pf.wcs.wcs_pix2world(data["x"], data["y"], 1)
-            zw = data["z"]
+            w_coords = data.pf.wcs.wcs_pix2world(data["x"], data["y"], 1)
         else:
-            xw, yw, zw = data.pf.wcs.wcs_pix2world(data["x"], data["y"],
-                                                   data["z"], 1)
-        if axis == 0:
-            return xw
-        elif axis == 1:
-            return yw
-        elif axis == 2:
-            return zw
+            w_coords = data.pf.wcs.wcs_pix2world(data["x"], data["y"],
+                                                 data["z"], 1)
+        return w_coords[axis]
     def setup_fluid_fields(self):
         def world_f(axis):
             def _world_f(field, data):
