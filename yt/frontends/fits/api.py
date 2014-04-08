@@ -17,8 +17,9 @@ from .data_structures import \
       FITSXYVDataset
 
 from .fields import \
-      FITSFieldInfo
+      FITSFieldInfo, \
+      FITSXYVFieldInfo
 
 from .io import \
       IOHandlerFITS, \
-      IOHandlerXYVFITS
+      IOHandlerFITSXYV

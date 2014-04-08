@@ -62,7 +62,7 @@ class IOHandlerFITS(BaseIOHandler):
                     ind += g.select(selector, data.astype("float64"), rv[field], ind)
         return rv
 
-class IOHandlerXYVFITS(IOHandlerFITS):
+class IOHandlerFITSXYV(IOHandlerFITS):
     _particle_reader = False
     _dataset_type = "xyv_fits"
 

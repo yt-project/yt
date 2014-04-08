@@ -31,7 +31,7 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.io_handler import \
     io_registry
-from .fields import FITSFieldInfo
+from .fields import FITSFieldInfo, FITSXYVFieldInfo
 from yt.utilities.decompose import \
     decompose_array, get_psize
 
@@ -132,11 +132,11 @@ class FITSHierarchy(GridIndex):
                     for idx in range(h.header["naxis4"]):
                         fname = h.name.lower()+"_%d" % (idx)
                         self._field_map[fname] = idx
-                        self.field_list.append(("fits", fname))
+                        self.field_list.append((self.dataset_type, fname))
                         self._detect_image_units(fname, h.header)
                 else:
                     fname = h.name.lower()
-                    self.field_list.append(("fits", fname))
+                    self.field_list.append((self.dataset_type, fname))
                     self._detect_image_units(fname, h.header)
 
     def _count_grids(self):
@@ -202,7 +202,7 @@ class FITSDataset(Dataset):
         self.fluid_types += ("fits",)
         self.mask_nans = mask_nans
         self.nprocs = nprocs
-        self._handle = ap.pyfits.open(filename)
+        self._handle = ap.pyfits.open(filename, do_not_scale_image_data=True)
         for i, h in enumerate(self._handle):
             if h.header["naxis"] >= 2:
                 self.first_image = i
@@ -319,12 +319,15 @@ class FITSDataset(Dataset):
 
 class FITSXYVDataset(FITSDataset):
     _dataset_type = "xyv_fits"
+    _field_info_class = FITSXYVFieldInfo
 
     def __init__(self, filename,
                  dataset_type='xyv_fits',
                  storage_filename = None,
                  mask_nans = True,
                  nprocs=1):
+
+        self.fluid_types += ("xyv_fits",)
 
         super(FITSXYVDataset, self).__init__(filename, dataset_type=dataset_type,
                                              storage_filename=storage_filename,
@@ -333,6 +336,15 @@ class FITSXYVDataset(FITSDataset):
         self.ra_axis = np.where(np_char.startswith(self.axes_names, "RA"))[0][0]
         self.dec_axis = np.where(np_char.startswith(self.axes_names, "DEC"))[0][0]
         self.vel_axis = np.where(np_char.startswith(self.axes_names, "VEL"))[0][0]
+
+        self.wcs_2d = ap.pywcs.WCS(naxis=2)
+        self.wcs_2d.wcs.crpix = self.wcs.wcs.crpix[self.ra_axis, self.dec_axis]
+        self.wcs_2d.wcs.cdelt = self.wcs.wcs.cdelt[self.ra_axis, self.dec_axis]
+        self.wcs_2d.wcs.crval = self.wcs.wcs.crval[self.ra_axis, self.dec_axis]
+        self.wcs_2d.wcs.cunit = [str(self.wcs.wcs.cunit[self.ra_axis]),
+                                 str(self.wcs.wcs.cunit[self.dec_axis])]
+        self.wcs_2d.wcs.ctype = [self.wcs.wcs.ctype[self.ra_axis],
+                                 self.wcs.wcs.ctype[self.dec_axis]]
 
     def _parse_parameter_file(self):
 
