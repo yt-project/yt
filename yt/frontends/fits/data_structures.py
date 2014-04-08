@@ -223,10 +223,12 @@ class FITSDataset(Dataset):
     _handle = None
 
     def __init__(self, filename, dataset_type='fits',
+                 nprocs = None,
                  storage_filename = None,
                  mask_nans = True):
         self.fluid_types += ("fits",)
         self.mask_nans = mask_nans
+        self.nprocs = nprocs
         self._handle = ap.pyfits.open(filename, memmap=True, do_not_scale_image_data=True)
         for i, h in enumerate(self._handle):
             if h.header["naxis"] >= 2:
@@ -308,9 +310,10 @@ class FITSDataset(Dataset):
         self.current_redshift = self.omega_lambda = self.omega_matter = \
             self.hubble_constant = self.cosmological_simulation = 0.0
 
-        self.nprocs = np.around(np.prod(self.domain_dimensions) /
-                                32**self.dimensionality).astype("int")
-        self.nprocs = min(self.nprocs, 2500)
+        if self.nprocs is None:
+            self.nprocs = np.around(np.prod(self.domain_dimensions) /
+                                    32**self.dimensionality).astype("int")
+            self.nprocs = min(self.nprocs, 2500)
 
     def __del__(self):
         self._handle.close()
@@ -340,12 +343,14 @@ class FITSXYVDataset(FITSDataset):
 
     def __init__(self, filename,
                  dataset_type='xyv_fits',
+                 nprocs = None,
                  storage_filename = None,
                  mask_nans = True):
 
         self.fluid_types += ("xyv_fits",)
 
         super(FITSXYVDataset, self).__init__(filename, dataset_type=dataset_type,
+                                             nprocs=nprocs,
                                              storage_filename=storage_filename,
                                              mask_nans=mask_nans)
         self.axes_names = [self.primary_header["CTYPE%d" % (ax)] for ax in xrange(1,4)]
@@ -383,9 +388,10 @@ class FITSXYVDataset(FITSDataset):
             self.domain_left_edge = self.domain_left_edge[:3]
             self.domain_right_edge = self.domain_right_edge[:3]
 
-        self.nprocs = np.around(np.prod(self.domain_dimensions) /
-                                32**self.dimensionality).astype("int")
-        self.nprocs = min(self.nprocs, 2500)
+        if self.nprocs is None:
+            self.nprocs = np.around(np.prod(self.domain_dimensions) /
+                                    32**self.dimensionality).astype("int")
+            self.nprocs = min(self.nprocs, 2500)
 
     @classmethod
     def _check_axes(cls, handle):
