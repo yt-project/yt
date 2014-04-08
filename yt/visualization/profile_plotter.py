@@ -14,7 +14,6 @@ This is a simple mechanism for interfacing with Profile and Phase plots
 #-----------------------------------------------------------------------------
 
 
-import __builtin__
 import base64
 import types
 
@@ -25,27 +24,15 @@ import numpy as np
 import cStringIO
 import __builtin__
 
-
-from ._mpl_imports import FigureCanvasAgg
-from .plot_window import WindowPlotMPL
 from .base_plot_types import ImagePlotMPL
 from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform
 from yt.data_objects.profiles import \
-     create_profile
-from yt.utilities.exceptions import \
-     YTNotInsideNotebook
-from yt.data_objects.profiles import \
-    BinnedProfile1D, \
-    BinnedProfile2D
     create_profile
 from yt.utilities.logger import ytLogger as mylog
 import _mpl_imports as mpl
 from yt.funcs import \
-     ensure_list, \
-     get_image_suffix, \
-     get_ipython_api_version
     ensure_list, \
     get_image_suffix, \
     get_ipython_api_version
