@@ -24,6 +24,7 @@ import numpy as np
 import cStringIO
 import __builtin__
 
+
 from .base_plot_types import ImagePlotMPL
 from .plot_container import \
     ImagePlotContainer, \
