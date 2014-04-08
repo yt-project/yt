@@ -118,16 +118,14 @@ class FITSImageBuffer(pyfits.HDUList):
                 center = [0.0]*self.dimensionality
 
         if scale is None:
-            if units == "deg" or not has_coords:
+            if units == "deg" or not has_coords and wcs is None:
                 mylog.error("Please specify scale=(dx,dy[,dz]) in %s." % (units))
                 raise ValueError
 
-        w = pywcs.WCS(header=self[0].header, naxis=self.dimensionality)
-        w.wcs.crpix = 0.5*(np.array(self.shape)+1)
-
-        proj_type = ["linear"]*self.dimensionality
-
         if wcs is None:
+            w = pywcs.WCS(header=self[0].header, naxis=self.dimensionality)
+            w.wcs.crpix = 0.5*(np.array(self.shape)+1)
+            proj_type = ["linear"]*self.dimensionality
             if isinstance(img_data, FixedResolutionBuffer) and units != "deg":
                 # FRBs are a special case where we have coordinate
                 # information, so we take advantage of this and
