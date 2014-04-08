@@ -32,7 +32,7 @@ from yt.utilities.io_handler import \
     io_registry
 from .fields import FITSFieldInfo
 from yt.utilities.decompose import \
-    decompose_array, get_psize
+    decompose_array, get_psize, decompose_array_nocopy
 
 class astropy_imports:
     _pyfits = None
@@ -124,12 +124,10 @@ class FITSHierarchy(GridIndex):
             bbox = np.array([[le,re] for le, re in zip(pf.domain_left_edge,
                                                        pf.domain_right_edge)])
             psize = get_psize(np.array(pf.domain_dimensions), pf.nprocs)
-            temp_arr = np.zeros(pf.domain_dimensions)
-            gle, gre, temp_arr = decompose_array(temp_arr, psize, bbox)
+            gle, gre, shapes = decompose_array_nocopy(pf.domain_dimensions, psize, bbox)
             self.grid_left_edge = self.pf.arr(gle, "code_length")
             self.grid_right_edge = self.pf.arr(gre, "code_length")
-            self.grid_dimensions = np.array([grid.shape for grid in temp_arr], dtype="int32")
-            del temp_arr
+            self.grid_dimensions = np.array([shape for shape in shapes], dtype="int32")
         else:
             self.grid_left_edge[0,:] = pf.domain_left_edge
             self.grid_right_edge[0,:] = pf.domain_right_edge

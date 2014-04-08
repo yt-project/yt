@@ -52,6 +52,27 @@ def decompose_array(arr, psize, bbox):
     patches = split_array(arr, psize)
     return grid_left_edges, grid_right_edges, patches
 
+def decompose_array_nocopy(shape, psize, bbox):
+    """ Calculate list of product(psize) subarrays of arr, along with their
+        left and right edges
+    """
+    grid_left_edges = np.empty([np.product(psize), 3], dtype=np.float64)
+    grid_right_edges = np.empty([np.product(psize), 3], dtype=np.float64)
+    n_d = shape
+    d_s = (bbox[:, 1] - bbox[:, 0]) / n_d
+    dist = np.mgrid[bbox[0, 0]:bbox[0, 1]:d_s[0],
+                    bbox[1, 0]:bbox[1, 1]:d_s[1],
+                    bbox[2, 0]:bbox[2, 1]:d_s[2]]
+    for i in range(3):
+        xyz = split_array(dist[i], psize)
+        for j in range(np.product(psize)):
+            grid_left_edges[j, i] = xyz[j][0, 0, 0]
+            grid_right_edges[j, i] = xyz[j][-1, -1, -1] + d_s[i]
+        del xyz
+    del dist
+    shapes = split_array(shape, psize)
+    return grid_left_edges, grid_right_edges, shapes
+
 
 def evaluate_domain_decomposition(n_d, pieces, ldom):
     """ Evaluate longest to shortest edge ratio
@@ -141,3 +162,15 @@ def split_array(tab, psize):
                 slices.append(np.s_[lei[0]:rei[0], lei[1]:
                                     rei[1], lei[2]:rei[2]])
     return [tab[slc] for slc in slices]
+
+def split_array_nocopy(shape, psize):
+    """ Split array into px*py*pz subarrays. """
+    n_d = np.array(shape, dtype=np.int64)
+    shapes = []
+    for i in range(psize[0]):
+        for j in range(psize[1]):
+            for k in range(psize[2]):
+                lei = n_d * piece / psize
+                rei = n_d * (piece + np.ones(3, dtype=np.int64)) / psize
+                shapes.append(rei-lei)
+    return shapes 
