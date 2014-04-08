@@ -529,6 +529,61 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
 
     return img
 
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def pixelize_aitoff(np.ndarray[np.float64_t, ndim=1] theta,
+                    np.ndarray[np.float64_t, ndim=1] dtheta,
+                    np.ndarray[np.float64_t, ndim=1] phi,
+                    np.ndarray[np.float64_t, ndim=1] dphi,
+                    buff_size,
+                    np.ndarray[np.float64_t, ndim=1] field,
+                    extents, input_img = None):
+    
+    cdef np.ndarray[np.float64_t, ndim=2] img
+    cdef int i, j, nf, fi
+    cdef np.float64_t x, y, z, zb
+    cdef np.float64_t dx, dy, inside
+    cdef np.float64_t theta1, dtheta1, phi1, dphi1
+    cdef np.float64_t theta0, phi0
+    cdef np.float64_t PI = np.pi
+    cdef np.float64_t s2 = math.sqrt(2.0)
+    nf = field.shape[0]
+    
+    if input_img is None:
+        img = np.zeros((buff_size[0], buff_size[1]))
+        img[:] = np.nan
+    else:
+        img = input_img
+    dx = 2.0 / (img.shape[0] - 1)
+    dy = 2.0 / (img.shape[1] - 1)
+    for i in range(img.shape[0]):
+        x = (-1.0 + i*dx)*s2*2.0
+        for j in range(img.shape[1]):
+            y = (-1.0 + j * dy)*s2
+            zb = (x*x/8.0 + y*y/2.0 - 1.0)
+            if zb > 0: continue
+            z = (1.0 - (x/4.0)**2.0 - (y/2.0)**2.0)
+            z = z**0.5
+            # Longitude
+            phi0 = (2.0*math.atan(z*x/(2.0 * (2.0*z*z-1.0))) + PI)
+            # Latitude
+            # We shift it into co-latitude
+            theta0 = (math.asin(z*y) + PI/2.0)
+            # Now we just need to figure out which pixel contributes.
+            # We do not have a fast search.
+            for fi in range(nf):
+                theta1 = theta[fi]
+                dtheta1 = dtheta[fi]
+                if not (theta1 - dtheta1 <= theta0 <= theta1 + dtheta1):
+                    continue
+                phi1 = phi[fi]
+                dphi1 = dphi[fi]
+                if not (phi1 - dphi1 <= phi0 <= phi1 + dphi1):
+                    continue
+                img[i, j] = field[fi]
+    return img
+
 #@cython.cdivision(True)
 #@cython.boundscheck(False)
 #@cython.wraparound(False)

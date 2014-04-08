@@ -21,7 +21,7 @@ from .coordinate_handler import \
     _get_coord_fields
 import yt.visualization._MPL as _MPL
 from yt.utilities.lib.misc_utilities import \
-    pixelize_cylinder
+    pixelize_cylinder, pixelize_aitoff
 
 class SphericalCoordinateHandler(CoordinateHandler):
 
