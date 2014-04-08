@@ -162,8 +162,7 @@ class IonTableOWLS:
         T  = np.array( T )
 
         if nH.size != T.size:
-            print ' array size mismatch !!! '
-            sys.exit(1)
+            raise ValueError(' owls_ion_tables: array size mismatch !!! ')
         
         # field discovery will have nH.size == 1 and T.size == 1
         # in that case we simply return 1.0
@@ -175,48 +174,25 @@ class IonTableOWLS:
 
         # find inH and fnH
         #-----------------------------------------------------
-        inH = np.int32( ( nH - self.nH[0] ) / self.DELTA_nH )
-
-        indx = np.where( inH < 0 )[0]
-        if len(indx) > 0:
-            inH[indx] = 0
-        indx = np.where( inH >= self.nH.size-1 )[0]
-        if len(indx) > 0:
-            inH[indx] = self.nH.size-2
-
-        fnH = ( nH - self.nH[inH] ) / self.dnH[inH]
-
-        indx = np.where( inH < 0 )[0]
-        if len(indx) > 0:
-            fnH[indx] = 0.0
-        indx = np.where( inH >= self.nH.size-1 )[0]
-        if len(indx) > 0:
-            fnH[indx] = 1.0
+        x_nH = ( nH - self.nH[0] ) / self.DELTA_nH
+        x_nH_clip = np.clip( x_nH, 0.0, self.nH.size-1.001 )
+        fnH,inH = np.modf( x_nH_clip )
+        inH = inH.astype( np.int32 )
 
 
         # find iT and fT
         #-----------------------------------------------------
-        iT = np.int32( ( T - self.T[0] ) / self.DELTA_T )
+        x_T = ( T - self.T[0] ) / self.DELTA_T
+        x_T_clip = np.clip( x_T, 0.0, self.T.size-1.001 )
+        fT,iT = np.modf( x_T_clip )
+        iT = iT.astype( np.int32 )
+        
 
-        indx = np.where( iT < 0 )[0]
-        if len(indx) > 0:
-            iT[indx] = 0
-        indx = np.where( iT >= self.T.size-1 )[0]
-        if len(indx) > 0:
-            iT[indx] = self.T.size-2
-
-        fT = ( T - self.T[iT] ) / self.dT[iT]
-
-        indx = np.where( iT < 0 )[0]
-        if len(indx) > 0:
-            fT[indx] = 0.0
-        indx = np.where( iT >= self.T.size-1 )[0]
-        if len(indx) > 0:
-            fT[indx] = 1.0
-
-
+        # short names for previously calculated iz and fz
+        #-----------------------------------------------------
         iz = self.iz
         fz = self.fz
+
                    
         # calculate interpolated value
         # use tri-linear interpolation on the log values
