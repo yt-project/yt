@@ -30,9 +30,9 @@ def load(*args ,**kwargs):
     """
     This function attempts to determine the base data type of a filename or
     other set of arguments by calling
-    :meth:`yt.data_objects.api.StaticOutput._is_valid` until it finds a
+    :meth:`yt.data_objects.api.Dataset._is_valid` until it finds a
     match, at which point it returns an instance of the appropriate
-    :class:`yt.data_objects.api.StaticOutput` subclass.
+    :class:`yt.data_objects.api.Dataset` subclass.
     """
     if len(args) == 0:
         try:
@@ -65,8 +65,8 @@ def load(*args ,**kwargs):
             valid_file.append(False)
     if not any(valid_file):
         try:
-            from yt.data_objects.time_series import TimeSeriesData
-            ts = TimeSeriesData.from_filenames(*args, **kwargs)
+            from yt.data_objects.time_series import DatasetSeries
+            ts = DatasetSeries.from_filenames(*args, **kwargs)
             return ts
         except YTOutputNotIdentified:
             pass
@@ -84,7 +84,7 @@ def load(*args ,**kwargs):
            and isinstance(args[0], types.StringTypes):
             erdb = EnzoRunDatabase()
             fn = erdb.find_uuid(args[0])
-            n = "EnzoStaticOutput"
+            n = "EnzoDataset"
             if n in output_type_registry \
                and output_type_registry[n]._is_valid(fn):
                 return output_type_registry[n](fn)
@@ -97,7 +97,7 @@ def load(*args ,**kwargs):
 
 def projload(pf, axis, weight_field = None):
     # This is something of a hack, so that we can just get back a projection
-    # and not utilize any of the intermediate hierarchy objects.
+    # and not utilize any of the intermediate index objects.
     class ProjMock(dict):
         pass
     import h5py

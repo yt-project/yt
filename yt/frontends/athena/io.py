@@ -18,7 +18,7 @@ import numpy as np
 from yt.funcs import mylog, defaultdict
 
 class IOHandlerAthena(BaseIOHandler):
-    _data_style = "athena"
+    _dataset_type = "athena"
     _offset_string = 'data:offsets=0'
     _data_string = 'data:datatype=0'
     _read_table_offset = None
@@ -43,10 +43,10 @@ class IOHandlerAthena(BaseIOHandler):
             data[grid.id] = {}
             grid_ncells = np.prod(grid.ActiveDimensions)
             grid_dims = grid.ActiveDimensions
-            grid0_ncells = np.prod(grid.hierarchy.grid_dimensions[0,:])
+            grid0_ncells = np.prod(grid.index.grid_dimensions[0,:])
             read_table_offset = get_read_table_offset(f)
-            for field in self.pf.h.field_list:
-                dtype, offsetr = grid.hierarchy._field_map[field]
+            for field in self.pf.field_list:
+                dtype, offsetr = grid.index._field_map[field]
                 if grid_ncells != grid0_ncells:
                     offset = offsetr + ((grid_ncells-grid0_ncells) * (offsetr//grid0_ncells))
                 if grid_ncells == grid0_ncells:
@@ -54,15 +54,15 @@ class IOHandlerAthena(BaseIOHandler):
                 f.seek(read_table_offset+offset)
                 if dtype == 'scalar':
                     v = np.fromfile(f, dtype='>f4',
-                                    count=grid_ncells).reshape(grid_dims,order='F').copy()
+                                    count=grid_ncells).reshape(grid_dims,order='F')
                 if dtype == 'vector':
                     v = np.fromfile(f, dtype='>f4', count=3*grid_ncells)
-                if '_x' in field:
-                    v = v[0::3].reshape(grid_dims,order='F').copy()
-                elif '_y' in field:
-                    v = v[1::3].reshape(grid_dims,order='F').copy()
-                elif '_z' in field:
-                    v = v[2::3].reshape(grid_dims,order='F').copy()
+                if '_x' in field[-1]:
+                    v = v[0::3].reshape(grid_dims,order='F')
+                elif '_y' in field[-1]:
+                    v = v[1::3].reshape(grid_dims,order='F')
+                elif '_z' in field[-1]:
+                    v = v[2::3].reshape(grid_dims,order='F')
                 if grid.pf.field_ordering == 1:
                     data[grid.id][field] = v.T.astype("float64")
                 else:
@@ -79,7 +79,7 @@ class IOHandlerAthena(BaseIOHandler):
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
-        if any((ftype != "gas" for ftype, fname in fields)):
+        if any((ftype != "athena" for ftype, fname in fields)):
             raise NotImplementedError
         rv = {}
         for field in fields:
@@ -93,7 +93,7 @@ class IOHandlerAthena(BaseIOHandler):
             for g in chunk.objs:
                 for field in fields:
                     ftype, fname = field
-                    ds = data[g.id].pop(fname)
+                    ds = data[g.id].pop(field)
                     nd = g.select(selector, ds, rv[field], ind) # caches
                 ind += nd
                 data.pop(g.id)

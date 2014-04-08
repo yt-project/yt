@@ -17,7 +17,7 @@ import numpy as np
 
 from yt.funcs import *
 
-from yt.data_objects.field_info_container import \
+from yt.fields.local_fields import \
     add_field
 
 centering_registry = {}

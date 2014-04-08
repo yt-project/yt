@@ -39,13 +39,13 @@ class IOCommunicator(BaseIOHandler):
         # We read our grids here
         self.grids = []
         storage = {}
-        grids = pf.h.grids.tolist()
+        grids = pf.index.grids.tolist()
         grids.sort(key=lambda a:a.filename)
         for sto, g in parallel_objects(grids, storage = storage):
             sto.result = self.comm.rank
             sto.result_id = g.id
             self.grids.append(g)
-        self._id_offset = pf.h.grids[0]._id_offset
+        self._id_offset = pf.index.grids[0]._id_offset
         mylog.info("Reading from disk ...")
         self.initialize_data()
         mylog.info("Broadcasting ...")
@@ -55,12 +55,12 @@ class IOCommunicator(BaseIOHandler):
 
     def initialize_data(self):
         pf = self.pf
-        fields = [f for f in pf.h.field_list
+        fields = [f for f in pf.field_list
                   if not pf.field_info[f].particle_type]
-        pfields = [f for f in pf.h.field_list
+        pfields = [f for f in pf.field_list
                    if pf.field_info[f].particle_type]
         # Preload is only defined for Enzo ...
-        if pf.h.io._data_style == "enzo_packed_3d":
+        if pf.h.io._dataset_type == "enzo_packed_3d":
             self.queue = pf.h.io.queue
             pf.h.io.preload(self.grids, fields)
             for g in self.grids:
@@ -83,7 +83,7 @@ class IOCommunicator(BaseIOHandler):
             return np.array([],dtype='float64')
         try:
             temp = self.pf.h.io._read_data_set(g, f)
-        except:# self.pf.hierarchy.io._read_exception as exc:
+        except:# self.pf.index.io._read_exception as exc:
             if fi.not_in_all:
                 temp = np.zeros(g.ActiveDimensions, dtype='float64')
             else:
@@ -114,7 +114,7 @@ class IOCommunicator(BaseIOHandler):
         self.hooks.append(self.comm.comm.Isend([ts, MPI.DOUBLE], dest = dest))
 
 class IOHandlerRemote(BaseIOHandler):
-    _data_style = "remote"
+    _dataset_type = "remote"
 
     def __init__(self, pf, wg, pool):
         self.pf = pf

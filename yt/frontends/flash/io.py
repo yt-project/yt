@@ -37,7 +37,7 @@ def grid_sequences(grids):
 
 class IOHandlerFLASH(BaseIOHandler):
     _particle_reader = False
-    _data_style = "flash_hdf5"
+    _dataset_type = "flash_hdf5"
 
     def __init__(self, pf):
         super(IOHandlerFLASH, self).__init__(pf)
@@ -60,7 +60,7 @@ class IOHandlerFLASH(BaseIOHandler):
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
         f_part = self._particle_handle
-        p_ind = self.pf.h._particle_indices
+        p_ind = self.pf.index._particle_indices
         px, py, pz = (self._particle_fields["particle_pos%s" % ax]
                       for ax in 'xyz')
         p_fields = f_part["/tracer particles"]
@@ -79,7 +79,7 @@ class IOHandlerFLASH(BaseIOHandler):
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
         f_part = self._particle_handle
-        p_ind = self.pf.h._particle_indices
+        p_ind = self.pf.index._particle_indices
         px, py, pz = (self._particle_fields["particle_pos%s" % ax]
                       for ax in 'xyz')
         p_fields = f_part["/tracer particles"]
@@ -102,7 +102,7 @@ class IOHandlerFLASH(BaseIOHandler):
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
-        if any((ftype != "gas" for ftype, fname in fields)):
+        if any((ftype != "flash" for ftype, fname in fields)):
             raise NotImplementedError
         f = self._handle
         rv = {}

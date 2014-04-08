@@ -14,10 +14,11 @@ Painting zones in a grid
 #-----------------------------------------------------------------------------
 
 import numpy as np
+from yt.units.yt_array import YTQuantity
 
 class FluidOperator(object):
     def apply(self, pf):
-        for g in pf.h.grids: self(g)
+        for g in pf.index.grids: self(g)
 
 class TopHatSphere(FluidOperator):
     def __init__(self, radius, center, fields):
@@ -28,7 +29,7 @@ class TopHatSphere(FluidOperator):
     def __call__(self, grid, sub_select = None):
         r = np.zeros(grid.ActiveDimensions, dtype="float64")
         for i, ax in enumerate("xyz"):
-            np.add(r, (grid[ax] - self.center[i])**2.0, r)
+            np.add(r, (grid[ax].to_ndarray() - self.center[i])**2.0, r)
         np.sqrt(r, r)
         ind = (r <= self.radius)
         if sub_select is not None:
@@ -70,7 +71,7 @@ class BetaModelSphere(FluidOperator):
         r2 = self.radius**2
         cr2 = self.core_radius**2
         for i, ax in enumerate("xyz"):
-            np.add(r, (grid[ax] - self.center[i])**2.0, r)            
+            np.add(r, (grid[ax].ndarray_view() - self.center[i])**2.0, r)            
         ind = (r <= r2)
         if sub_select is not None:
             ind &= sub_select            
@@ -83,12 +84,12 @@ class NFWModelSphere(FluidOperator):
         self.radius = radius
         self.center = center
         self.fields = fields
-        self.scale_radius = scale_radius
+        self.scale_radius = scale_radius # unitless
         
     def __call__(self, grid, sub_select = None):
         r = np.zeros(grid.ActiveDimensions, dtype="float64")
         for i, ax in enumerate("xyz"):
-            np.add(r, (grid[ax] - self.center[i])**2.0, r)
+            np.add(r, (grid[ax].ndarray_view() - self.center[i])**2.0, r)
         np.sqrt(r,r)
         ind = (r <= self.radius)
         r /= self.scale_radius

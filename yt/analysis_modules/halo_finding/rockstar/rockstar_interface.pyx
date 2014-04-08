@@ -183,7 +183,7 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
 
     SCALE_NOW = 1.0/(pf.current_redshift+1.0)
     # Now we want to grab data from only a subset of the grids for each reader.
-    all_fields = set(pf.h.derived_field_list + pf.h.field_list)
+    all_fields = set(pf.derived_field_list + pf.field_list)
 
     # First we need to find out how many this reader is going to read in
     # if the number of readers > 1.
@@ -203,7 +203,7 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
 
     p[0] = <particle *> malloc(sizeof(particle) * local_parts)
 
-    conv[0] = conv[1] = conv[2] = pf["mpchcm"]
+    conv[0] = conv[1] = conv[2] = pf.length_unit.in_units("Mpccm/h")
     conv[3] = conv[4] = conv[5] = 1e-5
     left_edge[0] = pf.domain_left_edge[0]
     left_edge[1] = pf.domain_left_edge[1]
@@ -309,7 +309,7 @@ cdef class RockstarInterface:
         PARTICLE_MASS = particle_mass
         PERIODIC = periodic
         BOX_SIZE = (tpf.domain_right_edge[0] -
-                    tpf.domain_left_edge[0]) * tpf['mpchcm']
+                    tpf.domain_left_edge[0]).in_units("Mpccm/h")
         setup_config()
         rh = self
         cdef LPG func = rh_read_particles

@@ -81,6 +81,64 @@ def read_attrs(f, attrs,endian='='):
             vv[a] = v
     return vv
 
+def read_cattrs(f, attrs, endian='='):
+    r"""This function accepts a file pointer to a C-binary file and reads from
+    that file pointer according to a definition of attributes, returning a
+    dictionary.
+
+    This function performs very similarly to read_attrs, except it does not add
+    on any record padding.  It is thus useful for using the same header types
+    as in read_attrs, but for C files rather than Fortran.
+
+    Parameters
+    ----------
+    f : File object
+        An open file object.  Should have been opened in mode rb.
+    attrs : iterable of iterables
+        This object should be an iterable of one of the formats: 
+        [ (attr_name, count, struct type), ... ].
+        [ ((name1,name2,name3),count, vector type]
+        [ ((name1,name2,name3),count, 'type type type']
+    endian : str
+        '=' is native, '>' is big, '<' is little endian
+
+    Returns
+    -------
+    values : dict
+        This will return a dict of iterables of the components of the values in
+        the file.
+
+    Examples
+    --------
+
+    >>> header = [ ("ncpu", 1, "i"), ("nfiles", 2, "i") ]
+    >>> f = open("cdata.bin", "rb")
+    >>> rv = read_cattrs(f, header)
+    """
+    vv = {}
+    net_format = endian
+    for a, n, t in attrs:
+        for end in '@=<>':
+            t = t.replace(end,'')
+        net_format += "".join([t] * n)
+    size = struct.calcsize(net_format)
+    vals = list(struct.unpack(net_format, f.read(size)))
+    vv = {}
+    for a, n, t in attrs:
+        for end in '@=<>':
+            t = t.replace(end,'')
+        if type(a)==tuple:
+            n = len(a)
+        v = [vals.pop(0) for i in range(n)]
+        if n == 1: v = v[0]
+        if type(a)==tuple:
+            assert len(a) == len(v)
+            for k,val in zip(a,v):
+                vv[k]=val
+        else:
+            vv[a] = v
+    return vv
+
 def read_vector(f, d, endian='='):
     r"""This function accepts a file pointer and reads from that file pointer
     a vector of values.

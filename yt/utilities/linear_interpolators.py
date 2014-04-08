@@ -17,7 +17,7 @@ that SciPy doesn't have that I expected it to
 import numpy as np
 
 from yt.funcs import *
-import yt.utilities.lib as lib
+import yt.utilities.lib.Interpolators as lib
 
 class UnilinearFieldInterpolator:
     def __init__(self, table, boundaries, field_names, truncate=False):
@@ -246,4 +246,4 @@ def get_centers(pf, filename, center_cols, radius_col, unit='1'):
         vals = line.split()
         x,y,z = [float(vals[i]) for i in center_cols]
         r = float(vals[radius_col])
-        yield pf.h.sphere([x,y,z], r/pf[unit])
+        yield pf.sphere([x,y,z], r/pf[unit])

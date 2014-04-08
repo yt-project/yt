@@ -20,12 +20,14 @@ import warnings, struct, subprocess
 import numpy as np
 from distutils.version import LooseVersion
 from math import floor, ceil
+from numbers import Number as numeric_type
 
 from yt.utilities.exceptions import *
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.definitions import inv_axis_names, axis_names, x_dict, y_dict
 import yt.extern.progressbar as pb
 import yt.utilities.rpdb as rpdb
+from yt.units.yt_array import YTArray, YTQuantity
 from collections import defaultdict
 from functools import wraps
 
@@ -87,6 +89,8 @@ def read_struct(f, fmt):
 def just_one(obj):
     # If we have an iterable, sometimes we only want one item
     if hasattr(obj,'flat'):
+        if isinstance(obj, YTArray):
+            return YTQuantity(obj.flat[0], obj.units, registry=obj.units.registry)
         return obj.flat[0]
     elif iterable(obj):
         return obj[0]
@@ -594,11 +598,24 @@ def get_yt_supp():
     # Now we think we have our supplemental repository.
     return supp_path
 
-def fix_length(length, pf):
-    if isinstance(length, (list, tuple)) and len(length) == 2 and \
-       isinstance(length[1], types.StringTypes):
-       length = length[0]/pf[length[1]]
-    return length
+def fix_length(length, pf=None):
+    assert pf is not None
+    if pf is not None:
+        registry = pf.unit_registry
+    else:
+        registry = None
+    if isinstance(length, YTArray):
+        if registry is not None:
+            length.units.registry = registry
+        return length.in_units("code_length")
+    if isinstance(length, numeric_type):
+        return YTArray(length, 'code_length', registry=registry)
+    length_valid_tuple = isinstance(length, (list, tuple)) and len(length) == 2
+    unit_is_string = isinstance(length[1], types.StringTypes)
+    if length_valid_tuple and unit_is_string:
+        return YTArray(*length, registry=registry)
+    else:
+        raise RuntimeError("Length %s is invalid" % str(length))
 
 @contextlib.contextmanager
 def parallel_profile(prefix):
@@ -627,7 +644,6 @@ def get_image_suffix(name):
     suffix = os.path.splitext(name)[1]
     return suffix if suffix in ['.png', '.eps', '.ps', '.pdf'] else ''
 
-
 def ensure_dir_exists(path):
     r"""Create all directories in path recursively in a parallel safe manner"""
     my_dir = os.path.dirname(path)
@@ -635,6 +651,23 @@ def ensure_dir_exists(path):
         return
     if not os.path.exists(my_dir):
         only_on_root(os.makedirs, my_dir)
+
+def ensure_dir(path):
+    r"""Parallel safe directory maker."""
+    if not os.path.exists(path):
+        only_on_root(os.makedirs, path)
+    return path
+        
+def assert_valid_width_tuple(width):
+    try:
+        assert iterable(width) and len(width) == 2, \
+            "width (%s) is not a two element tuple" % width
+        valid = isinstance(width[0], numeric_type) and isinstance(width[1], str)
+        msg = "width (%s) is invalid. " % str(width)
+        msg += "Valid widths look like this: (12, 'au')"
+        assert valid, msg
+    except AssertionError, e:
+        raise YTInvalidWidthError(e)
 
 def camelcase_to_underscore(name):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
@@ -682,3 +715,26 @@ def memory_checker(interval = 15):
     mem_check.start()
     yield
     e.set()
+
+def deprecated_class(cls):
+    @wraps(cls)
+    def _func(*args, **kwargs):
+        # Note we use SyntaxWarning because by default, DeprecationWarning is
+        # not shown.
+        warnings.warn(
+            "This usage is deprecated.  Please use %s instead." % cls.__name__,
+            SyntaxWarning, stacklevel=2)
+        return cls(*args, **kwargs)
+    return _func
+    
+def enable_plugins():
+    from yt.config import ytcfg
+    my_plugin_name = ytcfg.get("yt","pluginfilename")
+    # We assume that it is with respect to the $HOME/.yt directory
+    if os.path.isfile(my_plugin_name):
+        _fn = my_plugin_name
+    else:
+        _fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
+    if os.path.isfile(_fn):
+        mylog.info("Loading plugins from %s", _fn)
+        execfile(_fn)

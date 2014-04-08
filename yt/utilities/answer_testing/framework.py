@@ -31,7 +31,7 @@ from nose.plugins import Plugin
 from yt.testing import *
 from yt.convenience import load, simulation
 from yt.config import ytcfg
-from yt.data_objects.static_output import StaticOutput
+from yt.data_objects.static_output import Dataset
 from yt.utilities.logger import disable_stream_logging
 from yt.utilities.command_line import get_yt_version
 
@@ -254,7 +254,7 @@ def temp_cwd(cwd):
     os.chdir(oldcwd)
 
 def can_run_pf(pf_fn, file_check = False):
-    if isinstance(pf_fn, StaticOutput):
+    if isinstance(pf_fn, Dataset):
         return AnswerTestingTest.result_storage is not None
     path = ytcfg.get("yt", "test_data_dir")
     if not os.path.isdir(path):
@@ -271,7 +271,7 @@ def can_run_pf(pf_fn, file_check = False):
 
 def data_dir_load(pf_fn, cls = None, args = None, kwargs = None):
     path = ytcfg.get("yt", "test_data_dir")
-    if isinstance(pf_fn, StaticOutput): return pf_fn
+    if isinstance(pf_fn, Dataset): return pf_fn
     if not os.path.isdir(path):
         return False
     with temp_cwd(path):
@@ -345,7 +345,7 @@ class AnswerTestingTest(object):
         This is a helper function to return the location of the most dense
         point.
         """
-        return self.pf.h.find_max("Density")[1]
+        return self.pf.h.find_max("density")[1]
 
     @property
     def entire_simulation(self):
@@ -378,9 +378,9 @@ class FieldValuesTest(AnswerTestingTest):
 
     def run(self):
         obj = create_obj(self.pf, self.obj_type)
-        avg = obj.quantities["WeightedAverageQuantity"](self.field,
-                             weight="Ones")
-        (mi, ma), = obj.quantities["Extrema"](self.field)
+        avg = obj.quantities.weighted_average_quantity(
+            self.field, weight="ones")
+        mi, ma = obj.quantities.extrema(self.field)
         return np.array([avg, mi, ma])
 
     def compare(self, new_result, old_result):
@@ -435,7 +435,7 @@ class ProjectionValuesTest(AnswerTestingTest):
         else:
             obj = None
         if self.pf.domain_dimensions[self.axis] == 1: return None
-        proj = self.pf.h.proj(self.field, self.axis,
+        proj = self.pf.proj(self.field, self.axis,
                               weight_field=self.weight_field,
                               data_source = obj)
         return proj.field_data
@@ -484,7 +484,7 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
             obj = create_obj(self.pf, self.obj_type)
         else:
             obj = None
-        proj = self.pf.h.proj(self.field, self.axis, 
+        proj = self.pf.proj(self.field, self.axis,
                               weight_field=self.weight_field,
                               data_source = obj)
         frb = proj.to_frb((1.0, 'unitary'), 256)
@@ -513,7 +513,7 @@ class GridValuesTest(AnswerTestingTest):
 
     def run(self):
         hashes = {}
-        for g in self.pf.h.grids:
+        for g in self.pf.index.grids:
             hashes[g.id] = hashlib.md5(g[self.field].tostring()).hexdigest()
             g.clear_data()
         return hashes
@@ -551,11 +551,11 @@ class GridHierarchyTest(AnswerTestingTest):
 
     def run(self):
         result = {}
-        result["grid_dimensions"] = self.pf.h.grid_dimensions
-        result["grid_left_edges"] = self.pf.h.grid_left_edge
-        result["grid_right_edges"] = self.pf.h.grid_right_edge
-        result["grid_levels"] = self.pf.h.grid_levels
-        result["grid_particle_count"] = self.pf.h.grid_particle_count
+        result["grid_dimensions"] = self.pf.index.grid_dimensions
+        result["grid_left_edges"] = self.pf.index.grid_left_edge
+        result["grid_right_edges"] = self.pf.index.grid_right_edge
+        result["grid_levels"] = self.pf.index.grid_levels
+        result["grid_particle_count"] = self.pf.index.grid_particle_count
         return result
 
     def compare(self, new_result, old_result):
@@ -569,7 +569,7 @@ class ParentageRelationshipsTest(AnswerTestingTest):
         result = {}
         result["parents"] = []
         result["children"] = []
-        for g in self.pf.h.grids:
+        for g in self.pf.index.grids:
             p = g.Parent
             if p is None:
                 result["parents"].append(None)
@@ -710,7 +710,7 @@ def small_patch_amr(pf_fn, fields):
         yield GridValuesTest(pf_fn, field)
         for axis in [0, 1, 2]:
             for ds in dso:
-                for weight_field in [None, "Density"]:
+                for weight_field in [None, "density"]:
                     yield ProjectionValuesTest(
                         pf_fn, axis, field, weight_field,
                         ds)
@@ -726,7 +726,7 @@ def big_patch_amr(pf_fn, fields):
         yield GridValuesTest(pf_fn, field)
         for axis in [0, 1, 2]:
             for ds in dso:
-                for weight_field in [None, "Density"]:
+                for weight_field in [None, "density"]:
                     yield PixelizedProjectionValuesTest(
                         pf_fn, axis, field, weight_field,
                         ds)

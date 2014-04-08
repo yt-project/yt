@@ -36,13 +36,13 @@ def setup():
     ytcfg["yt", "__withintesting"] = "True"
 
 def full_szpack3d(pf, xo):
-    data = pf.h.grids[0]
-    dz = pf.h.get_smallest_dx()*pf.units["cm"]
-    nx,ny,nz = data["Density"].shape
+    data = pf.index.grids[0]
+    dz = pf.index.get_smallest_dx().in_units("cm")
+    nx,ny,nz = data["density"].shape
     dn = np.zeros((nx,ny,nz))
-    Dtau = sigma_thompson*data["Density"]/(mh*mue)*dz
-    Te = data["Temperature"]/K_per_keV
-    betac = data["z-velocity"]/clight
+    Dtau = np.array(sigma_thompson*data["density"]/(mh*mue)*dz)
+    Te = data["kT"].ndarray_view()
+    betac = np.array(data["velocity_z"]/clight)
     pbar = get_pbar("Computing 3-D cell-by-cell S-Z signal for comparison.", nx)
     for i in xrange(nx):
         pbar.update(i)
@@ -52,7 +52,7 @@ def full_szpack3d(pf, xo):
                                               Te[i,j,k], betac[i,j,k],
                                               1.0, 0.0, 0.0, 1.0e-5)
     pbar.finish()
-    return I0*xo**3*np.sum(dn, axis=2)
+    return np.array(I0*xo**3*np.sum(dn, axis=2))
 
 def setup_cluster():
 
@@ -80,18 +80,19 @@ def setup_cluster():
     velz = v0*temp/(T0*K_per_keV)
 
     data = {}
-    data["Density"] = dens
-    data["Temperature"] = temp
-    data["x-velocity"] = np.zeros(ddims)
-    data["y-velocity"] = np.zeros(ddims)
-    data["z-velocity"] = velz
+    data["density"] = (dens, "g/cm**3")
+    data["temperature"] = (temp, "K")
+    data["velocity_x"] = (np.zeros(ddims), "cm/s")
+    data["velocity_y"] = (np.zeros(ddims), "cm/s")
+    data["velocity_z"] = (velz, "cm/s")
 
     bbox = np.array([[-0.5,0.5],[-0.5,0.5],[-0.5,0.5]])
 
     L = 2*R*cm_per_kpc
     dl = L/nz
 
-    pf = load_uniform_grid(data, ddims, L, bbox=bbox)
+    pf = load_uniform_grid(data, ddims, length_unit=L, bbox=bbox)
+    pf.h
 
     return pf
 
@@ -99,13 +100,13 @@ def setup_cluster():
 def test_projection():
     pf = setup_cluster()
     nx,ny,nz = pf.domain_dimensions
-    xinit = 1.0e9*hcgs*freqs/(kboltz*Tcmb)
+    xinit = np.array(1.0e9*hcgs*freqs/(kboltz*Tcmb))
     szprj = SZProjection(pf, freqs, mue=mue, high_order=True)
     szprj.on_axis(2, nx=nx)
     deltaI = np.zeros((3,nx,ny))
     for i in xrange(3):
         deltaI[i,:,:] = full_szpack3d(pf, xinit[i])
-        yield assert_almost_equal, deltaI[i,:,:], szprj["%d_GHz" % int(freqs[i])], 6
+        yield assert_almost_equal, deltaI[i,:,:], np.array(szprj["%d_GHz" % int(freqs[i])]), 6
 
 M7 = "DD0010/moving7_0010"
 @requires_module("SZpack")

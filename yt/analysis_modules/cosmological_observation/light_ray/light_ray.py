@@ -25,7 +25,6 @@ from yt.analysis_modules.halo_profiler.multi_halo_profiler import \
      HaloProfiler
 from yt.convenience import load
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    only_on_root, \
     parallel_objects, \
     parallel_root_only
 from yt.utilities.physical_constants import \
@@ -420,7 +419,7 @@ class LightRay(CosmologySplice):
             for sub_segment in sub_segments:
                 mylog.info("Getting subsegment: %s to %s." %
                            (list(sub_segment[0]), list(sub_segment[1])))
-                sub_ray = pf.h.ray(sub_segment[0], sub_segment[1])
+                sub_ray = pf.ray(sub_segment[0], sub_segment[1])
                 sub_data['dl'] = np.concatenate([sub_data['dl'],
                                                  (sub_ray['dts'] *
                                                   vector_length(sub_segment[0],

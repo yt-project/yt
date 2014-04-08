@@ -7,48 +7,48 @@ def setup():
 
 def test_extrema():
     for nprocs in [1, 2, 4, 8]:
-        pf = fake_random_pf(16, nprocs = nprocs, fields = ("Density",
-                "x-velocity", "y-velocity", "z-velocity"))
-        sp = pf.h.sphere("c", (0.25, '1'))
-        (mi, ma), = sp.quantities["Extrema"]("Density")
-        yield assert_equal, mi, np.nanmin(sp["Density"])
-        yield assert_equal, ma, np.nanmax(sp["Density"])
+        pf = fake_random_pf(16, nprocs = nprocs, fields = ("density",
+                "velocity_x", "velocity_y", "velocity_z"))
+        sp = pf.sphere("c", (0.25, 'unitary'))
+        mi, ma = sp.quantities["Extrema"]("density")
+        yield assert_equal, mi, np.nanmin(sp["density"])
+        yield assert_equal, ma, np.nanmax(sp["density"])
         dd = pf.h.all_data()
-        (mi, ma), = dd.quantities["Extrema"]("Density")
-        yield assert_equal, mi, np.nanmin(dd["Density"])
-        yield assert_equal, ma, np.nanmax(dd["Density"])
-        sp = pf.h.sphere("max", (0.25, '1'))
-        yield assert_equal, np.any(np.isnan(sp["RadialVelocity"])), True
-        (mi, ma), = dd.quantities["Extrema"]("RadialVelocity")
-        yield assert_equal, mi, np.nanmin(dd["RadialVelocity"])
-        yield assert_equal, ma, np.nanmax(dd["RadialVelocity"])
+        mi, ma = dd.quantities["Extrema"]("density")
+        yield assert_equal, mi, np.nanmin(dd["density"])
+        yield assert_equal, ma, np.nanmax(dd["density"])
+        sp = pf.sphere("max", (0.25, 'unitary'))
+        yield assert_equal, np.any(np.isnan(sp["radial_velocity"])), False
+        mi, ma = dd.quantities["Extrema"]("radial_velocity")
+        yield assert_equal, mi, np.nanmin(dd["radial_velocity"])
+        yield assert_equal, ma, np.nanmax(dd["radial_velocity"])
 
 def test_average():
     for nprocs in [1, 2, 4, 8]:
-        pf = fake_random_pf(16, nprocs = nprocs, fields = ("Density",))
+        pf = fake_random_pf(16, nprocs = nprocs, fields = ("density",))
         ad = pf.h.all_data()
         
-        my_mean = ad.quantities["WeightedAverageQuantity"]("Density", "Ones")
-        yield assert_rel_equal, my_mean, ad["Density"].mean(), 12
+        my_mean = ad.quantities["WeightedAverageQuantity"]("density", "ones")
+        yield assert_rel_equal, my_mean, ad["density"].mean(), 12
 
-        my_mean = ad.quantities["WeightedAverageQuantity"]("Density", "CellMass")
-        a_mean = (ad["Density"] * ad["CellMass"]).sum() / ad["CellMass"].sum()
+        my_mean = ad.quantities["WeightedAverageQuantity"]("density", "cell_mass")
+        a_mean = (ad["density"] * ad["cell_mass"]).sum() / ad["cell_mass"].sum()
         yield assert_rel_equal, my_mean, a_mean, 12
 
 def test_variance():
     for nprocs in [1, 2, 4, 8]:
-        pf = fake_random_pf(16, nprocs = nprocs, fields = ("Density", ))
+        pf = fake_random_pf(16, nprocs = nprocs, fields = ("density", ))
         ad = pf.h.all_data()
         
-        my_std, my_mean = ad.quantities["WeightedVariance"]("Density", "Ones")
-        yield assert_rel_equal, my_mean, ad["Density"].mean(), 12
-        yield assert_rel_equal, my_std, ad["Density"].std(), 12
+        my_std, my_mean = ad.quantities["WeightedVariance"]("density", "ones")
+        yield assert_rel_equal, my_mean, ad["density"].mean(), 12
+        yield assert_rel_equal, my_std, ad["density"].std(), 12
 
-        my_std, my_mean = ad.quantities["WeightedVariance"]("Density", "CellMass")        
-        a_mean = (ad["Density"] * ad["CellMass"]).sum() / ad["CellMass"].sum()
+        my_std, my_mean = ad.quantities["WeightedVariance"]("density", "cell_mass")        
+        a_mean = (ad["density"] * ad["cell_mass"]).sum() / ad["cell_mass"].sum()
         yield assert_rel_equal, my_mean, a_mean, 12
-        a_std = np.sqrt((ad["CellMass"] * (ad["Density"] - a_mean)**2).sum() / 
-                        ad["CellMass"].sum())
+        a_std = np.sqrt((ad["cell_mass"] * (ad["density"] - a_mean)**2).sum() / 
+                        ad["cell_mass"].sum())
         yield assert_rel_equal, my_std, a_std, 12
 
 if __name__ == "__main__":

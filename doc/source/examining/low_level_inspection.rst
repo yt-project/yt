@@ -1,0 +1,235 @@
+.. _low-level-data-inspection:
+
+Low-Level Data Inspection
+=========================
+
+yt can not only provide high-level access to data, such as through slices,
+projections, object queries and the like, but it can also provide low-level
+access to data.
+
+.. note:: This section is tuned for patch- or block-based simulations.  Future
+          versions of yt will enable more direct access to particle and oct
+          based simulations.  For now, these are represented as patches, with
+          the attendant properties.
+
+For a more basic introduction, see :ref:`bootcamp` and more specifically
+:ref:`data_inspection`.
+
+.. _examining-grid-hierarchies:
+
+Examining Grid Hierarchies
+--------------------------
+
+yt organizes grids in a hierarchical fashion; a coarser grid that contains (or
+overlaps with) a finer grid is referred to as its parent.  yt organizes these
+only a single level of refinement at a time.  To access grids, the ``grids``
+attribute on a :class:`~yt.data_objects.index.AMRHierarchy` object.  (For
+fast operations, a number of additional arrays prefixed with ``grid`` are also
+available, such as ``grid_left_edges`` and so on.)  This returns an instance of
+:class:`~yt.data_objects.grid_patch.AMRGridPatch`, which can be queried for
+either data or index information.
+
+The :class:`~yt.data_objects.grid_patch.AMRGridPatch` object itself provides
+the following attributes:
+
+ * ``Children``: a list of grids contained within this one, of one higher level
+   of refinement
+ * ``Parent``: a single object or a list of objects this grid is contained
+   within, one level of refinement coarser
+ * ``child_mask``: a mask of 0's and 1's, representing where no finer data is
+   available in refined grids (1) or where this grid is covered by finer regions
+   (0).  Note that to get back the final data contained within a grid, one can
+   multiple a field by this attribute.
+ * ``child_indices``: a mask of booleans, where False indicates no finer data
+   is available.  This is essentially the inverse of ``child_mask``.
+ * ``child_index_mask``: a mask of indices into the ``pf.index.grids`` array of the
+   child grids.
+ * ``LeftEdge``: the left edge, in native code coordinates, of this grid
+ * ``RightEdge``: the right edge, in native code coordinates, of this grid
+ * ``dds``: the width of a cell in this grid
+ * ``id``: the id (not necessarily the index) of this grid.  Defined such that
+   subtracting the property ``_id_offset`` gives the index into ``pf.index.grids``.
+ * ``NumberOfParticles``: the number of particles in this grid
+ * ``OverlappingSiblings``: a list of sibling grids that this grid overlaps
+   with.  Likely only defined for Octree-based codes.
+
+In addition, the method
+:meth:`~yt.data_objects.grid_patch.AMRGridPatch.get_global_startindex` can be
+used to get the integer coordinates of the upper left edge.  These integer
+coordinates are defined with respect to the current level; this means that they
+are the offset of the left edge, with respect to the left edge of the domain,
+divided by the local ``dds``.
+
+To traverse a series of grids, this type of construction can be used:
+
+.. code-block:: python
+
+   g = pf.index.grids[1043]
+   g2 = g.Children[1].Children[0]
+   print g2.LeftEdge
+
+.. _examining-grid-data:
+
+Examining Grid Data
+-------------------
+
+Once you have identified a grid you wish to inspect, there are two ways to
+examine data.  You can either ask the grid to read the data and pass it to you
+as normal, or you can manually intercept the data from the IO handler and
+examine it before it has been unit converted.  This allows for much more raw
+data inspection.
+
+To access data that has been read in the typical fashion and unit-converted as
+normal, you can access the grid as you would a normal object:
+
+.. code-block:: python
+
+   g = pf.index.grids[1043]
+   print g["density"]
+   print g["density"].min()
+
+To access the raw data, you have to call the IO handler from the index
+instead.  This is somewhat more low-level.
+
+.. code-block:: python
+
+   g = pf.index.grids[1043]
+   rho = pf.h.io.pop(g, "density")
+
+This field will be the raw data found in the file.
+
+.. _finding-data-at-fixed-points:
+
+Finding Data at Fixed Points
+----------------------------
+
+One of the most common questions asked of data is, what is the value *at this
+specific point*.  While there are several ways to find out the answer to this
+question, a few helper routines are provided as well.  To identify the
+finest-resolution (i.e., most canonical) data at a given point, use
+:meth:`~yt.data_objects.index.AMRHierarchy.find_field_value_at_point`.
+This accepts a position (in coordinates of the domain) and returns the field
+values for one or multiple fields.
+
+To identify all the grids that intersect a given point, the function 
+:meth:`~yt.data_objects.index.AMRHierarchy.find_point` will return indices
+and objects that correspond to it.  For instance:
+
+.. code-block:: python
+
+   gs, gi = pf.h.find_point((0.5, 0.6, 0.9))
+   for g in gs:
+       print g.Level, g.LeftEdge, g.RightEdge
+
+Note that this doesn't just return the canonical output, but also all of the
+parent grids that overlap with that point.
+
+.. _examining-grid-data-in-a-fixed-resolution-array:
+
+Examining Grid Data in a Fixed Resolution Array
+-----------------------------------------------
+
+If you have a dataset, either AMR or single resolution, and you want to just
+stick it into a fixed resolution numpy array for later examination, then you
+want to use a :ref:`Covering Grid <available-objects>`.  You must specify the 
+maximum level at which to sample the data, a left edge of the data where you 
+will start, and the resolution at which you want to sample.
+
+For example, let's use the :ref:`sample dataset <getting-sample-data>` 
+``Enzo_64``.  This dataset is at a resolution of 64^3 with 5 levels of AMR,
+so if we want a 64^3 array covering the entire volume and sampling just the 
+lowest level data, we run:
+
+.. code-block:: python
+
+   from yt.mods import *
+   pf = load('Enzo_64/DD0043/data0043')
+   all_data_level_0 = pf.covering_grid(level=0, left_edge=[0,0.0,0.0], 
+                                         dims=[64, 64, 64])
+
+Note that we can also get the same result and rely on the dataset to know 
+its own underlying dimensions:
+
+.. code-block:: python
+
+   all_data_level_0 = pf.covering_grid(level=0, left_edge=[0,0.0,0.0], 
+                                         dims=pf.domain_dimensions)
+
+We can now access our underlying data at the lowest level by specifying what
+:ref:`field <field-list>` we want to examine:
+
+.. code-block:: python
+
+   print all_data_level_0['density'].shape
+   (64, 64, 64)
+
+   print all_data_level_0['density']
+    
+   array([[[  1.92588925e-31,   1.74647692e-31,   2.54787518e-31, ...,
+  
+   print all_data_level_0['temperature'].shape
+   (64, 64, 64)
+
+If you create a covering grid that spans two child grids of a single parent 
+grid, it will fill those zones covered by a zone of a child grid with the 
+data from that child grid. Where it is covered only by the parent grid, the 
+cells from the parent grid will be duplicated (appropriately) to fill the 
+covering grid.
+
+Let's say we now want to look at that entire data volume and sample it at the 
+a higher resolution (i.e. level 2).  As stated above, we'll be oversampling
+under-refined regions, but that's OK.  We must also increase the resolution 
+of our output array by a factor of 2^2 in each direction to hold this new 
+larger dataset:
+
+.. code-block:: python
+
+   all_data_level_2 = pf.covering_grid(level=2, left_edge=[0,0.0,0.0], 
+                                         dims=pf.domain_dimensions * 2**2)
+
+And let's see what's the density in the central location:
+
+.. code-block:: python
+
+   print all_data_level_2['density'].shape
+   (256, 256, 256)
+
+   print all_data_level_2['density'][128, 128, 128]
+   1.7747457571203124e-31
+
+There are two different types of covering grids: unsmoothed and smoothed. 
+Smoothed grids will be filled through a cascading interpolation process; 
+they will be filled at level 0, interpolated to level 1, filled at level 1, 
+interpolated to level 2, filled at level 2, etc. This will help to reduce 
+edge effects. Unsmoothed covering grids will not be interpolated, but rather 
+values will be duplicated multiple times.
+
+To sample our dataset from above with a smoothed covering grid in order 
+to reduce edge effects, it is a nearly identical process:
+
+.. code-block:: python
+
+   all_data_level_2_s = pf.smoothed_covering_grid(2, [0.0, 0.0, 0.0], 
+                                                    pf.domain_dimensions * 2**2)
+
+   print all_data_level_2_s['density'].shape
+   (256, 256, 256)
+
+   print all_data_level_2_s['density'][128, 128, 128]
+   1.763744852165591e-31
+
+.. _examining-image-data-in-a-fixed-resolution-array:
+
+Examining Image Data in a Fixed Resolution Array
+------------------------------------------------
+
+In the same way that one can sample a multi-resolution 3D dataset by placing
+it into a fixed resolution 3D array as a 
+:ref:`Covering Grid <examining-grid-data-in-a-fixed-resolution-array>`, one can 
+also access the raw image data that is returned from various yt functions 
+directly as a fixed resolution array.  This provides a means for bypassing the 
+yt method for generating plots, and allows the user the freedom to use 
+whatever interface they wish for displaying and saving their image data.  
+The object for doing this is the aptly titled Fixed Resolution Buffer, and 
+there is a full explanation for how to use it 
+:ref:`here <fixed-resolution-buffers>`.

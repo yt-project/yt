@@ -2,8 +2,6 @@
 import setuptools
 import os, sys, os.path, glob, \
     tempfile, subprocess, shutil
-from yt.utilities.setup import \
-    check_for_dependencies
 
 def check_for_openmp():
     # Create a temporary directory
@@ -58,12 +56,14 @@ def configuration(parent_package='',top_path=None):
                 ["yt/utilities/lib/CICDeposit.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("ContourFinding", 
-                ["yt/utilities/lib/ContourFinding.pyx",
-                 "yt/utilities/lib/union_find.c"],
-                include_dirs=["yt/utilities/lib/"],
+                ["yt/utilities/lib/ContourFinding.pyx"],
+                include_dirs=["yt/utilities/lib/",
+                              "yt/geometry/"],
                 libraries=["m"],
                 depends=["yt/utilities/lib/fp_utils.pxd",
-                         "yt/utilities/lib/amr_kdtools.pxd"])
+                         "yt/utilities/lib/amr_kdtools.pxd",
+                         "yt/utilities/lib/ContourFinding.pxd",
+                         "yt/geometry/oct_container.pxd"])
     config.add_extension("DepthFirstOctree", 
                 ["yt/utilities/lib/DepthFirstOctree.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
@@ -75,7 +75,7 @@ def configuration(parent_package='',top_path=None):
                 ["yt/utilities/lib/geometry_utils.pyx"],
                extra_compile_args=omp_args,
                extra_link_args=omp_args,
-                libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
+                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
     config.add_extension("Interpolators", 
                 ["yt/utilities/lib/Interpolators.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
@@ -97,6 +97,11 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("Octree", 
                 ["yt/utilities/lib/Octree.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
+    config.add_extension("origami", 
+                ["yt/utilities/lib/origami.pyx",
+                 "yt/utilities/lib/origami_tags.c"],
+                include_dirs=["yt/utilities/lib/"],
+                depends=["yt/utilities/lib/origami_tags.h"])
     config.add_extension("image_utilities", 
                          ["yt/utilities/lib/image_utilities.pyx"],
                          libraries=["m"],
@@ -110,19 +115,6 @@ def configuration(parent_package='',top_path=None):
     config.add_extension("RayIntegrators", 
                 ["yt/utilities/lib/RayIntegrators.pyx"],
                 libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])
-    config.add_extension("VolumeIntegrator", 
-               ["yt/utilities/lib/VolumeIntegrator.pyx",
-                "yt/utilities/lib/FixedInterpolator.c",
-                "yt/utilities/lib/kdtree.c"],
-               include_dirs=["yt/utilities/lib/"],
-               libraries=["m"], 
-               depends = ["yt/utilities/lib/VolumeIntegrator.pyx",
-                          "yt/utilities/lib/fp_utils.pxd",
-                          "yt/utilities/lib/healpix_interface.pxd",
-                          "yt/utilities/lib/endian_swap.h",
-                          "yt/utilities/lib/FixedInterpolator.h",
-                          "yt/utilities/lib/kdtree.h"],
-          )
     config.add_extension("mesh_utilities",
               ["yt/utilities/lib/mesh_utilities.pyx"],
                include_dirs=["yt/utilities/lib/"],
@@ -138,8 +130,7 @@ def configuration(parent_package='',top_path=None):
                libraries=["m"], 
                extra_compile_args=omp_args,
                extra_link_args=omp_args,
-               depends = ["yt/utilities/lib/VolumeIntegrator.pyx",
-                          "yt/utilities/lib/fp_utils.pxd",
+               depends = ["yt/utilities/lib/fp_utils.pxd",
                           "yt/utilities/lib/kdtree.h",
                           "yt/utilities/lib/FixedInterpolator.h",
                           "yt/utilities/lib/fixed_interpolator.pxd",

@@ -18,14 +18,13 @@ import __builtin__
 import base64
 import types
 
-from collections import defaultdict
 from functools import wraps
-from itertools import izip, repeat
+from itertools import izip
 import matplotlib
 import numpy as np
 import cStringIO
+import __builtin__
 
-from matplotlib.font_manager import FontProperties
 
 from ._mpl_imports import FigureCanvasAgg
 from .plot_window import WindowPlotMPL
@@ -33,8 +32,6 @@ from .base_plot_types import ImagePlotMPL
 from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform
-from .image_writer import \
-    write_image, apply_colormap
 from yt.data_objects.profiles import \
      create_profile
 from yt.utilities.exceptions import \
@@ -42,12 +39,16 @@ from yt.utilities.exceptions import \
 from yt.data_objects.profiles import \
     BinnedProfile1D, \
     BinnedProfile2D
+    create_profile
 from yt.utilities.logger import ytLogger as mylog
 import _mpl_imports as mpl
 from yt.funcs import \
      ensure_list, \
      get_image_suffix, \
      get_ipython_api_version
+    ensure_list, \
+    get_image_suffix, \
+    get_ipython_api_version
 
 def get_canvas(name):
     suffix = get_image_suffix(name)
@@ -62,7 +63,7 @@ def get_canvas(name):
         canvas_cls = mpl.FigureCanvasPS
     else:
         mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
-        canvas_cls = FigureCanvasAgg
+        canvas_cls = mpl.FigureCanvasAgg
     return canvas_cls
 
 def invalidate_plot(f):
@@ -70,6 +71,7 @@ def invalidate_plot(f):
     def newfunc(*args, **kwargs):
         rv = f(*args, **kwargs)
         args[0]._plot_valid = False
+        args[0]._setup_plots()
         return rv
     return newfunc
 
@@ -133,7 +135,7 @@ class ProfilePlot(object):
         The weight field for calculating weighted averages.  If None, 
         the profile values are the sum of the field values within the bin.
         Otherwise, the values are a weighted average.
-        Default : "CellMassMsun".
+        Default : "cell_mass".
     n_bins : int
         The number of bins in the profile.
         Default: 64.
@@ -164,8 +166,8 @@ class ProfilePlot(object):
 
     >>> pf = load("enzo_tiny_cosmology/DD0046/DD0046")
     >>> ad = pf.h.all_data()
-    >>> plot = ProfilePlot(ad, "Density", ["Temperature", "x-velocity"], 
-                           weight_field="CellMassMsun",
+    >>> plot = ProfilePlot(ad, "density", ["temperature", "velocity_x"],
+                           weight_field="cell_mass",
                            plot_spec=dict(color='red', linestyle="--"))
     >>> plot.save()
 
@@ -179,9 +181,9 @@ class ProfilePlot(object):
     >>> plot_specs = []
     >>> for pf in es[-4:]:
     ...     ad = pf.h.all_data()
-    ...     profiles.append(create_profile(ad, ["Density"],
-    ...                                    fields=["Temperature",
-    ...                                            "x-velocity"]))
+    ...     profiles.append(create_profile(ad, ["density"],
+    ...                                    fields=["temperature",
+    ...                                            "velocity_x"]))
     ...     labels.append(pf.current_redshift)
     ...     plot_specs.append(dict(linestyle="--", alpha=0.7))
     >>>
@@ -201,13 +203,15 @@ class ProfilePlot(object):
     _plot_valid = False
 
     def __init__(self, data_source, x_field, y_fields, 
-                 weight_field="CellMassMsun", n_bins=64, 
+                 weight_field="cell_mass", n_bins=64,
                  accumulation=False, fractional=False,
                  label=None, plot_spec=None, profiles=None):
         self.y_log = {}
         self.y_title = {}
+        self.x_log = None
         if profiles is None:
-            self.profiles = [create_profile(data_source, [x_field], n_bins,
+            self.profiles = [create_profile(data_source, [x_field],
+                                            n_bins=[n_bins],
                                             fields=ensure_list(y_fields),
                                             weight_field=weight_field,
                                             accumulation=accumulation,
@@ -316,8 +320,9 @@ class ProfilePlot(object):
         self.figures = FigureContainer()
         self.axes = AxesContainer(self.figures)
         for i, profile in enumerate(self.profiles):
-            for field, field_data in profile.field_data.items():
-                self.axes[field].plot(profile.x[:-1], field_data, 
+            for field, field_data in profile.items():
+                self.axes[field].plot(np.array(profile.x),
+                                      np.array(field_data),
                                       label=self.label[i],
                                       **self.plot_spec[i])
         
@@ -415,7 +420,53 @@ class ProfilePlot(object):
         for spec in specs:
             spec[property] = value
         return self
-            
+
+    @invalidate_plot
+    def set_log(self, field, log):
+        """set a field to log or linear.
+
+        Parameters
+        ----------
+        field : string
+            the field to set a transform
+        log : boolean
+            Log on/off.
+        """
+        if field == "all":
+            self.x_log = log
+            for field in self.profiles[0].field_data.keys():
+                self.y_log[field] = log
+        else:
+            field, = self.profiles[0].data_source._determine_fields([field])
+            if field == self.profiles[0].x_field:
+                self.x_log = log
+            elif field in self.profiles[0].field_data:
+                self.y_log[field] = log
+            else:
+                raise KeyError("Field %s not in profile plot!" % (field))
+        return self
+
+    @invalidate_plot
+    def set_unit(self, field, unit):
+        """Sets a new unit for the requested field
+
+        parameters
+        ----------
+        field : string
+           The name of the field that is to be changed.
+
+        new_unit : string or Unit object
+           The name of the new unit.
+        """
+        for profile in self.profiles:
+            if field == profile.x_field[1]:
+                profile.set_x_unit(unit)
+            elif field in self.profiles[0].field_map:
+                profile.set_field_unit(field, unit)
+            else:
+                raise KeyError("Field %s not in profile plot!" % (field))
+        return self
+
     def _get_field_log(self, field_y, profile):
         pf = profile.data_source.pf
         yf, = profile.data_source._determine_fields([field_y])
@@ -431,18 +482,20 @@ class ProfilePlot(object):
         scales = {True: 'log', False: 'linear'}
         return scales[x_log], scales[y_log]
 
-    def _get_field_label(self, field, field_info):
-        units = field_info.get_units()
+    def _get_field_label(self, field, field_info, field_unit):
+        field_unit = field_unit.latex_representation()
         field_name = field_info.display_name
         if isinstance(field, tuple): field = field[1]
         if field_name is None:
             field_name = r'$\rm{'+field+r'}$'
+            field_name = r'$\rm{'+field.replace('_','\/').title()+r'}$'
         elif field_name.find('$') == -1:
-            field_name = r'$\rm{'+field+r'}$'
-        if units is None or units == '':
+            field_name = field_name.replace(' ','\/')
+            field_name = r'$\rm{'+field_name+r'}$'
+        if field_unit is None or field_unit == '':
             label = field_name
         else:
-            label = field_name+r'$\/\/('+units+r')$'
+            label = field_name+r'$\/\/('+field_unit+r')$'
         return label
 
     def _get_field_title(self, field_y, profile):
@@ -452,9 +505,12 @@ class ProfilePlot(object):
             [field_x, field_y])
         xfi = pf._get_field_info(*xf)
         yfi = pf._get_field_info(*yf)
-        x_title = self.x_title or self._get_field_label(field_x, xfi)
+        x_unit = profile.x.units
+        y_unit = profile.field_units[field_y]
+        x_title = self.x_title or self._get_field_label(field_x, xfi, x_unit)
         y_title = self.y_title.get(field_y, None) or \
-                    self._get_field_label(field_y, yfi)
+                    self._get_field_label(field_y, yfi, y_unit)
+
         return (x_title, y_title)
             
 
@@ -484,7 +540,7 @@ class PhasePlot(ImagePlotContainer):
         The weight field for calculating weighted averages.  If None, 
         the profile values are the sum of the field values within the bin.
         Otherwise, the values are a weighted average.
-        Default : "CellMassMsun".
+        Default : "cell_mass".
     x_bins : int
         The number of bins in x field for the profile.
         Default: 128.
@@ -513,21 +569,21 @@ class PhasePlot(ImagePlotContainer):
         Default: "black"
     figure_size : int
         Size in inches of the image.
-        Default: 10 (10x10)
+        Default: 8 (8x8)
 
     Examples
     --------
 
     >>> pf = load("enzo_tiny_cosmology/DD0046/DD0046")
     >>> ad = pf.h.all_data()
-    >>> plot = PhasePlot(ad, "Density", "Temperature", ["CellMassMsun"],
+    >>> plot = PhasePlot(ad, "density", "temperature", ["cell_mass"],
                          weight_field=None)
     >>> plot.save()
 
     >>> # Change plot properties.
-    >>> plot.set_cmap("CellMassMsun", "jet")
-    >>> plot.set_zlim("CellMassMsun", 1e8, 1e13)
-    >>> plot.set_title("CellMassMsun", "This is a phase plot")
+    >>> plot.set_cmap("cell_mass", "jet")
+    >>> plot.set_zlim("cell_mass", 1e8, 1e13)
+    >>> plot.set_title("cell_mass", "This is a phase plot")
     
     """
     x_log = None
@@ -540,24 +596,26 @@ class PhasePlot(ImagePlotContainer):
     _plot_type = 'Phase'
 
     def __init__(self, data_source, x_field, y_field, z_fields,
-                 weight_field="CellMassMsun", x_bins=128, y_bins=128,
+                 weight_field="cell_mass", x_bins=128, y_bins=128,
                  accumulation=False, fractional=False,
                  profile=None, fontsize=18, font_color="black", figure_size=8.0):
         self.plot_title = {}
         self.z_log = {}
         self.z_title = {}
         self._initfinished = False
+        self.x_log = None
+        self.y_log = None
 
         if profile is None:
             profile = create_profile(data_source,
-               [x_field, y_field], [x_bins, y_bins],
-               fields = ensure_list(z_fields),
+               [x_field, y_field],
+               ensure_list(z_fields),
+               n_bins = [x_bins, y_bins],
                weight_field = weight_field,
                accumulation=accumulation,
                fractional=fractional)
         self.profile = profile
-        ImagePlotContainer.__init__(self, data_source, profile.field_data.keys(),
-                                    figure_size, fontsize)
+        super(PhasePlot, self).__init__(data_source, figure_size, fontsize)
         # This is a fallback, in case we forget.
         self._setup_plots()
         self._initfinished = True
@@ -571,24 +629,29 @@ class PhasePlot(ImagePlotContainer):
         xfi = pf._get_field_info(*xf)
         yfi = pf._get_field_info(*yf)
         zfi = pf._get_field_info(*zf)
-        x_title = self.x_title or self._get_field_label(field_x, xfi)
-        y_title = self.y_title or self._get_field_label(field_y, yfi)
+        x_unit = profile.x.units
+        y_unit = profile.y.units
+        z_unit = profile.field_units[field_z]
+        x_title = self.x_title or self._get_field_label(field_x, xfi, x_unit)
+        y_title = self.y_title or self._get_field_label(field_y, yfi, y_unit)
         z_title = self.z_title.get(field_z, None) or \
-                    self._get_field_label(field_z, zfi)
+                    self._get_field_label(field_z, zfi, z_unit)
         return (x_title, y_title, z_title)
 
-    def _get_field_label(self, field, field_info):
-        units = field_info.get_units()
+    def _get_field_label(self, field, field_info, field_unit):
+        field_unit = field_unit.latex_representation()
         field_name = field_info.display_name
         if isinstance(field, tuple): field = field[1]
         if field_name is None:
             field_name = r'$\rm{'+field+r'}$'
+            field_name = r'$\rm{'+field.replace('_','\/').title()+r'}$'
         elif field_name.find('$') == -1:
-            field_name = r'$\rm{'+field+r'}$'
-        if units is None or units == '':
+            field_name = field_name.replace(' ','\/')
+            field_name = r'$\rm{'+field_name+r'}$'
+        if field_unit is None or field_unit == '':
             label = field_name
         else:
-            label = field_name+r'$\/\/('+units+r')$'
+            label = field_name+r'$\/\/('+field_unit+r')$'
         return label
         
     def _get_field_log(self, field_z, profile):
@@ -611,52 +674,61 @@ class PhasePlot(ImagePlotContainer):
         return scales[x_log], scales[y_log], scales[z_log]
 
     def _setup_plots(self):
-        for f, data in self.profile.field_data.items():
+        for f, data in self.profile.items():
             fig = None
             axes = None
             cax = None
+            draw_colorbar = True
+            draw_axes = True
             if f in self.plots:
+                draw_colorbar = self.plots[f]._draw_colorbar
+                draw_axes = self.plots[f]._draw_axes
                 if self.plots[f].figure is not None:
                     fig = self.plots[f].figure
                     axes = self.plots[f].axes
                     cax = self.plots[f].cax
 
-            size = (self.figure_size, self.figure_size)
             x_scale, y_scale, z_scale = self._get_field_log(f, self.profile)
             x_title, y_title, z_title = self._get_field_title(f, self.profile)
-            if f in self.plots:
-                zlim = [self.plots[f].zmin, self.plots[f].zmax]
-            else:
-                if z_scale == 'log':
-                    zmin = data[data > 0.0].min()
-                else:
-                    zmin = data.min()
-                zlim = [zmin, data.max()]                
-            
-            fp = self._font_properties
-            self.plots[f] = PhasePlotMPL(self.profile.x, self.profile.y, data, 
-                                         x_scale, y_scale, z_scale,
-                                         self._colormaps[f], zlim, size, fp.get_size(),
-                                         fig, axes, cax)
-            self.plots[f].axes.xaxis.set_label_text(x_title)
-            self.plots[f].axes.yaxis.set_label_text(y_title)
-            self.plots[f].cax.yaxis.set_label_text(z_title)
-            if z_scale == "log":
+
+            if z_scale == 'log':
+                zmin = data[data > 0.0].min()
                 self._field_transform[f] = log_transform
             else:
+                zmin = data.min()
                 self._field_transform[f] = linear_transform
+            zlim = [zmin, data.max()]
+
+            fp = self._font_properties
+            f = self.profile.data_source._determine_fields(f)[0]
+
+            self.plots[f] = PhasePlotMPL(self.profile.x, self.profile.y, data,
+                                         x_scale, y_scale, z_scale,
+                                         self._colormaps[f], np.array(zlim),
+                                         self.figure_size, fp.get_size(),
+                                         fig, axes, cax)
+
+            self.plots[f]._toggle_axes(draw_axes)
+            self.plots[f]._toggle_colorbar(draw_colorbar)
+
+            self.plots[f].axes.xaxis.set_label_text(x_title, fontproperties=fp)
+            self.plots[f].axes.yaxis.set_label_text(y_title, fontproperties=fp)
+            self.plots[f].cax.yaxis.set_label_text(z_title, fontproperties=fp)
+
             if f in self.plot_title:
                 self.plots[f].axes.set_title(self.plot_title[f])
 
-            if self._font_color is not None:
-                ax = self.plots[f].axes
-                cbax = self.plots[f].cb.ax
-                labels = \
-                  ax.xaxis.get_ticklabels() + ax.yaxis.get_ticklabels() + \
-                  cbax.yaxis.get_ticklabels() + \
-                  [ax.xaxis.label, ax.yaxis.label, cbax.yaxis.label]
-                for label in labels:
+            ax = self.plots[f].axes
+            cbax = self.plots[f].cb.ax
+            labels = ((ax.xaxis.get_ticklabels() + ax.yaxis.get_ticklabels() +
+                       cbax.yaxis.get_ticklabels()) +
+                      [ax.xaxis.label, ax.yaxis.label, cbax.yaxis.label])
+            for label in labels:
+                label.set_fontproperties(fp)
+                if self._font_color is not None:
                     label.set_color(self._font_color)
+
+        self._plot_valid = True
 
     def save(self, name=None, mpl_kwargs=None):
         r"""
@@ -695,10 +767,6 @@ class PhasePlot(ImagePlotContainer):
                 suffix = ".png"
             self.plots[f].save(fn, mpl_kwargs)
 
-    @property
-    def fields(self):
-        return self.plots.keys()
-
     @invalidate_plot
     def set_title(self, field, title):
         """Set a title for the plot.
@@ -713,7 +781,7 @@ class PhasePlot(ImagePlotContainer):
         Examples
         --------
 
-        >>> plot.set_title("CellMassMsun", "This is a phase plot")
+        >>> plot.set_title("cell_mass", "This is a phase plot")
         
         """
 
@@ -723,41 +791,93 @@ class PhasePlot(ImagePlotContainer):
     def reset_plot(self):
         self.plots = {}
         return self
-            
+
+    @invalidate_plot
+    def set_log(self, field, log):
+        """set a field to log or linear.
+
+        Parameters
+        ----------
+        field : string
+            the field to set a transform
+        log : boolean
+            Log on/off.
+        """
+        if field == "all":
+            self.x_log = log
+            self.y_log = log
+            for field in self.profile.field_data:
+                self.z_log[field] = log
+        else:
+            if field == self.profile.x_field[1]:
+                self.x_log = log
+            elif field == self.profile.y_field[1]:
+                self.y_log = log
+            elif field in self.profile.field_map:
+                self.z_log[self.profile.field_map[field]] = log
+            else:
+                raise KeyError("Field %s not in phase plot!" % (field))
+        return self
+
+    @invalidate_plot
+    def set_unit(self, field, unit):
+        """Sets a new unit for the requested field
+
+        parameters
+        ----------
+        field : string
+           The name of the field that is to be changed.
+
+        new_unit : string or Unit object
+           The name of the new unit.
+        """
+        fields = [fd[1] for fd in self.profile.field_data]
+        if field == self.profile.x_field[1]:
+            self.profile.set_x_unit(unit)
+        elif field == self.profile.y_field[1]:
+            self.profile.set_y_unit(unit)
+        elif field in fields:
+            self.profile.set_field_unit(field, unit)
+        else:
+            raise KeyError("Field %s not in phase plot!" % (field))
+        return self
+
     def run_callbacks(self, *args):
         raise NotImplementedError
     def setup_callbacks(self, *args):
         raise NotImplementedError
 
-class PhasePlotMPL(WindowPlotMPL):
-    def __init__(self, x_data, y_data, data, 
+
+class PhasePlotMPL(ImagePlotMPL):
+    def __init__(self, x_data, y_data, data,
                  x_scale, y_scale, z_scale, cmap,
-                 zlim, size, fontsize, figure, axes, cax):
+                 zlim, figure_size, fontsize, figure, axes, cax):
         self._initfinished = False
         self._draw_colorbar = True
         self._draw_axes = True
-        self._cache_layout(size, fontsize)
-
-        # Make room for a colorbar
-        self.input_size = size
-        self.fsize = [size[0] + self._cbar_inches[self._draw_colorbar], size[1]]
+        self._figure_size = figure_size
 
         # Compute layout
-        axrect, caxrect = self._get_best_layout(fontsize=fontsize)
-        if np.any(np.array(axrect) < 0):
-            mylog.warning('The axis ratio of the requested plot is very narrow.  '
-                          'There is a good chance the plot will not look very good, '
-                          'consider making the plot manually using FixedResolutionBuffer '
-                          'and matplotlib.')
-            axrect  = (0.07, 0.10, 0.80, 0.80)
-            caxrect = (0.87, 0.10, 0.04, 0.80)
-        ImagePlotMPL.__init__(self, self.fsize, axrect, caxrect, zlim,
-                              figure, axes, cax)
+        fontscale = float(fontsize) / 18.0
+        if fontscale < 1.0:
+            fontscale = np.sqrt(fontscale)
+
+        self._cb_size = 0.0375*figure_size
+        self._ax_text_size = [1.1*fontscale, 0.9*fontscale]
+        self._top_buff_size = 0.30*fontscale
+        self._aspect = 1.0
+
+        size, axrect, caxrect = self._get_best_layout()
+
+        super(PhasePlotMPL, self).__init__(size, axrect, caxrect, zlim,
+                                           figure, axes, cax)
+
         self._init_image(x_data, y_data, data, x_scale, y_scale, z_scale,
                          zlim, cmap)
+
         self._initfinished = True
 
-    def _init_image(self, x_data, y_data, image_data, 
+    def _init_image(self, x_data, y_data, image_data,
                     x_scale, y_scale, z_scale, zlim, cmap):
         """Store output of imshow in image variable"""
         if (z_scale == 'log'):
@@ -766,7 +886,9 @@ class PhasePlotMPL(WindowPlotMPL):
             norm = matplotlib.colors.Normalize(zlim[0], zlim[1])
         self.image = None
         self.cb = None
-        self.image = self.axes.pcolormesh(x_data, y_data, image_data.T,
+        self.image = self.axes.pcolormesh(np.array(x_data), 
+                                          np.array(y_data), 
+                                          np.array(image_data.T),
                                           norm=norm, 
                                           cmap=cmap)
         self.axes.set_xscale(x_scale)

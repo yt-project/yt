@@ -46,13 +46,22 @@ class TestImageArray(unittest.TestCase):
         self.curdir = os.getcwd()
         os.chdir(self.tmpdir)
 
+    def test_image_arry_units(self):
+        im_arr = ImageArray(dummy_image(0.3, 3), input_units='cm')
+
+        assert str(im_arr.units) == 'cm'
+
+        new_im = im_arr.in_units('km')
+
+        assert str(new_im.units) == 'km'
+
     def test_image_array_hdf5(self):
         myinfo = {'field': 'dinosaurs', 'east_vector': np.array([1., 0., 0.]),
                   'north_vector': np.array([0., 0., 1.]),
                   'normal_vector': np.array([0., 1., 0.]),
-                  'width': 0.245, 'units': 'cm', 'type': 'rendering'}
+                  'width': 0.245, 'type': 'rendering'}
 
-        im_arr = ImageArray(dummy_image(0.3, 3), info=myinfo)
+        im_arr = ImageArray(dummy_image(0.3, 3), input_units='cm', info=myinfo)
         im_arr.save('test_3d_ImageArray')
 
         im = np.zeros([64, 128])
@@ -62,10 +71,11 @@ class TestImageArray(unittest.TestCase):
         myinfo = {'field': 'dinosaurs', 'east_vector': np.array([1., 0., 0.]),
                   'north_vector': np.array([0., 0., 1.]),
                   'normal_vector': np.array([0., 1., 0.]),
-                  'width': 0.245, 'units': 'cm', 'type': 'rendering'}
+                  'width': 0.245, 'type': 'rendering'}
 
-        im_arr = ImageArray(im, info=myinfo)
+        im_arr = ImageArray(im, info=myinfo, input_units='cm')
         im_arr.save('test_2d_ImageArray')
+
 
     def test_image_array_rgb_png(self):
         im_arr = ImageArray(dummy_image(10.0, 3))

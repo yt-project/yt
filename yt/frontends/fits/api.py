@@ -13,11 +13,13 @@ API for yt.frontends.fits
 from .data_structures import \
       FITSGrid, \
       FITSHierarchy, \
-      FITSStaticOutput
+      FITSDataset, \
+      FITSXYVDataset
 
 from .fields import \
       FITSFieldInfo, \
-      add_fits_field
+      FITSXYVFieldInfo
 
 from .io import \
-      IOHandlerFITS
+      IOHandlerFITS, \
+      IOHandlerFITSXYV

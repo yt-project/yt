@@ -21,9 +21,9 @@ from yt.utilities.answer_testing.framework import \
     PixelizedProjectionValuesTest, \
     FieldValuesTest, \
     create_obj
-from yt.frontends.artio.api import ARTIOStaticOutput
+from yt.frontends.artio.api import ARTIODataset
 
-_fields = ("Temperature", "Density", "VelocityMagnitude",
+_fields = ("temperature", "density", "velocity_magnitude",
            ("deposit", "all_density"), ("deposit", "all_count")) 
 
 sizmbhloz = "sizmbhloz-clref04SNth-rs9_a0.9011/sizmbhloz-clref04SNth-rs9_a0.9011.art"
@@ -36,12 +36,12 @@ def test_sizmbhloz():
     for ds in dso:
         for field in _fields:
             for axis in [0, 1, 2]:
-                for weight_field in [None, "Density"]:
+                for weight_field in [None, "density"]:
                     yield PixelizedProjectionValuesTest(
                         sizmbhloz, axis, field, weight_field,
                         ds)
             yield FieldValuesTest(sizmbhloz, field, ds)
         dobj = create_obj(pf, ds)
-        s1 = dobj["Ones"].sum()
+        s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2

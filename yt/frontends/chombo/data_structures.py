@@ -36,26 +36,29 @@ from yt.funcs import *
 from yt.data_objects.grid_patch import \
      AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
-     GridGeometryHandler
+     GridIndex
 from yt.data_objects.static_output import \
-     StaticOutput
+     Dataset
 from yt.utilities.definitions import \
      mpc_conversion, sec_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      parallel_root_only
+from yt.units.yt_array import \
+    YTArray, \
+    YTQuantity
+from yt.utilities.lib.misc_utilities import \
+    get_box_grids_level
 from yt.utilities.io_handler import \
     io_registry
 
-from yt.data_objects.field_info_container import \
-    FieldInfoContainer, NullFunc
-from .fields import ChomboFieldInfo, KnownChomboFields
+from .fields import ChomboFieldInfo
 
 class ChomboGrid(AMRGridPatch):
     _id_offset = 0
     __slots__ = ["_level_id", "stop_index"]
-    def __init__(self, id, hierarchy, level, start, stop):
-        AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
-                              hierarchy = hierarchy)
+    def __init__(self, id, index, level, start, stop):
+        AMRGridPatch.__init__(self, id, filename = index.index_filename,
+                              index = index)
         self.Parent = []
         self.Children = []
         self.Level = level
@@ -80,34 +83,33 @@ class ChomboGrid(AMRGridPatch):
         return self.start_index
 
     def _setup_dx(self):
-        # has already been read in and stored in hierarchy
-        self.dds = self.hierarchy.dds_list[self.Level]
+        # has already been read in and stored in index
+        self.dds = self.index.dds_list[self.Level]
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
-class ChomboHierarchy(GridGeometryHandler):
+class ChomboHierarchy(GridIndex):
 
     grid = ChomboGrid
 
-    def __init__(self,pf,data_style='chombo_hdf5'):
+    def __init__(self,pf,dataset_type='chombo_hdf5'):
         self.domain_left_edge = pf.domain_left_edge
         self.domain_right_edge = pf.domain_right_edge
-        self.data_style = data_style
+        self.dataset_type = dataset_type
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = os.path.abspath(
+        # for now, the index file is the parameter file!
+        self.index_filename = os.path.abspath(
             self.parameter_file.parameter_filename)
         self.directory = pf.fullpath
         self._handle = pf._handle
 
         self.float_type = self._handle['/level_0']['data:datatype=0'].dtype.name
         self._levels = self._handle.keys()[1:]
-        GridGeometryHandler.__init__(self,pf,data_style)
+        GridIndex.__init__(self,pf,dataset_type)
         self._read_particles()
-        self._fhandle.close()
 
     def _read_particles(self):
-        self.particle_filename = self.hierarchy_filename[:-4] + 'sink'
+        self.particle_filename = self.index_filename[:-4] + 'sink'
         if not os.path.exists(self.particle_filename): return
         with open(self.particle_filename, 'r') as f:
             lines = f.readlines()
@@ -134,21 +136,16 @@ class ChomboHierarchy(GridGeometryHandler):
                     self.grid_particle_count[ind] += 1
                     self.grids[ind].NumberOfParticles += 1
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         ncomp = int(self._handle['/'].attrs['num_components'])
-        self.field_list = [c[1] for c in self._handle['/'].attrs.items()[-ncomp:]]
+        self.field_list = [("chombo", c[1]) for c in self._handle['/'].attrs.items()[-ncomp:]]
           
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        GridGeometryHandler._setup_classes(self, dd)
-        self.object_types.sort()
-
     def _count_grids(self):
         self.num_grids = 0
         for lev in self._levels:
             self.num_grids += self._handle[lev]['Processors'].len()
 
-    def _parse_hierarchy(self):
+    def _parse_index(self):
         f = self._handle # shortcut
 
         # this relies on the first Group in the H5 file being
@@ -179,37 +176,43 @@ class ChomboHierarchy(GridGeometryHandler):
 #        self.grids = np.array(self.grids, dtype='object')
 
     def _populate_grid_objects(self):
+        self._reconstruct_parent_child()
         for g in self.grids:
             g._prepare_grid()
             g._setup_dx()
-
-        for g in self.grids:
-            g.Children = self._get_grid_children(g)
-            for g1 in g.Children:
-                g1.Parent.append(g)
         self.max_level = self.grid_levels.max()
 
     def _setup_derived_fields(self):
         self.derived_field_list = []
 
-    def _get_grid_children(self, grid):
-        mask = np.zeros(self.num_grids, dtype='bool')
-        grids, grid_ind = self.get_box_grids(grid.LeftEdge, grid.RightEdge)
-        mask[grid_ind] = True
-        return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
+    def _reconstruct_parent_child(self):
+        mask = np.empty(len(self.grids), dtype='int32')
+        mylog.debug("First pass; identifying child grids")
+        for i, grid in enumerate(self.grids):
+            get_box_grids_level(self.grid_left_edge[i,:],
+                                self.grid_right_edge[i,:],
+                                self.grid_levels[i] + 1,
+                                self.grid_left_edge, self.grid_right_edge,
+                                self.grid_levels, mask)
+            ids = np.where(mask.astype("bool")) # where is a tuple
+            grid._children_ids = ids[0] + grid._id_offset 
+        mylog.debug("Second pass; identifying parents")
+        for i, grid in enumerate(self.grids): # Second pass
+            for child in grid.Children:
+                child._parent_id.append(i + grid._id_offset)
 
-class ChomboStaticOutput(StaticOutput):
-    _hierarchy_class = ChomboHierarchy
-    _fieldinfo_fallback = ChomboFieldInfo
-    _fieldinfo_known = KnownChomboFields
+class ChomboDataset(Dataset):
+    _index_class = ChomboHierarchy
+    _field_info_class = ChomboFieldInfo
 
-    def __init__(self, filename, data_style='chombo_hdf5',
+    def __init__(self, filename, dataset_type='chombo_hdf5',
                  storage_filename = None, ini_filename = None):
+        self.fluid_types += ("chombo",)
         self._handle = h5py.File(filename,'r')
         self.current_time = self._handle.attrs['time']
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)
-        StaticOutput.__init__(self,filename,data_style)
+        Dataset.__init__(self,filename,dataset_type)
         self.storage_filename = storage_filename
         self.cosmological_simulation = False
 
@@ -221,34 +224,11 @@ class ChomboStaticOutput(StaticOutput):
     def __del__(self):
         self._handle.close()
 
-    def _set_units(self):
-        """
-        Generates the conversion to various physical _units based on the parameter file
-        """
-        self.units = {}
-        self.time_units = {}
-        if len(self.parameters) == 0:
-            self._parse_parameter_file()
-        self._setup_nounits_units()
-        self.conversion_factors = defaultdict(lambda: 1.0)
-        self.time_units['1'] = 1
-        self.units['1'] = 1.0
-        self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        seconds = 1 #self["Time"]
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = seconds / sec_conversion[unit]
-        for key in yt2chomboFieldsDict:
-            self.conversion_factors[key] = 1.0
-
-    def _setup_nounits_units(self):
-        z = 0
-        mylog.warning("Setting 1.0 in code units to be 1.0 cm")
-        if not self.has_key("TimeUnits"):
-            mylog.warning("No time units.  Setting 1.0 = 1 second.")
-            self.conversion_factors["Time"] = 1.0
-        for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
-
+    def _set_code_unit_attributes(self):
+        self.length_unit = YTQuantity(1.0, "cm")
+        self.mass_unit = YTQuantity(1.0, "g")
+        self.time_unit = YTQuantity(1.0, "s")
+        self.velocity_unit = YTQuantity(1.0, "cm/s")
 
     def _localize(self, f, default):
         if f is None:
@@ -289,7 +269,10 @@ class ChomboStaticOutput(StaticOutput):
                 paramName = chombo2enzoDict[param]
                 t = map(parameterDict[paramName], vals.split())
                 if len(t) == 1:
-                    self.parameters[paramName] = t[0]
+                    if paramName == "GAMMA":
+                        self.gamma = t[0]
+                    else:
+                        self.parameters[paramName] = t[0]
                 else:
                     if paramName == "RefineBy":
                         self.parameters[paramName] = t[0]

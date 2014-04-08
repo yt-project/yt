@@ -28,9 +28,9 @@ def test_amr_kdtree_coverage():
     domain_dims = (32, 32, 32)
     data = np.zeros(domain_dims) + 0.25
     fo = [ic.CoredSphere(0.05, 0.3, [0.7, 0.4, 0.75],
-                         {"Density": (0.25, 100.0)})]
+                         {"density": (0.25, 100.0)})]
     rc = [fm.flagging_method_registry["overdensity"](8.0)]
-    ug = load_uniform_grid({'Density': data}, domain_dims, 1.0)
+    ug = load_uniform_grid({"density": data}, domain_dims, 1.0)
     pf = refine_amr(ug, rc, fo, 5)
 
     kd = AMRKDTree(pf)
@@ -48,7 +48,7 @@ def test_amr_kdtree_coverage():
     for node in depth_traverse(kd.tree.trunk):
         if node.grid is None:
             continue
-        grid = pf.h.grids[node.grid - kd._id_offset]
+        grid = pf.index.grids[node.grid - kd._id_offset]
         dds = grid.dds
         gle = grid.LeftEdge
         nle = get_left_edge(node)

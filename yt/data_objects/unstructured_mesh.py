@@ -19,7 +19,7 @@ import numpy as np
 from yt.funcs import mylog
 from yt.utilities.exceptions import \
     YTParticleDepositionNotImplemented
-from yt.utilities.lib import \
+from yt.utilities.lib.mesh_utilities import \
     fill_fcoords, fill_fwidths
 
 from yt.data_objects.data_containers import \
@@ -38,7 +38,7 @@ class SemiStructuredMesh(YTSelectionContainer):
     _container_fields = ("dx", "dy", "dz")
 
     def __init__(self, mesh_id, filename, connectivity_indices,
-                 connectivity_coords, hierarchy):
+                 connectivity_coords, index):
         if self._connectivity_length != 8:
             raise NotImplementedError
         self.field_data = YTFieldData()
@@ -48,8 +48,8 @@ class SemiStructuredMesh(YTSelectionContainer):
         # This is where we set up the connectivity information
         self.connectivity_indices = connectivity_indices
         self.connectivity_coords = connectivity_coords
-        if hierarchy: self.hierarchy = weakref.proxy(hierarchy)
-        self.pf = self.hierarchy.parameter_file  # weakref already
+        self.pf = index.parameter_file
+        self._index = index
         self._last_mask = None
         self._last_count = -1
         self._last_selector_id = None
@@ -89,7 +89,7 @@ class SemiStructuredMesh(YTSelectionContainer):
 
     def _generate_container_field(self, field):
         if self._current_chunk is None:
-            self.hierarchy._identify_base_chunk(self)
+            self.index._identify_base_chunk(self)
         if field == "dx":
             return self._current_chunk.fwidth[:,0]
         elif field == "dy":
@@ -161,7 +161,7 @@ class SemiStructuredMesh(YTSelectionContainer):
         mask = self._get_selector_mask(selector)
         count = self.count(selector)
         if count == 0: return 0
-        dest[offset:offset+count] = source[mask]
+        dest[offset:offset+count] = source.flat[mask]
         return count
 
     def count(self, selector):

@@ -26,7 +26,7 @@ from contextlib import contextmanager
 from yt.funcs import *
 
 from yt.data_objects.particle_io import particle_handler_registry
-from yt.utilities.lib import \
+from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.definitions import  x_dict, y_dict
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -36,8 +36,10 @@ from yt.utilities.parameter_file_storage import \
 from yt.utilities.amr_kdtree.api import \
     AMRKDTree
 from .derived_quantities import DerivedQuantityCollection
-from .field_info_container import \
-    NeedsGridType, ValidateSpatial
+from yt.fields.field_exceptions import \
+    NeedsGridType
+from yt.fields.derived_field import \
+    ValidateSpatial
 import yt.geometry.selection_routines
 
 def force_array(item, shape):
@@ -51,7 +53,7 @@ def force_array(item, shape):
             return np.zeros(shape, dtype='bool')
 
 def restore_field_information_state(func):
-    """ 
+    """
     A decorator that takes a function with the API of (self, grid, field)
     and ensures that after the function is called, the field_parameters will
     be returned to normal.
@@ -65,14 +67,14 @@ def restore_field_information_state(func):
     return save_state
 
 class YTFieldData(dict):
-    """ 
+    """
     A Container object for field data, instead of just having it be a dict.
     """
     pass
-        
+
 
 class YTDataContainer(object):
-    """ 
+    """
     Generic YTDataContainer container.  By itself, will attempt to
     generate field, read fields (method defined by derived classes)
     and deal with passing back and forth field parameters.
@@ -83,6 +85,7 @@ class YTDataContainer(object):
     _skip_add = False
     _container_fields = ()
     _field_cache = None
+    _index = None
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):
@@ -91,18 +94,17 @@ class YTDataContainer(object):
                 data_object_registry[cls._type_name] = cls
 
     def __init__(self, pf, field_parameters):
-        """ 
+        """
         Typically this is never called directly, but only due to inheritance.
-        It associates a :class:`~yt.data_objects.api.StaticOutput` with the class,
+        It associates a :class:`~yt.data_objects.api.Dataset` with the class,
         sets its initial set of fields, and the remainder of the arguments
         are passed as field_parameters.
         """
         if pf != None:
             self.pf = pf
-            self.hierarchy = pf.hierarchy
         self._current_particle_type = "all"
         self._current_fluid_type = self.pf.default_fluid_type
-        self.hierarchy.objects.append(weakref.proxy(self))
+        self.pf.objects.append(weakref.proxy(self))
         mylog.debug("Appending object to %s (type: %s)", self.pf, type(self))
         self.field_data = YTFieldData()
         if field_parameters is None: field_parameters = {}
@@ -111,27 +113,42 @@ class YTDataContainer(object):
             mylog.debug("Setting %s to %s", key, val)
             self.set_field_parameter(key, val)
 
+    @property
+    def index(self):
+        if self._index is not None:
+            return self._index
+        self._index = self.pf.index
+        return self._index
+
     def _set_default_field_parameters(self):
         self.field_parameters = {}
-        self.set_field_parameter("center",np.zeros(3,dtype='float64'))
-        self.set_field_parameter("bulk_velocity",np.zeros(3,dtype='float64'))
-        self.set_field_parameter("normal",np.array([0,0,1],dtype='float64'))
+        self.set_field_parameter(
+            "center",self.pf.arr(np.zeros(3,dtype='float64'),'cm'))
+        self.set_field_parameter(
+            "bulk_velocity",self.pf.arr(np.zeros(3,dtype='float64'),'cm/s'))
+        self.set_field_parameter(
+            "normal",np.array([0,0,1],dtype='float64'))
+
+    def apply_units(self, arr, units):
+        return self.pf.arr(arr, input_units = units)
 
     def _set_center(self, center):
         if center is None:
-            pass
+            self.center = None
+            self.set_field_parameter('center', self.center)
+            return
         elif isinstance(center, (types.ListType, types.TupleType, np.ndarray)):
-            center = np.array(center)
+            center = self.pf.arr(center, 'code_length')
         elif center in ("c", "center"):
             center = self.pf.domain_center
         elif center == ("max"): # is this dangerous for race conditions?
-            center = self.pf.h.find_max("Density")[1]
+            center = self.pf.h.find_max("density")[1]
         elif center.startswith("max_"):
             center = self.pf.h.find_max(center[4:])[1]
         else:
             center = np.array(center, dtype='float64')
-        self.center = center
-        self.set_field_parameter('center', center)
+        self.center = self.pf.arr(center, 'code_length')
+        self.set_field_parameter('center', self.center)
 
     def get_field_parameter(self, name, default=None):
         """
@@ -178,21 +195,32 @@ class YTDataContainer(object):
     def keys(self):
         return self.field_data.keys()
 
+    def _reshape_vals(self, arr):
+        return arr
+
     def __getitem__(self, key):
         """
         Returns a single field.  Will add if necessary.
         """
-        f = self._determine_fields(key)[0]
+        f = self._determine_fields([key])[0]
         if f not in self.field_data and key not in self.field_data:
             if f in self._container_fields:
-                self.field_data[f] = self._generate_container_field(f)
+                self.field_data[f] = \
+                    self.pf.arr(self._generate_container_field(f))
                 return self.field_data[f]
             else:
                 self.get_data(f)
+        # fi.units is the unit expression string. We depend on the registry
+        # hanging off the dataset to define this unit object.
         # Note that this is less succinct so that we can account for the case
         # when there are, for example, no elements in the object.
         rv = self.field_data.get(f, None)
-        if rv is None: rv = self.field_data[key]
+        if rv is None:
+            if isinstance(f, types.TupleType):
+                fi = self.pf._get_field_info(*f)
+            elif isinstance(f, types.StringType):
+                fi = self.pf._get_field_info("unknown", f)
+            rv = self.pf.arr(self.field_data[key], fi.units)
         return rv
 
     def __setitem__(self, key, val):
@@ -205,7 +233,7 @@ class YTDataContainer(object):
         """
         Deletes a field
         """
-        if key  not in self.field_data:
+        if key not in self.field_data:
             key = self._determine_fields(key)[0]
         del self.field_data[key]
 
@@ -254,7 +282,7 @@ class YTDataContainer(object):
                     with o._activate_cache():
                         ind += o.select(self.selector, self[field], rv, ind)
         else:
-            chunks = self.hierarchy._chunk(self, "spatial", ngz = ngz)
+            chunks = self.index._chunk(self, "spatial", ngz = ngz)
             for i, chunk in enumerate(chunks):
                 with self._chunked_read(chunk):
                     gz = self._current_chunk.objs[0]
@@ -342,7 +370,7 @@ class YTDataContainer(object):
         """
         Save an object.  If *filename* is supplied, it will be stored in
         a :mod:`shelve` file of that name.  Otherwise, it will be stored via
-        :meth:`yt.data_objects.api.GridGeometryHandler.save_object`.
+        :meth:`yt.data_objects.api.GridIndex.save_object`.
         """
         if filename is not None:
             ds = shelve.open(filename, protocol=-1)
@@ -351,13 +379,15 @@ class YTDataContainer(object):
             ds[name] = self
             ds.close()
         else:
-            self.hierarchy.save_object(self, name)
+            self.index.save_object(self, name)
 
-    def to_glue(self, fields, label="yt"):
+    def to_glue(self, fields, label="yt", data_collection=None):
         """
         Takes specific *fields* in the container and exports them to
         Glue (http://www.glueviz.org) for interactive
-        analysis. Optionally add a *label*.  
+        analysis. Optionally add a *label*. If you are already within
+        the Glue environment, you can pass a *data_collection* object,
+        otherwise Glue will be started.
         """
         from glue.core import DataCollection, Data
         from glue.core.coordinates import coordinates_from_header
@@ -366,11 +396,14 @@ class YTDataContainer(object):
         gdata = Data(label=label)
         for component_name in fields:
             gdata.add_component(self[component_name], component_name)
-        dc = DataCollection([gdata])
 
-        app = GlueApplication(dc)
-        app.start()
-
+        if data_collection is None:
+            dc = DataCollection([gdata])
+            app = GlueApplication(dc)
+            app.start()
+        else:
+            data_collection.append(gdata)
+        
     def __reduce__(self):
         args = tuple([self.pf._hash(), self._type_name] +
                      [getattr(self, n) for n in self._con_args] +
@@ -426,7 +459,7 @@ class YTDataContainer(object):
                 else:
                     ftype = self._current_fluid_type
                     if (ftype, fname) not in self.pf.field_info:
-                        ftype = "gas"
+                        ftype = self.pf._last_freq[0]
             if finfo.particle_type and ftype not in self.pf.particle_types:
                 raise YTFieldTypeNotFound(ftype)
             elif not finfo.particle_type and ftype not in self.pf.fluid_types:
@@ -483,7 +516,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         # This is an iterator that will yield the necessary chunks.
         self.get_data() # Ensure we have built ourselves
         if fields is None: fields = []
-        for chunk in self.hierarchy._chunk(self, chunking_style, **kwargs):
+        for chunk in self.index._chunk(self, chunking_style, **kwargs):
             with self._chunked_read(chunk):
                 self.get_data(fields)
                 # NOTE: we yield before releasing the context
@@ -517,10 +550,10 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             deps = [d for d in requested if d not in fields_to_get]
             fields_to_get += deps
         return fields_to_get
-    
+
     def get_data(self, fields=None):
         if self._current_chunk is None:
-            self.hierarchy._identify_base_chunk(self)
+            self.index._identify_base_chunk(self)
         if fields is None: return
         nfields = []
         apply_fields = defaultdict(list)
@@ -559,11 +592,14 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         elif self._locked == True:
             raise GenerationInProgress(fields)
         # At this point, we want to figure out *all* our dependencies.
-        fields_to_get = self._identify_dependencies(fields_to_get)
+        fields_to_get = self._identify_dependencies(fields_to_get,
+            self._spatial)
         # We now split up into readers for the types of fields
         fluids, particles = [], []
+        finfos = {}
         for ftype, fname in fields_to_get:
             finfo = self.pf._get_field_info(ftype, fname)
+            finfos[ftype, fname] = finfo
             if finfo.particle_type:
                 particles.append((ftype, fname))
             elif (ftype, fname) not in fluids:
@@ -571,13 +607,16 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         # The _read method will figure out which fields it needs to get from
         # disk, and return a dict of those fields along with the fields that
         # need to be generated.
-        read_fluids, gen_fluids = self.hierarchy._read_fluid_fields(
+        read_fluids, gen_fluids = self.index._read_fluid_fields(
                                         fluids, self, self._current_chunk)
-        self.field_data.update(read_fluids)
+        for f, v in read_fluids.items():
+            self.field_data[f] = self.pf.arr(v, input_units = finfos[f].units)
 
-        read_particles, gen_particles = self.hierarchy._read_particle_fields(
+        read_particles, gen_particles = self.index._read_particle_fields(
                                         particles, self, self._current_chunk)
-        self.field_data.update(read_particles)
+        for f, v in read_particles.items():
+            self.field_data[f] = self.pf.arr(v, input_units = finfos[f].units)
+
         fields_to_generate += gen_fluids + gen_particles
         self._generate_fields(fields_to_generate)
 
@@ -594,8 +633,15 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 field = fields_to_generate[index % len(fields_to_generate)]
                 index += 1
                 if field in self.field_data: continue
+                fi = self.pf._get_field_info(*field)
                 try:
-                    self.field_data[field] = self._generate_field(field)
+                    fd = self._generate_field(field)
+                    if type(fd) == np.ndarray:
+                        fd = self.pf.arr(fd, fi.units)
+                    if fd is None:
+                        raise RuntimeError
+                    self.field_data[field] = fd
+                    fd.convert_to_units(fi.units)
                 except GenerationInProgress as gip:
                     for f in gip.fields:
                         if f not in fields_to_generate:
@@ -641,25 +687,25 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     @property
     def icoords(self):
         if self._current_chunk is None:
-            self.hierarchy._identify_base_chunk(self)
+            self.index._identify_base_chunk(self)
         return self._current_chunk.icoords
 
     @property
     def fcoords(self):
         if self._current_chunk is None:
-            self.hierarchy._identify_base_chunk(self)
+            self.index._identify_base_chunk(self)
         return self._current_chunk.fcoords
 
     @property
     def ires(self):
         if self._current_chunk is None:
-            self.hierarchy._identify_base_chunk(self)
+            self.index._identify_base_chunk(self)
         return self._current_chunk.ires
 
     @property
     def fwidth(self):
         if self._current_chunk is None:
-            self.hierarchy._identify_base_chunk(self)
+            self.index._identify_base_chunk(self)
         return self._current_chunk.fwidth
 
 class YTSelectionContainer1D(YTSelectionContainer):
@@ -684,24 +730,21 @@ class YTSelectionContainer2D(YTSelectionContainer):
         super(YTSelectionContainer2D, self).__init__(
             pf, field_parameters)
         self.set_field_parameter("axis", axis)
-        
+
     def _convert_field_name(self, field):
         return field
 
-    def _get_pw(self, fields, center, width, origin, axes_unit, plot_type):
+    def _get_pw(self, fields, center, width, origin, plot_type):
         axis = self.axis
         self.fields = [k for k in self.field_data.keys()
                        if k not in self._key_fields]
         from yt.visualization.plot_window import \
-            GetWindowParameters, PWViewerMPL
+            get_window_parameters, PWViewerMPL
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
-        (bounds, center, units) = GetWindowParameters(axis, center, width, self.pf)
-        if axes_unit is None and units != ('1', '1'):
-            axes_unit = units
+        (bounds, center) = get_window_parameters(axis, center, width, self.pf)
         pw = PWViewerMPL(self, bounds, fields=list(self.fields), origin=origin,
-                         frb_generator=FixedResolutionBuffer,
+                         frb_generator=FixedResolutionBuffer, 
                          plot_type=plot_type)
-        pw.set_axes_unit(axes_unit)
         return pw
 
 
@@ -743,30 +786,38 @@ class YTSelectionContainer2D(YTSelectionContainer):
         Examples
         --------
 
-        >>> proj = pf.h.proj("Density", 0)
+        >>> proj = pf.proj("Density", 0)
         >>> frb = proj.to_frb( (100.0, 'kpc'), 1024)
         >>> write_image(np.log10(frb["Density"]), 'density_100kpc.png')
         """
-        
+
         if (self.pf.geometry == "cylindrical" and self.axis == 1) or \
             (self.pf.geometry == "polar" and self.axis == 2):
+            if center is not None and center != (0.0, 0.0):
+                raise NotImplementedError(
+                    "Currently we only support images centered at R=0. " +
+                    "We plan to generalize this in the near future")
             from yt.visualization.fixed_resolution import CylindricalFixedResolutionBuffer
-            frb = CylindricalFixedResolutionBuffer(self, width, resolution)
+            if iterable(width): radius = max(width)
+            if iterable(resolution): resolution = max(resolution)
+            frb = CylindricalFixedResolutionBuffer(self, radius, resolution)
             return frb
-        
+
         if center is None:
             center = self.get_field_parameter("center")
             if center is None:
                 center = (self.pf.domain_right_edge
                         + self.pf.domain_left_edge)/2.0
+        elif iterable(center) and not isinstance(center, YTArray):
+            center = self.pf.arr(center, 'code_length')
         if iterable(width):
             w, u = width
-            width = w/self.pf[u]
+            width = self.pf.arr(w, input_units = u)
         if height is None:
             height = width
         elif iterable(height):
             h, u = height
-            height = h/self.pf[u]
+            height = self.pf.arr(w, input_units = u)
         if not iterable(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
@@ -812,7 +863,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> cr = ad.cut_region(["obj['Temperature'] > 1e6"])
         >>> print cr.quantities["TotalQuantity"]("CellMassMsun")
         """
-        cr = self.pf.h.cut_region(self, field_cuts,
+        cr = self.pf.cut_region(self, field_cuts,
                                   field_parameters = field_parameters)
         return cr
 
@@ -829,7 +880,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         useful for calculating, for instance, total isocontour area, or
         visualizing in an external program (such as `MeshLab
         <http://meshlab.sf.net>`_.)
-        
+
         Parameters
         ----------
         field : string
@@ -943,7 +994,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
         Additionally, the returned flux is defined as flux *into* the surface,
         not flux *out of* the surface.
-        
+
         Parameters
         ----------
         field : string
@@ -982,7 +1033,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> rho = dd.quantities["WeightedAverageQuantity"](
         ...     "Density", weight="CellMassMsun")
         >>> flux = dd.calculate_isocontour_flux("Density", rho,
-        ...     "x-velocity", "y-velocity", "z-velocity", "Metal_Density")
+        ...     "velocity_x", "velocity_y", "velocity_z", "Metal_Density")
         """
         flux = 0.0
         for g in self._get_grid_objs():
@@ -999,7 +1050,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
             ff = np.ones(vals.shape, dtype="float64")
         else:
             ff = grid.get_vertex_centered_data(fluxing_field)
-        xv, yv, zv = [grid.get_vertex_centered_data(f) for f in 
+        xv, yv, zv = [grid.get_vertex_centered_data(f) for f in
                      [field_x, field_y, field_z]]
         return march_cubes_grid_flux(value, vals, xv, yv, zv,
                     ff, mask, grid.LeftEdge, grid.dds)
@@ -1031,7 +1082,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
             nj, cids = identify_contours(self, field, cons[level], mv)
             for cid in range(nj):
                 contours[level][cid] = self.cut_region(
-                    ["obj['Contours'] == %s" % (cid + 1)],
+                    ["obj['contours'] == %s" % (cid + 1)],
                     {'contour_slices': cids})
         return cons, contours
 
@@ -1115,173 +1166,6 @@ def _reconstruct_object(*args, **kwargs):
     obj.field_parameters.update(field_parameters)
     return ReconstructedObject((pf, obj))
 
-class YTSelectedIndicesBase(YTSelectionContainer3D):
-    """An arbitrarily defined data container that allows for selection
-    of all data meeting certain criteria.
-
-    In order to create an arbitrarily selected set of data, the
-    ExtractedRegion takes a `base_region` and a set of `indices`
-    and creates a region within the `base_region` consisting of
-    all data indexed by the `indices`. Note that `indices` must be
-    precomputed. This does not work well for parallelized
-    operations.
-
-    Parameters
-    ----------
-    base_region : yt data source
-        A previously selected data source.
-    indices : array_like
-        An array of indices
-
-    Other Parameters
-    ----------------
-    force_refresh : bool
-       Force a refresh of the data. Defaults to True.
-
-    Examples
-    --------
-    """
-    _type_name = "extracted_region"
-    _con_args = ('_base_region', '_indices')
-    def __init__(self, base_region, indices, force_refresh=True, **kwargs):
-        cen = kwargs.pop("center", None)
-        if cen is None: cen = base_region.get_field_parameter("center")
-        YTSelectionContainer3D.__init__(self, center=cen,
-                            pf=base_region.pf, **kwargs)
-        self._base_region = base_region # We don't weakly reference because
-                                        # It is not cyclic
-        if isinstance(indices, types.DictType):
-            self._indices = indices
-            self._grids = self._base_region.pf.h.grids[self._indices.keys()]
-        else:
-            self._grids = None
-            self._base_indices = indices
-
-    def _get_cut_particle_mask(self, grid):
-        # Override to provide a warning
-        mylog.warning("Returning all particles from an Extracted Region.  This could be incorrect!")
-        return True
-
-    def _get_list_of_grids(self):
-        # Okay, so what we're going to want to do is get the pointI from
-        # region._get_point_indices(grid) for grid in base_region._grids,
-        # and then construct an array of those, which we will select along indices.
-        if self._grids != None: return
-        grid_vals, xi, yi, zi = [], [], [], []
-        for grid in self._base_region._grids:
-            xit,yit,zit = self._base_region._get_point_indices(grid)
-            grid_vals.append(np.ones(xit.shape, dtype='int') * (grid.id-grid._id_offset))
-            xi.append(xit)
-            yi.append(yit)
-            zi.append(zit)
-        grid_vals = np.concatenate(grid_vals)[self._base_indices]
-        grid_order = np.argsort(grid_vals)
-        # Note: grid_vals is still unordered
-        grid_ids = np.unique(grid_vals)
-        xi = np.concatenate(xi)[self._base_indices][grid_order]
-        yi = np.concatenate(yi)[self._base_indices][grid_order]
-        zi = np.concatenate(zi)[self._base_indices][grid_order]
-        bc = np.bincount(grid_vals)
-        splits = []
-        for i,v in enumerate(bc):
-            if v > 0: splits.append(v)
-        splits = np.add.accumulate(splits)
-        xis, yis, zis = [np.array_split(aa, splits) for aa in [xi,yi,zi]]
-        self._indices = {}
-        h = self._base_region.pf.h
-        for grid_id, x, y, z in itertools.izip(grid_ids, xis, yis, zis):
-            # grid_id needs no offset
-            ll = h.grids[grid_id].ActiveDimensions.prod() \
-               - (np.logical_not(h.grids[grid_id].child_mask)).sum()
-            # This means we're completely enclosed, except for child masks
-            if x.size == ll:
-                self._indices[grid_id] = None
-            else:
-                # This will slow things down a bit, but conserve memory
-                self._indices[grid_id] = \
-                    np.zeros(h.grids[grid_id].ActiveDimensions, dtype='bool')
-                self._indices[grid_id][(x,y,z)] = True
-        self._grids = h.grids[self._indices.keys()]
-
-    def _is_fully_enclosed(self, grid):
-        if self._indices[grid.id-grid._id_offset] is None or \
-            (self._indices[grid.id-grid._id_offset][0].size ==
-             grid.ActiveDimensions.prod()):
-            return True
-        return False
-
-    def _get_cut_mask(self, grid):
-        cm = np.zeros(grid.ActiveDimensions, dtype='bool')
-        cm[self._get_point_indices(grid, False)] = True
-        return cm
-
-    __empty_array = np.array([], dtype='bool')
-    def _get_point_indices(self, grid, use_child_mask=True):
-        # Yeah, if it's not true, we don't care.
-        tr = self._indices.get(grid.id-grid._id_offset, self.__empty_array)
-        if tr is None: tr = np.where(grid.child_mask)
-        else: tr = np.where(tr)
-        return tr
-
-    def __repr__(self):
-        # We'll do this the slow way to be clear what's going on
-        s = "%s (%s): " % (self.__class__.__name__, self.pf)
-        s += ", ".join(["%s=%s" % (i, getattr(self,i))
-                       for i in self._con_args if i != "_indices"])
-        return s
-
-    def join(self, other):
-        ng = {}
-        gs = set(self._indices.keys() + other._indices.keys())
-        for g in gs:
-            grid = self.pf.h.grids[g]
-            if g in other._indices and g in self._indices:
-                # We now join the indices
-                ind = np.zeros(grid.ActiveDimensions, dtype='bool')
-                ind[self._indices[g]] = True
-                ind[other._indices[g]] = True
-                if ind.prod() == grid.ActiveDimensions.prod(): ind = None
-            elif g in self._indices:
-                ind = self._indices[g]
-            elif g in other._indices:
-                ind = other._indices[g]
-            # Okay we have indices
-            if ind is not None: ind = ind.copy()
-            ng[g] = ind
-        gl = self.pf.h.grids[list(gs)]
-        gc = self.pf.h.grid_collection(
-            self._base_region.get_field_parameter("center"), gl)
-        return self.pf.h.extracted_region(gc, ng)
-
-
-class YTValueCutExtractionBase(YTSelectionContainer3D):
-    _type_name = "cut_region"
-    _con_args = ("_base_region", "_field_cuts")
-    """
-    In-line extracted regions accept a base region and a set of field_cuts to
-    determine which points in a grid should be included.
-    """
-    def __init__(self, base_region, field_cuts, **kwargs):
-        cen = base_region.get_field_parameter("center")
-        YTSelectionContainer3D.__init__(self, center=cen,
-                            pf=base_region.pf, **kwargs)
-        self._base_region = base_region # We don't weakly reference because
-                                        # It is not cyclic
-        self._field_cuts = ensure_list(field_cuts)[:]
-
-    def _get_list_of_grids(self):
-        self._grids = self._base_region._grids
-
-    def _is_fully_enclosed(self, grid):
-        return False
-
-    def _get_cut_mask(self, grid):
-        point_mask = np.ones(grid.ActiveDimensions, dtype='bool')
-        point_mask *= self._base_region._get_cut_mask(grid)
-        for cut in self._field_cuts:
-            point_mask *= eval(cut)
-        return point_mask
-
 class YTBooleanRegionBase(YTSelectionContainer3D):
     """
     This will build a hybrid region based on the boolean logic
@@ -1296,13 +1180,13 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
     
     Examples
     --------
-    >>> re1 = pf.h.region([0.5, 0.5, 0.5], [0.4, 0.4, 0.4],
+    >>> re1 = pf.region([0.5, 0.5, 0.5], [0.4, 0.4, 0.4],
         [0.6, 0.6, 0.6])
-    >>> re2 = pf.h.region([0.5, 0.5, 0.5], [0.45, 0.45, 0.45],
+    >>> re2 = pf.region([0.5, 0.5, 0.5], [0.45, 0.45, 0.45],
         [0.55, 0.55, 0.55])
-    >>> sp1 = pf.h.sphere([0.575, 0.575, 0.575], .03)
-    >>> toroid_shape = pf.h.boolean([re1, "NOT", re2])
-    >>> toroid_shape_with_hole = pf.h.boolean([re1, "NOT", "(", re2, "OR",
+    >>> sp1 = pf.sphere([0.575, 0.575, 0.575], .03)
+    >>> toroid_shape = pf.boolean([re1, "NOT", re2])
+    >>> toroid_shape_with_hole = pf.boolean([re1, "NOT", "(", re2, "OR",
         sp1, ")"])
     """
     _type_name = "boolean"
@@ -1318,7 +1202,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
         self._get_all_regions()
         self._make_overlaps()
         self._get_list_of_grids()
-    
+
     def _get_all_regions(self):
         # Before anything, we simply find out which regions are involved in all
         # of this process, uniquely.
@@ -1328,7 +1212,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
             # So cut_masks don't get messed up.
             item._boolean_touched = True
         self._all_regions = np.unique(self._all_regions)
-    
+
     def _make_overlaps(self):
         # Using the processed cut_masks, we'll figure out what grids
         # are left in the hybrid region.
@@ -1362,7 +1246,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
                     continue
             pbar.update(i)
         pbar.finish()
-    
+
     def __repr__(self):
         # We'll do this the slow way to be clear what's going on
         s = "%s (%s): " % (self.__class__.__name__, self.pf)
@@ -1375,7 +1259,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
             if i < (len(self.regions) - 1): s += ", "
         s += "]"
         return s
-    
+
     def _is_fully_enclosed(self, grid):
         return (grid in self._all_overlap)
 
@@ -1386,8 +1270,7 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
     def _get_cut_mask(self, grid, field=None):
         if self._is_fully_enclosed(grid):
             return True # We do not want child masking here
-        if not isinstance(grid, (FakeGridForParticles, GridChildMaskWrapper)) \
-                and grid.id in self._cut_masks:
+        if grid.id in self._cut_masks:
             return self._cut_masks[grid.id]
         # If we get this far, we have to generate the cut_mask.
         return self._get_level_mask(self.regions, grid)
@@ -1444,6 +1327,5 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
                     this_cut_mask)
             if item == "OR":
                 np.bitwise_or(this_cut_mask, level_masks[i+1], this_cut_mask)
-        if not isinstance(grid, FakeGridForParticles):
-            self._cut_masks[grid.id] = this_cut_mask
+        self._cut_masks[grid.id] = this_cut_mask
         return this_cut_mask

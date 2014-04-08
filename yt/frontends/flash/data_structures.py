@@ -23,26 +23,25 @@ from yt.funcs import *
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
-    GridGeometryHandler
+    GridIndex
 from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.data_objects.static_output import \
-    StaticOutput
+    Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.io_handler import \
     io_registry
 from yt.utilities.physical_constants import cm_per_mpc
-from .fields import FLASHFieldInfo, add_flash_field, KnownFLASHFields
-from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc, \
-     ValidateDataField, TranslationFunc
+from .fields import FLASHFieldInfo
+from yt.units.yt_array import YTQuantity
 
 class FLASHGrid(AMRGridPatch):
     _id_offset = 1
     #__slots__ = ["_level_id", "stop_index"]
-    def __init__(self, id, hierarchy, level):
-        AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
-                              hierarchy = hierarchy)
+    def __init__(self, id, index, level):
+        AMRGridPatch.__init__(self, id, filename = index.index_filename,
+                              index = index)
         self.Parent = None
         self.Children = []
         self.Level = level
@@ -50,38 +49,33 @@ class FLASHGrid(AMRGridPatch):
     def __repr__(self):
         return "FLASHGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
-class FLASHHierarchy(GridGeometryHandler):
+class FLASHHierarchy(GridIndex):
 
     grid = FLASHGrid
     _preload_implemented = True
     
-    def __init__(self,pf,data_style='flash_hdf5'):
-        self.data_style = data_style
+    def __init__(self,pf,dataset_type='flash_hdf5'):
+        self.dataset_type = dataset_type
         self.field_indexes = {}
         self.parameter_file = weakref.proxy(pf)
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.directory = os.path.dirname(self.hierarchy_filename)
+        # for now, the index file is the parameter file!
+        self.index_filename = self.parameter_file.parameter_filename
+        self.directory = os.path.dirname(self.index_filename)
         self._handle = pf._handle
         self._particle_handle = pf._particle_handle
         self.float_type = np.float64
-        GridGeometryHandler.__init__(self,pf,data_style)
+        GridIndex.__init__(self,pf,dataset_type)
 
     def _initialize_data_storage(self):
         pass
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         ncomp = self._handle["/unknown names"].shape[0]
-        self.field_list = [("gas", s) for s in self._handle["/unknown names"][:].flat]
+        self.field_list = [("flash", s) for s in self._handle["/unknown names"][:].flat]
         if ("/particle names" in self._particle_handle) :
             self.field_list += [("io", "particle_" + s[0].strip()) for s
                                 in self._particle_handle["/particle names"][:]]
     
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        GridGeometryHandler._setup_classes(self, dd)
-        self.object_types.sort()
-
     def _count_grids(self):
         try:
             self.num_grids = self.parameter_file._find_parameter(
@@ -89,7 +83,7 @@ class FLASHHierarchy(GridGeometryHandler):
         except KeyError:
             self.num_grids = self._handle["/simulation parameters"][0][0]
         
-    def _parse_hierarchy(self):
+    def _parse_index(self):
         f = self._handle # shortcut
         pf = self.parameter_file # shortcut
         f_part = self._particle_handle # shortcut
@@ -104,7 +98,6 @@ class FLASHHierarchy(GridGeometryHandler):
         # We only go up to ND for 2D datasets
         self.grid_left_edge[:,:ND] = f["/bounding box"][:,:ND,0]
         self.grid_right_edge[:,:ND] = f["/bounding box"][:,:ND,1]
-        
         # Move this to the parameter file
         try:
             nxb = pf.parameters['nxb']
@@ -144,10 +137,13 @@ class FLASHHierarchy(GridGeometryHandler):
         if ND < 3:
             dxs[:,ND:] = rdx[ND:]
 
+        # Because we don't care about units, we're going to operate on views.
+        gle = self.grid_left_edge.ndarray_view()
+        gre = self.grid_right_edge.ndarray_view()
         for i in xrange(self.num_grids):
             dx = dxs[self.grid_levels[i],:]
-            self.grid_left_edge[i][:ND] = np.rint(self.grid_left_edge[i][:ND]/dx[0][:ND])*dx[0][:ND]
-            self.grid_right_edge[i][:ND] = np.rint(self.grid_right_edge[i][:ND]/dx[0][:ND])*dx[0][:ND]
+            gle[i][:ND] = np.rint(gle[i][:ND]/dx[0][:ND])*dx[0][:ND]
+            gre[i][:ND] = np.rint(gre[i][:ND]/dx[0][:ND])*dx[0][:ND]
                         
     def _populate_grid_objects(self):
         # We only handle 3D data, so offset is 7 (nfaces+1)
@@ -176,17 +172,17 @@ class FLASHHierarchy(GridGeometryHandler):
                 g.dds[1] = DD
         self.max_level = self.grid_levels.max()
 
-class FLASHStaticOutput(StaticOutput):
-    _hierarchy_class = FLASHHierarchy
-    _fieldinfo_fallback = FLASHFieldInfo
-    _fieldinfo_known = KnownFLASHFields
+class FLASHDataset(Dataset):
+    _index_class = FLASHHierarchy
+    _field_info_class = FLASHFieldInfo
     _handle = None
     
-    def __init__(self, filename, data_style='flash_hdf5',
+    def __init__(self, filename, dataset_type='flash_hdf5',
                  storage_filename = None,
                  particle_filename = None, 
                  conversion_override = None):
 
+        self.fluid_types += ("flash",)
         if self._handle is not None: return
         self._handle = h5py.File(filename, "r")
         if conversion_override is None: conversion_override = {}
@@ -201,102 +197,48 @@ class FLASHStaticOutput(StaticOutput):
                 self._particle_handle = h5py.File(self.particle_filename, "r")
             except :
                 raise IOError(self.particle_filename)
-                                                                
-        StaticOutput.__init__(self, filename, data_style)
-        self.storage_filename = storage_filename
-
         # These should be explicitly obtained from the file, but for now that
         # will wait until a reorganization of the source tree and better
         # generalization.
         self.refine_by = 2
+                                                                
+        Dataset.__init__(self, filename, dataset_type)
+        self.storage_filename = storage_filename
+
         self.parameters["HydroMethod"] = 'flash' # always PPM DE
         self.parameters["Time"] = 1. # default unit is 1...
-        self._set_units()
         
-    def _set_units(self):
-        """
-        Generates the conversion to various physical _units based on the parameter file
-        """
-        self.units = {}
-        self.time_units = {}
-        if len(self.parameters) == 0:
-            self._parse_parameter_file()
-        self.conversion_factors = defaultdict(lambda: 1.0)
-        if "EOSType" not in self.parameters:
-            self.parameters["EOSType"] = -1
-        if "pc_unitsbase" in self.parameters:
-            if self.parameters["pc_unitsbase"] == "CGS":
-                self._setup_cgs_units()
+    def _set_code_unit_attributes(self):
+        if "cgs" in (self.parameters.get('pc_unitsbase', "").lower(),
+                     self.parameters.get('unitsystem', "").lower()):
+             b_factor = 1
+        elif self['unitsystem'].lower() == "si":
+             b_factor = np.sqrt(4*np.pi/1e7)
+        elif self['unitsystem'].lower() == "none":
+             b_factor = np.sqrt(4*np.pi)
         else:
-            self._setup_nounits_units()
+            raise RuntimeError("Runtime parameter unitsystem with "
+                               "value %s is unrecognized" % self['unitsystem'])
         if self.cosmological_simulation == 1:
-            self._setup_comoving_units()
-        self.time_units['1'] = 1
-        self.units['1'] = 1.0
-        self.units['unitary'] = 1.0 / \
-            (self.domain_right_edge - self.domain_left_edge).max()
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = 1.0 / sec_conversion[unit]
+            length_factor = 1.0 / (1.0 + self.current_redshift)
+            temperature_factor = 1.0 / (1.0 + self.current_redshift)**2
+        else:
+            length_factor = 1.0
+            temperature_factor = 1.0
+        self.magnetic_unit = YTQuantity(b_factor, "gauss")
+        self.length_unit = YTQuantity(length_factor, "cm")
+        self.mass_unit = YTQuantity(1.0, "g")
+        self.time_unit = YTQuantity(1.0, "s")
+        self.velocity_unit = YTQuantity(1.0, "cm/s")
+        self.temperature_unit = YTQuantity(temperature_factor, "K")
+        # Still need to deal with:
+        #self.conversion_factors['temp'] = (1.0 + self.current_redshift)**-2.0
 
-        for p, v in self._conversion_override.items():
-            self.conversion_factors[p] = v
-
-    def _setup_comoving_units(self):
-        self.conversion_factors['dens'] = (1.0 + self.current_redshift)**3.0
-        self.conversion_factors['pres'] = (1.0 + self.current_redshift)**1.0
-        self.conversion_factors['eint'] = (1.0 + self.current_redshift)**-2.0
-        self.conversion_factors['ener'] = (1.0 + self.current_redshift)**-2.0
-        self.conversion_factors['temp'] = (1.0 + self.current_redshift)**-2.0
-        self.conversion_factors['velx'] = (1.0 + self.current_redshift)**-1.0
-        self.conversion_factors['vely'] = self.conversion_factors['velx']
-        self.conversion_factors['velz'] = self.conversion_factors['velx']
-        self.conversion_factors['particle_velx'] = (1.0 + self.current_redshift)**-1.0
-        self.conversion_factors['particle_vely'] = \
-            self.conversion_factors['particle_velx']
-        self.conversion_factors['particle_velz'] = \
-            self.conversion_factors['particle_velx']
-        if not self.has_key("TimeUnits"):
-            mylog.warning("No time units.  Setting 1.0 = 1 second.")
-            self.conversion_factors["Time"] = 1.0
-        for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
-            self.units[unit+"cm"] = self.units[unit]
-            self.units[unit] /= (1.0+self.current_redshift)
-            
-    def _setup_cgs_units(self):
-        self.conversion_factors['dens'] = 1.0
-        self.conversion_factors['pres'] = 1.0
-        self.conversion_factors['eint'] = 1.0
-        self.conversion_factors['ener'] = 1.0
-        self.conversion_factors['temp'] = 1.0
-        self.conversion_factors['velx'] = 1.0
-        self.conversion_factors['vely'] = 1.0
-        self.conversion_factors['velz'] = 1.0
-        self.conversion_factors['particle_velx'] = 1.0
-        self.conversion_factors['particle_vely'] = 1.0
-        self.conversion_factors['particle_velz'] = 1.0
-        self.conversion_factors["Time"] = 1.0
-        for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
-
-    def _setup_nounits_units(self):
-        self.conversion_factors['dens'] = 1.0
-        self.conversion_factors['pres'] = 1.0
-        self.conversion_factors['eint'] = 1.0
-        self.conversion_factors['ener'] = 1.0
-        self.conversion_factors['temp'] = 1.0
-        self.conversion_factors['velx'] = 1.0
-        self.conversion_factors['vely'] = 1.0
-        self.conversion_factors['velz'] = 1.0
-        self.conversion_factors['particle_velx'] = 1.0
-        self.conversion_factors['particle_vely'] = 1.0
-        self.conversion_factors['particle_velz'] = 1.0
-        mylog.warning("Setting 1.0 in code units to be 1.0 cm")
-        if not self.has_key("TimeUnits"):
-            mylog.warning("No time units.  Setting 1.0 = 1 second.")
-            self.conversion_factors["Time"] = 1.0
-        for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
+    def set_code_units(self):
+        super(FLASHDataset, self).set_code_units()
+        from yt.units.dimensions import dimensionless
+        self.unit_registry.modify("code_temperature",
+            self.temperature_unit.value)
 
     def _find_parameter(self, ptype, pname, scalar = False):
         nn = "/%s %s" % (ptype,
@@ -419,7 +361,7 @@ class FLASHStaticOutput(StaticOutput):
 
         # Try to determine Gamma
         try:
-            self.parameters["Gamma"] = self.parameters["gamma"]
+            self.gamma = self.parameters["gamma"]
         except:
             mylog.warning("Cannot find Gamma")
             pass

@@ -22,15 +22,17 @@ import numpy as np
 from yt.utilities.io_handler import \
     BaseIOHandler, _axis_ids
 from yt.utilities.logger import ytLogger as mylog
+from yt.units.yt_array import YTArray
 from yt.utilities.lib.geometry_utils import compute_morton
 from yt.utilities.exceptions import *
 
 class IOHandlerStream(BaseIOHandler):
 
-    _data_style = "stream"
+    _dataset_type = "stream"
 
     def __init__(self, pf):
         self.fields = pf.stream_handler.fields
+        self.field_units = pf.stream_handler.field_units
         super(IOHandlerStream, self).__init__(pf)
 
     def _read_data_set(self, grid, field):
@@ -50,8 +52,7 @@ class IOHandlerStream(BaseIOHandler):
             raise NotImplementedError
         rv = {}
         for field in fields:
-            ftype, fname = field
-            rv[field] = np.empty(size, dtype="float64")
+            rv[field] = self.pf.arr(np.empty(size, dtype="float64"))
         ng = sum(len(c.objs) for c in chunks)
         mylog.debug("Reading %s cells of %s fields in %s blocks",
                     size, [f2 for f1, f2 in fields], ng)
@@ -60,7 +61,7 @@ class IOHandlerStream(BaseIOHandler):
             ind = 0
             for chunk in chunks:
                 for g in chunk.objs:
-                    ds = self.fields[g.id][field]
+                    ds = self.fields[g.id][ftype, fname]
                     ind += g.select(selector, ds, rv[field], ind) # caches
         return rv
 
@@ -96,7 +97,7 @@ class IOHandlerStream(BaseIOHandler):
 
 class StreamParticleIOHandler(BaseIOHandler):
 
-    _data_style = "stream_particles"
+    _dataset_type = "stream_particles"
 
     def __init__(self, pf):
         self.fields = pf.stream_handler.fields
@@ -132,7 +133,6 @@ class StreamParticleIOHandler(BaseIOHandler):
                     data = f[ptype, field][mask]
                     yield (ptype, field), data
 
-
     def _initialize_index(self, data_file, regions):
         # self.fields[g.id][fname] is the pattern here
         pos = np.column_stack(self.fields[data_file.filename][
@@ -155,10 +155,10 @@ class StreamParticleIOHandler(BaseIOHandler):
         return {'io': npart}
 
     def _identify_fields(self, data_file):
-        return self.fields[data_file.filename].keys()
+        return self.fields[data_file.filename].keys(), {}
 
 class IOHandlerStreamHexahedral(BaseIOHandler):
-    _data_style = "stream_hexahedral"
+    _dataset_type = "stream_hexahedral"
 
     def __init__(self, pf):
         self.fields = pf.stream_handler.fields
@@ -187,7 +187,7 @@ class IOHandlerStreamHexahedral(BaseIOHandler):
         return rv
 
 class IOHandlerStreamOctree(BaseIOHandler):
-    _data_style = "stream_octree"
+    _dataset_type = "stream_octree"
 
     def __init__(self, pf):
         self.fields = pf.stream_handler.fields

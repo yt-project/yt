@@ -19,9 +19,10 @@ from yt.utilities.answer_testing.framework import \
     small_patch_amr, \
     big_patch_amr, \
     data_dir_load
-from yt.frontends.enzo.api import EnzoStaticOutput
+from yt.frontends.enzo.api import EnzoDataset
 
-_fields = ("Temperature", "Density", "VelocityMagnitude", "DivV")
+_fields = ("temperature", "density", "velocity_magnitude",
+           "velocity_divergence")
 
 m7 = "DD0010/moving7_0010"
 @requires_pf(m7)

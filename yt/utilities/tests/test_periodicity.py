@@ -47,7 +47,7 @@ def test_periodicity():
     yield assert_almost_equal, dist.max(), 1.54531407988
 
     # Then grid-like data
-    data = pf.h.grids[0]
+    data = pf.index.grids[0]
     positions = np.array([data[ax] for ax in 'xyz'])
     c = [0.1, 0.1, 0.1]
     n_tup = tuple([1 for i in range(positions.ndim-1)])

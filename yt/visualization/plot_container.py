@@ -11,16 +11,15 @@ from .tick_locators import LogLocator, LinearLocator
 from .color_maps import yt_colormaps, is_colormap
 from .plot_modifications import \
     callback_registry
-from .plot_window import \
-    CallbackWrapper
 from .base_plot_types import CallbackWrapper
 
 from yt.funcs import \
-    defaultdict, get_image_suffix, get_ipython_api_version
+    defaultdict, get_image_suffix, \
+    get_ipython_api_version
 from yt.utilities.definitions import axis_names
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
-
+from ._mpl_imports import FigureCanvasAgg
 
 def invalidate_data(f):
     @wraps(f)
@@ -40,7 +39,7 @@ def invalidate_figure(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
         rv = f(*args, **kwargs)
-        for field in args[0].fields:
+        for field in args[0].plots.keys():
             args[0].plots[field].figure = None
             args[0].plots[field].axes = None
             args[0].plots[field].cax = None
@@ -89,6 +88,18 @@ class FieldTransform(object):
 log_transform = FieldTransform('log10', np.log10, LogLocator())
 linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
 
+class PlotDictionary(dict):
+    def __getitem__(self, item):
+        item = self.data_source._determine_fields(item)[0]
+        return dict.__getitem__(self, item)
+
+    def __contains__(self, item):
+        item = self.data_source._determine_fields(item)[0]
+        return dict.__contains__(self, item)
+
+    def __init__(self, data_source, *args):
+        self.data_source = data_source
+        return dict.__init__(self, args)
 
 class ImagePlotContainer(object):
     """A countainer for plots with colorbars.
@@ -98,10 +109,10 @@ class ImagePlotContainer(object):
     _plot_valid = False
     _colorbar_valid = False
 
-    def __init__(self, data_source, fields, figure_size, fontsize):
+    def __init__(self, data_source, figure_size, fontsize):
         self.data_source = data_source
-        self.figure_size = figure_size
-        self.plots = {}
+        self.figure_size = float(figure_size)
+        self.plots = PlotDictionary(data_source)
         self._callbacks = []
         self._field_transform = {}
         self._colormaps = defaultdict(lambda: 'algae')
@@ -125,7 +136,7 @@ class ImagePlotContainer(object):
             fields = self.plots.keys()
         else:
             fields = [field]
-        for field in self._field_check(fields):
+        for field in self.data_source._determine_fields(fields):
             if log:
                 self._field_transform[field] = log_transform
             else:
@@ -146,7 +157,7 @@ class ImagePlotContainer(object):
             fields = self.plots.keys()
         else:
             fields = [field]
-        for field in self._field_check(fields):
+        for field in self.data_source._determine_fields(fields):
             if self._field_transform[field] == log_transform:
                 log[field] = True
             else:
@@ -155,7 +166,7 @@ class ImagePlotContainer(object):
 
     @invalidate_plot
     def set_transform(self, field, name):
-        field = self._field_check(field)
+        field = self.data_source._determine_fields(field)[0]
         if name not in field_transforms: 
             raise KeyError(name)
         self._field_transform[field] = field_transforms[name]
@@ -179,7 +190,7 @@ class ImagePlotContainer(object):
             fields = self.plots.keys()
         else:
             fields = [field]
-        for field in self._field_check(fields):
+        for field in self.data_source._determine_fields(fields):
             self._colorbar_valid = False
             self._colormaps[field] = cmap_name
         return self
@@ -214,7 +225,7 @@ class ImagePlotContainer(object):
             fields = self.plots.keys()
         else:
             fields = [field]
-        for field in self._field_check(fields):
+        for field in self.data_source._determine_fields(fields):
             myzmin = zmin
             myzmax = zmax
             if zmin == 'min':
@@ -243,7 +254,7 @@ class ImagePlotContainer(object):
         ds = self.data_source
         name = ds._type_name
         kwargs = dict((n, getattr(ds, n)) for n in ds._con_args)
-        new_ds = getattr(new_pf.h, name)(**kwargs)
+        new_ds = getattr(new_pf, name)(**kwargs)
         self.pf = new_pf
         self.data_source = new_ds
         self._data_valid = self._plot_valid = False
@@ -252,10 +263,6 @@ class ImagePlotContainer(object):
 
     def __getitem__(self, item):
         return self.plots[item]
-
-    @property
-    def fields(self):
-        return self._frb.data.keys() + self.override_fields
 
     def run_callbacks(self, f):
         keys = self._frb.keys()
@@ -316,9 +323,27 @@ class ImagePlotContainer(object):
             font_dict = {}
         if 'color' in font_dict:
             self._font_color = font_dict.pop('color')
+        # Set default values if the user does not explicitly set them.
+        # this prevents reverting to the matplotlib defaults.
+        font_dict.setdefault('family', 'stixgeneral')
+        font_dict.setdefault('size', 18)
         self._font_properties = \
             FontProperties(**font_dict)
         return self
+
+    def set_font_size(self, size):
+        """Set the size of the font used in the plot
+
+        This sets the font size by calling the set_font function.  See set_font
+        for more font customization options.
+
+        Parameters
+        ----------
+        size : float
+        The absolute size of the font in points (1 pt = 1/72 inch).
+
+        """
+        return self.set_font({'size': size})
 
     @invalidate_plot
     def set_cmap(self, field, cmap):
@@ -338,7 +363,7 @@ class ImagePlotContainer(object):
         else:
             fields = [field]
 
-        for field in self._field_check(fields):
+        for field in self.data_source._determine_fields(fields):
             self._colorbar_valid = False
             self._colormaps[field] = cmap
             if isinstance(cmap, types.StringTypes):
@@ -362,7 +387,7 @@ class ImagePlotContainer(object):
             The size of the figure on the longest axis (in units of inches),
             including the margins but not the colorbar.
         """
-        self.figure_size = size
+        self.figure_size = float(size)
         return self
 
     def save(self, name=None, mpl_kwargs=None):
@@ -480,11 +505,3 @@ class ImagePlotContainer(object):
             img = base64.b64encode(self.plots[field]._repr_png_())
             ret += '<img src="data:image/png;base64,%s"><br>' % img
         return ret
-
-    def _field_check(self, field):
-        field = self.data_source._determine_fields(field)
-        if isinstance(field, (list, tuple)):
-            return field
-        else:
-            return field[0]
-

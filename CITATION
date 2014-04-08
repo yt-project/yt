@@ -29,3 +29,28 @@ archivePrefix = "arXiv",
    adsurl = {http://adsabs.harvard.edu/abs/2011ApJS..192....9T},
   adsnote = {Provided by the SAO/NASA Astrophysics Data System}
 }
+
+Using yt can also utilize other functionality.  If you utilize ORIGAMI, we ask
+that you please cite the ORIGAMI paper:
+
+@ARTICLE{2012ApJ...754..126F,
+   author = {{Falck}, B.~L. and {Neyrinck}, M.~C. and {Szalay}, A.~S.},
+    title = "{ORIGAMI: Delineating Halos Using Phase-space Folds}",
+  journal = {\apj},
+archivePrefix = "arXiv",
+   eprint = {1201.2353},
+ primaryClass = "astro-ph.CO",
+ keywords = {dark matter, galaxies: halos, large-scale structure of universe, methods: numerical},
+     year = 2012,
+    month = aug,
+   volume = 754,
+      eid = {126},
+    pages = {126},
+      doi = {10.1088/0004-637X/754/2/126},
+   adsurl = {http://adsabs.harvard.edu/abs/2012ApJ...754..126F},
+  adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+}
+
+The main homepage for ORIGAMI can be found here:
+
+http://icg.port.ac.uk/~falckb/origami.html

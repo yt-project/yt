@@ -41,12 +41,12 @@ def test_write_projection():
     norm = [0.5, 0.5, 0.5]
     W = [0.5,0.5,1.0]
     N = 64
-    field = "Density"
+    field = "density"
     oap_args = [test_pf, c, norm, W, N, field]
 
     # kwargs for off_axis_projection
     oap_kwargs = {}
-    oap_kwargs['weight'] = (None, 'CellMassMsun')
+    oap_kwargs['weight'] = (None, 'cell_mass')
     oap_kwargs['no_ghost'] = (True, False)
     oap_kwargs['interpolated'] = (True, False)
     oap_kwargs['north_vector'] = ((1,0,0), (0,0.5,1.0))

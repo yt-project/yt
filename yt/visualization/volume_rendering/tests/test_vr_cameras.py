@@ -20,9 +20,9 @@ import shutil
 from yt.testing import \
     fake_random_pf
 import numpy as np
-from yt.mods import ColorTransferFunction, ProjectionTransferFunction
 from yt.visualization.volume_rendering.api import \
-    PerspectiveCamera, StereoPairCamera, InteractiveCamera, ProjectionCamera
+    PerspectiveCamera, StereoPairCamera, InteractiveCamera, ProjectionCamera, \
+    ColorTransferFunction, ProjectionTransferFunction
 from yt.visualization.tests.test_plotwindow import assert_fname
 from unittest import TestCase
 
@@ -51,7 +51,7 @@ class CameraTest(TestCase):
         self.L = np.array([0.5, 0.5, 0.5])
         self.W = 1.5*self.pf.domain_width
         self.N = 64
-        self.field = "Density"
+        self.field = "density"
 
     def tearDown(self):
         if use_tmpdir:
@@ -61,8 +61,9 @@ class CameraTest(TestCase):
     def setup_transfer_function(self, camera_type):
         if camera_type in ['perspective', 'camera',
                            'stereopair', 'interactive']:
-            mi, ma = self.pf.h.all_data().quantities['Extrema']('Density')[0]
-            tf = ColorTransferFunction((mi-1., ma+1.), grey_opacity=True)
+            mi, ma = self.pf.h.all_data().quantities['Extrema']("density")
+            tf = ColorTransferFunction((mi, ma),
+                                       grey_opacity=True)
             tf.map_to_colormap(mi, ma, scale=10., colormap='RdBu_r')
             return tf
         elif camera_type in ['healpix']:
@@ -71,19 +72,18 @@ class CameraTest(TestCase):
             pass
 
     def test_camera(self):
-        pf = self.pf
         tf = self.setup_transfer_function('camera')
         cam = self.pf.h.camera(self.c, self.L, self.W, self.N,
-                               transfer_function=tf)
+                               transfer_function=tf, log_fields=[False])
         cam.snapshot('camera.png')
         assert_fname('camera.png')
 
     def test_data_source_camera(self):
         pf = self.pf
         tf = self.setup_transfer_function('camera')
-        data_source = pf.h.sphere(pf.domain_center, pf.domain_width[0]*0.5)
+        data_source = pf.sphere(pf.domain_center, pf.domain_width[0]*0.5)
 
-        cam = pf.h.camera(self.c, self.L, self.W, self.N,
+        cam = pf.h.camera(self.c, self.L, self.W, self.N, log_fields=[False],
                           transfer_function=tf, data_source=data_source)
         cam.snapshot('data_source_camera.png')
         assert_fname('data_source_camera.png')
@@ -93,7 +93,7 @@ class CameraTest(TestCase):
         tf = self.setup_transfer_function('camera')
 
         cam = PerspectiveCamera(self.c, self.L, self.W, self.N, pf=pf,
-                                transfer_function=tf)
+                                transfer_function=tf, log_fields=[False])
         cam.snapshot('perspective.png')
         assert_fname('perspective.png')
 
@@ -102,14 +102,15 @@ class CameraTest(TestCase):
         tf = self.setup_transfer_function('camera')
 
         cam = InteractiveCamera(self.c, self.L, self.W, self.N, pf=pf,
-                                transfer_function=tf)
+                                transfer_function=tf, log_fields=[False])
+        del cam
         # Can't take a snapshot here since IC uses pylab.'
 
     def test_projection_camera(self):
         pf = self.pf
 
         cam = ProjectionCamera(self.c, self.L, self.W, self.N, pf=pf,
-                               field='Density')
+                               field="density")
         cam.snapshot('projection.png')
         assert_fname('projection.png')
 
@@ -117,7 +118,8 @@ class CameraTest(TestCase):
         pf = self.pf
         tf = self.setup_transfer_function('camera')
 
-        cam = pf.h.camera(self.c, self.L, self.W, self.N, transfer_function=tf)
+        cam = pf.h.camera(self.c, self.L, self.W, self.N, transfer_function=tf,
+                          log_fields=[False])
         stereo_cam = StereoPairCamera(cam)
         # Take image
         cam1, cam2 = stereo_cam.split()
@@ -130,7 +132,8 @@ class CameraTest(TestCase):
         pf = self.pf
         tf = self.setup_transfer_function('camera')
 
-        cam = pf.h.camera(self.c, self.L, self.W, self.N, transfer_function=tf)
+        cam = pf.h.camera(self.c, self.L, self.W, self.N, transfer_function=tf,
+                          log_fields=[False], north_vector=[0., 0., 1.0])
         cam.zoom(0.5)
         for snap in cam.zoomin(2.0, 3):
             snap

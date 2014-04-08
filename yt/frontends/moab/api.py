@@ -16,13 +16,12 @@ API for yt.frontends.moab
 from .data_structures import \
       MoabHex8Mesh, \
       MoabHex8Hierarchy, \
-      MoabHex8StaticOutput, \
-      PyneMoabHex8StaticOutput
+      MoabHex8Dataset, \
+      PyneMoabHex8Dataset
 
 from .fields import \
       MoabFieldInfo, \
-      KnownMoabFields, \
-      add_moab_field
+      PyneFieldInfo
 
 from .io import \
       IOHandlerMoabH5MHex8

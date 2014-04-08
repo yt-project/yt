@@ -25,28 +25,27 @@ from stat import ST_CTIME
 import numpy as np
 
 from yt.funcs import *
-from yt.data_objects.field_info_container import FieldInfoContainer, NullFunc
 from yt.data_objects.grid_patch import AMRGridPatch
-from yt.geometry.grid_geometry_handler import GridGeometryHandler
-from yt.data_objects.static_output import StaticOutput
+from yt.geometry.grid_geometry_handler import GridIndex
+from yt.data_objects.static_output import Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
-from yt.utilities.lib import \
+from yt.units.yt_array import \
+    YTArray, \
+    YTQuantity
+from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.geometry.selection_routines import \
     RegionSelector
 from yt.utilities.io_handler import \
     io_registry
+from yt.utilities.physical_constants import \
+    cm_per_mpc
 
-from .definitions import \
-    orion2enzoDict, \
-    parameterDict
 from .fields import \
-    OrionFieldInfo, \
-    add_orion_field, \
-    KnownOrionFields
+    BoxlibFieldInfo
 from .io import IOHandlerBoxlib
 # This is what we use to find scientific notation that might include d's
 # instead of e's.
@@ -75,8 +74,8 @@ class BoxlibGrid(AMRGridPatch):
     _offset = -1
 
     def __init__(self, grid_id, offset, filename = None,
-                 hierarchy = None):
-        super(BoxlibGrid, self).__init__(grid_id, filename, hierarchy)
+                 index = None):
+        super(BoxlibGrid, self).__init__(grid_id, filename, index)
         self._base_offset = offset
         self._parent_id = []
         self._children_ids = []
@@ -84,15 +83,14 @@ class BoxlibGrid(AMRGridPatch):
     def _prepare_grid(self):
         super(BoxlibGrid, self)._prepare_grid()
         my_ind = self.id - self._id_offset
-        self.start_index = self.hierarchy.grid_start_index[my_ind]
+        self.start_index = self.index.grid_start_index[my_ind]
 
     def get_global_startindex(self):
         return self.start_index
 
     def _setup_dx(self):
-        # has already been read in and stored in hierarchy
-        my_ind = self.id - self._id_offset
-        self.dds = self.hierarchy.level_dds[self.Level,:]
+        # has already been read in and stored in index
+        self.dds = self.index.pf.arr(self.index.level_dds[self.Level, :], 'code_length')
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     def __repr__(self):
@@ -102,12 +100,12 @@ class BoxlibGrid(AMRGridPatch):
     def Parent(self):
         if len(self._parent_id) == 0:
             return None
-        return [self.hierarchy.grids[pid - self._id_offset]
+        return [self.index.grids[pid - self._id_offset]
                 for pid in self._parent_id]
 
     @property
     def Children(self):
-        return [self.hierarchy.grids[cid - self._id_offset]
+        return [self.index.grids[cid - self._id_offset]
                 for cid in self._children_ids]
 
     def _seek(self, f):
@@ -142,19 +140,19 @@ class BoxlibGrid(AMRGridPatch):
              startIndex[1]:endIndex[1],
              startIndex[2]:endIndex[2]] = tofill
 
-class BoxlibHierarchy(GridGeometryHandler):
+class BoxlibHierarchy(GridIndex):
     grid = BoxlibGrid
-    def __init__(self, pf, data_style='boxlib_native'):
-        self.data_style = data_style
+    def __init__(self, pf, dataset_type='boxlib_native'):
+        self.dataset_type = dataset_type
         self.header_filename = os.path.join(pf.output_dir, 'Header')
         self.directory = pf.output_dir
 
-        GridGeometryHandler.__init__(self, pf, data_style)
+        GridIndex.__init__(self, pf, dataset_type)
         self._cache_endianness(self.grids[-1])
 
         #self._read_particles()
 
-    def _parse_hierarchy(self):
+    def _parse_index(self):
         """
         read the global header file for an Boxlib plotfile output.
         """
@@ -178,10 +176,20 @@ class BoxlibHierarchy(GridGeometryHandler):
             if self.dimensionality < 3:
                 dx[i].append(DRE[2] - DLE[1])
         self.level_dds = np.array(dx, dtype="float64")
+        header_file.next()
+        if self.pf.geometry == "cartesian":
+            default_ybounds = (0.0, 1.0)
+            default_zbounds = (0.0, 1.0)
+        elif self.pf.geometry == "cylindrical":
+            # Now we check for dimensionality issues
+            if self.dimensionality != 2:
+                raise RuntimeError("yt needs cylindrical to be 2D")
+            self.level_dds[:,2] = 2*np.pi
+            default_zbounds = (0.0, 2*np.pi)
+        else:
+            raise RuntimeError("yt only supports cartesian and cylindrical coordinates.")
         if int(header_file.next()) != 0:
-            raise RunTimeError("yt only supports cartesian coordinates.")
-        if int(header_file.next()) != 0:
-            raise RunTimeError("INTERNAL ERROR! This should be a zero.")
+            raise RuntimeError("INTERNAL ERROR! This should be a zero.")
 
         # each level is one group with ngrids on it. 
         # each grid has self.dimensionality number of lines of 2 reals 
@@ -197,11 +205,11 @@ class BoxlibHierarchy(GridGeometryHandler):
                 if self.dimensionality > 1:
                     ylo, yhi = [float(v) for v in header_file.next().split()]
                 else:
-                    ylo, yhi = 0.0, 1.0
+                    ylo, yhi = default_ybounds
                 if self.dimensionality > 2:
                     zlo, zhi = [float(v) for v in header_file.next().split()]
                 else:
-                    zlo, zhi = 0.0, 1.0
+                    zlo, zhi = default_zbounds
                 self.grid_left_edge[grid_counter + gi, :] = [xlo, ylo, zlo]
                 self.grid_right_edge[grid_counter + gi, :] = [xhi, yhi, zhi]
             # Now we get to the level header filename, which we open and parse.
@@ -338,31 +346,26 @@ class BoxlibHierarchy(GridGeometryHandler):
         self._data_mode = None
         self._max_locations = {}
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         # This is all done in _parse_header_file
-        self.field_list = self.parameter_file._field_list[:]
-        self.field_indexes = dict((f, i)
+        self.field_list = [("boxlib", f) for f in
+                           self.parameter_file._field_list]
+        self.field_indexes = dict((f[1], i)
                                 for i, f in enumerate(self.field_list))
         # There are times when field_list may change.  We copy it here to
         # avoid that possibility.
         self.field_order = [f for f in self.field_list]
 
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        GridGeometryHandler._setup_classes(self, dd)
-        self.object_types.sort()
-
     def _setup_data_io(self):
-        self.io = io_registry[self.data_style](self.parameter_file)
+        self.io = io_registry[self.dataset_type](self.parameter_file)
 
-class BoxlibStaticOutput(StaticOutput):
+class BoxlibDataset(Dataset):
     """
     This class is a stripped down class that simply reads and parses
-    *filename*, without looking at the Boxlib hierarchy.
+    *filename*, without looking at the Boxlib index.
     """
-    _hierarchy_class = BoxlibHierarchy
-    _fieldinfo_fallback = OrionFieldInfo
-    _fieldinfo_known = KnownOrionFields
+    _index_class = BoxlibHierarchy
+    _field_info_class = BoxlibFieldInfo
     _output_prefix = None
 
     # THIS SHOULD BE FIXED:
@@ -371,26 +374,29 @@ class BoxlibStaticOutput(StaticOutput):
     def __init__(self, output_dir,
                  cparam_filename = "inputs",
                  fparam_filename = "probin",
-                 data_style='boxlib_native',
+                 dataset_type='boxlib_native',
                  storage_filename = None):
         """
         The paramfile is usually called "inputs"
         and there may be a fortran inputs file usually called "probin"
         plotname here will be a directory name
-        as per BoxLib, data_style will be Native (implemented here), IEEE (not
+        as per BoxLib, dataset_type will be Native (implemented here), IEEE (not
         yet implemented) or ASCII (not yet implemented.)
         """
+        self.fluid_types += ("boxlib",)
         self.output_dir = os.path.abspath(os.path.expanduser(output_dir))
         self.cparam_filename = self._localize_check(cparam_filename)
         self.fparam_filename = self._localize_check(fparam_filename)
         self.storage_filename = storage_filename
 
-        StaticOutput.__init__(self, output_dir, data_style)
+        Dataset.__init__(self, output_dir, dataset_type)
 
         # These are still used in a few places.
         self.parameters["HydroMethod"] = 'boxlib'
         self.parameters["Time"] = 1. # default unit is 1...
         self.parameters["EOSType"] = -1 # default
+        self.parameters["gamma"] = self.parameters.get(
+            "materials.gamma", 1.6667)
 
     def _localize_check(self, fn):
         # If the file exists, use it.  If not, set it to None.
@@ -439,6 +445,7 @@ class BoxlibStaticOutput(StaticOutput):
             return
         for line in (line.split("#")[0].strip() for line in
                      open(self.cparam_filename)):
+            if "=" not in line: continue
             if len(line) == 0: continue
             param, vals = [s.strip() for s in line.split("=")]
             if param == "amr.n_cell":
@@ -525,7 +532,7 @@ class BoxlibStaticOutput(StaticOutput):
 
         self.dimensionality = int(header_file.readline())
         self.current_time = float(header_file.readline())
-        # This is traditionally a hierarchy attribute, so we will set it, but
+        # This is traditionally a index attribute, so we will set it, but
         # in a slightly hidden variable.
         self._max_level = int(header_file.readline()) 
         self.domain_left_edge = np.array(header_file.readline().split(),
@@ -573,6 +580,18 @@ class BoxlibStaticOutput(StaticOutput):
         # Skip timesteps per level
         header_file.readline()
         self._header_mesh_start = header_file.tell()
+        header_file.next()
+        next_line = header_file.next()
+        if len(next_line.split()) == 1:
+            coordinate_type = int(next_line)
+        else:
+            coordinate_type = 0
+        if coordinate_type == 0:
+            self.geometry = "cartesian"
+        elif coordinate_type == 1:
+            self.geometry = "cylindrical"
+        else:
+            raise RuntimeError("yt does not yet support spherical geometry")
 
         # overrides for 1/2-dimensional data
         if self.dimensionality == 1: 
@@ -580,8 +599,14 @@ class BoxlibStaticOutput(StaticOutput):
         elif self.dimensionality == 2: 
             self._setup2d()
 
+    def _set_code_unit_attributes(self):
+        self.length_unit = YTQuantity(1.0, "cm")
+        self.mass_unit = YTQuantity(1.0, "g")
+        self.time_unit = YTQuantity(1.0, "s")
+        self.velocity_unit = YTQuantity(1.0, "cm/s")
+
     def _setup1d(self):
-#        self._hierarchy_class = BoxlibHierarchy1D
+#        self._index_class = BoxlibHierarchy1D
 #        self._fieldinfo_fallback = Orion1DFieldInfo
         self.domain_left_edge = \
             np.concatenate([self.domain_left_edge, [0.0, 0.0]])
@@ -595,12 +620,12 @@ class BoxlibStaticOutput(StaticOutput):
         self.periodicity = ensure_tuple(tmp)
         
     def _setup2d(self):
-#        self._hierarchy_class = BoxlibHierarchy2D
-#        self._fieldinfo_fallback = Orion2DFieldInfo
         self.domain_left_edge = \
             np.concatenate([self.domain_left_edge, [0.0]])
         self.domain_right_edge = \
             np.concatenate([self.domain_right_edge, [1.0]])
+        if self.geometry == "cylindrical":
+            self.domain_right_edge[2] = 2.0 * np.pi
         tmp = self.domain_dimensions.tolist()
         tmp.append(1)
         self.domain_dimensions = np.array(tmp)
@@ -608,29 +633,6 @@ class BoxlibStaticOutput(StaticOutput):
         tmp[2] = False
         self.periodicity = ensure_tuple(tmp)
 
-    def _set_units(self):
-        """
-        Generates the conversion to various physical _units based on the parameter file
-        """
-        self.units = {}
-        self.time_units = {}
-        self._setup_nounits_units()
-        self.conversion_factors = defaultdict(lambda: 1.0)
-        self.time_units['1'] = 1
-        self.units['1'] = 1.0
-        self.units['unitary'] = 1.0 / (self.domain_right_edge - self.domain_left_edge).max()
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = 1.0 / sec_conversion[unit]
-
-    def _setup_nounits_units(self):
-        z = 0
-        mylog.warning("Setting 1.0 in code units to be 1.0 cm")
-        if not self.has_key("TimeUnits"):
-            mylog.warning("No time units.  Setting 1.0 = 1 second.")
-            self.conversion_factors["Time"] = 1.0
-        for unit in mpc_conversion.keys():
-            self.units[unit] = mpc_conversion[unit] / mpc_conversion["cm"]
-            
     @parallel_root_only
     def print_key_parameters(self):
         for a in ["current_time", "domain_dimensions", "domain_left_edge",
@@ -647,8 +649,8 @@ class BoxlibStaticOutput(StaticOutput):
 
 class OrionHierarchy(BoxlibHierarchy):
     
-    def __init__(self, pf, data_style='orion_native'):
-        BoxlibHierarchy.__init__(self, pf, data_style)
+    def __init__(self, pf, dataset_type='orion_native'):
+        BoxlibHierarchy.__init__(self, pf, dataset_type)
         self._read_particles()
         #self.io = IOHandlerOrion
 
@@ -698,18 +700,18 @@ class OrionHierarchy(BoxlibHierarchy):
                     self.grids[ind].NumberOfParticles += 1
         return True
                 
-class OrionStaticOutput(BoxlibStaticOutput):
+class OrionDataset(BoxlibDataset):
 
-    _hierarchy_class = OrionHierarchy
+    _index_class = OrionHierarchy
 
     def __init__(self, output_dir,
                  cparam_filename = "inputs",
                  fparam_filename = "probin",
-                 data_style='orion_native',
+                 dataset_type='orion_native',
                  storage_filename = None):
 
-        BoxlibStaticOutput.__init__(self, output_dir,
-                 cparam_filename, fparam_filename, data_style)
+        BoxlibDataset.__init__(self, output_dir,
+                 cparam_filename, fparam_filename, dataset_type)
           
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -737,7 +739,7 @@ class OrionStaticOutput(BoxlibStaticOutput):
         if any(("geometry.prob_lo" in line for line in lines)): return True
         return False
 
-class CastroStaticOutput(BoxlibStaticOutput):
+class CastroDataset(BoxlibDataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -755,7 +757,7 @@ class CastroStaticOutput(BoxlibStaticOutput):
         if any(line.startswith("Castro   ") for line in lines): return True
         return False
 
-class MaestroStaticOutput(BoxlibStaticOutput):
+class MaestroDataset(BoxlibDataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -776,8 +778,8 @@ class MaestroStaticOutput(BoxlibStaticOutput):
 
 class NyxHierarchy(BoxlibHierarchy):
 
-    def __init__(self, pf, data_style='nyx_native'):
-        super(NyxHierarchy, self).__init__(pf, data_style)
+    def __init__(self, pf, dataset_type='nyx_native'):
+        super(NyxHierarchy, self).__init__(pf, dataset_type)
         self._read_particle_header()
 
     def _read_particle_header(self):
@@ -814,9 +816,9 @@ class NyxHierarchy(BoxlibHierarchy):
 
         self.grid_particle_count[:, 0] = grid_info[:, 1]
 
-class NyxStaticOutput(BoxlibStaticOutput):
+class NyxDataset(BoxlibDataset):
 
-    _hierarchy_class = NyxHierarchy
+    _index_class = NyxHierarchy
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -839,7 +841,7 @@ class NyxStaticOutput(BoxlibStaticOutput):
         return nyx
 
     def _parse_parameter_file(self):
-        super(NyxStaticOutput, self)._parse_parameter_file()
+        super(NyxDataset, self)._parse_parameter_file()
         #return
         # Nyx is always cosmological.
         self.cosmological_simulation = 1
@@ -863,24 +865,9 @@ class NyxStaticOutput(BoxlibStaticOutput):
             self.particle_types = ("io",)
             self.particle_types_raw = self.particle_types
 
-    def _set_units(self):
-        super(NyxStaticOutput, self)._set_units()
-        # Masses are always in $ M_{\odot} $
-        self.units["particle_mass"] = 1.989e33
-
-        mylog.warning("Length units: setting 1.0 = 1.0 Mpc.")
-        self.units.update(mpc_conversion)
-        self.units["density"] = self.units["particle_mass"]/(self.units["cm"])**3
-        self.units["particle_mass_density"] = self.units["density"]
-
-        mylog.warning("Time units: setting 1.0 = Mpc/km s ~ 10^12 yr .")
-        self.time_units["s"] = 1.0 / 3.08568025e19
-        self.conversion_factors["Time"] = 1.0 / 3.08568025e19
-
-        cf = 1e5 * (self.cosmological_scale_factor)
-        for ax in "xyz":
-            self.units["particle_velocity_%s" % ax] = cf
-
-        for unit in sec_conversion.keys():
-            self.time_units[unit] = self.time_units["s"] / sec_conversion[unit]
-
+    def _set_code_unit_attributes(self):
+        self.mass_unit = YTQuantity(1.0, "Msun")
+        self.time_unit = YTQuantity(1.0 / 3.08568025e19, "s")
+        self.length_unit = YTQuantity(1.0 / (1 + self.current_redshift),
+                                      "mpc")
+        self.velocity_unit = self.length_unit / self.time_unit

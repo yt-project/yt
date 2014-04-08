@@ -1,5 +1,7 @@
 import numpy as np
-from yt.testing import fake_random_pf, assert_equal, assert_array_less
+from yt.testing import \
+    fake_random_pf, assert_equal, assert_array_less, \
+    YTArray
 from yt.utilities.math_utils import periodic_dist
 
 
@@ -19,17 +21,16 @@ def test_sphere_selector():
                 [0.25, 0.75, 0.25] ]
 
     for center in spheres:
-        data = pf.h.sphere(center, 0.25)
-        data.get_data()
+        data = pf.sphere(center, 0.25)
         # WARNING: this value has not be externally verified
         dd = pf.h.all_data()
-        dd.set_field_parameter("center", center)
-        n_outside = (dd["RadiusCode"] >= 0.25).sum()
-        assert_equal(data.size + n_outside, dd.size)
+        dd.set_field_parameter("center", YTArray(center, 'code_length'))
+        n_outside = (dd["radius"] >= 0.25).sum()
+        assert_equal(data["radius"].size + n_outside, dd["radius"].size)
 
         positions = np.array([data[ax] for ax in 'xyz'])
-        centers = np.tile(data.center, 
-                          data.shape[0]).reshape(data.shape[0], 3).transpose()
+        centers = np.tile(data.center, data['x'].shape[0]).reshape(
+                          data['x'].shape[0], 3).transpose()
         dist = periodic_dist(positions, centers,
                              pf.domain_right_edge-pf.domain_left_edge,
                              pf.periodicity)
@@ -49,14 +50,14 @@ def test_ellipsoid_selector():
     # spherical ellipsoid tests
     ratios = 3*[0.25]
     for center in ellipsoids:
-        data = pf.h.ellipsoid(center, ratios[0], ratios[1], ratios[2], 
+        data = pf.ellipsoid(center, ratios[0], ratios[1], ratios[2], 
                               np.array([1., 0., 0.]), 0.)
         data.get_data()
 
         dd = pf.h.all_data()
-        dd.set_field_parameter("center", center)
-        n_outside = (dd["RadiusCode"] >= ratios[0]).sum()
-        assert_equal(data.size + n_outside, dd.size)
+        dd.set_field_parameter("center", YTArray(center, "code_length"))
+        n_outside = (dd["radius"] >= ratios[0]).sum()
+        assert_equal(data["radius"].size + n_outside, dd["radius"].size)
 
         positions = np.array([data[ax] for ax in 'xyz'])
         centers = np.tile(data.center, 
@@ -70,16 +71,15 @@ def test_ellipsoid_selector():
     # aligned ellipsoid tests
     ratios = [0.25, 0.1, 0.1]
     for center in ellipsoids: 
-        data = pf.h.ellipsoid(center, ratios[0], ratios[1], ratios[2], 
+        data = pf.ellipsoid(center, ratios[0], ratios[1], ratios[2], 
                               np.array([1., 0., 0.]), 0.)
-        data.get_data()
         
         # hack to compute elliptic distance
-        dist2 = np.zeros(data.shape[0])
+        dist2 = np.zeros(data["ones"].shape[0])
         for i,ax in enumerate('xyz'):
-            positions = np.zeros((3,data.shape[0]))
+            positions = np.zeros((3,data["ones"].shape[0]))
             positions[i,:] = data[ax]
-            centers = np.zeros((3,data.shape[0]))
+            centers = np.zeros((3,data["ones"].shape[0]))
             centers[i,:] = center[i]
             dist2 += (periodic_dist(positions, centers,
                                    pf.domain_right_edge-pf.domain_left_edge,
@@ -94,11 +94,12 @@ def test_slice_selector():
 
     for i,d in enumerate('xyz'):
         for coord in np.arange(0.0,1.0,0.1):
-            data = pf.h.slice(i, coord)
+            data = pf.slice(i, coord)
             data.get_data()
+            v = data[d].to_ndarray()
             yield assert_equal, data.shape[0], 64**2
-            yield assert_equal, data["Ones"].shape[0], 64**2
-            yield assert_array_less, np.abs(data[d] - coord), 1./128.+1e-6
+            yield assert_equal, data["ones"].shape[0], 64**2
+            yield assert_array_less, np.abs(v - coord), 1./128.+1e-6
 
 def test_cutting_plane_selector():
     # generate fake data with a number of non-cubical grids
@@ -114,9 +115,9 @@ def test_cutting_plane_selector():
             center = np.zeros(3)
             center[i] = coord
 
-            data = pf.h.slice(i, coord)
+            data = pf.slice(i, coord)
             data.get_data()
-            data2 = pf.h.cutting(norm, center)
+            data2 = pf.cutting(norm, center)
             data2.get_data()
 
             assert(data.shape[0] == data2.shape[0])

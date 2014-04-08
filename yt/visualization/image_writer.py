@@ -17,9 +17,8 @@ import os
 import numpy as np
 
 from yt.funcs import *
-from yt.utilities.exceptions import YTNotInsideNotebook
 import _colormap_data as cmd
-import yt.utilities.lib as au
+import yt.utilities.lib.image_utilities as au
 import yt.utilities.png_writer as pw
 import __builtin__
 
@@ -188,7 +187,7 @@ def write_image(image, filename, color_bounds = None, cmap_name = "algae", func 
     Examples
     --------
 
-    >>> sl = pf.h.slice(0, 0.5, "Density")
+    >>> sl = pf.slice(0, 0.5, "Density")
     >>> frb1 = FixedResolutionBuffer(sl, (0.2, 0.3, 0.4, 0.5),
                     (1024, 1024))
     >>> write_image(frb1["Density"], "saved.png")
@@ -345,7 +344,7 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     fig = matplotlib.figure.Figure(figsize=figsize)
     ax = fig.add_subplot(111)
     
-    cax = ax.imshow(data, vmin=limits[0], vmax=limits[1], norm=norm,
+    cax = ax.imshow(data.to_ndarray(), vmin=limits[0], vmax=limits[1], norm=norm,
                     extent=extent, cmap=cmap_name)
     
     if title:

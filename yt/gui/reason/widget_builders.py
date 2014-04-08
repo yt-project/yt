@@ -41,7 +41,7 @@ class RenderingScene(object):
 
     def _new_tf(self, pf, mi=None, ma=None, nbins=1024):
         if mi is None or ma is None:
-            roi = self.pf.h.region(self.center, self.center-self.width, self.center+self.width)
+            roi = self.pf.region(self.center, self.center-self.width, self.center+self.width)
             self.mi, self.ma = roi.quantities['Extrema'](self.fields[0])[0]
             if self.log_fields[0]:
                 self.mi, self.ma = np.log10(self.mi), np.log10(self.ma)
@@ -68,8 +68,8 @@ class RenderingScene(object):
 def get_corners(pf, max_level=None):
     DL = pf.domain_left_edge[None,:,None]
     DW = pf.domain_width[None,:,None]/100.0
-    corners = ((pf.h.grid_corners-DL)/DW)
-    levels = pf.h.grid_levels
+    corners = ((pf.grid_corners-DL)/DW)
+    levels = pf.grid_levels
     return corners, levels
 
 def get_isocontour(pf, field, value=None, rel_val = False):

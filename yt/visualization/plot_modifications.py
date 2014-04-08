@@ -14,6 +14,7 @@ Callbacks to add additional functionality on to plots.
 #-----------------------------------------------------------------------------
 
 import numpy as np
+import h5py
 
 from yt.funcs import *
 from _mpl_imports import *
@@ -26,7 +27,9 @@ from yt.utilities.physical_constants import \
     sec_per_Gyr, sec_per_Myr, \
     sec_per_kyr, sec_per_year, \
     sec_per_day, sec_per_hr
+from yt.units.yt_array import YTQuantity, YTArray
 from yt.visualization.image_writer import apply_colormap
+from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 
 import _MPL
 
@@ -51,30 +54,32 @@ class PlotCallback(object):
         # Convert the data and plot limits to tiled numpy arrays so that
         # convert_to_plot is automatically vectorized.
 
-        x0 = np.tile(plot.xlim[0],ncoord)
-        x1 = np.tile(plot.xlim[1],ncoord)
+        x0 = np.array(np.tile(plot.xlim[0],ncoord))
+        x1 = np.array(np.tile(plot.xlim[1],ncoord))
         xx0 = np.tile(plot._axes.get_xlim()[0],ncoord)
         xx1 = np.tile(plot._axes.get_xlim()[1],ncoord)
-        
-        y0 = np.tile(plot.ylim[0],ncoord)
-        y1 = np.tile(plot.ylim[1],ncoord)
+
+        y0 = np.array(np.tile(plot.ylim[0],ncoord))
+        y1 = np.array(np.tile(plot.ylim[1],ncoord))
         yy0 = np.tile(plot._axes.get_ylim()[0],ncoord)
         yy1 = np.tile(plot._axes.get_ylim()[1],ncoord)
-        
+
+        ccoord = np.array(coord)
+
         # We need a special case for when we are only given one coordinate.
-        if np.array(coord).shape == (2,):
-            return ((coord[0]-x0)/(x1-x0)*(xx1-xx0) + xx0,
-                    (coord[1]-y0)/(y1-y0)*(yy1-yy0) + yy0)
+        if ccoord.shape == (2,):
+            return ((ccoord[0]-x0)/(x1-x0)*(xx1-xx0) + xx0,
+                    (ccoord[1]-y0)/(y1-y0)*(yy1-yy0) + yy0)
         else:
-            return ((coord[0][:]-x0)/(x1-x0)*(xx1-xx0) + xx0,
-                    (coord[1][:]-y0)/(y1-y0)*(yy1-yy0) + yy0)
+            return ((ccoord[0][:]-x0)/(x1-x0)*(xx1-xx0) + xx0,
+                    (ccoord[1][:]-y0)/(y1-y0)*(yy1-yy0) + yy0)
 
     def pixel_scale(self,plot):
-        x0, x1 = plot.xlim
+        x0, x1 = np.array(plot.xlim)
         xx0, xx1 = plot._axes.get_xlim()
         dx = (xx1 - xx0)/(x1 - x0)
-        
-        y0, y1 = plot.ylim
+
+        y0, y1 = np.array(plot.ylim)
         yy0, yy1 = plot._axes.get_ylim()
         dy = (yy1 - yy0)/(y1 - y0)
 
@@ -106,18 +111,18 @@ class VelocityCallback(PlotCallback):
     def __call__(self, plot):
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
-            qcb = CuttingQuiverCallback("CuttingPlaneVelocityX",
-                                        "CuttingPlaneVelocityY",
+            qcb = CuttingQuiverCallback("cutting_plane_velocity_x",
+                                        "cutting_plane_velocity_y",
                                         self.factor)
         else:
-            xv = "%s-velocity" % (x_names[plot.data.axis])
-            yv = "%s-velocity" % (y_names[plot.data.axis])
+            xv = "velocity_%s" % (x_names[plot.data.axis])
+            yv = "velocity_%s" % (y_names[plot.data.axis])
 
             bv = plot.data.get_field_parameter("bulk_velocity")
             if bv is not None:
                 bv_x = bv[x_dict[plot.data.axis]]
                 bv_y = bv[y_dict[plot.data.axis]]
-            else: bv_x = bv_y = 0
+            else: bv_x = bv_y = YTQuantity(0, 'cm/s')
 
             qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, 
                                  scale_units=self.scale_units, 
@@ -147,12 +152,12 @@ class MagFieldCallback(PlotCallback):
     def __call__(self, plot):
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
-            qcb = CuttingQuiverCallback("CuttingPlaneBx",
-                                        "CuttingPlaneBy",
+            qcb = CuttingQuiverCallback("cutting_plane_bx",
+                                        "cutting_plane_by",
                                         self.factor)
         else:
-            xv = "B%s" % (x_names[plot.data.axis])
-            yv = "B%s" % (y_names[plot.data.axis])
+            xv = "magnetic_field_%s" % (x_names[plot.data.axis])
+            yv = "magnetic_field_%s" % (y_names[plot.data.axis])
             qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, scale_units=self.scale_units, normalize=self.normalize)
         return qcb(plot)
 
@@ -192,11 +197,19 @@ class QuiverCallback(PlotCallback):
         period_x = pf.domain_width[x_dict[ax]]
         period_y = pf.domain_width[y_dict[ax]]
         periodic = int(any(pf.periodicity))
+        fv_x = plot.data[self.field_x]
+        if self.bv_x != 0.0:
+            # Workaround for 0.0 without units
+            fv_x -= self.bv_x
+        fv_y = plot.data[self.field_y]
+        if self.bv_y != 0.0:
+            # Workaround for 0.0 without units
+            fv_y -= self.bv_y
         pixX = _MPL.Pixelize(plot.data['px'],
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
-                             plot.data[self.field_x] - self.bv_x,
+                             fv_x,
                              int(nx), int(ny),
                              (x0, x1, y0, y1), 0, # bounds, antialias
                              (period_x, period_y), periodic,
@@ -205,7 +218,7 @@ class QuiverCallback(PlotCallback):
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
-                             plot.data[self.field_y] - self.bv_y,
+                             fv_y,
                              int(nx), int(ny),
                              (x0, x1, y0, y1), 0, # bounds, antialias
                              (period_x, period_y), periodic,
@@ -255,12 +268,14 @@ class ContourCallback(PlotCallback):
         self.data_source = data_source
 
     def __call__(self, plot):
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        
+        # These need to be in code_length
+        x0, x1 = (v.in_units("code_length") for v in plot.xlim)
+        y0, y1 = (v.in_units("code_length") for v in plot.ylim)
+
+        # These are in plot coordinates, which may not be code coordinates.
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        
+
         plot._axes.hold(True)
         
         numPoints_x = plot.image._A.shape[0]
@@ -304,8 +319,8 @@ class ContourCallback(PlotCallback):
                 wI = (AllX & AllY)
 
                 # This converts XShifted and YShifted into plot coordinates
-                x = (XShifted[wI]-x0)*dx + xx0
-                y = (YShifted[wI]-y0)*dy + yy0
+                x = ((XShifted[wI]-x0)*dx).ndarray_view() + xx0
+                y = ((YShifted[wI]-y0)*dy).ndarray_view() + yy0
                 z = data[self.field][wI]
         
             # Both the input and output from the triangulator are in plot
@@ -378,11 +393,13 @@ class GridBoundaryCallback(PlotCallback):
             pxs, pys = np.mgrid[0:0:1j,0:0:1j]
         GLE, GRE, levels = [], [], []
         for block, mask in plot.data.blocks:
-            GLE.append(block.LeftEdge)
-            GRE.append(block.RightEdge)
+            GLE.append(block.LeftEdge.in_units("code_length"))
+            GRE.append(block.RightEdge.in_units("code_length"))
             levels.append(block.Level)
-        GLE = np.array(GLE)
-        GRE = np.array(GRE)
+        if len(GLE) == 0: return
+        # Retain both units and registry
+        GLE = YTArray(GLE, input_units = GLE[0].units)
+        GRE = YTArray(GRE, input_units = GRE[0].units)
         levels = np.array(levels)
         min_level = self.min_level or 0
         max_level = self.max_level or levels.max()
@@ -390,10 +407,10 @@ class GridBoundaryCallback(PlotCallback):
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
             pxo = px_off * DW[px_index]
             pyo = py_off * DW[py_index]
-            left_edge_x = (GLE[:,px_index]+pxo-x0)*dx + xx0
-            left_edge_y = (GLE[:,py_index]+pyo-y0)*dy + yy0
-            right_edge_x = (GRE[:,px_index]+pxo-x0)*dx + xx0
-            right_edge_y = (GRE[:,py_index]+pyo-y0)*dy + yy0
+            left_edge_x = np.array((GLE[:,px_index]+pxo-x0)*dx) + xx0
+            left_edge_y = np.array((GLE[:,py_index]+pyo-y0)*dy) + yy0
+            right_edge_x = np.array((GRE[:,px_index]+pxo-x0)*dx) + xx0
+            right_edge_y = np.array((GRE[:,py_index]+pyo-y0)*dy) + yy0
             visible =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix ) & \
                        ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix ) & \
                        ( levels >= min_level) & \
@@ -421,7 +438,7 @@ class GridBoundaryCallback(PlotCallback):
             if self.draw_ids:
                 visible_ids =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix_ids ) & \
                                ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix_ids )
-                active_ids = np.unique(plot.data['GridIndices'])
+                active_ids = np.unique(plot.data['grid_indices'])
                 for i in np.where(visible_ids)[0]:
                     plot._axes.text(
                         left_edge_x[i] + (2 * (xx1 - xx0) / xpix),
@@ -444,7 +461,6 @@ class StreamlineCallback(PlotCallback):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
-        self.bv_x = self.bv_y = 0
         self.factor = factor
         self.dens = density
         if plot_args is None: plot_args = {}
@@ -462,14 +478,14 @@ class StreamlineCallback(PlotCallback):
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
-                             plot.data[self.field_x] - self.bv_x,
+                             plot.data[self.field_x],
                              int(nx), int(ny),
                              (x0, x1, y0, y1),).transpose()
         pixY = _MPL.Pixelize(plot.data['px'],
                              plot.data['py'],
                              plot.data['pdx'],
                              plot.data['pdy'],
-                             plot.data[self.field_y] - self.bv_y,
+                             plot.data[self.field_y],
                              int(nx), int(ny),
                              (x0, x1, y0, y1),).transpose()
         X,Y = (np.linspace(xx0,xx1,nx,endpoint=True),
@@ -499,11 +515,11 @@ class LabelCallback(PlotCallback):
 def get_smallest_appropriate_unit(v, pf):
     max_nu = 1e30
     good_u = None
-    for unit in ['mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
-        vv = v*pf[unit]
-        if vv < max_nu and vv > 1.0:
+    for unit in ['Mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
+        uq = YTQuantity(1.0, unit)
+        if uq < v:
             good_u = unit
-            max_nu = v*pf[unit]
+            break
     if good_u is None : good_u = 'cm'
     return good_u
 
@@ -735,6 +751,8 @@ class ArrowCallback(PlotCallback):
     _type_name = "arrow"
     def __init__(self, pos, code_size, plot_args = None):
         self.pos = pos
+        if isinstance(code_size, YTArray):
+            code_size = code_size.in_units('code_length')
         if not iterable(code_size):
             code_size = (code_size, code_size)
         self.code_size = code_size
@@ -746,6 +764,9 @@ class ArrowCallback(PlotCallback):
             pos = (self.pos[x_dict[plot.data.axis]],
                    self.pos[y_dict[plot.data.axis]])
         else: pos = self.pos
+        if isinstance(self.code_size[1], basestring):
+            code_size = plot.data.pf.quan(*self.code_size).value
+            self.code_size = (code_size, code_size)
         from matplotlib.patches import Arrow
         # Now convert the pixels to code information
         x, y = self.convert_to_plot(plot, pos)
@@ -831,7 +852,11 @@ class SphereCallback(PlotCallback):
 
     def __call__(self, plot):
         from matplotlib.patches import Circle
-        
+
+        if iterable(self.radius):
+            self.radius = plot.data.pf.quan(self.radius[0], self.radius[1])
+            self.radius = np.float64(self.radius)
+
         radius = self.radius * self.pixel_scale(plot)[0]
 
         if plot.data.axis == 4:
@@ -1062,9 +1087,9 @@ class ParticleCallback(PlotCallback):
     *width* along the line of sight.  *p_size* controls the number of
     pixels per particle, and *col* governs the color.  *ptype* will
     restrict plotted particles to only those that are of a given type.
-    *minimum_mass* will require that the particles be of a given mass,
-    calculated via ParticleMassMsun, to be plotted. *alpha* determines
-    each particle's opacity.
+    Particles with masses below *minimum_mass* will not be plotted.
+    *alpha* determines the opacity of the marker symbol used in the scatter
+    plot.
     """
     _type_name = "particles"
     region = None
@@ -1086,6 +1111,8 @@ class ParticleCallback(PlotCallback):
 
     def __call__(self, plot):
         data = plot.data
+        if iterable(self.width):
+            self.width = np.float64(plot.data.pf.quan(self.width[0], self.width[1]))
         # we construct a recantangular prism
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
@@ -1106,12 +1133,12 @@ class ParticleCallback(PlotCallback):
             gg &= (reg["creation_time"] <= 0.0)
             if gg.sum() == 0: return
         if self.minimum_mass is not None:
-            gg &= (reg["ParticleMassMsun"] >= self.minimum_mass)
+            gg &= (reg["particle_mass"] >= self.minimum_mass)
             if gg.sum() == 0: return
         plot._axes.hold(True)
         px, py = self.convert_to_plot(plot,
-                    [reg[field_x][gg][::self.stride],
-                     reg[field_y][gg][::self.stride]])
+                    [np.array(reg[field_x][gg][::self.stride]),
+                     np.array(reg[field_y][gg][::self.stride])])
         plot._axes.scatter(px, py, edgecolors='None', marker=self.marker,
                            s=self.p_size, c=self.color,alpha=self.alpha)
         plot._axes.set_xlim(xx0,xx1)
@@ -1126,13 +1153,13 @@ class ParticleCallback(PlotCallback):
         zax = axis
         LE[xax], RE[xax] = xlim
         LE[yax], RE[yax] = ylim
-        LE[zax] = data.center[zax] - self.width*0.5
-        RE[zax] = data.center[zax] + self.width*0.5
+        LE[zax] = data.center[zax].ndarray_view() - self.width*0.5
+        RE[zax] = data.center[zax].ndarray_view() + self.width*0.5
         if self.region is not None \
             and np.all(self.region.left_edge <= LE) \
             and np.all(self.region.right_edge >= RE):
             return self.region
-        self.region = data.pf.h.region(data.center, LE, RE)
+        self.region = data.pf.region(data.center, LE, RE)
         return self.region
 
 class TitleCallback(PlotCallback):
@@ -1300,7 +1327,7 @@ class MaterialBoundaryCallback(ContourCallback):
                                clim=(0.9, 1.0), **kwargs):
 
     Add the limiting contours of *field* to the plot.  Nominally, *field* is 
-    the target material but may be any other field present in the hierarchy.
+    the target material but may be any other field present in the index.
     The number of contours generated is given by *ncount*, *factor* governs 
     the number of points used in the interpolation, and *clim* gives the 
     (upper, lower) limits for contouring.  For this to truly be the boundary
@@ -1319,4 +1346,30 @@ class MaterialBoundaryCallback(ContourCallback):
 
     def __call__(self, plot):
         super(MaterialBoundaryCallback, self).__call__(plot)
+
+class TriangleFacetsCallback(PlotCallback):
+    """ 
+    annotate_triangle_facets(triangle_vertices, plot_args=None )
+
+    Intended for representing a slice of a triangular faceted 
+    geometry in a slice plot. 
+
+    Uses a set of *triangle_vertices* to find all trangles the plane of a 
+    SlicePlot intersects with. The lines between the intersection points 
+    of the triangles are then added to the plot to create an outline
+    of the geometry represented by the triangles. 
+    """
+    _type_name = "triangle_facets"
+    def __init__(self, triangle_vertices, plot_args=None):
+        super(TriangleFacetsCallback, self).__init__()
+        self.plot_args = {} if plot_args is None else plot_args
+        self.vertices = triangle_vertices
+
+    def __call__(self, plot):
+        plot._axes.hold(True)
+        xax, yax = x_dict[plot.data.axis], y_dict[plot.data.axis]
+        l_cy = triangle_plane_intersect(plot.data.axis, plot.data.coord, self.vertices)[:,:,(xax, yax)]
+        lc = matplotlib.collections.LineCollection(l_cy, **self.plot_args)
+        plot._axes.add_collection(lc)
+        plot._axes.hold(False)
 

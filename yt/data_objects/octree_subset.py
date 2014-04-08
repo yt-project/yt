@@ -20,7 +20,7 @@ from yt.data_objects.data_containers import \
     YTFieldData, \
     YTDataContainer, \
     YTSelectionContainer
-from .field_info_container import \
+from yt.fields.field_exceptions import \
     NeedsGridType, \
     NeedsOriginalGrid, \
     NeedsDataField, \
@@ -29,6 +29,9 @@ from .field_info_container import \
 import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
 from yt.funcs import *
+from yt.utilities.lib.geometry_utils import compute_morton
+from yt.geometry.particle_oct_container import \
+    ParticleOctreeContainer
 
 def cell_count_cache(func):
     def cc_cache_func(self, dobj):
@@ -46,18 +49,24 @@ class OctreeSubset(YTSelectionContainer):
     _type_name = 'octree_subset'
     _skip_add = True
     _con_args = ('base_region', 'domain', 'pf')
-    _container_fields = ("dx", "dy", "dz")
+    _container_fields = (("index", "dx"),
+                         ("index", "dy"),
+                         ("index", "dz"),
+                         ("index", "x"),
+                         ("index", "y"),
+                         ("index", "z"))
     _domain_offset = 0
     _cell_count = -1
 
     def __init__(self, base_region, domain, pf, over_refine_factor = 1):
         self._num_zones = 1 << (over_refine_factor)
+        self._oref = over_refine_factor
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.domain = domain
         self.domain_id = domain.domain_id
         self.pf = domain.pf
-        self.hierarchy = self.pf.hierarchy
+        self._index = self.pf.index
         self.oct_handler = domain.oct_handler
         self._last_mask = None
         self._last_selector_id = None
@@ -68,7 +77,8 @@ class OctreeSubset(YTSelectionContainer):
 
     def _generate_container_field(self, field):
         if self._current_chunk is None:
-            self.hierarchy._identify_base_chunk(self)
+            self.index._identify_base_chunk(self)
+        if isinstance(field, tuple): field = field[1]
         if field == "dx":
             return self._current_chunk.fwidth[:,0]
         elif field == "dy":
@@ -153,7 +163,8 @@ class OctreeSubset(YTSelectionContainer):
         op.initialize()
         mylog.debug("Depositing %s (%s^3) particles into %s Octs",
             positions.shape[0], positions.shape[0]**0.3333333, nvals[-1])
-        pos = np.array(positions, dtype="float64")
+        pos = np.asarray(positions.convert_to_units("code_length"),
+                         dtype="float64")
         # We should not need the following if we know in advance all our fields
         # need no casting.
         fields = [np.asarray(f, dtype="float64") for f in fields]
@@ -163,21 +174,43 @@ class OctreeSubset(YTSelectionContainer):
         if vals is None: return
         return np.asfortranarray(vals)
 
-    def smooth(self, positions, fields = None, method = None):
+    def smooth(self, positions, fields = None, index_fields = None,
+               method = None, create_octree = False, nneighbors = 64):
         # Here we perform our particle deposition.
+        positions.convert_to_units("code_length")
+        if create_octree:
+            morton = compute_morton(
+                positions[:,0], positions[:,1], positions[:,2],
+                self.pf.domain_left_edge,
+                self.pf.domain_right_edge)
+            morton.sort()
+            particle_octree = ParticleOctreeContainer([1, 1, 1],
+                self.pf.domain_left_edge,
+                self.pf.domain_right_edge,
+                over_refine = self._oref)
+            particle_octree.n_ref = nneighbors / 2
+            particle_octree.add(morton)
+            particle_octree.finalize()
+            pdom_ind = particle_octree.domain_ind(self.selector)
+        else:
+            particle_octree = self.oct_handler
+            pdom_ind = self.domain_ind
         if fields is None: fields = []
+        if index_fields is None: index_fields = []
         cls = getattr(particle_smooth, "%s_smooth" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
-        nvals = (nz, nz, nz, (self.domain_ind >= 0).sum())
-        if fields is None: fields = []
-        op = cls(nvals, len(fields), 64)
+        mdom_ind = self.domain_ind
+        nvals = (nz, nz, nz, (mdom_ind >= 0).sum())
+        op = cls(nvals, len(fields), nneighbors)
         op.initialize()
         mylog.debug("Smoothing %s particles into %s Octs",
             positions.shape[0], nvals[-1])
-        op.process_octree(self.oct_handler, self.domain_ind, positions, fields,
-            self.domain_id, self._domain_offset, self.pf.periodicity)
+        op.process_octree(self.oct_handler, mdom_ind, positions, 
+            self.fcoords, fields,
+            self.domain_id, self._domain_offset, self.pf.periodicity,
+            index_fields, particle_octree, pdom_ind)
         vals = op.finalize()
         if vals is None: return
         if isinstance(vals, list):
@@ -235,12 +268,13 @@ class ParticleOctreeSubset(OctreeSubset):
                  over_refine_factor = 1):
         # The first attempt at this will not work in parallel.
         self._num_zones = 1 << (over_refine_factor)
+        self._oref = over_refine_factor
         self.data_files = data_files
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.pf = pf
-        self.hierarchy = self.pf.hierarchy
-        self.oct_handler = pf.h.oct_handler
+        self._index = self.pf.index
+        self.oct_handler = pf.index.oct_handler
         self.min_ind = min_ind
         if max_ind == 0: max_ind = (1 << 63)
         self.max_ind = max_ind

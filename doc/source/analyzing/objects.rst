@@ -1,0 +1,434 @@
+.. _using-objects:
+
+Using and Manipulating Objects and Fields
+=========================================
+
+To generate standard plots, objects rarely need to be directly constructed.
+However, for detailed data inspection as well as hand-crafted derived data,
+objects can be exceptionally useful and even necessary.
+
+.. _types_of_fields:
+
+What Types of Fields are There?
+-------------------------------
+
+``yt`` makes a distinction between two types of fields.
+
+ * Fields it might expect to find on disk
+ * Fields it has to generate in memory
+
+With the 2.3 release of ``yt``, the distinction between these has become more
+clear.  This enables much better specification of which fields are expected to
+exist, and to provide fallbacks for calculating them.  For instance you can now
+say, "temperature" might exist, but if it doesn't, here's how you calculate it.
+This also provides easier means of translating fields between different
+frontends.  For instance, FLASH may refer to the temperature field as "temp"
+while Enzo calls it "temperature".  Translator functions ensure that any
+derived field relying on "temp" or "temperature" works with both output types.
+
+When a field is requested, the parameter file first looks to see if that field
+exists on disk.  If it does not, it then queries the list of code-specific
+derived fields.  If it finds nothing there, it then defaults to examining the
+global set of derived fields.
+
+To add a field to the list of fields that you know should exist in a particular
+frontend, call the function ``add_frontend_field`` where you replace
+``frontend`` with the name of the frontend.  Below is an example for adding
+``Cooling_Time`` to Enzo:
+
+.. code-block:: python
+
+   add_enzo_field("Cooling_Time", units=r"\rm{s}",
+                  function=NullFunc,
+                  validators=ValidateDataField("Cooling_Time"))
+
+Note that we used the ``NullFunc`` function here.  To add a derived field,
+which is not expected to necessarily exist on disk, use the standard
+construction:
+
+.. code-block:: python
+
+   add_field("thermal_energy", function=_ThermalEnergy,
+             units=r"\rm{ergs}/\rm{g}")
+
+To add a translation from one field to another, use the ``TranslationFunc`` as
+the function for reading the field.  For instance, this code appears in the Nyx
+frontend:
+
+.. code-block:: python
+
+   add_field("density", function=TranslationFunc("density"), take_log=True,
+             units=r"\rm{g} / \rm{cm}^3",
+             projected_units =r"\rm{g} / \rm{cm}^2")
+
+.. _accessing-fields:
+
+Accessing Fields in Objects
+---------------------------
+
+``yt`` utilizes load-on-demand objects to represent physical regions in space.
+(see :ref:`how-yt-thinks-about-data`.)  Data objects in ``yt`` all respect the following
+protocol for accessing data:
+
+.. code-block:: python
+
+   my_object["density"]
+
+where ``"density"`` can be any field name and ``"my_object"`` any one of
+the possible data containers listed at :ref:`available-objects`. For
+example, if we wanted to look at the temperature of cells within a
+spherical region of radius 10 kpc, centered at [0.5, 0.5, 0.5] in our
+simulation box, we would create a sphere object with:
+
+.. code-block:: python
+
+   sp = pf.sphere([0.5, 0.5, 0.5], 10.0/pf['kpc'])
+
+and then look at the temperature of its cells within it via:
+
+.. code-block:: python
+
+   print sp["temperature"]
+
+Information about how to create a new type of object can be found in
+:ref:`creating-objects`. The field is returned as a single, flattened
+array without spatial information.  The best mechanism for
+manipulating spatial data is the :class:`~yt.data_objects.data_containers.AMRCoveringGridBase` object.
+
+The full list of fields that are available can be found as a property of the
+Hierarchy or Static Output object that you wish to access.  This property is
+calculated every time the object is instantiated.  The full list of fields that
+have been identified in the output file, which need no processing (besides unit
+conversion) are in the property ``field_list`` and the full list of
+potentially-accessible derived fields is available in the property
+``derived_field_list``.  You can see these by examining the two properties:
+
+.. code-block:: python
+
+   pf = load("my_data")
+   print pf.field_list
+   print pf.derived_field_list
+
+When a field is added, it is added to a container that hangs off of the
+parameter file, as well.  All of the field creation options
+(:ref:`derived-field-options`) are accessible through this object:
+
+.. code-block:: python
+
+   pf = load("my_data")
+   print pf.field_info["pressure"].get_units()
+
+This is a fast way to examine the units of a given field, and additionally you
+can use :meth:`yt.utilities.pydot.get_source` to get the source code:
+
+.. code-block:: python
+
+   field = pf.field_info["pressure"]
+   print field.get_source()
+
+.. _available-objects:
+
+Available Objects
+-----------------
+
+Objects are instantiated by direct access of a index.  Each of the objects
+that can be generated by a index are in fact fully-fledged data objects
+respecting the standard protocol for interaction.
+
+The following objects are available, all of which hang off of the index
+object.  To access them, you would do something like this (as for a
+:class:`region`):
+
+.. code-block:: python
+
+   from yt.mods import *
+   pf = load("RedshiftOutput0005")
+   reg = pf.region([0.5, 0.5, 0.5], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
+
+.. include:: _obj_docstrings.inc
+
+.. _boolean_data_objects:
+
+Combining Objects: Boolean Data Objects
+---------------------------------------
+
+A special type of data object is the *boolean* data object.
+It works only on three-dimensional objects.
+It is built by relating already existing data objects with boolean operators.
+The boolean logic may be nested using parentheses, and
+it supports the standard "AND", "OR", and "NOT" operators:
+
+* **"AND"** When two data objects are related with an "AND", the combined
+  data object is the volume of the simulation covered by both objects, and
+  not by just a single object.
+* **"OR"** When two data objects are related with an "OR", the combined
+  data object is the volume(s) of the simulation covered by either of the
+  objects.
+  For example, this may be used to combine disjoint objects into one.
+* **"NOT"** When two data objects are related with a "NOT", the combined
+  data object is the volume of the first object that the second does not
+  cover.
+  For example, this may be used to cut out part(s) of the first data object
+  utilizing the second data object.
+* **"(" or ")"** Nested logic is surrounded by parentheses. The order of
+  operations is such that the boolean logic is evaluated inside the
+  inner-most parentheses, first, then goes upwards.
+  The logic is read left-to-right at all levels (crucial for the "NOT"
+  operator).
+
+Please see the :ref:`cookbook` for some examples of how to use the boolean
+data object.
+
+.. _derived-quantities:
+
+Processing Objects: Derived Quantities
+--------------------------------------
+
+Derived quantities are a way of operating on a collection of cells and
+returning a set of values that is fewer in number than the number of cells --
+yt already knows about several.  Every 3D data object (see
+:ref:`using-objects`) provides a mechanism for access to derived quantities.
+These can be accessed via the ``quantities`` interface, like so:
+
+.. code-block:: python
+
+   pf = load("my_data")
+   dd = pf.h.all_data()
+   dd.quantities["AngularMomentumVector"]()
+
+The following quantities are available via the ``quantities`` interface.
+
+.. include:: _dq_docstrings.inc
+
+Creating Derived Quantities
++++++++++++++++++++++++++++
+
+The basic idea is that you need to be able to operate both on a set of data,
+and a set of sets of data.  (If this is not possible, the quantity needs to be
+added with the ``force_unlazy`` option.)
+
+Two functions are necessary.  One will operate on arrays of data, either fed
+from each grid individually or fed from the entire data object at once.  The
+second one takes the results of the first, either as lists of arrays or as
+single arrays, and returns the final values.  For an example, we look at the
+``TotalMass`` function:
+
+.. code-block:: python
+
+   def _TotalMass(data):
+       baryon_mass = data["cell_mass"].sum()
+       particle_mass = data["ParticleMassMsun"].sum()
+       return baryon_mass, particle_mass
+   def _combTotalMass(data, baryon_mass, particle_mass):
+       return baryon_mass.sum() + particle_mass.sum()
+   add_quantity("TotalMass", function=_TotalMass,
+                combine_function=_combTotalMass, n_ret = 2)
+
+Once the two functions have been defined, we then call :func:`add_quantity` to
+tell it the function that defines the data, the collator function, and the
+number of values that get passed between them.  In this case we return both the
+particle and the baryon mass, so we have two total values passed from the main
+function into the collator.
+
+.. _field_cuts:
+
+Cutting Objects by Field Values
+-------------------------------
+
+Data objects can be cut by their field values using the ``cut_region`` 
+method.  For example, this could be used to compute the total mass within 
+a certain temperature range, as in the following example.
+
+.. notebook-cell::
+
+   from yt.mods import *
+   ds = load("enzo_tiny_cosmology/DD0046/DD0046")
+   ad = ds.all_data()
+   total_mass = ad.quantities.total_mass()
+   # now select only gas with 1e5 K < T < 1e7 K.
+   new_region = ad.cut_region(['obj["temperature"] > 1e5',
+                               'obj["temperature"] < 1e7'])
+   cut_mass = new_region.quantities.total_mass()
+   print "The fraction of mass in this temperature range is %f." % \
+     (cut_mass / total_mass)
+
+The ``cut_region`` function generates a new object containing only the cells 
+that meet all of the specified criteria.  The sole argument to ``cut_region`` 
+is a list of strings, where each string is evaluated with an ``eval`` 
+statement.  ``eval`` is a native Python function that evaluates a string as 
+a Python expression.  Any type of data object can be cut with ``cut_region``.  
+Objects generated with ``cut_region`` can be used in the same way as all 
+other data objects.  For example, a cut region can be visualized by giving 
+it as a data_source to a projection.
+
+.. python-script::
+
+   from yt.mods import *
+   pf = load("enzo_tiny_cosmology/DD0046/DD0046")
+   ad = pf.h.all_data()
+   new_region = ad.cut_region(['obj["density"] > 1e-29'])
+   plot = ProjectionPlot(pf, "x", "density", weight_field="density",
+                         data_source=new_region)
+   plot.save()
+
+.. _extracting-connected-sets:
+
+Connected Sets
+--------------
+
+The underlying machinery used in :ref:`clump_finding` is accessible from any
+data object.  This includes the ability to obtain and examine topologically
+connected sets.  These sets are identified by examining cells between two
+threshold values and connecting them.  What is returned to the user is a list
+of the intervals of values found, and extracted regions that contain only those
+cells that are connected.
+
+To use this, call
+:meth:`~yt.data_objects.data_containers.AMR3DData.extract_connected_sets` on
+any 3D data object.  This requests a field, the number of levels of levels sets to
+extract, the min and the max value between which sets will be identified, and
+whether or not to conduct it in log space.
+
+.. code-block:: python
+
+   sp = pf.sphere("max", (1.0, 'pc'))
+   contour_values, connected_sets = sp.extract_connected_sets(
+        "density", 3, 1e-30, 1e-20)
+
+The first item, ``contour_values``, will be an array of the min value for each
+set of level sets.  The second (``connected_sets``) will be a dict of dicts.
+The key for the first (outer) dict is the level of the contour, corresponding
+to ``contour_values``.  The inner dict returned is keyed by the contour ID.  It
+contains :class:`~yt.data_objects.data_containers.AMRExtractedRegionBase`
+objects.  These can be queried just as any other data object.
+
+.. _extracting-isocontour-information:
+
+Extracting Isocontour Information
+---------------------------------
+.. versionadded:: 2.3
+
+.. warning::
+   This is still beta!
+
+``yt`` contains an implementation of the `Marching Cubes
+<http://en.wikipedia.org/wiki/Marching_cubes>`_ algorithm, which can operate on
+3D data objects.  This provides two things.  The first is to identify
+isocontours and return either the geometry of those isocontours or to return
+another field value sampled along that isocontour.  The second piece of
+functionality is to calculate the flux of a field over an isocontour.
+
+Note that these isocontours are not guaranteed to be topologically connected.
+In fact, inside a given data object, the marching cubes algorithm will return
+all isocontours, not just a single connected one.  This means if you encompass
+two clumps of a given density in your data object and extract an isocontour at
+that density, it will include both of the clumps.
+
+To extract geometry or sample a field, call
+:meth:`~yt.data_objects.data_containers.AMR3DData.extract_isocontours`.  To
+calculate a flux, call
+:meth:`~yt.data_objects.data_containers.AMR3DData.calculate_isocontour_flux`.
+both of these operations will run in parallel.
+
+.. _object-serialization:
+
+Storing and Loading Objects
+---------------------------
+
+Often, when operating interactively or via the scripting interface, it is
+convenient to save an object or multiple objects out to disk and then restart
+the calculation later.  Personally, I found this most useful when dealing with
+identification of clumps and contours (see :ref:`cookbook` for a recipe on how
+to find clumps and the API documentation for both 
+:mod:`~yt.analysis_modules.level_sets.contour_finder.identify_contours`
+and :mod:`~yt.analysis_modules.level_sets.clump_handling.Clump`) where 
+the identification step can be quite time-consuming, but the analysis 
+may be relatively fast.
+
+Typically, the save and load operations are used on 3D data objects.  ``yt``
+has a separate set of serialization operations for 2D objects such as
+projections.
+
+.. _parameter_file_serialization:
+
+``yt`` will save out 3D objects to disk under the presupposition that the
+construction of the objects is the difficult part, rather than the generation
+of the data -- this means that you can save out an object as a description of
+how to recreate it in space, but not the actual data arrays affiliated with
+that object.  The information that is saved includes the parameter file off of
+which the object "hangs."  It is this piece of information that is the most
+difficult; the object, when reloaded, must be able to reconstruct a parameter
+file from whatever limited information it has in the save file.
+
+To do this, ``yt`` is able to identify parameter files based on a "hash"
+generated from the base file name, the "CurrentTimeIdentifier", and the
+simulation time.  These three characteristics should never be changed outside
+of a simulation, they are independent of the file location on disk, and in
+conjunction they should be uniquely identifying.  (This process is all done in
+:mod:`~yt.utilities.ParameterFileStorage` via :class:`~yt.utilities.ParameterFileStorage.ParameterFileStore`.)
+
+To save an object, you can either save it in the ``.yt`` file affiliated with
+the index or as a standalone file.  For instance, using
+:meth:`~yt.data_objects.index.save_object` we can save a sphere.
+
+.. code-block:: python
+
+   from yt.mods import *
+   pf = load("my_data")
+   sp = pf.sphere([0.5, 0.5, 0.5], 10.0/pf['kpc'])
+
+   pf.h.save_object(sp, "sphere_to_analyze_later")
+
+
+In a later session, we can load it using
+:meth:`~yt.data_objects.index.load_object`:
+
+.. code-block:: python
+
+   from yt.mods import *
+
+   pf = load("my_data")
+   sphere_to_analyze = pf.h.load_object("sphere_to_analyze_later")
+
+Additionally, if we want to store the object independent of the ``.yt`` file,
+we can save the object directly:
+
+.. code-block:: python
+
+   from yt.mods import *
+
+   pf = load("my_data")
+   sp = pf.sphere([0.5, 0.5, 0.5], 10.0/pf['kpc'])
+
+   sp.save_object("my_sphere", "my_storage_file.cpkl")
+
+This will store the object as ``my_sphere`` in the file
+``my_storage_file.cpkl``, which will be created or accessed using the standard
+python module :mod:`shelve`.  Note that if a filename is not supplied, it will
+be saved via the index, as above.
+
+To re-load an object saved this way, you can use the shelve module directly:
+
+.. code-block:: python
+
+   from yt.mods import *
+   import shelve
+
+   pf = load("my_data") # not necessary if storeparameterfiles is on
+
+   obj_file = shelve.open("my_storage_file.cpkl")
+   pf, obj = obj_file["my_sphere"]
+
+If you have turned on ``storeparameterfiles`` in your configuration,
+you won't need to load the parameterfile again, as the load process
+will actually do that for you in that case.  Additionally, we can
+store multiple objects in a single shelve file, so we have to call the
+sphere by name.
+
+.. note:: It's also possible to use the standard :mod:`cPickle` module for
+          loading and storing objects -- so in theory you could even save a
+          list of objects!
+
+This method works for clumps, as well, and the entire clump index will be
+stored and restored upon load.
+

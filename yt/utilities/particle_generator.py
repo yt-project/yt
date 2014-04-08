@@ -1,7 +1,8 @@
 import numpy as np
 import h5py
-from yt.utilities.lib import CICSample_3
+from yt.utilities.lib.CICDeposit import CICSample_3
 from yt.funcs import *
+from yt.units.yt_array import uconcatenate, YTArray
 
 class ParticleGenerator(object) :
 
@@ -21,6 +22,10 @@ class ParticleGenerator(object) :
         self.num_particles = num_particles
         self.field_list = field_list
         self.field_list.append(("io", "particle_index"))
+        self.field_units = dict(
+          (('io', 'particle_position_%s' % ax), 'code_length')
+          for ax in 'xyz')
+        self.field_units['io', 'particle_index'] = ''
         
         try :
             self.posx_index = self.field_list.index(self.default_fields[0])
@@ -31,7 +36,7 @@ class ParticleGenerator(object) :
                            "\n".join(self.default_fields))
         self.index_index = self.field_list.index(("io", "particle_index"))
         
-        self.num_grids = self.pf.h.num_grids
+        self.num_grids = self.pf.index.num_grids
         self.NumberOfParticles = np.zeros((self.num_grids), dtype='int64')
         self.ParticleGridIndices = np.zeros(self.num_grids + 1, dtype='int64')
         
@@ -79,15 +84,22 @@ class ParticleGenerator(object) :
         ind = grid.id-grid._id_offset
         start = self.ParticleGridIndices[ind]
         end = self.ParticleGridIndices[ind+1]
-        return dict([(field, self.particles[start:end,self.field_list.index(field)])
-                     for field in self.field_list])
+        tr = {}
+        for field in self.field_list:
+            fi = self.field_list.index(field)
+            if field in self.field_units:
+                tr[field] = self.pf.arr(self.particles[start:end, fi],
+                                        self.field_units[field])
+            else:
+                tr[field] = self.particles[start:end, fi]
+        return tr
     
     def _setup_particles(self,x,y,z,setup_fields=None) :
         """
         Assigns grids to particles and sets up particle positions. *setup_fields* is
         a dict of fields other than the particle positions to set up. 
         """
-        particle_grids, particle_grid_inds = self.pf.h.find_points(x,y,z)
+        particle_grids, particle_grid_inds = self.pf.index.find_points(x,y,z)
         idxs = np.argsort(particle_grid_inds)
         self.particles[:,self.posx_index] = x[idxs]
         self.particles[:,self.posy_index] = y[idxs]
@@ -121,12 +133,12 @@ class ParticleGenerator(object) :
 
         Examples
         --------
-        >>> field_map = {'Density':'particle_density',
-        >>>              'Temperature':'particle_temperature'}
+        >>> field_map = {'density':'particle_density',
+        >>>              'temperature':'particle_temperature'}
         >>> particles.map_grid_fields_to_particles(field_map)
         """
         pbar = get_pbar("Mapping fields to particles", self.num_grids)
-        for i, grid in enumerate(self.pf.h.grids) :
+        for i, grid in enumerate(self.pf.index.grids) :
             pbar.update(i)
             if self.NumberOfParticles[i] > 0:
                 start = self.ParticleGridIndices[i]
@@ -136,6 +148,7 @@ class ParticleGenerator(object) :
                 le = np.array(grid.LeftEdge).astype(np.float64)
                 dims = np.array(grid.ActiveDimensions).astype(np.int32)
                 for gfield, pfield in mapping_dict.items() :
+                    self.field_units[pfield] = cube[gfield].units
                     field_index = self.field_list.index(pfield)
                     CICSample_3(self.particles[start:end,self.posx_index],
                                 self.particles[start:end,self.posy_index],
@@ -152,7 +165,7 @@ class ParticleGenerator(object) :
         and clobber=False, do not overwrite them, but add the new ones to them. 
         """
         grid_data = []
-        for i,g in enumerate(self.pf.h.grids) :
+        for i,g in enumerate(self.pf.index.grids) :
             data = {}
             if clobber :
                 data["number_of_particles"] = self.NumberOfParticles[i]
@@ -165,15 +178,17 @@ class ParticleGenerator(object) :
                     # We have particles in this grid
                     if g.NumberOfParticles > 0 and not clobber:
                         # Particles already exist
-                        if field in self.pf.h.field_list :
+                        if field in self.pf.field_list :
                             # This field already exists
                             prev_particles = g[field]
                         else :
                             # This one doesn't, set the previous particles' field
                             # values to zero
                             prev_particles = np.zeros((g.NumberOfParticles))
-                        data[field] = np.concatenate((prev_particles,
-                                                      grid_particles[field]))
+                            prev_particles = self.pf.arr(prev_particles,
+                                input_units = self.field_units[field])
+                        data[field] = uconcatenate((prev_particles,
+                                                    grid_particles[field]))
                     else :
                         # Particles do not already exist or we're clobbering
                         data[field] = grid_particles[field]
@@ -181,7 +196,7 @@ class ParticleGenerator(object) :
                     # We don't have particles in this grid
                     data[field] = np.array([], dtype='float64')
             grid_data.append(data)
-        self.pf.h.update_data(grid_data)
+        self.pf.index.update_data(grid_data)
 
 class FromListParticleGenerator(ParticleGenerator) :
 
@@ -191,7 +206,7 @@ class FromListParticleGenerator(ParticleGenerator) :
 
         Parameters
         ----------
-        pf : `StaticOutput`
+        pf : `Dataset`
             The parameter file which will serve as the base for these particles.
         num_particles : int
             The number of particles in the dict.
@@ -239,7 +254,7 @@ class LatticeParticleGenerator(ParticleGenerator) :
 
         Parameters
         ----------
-        pf : `StaticOutput`
+        pf : `Dataset`
             The parameter file which will serve as the base for these particles.
         particles_dims : int, array-like 
             The number of particles along each dimension
@@ -270,13 +285,12 @@ class LatticeParticleGenerator(ParticleGenerator) :
         xmax = particles_right_edge[0]
         ymax = particles_right_edge[1]
         zmax = particles_right_edge[2]
+        DLE = pf.domain_left_edge.in_units("code_length").ndarray_view()
+        DRE = pf.domain_right_edge.in_units("code_length").ndarray_view()
 
-        xcond = (xmin < pf.domain_left_edge[0]) or \
-                (xmax >= pf.domain_right_edge[0])
-        ycond = (ymin < pf.domain_left_edge[1]) or \
-                (ymax >= pf.domain_right_edge[1])
-        zcond = (zmin < pf.domain_left_edge[2]) or \
-                (zmax >= pf.domain_right_edge[2])
+        xcond = (xmin < DLE[0]) or (xmax >= DRE[0])
+        ycond = (ymin < DLE[1]) or (ymax >= DRE[1])
+        zcond = (zmin < DLE[2]) or (zmax >= DRE[2])
         cond = xcond or ycond or zcond
 
         if cond :
@@ -297,13 +311,13 @@ class LatticeParticleGenerator(ParticleGenerator) :
 class WithDensityParticleGenerator(ParticleGenerator) :
 
     def __init__(self, pf, data_source, num_particles, field_list,
-                 density_field="Density") :
+                 density_field="density") :
         r"""
         Generate particles based on a density field.
 
         Parameters
         ----------
-        pf : `StaticOutput`
+        pf : `Dataset`
             The parameter file which will serve as the base for these particles.
         data_source : `yt.data_objects.api.AMRData`
             The data source containing the density field.
@@ -317,7 +331,7 @@ class WithDensityParticleGenerator(ParticleGenerator) :
             
         Examples
         --------
-        >>> sphere = pf.h.sphere(pf.domain_center, 0.5)
+        >>> sphere = pf.sphere(pf.domain_center, 0.5)
         >>> num_p = 100000
         >>> fields = ["particle_position_x","particle_position_y",
         >>>           "particle_position_z",
@@ -330,7 +344,7 @@ class WithDensityParticleGenerator(ParticleGenerator) :
 
         num_cells = len(data_source["x"].flat)
         max_mass = (data_source[density_field]*
-                    data_source["CellVolume"]).max()
+                    data_source["cell_volume"]).max()
         num_particles_left = num_particles
         all_x = []
         all_y = []
@@ -346,7 +360,7 @@ class WithDensityParticleGenerator(ParticleGenerator) :
             idxs = np.random.random_integers(low=0, high=num_cells-1,
                                              size=num_particles_left)
             m_true = (data_source[density_field]*
-                      data_source["CellVolume"]).flat[idxs]
+                      data_source["cell_volume"]).flat[idxs]
             accept = m <= m_true
             num_accepted = accept.sum()
             accepted_idxs = idxs[accept]
@@ -371,9 +385,9 @@ class WithDensityParticleGenerator(ParticleGenerator) :
 
         pbar.finish()
 
-        x = np.concatenate(all_x)
-        y = np.concatenate(all_y)
-        z = np.concatenate(all_z)
+        x = uconcatenate(all_x)
+        y = uconcatenate(all_y)
+        z = uconcatenate(all_z)
 
         self._setup_particles(x,y,z)
         

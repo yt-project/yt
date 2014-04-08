@@ -1,5 +1,5 @@
 """
-ART frontend tests using SFG1 a=0.330
+ART frontend tests using D9p a=0.500
 
 
 
@@ -20,22 +20,24 @@ from yt.utilities.answer_testing.framework import \
     small_patch_amr, \
     big_patch_amr, \
     data_dir_load
-from yt.frontends.art.api import ARTStaticOutput
+from yt.frontends.art.api import ARTDataset
 
-_fields = ("Density", "particle_mass", ("all", "particle_position_x"))
+_fields = ("density", "temperature", "particle_mass", ("all", "particle_position_x"))
 
-sfg1 = "10MpcBox_csf512_a0.330.d"
+d9p = "D9p_500/10MpcBox_HartGal_csf_a0.500.d"
 
-
-@requires_pf(sfg1, big_data=True)
-def test_sfg1():
-    pf = data_dir_load(sfg1)
-    yield assert_equal, str(pf), "10MpcBox_csf512_a0.330.d"
+@requires_pf(d9p, big_data=True)
+def test_d9p():
+    pf = data_dir_load(d9p)
+    yield assert_equal, str(pf), "10MpcBox_HartGal_csf_a0.500.d"
+    for test in big_patch_amr(d9p, _fields):
+        test_d9p.__name__ = test.description
+        yield test
     dso = [None, ("sphere", ("max", (0.1, 'unitary')))]
     for field in _fields:
         for axis in [0, 1, 2]:
             for ds in dso:
-                for weight_field in [None, "Density"]:
+                for weight_field in [None, "density"]:
                     yield PixelizedProjectionValuesTest(
-                        sfg1, axis, field, weight_field,
+                        d9p, axis, field, weight_field,
                         ds)

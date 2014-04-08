@@ -18,16 +18,21 @@ import numpy as np
 
 from yt.funcs import *
 import yt.utilities.data_point_utilities as data_point_utilities
-import yt.utilities.lib as amr_utils
+from yt.utilities.lib.ContourFinding import \
+    ContourTree, TileContourTree, link_node_contours, \
+    update_joins
+from yt.utilities.lib.grid_traversal import \
+    PartitionedGrid
 
 def identify_contours(data_source, field, min_val, max_val,
                           cached_fields=None):
-    tree = amr_utils.ContourTree()
-    gct = amr_utils.TileContourTree(min_val, max_val)
+    tree = ContourTree()
+    gct = TileContourTree(min_val, max_val)
     total_contours = 0
     contours = {}
     empty_mask = np.ones((1,1,1), dtype="uint8")
     node_ids = []
+    DLE = data_source.pf.domain_left_edge
     for (g, node, (sl, dims, gi)) in data_source.tiles.slice_traverse():
         node.node_ind = len(node_ids)
         nid = node.node_id
@@ -39,15 +44,16 @@ def identify_contours(data_source, field, min_val, max_val,
         total_contours += new_contours.shape[0]
         tree.add_contours(new_contours)
         # Now we can create a partitioned grid with the contours.
-        pg = amr_utils.PartitionedGrid(g.id,
-            [contour_ids.view("float64")],
-            empty_mask, g.dds * gi, g.dds * (gi + dims),
-            dims.astype("int64"))
+        LE = (DLE + g.dds * gi).in_units("code_length").ndarray_view()
+        RE = LE + (dims * g.dds).in_units("code_length").ndarray_view()
+        pg = PartitionedGrid(g.id,
+            [contour_ids.view("float64")], empty_mask,
+            LE, RE, dims.astype("int64"))
         contours[nid] = (g.Level, node.node_ind, pg, sl)
     node_ids = np.array(node_ids)
     trunk = data_source.tiles.tree.trunk
     mylog.info("Linking node (%s) contours.", len(contours))
-    amr_utils.link_node_contours(trunk, contours, tree, node_ids)
+    link_node_contours(trunk, contours, tree, node_ids)
     mylog.info("Linked.")
     #joins = tree.cull_joins(bt)
     #tree.add_joins(joins)
@@ -58,7 +64,7 @@ def identify_contours(data_source, field, min_val, max_val,
     for i, nid in enumerate(sorted(contours)):
         level, node_ind, pg, sl = contours[nid]
         ff = pg.my_data[0].view("int64")
-        amr_utils.update_joins(joins, ff, final_joins)
+        update_joins(joins, ff, final_joins)
         contour_ids[pg.parent_grid_id].append((sl, ff))
         pbar.update(i)
     pbar.finish()

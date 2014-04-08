@@ -16,9 +16,9 @@ Hydro tests
 import matplotlib
 import pylab
 from yt.mods import *
-from output_tests import SingleOutputTest, YTStaticOutputTest, create_test
+from output_tests import SingleOutputTest, YTDatasetTest, create_test
 
-class TestProjection(YTStaticOutputTest):
+class TestProjection(YTDatasetTest):
 
     field = None
     axis = None
@@ -27,7 +27,7 @@ class TestProjection(YTStaticOutputTest):
     def run(self):
         # First we get our flattened projection -- this is the
         # Density, px, py, pdx, and pdy
-        proj = self.pf.h.proj(self.field, self.axis, 
+        proj = self.pf.proj(self.field, self.axis, 
                               weight_field=self.weight_field)
         # Now let's stick it in a buffer
         pixelized_proj = self.pixelize(proj, self.field)
@@ -56,7 +56,7 @@ class TestProjection(YTStaticOutputTest):
         pylab.savefig(fn)
         return [fn]
 
-class TestOffAxisProjection(YTStaticOutputTest):
+class TestOffAxisProjection(YTDatasetTest):
 
     field = None
     weight_field = None
@@ -84,7 +84,7 @@ class TestOffAxisProjection(YTStaticOutputTest):
         write_image(self.result, fn)
         return [fn]
 
-class TestRay(YTStaticOutputTest):
+class TestRay(YTDatasetTest):
 
     field = None
 
@@ -98,7 +98,7 @@ class TestRay(YTStaticOutputTest):
             self.pf.domain_left_edge
 
         # Here proj will just be the data array.
-        ray = self.pf.h.ray(start_point, end_point, field=self.field)
+        ray = self.pf.ray(start_point, end_point, field=self.field)
 
         # values.
         self.result = ray[self.field]
@@ -112,14 +112,14 @@ class TestRay(YTStaticOutputTest):
     def plot(self):
         return
 
-class TestSlice(YTStaticOutputTest):
+class TestSlice(YTDatasetTest):
 
     field = None
     axis = None
 
     def run(self):
         # Here proj will just be the data array.
-        slice = self.pf.h.slice(self.axis, 
+        slice = self.pf.slice(self.axis, 
                                 (0.5 * (self.pf.domain_left_edge + 
                                         self.pf.domain_right_edge))[self.axis],
                                 fields=self.field)
@@ -141,14 +141,14 @@ class TestSlice(YTStaticOutputTest):
 # function, which is a relatively simple function that takes the base class,
 # a name, and any parameters that the test requires.
 for axis in range(3):
-    for field in ["Density", "Temperature"]:
+    for field in ["density", "temperature"]:
         create_test(TestProjection, "projection_test_%s_%s" % (axis, field),
                     field = field, axis = axis)
 
-class TestGasDistribution(YTStaticOutputTest):
+class TestGasDistribution(YTDatasetTest):
     field_x = None
     field_y = None
-    weight = "CellMassMsun"
+    weight = "cell_mass"
     n_bins = 32
 
     def run(self):
@@ -172,14 +172,14 @@ class TestGasDistribution(YTStaticOutputTest):
 
 # Now we create all our tests, but we're only going to check the binning
 # against Density for now.
-for field in ["Temperature", "x-velocity"]:
+for field in ["temperature", "velocity_x"]:
     create_test(TestGasDistribution, "profile_density_test_%s" % field,
-                field_x = "Density", field_y = field)
+                field_x = "density", field_y = field)
 
 class Test2DGasDistribution(TestGasDistribution):
     x_bins = 128
     y_bins = 128
-    field_z = "CellMassMsun"
+    field_z = "cell_mass"
     weight = None
     def run(self):
         # We're NOT going to use the low-level profiling API here,

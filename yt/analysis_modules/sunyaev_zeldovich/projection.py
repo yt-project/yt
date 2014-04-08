@@ -20,17 +20,18 @@ Chluba, Switzer, Nagai, Nelson, MNRAS, 2012, arXiv:1211.3206
 
 from yt.utilities.physical_constants import sigma_thompson, clight, hcgs, kboltz, mh, Tcmb
 from yt.utilities.fits_image import FITSImageBuffer
+from yt.fields.local_fields import add_field, derived_field
 from yt.data_objects.image_array import ImageArray
-from yt.data_objects.field_info_container import add_field
 from yt.funcs import fix_axis, mylog, iterable, get_pbar
 from yt.utilities.definitions import inv_axis_names
 from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only
-from yt.visualization.plot_window import StandardCenter
+from yt import units
+
 import numpy as np
 
-I0 = 2*(kboltz*Tcmb)**3/((hcgs*clight)**2)*1.0e17
+I0 = (2*(kboltz*Tcmb)**3/((hcgs*clight)**2)/units.sr).in_units("MJy/steradian")
 
 try:
     import SZpack
@@ -38,26 +39,43 @@ except ImportError:
     pass
 
 vlist = "xyz"
+def setup_sunyaev_zeldovich_fields(registry, ftype = "gas", slice_info = None):
+    def _t_squared(field, data):
+        return data["gas","density"]*data["gas","kT"]*data["gas","kT"]
+    registry.add_field(("gas", "t_squared"),
+                       function = _t_squared,
+                       units="g*keV**2/cm**3")
+    def _beta_perp_squared(field, data):
+        return data["gas","density"]*data["gas","velocity_magnitude"]**2/clight/clight - data["gas","beta_par_squared"]
+    registry.add_field(("gas","beta_perp_squared"), 
+                       function = _beta_perp_squared,
+                       units="g/cm**3")
 
-def _t_squared(field, data):
-    return data["Density"]*data["TempkeV"]*data["TempkeV"]
-add_field("TSquared", function=_t_squared)
+    def _beta_par_squared(field, data):
+        return data["gas","beta_par"]**2/data["gas","density"]
+    registry.add_field(("gas","beta_par_squared"),
+                       function = _beta_par_squared,
+                       units="g/cm**3")
 
-def _beta_perp_squared(field, data):
-    return data["Density"]*data["VelocityMagnitude"]**2/clight/clight - data["BetaParSquared"]
-add_field("BetaPerpSquared", function=_beta_perp_squared)
+    def _t_beta_par(field, data):
+        return data["gas","kT"]*data["gas","beta_par"]
+    registry.add_field(("gas","t_beta_par"),
+                       function = _t_beta_par,
+                       units="keV*g/cm**3")
 
-def _beta_par_squared(field, data):
-    return data["BetaPar"]**2/data["Density"]
-add_field("BetaParSquared", function=_beta_par_squared)
+    def _t_sz(field, data):
+        return data["gas","density"]*data["gas","kT"]
+    registry.add_field(("gas","t_sz"),
+                       function = _t_sz,
+                       units="keV*g/cm**3")
 
-def _t_beta_par(field, data):
-    return data["TempkeV"]*data["BetaPar"]
-add_field("TBetaPar", function=_t_beta_par)
-
-def _t_sz(field, data):
-    return data["Density"]*data["TempkeV"]
-add_field("TeSZ", function=_t_sz)
+def generate_beta_par(L):
+    def _beta_par(field, data):
+        vpar = data["density"]*(data["velocity_x"]*L[0]+
+                                data["velocity_y"]*L[1]+
+                                data["velocity_z"]*L[2])
+        return vpar/clight
+    return _beta_par
 
 class SZProjection(object):
     r""" Initialize a SZProjection object.
@@ -81,24 +99,20 @@ class SZProjection(object):
     def __init__(self, pf, freqs, mue=1.143, high_order=False):
 
         self.pf = pf
+        pf.field_info.load_plugin(setup_sunyaev_zeldovich_fields)
         self.num_freqs = len(freqs)
         self.high_order = high_order
-        self.freqs = np.array(freqs)
+        self.freqs = pf.arr(freqs, "GHz")
         self.mueinv = 1./mue
-        self.xinit = hcgs*self.freqs*1.0e9/(kboltz*Tcmb)
+        self.xinit = hcgs*self.freqs.in_units("Hz")/(kboltz*Tcmb)
         self.freq_fields = ["%d_GHz" % (int(freq)) for freq in freqs]
         self.data = {}
-
-        self.units = {}
-        self.units["TeSZ"] = r"$\mathrm{keV}$"
-        self.units["Tau"] = None
 
         self.display_names = {}
         self.display_names["TeSZ"] = r"$\mathrm{T_e}$"
         self.display_names["Tau"] = r"$\mathrm{\tau}$"
 
         for f, field in zip(self.freqs, self.freq_fields):
-            self.units[field] = r"$\mathrm{MJy\ sr^{-1}}$"
             self.display_names[field] = r"$\mathrm{\Delta{I}_{%d\ GHz}}$" % (int(f))
 
     def on_axis(self, axis, center="c", width=(1, "unitary"), nx=800, source=None):
@@ -119,41 +133,36 @@ class SZProjection(object):
 
         Examples
         --------
-        >>> szprj.on_axis("y", center="max", width=(1.0, "mpc"), source=my_sphere)
+        >>> szprj.on_axis("y", center="max", width=(1.0, "Mpc"), source=my_sphere)
         """
         axis = fix_axis(axis)
 
         if center == "c":
             ctr = self.pf.domain_center
         elif center == "max":
-            v, ctr = self.pf.h.find_max("Density")
+            v, ctr = self.pf.h.find_max("density")
         else:
             ctr = center
 
-        def _beta_par(field, data):
-            axis = data.get_field_parameter("axis")
-            # Load these, even though we will only use one
-            for ax in 'xyz':
-                data['%s-velocity' % ax]
-            vpar = data["Density"]*data["%s-velocity" % (vlist[axis])]
-            return vpar/clight
-        add_field("BetaPar", function=_beta_par)
-        self.pf.h._derived_fields_add(["BetaPar"])
+        L = np.zeros((3))
+        L[axis] = 1.0
 
-        proj = self.pf.h.proj("Density", axis, center=ctr, data_source=source)
-        proj.data_source.set_field_parameter("axis", axis)
+        beta_par = generate_beta_par(L)
+        self.pf.field_info.add_field(("gas","beta_par"), function=beta_par, units="g/cm**3")
+        proj = self.pf.h.proj("density", axis, center=ctr, data_source=source)
+        proj.set_field_parameter("axis", axis)
         frb = proj.to_frb(width, nx)
-        dens = frb["Density"]
-        Te = frb["TeSZ"]/dens
-        bpar = frb["BetaPar"]/dens
-        omega1 = frb["TSquared"]/dens/(Te*Te) - 1.
+        dens = frb["density"]
+        Te = frb["t_sz"]/dens
+        bpar = frb["beta_par"]/dens
+        omega1 = frb["t_squared"]/dens/(Te*Te) - 1.
         bperp2 = np.zeros((nx,nx))
         sigma1 = np.zeros((nx,nx))
         kappa1 = np.zeros((nx,nx))
         if self.high_order:
-            bperp2 = frb["BetaPerpSquared"]/dens
-            sigma1 = frb["TBetaPar"]/dens/Te - bpar
-            kappa1 = frb["BetaParSquared"]/dens - bpar*bpar
+            bperp2 = frb["beta_perp_squared"]/dens
+            sigma1 = frb["t_beta_par"]/dens/Te - bpar
+            kappa1 = frb["beta_par_squared"]/dens - bpar*bpar
         tau = sigma_thompson*dens*self.mueinv/mh
 
         nx,ny = frb.buff_size
@@ -162,7 +171,9 @@ class SZProjection(object):
         self.dy = (frb.bounds[3]-frb.bounds[2])/ny
         self.nx = nx
 
-        self._compute_intensity(tau, Te, bpar, omega1, sigma1, kappa1, bperp2)
+        self._compute_intensity(np.array(tau), np.array(Te), np.array(bpar),
+                                np.array(omega1), np.array(sigma1),
+                                np.array(kappa1), np.array(bperp2))
 
     def off_axis(self, L, center="c", width=(1, "unitary"), nx=800, source=None):
         r""" Make an off-axis projection of the SZ signal.
@@ -184,7 +195,7 @@ class SZProjection(object):
         Examples
         --------
         >>> L = np.array([0.5, 1.0, 0.75])
-        >>> szprj.off_axis(L, center="c", width=(2.0, "mpc"))
+        >>> szprj.off_axis(L, center="c", width=(2.0, "Mpc"))
         """
         if iterable(width):
             w = width[0]/self.pf.units[width[1]]
@@ -193,7 +204,7 @@ class SZProjection(object):
         if center == "c":
             ctr = self.pf.domain_center
         elif center == "max":
-            v, ctr = self.pf.h.find_max("Density")
+            v, ctr = self.pf.h.find_max("density")
         else:
             ctr = center
 
@@ -201,24 +212,19 @@ class SZProjection(object):
             mylog.error("Source argument is not currently supported for off-axis S-Z projections.")
             raise NotImplementedError
 
-        def _beta_par(field, data):
-            vpar = data["Density"]*(data["x-velocity"]*L[0]+
-                                    data["y-velocity"]*L[1]+
-                                    data["z-velocity"]*L[2])
-            return vpar/clight
-        add_field("BetaPar", function=_beta_par)
-        self.pf.h._derived_fields_add(["BetaPar"])
+        beta_par = generate_beta_par(L)
+        self.pf.field_info.add_field(("gas","beta_par"), function=beta_par, units="g/cm**3")
 
-        dens    = off_axis_projection(self.pf, ctr, L, w, nx, "Density")
-        Te      = off_axis_projection(self.pf, ctr, L, w, nx, "TeSZ")/dens
-        bpar    = off_axis_projection(self.pf, ctr, L, w, nx, "BetaPar")/dens
-        omega1  = off_axis_projection(self.pf, ctr, L, w, nx, "TSquared")/dens
+        dens    = off_axis_projection(self.pf, ctr, L, w, nx, "density")
+        Te      = off_axis_projection(self.pf, ctr, L, w, nx, "t_sz")/dens
+        bpar    = off_axis_projection(self.pf, ctr, L, w, nx, "beta_par")/dens
+        omega1  = off_axis_projection(self.pf, ctr, L, w, nx, "t_squared")/dens
         omega1  = omega1/(Te*Te) - 1.
         if self.high_order:
-            bperp2  = off_axis_projection(self.pf, ctr, L, w, nx, "BetaPerpSquared")/dens
-            sigma1  = off_axis_projection(self.pf, ctr, L, w, nx, "TBetaPar")/dens
+            bperp2  = off_axis_projection(self.pf, ctr, L, w, nx, "beta_perp_squared")/dens
+            sigma1  = off_axis_projection(self.pf, ctr, L, w, nx, "t_beta_par")/dens
             sigma1  = sigma1/Te - bpar
-            kappa1  = off_axis_projection(self.pf, ctr, L, w, nx, "BetaParSquared")/dens
+            kappa1  = off_axis_projection(self.pf, ctr, L, w, nx, "beta_par_squared")/dens
             kappa1 -= bpar
         else:
             bperp2 = np.zeros((nx,nx))
@@ -231,7 +237,9 @@ class SZProjection(object):
         self.dy = w/nx
         self.nx = nx
 
-        self._compute_intensity(tau, Te, bpar, omega1, sigma1, kappa1, bperp2)
+        self._compute_intensity(np.array(tau), np.array(Te), np.array(bpar),
+                                np.array(omega1), np.array(sigma1),
+                                np.array(kappa1), np.array(bperp2))
 
     def _compute_intensity(self, tau, Te, bpar, omega1, sigma1, kappa1, bperp2):
 
@@ -267,12 +275,13 @@ class SZProjection(object):
         pbar.finish()
 
         for i, field in enumerate(self.freq_fields):
-            self.data[field] = ImageArray(I0*self.xinit[i]**3*signal[i,:,:])
-        self.data["Tau"] = ImageArray(tau)
-        self.data["TeSZ"] = ImageArray(Te)
+            self.data[field] = I0*self.xinit[i]**3*signal[i,:,:]
+        self.data["Tau"] = self.pf.arr(tau, "dimensionless")
+        self.data["TeSZ"] = self.pf.arr(Te, "keV")
 
     @parallel_root_only
-    def write_fits(self, filename, sky_center=None, sky_scale=None, clobber=True):
+    def write_fits(self, filename, units="kpc", sky_center=None, sky_scale=None,
+                   time_units="Gyr", clobber=True):
         r""" Export images to a FITS file. Writes the SZ distortion in all
         specified frequencies as well as the mass-weighted temperature and the
         optical depth. Distance units are in kpc, unless *sky_center*
@@ -301,12 +310,11 @@ class SZProjection(object):
         >>> szprj.write_fits("SZbullet.fits", sky_center=sky_center, sky_scale=sky_scale)
         """
 
-        deltas = np.array([self.dx*self.pf.units["kpc"],
-                           self.dy*self.pf.units["kpc"]])
+        deltas = np.array([self.dx.in_units(units),
+                           self.dy.in_units(units)])
 
         if sky_center is None:
             center = [0.0]*2
-            units = "kpc"
         else:
             center = sky_center
             units = "deg"
@@ -315,12 +323,12 @@ class SZProjection(object):
         fib = FITSImageBuffer(self.data, fields=self.data.keys(),
                               center=center, units=units,
                               scale=deltas)
-        fib.update_all_headers("Time", self.pf.current_time)
+        fib.update_all_headers("Time", float(self.pf.current_time.in_units(time_units).value))
         fib.writeto(filename, clobber=clobber)
         
     @parallel_root_only
     def write_png(self, filename_prefix, cmap_name="algae",
-                  log_fields=None):
+                  axes_units="kpc", log_fields=None):
         r""" Export images to PNG files. Writes the SZ distortion in all
         specified frequencies as well as the mass-weighted temperature and the
         optical depth. Distance units are in kpc.
@@ -338,7 +346,7 @@ class SZProjection(object):
         import matplotlib.pyplot as plt
         if log_fields is None: log_fields = {}
         ticks_font = matplotlib.font_manager.FontProperties(family='serif',size=16)
-        extent = tuple([bound*self.pf.units["kpc"] for bound in self.bounds])
+        extent = tuple([bound.in_units(axes_units).value for bound in self.bounds])
         for field, image in self.items():
             data = image.copy()
             vmin, vmax = image.min(), image.max()
@@ -364,17 +372,18 @@ class SZProjection(object):
                 formatter = None
             filename = filename_prefix+"_"+field+".png"
             cbar_label = self.display_names[field]
-            if self.units[field] is not None:
-                cbar_label += " ("+self.units[field]+")"
+            units = self.data[field].units.latex_representation()
+            if units is not None and units != "":
+                cbar_label += r'$\/\/('+units+r')$'
             fig = plt.figure(figsize=(10.0,8.0))
             ax = fig.add_subplot(111)
-            cax = ax.imshow(data, norm=norm, extent=extent, cmap=cmap_name, origin="lower")
+            cax = ax.imshow(data.ndarray_view(), norm=norm, extent=extent, cmap=cmap_name, origin="lower")
             for label in ax.get_xticklabels():
                 label.set_fontproperties(ticks_font)
             for label in ax.get_yticklabels():
                 label.set_fontproperties(ticks_font)                      
-            ax.set_xlabel(r"$\mathrm{x\ (kpc)}$", fontsize=16)
-            ax.set_ylabel(r"$\mathrm{y\ (kpc)}$", fontsize=16)
+            ax.set_xlabel(r"$\mathrm{x\ (%s)}$" % (axes_units), fontsize=16)
+            ax.set_ylabel(r"$\mathrm{y\ (%s)}$" % (axes_units), fontsize=16)
             cbar = fig.colorbar(cax, format=formatter)
             cbar.ax.set_ylabel(cbar_label, fontsize=16)
             if negative:
@@ -407,7 +416,7 @@ class SZProjection(object):
         import h5py
         f = h5py.File(filename, "w")
         for field, data in self.items():
-            f.create_dataset(field,data=data)
+            f.create_dataset(field,data=data.ndarray_view())
         f.close()
 
     def keys(self):

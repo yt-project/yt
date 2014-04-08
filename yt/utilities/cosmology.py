@@ -1,198 +1,394 @@
 """
-Cosmology calculator based on http://www.kempner.net/cosmic.php.  Also,
-conversion functions between time and redshift pulled from Enzo.
-
-
+Cosmology calculator.
+Cosmology calculator based originally on http://www.kempner.net/cosmic.php 
+and featuring time and redshift conversion functions from Enzo..
 
 """
 
 #-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
+# Copyright (c) 2013-2014, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import functools
 import numpy as np
+
+from yt.units.unit_registry import \
+     UnitRegistry
+from yt.units.yt_array import \
+     YTArray, \
+     YTQuantity
+
 from yt.utilities.physical_constants import \
-    gravitational_constant_cgs, \
-    km_per_cm, \
-    pc_per_mpc, \
-    km_per_pc, \
+    gravitational_constant_cgs as G, \
     speed_of_light_cgs
 
-c_kms = speed_of_light_cgs * km_per_cm # c in km/s
-G = gravitational_constant_cgs
-kmPerMpc = km_per_pc * pc_per_mpc
-
 class Cosmology(object):
-    def __init__(self, HubbleConstantNow = 71.0,
-                 OmegaMatterNow = 0.27,
-                 OmegaLambdaNow = 0.73,
-                 OmegaCurvatureNow = 0.0):
-        self.HubbleConstantNow = HubbleConstantNow
-        self.OmegaMatterNow = OmegaMatterNow
-        self.OmegaLambdaNow = OmegaLambdaNow
-        self.OmegaCurvatureNow = OmegaCurvatureNow
+    r"""
+    Create a cosmology calculator to compute cosmological distances and times.
 
-    def HubbleDistance(self):
-        return (c_kms / self.HubbleConstantNow)
+    For an explanation of the various cosmological measures, see, for example 
+    Hogg (1999, http://xxx.lanl.gov/abs/astro-ph/9905116).
+    
+    Parameters
+    ----------
+    hubble_constant : float
+        The Hubble parameter at redshift zero in units of 100 km/s/Mpc.
+        Default: 0.71.
+    omega_matter : the fraction of the energy density of the Universe in 
+        matter at redshift zero.
+        Default: 0.27.
+    omega_lambda : the fraction of the energy density of the Universe in 
+        a cosmological constant.
+        Default: 0.73.
+    omega_curvature : the fraction of the energy density of the Universe in 
+        curvature.
+        Default: 0.0.
 
-    def ComovingRadialDistance(self,z_i,z_f):
-        return self.HubbleDistance() * \
-            romberg(self.InverseExpansionFactor,z_i,z_f)
+    Examples
+    --------
 
-    def ComovingTransverseDistance(self,z_i,z_f):
-         if (self.OmegaCurvatureNow > 0):
-             return (self.HubbleDistance() / np.sqrt(self.OmegaCurvatureNow) * 
-                     np.sinh(np.sqrt(self.OmegaCurvatureNow) * 
-                          self.ComovingRadialDistance(z_i,z_f) / 
-                          self.HubbleDistance()))
-         elif (self.OmegaCurvatureNow < 0):
-             return (self.HubbleDistance() / np.sqrt(np.fabs(self.OmegaCurvatureNow)) * 
-                     np.sin(np.sqrt(np.fabs(self.OmegaCurvatureNow)) * 
-                         self.ComovingRadialDistance(z_i,z_f) / self.HubbleDistance()))
-         else:
-             return self.ComovingRadialDistance(z_i,z_f)
+    >>> from yt.utilities.cosmology import Cosmology
+    >>> co = Cosmology()
+    >>> print co.hubble_time(0.0).in_units("Gyr")
+    
+    """
+    def __init__(self, hubble_constant = 0.71,
+                 omega_matter = 0.27,
+                 omega_lambda = 0.73,
+                 omega_curvature = 0.0,
+                 unit_registry = None):
+        self.omega_matter = omega_matter
+        self.omega_lambda = omega_lambda
+        self.omega_curvature = omega_curvature
+        if unit_registry is None:
+            unit_registry = UnitRegistry()
+        self.unit_registry = unit_registry
+        self.hubble_constant = self.quan(hubble_constant, "100*km/s/Mpc")
 
-    def ComovingVolume(self,z_i,z_f):
-        if (self.OmegaCurvatureNow > 0):
-             return (2 * np.pi * np.power(self.HubbleDistance(), 3) / self.OmegaCurvatureNow * 
-                     (self.ComovingTransverseDistance(z_i,z_f) / self.HubbleDistance() * 
-                      np.sqrt(1 + self.OmegaCurvatureNow * 
-                           sqr(self.ComovingTransverseDistance(z_i,z_f) / 
-                               self.HubbleDistance())) - 
-                      np.sinh(np.fabs(self.OmegaCurvatureNow) * 
-                            self.ComovingTransverseDistance(z_i,z_f) / 
-                            self.HubbleDistance()) / np.sqrt(self.OmegaCurvatureNow)) / 1e9)
-        elif (self.OmegaCurvatureNow < 0):
-             return (2 * np.pi * np.power(self.HubbleDistance(), 3) / 
-                     np.fabs(self.OmegaCurvatureNow) * 
-                     (self.ComovingTransverseDistance(z_i,z_f) / self.HubbleDistance() * 
-                      np.sqrt(1 + self.OmegaCurvatureNow * 
-                           sqr(self.ComovingTransverseDistance(z_i,z_f) / 
-                               self.HubbleDistance())) - 
-                      np.arcsin(np.fabs(self.OmegaCurvatureNow) * 
-                           self.ComovingTransverseDistance(z_i,z_f) / 
-                           self.HubbleDistance()) / 
-                      np.sqrt(np.fabs(self.OmegaCurvatureNow))) / 1e9)
+    def hubble_distance(self):
+        r"""
+        The distance corresponding to c / h, where c is the speed of light 
+        and h is the Hubble parameter in units of 1 / time.
+        """
+        return (speed_of_light_cgs / self.hubble_constant).in_cgs()
+
+    def comoving_radial_distance(self, z_i, z_f):
+        r"""
+        The comoving distance along the line of sight to on object at redshift, 
+        z_f, viewed at a redshift, z_i.
+
+        Parameters
+        ----------
+        z_i : float
+            The redshift of the observer.
+        z_f : float
+            The redshift of the observed object.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.comoving_radial_distance(0., 1.).in_units("Mpc")
+        
+        """
+        return (self.hubble_distance() *
+                trapzint(self.inverse_expansion_factor, z_i, z_f)).in_cgs()
+
+    def comoving_transverse_distance(self, z_i, z_f):
+        r"""
+        When multiplied by some angle, the distance between two objects 
+        observed at redshift, z_f, with an angular separation given by that 
+        angle, viewed by an observer at redshift, z_i (Hogg 1999).
+
+        Parameters
+        ----------
+        z_i : float
+            The redshift of the observer.
+        z_f : float
+            The redshift of the observed object.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.comoving_transverse_distance(0., 1.).in_units("Mpc")
+        
+        """
+        if (self.omega_curvature > 0):
+            return (self.hubble_distance() / np.sqrt(self.omega_curvature) * 
+                    np.sinh(np.sqrt(self.omega_curvature) * 
+                            self.comoving_radial_distance(z_i, z_f) /
+                            self.hubble_distance())).in_cgs()
+        elif (self.omega_curvature < 0):
+            return (self.hubble_distance() /
+                    np.sqrt(np.fabs(self.omega_curvature)) * 
+                    np.sin(np.sqrt(np.fabs(self.omega_curvature)) * 
+                           self.comoving_radial_distance(z_i, z_f) /
+                           self.hubble_distance())).in_cgs()
         else:
-             return (4 * np.pi * np.power(self.ComovingTransverseDistance(z_i,z_f), 3) / 
-                     3 / 1e9)
+            return self.comoving_radial_distance(z_i, z_f)
 
-    def AngularDiameterDistance(self,z_i,z_f):
-        return (self.ComovingTransverseDistance(0,z_f) / (1 + z_f) - 
-                self.ComovingTransverseDistance(0,z_i) / (1 + z_i))
+    def comoving_volume(self, z_i, z_f):
+        r"""
+        "The comoving volume is the volume measure in which number densities 
+        of non-evolving objects locked into Hubble flow are constant with 
+        redshift." -- Hogg (1999)
+        
+        Parameters
+        ----------
+        z_i : float
+            The lower redshift of the interval.
+        z_f : float
+            The higher redshift of the interval.
 
-    def LuminosityDistance(self,z_i,z_f):
-        return (self.ComovingTransverseDistance(0,z_f) * (1 + z_f) - 
-                self.ComovingTransverseDistance(0,z_i) * (1 + z_i))
+        Examples
+        --------
 
-    def LookbackTime(self,z_i,z_f):
-        return (romberg(self.AgeIntegrand,z_i,z_f) / self.HubbleConstantNow * kmPerMpc)
+        >>> co = Cosmology()
+        >>> print co.comoving_volume(0., 1.).in_units("Gpc**3")
 
-    def UniverseAge(self,z):
-        return (romberg(self.AgeIntegrand,z,1000) / self.HubbleConstantNow * kmPerMpc)
-
-    def AngularScale_1arcsec_kpc(self,z_i,z_f):
-        return (self.AngularDiameterDistance(z_i,z_f) / 648. * np.pi)
-
-    def CriticalDensity(self,z):
-        return (3.0 / 8.0 / np.pi * sqr(self.HubbleConstantNow / kmPerMpc) / G *
-                (self.OmegaLambdaNow + ((1 + z)**3.0) * self.OmegaMatterNow))
-
-    def AgeIntegrand(self,z):
-        return (1 / (z + 1) / self.ExpansionFactor(z))
-
-    def ExpansionFactor(self,z):
-        return np.sqrt(self.OmegaMatterNow * ((1 + z)**3.0) + 
-                    self.OmegaCurvatureNow * np.sqrt(1 + z) + 
-                    self.OmegaLambdaNow)
-
-    def InverseExpansionFactor(self,z):
-        return 1 / self.ExpansionFactor(z)
-
-    def PathLengthFunction(self,z):
-        return ((1 + z)**2) * self.InverseExpansionFactor(z)
-
-    def PathLength(self, z_i, z_f):
-        return romberg(self.PathLengthFunction, z_i, z_f)
-
-def sqr(x):
-    return (x**2.0)
-
-def romberg(f, a, b, eps=1e-8):
-    """Approximate the definite integral of f from a to b by Romberg's method.
-    eps is the desired accuracy."""
-    R = [[0.5 * (b - a) * (f(a) + f(b))]]  # R[0][0]
-    n = 1
-    while True:
-        h = float(b - a) / 2 ** n
-        R.append([None] * (n + 1))  # Add an empty row.
-        # for proper limits
-        R[n][0] = 0.5*R[n-1][0] + h*sum(f(a+(2*k-1)*h) for k in xrange(1, 2**(n-1)+1))
-        for m in xrange(1, n+1):
-            R[n][m] = R[n][m-1] + (R[n][m-1] - R[n-1][m-1]) / (4 ** m - 1)
-        if abs(R[n][n-1] - R[n][n]) < eps:
-            return R[n][n]
-        n += 1
-
-class EnzoCosmology(object):
-    def __init__(self, HubbleConstantNow = 71.0,
-                 OmegaMatterNow = 0.27,
-                 OmegaLambdaNow = 0.73,
-                 OmegaCurvatureNow = 0.0,
-                 InitialRedshift = 99.0):
-        self.HubbleConstantNow = HubbleConstantNow
-        self.OmegaMatterNow = OmegaMatterNow
-        self.OmegaLambdaNow = OmegaLambdaNow
-        self.OmegaCurvatureNow = OmegaCurvatureNow
-        self.InitialRedshift = InitialRedshift
-        self.InitialTime = self.ComputeTimeFromRedshift(self.InitialRedshift)
-        self.TimeUnits = self.ComputeTimeUnits()
-
-    def ComputeTimeUnits(self):
         """
-        Taken from CosmologyGetUnits.C in Enzo.
-        """
-        # Changed 2.52e17 to 2.52e19 because H_0 is in km/s/Mpc, 
-        # instead of 100 km/s/Mpc.
-        # TODO: Move me to physical_units
-        return 2.52e19 / np.sqrt(self.OmegaMatterNow) / \
-            self.HubbleConstantNow / np.power(1 + self.InitialRedshift,1.5)
+        if (self.omega_curvature > 0):
+             return (2 * np.pi * np.power(self.hubble_distance(), 3) /
+                     self.omega_curvature * 
+                     (self.comoving_transverse_distance(z_i, z_f) /
+                      self.hubble_distance() * 
+                      np.sqrt(1 + self.omega_curvature * 
+                           sqr(self.comoving_transverse_distance(z_i, z_f) /
+                               self.hubble_distance())) - 
+                      np.sinh(np.fabs(self.omega_curvature) * 
+                            self.comoving_transverse_distance(z_i, z_f) /
+                            self.hubble_distance()) /
+                            np.sqrt(self.omega_curvature))).in_cgs()
+        elif (self.omega_curvature < 0):
+             return (2 * np.pi * np.power(self.hubble_distance(), 3) /
+                     np.fabs(self.omega_curvature) * 
+                     (self.comoving_transverse_distance(z_i, z_f) /
+                      self.hubble_distance() * 
+                      np.sqrt(1 + self.omega_curvature * 
+                           sqr(self.comoving_transverse_distance(z_i, z_f) /
+                               self.hubble_distance())) - 
+                      np.arcsin(np.fabs(self.omega_curvature) * 
+                           self.comoving_transverse_distance(z_i, z_f) /
+                           self.hubble_distance()) /
+                      np.sqrt(np.fabs(self.omega_curvature)))).in_cgs()
+        else:
+             return (4 * np.pi *
+                     np.power(self.comoving_transverse_distance(z_i, z_f), 3) /\
+                     3).in_cgs()
 
-    def ComputeRedshiftFromTime(self,time):
+    def angular_diameter_distance(self, z_i, z_f):
+        r"""
+        The proper transverse distance between two points at redshift z_f 
+        observed at redshift z_i to have an angular separation of one radian.
+
+        Parameters
+        ----------
+        z_i : float
+            The redshift of the observer.
+        z_f : float
+            The redshift of the observed object.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.angular_diameter_distance(0., 1.).in_units("Mpc")
+        
+        """
+        
+        return (self.comoving_transverse_distance(0, z_f) / (1 + z_f) - 
+                self.comoving_transverse_distance(0, z_i) / (1 + z_i)).in_cgs()
+
+    def luminosity_distance(self, z_i, z_f):
+        r"""
+        The distance that would be inferred from the inverse-square law of 
+        light and the measured flux and luminosity of the observed object.
+
+        Parameters
+        ----------
+        z_i : float
+            The redshift of the observer.
+        z_f : float
+            The redshift of the observed object.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.luminosity_distance(0., 1.).in_units("Mpc")
+        
+        """
+
+        return (self.comoving_transverse_distance(0, z_f) * (1 + z_f) - 
+                self.comoving_transverse_distance(0, z_i) * (1 + z_i)).in_cgs()
+
+    def lookback_time(self, z_i, z_f):
+        r"""
+        The difference in the age of the Universe between the redshift interval 
+        z_i to z_f.
+
+        Parameters
+        ----------
+        z_i : float
+            The lower redshift of the interval.
+        z_f : float
+            The higher redshift of the interval.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.lookback_time(0., 1.).in_units("Gyr")
+
+        """
+        return (trapzint(self.age_integrand, z_i, z_f) / \
+                self.hubble_constant).in_cgs()
+    
+    def hubble_time(self, z, z_inf=1e6):
+        r"""
+        The age of the Universe at a given redshift.
+
+        Parameters
+        ----------
+        z : float
+            Redshift.
+        z_inf : float
+            The upper bound of the integral of the age integrand.
+            Default: 1e6.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.hubble_time(0.).in_units("Gyr")
+
+        See Also
+        --------
+
+        t_from_z
+
+        """
+        return (trapzint(self.age_integrand, z, z_inf) /
+                self.hubble_constant).in_cgs()
+
+    def critical_density(self, z):
+        r"""
+        The density required for closure of the Universe at a given 
+        redshift in the proper frame.
+
+        Parameters
+        ----------
+        z : float
+            Redshift.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.critical_density(0.).in_units("g/cm**3")
+        >>> print co.critical_density(0).in_units("Msun/Mpc**3")
+        
+        """
+        return (3.0 / 8.0 / np.pi * 
+                self.hubble_constant**2 / G *
+                ((1 + z)**3.0 * self.omega_matter + 
+                 self.omega_lambda)).in_cgs()
+
+    def hubble_parameter(self, z):
+        r"""
+        The value of the Hubble parameter at a given redshift.
+
+        Parameters
+        ----------
+        z: float
+            Redshift.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.hubble_parameter(1.0).in_units("km/s/Mpc")
+
+        """
+        return self.hubble_constant * self.expansion_factor(z)
+
+    def age_integrand(self, z):
+        return (1 / (z + 1) / self.expansion_factor(z))
+
+    def expansion_factor(self, z):
+        r"""
+        The ratio between the Hubble parameter at a given redshift and 
+        redshift zero.
+
+        This is also the primary function integrated to calculate the 
+        cosmological distances.
+        
+        """
+        return np.sqrt(self.omega_matter * ((1 + z)**3.0) + 
+                       self.omega_curvature * np.sqrt(1 + z) + 
+                       self.omega_lambda)
+
+    def inverse_expansion_factor(self, z):
+        return 1 / self.expansion_factor(z)
+
+    def path_length_function(self, z):
+        return ((1 + z)**2) * self.inverse_expansion_factor(z)
+
+    def path_length(self, z_i, z_f):
+        return trapzint(self.path_length_function, z_i, z_f)
+
+    def z_from_t(self, my_time):
         """
         Compute the redshift from time after the big bang.  This is based on
         Enzo's CosmologyComputeExpansionFactor.C, but altered to use physical
         units.
+
+        Parameters
+        ----------
+        my_time : float
+            Age of the Universe in seconds.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.t_from_z(4.e17)
+
         """
 
-        OmegaCurvatureNow = 1.0 - self.OmegaMatterNow - self.OmegaLambdaNow
+        omega_curvature = 1.0 - self.omega_matter - self.omega_lambda
 
         OMEGA_TOLERANCE = 1e-5
         ETA_TOLERANCE = 1.0e-10
 
         # Convert the time to Time * H0.
+
+        if not isinstance(my_time, YTArray):
+            my_time = self.quan(my_time, "s")
+
+        t0 = (my_time.in_units("s") *
+              self.hubble_constant.in_units("1/s")).to_ndarray()
  
-        TimeHubble0 = time * self.HubbleConstantNow / kmPerMpc
+        # 1) For a flat universe with omega_matter = 1, it's easy.
  
-        # 1) For a flat universe with OmegaMatterNow = 1, it's easy.
+        if ((np.fabs(self.omega_matter-1) < OMEGA_TOLERANCE) and
+            (self.omega_lambda < OMEGA_TOLERANCE)):
+            a = np.power(my_time/self.initial_time, 2.0/3.0)
  
-        if ((np.fabs(self.OmegaMatterNow-1) < OMEGA_TOLERANCE) and
-            (self.OmegaLambdaNow < OMEGA_TOLERANCE)):
-            a = np.power(time/self.InitialTime,2.0/3.0)
- 
-        # 2) For OmegaMatterNow < 1 and OmegaLambdaNow == 0 see
+        # 2) For omega_matter < 1 and omega_lambda == 0 see
         #    Peebles 1993, eq. 13-3, 13-10.
         #    Actually, this is a little tricky since we must solve an equation
         #    of the form eta - np.sinh(eta) + x = 0..
  
-        if ((self.OmegaMatterNow < 1) and 
-            (self.OmegaLambdaNow < OMEGA_TOLERANCE)):
-            x = 2*TimeHubble0*np.power(1.0 - self.OmegaMatterNow, 1.5) / \
-                self.OmegaMatterNow;
+        if ((self.omega_matter < 1) and 
+            (self.omega_lambda < OMEGA_TOLERANCE)):
+            x = 2*t0*np.power(1.0 - self.omega_matter, 1.5) / \
+                self.omega_matter;
  
             # Compute eta in a three step process, first from a third-order
             # Taylor expansion of the formula above, then use that in a fifth-order
@@ -200,8 +396,8 @@ class EnzoCosmology(object):
             # eta.  This works well because parts 1 & 2 are an excellent approximation
             # when x is small and part 3 converges quickly when x is large. 
  
-            eta = np.power(6*x,1.0/3.0)                # part 1
-            eta = np.power(120*x/(20+eta*eta),1.0/3.0) # part 2
+            eta = np.power(6*x, 1.0/3.0)                # part 1
+            eta = np.power(120*x/(20+eta*eta), 1.0/3.0) # part 2
             for i in range(40):                      # part 3
                 eta_old = eta
                 eta = np.arcsinh(eta + x)
@@ -212,66 +408,108 @@ class EnzoCosmology(object):
  
             # Now use eta to compute the expansion factor (eq. 13-10, part 2).
  
-            a = self.OmegaMatterNow/(2.0*(1.0 - self.OmegaMatterNow))*\
+            a = self.omega_matter/(2.0*(1.0 - self.omega_matter))*\
                 (np.cosh(eta) - 1.0)
 
-        # 3) For OmegaMatterNow > 1 and OmegaLambdaNow == 0, use sin/cos.
+        # 3) For omega_matter > 1 and omega_lambda == 0, use sin/cos.
         #    Easy, but skip it for now.
  
-        if ((self.OmegaMatterNow > 1) and 
-            (self.OmegaLambdaNow < OMEGA_TOLERANCE)):
+        if ((self.omega_matter > 1) and 
+            (self.omega_lambda < OMEGA_TOLERANCE)):
             print "Never implemented in Enzo, not implemented here."
             return 0
  
-        # 4) For flat universe, with non-zero OmegaLambdaNow, see eq. 13-20.
+        # 4) For flat universe, with non-zero omega_lambda, see eq. 13-20.
  
-        if ((np.fabs(OmegaCurvatureNow) < OMEGA_TOLERANCE) and
-            (self.OmegaLambdaNow > OMEGA_TOLERANCE)):
-            a = np.power(self.OmegaMatterNow / (1 - self.OmegaMatterNow),1.0/3.0) * \
-                np.power(np.sinh(1.5 * np.sqrt(1.0 - self.OmegaMatterNow)*\
-                                     TimeHubble0),2.0/3.0)
+        if ((np.fabs(omega_curvature) < OMEGA_TOLERANCE) and
+            (self.omega_lambda > OMEGA_TOLERANCE)):
+            a = np.power(self.omega_matter / 
+                         (1 - self.omega_matter), 1.0/3.0) * \
+                np.power(np.sinh(1.5 * np.sqrt(1.0 - self.omega_matter)*\
+                                     t0), 2.0/3.0)
 
 
         redshift = (1.0/a) - 1.0
 
         return redshift
 
-    def ComputeTimeFromRedshift(self,z):
+    def t_from_z(self, z):
         """
-        Compute the time from redshift.  This is based on Enzo's
-        CosmologyComputeTimeFromRedshift.C, but altered to use physical units.
+        Compute the age of the Universe from redshift.  This is based on Enzo's
+        CosmologyComputeTimeFromRedshift.C, but altered to use physical units.  
+        Similar to hubble_time, but using an analytical function.
+
+        Parameters
+        ----------
+        z : float
+            Redshift.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.t_from_z(0.).in_units("Gyr")
+
+        See Also
+        --------
+
+        hubble_time
+        
         """
-        OmegaCurvatureNow = 1.0 - self.OmegaMatterNow - self.OmegaLambdaNow
+        omega_curvature = 1.0 - self.omega_matter - self.omega_lambda
  
-        # 1) For a flat universe with OmegaMatterNow = 1, things are easy.
+        # 1) For a flat universe with omega_matter = 1, things are easy.
  
-        if ((self.OmegaMatterNow == 1.0) and (self.OmegaLambdaNow == 0.0)):
-            TimeHubble0 = 2.0/3.0/np.power(1+z,1.5)
+        if ((self.omega_matter == 1.0) and (self.omega_lambda == 0.0)):
+            t0 = 2.0/3.0/np.power(1+z, 1.5)
  
-        # 2) For OmegaMatterNow < 1 and OmegaLambdaNow == 0 see
+        # 2) For omega_matter < 1 and omega_lambda == 0 see
         #    Peebles 1993, eq. 13-3, 13-10.
  
-        if ((self.OmegaMatterNow < 1) and (self.OmegaLambdaNow == 0)):
-            eta = np.arccosh(1 + 2*(1-self.OmegaMatterNow)/self.OmegaMatterNow/(1+z))
-            TimeHubble0 = self.OmegaMatterNow/(2*np.power(1.0-self.OmegaMatterNow, 1.5))*\
-                (np.sinh(eta) - eta)
+        if ((self.omega_matter < 1) and (self.omega_lambda == 0)):
+            eta = np.arccosh(1 + 
+                             2*(1-self.omega_matter)/self.omega_matter/(1+z))
+            t0 = self.omega_matter/ \
+              (2*np.power(1.0-self.omega_matter, 1.5))*\
+              (np.sinh(eta) - eta)
  
-        # 3) For OmegaMatterNow > 1 and OmegaLambdaNow == 0, use sin/cos.
+        # 3) For omega_matter > 1 and omega_lambda == 0, use sin/cos.
  
-        if ((self.OmegaMatterNow > 1) and (self.OmegaLambdaNow == 0)):
-            eta = np.arccos(1 - 2*(1-self.OmegaMatterNow)/self.OmegaMatterNow/(1+z))
-            TimeHubble0 = self.OmegaMatterNow/(2*np.power(1.0-self.OmegaMatterNow, 1.5))*\
+        if ((self.omega_matter > 1) and (self.omega_lambda == 0)):
+            eta = np.arccos(1 - 2*(1-self.omega_matter)/self.omega_matter/(1+z))
+            t0 = self.omega_matter/(2*np.power(1.0-self.omega_matter, 1.5))*\
                 (eta - np.sin(eta))
  
-        # 4) For flat universe, with non-zero OmegaLambdaNow, see eq. 13-20.
+        # 4) For flat universe, with non-zero omega_lambda, see eq. 13-20.
  
-        if ((np.fabs(OmegaCurvatureNow) < 1.0e-3) and (self.OmegaLambdaNow != 0)):
-            TimeHubble0 = 2.0/3.0/np.sqrt(1-self.OmegaMatterNow)*\
-                np.arcsinh(np.sqrt((1-self.OmegaMatterNow)/self.OmegaMatterNow)/ \
-                               np.power(1+z,1.5))
+        if ((np.fabs(omega_curvature) < 1.0e-3) and (self.omega_lambda != 0)):
+            t0 = 2.0/3.0/np.sqrt(1-self.omega_matter)*\
+                np.arcsinh(np.sqrt((1-self.omega_matter)/self.omega_matter)/ \
+                               np.power(1+z, 1.5))
   
         # Now convert from Time * H0 to time.
   
-        time = TimeHubble0 / (self.HubbleConstantNow/kmPerMpc)
+        my_time = t0 / self.hubble_constant
     
-        return time
+        return my_time.in_cgs()
+
+    _arr = None
+    @property
+    def arr(self):
+        if self._arr is not None:
+            return self._arr
+        self._arr = functools.partial(YTArray, registry = self.unit_registry)
+        return self._arr
+    
+    _quan = None
+    @property
+    def quan(self):
+        if self._quan is not None:
+            return self._quan
+        self._quan = functools.partial(YTQuantity,
+                registry = self.unit_registry)
+        return self._quan
+
+def trapzint(f, a, b, bins=10000):
+    zbins = np.logspace(np.log10(a + 1), np.log10(b + 1), bins) - 1
+    return np.trapz(f(zbins[:-1]), x=zbins[:-1], dx=np.diff(zbins))

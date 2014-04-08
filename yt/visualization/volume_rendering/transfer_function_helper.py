@@ -37,7 +37,7 @@ class TransferFunctionHelper(object):
 
         Parameters
         ----------
-        pf: A StaticOutput instance
+        pf: A Dataset instance
             A static output that is currently being rendered. This is used to
             help set up data bounds.
 
@@ -65,7 +65,7 @@ class TransferFunctionHelper(object):
             in the dataset.  This can be slow for very large datasets.
         """
         if bounds is None:
-            bounds = self.pf.h.all_data().quantities['Extrema'](self.field)[0]
+            bounds = self.pf.all_data().quantities.extrema(self.field)
         self.bounds = bounds
 
         # Do some error checking.
@@ -98,7 +98,7 @@ class TransferFunctionHelper(object):
             Sets whether the transfer function should use log or linear space.
         """
         self.log = log
-        self.pf.h
+        self.pf.index
         self.pf._get_field_info(self.field).take_log = log
 
     def build_transfer_function(self):
@@ -201,7 +201,7 @@ class TransferFunctionHelper(object):
     def setup_profile(self, profile_field=None, profile_weight=None):
         if profile_field is None:
             profile_field = 'CellVolume'
-        prof = BinnedProfile1D(self.pf.h.all_data(), 128, self.field,
+        prof = BinnedProfile1D(self.pf.all_data(), 128, self.field,
                                self.bounds[0], self.bounds[1],
                                log_space=self.log,
                                end_collect=False)

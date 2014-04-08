@@ -29,7 +29,7 @@ def _fix_pf(arg):
     elif os.path.isdir("%s.dir" % arg) and \
         os.path.exists("%s.dir/%s" % (arg,arg)):
         pf = load("%s.dir/%s" % (arg,arg))
-    elif arg.endswith(".hierarchy"):
+    elif arg.endswith(".index"):
         pf = load(arg[:-10])
     else:
         pf = load(arg)
@@ -123,7 +123,7 @@ _common_options = dict(
                    help="Textual annotation"),
     field   = dict(short="-f", long="--field",
                    action="store", type=str,
-                   dest="field", default="Density",
+                   dest="field", default="density",
                    help="Field to color by"),
     weight  = dict(short="-g", long="--weight",
                    action="store", type=str,
@@ -1117,13 +1117,13 @@ class YTLoadCmd(YTCommand):
             api_version = '0.11'
 
         local_ns = yt.mods.__dict__.copy()
-        local_ns['pf'] = args.pf
+        local_ns['ds'] = args.pf
 
         if api_version == '0.10':
             shell = IPython.Shell.IPShellEmbed()
             shell(local_ns = local_ns,
                   header =
-                  "\nHi there!  Welcome to yt.\n\nWe've loaded your parameter file as 'pf'.  Enjoy!"
+                  "\nHi there!  Welcome to yt.\n\nWe've loaded your parameter file as 'ds'.  Enjoy!"
                   )
         else:
             from IPython.config.loader import Config
@@ -1152,17 +1152,15 @@ class YTMapserverCmd(YTCommand):
 
     def __call__(self, args):
         pf = args.pf
-        pc=PlotCollection(pf, center=0.5*(pf.domain_left_edge +
-                                          pf.domain_right_edge))
         if args.axis == 4:
             print "Doesn't work with multiple axes!"
             return
         if args.projection:
-            p = pc.add_projection(args.field, args.axis, weight_field=args.weight)
+            p = ProjectionPlot(pf, args.axis, args.field, weight_field=args.weight)
         else:
-            p = pc.add_slice(args.field, args.axis)
+            p = SlicePlot(pf, args.axis, args.field)
         from yt.gui.reason.pannable_map import PannableMapServer
-        mapper = PannableMapServer(p.data, args.field)
+        mapper = PannableMapServer(p.data_source, args.field)
         import yt.extern.bottle as bottle
         bottle.debug(True)
         if args.host is not None:
@@ -1278,14 +1276,14 @@ class YTPlotCmd(YTCommand):
         center = args.center
         if args.center == (-1,-1,-1):
             mylog.info("No center fed in; seeking.")
-            v, center = pf.h.find_max("Density")
+            v, center = pf.h.find_max("density")
         if args.max:
-            v, center = pf.h.find_max("Density")
+            v, center = pf.h.find_max("density")
         elif args.center is None:
             center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
         center = np.array(center)
         if pf.dimensionality < 3:
-            dummy_dimensions = np.nonzero(pf.h.grids[0].ActiveDimensions <= 1)
+            dummy_dimensions = np.nonzero(pf.index.grids[0].ActiveDimensions <= 1)
             axes = ensure_list(dummy_dimensions[0][0])
         elif args.axis == 4:
             axes = range(3)
@@ -1338,7 +1336,7 @@ class YTRenderCmd(YTCommand):
         center = args.center
         if args.center == (-1,-1,-1):
             mylog.info("No center fed in; seeking.")
-            v, center = pf.h.find_max("Density")
+            v, center = pf.h.find_max("density")
         elif args.center is None:
             center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
         center = np.array(center)
@@ -1366,7 +1364,7 @@ class YTRenderCmd(YTCommand):
 
         field = args.field
         if field is None:
-            field = 'Density'
+            field = 'density'
 
         log = args.takelog
         if log is None:
@@ -1374,7 +1372,7 @@ class YTRenderCmd(YTCommand):
 
         myrange = args.valrange
         if myrange is None:
-            roi = pf.h.region(center, center-width, center+width)
+            roi = pf.region(center, center-width, center+width)
             mi, ma = roi.quantities['Extrema'](field)[0]
             if log:
                 mi, ma = np.log10(mi), np.log10(ma)
@@ -1487,13 +1485,6 @@ class YTNotebookCmd(YTCommand):
         print
         print "If you are using %s on your machine already, try -L8889:localhost:%s" % (app.port, app.port)
         print
-        print "Additionally, while in the notebook, we recommend you start by"
-        print "replacing 'yt.mods' with 'yt.imods' like so:"
-        print
-        print "    from yt.imods import *"
-        print
-        print "This will enable some IPython-specific extensions to yt."
-        print
         print "***************************************************************"
         print
         app.start()
@@ -1510,7 +1501,7 @@ class YTGUICmd(YTCommand):
                  help="Port to listen on"),
             dict(short="-f", long="--find", action="store_true",
                  default = False, dest="find",
-                 help="At startup, find all *.hierarchy files in the CWD"),
+                 help="At startup, find all *.index files in the CWD"),
             dict(short="-d", long="--debug", action="store_true",
                  default = False, dest="debug",
                  help="Add a debugging mode for cell execution"),
@@ -1556,7 +1547,7 @@ class YTGUICmd(YTCommand):
         command_line = ["pfs = []"]
         if args.find:
             # We just have to find them and store references to them.
-            for fn in sorted(glob.glob("*/*.hierarchy")):
+            for fn in sorted(glob.glob("*/*.index")):
                 command_line.append("pfs.append(load('%s'))" % fn[:-10])
         hr.execute("\n".join(command_line))
         bottle.debug()
@@ -1575,7 +1566,7 @@ class YTStatsCmd(YTCommand):
         Print stats and max/min value of a given field (if requested),
         for one or more datasets
 
-        (default field is Density)
+        (default field is density)
 
         """
 
@@ -1583,7 +1574,7 @@ class YTStatsCmd(YTCommand):
         pf = args.pf
         pf.h.print_stats()
         vals = {}
-        if args.field in pf.h.derived_field_list:
+        if args.field in pf.derived_field_list:
             if args.max == True:
                 vals['min'] = pf.h.find_max(args.field)
                 print "Maximum %s: %0.5e at %s" % (args.field,

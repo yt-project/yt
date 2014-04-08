@@ -240,7 +240,7 @@ int artio_fileset_open_grid(artio_fileset *handle);
 int artio_fileset_close_grid(artio_fileset *handle);
 
 /*
- * Description:	Output the variables of the root level cell and the hierarchy of the Oct tree correlated with this root level cell
+ * Description:	Output the variables of the root level cell and the index of the Oct tree correlated with this root level cell
  *
  *  handle			The File handle
  *  sfc				The sfc index of root cell
@@ -275,7 +275,7 @@ int artio_grid_write_level_end(artio_fileset *handle);
 int artio_grid_write_oct(artio_fileset *handle, float *variables, int *refined);
 
 /*
- * Description:	Read the variables of the root level cell and the hierarchy of the Octtree
+ * Description:	Read the variables of the root level cell and the index of the Octtree
  *              correlated with this root level cell
  *
  *  handle			The File handle
@@ -371,7 +371,7 @@ int artio_fileset_open_particles(artio_fileset *handle);
 int artio_fileset_close_particles(artio_fileset *handle);
 
 /*
- * Description:	Output the variables of the root level cell and the hierarchy of 
+ * Description:	Output the variables of the root level cell and the index of 
  *                  the oct-tree correlated with this root level cell
  *
  *  handle			The File handle
@@ -408,7 +408,7 @@ int artio_particle_write_particle(artio_fileset *handle, int64_t pid, int subspe
 			double* primary_variables, float *secondary_variables);
 
 /*
- * Description:	Read the variables of the root level cell and the hierarchy of the Octtree
+ * Description:	Read the variables of the root level cell and the index of the Octtree
  *              correlated with this root level cell
  *
  *  handle			The File handle

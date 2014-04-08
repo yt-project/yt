@@ -14,11 +14,10 @@ API for yt.frontends.ramses
 #-----------------------------------------------------------------------------
 
 from .data_structures import \
-      RAMSESStaticOutput
+      RAMSESDataset
 
 from .fields import \
-      RAMSESFieldInfo, \
-      add_ramses_field
+      RAMSESFieldInfo
 
 from .io import \
       IOHandlerRAMSES

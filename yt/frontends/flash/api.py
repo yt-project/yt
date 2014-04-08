@@ -16,11 +16,10 @@ API for yt.frontends.flash
 from .data_structures import \
       FLASHGrid, \
       FLASHHierarchy, \
-      FLASHStaticOutput
+      FLASHDataset
 
 from .fields import \
-      FLASHFieldInfo, \
-      add_flash_field
+      FLASHFieldInfo
 
 from .io import \
       IOHandlerFLASH

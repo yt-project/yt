@@ -28,20 +28,20 @@ class Streamlines(ParallelAnalysisInterface):
 
     Parameters
     ----------
-    pf : `~yt.data_objects.StaticOutput`
+    pf : `~yt.data_objects.Dataset`
         This is the parameter file to streamline
     pos : array_like
         An array of initial starting positions of the streamlines.
     xfield: field, optional
         The x component of the vector field to be streamlined.
-        Default:'x-velocity'
+        Default:'velocity_x'
     yfield: field, optional
         The y component of the vector field to be streamlined.
-        Default:'y-velocity'
+        Default:'velocity_y'
     zfield: field, optional
         The z component of the vector field to be streamlined.
-        Default:'z-velocity'
-    volume : `yt.extensions.volume_rendering.HomogenizedVolume`, optional
+        Default:'velocity_z'
+    volume : `yt.extensions.volume_rendering.AMRKDTree`, optional
         The volume to be streamlined.  Can be specified for
         finer-grained control, but otherwise will be automatically
         generated.  At this point it must use the AMRKDTree. 
@@ -73,7 +73,7 @@ class Streamlines(ParallelAnalysisInterface):
     >>> pos_dx = np.random.random((N,3))*scale-scale/2.
     >>> pos = c+pos_dx
     
-    >>> streamlines = Streamlines(pf,pos,'x-velocity', 'y-velocity', 'z-velocity', length=1.0) 
+    >>> streamlines = Streamlines(pf,pos,'velocity_x', 'velocity_y', 'velocity_z', length=1.0) 
     >>> streamlines.integrate_through_volume()
     
     >>> import matplotlib.pylab as pl
@@ -85,8 +85,8 @@ class Streamlines(ParallelAnalysisInterface):
     >>>     ax.plot3D(stream[:,0], stream[:,1], stream[:,2], alpha=0.1)
     >>> pl.savefig('streamlines.png')
     """
-    def __init__(self, pf, positions, xfield='x-velocity', yfield='x-velocity',
-                 zfield='x-velocity', volume=None,
+    def __init__(self, pf, positions, xfield='velocity_x', yfield='velocity_x',
+                 zfield='velocity_x', volume=None,
                  dx=None, length=None, direction=1,
                  get_magnitude=False):
         ParallelAnalysisInterface.__init__(self)
@@ -99,12 +99,14 @@ class Streamlines(ParallelAnalysisInterface):
         self.get_magnitude=get_magnitude
         self.direction = np.sign(direction)
         if volume is None:
-            volume = AMRKDTree(self.pf, fields=[self.xfield,self.yfield,self.zfield],
-                            log_fields=[False,False,False])
+            volume = AMRKDTree(self.pf)
+            volume.set_fields([self.xfield,self.yfield,self.zfield],
+                              [False,False,False],
+                              False)
             volume.join_parallel_trees()
         self.volume = volume
         if dx is None:
-            dx = self.pf.h.get_smallest_dx()
+            dx = self.pf.index.get_smallest_dx()
         self.dx = dx
         if length is None:
             length = np.max(self.pf.domain_right_edge-self.pf.domain_left_edge)

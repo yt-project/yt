@@ -42,13 +42,21 @@ class Orientation:
            True.  Default: False
            
         """
+
+        # Make sure vectors are unitless
+        if north_vector is not None:
+            north_vector = YTArray(north_vector, "", dtype='float64')
+        if normal_vector is not None:
+            normal_vector = YTArray(normal_vector, "", dtype='float64')
+
         self.steady_north = steady_north
         if not np.dot(normal_vector, normal_vector) > 0:
             mylog.error("Normal vector is null")
         if np.all(north_vector == normal_vector):
             mylog.error("North vector and normal vector are the same.  Disregarding north vector.")
             north_vector = None
-        if north_vector is not None: self.steady_north = True
+        if north_vector is not None:
+            self.steady_north = True
         self.north_vector = north_vector
         self._setup_normalized_vectors(normal_vector, north_vector)
         if self.north_vector is None:
@@ -72,7 +80,7 @@ class Orientation:
         north_vector /= np.sqrt(np.dot(north_vector, north_vector))
         east_vector /= np.sqrt(np.dot(east_vector, east_vector))
         self.normal_vector = normal_vector
-        self.unit_vectors = [east_vector, north_vector, normal_vector]
+        self.unit_vectors = YTArray([east_vector, north_vector, normal_vector], "")
         self.inv_mat = np.linalg.pinv(self.unit_vectors)
         
     def switch_orientation(self, normal_vector=None, north_vector=None):

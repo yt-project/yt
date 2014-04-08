@@ -19,11 +19,9 @@ cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free
 from fp_utils cimport fclip, iclip, fmax, fmin
-from selection_routines cimport SelectorObject
-from oct_container cimport OctreeContainer, OctAllocationContainer, Oct
+from .oct_container cimport OctreeContainer, OctAllocationContainer, Oct
 cimport oct_visitors
-from oct_visitors cimport cind
-#from geometry_utils cimport point_to_hilbert
+from .oct_visitors cimport cind
 from yt.utilities.lib.grid_traversal cimport \
     VolumeContainer, sample_function, walk_volume
 
@@ -52,6 +50,11 @@ ctypedef fused anyfloat:
 # First, bounding box / object intersection routines.
 # These all respect the interface "dobj" and a set of left_edges, right_edges,
 # sometimes also accepting level and mask information.
+
+def _ensure_code(arr):
+    if hasattr(arr, "convert_to_units"):
+        arr.convert_to_units("code_length")
+    return arr
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -117,12 +120,14 @@ cdef class SelectorObject:
             pf = getattr(dobj, 'pf', None)
             if pf is None:
                 for i in range(3):
+                    # NOTE that this is not universal.
                     self.domain_width[i] = 1.0
                     self.periodicity[i] = False
             else:
+                DLE = _ensure_code(pf.domain_left_edge)
+                DRE = _ensure_code(pf.domain_right_edge)
                 for i in range(3):
-                    self.domain_width[i] = pf.domain_right_edge[i] - \
-                                           pf.domain_left_edge[i]
+                    self.domain_width[i] = DRE[i] - DLE[i]
                     self.periodicity[i] = pf.periodicity[i]
 
     @cython.boundscheck(False)
@@ -136,6 +141,8 @@ cdef class SelectorObject:
         cdef int ng = left_edges.shape[0]
         cdef np.ndarray[np.uint8_t, ndim=1] gridi = np.zeros(ng, dtype='uint8')
         cdef np.float64_t LE[3], RE[3]
+        _ensure_code(left_edges)
+        _ensure_code(right_edges)
         with nogil:
             for n in range(ng):
                 # Call our selector function
@@ -207,6 +214,12 @@ cdef class SelectorObject:
         # Now we visit all our children.  We subtract off sdds for the first
         # pass because we center it on the first cell.
         cdef int iter = 1 - visit_covered # 2 if 1, 1 if 0.
+        # So the order here goes like so.  If visit_covered is 1, which usually
+        # comes from "partial_coverage", we visit the components of a zone even
+        # if it has children.  But in general, the first iteration through, we
+        # visit each cell.  This means that only if visit_covered is true do we
+        # visit potentially covered cells.  The next time through, we visit
+        # child cells.
         while iter < 2:
             spos[0] = pos[0] - sdds[0]/2.0
             for i in range(2):
@@ -319,6 +332,8 @@ cdef class SelectorObject:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef np.float64_t difference(self, np.float64_t x1, np.float64_t x2, int d) nogil:
+        # domain_width is already in code units, and we assume what is fed in
+        # is too.
         cdef np.float64_t rel = x1 - x2
         if self.periodicity[d] :
             if rel > self.domain_width[d]/2.0 :
@@ -340,7 +355,7 @@ cdef class SelectorObject:
         cdef int npoints, nv = mesh._connectivity_length
         cdef int total = 0
         cdef int offset = mesh._index_offset
-        coords = mesh.connectivity_coords
+        coords = _ensure_code(mesh.connectivity_coords)
         indices = mesh.connectivity_indices
         npoints = indices.shape[0]
         mask = np.zeros(npoints, dtype='uint8')
@@ -371,7 +386,7 @@ cdef class SelectorObject:
         cdef int offset = mesh._index_offset
         if nv != 8:
             raise RuntimeError
-        coords = mesh.connectivity_coords
+        coords = _ensure_code(mesh.connectivity_coords)
         indices = mesh.connectivity_indices
         npoints = indices.shape[0]
         mask = np.zeros(npoints, dtype='uint8')
@@ -399,6 +414,9 @@ cdef class SelectorObject:
         child_mask = gobj.child_mask
         cdef np.ndarray[np.uint8_t, ndim=3] mask
         cdef int dim[3]
+        _ensure_code(gobj.dds)
+        _ensure_code(gobj.LeftEdge)
+        _ensure_code(gobj.RightEdge)
         cdef np.ndarray[np.float64_t, ndim=1] odds = gobj.dds
         cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
         cdef np.ndarray[np.float64_t, ndim=1] right_edge = gobj.RightEdge
@@ -444,6 +462,9 @@ cdef class SelectorObject:
         cdef int count = 0
         cdef int i
         cdef np.float64_t pos[3]
+        _ensure_code(x)
+        _ensure_code(y)
+        _ensure_code(z)
         with nogil:
             if radius == 0.0 :
                 for i in range(x.shape[0]):
@@ -471,6 +492,9 @@ cdef class SelectorObject:
         cdef np.float64_t pos[3]
         cdef np.ndarray[np.uint8_t, ndim=1] mask 
         mask = np.zeros(x.shape[0], dtype='uint8')
+        _ensure_code(x)
+        _ensure_code(y)
+        _ensure_code(z)
 
         # this is to allow selectors to optimize the point vs
         # 0-radius sphere case.  These two may have different 
@@ -518,8 +542,8 @@ cdef class SphereSelector(SelectorObject):
     def __init__(self, dobj):
         for i in range(3):
             self.center[i] = dobj.center[i]
-        self.radius = dobj.radius
-        self.radius2 = dobj.radius * dobj.radius
+        self.radius = _ensure_code(dobj.radius)
+        self.radius2 = self.radius * self.radius
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -592,11 +616,15 @@ cdef class RegionSelector(SelectorObject):
 
     def __init__(self, dobj):
         cdef int i
-        cdef np.float64_t region_width, domain_width
+        # We are modifying dobj.left_edge and dobj.right_edge , so here we will
+        # do an in-place conversion of those arrays.
+        _ensure_code(dobj.right_edge)
+        _ensure_code(dobj.left_edge)
+        DW = _ensure_code(dobj.pf.domain_width.copy())
 
         for i in range(3):
             region_width = dobj.right_edge[i] - dobj.left_edge[i]
-            domain_width = dobj.pf.domain_right_edge[i] - dobj.pf.domain_left_edge[i]
+            domain_width = DW[i]
 
             if region_width <= 0:
                 print "Error: region right edge < left edge", region_width
@@ -617,9 +645,11 @@ cdef class RegionSelector(SelectorObject):
                         dobj.pf.domain_left_edge[i], dobj.right_edge[i], dobj.pf.domain_right_edge[i]
                     raise RuntimeError
                 
+            # Already ensured in code
             self.left_edge[i] = dobj.left_edge[i]
             self.right_edge[i] = dobj.right_edge[i]
-            self.right_edge_shift[i] = dobj.right_edge[i] - domain_width
+            self.right_edge_shift[i] = \
+                (dobj.right_edge).to_ndarray()[i] - domain_width.to_ndarray()
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -669,9 +699,9 @@ cdef class DiskSelector(SelectorObject):
         for i in range(3):
             self.norm_vec[i] = dobj._norm_vec[i]
             self.center[i] = dobj.center[i]
-        self.radius = dobj._radius
-        self.radius2 = dobj._radius * dobj._radius
-        self.height = dobj._height
+        self.radius = _ensure_code(dobj._radius)
+        self.radius2 = self.radius * self.radius
+        self.height = _ensure_code(dobj._height)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -772,7 +802,7 @@ cdef class CuttingPlaneSelector(SelectorObject):
         cdef int i
         for i in range(3):
             self.norm_vec[i] = dobj._norm_vec[i]
-        self.d = dobj._d
+        self.d = _ensure_code(dobj._d)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -849,7 +879,7 @@ cdef class SliceSelector(SelectorObject):
 
     def __init__(self, dobj):
         self.axis = dobj.axis
-        self.coord = dobj.coord
+        self.coord = _ensure_code(dobj.coord)
 
         ax = (self.axis+1) % 3
         ay = (self.axis+2) % 3
@@ -865,6 +895,8 @@ cdef class SliceSelector(SelectorObject):
         cdef int this_level = 0
         cdef int ind[3][2]
         cdef np.int32_t level = gobj.Level
+        _ensure_code(gobj.LeftEdge)
+        _ensure_code(gobj.dds)
 
         if level < self.min_level or level > self.max_level:
             return None
@@ -875,7 +907,9 @@ cdef class SliceSelector(SelectorObject):
                 this_level = 1
             for i in range(3):
                 if i == self.axis:
-                    ind[i][0] = <int> ((self.coord - gobj.LeftEdge[i])/gobj.dds[i])
+                    ind[i][0] = \
+                        <int> ((self.coord - (gobj.LeftEdge[i]).to_ndarray()) / 
+                               gobj.dds[i])
                     ind[i][1] = ind[i][0] + 1
                 else:
                     ind[i][0] = 0
@@ -952,6 +986,9 @@ cdef class OrthoRaySelector(SelectorObject):
         cdef int this_level = 0
         cdef int ind[3][2]
         cdef np.int32_t level = gobj.Level
+        _ensure_code(gobj.LeftEdge)
+        _ensure_code(gobj.RightEdge)
+        _ensure_code(gobj.dds)
 
         if level < self.min_level or level > self.max_level:
             return None
@@ -962,11 +999,13 @@ cdef class OrthoRaySelector(SelectorObject):
                 this_level = 1
             ind[self.axis][0] = 0
             ind[self.axis][1] = gobj.ActiveDimensions[self.axis]
-            ind[self.px_ax][0] = <int> ((self.px - gobj.LeftEdge[self.px_ax]) /
-                                        gobj.dds[self.px_ax])
+            ind[self.px_ax][0] = \
+                <int> ((self.px - (gobj.LeftEdge).to_ndarray()[self.px_ax]) /
+                       gobj.dds[self.px_ax])
             ind[self.px_ax][1] = ind[self.px_ax][0] + 1
-            ind[self.py_ax][0] = <int> ((self.py - gobj.LeftEdge[self.py_ax]) /
-                                        gobj.dds[self.py_ax])
+            ind[self.py_ax][0] = \
+                <int> ((self.py - (gobj.LeftEdge).to_ndarray()[self.py_ax]) /
+                       gobj.dds[self.py_ax])
             ind[self.py_ax][1] = ind[self.py_ax][0] + 1
 
             with nogil:
@@ -1049,6 +1088,8 @@ cdef class RaySelector(SelectorObject):
 
     def __init__(self, dobj):
         cdef int i
+        _ensure_code(dobj.start_point)
+        _ensure_code(dobj.end_point)
         for i in range(3):
             self.vec[i] = dobj.vec[i]
             self.p1[i] = dobj.start_point[i]
@@ -1072,6 +1113,9 @@ cdef class RaySelector(SelectorObject):
         ia.dt = <np.float64_t *> dt.data
         ia.child_mask = <np.uint8_t *> child_mask.data
         ia.hits = 0
+        _ensure_code(gobj.LeftEdge)
+        _ensure_code(gobj.RightEdge)
+        _ensure_code(gobj.dds)
         for i in range(3):
             vc.left_edge[i] = gobj.LeftEdge[i]
             vc.right_edge[i] = gobj.RightEdge[i]
@@ -1105,6 +1149,9 @@ cdef class RaySelector(SelectorObject):
         ia.dt = <np.float64_t *> dt.data
         ia.child_mask = <np.uint8_t *> child_mask.data
         ia.hits = 0
+        _ensure_code(gobj.LeftEdge)
+        _ensure_code(gobj.RightEdge)
+        _ensure_code(gobj.dds)
         for i in range(3):
             vc.left_edge[i] = gobj.LeftEdge[i]
             vc.right_edge[i] = gobj.RightEdge[i]
@@ -1139,7 +1186,7 @@ cdef class RaySelector(SelectorObject):
         cdef np.ndarray[np.float64_t, ndim=2] coords
         cdef np.ndarray[np.int64_t, ndim=2] indices
         indices = mesh.connectivity_indices
-        coords = mesh.connectivity_coords
+        coords = _ensure_code(mesh.connectivity_coords)
         cdef int nc = indices.shape[0]
         cdef int nv = indices.shape[1]
         if nv != 8:
@@ -1278,6 +1325,13 @@ cdef class EllipsoidSelector(SelectorObject):
 
     def __init__(self, dobj):
         cdef int i
+        _ensure_code(dobj.center)
+        _ensure_code(dobj._e0)
+        _ensure_code(dobj._e1)
+        _ensure_code(dobj._e2)
+        _ensure_code(dobj._A)
+        _ensure_code(dobj._B)
+        _ensure_code(dobj._C)
         for i in range(3):
             self.center[i] = dobj.center[i]
             self.vec[0][i] = dobj._e0[i]
@@ -1559,3 +1613,18 @@ cdef class AlwaysSelector(SelectorObject):
         return ("always", 1,)
 
 always_selector = AlwaysSelector
+
+cdef class HaloParticlesSelector(SelectorObject):
+    cdef public object base_source
+    cdef SelectorObject base_selector
+    cdef object pind
+    cdef public np.int64_t halo_id
+    def __init__(self, dobj):
+        self.base_source = dobj.base_source
+        self.base_selector = self.base_source.selector
+        self.pind = dobj.particle_indices
+
+    def _hash_vals(self):
+        return ("halo_particles", self.halo_id)
+
+halo_particles_selector = HaloParticlesSelector
