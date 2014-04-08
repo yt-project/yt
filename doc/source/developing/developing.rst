@@ -379,7 +379,7 @@ General Guidelines
    something_else``.  Python is more forgiving than C.
  * Avoid copying memory when possible. For example, don't do ``a =
    a.reshape(3,4)`` when ``a.shape = (3,4)`` will do, and ``a = a * 3`` should be
-   ``na.multiply(a, 3, a)``.
+   ``np.multiply(a, 3, a)``.
  * In general, avoid all double-underscore method names: ``__something`` is
    usually unnecessary.
  * Doc strings should describe input, output, behavior, and any state changes

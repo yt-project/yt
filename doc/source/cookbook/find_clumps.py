@@ -19,8 +19,8 @@ data_source = pf.disk([0.5, 0.5, 0.5], [0., 0., 1.],
 # Now we set some sane min/max values between which we want to find contours.
 # This is how we tell the clump finder what to look for -- it won't look for
 # contours connected below or above these threshold values.
-c_min = 10**na.floor(na.log10(data_source[field]).min()  )
-c_max = 10**na.floor(na.log10(data_source[field]).max()+1)
+c_min = 10**np.floor(np.log10(data_source[field]).min()  )
+c_max = 10**np.floor(np.log10(data_source[field]).max()+1)
 
 # keep only clumps with at least 20 cells
 function = 'self.data[\'%s\'].size > 20' % field

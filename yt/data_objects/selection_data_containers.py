@@ -160,15 +160,14 @@ class YTSliceBase(YTSelectionContainer2D):
     coord : float
         The coordinate along the axis at which to slice.  This is in
         "domain" coordinates.
-    fields : list of strings, optional
-        If you want the object to pre-retrieve a set of fields, supply them
-        here.  This is not necessary.
     center : array_like, optional
         The 'center' supplied to fields that use it.  Note that this does
         not have to have `coord` as one value.  Strictly optional.
-    node_name: string, optional
-        The node in the .yt file to find or store this slice at.  Should
-        probably not be used.
+    pf: Dataset, optional
+        An optional dataset to use rather than self.pf
+    field_parameters : dictionary
+         A dictionary of field parameters than can be accessed by derived
+         fields.
     kwargs : dict of items
         Any additional values are passed as field parameters that can be
         accessed by generated fields.

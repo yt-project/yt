@@ -1087,9 +1087,9 @@ class ParticleCallback(PlotCallback):
     *width* along the line of sight.  *p_size* controls the number of
     pixels per particle, and *col* governs the color.  *ptype* will
     restrict plotted particles to only those that are of a given type.
-    *minimum_mass* will require that the particles be of a given mass,
-    calculated via ParticleMassMsun, to be plotted. *alpha* determines
-    each particle's opacity.
+    Particles with masses below *minimum_mass* will not be plotted.
+    *alpha* determines the opacity of the marker symbol used in the scatter
+    plot.
     """
     _type_name = "particles"
     region = None
