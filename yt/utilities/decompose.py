@@ -64,13 +64,13 @@ def decompose_array_nocopy(shape, psize, bbox):
                     bbox[1, 0]:bbox[1, 1]:d_s[1],
                     bbox[2, 0]:bbox[2, 1]:d_s[2]]
     for i in range(3):
-        xyz = split_array(dist[i], psize)
+        xyz = split_array_nocopy(dist[i], psize)
         for j in range(np.product(psize)):
             grid_left_edges[j, i] = xyz[j][0, 0, 0]
             grid_right_edges[j, i] = xyz[j][-1, -1, -1] + d_s[i]
         del xyz
     del dist
-    shapes = split_array(shape, psize)
+    shapes = split_array_nocopy(shape, psize)
     return grid_left_edges, grid_right_edges, shapes
 
 

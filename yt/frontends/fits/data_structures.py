@@ -81,6 +81,22 @@ all_units = angle_units + mpc_conversion.keys()
 known_units = {"k":"K",
                "jy":"Jy"}
 
+def fits_file_validator(ds, *args, **kwargs):
+    ext = args[0].rsplit(".", 1)[-1]
+    if ext.upper() == "GZ":
+        # We don't know for sure that there will be > 1
+        ext = args[0].rsplit(".", 1)[0].rsplit(".", 1)[-1]
+    if ext.upper() not in ("FITS", "FTS"):
+        return False
+    try:
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=UserWarning, append=True)
+            fileh = ap.pyfits.open(args[0])
+        if ds._check_axes(fileh): return True
+    except:
+        pass
+    return False
+
 class FITSGrid(AMRGridPatch):
     _id_offset = 0
     def __init__(self, id, index, level):
@@ -195,11 +211,9 @@ class FITSDataset(Dataset):
 
     def __init__(self, filename, dataset_type='fits',
                  storage_filename = None,
-                 mask_nans = True,
-                 nprocs=1):
+                 mask_nans = True):
         self.fluid_types += ("fits",)
         self.mask_nans = mask_nans
-        self.nprocs = nprocs
         self._handle = ap.pyfits.open(filename, memmap=True, do_not_scale_image_data=True)
         for i, h in enumerate(self._handle):
             if h.header["naxis"] >= 2:
@@ -281,39 +295,28 @@ class FITSDataset(Dataset):
         self.current_redshift = self.omega_lambda = self.omega_matter = \
             self.hubble_constant = self.cosmological_simulation = 0.0
 
+        self.nprocs = np.around(np.prod(self.domain_dimensions) /
+                                32**self.dimensionality).astype("int")
+
     def __del__(self):
         self._handle.close()
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if isinstance(args[0], types.StringTypes):
-            ext = args[0].rsplit(".", 1)[-1]
-            if ext.upper() == "GZ":
-                # We don't know for sure that there will be > 1
-                ext = args[0].rsplit(".", 1)[0].rsplit(".", 1)[-1]
-            if ext.upper() not in ("FITS", "FTS"):
-                return False
-        try:
-            with warnings.catch_warnings():
-                warnings.filterwarnings('ignore', category=UserWarning, append=True)
-                fileh = ap.pyfits.open(args[0])
-            for h in fileh:
-                if h.header["naxis"] >= 2:
-                    axes_names = [h.header["CTYPE%d" % (ax)] for ax in xrange(1,4)]
-                    a = np_char.startswith(axes_names, "RA")
-                    b = np_char.startswith(axes_names, "DEC")
-                    c = np_char.startswith(axes_names, "VEL")
-                    fileh.close()
-                    if (a+b+c).sum() != 3: return True
-            fileh.close()
-        except:
-            pass
+    def _check_axes(cls, handle):
+        for h in handle:
+            if h.header["naxis"] >= 2:
+                axes_names = [h.header["CTYPE%d" % (ax)] for ax in xrange(1,4)]
+                a = np_char.startswith(axes_names, "RA")
+                b = np_char.startswith(axes_names, "DEC")
+                c = np_char.startswith(axes_names, "VEL")
+                if (a+b+c).sum() != 3:
+                    handle.close()
+                    return True
         return False
 
-#class FITSXYVHierarchy(FITSHierarchy):
-#
-#    grid = FITSGrid
-
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        return fits_file_validator(cls, *args, **kwargs)
 
 class FITSXYVDataset(FITSDataset):
     _dataset_type = "xyv_fits"
@@ -322,14 +325,13 @@ class FITSXYVDataset(FITSDataset):
     def __init__(self, filename,
                  dataset_type='xyv_fits',
                  storage_filename = None,
-                 mask_nans = True,
-                 nprocs=1):
+                 mask_nans = True):
 
         self.fluid_types += ("xyv_fits",)
 
         super(FITSXYVDataset, self).__init__(filename, dataset_type=dataset_type,
                                              storage_filename=storage_filename,
-                                             mask_nans=mask_nans, nprocs=nprocs)
+                                             mask_nans=mask_nans)
         self.axes_names = [self.primary_header["CTYPE%d" % (ax)] for ax in xrange(1,4)]
         self.ra_axis = np.where(np_char.startswith(self.axes_names, "RA"))[0][0]
         self.dec_axis = np.where(np_char.startswith(self.axes_names, "DEC"))[0][0]
@@ -346,64 +348,31 @@ class FITSXYVDataset(FITSDataset):
 
     def _parse_parameter_file(self):
 
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        for k, v in self.primary_header.items():
-            self.parameters[k] = v
+        super(FITSXYVDataset, self)._parse_parameter_file()
 
-        # Determine dimensionality
-
-        self.dimensionality = self.primary_header["naxis"]
-        self.geometry = "cartesian"
-        self.four_dims = False
         if self.dimensionality == 4:
             self.dimensionality = 3
             self.four_dims = True
+            self.domain_dimensions = self.domain_dimensions[:3]
+            self.domain_left_edge = self.domain_left_edge[:3]
+            self.domain_right_edge = self.domain_right_edge[:3]
 
-        dims = self._handle[self.first_image].shape[::-1]
-        if self.four_dims: dims = dims[:3]
-
-        self.domain_dimensions = np.array(dims)
-        self.domain_left_edge = np.array([0.5]*3)
-        self.domain_right_edge = np.array([float(dim)+0.5 for dim in self.domain_dimensions])
-
-        # Get the simulation time
-        try:
-            self.current_time = self.parameters["time"]
-        except:
-            mylog.warning("Cannot find time")
-            self.current_time = 0.0
-            pass
-
-        # For now we'll ignore these
-        self.periodicity = (False,)*3
-        self.current_redshift = self.omega_lambda = self.omega_matter = \
-            self.hubble_constant = self.cosmological_simulation = 0.0
+        self.nprocs = np.around(np.prod(self.domain_dimensions) /
+                                32**self.dimensionality).astype("int")
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if isinstance(args[0], types.StringTypes):
-            ext = args[0].rsplit(".", 1)[-1]
-            if ext.upper() == "GZ":
-                # We don't know for sure that there will be > 1
-                ext = args[0].rsplit(".", 1)[0].rsplit(".", 1)[-1]
-            if ext.upper() not in ("FITS", "FTS"):
-                return False
-        try:
-            with warnings.catch_warnings():
-                warnings.filterwarnings('ignore', category=UserWarning, append=True)
-                fileh = ap.pyfits.open(args[0])
-            for h in fileh:
-                if h.header["naxis"] >= 3:
-                    axes_names = [h.header["CTYPE%d" % (ax)] for ax in xrange(1,4)]
-                    a = np_char.startswith(axes_names, "RA")
-                    b = np_char.startswith(axes_names, "DEC")
-                    c = np_char.startswith(axes_names, "VEL")
-                    fileh.close()
-                    if (a+b+c).sum() == 3: return True
-            fileh.close()
-        except:
-            pass
+    def _check_axes(cls, handle):
+        for h in handle:
+            if h.header["naxis"] >= 3:
+                axes_names = [h.header["CTYPE%d" % (ax)] for ax in xrange(1,4)]
+                a = np_char.startswith(axes_names, "RA")
+                b = np_char.startswith(axes_names, "DEC")
+                c = np_char.startswith(axes_names, "VEL")
+                if (a+b+c).sum() == 3:
+                    handle.close()
+                    return True
         return False
 
-
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        return fits_file_validator(cls, *args, **kwargs)
