@@ -336,9 +336,9 @@ class FITSXYVDataset(FITSDataset):
         self.vel_axis = np.where(np_char.startswith(self.axes_names, "VEL"))[0][0]
 
         self.wcs_2d = ap.pywcs.WCS(naxis=2)
-        self.wcs_2d.wcs.crpix = self.wcs.wcs.crpix[self.ra_axis, self.dec_axis]
-        self.wcs_2d.wcs.cdelt = self.wcs.wcs.cdelt[self.ra_axis, self.dec_axis]
-        self.wcs_2d.wcs.crval = self.wcs.wcs.crval[self.ra_axis, self.dec_axis]
+        self.wcs_2d.wcs.crpix = self.wcs.wcs.crpix[[self.ra_axis, self.dec_axis]]
+        self.wcs_2d.wcs.cdelt = self.wcs.wcs.cdelt[[self.ra_axis, self.dec_axis]]
+        self.wcs_2d.wcs.crval = self.wcs.wcs.crval[[self.ra_axis, self.dec_axis]]
         self.wcs_2d.wcs.cunit = [str(self.wcs.wcs.cunit[self.ra_axis]),
                                  str(self.wcs.wcs.cunit[self.dec_axis])]
         self.wcs_2d.wcs.ctype = [self.wcs.wcs.ctype[self.ra_axis],
