@@ -42,6 +42,12 @@ class FITSFieldInfo(FieldInfoContainer):
 
 class FITSXYVFieldInfo(FieldInfoContainer):
     known_other_fields = ()
+
+    def __init__(self, pf, field_list, slice_info=None):
+        super(FITSXYVFieldInfo, self).__init__(pf, field_list, slice_info=slice_info)
+        for field in pf.field_list:
+            self[field].take_log = False
+            
     def _get_wcs(self, data, axis):
         w_coords = data.pf.wcs_2d.wcs_pix2world(data["x"], data["y"], 1)
         return w_coords[axis]
