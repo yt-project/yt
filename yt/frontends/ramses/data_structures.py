@@ -351,7 +351,7 @@ class RAMSESIndex(OctreeIndex):
         for domain in self.domains:
             pfl.update(set(domain.particle_field_offsets.keys()))
         self.particle_field_list = list(pfl)
-        self.field_list = [("gas", f) for f in self.fluid_field_list] \
+        self.field_list = [("ramses", f) for f in self.fluid_field_list] \
                         + self.particle_field_list
 
     def _setup_auto_fields(self):
@@ -373,8 +373,16 @@ class RAMSESIndex(OctreeIndex):
         if hydro_fn:
             # Read the number of hydro  variables
             f = open(hydro_fn, "rb")
-            fpu.skip(f, 1)
-            nvar = fpu.read_vector(f, "i")[0]
+            hydro_header = ( ('ncpu', 1, 'i'),
+                             ('nvar', 1, 'i'),
+                             ('ndim', 1, 'i'),
+                             ('nlevelmax', 1, 'i'),
+                             ('nboundary', 1, 'i'),
+                             ('gamma', 1, 'd')
+                            )
+            hvals = fpu.read_attrs(f, hydro_header)
+            self.pf.gamma = hvals['gamma']
+            nvar = hvals['nvar']
         # OK, we got NVAR, now set up the arrays depending on what NVAR is
         # Allow some wiggle room for users to add too many variables
         if nvar < 5:
@@ -440,6 +448,7 @@ class RAMSESIndex(OctreeIndex):
 class RAMSESDataset(Dataset):
     _index_class = RAMSESIndex
     _field_info_class = RAMSESFieldInfo
+    gamma = 1.4 # This will get replaced on hydro_fn open
     
     def __init__(self, filename, dataset_type='ramses',
                  fields = None, storage_filename = None):
@@ -450,6 +459,7 @@ class RAMSESDataset(Dataset):
         fields: An array of hydro variable fields in order of position in the hydro_XXXXX.outYYYYY file
                 If set to None, will try a default set of fields
         '''
+        self.fluid_types += ("ramses",)
         self._fields_in_file = fields
         Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename

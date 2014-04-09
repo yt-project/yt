@@ -105,8 +105,8 @@ class RAMSESFieldInfo(FieldInfoContainer):
         def _create_field(name, interp_object):
             def _func(field, data):
                 shape = data["Temperature"].shape
-                d = {'lognH': np.log10(_X*data["Density"]/mh).ravel(),
-                     'logT' : np.log10(data["Temperature"]).ravel()}
+                d = {'lognH': np.log10(_X*data["density"]/mh).ravel(),
+                     'logT' : np.log10(data["temperature"]).ravel()}
                 rv = 10**interp_object(d).reshape(shape)
                 return rv
             self.add_field(name = name, function=_func,
