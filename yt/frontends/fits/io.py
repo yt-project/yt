@@ -66,6 +66,9 @@ class IOHandlerFITSXYV(IOHandlerFITS):
     _particle_reader = False
     _dataset_type = "xyv_fits"
 
+    def __init__(self, pf):
+        super(IOHandlerFITSXYV,self).__init__(pf)
+
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
         if any((ftype != "xyv_fits" for ftype, fname in fields)):

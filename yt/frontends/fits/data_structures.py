@@ -215,7 +215,6 @@ class FITSHierarchy(GridIndex):
             yield YTDataChunk(dobj, "io", gs, self._count_selection(dobj, gs),
                               cache = cache)
 
-
 class FITSDataset(Dataset):
     _index_class = FITSHierarchy
     _field_info_class = FITSFieldInfo
@@ -225,7 +224,7 @@ class FITSDataset(Dataset):
     def __init__(self, filename, dataset_type='fits',
                  nprocs = None,
                  storage_filename = None,
-                 mask_nans = True):
+                 mask_nans = False):
         self.fluid_types += ("fits",)
         self.mask_nans = mask_nans
         self.nprocs = nprocs
@@ -345,7 +344,7 @@ class FITSXYVDataset(FITSDataset):
                  dataset_type='xyv_fits',
                  nprocs = None,
                  storage_filename = None,
-                 mask_nans = True):
+                 mask_nans = False):
 
         self.fluid_types += ("xyv_fits",)
 
