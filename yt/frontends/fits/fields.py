@@ -47,7 +47,7 @@ class FITSXYVFieldInfo(FieldInfoContainer):
         super(FITSXYVFieldInfo, self).__init__(pf, field_list, slice_info=slice_info)
         for field in pf.field_list:
             self[field].take_log = False
-            
+
     def _get_wcs(self, data, axis):
         w_coords = data.pf.wcs_2d.wcs_pix2world(data["x"], data["y"], 1)
         return w_coords[axis]
@@ -57,7 +57,7 @@ class FITSXYVFieldInfo(FieldInfoContainer):
                 return data.pf.arr(self._get_wcs(data, axis), unit)
             return _world_f
         for i, axis in enumerate([self.pf.ra_axis, self.pf.dec_axis]):
-            name = str(self.pf.wcs_2d.wcs.ctype[i])
+            name = ["ra","dec"][i]
             unit = str(self.pf.wcs_2d.wcs.cunit[i])
             if unit.lower() == "deg": unit = "degree"
             if unit.lower() == "rad": unit = "radian"
@@ -65,9 +65,8 @@ class FITSXYVFieldInfo(FieldInfoContainer):
         def _vel_los(field, data):
             return data.pf.arr(data.pf.wcs_1d.wcs_pix2world(data["z"], 1)[0],
                                str(data.pf.wcs_1d.wcs.cunit[0]))
-        name = str(self.pf.wcs_1d.wcs.ctype[0])
         unit = str(self.pf.wcs_1d.wcs.cunit[0])
-        self.add_field(("xyv_fits",name),
+        self.add_field(("xyv_fits",self.pf.vel_name),
                        function=_vel_los,
                        units=unit)
 

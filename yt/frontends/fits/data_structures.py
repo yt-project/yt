@@ -81,6 +81,8 @@ all_units = angle_units + mpc_conversion.keys()
 known_units = {"k":"K",
                "jy":"Jy"}
 
+axes_prefixes = ["RA","DEC","V","ENER","FREQ"]
+
 def fits_file_validator(ds, *args, **kwargs):
     ext = args[0].rsplit(".", 1)[-1]
     if ext.upper() == "GZ":
@@ -141,19 +143,40 @@ class FITSHierarchy(GridIndex):
 
     def _detect_output_fields(self):
         self.field_list = []
-        self._field_map = {}
-        for h in self._handle[self.parameter_file.first_image:]:
-            if h.header["naxis"] >= 2:
-                if self.parameter_file.four_dims:
-                    for idx in range(h.header["naxis4"]):
-                        fname = h.name.lower()+"_%d" % (idx)
-                        self._field_map[fname] = idx
+        self._axis_map = {}
+        self._file_map = {}
+        self._ext_map = {}
+        for i, fits_file in enumerate(self.parameter_file._fits_files):
+            for j, h in enumerate(fits_file):
+                if h.header["naxis"] >= 2:
+                    try:
+                        fname = h.header["btype"].lower()
+                    except:
+                        fname = h.name.lower()
+                    if self.parameter_file.four_dims:
+                        for idx in range(h.header["naxis4"]):
+                            if h.header["naxis4"] > 1:
+                                fname += "_stokes_%d" % (idx)
+                            if self.pf.num_files > 1:
+                                try:
+                                    fname += "_%5.3fGHz" % (h.header["restfreq"]/1.0e9)
+                                except:
+                                    fname += "_%5.3fGHz" % (h.header["restfrq"]/1.0e9)
+                                else:
+                                    fname += "_field_%d" % (i)
+                            self._axis_map[fname] = idx
+                            self._file_map[fname] = fits_file
+                            self._ext_map[fname] = j
+                            self.field_list.append((self.dataset_type, fname))
+                            mylog.info("Adding field %s to the list of fields." % (fname))
+                            self._detect_image_units(fname, h.header)
+                    else:
+                        if self.pf.num_files > 1:
+                            fname += "file_%d" % (i)
+                        self._file_map[fname] = fits_file
                         self.field_list.append((self.dataset_type, fname))
+                        mylog.info("Adding field %s to the list of fields." % (fname))
                         self._detect_image_units(fname, h.header)
-                else:
-                    fname = h.name.lower()
-                    self.field_list.append((self.dataset_type, fname))
-                    self._detect_image_units(fname, h.header)
 
     def _count_grids(self):
         self.num_grids = self.pf.nprocs
@@ -221,18 +244,29 @@ class FITSDataset(Dataset):
     _dataset_type = "fits"
     _handle = None
 
-    def __init__(self, filename, dataset_type='fits',
+    def __init__(self, filename,
+                 dataset_type='fits',
+                 slave_files = [],
                  nprocs = None,
                  storage_filename = None,
                  mask_nans = False):
+        self.filenames = [filename] + slave_files
+        self.num_files = len(self.filenames)
         self.fluid_types += ("fits",)
         self.mask_nans = mask_nans
         self.nprocs = nprocs
-        self._handle = ap.pyfits.open(filename, memmap=True, do_not_scale_image_data=True)
-        for i, h in enumerate(self._handle):
-            if h.header["naxis"] >= 2:
-                self.first_image = i
-                break
+        self._handle = ap.pyfits.open(self.filenames[0], memmap=True, do_not_scale_image_data=True)
+        self._fits_files = [self._handle]
+        if self.num_files > 1:
+            for fits_file in slave_files:
+                self._fits_files.append(ap.pyfits.open(fits_file,
+                                                       memmap=True,
+                                                       do_not_scale_image_data=True))
+        self.first_image = 0
+        #for i, h in enumerate(self._handle):
+        #    if h.header["naxis"] >= 2:
+        #        self.first_image = i
+        #        break
 
         self.primary_header = self._handle[self.first_image].header
         self.shape = self._handle[self.first_image].shape
@@ -322,12 +356,10 @@ class FITSDataset(Dataset):
         for h in handle:
             if h.header["naxis"] >= 2:
                 axes_names = [h.header["CTYPE%d" % (ax)] for ax in xrange(1,4)]
-                a = np_char.startswith(axes_names, "RA")
-                b = np_char.startswith(axes_names, "DEC")
-                c = np_char.startswith(axes_names, "VEL")
-                d = np_char.startswith(axes_names, "FREQ")
-                e = np_char.startswith(axes_names, "ENER")
-                if (a+b+c+d+e).sum() != 3:
+                x = np.zeros((3), dtype="bool")
+                for ap in axes_prefixes:
+                    x += np_char.startswith(axes_names, ap)
+                if x.sum() != 3:
                     handle.close()
                     return True
         return False
@@ -342,6 +374,7 @@ class FITSXYVDataset(FITSDataset):
 
     def __init__(self, filename,
                  dataset_type='xyv_fits',
+                 slave_files = [],
                  nprocs = None,
                  storage_filename = None,
                  mask_nans = False):
@@ -349,16 +382,18 @@ class FITSXYVDataset(FITSDataset):
         self.fluid_types += ("xyv_fits",)
 
         super(FITSXYVDataset, self).__init__(filename, dataset_type=dataset_type,
+                                             slave_files=slave_files,
                                              nprocs=nprocs,
                                              storage_filename=storage_filename,
                                              mask_nans=mask_nans)
         self.axes_names = [self.primary_header["CTYPE%d" % (ax)] for ax in xrange(1,4)]
         self.ra_axis = np.where(np_char.startswith(self.axes_names, "RA"))[0][0]
         self.dec_axis = np.where(np_char.startswith(self.axes_names, "DEC"))[0][0]
-        self.vel_axis = np_char.startswith(self.axes_names, "VEL")
+        self.vel_axis = np_char.startswith(self.axes_names, "V")
         self.vel_axis += np_char.startswith(self.axes_names, "FREQ")
         self.vel_axis += np_char.startswith(self.axes_names, "ENER")
         self.vel_axis = np.where(self.vel_axis)[0][0]
+        self.vel_name = self.axes_names[self.vel_axis].lower()
 
         self.wcs_2d = ap.pywcs.WCS(naxis=2)
         self.wcs_2d.wcs.crpix = self.wcs.wcs.crpix[[self.ra_axis, self.dec_axis]]
@@ -397,12 +432,10 @@ class FITSXYVDataset(FITSDataset):
         for h in handle:
             if h.header["naxis"] >= 3:
                 axes_names = [h.header["CTYPE%d" % (ax)] for ax in xrange(1,4)]
-                a = np_char.startswith(axes_names, "RA")
-                b = np_char.startswith(axes_names, "DEC")
-                c = np_char.startswith(axes_names, "VEL")
-                d = np_char.startswith(axes_names, "FREQ")
-                e = np_char.startswith(axes_names, "ENER")
-                if (a+b+c+d+e).sum() == 3:
+                x = np.zeros((3), dtype="bool")
+                for ap in axes_prefixes:
+                    x += np_char.startswith(axes_names, ap)
+                if x.sum() == 3:
                     handle.close()
                     return True
         return False

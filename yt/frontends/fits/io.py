@@ -35,7 +35,6 @@ class IOHandlerFITS(BaseIOHandler):
         chunks = list(chunks)
         if any((ftype != "fits" for ftype, fname in fields)):
             raise NotImplementedError
-        f = self._handle
         rv = {}
         dt = "float64"
         for field in fields:
@@ -45,7 +44,8 @@ class IOHandlerFITS(BaseIOHandler):
                     size, [f2 for f1, f2 in fields], ng)
         for field in fields:
             ftype, fname = field
-            ds = f[fname]
+            f = self.pf.index._file_map[fname]
+            ds = f[self.pf.index._ext_map[fname]]
             ind = 0
             for chunk in chunks:
                 for g in chunk.objs:
@@ -73,7 +73,6 @@ class IOHandlerFITSXYV(IOHandlerFITS):
         chunks = list(chunks)
         if any((ftype != "xyv_fits" for ftype, fname in fields)):
             raise NotImplementedError
-        f = self._handle
         rv = {}
         dt = "float64"
         for field in fields:
@@ -83,17 +82,15 @@ class IOHandlerFITSXYV(IOHandlerFITS):
                     size, [f2 for f1, f2 in fields], ng)
         for field in fields:
             ftype, fname = field
-            if self.pf.four_dims:
-                ds = f[fname.split("_")[0]]
-            else:
-                ds = f[fname]
+            f = self.pf.index._file_map[fname]
+            ds = f[self.pf.index._ext_map[fname]]
             ind = 0
             for chunk in chunks:
                 for g in chunk.objs:
                     start = (g.LeftEdge.ndarray_view()-0.5).astype("int")
                     end = (g.RightEdge.ndarray_view()-0.5).astype("int")
                     if self.pf.four_dims:
-                        idx = self.pf.index._field_map[fname]
+                        idx = self.pf.index._axis_map[fname]
                         data = ds.data[idx,start[2]:end[2],start[1]:end[1],start[0]:end[0]].transpose()
                     else:
                         data = ds.data[start[2]:end[2],start[1]:end[1],start[0]:end[0]].transpose()
