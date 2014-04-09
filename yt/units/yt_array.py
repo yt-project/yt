@@ -342,6 +342,13 @@ class YTArray(np.ndarray):
         """
         return self.convert_to_units(self.units.get_cgs_equivalent())
 
+    def convert_to_mks(self):
+        """
+        Convert the array and units to the equivalent mks units.
+
+        """
+        return self.convert_to_units(self.units.get_mks_equivalent())
+
     def in_units(self, units):
         """
         Creates a copy of this array with the data in the supplied units, and
@@ -372,10 +379,22 @@ class YTArray(np.ndarray):
 
         Returns
         -------
-        Quantity object with data converted to cgs and cgs units.
+        Quantity object with data converted to cgs units.
 
         """
         return self.in_units(self.units.get_cgs_equivalent())
+
+    def in_mks(self):
+        """
+        Creates a copy of this array with the data in the equivalent mks units,
+        and returns it.
+
+        Returns
+        -------
+        Quantity object with data converted to mks units.
+
+        """
+        return self.in_units(self.units.get_mks_equivalent())
 
     def ndarray_view(self):
         """

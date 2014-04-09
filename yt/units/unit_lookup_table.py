@@ -172,3 +172,11 @@ cgs_base_units = {
     dimensions.temperature:'K',
     dimensions.angle:'radian',
 }
+
+mks_base_units = {
+    dimensions.mass:'kg',
+    dimensions.length:'m',
+    dimensions.time:'s',
+    dimensions.temperature:'K',
+    dimensions.angle:'radian',
+}
