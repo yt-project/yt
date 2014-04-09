@@ -477,23 +477,27 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
                       np.ndarray[np.float64_t, ndim=1] dradius,
                       np.ndarray[np.float64_t, ndim=1] theta,
                       np.ndarray[np.float64_t, ndim=1] dtheta,
-                      int buff_size,
+                      buff_size,
                       np.ndarray[np.float64_t, ndim=1] field,
-                      np.float64_t rmax=-1.0) :
+                      extents, input_img = None):
 
     cdef np.ndarray[np.float64_t, ndim=2] img
     cdef np.float64_t x, y, dx, dy, r0, theta0
+    cdef np.float64_t rmax, x0, y0, x1, y1
     cdef np.float64_t r_i, theta_i, dr_i, dtheta_i, dthetamin
     cdef int i, pi, pj
     
-    if rmax < 0.0 :
-        imax = radius.argmax()
-        rmax = radius[imax] + dradius[imax]
+    imax = radius.argmax()
+    rmax = radius[imax] + dradius[imax]
           
-    img = np.zeros((buff_size, buff_size))
-    extents = [-rmax, rmax] * 2
-    dx = (extents[1] - extents[0]) / img.shape[0]
-    dy = (extents[3] - extents[2]) / img.shape[1]
+    if input_img is None:
+        img = np.zeros((buff_size[0], buff_size[1]))
+        img[:] = np.nan
+    else:
+        img = input_img
+    x0, x1, y0, y1 = extents
+    dx = (x1 - x0) / img.shape[0]
+    dy = (y1 - y0) / img.shape[1]
       
     dthetamin = dx / rmax
       
@@ -513,12 +517,71 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
                     continue
                 x = r_i * math.cos(theta_i)
                 y = r_i * math.sin(theta_i)
-                pi = <int>((x + rmax)/dx)
-                pj = <int>((y + rmax)/dy)
-                img[pi, pj] = field[i]
+                pi = <int>((x - x0)/dx)
+                pj = <int>((y - y0)/dy)
+                if pi >= 0 and pi < img.shape[0] and \
+                   pj >= 0 and pj < img.shape[1]:
+                    if img[pi, pj] != img[pi, pj]:
+                        img[pi, pj] = 0.0
+                    img[pi, pj] = field[i]
                 r_i += 0.5*dx 
             theta_i += dthetamin
 
+    return img
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def pixelize_aitoff(np.ndarray[np.float64_t, ndim=1] theta,
+                    np.ndarray[np.float64_t, ndim=1] dtheta,
+                    np.ndarray[np.float64_t, ndim=1] phi,
+                    np.ndarray[np.float64_t, ndim=1] dphi,
+                    buff_size,
+                    np.ndarray[np.float64_t, ndim=1] field,
+                    extents, input_img = None):
+    
+    cdef np.ndarray[np.float64_t, ndim=2] img
+    cdef int i, j, nf, fi
+    cdef np.float64_t x, y, z, zb
+    cdef np.float64_t dx, dy, inside
+    cdef np.float64_t theta1, dtheta1, phi1, dphi1
+    cdef np.float64_t theta0, phi0
+    cdef np.float64_t PI = np.pi
+    cdef np.float64_t s2 = math.sqrt(2.0)
+    nf = field.shape[0]
+    
+    if input_img is None:
+        img = np.zeros((buff_size[0], buff_size[1]))
+        img[:] = np.nan
+    else:
+        img = input_img
+    dx = 2.0 / (img.shape[0] - 1)
+    dy = 2.0 / (img.shape[1] - 1)
+    for i in range(img.shape[0]):
+        x = (-1.0 + i*dx)*s2*2.0
+        for j in range(img.shape[1]):
+            y = (-1.0 + j * dy)*s2
+            zb = (x*x/8.0 + y*y/2.0 - 1.0)
+            if zb > 0: continue
+            z = (1.0 - (x/4.0)**2.0 - (y/2.0)**2.0)
+            z = z**0.5
+            # Longitude
+            phi0 = (2.0*math.atan(z*x/(2.0 * (2.0*z*z-1.0))) + PI)
+            # Latitude
+            # We shift it into co-latitude
+            theta0 = (math.asin(z*y) + PI/2.0)
+            # Now we just need to figure out which pixel contributes.
+            # We do not have a fast search.
+            for fi in range(nf):
+                theta1 = theta[fi]
+                dtheta1 = dtheta[fi]
+                if not (theta1 - dtheta1 <= theta0 <= theta1 + dtheta1):
+                    continue
+                phi1 = phi[fi]
+                dphi1 = dphi[fi]
+                if not (phi1 - dphi1 <= phi0 <= phi1 + dphi1):
+                    continue
+                img[i, j] = field[fi]
     return img
 
 #@cython.cdivision(True)
