@@ -16,6 +16,7 @@ import numpy as np
 import numpy.core.defchararray as np_char
 import weakref
 import warnings
+import re
 
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
@@ -33,6 +34,7 @@ from yt.utilities.io_handler import \
 from .fields import FITSFieldInfo
 from yt.utilities.decompose import \
     decompose_array, get_psize, decompose_array_nocopy
+from yt.units.unit_lookup_table import default_unit_symbol_lut, prefixable_units
 
 class astropy_imports:
     _pyfits = None
@@ -74,10 +76,12 @@ class astropy_imports:
 
 ap = astropy_imports()
 
-known_units = {"k":"K",
-               "jy":"Jy"}
-
+known_units = dict([(unit.lower(),unit) for unit in default_unit_symbol_lut])
 axes_prefixes = ["RA","DEC","V","ENER","FREQ"]
+
+delimiters = ["*", "/", "-", "^"]
+delimiters += [str(i) for i in xrange(10)]
+regex_pattern = '|'.join(map(re.escape, delimiters))
 
 class FITSGrid(AMRGridPatch):
     _id_offset = 0
@@ -109,15 +113,16 @@ class FITSHierarchy(GridIndex):
     def _initialize_data_storage(self):
         pass
 
-    def _detect_image_units(self, fname, header):
+    def _determine_image_units(self, fname, header):
         try:
             field_units = header["bunit"].lower().strip(" ")
             # FITS units always return upper-case, so we need to get
             # the right case by comparing against known units. This
             # only really works for common units.
-            for name in known_units:
-                if field_units.find(name) > -1:
-                    field_units = field_units.replace(name, known_units[name])
+            units = re.split(regex_pattern, field_units)
+            for unit in units:
+                if unit in known_units:
+                    field_units = field_units.replace(unit, known_units[unit])
             self.parameter_file.field_units[fname] = field_units
         except:
             pass
@@ -154,7 +159,7 @@ class FITSHierarchy(GridIndex):
                         self._ext_map[fname] = j
                         self.field_list.append((self.dataset_type, fname))
                         mylog.info("Adding field %s to the list of fields." % (fname))
-                        self._detect_image_units(fname, h.header)
+                        self._determine_image_units(fname, h.header)
 
         # For line fields, we still read the primary field. Not sure how to extend this
         # For now, we pick off the first field from the field list.

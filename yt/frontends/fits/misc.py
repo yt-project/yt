@@ -100,15 +100,9 @@ class FITSOffAxisSlicePlot(OffAxisSlicePlot):
     def __init__(self, ds, normal, fields, set_wcs=False, **kwargs):
 
         self.ds = ds
-        my_normal = normal
-        if ds.xyv_data:
-            if len(normal) > 2:
-                raise NotImplementedError("Normal vector must be in two dimensions for this dataset!")
-            my_normal = np.zeros((3))
-            my_normal[ds.ra_axis] = normal[0]
-            my_normal[ds.dec_axis] = normal[1]
-
-        super(FITSOffAxisSlicePlot, self).__init__(ds, my_normal, fields, **kwargs)
+        self.set_wcs = set_wcs
+        
+        super(FITSOffAxisSlicePlot, self).__init__(ds, normal, fields, **kwargs)
         self.set_axes_unit("pixel")
 
 class FITSProjectionPlot(ProjectionPlot):
@@ -142,14 +136,7 @@ class FITSOffAxisProjectionPlot(OffAxisProjectionPlot):
     def __init__(self, ds, normal, fields, set_wcs=False, **kwargs):
 
         self.ds = ds
-        my_normal = normal
-        if ds.xyv_data:
-            if len(normal) > 2:
-                raise ValueError("Normal vector must be in two dimensions for this dataset!")
-            my_normal = np.zeros((3))
-            my_normal[ds.ra_axis] = normal[0]
-            my_normal[ds.dec_axis] = normal[1]
-
-        super(FITSOffAxisProjectionPlot, self).__init__(ds, my_normal, fields, axes_unit="pixel", **kwargs)
+        self.set_wcs = set_wcs
+        super(FITSOffAxisProjectionPlot, self).__init__(ds, normal, fields, axes_unit="pixel", **kwargs)
 
 
