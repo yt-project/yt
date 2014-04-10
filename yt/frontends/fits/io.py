@@ -29,7 +29,6 @@ class IOHandlerFITS(BaseIOHandler):
         self.folded = False
         if self.pf.folded_axis is not None:
             self.folded = True
-        self.pixel_offset = 0
 
     def _read_particles(self, fields_to_read, type, args, grid_list,
             count_list, conv_factors):
@@ -59,9 +58,9 @@ class IOHandlerFITS(BaseIOHandler):
                     start = (g.LeftEdge.ndarray_view()-centering).astype("int")
                     end = (g.RightEdge.ndarray_view()-centering).astype("int")
                     if self.folded:
-                        my_off = self.pf.folded_offsets.get(fname, 0)\
+                        my_off = self.pf.line_database.get(fname, 0)\
                             + self.pf.folded_width/2
-                        print "My offset1: ", my_off
+
                         start[-1] += my_off
                         end[-1] += my_off
                         mylog.debug("Reading from " + str(start) + str(end))
@@ -111,9 +110,8 @@ class IOHandlerFITSXYV(IOHandlerFITS):
                     start = (g.LeftEdge.ndarray_view()-centering).astype("int")
                     end = (g.RightEdge.ndarray_view()-centering).astype("int")
                     if self.folded:
-                        my_off = self.pf.folded_offsets.get(fname, 0)\
+                        my_off = self.pf.line_database.get(fname, 0)\
                             + self.pf.folded_width/2
-                        print "My offset2: ", my_off
                         start[-1] += my_off
                         end[-1] += my_off
                         mylog.debug("Reading from " + str(start) + str(end))

@@ -154,12 +154,12 @@ class FITSHierarchy(GridIndex):
                     fname = h.name.lower()
                     self.field_list.append((self.dataset_type, fname))
                     self._detect_image_units(fname, h.header)
-        self.field_list.append((self.dataset_type, "CO"))
-        self.field_list.append((self.dataset_type, "HCN"))
-        self._field_map["CO"] = 0
-        self._field_map["HCN"] = 0
-        for line in ["CO", "HCN"]:
-            self.parameter_file.field_units[line] = "Jy/beam"
+        line_db = self.parameter_file.line_database
+        for k, v in line_db.iteritems():
+            print "Adding line: ", k, v
+            self.field_list.append((self.dataset_type, k))
+            self._field_map[k] = 0
+            self.parameter_file.field_units[k] = "Jy/beam"
 
     def _count_grids(self):
         self.num_grids = self.pf.nprocs
@@ -232,11 +232,14 @@ class FITSDataset(Dataset):
                  storage_filename = None,
                  mask_nans = False,
                  folded_axis=None,
-                 folded_width=None
+                 folded_width=None,
+                 line_database=None
                  ):
         self.folded_axis = folded_axis
         self.folded_width = folded_width
-        self.folded_offsets = {}
+        if line_database is None:
+            line_database = {}
+        self.line_database = line_database
         self.fluid_types += ("fits",)
         self.mask_nans = mask_nans
         self.nprocs = nprocs
@@ -358,7 +361,8 @@ class FITSXYVDataset(FITSDataset):
                  storage_filename=None,
                  mask_nans=False,
                  folded_axis=None,
-                 folded_width=None
+                 folded_width=None,
+                 line_database=None
                  ):
 
         self.fluid_types += ("xyv_fits",)
@@ -368,9 +372,8 @@ class FITSXYVDataset(FITSDataset):
                                              storage_filename=storage_filename,
                                              mask_nans=mask_nans,
                                              folded_axis=folded_axis,
-                                             folded_width=folded_width)
-        self.folded_axis = folded_axis
-        self.folded_width = folded_width
+                                             folded_width=folded_width,
+                                             line_database=line_database)
         self.axes_names = [self.primary_header["CTYPE%d" % (ax)] for ax in xrange(1,4)]
         self.ra_axis = np.where(np_char.startswith(self.axes_names, "RA"))[0][0]
         self.dec_axis = np.where(np_char.startswith(self.axes_names, "DEC"))[0][0]
