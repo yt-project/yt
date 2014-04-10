@@ -166,7 +166,7 @@ class FITSHierarchy(GridIndex):
             self._ext_map[k] = self._ext_map[primary_fname]
             self._axis_map[k] = self._axis_map[primary_fname]
             self._file_map[k] = self._file_map[primary_fname]
-            self.parameter_file.field_units[k] = "Jy/beam"
+            self.parameter_file.field_units[k] = self.parameter_file.field_units[primary_fname]
 
     def _count_grids(self):
         self.num_grids = self.pf.nprocs
