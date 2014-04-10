@@ -231,7 +231,6 @@ class FITSDataset(Dataset):
                  mask_nans = False,
                  suppress_astropy_warnings = True):
         if suppress_astropy_warnings:
-            ap.log.disable_warnings_logging()
             warnings.filterwarnings('ignore', module="astropy", append=True)
         self.filenames = [filename] + slave_files
         self.num_files = len(self.filenames)
