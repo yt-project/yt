@@ -200,10 +200,6 @@ class Dataset(object):
             self.domain_width = self.domain_right_edge - self.domain_left_edge
         if not isinstance(self.current_time, YTQuantity):
             self.current_time = self.quan(self.current_time, "code_time")
-        # need to do this if current_time was set before units were set
-        elif self.current_time.units.registry.lut["code_time"] != \
-          self.unit_registry.lut["code_time"]:
-            self.current_time.units.registry = self.unit_registry
         for attr in ("center", "width", "left_edge", "right_edge"):
             n = "domain_%s" % attr
             v = getattr(self, n)
@@ -568,12 +564,12 @@ class Dataset(object):
     def _create_unit_registry(self):
         self.unit_registry = UnitRegistry()
         import yt.units.dimensions as dimensions
-        self.unit_registry.lut["code_length"] = (1.0, dimensions.length)
-        self.unit_registry.lut["code_mass"] = (1.0, dimensions.mass)
-        self.unit_registry.lut["code_time"] = (1.0, dimensions.time)
-        self.unit_registry.lut["code_magnetic"] = (1.0, dimensions.magnetic_field)
-        self.unit_registry.lut["code_temperature"] = (1.0, dimensions.temperature)
-        self.unit_registry.lut["code_velocity"] = (1.0, dimensions.velocity)
+        self.unit_registry.add("code_length", 1.0, dimensions.length)
+        self.unit_registry.add("code_mass", 1.0, dimensions.mass)
+        self.unit_registry.add("code_time", 1.0, dimensions.time)
+        self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field)
+        self.unit_registry.add("code_temperature", 1.0, dimensions.temperature)
+        self.unit_registry.add("code_velocity", 1.0, dimensions.velocity)
 
     def set_units(self):
         """
