@@ -52,6 +52,8 @@ from yt.geometry.cylindrical_coordinates import \
     CylindricalCoordinateHandler
 from yt.geometry.spherical_coordinates import \
     SphericalCoordinateHandler
+from yt.geometry.geographic_coordinates import \
+    GeographicCoordinateHandler
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is contant up
@@ -369,6 +371,8 @@ class Dataset(object):
             self.coordinates = PolarCoordinateHandler(self)
         elif self.geometry == "spherical":
             self.coordinates = SphericalCoordinateHandler(self)
+        elif self.geometry == "geographic":
+            self.coordinates = GeographicCoordinateHandler(self)
         else:
             raise YTGeometryNotSupported(self.geometry)
 

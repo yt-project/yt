@@ -177,6 +177,15 @@ def get_window_parameters(axis, center, width, pf):
             # Our default width here is the full domain
             width = [pf.domain_right_edge[0]*2.0, pf.domain_right_edge[0]*2.0]
             center = pf.arr([0.0, 0.0, 0.0], "code_length")
+    elif pf.geometry == "geographic":
+        c_r = ((pf.domain_right_edge + pf.domain_left_edge)/2.0)[2]
+        center = pf.arr([0.0, 0.0, c_r], "code_length")
+        if axis == 2:
+            # latitude slice
+            width = pf.arr([180, 360], "code_length")
+        else:
+            width = [2.0*(pf.domain_right_edge[2] + pf.surface_height),
+                     2.0*(pf.domain_right_edge[2] + pf.surface_height)]
     else:
         raise NotImplementedError
     bounds = (center[x_dict[axis]]-width[0] / 2,
