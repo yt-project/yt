@@ -12,8 +12,6 @@ FITS-specific IO functions
 
 import numpy as np
 
-from yt.utilities.math_utils import prec_accum
-
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
@@ -56,40 +54,7 @@ class IOHandlerFITS(BaseIOHandler):
                         nz = 1
                         data = np.zeros((nx,ny,nz))
                         data[:,:,0] = ds.data[start[1]:end[1],start[0]:end[0]].transpose()
-                    elif self.pf.dimensionality == 3:
-                        data = ds.data[start[2]:end[2],start[1]:end[1],start[0]:end[0]].transpose()
-                    if self.pf.mask_nans: data[np.isnan(data)] = 0.0
-                    ind += g.select(selector, data.astype("float64"), rv[field], ind)
-        return rv
-
-class IOHandlerFITSXYV(IOHandlerFITS):
-    _particle_reader = False
-    _dataset_type = "xyv_fits"
-
-    def __init__(self, pf):
-        super(IOHandlerFITSXYV,self).__init__(pf)
-
-    def _read_fluid_selection(self, chunks, selector, fields, size):
-        chunks = list(chunks)
-        if any((ftype != "xyv_fits" for ftype, fname in fields)):
-            raise NotImplementedError
-        rv = {}
-        dt = "float64"
-        for field in fields:
-            rv[field] = np.empty(size, dtype=dt)
-        ng = sum(len(c.objs) for c in chunks)
-        mylog.debug("Reading %s cells of %s fields in %s grids",
-                    size, [f2 for f1, f2 in fields], ng)
-        for field in fields:
-            ftype, fname = field
-            f = self.pf.index._file_map[fname]
-            ds = f[self.pf.index._ext_map[fname]]
-            ind = 0
-            for chunk in chunks:
-                for g in chunk.objs:
-                    start = (g.LeftEdge.ndarray_view()-0.5).astype("int")
-                    end = (g.RightEdge.ndarray_view()-0.5).astype("int")
-                    if self.pf.four_dims:
+                    elif self.pf.naxis == 4:
                         idx = self.pf.index._axis_map[fname]
                         data = ds.data[idx,start[2]:end[2],start[1]:end[1],start[0]:end[0]].transpose()
                     else:

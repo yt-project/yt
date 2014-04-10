@@ -10,115 +10,119 @@ FITS-specific miscellaneous functions
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import __builtin__
-import aplpy
-from yt.utilities.fits_image import FITSImageBuffer
-from yt.funcs import fix_axis, ensure_list
-import astropy.wcs as pywcs
-from yt.utilities.exceptions import \
-    YTNotInsideNotebook
-import matplotlib.pyplot as plt
+import numpy as np
+from yt.funcs import fix_axis, ensure_list, iterable
+from yt.visualization.plot_window import AxisAlignedSlicePlot, \
+    OffAxisSlicePlot, ProjectionPlot, OffAxisProjectionPlot
 
-axis_wcs = [[1,2],[0,2],[0,1]]
+def force_aspect(ax,aspect=1):
+    im = ax.get_images()
+    extent = im[0].get_extent()
+    ax.set_aspect(abs((extent[1]-extent[0])/(extent[3]-extent[2]))/aspect)
 
-plot_method_list = ["recenter","refresh","add_colorbar",
-                    "remove_colorbar"]
+def set_onaxis_wcs(pw):
+    return
+    if pw.axis == pw.ds.ra_axis:
+        xname = "Dec"
+        yname = pw.ds.vel_name
+        xunit = str(pw.ds.wcs_2d.wcs.cunit[1])
+        yunit = str(pw.ds.wcs_1d.wcs.cunit[0])
+    elif pw.axis == pw.ds.dec_axis:
+        xname = "RA"
+        yname = pw.ds.vel_name
+        xunit = str(pw.ds.wcs_2d.wcs.cunit[0])
+        yunit = str(pw.ds.wcs_1d.wcs.cunit[0])
+    elif pw.axis == pw.ds.vel_axis:
+        xname = "RA"
+        yname = "Dec"
+        xunit = str(pw.ds.wcs_2d.wcs.cunit[0])
+        yunit = str(pw.ds.wcs_2d.wcs.cunit[1])
 
-def plot_method(method, plots):
-    def _method(*args, **kwargs):
-        for plot in plots.values():
-            getattr(plot, method)(*args, **kwargs)
-        return
-    return _method
+    for k,v in pw.plots.iteritems():
+        v.axes.set_xlabel(r"%s (%s)" % (xname, xunit))
+        v.axes.set_ylabel(r"%s (%s)" % (yname, yunit))
+        v.axes.set_aspect('auto')
 
-class FITSPlot(object):
-    def __init__(self, ds, data, axis, fields, **kwargs):
+class FITSSlicePlot(AxisAlignedSlicePlot):
+
+    def __init__(self, ds, axis, fields, set_wcs=True, **kwargs):
+
+        if isinstance(axis, basestring):
+            if axis in ds.axis_names:
+                axis = ds.axis_names[axis]
+        self.axis = fix_axis(axis)
         self.ds = ds
-        self.fields = fields
-        self.plots = {}
-        w = pywcs.WCS(naxis=2)
-        w.wcs.crpix = self.ds.wcs.wcs.crpix[axis_wcs[axis]]
-        w.wcs.cdelt = self.ds.wcs.wcs.cdelt[axis_wcs[axis]]
-        w.wcs.crval = self.ds.wcs.wcs.crval[axis_wcs[axis]]
-        w.wcs.cunit = [str(self.ds.wcs.wcs.cunit[idx]) for idx in axis_wcs[axis]]
-        w.wcs.ctype = [self.ds.wcs.wcs.ctype[idx] for idx in axis_wcs[axis]]
-        self.buffer = FITSImageBuffer(data, fields=fields, wcs=w)
-        for field in self.fields:
-            self.plots[field] = aplpy.FITSFigure(self.buffer[field], **kwargs)
-            self.plots[field].set_auto_refresh(False)
-        self._setup_plot_methods()
-        self.set_font(family="serif", size=15)
-        for v in self.values():
-            v.show_colorscale()
-        plt.close("all")
+        self.set_wcs = set_wcs
+        super(FITSSlicePlot, self).__init__(ds, axis, fields, origin="native", **kwargs)
+        self.set_axes_unit("pixel")
 
-    def _setup_plot_methods(self):
-        for method in plot_method_list:
-            self.__dict__[method] = plot_method(method, self.plots)
-
-    def __getitem__(self, key):
-        return self.plots[key]
-
-    def keys(self):
-        return self.plots.keys()
-
-    def values(self):
-        return self.plots.values()
-
-    def items(self):
-        return self.plots.items()
-
-    def set_font(self, **kwargs):
-        for plot in self.keys():
-            self[plot].axis_labels.set_font(**kwargs)
-            self[plot].tick_labels.set_font(**kwargs)
+    def _set_wcs(self):
+        if self.set_wcs:
+            set_onaxis_wcs(self)
 
     def show(self):
-        r"""This will send any existing plots to the IPython notebook.
-        function name.
+        self._set_wcs()
+        super(FITSSlicePlot, self).show()
 
-        If yt is being run from within an IPython session, and it is able to
-        determine this, this function will send any existing plots to the
-        notebook for display.
+    def save(self, *args, **kwargs):
+        self._set_wcs()
+        super(FITSSlicePlot, self).save(*args, **kwargs)
 
-        If yt can't determine if it's inside an IPython session, it will raise
-        YTNotInsideNotebook.
+class FITSOffAxisSlicePlot(OffAxisSlicePlot):
 
-        Examples
-        --------
+    def __init__(self, ds, normal, fields, set_wcs=True, **kwargs):
 
-        >>> from yt.mods import SlicePlot
-        >>> slc = SlicePlot(pf, "x", ["Density", "VelocityMagnitude"])
-        >>> slc.show()
+        self.ds = ds
+        my_normal = normal
+        if ds.xyv_data:
+            if len(normal) > 2:
+                raise NotImplementedError("Normal vector must be in two dimensions for this dataset!")
+            my_normal = np.zeros((3))
+            my_normal[ds.ra_axis] = normal[0]
+            my_normal[ds.dec_axis] = normal[1]
 
-        """
-        if "__IPYTHON__" in dir(__builtin__):
-            from IPython.display import display
-            for k, v in sorted(self.plots.iteritems()):
-                display(v._figure)
-        else:
-            raise YTNotInsideNotebook
+        super(FITSOffAxisSlicePlot, self).__init__(ds, my_normal, fields, **kwargs)
+        self.set_axes_unit("pixel")
 
-class FITSSlicePlot(FITSPlot):
-    def __init__(self, ds, axis, fields, coord=None, field_parameters=None, **kwargs):
-        fields = ensure_list(fields)
-        axis = fix_axis(axis)
-        if coord is None:
-            coord = ds.domain_center.ndarray_view()[axis]
-        slc = ds.slice(axis, coord, field_parameters=field_parameters)
-        data = {}
-        for field in fields:
-            data[field] = slc.to_frb((1.0,"unitary"), ds.domain_dimensions[axis_wcs[axis]])[field]
-        super(FITSSlicePlot, self).__init__(ds, data, axis, fields, **kwargs)
+class FITSProjectionPlot(ProjectionPlot):
 
-class FITSProjectionPlot(FITSPlot):
-    def __init__(self, ds, axis, fields, weight_field=None, data_source=None,
-                 field_parameters=None, **kwargs):
-        fields = ensure_list(fields)
-        axis = fix_axis(axis)
-        prj = ds.proj(fields[0], axis, weight_field=weight_field, data_source=data_source)
-        data = {}
-        for field in fields:
-            data[field] = prj.to_frb((1.0,"unitary"), ds.domain_dimensions[axis_wcs[axis]])[field]
-        super(FITSProjectionPlot, self).__init__(ds, data, axis, fields, **kwargs)
+    def __init__(self, ds, axis, fields, set_wcs=True, **kwargs):
+
+        self.ds = ds
+        if isinstance(axis, basestring):
+            if axis in ds.axis_names:
+                axis = ds.axis_names[axis]
+        self.axis = fix_axis(axis)
+        self.set_wcs = set_wcs
+
+        super(FITSProjectionPlot, self).__init__(ds, axis, fields, origin="native", **kwargs)
+        self.set_axes_unit("pixel")
+
+    def _set_wcs(self):
+        if self.set_wcs:
+            set_onaxis_wcs(self)
+
+    def show(self):
+        self._set_wcs()
+        super(FITSProjectionPlot, self).show()
+
+    def save(self, *args, **kwargs):
+        self._set_wcs()
+        super(FITSProjectionPlot, self).save(*args, **kwargs)
+
+class FITSOffAxisProjectionPlot(OffAxisProjectionPlot):
+
+    def __init__(self, ds, normal, fields, set_wcs=True, **kwargs):
+
+        self.ds = ds
+        my_normal = normal
+        if ds.xyv_data:
+            if len(normal) > 2:
+                raise ValueError("Normal vector must be in two dimensions for this dataset!")
+            my_normal = np.zeros((3))
+            my_normal[ds.ra_axis] = normal[0]
+            my_normal[ds.dec_axis] = normal[1]
+
+        super(FITSOffAxisProjectionPlot, self).__init__(ds, my_normal, fields, axes_unit="pixel", **kwargs)
+
 

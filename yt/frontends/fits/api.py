@@ -13,13 +13,16 @@ API for yt.frontends.fits
 from .data_structures import \
       FITSGrid, \
       FITSHierarchy, \
-      FITSDataset, \
-      FITSXYVDataset
+      FITSDataset
 
 from .fields import \
-      FITSFieldInfo, \
-      FITSXYVFieldInfo
+      FITSFieldInfo
 
 from .io import \
-      IOHandlerFITS, \
-      IOHandlerFITSXYV
+      IOHandlerFITS
+
+from .misc import \
+      FITSOffAxisSlicePlot, \
+      FITSSlicePlot, \
+      FITSProjectionPlot, \
+      FITSOffAxisProjectionPlot
