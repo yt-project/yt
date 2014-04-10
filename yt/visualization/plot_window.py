@@ -165,8 +165,20 @@ def get_window_parameters(axis, center, width, pf):
         width = get_sanitized_width(axis, width, None, pf)
         center = get_sanitized_center(center, pf)
     elif pf.geometry in ("polar", "cylindrical"):
+        # Set our default width to be the full domain
         width = [pf.domain_right_edge[0]*2.0, pf.domain_right_edge[0]*2.0]
         center = pf.arr([0.0, 0.0, 0.0], "code_length")
+    elif pf.geometry == "spherical":
+        if axis == 0:
+            width = pf.domain_width[1], pf.domain_width[2]
+            center = 0.5*(pf.domain_left_edge +
+                pf.domain_right_edge).in_units("code_length")
+        else:
+            # Our default width here is the full domain
+            width = [pf.domain_right_edge[0]*2.0, pf.domain_right_edge[0]*2.0]
+            center = pf.arr([0.0, 0.0, 0.0], "code_length")
+    else:
+        raise NotImplementedError
     bounds = (center[x_dict[axis]]-width[0] / 2,
               center[x_dict[axis]]+width[0] / 2,
               center[y_dict[axis]]-width[1] / 2,
