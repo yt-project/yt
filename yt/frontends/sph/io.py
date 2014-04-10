@@ -563,10 +563,12 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                     for ax in 'xyz':
                         mi = pp["Coordinates"][ax].min()
                         ma = pp["Coordinates"][ax].max()
-                        outlier = YTArray(np.max(np.abs((mi,ma))), 'code_length')
+                        outlier = self.arr(np.max(np.abs((mi,ma))), 'code_length')
                         if outlier > pf.domain_right_edge or -outlier < pf.domain_left_edge:
-                            pf.domain_left_edge = -1.01*outlier # scale these up so the domain is slightly
-                            pf.domain_right_edge = 1.01*outlier # larger than the most distant particle position
+                            # scale these up so the domain is slightly
+                            # larger than the most distant particle position
+                            pf.domain_left_edge = -1.01*outlier
+                            pf.domain_right_edge = 1.01*outlier
                     ind += c
         pf.domain_left_edge = np.ones(3)*pf.domain_left_edge
         pf.domain_right_edge = np.ones(3)*pf.domain_right_edge
