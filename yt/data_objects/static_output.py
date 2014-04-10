@@ -176,6 +176,7 @@ class Dataset(object):
 
         self._create_unit_registry()
         self._parse_parameter_file()
+        self.set_units()
         self._setup_coordinate_handler()
 
         # Because we need an instantiated class to check the pf's existence in
@@ -187,7 +188,6 @@ class Dataset(object):
             pass
         self.print_key_parameters()
 
-        self.set_units()
         self._set_derived_attrs()
         self._setup_classes()
 
@@ -632,7 +632,7 @@ class Dataset(object):
             DW = np.zeros(3)
         else:
             DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
-        self.unit_registry.modify("unitary", DW.max())
+        self.unit_registry.add("unitary", float(DW.max()), DW.units.dimensions)
 
     _arr = None
     @property

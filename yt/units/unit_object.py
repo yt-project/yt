@@ -137,7 +137,7 @@ class Unit(Expr):
         """
         # Simplest case. If user passes a Unit object, just use the expr.
         unit_key = None
-        if isinstance(unit_expr, str):
+        if isinstance(unit_expr, basestring):
             if registry and unit_expr in registry.unit_objs:
                 return registry.unit_objs[unit_expr]
             else:

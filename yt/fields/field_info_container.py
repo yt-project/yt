@@ -20,7 +20,8 @@ import types
 from numbers import Number as numeric_type
 
 from yt.funcs import mylog, only_on_root
-from yt.units.unit_object import Unit
+from yt.units.unit_object import \
+    Unit, UnitParseError
 from yt.units.yt_array import YTArray
 from .derived_field import \
     DerivedField, \
