@@ -182,10 +182,11 @@ def get_window_parameters(axis, center, width, pf):
         center = pf.arr([0.0, 0.0, c_r], "code_length")
         if axis == 2:
             # latitude slice
-            width = pf.arr([180, 360], "code_length")
+            width = pf.arr([360, 180], "code_length")
         else:
             width = [2.0*(pf.domain_right_edge[2] + pf.surface_height),
                      2.0*(pf.domain_right_edge[2] + pf.surface_height)]
+            center[2] = 0.0
     else:
         raise NotImplementedError
     bounds = (center[x_dict[axis]]-width[0] / 2,

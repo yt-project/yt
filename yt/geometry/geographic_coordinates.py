@@ -99,7 +99,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
                  units = "")
 
         def _latitude_to_phi(field, data):
-            # latitude runs from -180 to 180.
+            # latitude runs from -90 to 90
             return (data["latitude"] + 90) * np.pi/180.0
         registry.add_field(("index", "phi"),
                  function = _latitude_to_phi,
@@ -123,10 +123,10 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
     def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
                         dim, periodic):
-        # We should be using fcoords
         buff = pixelize_aitoff(data_source["theta"], data_source["dtheta"]/2.0,
                                data_source["phi"], data_source["dphi"]/2.0,
-                               size, data_source[field], None, None).transpose()
+                               size, data_source[field], None,
+                               None).transpose()
         return buff
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias,
@@ -137,12 +137,6 @@ class GeographicCoordinateHandler(CoordinateHandler):
                                      data_source['theta'],
                                      data_source['dtheta'] / 2.0, # half-widths
                                      size, data_source[field], bounds)
-            buff = pixelize_cylinder(data_source['r'],
-                                     data_source['dr'] / 2.0,
-                                     2.0*np.pi - data_source['theta'],
-                                     data_source['dtheta'] / 2.0, # half-widths
-                                     size, data_source[field], bounds,
-                                     input_img = buff)
         elif dimension == 1:
             buff = pixelize_cylinder(data_source['r'],
                                      data_source['dr'] / 2.0,
