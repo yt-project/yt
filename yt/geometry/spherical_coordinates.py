@@ -113,12 +113,6 @@ class SphericalCoordinateHandler(CoordinateHandler):
                                      data_source['theta'],
                                      data_source['dtheta'] / 2.0, # half-widths
                                      size, data_source[field], bounds)
-            buff = pixelize_cylinder(data_source['r'],
-                                     data_source['dr'] / 2.0,
-                                     2.0*np.pi - data_source['theta'],
-                                     data_source['dtheta'] / 2.0, # half-widths
-                                     size, data_source[field], bounds,
-                                     input_img = buff)
         else:
             raise RuntimeError
         return buff
