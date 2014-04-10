@@ -334,7 +334,7 @@ class FITSDataset(Dataset):
         if self.nprocs is None:
             self.nprocs = np.around(np.prod(self.domain_dimensions) /
                                     32**self.dimensionality).astype("int")
-            self.nprocs = min(self.nprocs, 2500)
+            self.nprocs = min(self.nprocs, 512)
 
         # Check to see if this data is in (RA,Dec,?) format
         self.xyv_data = False
