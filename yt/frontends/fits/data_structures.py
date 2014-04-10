@@ -156,10 +156,12 @@ class FITSHierarchy(GridIndex):
                         mylog.info("Adding field %s to the list of fields." % (fname))
                         self._detect_image_units(fname, h.header)
 
+        # For line fields, we still read the primary field. Not sure how to extend this
+        # For now, we pick off the first field from the field list.
         line_db = self.parameter_file.line_database
         primary_fname = self.field_list[0][1]
         for k, v in line_db.iteritems():
-            print "Adding line: ", k, v
+            mylog.info("Adding line field: %s at offset %i" % (k, v))
             self.field_list.append((self.dataset_type, k))
             self._ext_map[k] = self._ext_map[primary_fname]
             self._axis_map[k] = self._axis_map[primary_fname]
