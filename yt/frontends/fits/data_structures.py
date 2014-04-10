@@ -154,6 +154,12 @@ class FITSHierarchy(GridIndex):
                     fname = h.name.lower()
                     self.field_list.append((self.dataset_type, fname))
                     self._detect_image_units(fname, h.header)
+        self.field_list.append((self.dataset_type, "CO"))
+        self.field_list.append((self.dataset_type, "HCN"))
+        self._field_map["CO"] = 0
+        self._field_map["HCN"] = 0
+        for line in ["CO", "HCN"]:
+            self.parameter_file.field_units[line] = "Jy/beam"
 
     def _count_grids(self):
         self.num_grids = self.pf.nprocs
@@ -224,7 +230,13 @@ class FITSDataset(Dataset):
     def __init__(self, filename, dataset_type='fits',
                  nprocs = None,
                  storage_filename = None,
-                 mask_nans = False):
+                 mask_nans = False,
+                 folded_axis=None,
+                 folded_width=None
+                 ):
+        self.folded_axis = folded_axis
+        self.folded_width = folded_width
+        self.folded_offsets = {}
         self.fluid_types += ("fits",)
         self.mask_nans = mask_nans
         self.nprocs = nprocs
@@ -342,16 +354,23 @@ class FITSXYVDataset(FITSDataset):
 
     def __init__(self, filename,
                  dataset_type='xyv_fits',
-                 nprocs = None,
-                 storage_filename = None,
-                 mask_nans = False):
+                 nprocs=None,
+                 storage_filename=None,
+                 mask_nans=False,
+                 folded_axis=None,
+                 folded_width=None
+                 ):
 
         self.fluid_types += ("xyv_fits",)
 
         super(FITSXYVDataset, self).__init__(filename, dataset_type=dataset_type,
                                              nprocs=nprocs,
                                              storage_filename=storage_filename,
-                                             mask_nans=mask_nans)
+                                             mask_nans=mask_nans,
+                                             folded_axis=folded_axis,
+                                             folded_width=folded_width)
+        self.folded_axis = folded_axis
+        self.folded_width = folded_width
         self.axes_names = [self.primary_header["CTYPE%d" % (ax)] for ax in xrange(1,4)]
         self.ra_axis = np.where(np_char.startswith(self.axes_names, "RA"))[0][0]
         self.dec_axis = np.where(np_char.startswith(self.axes_names, "DEC"))[0][0]
@@ -386,6 +405,13 @@ class FITSXYVDataset(FITSDataset):
             self.domain_dimensions = self.domain_dimensions[:3]
             self.domain_left_edge = self.domain_left_edge[:3]
             self.domain_right_edge = self.domain_right_edge[:3]
+
+        if self.folded_axis is not None:
+            ax = self.folded_axis
+            ratio = self.folded_width/self.domain_dimensions[ax]
+            self.domain_dimensions[ax] = int(self.folded_width)
+            self.domain_left_edge[ax] = -self.folded_width/2.
+            self.domain_right_edge[ax] = self.folded_width/2.
 
         if self.nprocs is None:
             self.nprocs = np.around(np.prod(self.domain_dimensions) /
