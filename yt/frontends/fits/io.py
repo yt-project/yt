@@ -24,7 +24,10 @@ class IOHandlerFITS(BaseIOHandler):
         super(IOHandlerFITS, self).__init__(pf)
         self.pf = pf
         self._handle = pf._handle
-        
+        self.folded = False
+        if self.pf.folded_axis is not None:
+            self.folded = True
+
     def _read_particles(self, fields_to_read, type, args, grid_list,
             count_list, conv_factors):
         pass
@@ -42,13 +45,27 @@ class IOHandlerFITS(BaseIOHandler):
                     size, [f2 for f1, f2 in fields], ng)
         for field in fields:
             ftype, fname = field
+            tmp_fname = fname
+            if fname in self.pf.line_database:
+                fname = self.pf.field_list[0][1]
             f = self.pf.index._file_map[fname]
             ds = f[self.pf.index._ext_map[fname]]
+            fname = tmp_fname
             ind = 0
             for chunk in chunks:
                 for g in chunk.objs:
-                    start = (g.LeftEdge.ndarray_view()-0.5).astype("int")
-                    end = (g.RightEdge.ndarray_view()-0.5).astype("int")
+                    centering = np.array([0.5]*3)
+                    if self.folded:
+                        centering[-1] = 0.0
+                    start = (g.LeftEdge.ndarray_view()-centering).astype("int")
+                    end = (g.RightEdge.ndarray_view()-centering).astype("int")
+                    if self.folded:
+                        my_off = self.pf.line_database.get(fname, 0)\
+                            + self.pf.folded_width/2
+
+                        start[-1] += my_off
+                        end[-1] += my_off
+                        mylog.debug("Reading from " + str(start) + str(end))
                     if self.pf.dimensionality == 2:
                         nx, ny = g.ActiveDimensions[:2]
                         nz = 1

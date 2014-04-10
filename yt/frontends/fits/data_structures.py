@@ -161,6 +161,18 @@ class FITSHierarchy(GridIndex):
                         mylog.info("Adding field %s to the list of fields." % (fname))
                         self._determine_image_units(fname, h.header)
 
+        # For line fields, we still read the primary field. Not sure how to extend this
+        # For now, we pick off the first field from the field list.
+        line_db = self.parameter_file.line_database
+        primary_fname = self.field_list[0][1]
+        for k, v in line_db.iteritems():
+            mylog.info("Adding line field: %s at offset %i" % (k, v))
+            self.field_list.append((self.dataset_type, k))
+            self._ext_map[k] = self._ext_map[primary_fname]
+            self._axis_map[k] = self._axis_map[primary_fname]
+            self._file_map[k] = self._file_map[primary_fname]
+            self.parameter_file.field_units[k] = "Jy/beam"
+
     def _count_grids(self):
         self.num_grids = self.pf.nprocs
 
@@ -234,7 +246,17 @@ class FITSDataset(Dataset):
                  nprocs = None,
                  storage_filename = None,
                  mask_nans = False,
-                 suppress_astropy_warnings = True):
+                 folded_axis=None,
+                 folded_width=None,
+                 line_database=None,
+                 suppress_astropy_warnings = True
+                 ):
+        self.folded_axis = folded_axis
+        self.folded_width = folded_width
+        if line_database is None:
+            line_database = {}
+        self.line_database = line_database
+
         if suppress_astropy_warnings:
             warnings.filterwarnings('ignore', module="astropy", append=True)
         self.filenames = [filename] + slave_files
@@ -317,6 +339,11 @@ class FITSDataset(Dataset):
 
         self.domain_left_edge = np.array([0.5]*3)
         self.domain_right_edge = np.array([float(dim)+0.5 for dim in self.domain_dimensions])
+
+        if self.folded_axis is not None:
+            self.domain_left_edge[self.folded_axis] = -self.folded_width/2.
+            self.domain_right_edge[self.folded_axis] = self.folded_width/2.
+            self.domain_dimensions[self.folded_axis] = int(self.folded_width)
 
         if self.dimensionality == 2:
             self.domain_left_edge[-1] = 0.5
