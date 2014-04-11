@@ -47,8 +47,8 @@ class Camera(Orientation):
         super(Camera, self).__init__(self.focus - self.position,
                                      self.north_vector, steady_north=False)
 
-    def get_sampler_params(self):
-        lens_params = self.lens.get_sampler_params(self)
+    def get_sampler_params(self, render_source):
+        lens_params = self.lens.get_sampler_params(self, render_source)
         lens_params.update(width=self.width)
         return lens_params
 
@@ -207,3 +207,14 @@ class Camera(Orientation):
             north_vector=np.dot(R, self.unit_vectors[1]))
         if self.steady_north:
             self.north_vector = np.dot(R, self.north_vector)
+
+    def project_to_plane(self, pos, res=None):
+        if res is None:
+            res = self.resolution
+        dx = np.dot(pos - self.position.d, self.unit_vectors[1])
+        dy = np.dot(pos - self.position.d, self.unit_vectors[0])
+        dz = np.dot(pos - self.position.d, self.unit_vectors[2])
+        # Transpose into image coords.
+        py = (res[0]/2 + res[0]*(dx/self.width[0].d)).astype('int')
+        px = (res[1]/2 + res[1]*(dy/self.width[1].d)).astype('int')
+        return px, py, dz

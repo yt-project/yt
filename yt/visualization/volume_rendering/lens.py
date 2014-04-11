@@ -81,7 +81,12 @@ class PlaneParallelLens(Lens):
         mylog.debug("Entering %s" % str(self))
         super(PlaneParallelLens, self).__init__()
 
-    def get_sampler_params(self, camera):
+    def get_sampler_params(self, camera, render_source):
+        if render_source.zbuffer is not None:
+            image = render_source.zbuffer.rgba
+        else:
+            image = self.new_image(camera)
+
         sampler_params =\
             dict(vp_pos=np.concatenate([camera.inv_mat.ravel('F'),
                                         self.back_center.ravel()]),
@@ -92,7 +97,7 @@ class PlaneParallelLens(Lens):
                  x_vec=camera.unit_vectors[0],
                  y_vec=camera.unit_vectors[1],
                  width=np.array(camera.width, dtype='float64'),
-                 image=self.new_image(camera))
+                 image=image)
         return sampler_params
 
     def set_viewpoint(self, camera):
@@ -102,6 +107,16 @@ class PlaneParallelLens(Lens):
         self.viewpoint = self.front_center + \
             camera.unit_vectors[2] * 1.0e6 * camera.width[2]
 
+    def project_to_plane(self, camera, pos, res=None):
+        if res is None:
+            res = camera.resolution
+        dx = np.dot(pos - self.origin.d, camera.unit_vectors[1])
+        dy = np.dot(pos - self.origin.d, camera.unit_vectors[0])
+        dz = np.dot(pos - self.front_center.d, camera.unit_vectors[2])
+        # Transpose into image coords.
+        py = (res[0]*(dx/camera.width[0].d)).astype('int')
+        px = (res[1]*(dy/camera.width[1].d)).astype('int')
+        return px, py, dz
 
 class PerspectiveLens(Lens):
 
@@ -199,7 +214,7 @@ class FisheyeLens(Lens):
             info={'imtype': 'rendering'})
         return self.current_image
 
-    def get_sampler_params(self, camera):
+    def get_sampler_params(self, camera, render_source):
         vp = arr_fisheye_vectors(camera.resolution[0], self.fov)
         vp.shape = (camera.resolution[0]**2, 1, 3)
         vp2 = vp.copy()
@@ -211,7 +226,10 @@ class FisheyeLens(Lens):
         positions = np.ones((camera.resolution[0]**2, 1, 3),
                             dtype='float64') * camera.position
 
-        image = self.new_image(camera)
+        if render_source.zbuffer is not None:
+            image = render_source.zbuffer.rgba
+        else:
+            image = self.new_image(camera)
 
         sampler_params =\
             dict(vp_pos=positions,

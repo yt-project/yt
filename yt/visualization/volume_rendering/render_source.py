@@ -19,7 +19,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from transfer_function_helper import TransferFunctionHelper
+from transfer_functions import TransferFunction
 from utils import new_volume_render_sampler, data_source_or_all
+from zbuffer_array import ZBuffer
 
 
 class RenderSource(ParallelAnalysisInterface):
@@ -33,7 +35,7 @@ class RenderSource(ParallelAnalysisInterface):
         self.opaque = False
         self.zbuffer = None
 
-    def render(self, zbuffer=None):
+    def render(self, camera, zbuffer=None):
         pass
 
     def validate(self):
@@ -49,6 +51,10 @@ class OpaqueSource(RenderSource):
 
     def set_zbuffer(self, zbuffer):
         self.zbuffer = zbuffer
+
+    def render(self, camera, zbuffer=None):
+        # This is definitely wrong for now
+        return self.zbuffer
 
 
 class VolumeSource(RenderSource):
@@ -80,6 +86,15 @@ class VolumeSource(RenderSource):
     def build_defaults(self):
         self.build_default_volume()
         self.build_default_transfer_function()
+
+    def set_transfer_function(self, transfer_function):
+        """
+        Set transfer function for this source
+        """
+        if not isinstance(transfer_function, TransferFunction):
+            raise RuntimeError("transfer_function not of correct type")
+        self.transfer_function = transfer_function
+        return self
 
     def validate(self):
         """Make sure that all dependencies have been met"""
@@ -126,8 +141,9 @@ class VolumeSource(RenderSource):
         self.sampler = sampler
         assert(self.sampler is not None)
 
-    def render(self, camera):
+    def render(self, camera, zbuffer=None):
         camera.lens.set_camera(camera)
+        self.zbuffer = zbuffer
         self.set_sampler(camera)
         assert (self.sampler is not None)
 
@@ -145,6 +161,7 @@ class VolumeSource(RenderSource):
         mylog.debug("Done casting rays")
 
         self.current_image = self.finalize_image(camera, self.sampler.aimage)
+        self.zbuffer = ZBuffer(self.current_image, 0.0*zbuffer.z)
         return self.current_image
 
     def finalize_image(self, camera, image):
