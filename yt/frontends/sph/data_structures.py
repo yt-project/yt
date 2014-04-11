@@ -539,7 +539,6 @@ class TipsyDataset(ParticleDataset):
             f.seek(0, os.SEEK_SET)
         except IOError:
             return False, 1
-        f.seek(0)
         #Read in the header
         t, n, ndim, ng, nd, ns = struct.unpack("<diiiii", f.read(28))
         endianswap = "<"
@@ -548,11 +547,9 @@ class TipsyDataset(ParticleDataset):
             endianswap = ">"
             f.seek(0)
             t, n, ndim, ng, nd, ns = struct.unpack(">diiiii", f.read(28))
-        #Catch for 4 byte padding with floats and doubles
-        if (fs == 32+48*ng+36*nd+44*ns or fs == 32+2*(48*ng+36*nd+44*ns)):
-            f.read(4)
         #File is borked if this is true
-        elif (fs != 28+48*ng+36*nd+44*ns and fs != 28+2*(48*ng+36*nd+44*ns)):
+        if (fs != 28+48*ng+36*nd+44*ns and fs != 28+60*ng+48*nd+56*ns and
+                fs != 32+48*ng+36*nd+44*ns and fs != 32+60*ng+48*nd+56*ns):
             f.close()
             return False, 0
         f.close()
