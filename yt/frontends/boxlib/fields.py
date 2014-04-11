@@ -117,6 +117,16 @@ class MaestroFieldInfo(BoxlibFieldInfo):
             ("y_vel", ("cm/s", ["velocity_y"], None)),
             ("z_vel", ("cm/s", ["velocity_z"], None)),
             ("magvel", ("cm/s", ["velocity_magnitude"], None)),
+            ("tfromp", ("K", [], None)),
+            ("tfromh", ("K", [], None)),
         )
         self.known_other_fields += maestro_fields
         super(MaestroFieldInfo, self).__init__(*args, **kwargs)
+
+    def setup_fluid_fields(self):
+        if self.pf.parameters["use_tfromp"]:
+            self.alias(("gas", "temperature"), ("boxlib", "tfromp"),
+                       units = "K")
+        else:
+            self.alias(("gas", "temperature"), ("boxlib", "tfromh"),
+                       units = "K")
