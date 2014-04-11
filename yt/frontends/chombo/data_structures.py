@@ -51,7 +51,7 @@ from yt.utilities.lib.misc_utilities import \
 from yt.utilities.io_handler import \
     io_registry
 
-from .fields import ChomboFieldInfo
+from .fields import ChomboFieldInfo, Orion2FieldInfo
 
 class ChomboGrid(AMRGridPatch):
     _id_offset = 0
