@@ -28,8 +28,7 @@ from stat import \
      ST_CTIME
 
 from .definitions import \
-     chombo2enzoDict, \
-     yt2chomboFieldsDict, \
+     orion2enzoDict, \
      parameterDict \
 
 from yt.funcs import *

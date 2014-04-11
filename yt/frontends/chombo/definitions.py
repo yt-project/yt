@@ -45,10 +45,8 @@ parameterDict = {"CosmologyCurrentRedshift": float,
                  "NumberOfParticleAttributes": int,
                                  }
 
-chombo2enzoDict = {"GAMMA": "Gamma",
+orion2enzoDict = {"GAMMA": "Gamma",
                   "Ref_ratio": "RefineBy"
                                     }
-
-yt2chomboFieldsDict = {}
-chombo2ytFieldsDict = {}
+                                    
 
