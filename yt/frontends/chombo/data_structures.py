@@ -28,8 +28,7 @@ from stat import \
      ST_CTIME
 
 from .definitions import \
-     orion2enzoDict, \
-     parameterDict \
+     orion2enzoDict, parameterDict
 
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
