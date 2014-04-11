@@ -108,3 +108,15 @@ class BoxlibFieldInfo(FieldInfoContainer):
             self.add_field(("gas", "velocity_%s" % ax),
                            function = _get_vel(ax),
                            units = "cm/s")
+
+class MaestroFieldInfo(BoxlibFieldInfo):
+
+    def __init__(self, *args, **kwargs):
+        maestro_fields = (
+            ("x_vel", ("cm/s", ["velocity_x"], None)),
+            ("y_vel", ("cm/s", ["velocity_y"], None)),
+            ("z_vel", ("cm/s", ["velocity_z"], None)),
+            ("magvel", ("cm/s", ["velocity_magnitude"], None)),
+        )
+        self.known_other_fields += maestro_fields
+        super(MaestroFieldInfo, self).__init__(*args, **kwargs)
