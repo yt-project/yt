@@ -15,6 +15,7 @@ Will initialize everything, and associate one with each module
 #-----------------------------------------------------------------------------
 
 import logging
+import sys
 from yt.config import ytcfg
 
 # This next bit is grabbed from:
@@ -47,12 +48,12 @@ ufstring = "%(name)-3s: [%(levelname)-9s] %(asctime)s %(message)s"
 cfstring = "%(name)-3s: [%(levelname)-18s] %(asctime)s %(message)s"
 logging.basicConfig(
     format=ufstring,
-    level=level
+    level=level,
+    stream=sys.stdout
 )
 
 rootLogger = logging.getLogger()
 ytLogger = logging.getLogger("yt")
-
 
 def disable_stream_logging():
     # We just remove the root logger's handlers
