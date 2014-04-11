@@ -563,6 +563,7 @@ class TipsyDataset(ParticleDataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+        return False
         field_dtypes = kwargs.get("field_dtypes", {})
         return TipsyDataset._validate_header(args[0], field_dtypes)[0]
 
