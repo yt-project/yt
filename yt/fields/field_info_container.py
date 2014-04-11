@@ -161,7 +161,7 @@ class FieldInfoContainer(dict):
         :class:`~yt.data_objects.api.DerivedField`.
 
         """
-        override = kwargs.get("force_override", False)
+        override = kwargs.pop("force_override", False)
         if not override and name in self: return
         if function is None:
             def create_function(function):
