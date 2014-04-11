@@ -547,7 +547,11 @@ class TipsyDataset(ParticleDataset):
             endianswap = ">"
             f.seek(0)
             t, n, ndim, ng, nd, ns = struct.unpack(">diiiii", f.read(28))
-        #File is borked if this is true
+        # File is borked if this is true.  The header is 28 bytes, and may
+        # Be followed by a 4 byte pad.  Next comes gas particles, which use
+        # 48 bytes, followed by 36 bytes per dark matter particle, and 44 bytes
+        # per star particle.  If positions are stored as doubles, each of these
+        # sizes is increased by 12 bytes.
         if (fs != 28+48*ng+36*nd+44*ns and fs != 28+60*ng+48*nd+56*ns and
                 fs != 32+48*ng+36*nd+44*ns and fs != 32+60*ng+48*nd+56*ns):
             f.close()
