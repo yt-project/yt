@@ -183,6 +183,7 @@ Keyword Arguments
 
 Outputs
 -------
+
 A HaloMassFnc object has several arrays hanging off of it containing the 
   * **masses_sim: Halo masses from simulated halos. Units: M_solar
 
