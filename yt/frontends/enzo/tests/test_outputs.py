@@ -40,3 +40,14 @@ def test_galaxy0030():
     for test in big_patch_amr(g30, _fields):
         test_galaxy0030.__name__ = test.description
         yield test
+
+hds0 = "rockstar_halos/halos_0.0.bin"
+hds1 = "rockstar_halos/halos_0.1.bin"
+@requires_pf(hds0)
+@requires_pf(hds1)
+def test_halo_mass_function():
+	hds = data_dir_load(hds0)
+	yield assert_equal, str(hds), "halos_0.0.bin"
+	for test in hfm_sim_and_analytic(hds0)
+		test_halo_mass_function.__name__ = test.description
+		yield test

@@ -586,6 +586,32 @@ class ParentageRelationshipsTest(AnswerTestingTest):
         for newc, oldc in zip(new_result["children"], old_result["children"]):
             assert(newp == oldp)
 
+class HaloMassFunctionTest(AnswerTestingTest):
+    _type_name = "HaloMassFunction"
+    _attrs = ()
+
+    def run(self):
+        result = {}
+        hmf = HaloMassFunction(halos_ds=self.hc)
+        result["masses_sim"] = hmf.masses_sim
+        result["n_cumulative_sim"] = hmf.n_cumulative_sim
+        result["masses_analytic"] = hmf.masses_analytic
+        result["n_cumulative_analytic"] = hmf.n_cumulative_analytic
+        result["dndM_dM_analytic"] = hmf.dndM_dM_analytic
+        return result
+
+    def compare(self, new_result, old_result):
+        for newms, oldms in zip(new_result['masses_sim'], old_result['masses_sim']):
+            assert(newms, oldms)
+        for newncs, oldncs in zip(new_result['n_cumulative_sim'], old_result['n_cumulative_sim']):
+            assert(newncs, oldncs)
+        for newma, oldma in zip(new_result['masses_analytic'], old_result['masses_analytic']):
+            assert(newma, oldma)
+        for newnca, oldnca in zip(new_result['n_cumulative_analytic'], old_result['n_cumulative_analytic']):
+            assert(newnca, oldnca)
+        for newdndmdma, olddndmdma in zip(new_result['dndM_dM_analytic'], old_result['dndM_dM_analytic']):
+            assert(newdndmdma, olddndmdma)
+
 def compare_image_lists(new_result, old_result, decimals):
     fns = ['old.png', 'new.png']
     num_images = len(old_result)
@@ -730,6 +756,11 @@ def big_patch_amr(pf_fn, fields):
                     yield PixelizedProjectionValuesTest(
                         pf_fn, axis, field, weight_field,
                         ds)
+
+def hmf_sim_and_analytic(halos_ds):
+    if not can_run_pf(halos_ds): return
+    yield HaloMassFunctionTest(halos_ds)
+
 
 def create_obj(pf, obj_type):
     # obj_type should be tuple of
