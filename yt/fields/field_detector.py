@@ -173,6 +173,9 @@ class FieldDetector(defaultdict):
         'cp_x_vec': '',
         'cp_y_vec': '',
         'cp_z_vec': '',
+        'x_hat': '',
+        'y_hat': '',
+        'z_hat': '',
         }
 
     def get_field_parameter(self, param, default = None):
@@ -183,6 +186,11 @@ class FieldDetector(defaultdict):
             return 0
         elif param.startswith("cp_"):
             ax = param[3]
+            rv = YTArray((0.0, 0.0, 0.0), self.fp_units[param])
+            rv['xyz'.index(ax)] = 1.0
+            return rv
+        elif param.endswith("_hat"):
+            ax = param[0]
             rv = YTArray((0.0, 0.0, 0.0), self.fp_units[param])
             rv['xyz'.index(ax)] = 1.0
             return rv
