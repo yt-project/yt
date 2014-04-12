@@ -30,7 +30,7 @@ def create_vlos(z_hat):
         vz = data["velocity_x"]*z_hat[0] + \
              data["velocity_y"]*z_hat[1] + \
              data["velocity_z"]*z_hat[2]
-        return vz
+        return -vz
     return _v_los
 
 class XYVCube(object):
@@ -71,7 +71,13 @@ class XYVCube(object):
         self.ny = dims[1]
         self.nv = dims[2]
 
-        orient = Orientation(normal)
+        normal = np.array(normal)
+        normal /= np.sqrt(np.dot(normal, normal))
+        vecs = np.identity(3)
+        t = np.cross(normal, vecs).sum(axis=1)
+        ax = t.argmax()
+        north = np.cross(normal, vecs[ax,:]).ravel()
+        orient = Orientation(normal, north_vector=north)
 
         dd = ds.all_data()
 
@@ -88,7 +94,7 @@ class XYVCube(object):
 
         vbins = np.linspace(self.v_bnd[0], self.v_bnd[1], num=self.nv+1)
 
-        vel_slices = []
+        self.data = ds.arr(np.zeros((self.nx,self.ny,self.nv)), self.field_units)
         pbar = get_pbar("Generating cube.", self.nv)
         for i in xrange(self.nv):
             v1 = vbins[i]
@@ -101,11 +107,10 @@ class XYVCube(object):
                                     function=_vlos, units="cm/s")
             prj = off_axis_projection(ds, ds.domain_center, normal, width,
                                       (self.nx, self.ny), "intensity")
-            vel_slices.append(prj)
+            self.data[:,:,i] = prj[:,:]
             pbar.update(i)
 
         pbar.finish()
-        self.cube = ds.arr(np.array(vel_slices).transpose(1,2,0), self.field_units)
 
     def write_fits(self, filename, clobber=True, length_unit=(10.0, "kpc"),
                    velocity_unit="m/s", sky_center=(30.,45.)):
@@ -131,7 +136,7 @@ class XYVCube(object):
         >>> cube.write_fits("my_cube.fits", clobber=False, length_unit=(5,"deg"),
         ...                 velocity_unit="km/s")
         """
-        if length_unit == "deg":
+        if length_unit[1] == "deg":
             center = sky_center
             types = ["RA---SIN","DEC--SIN"]
         else:
@@ -144,6 +149,9 @@ class XYVCube(object):
         dy = length_unit[0]/self.ny
         dv = (self.v_bnd[1]-self.v_bnd[0]).in_units(velocity_unit).value/self.nv
 
+        if length_unit[1] == "deg":
+            dx *= -1.
+
         w = ap.pywcs.WCS(naxis=3)
         w.wcs.crpix = [0.5*(self.nx+1), 0.5*(self.ny+1), 0.5*(self.nv+1)]
         w.wcs.cdelt = [dx,dy,dv]
@@ -151,7 +159,7 @@ class XYVCube(object):
         w.wcs.cunit = [length_unit[1],length_unit[1],velocity_unit]
         w.wcs.ctype = [types[0],types[1],"VELO-LSR"]
 
-        fib = FITSImageBuffer(self.cube, fields=self.field, wcs=w)
+        fib = FITSImageBuffer(self.data.transpose(), fields=self.field, wcs=w)
         fib[0].header["bunit"] = self.field_units
         fib[0].header["btype"] = self.field
 
