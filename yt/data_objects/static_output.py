@@ -187,6 +187,7 @@ class Dataset(object):
             pass
         self.print_key_parameters()
 
+        self.no_cgs_equiv_length = False
         self.set_units()
         self._set_derived_attrs()
         self._setup_classes()

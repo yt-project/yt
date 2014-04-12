@@ -374,6 +374,7 @@ class AthenaDataset(Dataset):
         for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g")]:
             val = self.specified_parameters.get("%s_unit" % unit, None)
             if val is None:
+                self.no_cgs_equiv_length = True
                 mylog.warning("No %s conversion to cgs provided.  " +
                               "Assuming 1.0 = 1.0 %s", unit, cgs)
                 val = 1.0

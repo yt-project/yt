@@ -308,6 +308,7 @@ class FITSDataset(Dataset):
             length_factor = self.pixel_scale
             length_unit = str(self.new_unit)
         else:
+            self.no_cgs_equiv_length = True
             mylog.warning("No length conversion provided. Assuming 1 = 1 cm.")
             length_factor = 1.0
             length_unit = "cm"
