@@ -253,6 +253,7 @@ class FITSDataset(Dataset):
                  ):
         self.folded_axis = folded_axis
         self.folded_width = folded_width
+        self._unfolded_domain_dimensions = None
         if line_database is None:
             line_database = {}
         self.line_database = line_database
@@ -343,6 +344,7 @@ class FITSDataset(Dataset):
         if self.folded_axis is not None:
             self.domain_left_edge[self.folded_axis] = -self.folded_width/2.
             self.domain_right_edge[self.folded_axis] = self.folded_width/2.
+            self._unfolded_domain_dimensions = self.domain_dimensions.copy()
             self.domain_dimensions[self.folded_axis] = int(self.folded_width)
 
         if self.dimensionality == 2:

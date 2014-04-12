@@ -56,15 +56,21 @@ class IOHandlerFITS(BaseIOHandler):
                 for g in chunk.objs:
                     centering = np.array([0.5]*3)
                     if self.folded:
-                        centering[-1] = 0.0
+                        centering[-1] = self.pf.domain_left_edge[2]
                     start = (g.LeftEdge.ndarray_view()-centering).astype("int")
                     end = (g.RightEdge.ndarray_view()-centering).astype("int")
                     if self.folded:
-                        my_off = self.pf.line_database.get(fname, 0)\
-                            + self.pf.folded_width/2
+                        my_off = \
+                            self.pf.line_database.get(fname,
+                                                      self.pf.folded_width/2)\
+                            - self.pf.folded_width/2
+                        my_off = max(my_off, 0)
+                        my_off = min(my_off,
+                                     self.pf._unfolded_domain_dimensions[
+                                         self.pf.folded_axis]-1)
 
-                        start[-1] += my_off
-                        end[-1] += my_off
+                        start[-1] = start[-1] + my_off
+                        end[-1] = end[-1] + my_off
                         mylog.debug("Reading from " + str(start) + str(end))
                     if self.pf.dimensionality == 2:
                         nx, ny = g.ActiveDimensions[:2]
