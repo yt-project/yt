@@ -316,7 +316,6 @@ class FITSDataset(Dataset):
         self.mass_unit = self.quan(1.0, "g")
         self.time_unit = self.quan(1.0, "s")
         self.velocity_unit = self.quan(1.0, "cm/s")
-        self.unit_registry.modify("pixel", self.length_unit),
 
     def _parse_parameter_file(self):
         self.unique_identifier = \
