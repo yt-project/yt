@@ -20,9 +20,3 @@ from .fields import \
 
 from .io import \
       IOHandlerFITS
-
-from .misc import \
-      FITSOffAxisSlicePlot, \
-      FITSSlicePlot, \
-      FITSProjectionPlot, \
-      FITSOffAxisProjectionPlot

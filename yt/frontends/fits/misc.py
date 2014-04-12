@@ -9,4 +9,4 @@ FITS-specific miscellaneous functions
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-#-----------------------------------------------------------------------------
+
