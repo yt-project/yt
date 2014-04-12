@@ -319,7 +319,8 @@ class SZProjection(object):
             center = sky_center
             units = "deg"
             deltas *= sky_scale
-            
+            deltas[0] *= -1.
+
         fib = FITSImageBuffer(self.data, fields=self.data.keys(),
                               center=center, units=units,
                               scale=deltas)
