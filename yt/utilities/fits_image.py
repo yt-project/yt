@@ -87,16 +87,20 @@ class FITSImageBuffer(pyfits.HDUList):
             mylog.error("Please specify one or more fields to write.")
             raise KeyError
 
-        first = False
-    
+        first = True
+
         for key in fields:
             if key not in exclude_fields:
                 mylog.info("Making a FITS image of field %s" % (key))
                 if first:
                     hdu = pyfits.PrimaryHDU(np.array(img_data[key]))
-                    hdu.name = key
+                    first = False
                 else:
-                    hdu = pyfits.ImageHDU(np.array(img_data[key]), name=key)
+                    hdu = pyfits.ImageHDU(np.array(img_data[key]))
+                hdu.name = key
+                hdu.header["btype"] = key
+                if hasattr(img_data[key], "units"):
+                    hdu.header["bunit"] = str(img_data[key].units)
                 self.append(hdu)
 
         self.dimensionality = len(self[0].data.shape)
@@ -192,21 +196,9 @@ class FITSImageBuffer(pyfits.HDUList):
     def items(self):
         return [(k, self[k]) for k in self.keys()]
 
-    def __add__(self, other):
-        if len(set(self.keys()).intersection(set(other.keys()))) > 0:
-            mylog.error("There are duplicate extension names! Don't know which ones you want to keep!")
-            raise KeyError
-        new_buffer = {}
-        for im1 in self:
-            new_buffer[im1.name] = im1.data
-        for im2 in other:
-            new_buffer[im2.name] = im2.data
-        new_wcs = self.wcs
-        return FITSImageBuffer(new_buffer, wcs=new_wcs)
-
     def writeto(self, fileobj, **kwargs):
         pyfits.HDUList(self).writeto(fileobj, **kwargs)
-        
+
     @property
     def shape(self):
         if self.dimensionality == 2:
