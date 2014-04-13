@@ -66,7 +66,7 @@ class FITSImageBuffer(pyfits.HDUList):
         >>> f_deg.writeto("temp.fits")
         """
         
-        super(pyfits.HDUList, self).__init__()
+        super(FITSImageBuffer, self).__init__()
 
         if isinstance(fields, basestring): fields = [fields]
             
