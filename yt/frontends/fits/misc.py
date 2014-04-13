@@ -12,38 +12,33 @@ FITS-specific miscellaneous functions
 
 from .data_structures import ap
 from yt.funcs import ensure_list, fix_axis
+from yt.utilities.fits_image import FITSImageBuffer
 pyfits = ap.pyfits
 pywcs = ap.pywcs
 
 axis_wcs = [[1,2,0],[0,2,1],[0,1,2]]
 
-class FITSFile(pyfits.HDUList):
+class FITSFile(FITSImageBuffer):
     def __init__(self, ds, data_source, fields, axis):
-        super(FITSFile, self).__init__()
         self.ds = ds
         self.fields = fields
         self.axis = axis
         ndims = ds.dimensionality
         dims = ds.domain_dimensions
         nx, ny = dims[axis_wcs[axis][0]], dims[axis_wcs[axis][1]]
-        self._frb = data_source.to_frb((1.0,"unitary"), (nx,ny))
+        frb = data_source.to_frb((1.0,"unitary"), (nx,ny))
         w = pywcs.WCS(naxis=ndims)
         w.wcs.crpix = [self.ds.wcs.wcs.crpix[idx] for idx in axis_wcs[axis][:ndims]]
         w.wcs.cdelt = [self.ds.wcs.wcs.cdelt[idx] for idx in axis_wcs[axis][:ndims]]
         w.wcs.crval = [self.ds.wcs.wcs.crval[idx] for idx in axis_wcs[axis][:ndims]]
         w.wcs.cunit = [str(self.ds.wcs.wcs.cunit[idx]) for idx in axis_wcs[axis][:ndims]]
         w.wcs.ctype = [self.ds.wcs.wcs.ctype[idx] for idx in axis_wcs[axis][:ndims]]
-        im = self._frb[fields[0]].ndarray_view()
-        if ndims == 3: im = im.reshape(1,nx,ny)
-        self.append(pyfits.PrimaryHDU(im, header=w.to_header()))
-        if len(fields) > 1:
-            for field in fields[1:]:
-                im = self._frb[field].ndarray_view()
-                if ndims == 3: im = im.reshape(1,nx,ny)
-                self.append(pyfits.ImageHDU(im, header=w.to_header()))
-
-    def writeto(self, fileobj, **kwargs):
-        pyfits.HDUList(self).writeto(fileobj, **kwargs)
+        buffer = {}
+        for field in fields:
+            im = frb[field]
+            if ndims == 3: im = im.reshape(1,nx,ny)
+            buffer[field] = im
+        super(FITSFile, self).__init__(buffer, fields=fields, wcs=w)
 
 class FITSSlice(FITSFile):
     def __init__(self, ds, axis, fields, coord, **kwargs):
