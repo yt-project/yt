@@ -42,7 +42,9 @@ from yt.utilities.physical_constants import \
     cm_per_mpc
 
 from .fields import \
-    BoxlibFieldInfo
+    BoxlibFieldInfo, \
+    MaestroFieldInfo
+
 from .io import IOHandlerBoxlib
 # This is what we use to find scientific notation that might include d's
 # instead of e's.
@@ -454,21 +456,7 @@ class BoxlibDataset(Dataset):
             elif param == "castro.use_comoving":
                 vals = self.cosmological_simulation = int(vals)
             else:
-                # Now we guess some things about the parameter and its type
-                v = vals.split()[0] # Just in case there are multiple; we'll go
-                                    # back afterward to using vals.
-                try:
-                    float(v.upper().replace("D","E"))
-                except:
-                    pcast = str
-                else:
-                    syms = (".", "D+", "D-", "E+", "E-")
-                    if any(sym in v.upper() for sym in syms for v in vals.split()):
-                        pcast = float
-                    else:
-                        pcast = int
-                vals = [pcast(v) for v in vals.split()]
-                if len(vals) == 1: vals = vals[0]
+                vals = _guess_pcast(vals)
             self.parameters[param] = vals
 
         if getattr(self, "cosmological_simulation", 0) == 1:
@@ -756,6 +744,8 @@ class CastroDataset(BoxlibDataset):
 
 class MaestroDataset(BoxlibDataset):
 
+    _field_info_class = MaestroFieldInfo
+
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         # fill our args
@@ -772,6 +762,19 @@ class MaestroDataset(BoxlibDataset):
         if any("maestro" in line.lower() for line in lines): return True
         return False
 
+    def _parse_parameter_file(self):
+        super(MaestroDataset, self)._parse_parameter_file()
+        jobinfo_filename = os.path.join(self.output_dir, "job_info")
+        line = ""
+        with open(jobinfo_filename, "r") as f:
+            while not line.startswith(" [*] indicates overridden default"):
+                line = f.next()
+            for line in f:
+                p, v = (_.strip() for _ in line[4:].split("="))
+                if len(v) == 0:
+                    self.parameters[p] = ""
+                else:
+                    self.parameters[p] = _guess_pcast(v)
 
 class NyxHierarchy(BoxlibHierarchy):
 
@@ -867,3 +870,23 @@ class NyxDataset(BoxlibDataset):
         self.time_unit = self.quan(1.0 / 3.08568025e19, "s")
         self.length_unit = self.quan(1.0 / (1 + self.current_redshift), "Mpc")
         self.velocity_unit = self.length_unit / self.time_unit
+
+def _guess_pcast(vals):
+    # Now we guess some things about the parameter and its type
+    v = vals.split()[0] # Just in case there are multiple; we'll go
+                        # back afterward to using vals.
+    try:
+        float(v.upper().replace("D","E"))
+    except:
+        pcast = str
+        if v in ("F", "T"):
+            pcast = bool
+    else:
+        syms = (".", "D+", "D-", "E+", "E-")
+        if any(sym in v.upper() for sym in syms for v in vals.split()):
+            pcast = float
+        else:
+            pcast = int
+    vals = [pcast(v) for v in vals.split()]
+    if len(vals) == 1: vals = vals[0]
+    return vals
