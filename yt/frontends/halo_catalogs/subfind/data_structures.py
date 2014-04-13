@@ -29,6 +29,8 @@ from .fields import \
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
+from yt.utilities.exceptions import \
+     YTException
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.data_objects.static_output import \
@@ -70,7 +72,6 @@ class SubfindDataset(Dataset):
 
         self.dimensionality = 3
         self.refine_by = 2
-        self.parameters["HydroMethod"] = "sph"
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
@@ -94,6 +95,8 @@ class SubfindDataset(Dataset):
         suffix = self.parameter_filename.rsplit(".", 1)[-1]
         self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
         self.file_count = len(glob.glob(prefix + "*" + self._suffix))
+        if self.file_count == 0:
+            raise YTException(message="No data files found.", pf=self)
         self.particle_types = ("FOF", "SUBFIND")
         self.particle_types_raw = ("FOF", "SUBFIND")
         

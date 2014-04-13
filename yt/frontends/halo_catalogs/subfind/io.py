@@ -112,12 +112,32 @@ class IOHandlerSubfindHDF5(BaseIOHandler):
     def _count_particles(self, data_file):
         with h5py.File(data_file.filename, "r") as f:
             return dict([(ptype, f[ptype].attrs["Number_of_groups"]) \
-                         for ptype in "FOF", "SUBFIND"])
+                         for ptype in self.pf.particle_types_raw])
 
     def _identify_fields(self, data_file):
+        pcount = self._count_particles(data_file)
+        fields = []
         with h5py.File(data_file.filename, "r") as f:
-            fields = []
-            for ptype in ["FOF", "SUBFIND"]:
-                for ax in "xyz":
-                    fields.append((ptype, "particle_position_%s" % ax))
+            for ptype in self.pf.particle_types_raw:
+                fields.extend(h5_field_list(f[ptype], ptype, pcount[ptype]))
         return fields, {}
+
+def h5_field_list(fh, ptype, pcount):
+    fields = []
+    for field in fh.keys():
+        if isinstance(fh[field], h5py.Group):
+            fields.extend(h5_field_list(fh[field], ptype, pcount))
+        else:
+            if fh[field].size % pcount:
+                pass
+                # mylog.warn("Cannot add field (%s, %s) with size %d for %d particles." % \
+                #            (ptype, field, fh[field].size, pcount))
+            else:
+                my_div = fh[field].size / pcount
+                if my_div > 1:
+                    for i in range(my_div):
+                        fields.append((ptype, "%s_%d" % (field, i)))
+                else:
+                    fields.append((ptype, field))
+    return fields
+                    
