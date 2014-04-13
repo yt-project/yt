@@ -318,7 +318,25 @@ class Unit(Expr):
                 return False
         return True
 
-    def _get_system_equivalent(self, base_units):
+    @property
+    def is_cgs(self):
+        for atom in self.expr.atoms():
+            if str(atom) in cgs_base_units.values() or atom.is_Number:
+                pass
+            else:
+                return False
+        return True
+
+    @property
+    def is_mks(self):
+        for atom in self.expr.atoms():
+            if str(atom) in mks_base_units.values() or atom.is_Number:
+                pass
+            else:
+                return False
+        return True
+
+    def _get_system_unit_string(self, base_units):
         # The dimensions of a unit object is the product of the base dimensions.
         # Use sympy to factor the dimensions into base CGS unit symbols.
         units = []
@@ -327,10 +345,7 @@ class Unit(Expr):
             unit_string = base_units[dim]
             power_string = "**(%s)" % my_dims.as_coeff_exponent(dim)[1]
             units.append("".join([unit_string, power_string]))
-        units_string = " * ".join(units)
-
-        return Unit(units_string, cgs_value=self.get_conversion_factor(units_string),
-                    dimensions=self.dimensions, registry=self.registry)
+        return " * ".join(units)
 
 
     def get_cgs_equivalent(self):
@@ -338,14 +353,20 @@ class Unit(Expr):
         Create and return dimensionally-equivalent cgs units.
 
         """
-        return self._get_system_equivalent(cgs_base_units)
+        units_string = self._get_system_unit_string(cgs_base_units)
+        return Unit(units_string, cgs_value=1.0,
+                    dimensions=self.dimensions, registry=self.registry)
 
     def get_mks_equivalent(self):
         """
         Create and return dimensionally-equivalent mks units.
 
         """
-        return self._get_system_equivalent(mks_base_units)
+        units_string = self._get_system_unit_string(mks_base_units)
+        cgs_value = (get_conversion_factor(self, self.get_cgs_equivalent()) /
+                     get_conversion_factor(self, units_string))
+        return Unit(units_string, cgs_value=cgs_value,
+                    dimensions=self.dimensions, registry=self.registry)
 
     def get_conversion_factor(self, other_units):
         return get_conversion_factor(self, other_units)
