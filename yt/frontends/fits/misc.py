@@ -41,6 +41,21 @@ class FITSFile(FITSImageBuffer):
         super(FITSFile, self).__init__(buffer, fields=fields, wcs=w)
 
 class FITSSlice(FITSFile):
+    r"""
+    Write an on-axis slice of a FITS cube to disk.
+
+    Parameters
+    ----------
+    ds : FITSDataset
+        The FITS dataset object.
+    axis : character or integer
+        The axis of the slice. One of "x","y","z", or
+        0,1,2.
+    fields : string or list of strings
+        The fields to slice
+    coord : float
+        The coordinate in pixel units (code length) of the slice.
+    """
     def __init__(self, ds, axis, fields, coord, **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis)
@@ -48,6 +63,19 @@ class FITSSlice(FITSFile):
         super(FITSSlice, self).__init__(ds, slc, fields, axis)
 
 class FITSProjection(FITSFile):
+    r"""
+    Write an on-axis projection of a FITS cube to disk.
+
+    Parameters
+    ----------
+    ds : FITSDataset
+        The FITS dataset object.
+    axis : character or integer
+        The axis along which to project. One of "x","y","z", or
+        0,1,2.
+    fields : string or list of strings
+        The fields to project
+    """
     def __init__(self, ds, axis, fields, **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis)
