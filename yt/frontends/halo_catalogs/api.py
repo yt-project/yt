@@ -23,3 +23,8 @@ from .rockstar.api import \
       RockstarDataset, \
       IOHandlerRockstarBinary, \
       RockstarFieldInfo
+
+from .subfind.api import \
+     SubfindDataset, \
+     IOHandlerSubfindHDF5, \
+     SubfindFieldInfo
