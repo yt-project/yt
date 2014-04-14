@@ -71,7 +71,17 @@ class IOHandlerSubfindHDF5(BaseIOHandler):
                     del x, y, z
                     if mask is None: continue
                     for field in field_list:
-                        data = f[ptype][field][mask].astype("float64")
+                        if field in f[ptype].keys():
+                            field_data = f[ptype][field].value.astype("float64")
+                        else:
+                            fname = field[:field.rfind("_")]
+                            field_data = f[ptype][fname].value.astype("float64")
+                            my_div = field_data.size / pcount
+                            if my_div > 1:
+                                field_data = np.resize(field_data, (pcount, my_div))
+                                findex = int(field[field.rfind("_") + 1:])
+                                field_data = field_data[:, findex]
+                        data = field_data[mask]
                         yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):
@@ -134,10 +144,10 @@ def h5_field_list(fh, ptype, pcount):
                 #            (ptype, field, fh[field].size, pcount))
             else:
                 my_div = fh[field].size / pcount
+                fname = fh[field].name[fh[field].name.find(ptype) + len(ptype) + 1:]
                 if my_div > 1:
                     for i in range(my_div):
-                        fields.append((ptype, "%s_%d" % (field, i)))
+                        fields.append((ptype, "%s_%d" % (fname, i)))
                 else:
-                    fields.append((ptype, field))
+                    fields.append((ptype, fname))
     return fields
-                    
