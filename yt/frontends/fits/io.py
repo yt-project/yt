@@ -50,6 +50,7 @@ class IOHandlerFITS(BaseIOHandler):
                 fname = self.pf.field_list[0][1]
             f = self.pf.index._file_map[fname]
             ds = f[self.pf.index._ext_map[fname]]
+            bzero, bscale = self._scale_map[fname]
             fname = tmp_fname
             ind = 0
             for chunk in chunks:
@@ -83,5 +84,6 @@ class IOHandlerFITS(BaseIOHandler):
                     else:
                         data = ds.data[start[2]:end[2],start[1]:end[1],start[0]:end[0]].transpose()
                     if self.pf.mask_nans: data[np.isnan(data)] = 0.0
+                    data = bzero + bscale*data
                     ind += g.select(selector, data.astype("float64"), rv[field], ind)
         return rv

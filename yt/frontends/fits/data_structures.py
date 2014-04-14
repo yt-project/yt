@@ -132,6 +132,7 @@ class FITSHierarchy(GridIndex):
         self._axis_map = {}
         self._file_map = {}
         self._ext_map = {}
+        self._scale_map {}
         # We create a field from each slice on the 4th axis
         if self.parameter_file.naxis == 4:
             naxis4 = self.parameter_file.primary_header["naxis4"]
@@ -157,6 +158,11 @@ class FITSHierarchy(GridIndex):
                         self._axis_map[fname] = k
                         self._file_map[fname] = fits_file
                         self._ext_map[fname] = j
+                        self._scale_map[fname] = [0.0,1.0]
+                        if "bzero" in h.header:
+                            self._scale_map[fname][0] = h.header["bzero"]
+                        if "bscale" in h.header:
+                            self._scale_map[fname][1] = h.header["bscale"]
                         self.field_list.append((self.dataset_type, fname))
                         mylog.info("Adding field %s to the list of fields." % (fname))
                         self._determine_image_units(fname, h.header)
@@ -303,7 +309,6 @@ class FITSDataset(Dataset):
         """
         Generates the conversion to various physical _units based on the parameter file
         """
-        from yt.units.dimensions import length
         if self.new_unit is not None:
             length_factor = self.pixel_scale
             length_unit = str(self.new_unit)
