@@ -83,10 +83,10 @@ class XYVCube(object):
 
         fd = dd._determine_fields(field)[0]
 
-        self.field_units = ds.field_info[fd].units
+        self.field_units = ds._get_field_info(fd).units
 
         if velocity_bounds is None:
-            vmin, vmax = dd.quantities["Extrema"]("velocity_magnitude")
+            vmin, vmax = dd.quantities.extrema("velocity_magnitude")
             self.v_bnd = -vmax, vmax
         else:
             self.v_bnd = (ds.arr(velocity_bounds[0], velocity_bounds[2]),

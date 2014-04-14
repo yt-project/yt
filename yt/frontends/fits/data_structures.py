@@ -81,7 +81,7 @@ axes_prefixes = ["RA","DEC","V","ENER","FREQ"]
 
 delimiters = ["*", "/", "-", "^"]
 delimiters += [str(i) for i in xrange(10)]
-regex_pattern = '|'.join(map(re.escape, delimiters))
+regex_pattern = '|'.join(re.escape(_) for _ in delimiters)
 
 class FITSGrid(AMRGridPatch):
     _id_offset = 0
@@ -125,7 +125,7 @@ class FITSHierarchy(GridIndex):
                     field_units = field_units.replace(unit, known_units[unit])
             self.parameter_file.field_units[fname] = field_units
         except:
-            pass
+            self.parameter_file.field_units[fname] = "dimensionless"
 
     def _detect_output_fields(self):
         self.field_list = []
