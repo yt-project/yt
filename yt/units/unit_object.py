@@ -318,24 +318,6 @@ class Unit(Expr):
                 return False
         return True
 
-    @property
-    def is_cgs(self):
-        for atom in self.expr.atoms():
-            if str(atom) in cgs_base_units.values() or atom.is_Number:
-                pass
-            else:
-                return False
-        return True
-
-    @property
-    def is_mks(self):
-        for atom in self.expr.atoms():
-            if str(atom) in mks_base_units.values() or atom.is_Number:
-                pass
-            else:
-                return False
-        return True
-
     def _get_system_unit_string(self, base_units):
         # The dimensions of a unit object is the product of the base dimensions.
         # Use sympy to factor the dimensions into base CGS unit symbols.
