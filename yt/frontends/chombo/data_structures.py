@@ -67,7 +67,7 @@ class ChomboGrid(AMRGridPatch):
         level.
 
         """
-        if self.start_index != None:
+        if self.start_index is not None:
             return self.start_index
         if self.Parent == []:
             iLE = self.LeftEdge - self.pf.domain_left_edge
@@ -81,8 +81,7 @@ class ChomboGrid(AMRGridPatch):
 
     def _setup_dx(self):
         # has already been read in and stored in index
-        self.dds = self.index.dds_list[self.Level]
-        self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
+        self.dds = self.pf.arr(self.index.dds_list[self.Level], "code_length")
 
 class ChomboHierarchy(GridIndex):
 

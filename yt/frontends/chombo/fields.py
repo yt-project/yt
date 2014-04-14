@@ -25,7 +25,7 @@ from yt.frontends.boxlib.fields import \
     _temperature
 
 rho_units = "code_mass / code_length**3"
-mom_units = "code_mass * code_length / code_time"
+mom_units = "code_mass / (code_time * code_length**2)"
 eden_units = "code_mass / (code_time**2 * code_length)" # erg / cm^3
 
 # We duplicate everything here from Boxlib, because we want to be able to
@@ -69,7 +69,8 @@ class ChomboFieldInfo(FieldInfoContainer):
     def setup_fluid_fields(self):
         def _get_vel(axis):
             def velocity(field, data):
-                return data["%smom" % ax]/data["density"]
+                return data["momentum_%s" % ax]/data["density"]
+            return velocity
         for ax in 'xyz':
             self.add_field("velocity_%s" % ax, function = _get_vel(ax),
                            units = "cm/s")
