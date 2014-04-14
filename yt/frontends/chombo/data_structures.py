@@ -43,9 +43,6 @@ from yt.utilities.definitions import \
      mpc_conversion, sec_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      parallel_root_only
-from yt.units.yt_array import \
-    YTArray, \
-    YTQuantity
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.utilities.io_handler import \
@@ -225,10 +222,10 @@ class ChomboDataset(Dataset):
         self._handle.close()
 
     def _set_code_unit_attributes(self):
-        self.length_unit = YTQuantity(1.0, "cm")
-        self.mass_unit = YTQuantity(1.0, "g")
-        self.time_unit = YTQuantity(1.0, "s")
-        self.velocity_unit = YTQuantity(1.0, "cm/s")
+        self.length_unit = self.quan(1.0, "cm")
+        self.mass_unit = self.quan(1.0, "g")
+        self.time_unit = self.quan(1.0, "s")
+        self.velocity_unit = self.quan(1.0, "cm/s")
 
     def _localize(self, f, default):
         if f is None:

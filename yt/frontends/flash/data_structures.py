@@ -34,7 +34,6 @@ from yt.utilities.io_handler import \
     io_registry
 from yt.utilities.physical_constants import cm_per_mpc
 from .fields import FLASHFieldInfo
-from yt.units.yt_array import YTQuantity
 
 class FLASHGrid(AMRGridPatch):
     _id_offset = 1
@@ -225,20 +224,19 @@ class FLASHDataset(Dataset):
         else:
             length_factor = 1.0
             temperature_factor = 1.0
-        self.magnetic_unit = YTQuantity(b_factor, "gauss")
-        self.length_unit = YTQuantity(length_factor, "cm")
-        self.mass_unit = YTQuantity(1.0, "g")
-        self.time_unit = YTQuantity(1.0, "s")
-        self.velocity_unit = YTQuantity(1.0, "cm/s")
-        self.temperature_unit = YTQuantity(temperature_factor, "K")
+        self.magnetic_unit = self.quan(b_factor, "gauss")
+        self.length_unit = self.quan(length_factor, "cm")
+        self.mass_unit = self.quan(1.0, "g")
+        self.time_unit = self.quan(1.0, "s")
+        self.velocity_unit = self.quan(1.0, "cm/s")
+        self.temperature_unit = self.quan(temperature_factor, "K")
         # Still need to deal with:
         #self.conversion_factors['temp'] = (1.0 + self.current_redshift)**-2.0
 
     def set_code_units(self):
         super(FLASHDataset, self).set_code_units()
-        from yt.units.dimensions import dimensionless
         self.unit_registry.modify("code_temperature",
-            self.temperature_unit.value)
+                                  self.temperature_unit.value)
 
     def _find_parameter(self, ptype, pname, scalar = False):
         nn = "/%s %s" % (ptype,

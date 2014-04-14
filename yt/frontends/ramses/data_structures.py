@@ -29,7 +29,6 @@ from yt.data_objects.static_output import \
 from yt.data_objects.octree_subset import \
     OctreeSubset
 
-from yt.units.yt_array import YTQuantity
 from .definitions import ramses_header, field_aliases
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
@@ -472,10 +471,10 @@ class RAMSESDataset(Dataset):
 
         magnetic_unit = np.sqrt(4*np.pi * mass_unit /
                                 (time_unit**2 * length_unit))
-        self.magnetic_unit = YTQuantity(magnetic_unit, "gauss")
-        self.length_unit = YTQuantity(length_unit, "cm")
-        self.mass_unit = YTQuantity(mass_unit, "g")
-        self.time_unit = YTQuantity(time_unit, "s")
+        self.magnetic_unit = self.quan(magnetic_unit, "gauss")
+        self.length_unit = self.quan(length_unit, "cm")
+        self.mass_unit = self.quan(mass_unit, "g")
+        self.time_unit = self.quan(time_unit, "s")
         self.velocity_unit = self.length_unit / self.time_unit
 
     def _parse_parameter_file(self):
