@@ -226,8 +226,19 @@ class HaloMassFcn(ParallelAnalysisInterface):
                 self.masses_analytic = halos_ds.arr(self.masses_analytic, "Msun")
                 self.n_cumulative_analytic = halos_ds.arr(self.n_cumulative_analytic, 
                                              "Mpccm**(-3)")
+            # It we don't have a dataset to get units from, make a new units registry
             else:
-                self.masses_analytic = YTArray(self.masses_analytic, "Msun")
+                from yt.units.dimensions import length
+                hmf.unit_registry = UnitRegistry()
+                for my_unit in ["m", "pc", "AU", "au"]:
+                    new_unit = "%scm" % my_unit
+                    hmf.unit_registry.add(new_unit, 
+                                        hmf.unit_registry.lut[my_unit][0] / 
+                                        (1 + self.this_redshift),
+                                        length, "\\rm{%s}/(1+z)" % my_unit)  
+                self.n_cumulative_analytic = hmf.unit_registry.arr(self.n_cumulative_analytic, 
+                                                                    "Mpccm**(-3")
+                self.masses_analytic = hmf.unit_registry.arr(self.masses_analytic, "Msun")
 
         """
         If a halo file has been supplied, make a mass function for the simulated halos.
