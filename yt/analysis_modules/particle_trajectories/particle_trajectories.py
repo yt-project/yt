@@ -14,7 +14,7 @@ from yt.data_objects.data_containers import YTFieldData
 from yt.data_objects.time_series import DatasetSeries
 from yt.utilities.lib.CICDeposit import CICSample_3
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    communication_system, parallel_root_only
+    parallel_root_only
 from yt.funcs import *
 from yt.units.yt_array import array_like_field
 from yt.config import ytcfg
@@ -22,8 +22,6 @@ from collections import OrderedDict
 
 import numpy as np
 import h5py
-
-comm = communication_system.communicators[-1]
 
 class ParticleTrajectories(object):
     r"""A collection of particle trajectories in time over a series of
