@@ -779,6 +779,20 @@ class MaestroDataset(BoxlibDataset):
                 else:
                     self.parameters[p] = _guess_pcast(v)
 
+        # set the periodicity based on the integer BC runtime parameters
+        periodicity = [True, True, True]
+        if not self.parameters['bcx_lo'] == -1:
+            periodicity[0] = False
+
+        if not self.parameters['bcy_lo'] == -1:
+            periodicity[1] = False
+
+        if not self.parameters['bcz_lo'] == -1:
+            periodicity[2] = False
+
+        self.periodicity = ensure_tuple(periodicity)
+
+
 class NyxHierarchy(BoxlibHierarchy):
 
     def __init__(self, pf, dataset_type='nyx_native'):
