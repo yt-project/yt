@@ -112,7 +112,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
         The log10 of the mass of the maximum of the halo mass range. This is
         set automatically by the range of halo masses if a simulated halo 
         dataset is provided. If a halo dataset if not provided and no value
-        is specified, it will be set to 15. Units: M_solar
+        is specified, it will be set to 16. Units: M_solar
         Default : None.
     num_sigma_bins : float
         The number of bins (points) to use for the calculation of the 
@@ -185,7 +185,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
             if log_mass_min is None:
                 self.log_mass_min = 5
             if log_mass_max is None:
-                self.log_mass_max = 15
+                self.log_mass_max = 16
 
         # If we're making the analytic function...
         if self.make_analytic == True:
@@ -199,7 +199,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
                 if log_mass_min is None:
                     self.log_mass_min = 5
                 if log_mass_max is None:
-                    self.log_mass_max = 15
+                    self.log_mass_max = 16
             # If we have a halo dataset but not a simulation dataset, use that instead
             if simulation_ds is None and halos_ds is not None:
                 self.omega_matter0 = self.halos_ds.omega_matter
@@ -216,6 +216,18 @@ class HaloMassFcn(ParallelAnalysisInterface):
             self.dndm()
             # Return the mass array in M_solar rather than M_solar/h
             self.masses_analytic *= self.hubble0
+            # The halo arrays will already have yt units, but the analytic forms do 
+            # not. If a dataset has been provided, use that to give them units.
+            if simulation_ds is not None:
+                self.masses_analytic = simulation_ds.arr(self.masses_analytic, "Msun")
+                self.n_cumulative_analytic = simulation_ds.arr(self.n_cumulative_analytic,
+                                             "Mpccm**(-3)")
+            elif halos_ds is not None:
+                self.masses_analytic = halos_ds.arr(self.masses_analytic, "Msun")
+                self.n_cumulative_analytic = halos_ds.arr(self.n_cumulative_analytic, 
+                                             "Mpccm**(-3)")
+            else:
+                self.masses_analytic = YTArray(self.masses_analytic, "Msun")
 
         """
         If a halo file has been supplied, make a mass function for the simulated halos.
@@ -295,7 +307,7 @@ when creating the HaloMassFcn object.")
                 fp.write(line)
                 for i in xrange(self.masses_sim.size - 1):
                     line = "%e\t%e\t%e\n" % (self.masses_sim[i], 
-                    np.log10(self.masses_sim[i])
+                    np.log10(self.masses_sim[i]),
                     self.n_cumulative_sim[i])
                     fp.write(line)
                 fp.close()
