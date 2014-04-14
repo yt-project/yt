@@ -112,6 +112,7 @@ class Dataset(object):
     _index_class = None
     field_units = None
     derived_field_list = requires_index("derived_field_list")
+    _instantiated = False
 
     class __metaclass__(type):
         def __init__(cls, name, b, d):
@@ -147,8 +148,7 @@ class Dataset(object):
         """
         # We return early and do NOT initialize a second time if this file has
         # already been initialized.
-        if self.known_filters is not None:
-            return
+        if self._instantiated: return
         self.dataset_type = dataset_type
         self.file_style = file_style
         self.conversion_factors = {}
