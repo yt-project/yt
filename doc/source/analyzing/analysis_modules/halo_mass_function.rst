@@ -167,7 +167,7 @@ Keyword Arguments
     The log10 of the mass of the maximum of the halo mass range. This is
     set automatically by the range of halo masses if a simulated halo 
     dataset is provided. If a halo dataset if not provided and no value
-    is specified, it will be set to 15. Units: M_solar
+    is specified, it will be set to 16. Units: M_solar
     Default : None.
 
   * **num_sigma_bins (*float*)
