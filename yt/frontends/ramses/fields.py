@@ -70,7 +70,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("x-velocity", (vel_units, ["velocity_x"], None)),
         ("y-velocity", (vel_units, ["velocity_y"], None)),
         ("z-velocity", (vel_units, ["velocity_z"], None)),
-        ("Pressure", ("code_mass / (code_length * code_time**2)", [], None)),
+        ("Pressure", ("code_mass / (code_length * code_time**2)", ["pressure"], None)),
         ("Metallicity", ("", ["metallicity"], None)),
     )
     known_particle_fields = (
