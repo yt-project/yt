@@ -27,6 +27,7 @@ from yt.utilities.lib.misc_utilities import \
     new_bin_profile3d
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_objects
+from yt.utilities.exceptions import YTEmptyProfileData
 
 def preserve_source_parameters(func):
     def save_state(*args, **kwargs):
