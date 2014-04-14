@@ -61,6 +61,7 @@ class FieldInfoContainer(dict):
         self.field_list = field_list
         self.slice_info = slice_info
         self.field_aliases = {}
+        self.species_names = []
         self.setup_fluid_aliases()
 
     def setup_fluid_fields(self):

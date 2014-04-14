@@ -21,6 +21,7 @@ from yt.fields.field_info_container import \
 from yt.units.yt_array import \
     YTArray
 from yt.fields.species_fields import \
+    add_nuclei_density_fields, \
     add_species_field_by_density
 from yt.utilities.physical_constants import \
     mh, me, mp, \
@@ -42,7 +43,7 @@ known_species_names = {
     'HM'      : 'H_m1',
     'DI'      : 'D',
     'DII'     : 'D_p1',
-    'HD'      : 'HD',
+    'HDI'     : 'HD',
     'Electron': 'El'
 }
 
@@ -119,8 +120,10 @@ class EnzoFieldInfo(FieldInfoContainer):
                            take_log=True,
                            units="code_mass/code_length**3")
         yt_name = known_species_names[species]
-        self.alias(("gas", "%s_density" % yt_name),
-                   ("enzo", "%s_Density" % species))
+        # don't alias electron density since mass is wrong
+        if species != "Electron":
+            self.alias(("gas", "%s_density" % yt_name),
+                       ("enzo", "%s_Density" % species))
         add_species_field_by_density(self, "gas", yt_name)
 
     def setup_species_fields(self):
@@ -135,7 +138,8 @@ class EnzoFieldInfo(FieldInfoContainer):
                        units = "g/cm**3")
         for sp in species_names:
             self.add_species_field(sp)
-
+            self.species_names.append(known_species_names[sp])
+        add_nuclei_density_fields(self, "gas")
 
     def setup_fluid_fields(self):
         # Now we conditionally load a few other things.
