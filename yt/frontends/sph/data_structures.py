@@ -388,7 +388,7 @@ class TipsyDataset(ParticleDataset):
         self.over_refine_factor = over_refine_factor
         if field_dtypes is None:
             field_dtypes = {}
-        success, self.endian = self._validate_header(filename, field_dtypes)
+        success, self.endian = self._validate_header(filename)
         if not success:
             print "SOMETHING HAS GONE WRONG.  NBODIES != SUM PARTICLES."
             print "%s != (%s == %s + %s + %s)" % (
@@ -522,7 +522,7 @@ class TipsyDataset(ParticleDataset):
         self.time_unit = 1.0 / np.sqrt(G * density_unit)
 
     @staticmethod
-    def _validate_header(filename, field_dtypes):
+    def _validate_header(filename):
         '''
         This method automatically detects whether the tipsy file is big/little endian
         and is not corrupt/invalid.  It returns a tuple of (Valid, endianswap) where
@@ -534,10 +534,11 @@ class TipsyDataset(ParticleDataset):
         except:
             return False, 1
         try:
-            fs = len(f.read())
+            f.seek(0, os.SEEK_END)
+            fs = f.tell()
+            f.seek(0, os.SEEK_SET)
         except IOError:
             return False, 1
-        f.seek(0)
         #Read in the header
         t, n, ndim, ng, nd, ns = struct.unpack("<diiiii", f.read(28))
         endianswap = "<"
@@ -546,16 +547,13 @@ class TipsyDataset(ParticleDataset):
             endianswap = ">"
             f.seek(0)
             t, n, ndim, ng, nd, ns = struct.unpack(">diiiii", f.read(28))
-        # Now we construct the sizes of each of the particles.
-        dtypes = IOHandlerTipsyBinary._compute_dtypes(field_dtypes, endianswap)
-        #Catch for 4 byte padding
-        gas_size = dtypes["Gas"].itemsize
-        dm_size = dtypes["DarkMatter"].itemsize
-        star_size = dtypes["Stars"].itemsize
-        if (fs == 32+gas_size*ng+dm_size*nd+star_size*ns):
-            f.read(4)
-        #File is borked if this is true
-        elif (fs != 28+gas_size*ng+dm_size*nd+star_size*ns):
+        # File is borked if this is true.  The header is 28 bytes, and may
+        # Be followed by a 4 byte pad.  Next comes gas particles, which use
+        # 48 bytes, followed by 36 bytes per dark matter particle, and 44 bytes
+        # per star particle.  If positions are stored as doubles, each of these
+        # sizes is increased by 12 bytes.
+        if (fs != 28+48*ng+36*nd+44*ns and fs != 28+60*ng+48*nd+56*ns and
+                fs != 32+48*ng+36*nd+44*ns and fs != 32+60*ng+48*nd+56*ns):
             f.close()
             return False, 0
         f.close()
@@ -563,9 +561,7 @@ class TipsyDataset(ParticleDataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        return False
-        field_dtypes = kwargs.get("field_dtypes", {})
-        return TipsyDataset._validate_header(args[0], field_dtypes)[0]
+        return TipsyDataset._validate_header(args[0])[0]
 
 class HTTPParticleFile(ParticleFile):
     pass
