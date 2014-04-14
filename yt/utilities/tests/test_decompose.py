@@ -39,8 +39,10 @@ def test_psize_3d():
 def test_decomposition_2d():
     array = np.ones((7, 5, 1))
     bbox = np.array([[-0.7, 0.0], [1.5, 2.0], [0.0, 0.7]])
-    ledge, redge, data = dec.decompose_array(array, np.array([2, 3, 1]), bbox)
+    ledge, redge, shapes, slices = dec.decompose_array(array.shape,
+                                                       np.array([2, 3, 1]), bbox)
 
+    data = [array[slice] for slice in slices]
     assert_array_equal(data[1].shape, np.array([3, 2, 1]))
 
     gold_le = np.array([
@@ -62,7 +64,10 @@ def test_decomposition_3d():
     array = np.ones((33, 35, 37))
     bbox = np.array([[0., 1.0], [-1.5, 1.5], [1.0, 2.5]])
 
-    ledge, redge, data = dec.decompose_array(array, np.array([3, 2, 2]), bbox)
+    ledge, redge, shapes, slices = dec.decompose_array(array.shape,
+                                                       np.array([3, 2, 2]), bbox)
+    data = [array[slice] for slice in slices]
+
     assert_array_equal(data[0].shape, np.array([11, 17, 18]))
 
     gold_le = np.array(

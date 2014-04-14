@@ -33,8 +33,8 @@ from yt.utilities.io_handler import \
     io_registry
 from .fields import FITSFieldInfo
 from yt.utilities.decompose import \
-    decompose_array, get_psize, decompose_array_nocopy
-from yt.units.unit_lookup_table import default_unit_symbol_lut, prefixable_units
+    decompose_array, get_psize
+from yt.units.unit_lookup_table import default_unit_symbol_lut
 
 class astropy_imports:
     _pyfits = None
@@ -191,7 +191,7 @@ class FITSHierarchy(GridIndex):
             bbox = np.array([[le,re] for le, re in zip(pf.domain_left_edge,
                                                        pf.domain_right_edge)])
             psize = get_psize(np.array(pf.domain_dimensions), pf.nprocs)
-            gle, gre, shapes = decompose_array_nocopy(pf.domain_dimensions, psize, bbox)
+            gle, gre, shapes, slices = decompose_array(pf.domain_dimensions, psize, bbox)
             self.grid_left_edge = self.pf.arr(gle, "code_length")
             self.grid_right_edge = self.pf.arr(gre, "code_length")
             self.grid_dimensions = np.array([shape for shape in shapes], dtype="int32")
@@ -273,7 +273,8 @@ class FITSDataset(Dataset):
         self.nprocs = nprocs
         self._handle = ap.pyfits.open(self.filenames[0],
                                       memmap=True,
-                                      do_not_scale_image_data=True)
+                                      do_not_scale_image_data=True,
+                                      ignore_blank=True)
         self._fits_files = [self._handle]
         if self.num_files > 1:
             for fits_file in slave_files:

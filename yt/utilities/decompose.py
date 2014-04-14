@@ -30,29 +30,7 @@ def decompose_to_primes(max_prime):
     if max_prime > 1:
         yield max_prime
 
-
-def decompose_array(arr, psize, bbox):
-    """ Calculate list of product(psize) subarrays of arr, along with their
-        left and right edges
-    """
-    grid_left_edges = np.empty([np.product(psize), 3], dtype=np.float64)
-    grid_right_edges = np.empty([np.product(psize), 3], dtype=np.float64)
-    n_d = arr.shape
-    d_s = (bbox[:, 1] - bbox[:, 0]) / n_d
-    dist = np.mgrid[bbox[0, 0]:bbox[0, 1]:d_s[0],
-                    bbox[1, 0]:bbox[1, 1]:d_s[1],
-                    bbox[2, 0]:bbox[2, 1]:d_s[2]]
-    for i in range(3):
-        xyz = split_array(dist[i], psize)
-        for j in range(np.product(psize)):
-            grid_left_edges[j, i] = xyz[j][0, 0, 0]
-            grid_right_edges[j, i] = xyz[j][-1, -1, -1] + d_s[i]
-        del xyz
-    del dist
-    patches = split_array(arr, psize)
-    return grid_left_edges, grid_right_edges, patches
-
-def decompose_array_nocopy(shape, psize, bbox):
+def decompose_array(shape, psize, bbox):
     """ Calculate list of product(psize) subarrays of arr, along with their
         left and right edges
     """
@@ -60,10 +38,9 @@ def decompose_array_nocopy(shape, psize, bbox):
     grid_right_edges = np.empty([np.product(psize), 3], dtype=np.float64)
     n_d = shape
     d_s = (bbox[:, 1] - bbox[:, 0]) / n_d
-    grid_left_edges, grid_right_edges = \
-            split_array_alt(bbox[:, 0], bbox[:, 1], shape, psize)
-    shapes = split_array_nocopy(shape, psize)
-    return grid_left_edges, grid_right_edges, shapes
+    grid_left_edges, grid_right_edges, shapes, slices = \
+            split_array(bbox[:, 0], bbox[:, 1], shape, psize)
+    return grid_left_edges, grid_right_edges, shapes, slices
 
 
 def evaluate_domain_decomposition(n_d, pieces, ldom):
@@ -140,27 +117,14 @@ def get_psize(n_d, pieces):
 
     return p_size
 
-
-def split_array(tab, psize):
-    """ Split array into px*py*pz subarrays. """
-    n_d = np.array(tab.shape, dtype=np.int64)
-    slices = []
-    for i in range(psize[0]):
-        for j in range(psize[1]):
-            for k in range(psize[2]):
-                piece = np.array((i, j, k), dtype=np.int64)
-                lei = n_d * piece / psize
-                rei = n_d * (piece + np.ones(3, dtype=np.int64)) / psize
-                slices.append(np.s_[lei[0]:rei[0], lei[1]:
-                                    rei[1], lei[2]:rei[2]])
-    return [tab[slc] for slc in slices]
-
-def split_array_alt(gle, gre, shape, psize):
+def split_array(gle, gre, shape, psize):
     """ Split array into px*py*pz subarrays. """
     n_d = np.array(shape, dtype=np.int64)
     dds = (gre-gle)/shape
     left_edges = []
     right_edges = []
+    shapes = []
+    slices = []
     for i in range(psize[0]):
         for j in range(psize[1]):
             for k in range(psize[2]):
@@ -171,19 +135,8 @@ def split_array_alt(gle, gre, shape, psize):
                 lre = gle + rei*dds
                 left_edges.append(lle)
                 right_edges.append(lre)
-
-    return left_edges, right_edges 
-
-
-def split_array_nocopy(shape, psize):
-    """ Split array into px*py*pz subarrays. """
-    n_d = np.array(shape, dtype=np.int64)
-    shapes = []
-    for i in range(psize[0]):
-        for j in range(psize[1]):
-            for k in range(psize[2]):
-                piece = np.array((i, j, k), dtype=np.int64)
-                lei = n_d * piece / psize
-                rei = n_d * (piece + np.ones(3, dtype=np.int64)) / psize
                 shapes.append(rei-lei)
-    return shapes 
+                slices.append(np.s_[lei[0]:rei[0], lei[1]:
+                                    rei[1], lei[2]:rei[2]])
+
+    return left_edges, right_edges, shapes, slices
