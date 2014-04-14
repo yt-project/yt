@@ -143,17 +143,17 @@ class MaestroFieldInfo(FieldInfoContainer):
         # Momentum cannot be computed because we need to include base and
         # full state.
         ("momentum", ("g*cm/s", ["momentum_magnitude"], None)),
-        ("p0", ("erg/cm**3", [], None)),
-        ("p0pluspi", ("erg/cm**3", [], None)),
+        ("p0", ("erg/cm**3", [], "p_0")),
+        ("p0pluspi", ("erg/cm**3", [], "p_0 + \pi")),
         ("pi", ("erg/cm**3", [], None)),
-        ("pioverp0", ("", [], None)),
+        ("pioverp0", ("", [], "\pi/p_0")),
         # Base state density
-        ("rho0", ("g/cm**3", [], None)),
-        ("rhoh", ("erg/cm**3", ["enthalpy_density"], None)),
+        ("rho0", ("g/cm**3", [], "\\rho_0")),
+        ("rhoh", ("erg/cm**3", ["enthalpy_density"], "(\\rho h)")),
         # Base state enthalpy density
-        ("rhoh0", ("erg/cm**3", [], None)),
-        ("rhohpert", ("erg/cm**3", [], None)),
-        ("rhopert", ("g/cm**3", [], None)),
+        ("rhoh0", ("erg/cm**3", [], "(\\rho h)_0")),
+        ("rhohpert", ("erg/cm**3", [], "(\\rho h)^\prime")),
+        ("rhopert", ("g/cm**3", [], "\\rho^\prime")),
         ("soundspeed", ("cm/s", ["sound_speed"], None)),
         ("sponge", ("", [], None)),
         ("tpert", ("K", [], None)),
