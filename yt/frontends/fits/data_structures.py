@@ -132,7 +132,7 @@ class FITSHierarchy(GridIndex):
         self._axis_map = {}
         self._file_map = {}
         self._ext_map = {}
-        self._scale_map {}
+        self._scale_map = {}
         # We create a field from each slice on the 4th axis
         if self.parameter_file.naxis == 4:
             naxis4 = self.parameter_file.primary_header["naxis4"]
