@@ -11,7 +11,7 @@ FITSImageBuffer Class
 #-----------------------------------------------------------------------------
 
 import numpy as np
-from yt.funcs import mylog, iterable
+from yt.funcs import mylog, iterable, fix_axis, ensure_list
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
 from yt.data_objects.construction_data_containers import YTCoveringGridBase
 from yt.frontends.fits.data_structures import ap
@@ -24,11 +24,13 @@ class FITSImageBuffer(pyfits.HDUList):
                  center=None, scale=None, wcs=None):
         r""" Initialize a FITSImageBuffer object.
 
-        FITSImageBuffer contains a list of FITS ImageHDU instances, and optionally includes
-        WCS information. It inherits from HDUList, so operations such as `writeto` are
-        enabled. Images can be constructed from ImageArrays, NumPy arrays, dicts of such
-        arrays, FixedResolutionBuffers, and YTCoveringGrids. The latter
-        two are the most powerful because WCS information can be constructed from their coordinates.
+        FITSImageBuffer contains a list of FITS ImageHDU instances, and
+        optionally includes WCS information. It inherits from HDUList, so
+        operations such as `writeto` are enabled. Images can be constructed
+        from ImageArrays, NumPy arrays, dicts of such arrays,
+        FixedResolutionBuffers, and YTCoveringGrids. The latter two are the
+        most powerful because WCS information can be constructed from their
+        coordinates.
 
         Parameters
         ----------
@@ -36,9 +38,9 @@ class FITSImageBuffer(pyfits.HDUList):
             ImageArray, an numpy.ndarray, or dict of such arrays
             The data to be made into a FITS image or images.
         fields : single string or list of strings, optional
-            The field names for the data. If *fields* is none and *data* has keys,
-            it will use these for the fields. If *data* is just a single array one field name
-            must be specified.
+            The field names for the data. If *fields* is none and *data* has
+            keys, it will use these for the fields. If *data* is just a
+            single array one field name must be specified.
         units : string
             The units of the WCS coordinates, default "cm". 
         center : array_like, optional
@@ -233,12 +235,89 @@ class FITSImageBuffer(pyfits.HDUList):
 
     def to_aplpy(self, **kwargs):
         """
-        Use APLpy (http://aplpy.github.io) for plotting. Returns an `aplpy.FITSFigure`
-        instance. All keyword arguments are passed to the
+        Use APLpy (http://aplpy.github.io) for plotting. Returns an
+        `aplpy.FITSFigure` instance. All keyword arguments are passed to the
         `aplpy.FITSFigure` constructor.
         """
         import aplpy
         return aplpy.FITSFigure(self, **kwargs)
+
+axis_wcs = [[1,2],[0,2],[0,1]]
+
+def construct_image(data_source):
+    ds = data_source.pf
+    axis = data_source.axis
+    if hasattr(ds, "wcs"):
+        # This is a FITS dataset
+        nx, ny = ds.domain_dimensions[axis_wcs[axis]]
+        crpix = [ds.wcs.wcs.crpix[idx] for idx in axis_wcs[axis]]
+        cdelt = [ds.wcs.wcs.cdelt[idx] for idx in axis_wcs[axis]]
+        crval = [ds.wcs.wcs.crval[idx] for idx in axis_wcs[axis]]
+        cunit = [str(ds.wcs.wcs.cunit[idx]) for idx in axis_wcs[axis]]
+        ctype = [ds.wcs.wcs.ctype[idx] for idx in axis_wcs[axis]]
+    else:
+        # This is some other kind of dataset
+        unit = ds.get_smallest_appropriate_unit(ds.domain_width.max())
+        dx = ds.index.get_smallest_dx()
+        nx, ny = (ds.domain_width[axis_wcs[axis]]/dx).ndarray_view().astype("int")
+        crpix = [0.5*(nx+1), 0.5*(ny+1)]
+        cdelt = [dx.in_units(unit)]*2
+        crval = [ds.domain_center[idx].in_units(unit) for idx in axis_wcs[axis]]
+        cunit = [unit]*2
+        ctype = ["LINEAR"]*2
+    frb = data_source.to_frb((1.0,"unitary"), (nx,ny))
+    w = pywcs.WCS(naxis=2)
+    w.wcs.crpix = crpix
+    w.wcs.cdelt = cdelt
+    w.wcs.crval = crval
+    w.wcs.cunit = cunit
+    w.wcs.ctype = ctype
+    return w, frb
+
+class FITSSlice(FITSImageBuffer):
+    r"""
+    Generate a FITSImageBuffer of an on-axis slice.
+
+    Parameters
+    ----------
+    ds : FITSDataset
+        The FITS dataset object.
+    axis : character or integer
+        The axis of the slice. One of "x","y","z", or 0,1,2.
+    fields : string or list of strings
+        The fields to slice
+    coord : float
+        The coordinate in pixel units (code length) of the slice along *axis*.
+    """
+    def __init__(self, ds, axis, fields, coord, **kwargs):
+        fields = ensure_list(fields)
+        axis = fix_axis(axis)
+        slc = ds.slice(axis, coord, **kwargs)
+        w, frb = construct_image(slc)
+        super(FITSSlice, self).__init__(frb, fields=fields, wcs=w)
+
+class FITSProjection(FITSImageBuffer):
+    r"""
+    Generate a FITSImageBuffer of an on-axis projection.
+
+    Parameters
+    ----------
+    ds : FITSDataset
+        The FITS dataset object.
+    axis : character or integer
+        The axis along which to project. One of "x","y","z", or 0,1,2.
+    fields : string or list of strings
+        The fields to project
+    weight_field : string
+        The field used to weight the projection.
+    """
+    def __init__(self, ds, axis, fields, weight_field=None, **kwargs):
+        fields = ensure_list(fields)
+        axis = fix_axis(axis)
+        prj = ds.proj(fields[0], axis, weight_field=weight_field, **kwargs)
+        w, frb = construct_image(prj)
+        super(FITSProjection, self).__init__(frb, fields=fields, wcs=w)
+
 
 
         
