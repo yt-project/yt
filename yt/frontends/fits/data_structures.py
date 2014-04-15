@@ -127,7 +127,19 @@ class FITSHierarchy(GridIndex):
         except:
             self.parameter_file.field_units[fname] = "dimensionless"
 
+    def _ensure_same_dims(self, hdu):
+        ds = self.parameter_file
+        conditions = [hdu.header["naxis"] != ds.primary_header["naxis"]]
+        for i in xrange(ds.naxis):
+            nax = "naxis%d" % (i+1)
+            conditions.append(hdu.header[nax] != ds.primary_header[nax])
+        if np.any(conditions):
+            return False
+        else:
+            return True
+
     def _detect_output_fields(self):
+        ds = self.parameter_file
         self.field_list = []
         self._axis_map = {}
         self._file_map = {}
@@ -139,33 +151,38 @@ class FITSHierarchy(GridIndex):
         else:
             naxis4 = 1
         for i, fits_file in enumerate(self.parameter_file._fits_files):
-            for j, h in enumerate(fits_file):
-                if self.parameter_file.naxis >= 2:
+            for j, hdu in enumerate(fits_file):
+                if self._ensure_same_dims(hdu):
                     try:
-                        fname = h.header["btype"].lower()
+                        fname = hdu.header["btype"].lower()
                     except:
-                        fname = h.name.lower()
+                        fname = hdu.name.lower()
                     for k in xrange(naxis4):
                         if naxis4 > 1:
-                            fname += "_%s_%d" % (h.header["CTYPE4"], k+1)
+                            fname += "_%s_%d" % (hdu.header["CTYPE4"], k+1)
                         if self.pf.num_files > 1:
                             try:
-                                fname += "_%5.3fGHz" % (h.header["restfreq"]/1.0e9)
+                                fname += "_%5.3fGHz" % (hdu.header["restfreq"]/1.0e9)
                             except:
-                                fname += "_%5.3fGHz" % (h.header["restfrq"]/1.0e9)
+                                fname += "_%5.3fGHz" % (hdu.header["restfrq"]/1.0e9)
                             else:
                                 fname += "_field_%d" % (i)
                         self._axis_map[fname] = k
                         self._file_map[fname] = fits_file
                         self._ext_map[fname] = j
                         self._scale_map[fname] = [0.0,1.0]
-                        if "bzero" in h.header:
-                            self._scale_map[fname][0] = h.header["bzero"]
-                        if "bscale" in h.header:
-                            self._scale_map[fname][1] = h.header["bscale"]
+                        if "bzero" in hdu.header:
+                            self._scale_map[fname][0] = hdu.header["bzero"]
+                        if "bscale" in hdu.header:
+                            self._scale_map[fname][1] = hdu.header["bscale"]
                         self.field_list.append((self.dataset_type, fname))
                         mylog.info("Adding field %s to the list of fields." % (fname))
-                        self._determine_image_units(fname, h.header)
+                        self._determine_image_units(fname, hdu.header)
+                else:
+                    mylog.warning("Image block %s does not have " % (hdu.name.lower()) +
+                                  "the same dimensions as the primary and will not be " +
+                                  "available as a field.")
+
 
         # For line fields, we still read the primary field. Not sure how to extend this
         # For now, we pick off the first field from the field list.
@@ -255,8 +272,7 @@ class FITSDataset(Dataset):
                  folded_axis=None,
                  folded_width=None,
                  line_database=None,
-                 suppress_astropy_warnings = True
-                 ):
+                 suppress_astropy_warnings = True):
         self.folded_axis = folded_axis
         self.folded_width = folded_width
         self._unfolded_domain_dimensions = None
@@ -280,27 +296,16 @@ class FITSDataset(Dataset):
             for fits_file in slave_files:
                 self._fits_files.append(ap.pyfits.open(fits_file,
                                                        memmap=True,
-                                                       do_not_scale_image_data=True))
+                                                       do_not_scale_image_data=True,
+                                                       ignore_blank=True))
+
         self.first_image = 0 # Assumed for now
         self.primary_header = self._handle[self.first_image].header
-        self.shape = self._handle[self.first_image].shape
         self.wcs = ap.pywcs.WCS(header=self.primary_header)
         self.axis_names = {}
         self.naxis = self.primary_header["naxis"]
         for i, ax in enumerate("xyz"[:self.naxis]):
-            self.axis_names[self.primary_header["CTYPE%d" % (i+1)]] = ax
-        self.file_unit = None
-        for i, unit in enumerate(self.wcs.wcs.cunit):
-            if unit in mpc_conversion.keys():
-                self.file_unit = unit.name
-                idx = i
-                break
-        self.new_unit = None
-        self.pixel_scale = 1.0
-        if self.file_unit in mpc_conversion:
-            self.new_unit = self.file_unit
-            self.pixel_scale = self.wcs.wcs.cdelt[idx]
-
+            self.axis_names[self.primary_header["ctype%d" % (i+1)]] = ax
         self.refine_by = 2
 
         Dataset.__init__(self, filename, dataset_type)
@@ -310,14 +315,20 @@ class FITSDataset(Dataset):
         """
         Generates the conversion to various physical _units based on the parameter file
         """
-        if self.new_unit is not None:
-            length_factor = self.pixel_scale
-            length_unit = str(self.new_unit)
-        else:
+        file_unit = None
+        for i, unit in enumerate(self.wcs.wcs.cunit):
+            if unit in mpc_conversion.keys():
+                file_unit = unit.name
+                idx = i
+                break
+        if file_unit is None:
             self.no_cgs_equiv_length = True
             mylog.warning("No length conversion provided. Assuming 1 = 1 cm.")
             length_factor = 1.0
             length_unit = "cm"
+        else:
+            length_factor = self.wcs.wcs.cdelt[idx]
+            length_unit = str(file_unit)
         self.length_unit = self.quan(length_factor,length_unit)
         self.mass_unit = self.quan(1.0, "g")
         self.time_unit = self.quan(1.0, "s")
@@ -326,20 +337,18 @@ class FITSDataset(Dataset):
     def _parse_parameter_file(self):
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        for k, v in self.primary_header.items():
-            self.parameters[k] = v
 
         # Determine dimensionality
 
-        self.dimensionality = self.primary_header["naxis"]
+        self.dimensionality = self.naxis
         self.geometry = "cartesian"
 
         # Sometimes a FITS file has a 4D datacube, in which case
         # we take the 4th axis and assume it consists of different fields.
         if self.dimensionality == 4: self.dimensionality = 3
 
-        dims = self._handle[self.first_image].shape[::-1][:self.dimensionality]
-        self.domain_dimensions = np.array(dims)
+        dims = [self.primary_header["naxis%d" % (i+1)] for i in xrange(self.naxis)]
+        self.domain_dimensions = np.array(dims)[:self.dimensionality]
         if self.dimensionality == 2:
             self.domain_dimensions = np.append(self.domain_dimensions,
                                                [int(1)])
