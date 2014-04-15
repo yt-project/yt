@@ -32,17 +32,6 @@ default_unit_symbol_lut = {
     "K":  (1.0, dimensions.temperature),
     "radian": (1.0, dimensions.angle),
 
-    # "code" units, default to CGS conversion.
-    # These default values are overridden in the code frontends
-    "code_length" : (1.0, dimensions.length),
-    "unitary"   : (1.0, dimensions.length),
-    "code_mass" : (1.0, dimensions.mass),
-    "code_time" : (1.0, dimensions.time),
-    "code_velocity" : (1.0, dimensions.velocity),
-    "code_magnetic" : (1.0, dimensions.magnetic_field),
-    "code_temperature" : (1.0, dimensions.temperature),
-    "code_metallicity" : (1.0, dimensions.dimensionless),
-
     # other cgs
     "dyne": (1.0, dimensions.force),
     "erg":  (1.0, dimensions.energy),
@@ -168,6 +157,14 @@ prefixable_units = (
 cgs_base_units = {
     dimensions.mass:'g',
     dimensions.length:'cm',
+    dimensions.time:'s',
+    dimensions.temperature:'K',
+    dimensions.angle:'radian',
+}
+
+mks_base_units = {
+    dimensions.mass:'kg',
+    dimensions.length:'m',
     dimensions.time:'s',
     dimensions.temperature:'K',
     dimensions.angle:'radian',

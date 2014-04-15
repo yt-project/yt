@@ -385,6 +385,9 @@ class AthenaDataset(Dataset):
         self.magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
                                   (self.time_unit**2 * self.length_unit))
         self.magnetic_unit.convert_to_units("gauss")
+
+    def set_code_units(self):
+        super(self, AthenaDataset).set_code_units()
         self.unit_registry.modify("code_magnetic", self.magnetic_unit)
 
     def _parse_parameter_file(self):

@@ -56,7 +56,8 @@ def test_projection():
                             proj_field
                     field_unit = Unit(fi.units)
                     if wf is not None:
-                        yield assert_equal, frb[proj_field].units, Unit(field_unit)
+                        yield assert_equal, frb[proj_field].units, \
+                            Unit(field_unit, registry=pf.unit_registry)
                     else:
                         if frb[proj_field].units.is_code_unit:
                             proj_unit = "code_length"
@@ -64,7 +65,8 @@ def test_projection():
                             proj_unit = "cm"
                         if field_unit != '' and field_unit != Unit():
                             proj_unit = "({0}) * {1}".format(field_unit, proj_unit)
-                        yield assert_equal, frb[proj_field].units, Unit(proj_unit)
+                        yield assert_equal, frb[proj_field].units, \
+                            Unit(proj_unit, registry=pf.unit_registry)
                     yield assert_equal, frb[proj_field].info['xlim'], \
                             frb.bounds[:2]
                     yield assert_equal, frb[proj_field].info['ylim'], \

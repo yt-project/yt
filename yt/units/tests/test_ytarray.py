@@ -325,22 +325,43 @@ def test_unit_conversions():
 
     yield assert_equal, km_in_cm, km
     yield assert_equal, km_in_cm.in_cgs(), 1e5
+    yield assert_equal, km_in_cm.in_mks(), 1e3
     yield assert_equal, km_in_cm.units, cm_unit
 
     km.convert_to_units('cm')
 
     yield assert_equal, km, YTQuantity(1, 'km')
     yield assert_equal, km.in_cgs(), 1e5
+    yield assert_equal, km.in_mks(), 1e3
     yield assert_equal, km.units, cm_unit
 
     km.convert_to_units('kpc')
 
     yield assert_array_almost_equal_nulp, km, YTQuantity(1, 'km')
     yield assert_array_almost_equal_nulp, km.in_cgs(), YTQuantity(1e5, 'cm')
+    yield assert_array_almost_equal_nulp, km.in_mks(), YTQuantity(1e3, 'm')
     yield assert_equal, km.units, kpc_unit
 
     yield assert_isinstance, km.to_ndarray(), np.ndarray
     yield assert_isinstance, km.ndarray_view(), np.ndarray
+
+    dyne = YTQuantity(1.0, 'dyne')
+
+    yield assert_equal, dyne.in_cgs(), dyne
+    yield assert_equal, dyne.in_cgs(), 1.0
+    yield assert_equal, dyne.in_mks(), dyne
+    yield assert_equal, dyne.in_mks(), 1e-5
+    yield assert_equal, str(dyne.in_mks().units), 'kg*m/s**2'
+    yield assert_equal, str(dyne.in_cgs().units), 'cm*g/s**2'
+
+    em3 = YTQuantity(1.0, 'erg/m**3')
+
+    yield assert_equal, em3.in_cgs(), em3
+    yield assert_equal, em3.in_cgs(), 1e-6
+    yield assert_equal, em3.in_mks(), em3
+    yield assert_equal, em3.in_mks(), 1e-7
+    yield assert_equal, str(em3.in_mks().units), 'kg/(m*s**2)'
+    yield assert_equal, str(em3.in_cgs().units), 'g/(cm*s**2)'
 
 
 def test_yt_array_yt_quantity_ops():

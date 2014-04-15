@@ -458,12 +458,12 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         """
         if iterable(width):
             assert_valid_width_tuple(width)
-            width = YTQuantity(width[0], width[1])
+            width = self.pf.quan(width[0], width[1])
         if height is None:
             height = width
         elif iterable(height):
             assert_valid_width_tuple(height)
-            height = YTQuantity(height[0], height[1])
+            height = self.pf.quan(height[0], height[1])
         if not iterable(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer

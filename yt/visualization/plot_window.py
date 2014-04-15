@@ -91,7 +91,7 @@ def validate_iterable_width(width, pf, unit=None):
         return (pf.quan(width[0], 'code_length'),
                 pf.quan(width[1], 'code_length'))
     elif isinstance(width[0], YTQuantity) and isinstance(width[1], YTQuantity):
-        return width
+        return (pf.quan(width[0]), pf.quan(width[1]))
     else:
         assert_valid_width_tuple(width)
         # If width and unit are both valid width tuples, we
@@ -150,7 +150,7 @@ def get_sanitized_center(center, pf):
         else:
             raise RuntimeError('center keyword \"%s\" not recognized' % center)
     elif isinstance(center, YTArray):
-        pass
+        return pf.arr(center)
     elif iterable(center):
         if iterable(center[0]) and isinstance(center[1], basestring):
             center = pf.arr(center[0], center[1])
@@ -793,7 +793,8 @@ class PWViewerMPL(PlotWindow):
             colorbar_label = image.info['label']
 
             # Determine the units of the data
-            units = Unit(self._frb[f].units).latex_representation()
+            units = Unit(self._frb[f].units, registry=self.pf.unit_registry)
+            units = units.latex_representation()
 
             if units is None or units == '':
                 pass

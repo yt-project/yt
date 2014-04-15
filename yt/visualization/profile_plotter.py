@@ -14,6 +14,7 @@ This is a simple mechanism for interfacing with Profile and Phase plots
 #-----------------------------------------------------------------------------
 
 
+import __builtin__
 import base64
 import types
 
@@ -30,13 +31,15 @@ from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform
 from yt.data_objects.profiles import \
-    create_profile
+     create_profile
+from yt.utilities.exceptions import \
+     YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
 import _mpl_imports as mpl
 from yt.funcs import \
-    ensure_list, \
-    get_image_suffix, \
-    get_ipython_api_version
+     ensure_list, \
+     get_image_suffix, \
+     get_ipython_api_version
 
 def get_canvas(name):
     suffix = get_image_suffix(name)
