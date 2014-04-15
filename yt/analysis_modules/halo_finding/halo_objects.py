@@ -1589,7 +1589,7 @@ class parallelHOPHaloList(HaloList, ParallelAnalysisInterface):
 
         self.comm.mpi_exit_test(exit)
         # Try to do this in a memory conservative way.
-        np.divide(self.particle_fields['particle_mass'], self.total_mass,
+        np.divide(self.particle_fields['particle_mass'].in_units('Msun'), self.total_mass,
             self.particle_fields['particle_mass'])
         np.divide(self.particle_fields["particle_position_x"],
             self.old_period[0], self.particle_fields["particle_position_x"])
@@ -2190,7 +2190,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         # Now we get the full box mass after we have the final composition of
         # subvolumes.
         if total_mass is None:
-            total_mass = self.comm.mpi_allreduce((self._data_source["particle_mass"].astype('float64')).sum(),
+            total_mass = self.comm.mpi_allreduce((self._data_source["particle_mass"].in_units('Msun').astype('float64')).sum(),
                                                  op='sum')
         if not self._distributed:
             self.padding = (np.zeros(3, dtype='float64'),
