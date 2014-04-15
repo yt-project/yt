@@ -21,10 +21,6 @@ from .physical_constants import \
 # The number of levels we expect to have at most
 MAXLEVEL=48
 
-axis_labels = [('y','z'),('x','z'),('x','y')]
-x_names = ['y','x','x']
-y_names = ['z','z','y']
-
 # How many of each thing are in an Mpc
 mpc_conversion = {'Mpc'   : mpc_per_mpc,
                   'mpc'   : mpc_per_mpc,
@@ -46,5 +42,3 @@ sec_conversion = {'Gyr'   : sec_per_Gyr,
                   'Myr'   : sec_per_Myr,
                   'years' : sec_per_year,
                   'days'  : sec_per_day}
-
-axis_labels = [('y','z'),('x','z'),('x','y')]
