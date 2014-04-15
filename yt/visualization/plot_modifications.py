@@ -18,11 +18,6 @@ import h5py
 
 from yt.funcs import *
 from _mpl_imports import *
-from yt.utilities.definitions import \
-    x_names, \
-    y_names, \
-    axis_names, \
-    axis_labels
 from yt.utilities.physical_constants import \
     sec_per_Gyr, sec_per_Myr, \
     sec_per_kyr, sec_per_year, \
@@ -115,14 +110,15 @@ class VelocityCallback(PlotCallback):
                                         "cutting_plane_velocity_y",
                                         self.factor)
         else:
-            xv = "velocity_%s" % (x_names[plot.data.axis])
-            yv = "velocity_%s" % (y_names[plot.data.axis])
+            ax = plot.data.axis
+            (xi, yi) = (plot.data.pf.coordinates.x_axis[ax],
+                        plot.data.pf.coordinates.y_axis[ax])
+            axis_names = plot.data.pf.coordinates.axis_name
+            xv = "velocity_%s" % (axis_names[xi])
+            yv = "velocity_%s" % (axis_names[yi])
 
             bv = plot.data.get_field_parameter("bulk_velocity")
             if bv is not None:
-                ax = plot.data.axis
-                (xi, yi) = (plot.data.pf.coordinates.x_axis[ax],
-                            plot.data.pf.coordinates.y_axis[ax])
                 bv_x = bv[xi]
                 bv_y = bv[yi]
             else: bv_x = bv_y = YTQuantity(0, 'cm/s')
@@ -159,8 +155,11 @@ class MagFieldCallback(PlotCallback):
                                         "cutting_plane_by",
                                         self.factor)
         else:
-            xv = "magnetic_field_%s" % (x_names[plot.data.axis])
-            yv = "magnetic_field_%s" % (y_names[plot.data.axis])
+            xax = plot.data.pf.coordinates.x_axis[plot.data.axis]
+            yax = plot.data.pf.coordinates.y_axis[plot.data.axis]
+            axis_names = plot.data.pf.coordinates.axis_name
+            xv = "magnetic_field_%s" % (axis_names[xax])
+            yv = "magnetic_field_%s" % (axis_names[yax])
             qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, scale_units=self.scale_units, normalize=self.normalize)
         return qcb(plot)
 
@@ -660,8 +659,8 @@ class ClumpContourCallback(PlotCallback):
         px_index = plot.data.pf.coordinates.x_axis[ax]
         py_index = plot.data.pf.coordinates.y_axis[ax]
 
-        xf = axis_names[px_index]
-        yf = axis_names[py_index]
+        xf = plot.data.pf.coordinates.axis_name[px_index]
+        yf = plot.data.pf.coordinates.axis_name[py_index]
         dxf = "d%s" % xf
         dyf = "d%s" % yf
 
@@ -909,7 +908,10 @@ class HopParticleCallback(PlotCallback):
     def __call__(self,plot):
         (dx,dy) = self.pixel_scale(plot)
 
-        (xi, yi) = (x_names[plot.data.axis], y_names[plot.data.axis])
+        xax = plot.data.pf.coordinates.x_axis[plot.data.axis]
+        yax = plot.data.pf.coordinates.y_axis[plot.data.axis]
+        axis_names = plot.data.pf.coordinates.axis_name
+        (xi, yi) = (axis_names[xax], axis_names[yax])
 
         # now we loop over the haloes
         for halo in self.hop_output[:self.max_number]:
@@ -1014,6 +1016,7 @@ class ParticleCallback(PlotCallback):
         ax = data.axis
         xax = plot.data.pf.coordinates.x_axis[ax]
         yax = plot.data.pf.coordinates.y_axis[ax]
+        axis_names = plot.data.pf.coordinates.axis_name
         field_x = "particle_position_%s" % axis_names[xax]
         field_y = "particle_position_%s" % axis_names[yax]
         gg = ( ( reg[field_x] >= x0 ) & ( reg[field_x] <= x1 )

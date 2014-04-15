@@ -14,8 +14,6 @@ Fixed resolution buffer support, along with a primitive image analysis tool.
 #-----------------------------------------------------------------------------
 
 from yt.funcs import *
-from yt.utilities.definitions import \
-    axis_names
 from .volume_rendering.api import off_axis_projection
 from yt.data_objects.image_array import ImageArray
 from yt.utilities.lib.misc_utilities import \
@@ -334,8 +332,8 @@ class FixedResolutionBuffer(object):
         rv = dict(x = None, y = None, z = None)
         xax = self.pf.coordinates.x_axis[self.axis]
         yax = self.pf.coordinates.y_axis[self.axis]
-        xn = axis_names[xax]
-        yn = axis_names[yax]
+        xn = self.pf.coordinates.axis_name[xax]
+        yn = self.pf.coordinates.axis_name[yax]
         rv[xn] = (self.bounds[0], self.bounds[1])
         rv[yn] = (self.bounds[2], self.bounds[3])
         return rv

@@ -61,7 +61,7 @@ class WidgetStore(dict):
             center = pf.h.find_max('Density')[1]
         else:
             center = np.array(center)
-        axis = inv_axis_names[axis.lower()]
+        axis = pf.coordinates.axis_id[axis.lower()]
         coord = center[axis]
         sl = pf.slice(axis, coord, center = center)
         xax = pf.coordinates.x_axis[axis]
@@ -83,7 +83,7 @@ class WidgetStore(dict):
 
     def create_proj(self, pf, axis, field, weight):
         if weight == "None": weight = None
-        axis = inv_axis_names[axis.lower()]
+        axis = pf.coordinates.axis_id[axis.lower()]
         proj = pf.proj(field, axis, weight_field=weight)
         xax = pf.coordinates.x_axis[axis]
         yax = pf.coordinates.y_axis[axis]

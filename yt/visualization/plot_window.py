@@ -43,7 +43,6 @@ from yt.units.unit_object import Unit
 from yt.utilities.png_writer import \
     write_png_to_string
 from yt.utilities.definitions import \
-    axis_names, axis_labels, \
     formatted_length_unit_names
 from yt.utilities.math_utils import \
     ortho_find
@@ -781,7 +780,8 @@ class PWViewerMPL(PlotWindow):
                 labels = [r'$\rm{Image\/x'+axes_unit_labels[0]+'}$',
                           r'$\rm{Image\/y'+axes_unit_labels[1]+'}$']
             else:
-                labels = [r'$\rm{'+axis_labels[axis_index][i]+
+                axis_names = self.pf.coordinates.axis_name
+                labels = [r'$\rm{'+axis_names[axis_index][i]+
                           axes_unit_labels[i] + r'}$' for i in (0,1)]
 
             self.plots[f].axes.set_xlabel(labels[0],fontproperties=fp)
@@ -1423,6 +1423,7 @@ class PWViewerExtJS(PlotWindow):
         axis = self._frb.data_source.axis
         xax = self._frb.data_source.pf.coordinates.x_axis[axis]
         yax = self._frb.data_source.pf.coordinates.y_axis[axis]
+        axis_names = self._frb.data_source.pf.coordinates.axis_name
         fx = "velocity_%s" % (axis_names[xax])
         fy = "velocity_%x" % (axis_names[yax])
         px = new_frb[fx][::-1,:]

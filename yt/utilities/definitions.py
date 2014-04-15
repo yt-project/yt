@@ -22,10 +22,6 @@ from .physical_constants import \
 MAXLEVEL=48
 
 axis_labels = [('y','z'),('x','z'),('x','y')]
-axis_names = {0: 'x', 1: 'y', 2: 'z', 4:''}
-inv_axis_names = {'x':0,'y':1,'z':2,
-                  'X':0,'Y':1,'Z':2}
-
 x_names = ['y','x','x']
 y_names = ['z','z','y']
 
