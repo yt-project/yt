@@ -48,6 +48,6 @@ hds1 = "rockstar_halos/halos_0.1.bin"
 def test_halo_mass_function():
 	hds = data_dir_load(hds0)
 	yield assert_equal, str(hds), "halos_0.0.bin"
-	for test in hfm_sim_and_analytic(hds0)
+	for test in hfm_sim_and_analytic(hds0):
 		test_halo_mass_function.__name__ = test.description
 		yield test
