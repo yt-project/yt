@@ -709,8 +709,6 @@ Miscellaneous Types
    ~yt.utilities.parallel_tools.parallel_analysis_interface.ObjectIterator
    ~yt.utilities.parallel_tools.parallel_analysis_interface.ParallelAnalysisInterface
    ~yt.utilities.parallel_tools.parallel_analysis_interface.ParallelObjectIterator
-   ~yt.analysis_modules.hierarchy_subset.hierarchy_subset.ConstructedRootGrid
-   ~yt.analysis_modules.hierarchy_subset.hierarchy_subset.ExtractedHierarchy
 
 
 Testing Infrastructure
