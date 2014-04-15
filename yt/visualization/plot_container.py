@@ -417,7 +417,8 @@ class ImagePlotContainer(object):
             for k, v in self.plots.iteritems():
                 names.append(v.save(name, mpl_kwargs))
             return names
-        axis = self.pf.coordinates.axis_name[self.data_source.axis]
+        axis = self.pf.coordinates.axis_name.get(
+            self.data_source.axis, '')
         weight = None
         type = self._plot_type
         if type in ['Projection', 'OffAxisProjection']:
