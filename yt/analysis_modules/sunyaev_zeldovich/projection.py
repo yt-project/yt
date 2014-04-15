@@ -19,7 +19,6 @@ Chluba, Switzer, Nagai, Nelson, MNRAS, 2012, arXiv:1211.3206
 #-----------------------------------------------------------------------------
 
 from yt.utilities.physical_constants import sigma_thompson, clight, hcgs, kboltz, mh, Tcmb
-from yt.utilities.fits_image import FITSImageBuffer
 from yt.fields.local_fields import add_field, derived_field
 from yt.data_objects.image_array import ImageArray
 from yt.funcs import fix_axis, mylog, iterable, get_pbar
@@ -320,6 +319,7 @@ class SZProjection(object):
             units = "deg"
             deltas *= sky_scale
             
+        from yt.utilities.fits_image import FITSImageBuffer
         fib = FITSImageBuffer(self.data, fields=self.data.keys(),
                               center=center, units=units,
                               scale=deltas)
