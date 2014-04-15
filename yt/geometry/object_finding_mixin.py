@@ -15,6 +15,7 @@ AMR index container class
 
 import numpy as np
 
+from yt.config import ytcfg
 from yt.funcs import *
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level, \
@@ -56,7 +57,19 @@ class ObjectFindingMixin(object) :
 
     def find_max_cell_location(self, field, finest_levels = 3):
         if finest_levels is not False:
-            gi = (self.grid_levels >= self.max_level - finest_levels).ravel()
+            # This prevents bad values for the case that the number of grids to
+            # search is smaller than the number of processors being applied to
+            # the task, by 
+            nproc = ytcfg.getint("yt", "__topcomm_parallel_size")
+            while 1:
+                gi = (self.grid_levels >= self.max_level - finest_levels).ravel()
+                if gi.sum() >= nproc:
+                    break
+                elif finest_levels >= self.max_level:
+                    raise YTTooParallel
+                else:
+                    finest_levels += 1
+                
             source = self.grid_collection([0.0]*3, self.grids[gi])
         else:
             source = self.all_data()

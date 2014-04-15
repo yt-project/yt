@@ -1302,8 +1302,6 @@ class OffAxisProjectionPlot(PWViewerMPL):
         self.set_axes_unit(axes_unit)
 
     def _recreate_frb(self):
-        if self._frb is not None:
-            raise NotImplementedError
         super(OffAxisProjectionPlot, self)._recreate_frb()
 
 _metadata_template = """
