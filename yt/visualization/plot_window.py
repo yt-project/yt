@@ -963,7 +963,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         ts = self._initialize_dataset(pf)
         self.ts = ts
         pf = self.pf = ts[0]
-        axis = fix_axis(axis)
+        axis = fix_axis(axis, pf)
         (bounds, center) = get_window_parameters(axis, center, width, pf)
         if field_parameters is None: field_parameters = {}
         slc = pf.slice(axis, center[axis],
@@ -1089,7 +1089,7 @@ class ProjectionPlot(PWViewerMPL):
         ts = self._initialize_dataset(pf)
         self.ts = ts
         pf = self.pf = ts[0]
-        axis = fix_axis(axis)
+        axis = fix_axis(axis, pf)
         (bounds, center) = get_window_parameters(axis, center, width, pf)
         if field_parameters is None: field_parameters = {}
         proj = pf.proj(fields, axis, weight_field=weight_field,

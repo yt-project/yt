@@ -133,7 +133,7 @@ class SZProjection(object):
         --------
         >>> szprj.on_axis("y", center="max", width=(1.0, "Mpc"), source=my_sphere)
         """
-        axis = fix_axis(axis)
+        axis = fix_axis(axis, self.pf)
 
         if center == "c":
             ctr = self.pf.domain_center

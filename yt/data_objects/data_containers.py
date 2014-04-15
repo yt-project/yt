@@ -725,9 +725,10 @@ class YTSelectionContainer2D(YTSelectionContainer):
     _spatial = False
     def __init__(self, axis, pf, field_parameters):
         ParallelAnalysisInterface.__init__(self)
-        self.axis = fix_axis(axis)
         super(YTSelectionContainer2D, self).__init__(
             pf, field_parameters)
+        # We need the pf, which will exist by now, for fix_axis.
+        self.axis = fix_axis(axis, self.pf)
         self.set_field_parameter("axis", axis)
 
     def _convert_field_name(self, field):
