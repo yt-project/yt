@@ -591,6 +591,7 @@ class HaloMassFunctionTest(AnswerTestingTest):
     _attrs = ()
 
     def run(self):
+        from yt.analysis_modules.halo_mass_function.api import *
         result = {}
         hmf = HaloMassFunction(halos_ds=self.hc)
         result["masses_sim"] = hmf.masses_sim
