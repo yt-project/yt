@@ -64,7 +64,8 @@ class WidgetStore(dict):
         axis = inv_axis_names[axis.lower()]
         coord = center[axis]
         sl = pf.slice(axis, coord, center = center)
-        xax, yax = x_dict[axis], y_dict[axis]
+        xax = pf.coordinates.x_axis[axis]
+        yax = pf.coordinates.y_axis[axis]
         DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
         pw = PWViewerExtJS(sl, (DLE[xax], DRE[xax], DLE[yax], DRE[yax]), 
                            setup = False, plot_type='SlicePlot')
@@ -84,7 +85,8 @@ class WidgetStore(dict):
         if weight == "None": weight = None
         axis = inv_axis_names[axis.lower()]
         proj = pf.proj(field, axis, weight_field=weight)
-        xax, yax = x_dict[axis], y_dict[axis]
+        xax = pf.coordinates.x_axis[axis]
+        yax = pf.coordinates.y_axis[axis]
         DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
         pw = PWViewerExtJS(proj, (DLE[xax], DRE[xax], DLE[yax], DRE[yax]),
                            setup = False, plot_type='ProjectionPlot')

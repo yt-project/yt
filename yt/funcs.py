@@ -24,7 +24,7 @@ from numbers import Number as numeric_type
 
 from yt.utilities.exceptions import *
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.definitions import inv_axis_names, axis_names, x_dict, y_dict
+from yt.utilities.definitions import inv_axis_names, axis_names
 import yt.extern.progressbar as pb
 import yt.utilities.rpdb as rpdb
 from yt.units.yt_array import YTArray, YTQuantity

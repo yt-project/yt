@@ -26,12 +26,6 @@ axis_names = {0: 'x', 1: 'y', 2: 'z', 4:''}
 inv_axis_names = {'x':0,'y':1,'z':2,
                   'X':0,'Y':1,'Z':2}
 
-vm_axis_names = {0:'x', 1:'y', 2:'z', 3:'dx', 4:'dy'}
-
-# The appropriate axes for which way we are slicing
-x_dict = [1,0,0]
-y_dict = [2,2,1]
-
 x_names = ['y','x','x']
 y_names = ['z','z','y']
 

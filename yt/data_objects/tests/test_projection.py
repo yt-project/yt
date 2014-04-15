@@ -29,8 +29,8 @@ def test_projection():
         uc = [np.unique(c) for c in coords]
         # Some simple projection tests with single grids
         for ax, an in enumerate("xyz"):
-            xax = x_dict[ax]
-            yax = y_dict[ax]
+            xax = pf.coordinates.x_axis[ax]
+            yax = pf.coordinates.y_axis[ax]
             for wf in ["density", None]:
                 fns = []
                 proj = pf.proj(["ones", "density"], ax, weight_field = wf)

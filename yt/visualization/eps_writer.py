@@ -19,8 +19,8 @@ from _mpl_imports import FigureCanvasAgg
 
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.definitions import \
-    x_dict, x_names, \
-    y_dict, y_names, \
+    x_names, \
+    y_names, \
     axis_names, \
     axis_labels
 from .plot_window import PlotWindow
