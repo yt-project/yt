@@ -391,11 +391,13 @@ class BoxlibDataset(Dataset):
         Dataset.__init__(self, output_dir, dataset_type)
 
         # These are still used in a few places.
-        self.parameters["HydroMethod"] = 'boxlib'
+        if not "HydroMethod" in self.parameters.keys():
+            self.parameters["HydroMethod"] = 'boxlib'
         self.parameters["Time"] = 1. # default unit is 1...
         self.parameters["EOSType"] = -1 # default
         self.parameters["gamma"] = self.parameters.get(
             "materials.gamma", 1.6667)
+
 
     def _localize_check(self, fn):
         # If the file exists, use it.  If not, set it to None.
@@ -768,13 +770,21 @@ class MaestroDataset(BoxlibDataset):
         line = ""
         with open(jobinfo_filename, "r") as f:
             while not line.startswith(" [*] indicates overridden default"):
+                # get the code git hashes
+                if "git hash" in line:
+                    # line format: codename git hash:  the-hash
+                    fields = line.split(":")
+                    self.parameters[fields[0]] = fields[1].strip()
                 line = f.next()
+            # get the runtime parameters
             for line in f:
                 p, v = (_.strip() for _ in line[4:].split("="))
                 if len(v) == 0:
                     self.parameters[p] = ""
                 else:
                     self.parameters[p] = _guess_pcast(v)
+            # hydro method is set by the base class -- override it here
+            self.parameters["HydroMethod"] = "Maestro"
 
         # set the periodicity based on the integer BC runtime parameters
         periodicity = [True, True, True]
