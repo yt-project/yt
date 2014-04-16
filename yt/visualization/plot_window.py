@@ -973,15 +973,8 @@ class ProjectionPlot(PWViewerMPL):
         if axes_unit is None  and units != ('1', '1'):
             axes_unit = units
         if field_parameters is None: field_parameters = {}
-        # If a data_source is specified, let its field values (including center)
-        # override the projection's own defaults
-        if data_source is not None: 
-            field_parameters.update(data_source.field_parameters)
-            proj = pf.h.proj(axis, fields, weight_field=weight_field, max_level=max_level,
-                             source=data_source, **field_parameters)
-        else:
-            proj = pf.h.proj(axis, fields, weight_field=weight_field, max_level=max_level,
-                             center=center, source=data_source, **field_parameters)
+        proj = pf.h.proj(axis, fields, weight_field=weight_field, max_level=max_level,
+                         center=center, source=data_source, **field_parameters)
         PWViewerMPL.__init__(self, proj, bounds, origin=origin,
                              fontsize=fontsize, fields=fields)
         self.set_axes_unit(axes_unit)
