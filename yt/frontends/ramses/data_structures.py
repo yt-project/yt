@@ -69,6 +69,12 @@ class RAMSESDomainFile(object):
     def __repr__(self):
         return "RAMSESDomainFile: %i" % self.domain_id
 
+    def _is_hydro(self):
+        '''
+        Does the output include hydro?
+        '''
+        return os.path.exists(self.hydro_fn)
+
     @property
     def level_count(self):
         if self._level_count is not None: return self._level_count
@@ -112,6 +118,9 @@ class RAMSESDomainFile(object):
         return self._hydro_offset
 
     def _read_hydro_header(self):
+        # If no hydro file is found, return
+        if not self._is_hydro():
+            return
         if self.nvar > 0: return self.nvar
         # Read the number of hydro  variables
         f = open(self.hydro_fn, "rb")
@@ -359,6 +368,8 @@ class RAMSESIndex(OctreeIndex):
         '''
         # TODO: SUPPORT RT - THIS REQUIRES IMPLEMENTING A NEW FILE READER!
         # Find nvar
+        
+
         # TODO: copy/pasted from DomainFile; needs refactoring!
         num = os.path.basename(self._pf.parameter_filename).split("."
                 )[0].split("_")[1]
@@ -369,19 +380,21 @@ class RAMSESIndex(OctreeIndex):
             num, testdomain)
         hydro_fn = basename % "hydro"
         # Do we have a hydro file?
-        if hydro_fn:
-            # Read the number of hydro  variables
-            f = open(hydro_fn, "rb")
-            hydro_header = ( ('ncpu', 1, 'i'),
-                             ('nvar', 1, 'i'),
-                             ('ndim', 1, 'i'),
-                             ('nlevelmax', 1, 'i'),
-                             ('nboundary', 1, 'i'),
-                             ('gamma', 1, 'd')
-                            )
-            hvals = fpu.read_attrs(f, hydro_header)
-            self.pf.gamma = hvals['gamma']
-            nvar = hvals['nvar']
+        if not os.path.exists(hydro_fn):
+            self.fluid_field_list = []
+            return
+        # Read the number of hydro  variables
+        f = open(hydro_fn, "rb")
+        hydro_header = ( ('ncpu', 1, 'i'),
+                         ('nvar', 1, 'i'),
+                         ('ndim', 1, 'i'),
+                         ('nlevelmax', 1, 'i'),
+                         ('nboundary', 1, 'i'),
+                         ('gamma', 1, 'd')
+                         )
+        hvals = fpu.read_attrs(f, hydro_header)
+        self.pf.gamma = hvals['gamma']
+        nvar = hvals['nvar']
         # OK, we got NVAR, now set up the arrays depending on what NVAR is
         # Allow some wiggle room for users to add too many variables
         if nvar < 5:

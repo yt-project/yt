@@ -118,10 +118,10 @@ class MaestroFieldInfo(FieldInfoContainer):
 
     known_other_fields = (
         ("density", ("g/cm**3", ["density"], None)),
-        ("x_vel", ("cm/s", ["velocity_x"], None)),
-        ("y_vel", ("cm/s", ["velocity_y"], None)),
-        ("z_vel", ("cm/s", ["velocity_z"], None)),
-        ("magvel", ("cm/s", ["velocity_magnitude"], None)),
+        ("x_vel", ("cm/s", ["velocity_x"], r"\tilde{u}")),
+        ("y_vel", ("cm/s", ["velocity_y"], r"\tilde{v}")),
+        ("z_vel", ("cm/s", ["velocity_z"], r"\tilde{w}")),
+        ("magvel", ("cm/s", ["velocity_magnitude"], r"|\tilde{U} + w_0 e_r|")),
         ("tfromp", ("K", [], None)),
         ("tfromh", ("K", [], None)),
         ("Machnumber", ("", ["mach_number"], None)),
