@@ -19,7 +19,6 @@ import weakref
 import itertools
 
 from collections import defaultdict
-from string import strip, rstrip
 from stat import ST_CTIME
 
 import numpy as np

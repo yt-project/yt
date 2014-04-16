@@ -13,7 +13,6 @@ Enzo-specific IO functions
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import exceptions
 import os
 
 from yt.utilities.io_handler import \

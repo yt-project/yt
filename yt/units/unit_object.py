@@ -497,7 +497,7 @@ def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
 
             if symbol_str not in latex_symbol_lut:
                 latex_symbol_lut[symbol_str] = \
-                    string.replace(latex_symbol_lut[symbol_wo_prefix],
+                    latex_symbol_lut[symbol_wo_prefix].replace(
                                    '{'+symbol_wo_prefix+'}', '{'+symbol_str+'}')
 
             # don't forget to account for the prefix value!

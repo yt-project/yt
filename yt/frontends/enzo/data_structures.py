@@ -56,7 +56,6 @@ class EnzoGrid(AMRGridPatch):
     Class representing a single Enzo Grid instance.
     """
 
-    __slots__ = ["NumberOfActiveParticles"]
     def __init__(self, id, index):
         """
         Returns an instance of EnzoGrid with *id*, associated with

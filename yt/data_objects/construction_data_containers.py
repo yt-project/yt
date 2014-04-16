@@ -17,10 +17,8 @@ Data containers that require processing before they can be utilized.
 import numpy as np
 import math
 import weakref
-import exceptions
 import itertools
 import shelve
-from exceptions import ValueError, KeyError
 from functools import wraps
 import fileinput
 from re import finditer

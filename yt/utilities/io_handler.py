@@ -16,7 +16,6 @@ The data-file handling functions
 from collections import defaultdict
 
 from yt.funcs import mylog
-import exceptions
 import cPickle
 import os
 import h5py
