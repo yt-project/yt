@@ -43,7 +43,8 @@ from yt.utilities.physical_constants import \
 
 from .fields import \
     BoxlibFieldInfo, \
-    MaestroFieldInfo
+    MaestroFieldInfo, \
+    CastroFieldInfo
 
 from .io import IOHandlerBoxlib
 # This is what we use to find scientific notation that might include d's
@@ -603,7 +604,8 @@ class BoxlibDataset(Dataset):
         tmp.extend((1,1))
         self.domain_dimensions = np.array(tmp)
         tmp = list(self.periodicity)
-        tmp[1:] = False
+        tmp[1] = False
+        tmp[2] = False
         self.periodicity = ensure_tuple(tmp)
         
     def _setup2d(self):
@@ -727,6 +729,8 @@ class OrionDataset(BoxlibDataset):
         return False
 
 class CastroDataset(BoxlibDataset):
+
+    _field_info_class = CastroFieldInfo
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
