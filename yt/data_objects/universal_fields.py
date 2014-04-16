@@ -1180,6 +1180,68 @@ add_field("Shear", function=_Shear,
           units=r"\rm{s}^{-1}",
           convert_function=_convertShear, take_log=False)
 
+def _ShearCriterion(field, data):
+    """
+    Shear is defined as [(dvx/dy + dvy/dx)^2 + (dvz/dy + dvy/dz)^2 +
+                         (dvx/dz + dvz/dx)^2 ]^(0.5)
+    where dvx/dy = [vx(j-1) - vx(j+1)]/[2dy]
+    and is in units of s^(-1)
+    (it's just like vorticity except add the derivative pairs instead
+     of subtracting them)
+
+    Divide by c_s to leave Shear in units of cm**-1, which 
+    can be compared against the inverse of the local cell size (1/dx) 
+    to determine if refinement should occur.
+    """
+    # We need to set up stencils
+    if data.pf["HydroMethod"] == 2:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(1,-1,None)
+        div_fac = 1.0
+    else:
+        sl_left = slice(None,-2,None)
+        sl_right = slice(2,None,None)
+        div_fac = 2.0
+    new_field = np.zeros(data["x-velocity"].shape)
+    if data.pf.dimensionality > 1:
+        dvydx = (data["y-velocity"][sl_right,1:-1,1:-1] -
+                data["y-velocity"][sl_left,1:-1,1:-1]) \
+                / (div_fac*data["dx"].flat[0])
+        dvxdy = (data["x-velocity"][1:-1,sl_right,1:-1] -
+                data["x-velocity"][1:-1,sl_left,1:-1]) \
+                / (div_fac*data["dy"].flat[0])
+        new_field[1:-1,1:-1,1:-1] += (dvydx + dvxdy)**2.0
+        del dvydx, dvxdy
+    if data.pf.dimensionality > 2:
+        dvzdy = (data["z-velocity"][1:-1,sl_right,1:-1] -
+                data["z-velocity"][1:-1,sl_left,1:-1]) \
+                / (div_fac*data["dy"].flat[0])
+        dvydz = (data["y-velocity"][1:-1,1:-1,sl_right] -
+                data["y-velocity"][1:-1,1:-1,sl_left]) \
+                / (div_fac*data["dz"].flat[0])
+        new_field[1:-1,1:-1,1:-1] += (dvzdy + dvydz)**2.0
+        del dvzdy, dvydz
+        dvxdz = (data["x-velocity"][1:-1,1:-1,sl_right] -
+                data["x-velocity"][1:-1,1:-1,sl_left]) \
+                / (div_fac*data["dz"].flat[0])
+        dvzdx = (data["z-velocity"][sl_right,1:-1,1:-1] -
+                data["z-velocity"][sl_left,1:-1,1:-1]) \
+                / (div_fac*data["dx"].flat[0])
+        new_field[1:-1,1:-1,1:-1] += (dvxdz + dvzdx)**2.0
+        del dvxdz, dvzdx
+    new_field /= data["SoundSpeed"]**2.0
+    new_field = new_field**(0.5)
+    new_field = np.abs(new_field)
+    return new_field
+
+def _convertShearCriterion(data):
+    return data.convert("cm")**-1.0
+add_field("ShearCriterion", function=_ShearCriterion,
+          validators=[ValidateSpatial(1,
+              ["x-velocity","y-velocity","z-velocity", "SoundSpeed"])],
+          units=r"\rm{cm}^{-1}",
+          convert_function=_convertShearCriterion, take_log=False)
+
 def _ShearMach(field, data):
     """
     Dimensionless Shear (ShearMach) is defined nearly the same as shear, 

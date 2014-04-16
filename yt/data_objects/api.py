@@ -1,8 +1,5 @@
 """
 API for yt.data_objects
-
-
-
 """
 
 #-----------------------------------------------------------------------------
@@ -30,11 +27,12 @@ from .particle_io import \
     particle_handler_registry
 
 from .profiles import \
-    EmptyProfileData, \
+    YTEmptyProfileData, \
     BinnedProfile, \
     BinnedProfile1D, \
     BinnedProfile2D, \
-    BinnedProfile3D
+    BinnedProfile3D, \
+    create_profile
 
 from .time_series import \
     TimeSeriesData, \
@@ -71,6 +69,3 @@ from .field_info_container import \
     add_field, \
     add_grad, \
     derived_field
-
-from .particle_trajectories import \
-    ParticleTrajectoryCollection

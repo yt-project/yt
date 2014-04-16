@@ -643,7 +643,7 @@ class AMRRayBase(AMR1DData):
     --------
 
     >>> pf = load("RedshiftOutput0005")
-    >>> ray = pf.h._ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
+    >>> ray = pf.h.ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
     >>> print ray["Density"], ray["t"], ray["dts"]
     """
     _type_name = "ray"
@@ -875,7 +875,8 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         pw.set_axes_unit(axes_unit)
         return pw
 
-    def to_frb(self, width, resolution, center=None, height=None):
+    def to_frb(self, width, resolution, center=None, height=None,
+               periodic = False):
         r"""This function returns a FixedResolutionBuffer generated from this
         object.
 
@@ -900,6 +901,9 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         center : array-like of floats, optional
             The center of the FRB.  If not specified, defaults to the center of
             the current object.
+        periodic : bool
+            Should the returned Fixed Resolution Buffer be periodic?  (default:
+            False).
 
         Returns
         -------
@@ -933,7 +937,8 @@ class AMR2DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         yax = y_dict[self.axis]
         bounds = (center[xax] - width*0.5, center[xax] + width*0.5,
                   center[yax] - height*0.5, center[yax] + height*0.5)
-        frb = FixedResolutionBuffer(self, bounds, resolution)
+        frb = FixedResolutionBuffer(self, bounds, resolution,
+                                    periodic = periodic)
         return frb
 
     def interpolate_discretize(self, LE, RE, field, side, log_spacing=True):
@@ -1768,6 +1773,9 @@ class AMRQuadTreeProjBase(AMR2DData):
             self._distributed = False
             self._okay_to_serialize = False
             self._check_region = True
+            for k, v in source.field_parameters.items():
+                if k not in self.field_parameters:
+                    self.set_field_parameter(k,v)
         self.source = source
         if self._field_cuts is not None:
             # Override if field cuts are around; we don't want to serialize!
@@ -1832,9 +1840,9 @@ class AMRQuadTreeProjBase(AMR2DData):
         # It is probably faster, as it consolidates IO, but if we did it in
         # _project_level, then it would be more memory conservative
         if self.preload_style == 'all':
-            dependencies = self.get_dependencies(fields, ghost_zones = False)
+            dependencies = self.get_dependencies(fields)
             mylog.debug("Preloading %s grids and getting %s",
-                            len(self.source._get_grid_objs()),
+                            len([g for g in self.source._get_grid_objs()]),
                             dependencies)
             self.comm.preload([g for g in self._get_grid_objs()],
                           dependencies, self.hierarchy.io)
@@ -1951,7 +1959,7 @@ class AMRQuadTreeProjBase(AMR2DData):
         grids_to_initialize = [g for g in self._grids if (g.Level == level)]
         zero_out = (level != self._max_level)
         if len(grids_to_initialize) == 0: return
-        pbar = get_pbar('Initializing tree % 2i / % 2i' \
+        pbar = get_pbar('Initializing tree % 2i / % 2i ' \
                           % (level, self._max_level), len(grids_to_initialize))
         start_index = np.empty(2, dtype="int64")
         dims = np.empty(2, dtype="int64")
@@ -2107,6 +2115,9 @@ class AMRProjBase(AMR2DData):
             self._distributed = False
             self._okay_to_serialize = False
             self._check_region = True
+            for k, v in source.field_parameters.items():
+                if k not in self.field_parameters:
+                    self.set_field_parameter(k,v)
         self.source = source
         if self._field_cuts is not None:
             # Override if field cuts are around; we don't want to serialize!
@@ -3664,8 +3675,7 @@ class AMREllipsoidBase(AMR3DData):
 
 
 class AMRCoveringGridBase(AMR3DData):
-    """A 3D region with all data extracted to a single, specified
-    resolution.
+    """A 3D region with all data extracted to a single, specified resolution.
 
     Parameters
     ----------

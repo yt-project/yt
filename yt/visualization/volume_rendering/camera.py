@@ -18,6 +18,7 @@ import numpy as np
 
 from yt.funcs import *
 from yt.utilities.math_utils import *
+from yt.utilities.exceptions import YTNotInsideNotebook
 from copy import deepcopy
 
 from .grid_partitioner import HomogenizedVolume
@@ -239,8 +240,7 @@ class Camera(ParallelAnalysisInterface):
         else:
             self.use_kd = isinstance(volume, AMRKDTree)
         self.volume = volume        
-        self.center = (self.re + self.le) / 2.0
-        self.region = self.pf.h.region(self.center, self.le, self.re)
+        self.region = None
 
     def _setup_box_properties(self, width, center, unit_vectors):
         self.width = width
@@ -299,6 +299,9 @@ class Camera(ParallelAnalysisInterface):
         >>> write_bitmap(im, 'render_with_grids.png')
 
         """
+        if self.region is None:
+            self.region = self.pf.h.region((self.re + self.le) / 2.0,
+                                           self.le, self.re)
         corners = self.region.grid_corners
         levels = self.region.grid_levels[:,0]
 
@@ -661,13 +664,14 @@ class Camera(ParallelAnalysisInterface):
             del nz
         else:
             nim = im
-        ax = self._pylab.imshow(nim[:,:,:3]/nim[:,:,:3].max(), origin='lower')
+        ax = self._pylab.imshow(nim[:,:,:3]/nim[:,:,:3].max(), origin='upper')
         return ax
 
     def draw(self):
         self._pylab.draw()
     
     def save_annotated(self, fn, image, enhance=True, dpi=100):
+        image = image.swapaxes(0,1) 
         ax = self.show_mpl(image, enhance=enhance)
         self.annotate(ax.axes, enhance)
         self._pylab.savefig(fn, bbox_inches='tight', facecolor='black', dpi=dpi)
@@ -2181,6 +2185,7 @@ class ProjectionCamera(Camera):
                 log_fields=self.log_fields, 
                 le=le, re=re, north_vector=north_vector,
                 no_ghost=no_ghost)
+        self.center = center
 
     def get_sampler(self, args):
         if self.interpolated:

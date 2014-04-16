@@ -17,9 +17,28 @@ from yt.extern.six.moves import StringIO
 from ._mpl_imports import \
     FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 from yt.funcs import \
-    get_image_suffix, mylog
+    get_image_suffix, mylog, x_dict, y_dict
 
-
+class CallbackWrapper(object):
+    def __init__(self, viewer, window_plot, frb, field):
+        self.frb = frb
+        self.data = frb.data_source
+        self._axes = window_plot.axes
+        self._figure = window_plot.figure
+        if len(self._axes.images) > 0:
+            self.image = self._axes.images[0]
+        if frb.axis < 3:
+            DD = frb.pf.domain_width
+            xax = x_dict[frb.axis]
+            yax = y_dict[frb.axis]
+            self._period = (DD[xax], DD[yax])
+        self.pf = frb.pf
+        self.xlim = viewer.xlim
+        self.ylim = viewer.ylim
+        if 'OffAxisSlice' in viewer._plot_type:
+            self._type_name = "CuttingPlane"
+        else:
+            self._type_name = viewer._plot_type
 class PlotMPL(object):
     """A base class for all yt plots made using matplotlib.
 
@@ -36,6 +55,7 @@ class PlotMPL(object):
             self.axes = self.figure.add_axes(axrect)
         else:
             axes.cla()
+            axes.set_position(axrect)
             self.axes = axes
         self.canvas = FigureCanvasAgg(self.figure)
 

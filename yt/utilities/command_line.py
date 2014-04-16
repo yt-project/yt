@@ -1039,7 +1039,7 @@ class YTHubSubmitCmd(YTCommand):
         mpd.upload()
 
 class YTInstInfoCmd(YTCommand):
-    name = "instinfo"
+    name = ["instinfo", "version"]
     args = (
             dict(short="-u", longname="--update-source", action="store_true",
                  default = False,
@@ -1057,6 +1057,7 @@ class YTInstInfoCmd(YTCommand):
 
     def __call__(self, opts):
         import pkg_resources
+        import yt
         yt_provider = pkg_resources.get_provider("yt")
         path = os.path.dirname(yt_provider.module_path)
         print
@@ -1073,10 +1074,11 @@ class YTInstInfoCmd(YTCommand):
         vstring = get_yt_version()
         if vstring is not None:
             print
-            print "The current version of the code is:"
+            print "The current version and changeset for the code is:"
             print
             print "---"
-            print vstring.strip()
+            print "Version = %s" % yt.__version__
+            print "Changeset = %s" % vstring.strip()
             print "---"
             print
             if "site-packages" not in path:
@@ -1246,6 +1248,8 @@ class YTNotebookUploadCmd(YTCommand):
             t = json.loads(open(filename).read())['metadata']['name']
         except (ValueError, KeyError):
             print "File does not appear to be an IPython notebook."
+        if len(t) == 0:
+            t = filename.strip(".ipynb")
         from yt.utilities.minimal_representation import MinimalNotebook
         mn = MinimalNotebook(filename, t)
         rv = mn.upload()
@@ -1454,6 +1458,7 @@ class YTNotebookCmd(YTCommand):
         except ImportError:
             # pre-IPython v1.0
             from IPython.frontend.html.notebook.notebookapp import NotebookApp
+        print "You must choose a password so that others cannot connect to your notebook."
         pw = ytcfg.get("yt", "notebook_password")
         if len(pw) == 0 and not args.no_password:
             import IPython.lib
@@ -1613,6 +1618,7 @@ class YTUpdateCmd(YTCommand):
 
     def __call__(self, opts):
         import pkg_resources
+        import yt
         yt_provider = pkg_resources.get_provider("yt")
         path = os.path.dirname(yt_provider.module_path)
         print
@@ -1630,10 +1636,11 @@ class YTUpdateCmd(YTCommand):
         if "site-packages" not in path:
             vstring = get_hg_version(path)
             print
-            print "The current version of the code is:"
+            print "The current version and changeset for the code is:"
             print
             print "---"
-            print vstring.strip()
+            print "Version = %s" % yt.__version__
+            print "Changeset = %s" % vstring.strip()
             print "---"
             print
             print "This installation CAN be automatically updated."

@@ -54,7 +54,7 @@ from yt.data_objects.api import \
     ValidateParameter, ValidateDataField, ValidateProperty, \
     ValidateSpatial, ValidateGridType, \
     TimeSeriesData, AnalysisTask, analysis_task, \
-    ParticleTrajectoryCollection, ImageArray
+    ImageArray, create_profile
 
 from yt.data_objects.derived_quantities import \
     add_quantity, quantity_info
@@ -63,9 +63,6 @@ from yt.frontends.enzo.api import \
     EnzoStaticOutput, EnzoStaticOutputInMemory, \
     EnzoSimulation, EnzoFieldInfo, \
     add_enzo_field, add_enzo_1d_field, add_enzo_2d_field
-
-from yt.frontends.castro.api import \
-    CastroStaticOutput, CastroFieldInfo, add_castro_field
 
 from yt.frontends.nyx.api import \
     NyxStaticOutput, NyxFieldInfo, add_nyx_field
@@ -76,12 +73,6 @@ from yt.frontends.orion.api import \
 from yt.frontends.flash.api import \
     FLASHStaticOutput, FLASHFieldInfo, add_flash_field
 
-from yt.frontends.tiger.api import \
-    TigerStaticOutput, TigerFieldInfo, add_tiger_field
-
-from yt.frontends.ramses.api import \
-    RAMSESStaticOutput, RAMSESFieldInfo, add_ramses_field
-
 from yt.frontends.chombo.api import \
     ChomboStaticOutput, ChomboFieldInfo, add_chombo_field
 
@@ -91,14 +82,8 @@ from yt.frontends.gdf.api import \
 from yt.frontends.athena.api import \
     AthenaStaticOutput, AthenaFieldInfo, add_athena_field
 
-from yt.frontends.art.api import \
-    ARTStaticOutput, ARTFieldInfo, add_art_field
-
 from yt.frontends.pluto.api import \
      PlutoStaticOutput, PlutoFieldInfo, add_pluto_field
-
-#from yt.frontends.maestro.api import \
-#    MaestroStaticOutput, MaestroFieldInfo, add_maestro_field
 
 from yt.frontends.stream.api import \
     StreamStaticOutput, StreamFieldInfo, add_stream_field, \
@@ -122,7 +107,7 @@ from yt.visualization.api import \
     callback_registry, write_bitmap, write_image, annotate_image, \
     apply_colormap, scale_image, write_projection, write_fits, \
     SlicePlot, OffAxisSlicePlot, ProjectionPlot, OffAxisProjectionPlot, \
-    show_colormaps
+    show_colormaps, ProfilePlot, PhasePlot
 
 from yt.visualization.volume_rendering.api import \
     ColorTransferFunction, PlanckTransferFunction, ProjectionTransferFunction, \

@@ -17,6 +17,7 @@ import os
 import numpy as np
 
 from yt.funcs import *
+from yt.utilities.exceptions import YTNotInsideNotebook
 import _colormap_data as cmd
 import yt.utilities.lib as au
 from yt.extern.six.moves import builtins
@@ -438,17 +439,8 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     return filename
 
 
-def write_fits(image, filename_prefix, clobber=True, coords=None,
+def write_fits(image, filename, clobber=True, coords=None,
                other_keys=None):
-    """
-    This will export a FITS image of a floating point array. The output filename is
-    *filename_prefix*. If clobber is set to True, this will overwrite any existing
-    FITS file.
-    
-    This requires the *pyfits* module, which is a standalone module
-    provided by STSci to interface with FITS-format files, and is also part of
-    AstroPy.
-    """
     r"""Write out floating point arrays directly to a FITS file, optionally
     adding coordinates and header keywords.
         
@@ -457,8 +449,8 @@ def write_fits(image, filename_prefix, clobber=True, coords=None,
     image : array_like, or dict of array_like objects
         This is either an (unscaled) array of floating point values, or a dict of
         such arrays, shape (N,N,) to save in a FITS file. 
-    filename_prefix : string
-        This prefix will be prepended to every FITS file name.
+    filename : string
+        This name of the FITS file to be written.
     clobber : boolean
         If the file exists, this governs whether we will overwrite.
     coords : dictionary, optional
@@ -473,14 +465,10 @@ def write_fits(image, filename_prefix, clobber=True, coords=None,
     """
 
     try:
-        import pyfits
-    except ImportError:
-        try:
-            import astropy.io.fits as pyfits
-        except:
-            raise ImportError("You don't have pyFITS or AstroPy installed.")
-    
-    from os import system
+        import astropy.io.fits as pyfits
+    except:
+        mylog.error("You don't have AstroPy installed!")
+        raise ImportError
     
     try:
         image.keys()
@@ -497,9 +485,7 @@ def write_fits(image, filename_prefix, clobber=True, coords=None,
         hdu.update_ext_name(key)
         
         if coords is not None:
-
             nx, ny = image_dict[key].shape
-
             hdu.header.update('CUNIT1', coords["units"])
             hdu.header.update('CUNIT2', coords["units"])
             hdu.header.update('CRPIX1', 0.5*(nx+1))
@@ -520,7 +506,7 @@ def write_fits(image, filename_prefix, clobber=True, coords=None,
         hdulist.append(hdu)
 
     hdulist = pyfits.HDUList(hdulist)
-    hdulist.writeto("%s.fits" % (filename_prefix), clobber=clobber)                    
+    hdulist.writeto(filename, clobber=clobber)                    
 
 def display_in_notebook(image, max_val=None):
     """

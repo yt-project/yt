@@ -620,7 +620,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         --------
 
         >>> tf = ColorTransferFunction( (-10.0, -5.0) )
-        >>> tf.sample_colormap(-7.0, 0.01, 'algae')
+        >>> tf.sample_colormap(-7.0, 0.01, colormap='algae')
         """
         if col_bounds is None:
             rel = (v - self.x_bounds[0])/(self.x_bounds[1] - self.x_bounds[0])

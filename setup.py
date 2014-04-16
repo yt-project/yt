@@ -160,7 +160,7 @@ build_src.build_src.generate_a_pyrex_source = generate_a_pyrex_source
 # End snippet
 ######
 
-VERSION = "2.6dev"
+VERSION = "2.7dev"
 
 if os.path.exists('MANIFEST'):
     os.remove('MANIFEST')

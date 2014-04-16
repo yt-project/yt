@@ -264,7 +264,7 @@ class AthenaHierarchy(AMRHierarchy):
         # know the extent of all the grids. 
         glis = np.round((glis - self.parameter_file.domain_left_edge)/gdds).astype('int')
         new_dre = np.max(gres,axis=0)
-        self.parameter_file.domain_right_edge = np.round(new_dre, decimals=6)
+        self.parameter_file.domain_right_edge = np.round(new_dre, decimals=12)
         self.parameter_file.domain_width = \
                 (self.parameter_file.domain_right_edge - 
                  self.parameter_file.domain_left_edge)
@@ -292,9 +292,9 @@ class AthenaHierarchy(AMRHierarchy):
             dxs.append(dx)
         
         dx = np.array(dxs)
-        self.grid_left_edge = np.round(self.parameter_file.domain_left_edge + dx*glis, decimals=6)
+        self.grid_left_edge = np.round(self.parameter_file.domain_left_edge + dx*glis, decimals=12)
         self.grid_dimensions = gdims.astype("int32")
-        self.grid_right_edge = np.round(self.grid_left_edge + dx*self.grid_dimensions, decimals=6)
+        self.grid_right_edge = np.round(self.grid_left_edge + dx*self.grid_dimensions, decimals=12)
         if self.parameter_file.dimensionality <= 2:
             self.grid_right_edge[:,2] = self.parameter_file.domain_right_edge[2]
         if self.parameter_file.dimensionality == 1:
@@ -349,6 +349,8 @@ class AthenaStaticOutput(StaticOutput):
         if len(self.parameters) == 0:
             self._parse_parameter_file()
         self.conversion_factors = defaultdict(lambda: 1.0)    
+        if "EOSType" not in self.parameters:
+            self.parameters["EOSType"] = -1
         if self.specified_parameters.has_key("LengthUnits") :
             self._setup_getunits_units()
         else :
