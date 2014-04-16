@@ -15,8 +15,10 @@ A plotting mechanism based on the idea of a "window" into the data.
 import base64
 import numpy as np
 import matplotlib
-import cStringIO
 import types
+import sys
+import os
+from yt.extern.six.moves import builtins, StringIO
 
 from matplotlib.delaunay.triangulate import Triangulation as triang
 from matplotlib.mathtext import MathTextParser
@@ -63,7 +65,10 @@ try:
         version.LooseVersion("1.2.0"):
         from matplotlib.pyparsing import ParseFatalException
     else:
-        from matplotlib.pyparsing_py2 import ParseFatalException
+        if sys.version_info[0] == 3:
+            from matplotlib.pyparsing_py3 import ParseFatalException
+        else:
+            from matplotlib.pyparsing_py2 import ParseFatalException
 except ImportError:
     from pyparsing import ParseFatalException
 
@@ -1390,7 +1395,7 @@ class PWViewerExtJS(PlotWindow):
         self._apply_vectors(ax, vi, vj)
 
         canvas = FigureCanvasAgg(fig)
-        f = cStringIO.StringIO()
+        f = StringIO()
         canvas.print_figure(f)
         f.seek(0)
         img = f.read()

@@ -148,7 +148,7 @@ class MultipleTexture(vv.Wobject):
         # clean up
         gl.glFlush()
         t2 = time.time()
-        print "Rendering: %0.3e" % (t2-t1)
+        print ("Rendering: %0.3e" % (t2-t1))
         self._colormap.Disable()
         self._program1.Disable()
         #
@@ -292,7 +292,7 @@ def visvis_plot(vp):
         origin = g.LeftEdge.astype("float32").tolist()
         dd = (g.my_data[0].astype("float32") - mi)/(ma - mi)
         dd = np.clip(dd, 0.0, 1.0)
-        print ss
+        print (ss)
         texes.append(vv.Aarray(dd, origin = origin, sampling = ss))
 
     mtex = MultipleTexture(ax, texes, global_size=vp.pf.domain_dimensions)

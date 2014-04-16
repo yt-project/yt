@@ -13,7 +13,6 @@ Python-based grid handler, not to be confused with the SWIG-handler
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import exceptions
 import pdb
 import weakref
 import itertools

@@ -20,7 +20,7 @@ from yt.visualization.volume_rendering.api import ColorTransferFunction
 from yt.visualization._mpl_imports import FigureCanvasAgg
 from matplotlib.figure import Figure
 from IPython.core.display import Image
-import cStringIO
+from yt.extern.six.moves import StringIO
 import numpy as np
 
 
@@ -190,7 +190,7 @@ class TransferFunctionHelper(object):
         ax.set_ylim(y.max()*1.0e-3, y.max()*2)
 
         if fn is None:
-            f = cStringIO.StringIO()
+            f = StringIO()
             canvas.print_figure(f)
             f.seek(0)
             img = f.read()
