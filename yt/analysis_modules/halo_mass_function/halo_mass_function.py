@@ -292,13 +292,14 @@ class HaloMassFcn(ParallelAnalysisInterface):
                 line = \
                 """#Columns:
 #1. mass (M_solar)
-#2. (dn/dM)*dM (differential number density of halos, per Mpc^3 (NOT h^3/Mpc^3)
-#3. cumulative number density of halos (comoving (Mpc/h)^3)
+#2. cumulative number density of halos (comoving (Mpc/h)^3)
+#3. (dn/dM)*dM (differential number density of halos, per Mpc^3 (NOT h^3/Mpc^3)
 """
                 fp.write(line)
                 for i in xrange(self.masses_analytic.size - 1):
                     line = "%e\t%e\t%e\n" % (self.masses_analytic[i],
-                    self.dndM_dM_analytic[i], self.n_cumulative_analytic[i])
+                    self.n_cumulative_analytic[i], 
+                    self.dndM_dM_analytic[i])
                     fp.write(line)
                 fp.close()
             # If the analytic halo mass function wasn't created, warn the user
@@ -314,13 +315,11 @@ when creating the HaloMassFcn object.")
                 line = \
                 """#Columns:
 #1. mass (M_solar)
-#2. log10 of mass (M_solar)
-#3. cumulative number density of halos (comoving (Mpc/h)^3)
+#2. cumulative number density of halos (comoving (Mpc/h)^3)
 """
                 fp.write(line)
                 for i in xrange(self.masses_sim.size - 1):
-                    line = "%e\t%e\t%e\n" % (self.masses_sim[i], 
-                    np.log10(self.masses_sim[i]),
+                    line = "%e\t%e\n" % (self.masses_sim[i], 
                     self.n_cumulative_sim[i])
                     fp.write(line)
                 fp.close()
