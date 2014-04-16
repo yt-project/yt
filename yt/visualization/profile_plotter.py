@@ -720,8 +720,6 @@ class PhasePlot(ImagePlotContainer):
                     label.set_color(self._font_color)
         self._plot_valid = True
 
-        self._plot_valid = True
-
     def save(self, name=None, mpl_kwargs=None):
         r"""
         Saves a 2d profile plot.
