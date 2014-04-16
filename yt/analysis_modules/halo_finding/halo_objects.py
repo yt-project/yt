@@ -129,7 +129,7 @@ class Halo(object):
         """
         if self.CoM is not None:
             return self.CoM
-        pm = self["ParticleMassMsun"]
+        pm = self["particle_mass"].in_units('Msun')
         c = {}
         # We shift into a box where the origin is the left edge
         c[0] = self["particle_position_x"] - self.pf.domain_left_edge[0]
@@ -199,7 +199,7 @@ class Halo(object):
         """
         if self.group_total_mass is not None:
             return self.group_total_mass
-        return self["ParticleMassMsun"].sum()
+        return self["particle_mass"].in_units('Msun').sum()
 
     def bulk_velocity(self):
         r"""Returns the mass-weighted average velocity in cm/s.
@@ -213,7 +213,7 @@ class Halo(object):
         """
         if self.bulk_vel is not None:
             return self.bulk_vel
-        pm = self["ParticleMassMsun"]
+        pm = self["particle_mass"].in_units('Msun')
         vx = (self["particle_velocity_x"] * pm).sum()
         vy = (self["particle_velocity_y"] * pm).sum()
         vz = (self["particle_velocity_z"] * pm).sum()
@@ -234,7 +234,7 @@ class Halo(object):
         if self.rms_vel is not None:
             return self.rms_vel
         bv = self.bulk_velocity()
-        pm = self["ParticleMassMsun"]
+        pm = self["particle_mass"].in_units('Msun')
         sm = pm.sum()
         vx = (self["particle_velocity_x"] - bv[0]) * pm / sm
         vy = (self["particle_velocity_y"] - bv[1]) * pm / sm
@@ -331,7 +331,7 @@ class Halo(object):
         handle.create_group("/%s" % gn)
         for field in ["particle_position_%s" % ax for ax in 'xyz'] \
                    + ["particle_velocity_%s" % ax for ax in 'xyz'] \
-                   + ["particle_index"] + ["ParticleMassMsun"]:
+                   + ["particle_index"] + ["particle_mass"].in_units('Msun'):
             handle.create_dataset("/%s/%s" % (gn, field), data=self[field])
         if 'creation_time' in self.data.pf.field_list:
             handle.create_dataset("/%s/creation_time" % gn,
@@ -464,7 +464,7 @@ class Halo(object):
         if self["particle_position_x"].size > 1:
             for index in np.unique(inds):
                 self.mass_bins[index] += \
-                np.sum(self["ParticleMassMsun"][inds == index])
+                np.sum(self["particle_mass"][inds == index]).in_units('Msun')
         # Now forward sum the masses in the bins.
         for i in xrange(self.bin_count):
             self.mass_bins[i + 1] += self.mass_bins[i]
@@ -750,7 +750,7 @@ class parallelHOPHalo(Halo, ParallelAnalysisInterface):
             inds = np.digitize(dist, self.radial_bins) - 1
             for index in np.unique(inds):
                 self.mass_bins[index] += \
-                    np.sum(self["ParticleMassMsun"][inds == index])
+                    np.sum(self["particle_mass"][inds == index]).in_units('Msun')
             # Now forward sum the masses in the bins.
             for i in xrange(self.bin_count):
                 self.mass_bins[i + 1] += self.mass_bins[i]
@@ -1356,7 +1356,7 @@ class HOPHaloList(HaloList):
     _name = "HOP"
     _halo_class = HOPHalo
     _fields = ["particle_position_%s" % ax for ax in 'xyz'] + \
-              ["ParticleMassMsun"]
+              ["particle_mass"]
 
     def __init__(self, data_source, threshold=160.0, dm_only=True):
         self.threshold = threshold
@@ -1368,7 +1368,7 @@ class HOPHaloList(HaloList):
             RunHOP(self.particle_fields["particle_position_x"] / self.period[0],
                 self.particle_fields["particle_position_y"] / self.period[1],
                 self.particle_fields["particle_position_z"] / self.period[2],
-                self.particle_fields["ParticleMassMsun"],
+                self.particle_fields["particle_mass"].in_units('Msun'),
                 self.threshold)
         self.particle_fields["densities"] = self.densities
         self.particle_fields["tags"] = self.tags
@@ -1555,7 +1555,7 @@ class parallelHOPHaloList(HaloList, ParallelAnalysisInterface):
     _name = "parallelHOP"
     _halo_class = parallelHOPHalo
     _fields = ["particle_position_%s" % ax for ax in 'xyz'] + \
-              ["ParticleMassMsun", "particle_index"]
+              ["particle_mass", "particle_index"]
 
     def __init__(self, data_source, padding, num_neighbors, bounds, total_mass,
         period, threshold=160.0, dm_only=True, rearrange=True, premerge=True,
@@ -1589,8 +1589,8 @@ class parallelHOPHaloList(HaloList, ParallelAnalysisInterface):
 
         self.comm.mpi_exit_test(exit)
         # Try to do this in a memory conservative way.
-        np.divide(self.particle_fields['ParticleMassMsun'], self.total_mass,
-            self.particle_fields['ParticleMassMsun'])
+        np.divide(self.particle_fields['particle_mass'].in_units('Msun'), self.total_mass,
+            self.particle_fields['particle_mass'])
         np.divide(self.particle_fields["particle_position_x"],
             self.old_period[0], self.particle_fields["particle_position_x"])
         np.divide(self.particle_fields["particle_position_y"],
@@ -2190,7 +2190,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         # Now we get the full box mass after we have the final composition of
         # subvolumes.
         if total_mass is None:
-            total_mass = self.comm.mpi_allreduce((self._data_source["ParticleMassMsun"].astype('float64')).sum(),
+            total_mass = self.comm.mpi_allreduce((self._data_source["particle_mass"].in_units('Msun').astype('float64')).sum(),
                                                  op='sum')
         if not self._distributed:
             self.padding = (np.zeros(3, dtype='float64'),
@@ -2386,9 +2386,9 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
             if dm_only:
                 select = self._get_dm_indices()
                 total_mass = \
-                    self.comm.mpi_allreduce((self._data_source['all', "ParticleMassMsun"][select]).sum(dtype='float64'), op='sum')
+                    self.comm.mpi_allreduce((self._data_source['all', "particle_mass"][select].in_units('Msun')).sum(dtype='float64'), op='sum')
             else:
-                total_mass = self.comm.mpi_allreduce(self._data_source.quantities["TotalQuantity"]("ParticleMassMsun")[0], op='sum')
+                total_mass = self.comm.mpi_allreduce(self._data_source.quantities["TotalQuantity"]("particle_mass")[0].in_units('Msun'), op='sum')
         # MJT: Note that instead of this, if we are assuming that the particles
         # are all on different processors, we should instead construct an
         # object representing the entire domain and sum it "lazily" with
@@ -2409,10 +2409,10 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
             sub_mass = total_mass
         elif dm_only:
             select = self._get_dm_indices()
-            sub_mass = self._data_source["ParticleMassMsun"][select].sum(dtype='float64')
+            sub_mass = self._data_source["particle_mass"][select].in_units('Msun').sum(dtype='float64')
         else:
             sub_mass = \
-                self._data_source.quantities["TotalQuantity"]("ParticleMassMsun")[0]
+                self._data_source.quantities["TotalQuantity"]("particle_mass")[0].in_units('Msun')
         HOPHaloList.__init__(self, self._data_source,
             threshold * total_mass / sub_mass, dm_only)
         self._parse_halolist(total_mass / sub_mass)
