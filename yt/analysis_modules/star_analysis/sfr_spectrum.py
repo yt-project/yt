@@ -41,7 +41,7 @@ class StarFormationRate(object):
     star_creation_time : Ordered array or list of floats
         The creation time for the stars in code units.
     volume : Float
-        The volume of the region for the specified list of stars.
+        The comoving volume of the region for the specified list of stars.
     bins : Integer
         The number of time bins used for binning the stars. Default = 300.
     
@@ -69,7 +69,7 @@ class StarFormationRate(object):
                 If data_source is not provided, all of these paramters need to be set:
                 star_mass (array, Msun),
                 star_creation_time (array, code units),
-                volume (float, Mpc**3).
+                volume (float, cMpc**3).
                 """)
                 return None
             self.mode = 'provided'
@@ -125,14 +125,14 @@ class StarFormationRate(object):
         """
         if self.mode == 'data_source':
             try:
-                vol = self._data_source.volume('mpc')
+                vol = self._data_source.volume('mpccm')
             except AttributeError:
                 # If we're here, this is probably a HOPHalo object, and we
                 # can get the volume this way.
                 ds = self._data_source.get_sphere()
-                vol = ds.volume('mpc')
+                vol = ds.volume('mpccm')
         elif self.mode == 'provided':
-            vol = self.volume
+            vol = self.volume('mpccm')
         tc = self._pf["Time"]
         self.time = []
         self.lookback_time = []
@@ -148,6 +148,7 @@ class StarFormationRate(object):
             self.redshift.append(self.cosm.ComputeRedshiftFromTime(time * tc))
             self.Msol_yr.append(self.mass_bins[i] / \
                 (self.time_bins_dt[i] * tc / YEAR))
+            # changed vol from mpc to mpccm used in literature
             self.Msol_yr_vol.append(self.mass_bins[i] / \
                 (self.time_bins_dt[i] * tc / YEAR) / vol)
             self.Msol.append(self.mass_bins[i])
