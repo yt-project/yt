@@ -50,7 +50,7 @@ class IOHandlerFITS(BaseIOHandler):
                 fname = self.pf.field_list[0][1]
             f = self.pf.index._file_map[fname]
             ds = f[self.pf.index._ext_map[fname]]
-            bzero, bscale = self._scale_map[fname]
+            bzero, bscale = self.pf.index._scale_map[fname]
             fname = tmp_fname
             ind = 0
             for chunk in chunks:
