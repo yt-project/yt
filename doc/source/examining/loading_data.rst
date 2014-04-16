@@ -459,6 +459,132 @@ by specifying the window in seconds, ``spread=1.0e7*265*24*3600``.
 
    pf = load("/u/cmoody3/data/art_snapshots/SFG1/10MpcBox_csf512_a0.460.d")
 
+.. _loading-fits-data:
+
+FITS Data
+---------
+
+FITS data is *mostly* supported and cared for by John ZuHone. In order to
+read FITS data, `AstroPy <http://www.astropy.org>`_ must be installed. FITS
+data cubes can be loaded in the same way by yt as other datasets. yt
+can read FITS image files that have the following (case-insensitive) suffixes:
+
+* fits
+* fts
+* fits.gz
+* fts.gz
+
+.. note::
+
+  AstroPy is necessary due to the requirements of both FITS file reading and
+  WCS coordinates. Since new releases of `PyFITS <http://www.stsci
+  .edu/institute/software_hardware/pyfits>`_ are to be discontinued, individual
+  installations of this package and the `PyWCS <http://stsdas.stsci
+  .edu/astrolib/pywcs/>`_ package are not supported.
+
+Though FITS datasets are composed of one data cube in the FITS file,
+upon being loaded into yt they are automatically decomposed into grids:
+
+.. code-block:: python
+
+  from yt.mods import *
+  ds = load("m33_hi.fits")
+  ds.print_stats()
+
+.. parsed-literal::
+
+  level	  # grids	    # cells	   # cells^3
+  ----------------------------------------------
+    0	     512	  981940800	         994
+  ----------------------------------------------
+             512	  981940800
+
+yt will generate its own domain decomposition, but the number of grids can be
+set manually by passing the ``nprocs`` parameter to the ``load`` call:
+
+.. code-block:: python
+
+  ds = load("m33_hi.fits", nprocs=1024)
+
+
+FITS Coordinates
+++++++++++++++++
+
+For FITS datasets, the unit of ``code_length`` is always the width of one
+pixel. yt will attempt to use the WCS information in the FITS header to
+construct information about the coordinate system, and provides support for
+the following dataset types:
+
+1. Rectilinear 2D/3D images with length units (e.g., Mpc, AU,
+   etc.) defined in the ``CUNITx`` keywords
+2. 2D images in the equatorial coordinate system (RA/Dec in the ``CTYPEx``
+   keywords)
+3. 3D images with equatorial coordinates and a third axis for another
+   quantity, such as velocity, frequency, wavelength, etc.
+4. 4D images, where the slices along the 4th axis are interpreted as
+   different fields.
+
+If your data is of the first case, yt will determine the length units based
+on the information in the header. If your data is of the second or third
+cases, no length units will be assigned, but the world coordinate information
+about the axes will be stored in separate fields. If your data is of the fourth
+type, the coordinates of the first three axes will be determined according to
+cases 1-3.
+
+Fields in FITS Datasets
++++++++++++++++++++++++
+
+Multiple fields can be included in a FITS dataset in several different ways.
+The first way, and the simplest, is if more than one image HDU is
+contained within the same file. The field names will be determined by the
+value of ``BTYPE`` in the header, and the field units will be determined by
+the value of ``BUNIT``. The second way is if a dataset has a fourth axis,
+with each slice along this axis corresponding to a different field. In this
+case, the field names will be determined by the value of the ``CTYPE4`` keyword
+and the index of the slice. So, for example, if ``BTYPE`` = ``"intensity"`` and
+``CTYPE4`` = ``"stokes"``, then the fields will be named
+``"intensity_stokes_1"``, ``"intensity_stokes_2"``, and so on.
+
+Additionally, fields corresponding to the WCS coordinates will be generated.
+They will be given the same names as the corresponding ``CTYPEx`` keywords,
+with the exception of any names that start with ``"RA"`` and ``"DEC"``,
+which will have field names shortened to simply ``"ra"`` and ``"dec"``. When
+queried, these fields will be generated from the pixel coordinates in the
+file using the WCS transformations provided by AstroPy.
+
+Additional Options
+++++++++++++++++++
+
+FITS data may include ``NaNs``. If you wish to mask this data out,
+you may supply a ``nan_mask`` parameter to ``load``, which may either be a
+single floating-point number (applies to all fields) or a Python dictionary
+containing different mask values for different fields:
+
+.. code-block::
+
+  # passing a single float
+  ds = load("m33_hi.fits", nan_mask=0.0)
+
+  # passing a dict
+  ds = load("m33_hi.fits", nan_mask={"intensity":-1.0,"temperature":0.0})
+
+Generally, AstroPy may generate a lot of warnings about individual FITS
+files, many of which you may want to ignore. If you want to see these
+warnings, set ``suppress_astropy_warnings = False`` in the call to ``load``.
+
+Limitations
++++++++++++
+
+* Each FITS image from a single dataset, whether from one file or from one of
+  multiple files, must have the same dimensions and WCS information as the
+  first image in the primary file. If this is not the case,
+  yt will raise a warning and will not load this field.
+* yt will load data without WCS information and/or some missing header
+  keywords, but the resulting field information will necessarily be incomplete.
+  For example, field names may not be descriptive, and units will not be
+  correct. To get the full use out of yt for FITS files,
+  make sure that the header keywords mentioned above have sensible values.
+
 .. _loading-moab-data:
 
 MOAB Data
