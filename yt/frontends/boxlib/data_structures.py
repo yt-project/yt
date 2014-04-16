@@ -604,7 +604,6 @@ class BoxlibDataset(Dataset):
         tmp.extend((1,1))
         self.domain_dimensions = np.array(tmp)
         tmp = list(self.periodicity)
-        print tmp
         tmp[1] = False
         tmp[2] = False
         self.periodicity = ensure_tuple(tmp)
