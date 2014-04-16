@@ -2160,7 +2160,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         elif fancy_padding and self._distributed:
             LE_padding = np.empty(3, dtype='float64')
             RE_padding = np.empty(3, dtype='float64')
-            avg_spacing = (float(vol) / data.size) ** (1. / 3.)
+            avg_spacing = (vol / data.size) ** (1. / 3.)
             base_padding = (self.num_neighbors) ** (1. / 3.) * self.safety * \
                 avg_spacing
             for dim in xrange(3):
