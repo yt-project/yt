@@ -106,76 +106,76 @@ parameters without any dataset being passed as an argument.
 Keyword Arguments
 -----------------
 
-  * **simulation_ds (*Simulation dataset object*)
+  * **simulation_ds** (*Simulation dataset object*)
     The loaded simulation dataset, used to set cosmological paramters.
     Default : None.
 
-  * **halos_ds (*Halo dataset object*)
+  * **halos_ds** (*Halo dataset object*)
     The halos from a simulation to be used for creation of the 
     halo mass function in the simulation.
     Default : None.
 
-  * **make_analytic (*bool*)
+  * **make_analytic** (*bool*)
     Whether or not to calculate the analytic mass function to go with 
     the simulated halo mass function.  Automatically set to true if a 
     simulation dataset is provided.
     Default : True.
 
-  * **omega_matter0 (*float*)
+  * **omega_matter0** (*float*)
     The fraction of the universe made up of matter (dark and baryonic). 
     Default : 0.2726.
 
-  * **omega_lambda0 (*float*)
+  * **omega_lambda0** (*float*)
     The fraction of the universe made up of dark energy. 
     Default : 0.7274.
 
-  * **omega_baryon0  (*float*)
+  * **omega_baryon0**  (*float*)
     The fraction of the universe made up of baryonic matter. This is not 
     always stored in the datset and should be checked by hand.
     Default : 0.0456.
 
-  * **hubble0 (*float*)
+  * **hubble0** (*float*)
     The expansion rate of the universe in units of 100 km/s/Mpc. 
     Default : 0.704.
 
-  * **sigma8 (*float*)
+  * **sigma8** (*float*)
     The amplitude of the linear power spectrum at z=0 as specified by 
     the rms amplitude of mass-fluctuations in a top-hat sphere of radius 
     8 Mpc/h. This is not always stored in the datset and should be 
     checked by hand.
     Default : 0.86.
 
-  * **primoridal_index (*float*)
+  * **primoridal_index** (*float*)
     This is the index of the mass power spectrum before modification by 
     the transfer function. A value of 1 corresponds to the scale-free 
     primordial spectrum. This is not always stored in the datset and 
     should be checked by hand.
     Default : 1.0.
 
-  * **this_redshift (*float*)
+  * **this_redshift** (*float*)
     The current redshift. 
     Default : 0.
 
-  * **log_mass_min (*float*)
+  * **log_mass_min** (*float*)
     The log10 of the mass of the minimum of the halo mass range. This is
     set automatically by the range of halo masses if a simulated halo 
     dataset is provided. If a halo dataset if not provided and no value
     is specified, it will be set to 5. Units: M_solar
     Default : None.
 
-  * **log_mass_max (*float*)
+  * **log_mass_max** (*float*)
     The log10 of the mass of the maximum of the halo mass range. This is
     set automatically by the range of halo masses if a simulated halo 
     dataset is provided. If a halo dataset if not provided and no value
     is specified, it will be set to 16. Units: M_solar
     Default : None.
 
-  * **num_sigma_bins (*float*)
+  * **num_sigma_bins** (*float*)
     The number of bins (points) to use for the calculation of the 
     analytic mass function. 
     Default : 360.
 
-  * **fitting_function (*int*)
+  * **fitting_function** (*int*)
     Which fitting function to use. 1 = Press-Schechter, 2 = Jenkins, 
     3 = Sheth-Tormen, 4 = Warren, 5 = Tinker
     Default : 4.
@@ -185,18 +185,18 @@ Outputs
 -------
 
 A HaloMassFnc object has several arrays hanging off of it containing the 
-  * **masses_sim: Halo masses from simulated halos. Units: M_solar
+  * **masses_sim**: Halo masses from simulated halos. Units: M_solar
 
-  * **n_cumulative_sim: Number density of halos with mass greater than the 
+  * **n_cumulative_sim**: Number density of halos with mass greater than the 
     corresponding mass in masses_sim. Units: comoving (Mpc/h)^-3
 
-  * **masses_analytic: Masses used for the generation of the analytic mass 
+  * **masses_analytic**: Masses used for the generation of the analytic mass 
     function. Units: M_solar
 
-  * **n_cumulative_analytic: Number density of halos with mass greater then 
+  * **n_cumulative_analytic**: Number density of halos with mass greater then 
     the corresponding mass in masses_analytic. Units: comoving (Mpc/h)^-3
 
-  * **dndM_dM_analytic: Differential number density of halos, (dn/dM)*dM.
+  * **dndM_dM_analytic**: Differential number density of halos, (dn/dM)*dM.
 
 After the mass function has been created for both simulated halos and the
 corresponding analytic fits, they can be plotted though something along the 
@@ -218,11 +218,11 @@ halo mass function to a text file. (continued from above)
   hmf.write_out(prefix='hmf', analytic=True, simulated=True)
 
 This writes the files `hmf-analytic.dat' with columns 
-  * **mass (M_solar)
-  * **(dn/dM)*dM (differential number density of halos, per Mpc^3 (NOT h^3/Mpc^3)
-  * **cumulative number density of halos (comoving (Mpc/h)^3)
+  * **mass** (M_solar)
+  * **(dn/dM)*dM** (differential number density of halos, per Mpc^3 (NOT h^3/Mpc^3)
+  * **cumulative number density of halos** (comoving (Mpc/h)^3)
 
 and the file `hmf-simulated.dat' with columns
-  * **mass (M_solar)
-  * **log10 of mass (M_solar)
-  * **cumulative number density of halos (comoving (Mpc/h)^3)
+  * **mass** (M_solar)
+  * **log10 of mass** (M_solar)
+  * **cumulative number density of halos** (comoving (Mpc/h)^3)
