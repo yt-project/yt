@@ -32,6 +32,10 @@ _primordial_mass_fraction = \
   {"H": primordial_H_mass_fraction,
    "He" : (1 - primordial_H_mass_fraction)}
 
+_primordial_mass_fraction = \
+  {"H": primordial_H_mass_fraction,
+   "He" : (1 - primordial_H_mass_fraction)}
+    
 # See YTEP-0003 for details, but we want to ensure these fields are all
 # populated:
 #

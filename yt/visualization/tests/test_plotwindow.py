@@ -103,39 +103,39 @@ CENTER_SPECS = (
 WIDTH_SPECS = {
     # Width choices map to xlim, ylim, width, axes_unit_name 4-tuples
     None   : (
-        (YTQuantity(0, 'code_length'), YTQuantity(1, 'code_length')),
-        (YTQuantity(0, 'code_length'), YTQuantity(1, 'code_length')),
-        (YTQuantity(1, 'code_length'), YTQuantity(1, 'code_length')),
+        ((0, 'code_length'), (1, 'code_length')),
+        ((0, 'code_length'), (1, 'code_length')),
+        ((1, 'code_length'), (1, 'code_length')),
         None,
     ),
     0.2 : (
-        (YTQuantity(0.4, 'code_length'), YTQuantity(0.6, 'code_length')),
-        (YTQuantity(0.4, 'code_length'), YTQuantity(0.6, 'code_length')),
-        (YTQuantity(0.2, 'code_length'), YTQuantity(0.2, 'code_length')),
+        ((0.4, 'code_length'), (0.6, 'code_length')),
+        ((0.4, 'code_length'), (0.6, 'code_length')),
+        ((0.2, 'code_length'), (0.2, 'code_length')),
         None,
     ),
     (0.4, 0.3) : (
-        (YTQuantity(0.3, 'code_length'), YTQuantity(0.7, 'code_length')),
-        (YTQuantity(0.35, 'code_length'), YTQuantity(0.65, 'code_length')),
-        (YTQuantity(0.4, 'code_length'), YTQuantity(0.3, 'code_length')),
+        ((0.3, 'code_length'), (0.7, 'code_length')),
+        ((0.35, 'code_length'), (0.65, 'code_length')),
+        ((0.4, 'code_length'), (0.3, 'code_length')),
         None,
     ),
     (1.2, 'cm') : (
-        (YTQuantity(-0.1, 'code_length'), YTQuantity(1.1, 'code_length')),
-        (YTQuantity(-0.1, 'code_length'), YTQuantity(1.1, 'code_length')),
-        (YTQuantity(1.2,  'code_length'), YTQuantity(1.2, 'code_length')),
+        ((-0.1, 'code_length'), (1.1, 'code_length')),
+        ((-0.1, 'code_length'), (1.1, 'code_length')),
+        ((1.2,  'code_length'), (1.2, 'code_length')),
         ('cm', 'cm'),
     ),
     ((1.2, 'cm'), (2.0, 'cm')) : (
-        (YTQuantity(-0.1, 'code_length'), YTQuantity(1.1, 'code_length')),
-        (YTQuantity(-0.5, 'code_length'), YTQuantity(1.5, 'code_length')),
-        (YTQuantity(1.2,  'code_length'), YTQuantity(2.0, 'code_length')),
+        ((-0.1, 'code_length'), (1.1, 'code_length')),
+        ((-0.5, 'code_length'), (1.5, 'code_length')),
+        ((1.2,  'code_length'), (2.0, 'code_length')),
         ('cm', 'cm'),
     ),
     ((1.2, 'cm'), (0.02, 'm')) : (
-        (YTQuantity(-0.1, 'code_length'), YTQuantity(1.1, 'code_length')),
-        (YTQuantity(-0.5, 'code_length'), YTQuantity(1.5, 'code_length')),
-        (YTQuantity(1.2,  'code_length'), YTQuantity(2.0, 'code_length')),
+        ((-0.1, 'code_length'), (1.1, 'code_length')),
+        ((-0.5, 'code_length'), (1.5, 'code_length')),
+        ((1.2,  'code_length'), (2.0, 'code_length')),
         ('cm', 'm'),
     ),
 }
@@ -300,6 +300,11 @@ class TestPlotWindowSave(unittest.TestCase):
     def test_creation_with_width(self, width):
         xlim, ylim, pwidth, aun = WIDTH_SPECS[width]
         plot = self.projections_w[width]
+
+        xlim = [plot.pf.quan(el[0], el[1]) for el in xlim]
+        ylim = [plot.pf.quan(el[0], el[1]) for el in ylim]
+        pwidth = [plot.pf.quan(el[0], el[1]) for el in pwidth]
+
         [assert_array_almost_equal(px, x, 14) for px, x in zip(plot.xlim, xlim)]
         [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]
         [assert_array_almost_equal(pw, w, 14) for pw, w in zip(plot.width, pwidth)]

@@ -43,9 +43,6 @@ from yt.utilities.definitions import \
      mpc_conversion, sec_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      parallel_root_only
-from yt.units.yt_array import \
-    YTArray, \
-    YTQuantity
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.utilities.io_handler import \
@@ -70,7 +67,7 @@ class ChomboGrid(AMRGridPatch):
         level.
 
         """
-        if self.start_index != None:
+        if self.start_index is not None:
             return self.start_index
         if self.Parent == []:
             iLE = self.LeftEdge - self.pf.domain_left_edge
@@ -84,8 +81,7 @@ class ChomboGrid(AMRGridPatch):
 
     def _setup_dx(self):
         # has already been read in and stored in index
-        self.dds = self.index.dds_list[self.Level]
-        self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
+        self.dds = self.pf.arr(self.index.dds_list[self.Level], "code_length")
 
 class ChomboHierarchy(GridIndex):
 
@@ -225,10 +221,10 @@ class ChomboDataset(Dataset):
         self._handle.close()
 
     def _set_code_unit_attributes(self):
-        self.length_unit = YTQuantity(1.0, "cm")
-        self.mass_unit = YTQuantity(1.0, "g")
-        self.time_unit = YTQuantity(1.0, "s")
-        self.velocity_unit = YTQuantity(1.0, "cm/s")
+        self.length_unit = self.quan(1.0, "cm")
+        self.mass_unit = self.quan(1.0, "g")
+        self.time_unit = self.quan(1.0, "s")
+        self.velocity_unit = self.quan(1.0, "cm/s")
 
     def _localize(self, f, default):
         if f is None:

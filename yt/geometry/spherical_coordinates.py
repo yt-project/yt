@@ -1,5 +1,5 @@
 """
-Cylindrical fields
+Spherical fields
 
 
 
@@ -15,30 +15,28 @@ Cylindrical fields
 #-----------------------------------------------------------------------------
 
 import numpy as np
-from yt.units.yt_array import YTArray
 from .coordinate_handler import \
     CoordinateHandler, \
     _unknown_coord, \
     _get_coord_fields
 import yt.visualization._MPL as _MPL
 from yt.utilities.lib.misc_utilities import \
-    pixelize_cylinder
-#
-# Cylindrical fields
-#
+    pixelize_cylinder, pixelize_aitoff
 
-class CylindricalCoordinateHandler(CoordinateHandler):
+class SphericalCoordinateHandler(CoordinateHandler):
 
-    def __init__(self, pf, ordering = 'rzt'):
-        if ordering != 'rzt': raise NotImplementedError
-        super(CylindricalCoordinateHandler, self).__init__(pf)
+    def __init__(self, pf, ordering = 'rtp'):
+        if ordering != 'rtp': raise NotImplementedError
+        super(SphericalCoordinateHandler, self).__init__(pf)
 
     def setup_fields(self, registry):
         # return the fields for r, z, theta
         registry.add_field(("index", "dx"), function=_unknown_coord)
         registry.add_field(("index", "dy"), function=_unknown_coord)
+        registry.add_field(("index", "dz"), function=_unknown_coord)
         registry.add_field(("index", "x"), function=_unknown_coord)
         registry.add_field(("index", "y"), function=_unknown_coord)
+        registry.add_field(("index", "z"), function=_unknown_coord)
         f1, f2 = _get_coord_fields(0)
         registry.add_field(("index", "dr"), function = f1,
                            display_field = False,
@@ -47,15 +45,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                            display_field = False,
                            units = "code_length")
 
-        f1, f2 = _get_coord_fields(1)
-        registry.add_field(("index", "dz"), function = f1,
-                           display_field = False,
-                           units = "code_length")
-        registry.add_field(("index", "z"), function = f2,
-                           display_field = False,
-                           units = "code_length")
-
-        f1, f2 = _get_coord_fields(2, "")
+        f1, f2 = _get_coord_fields(1, "")
         registry.add_field(("index", "dtheta"), function = f1,
                            display_field = False,
                            units = "")
@@ -63,36 +53,45 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                            display_field = False,
                            units = "")
 
-        def _CylindricalVolume(field, data):
-            return data["index", "dtheta"] \
-                 * data["index", "r"] \
-                 * data["index", "dr"] \
-                 * data["index", "dz"]
-        registry.add_field(("index", "cell_volume"),
-                 function=_CylindricalVolume,
-                 units = "code_length**3")
+        f1, f2 = _get_coord_fields(2, "")
+        registry.add_field(("index", "dphi"), function = f1,
+                           display_field = False,
+                           units = "")
+        registry.add_field(("index", "phi"), function = f2,
+                           display_field = False,
+                           units = "")
 
+        def _SphericalVolume(field, data):
+            # r**2 sin theta dr dtheta dphi
+            vol = data["index", "r"]**2.0
+            vol *= data["index", "dr"]
+            vol *= np.sin(data["index", "theta"])
+            vol *= data["index", "dtheta"]
+            vol *= data["index", "dphi"]
+            return vol
+        registry.add_field(("index", "cell_volume"),
+                 function=_SphericalVolume,
+                 units = "code_length**3")
 
     def pixelize(self, dimension, data_source, field, bounds, size,
                  antialias = True, periodic = True):
-        ax_name = self.axis_name[dimension]
-        if ax_name in ('r', 'theta'):
+        self.period
+        if dimension == 0:
             return self._ortho_pixelize(data_source, field, bounds, size,
                                         antialias, dimension, periodic)
-        elif ax_name == "z":
+        elif dimension in (1, 2):
             return self._cyl_pixelize(data_source, field, bounds, size,
-                                        antialias)
+                                          antialias, dimension)
         else:
-            # Pixelizing along a cylindrical surface is a bit tricky
             raise NotImplementedError
 
     def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
                         dim, periodic):
+        # We should be using fcoords
         period = self.period[:2].copy() # dummy here
         period[0] = self.period[self.x_axis[dim]]
         period[1] = self.period[self.y_axis[dim]]
-        if hasattr(period, 'in_units'):
-            period = period.in_units("code_length").d
+        period = period.in_units("code_length").d
         buff = _MPL.Pixelize(data_source['px'], data_source['py'],
                              data_source['pdx'], data_source['pdy'],
                              data_source[field], size[0], size[1],
@@ -100,38 +99,36 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                              period, int(periodic)).transpose()
         return buff
 
-    def _cyl_pixelize(self, data_source, field, bounds, size, antialias):
-        buff = pixelize_cylinder(data_source['r'],
-                                 data_source['dr'],
-                                 data_source['theta'],
-                                 data_source['dtheta']/2.0, # half-widths
-                                 size, data_source[field], bounds)
+    def _cyl_pixelize(self, data_source, field, bounds, size, antialias,
+                      dimension):
+        if dimension == 1:
+            buff = pixelize_cylinder(data_source['r'],
+                                     data_source['dr'] / 2.0,
+                                     data_source['phi'],
+                                     data_source['dphi'] / 2.0, # half-widths
+                                     size, data_source[field], bounds)
+        elif dimension == 2:
+            buff = pixelize_cylinder(data_source['r'],
+                                     data_source['dr'] / 2.0,
+                                     data_source['theta'],
+                                     data_source['dtheta'] / 2.0, # half-widths
+                                     size, data_source[field], bounds)
+        else:
+            raise RuntimeError
         return buff
 
-    axis_name = { 0  : 'r',  1  : 'z',  2  : 'theta',
-                 'r' : 'r', 'z' : 'z', 'theta' : 'theta',
-                 'R' : 'r', 'Z' : 'z', 'Theta' : 'theta'}
-
-    axis_id = { 'r' : 0, 'z' : 1, 'theta' : 2,
-                 0  : 0,  1  : 1,  2  : 2}
-
-    x_axis = { 'r' : 1, 'z' : 0, 'theta' : 0,
-                0  : 1,  1  : 0,  2  : 0}
-
-    y_axis = { 'r' : 2, 'z' : 2, 'theta' : 1,
-                0  : 2,  1  : 2,  2  : 1}
 
     def convert_from_cartesian(self, coord):
-        return cartesian_to_cylindrical(coord)
+        raise NotImplementedError
 
     def convert_to_cartesian(self, coord):
-        return cylindrical_to_cartesian(coord)
+        raise NotImplementedError
 
     def convert_to_cylindrical(self, coord):
-        return coord
+        raise NotImplementedError
 
     def convert_from_cylindrical(self, coord):
-        return coord
+        raise NotImplementedError
 
     def convert_to_spherical(self, coord):
         raise NotImplementedError
@@ -139,7 +136,22 @@ class CylindricalCoordinateHandler(CoordinateHandler):
     def convert_from_spherical(self, coord):
         raise NotImplementedError
 
+    # Despite being mutables, we uses these here to be clear about how these
+    # are generated and to ensure that they are not re-generated unnecessarily
+    axis_name = { 0  : 'r',  1  : 'theta',  2  : 'phi',
+                 'r' : 'r', 'theta' : 'theta', 'phi' : 'phi',
+                 'R' : 'r', 'Theta' : 'theta', 'Phi' : 'phi'}
+
+    axis_id = { 'r' : 0, 'theta' : 1, 'phi' : 2,
+                 0  : 0,  1  : 1,  2  : 2}
+
+    x_axis = { 'r' : 1, 'theta' : 0, 'phi' : 0,
+                0  : 1,  1  : 0,  2  : 0}
+
+    y_axis = { 'r' : 2, 'theta' : 2, 'phi' : 1,
+                0  : 2,  1  : 2,  2  : 1}
+
     @property
     def period(self):
-        return np.array([0.0, 0.0, 2.0*np.pi])
+        return self.pf.domain_width
 

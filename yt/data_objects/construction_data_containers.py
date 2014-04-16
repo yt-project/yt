@@ -336,7 +336,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
                                   input_units=input_units,
                                   registry=self.pf.unit_registry)
             if self.weight_field is None:
-                if Unit(units).is_code_unit and input_units != units:
+                u_obj = Unit(units, registry=self.pf.unit_registry)
+                if u_obj.is_code_unit and input_units != units:
                     if units is '':
                         final_unit = "code_length"
                     else:
@@ -427,11 +428,11 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         self.left_edge = self.pf.arr(left_edge, 'code_length')
         self.level = level
 
+        self.ActiveDimensions = np.array(dims, dtype='int32')
         rdx = self.pf.domain_dimensions*self.pf.relative_refinement(0, level)
         rdx[np.where(np.array(dims) - 2 * num_ghost_zones <= 1)] = 1   # issue 602
         self.base_dds = self.pf.domain_width / self.pf.domain_dimensions
         self.dds = self.pf.domain_width / rdx.astype("float64")
-        self.ActiveDimensions = np.array(dims, dtype='int32')
         self.right_edge = self.left_edge + self.ActiveDimensions*self.dds
         self._num_ghost_zones = num_ghost_zones
         self._use_pbar = use_pbar

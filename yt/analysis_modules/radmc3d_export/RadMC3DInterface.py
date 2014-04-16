@@ -182,10 +182,14 @@ class RadMC3DWriter:
         LE   = self.domain_left_edge
         RE   = self.domain_right_edge
 
+        # Radmc3D wants the cell wall positions in cgs. Convert here:
+        LE_cgs = LE * self.pf.units['cm']
+        RE_cgs = RE * self.pf.units['cm']
+
         # calculate cell wall positions
-        xs = [str(x) for x in np.linspace(LE[0], RE[0], dims[0]+1)]
-        ys = [str(y) for y in np.linspace(LE[1], RE[1], dims[1]+1)]
-        zs = [str(z) for z in np.linspace(LE[2], RE[2], dims[2]+1)]
+        xs = [str(x) for x in np.linspace(LE_cgs[0], RE_cgs[0], dims[0]+1)]
+        ys = [str(y) for y in np.linspace(LE_cgs[1], RE_cgs[1], dims[1]+1)]
+        zs = [str(z) for z in np.linspace(LE_cgs[2], RE_cgs[2], dims[2]+1)]
 
         # writer file header
         grid_file = open(self.grid_filename, 'w')

@@ -91,8 +91,8 @@ class PolarCoordinateHandler(CoordinateHandler):
         buff = pixelize_cylinder(data_source['r'],
                                  data_source['dr'],
                                  data_source['theta'],
-                                 data_source['dtheta'],
-                                 size[0], data_source[field], bounds[1])
+                                 data_source['dtheta'] / 2.0, # half-widths
+                                 size, data_source[field], bounds)
         return buff
 
     axis_name = { 0  : 'r',  1  : 'theta',  2  : 'z',

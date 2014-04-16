@@ -86,12 +86,12 @@ def setup_cluster():
     data["velocity_y"] = (np.zeros(ddims), "cm/s")
     data["velocity_z"] = (velz, "cm/s")
 
-    bbox = np.array([[-0.5,0.5],[-0.5,0.5],[-0.5,0.5]])
+    L = 2 * R * cm_per_kpc
+    bbox = np.array([[-0.5,0.5],[-0.5,0.5],[-0.5,0.5]]) * L
 
-    L = 2*R*cm_per_kpc
     dl = L/nz
 
-    pf = load_uniform_grid(data, ddims, length_unit=L, bbox=bbox)
+    pf = load_uniform_grid(data, ddims, length_unit='cm', bbox=bbox)
     pf.h
 
     return pf
