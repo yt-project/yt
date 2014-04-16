@@ -215,30 +215,32 @@ class HaloMassFcn(ParallelAnalysisInterface):
             self.sigmaM()
             self.dndm()
             # Return the mass array in M_solar rather than M_solar/h
-            self.masses_analytic *= self.hubble0
+            self.masses_analytic = YTArray(self.masses_analytic/self.hubble0, "Msun")
             # The halo arrays will already have yt units, but the analytic forms do 
-            # not. If a dataset has been provided, use that to give them units.
+            # not. If a dataset has been provided, use that to give them units. At the
+            # same time, convert to comoving (Mpc/h)^-3
             if simulation_ds is not None:
-                self.masses_analytic = simulation_ds.arr(self.masses_analytic, "Msun")
-                self.n_cumulative_analytic = simulation_ds.arr(self.n_cumulative_analytic,
-                                             "Mpccm**(-3)")
+                self.n_cumulative_analytic = simulation_ds.arr(self.n_cumulative_analytic * 
+                                                          self.hubble0**3, 
+                                                          "(Mpccm/h)**(-3)")
             elif halos_ds is not None:
-                self.masses_analytic = halos_ds.arr(self.masses_analytic, "Msun")
-                self.n_cumulative_analytic = halos_ds.arr(self.n_cumulative_analytic, 
-                                             "Mpccm**(-3)")
-            # It we don't have a dataset to get units from, make a new units registry
+                self.n_cumulative_analytic = halos_ds.arr(self.n_cumulative_analytic * 
+                                                          self.hubble0**3, 
+                                                          "(Mpccm/h)**(-3)")
             else:
+                from yt.units.unit_registry import UnitRegistry
                 from yt.units.dimensions import length
-                hmf.unit_registry = UnitRegistry()
+                hmf_registry = UnitRegistry()
                 for my_unit in ["m", "pc", "AU", "au"]:
                     new_unit = "%scm" % my_unit
-                    hmf.unit_registry.add(new_unit, 
-                                        hmf.unit_registry.lut[my_unit][0] / 
-                                        (1 + self.this_redshift),
-                                        length, "\\rm{%s}/(1+z)" % my_unit)  
-                self.n_cumulative_analytic = hmf.unit_registry.arr(self.n_cumulative_analytic, 
-                                                                    "Mpccm**(-3")
-                self.masses_analytic = hmf.unit_registry.arr(self.masses_analytic, "Msun")
+                    hmf_registry.add(new_unit, 
+                                     hmf_registry.lut[my_unit][0] / 
+                                     (1 + self.this_redshift),
+                                     length, "\\rm{%s}/(1+z)" % my_unit)
+                self.n_cumulative_analytic = YTArray(self.n_cumulative_analytic * 
+                                                     self.hubble0**3, 
+                                                     "(Mpccm/h)**(-3)", 
+                                                     registry=hmf_registry)                          
 
         """
         If a halo file has been supplied, make a mass function for the simulated halos.
@@ -268,7 +270,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
         # We're going to use indices to count the number of halos above a given mass
         masses_sim = np.sort(data_source['ParticleMassMsun'])
         # Determine the size of the simulation volume in comoving Mpc**3
-        sim_volume = (self.halos_ds.domain_width.in_units('Mpccm')/self.hubble0).prod()
+        sim_volume = self.halos_ds.domain_width.in_units('Mpccm/h').prod()
         n_cumulative_sim = np.arange(len(masses_sim),0,-1)
         # We don't want repeated halo masses, and the unique indices tell us which values 
         # correspond to distinct halo masses.
