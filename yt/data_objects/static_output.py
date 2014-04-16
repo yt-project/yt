@@ -290,7 +290,7 @@ class Dataset(object):
             self.create_field_info()
             np.seterr(**oldsettings)
         return self._instantiated_index
-    
+
     _index_proxy = None
     @property
     def h(self):
@@ -527,7 +527,7 @@ class Dataset(object):
         source = self.all_data()
         max_val, maxi, mx, my, mz = \
             source.quantities["MaxLocation"](field)
-        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f", 
+        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
               max_val, mx, my, mz)
         return max_val, np.array([mx, my, mz], dtype="float64")
 
@@ -628,7 +628,8 @@ class Dataset(object):
             DW = np.zeros(3)
         else:
             DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
-        self.unit_registry.add("unitary", float(DW.max()), DW.units.dimensions)
+        self.unit_registry.add("unitary", float(DW.max() * DW.units.cgs_value),
+                               DW.units.dimensions)
 
     _arr = None
     @property
