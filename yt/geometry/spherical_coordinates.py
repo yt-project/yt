@@ -75,6 +75,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
 
     def pixelize(self, dimension, data_source, field, bounds, size,
                  antialias = True, periodic = True):
+        self.period
         if dimension == 0:
             return self._ortho_pixelize(data_source, field, bounds, size,
                                         antialias, dimension, periodic)
@@ -102,22 +103,16 @@ class SphericalCoordinateHandler(CoordinateHandler):
                       dimension):
         if dimension == 1:
             buff = pixelize_cylinder(data_source['r'],
-                                     data_source['dr'],
+                                     data_source['dr'] / 2.0,
                                      data_source['phi'],
                                      data_source['dphi'] / 2.0, # half-widths
                                      size, data_source[field], bounds)
         elif dimension == 2:
             buff = pixelize_cylinder(data_source['r'],
-                                     data_source['dr'],
+                                     data_source['dr'] / 2.0,
                                      data_source['theta'],
                                      data_source['dtheta'] / 2.0, # half-widths
                                      size, data_source[field], bounds)
-            buff = pixelize_cylinder(data_source['r'],
-                                     data_source['dr'],
-                                     2.0*np.pi - data_source['theta'],
-                                     data_source['dtheta'] / 2.0, # half-widths
-                                     size, data_source[field], bounds,
-                                     input_img = buff)
         else:
             raise RuntimeError
         return buff
