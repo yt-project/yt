@@ -976,7 +976,7 @@ class ProjectionPlot(PWViewerMPL):
         # If a data_source is specified, let its field values (including center)
         # override the projection's own defaults
         if data_source is not None: 
-            field_parameters.update(data_source.field_parameters)
+            field_parameters = data_source.field_parameters
             proj = pf.h.proj(axis, fields, weight_field=weight_field, max_level=max_level,
                              source=data_source, **field_parameters)
         else:
