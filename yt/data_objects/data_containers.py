@@ -215,6 +215,10 @@ class AMRData(object):
         if fields == None: fields = []
         self.fields = ensure_list(fields)[:]
         self.field_data = YTFieldData()
+        self.defaults = {}
+        self.defaults["center"] = np.zeros(3,dtype='float64')
+        self.defaults["bulk_velocity"] = np.zeros(3,dtype='float64')
+        self.defaults["normal"] = np.array([0,0,1],dtype='float64')
         self.field_parameters = {}
         self.__set_default_field_parameters()
         self._cut_masks = {}
@@ -225,9 +229,14 @@ class AMRData(object):
             self.set_field_parameter(key, val)
 
     def __set_default_field_parameters(self):
-        self.set_field_parameter("center",np.zeros(3,dtype='float64'))
-        self.set_field_parameter("bulk_velocity",np.zeros(3,dtype='float64'))
-        self.set_field_parameter("normal",np.array([0,0,1],dtype='float64'))
+        for k,v in self.defaults.items():
+            self.set_field_parameter(k,v)
+
+    def is_default_field_parameter(self, parameter, value):
+        try:
+            self.defaults[parameter] == value
+        except:
+            return False
 
     def _set_center(self, center):
         if center is None:
@@ -1772,8 +1781,10 @@ class AMRQuadTreeProjBase(AMR2DData):
             self._distributed = False
             self._okay_to_serialize = False
             self._check_region = True
+            # Use the data_source's field parameters if they don't exist in the
+            # object or if they are the default values
             for k, v in source.field_parameters.items():
-                if k not in self.field_parameters:
+                if k not in self.field_parameters or self.is_default_field_parameter(k,v):
                     self.set_field_parameter(k,v)
         self.source = source
         if self._field_cuts is not None:
