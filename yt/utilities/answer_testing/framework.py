@@ -45,7 +45,7 @@ run_big_data = False
 # Set the latest gold and local standard filenames
 _latest = ytcfg.get("yt", "gold_standard_filename")
 _latest_local = ytcfg.get("yt", "local_standard_filename")
-_url_path = "http://yt-answer-tests.s3-website-us-east-1.amazonaws.com/%s_%s"
+_url_path = "http://answers.yt-project.org/%s_%s"
 
 class AnswerTesting(Plugin):
     name = "answer-testing"
@@ -197,30 +197,20 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         if self.answer_name is None: return
         # This is where we dump our result storage up to Amazon, if we are able
         # to.
-        import boto
-        from boto.s3.key import Key
-        c = boto.connect_s3()
-        bucket = c.get_bucket("yt-answer-tests")
-        for pf_name in result_storage:
+        import pyrax
+        pyrax.set_credential_file(os.path.expanduser("~/.yt/rackspace"))
+        cf = pyrax.cloudfiles
+        c = cf.get_container("yt-answer-tests")
+        pb = get_pbar("Storing results ", len(result_storage))
+        for i, pf_name in enumerate(result_storage):
+            pb.update(i)
             rs = cPickle.dumps(result_storage[pf_name])
-            tk = bucket.get_key("%s_%s" % (self.answer_name, pf_name))
-            if tk is not None: tk.delete()
-            k = Key(bucket)
-            k.key = "%s_%s" % (self.answer_name, pf_name)
-
-            pb_widgets = [
-                unicode(k.key, errors='ignore').encode('utf-8'), ' ',
-                progressbar.FileTransferSpeed(),' <<<', progressbar.Bar(),
-                '>>> ', progressbar.Percentage(), ' ', progressbar.ETA()
-                ]
-            self.pbar = progressbar.ProgressBar(widgets=pb_widgets,
-                                                maxval=sys.getsizeof(rs))
-
-            self.pbar.start()
-            k.set_contents_from_string(rs, cb=self.progress_callback,
-                                       num_cb=100000)
-            k.set_acl("public-read")
-            self.pbar.finish()
+            object_name = "%s_%s" % (self.answer_name, pf_name)
+            if object_name in c.get_object_names():
+                obj = c.get_object(object_name)
+                c.delete_object(obj)
+            c.store_object(object_name, rs)
+        pb.finish()
 
 class AnswerTestLocalStorage(AnswerTestStorage):
     def dump(self, result_storage):
