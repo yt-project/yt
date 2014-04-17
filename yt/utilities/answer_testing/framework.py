@@ -45,7 +45,8 @@ run_big_data = False
 # Set the latest gold and local standard filenames
 _latest = ytcfg.get("yt", "gold_standard_filename")
 _latest_local = ytcfg.get("yt", "local_standard_filename")
-_url_path = "http://answers.yt-project.org/%s_%s"
+#_url_path = "http://answers.yt-project.org/%s_%s"
+_url_path = "http://9d88c2cd8f0c0116ea28-349fe2bf24015151662504826db38f8b.r35.cf5.rackcdn.com/%s_%s"
 
 class AnswerTesting(Plugin):
     name = "answer-testing"
