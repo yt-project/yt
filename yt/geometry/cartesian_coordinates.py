@@ -62,7 +62,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
         period = self.period[:2].copy() # dummy here
         period[0] = self.period[self.x_axis[dim]]
         period[1] = self.period[self.y_axis[dim]]
-        period = period.in_units("code_length").d
+        if hasattr(period, 'in_units'):
+            period = period.in_units("code_length").d
         buff = _MPL.Pixelize(data_source['px'], data_source['py'],
                              data_source['pdx'], data_source['pdy'],
                              data_source[field], size[0], size[1],

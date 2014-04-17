@@ -7,6 +7,7 @@ import types
 from functools import wraps
 from matplotlib.font_manager import FontProperties
 
+from ._mpl_imports import FigureCanvasAgg
 from .tick_locators import LogLocator, LinearLocator
 from .color_maps import yt_colormaps, is_colormap
 from .plot_modifications import \

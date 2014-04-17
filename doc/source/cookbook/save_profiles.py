@@ -33,7 +33,7 @@ rad_profile.write_out_h5("%s_profile.h5" % pf, bin_style="center")
 # separate columns into separate NumPy arrays, it is essential to set unpack=True.
 
 r, dens, std_dens, temp, std_temp = \
-	na.loadtxt("sloshing_nomag2_hdf5_plt_cnt_0150_profile.dat", unpack=True)
+	np.loadtxt("sloshing_nomag2_hdf5_plt_cnt_0150_profile.dat", unpack=True)
 
 fig1 = plt.figure()
 

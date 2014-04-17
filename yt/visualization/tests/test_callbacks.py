@@ -74,7 +74,7 @@ def test_velocity_callback():
         p = SlicePlot(pf, "x", "density")
         p.annotate_velocity(factor=8, scale=0.5, scale_units="inches",
                             normalize = True)
-        p.save()
+        p.save(prefix)
 
 def test_magnetic_callback():
     with _cleanup_fname() as prefix:
@@ -91,7 +91,7 @@ def test_magnetic_callback():
         p = SlicePlot(pf, "x", "density")
         p.annotate_magnetic_field(factor=8, scale=0.5,
             scale_units="inches", normalize = True)
-        p.save()
+        p.save(prefix)
 
 def test_quiver_callback():
     with _cleanup_fname() as prefix:
@@ -113,7 +113,7 @@ def test_quiver_callback():
             scale_units="inches", normalize = True,
             bv_x = 0.5 * u.cm / u.s,
             bv_y = 0.5 * u.cm / u.s)
-        p.save()
+        p.save(prefix)
 
 def test_contour_callback():
     with _cleanup_fname() as prefix:
@@ -134,7 +134,7 @@ def test_contour_callback():
             take_log=False, clim=(0.4, 0.6),
             plot_args={'lw':2.0}, label=True,
             label_args={'text-size':'x-large'})
-        p.save()
+        p.save(prefix)
 
         p = SlicePlot(pf, "x", "density")
         s2 = pf.slice(0, 0.2)
@@ -143,7 +143,7 @@ def test_contour_callback():
             plot_args={'lw':2.0}, label=True,
             label_args={'text-size':'x-large'},
             data_source=s2)
-        p.save()
+        p.save(prefix)
 
 def test_grids_callback():
     with _cleanup_fname() as prefix:

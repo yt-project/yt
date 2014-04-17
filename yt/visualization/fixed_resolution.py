@@ -126,7 +126,7 @@ class FixedResolutionBuffer(object):
             bounds.append(b)
         buff = self.pf.coordinates.pixelize(self.data_source.axis,
             self.data_source, item, bounds, self.buff_size,
-            int(self.antialias)).transpose()
+            int(self.antialias))
         # Need to add _period and self.periodic
         # self._period, int(self.periodic)
         ia = ImageArray(buff, input_units=self.data_source[item].units,

@@ -32,9 +32,6 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
-from yt.units.yt_array import \
-    YTArray, \
-    YTQuantity
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.geometry.selection_routines import \
@@ -45,7 +42,10 @@ from yt.utilities.physical_constants import \
     cm_per_mpc
 
 from .fields import \
-    BoxlibFieldInfo
+    BoxlibFieldInfo, \
+    MaestroFieldInfo, \
+    CastroFieldInfo
+
 from .io import IOHandlerBoxlib
 # This is what we use to find scientific notation that might include d's
 # instead of e's.
@@ -392,11 +392,13 @@ class BoxlibDataset(Dataset):
         Dataset.__init__(self, output_dir, dataset_type)
 
         # These are still used in a few places.
-        self.parameters["HydroMethod"] = 'boxlib'
+        if not "HydroMethod" in self.parameters.keys():
+            self.parameters["HydroMethod"] = 'boxlib'
         self.parameters["Time"] = 1. # default unit is 1...
         self.parameters["EOSType"] = -1 # default
         self.parameters["gamma"] = self.parameters.get(
             "materials.gamma", 1.6667)
+
 
     def _localize_check(self, fn):
         # If the file exists, use it.  If not, set it to None.
@@ -457,21 +459,7 @@ class BoxlibDataset(Dataset):
             elif param == "castro.use_comoving":
                 vals = self.cosmological_simulation = int(vals)
             else:
-                # Now we guess some things about the parameter and its type
-                v = vals.split()[0] # Just in case there are multiple; we'll go
-                                    # back afterward to using vals.
-                try:
-                    float(v.upper().replace("D","E"))
-                except:
-                    pcast = str
-                else:
-                    syms = (".", "D+", "D-", "E+", "E-")
-                    if any(sym in v.upper() for sym in syms for v in vals.split()):
-                        pcast = float
-                    else:
-                        pcast = int
-                vals = [pcast(v) for v in vals.split()]
-                if len(vals) == 1: vals = vals[0]
+                vals = _guess_pcast(vals)
             self.parameters[param] = vals
 
         if getattr(self, "cosmological_simulation", 0) == 1:
@@ -600,10 +588,10 @@ class BoxlibDataset(Dataset):
             self._setup2d()
 
     def _set_code_unit_attributes(self):
-        self.length_unit = YTQuantity(1.0, "cm")
-        self.mass_unit = YTQuantity(1.0, "g")
-        self.time_unit = YTQuantity(1.0, "s")
-        self.velocity_unit = YTQuantity(1.0, "cm/s")
+        self.length_unit = self.quan(1.0, "cm")
+        self.mass_unit = self.quan(1.0, "g")
+        self.time_unit = self.quan(1.0, "s")
+        self.velocity_unit = self.quan(1.0, "cm/s")
 
     def _setup1d(self):
 #        self._index_class = BoxlibHierarchy1D
@@ -616,7 +604,8 @@ class BoxlibDataset(Dataset):
         tmp.extend((1,1))
         self.domain_dimensions = np.array(tmp)
         tmp = list(self.periodicity)
-        tmp[1:] = False
+        tmp[1] = False
+        tmp[2] = False
         self.periodicity = ensure_tuple(tmp)
         
     def _setup2d(self):
@@ -741,6 +730,8 @@ class OrionDataset(BoxlibDataset):
 
 class CastroDataset(BoxlibDataset):
 
+    _field_info_class = CastroFieldInfo
+
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         # fill our args
@@ -759,6 +750,8 @@ class CastroDataset(BoxlibDataset):
 
 class MaestroDataset(BoxlibDataset):
 
+    _field_info_class = MaestroFieldInfo
+
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         # fill our args
@@ -774,6 +767,41 @@ class MaestroDataset(BoxlibDataset):
         lines = open(jobinfo_filename).readlines()
         if any("maestro" in line.lower() for line in lines): return True
         return False
+
+    def _parse_parameter_file(self):
+        super(MaestroDataset, self)._parse_parameter_file()
+        jobinfo_filename = os.path.join(self.output_dir, "job_info")
+        line = ""
+        with open(jobinfo_filename, "r") as f:
+            while not line.startswith(" [*] indicates overridden default"):
+                # get the code git hashes
+                if "git hash" in line:
+                    # line format: codename git hash:  the-hash
+                    fields = line.split(":")
+                    self.parameters[fields[0]] = fields[1].strip()
+                line = f.next()
+            # get the runtime parameters
+            for line in f:
+                p, v = (_.strip() for _ in line[4:].split("="))
+                if len(v) == 0:
+                    self.parameters[p] = ""
+                else:
+                    self.parameters[p] = _guess_pcast(v)
+            # hydro method is set by the base class -- override it here
+            self.parameters["HydroMethod"] = "Maestro"
+
+        # set the periodicity based on the integer BC runtime parameters
+        periodicity = [True, True, True]
+        if not self.parameters['bcx_lo'] == -1:
+            periodicity[0] = False
+
+        if not self.parameters['bcy_lo'] == -1:
+            periodicity[1] = False
+
+        if not self.parameters['bcz_lo'] == -1:
+            periodicity[2] = False
+
+        self.periodicity = ensure_tuple(periodicity)
 
 
 class NyxHierarchy(BoxlibHierarchy):
@@ -866,8 +894,27 @@ class NyxDataset(BoxlibDataset):
             self.particle_types_raw = self.particle_types
 
     def _set_code_unit_attributes(self):
-        self.mass_unit = YTQuantity(1.0, "Msun")
-        self.time_unit = YTQuantity(1.0 / 3.08568025e19, "s")
-        self.length_unit = YTQuantity(1.0 / (1 + self.current_redshift),
-                                      "mpc")
+        self.mass_unit = self.quan(1.0, "Msun")
+        self.time_unit = self.quan(1.0 / 3.08568025e19, "s")
+        self.length_unit = self.quan(1.0 / (1 + self.current_redshift), "Mpc")
         self.velocity_unit = self.length_unit / self.time_unit
+
+def _guess_pcast(vals):
+    # Now we guess some things about the parameter and its type
+    v = vals.split()[0] # Just in case there are multiple; we'll go
+                        # back afterward to using vals.
+    try:
+        float(v.upper().replace("D","E"))
+    except:
+        pcast = str
+        if v in ("F", "T"):
+            pcast = bool
+    else:
+        syms = (".", "D+", "D-", "E+", "E-")
+        if any(sym in v.upper() for sym in syms for v in vals.split()):
+            pcast = float
+        else:
+            pcast = int
+    vals = [pcast(v) for v in vals.split()]
+    if len(vals) == 1: vals = vals[0]
+    return vals

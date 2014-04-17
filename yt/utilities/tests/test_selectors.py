@@ -24,7 +24,7 @@ def test_sphere_selector():
         data = pf.sphere(center, 0.25)
         # WARNING: this value has not be externally verified
         dd = pf.h.all_data()
-        dd.set_field_parameter("center", YTArray(center, 'code_length'))
+        dd.set_field_parameter("center", pf.arr(center, 'code_length'))
         n_outside = (dd["radius"] >= 0.25).sum()
         assert_equal(data["radius"].size + n_outside, dd["radius"].size)
 
@@ -55,7 +55,7 @@ def test_ellipsoid_selector():
         data.get_data()
 
         dd = pf.h.all_data()
-        dd.set_field_parameter("center", YTArray(center, "code_length"))
+        dd.set_field_parameter("center", pf.arr(center, "code_length"))
         n_outside = (dd["radius"] >= ratios[0]).sum()
         assert_equal(data["radius"].size + n_outside, dd["radius"].size)
 
