@@ -20,7 +20,7 @@ from .halo_catalog import \
 from .halo_callbacks import \
      add_callback
 
-from .finding_methods import \
+from .halo_finding_methods import \
      add_finding_method
 
 from .halo_filters import \
