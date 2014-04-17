@@ -343,7 +343,7 @@ class FLASHDataset(Dataset):
         self.domain_right_edge = np.array(
             [self.parameters["%smax" % ax] for ax in 'xyz']).astype("float64")
         if self.dimensionality < 3:
-            for d in (dimensionality)+range(3-dimensionality):
+            for d in [dimensionality]+range(3-dimensionality):
                 if self.domain_left_edge[d] == self.domain_right_edge[d]:
                     mylog.warning('Identical domain left edge and right edges '
                                   'along dummy dimension (%i), attempting to read anyway' % d)

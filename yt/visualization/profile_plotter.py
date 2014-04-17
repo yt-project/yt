@@ -718,7 +718,6 @@ class PhasePlot(ImagePlotContainer):
                 label.set_fontproperties(fp)
                 if self._font_color is not None:
                     label.set_color(self._font_color)
-
         self._plot_valid = True
 
     def save(self, name=None, mpl_kwargs=None):

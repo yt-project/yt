@@ -177,6 +177,16 @@ def get_window_parameters(axis, center, width, pf):
             # Our default width here is the full domain
             width = [pf.domain_right_edge[0]*2.0, pf.domain_right_edge[0]*2.0]
             center = pf.arr([0.0, 0.0, 0.0], "code_length")
+    elif pf.geometry == "geographic":
+        c_r = ((pf.domain_right_edge + pf.domain_left_edge)/2.0)[2]
+        center = pf.arr([0.0, 0.0, c_r], "code_length")
+        if axis == 2:
+            # latitude slice
+            width = pf.arr([360, 180], "code_length")
+        else:
+            width = [2.0*(pf.domain_right_edge[2] + pf.surface_height),
+                     2.0*(pf.domain_right_edge[2] + pf.surface_height)]
+            center[2] = 0.0
     else:
         raise NotImplementedError
     bounds = (center[x_dict[axis]]-width[0] / 2,
@@ -1304,8 +1314,6 @@ class OffAxisProjectionPlot(PWViewerMPL):
         self.set_axes_unit(axes_unit)
 
     def _recreate_frb(self):
-        if self._frb is not None:
-            raise NotImplementedError
         super(OffAxisProjectionPlot, self)._recreate_frb()
 
 _metadata_template = """

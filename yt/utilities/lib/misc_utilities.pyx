@@ -18,6 +18,7 @@ from yt.units.yt_array import YTArray
 cimport numpy as np
 cimport cython
 cimport libc.math as math
+from fp_utils cimport fmin, fmax
 
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
@@ -529,6 +530,12 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
 
     return img
 
+cdef void aitoff_thetaphi_to_xy(np.float64_t theta, np.float64_t phi,
+                                np.float64_t *x, np.float64_t *y):
+    cdef np.float64_t z = math.sqrt(1 + math.cos(phi) * math.cos(theta / 2.0))
+    x[0] = math.cos(phi) * math.sin(theta / 2.0) / z
+    y[0] = math.sin(phi) / z
+
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -539,15 +546,21 @@ def pixelize_aitoff(np.ndarray[np.float64_t, ndim=1] theta,
                     buff_size,
                     np.ndarray[np.float64_t, ndim=1] field,
                     extents, input_img = None):
-    
+    # http://paulbourke.net/geometry/transformationprojection/
+    # longitude is -pi to pi
+    # latitude is -pi/2 to pi/2
+    # z^2 = 1 + cos(latitude) cos(longitude/2)
+    # x = cos(latitude) sin(longitude/2) / z
+    # y = sin(latitude) / z
     cdef np.ndarray[np.float64_t, ndim=2] img
     cdef int i, j, nf, fi
     cdef np.float64_t x, y, z, zb
     cdef np.float64_t dx, dy, inside
     cdef np.float64_t theta1, dtheta1, phi1, dphi1
-    cdef np.float64_t theta0, phi0
+    cdef np.float64_t theta0, phi0, theta_p, dtheta_p, phi_p, dphi_p
     cdef np.float64_t PI = np.pi
     cdef np.float64_t s2 = math.sqrt(2.0)
+    cdef np.float64_t xmax, ymax, xmin, ymin
     nf = field.shape[0]
     
     if input_img is None:
@@ -555,31 +568,66 @@ def pixelize_aitoff(np.ndarray[np.float64_t, ndim=1] theta,
         img[:] = np.nan
     else:
         img = input_img
+    # Okay, here's our strategy.  We compute the bounds in x and y, which will
+    # be a rectangle, and then for each x, y position we check to see if it's
+    # within our theta.  This will cost *more* computations of the
+    # (x,y)->(theta,phi) calculation, but because we no longer have to search
+    # through the theta, phi arrays, it should be faster.
     dx = 2.0 / (img.shape[0] - 1)
     dy = 2.0 / (img.shape[1] - 1)
-    for i in range(img.shape[0]):
-        x = (-1.0 + i*dx)*s2*2.0
-        for j in range(img.shape[1]):
-            y = (-1.0 + j * dy)*s2
-            zb = (x*x/8.0 + y*y/2.0 - 1.0)
-            if zb > 0: continue
-            z = (1.0 - (x/4.0)**2.0 - (y/2.0)**2.0)
-            z = z**0.5
-            # Longitude
-            phi0 = (2.0*math.atan(z*x/(2.0 * (2.0*z*z-1.0))) + PI)
-            # Latitude
-            # We shift it into co-latitude
-            theta0 = (math.asin(z*y) + PI/2.0)
-            # Now we just need to figure out which pixel contributes.
-            # We do not have a fast search.
-            for fi in range(nf):
-                theta1 = theta[fi]
-                dtheta1 = dtheta[fi]
-                if not (theta1 - dtheta1 <= theta0 <= theta1 + dtheta1):
+    for fi in range(nf):
+        theta_p = theta[fi] - PI
+        dtheta_p = dtheta[fi]
+        phi_p = phi[fi] - PI/2.0
+        dphi_p = dphi[fi]
+        # Four transformations
+        aitoff_thetaphi_to_xy(theta_p - dtheta_p, phi_p - dphi_p, &x, &y)
+        xmin = x
+        xmax = x
+        ymin = y
+        ymax = y
+        aitoff_thetaphi_to_xy(theta_p - dtheta_p, phi_p + dphi_p, &x, &y)
+        xmin = fmin(xmin, x)
+        xmax = fmax(xmax, x)
+        ymin = fmin(ymin, y)
+        ymax = fmax(ymax, y)
+        aitoff_thetaphi_to_xy(theta_p + dtheta_p, phi_p - dphi_p, &x, &y)
+        xmin = fmin(xmin, x)
+        xmax = fmax(xmax, x)
+        ymin = fmin(ymin, y)
+        ymax = fmax(ymax, y)
+        aitoff_thetaphi_to_xy(theta_p + dtheta_p, phi_p + dphi_p, &x, &y)
+        xmin = fmin(xmin, x)
+        xmax = fmax(xmax, x)
+        ymin = fmin(ymin, y)
+        ymax = fmax(ymax, y)
+        # Now we have the (projected rectangular) bounds.
+        xmin = (xmin + 1) # Get this into normalized image coords
+        xmax = (xmax + 1) # Get this into normalized image coords
+        ymin = (ymin + 1) # Get this into normalized image coords
+        ymax = (ymax + 1) # Get this into normalized image coords
+        x0 = <int> (xmin / dx)
+        x1 = <int> (xmax / dx) + 1
+        y0 = <int> (ymin / dy)
+        y1 = <int> (ymax / dy) + 1
+        for i in range(x0, x1):
+            x = (-1.0 + i*dx)*s2*2.0
+            for j in range(y0, y1):
+                y = (-1.0 + j * dy)*s2
+                zb = (x*x/8.0 + y*y/2.0 - 1.0)
+                if zb > 0: continue
+                z = (1.0 - (x/4.0)**2.0 - (y/2.0)**2.0)
+                z = z**0.5
+                # Longitude
+                theta0 = 2.0*math.atan(z*x/(2.0 * (2.0*z*z-1.0)))
+                # Latitude
+                # We shift it into co-latitude
+                phi0 = math.asin(z*y)
+                # Now we just need to figure out which pixel contributes.
+                # We do not have a fast search.
+                if not (theta_p - dtheta_p <= theta0 <= theta_p + dtheta_p):
                     continue
-                phi1 = phi[fi]
-                dphi1 = dphi[fi]
-                if not (phi1 - dphi1 <= phi0 <= phi1 + dphi1):
+                if not (phi_p - dphi_p <= phi0 <= phi_p + dphi_p):
                     continue
                 img[i, j] = field[fi]
     return img
