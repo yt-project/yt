@@ -628,12 +628,10 @@ class Dataset(object):
                     self.length_unit / self.time_unit)
         self.unit_registry.modify("code_velocity", vel_unit)
         # domain_width does not yet exist
-        if self.domain_left_edge is None or self.domain_right_edge is None:
-            DW = np.zeros(3)
-        else:
+        if None not in (self.domain_left_edge, self.domain_right_edge):
             DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
-        self.unit_registry.add("unitary", float(DW.max() * DW.units.cgs_value),
-                               DW.units.dimensions)
+            self.unit_registry.add("unitary", float(DW.max() * DW.units.cgs_value),
+                                   DW.units.dimensions)
 
     _arr = None
     @property

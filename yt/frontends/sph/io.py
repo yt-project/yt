@@ -551,6 +551,8 @@ class IOHandlerTipsyBinary(BaseIOHandler):
             pf.domain_left_edge = 0
             pf.domain_right_edge = 0
             f.seek(pf._header_offset)
+            mi =   np.array([1e30, 1e30, 1e30], dtype="float64")
+            ma =  -np.array([1e30, 1e30, 1e30], dtype="float64")
             for iptype, ptype in enumerate(self._ptypes):
                 # We'll just add the individual types separately
                 count = data_file.total_particles[ptype]
@@ -560,19 +562,23 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                     c = min(CHUNKSIZE, stop - ind)
                     pp = np.fromfile(f, dtype = self._pdtypes[ptype],
                                      count = c)
-                    for ax in 'xyz':
-                        mi = pp["Coordinates"][ax].min()
-                        ma = pp["Coordinates"][ax].max()
-                        outlier = self.arr(np.max(np.abs((mi,ma))), 'code_length')
-                        if outlier > pf.domain_right_edge or -outlier < pf.domain_left_edge:
-                            # scale these up so the domain is slightly
-                            # larger than the most distant particle position
-                            pf.domain_left_edge = -1.01*outlier
-                            pf.domain_right_edge = 1.01*outlier
+                    eps = np.finfo(pp["Coordinates"]["x"].dtype).eps
+                    np.minimum(mi, [pp["Coordinates"]["x"].min(),
+                                    pp["Coordinates"]["y"].min(),
+                                    pp["Coordinates"]["z"].min()], mi)
+                    np.maximum(ma, [pp["Coordinates"]["x"].max(),
+                                    pp["Coordinates"]["y"].max(),
+                                    pp["Coordinates"]["z"].max()], ma)
                     ind += c
-        pf.domain_left_edge = np.ones(3)*pf.domain_left_edge
-        pf.domain_right_edge = np.ones(3)*pf.domain_right_edge
-        pf.domain_width = np.ones(3)*2*pf.domain_right_edge
+        # We extend by 1%.
+        DW = ma - mi
+        mi -= 0.01 * DW
+        ma += 0.01 * DW
+        pf.domain_left_edge = pf.arr(mi, 'code_length')
+        pf.domain_right_edge = pf.arr(ma, 'code_length')
+        pf.domain_width = DW = pf.domain_right_edge - pf.domain_left_edge
+        pf.unit_registry.add("unitary", float(DW.max() * DW.units.cgs_value),
+                                 DW.units.dimensions)
 
     def _initialize_index(self, data_file, regions):
         pf = data_file.pf

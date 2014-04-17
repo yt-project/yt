@@ -60,7 +60,8 @@ class SPHFieldInfo(FieldInfoContainer):
         ("MaximumTemperature", ("K", [], None)),
         ("Temperature", ("K", ["temperature"], None)),
         ("Epsilon", ("code_length", [], None)),
-        ("Metals", ("code_metallicity", ["metallicity"], None)),
+        # This should be 'code_metallicity'
+        ("Metals", ("", ["metallicity"], None)),
         ("Phi", ("code_length", [], None)),
         ("FormationTime", ("code_time", ["creation_time"], None)),
     )
