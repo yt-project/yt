@@ -219,7 +219,7 @@ class Halo(object):
         vx = (self["particle_velocity_x"] * pm).sum()
         vy = (self["particle_velocity_y"] * pm).sum()
         vz = (self["particle_velocity_z"] * pm).sum()
-        return YTArray([vx, vy, vz], vx.units) / pm.sum()
+        return self.pf.arr([vx, vy, vz], vx.units) / pm.sum()
 
     def rms_velocity(self):
         r"""Returns the mass-weighted RMS velocity for the halo
@@ -875,7 +875,7 @@ class LoadedHalo(Halo):
 		self._pid_sort = field_data.argsort().argsort()
 	    #convert to YTArray using the data from disk
 	    if key == 'particle_mass':
-		field_data = YTArray(field_data, 'Msun')
+		field_data = self.pf.arr(field_data, 'Msun')
 	    else:
 	        field_data = self.pf.arr(field_data, 
 		    self.pf._get_field_info('unknown',key).units)
