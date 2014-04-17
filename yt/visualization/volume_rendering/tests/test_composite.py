@@ -32,7 +32,7 @@ op.set_zbuffer(zbuff)
 
 sc.add_source(op)
 
-cam.set_width(1.0)
+cam.set_width( pf.domain_width )
 
 # DRAW SOME LINES
 npoints = 100

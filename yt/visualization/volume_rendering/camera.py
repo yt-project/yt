@@ -88,7 +88,7 @@ class Camera(Orientation):
 
     def set_width(self, width):
         if not iterable(width):
-            width = YTArray([width, width, width], input_units="code_length")
+            width = [width, width, width] # No way to get code units.
         self.width = width
         self.switch_orientation()
 
