@@ -18,6 +18,7 @@ from yt.units.yt_array import YTArray
 cimport numpy as np
 cimport cython
 cimport libc.math as math
+from libc.math cimport abs
 from fp_utils cimport fmin, fmax
 
 cdef extern from "stdlib.h":
@@ -229,7 +230,10 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
     cdef int has_alpha = (image.shape[2] == 4)
     for j in range(0, nl, 2):
         # From wikipedia http://en.wikipedia.org/wiki/Bresenham's_line_algorithm
-        x0 = xs[j]; y0 = ys[j]; x1 = xs[j+1]; y1 = ys[j+1]
+        x0 = xs[j] 
+        y0 = ys[j]
+        x1 = xs[j+1]
+        y1 = ys[j+1]
         dx = abs(x1-x0)
         dy = abs(y1-y0)
         err = dx - dy
