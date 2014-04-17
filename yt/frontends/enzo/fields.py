@@ -124,7 +124,6 @@ class EnzoFieldInfo(FieldInfoContainer):
         if species != "Electron":
             self.alias(("gas", "%s_density" % yt_name),
                        ("enzo", "%s_Density" % species))
-        add_species_field_by_density(self, "gas", yt_name)
 
     def setup_species_fields(self):
         species_names = [fn.rsplit("_Density")[0] for ft, fn in 
