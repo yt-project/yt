@@ -19,6 +19,7 @@ import numpy as np
 from yt.funcs import *
 from yt.utilities.math_utils import *
 from yt.units.yt_array import YTArray
+from yt.utilities.exceptions import YTNotInsideNotebook
 from copy import deepcopy
 
 from .transfer_functions import ProjectionTransferFunction
@@ -294,8 +295,9 @@ class Camera(ParallelAnalysisInterface):
         order += [0, 4, 1, 5, 2, 6, 3, 7]
         
         vertices = np.empty([corners.shape[2]*2*12,3])
+        vertices = self.pf.arr(vertices, "code_length")
         for i in xrange(3):
-            vertices[:,i] = corners[order,i,:].ravel(order='F')
+            vertices[:,i] = corners[order,i,...].ravel(order='F')
 
         px, py, dz = self.project_to_plane(vertices, res=im.shape[:2])
         
@@ -477,8 +479,9 @@ class Camera(ParallelAnalysisInterface):
         order += [0, 4, 1, 5, 2, 6, 3, 7]
         
         vertices = np.empty([24,3])
+        vertices = self.pf.arr(vertices, "code_length")
         for i in xrange(3):
-            vertices[:,i] = corners[order,i,:].ravel(order='F')
+            vertices[:,i] = corners[order,i,...].ravel(order='F')
 
         px, py, dz = self.project_to_plane(vertices, res=im.shape[:2])
        

@@ -12,7 +12,7 @@ yt is a Python package (with some components written in C), using NumPy as a
 computation engine, Matplotlib for some visualization tasks and Mercurial for
 version control.  Because installation of all of these interlocking parts can 
 be time-consuming, yt provides an installation script which downloads and builds
-a fully-isolated Python + Numpy + Matplotlib + HDF5 + Mercurial installation.  
+a fully-isolated Python + NumPy + Matplotlib + HDF5 + Mercurial installation.  
 yt supports Linux and OSX deployment, with the possibility of deployment on 
 other Unix-like systems (XSEDE resources, clusters, etc.).  Windows is not 
 supported.
@@ -86,15 +86,40 @@ will also need to set ``LD_LIBRARY_PATH`` and ``PYTHONPATH`` to contain
 Alternative Installation Methods
 --------------------------------
 
-If you want to forego the use of the install script, you need to make sure 
-you have yt's dependencies installed on your system.  These include: a C compiler, 
-``HDF5``, ``Freetype``, ``libpng``, ``python``, ``cython``, ``numpy``, and 
-``matplotlib``.  From here, you can use ``pip`` (which comes with ``Python``)
-to install yt as:
+If you want to forego the use of the install script, you need to make sure you
+have yt's dependencies installed on your system.  These include: a C compiler,
+``HDF5``, ``Freetype``, ``libpng``, ``python``, ``cython``, ``NumPy``, and
+``matplotlib``.  From here, you can use ``pip`` (which comes with ``Python``) to
+install yt as:
 
 .. code-block:: bash
 
   $ pip install yt
+
+The source code for yt may be found at the Bitbucket project site and can also be
+utilized for installation. If you prefer to use it instead of relying on external
+tools, you will need ``mercurial`` to clone the official repo:
+
+.. code-block:: bash
+
+  $ hg clone https://bitbucket.org/yt_analysis/yt
+  $ cd yt
+  $ hg update yt
+  $ python setup.py install --user
+
+It will install yt into ``$HOME/.local/lib64/python2.7/site-packages``. 
+Please refer to ``setuptools`` documentation for the additional options.
+
+Provided that the required dependencies are in a predictable location, yt should
+be able to find them automatically. However, you can manually specify prefix used
+for installation of ``HDF5``, ``Freetype`` and ``libpng`` by using ``hdf5.cfg``,
+``freetype.cfg``, ``png.cfg`` or setting ``HDF5_DIR``, ``FTYPE_DIR``, ``PNG_DIR``
+environmental variables respectively, e.g.
+
+.. code-block:: bash
+
+  $ echo '/usr/local' > hdf5.cfg
+  $ export FTYPE_DIR=/opt/freetype
 
 If you choose this installation method, you do not need to run the activation
 script as it is unnecessary.

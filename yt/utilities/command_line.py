@@ -1037,7 +1037,7 @@ class YTHubSubmitCmd(YTCommand):
         mpd.upload()
 
 class YTInstInfoCmd(YTCommand):
-    name = "instinfo"
+    name = ["instinfo", "version"]
     args = (
             dict(short="-u", long="--update-source", action="store_true",
                  default = False,
@@ -1055,6 +1055,7 @@ class YTInstInfoCmd(YTCommand):
 
     def __call__(self, opts):
         import pkg_resources
+        import yt
         yt_provider = pkg_resources.get_provider("yt")
         path = os.path.dirname(yt_provider.module_path)
         print
@@ -1071,10 +1072,11 @@ class YTInstInfoCmd(YTCommand):
         vstring = get_yt_version()
         if vstring is not None:
             print
-            print "The current version of the code is:"
+            print "The current version and changeset for the code is:"
             print
             print "---"
-            print vstring.strip()
+            print "Version = %s" % yt.__version__
+            print "Changeset = %s" % vstring.strip()
             print "---"
             print
             if "site-packages" not in path:
@@ -1152,17 +1154,15 @@ class YTMapserverCmd(YTCommand):
 
     def __call__(self, args):
         pf = args.pf
-        pc=PlotCollection(pf, center=0.5*(pf.domain_left_edge +
-                                          pf.domain_right_edge))
         if args.axis == 4:
             print "Doesn't work with multiple axes!"
             return
         if args.projection:
-            p = pc.add_projection(args.field, args.axis, weight_field=args.weight)
+            p = ProjectionPlot(pf, args.axis, args.field, weight_field=args.weight)
         else:
-            p = pc.add_slice(args.field, args.axis)
+            p = SlicePlot(pf, args.axis, args.field)
         from yt.gui.reason.pannable_map import PannableMapServer
-        mapper = PannableMapServer(p.data, args.field)
+        mapper = PannableMapServer(p.data_source, args.field)
         import yt.extern.bottle as bottle
         bottle.debug(True)
         if args.host is not None:
@@ -1607,6 +1607,7 @@ class YTUpdateCmd(YTCommand):
 
     def __call__(self, opts):
         import pkg_resources
+        import yt
         yt_provider = pkg_resources.get_provider("yt")
         path = os.path.dirname(yt_provider.module_path)
         print
@@ -1624,10 +1625,11 @@ class YTUpdateCmd(YTCommand):
         if "site-packages" not in path:
             vstring = get_hg_version(path)
             print
-            print "The current version of the code is:"
+            print "The current version and changeset for the code is:"
             print
             print "---"
-            print vstring.strip()
+            print "Version = %s" % yt.__version__
+            print "Changeset = %s" % vstring.strip()
             print "---"
             print
             print "This installation CAN be automatically updated."

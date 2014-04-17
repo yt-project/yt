@@ -39,8 +39,11 @@ class astropy_imports:
     @property
     def pyfits(self):
         if self._pyfits is None:
-            import astropy.io.fits as pyfits
-            self.log
+            try:
+                import astropy.io.fits as pyfits
+                self.log
+            except ImportError:
+                pyfits = None
             self._pyfits = pyfits
         return self._pyfits
 
@@ -48,8 +51,11 @@ class astropy_imports:
     @property
     def pywcs(self):
         if self._pywcs is None:
-            import astropy.wcs as pywcs
-            self.log
+            try:
+                import astropy.wcs as pywcs
+                self.log
+            except ImportError:
+                pywcs = None
             self._pywcs = pywcs
         return self._pywcs
 
@@ -57,9 +63,12 @@ class astropy_imports:
     @property
     def log(self):
         if self._log is None:
-            from astropy import log
-            if log.exception_logging_enabled():
-                log.disable_exception_logging()
+            try:
+                from astropy import log
+                if log.exception_logging_enabled():
+                    log.disable_exception_logging()
+            except ImportError:
+                log = None
             self._log = log
         return self._log
 

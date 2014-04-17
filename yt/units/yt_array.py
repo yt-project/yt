@@ -14,7 +14,6 @@ YTArray class.
 #-----------------------------------------------------------------------------
 
 import copy
-
 import numpy as np
 
 from functools import wraps
@@ -29,7 +28,7 @@ from numpy import \
     isfinite, isinf, isnan, signbit, copysign, nextafter, modf, frexp, \
     floor, ceil, trunc, fmax, fmin
 
-from yt.units.unit_object import Unit
+from yt.units.unit_object import Unit, UnitParseError
 from yt.units.unit_registry import UnitRegistry
 from yt.units.dimensions import dimensionless
 from yt.utilities.exceptions import \
@@ -241,9 +240,19 @@ class YTArray(np.ndarray):
     def __new__(cls, input_array, input_units=None, registry=None, dtype=np.float64):
         if input_array is NotImplemented:
             return input_array
+        if registry is None and isinstance(input_units, basestring):
+            if input_units.startswith('code_'):
+                raise UnitParseError(
+                    "Code units used without referring to a dataset. \n"
+                    "Perhaps you meant to do something like this instead: \n"
+                    "ds.arr(%s, \"%s\")" % (input_array, input_units)
+                    )
         if isinstance(input_array, YTArray):
             if input_units is None:
-                pass
+                if registry is None:
+                    pass
+                else:
+                    input_array.units.registry = registry
             elif isinstance(input_units, Unit):
                 input_array.units = input_units
             else:
@@ -342,6 +351,13 @@ class YTArray(np.ndarray):
         """
         return self.convert_to_units(self.units.get_cgs_equivalent())
 
+    def convert_to_mks(self):
+        """
+        Convert the array and units to the equivalent mks units.
+
+        """
+        return self.convert_to_units(self.units.get_mks_equivalent())
+
     def in_units(self, units):
         """
         Creates a copy of this array with the data in the supplied units, and
@@ -372,10 +388,22 @@ class YTArray(np.ndarray):
 
         Returns
         -------
-        Quantity object with data converted to cgs and cgs units.
+        Quantity object with data converted to cgs units.
 
         """
         return self.in_units(self.units.get_cgs_equivalent())
+
+    def in_mks(self):
+        """
+        Creates a copy of this array with the data in the equivalent mks units,
+        and returns it.
+
+        Returns
+        -------
+        Quantity object with data converted to mks units.
+
+        """
+        return self.in_units(self.units.get_mks_equivalent())
 
     def ndarray_view(self):
         """

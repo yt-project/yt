@@ -178,6 +178,8 @@ class IOHandlerOWLS(BaseIOHandler):
 
             #ptype = int(key[8:])
             ptype = str(key)
+            if ptype not in self.var_mass:
+                fields.append((ptype, mname))
 
             # loop over all keys in PartTypeX group
             #----------------------------------------
@@ -390,7 +392,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 "DarkMatter",
                 "Stars" )
 
-    _aux_fields = []
+    _aux_fields = None
     _fields = ( ("Gas", "Mass"),
                 ("Gas", "Coordinates"),
                 ("Gas", "Velocities"),
@@ -412,6 +414,10 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 ("Stars", "Epsilon"),
                 ("Stars", "Phi")
               )
+
+    def __init__(self, *args, **kwargs):
+        self._aux_fields = []
+        super(IOHandlerTipsyBinary, self).__init__(*args, **kwargs)
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
@@ -539,9 +545,11 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         ind = 0
         # Check to make sure that the domain hasn't already been set
         # by the parameter file 
-        if pf.domain_left_edge is not None and pf.domain_right_edge is not None:
+        if np.all(np.isfinite(pf.domain_left_edge)) and np.all(np.isfinite(pf.domain_right_edge)):
             return
         with open(data_file.filename, "rb") as f:
+            pf.domain_left_edge = 0
+            pf.domain_right_edge = 0
             f.seek(pf._header_offset)
             for iptype, ptype in enumerate(self._ptypes):
                 # We'll just add the individual types separately
@@ -555,10 +563,12 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                     for ax in 'xyz':
                         mi = pp["Coordinates"][ax].min()
                         ma = pp["Coordinates"][ax].max()
-                        outlier = YTArray(np.max(np.abs((mi,ma))), 'code_length')
-                    if outlier > pf.domain_right_edge or -outlier < pf.domain_left_edge:
-                        pf.domain_left_edge = -outlier
-                        pf.domain_right_edge = outlier
+                        outlier = self.arr(np.max(np.abs((mi,ma))), 'code_length')
+                        if outlier > pf.domain_right_edge or -outlier < pf.domain_left_edge:
+                            # scale these up so the domain is slightly
+                            # larger than the most distant particle position
+                            pf.domain_left_edge = -1.01*outlier
+                            pf.domain_right_edge = 1.01*outlier
                     ind += c
         pf.domain_left_edge = np.ones(3)*pf.domain_left_edge
         pf.domain_right_edge = np.ones(3)*pf.domain_right_edge
@@ -619,6 +629,22 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         }
         return npart
 
+    @classmethod
+    def _compute_dtypes(cls, field_dtypes, endian = "<"):
+        pds = {}
+        for ptype, field in cls._fields:
+            dtbase = field_dtypes.get(field, 'f')
+            ff = "%s%s" % (endian, dtbase)
+            if field in cls._vector_fields:
+                dt = (field, [('x', ff), ('y', ff), ('z', ff)])
+            else:
+                dt = (field, ff)
+            pds.setdefault(ptype, []).append(dt)
+        pdtypes = {}
+        for ptype in pds:
+            pdtypes[ptype] = np.dtype(pds[ptype])
+        return pdtypes
+
     def _create_dtypes(self, data_file):
         # We can just look at the particle counts.
         self._header_offset = data_file.pf._header_offset
@@ -628,19 +654,14 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         tp = data_file.total_particles
         aux_filenames = glob.glob(data_file.filename+'.*') # Find out which auxiliaries we have
         self._aux_fields = [f[1+len(data_file.filename):] for f in aux_filenames]
+        self._pdtypes = self._compute_dtypes(data_file.pf._field_dtypes,
+                                             data_file.pf.endian)
         for ptype, field in self._fields:
-            pfields = []
-            if tp[ptype] == 0: continue
-            dtbase = data_file.pf._field_dtypes.get(field, 'f')
-            ff = "%s%s" % (data_file.pf.endian, dtbase)
-            if field in self._vector_fields:
-                dt = (field, [('x', ff), ('y', ff), ('z', ff)])
-            else:
-                dt = (field, ff)
-            pds.setdefault(ptype, []).append(dt)
+            if tp[ptype] == 0:
+                # We do not want out _pdtypes to have empty particles.
+                self._pdtypes.pop(ptype, None)
+                continue
             field_list.append((ptype, field))
-        for ptype in pds:
-            self._pdtypes[ptype] = np.dtype(pds[ptype])
         if any(["Gas"==f[0] for f in field_list]): #Add the auxiliary fields to each ptype we have
             field_list += [("Gas",a) for a in self._aux_fields] 
         if any(["DarkMatter"==f[0] for f in field_list]):

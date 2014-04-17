@@ -43,7 +43,7 @@ Referencing Classes and Functions
 To indicate the return type of a given object, you can reference it using this
 construction:
 
-    This function returns a :class:`PlotCollection`.
+    This function returns a :class:`ProjectionPlot`.
 
 To reference a function, you can use:
 
@@ -51,4 +51,4 @@ To reference a function, you can use:
 
 To reference a method, you can use:
 
-    To add a projection, use :meth:`PlotCollection.add_projection`.
+    To add a projection, use :meth:`ProjectionPlot.set_width`.

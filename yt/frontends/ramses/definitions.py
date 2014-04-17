@@ -29,16 +29,6 @@ def ramses_header(hvals):
               )
     yield header
     # TODO: REMOVE
-    '''
-    hydro_header = ( ('ncpu', 1, 'i'),
-                     ('nvar', 1, 'i'),
-                     ('ndim', 1, 'i'),
-                     ('nlevelmax', 1, 'i'),
-                     ('nboundary', 1, 'i'),
-                     ('gamma', 1, 'd')
-                    )
-    yield hydro_header
-    '''
     noutput, iout, ifout = hvals['nout']
     next_set = ( ('tout', noutput, 'd'),
                  ('aout', noutput, 'd'),

@@ -292,12 +292,14 @@ class StreamDataset(Dataset):
     _field_info_class = StreamFieldInfo
     _dataset_type = 'stream'
 
-    def __init__(self, stream_handler, storage_filename = None):
+    def __init__(self, stream_handler, storage_filename = None,
+                 geometry = "cartesian"):
         #if parameter_override is None: parameter_override = {}
         #self._parameter_override = parameter_override
         #if conversion_override is None: conversion_override = {}
         #self._conversion_override = conversion_override
 
+        self.geometry = geometry
         self.stream_handler = stream_handler
         name = "InMemoryParameterFile_%s" % (uuid.uuid4().hex)
         from yt.data_objects.static_output import _cached_pfs
@@ -510,7 +512,8 @@ def unitify_data(data):
 
 def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
                       nprocs=1, sim_time=0.0, mass_unit=None, time_unit=None,
-                      velocity_unit=None, periodicity=(True, True, True)):
+                      velocity_unit=None, periodicity=(True, True, True),
+                      geometry = "cartesian"):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
@@ -550,6 +553,8 @@ Parameters
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
+    geometry : string
+        "cartesian", "cylindrical" or "polar"
 
     Examples
     --------
@@ -658,7 +663,7 @@ Parameters
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamDataset(handler)
+    spf = StreamDataset(handler, geometry = geometry)
 
     # Now figure out where the particles go
     if number_of_particles > 0 :
@@ -678,7 +683,7 @@ Parameters
 def load_amr_grids(grid_data, domain_dimensions,
                    field_units=None, bbox=None, sim_time=0.0, length_unit=None,
                    mass_unit=None, time_unit=None, velocity_unit=None,
-                   periodicity=(True, True, True)):
+                   periodicity=(True, True, True), geometry = "cartesian"):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
     This should allow a sequence of grids of varying resolution of data to be
@@ -721,6 +726,8 @@ Parameters
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
+    geometry : string
+        "cartesian", "cylindrical" or "polar"
 
     Examples
     --------
@@ -817,7 +824,7 @@ Parameters
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamDataset(handler)
+    spf = StreamDataset(handler, geometry = geometry)
     return spf
 
 def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
@@ -1123,7 +1130,8 @@ class StreamHexahedralDataset(StreamDataset):
 def load_hexahedral_mesh(data, connectivity, coordinates,
                          length_unit = None, bbox=None, sim_time=0.0,
                          mass_unit = None, time_unit = None,
-                         velocity_unit = None, periodicity=(True, True, True)):
+                         velocity_unit = None, periodicity=(True, True, True),
+                         geometry = "cartesian"):
     r"""Load a hexahedral mesh of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
@@ -1157,6 +1165,8 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
+    geometry : string
+        "cartesian", "cylindrical" or "polar"
 
     """
 
@@ -1214,7 +1224,7 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamHexahedralDataset(handler)
+    spf = StreamHexahedralDataset(handler, geometry = geometry)
 
     return spf
 
@@ -1300,7 +1310,7 @@ class StreamOctreeHandler(OctreeIndex):
                 g = og
             yield YTDataChunk(dobj, "spatial", [g])
 
-    def _chunk_io(self, dobj, cache = True):
+    def _chunk_io(self, dobj, cache = True, local_only = False):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in oobjs:
             yield YTDataChunk(dobj, "io", [subset], None, cache = cache)

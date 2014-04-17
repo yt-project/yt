@@ -27,6 +27,7 @@ from yt.utilities.lib.misc_utilities import \
     new_bin_profile3d
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_objects
+from yt.utilities.exceptions import YTEmptyProfileData
 
 def preserve_source_parameters(func):
     def save_state(*args, **kwargs):
@@ -759,6 +760,7 @@ class ProfileND(ParallelAnalysisInterface):
         self.field_data = YTFieldData()
         self.weight_field = weight_field
         self.field_units = {}
+        ParallelAnalysisInterface.__init__(self, comm=data_source.comm)
 
     def add_fields(self, fields):
         fields = ensure_list(fields)
@@ -781,18 +783,22 @@ class ProfileND(ParallelAnalysisInterface):
            The name of the new unit.
         """
         if field in self.field_units:
-            self.field_units[field] = Unit(new_unit)
+            self.field_units[field] = \
+                Unit(new_unit, registry=self.pf.unit_registry)
         else:
             fd = self.field_map[field]
             if fd in self.field_units:
-                self.field_units[fd] = Unit(new_unit)
+                self.field_units[fd] = \
+                    Unit(new_unit, registry=self.pf.unit_registry)
             else:
                 raise KeyError("%s not in profile!" % (field))
 
     def _finalize_storage(self, fields, temp_storage):
         # We use our main comm here
         # This also will fill _field_data
-        # FIXME: Add parallelism and combining std stuff
+        temp_storage.values = self.comm.mpi_allreduce(temp_storage.values, op="sum", dtype="float64")
+        temp_storage.weight_values = self.comm.mpi_allreduce(temp_storage.weight_values, op="sum", dtype="float64")
+        temp_storage.used = self.comm.mpi_allreduce(temp_storage.used, op="sum", dtype="bool")
         blank = ~temp_storage.used
         self.used = temp_storage.used
         if self.weight_field is not None:

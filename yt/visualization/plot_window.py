@@ -91,7 +91,7 @@ def validate_iterable_width(width, pf, unit=None):
         return (pf.quan(width[0], 'code_length'),
                 pf.quan(width[1], 'code_length'))
     elif isinstance(width[0], YTQuantity) and isinstance(width[1], YTQuantity):
-        return width
+        return (pf.quan(width[0]), pf.quan(width[1]))
     else:
         assert_valid_width_tuple(width)
         # If width and unit are both valid width tuples, we
@@ -150,7 +150,7 @@ def get_sanitized_center(center, pf):
         else:
             raise RuntimeError('center keyword \"%s\" not recognized' % center)
     elif isinstance(center, YTArray):
-        pass
+        return pf.arr(center)
     elif iterable(center):
         if iterable(center[0]) and isinstance(center[1], basestring):
             center = pf.arr(center[0], center[1])
@@ -161,8 +161,34 @@ def get_sanitized_center(center, pf):
     return center
 
 def get_window_parameters(axis, center, width, pf):
-    width = get_sanitized_width(axis, width, None, pf)
-    center = get_sanitized_center(center, pf)
+    if pf.geometry == "cartesian":
+        width = get_sanitized_width(axis, width, None, pf)
+        center = get_sanitized_center(center, pf)
+    elif pf.geometry in ("polar", "cylindrical"):
+        # Set our default width to be the full domain
+        width = [pf.domain_right_edge[0]*2.0, pf.domain_right_edge[0]*2.0]
+        center = pf.arr([0.0, 0.0, 0.0], "code_length")
+    elif pf.geometry == "spherical":
+        if axis == 0:
+            width = pf.domain_width[1], pf.domain_width[2]
+            center = 0.5*(pf.domain_left_edge +
+                pf.domain_right_edge).in_units("code_length")
+        else:
+            # Our default width here is the full domain
+            width = [pf.domain_right_edge[0]*2.0, pf.domain_right_edge[0]*2.0]
+            center = pf.arr([0.0, 0.0, 0.0], "code_length")
+    elif pf.geometry == "geographic":
+        c_r = ((pf.domain_right_edge + pf.domain_left_edge)/2.0)[2]
+        center = pf.arr([0.0, 0.0, c_r], "code_length")
+        if axis == 2:
+            # latitude slice
+            width = pf.arr([360, 180], "code_length")
+        else:
+            width = [2.0*(pf.domain_right_edge[2] + pf.surface_height),
+                     2.0*(pf.domain_right_edge[2] + pf.surface_height)]
+            center[2] = 0.0
+    else:
+        raise NotImplementedError
     bounds = (center[x_dict[axis]]-width[0] / 2,
               center[x_dict[axis]]+width[0] / 2,
               center[y_dict[axis]]-width[1] / 2,
@@ -775,7 +801,8 @@ class PWViewerMPL(PlotWindow):
             colorbar_label = image.info['label']
 
             # Determine the units of the data
-            units = Unit(self._frb[f].units).latex_representation()
+            units = Unit(self._frb[f].units, registry=self.pf.unit_registry)
+            units = units.latex_representation()
 
             if units is None or units == '':
                 pass
@@ -1285,8 +1312,6 @@ class OffAxisProjectionPlot(PWViewerMPL):
         self.set_axes_unit(axes_unit)
 
     def _recreate_frb(self):
-        if self._frb is not None:
-            raise NotImplementedError
         super(OffAxisProjectionPlot, self)._recreate_frb()
 
 _metadata_template = """

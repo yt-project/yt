@@ -227,3 +227,15 @@ class MinimalNotebook(MinimalRepresentation):
         metadata = self._attrs
         chunks = [ ("notebook", self.data) ]
         return (metadata, ("chunks", chunks))
+
+class ImageCollection(object):
+    def __init__(self, pf, name):
+        self.pf = pf
+        self.name = name
+        self.images = []
+        self.image_metadata = []
+
+    def add_image(self, fn, descr):
+        self.image_metadata.append(descr)
+        self.images.append((os.path.basename(fn), np.fromfile(fn, dtype='c')))
+
