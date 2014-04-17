@@ -53,6 +53,7 @@ ytcfg_defaults = dict(
     answer_testing_bitwise = 'False',
     gold_standard_filename = 'gold311',
     local_standard_filename = 'local001',
+    answer_tests_url = 'http://9d88c2cd8f0c0116ea28-349fe2bf24015151662504826db38f8b.r35.cf5.rackcdn.com/%s_%s',
     sketchfab_api_key = 'None',
     thread_field_detection = 'False',
     ignore_invalid_unit_operation_errors = 'False'
