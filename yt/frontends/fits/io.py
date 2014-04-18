@@ -83,7 +83,10 @@ class IOHandlerFITS(BaseIOHandler):
                         data = ds.data[idx,start[2]:end[2],start[1]:end[1],start[0]:end[0]].transpose()
                     else:
                         data = ds.data[start[2]:end[2],start[1]:end[1],start[0]:end[0]].transpose()
-                    if self.pf.mask_nans: data[np.isnan(data)] = 0.0
+                    if fname in self.pf.nan_mask:
+                        data[np.isnan(data)] = self.pf.nan_mask[fname]
+                    elif "all" in self.pf.nan_mask:
+                        data[np.isnan(data)] = self.pf.nan_mask["all"]
                     data = bzero + bscale*data
                     ind += g.select(selector, data.astype("float64"), rv[field], ind)
         return rv

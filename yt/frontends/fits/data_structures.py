@@ -268,10 +268,10 @@ class FITSDataset(Dataset):
                  slave_files = [],
                  nprocs = None,
                  storage_filename = None,
-                 mask_nans = False,
-                 folded_axis=None,
-                 folded_width=None,
-                 line_database=None,
+                 nan_mask = None,
+                 folded_axis = None,
+                 folded_width = None,
+                 line_database = None,
                  suppress_astropy_warnings = True):
         self.folded_axis = folded_axis
         self.folded_width = folded_width
@@ -285,7 +285,10 @@ class FITSDataset(Dataset):
         self.filenames = [filename] + slave_files
         self.num_files = len(self.filenames)
         self.fluid_types += ("fits",)
-        self.mask_nans = mask_nans
+        if nan_mask is None:
+            self.nan_mask = {}
+        elif isinstance(nan_mask, float):
+            self.nan_mask = {"all":nan_mask}
         self.nprocs = nprocs
         self._handle = ap.pyfits.open(self.filenames[0],
                                       memmap=True,
