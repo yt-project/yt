@@ -289,6 +289,8 @@ class FITSDataset(Dataset):
             self.nan_mask = {}
         elif isinstance(nan_mask, float):
             self.nan_mask = {"all":nan_mask}
+        elif isinstance(nan_mask, dict):
+            self.nan_mask = nan_mask
         self.nprocs = nprocs
         self._handle = ap.pyfits.open(self.filenames[0],
                                       memmap=True,
