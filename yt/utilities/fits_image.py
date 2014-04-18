@@ -15,6 +15,8 @@ from yt.funcs import mylog, iterable, fix_axis, ensure_list
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
 from yt.data_objects.construction_data_containers import YTCoveringGridBase
 from yt.frontends.fits.data_structures import ap
+from yt.units.yt_array import YTQuantity
+
 pyfits = ap.pyfits
 pywcs = ap.pywcs
 
@@ -286,12 +288,18 @@ class FITSSlice(FITSImageBuffer):
         The axis of the slice. One of "x","y","z", or 0,1,2.
     fields : string or list of strings
         The fields to slice
-    coord : float
-        The coordinate in pixel units (code length) of the slice along *axis*.
+    coord : float, tuple, or YTQuantity
+        The coordinate of the slice along *axis*. Can be a (value,
+        unit) tuple, a YTQuantity, or a float. If a float, it will be
+        interpreted as in units of code_length.
     """
     def __init__(self, ds, axis, fields, coord, **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis)
+        if isinstance(coord, tuple):
+            coord = ds.quan(coord[0], coord[1]).in_units("code_length").value
+        elif isinstance(coord, YTQuantity):
+            coord = coord.in_units("code_length").value
         slc = ds.slice(axis, coord, **kwargs)
         w, frb = construct_image(slc)
         super(FITSSlice, self).__init__(frb, fields=fields, wcs=w)
