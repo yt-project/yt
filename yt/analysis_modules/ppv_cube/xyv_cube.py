@@ -1,5 +1,5 @@
 """
-Generating XYV FITS cubes
+Generating PPV FITS cubes
 """
 
 #-----------------------------------------------------------------------------
@@ -33,10 +33,10 @@ def create_vlos(z_hat):
         return -vz
     return _v_los
 
-class XYVCube(object):
+class PPVCube(object):
     def __init__(self, ds, normal, field, width=(1.0,"unitary"),
                  dims=(100,100,100), velocity_bounds=None):
-        r""" Initialize a XYVCube object.
+        r""" Initialize a PPVCube object.
 
         Parameters
         ----------
@@ -60,7 +60,7 @@ class XYVCube(object):
         --------
         >>> i = 60*np.pi/180.
         >>> L = [0.0,np.sin(i),np.cos(i)]
-        >>> cube = XYVCube(ds, L, "density", width=(10.,"kpc"),
+        >>> cube = PPVCube(ds, L, "density", width=(10.,"kpc"),
         ...                velocity_bounds=(-5.,4.,"km/s"))
         """
         self.ds = ds
@@ -115,7 +115,7 @@ class XYVCube(object):
 
     def write_fits(self, filename, clobber=True, length_unit=(10.0, "kpc"),
                    velocity_unit="m/s", sky_center=(30.,45.)):
-        r""" Write the XYVCube to a FITS file.
+        r""" Write the PPVCube to a FITS file.
 
         Parameters
         ----------

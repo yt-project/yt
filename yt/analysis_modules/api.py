@@ -115,5 +115,5 @@ from .photon_simulator.api import \
      PhotonModel, \
      ThermalPhotonModel
 
-from .xyv_cube.api import \
-    XYVCube
+from .ppv_cube.api import \
+    PPVCube

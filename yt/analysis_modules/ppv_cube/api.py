@@ -1,5 +1,5 @@
 """
-API for xyv_cube
+API for ppv_cube
 """
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -9,4 +9,4 @@ API for xyv_cube
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from xyv_cube import XYVCube
+from ppv_cube import PPVCube
