@@ -49,13 +49,13 @@ class UnitRegistry:
         if not isinstance(cgs_value, float):
             raise UnitParseError("cgs_value must be a float, got a %s." \
                                  % type(cgs_value))
-        
+
         validate_dimensions(dimensions)
 
         # Add to symbol lut
-        if tex_repr is None:
-            latex_symbol_lut[symbol] = "\\rm{" + symbol + "}"
-        else:
+        if symbol not in latex_symbol_lut:
+            if tex_repr is None:
+                tex_repr = "\\rm{" + symbol + "}"
             latex_symbol_lut[symbol] = tex_repr
 
         # Add to lut
