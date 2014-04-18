@@ -47,20 +47,18 @@ class UnitRegistry:
 
         # Validate
         if not isinstance(cgs_value, float):
-            raise UnitParseError("cgs_value must be a float, got a %s." \
+            raise UnitParseError("cgs_value must be a float, got a %s."
                                  % type(cgs_value))
 
         validate_dimensions(dimensions)
 
         # Add to symbol lut
-        if symbol not in latex_symbol_lut:
-            if tex_repr is None:
-                tex_repr = "\\rm{" + symbol + "}"
-            latex_symbol_lut[symbol] = tex_repr
+        if tex_repr is None:
+            tex_repr = "\\rm{" + symbol + "}"
+        latex_symbol_lut.setdefault(symbol, tex_repr)
 
         # Add to lut
-        if tex_repr is None: tex_repr = symbol
-        self.lut.update( {symbol: (cgs_value, dimensions)} )
+        self.lut.update({symbol: (cgs_value, dimensions)})
 
     def remove(self, symbol):
         """
