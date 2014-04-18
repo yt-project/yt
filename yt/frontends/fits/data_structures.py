@@ -302,13 +302,46 @@ class FITSDataset(Dataset):
                                                        do_not_scale_image_data=True,
                                                        ignore_blank=True))
 
-        self.first_image = 0 # Assumed for now
+        if self._handle[1].name == "EVENTS":
+            self.first_image = 1
+        else:
+            self.first_image = 0
         self.primary_header = self._handle[self.first_image].header
-        self.wcs = ap.pywcs.WCS(header=self.primary_header)
-        self.axis_names = {}
-        self.naxis = self.primary_header["naxis"]
-        for i, ax in enumerate("xyz"[:self.naxis]):
-            self.axis_names[self.primary_header["ctype%d" % (i+1)]] = ax
+        if self.first_image == 0:
+            self.wcs = ap.pywcs.WCS(header=self.primary_header)
+            self.axis_names = {}
+            self.naxis = self.primary_header["naxis"]
+            for i, ax in enumerate("xyz"[:self.naxis]):
+                self.axis_names[self.primary_header["ctype%d" % (i+1)]] = ax
+            self.dims = [self.primary_header["naxis%d" % (i+1)]
+                         for i in xrange(self.naxis)]
+
+        else:
+            self.naxis = 2
+            self.wcs = ap.pywcs.WCS(naxis=2)
+            self.axis_names = {}
+            events_info = {}
+            for k,v in self.primary_header.items():
+                if v in ["X","Y"]:
+                    num = k.strip("TTYPE")
+                    events_info[v] = (self.primary_header["TLMIN"+num],
+                                      self.primary_header["TLMAX"+num],
+                                      self.primary_header["TCTYP"+num],
+                                      self.primary_header["TCRVL"+num],
+                                      self.primary_header["TCDLT"+num],
+                                      self.primary_header["TCRPX"+num])
+                elif v == "ENERGY":
+                    num = k.strip("TTYPE")
+                    events_info[v] = self.primary_header["TUNIT"+num]
+            for ax in ["x","y"]:
+                self.axis_names[events_info[ax.upper][2]] = ax
+            self.wcs.wcs.cdelt = [events_info["x"][4],events_info["y"][4]]
+            self.wcs.wcs.crpix = [events_info["x"][5],events_info["y"][5]]
+            self.wcs.wcs.ctype = [events_info["x"][2],events_info["y"][2]]
+            self.wcs.wcs.cunit = ["deg","deg"]
+            self.wcs.wcs.crval = [events_info["x"][3],events_info["y"][3]]
+            self.dims = [events_info["x"][1]-events_info["x"][0],
+                         events_info["y"][1]-events_info["y"][0]]
         self.refine_by = 2
 
         Dataset.__init__(self, filename, dataset_type)
@@ -350,8 +383,7 @@ class FITSDataset(Dataset):
         # we take the 4th axis and assume it consists of different fields.
         if self.dimensionality == 4: self.dimensionality = 3
 
-        dims = [self.primary_header["naxis%d" % (i+1)] for i in xrange(self.naxis)]
-        self.domain_dimensions = np.array(dims)[:self.dimensionality]
+        self.domain_dimensions = np.array(self.dims)[:self.dimensionality]
         if self.dimensionality == 2:
             self.domain_dimensions = np.append(self.domain_dimensions,
                                                [int(1)])
@@ -391,8 +423,9 @@ class FITSDataset(Dataset):
         # Check to see if this data is in (RA,Dec,?) format
         self.xyv_data = False
         x = np.zeros((self.dimensionality), dtype="bool")
-        for ap in axes_prefixes:
-            x += np_char.startswith(self.axis_names.keys()[:self.dimensionality], ap)
+        for apx in axes_prefixes:
+            x += np_char.startswith(self.axis_names.keys()[:self
+                                    .dimensionality], apx)
         if x.sum() == self.dimensionality: self._setup_xyv()
 
     def _setup_xyv(self):
@@ -453,6 +486,8 @@ class FITSDataset(Dataset):
                 warnings.filterwarnings('ignore', category=UserWarning, append=True)
                 fileh = ap.pyfits.open(args[0])
             valid = fileh[0].header["naxis"] >= 2
+            if len(fileh) > 1 and fileh[1].name == "EVENTS":
+                valid = fileh[1].header["naxis"] >= 2
             fileh.close()
             return valid
         except:
