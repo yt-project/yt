@@ -574,6 +574,8 @@ class Dataset(object):
         self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field)
         self.unit_registry.add("code_temperature", 1.0, dimensions.temperature)
         self.unit_registry.add("code_velocity", 1.0, dimensions.velocity)
+        self.unit_registry.add("code_metallicity", 1.0,
+                               dimensions.dimensionless)
 
     def set_units(self):
         """
