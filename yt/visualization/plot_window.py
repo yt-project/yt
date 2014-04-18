@@ -73,7 +73,7 @@ except ImportError:
     from pyparsing import ParseFatalException
 
 def fix_unitary(u):
-    if u is '1':
+    if u == '1':
         return 'code_length'
     else:
         return u

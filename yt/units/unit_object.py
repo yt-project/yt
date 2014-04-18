@@ -261,6 +261,8 @@ class Unit(Expr):
                     dimensions=(self.dimensions / u.dimensions),
                     registry=self.registry)
 
+    __truediv__ = __div__
+
     def __pow__(self, p):
         """ Take Unit to power p (float). """
         try:
