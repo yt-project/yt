@@ -89,10 +89,13 @@ class XYVCube(object):
             vmin, vmax = dd.quantities.extrema("velocity_magnitude")
             self.v_bnd = -vmax, vmax
         else:
-            self.v_bnd = (ds.arr(velocity_bounds[0], velocity_bounds[2]),
-                     ds.arr(velocity_bounds[1], velocity_bounds[2]))
+            self.v_bnd = (ds.quan(velocity_bounds[0], velocity_bounds[2]),
+                     ds.quan(velocity_bounds[1], velocity_bounds[2]))
 
         vbins = np.linspace(self.v_bnd[0], self.v_bnd[1], num=self.nv+1)
+
+        _vlos = create_vlos(orient.unit_vectors[2])
+        ds.field_info.add_field(("gas","v_los"), function=_vlos, units="cm/s")
 
         self.data = ds.arr(np.zeros((self.nx,self.ny,self.nv)), self.field_units)
         pbar = get_pbar("Generating cube.", self.nv)
@@ -100,14 +103,12 @@ class XYVCube(object):
             v1 = vbins[i]
             v2 = vbins[i+1]
             _intensity = create_intensity(v1, v2, field)
-            _vlos = create_vlos(orient.unit_vectors[2])
             ds.field_info.add_field(("gas","intensity"),
                                     function=_intensity, units=self.field_units)
-            ds.field_info.add_field(("gas","v_los"),
-                                    function=_vlos, units="cm/s")
             prj = off_axis_projection(ds, ds.domain_center, normal, width,
                                       (self.nx, self.ny), "intensity")
             self.data[:,:,i] = prj[:,:]
+            ds.field_info.pop(("gas","intensity"))
             pbar.update(i)
 
         pbar.finish()
