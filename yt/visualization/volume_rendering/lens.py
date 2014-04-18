@@ -112,7 +112,7 @@ class PlaneParallelLens(Lens):
             res = camera.resolution
         dx = np.dot(pos - self.origin.d, camera.unit_vectors[1])
         dy = np.dot(pos - self.origin.d, camera.unit_vectors[0])
-        dz = np.dot(pos - self.front_center.d, camera.unit_vectors[2])
+        dz = np.dot(pos - self.front_center.d, -camera.unit_vectors[2])
         # Transpose into image coords.
         py = (res[0]*(dx/camera.width[0].d)).astype('int')
         px = (res[1]*(dy/camera.width[1].d)).astype('int')
