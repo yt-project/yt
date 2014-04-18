@@ -19,10 +19,8 @@ Chluba, Switzer, Nagai, Nelson, MNRAS, 2012, arXiv:1211.3206
 #-----------------------------------------------------------------------------
 
 from yt.utilities.physical_constants import sigma_thompson, clight, hcgs, kboltz, mh, Tcmb
-from yt.fields.local_fields import add_field, derived_field
-from yt.data_objects.image_array import ImageArray
+from yt.units.yt_array import YTQuantity
 from yt.funcs import fix_axis, mylog, iterable, get_pbar
-from yt.utilities.definitions import inv_axis_names
 from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only
@@ -197,7 +195,9 @@ class SZProjection(object):
         >>> szprj.off_axis(L, center="c", width=(2.0, "Mpc"))
         """
         if iterable(width):
-            w = width[0]/self.pf.units[width[1]]
+            w = self.pf.quan(width[0], width[1]).in_units("code_length").value
+        elif isinstance(width, YTQuantity):
+            w = width.in_units("code_length").value
         else:
             w = width
         if center == "c":
