@@ -245,21 +245,8 @@ class Dataset(object):
         """ Returns units, parameters, or conversion_factors in that order. """
         return self.parameters[key]
 
-    def keys(self):
-        """
-        Returns a list of possible keys, from units, parameters and
-        conversion_factors.
-
-        """
-        return self.units.keys() \
-             + self.time_units.keys() \
-             + self.parameters.keys() \
-             + self.conversion_factors.keys()
-
     def __iter__(self):
-        for ll in [self.units, self.time_units,
-                   self.parameters, self.conversion_factors]:
-            for i in ll.keys(): yield i
+      for i in self.parameters: yield i
 
     def get_smallest_appropriate_unit(self, v):
         max_nu = 1e30

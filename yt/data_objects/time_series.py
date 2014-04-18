@@ -130,7 +130,7 @@ class DatasetSeries(object):
     def __new__(cls, outputs, *args, **kwargs):
         if isinstance(outputs, basestring):
             outputs = get_filenames_from_glob_pattern(outputs)
-        ret = super(DatasetSeries, cls).__new__(cls, outputs, *args, **kwargs)
+        ret = super(DatasetSeries, cls).__new__(cls, *args, **kwargs)
         try:
             ret._pre_outputs = outputs[:]
         except TypeError:
