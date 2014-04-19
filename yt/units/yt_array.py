@@ -249,6 +249,17 @@ class YTArray(np.ndarray):
                     "Perhaps you meant to do something like this instead: \n"
                     "ds.arr(%s, \"%s\")" % (input_array, input_units)
                     )
+        if ap.units is not None:
+            if isinstance(input_array, ap.units.quantity.Quantity):
+                # Converting from AstroPy Quantity
+                ap_units = input_array.unit
+                ap_units = "*".join(["%s**(%s)" % (base.to_string(), Rational(power))
+                                     for base, power in zip(ap_units.bases,
+                                                            ap_units.powers)])
+                if isinstance(input_array.value, np.ndarray):
+                    return YTArray(input_array.value, ap_units)
+                else:
+                    return YTQuantity(input_array.value, ap_units)
         if isinstance(input_array, YTArray):
             if input_units is None:
                 if registry is None:
@@ -260,16 +271,6 @@ class YTArray(np.ndarray):
             else:
                 input_array.units = Unit(input_units, registry=registry)
             return input_array
-        elif isinstance(input_array, ap.units.quantity.Quantity):
-            # Converting from AstroPy Quantity
-            ap_units = input_array.unit
-            ap_units = "*".join(["%s**(%s)" % (base.to_string(), Rational(power))
-                                 for base, power in zip(ap_units.bases,
-                                                        ap_units.powers)])
-            if isinstance(input_array.value, np.ndarray):
-                return YTArray(input_array.value, ap_units)
-            else:
-                return YTQuantity(input_array.value, ap_units)
         elif isinstance(input_array, np.ndarray):
             pass
         elif iterable(input_array):
