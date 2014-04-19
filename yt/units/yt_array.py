@@ -35,6 +35,8 @@ from yt.utilities.exceptions import \
     YTUnitOperationError, YTUnitConversionError, \
     YTUfuncUnitError
 from numbers import Number as numeric_type
+from yt.utilities.on_demand_imports import ap
+from sympy import Rational
 
 # redefine this here to avoid a circular import from yt.funcs
 def iterable(obj):
@@ -258,6 +260,16 @@ class YTArray(np.ndarray):
             else:
                 input_array.units = Unit(input_units, registry=registry)
             return input_array
+        elif isinstance(input_array, ap.units.quantity.Quantity):
+            # Converting from AstroPy Quantity
+            ap_units = input_array.unit
+            ap_units = "*".join(["%s**(%s)" % (base.to_string(), Rational(power))
+                                 for base, power in zip(ap_units.bases,
+                                                        ap_units.powers)])
+            if isinstance(input_array.value, np.ndarray):
+                return YTArray(input_array.value, ap_units)
+            else:
+                return YTQuantity(input_array.value, ap_units)
         elif isinstance(input_array, np.ndarray):
             pass
         elif iterable(input_array):
@@ -421,6 +433,17 @@ class YTArray(np.ndarray):
 
         """
         return np.array(self)
+
+    def to_astropy(self, alt_unit=None, **kwargs):
+        """
+        Creates a new AstroPy quantity with the same unit information.
+        """
+        if alt_unit is None:
+            units = str(self.units)
+        else:
+            units = alt_unit
+        return self.value*ap.units.Unit(units, **kwargs)
+
     #
     # End unit conversion methods
     #
