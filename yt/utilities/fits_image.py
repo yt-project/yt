@@ -14,7 +14,7 @@ import numpy as np
 from yt.funcs import mylog, iterable, fix_axis, ensure_list
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
 from yt.data_objects.construction_data_containers import YTCoveringGridBase
-from yt.frontends.fits.data_structures import ap
+from yt.utilities.on_demand_imports import ap
 from yt.units.yt_array import YTQuantity
 
 pyfits = ap.pyfits
