@@ -94,6 +94,7 @@ default_unit_symbol_lut = {
 # Add LaTeX representations for units with trivial representations.
 latex_symbol_lut = {
     "unitary" : "",
+    "dimensionless" : "",
     "code_length" : "\\rm{code}\/\\rm{length}",
     "code_time" : "\\rm{code}\/\\rm{time}",
     "code_mass" : "\\rm{code}\/\\rm{mass}",
