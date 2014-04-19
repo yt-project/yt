@@ -59,12 +59,12 @@ default_unit_symbol_lut = {
     "yr":  (sec_per_year, dimensions.time),
 
     # Solar units
-    "Msun": ( mass_sun_grams, dimensions.mass),
-    "msun": ( mass_sun_grams, dimensions.mass),
-    "Rsun": ( cm_per_rsun, dimensions.length),
-    "rsun": ( cm_per_rsun, dimensions.length),
-    "Lsun": ( luminosity_sun_ergs_per_sec, dimensions.power),
-    "Tsun": ( temp_sun_kelvin, dimensions.temperature),
+    "Msun": (mass_sun_grams, dimensions.mass),
+    "msun": (mass_sun_grams, dimensions.mass),
+    "Rsun": (cm_per_rsun, dimensions.length),
+    "rsun": (cm_per_rsun, dimensions.length),
+    "Lsun": (luminosity_sun_ergs_per_sec, dimensions.power),
+    "Tsun": (temp_sun_kelvin, dimensions.temperature),
     "Zsun": (metallicity_sun, dimensions.dimensionless),
     "Mjup": (mass_jupiter_grams, dimensions.mass),
     "Mearth": (mass_earth_grams, dimensions.mass),
@@ -89,6 +89,20 @@ default_unit_symbol_lut = {
     "angstrom": (cm_per_ang, dimensions.length),
     "Jy": (jansky_cgs, dimensions.specific_flux),
     "beam": (1.0, dimensions.dimensionless),
+
+    # for AstroPy compatibility
+    "solMass": (mass_sun_grams, dimensions.mass),
+    "solRad": (cm_per_rsun, dimensions.length),
+    "solLum": (luminosity_sun_ergs_per_sec, dimensions.power),
+    "dyn": (1.0, dimensions.force),
+    "sr": (1.0, dimensions.solid_angle),
+    "rad": (1.0, dimensions.solid_angle),
+    "deg": (np.pi/180., dimensions.angle),
+    "Fr":  (1.0, dimensions.charge),
+    "G": (1.0, dimensions.magnetic_field),
+    "d": (1.0, dimensions.time),
+    "Angstrom": (cm_per_ang, dimensions.length),
+
 }
 
 # Add LaTeX representations for units with trivial representations.
