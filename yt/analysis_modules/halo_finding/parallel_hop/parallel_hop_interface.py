@@ -53,7 +53,7 @@ class ParallelHOPHaloFinder(ParallelAnalysisInterface):
         self.zpos = particle_fields.pop("particle_position_z")
         self.real_size = len(self.xpos)
         self.index = particle_fields.pop("particle_index")
-        self.mass = particle_fields.pop("ParticleMassMsun")
+        self.mass = particle_fields.pop("particle_mass")
         self.padded_particles = []
         self.nMerge = 4
         self.tree = tree
