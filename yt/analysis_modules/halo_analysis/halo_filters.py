@@ -72,9 +72,8 @@ def _not_subhalo(halo, field_type="halos"):
     """
 
     if not hasattr(halo.halo_catalog, "parent_dict"):
-        setattr(halo.halo_catalog, "parent_dict",
-                create_parent_dict(halo.halo_catalog.data_source,
-                                   ptype=field_type))
+        halo.halo_catalog.parent_dict = \
+          create_parent_dict(halo.halo_catalog.data_source, ptype=field_type)
     return halo.halo_catalog.parent_dict[int(halo.quantities["particle_identifier"])] == -1
 add_filter("not_subhalo", _not_subhalo)
 
