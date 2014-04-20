@@ -26,7 +26,7 @@ from yt.units.yt_array import \
 from yt.units.unit_object import Unit
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUfuncUnitError
-from yt.testing import fake_random_pf
+from yt.testing import fake_random_pf, requires_module
 from yt.funcs import fix_length
 import numpy as np
 import copy
@@ -592,3 +592,24 @@ def test_convenience():
 
     yield assert_array_equal, arr.value, np.array(arr)
     yield assert_array_equal, arr.v, np.array(arr)
+
+@requires_module("astropy")
+def test_astropy():
+    from yt.utilities.on_demand_imports import ap
+
+    ap_arr = np.arange(10)*ap.units.km/ap.units.hr
+    yt_arr = YTArray(np.arange(10), "km/hr")
+
+    ap_quan = 10.*ap.units.Msun**0.5/(ap.units.kpc**3)
+    yt_quan = YTQuantity(10.,"sqrt(Msun)/kpc**3")
+
+    yield assert_array_equal, ap_arr, yt_arr.to_astropy()
+    yield assert_array_equal, yt_arr, YTArray(ap_arr)
+
+    yield assert_equal, ap_quan, yt_quan.to_astropy()
+    yield assert_equal, yt_quan, YTQuantity(ap_quan)
+
+    yield assert_array_equal, yt_arr, YTArray(yt_arr.to_astropy())
+    yield assert_equal, yt_quan, YTQuantity(yt_quan.to_astropy())
+
+
