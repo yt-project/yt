@@ -252,10 +252,15 @@ class YTArray(np.ndarray):
         if ap.units is not None:
             if isinstance(input_array, ap.units.quantity.Quantity):
                 # Converting from AstroPy Quantity
-                ap_units = input_array.unit
-                ap_units = "*".join(["%s**(%s)" % (base.to_string(), Rational(power))
-                                     for base, power in zip(ap_units.bases,
-                                                            ap_units.powers)])
+                u = input_array.unit
+                ap_units = []
+                for base, power in zip(u.bases, u.powers):
+                    unit_str = base.to_string()
+                    # we have to do this because AstroPy is silly and defines
+                    # hour as "h"
+                    if unit_str == "h": unit_str = "hr"
+                    ap_units.append("%s**(%s)" % (unit_str, Rational(power)))
+                ap_units = "*".join(ap_units)
                 if isinstance(input_array.value, np.ndarray):
                     return YTArray(input_array.value, ap_units)
                 else:
