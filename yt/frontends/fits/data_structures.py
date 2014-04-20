@@ -289,6 +289,8 @@ class FITSDataset(Dataset):
             self.nan_mask = {}
         elif isinstance(nan_mask, float):
             self.nan_mask = {"all":nan_mask}
+        elif isinstance(nan_mask, dict):
+            self.nan_mask = nan_mask
         self.nprocs = nprocs
         self._handle = ap.pyfits.open(self.filenames[0],
                                       memmap=True,
@@ -421,16 +423,19 @@ class FITSDataset(Dataset):
             self.nprocs = min(self.nprocs, 512)
 
         # Check to see if this data is in (RA,Dec,?) format
-        self.xyv_data = False
+        self.ppv_data = False
         x = np.zeros((self.dimensionality), dtype="bool")
         for apx in axes_prefixes:
             x += np_char.startswith(self.axis_names.keys()[:self
                                     .dimensionality], apx)
         if x.sum() == self.dimensionality: self._setup_xyv()
+        for ap in axes_prefixes:
+            x += np_char.startswith(self.axis_names.keys()[:self.dimensionality], ap)
+        if x.sum() == self.dimensionality: self._setup_ppv()
 
-    def _setup_xyv(self):
+    def _setup_ppv(self):
 
-        self.xyv_data = True
+        self.ppv_data = True
 
         end = min(self.dimensionality+1,4)
         ctypes = np.array([self.primary_header["CTYPE%d" % (i)] for i in xrange(1,end)])

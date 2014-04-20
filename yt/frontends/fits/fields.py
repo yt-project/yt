@@ -36,7 +36,7 @@ class FITSFieldInfo(FieldInfoContainer):
         return data.pf.arr(data.pf.wcs_1d.wcs_pix2world(data["z"], 1)[0],
                            str(data.pf.wcs_1d.wcs.cunit[0]))
 
-    def _setup_xyv_fields(self):
+    def _setup_ppv_fields(self):
         def world_f(axis, unit):
             def _world_f(field, data):
                 return data.pf.arr(self._get_2d_wcs(data, axis), unit)
@@ -57,8 +57,8 @@ class FITSFieldInfo(FieldInfoContainer):
 
     def setup_fluid_fields(self):
 
-        if self.pf.xyv_data:
-            self._setup_xyv_fields()
+        if self.pf.ppv_data:
+            self._setup_ppv_fields()
             return
 
         def world_f(axis, unit):
