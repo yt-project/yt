@@ -33,6 +33,8 @@ from .operator_registry import \
      finding_method_registry, \
      quantity_registry
 
+from yt.utilities.logger import ytLogger as mylog
+
 class HaloCatalog(ParallelAnalysisInterface):
     r"""Create a HaloCatalog: an object that allows for the creation and association
     of data with a set of halo objects.
@@ -351,6 +353,10 @@ class HaloCatalog(ParallelAnalysisInterface):
         if self.halos_pf is None:
             # Find the halos and make a dataset of them
             self.halos_pf = self.finder_method(self.data_pf)
+            if self.halos_pf is None:
+                mylog.warning('No halos were found for {0}'.format(\
+                        self.data_pf.basename))
+                return
 
             # Assign pf and data sources appropriately
             self.data_source = self.halos_pf.all_data()
