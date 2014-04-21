@@ -81,7 +81,7 @@ def _rockstar_method(pf):
     halos_pf = RockstarDataset("rockstar_halos/halos_0.0.bin")
     try:
         halos_pf.create_field_info()
-    except:
+    except ValueError:
         return None
 
     return halos_pf
