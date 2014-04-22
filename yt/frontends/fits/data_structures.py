@@ -117,14 +117,17 @@ class FITSHierarchy(GridIndex):
 
     def _determine_image_units(self, fname, header):
         try:
-            field_units = header["bunit"].lower().strip(" ")
+            field_units = header["bunit"].lower().strip(" ").replace(" ", "")
             # FITS units always return upper-case, so we need to get
             # the right case by comparing against known units. This
             # only really works for common units.
             units = re.split(regex_pattern, field_units)
+            n = int(0)
             for unit in units:
                 if unit in known_units:
                     field_units = field_units.replace(unit, known_units[unit])
+                    n += 1
+            if n != len(units): field_units = "dimensionless"
             self.parameter_file.field_units[fname] = field_units
         except:
             self.parameter_file.field_units[fname] = "dimensionless"
@@ -349,6 +352,7 @@ class FITSDataset(Dataset):
         self.velocity_unit = self.quan(1.0, "cm/s")
 
     def _parse_parameter_file(self):
+
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
@@ -410,9 +414,11 @@ class FITSDataset(Dataset):
     def _setup_ppv(self):
 
         self.ppv_data = True
-
         end = min(self.dimensionality+1,4)
         ctypes = np.array([self.primary_header["CTYPE%d" % (i)] for i in xrange(1,end)])
+
+        log_str = "Detected these axes: "+"%s "*len(ctypes)
+        mylog.info(log_str % tuple([ctype for ctype in ctypes]))
 
         self.lat_axis = np.zeros((end-1), dtype="bool")
         for p in lat_prefixes:
