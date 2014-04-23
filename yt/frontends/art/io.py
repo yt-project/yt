@@ -74,7 +74,7 @@ class IOHandlerART(BaseIOHandler):
         pbool, idxa, idxb = _determine_field_size(pf, ftype, self.ls, ptmax)
         pstr = 'particle_position_%s'
         x,y,z = [self._get_field((ftype, pstr % ax)) for ax in 'xyz']
-        mask = selector.select_points(x, y, z)
+        mask = selector.select_points(x, y, z, 0.0)
         if self.caching:
             self.masks[key] = mask
             return self.masks[key]
