@@ -505,7 +505,7 @@ class YTArray(np.ndarray):
 
     def __pos__(self):
         """ Posify the data. """
-        return YTArray(super(YTArray, self).__pos__())
+        return YTArray(super(YTArray, self).__pos__(), self.units)
 
     def __mul__(self, right_object):
         """
