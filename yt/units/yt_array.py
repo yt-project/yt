@@ -774,10 +774,10 @@ class YTArray(np.ndarray):
         elif context[0] in binary_operators:
             unit1 = getattr(context[1][0], 'units', None)
             unit2 = getattr(context[1][1], 'units', None)
-            if unit1 == None:
-                unit1 = Unit(registry=unit2.registry)
-            if unit2 == None and context[0] is not power:
-                unit2 = Unit(registry=unit1.registry)
+            if unit1 is None:
+                unit1 = Unit(registry=getattr(unit2, 'registry', None))
+            if unit2 is None and context[0] is not power:
+                unit2 = Unit(registry=getattr(unit1, 'registry', None))
             elif context[0] is power:
                 unit2 = context[1][1]
                 if isinstance(unit2, np.ndarray):
