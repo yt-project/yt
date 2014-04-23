@@ -356,6 +356,10 @@ class HaloCatalog(ParallelAnalysisInterface):
             if self.halos_pf is None:
                 mylog.warning('No halos were found for {0}'.format(\
                         self.data_pf.basename))
+                if save_catalog:
+                    self.halos_pf = self.data_pf
+                    self.save_catalog()
+                    self.halos_pf = None
                 return
 
             # Assign pf and data sources appropriately
