@@ -394,7 +394,7 @@ class PlotWindow(ImagePlotContainer):
         elif isinstance(deltas[0], tuple) and isinstance(deltas[1], tuple):
             deltas = (self.pf.quan(deltas[0][0], deltas[0][1]),
                       self.pf.quan(deltas[1][0], deltas[1][1]))
-        elif isinstance(deltas[0], YTQuantity) and isinstance(deltas[1], YTQuanti
+        elif isinstance(deltas[0], YTQuantity) and isinstance(deltas[1], YTQuantity):
             pass
         else:
             raise RuntimeError(
