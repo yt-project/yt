@@ -104,6 +104,34 @@
 
 -------------
 
+.. function:: annotate_halos(self, halo_catalog, col='white', alpha =1, width= None):
+
+   (This is a proxy for :class:`~yt.visualization.plot_modifications.HaloCatalogCallback`.)
+
+   Accepts a :class:`yt.HaloCatalog` *HaloCatalog* and plots 
+   a circle at the location of each halo with the radius of
+   the circle corresponding to the virial radius of the halo.
+   If *width* is set to None (default) all halos are plotted.
+   Otherwise, only halos that fall within a slab with width
+   *width* centered on the center of the plot data. The 
+   color and transparency of the circles can be controlled with
+   *col* and *alpha* respectively.
+
+.. python-script::
+   
+   from yt.mods import *
+   data_pf = load('Enzo_64/RD0006/RD0006')
+   halos_pf = load('rockstar_halos/halos_0.0.bin')
+
+   hc = HaloCatalog(halos_pf=halos_pf)
+   hc.create()
+
+   prj = ProjectionPlot(data_pf, 'z', 'density')
+   prj.annotate_halos(hc)
+   prj.save()
+
+-------------
+
 .. function:: annotate_hop_circles(self, hop_output, max_number=None, annotate=False, min_size=20, max_size=10000000, font_size=8, print_halo_size=False, print_halo_mass=False, width=None):
 
    (This is a proxy for :class:`~yt.visualization.plot_modifications.HopCircleCallback`.)
