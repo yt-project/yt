@@ -1,4 +1,5 @@
 """
+
 Callbacks to add additional functionality on to plots.
 
 
@@ -949,6 +950,69 @@ class TextLabelCallback(PlotCallback):
             if not self.data_coords:
                 kwargs["transform"] = plot._axes.transAxes
         plot._axes.text(x, y, self.text, **kwargs)
+
+class HaloCatalogCallback(PlotCallback):
+
+    _type_name = 'halos'
+    region = None
+    _descriptor = None
+
+    def __init__(self, halo_catalog, col='white', alpha =1, width = None):
+        PlotCallback.__init__(self)
+        self.halo_catalog = halo_catalog
+        self.color = col
+        self.alpha = alpha
+        self.width = width
+
+    def __call__(self, plot):
+        data = plot.data
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+        
+        halo_data= self.halo_catalog.halos_pf.all_data()
+        field_x = "particle_position_%s" % axis_names[x_dict[data.axis]]
+        field_y = "particle_position_%s" % axis_names[y_dict[data.axis]]
+        field_z = "particle_position_%s" % axis_names[data.axis]
+        plot._axes.hold(True)
+
+        # Set up scales for pixel size and original data
+        units = 'Mpccm'
+        pixel_scale = self.pixel_scale(plot)[0]
+        data_scale = data.pf.length_unit
+
+        # Convert halo positions to code units of the plotted data
+        # and then to units of the plotted window
+        px = halo_data[field_x][:].in_units(units) / data_scale
+        py = halo_data[field_y][:].in_units(units) / data_scale
+        px, py = self.convert_to_plot(plot,[px,py])
+        
+        # Convert halo radii to a radius in pixels
+        radius = halo_data['radius'][:].in_units(units)
+        radius = radius*pixel_scale/data_scale
+
+        if self.width:
+            pz = halo_data[field_z][:].in_units(units)/data_scale
+            pz = data.pf.arr(pz, 'code_length')
+            c = data.center[data.axis]
+
+            # I should catch an error here if width isn't in this form
+            # but I dont really want to reimplement get_sanitized_width...
+            width = data.pf.arr(self.width[0], self.width[1]).in_units('code_length')
+
+            indices = np.where((pz > c-width) & (pz < c+width))
+
+            px = px[indices]
+            py = py[indices]
+            radius = radius[indices]
+
+        plot._axes.scatter(px, py, edgecolors='None', marker='o',
+                           s=radius, c=self.color,alpha=self.alpha)
+        plot._axes.set_xlim(xx0,xx1)
+        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.hold(False)
+
 
 class ParticleCallback(PlotCallback):
     """
