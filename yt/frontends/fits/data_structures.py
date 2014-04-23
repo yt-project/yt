@@ -36,6 +36,7 @@ from yt.units.unit_lookup_table import \
     default_unit_symbol_lut, \
     prefixable_units, \
     unit_prefixes
+from yt.units.dimensions import dimensions
 
 class astropy_imports:
     _pyfits = None
@@ -85,6 +86,9 @@ delimiters = ["*", "/", "-", "^"]
 delimiters += [str(i) for i in xrange(10)]
 regex_pattern = '|'.join(re.escape(_) for _ in delimiters)
 
+field_from_unit = {"Jy":"intensity",
+                   "K":"temperature"}
+
 class FITSGrid(AMRGridPatch):
     _id_offset = 0
     def __init__(self, id, index, level):
@@ -115,7 +119,13 @@ class FITSHierarchy(GridIndex):
     def _initialize_data_storage(self):
         pass
 
-    def _determine_image_units(self, fname, header):
+    def _guess_name_from_units(self, units):
+        for k,v in field_from_unit.items():
+            if k in units:
+                return v
+        return None
+
+    def _determine_image_units(self, header):
         try:
             field_units = header["bunit"].lower().strip(" ").replace(" ", "")
             # FITS units always return upper-case, so we need to get
@@ -128,9 +138,9 @@ class FITSHierarchy(GridIndex):
                     field_units = field_units.replace(unit, known_units[unit])
                     n += 1
             if n != len(units): field_units = "dimensionless"
-            self.parameter_file.field_units[fname] = field_units
+            return field_units
         except:
-            self.parameter_file.field_units[fname] = "dimensionless"
+            return "dimensionless"
 
     def _ensure_same_dims(self, hdu):
         ds = self.parameter_file
@@ -158,20 +168,26 @@ class FITSHierarchy(GridIndex):
         for i, fits_file in enumerate(self.parameter_file._fits_files):
             for j, hdu in enumerate(fits_file):
                 if self._ensure_same_dims(hdu):
-                    try:
-                        fname = hdu.header["btype"].lower()
-                    except:
-                        fname = hdu.name.lower()
                     for k in xrange(naxis4):
+                        units = self._determine_image_units(hdu.header)
+                        try:
+                            # Grab field name from btype
+                            fname = hdu.header["btype"].lower()
+                        except:
+                            # Try to guess the name from the units
+                            fname = self._guess_name_from_units(units)
+                            # When all else fails
+                            if fname is None:
+                                fname = "image_%d" % (j)
                         if naxis4 > 1:
                             fname += "_%s_%d" % (hdu.header["CTYPE4"], k+1)
                         if self.pf.num_files > 1:
                             try:
-                                fname += "_%5.3fGHz" % (hdu.header["restfreq"]/1.0e9)
+                                fname += "_%5.3f_GHz" % (hdu.header["restfreq"]/1.0e9)
                             except:
-                                fname += "_%5.3fGHz" % (hdu.header["restfrq"]/1.0e9)
+                                fname += "_%5.3f_GHz" % (hdu.header["restfrq"]/1.0e9)
                             else:
-                                fname += "_field_%d" % (i)
+                                fname += "_file_%d" % (i)
                         self._axis_map[fname] = k
                         self._file_map[fname] = fits_file
                         self._ext_map[fname] = j
@@ -181,8 +197,8 @@ class FITSHierarchy(GridIndex):
                         if "bscale" in hdu.header:
                             self._scale_map[fname][1] = hdu.header["bscale"]
                         self.field_list.append((self.dataset_type, fname))
+                        self.parameter_file.field_units[fname] = units
                         mylog.info("Adding field %s to the list of fields." % (fname))
-                        self._determine_image_units(fname, hdu.header)
                 else:
                     mylog.warning("Image block %s does not have " % (hdu.name.lower()) +
                                   "the same dimensions as the primary and will not be " +
@@ -277,7 +293,13 @@ class FITSDataset(Dataset):
                  folded_axis = None,
                  folded_width = None,
                  line_database = None,
-                 suppress_astropy_warnings = True):
+                 suppress_astropy_warnings = True,
+                 parameters = None):
+
+        if parameters is None:
+            parameters = {}
+        self.specified_parameters = parameters
+
         self.folded_axis = folded_axis
         self.folded_width = folded_width
         self._unfolded_domain_dimensions = None
@@ -350,7 +372,14 @@ class FITSDataset(Dataset):
         self.mass_unit = self.quan(1.0, "g")
         self.time_unit = self.quan(1.0, "s")
         self.velocity_unit = self.quan(1.0, "cm/s")
-
+        if "beam_size" in self.specified_parameters:
+            beam_size = self.quan(beam_size[0], beam_size[1]).in_cgs().value
+        else:
+            beam_size = 1.0
+        self.unit_registry.add("beam",beam_size,dimensions=dimensions.solid_angle)
+        pixel_area = (self.length_unit**2).in_cgs()
+        self.unit_registry.add("pixel",pixel_area,dimensions=dimensions.area)
+        
     def _parse_parameter_file(self):
 
         self.unique_identifier = \
