@@ -36,7 +36,7 @@ from yt.units.unit_lookup_table import \
     default_unit_symbol_lut, \
     prefixable_units, \
     unit_prefixes
-from yt.units.dimensions import dimensions
+from yt.units import dimensions
 
 class astropy_imports:
     _pyfits = None
@@ -377,9 +377,9 @@ class FITSDataset(Dataset):
         else:
             beam_size = 1.0
         self.unit_registry.add("beam",beam_size,dimensions=dimensions.solid_angle)
-        pixel_area = (self.length_unit**2).in_cgs()
+        pixel_area = float((self.length_unit*self.length_unit).in_cgs().value)
         self.unit_registry.add("pixel",pixel_area,dimensions=dimensions.area)
-        
+
     def _parse_parameter_file(self):
 
         self.unique_identifier = \
