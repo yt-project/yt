@@ -775,9 +775,9 @@ class YTArray(np.ndarray):
             unit1 = getattr(context[1][0], 'units', None)
             unit2 = getattr(context[1][1], 'units', None)
             if unit1 == None:
-                unit1 = Unit()
+                unit1 = Unit(registry=unit2.registry)
             if unit2 == None and context[0] is not power:
-                unit2 = Unit()
+                unit2 = Unit(registry=unit1.registry)
             elif context[0] is power:
                 unit2 = context[1][1]
                 if isinstance(unit2, np.ndarray):
