@@ -497,7 +497,7 @@ class YTArray(np.ndarray):
     def __isub__(self, other):
         """ See __sub__. """
         oth = sanitize_units_add(self, other, "subtraction")
-        return np.subtract(self, other, out=self)
+        return np.subtract(self, oth, out=self)
 
     def __neg__(self):
         """ Negate the data. """
