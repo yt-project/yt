@@ -503,6 +503,10 @@ class YTArray(np.ndarray):
         """ Negate the data. """
         return YTArray(super(YTArray, self).__neg__())
 
+    def __pos__(self):
+        """ Posify the data. """
+        return YTArray(super(YTArray, self).__pos__())
+
     def __mul__(self, right_object):
         """
         Multiply this YTArray by the object on the right of the `*` operator.
