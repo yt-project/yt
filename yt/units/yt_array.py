@@ -669,7 +669,7 @@ class YTArray(np.ndarray):
     def __eq__(self, other):
         """ Test if this is equal to the object on the right. """
         # Check that other is a YTArray.
-        if other == None:
+        if other is None:
             # self is a YTArray, so it can't be None.
             return False
         if isinstance(other, YTArray):
@@ -683,7 +683,7 @@ class YTArray(np.ndarray):
     def __ne__(self, other):
         """ Test if this is not equal to the object on the right. """
         # Check that the other is a YTArray.
-        if other == None:
+        if other is None:
             return True
         if isinstance(other, YTArray):
             if not self.units.same_dimensions_as(other.units):
@@ -767,7 +767,7 @@ class YTArray(np.ndarray):
                 return ret
         elif context[0] in unary_operators:
             u = getattr(context[1][0], 'units', None)
-            if u == None:
+            if u is None:
                 u = Unit()
             try:
                 unit = self._ufunc_registry[context[0]](u)
@@ -821,8 +821,8 @@ class YTArray(np.ndarray):
         See the documentation for the standard library pickle module:
         http://docs.python.org/2/library/pickle.html
 
-        Unit metadata is encoded in the zeroth element of third element of the 
-        returned tuple, itself a tuple used to restore the state of the ndarray.  
+        Unit metadata is encoded in the zeroth element of third element of the
+        returned tuple, itself a tuple used to restore the state of the ndarray.
         This is always defined for numpy arrays.
         """
         np_ret = super(YTArray, self).__reduce__()
