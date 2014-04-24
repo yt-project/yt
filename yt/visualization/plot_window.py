@@ -68,7 +68,7 @@ except ImportError:
     from pyparsing import ParseFatalException
 
 def fix_unitary(u):
-    if u is '1':
+    if u == '1':
         return 'unitary'
     else:
         return u
@@ -385,8 +385,8 @@ class PlotWindow(ImagePlotContainer):
         """
         if len(deltas) != 2:
             raise RuntimeError(
-                "The pan function accepts a two-element sequence. "
-                "Received %s" % deltas
+                "The pan function accepts a two-element sequence.\n"
+                "Received %s." % (deltas, )
                 )
         if isinstance(deltas[0], Number) and isinstance(deltas[1], Number):
             deltas = (self.pf.quan(deltas[0], 'code_length'),
@@ -398,8 +398,8 @@ class PlotWindow(ImagePlotContainer):
             pass
         else:
             raise RuntimeError(
-                "The arguments of the pan function must be a sequence of floats "
-                "quantities, or (float, unit) tuples.  Received %s" % deltas
+                "The arguments of the pan function must be a sequence of floats,\n"
+                "quantities, or (float, unit) tuples. Received %s." % (deltas, )
                 )
         self.xlim = (self.xlim[0] + deltas[0], self.xlim[1] + deltas[0])
         self.ylim = (self.ylim[0] + deltas[1], self.ylim[1] + deltas[1])
