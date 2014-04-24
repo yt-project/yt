@@ -1,5 +1,5 @@
 """
-API for yt.frontends.gadget
+__init__ for yt.frontends.sdf
 
 
 
