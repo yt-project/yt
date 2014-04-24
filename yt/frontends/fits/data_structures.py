@@ -156,7 +156,7 @@ class FITSHierarchy(GridIndex):
     def _detect_output_fields(self):
         ds = self.parameter_file
         self.field_list = []
-        if ds.events_file:
+        if ds.events_data:
             for k,v in ds.events_info.items():
                 fname = "event_"+k
                 mylog.info("Adding field %s to the list of fields." % (fname))
@@ -350,7 +350,7 @@ class FITSDataset(Dataset):
                                                        ignore_blank=True))
 
         if len(self._handle) > 1 and self._handle[1].name == "EVENTS":
-            self.events_file = True
+            self.events_data = True
             self.first_image = 1
             self.primary_header = self._handle[self.first_image].header
             self.naxis = 2
@@ -379,7 +379,7 @@ class FITSDataset(Dataset):
             self.dims = [self.events_info["x"][1]-self.events_info["x"][0],
                          self.events_info["y"][1]-self.events_info["y"][0]]
         else:
-            self.events_file = False
+            self.events_data = False
             self.first_image = 0
             self.primary_header = self._handle[self.first_image].header
             self.wcs = ap.pywcs.WCS(header=self.primary_header)
@@ -428,8 +428,14 @@ class FITSDataset(Dataset):
         else:
             beam_size = 1.0
         self.unit_registry.add("beam",beam_size,dimensions=dimensions.solid_angle)
-        pixel_area = float((self.length_unit*self.length_unit).in_cgs().value)
-        self.unit_registry.add("pixel",pixel_area,dimensions=dimensions.area)
+        if self.ppv_data:
+            units = self.wcs_2d.wcs.cunit[0]
+            if units == "deg": units = "degree"
+            if units == "rad": units = "radian"
+            pixel_area = np.prod(np.abs(self.wcs_2d.wcs.cdelt))
+            pixel_area = float(self.quan(pixel_area, "%s**2" % (units)).in_cgs().value)
+            pixel_dims = dimensions.solid_angle
+            self.unit_registry.add("pixel",pixel_area,dimensions=pixel_dims)
 
     def _parse_parameter_file(self):
 
@@ -477,7 +483,7 @@ class FITSDataset(Dataset):
             self.hubble_constant = self.cosmological_simulation = 0.0
 
         # If this is a 2D events file, no need to decompose
-        if self.events_file: self.nprocs = 1
+        if self.events_data: self.nprocs = 1
 
         # If nprocs is None, do some automatic decomposition of the domain
         if self.nprocs is None:
@@ -497,7 +503,7 @@ class FITSDataset(Dataset):
 
         self.ppv_data = True
         end = min(self.dimensionality+1,4)
-        if self.events_file:
+        if self.events_data:
             ctypes = self.axis_names
         else:
             ctypes = np.array([self.primary_header["CTYPE%d" % (i)] for i in xrange(1,end)])
