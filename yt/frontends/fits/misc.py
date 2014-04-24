@@ -33,4 +33,6 @@ def setup_counts_fields(ebounds):
         fname = "counts_%s-%s" % (emin, emax)
         mylog.info("Creating counts field %s." % fname)
         add_field(("gas",fname), function=cfunc,
-                  units="counts/pixel", validators = [ValidateSpatial()])
+                  units="counts/pixel",
+                  validators = [ValidateSpatial()],
+                  display_name="Counts (%s-%s keV)" % (emin, emax))
