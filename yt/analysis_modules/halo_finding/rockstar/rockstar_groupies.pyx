@@ -220,12 +220,11 @@ cdef class RockstarGroupiesInterface:
         cdef np.int64_t last_fof_tag = 1
         cdef np.int64_t k = 0
         for i in range(num_particles):
-            if fof_tags[i] == 0:
+            if fof_tags[i] < 0:
                 continue
             if fof_tags[i] != last_fof_tag:
                 last_fof_tag = fof_tags[i]
                 if k > 16:
-                    print "Finding subs", k, i
                     fof_obj.num_p = k
                     find_subs(&fof_obj)
                 k = 0

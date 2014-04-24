@@ -64,7 +64,7 @@ class IOHandlerARTIO(BaseIOHandler):
                 for ptype, field_list in sorted(ptf.items()):
                     x, y, z = (np.asarray(rv[ptype][pn % ax], dtype="=f8")
                                for ax in 'XYZ')
-                    mask = selector.select_points(x, y, z)
+                    mask = selector.select_points(x, y, z, 0.0)
                     if mask is None: continue
                     for field in field_list:
                         data = np.asarray(rv[ptype][field], "=f8")

@@ -179,14 +179,13 @@ def parallel_simple_proxy(func):
     used on objects that subclass
     :class:`~yt.utilities.parallel_tools.parallel_analysis_interface.ParallelAnalysisInterface`.
     """
-    if not parallel_capable: return func
     @wraps(func)
     def single_proc_results(self, *args, **kwargs):
         retval = None
         if hasattr(self, "dont_wrap"):
             if func.func_name in self.dont_wrap:
                 return func(self, *args, **kwargs)
-        if self._processing or not self._distributed:
+        if not parallel_capable or self._processing or not self._distributed:
             return func(self, *args, **kwargs)
         comm = _get_comm((self,))
         if self._owner == comm.rank:
@@ -243,6 +242,8 @@ def parallel_blocking_call(func):
     """
     @wraps(func)
     def barrierize(*args, **kwargs):
+        if not parallel_capable:
+            return func(*args, **kwargs)
         mylog.debug("Entering barrier before %s", func.func_name)
         comm = _get_comm(args)
         comm.barrier()
@@ -250,26 +251,7 @@ def parallel_blocking_call(func):
         mylog.debug("Entering barrier after %s", func.func_name)
         comm.barrier()
         return retval
-    if parallel_capable:
-        return barrierize
-    else:
-        return func
-
-def parallel_splitter(f1, f2):
-    """
-    This function returns either the function *f1* or *f2* depending on whether
-    or not we're the root processor.  Mainly used in class definitions.
-    """
-    @wraps(f1)
-    def in_order(*args, **kwargs):
-        comm = _get_comm(args)
-        if comm.rank == 0:
-            f1(*args, **kwargs)
-        comm.barrier()
-        if comm.rank != 0:
-            f2(*args, **kwargs)
-    if not parallel_capable: return f1
-    return in_order
+    return barrierize
 
 def parallel_root_only(func):
     """
@@ -278,6 +260,8 @@ def parallel_root_only(func):
     """
     @wraps(func)
     def root_only(*args, **kwargs):
+        if not parallel_capable:
+            return func(*args, **kwargs)
         comm = _get_comm(args)
         rv = None
         if comm.rank == 0:
@@ -292,8 +276,7 @@ def parallel_root_only(func):
         all_clear = comm.mpi_bcast(all_clear)
         if not all_clear: raise RuntimeError
         return rv
-    if parallel_capable: return root_only
-    return func
+    return root_only
 
 class Workgroup(object):
     def __init__(self, size, ranks, comm, name):
@@ -636,6 +619,9 @@ class Communicator(object):
     def __init__(self, comm=None):
         self.comm = comm
         self._distributed = comm is not None and self.comm.size > 1
+
+    def __del__(self):
+        self.comm.Free()
     """
     This is an interface specification providing several useful utility
     functions for analyzing something in parallel.
