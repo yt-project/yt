@@ -18,10 +18,15 @@ from yt.fields.field_info_container import \
 class FITSFieldInfo(FieldInfoContainer):
     known_other_fields = ()
 
+    known_particle_fields = (
+        ("event_x", ("code_length", ["particle_position_x"], None)),
+        ("event_y", ("code_length", ["particle_position_y"], None)),
+    )
+
     def __init__(self, pf, field_list, slice_info=None):
         super(FITSFieldInfo, self).__init__(pf, field_list, slice_info=slice_info)
         for field in pf.field_list:
-            self[field].take_log = False
+            if field[0] == "fits": self[field].take_log = False
 
     def _get_2d_wcs(self, data, axis):
         w_coords = data.pf.wcs_2d.wcs_pix2world(data["x"], data["y"], 1)
@@ -56,6 +61,10 @@ class FITSFieldInfo(FieldInfoContainer):
 
     def setup_fluid_fields(self):
 
+        if self.pf.events_file:
+            def _pz(field, data):
+                return data.pf.arr(np.ones(data["particle_position_x"].shape), "code_length")
+            self.add_field(("io","particle_position_z"), function=_pz, units="code_length")
         if self.pf.ppv_data:
             self._setup_ppv_fields()
             return

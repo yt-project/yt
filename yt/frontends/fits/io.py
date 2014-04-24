@@ -32,6 +32,29 @@ class IOHandlerFITS(BaseIOHandler):
             count_list, conv_factors):
         pass
 
+    def _read_particle_coords(self, chunks, ptf):
+        pdata = self.pf._handle[self.pf.first_image].data
+        assert(len(ptf) == 1)
+        ptype = ptf.keys()[0]
+        x = pdata.field("X").newbyteorder("=")
+        y = pdata.field("Y").newbyteorder("=")
+        z = np.ones(x.shape)
+        yield ptype, (x,y,z)
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        pdata = self.pf._handle[self.pf.first_image].data
+        assert(len(ptf) == 1)
+        ptype = ptf.keys()[0]
+        field_list = ptf[ptype]
+        x = pdata.field("X").newbyteorder("=")
+        y = pdata.field("Y").newbyteorder("=")
+        z = np.ones(x.shape)
+        mask = selector.select_points(x, y, z)
+        if mask is None: return
+        for field in field_list:
+            data = pdata.field(field.split("_")[-1].upper())
+            yield (ptype, field), data[mask]
+
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
         if any((ftype != "fits" for ftype, fname in fields)):

@@ -156,6 +156,17 @@ class FITSHierarchy(GridIndex):
     def _detect_output_fields(self):
         ds = self.parameter_file
         self.field_list = []
+        if ds.events_file:
+            for k,v in ds.events_info.items():
+                fname = "event_"+k
+                mylog.info("Adding field %s to the list of fields." % (fname))
+                self.field_list.append(("io",fname))
+                if k in ["x","y"]:
+                    unit = "code_length"
+                else:
+                    unit = v
+                self.parameter_file.field_units[("io",fname)] = unit
+            return
         self._axis_map = {}
         self._file_map = {}
         self._ext_map = {}
@@ -196,7 +207,7 @@ class FITSHierarchy(GridIndex):
                             self._scale_map[fname][0] = hdu.header["bzero"]
                         if "bscale" in hdu.header:
                             self._scale_map[fname][1] = hdu.header["bscale"]
-                        self.field_list.append((self.dataset_type, fname))
+                        self.field_list.append(("fits", fname))
                         self.parameter_file.field_units[fname] = units
                         mylog.info("Adding field %s to the list of fields." % (fname))
                 else:
@@ -237,6 +248,13 @@ class FITSHierarchy(GridIndex):
             self.grid_left_edge[0,:] = pf.domain_left_edge
             self.grid_right_edge[0,:] = pf.domain_right_edge
             self.grid_dimensions[0] = pf.domain_dimensions
+
+        try:
+            self.grid_particle_count[:] = pf.primary_header["naxis2"]
+        except KeyError:
+            self.grid_particle_count[:] = 0.0
+        self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
+        self._particle_indices[1] = self.grid_particle_count.squeeze()
 
         self.grid_levels.flat[:] = 0
         self.grids = np.empty(self.num_grids, dtype='object')
@@ -331,46 +349,46 @@ class FITSDataset(Dataset):
                                                        do_not_scale_image_data=True,
                                                        ignore_blank=True))
 
-        if self._handle[1].name == "EVENTS":
+        if len(self._handle) > 1 and self._handle[1].name == "EVENTS":
+            self.events_file = True
             self.first_image = 1
-        else:
-            self.first_image = 0
-        self.primary_header = self._handle[self.first_image].header
-        if self.first_image == 0:
-            self.wcs = ap.pywcs.WCS(header=self.primary_header)
-            self.axis_names = {}
-            self.naxis = self.primary_header["naxis"]
-            for i, ax in enumerate("xyz"[:self.naxis]):
-                self.axis_names[self.primary_header["ctype%d" % (i+1)]] = ax
-            self.dims = [self.primary_header["naxis%d" % (i+1)]
-                         for i in xrange(self.naxis)]
-
-        else:
+            self.primary_header = self._handle[self.first_image].header
             self.naxis = 2
             self.wcs = ap.pywcs.WCS(naxis=2)
-            self.axis_names = {}
-            events_info = {}
+            self.events_info = {}
             for k,v in self.primary_header.items():
                 if v in ["X","Y"]:
                     num = k.strip("TTYPE")
-                    events_info[v] = (self.primary_header["TLMIN"+num],
-                                      self.primary_header["TLMAX"+num],
-                                      self.primary_header["TCTYP"+num],
-                                      self.primary_header["TCRVL"+num],
-                                      self.primary_header["TCDLT"+num],
-                                      self.primary_header["TCRPX"+num])
-                elif v == "ENERGY":
+                    self.events_info[v.lower()] = (self.primary_header["TLMIN"+num],
+                                                   self.primary_header["TLMAX"+num],
+                                                   self.primary_header["TCTYP"+num],
+                                                   self.primary_header["TCRVL"+num],
+                                                   self.primary_header["TCDLT"+num],
+                                                   self.primary_header["TCRPX"+num])
+                elif v in ["ENERGY","TIME"]:
                     num = k.strip("TTYPE")
-                    events_info[v] = self.primary_header["TUNIT"+num]
-            for ax in ["x","y"]:
-                self.axis_names[events_info[ax.upper][2]] = ax
-            self.wcs.wcs.cdelt = [events_info["x"][4],events_info["y"][4]]
-            self.wcs.wcs.crpix = [events_info["x"][5],events_info["y"][5]]
-            self.wcs.wcs.ctype = [events_info["x"][2],events_info["y"][2]]
+                    unit = self.primary_header["TUNIT"+num].lower()
+                    if unit.endswith("ev"): unit = unit.replace("ev","eV")
+                    self.events_info[v.lower()] = unit
+            self.axis_names = [self.events_info[ax][2] for ax in ["x","y"]]
+            self.wcs.wcs.cdelt = [self.events_info["x"][4],self.events_info["y"][4]]
+            self.wcs.wcs.crpix = [self.events_info["x"][5],self.events_info["y"][5]]
+            self.wcs.wcs.ctype = [self.events_info["x"][2],self.events_info["y"][2]]
             self.wcs.wcs.cunit = ["deg","deg"]
-            self.wcs.wcs.crval = [events_info["x"][3],events_info["y"][3]]
-            self.dims = [events_info["x"][1]-events_info["x"][0],
-                         events_info["y"][1]-events_info["y"][0]]
+            self.wcs.wcs.crval = [self.events_info["x"][3],self.events_info["y"][3]]
+            self.dims = [self.events_info["x"][1]-self.events_info["x"][0],
+                         self.events_info["y"][1]-self.events_info["y"][0]]
+        else:
+            self.events_file = False
+            self.first_image = 0
+            self.primary_header = self._handle[self.first_image].header
+            self.wcs = ap.pywcs.WCS(header=self.primary_header)
+            self.naxis = self.primary_header["naxis"]
+            self.axis_names = [self.primary_header["ctype%d" % (i+1)]
+                               for i in xrange(self.naxis)]
+            self.dims = [self.primary_header["naxis%d" % (i+1)]
+                         for i in xrange(self.naxis)]
+
         self.refine_by = 2
 
         Dataset.__init__(self, filename, dataset_type)
@@ -458,6 +476,9 @@ class FITSDataset(Dataset):
         self.current_redshift = self.omega_lambda = self.omega_matter = \
             self.hubble_constant = self.cosmological_simulation = 0.0
 
+        # If this is a 2D events file, no need to decompose
+        if self.events_file: self.nprocs = 1
+
         # If nprocs is None, do some automatic decomposition of the domain
         if self.nprocs is None:
             self.nprocs = np.around(np.prod(self.domain_dimensions) /
@@ -468,7 +489,7 @@ class FITSDataset(Dataset):
         self.ppv_data = False
         x = 0
         for p in lon_prefixes+lat_prefixes+vel_prefixes:
-            y = np_char.startswith(self.axis_names.keys()[:self.dimensionality], p)
+            y = np_char.startswith(self.axis_names[:self.dimensionality], p)
             x += y.sum()
         if x == self.dimensionality: self._setup_ppv()
 
@@ -476,7 +497,10 @@ class FITSDataset(Dataset):
 
         self.ppv_data = True
         end = min(self.dimensionality+1,4)
-        ctypes = np.array([self.primary_header["CTYPE%d" % (i)] for i in xrange(1,end)])
+        if self.events_file:
+            ctypes = self.axis_names
+        else:
+            ctypes = np.array([self.primary_header["CTYPE%d" % (i)] for i in xrange(1,end)])
 
         log_str = "Detected these axes: "+"%s "*len(ctypes)
         mylog.info(log_str % tuple([ctype for ctype in ctypes]))
