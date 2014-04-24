@@ -517,12 +517,13 @@ the following dataset types:
 
 1. Rectilinear 2D/3D images with length units (e.g., Mpc, AU,
    etc.) defined in the ``CUNITx`` keywords
-2. 2D images in the equatorial coordinate system (RA/Dec in the ``CTYPEx``
+2. 2D images in some celestial coordinate systems (RA/Dec,
+   galactic latitude/longitude, defined in the ``CTYPEx``
    keywords)
-3. 3D images with equatorial coordinates and a third axis for another
+3. 3D images with celestial coordinates and a third axis for another
    quantity, such as velocity, frequency, wavelength, etc.
-4. 4D images, where the slices along the 4th axis are interpreted as
-   different fields.
+4. 4D images with the first three axes like Case 3, where the slices
+   along the 4th axis are interpreted as different fields.
 
 If your data is of the first case, yt will determine the length units based
 on the information in the header. If your data is of the second or third
@@ -530,6 +531,11 @@ cases, no length units will be assigned, but the world coordinate information
 about the axes will be stored in separate fields. If your data is of the fourth
 type, the coordinates of the first three axes will be determined according to
 cases 1-3.
+
+.. note::
+
+  Linear length-based coordinates (Case 1 above) are only supported if all dimensions
+  have the same value for ``CUNITx``. WCS coordinates are only supported for Cases 2-4.
 
 Fields in FITS Datasets
 +++++++++++++++++++++++
@@ -546,11 +552,9 @@ and the index of the slice. So, for example, if ``BTYPE`` = ``"intensity"`` and
 ``"intensity_stokes_1"``, ``"intensity_stokes_2"``, and so on.
 
 Additionally, fields corresponding to the WCS coordinates will be generated.
-They will be given the same names as the corresponding ``CTYPEx`` keywords,
-with the exception of any names that start with ``"RA"`` and ``"DEC"``,
-which will have field names shortened to simply ``"ra"`` and ``"dec"``. When
-queried, these fields will be generated from the pixel coordinates in the
-file using the WCS transformations provided by AstroPy.
+based on the corresponding ``CTYPEx`` keywords. When queried, these fields
+will be generated from the pixel coordinates in the file using the WCS
+transformations provided by AstroPy.
 
 Additional Options
 ++++++++++++++++++

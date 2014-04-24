@@ -27,14 +27,16 @@ from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.data_objects.static_output import \
     Dataset
-from yt.utilities.definitions import \
-    mpc_conversion
 from yt.utilities.io_handler import \
     io_registry
 from .fields import FITSFieldInfo
 from yt.utilities.decompose import \
     decompose_array, get_psize
-from yt.units.unit_lookup_table import default_unit_symbol_lut
+from yt.units.unit_lookup_table import \
+    default_unit_symbol_lut, \
+    prefixable_units, \
+    unit_prefixes
+from yt.units import dimensions
 
 class astropy_imports:
     _pyfits = None
@@ -77,11 +79,15 @@ class astropy_imports:
 ap = astropy_imports()
 
 known_units = dict([(unit.lower(),unit) for unit in default_unit_symbol_lut])
-axes_prefixes = ["RA","DEC","V","ENER","FREQ"]
-
+lat_prefixes = ["DEC","GLAT"]
+lon_prefixes = ["RA","GLON"]
+vel_prefixes = ["V","ENER","FREQ","WAV"]
 delimiters = ["*", "/", "-", "^"]
 delimiters += [str(i) for i in xrange(10)]
 regex_pattern = '|'.join(re.escape(_) for _ in delimiters)
+
+field_from_unit = {"Jy":"intensity",
+                   "K":"temperature"}
 
 class FITSGrid(AMRGridPatch):
     _id_offset = 0
@@ -113,19 +119,28 @@ class FITSHierarchy(GridIndex):
     def _initialize_data_storage(self):
         pass
 
-    def _determine_image_units(self, fname, header):
+    def _guess_name_from_units(self, units):
+        for k,v in field_from_unit.items():
+            if k in units:
+                return v
+        return None
+
+    def _determine_image_units(self, header):
         try:
-            field_units = header["bunit"].lower().strip(" ")
+            field_units = header["bunit"].lower().strip(" ").replace(" ", "")
             # FITS units always return upper-case, so we need to get
             # the right case by comparing against known units. This
             # only really works for common units.
             units = re.split(regex_pattern, field_units)
+            n = int(0)
             for unit in units:
                 if unit in known_units:
                     field_units = field_units.replace(unit, known_units[unit])
-            self.parameter_file.field_units[fname] = field_units
+                    n += 1
+            if n != len(units): field_units = "dimensionless"
+            return field_units
         except:
-            self.parameter_file.field_units[fname] = "dimensionless"
+            return "dimensionless"
 
     def _ensure_same_dims(self, hdu):
         ds = self.parameter_file
@@ -153,20 +168,26 @@ class FITSHierarchy(GridIndex):
         for i, fits_file in enumerate(self.parameter_file._fits_files):
             for j, hdu in enumerate(fits_file):
                 if self._ensure_same_dims(hdu):
-                    try:
-                        fname = hdu.header["btype"].lower()
-                    except:
-                        fname = hdu.name.lower()
                     for k in xrange(naxis4):
+                        units = self._determine_image_units(hdu.header)
+                        try:
+                            # Grab field name from btype
+                            fname = hdu.header["btype"].lower()
+                        except:
+                            # Try to guess the name from the units
+                            fname = self._guess_name_from_units(units)
+                            # When all else fails
+                            if fname is None:
+                                fname = "image_%d" % (j)
                         if naxis4 > 1:
                             fname += "_%s_%d" % (hdu.header["CTYPE4"], k+1)
                         if self.pf.num_files > 1:
                             try:
-                                fname += "_%5.3fGHz" % (hdu.header["restfreq"]/1.0e9)
+                                fname += "_%5.3f_GHz" % (hdu.header["restfreq"]/1.0e9)
                             except:
-                                fname += "_%5.3fGHz" % (hdu.header["restfrq"]/1.0e9)
+                                fname += "_%5.3f_GHz" % (hdu.header["restfrq"]/1.0e9)
                             else:
-                                fname += "_field_%d" % (i)
+                                fname += "_file_%d" % (i)
                         self._axis_map[fname] = k
                         self._file_map[fname] = fits_file
                         self._ext_map[fname] = j
@@ -176,8 +197,8 @@ class FITSHierarchy(GridIndex):
                         if "bscale" in hdu.header:
                             self._scale_map[fname][1] = hdu.header["bscale"]
                         self.field_list.append((self.dataset_type, fname))
+                        self.parameter_file.field_units[fname] = units
                         mylog.info("Adding field %s to the list of fields." % (fname))
-                        self._determine_image_units(fname, hdu.header)
                 else:
                     mylog.warning("Image block %s does not have " % (hdu.name.lower()) +
                                   "the same dimensions as the primary and will not be " +
@@ -272,7 +293,13 @@ class FITSDataset(Dataset):
                  folded_axis = None,
                  folded_width = None,
                  line_database = None,
-                 suppress_astropy_warnings = True):
+                 suppress_astropy_warnings = True,
+                 parameters = None):
+
+        if parameters is None:
+            parameters = {}
+        self.specified_parameters = parameters
+
         self.folded_axis = folded_axis
         self.folded_width = folded_width
         self._unfolded_domain_dimensions = None
@@ -353,26 +380,41 @@ class FITSDataset(Dataset):
         """
         Generates the conversion to various physical _units based on the parameter file
         """
-        file_unit = None
-        for i, unit in enumerate(self.wcs.wcs.cunit):
-            if unit in mpc_conversion.keys():
-                file_unit = unit.name
-                idx = i
-                break
-        if file_unit is None:
+        default_length_units = [u for u,v in default_unit_symbol_lut.items()
+                                if str(v[-1]) == "(length)"]
+        more_length_units = []
+        for unit in default_length_units:
+            if unit in prefixable_units:
+                more_length_units += [prefix+unit for prefix in unit_prefixes]
+        default_length_units += more_length_units
+        file_units = []
+        cunits = [self.wcs.wcs.cunit[i] for i in xrange(self.dimensionality)]
+        for i, unit in enumerate(cunits):
+            if unit in default_length_units:
+                file_units.append(unit.name)
+        if len(set(file_units)) == 1:
+            length_factor = self.wcs.wcs.cdelt[0]
+            length_unit = str(file_units[0])
+            mylog.info("Found length units of %s." % (length_unit))
+        else:
             self.no_cgs_equiv_length = True
             mylog.warning("No length conversion provided. Assuming 1 = 1 cm.")
             length_factor = 1.0
             length_unit = "cm"
-        else:
-            length_factor = self.wcs.wcs.cdelt[idx]
-            length_unit = str(file_unit)
         self.length_unit = self.quan(length_factor,length_unit)
         self.mass_unit = self.quan(1.0, "g")
         self.time_unit = self.quan(1.0, "s")
         self.velocity_unit = self.quan(1.0, "cm/s")
+        if "beam_size" in self.specified_parameters:
+            beam_size = self.quan(beam_size[0], beam_size[1]).in_cgs().value
+        else:
+            beam_size = 1.0
+        self.unit_registry.add("beam",beam_size,dimensions=dimensions.solid_angle)
+        pixel_area = float((self.length_unit*self.length_unit).in_cgs().value)
+        self.unit_registry.add("pixel",pixel_area,dimensions=dimensions.area)
 
     def _parse_parameter_file(self):
+
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
@@ -422,42 +464,51 @@ class FITSDataset(Dataset):
                                     32**self.dimensionality).astype("int")
             self.nprocs = min(self.nprocs, 512)
 
-        # Check to see if this data is in (RA,Dec,?) format
+        # Check to see if this data is in some kind of (Lat,Lon,Vel) format
         self.ppv_data = False
-        x = np.zeros((self.dimensionality), dtype="bool")
-        for apx in axes_prefixes:
-            x += np_char.startswith(self.axis_names.keys()[:self
-                                    .dimensionality], apx)
-        if x.sum() == self.dimensionality: self._setup_xyv()
-        for ap in axes_prefixes:
-            x += np_char.startswith(self.axis_names.keys()[:self.dimensionality], ap)
-        if x.sum() == self.dimensionality: self._setup_ppv()
+        x = 0
+        for p in lon_prefixes+lat_prefixes+vel_prefixes:
+            y = np_char.startswith(self.axis_names.keys()[:self.dimensionality], p)
+            x += y.sum()
+        if x == self.dimensionality: self._setup_ppv()
 
     def _setup_ppv(self):
 
         self.ppv_data = True
-
         end = min(self.dimensionality+1,4)
         ctypes = np.array([self.primary_header["CTYPE%d" % (i)] for i in xrange(1,end)])
-        self.ra_axis = np.where(np_char.startswith(ctypes, "RA"))[0][0]
-        self.dec_axis = np.where(np_char.startswith(ctypes, "DEC"))[0][0]
+
+        log_str = "Detected these axes: "+"%s "*len(ctypes)
+        mylog.info(log_str % tuple([ctype for ctype in ctypes]))
+
+        self.lat_axis = np.zeros((end-1), dtype="bool")
+        for p in lat_prefixes:
+            self.lat_axis += np_char.startswith(ctypes, p)
+        self.lat_axis = np.where(self.lat_axis)[0][0]
+        self.lat_name = ctypes[self.lat_axis].split("-")[0].lower()
+
+        self.lon_axis = np.zeros((end-1), dtype="bool")
+        for p in lon_prefixes:
+            self.lon_axis += np_char.startswith(ctypes, p)
+        self.lon_axis = np.where(self.lon_axis)[0][0]
+        self.lon_name = ctypes[self.lon_axis].split("-")[0].lower()
 
         if self.wcs.naxis > 2:
 
-            self.vel_axis = np_char.startswith(ctypes, "V")
-            self.vel_axis += np_char.startswith(ctypes, "FREQ")
-            self.vel_axis += np_char.startswith(ctypes, "ENER")
+            self.vel_axis = np.zeros((end-1), dtype="bool")
+            for p in vel_prefixes:
+                self.vel_axis += np_char.startswith(ctypes, p)
             self.vel_axis = np.where(self.vel_axis)[0][0]
-            self.vel_name = ctypes[self.vel_axis].lower()
+            self.vel_name = ctypes[self.vel_axis].split("-")[0].lower()
 
             self.wcs_2d = ap.pywcs.WCS(naxis=2)
-            self.wcs_2d.wcs.crpix = self.wcs.wcs.crpix[[self.ra_axis, self.dec_axis]]
-            self.wcs_2d.wcs.cdelt = self.wcs.wcs.cdelt[[self.ra_axis, self.dec_axis]]
-            self.wcs_2d.wcs.crval = self.wcs.wcs.crval[[self.ra_axis, self.dec_axis]]
-            self.wcs_2d.wcs.cunit = [str(self.wcs.wcs.cunit[self.ra_axis]),
-                                     str(self.wcs.wcs.cunit[self.dec_axis])]
-            self.wcs_2d.wcs.ctype = [self.wcs.wcs.ctype[self.ra_axis],
-                                     self.wcs.wcs.ctype[self.dec_axis]]
+            self.wcs_2d.wcs.crpix = self.wcs.wcs.crpix[[self.lon_axis, self.lat_axis]]
+            self.wcs_2d.wcs.cdelt = self.wcs.wcs.cdelt[[self.lon_axis, self.lat_axis]]
+            self.wcs_2d.wcs.crval = self.wcs.wcs.crval[[self.lon_axis, self.lat_axis]]
+            self.wcs_2d.wcs.cunit = [str(self.wcs.wcs.cunit[self.lon_axis]),
+                                     str(self.wcs.wcs.cunit[self.lat_axis])]
+            self.wcs_2d.wcs.ctype = [self.wcs.wcs.ctype[self.lon_axis],
+                                     self.wcs.wcs.ctype[self.lat_axis]]
 
             self.wcs_1d = ap.pywcs.WCS(naxis=1)
             self.wcs_1d.wcs.crpix = [self.wcs.wcs.crpix[self.vel_axis]]

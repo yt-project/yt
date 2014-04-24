@@ -243,12 +243,17 @@ class MaestroFieldInfo(FieldInfoContainer):
                 self.add_field(name = ("gas", "%s_density" % nice_name),
                                function = func,
                                units = "g/cm**3")
-                # We know this will either have one letter, or two.
-                if field[3] in string.letters:
-                    element, weight = field[2:4], field[4:-1]
-                else:
-                    element, weight = field[2:3], field[3:-1]
-                weight = int(weight)
+                # Most of the time our species will be of the form
+                # element name + atomic weight (e.g. C12), but
+                # sometimes we make up descriptive names (e.g. ash)
+                if any(char.isdigit() for char in field):
+                    # We know this will either have one letter, or two.
+                    if field[3] in string.letters:
+                        element, weight = field[2:4], field[4:-1]
+                    else:
+                        element, weight = field[2:3], field[3:-1]
+                    weight = int(weight)
+
                 # Here we can, later, add number density.
             if field.startswith("omegadot("):
                 nice_name = field[9:-1]

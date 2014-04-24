@@ -337,7 +337,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
                                   registry=self.pf.unit_registry)
             if self.weight_field is None:
                 u_obj = Unit(units, registry=self.pf.unit_registry)
-                if u_obj.is_code_unit and input_units != units:
+                if u_obj.is_code_unit and input_units != units \
+                    or self.pf.no_cgs_equiv_length:
                     if units is '':
                         final_unit = "code_length"
                     else:
@@ -478,9 +479,14 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         return tuple(self.ActiveDimensions.tolist())
 
     def _setup_data_source(self):
-        self._data_source = self.pf.region(self.center,
-            self.left_edge - self.base_dds,
-            self.right_edge + self.base_dds)
+        LE = self.left_edge - self.base_dds
+        RE = self.right_edge + self.base_dds
+        if not all(self.pf.periodicity):
+            for i in range(3):
+                if self.pf.periodicity[i]: continue
+                LE[i] = max(LE[i], self.pf.domain_left_edge[i])
+                RE[i] = min(RE[i], self.pf.domain_right_edge[i])
+        self._data_source = self.pf.region(self.center, LE, RE)
         self._data_source.min_level = 0
         self._data_source.max_level = self.level
         self._pdata_source = self.pf.region(self.center,

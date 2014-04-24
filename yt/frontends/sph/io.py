@@ -113,7 +113,9 @@ class IOHandlerOWLS(BaseIOHandler):
                     elif field in self._element_names:
                         rfield = 'ElementAbundance/' + field
                         data = g[rfield][:][mask,...]
-
+                    elif field.startswith("Metallicity_"):
+                        col = int(field.rsplit("_", 1)[-1])
+                        data = g["Metallicity"][:,col][mask]
                     else:
                         data = g[field][:][mask,...]
 
@@ -190,6 +192,10 @@ class IOHandlerOWLS(BaseIOHandler):
                     for j in gp.keys():
                         kk = j
                         fields.append((ptype, str(kk)))
+                elif k == 'Metallicity' and len(g[k].shape) > 1:
+                    # Vector of metallicity
+                    for i in range(g[k].shape[1]):
+                        fields.append((ptype, "Metallicity_%02i" % i))
                 else:
                     kk = k
                     if not hasattr(g[kk], "shape"): continue
