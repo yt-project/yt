@@ -68,8 +68,8 @@ except ImportError:
     from pyparsing import ParseFatalException
 
 def fix_unitary(u):
-    if u is '1':
-        return 'code_length'
+    if u == '1':
+        return 'unitary'
     else:
         return u
 
@@ -377,10 +377,30 @@ class PlotWindow(ImagePlotContainer):
 
         Parameters
         ----------
-        deltas : sequence of floats
-            (delta_x, delta_y) in *absolute* code unit coordinates
+        deltas : Two-element sequence of floats, quantities, or (float, unit)
+                 tuples.
+            (delta_x, delta_y).  If a unit is not supplied the unit is assumed
+            to be code_length.
 
         """
+        if len(deltas) != 2:
+            raise RuntimeError(
+                "The pan function accepts a two-element sequence.\n"
+                "Received %s." % (deltas, )
+                )
+        if isinstance(deltas[0], Number) and isinstance(deltas[1], Number):
+            deltas = (self.pf.quan(deltas[0], 'code_length'),
+                      self.pf.quan(deltas[1], 'code_length'))
+        elif isinstance(deltas[0], tuple) and isinstance(deltas[1], tuple):
+            deltas = (self.pf.quan(deltas[0][0], deltas[0][1]),
+                      self.pf.quan(deltas[1][0], deltas[1][1]))
+        elif isinstance(deltas[0], YTQuantity) and isinstance(deltas[1], YTQuantity):
+            pass
+        else:
+            raise RuntimeError(
+                "The arguments of the pan function must be a sequence of floats,\n"
+                "quantities, or (float, unit) tuples. Received %s." % (deltas, )
+                )
         self.xlim = (self.xlim[0] + deltas[0], self.xlim[1] + deltas[0])
         self.ylim = (self.ylim[0] + deltas[1], self.ylim[1] + deltas[1])
         return self
