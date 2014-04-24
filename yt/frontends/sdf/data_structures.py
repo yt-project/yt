@@ -41,8 +41,7 @@ from .io import \
     SDFRead
 
 class SDFFile(ParticleFile):
-    def __init__(self, pf, io, filename, file_id):
-        pass
+    pass
 
 class SDFDataset(Dataset):
     _index_class = ParticleIndex
@@ -99,6 +98,8 @@ class SDFDataset(Dataset):
                           self.omega_matter, self.omega_lambda)
         self.current_time = cosmo.hubble_time(self.current_redshift)
         mylog.info("Calculating time to be %0.3e seconds", self.current_time)
+        self.filename_template = self.parameter_filename
+        self.file_count = 1
 
     def _set_code_unit_attributes(self):
         self.length_unit = self.quan(1.0, "kpc")

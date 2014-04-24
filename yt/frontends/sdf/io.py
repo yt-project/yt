@@ -27,31 +27,91 @@ from yt.utilities.fortran_utils import read_record
 from yt.utilities.lib.geometry_utils import compute_morton
 
 from yt.geometry.oct_container import _ORDER_MAX
+CHUNKSIZE = 32**3
 
 class IOHandlerSDF(BaseIOHandler):
-    _dataset_type = "SDF"
+    _dataset_type = "sdf_particles"
 
-    def __init__(self, *args, **kwargs):
-        super(IOHandlerSDF, self).__init__(*args, **kwargs)
-        # Now we create our sdf file reader
-        self.sdf_handle = SDFRead(self.pf.sdf_handle)
+    @property
+    def _handle(self):
+        return self.pf.sdf_container
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
 
     def _read_particle_coords(self, chunks, ptf):
-        pass
+        chunks = list(chunks)
+        data_files = set([])
+        assert(len(ptf) == 1)
+        assert(ptf.keys()[0] == "dark_matter")
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
+        assert(len(data_files) == 1)
+        for data_file in data_files:
+            pcount = self._handle['x'].size
+            yield "dark_matter", (
+                self._handle['x'].astype("float64"),
+                self._handle['y'].astype("float64"),
+                self._handle['z'].astype("float64"))
 
     def _read_particle_fields(self, chunks, ptf, selector):
-        pass
+        chunks = list(chunks)
+        data_files = set([])
+        assert(len(ptf) == 1)
+        assert(ptf.keys()[0] == "dark_matter")
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
+        assert(len(data_files) == 1)
+        for data_file in data_files:
+            pcount = self._handle['x'].size
+            for ptype, field_list in sorted(ptf.items()):
+                x = self._handle['x'].astype("float64")
+                y = self._handle['y'].astype("float64")
+                z = self._handle['z'].astype("float64")
+                mask = selector.select_points(x, y, z, 0.0)
+                del x, y, z
+                if mask is None: continue
+                for field in field_list:
+                    if field == "mass":
+                        data = np.ones(mask.sum(), dtype="float64")
+                        data *= self.pf.parameters["particle_mass"]
+                    else:
+                        data = self._handle[field][mask].astype("float64")
+                    yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):
-        pass
+        x, y, z = (self._handle[ax] for ax in 'xyz')
+        pcount = x.size
+        morton = np.empty(pcount, dtype='uint64')
+        ind = 0
+        pos = np.empty((CHUNKSIZE, 3), dtype=x.dtype)
+        while ind < pcount:
+            npart = min(CHUNKSIZE, pcount - ind)
+            pos[:npart,0] = x[ind:ind+npart]
+            pos[:npart,1] = y[ind:ind+npart]
+            pos[:npart,2] = z[ind:ind+npart]
+            if np.any(pos.min(axis=0) < self.pf.domain_left_edge) or \
+               np.any(pos.max(axis=0) > self.pf.domain_right_edge):
+                raise YTDomainOverflow(pos.min(axis=0),
+                                       pos.max(axis=0),
+                                       self.pf.domain_left_edge,
+                                       self.pf.domain_right_edge)
+            regions.add_data_file(pos, data_file.file_id)
+            morton[ind:ind+npart] = compute_morton(
+                pos[:npart,0], pos[:npart,1], pos[:npart,2],
+                data_file.pf.domain_left_edge,
+                data_file.pf.domain_right_edge)
+            ind += CHUNKSIZE
+        return morton
 
     def _count_particles(self, data_file):
-        pass
+        return {'dark_matter': self._handle['x'].size}
 
     def _identify_fields(self, data_file):
+        fields = [("dark_matter", v) for v in self._handle.keys()]
+        fields.append(("dark_matter", "mass"))
         return fields, {}
 
 import re

@@ -36,19 +36,12 @@ class SDFFieldInfo(FieldInfoContainer):
     known_other_fields = ()
 
     known_particle_fields = (
-        ("Mass", ("code_mass", ["particle_mass"], None)),
-        ("Masses", ("code_mass", ["particle_mass"], None)),
-        ("Coordinates", ("code_length", ["particle_position"], None)),
-        ("Velocity", ("code_velocity", ["particle_velocity"], None)),
-        ("Velocities", ("code_velocity", ["particle_velocity"], None)),
-        ("ParticleIDs", ("", ["particle_index"], None)),
-        ("InternalEnergy", ("", ["thermal_energy"], None)),
-        ("SmoothingLength", ("code_length", ["smoothing_length"], None)),
-        ("Density", ("code_mass / code_length**3", ["density"], None)),
-        ("MaximumTemperature", ("K", [], None)),
-        ("Temperature", ("K", ["temperature"], None)),
-        ("Epsilon", ("code_length", [], None)),
-        ("Metals", ("code_metallicity", ["metallicity"], None)),
-        ("Phi", ("code_length", [], None)),
-        ("FormationTime", ("code_time", ["creation_time"], None)),
+        ("mass", ("code_mass", ["particle_mass"], None)),
+        ("x", ("code_length", ["particle_position_x"], None)),
+        ("y", ("code_length", ["particle_position_y"], None)),
+        ("z", ("code_length", ["particle_position_z"], None)),
+        ("vx", ("code_velocity", ["particle_velocity_x"], None)),
+        ("vy", ("code_velocity", ["particle_velocity_y"], None)),
+        ("vz", ("code_velocity", ["particle_velocity_z"], None)),
+        ("ident", ("", ["particle_identifier"], None)),
     )
