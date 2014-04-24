@@ -31,6 +31,11 @@ from yt.geometry.oct_container import _ORDER_MAX
 class IOHandlerSDF(BaseIOHandler):
     _dataset_type = "SDF"
 
+    def __init__(self, *args, **kwargs):
+        super(IOHandlerSDF, self).__init__(*args, **kwargs)
+        # Now we create our sdf file reader
+        self.sdf_handle = SDFRead(self.pf.sdf_handle)
+
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
 
@@ -52,7 +57,7 @@ class IOHandlerSDF(BaseIOHandler):
 import re
 import os
 
-types = {
+_types = {
     'int': 'int32',
     'int64_t': 'int64',
     'float': 'float32',
@@ -63,19 +68,34 @@ types = {
 
 def get_type(vtype, len=None):
     try:
-        t = types[vtype]
+        t = _types[vtype]
         if len is not None:
             t = np.dtype((t, len))
         else:
             t = np.dtype(t)
     except KeyError:
         t = eval("np."+vtype)
-    print 'Interpreting as type: ', t
     return t
 
 def lstrip(text_list):
     return [t.strip() for t in text_list]
 
+def get_struct_vars(line):
+    spl = lstrip(line.split(";"))
+    multiv = lstrip(spl[0].split(","))
+    ret = lstrip(multiv[0].split())
+    ctype = ret[0]
+    vnames = [ret[-1]] + multiv[1:]
+    vnames = [v.strip() for v in vnames]
+    for vtype in ret[1:-1]:
+        ctype += ' ' + vtype
+    num = None
+    if len(vnames) == 1:
+        if '[' in vnames[0]:
+            num = int(vnames[0].split('[')[-1].strip(']'))
+            #num = int(re.sub("\D", "", vnames[0]))
+    ctype = get_type(ctype, len=num)
+    return ctype, vnames
 
 class DataStruct(object):
     """docstring for DataStruct"""
@@ -159,7 +179,7 @@ class SDFRead(dict):
         try:
             vval = eval("np."+vtype+"(%s)" % vval)
         except AttributeError:
-            vval = eval("np."+types[vtype]+"(%s)" % vval)
+            vval = eval("np."+_types[vtype]+"(%s)" % vval)
 
         self.parameters[vname] = vval
 
