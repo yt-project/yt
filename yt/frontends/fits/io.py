@@ -36,8 +36,8 @@ class IOHandlerFITS(BaseIOHandler):
         pdata = self.pf._handle[self.pf.first_image].data
         assert(len(ptf) == 1)
         ptype = ptf.keys()[0]
-        x = pdata.field("X").newbyteorder("=")
-        y = pdata.field("Y").newbyteorder("=")
+        x = np.asarray(pdata.field("X"), dtype="=f8")
+        y = np.asarray(pdata.field("Y"), dtype="=f8")
         z = np.ones(x.shape)
         yield ptype, (x,y,z)
 
@@ -46,8 +46,8 @@ class IOHandlerFITS(BaseIOHandler):
         assert(len(ptf) == 1)
         ptype = ptf.keys()[0]
         field_list = ptf[ptype]
-        x = pdata.field("X").newbyteorder("=")
-        y = pdata.field("Y").newbyteorder("=")
+        x = np.asarray(pdata.field("X"), dtype="=f8")
+        y = np.asarray(pdata.field("Y"), dtype="=f8")
         z = np.ones(x.shape)
         mask = selector.select_points(x, y, z)
         if mask is None: return
