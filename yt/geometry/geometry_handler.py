@@ -36,7 +36,7 @@ from yt.fields.particle_fields import \
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface
+    ParallelAnalysisInterface, parallel_root_only
 from yt.utilities.exceptions import YTFieldNotFound
 
 class Index(ParallelAnalysisInterface):
@@ -126,6 +126,7 @@ class Index(ParallelAnalysisInterface):
         if getattr(self, "io", None) is not None: return
         self.io = io_registry[self.dataset_type](self.parameter_file)
 
+    @parallel_root_only
     def save_data(self, array, node, name, set_attr=None, force=False, passthrough = False):
         """
         Arbitrary numpy data will be saved to the region in the datafile
