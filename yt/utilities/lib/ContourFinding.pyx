@@ -625,6 +625,7 @@ cdef class ParticleContourTree(ContourTree):
         self.linking_length2 = linking_length * linking_length
         self.first = self.last = NULL
 
+    @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def identify_contours(self, OctreeContainer octree,
@@ -633,7 +634,7 @@ cdef class ParticleContourTree(ContourTree):
                                 np.ndarray[np.int64_t, ndim=1] particle_ids,
                                 int domain_id = -1, int domain_offset = 0,
                                 periodicity = (True, True, True),
-                                minimum_count = 8):
+                                int minimum_count = 8):
         cdef np.ndarray[np.int64_t, ndim=1] pdoms, pcount, pind, doff
         cdef np.float64_t pos[3]
         cdef Oct *oct = NULL, **neighbors = NULL
@@ -641,6 +642,7 @@ cdef class ParticleContourTree(ContourTree):
         cdef ContourID *c0, *c1
         cdef np.int64_t moff = octree.get_domain_offset(domain_id + domain_offset)
         cdef np.int64_t i, j, k, n, nneighbors, pind0, offset
+        cdef int counter = 0
         pcount = np.zeros_like(dom_ind)
         doff = np.zeros_like(dom_ind) - 1
         # First, we find the oct for each particle.
@@ -653,6 +655,7 @@ cdef class ParticleContourTree(ContourTree):
             self.DW[i] = (octree.DRE[i] - octree.DLE[i])
             self.periodicity[i] = periodicity[i]
         for i in range(positions.shape[0]):
+            counter += 1
             container[i] = NULL
             for j in range(3):
                 pos[j] = positions[i, j]
@@ -672,12 +675,12 @@ cdef class ParticleContourTree(ContourTree):
                 doff[offset] = i
         cdef int nsize = 27
         cdef np.int64_t *nind = <np.int64_t *> malloc(sizeof(np.int64_t)*nsize)
-        cdef int counter = 0
+        counter = 0
         for i in range(doff.shape[0]):
             counter += 1
-            if counter == 10000:
+            if counter >= 100000 or counter == 0:
                 counter = 0
-                #print "FOF-ing % 5.1f%% done" % ((100.0 * i)/doff.size)
+                print "FOF-ing % 5.1f%% done" % ((100.0 * i)/doff.size)
             # Any particles found for this oct?
             if doff[i] < 0: continue
             offset = pind[doff[i]]
@@ -729,7 +732,8 @@ cdef class ParticleContourTree(ContourTree):
                 poffset = doff[i] + j
                 c1 = container[poffset]
                 c0 = contour_find(c1)
-                contour_ids[pind[poffset]] = c0.contour_id
+                offset = ipind[poffset]
+                contour_ids[offset] = c0.contour_id
                 c0.count += 1
         for i in range(doff.shape[0]):
             if doff[i] < 0: continue
@@ -738,11 +742,13 @@ cdef class ParticleContourTree(ContourTree):
                 c1 = container[poffset]
                 if c1 == NULL: continue
                 c0 = contour_find(c1)
+                offset = ipind[poffset]
                 if c0.count < minimum_count:
-                    contour_ids[pind[poffset]] = -1
+                    contour_ids[offset] = -1
         free(container)
         return contour_ids
 
+    @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void link_particles(self, ContourID **container, 

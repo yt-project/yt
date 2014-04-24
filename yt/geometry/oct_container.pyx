@@ -267,19 +267,20 @@ cdef class OctreeContainer:
                   ):
         #Given a floating point position, retrieve the most
         #refined oct at that time
-        cdef int ind[3], level
+        cdef int ind32[3]
         cdef np.int64_t ipos[3]
         cdef np.float64_t dds[3], cp[3], pp[3]
         cdef Oct *cur, *next
         cdef int i
         cur = next = NULL
-        level = -1
+        cdef np.int64_t ind[3], level = -1
         for i in range(3):
             dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
             ind[i] = <np.int64_t> ((ppos[i] - self.DLE[i])/dds[i])
             cp[i] = (ind[i] + 0.5) * dds[i] + self.DLE[i]
             ipos[i] = 0
-        self.get_root(ind, &next)
+            ind32[i] = ind[i]
+        self.get_root(ind32, &next)
         # We want to stop recursing when there's nowhere else to go
         while next != NULL:
             level += 1
@@ -345,7 +346,8 @@ cdef class OctreeContainer:
         # grow a stack of parent Octs.
         # Note that in the first iteration, we will just find the up-to-27
         # neighbors, including the main oct.
-        cdef int i, j, k, n, level, ind[3], ii, nfound = 0
+        cdef np.int64_t i, j, k, n, level, ii, nfound = 0, dlevel
+        cdef int ind[3]
         cdef OctList *olist, *my_list
         my_list = olist = NULL
         cdef Oct *cand
@@ -379,9 +381,10 @@ cdef class OctreeContainer:
                     # correctly, but we might.
                     if cand == NULL: continue
                     for level in range(1, oi.level+1):
+                        dlevel = oi.level - level
                         if cand.children == NULL: break
                         for n in range(3):
-                            ind[n] = (npos[n] >> (oi.level - (level))) & 1
+                            ind[n] = (npos[n] >> dlevel) & 1
                         ii = cind(ind[0],ind[1],ind[2])
                         if cand.children[ii] == NULL: break
                         cand = cand.children[ii]
@@ -920,7 +923,7 @@ cdef OctList *OctList_subneighbor_find(OctList *olist, Oct *top,
     # For now, we assume we will not be doing this along all three zeros,
     # because that would be pretty tricky.
     if i == j == k == 0: return olist
-    cdef int n[3], ind[3], off[3][2], ii, ij, ik, ci
+    cdef np.int64_t n[3], ind[3], off[3][2], ii, ij, ik, ci
     ind[0] = 1 - i
     ind[1] = 1 - j
     ind[2] = 1 - k
