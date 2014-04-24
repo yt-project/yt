@@ -99,7 +99,7 @@ class IOHandlerOWLS(BaseIOHandler):
                 g = f["/%s" % ptype]
                 coords = g["Coordinates"][:].astype("float64")
                 mask = selector.select_points(
-                            coords[:,0], coords[:,1], coords[:,2])
+                            coords[:,0], coords[:,1], coords[:,2], 0.0)
                 del coords
                 if mask is None: continue
                 for field in field_list:
@@ -281,7 +281,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
                 pos = self._read_field_from_file(f,
                             tp[ptype], "Coordinates")
                 mask = selector.select_points(
-                    pos[:,0], pos[:,1], pos[:,2])
+                    pos[:,0], pos[:,1], pos[:,2], 0.0)
                 del pos
                 if mask is None: continue
                 for field in field_list:
@@ -534,7 +534,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 mask = selector.select_points(
                     p["Coordinates"]['x'].astype("float64"),
                     p["Coordinates"]['y'].astype("float64"),
-                    p["Coordinates"]['z'].astype("float64"))
+                    p["Coordinates"]['z'].astype("float64"), 0.0)
                 if mask is None: continue
                 tf = self._fill_fields(field_list, p, mask, data_file)
                 for field in field_list:
@@ -751,7 +751,7 @@ class IOHandlerHTTPStream(BaseIOHandler):
                 c = np.frombuffer(s, dtype="float64")
                 c.shape = (c.shape[0]/3.0, 3)
                 mask = selector.select_points(
-                            c[:,0], c[:,1], c[:,2])
+                            c[:,0], c[:,1], c[:,2], 0.0)
                 del c
                 if mask is None: continue
                 for field in field_list:
