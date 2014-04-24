@@ -71,9 +71,9 @@ class IOHandlerFLASH(BaseIOHandler):
             for g1, g2 in particle_sequences(chunk.objs):
                 start = p_ind[g1.id - g1._id_offset]
                 end = p_ind[g2.id - g2._id_offset + 1]
-                x = p_fields[start:end, px]
-                y = p_fields[start:end, py]
-                z = p_fields[start:end, pz]
+                x = np.asarray(p_fields[start:end, px], dtype="=f8")
+                y = np.asarray(p_fields[start:end, py], dtype="=f8")
+                z = np.asarray(p_fields[start:end, pz], dtype="=f8")
                 yield ptype, (x, y, z)
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -90,9 +90,9 @@ class IOHandlerFLASH(BaseIOHandler):
             for g1, g2 in particle_sequences(chunk.objs):
                 start = p_ind[g1.id - g1._id_offset]
                 end = p_ind[g2.id - g2._id_offset + 1]
-                x = p_fields[start:end, px]
-                y = p_fields[start:end, py]
-                z = p_fields[start:end, pz]
+                x = np.asarray(p_fields[start:end, px], dtype="=f8")
+                y = np.asarray(p_fields[start:end, py], dtype="=f8")
+                z = np.asarray(p_fields[start:end, pz], dtype="=f8")
                 mask = selector.select_points(x, y, z)
                 if mask is None: continue
                 for field in field_list:
