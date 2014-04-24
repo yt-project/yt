@@ -51,9 +51,7 @@ class IOHandlerSDF(BaseIOHandler):
         for data_file in data_files:
             pcount = self._handle['x'].size
             yield "dark_matter", (
-                self._handle['x'].astype("float64"),
-                self._handle['y'].astype("float64"),
-                self._handle['z'].astype("float64"))
+                self._handle['x'], self._handle['y'], self._handle['z'])
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
@@ -67,9 +65,9 @@ class IOHandlerSDF(BaseIOHandler):
         for data_file in data_files:
             pcount = self._handle['x'].size
             for ptype, field_list in sorted(ptf.items()):
-                x = self._handle['x'].astype("float64")
-                y = self._handle['y'].astype("float64")
-                z = self._handle['z'].astype("float64")
+                x = self._handle['x']
+                y = self._handle['y']
+                z = self._handle['z']
                 mask = selector.select_points(x, y, z, 0.0)
                 del x, y, z
                 if mask is None: continue
@@ -78,7 +76,7 @@ class IOHandlerSDF(BaseIOHandler):
                         data = np.ones(mask.sum(), dtype="float64")
                         data *= self.pf.parameters["particle_mass"]
                     else:
-                        data = self._handle[field][mask].astype("float64")
+                        data = self._handle[field][mask]
                     yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):
