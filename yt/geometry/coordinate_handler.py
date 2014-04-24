@@ -24,7 +24,7 @@ from yt.fields.field_info_container import \
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface, parallel_splitter
+    ParallelAnalysisInterface
 from yt.utilities.lib.misc_utilities import \
     pixelize_cylinder
 import yt.visualization._MPL as _MPL
