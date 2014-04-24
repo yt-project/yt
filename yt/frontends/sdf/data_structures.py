@@ -92,7 +92,7 @@ class SDFDataset(Dataset):
         self.current_redshift = self.parameters["redshift"]
         self.omega_lambda = self.parameters["Omega0_lambda"]
         self.omega_matter = self.parameters["Omega0_m"]
-        self.hubble_constant = self.parameters["hubble"]
+        self.hubble_constant = self.parameters["h_100"]
         # Now we calculate our time based on the cosmology.
         cosmo = Cosmology(self.hubble_constant,
                           self.omega_matter, self.omega_lambda)
