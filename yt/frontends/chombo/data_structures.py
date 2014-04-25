@@ -111,9 +111,14 @@ class ChomboHierarchy(GridIndex):
         self.float_type = self._handle['Chombo_global'].attrs['testReal'].dtype.name
         self._levels = [key for key in self._handle.keys() if key.startswith('level')]
         GridIndex.__init__(self,pf,dataset_type)
-        #self._read_particles()
+
+        self._read_particles()
 
     def _read_particles(self):
+
+        # only do anything if the dataset contains particles
+        if not np.any([f[1].startswith('particle_') for f in self.field_list]):
+            return
         
         self.num_particles = 0
         particles_per_grid = []
@@ -130,12 +135,20 @@ class ChomboHierarchy(GridIndex):
         assert(self.num_particles == self.grid_particle_count.sum())
 
     def _detect_output_fields(self):
-        ncomp = int(self._handle['/'].attrs['num_components'])
+
+        # look for fluid fields
         output_fields = []
         for key, val in self._handle['/'].attrs.items():
             if key.startswith("component"):
                 output_fields.append(val)
         self.field_list = [("chombo", c) for c in output_fields]
+
+        # look for particle fields
+        particle_fields = []
+        for key, val in self._handle['/'].attrs.items():
+            if key.startswith("particle"):
+                particle_fields.append(val)
+        self.field_list.extend([("io", c) for c in particle_fields])        
           
     def _count_grids(self):
         self.num_grids = 0
@@ -242,7 +255,7 @@ class ChomboDataset(Dataset):
         self.cosmological_simulation = False
 
         # These are parameters that I very much wish to get rid of.
-        self.parameters["HydroMethod"] = 'chombo' # always PPM DE
+        self.parameters["HydroMethod"] = 'chombo'
         self.parameters["DualEnergyFormalism"] = 0 
         self.parameters["EOSType"] = -1 # default
 
@@ -270,13 +283,11 @@ class ChomboDataset(Dataset):
         self.domain_dimensions = self._calc_domain_dimensions()
 
         if self.dimensionality == 1:
-#            self._fieldinfo_fallback = Chombo1DFieldInfo
             self.domain_left_edge = np.concatenate((self.domain_left_edge, [0.0, 0.0]))
             self.domain_right_edge = np.concatenate((self.domain_right_edge, [1.0, 1.0]))
             self.domain_dimensions = np.concatenate((self.domain_dimensions, [1, 1]))
 
         if self.dimensionality == 2:
-#            self._fieldinfo_fallback = Chombo2DFieldInfo
             self.domain_left_edge = np.concatenate((self.domain_left_edge, [0.0]))
             self.domain_right_edge = np.concatenate((self.domain_right_edge, [1.0]))
             self.domain_dimensions = np.concatenate((self.domain_dimensions, [1]))
