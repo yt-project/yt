@@ -28,6 +28,8 @@ from yt.utilities.physical_constants import \
     sec_per_day, sec_per_hr
 from yt.visualization.image_writer import apply_colormap
 
+from matplotlib.colors import colorConverter
+
 import _MPL
 
 callback_registry = {}
@@ -345,7 +347,9 @@ class GridBoundaryCallback(PlotCallback):
     colors different levels of grids with different colors going from white to
     black, but you can change to any arbitrary colormap with cmap keyword, to all black
     grid edges for all levels with cmap=None and edgecolors=None, or to an arbitrary single
-    color for grid edges with edgecolors='YourChosenColor' (e.g., edgecolors='white').
+    color for grid edges with edgecolors='YourChosenColor' defined in any of the standard ways
+    (e.g., edgecolors='white', edgecolors='r', edgecolors='#00FFFF', or edgecolor='0.3', where
+    the last is a float in 0-1 scale indicating gray).
     Note that setting edgecolors overrides cmap if you have both set to non-None values.
     Cutoff for display is at min_pix wide. draw_ids puts the grid id in the corner of the grid. 
     (Not so great in projections...).  One can set min and maximum level of
@@ -406,7 +410,7 @@ class GridBoundaryCallback(PlotCallback):
 
             # Grids can either be set by edgecolors OR a colormap.
             if self.edgecolors is not None: 
-                edgecolors = self.edgecolors
+                edgecolors = colorConverter.to_rgba(self.edgecolors, alpha=self.alpha)
             else:  # use colormap if not explicity overridden by edgecolors
                 if self.cmap is not None: 
                     edgecolors = apply_colormap(levels[(levels <= max_level) & (levels >= min_level)]*1.0,
