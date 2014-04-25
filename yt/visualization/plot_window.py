@@ -628,14 +628,14 @@ class PlotWindow(ImagePlotContainer):
         from wcsaxes import WCSAxes
         if self.oblique:
             raise NotImplementedError("WCS axes are not implemented for oblique plots.")
-        if not hasattr(self.pf, "wcs"):
+        if not hasattr(self.pf, "wcs_2d"):
             raise NotImplementedError("WCS axes are not implemented for this dataset")
         if set_axes and not self._wcs_axes:
             self._wcs_axes = True
             for f in self.plots:
                 rect = self.plots[f]._get_best_layout()[1]
                 fig = self.plots[f].figure
-                ax = WCSAxes(fig, rect, wcs=self.pf.wcs, frameon=False)
+                ax = WCSAxes(fig, rect, wcs=self.pf.wcs_2d, frameon=False)
                 fig.add_axes(ax)
         else:
             if not self._wcs_axes: return
@@ -831,15 +831,12 @@ class PWViewerMPL(PlotWindow):
                 axis = self.data_source.axis
                 wcs_axes = self.plots[f].figure.axes[-1]
                 wcs = wcs_axes.wcs.wcs
-                #self.plots[f].axes.set_xticklabels([])
-                #self.plots[f].axes.set_yticklabels([])
                 self.plots[f].axes.get_xaxis().set_visible(False)
                 self.plots[f].axes.get_yaxis().set_visible(False)
-
-                wcs_axes.coords[0].set_axislabel(wcs.ctype[x_dict[axis]].split("-")[0],
-                                                 fontproperties=fp)
-                wcs_axes.coords[1].set_axislabel(wcs.ctype[y_dict[axis]].split("-")[0],
-                                                 fontproperties=fp)
+                xlabel = wcs.ctype[x_dict[axis]].split("-")[0]
+                ylabel = wcs.ctype[y_dict[axis]].split("-")[0]
+                wcs_axes.coords[0].set_axislabel(xlabel, fontproperties=fp)
+                wcs_axes.coords[1].set_axislabel(ylabel, fontproperties=fp)
                 wcs_axes.set_xlim(self.xlim[0].value, self.xlim[1].value)
                 wcs_axes.set_ylim(self.ylim[0].value, self.ylim[1].value)
                 wcs_axes.coords[0].ticklabels.set_fontproperties(fp)
