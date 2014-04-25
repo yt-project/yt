@@ -213,9 +213,8 @@ cdef class RockstarGroupiesInterface:
         cdef np.int64_t num_particles = pid.shape[0]
 
         # Allocate space for correct number of particles
-        cdef particle* particles = <particle*> malloc(npart_max * sizeof(particle))
         cdef fof fof_obj
-        fof_obj.particles = particles
+        fof_obj.particles = <particle*> malloc(npart_max * sizeof(particle))
 
         cdef np.int64_t last_fof_tag = 1
         cdef np.int64_t k = 0
@@ -228,14 +227,14 @@ cdef class RockstarGroupiesInterface:
                     fof_obj.num_p = k
                     find_subs(&fof_obj)
                 k = 0
-            particles[k].id = pid[i]
+            fof_obj.particles[k].id = k
 
             # fill in locations & velocities
             for j in range(3):
-                particles[k].pos[j] = pos[i,j]
-                particles[k].pos[j+3] = vel[i,j]
+                fof_obj.particles[k].pos[j] = pos[i,j]
+                fof_obj.particles[k].pos[j+3] = vel[i,j]
             k += 1
-        free(particles)
+        free(fof_obj.particles)
 
 
 
