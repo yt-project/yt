@@ -78,7 +78,6 @@ class astropy_imports:
 
 ap = astropy_imports()
 
-known_units = dict([(unit.lower(),unit) for unit in default_unit_symbol_lut])
 lat_prefixes = ["DEC","GLAT"]
 lon_prefixes = ["RA","GLON"]
 vel_prefixes = ["V","ENER","FREQ","WAV"]
@@ -125,7 +124,7 @@ class FITSHierarchy(GridIndex):
                 return v
         return None
 
-    def _determine_image_units(self, header):
+    def _determine_image_units(self, header, known_units):
         try:
             field_units = header["bunit"].lower().strip(" ").replace(" ", "")
             # FITS units always return upper-case, so we need to get
@@ -171,6 +170,7 @@ class FITSHierarchy(GridIndex):
         self._file_map = {}
         self._ext_map = {}
         self._scale_map = {}
+        known_units = dict([(unit.lower(),unit) for unit in self.pf.unit_registry.lut])
         # We create a field from each slice on the 4th axis
         if self.parameter_file.naxis == 4:
             naxis4 = self.parameter_file.primary_header["naxis4"]
@@ -180,7 +180,7 @@ class FITSHierarchy(GridIndex):
             for j, hdu in enumerate(fits_file):
                 if self._ensure_same_dims(hdu):
                     for k in xrange(naxis4):
-                        units = self._determine_image_units(hdu.header)
+                        units = self._determine_image_units(hdu.header, known_units)
                         try:
                             # Grab field name from btype
                             fname = hdu.header["btype"].lower()
@@ -249,12 +249,13 @@ class FITSHierarchy(GridIndex):
             self.grid_right_edge[0,:] = pf.domain_right_edge
             self.grid_dimensions[0] = pf.domain_dimensions
 
-        try:
-            self.grid_particle_count[:] = pf.primary_header["naxis2"]
-        except KeyError:
-            self.grid_particle_count[:] = 0.0
-        self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
-        self._particle_indices[1] = self.grid_particle_count.squeeze()
+        if self.pf.events_data:
+            try:
+                self.grid_particle_count[:] = pf.primary_header["naxis2"]
+            except KeyError:
+                self.grid_particle_count[:] = 0.0
+            self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
+            self._particle_indices[1] = self.grid_particle_count.squeeze()
 
         self.grid_levels.flat[:] = 0
         self.grids = np.empty(self.num_grids, dtype='object')
