@@ -668,7 +668,7 @@ class PlotWindow(ImagePlotContainer):
                 self.plots[f].cax = None
             self._setup_plots()
         return self
-    
+
 class PWViewerMPL(PlotWindow):
     """Viewer using matplotlib as a backend via the WindowPlotMPL.
 
@@ -801,6 +801,9 @@ class PWViewerMPL(PlotWindow):
                 self.figure_size, fp.get_size(),
                 aspect, fig, axes, cax)
 
+            if not hasattr(self.plots[f].figure.axes[-1], "wcs"):
+                self._wcs_axes = False
+
             if not self._wcs_axes:
                 axes_unit_labels = ['', '']
                 comoving = False
@@ -856,14 +859,18 @@ class PWViewerMPL(PlotWindow):
                 wcs = wcs_axes.wcs.wcs
                 self.plots[f].axes.get_xaxis().set_visible(False)
                 self.plots[f].axes.get_yaxis().set_visible(False)
-                xlabel = wcs.ctype[x_dict[axis]].split("-")[0]
-                ylabel = wcs.ctype[y_dict[axis]].split("-")[0]
+                xlabel = "%s (%s)" % (wcs.ctype[x_dict[axis]].split("-")[0],
+                                      wcs.cunit[x_dict[axis]])
+                ylabel = "%s (%s)" % (wcs.ctype[y_dict[axis]].split("-")[0],
+                                      wcs.cunit[x_dict[axis]])
                 wcs_axes.coords[0].set_axislabel(xlabel, fontproperties=fp)
                 wcs_axes.coords[1].set_axislabel(ylabel, fontproperties=fp)
                 wcs_axes.set_xlim(self.xlim[0].value, self.xlim[1].value)
                 wcs_axes.set_ylim(self.ylim[0].value, self.ylim[1].value)
                 wcs_axes.coords[0].ticklabels.set_fontproperties(fp)
                 wcs_axes.coords[1].ticklabels.set_fontproperties(fp)
+                wcs_axes.coords[0].set_major_formatter('d.dd')
+                wcs_axes.coords[1].set_major_formatter('d.dd')
 
             colorbar_label = image.info['label']
 
