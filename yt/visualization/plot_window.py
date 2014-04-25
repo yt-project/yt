@@ -649,7 +649,9 @@ class PlotWindow(ImagePlotContainer):
         if self.oblique:
             raise NotImplementedError("WCS axes are not implemented for oblique plots.")
         if not hasattr(self.pf, "wcs_2d"):
-            raise NotImplementedError("WCS axes are not implemented for this dataset")
+            raise NotImplementedError("WCS axes are not implemented for this dataset.")
+        if self.data_source.axis != self.pf.vel_axis:
+            raise NotImplementedError("WCS axes are not implemented for this axis.")
         if set_axes and not self._wcs_axes:
             self._wcs_axes = True
             for f in self.plots:
