@@ -93,7 +93,7 @@ class IOHandlerFLASH(BaseIOHandler):
                 x = np.asarray(p_fields[start:end, px], dtype="=f8")
                 y = np.asarray(p_fields[start:end, py], dtype="=f8")
                 z = np.asarray(p_fields[start:end, pz], dtype="=f8")
-                mask = selector.select_points(x, y, z)
+                mask = selector.select_points(x, y, z, 0.0)
                 if mask is None: continue
                 for field in field_list:
                     fi = self._particle_fields[field]
