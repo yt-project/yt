@@ -660,14 +660,15 @@ class PlotWindow(ImagePlotContainer):
                 ax = WCSAxes(fig, rect, wcs=self.pf.wcs_2d, frameon=False)
                 fig.add_axes(ax)
         else:
-            if not self._wcs_axes: return
+            if not self._wcs_axes: return self
             self._wcs_axes = False
             for f in self.plots:
                 self.plots[f].figure = None
                 self.plots[f].axes = None
                 self.plots[f].cax = None
             self._setup_plots()
-
+        return self
+    
 class PWViewerMPL(PlotWindow):
     """Viewer using matplotlib as a backend via the WindowPlotMPL.
 
