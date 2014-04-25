@@ -617,7 +617,7 @@ def update_joins(np.ndarray[np.int64_t, ndim=2] joins,
 
 cdef class ParticleContourTree(ContourTree):
     cdef np.float64_t linking_length, linking_length2
-    cdef np.float64_t DW[3]
+    cdef np.float64_t DW[3], DLE[3], DRE[3]
     cdef bint periodicity[3]
 
     def __init__(self, linking_length):
@@ -653,6 +653,8 @@ cdef class ParticleContourTree(ContourTree):
             sizeof(ContourID*) * positions.shape[0])
         for i in range(3):
             self.DW[i] = (octree.DRE[i] - octree.DLE[i])
+            self.DLE[i] = octree.DLE[i]
+            self.DRE[i] = octree.DRE[i]
             self.periodicity[i] = periodicity[i]
         for i in range(positions.shape[0]):
             counter += 1
@@ -779,8 +781,12 @@ cdef class ParticleContourTree(ContourTree):
         for i in range(3):
             # We make a very conservative guess here about the edges.
             pos0[i] = positions[pind0*3 + i]
-            edges[0][i] = pos0[i] - self.linking_length/2.0
-            edges[1][i] = pos0[i] + self.linking_length/2.0
+            edges[0][i] = pos0[i] - self.linking_length*1.01
+            edges[1][i] = pos0[i] + self.linking_length*1.01
+            if edges[0][i] < self.DLE[i] or edges[0][i] > self.DRE[i]:
+                # We skip this one, since we're close to the boundary
+                edges[0][i] = -1e30
+                edges[1][i] = 1e30
         # Lets set up some bounds for the particles.  Maybe we can get away
         # with reducing our number of calls to r2dist_early.
         for i in range(pcount):
