@@ -170,7 +170,12 @@ class FITSHierarchy(GridIndex):
         self._file_map = {}
         self._ext_map = {}
         self._scale_map = {}
+        # Warning! FITS header keywords are case-insensitive!
         known_units = dict([(unit.lower(),unit) for unit in self.pf.unit_registry.lut])
+        for unit in known_units.values():
+            if unit in prefixable_units:
+                for p in unit_prefixes:
+                    known_units[(p+unit).lower()] = p+unit
         # We create a field from each slice on the 4th axis
         if self.parameter_file.naxis == 4:
             naxis4 = self.parameter_file.primary_header["naxis4"]
@@ -193,12 +198,7 @@ class FITSHierarchy(GridIndex):
                         if naxis4 > 1:
                             fname += "_%s_%d" % (hdu.header["CTYPE4"], k+1)
                         if self.pf.num_files > 1:
-                            try:
-                                fname += "_%5.3f_GHz" % (hdu.header["restfreq"]/1.0e9)
-                            except:
-                                fname += "_%5.3f_GHz" % (hdu.header["restfrq"]/1.0e9)
-                            else:
-                                fname += "_file_%d" % (i)
+                            fname += "_file_%d" % (i)
                         self._axis_map[fname] = k
                         self._file_map[fname] = fits_file
                         self._ext_map[fname] = j
@@ -328,6 +328,7 @@ class FITSDataset(Dataset):
 
         if suppress_astropy_warnings:
             warnings.filterwarnings('ignore', module="astropy", append=True)
+        slave_files = ensure_list(slave_files)
         self.filenames = [filename] + slave_files
         self.num_files = len(self.filenames)
         self.fluid_types += ("fits",)
@@ -338,17 +339,26 @@ class FITSDataset(Dataset):
         elif isinstance(nan_mask, dict):
             self.nan_mask = nan_mask
         self.nprocs = nprocs
-        self._handle = ap.pyfits.open(self.filenames[0],
-                                      memmap=True,
-                                      do_not_scale_image_data=True,
-                                      ignore_blank=True)
+        if isinstance(self.filenames[0], ap.pyfits.HDUList):
+            self._handle = self.filenames[0]
+            file_name = self._handle.filename()
+            if file_name is None: file_name = "NOT_ON_DISK"
+        else:
+            file_name = filename
+            self._handle = ap.pyfits.open(self.filenames[0],
+                                          memmap=True,
+                                          do_not_scale_image_data=True,
+                                          ignore_blank=True)
         self._fits_files = [self._handle]
         if self.num_files > 1:
             for fits_file in slave_files:
-                self._fits_files.append(ap.pyfits.open(fits_file,
-                                                       memmap=True,
-                                                       do_not_scale_image_data=True,
-                                                       ignore_blank=True))
+                if isinstance(fits_file, ap.pyfits.HDUList):
+                    f = fits_file
+                else:
+                    f = ap.pyfits.open(fits_file, memmap=True,
+                                       do_not_scale_image_data=True,
+                                       ignore_blank=True)
+                self._fits_files.append(f)
 
         if len(self._handle) > 1 and self._handle[1].name == "EVENTS":
             self.events_data = True
@@ -393,7 +403,7 @@ class FITSDataset(Dataset):
 
         self.refine_by = 2
 
-        Dataset.__init__(self, filename, dataset_type)
+        Dataset.__init__(self, file_name, dataset_type)
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):
