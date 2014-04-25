@@ -43,5 +43,5 @@ class SDFFieldInfo(FieldInfoContainer):
         ("vx", ("code_velocity", ["particle_velocity_x"], None)),
         ("vy", ("code_velocity", ["particle_velocity_y"], None)),
         ("vz", ("code_velocity", ["particle_velocity_z"], None)),
-        ("ident", ("", ["particle_identifier"], None)),
+        ("ident", ("", ["particle_index"], None)),
     )
