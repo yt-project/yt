@@ -358,19 +358,20 @@ class FITSDataset(Dataset):
             self.wcs = ap.pywcs.WCS(naxis=2)
             self.events_info = {}
             for k,v in self.primary_header.items():
-                if v in ["X","Y"]:
-                    num = k.strip("TTYPE")
-                    self.events_info[v.lower()] = (self.primary_header["TLMIN"+num],
-                                                   self.primary_header["TLMAX"+num],
-                                                   self.primary_header["TCTYP"+num],
-                                                   self.primary_header["TCRVL"+num],
-                                                   self.primary_header["TCDLT"+num],
-                                                   self.primary_header["TCRPX"+num])
-                elif v in ["ENERGY","TIME"]:
-                    num = k.strip("TTYPE")
-                    unit = self.primary_header["TUNIT"+num].lower()
-                    if unit.endswith("ev"): unit = unit.replace("ev","eV")
-                    self.events_info[v.lower()] = unit
+                if k.startswith("TTYP"):
+                    if v.lower() in ["x","y"]:
+                        num = k.strip("TTYPE")
+                        self.events_info[v.lower()] = (self.primary_header["TLMIN"+num],
+                                                       self.primary_header["TLMAX"+num],
+                                                       self.primary_header["TCTYP"+num],
+                                                       self.primary_header["TCRVL"+num],
+                                                       self.primary_header["TCDLT"+num],
+                                                       self.primary_header["TCRPX"+num])
+                    elif v.lower() in ["energy","time"]:
+                        num = k.strip("TTYPE")
+                        unit = self.primary_header["TUNIT"+num].lower()
+                        if unit.endswith("ev"): unit = unit.replace("ev","eV")
+                        self.events_info[v.lower()] = unit
             self.axis_names = [self.events_info[ax][2] for ax in ["x","y"]]
             self.wcs.wcs.cdelt = [self.events_info["x"][4],self.events_info["y"][4]]
             self.wcs.wcs.crpix = [self.events_info["x"][5],self.events_info["y"][5]]
