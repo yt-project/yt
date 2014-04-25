@@ -29,7 +29,7 @@ from .amr_kdtools cimport _find_node, Node
 from .grid_traversal cimport VolumeContainer, PartitionedGrid, \
     vc_index, vc_pos_index
 
-cdef ContourID *contour_create(np.int64_t contour_id,
+cdef inline ContourID *contour_create(np.int64_t contour_id,
                                ContourID *prev = NULL):
     node = <ContourID *> malloc(sizeof(ContourID))
     #print "Creating contour with id", contour_id
@@ -40,12 +40,12 @@ cdef ContourID *contour_create(np.int64_t contour_id,
     if prev != NULL: prev.next = node
     return node
 
-cdef void contour_delete(ContourID *node):
+cdef inline void contour_delete(ContourID *node):
     if node.prev != NULL: node.prev.next = node.next
     if node.next != NULL: node.next.prev = node.prev
     free(node)
 
-cdef ContourID *contour_find(ContourID *node):
+cdef inline ContourID *contour_find(ContourID *node):
     cdef ContourID *temp, *root
     root = node
     # First we find the root
@@ -61,7 +61,7 @@ cdef ContourID *contour_find(ContourID *node):
         node = temp
     return root
 
-cdef void contour_union(ContourID *node1, ContourID *node2):
+cdef inline void contour_union(ContourID *node1, ContourID *node2):
     node1 = contour_find(node1)
     node2 = contour_find(node2)
     if node1.contour_id < node2.contour_id:
@@ -69,7 +69,7 @@ cdef void contour_union(ContourID *node1, ContourID *node2):
     elif node2.contour_id < node1.contour_id:
         node1.parent = node2
 
-cdef int candidate_contains(CandidateContour *first,
+cdef inline int candidate_contains(CandidateContour *first,
                             np.int64_t contour_id,
                             np.int64_t join_id = -1):
     while first != NULL:
@@ -78,7 +78,7 @@ cdef int candidate_contains(CandidateContour *first,
         first = first.next
     return 0
 
-cdef CandidateContour *candidate_add(CandidateContour *first,
+cdef inline CandidateContour *candidate_add(CandidateContour *first,
                                      np.int64_t contour_id,
                                      np.int64_t join_id = -1):
     cdef CandidateContour *node
@@ -659,7 +659,7 @@ cdef class ParticleContourTree(ContourTree):
             container[i] = NULL
             for j in range(3):
                 pos[j] = positions[i, j]
-            oct = octree.get(pos)
+            oct = octree.get(pos, NULL)
             if oct == NULL or (domain_id > 0 and oct.domain != domain_id):
                 continue
             offset = oct.domain_ind - moff
@@ -676,11 +676,13 @@ cdef class ParticleContourTree(ContourTree):
         cdef int nsize = 27
         cdef np.int64_t *nind = <np.int64_t *> malloc(sizeof(np.int64_t)*nsize)
         counter = 0
+        cdef np.int64_t frac = <np.int64_t> (doff.shape[0] / 20.0)
+        cdef int inside, skip_early
         for i in range(doff.shape[0]):
-            counter += 1
-            if counter >= 100000 or counter == 0:
+            if counter >= frac:
                 counter = 0
                 print "FOF-ing % 5.1f%% done" % ((100.0 * i)/doff.size)
+            counter += 1
             # Any particles found for this oct?
             if doff[i] < 0: continue
             offset = pind[doff[i]]
@@ -706,13 +708,23 @@ cdef class ParticleContourTree(ContourTree):
                     break
             # This is allocated by the neighbors function, so we deallocate it.
             free(neighbors)
-            # Now we look at each particle.
+            # We might know that all our internal particles are linked.
+            # Otherwise, we look at each particle.
+            inside = 0
+            for j in range(3):
+                if oi.dds[j] * (1 << octree.oref) > self.linking_length:
+                    inside += 1
             for j in range(pcount[i]):
                 # Note that this offset is the particle index
                 pind0 = pind[doff[i] + j]
                 # Look at each neighboring oct
                 for k in range(nneighbors):
                     if nind[k] == -1: continue
+                    # If all internal particles are inside the linking length
+                    # and we are on the self-Oct, we supply an early skip.
+                    skip_early = 0
+                    if inside == 3 and nind[k] == i:
+                        skip_early = 1
                     offset = doff[nind[k]]
                     if offset < 0: continue
                     # NOTE: doff[i] will not monotonically increase.  So we
@@ -722,7 +734,7 @@ cdef class ParticleContourTree(ContourTree):
                                         fpos, ipind,
                                         pcount[nind[k]], 
                                         offset, pind0, 
-                                        doff[i] + j)
+                                        doff[i] + j, skip_early)
         cdef np.ndarray[np.int64_t, ndim=1] contour_ids
         contour_ids = -1 * np.ones(positions.shape[0], dtype="int64")
         # Sort on our particle IDs.
@@ -757,9 +769,11 @@ cdef class ParticleContourTree(ContourTree):
                                    np.int64_t pcount, 
                                    np.int64_t noffset,
                                    np.int64_t pind0,
-                                   np.int64_t poffset):
+                                   np.int64_t poffset,
+                                   int skip_early):
         # Now we look at each particle and evaluate it
-        cdef np.float64_t pos0[3], pos1[3], d
+        cdef np.float64_t pos0[3], pos1[3], edges[2][3]
+        cdef int link
         cdef ContourID *c0, *c1
         cdef np.int64_t pind1
         cdef int i, j, k
@@ -771,23 +785,61 @@ cdef class ParticleContourTree(ContourTree):
             self.last = c0
             if self.first == NULL:
                 self.first = c0
-        c0 = contour_find(c0)
-        container[pind0] = c0
+        if skip_early == 1:
+            for i in range(pcount):
+                pind1 = pind[noffset + i]
+                container[pind1] = c0
+            return
         for i in range(3):
             pos0[i] = positions[pind0*3 + i]
+            edges[0][i] = pos0[i] - self.linking_length
+            edges[1][i] = pos0[i] + self.linking_length
+        # Lets set up some bounds for the particles.  Maybe we can get away
+        # with reducing our number of calls to r2dist_early.
         for i in range(pcount):
             pind1 = pind[noffset + i]
             if pind1 == pind0: continue
+            c1 = container[pind1]
+            if c1 != NULL and c1.contour_id == c0.contour_id:
+                # Already linked.
+                continue
             for j in range(3):
                 pos1[j] = positions[pind1*3 + j]
-            d = r2dist(pos0, pos1, self.DW, self.periodicity)
-            if d > self.linking_length2:
-                continue
-            c1 = container[pind1]
+            link = r2dist_early(pos0, pos1, self.DW, self.periodicity,
+                                self.linking_length2, edges)
+            if link == 0: continue
             if c1 == NULL:
-                container[pind1] = c1 = contour_create(
-                    noffset + i, self.last)
-            contour_union(c0, c1)
-            c0 = c1 = contour_find(c0)
-            container[pind1] = c0
-            container[pind0] = c0
+                container[pind1] = c0
+            elif c0.contour_id != c1.contour_id:
+                contour_union(c0, c1)
+                c0 = container[pind1] = container[pind0] = contour_find(c0)
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline int r2dist_early(np.float64_t ppos[3],
+                             np.float64_t cpos[3],
+                             np.float64_t DW[3],
+                             bint periodicity[3],
+                             np.float64_t max_r2,
+                             np.float64_t edges[2][3]):
+    cdef int i
+    cdef np.float64_t r2, DR
+    r2 = 0.0
+    cdef int inside = 0
+    for i in range(3):
+        if cpos[i] < edges[0][i]:
+            return 0
+        if cpos[i] > edges[1][i]:
+            return 0
+    for i in range(3):
+        DR = (ppos[i] - cpos[i])
+        if not periodicity[i]:
+            pass
+        elif (DR > DW[i]/2.0):
+            DR -= DW[i]
+        elif (DR < -DW[i]/2.0):
+            DR += DW[i]
+        r2 += DR * DR
+        if r2 > max_r2: return 0
+    return 1

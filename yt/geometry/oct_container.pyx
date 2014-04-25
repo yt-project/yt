@@ -264,7 +264,7 @@ cdef class OctreeContainer:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef Oct *get(self, np.float64_t ppos[3], OctInfo *oinfo = NULL,
-                  ):
+                  int max_level = 99):
         #Given a floating point position, retrieve the most
         #refined oct at that time
         cdef int ind32[3]
@@ -282,7 +282,7 @@ cdef class OctreeContainer:
             ind32[i] = ind[i]
         self.get_root(ind32, &next)
         # We want to stop recursing when there's nowhere else to go
-        while next != NULL:
+        while next != NULL and level <= max_level:
             level += 1
             for i in range(3):
                 ipos[i] = (ipos[i] << 1) + ind[i]
@@ -357,6 +357,7 @@ cdef class OctreeContainer:
         # ndim is the oct dimensions of the level, not the cell dimensions.
         for i in range(3):
             ndim[i] = <np.int64_t> ((self.DRE[i] - self.DLE[i]) / oi.dds[i])
+            # Here we adjust for oi.dds meaning *cell* width.
             ndim[i] = (ndim[i] >> self.oref)
         my_list = olist = OctList_append(NULL, o)
         for i in range(3):
@@ -911,6 +912,7 @@ cdef class ARTOctreeContainer(OctreeContainer):
                 domain_left_edge, domain_right_edge, partial_coverage,
                  over_refine)
         self.fill_func = oct_visitors.fill_file_indices_rind
+
 cdef OctList *OctList_subneighbor_find(OctList *olist, Oct *top,
                                        int i, int j, int k):
     if top.children == NULL: return olist
