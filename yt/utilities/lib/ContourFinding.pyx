@@ -710,21 +710,12 @@ cdef class ParticleContourTree(ContourTree):
             free(neighbors)
             # We might know that all our internal particles are linked.
             # Otherwise, we look at each particle.
-            inside = 0
-            for j in range(3):
-                if oi.dds[j] * (1 << octree.oref) > self.linking_length:
-                    inside += 1
             for j in range(pcount[i]):
                 # Note that this offset is the particle index
                 pind0 = pind[doff[i] + j]
                 # Look at each neighboring oct
                 for k in range(nneighbors):
                     if nind[k] == -1: continue
-                    # If all internal particles are inside the linking length
-                    # and we are on the self-Oct, we supply an early skip.
-                    skip_early = 0
-                    if inside == 3 and nind[k] == i:
-                        skip_early = 1
                     offset = doff[nind[k]]
                     if offset < 0: continue
                     # NOTE: doff[i] will not monotonically increase.  So we
@@ -734,7 +725,7 @@ cdef class ParticleContourTree(ContourTree):
                                         fpos, ipind,
                                         pcount[nind[k]], 
                                         offset, pind0, 
-                                        doff[i] + j, skip_early)
+                                        doff[i] + j)
         cdef np.ndarray[np.int64_t, ndim=1] contour_ids
         contour_ids = -1 * np.ones(positions.shape[0], dtype="int64")
         # Sort on our particle IDs.
@@ -769,8 +760,7 @@ cdef class ParticleContourTree(ContourTree):
                                    np.int64_t pcount, 
                                    np.int64_t noffset,
                                    np.int64_t pind0,
-                                   np.int64_t poffset,
-                                   int skip_early):
+                                   np.int64_t poffset):
         # Now we look at each particle and evaluate it
         cdef np.float64_t pos0[3], pos1[3], edges[2][3]
         cdef int link
@@ -785,15 +775,12 @@ cdef class ParticleContourTree(ContourTree):
             self.last = c0
             if self.first == NULL:
                 self.first = c0
-        if skip_early == 1:
-            for i in range(pcount):
-                pind1 = pind[noffset + i]
-                container[pind1] = c0
-            return
+        c0 = container[pind0] = contour_find(c0)
         for i in range(3):
+            # We make a very conservative guess here about the edges.
             pos0[i] = positions[pind0*3 + i]
-            edges[0][i] = pos0[i] - self.linking_length
-            edges[1][i] = pos0[i] + self.linking_length
+            edges[0][i] = pos0[i] - self.linking_length/2.0
+            edges[1][i] = pos0[i] + self.linking_length/2.0
         # Lets set up some bounds for the particles.  Maybe we can get away
         # with reducing our number of calls to r2dist_early.
         for i in range(pcount):
