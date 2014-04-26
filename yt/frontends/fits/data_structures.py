@@ -185,7 +185,11 @@ class FITSHierarchy(GridIndex):
         for i, fits_file in enumerate(self.parameter_file._fits_files):
             for j, hdu in enumerate(fits_file):
                 if self._ensure_same_dims(hdu):
-                    for k in xrange(naxis4):
+                    if len(self.pf.override_fields) > 0:
+                        field = self.pf.override_fields.pop(0)
+                        fname = field[0]
+                        units = field[1]
+                    else:
                         units = self._determine_image_units(hdu.header, known_units)
                         try:
                             # Grab field name from btype
@@ -194,12 +198,11 @@ class FITSHierarchy(GridIndex):
                             # Try to guess the name from the units
                             fname = self._guess_name_from_units(units)
                             # When all else fails
-                            if fname is None:
-                                fname = "image_%d" % (j)
+                            if fname is None: fname = "image_%d" % (j)
+                        if self.pf.num_files > 1: fname += "_file_%d" % (i)
+                    for k in xrange(naxis4):
                         if naxis4 > 1:
                             fname += "_%s_%d" % (hdu.header["CTYPE4"], k+1)
-                        if self.pf.num_files > 1:
-                            fname += "_file_%d" % (i)
                         self._axis_map[fname] = k
                         self._file_map[fname] = fits_file
                         self._ext_map[fname] = j
@@ -314,11 +317,16 @@ class FITSDataset(Dataset):
                  folded_width = None,
                  line_database = None,
                  suppress_astropy_warnings = True,
-                 parameters = None):
+                 parameters = None,
+                 override_fields = None):
 
         if parameters is None:
             parameters = {}
         self.specified_parameters = parameters
+
+        if override_fields is None:
+            override_fields = []
+        self.override_fields = override_fields
 
         self.folded_axis = folded_axis
         self.folded_width = folded_width
