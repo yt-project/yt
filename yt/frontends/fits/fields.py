@@ -57,5 +57,8 @@ class FITSFieldInfo(FieldInfoContainer):
     def setup_fluid_fields(self):
 
         if self.pf.ppv_data:
+            def _pixel(field, data):
+                return data.pf.arr(data["ones"], "pixel")
+            self.add_field(("fits","pixel"), function=_pixel, units="pixel")
             self._setup_ppv_fields()
             return
