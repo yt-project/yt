@@ -28,6 +28,7 @@ from yt.geometry.particle_smooth cimport r2dist
 from .amr_kdtools cimport _find_node, Node
 from .grid_traversal cimport VolumeContainer, PartitionedGrid, \
     vc_index, vc_pos_index
+import sys
 
 cdef inline ContourID *contour_create(np.int64_t contour_id,
                                ContourID *prev = NULL):
@@ -646,7 +647,8 @@ cdef class ParticleContourTree(ContourTree):
         pcount = np.zeros_like(dom_ind)
         doff = np.zeros_like(dom_ind) - 1
         # First, we find the oct for each particle.
-        pdoms = np.zeros(positions.shape[0], dtype="int64") - 1
+        pdoms = np.zeros(positions.shape[0], dtype="int64")
+        pdoms -= -1
         cdef np.int64_t *pdom = <np.int64_t*> pdoms.data
         # First we allocate our container
         cdef ContourID **container = <ContourID**> malloc(
@@ -675,15 +677,17 @@ cdef class ParticleContourTree(ContourTree):
             offset = pdoms[pind[i]]
             if doff[offset] < 0:
                 doff[offset] = i
+        del pdoms
         cdef int nsize = 27
         cdef np.int64_t *nind = <np.int64_t *> malloc(sizeof(np.int64_t)*nsize)
         counter = 0
         cdef np.int64_t frac = <np.int64_t> (doff.shape[0] / 20.0)
+        print >> sys.stderr, "Will be outputting every", frac
         cdef int inside, skip_early
         for i in range(doff.shape[0]):
             if counter >= frac:
                 counter = 0
-                print "FOF-ing % 5.1f%% done" % ((100.0 * i)/doff.size)
+                print >> sys.stderr, "FOF-ing % 5.1f%% done" % ((100.0 * i)/doff.size)
             counter += 1
             # Any particles found for this oct?
             if doff[i] < 0: continue
@@ -729,7 +733,8 @@ cdef class ParticleContourTree(ContourTree):
                                         offset, pind0, 
                                         doff[i] + j)
         cdef np.ndarray[np.int64_t, ndim=1] contour_ids
-        contour_ids = -1 * np.ones(positions.shape[0], dtype="int64")
+        contour_ids = np.ones(positions.shape[0], dtype="int64")
+        contour_ids *= -1
         # Sort on our particle IDs.
         for i in range(doff.shape[0]):
             if doff[i] < 0: continue
@@ -751,6 +756,7 @@ cdef class ParticleContourTree(ContourTree):
                 if c0.count < minimum_count:
                     contour_ids[offset] = -1
         free(container)
+        del pind
         return contour_ids
 
     @cython.cdivision(True)
