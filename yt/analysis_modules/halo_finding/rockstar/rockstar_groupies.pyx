@@ -199,42 +199,60 @@ cdef class RockstarGroupiesInterface:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def make_rockstar_fof(self, np.ndarray[np.int64_t, ndim=1] pid,
-                                np.ndarray[np.float64_t, ndim=2] pos,
-                                np.ndarray[np.float64_t, ndim=2] vel,
+    def make_rockstar_fof(self, np.ndarray[np.int64_t, ndim=1] pind,
                                 np.ndarray[np.int64_t, ndim=1] fof_tags,
-                                np.int64_t nfof,
-                                np.int64_t npart_max):
+                                np.ndarray[np.float64_t, ndim=2] pos,
+                                np.ndarray[np.float64_t, ndim=2] vel):
 
         # Define fof object
 
         # Find number of particles
-        cdef np.int64_t i, j
-        cdef np.int64_t num_particles = pid.shape[0]
+        cdef np.int64_t i, j, k, ind
+        cdef np.int64_t num_particles = pind.shape[0]
 
         # Allocate space for correct number of particles
         cdef fof fof_obj
-        fof_obj.particles = <particle*> malloc(npart_max * sizeof(particle))
 
-        cdef np.int64_t last_fof_tag = 1
-        cdef np.int64_t k = 0
-        for i in range(num_particles):
-            if fof_tags[i] < 0:
+        cdef np.int64_t max_count = 0
+        cdef np.int64_t local_tag, last_fof_tag = -1
+        fof_obj.num_p = 0
+        last_fof_tag
+        j = 0
+        # We're going to do one iteration to get the most frequent value.
+        for i in range(pind.shape[0]):
+            ind = pind[i]
+            local_tag = fof_tags[ind]
+            # Don't count the null group
+            if local_tag == -1: continue
+            if local_tag != last_fof_tag:
+                if j > max_count:
+                    max_count = j
+                last_fof_tag = local_tag
+                j = 1
+            else:
+                j += 1
+        #print >> sys.stderr, "Most frequent occurrance: %s" % max_count
+        fof_obj.particles = <particle*> malloc(max_count * sizeof(particle))
+        j = 0
+        for i in range(pind.shape[0]):
+            ind = pind[i]
+            local_tag = fof_tags[ind]
+            # Skip this one -- it means no group.
+            if local_tag == -1:
                 continue
-            if fof_tags[i] != last_fof_tag:
-                last_fof_tag = fof_tags[i]
-                if k > 16:
-                    fof_obj.num_p = k
-                    find_subs(&fof_obj)
-                k = 0
-            fof_obj.particles[k].id = k
-
-            # fill in locations & velocities
-            for j in range(3):
-                fof_obj.particles[k].pos[j] = pos[i,j]
-                fof_obj.particles[k].pos[j+3] = vel[i,j]
-            k += 1
+            for k in range(3):
+                fof_obj.particles[j].pos[k] = pos[ind,k]
+                fof_obj.particles[j].pos[k+3] = vel[ind,k]
+            fof_obj.particles[k].id = -1
+            fof_obj.num_p += 1
+            j += 1
+            # Now we check if we're the last one
+            if i == pind.shape[0] or fof_tags[pind[i+1]] != local_tag:
+                #print >> sys.stderr, \
+                #    "Finding subs on %s particles from %s out of %s" % (
+                #    fof_obj.num_p, i, pind.shape[0])
+                find_subs(&fof_obj)
+                # Now we reset
+                fof_obj.num_p = 0
+                j = 0
         free(fof_obj.particles)
-
-
-
