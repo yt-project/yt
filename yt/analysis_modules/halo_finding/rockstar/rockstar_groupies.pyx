@@ -243,7 +243,7 @@ cdef class RockstarGroupiesInterface:
             for k in range(3):
                 fof_obj.particles[j].pos[k] = pos[ind,k]
                 fof_obj.particles[j].pos[k+3] = vel[ind,k]
-            fof_obj.particles[k].id = -1
+            fof_obj.particles[j].id = -1
             fof_obj.num_p += 1
             j += 1
             # Now we check if we're the last one
