@@ -510,7 +510,7 @@ class FITSDataset(Dataset):
         if self.nprocs is None:
             self.nprocs = np.around(np.prod(self.domain_dimensions) /
                                     32**self.dimensionality).astype("int")
-            self.nprocs = min(self.nprocs, 512)
+            self.nprocs = max(min(self.nprocs, 512), 1)
 
         # Check to see if this data is in some kind of (Lat,Lon,Vel) format
         self.ppv_data = False
