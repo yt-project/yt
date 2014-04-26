@@ -170,11 +170,12 @@ class FITSHierarchy(GridIndex):
         self._file_map = {}
         self._ext_map = {}
         self._scale_map = {}
-        # Warning! FITS header keywords are case-insensitive!
+        # Since FITS header keywords are case-insensitive, we only pick a subset of
+        # prefixes, ones that we expect to end up in headers.
         known_units = dict([(unit.lower(),unit) for unit in self.pf.unit_registry.lut])
         for unit in known_units.values():
             if unit in prefixable_units:
-                for p in unit_prefixes:
+                for p in ["n","u","m","c","k"]:
                     known_units[(p+unit).lower()] = p+unit
         # We create a field from each slice on the 4th axis
         if self.parameter_file.naxis == 4:
