@@ -240,6 +240,11 @@ cdef class RockstarGroupiesInterface:
             # Skip this one -- it means no group.
             if local_tag == -1:
                 continue
+            if i == pind.shape[0] - 1:
+                next_tag = local_tag + 1
+            else:
+                offset = pind[i+1]
+                next_tag = fof_tags[offset]
             for k in range(3):
                 fof_obj.particles[j].pos[k] = pos[ind,k]
                 fof_obj.particles[j].pos[k+3] = vel[ind,k]
@@ -247,12 +252,11 @@ cdef class RockstarGroupiesInterface:
             fof_obj.num_p += 1
             j += 1
             # Now we check if we're the last one
-            if i == pind.shape[0] or fof_tags[pind[i+1]] != local_tag:
+            if local_tag != next_tag:
                 #print >> sys.stderr, \
                 #    "Finding subs on %s particles from %s out of %s" % (
                 #    fof_obj.num_p, i, pind.shape[0])
                 find_subs(&fof_obj)
                 # Now we reset
-                fof_obj.num_p = 0
-                j = 0
+                fof_obj.num_p = j = 0
         free(fof_obj.particles)
