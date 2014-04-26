@@ -39,8 +39,9 @@ class FITSFieldInfo(FieldInfoContainer):
             return _world_f
 
         def _vel_los(field, data):
-            return data.pf.arr(data.pf.wcs_1d.wcs_pix2world(data["z"], 1)[0],
-                               str(data.pf.wcs_1d.wcs.cunit[0]))
+            zp = self.pf._z_axis_params
+            z = (data["z"].ndarray_view()-zp[0])*zp[1] + zp[2]
+            return data.pf.arr(z, zp[3])
 
         for (i, axis), name in zip(enumerate([self.pf.lon_axis, self.pf.lat_axis]),
                              [self.pf.lon_name, self.pf.lat_name]):
@@ -50,7 +51,7 @@ class FITSFieldInfo(FieldInfoContainer):
             self.add_field(("fits",name), function=world_f(axis, unit), units=unit)
 
         if self.pf.dimensionality == 3:
-            unit = str(self.pf.wcs_1d.wcs.cunit[0])
+            unit = self.pf._z_axis_params[3]
             self.add_field(("fits",self.pf.vel_name),
                            function=_vel_los, units=unit)
 

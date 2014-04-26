@@ -561,19 +561,17 @@ class FITSDataset(Dataset):
             self.wcs_2d.wcs.ctype = [self.wcs.wcs.ctype[self.lon_axis],
                                      self.wcs.wcs.ctype[self.lat_axis]]
 
-            self.wcs_1d = ap.pywcs.WCS(naxis=1)
-            self.wcs_1d.wcs.crpix = [self.wcs.wcs.crpix[self.vel_axis]]
-            self.wcs_1d.wcs.cdelt = [self.wcs.wcs.cdelt[self.vel_axis]]
-            self.wcs_1d.wcs.crval = [self.wcs.wcs.crval[self.vel_axis]]
-            self.wcs_1d.wcs.cunit = [str(self.wcs.wcs.cunit[self.vel_axis])]
-            self.wcs_1d.wcs.ctype = [self.wcs.wcs.ctype[self.vel_axis]]
+            self._z_axis_params = [self.wcs.wcs.crpix[self.vel_axis],
+                                   self.wcs.wcs.cdelt[self.vel_axis],
+                                   self.wcs.wcs.crval[self.vel_axis],
+                                   str(self.wcs.wcs.cunit[self.vel_axis])]
 
         else:
 
             self.wcs_2d = self.wcs
-            self.wcs_1d = None
             self.vel_axis = 2
             self.vel_name = "z"
+            self._z_axis_params = None
 
     def __del__(self):
         for file in self._fits_files:
