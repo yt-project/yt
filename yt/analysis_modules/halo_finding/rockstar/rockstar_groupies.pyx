@@ -231,6 +231,8 @@ cdef class RockstarGroupiesInterface:
                 j = 1
             else:
                 j += 1
+        if j > max_count:
+            max_count = j
         #print >> sys.stderr, "Most frequent occurrance: %s" % max_count
         fof_obj.particles = <particle*> malloc(max_count * sizeof(particle))
         j = 0
