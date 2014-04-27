@@ -215,6 +215,10 @@ cdef class RockstarGroupiesInterface:
     def output_halos(self):
         output_halos(0, 0, 0, NULL) 
 
+    def return_halos(self):
+        cdef haloflat[:] haloview = <haloflat[:num_halos]> (<haloflat*> halos)
+        return np.asarray(haloview)
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def make_rockstar_fof(self, np.ndarray[np.int64_t, ndim=1] pind,
@@ -259,7 +263,6 @@ cdef class RockstarGroupiesInterface:
         pcounts = np.zeros(np.unique(fof_tags).size, dtype="int64")
         cdef np.int64_t frac = <np.int64_t> (pcounts.shape[0] / 20.0)
         free_halos()
-        print "Rockstar started with num_halos = ", num_halos, pcounts.size
         for i in range(pind.shape[0]):
             ind = pind[i]
             local_tag = fof_tags[ind]
@@ -290,10 +293,11 @@ cdef class RockstarGroupiesInterface:
                         (100.0 * ndone)/pcounts.size)
                     counter = 0
                 p = fof_obj.particles
+                # R* computes offsets, so we need to free and whatnot every
+                # iteration, since we're not copying.
                 free_particle_copies()
                 find_subs(&fof_obj)
                 # Now we reset
                 fof_obj.num_p = j = 0
         free(fof_obj.particles)
-        print "Rockstar ended with num_halos = ", num_halos
         return pcounts
