@@ -84,12 +84,12 @@ class IOHandlerSDF(BaseIOHandler):
         pcount = x.size
         morton = np.empty(pcount, dtype='uint64')
         ind = 0
-        pos = np.empty((CHUNKSIZE, 3), dtype=x.dtype)
         while ind < pcount:
             npart = min(CHUNKSIZE, pcount - ind)
-            pos[:npart,0] = x[ind:ind+npart]
-            pos[:npart,1] = y[ind:ind+npart]
-            pos[:npart,2] = z[ind:ind+npart]
+            pos = np.empty((npart, 3), dtype=x.dtype)
+            pos[:,0] = x[ind:ind+npart]
+            pos[:,1] = y[ind:ind+npart]
+            pos[:,2] = z[ind:ind+npart]
             if np.any(pos.min(axis=0) < self.pf.domain_left_edge) or \
                np.any(pos.max(axis=0) > self.pf.domain_right_edge):
                 raise YTDomainOverflow(pos.min(axis=0),
@@ -98,7 +98,7 @@ class IOHandlerSDF(BaseIOHandler):
                                        self.pf.domain_right_edge)
             regions.add_data_file(pos, data_file.file_id)
             morton[ind:ind+npart] = compute_morton(
-                pos[:npart,0], pos[:npart,1], pos[:npart,2],
+                pos[:,0], pos[:,1], pos[:,2],
                 data_file.pf.domain_left_edge,
                 data_file.pf.domain_right_edge)
             ind += CHUNKSIZE
