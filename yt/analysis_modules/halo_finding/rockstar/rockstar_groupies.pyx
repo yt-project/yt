@@ -30,6 +30,22 @@ cdef import from "halo.h":
         np.int64_t num_p, num_child_particles, p_start, desc, flags, n_core
         float min_pos_err, min_vel_err, min_bulkvel_err
 
+ctypedef packed struct haloflat:
+    np.int64_t id
+    float pos_x, pos_y, pos_z, pos_v, pos_u, pos_w
+    float corevel_x, corevel_y, corevel_z
+    float bulkvel_x, bulkvel_y, bulkvel_z
+    float m, r, child_r, vmax_r, mgrav,    vmax, rvmax, rs, klypin_rs, vrms
+    float J1, J2, J3
+    float energy, spin
+    float alt_m1, alt_m2, alt_m3, alt_m4
+    float Xoff, Voff, b_to_a, c_to_a
+    float A1, A2, A3
+    float bullock_spin, kin_to_pot
+    np.int64_t num_p, num_child_particles, p_start, desc, flags, n_core
+    float min_pos_err, min_vel_err, min_bulkvel_err
+    float padding ########## REMOVE THIS IF NEED BE
+
 # For finding sub halos import finder function and global variable
 # rockstar uses to store the results
 
@@ -38,6 +54,8 @@ cdef import from "groupies.h":
     halo *halos
     np.int64_t num_halos
     void calc_mass_definition() nogil
+    void free_particle_copies() nogil
+    void free_halos() nogil
 
 # For outputing halos, rockstar style
 
@@ -207,14 +225,14 @@ cdef class RockstarGroupiesInterface:
         # Define fof object
 
         # Find number of particles
-        cdef np.int64_t i, j, k, ind
+        cdef np.int64_t i, j, k, ind, offset
         cdef np.int64_t num_particles = pind.shape[0]
 
         # Allocate space for correct number of particles
         cdef fof fof_obj
 
         cdef np.int64_t max_count = 0
-        cdef np.int64_t local_tag, last_fof_tag = -1
+        cdef np.int64_t next_tag, local_tag, last_fof_tag = -1
         fof_obj.num_p = 0
         last_fof_tag
         j = 0
@@ -236,6 +254,12 @@ cdef class RockstarGroupiesInterface:
         #print >> sys.stderr, "Most frequent occurrance: %s" % max_count
         fof_obj.particles = <particle*> malloc(max_count * sizeof(particle))
         j = 0
+        cdef int counter = 0, ndone = 0
+        cdef np.ndarray[np.int64_t, ndim=1] pcounts 
+        pcounts = np.zeros(np.unique(fof_tags).size, dtype="int64")
+        cdef np.int64_t frac = <np.int64_t> (pcounts.shape[0] / 20.0)
+        free_halos()
+        print "Rockstar started with num_halos = ", num_halos, pcounts.size
         for i in range(pind.shape[0]):
             ind = pind[i]
             local_tag = fof_tags[ind]
@@ -258,7 +282,18 @@ cdef class RockstarGroupiesInterface:
                 #print >> sys.stderr, \
                 #    "Finding subs on %s particles from %s out of %s" % (
                 #    fof_obj.num_p, i, pind.shape[0])
+                pcounts[ndone] = fof_obj.num_p
+                counter += 1
+                ndone += 1
+                if counter == frac:
+                    print >> sys.stderr, "R*-ing % 5.1f%% done" % (
+                        (100.0 * ndone)/pcounts.size)
+                    counter = 0
+                p = fof_obj.particles
+                free_particle_copies()
                 find_subs(&fof_obj)
                 # Now we reset
                 fof_obj.num_p = j = 0
         free(fof_obj.particles)
+        print "Rockstar ended with num_halos = ", num_halos
+        return pcounts
