@@ -348,25 +348,16 @@ class FITSDataset(Dataset):
         elif isinstance(nan_mask, dict):
             self.nan_mask = nan_mask
         self.nprocs = nprocs
-        if isinstance(self.filenames[0], ap.pyfits.HDUList):
-            self._handle = self.filenames[0]
-            file_name = self._handle.filename()
-            if file_name is None: file_name = "NOT_ON_DISK"
-        else:
-            file_name = filename
-            self._handle = ap.pyfits.open(self.filenames[0],
-                                          memmap=True,
-                                          do_not_scale_image_data=True,
-                                          ignore_blank=True)
+        self._handle = ap.pyfits.open(self.filenames[0],
+                                      memmap=True,
+                                      do_not_scale_image_data=True,
+                                      ignore_blank=True)
         self._fits_files = [self._handle]
         if self.num_files > 1:
             for fits_file in slave_files:
-                if isinstance(fits_file, ap.pyfits.HDUList):
-                    f = fits_file
-                else:
-                    f = ap.pyfits.open(fits_file, memmap=True,
-                                       do_not_scale_image_data=True,
-                                       ignore_blank=True)
+                f = ap.pyfits.open(fits_file, memmap=True,
+                                   do_not_scale_image_data=True,
+                                   ignore_blank=True)
                 self._fits_files.append(f)
 
         if len(self._handle) > 1 and self._handle[1].name == "EVENTS":
@@ -412,7 +403,7 @@ class FITSDataset(Dataset):
 
         self.refine_by = 2
 
-        Dataset.__init__(self, file_name, dataset_type)
+        Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):
@@ -527,7 +518,8 @@ class FITSDataset(Dataset):
         if self.events_data:
             ctypes = self.axis_names
         else:
-            ctypes = np.array([self.primary_header["CTYPE%d" % (i)] for i in xrange(1,end)])
+            ctypes = np.array([self.primary_header["CTYPE%d" % (i)]
+                               for i in xrange(1,end)])
 
         log_str = "Detected these axes: "+"%s "*len(ctypes)
         mylog.info(log_str % tuple([ctype for ctype in ctypes]))
