@@ -18,11 +18,6 @@ import h5py
 
 from yt.funcs import *
 from _mpl_imports import *
-from yt.utilities.definitions import \
-    x_dict, x_names, \
-    y_dict, y_names, \
-    axis_names, \
-    axis_labels
 from yt.utilities.physical_constants import \
     sec_per_Gyr, sec_per_Myr, \
     sec_per_kyr, sec_per_year, \
@@ -115,13 +110,17 @@ class VelocityCallback(PlotCallback):
                                         "cutting_plane_velocity_y",
                                         self.factor)
         else:
-            xv = "velocity_%s" % (x_names[plot.data.axis])
-            yv = "velocity_%s" % (y_names[plot.data.axis])
+            ax = plot.data.axis
+            (xi, yi) = (plot.data.pf.coordinates.x_axis[ax],
+                        plot.data.pf.coordinates.y_axis[ax])
+            axis_names = plot.data.pf.coordinates.axis_name
+            xv = "velocity_%s" % (axis_names[xi])
+            yv = "velocity_%s" % (axis_names[yi])
 
             bv = plot.data.get_field_parameter("bulk_velocity")
             if bv is not None:
-                bv_x = bv[x_dict[plot.data.axis]]
-                bv_y = bv[y_dict[plot.data.axis]]
+                bv_x = bv[xi]
+                bv_y = bv[yi]
             else: bv_x = bv_y = YTQuantity(0, 'cm/s')
 
             qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, 
@@ -156,8 +155,11 @@ class MagFieldCallback(PlotCallback):
                                         "cutting_plane_by",
                                         self.factor)
         else:
-            xv = "magnetic_field_%s" % (x_names[plot.data.axis])
-            yv = "magnetic_field_%s" % (y_names[plot.data.axis])
+            xax = plot.data.pf.coordinates.x_axis[plot.data.axis]
+            yax = plot.data.pf.coordinates.y_axis[plot.data.axis]
+            axis_names = plot.data.pf.coordinates.axis_name
+            xv = "magnetic_field_%s" % (axis_names[xax])
+            yv = "magnetic_field_%s" % (axis_names[yax])
             qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, scale_units=self.scale_units, normalize=self.normalize)
         return qcb(plot)
 
@@ -194,8 +196,10 @@ class QuiverCallback(PlotCallback):
         # periodicity
         ax = plot.data.axis
         pf = plot.data.pf
-        period_x = pf.domain_width[x_dict[ax]]
-        period_y = pf.domain_width[y_dict[ax]]
+        (xi, yi) = (pf.coordinates.x_axis[ax],
+                    pf.coordinates.y_axis[ax])
+        period_x = pf.domain_width[xi]
+        period_y = pf.domain_width[yi]
         periodic = int(any(pf.periodicity))
         fv_x = plot.data[self.field_x]
         if self.bv_x != 0.0:
@@ -384,8 +388,9 @@ class GridBoundaryCallback(PlotCallback):
         yy0, yy1 = plot._axes.get_ylim()
         (dx, dy) = self.pixel_scale(plot)
         (xpix, ypix) = plot.image._A.shape
-        px_index = x_dict[plot.data.axis]
-        py_index = y_dict[plot.data.axis]
+        ax = plot.data.axis
+        px_index = plot.data.pf.coordinates.x_axis[ax]
+        py_index = plot.data.pf.coordinates.y_axis[ax]
         DW = plot.data.pf.domain_width
         if self.periodic:
             pxs, pys = np.mgrid[-1:1:3j,-1:1:3j]
@@ -650,11 +655,12 @@ class ClumpContourCallback(PlotCallback):
 
         plot._axes.hold(True)
 
-        px_index = x_dict[plot.data.axis]
-        py_index = y_dict[plot.data.axis]
+        ax = plot.data.axis
+        px_index = plot.data.pf.coordinates.x_axis[ax]
+        py_index = plot.data.pf.coordinates.y_axis[ax]
 
-        xf = axis_names[px_index]
-        yf = axis_names[py_index]
+        xf = plot.data.pf.coordinates.axis_name[px_index]
+        yf = plot.data.pf.coordinates.axis_name[py_index]
         dxf = "d%s" % xf
         dyf = "d%s" % yf
 
@@ -701,8 +707,10 @@ class ArrowCallback(PlotCallback):
 
     def __call__(self, plot):
         if len(self.pos) == 3:
-            pos = (self.pos[x_dict[plot.data.axis]],
-                   self.pos[y_dict[plot.data.axis]])
+            ax = plot.data.axis
+            (xi, yi) = (plot.data.pf.coordinates.x_axis[ax],
+                        plot.data.pf.coordinates.y_axis[ax])
+            pos = self.pos[xi], self.pos[yi]
         else: pos = self.pos
         if isinstance(self.code_size[1], basestring):
             code_size = plot.data.pf.quan(*self.code_size).value
@@ -732,8 +740,10 @@ class PointAnnotateCallback(PlotCallback):
 
     def __call__(self, plot):
         if len(self.pos) == 3:
-            pos = (self.pos[x_dict[plot.data.axis]],
-                   self.pos[y_dict[plot.data.axis]])
+            ax = plot.data.axis
+            (xi, yi) = (plot.data.pf.coordinates.x_axis[ax],
+                        plot.data.pf.coordinates.y_axis[ax])
+            pos = self.pos[xi], self.pos[yi]
         else: pos = self.pos
         width,height = plot.image._A.shape
         x,y = self.convert_to_plot(plot, pos)
@@ -758,8 +768,10 @@ class MarkerAnnotateCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         if len(self.pos) == 3:
-            pos = (self.pos[x_dict[plot.data.axis]],
-                   self.pos[y_dict[plot.data.axis]])
+            ax = plot.data.axis
+            (xi, yi) = (plot.data.pf.coordinates.x_axis[ax],
+                        plot.data.pf.coordinates.y_axis[ax])
+            pos = self.pos[xi], self.pos[yi]
         elif len(self.pos) == 2:
             pos = self.pos
         x,y = self.convert_to_plot(plot, pos)
@@ -802,7 +814,9 @@ class SphereCallback(PlotCallback):
         if plot.data.axis == 4:
             (xi, yi) = (0, 1)
         else:
-            (xi, yi) = (x_dict[plot.data.axis], y_dict[plot.data.axis])
+            ax = plot.data.axis
+            (xi, yi) = (plot.data.pf.coordinates.x_axis[ax],
+                        plot.data.pf.coordinates.y_axis[ax])
 
         (center_x,center_y) = self.convert_to_plot(plot,(self.center[xi], self.center[yi]))
         
@@ -853,7 +867,9 @@ class HopCircleCallback(PlotCallback):
             radius = halo.maximum_radius() * self.pixel_scale(plot)[0]
             center = halo.center_of_mass()
             
-            (xi, yi) = (x_dict[plot.data.axis], y_dict[plot.data.axis])
+            ax = plot.data.axis
+            (xi, yi) = (plot.data.pf.coordinates.x_axis[ax],
+                        plot.data.pf.coordinates.y_axis[ax])
 
             (center_x,center_y) = self.convert_to_plot(plot,(center[xi], center[yi]))
             color = np.ones(3) * (0.4 * (num - halo.id)/ num) + 0.6
@@ -892,7 +908,10 @@ class HopParticleCallback(PlotCallback):
     def __call__(self,plot):
         (dx,dy) = self.pixel_scale(plot)
 
-        (xi, yi) = (x_names[plot.data.axis], y_names[plot.data.axis])
+        xax = plot.data.pf.coordinates.x_axis[plot.data.axis]
+        yax = plot.data.pf.coordinates.y_axis[plot.data.axis]
+        axis_names = plot.data.pf.coordinates.axis_name
+        (xi, yi) = (axis_names[xax], axis_names[yax])
 
         # now we loop over the haloes
         for halo in self.hop_output[:self.max_number]:
@@ -940,8 +959,10 @@ class TextLabelCallback(PlotCallback):
         kwargs = self.text_args.copy()
         if self.data_coords and len(plot.image._A.shape) == 2:
             if len(self.pos) == 3:
-                pos = (self.pos[x_dict[plot.data.axis]],
-                       self.pos[y_dict[plot.data.axis]])
+                ax = plot.data.axis
+                (xi, yi) = (plot.data.pf.coordinates.x_axis[ax],
+                            plot.data.pf.coordinates.y_axis[ax])
+                pos = self.pos[xi], self.pos[yi]
             else: pos = self.pos
             x,y = self.convert_to_plot(plot, pos)
         else:
@@ -992,8 +1013,12 @@ class ParticleCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         reg = self._get_region((x0,x1), (y0,y1), plot.data.axis, data)
-        field_x = "particle_position_%s" % axis_names[x_dict[data.axis]]
-        field_y = "particle_position_%s" % axis_names[y_dict[data.axis]]
+        ax = data.axis
+        xax = plot.data.pf.coordinates.x_axis[ax]
+        yax = plot.data.pf.coordinates.y_axis[ax]
+        axis_names = plot.data.pf.coordinates.axis_name
+        field_x = "particle_position_%s" % axis_names[xax]
+        field_y = "particle_position_%s" % axis_names[yax]
         gg = ( ( reg[field_x] >= x0 ) & ( reg[field_x] <= x1 )
            &   ( reg[field_y] >= y0 ) & ( reg[field_y] <= y1 ) )
         if self.ptype is not None:
@@ -1021,8 +1046,9 @@ class ParticleCallback(PlotCallback):
 
     def _get_region(self, xlim, ylim, axis, data):
         LE, RE = [None]*3, [None]*3
-        xax = x_dict[axis]
-        yax = y_dict[axis]
+        pf = data.pf
+        xax = pf.coordinates.x_axis[axis]
+        yax = pf.coordinates.y_axis[axis]
         zax = axis
         LE[xax], RE[xax] = xlim
         LE[yax], RE[yax] = ylim
@@ -1240,7 +1266,9 @@ class TriangleFacetsCallback(PlotCallback):
 
     def __call__(self, plot):
         plot._axes.hold(True)
-        xax, yax = x_dict[plot.data.axis], y_dict[plot.data.axis]
+        ax = data.axis
+        xax = plot.data.pf.coordinates.x_axis[ax]
+        yax = plot.data.pf.coordinates.y_axis[ax]
         l_cy = triangle_plane_intersect(plot.data.axis, plot.data.coord, self.vertices)[:,:,(xax, yax)]
         lc = matplotlib.collections.LineCollection(l_cy, **self.plot_args)
         plot._axes.add_collection(lc)

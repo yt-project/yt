@@ -61,10 +61,11 @@ class WidgetStore(dict):
             center = pf.h.find_max('Density')[1]
         else:
             center = np.array(center)
-        axis = inv_axis_names[axis.lower()]
+        axis = pf.coordinates.axis_id[axis.lower()]
         coord = center[axis]
         sl = pf.slice(axis, coord, center = center)
-        xax, yax = x_dict[axis], y_dict[axis]
+        xax = pf.coordinates.x_axis[axis]
+        yax = pf.coordinates.y_axis[axis]
         DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
         pw = PWViewerExtJS(sl, (DLE[xax], DRE[xax], DLE[yax], DRE[yax]), 
                            setup = False, plot_type='SlicePlot')
@@ -82,9 +83,10 @@ class WidgetStore(dict):
 
     def create_proj(self, pf, axis, field, weight):
         if weight == "None": weight = None
-        axis = inv_axis_names[axis.lower()]
+        axis = pf.coordinates.axis_id[axis.lower()]
         proj = pf.proj(field, axis, weight_field=weight)
-        xax, yax = x_dict[axis], y_dict[axis]
+        xax = pf.coordinates.x_axis[axis]
+        yax = pf.coordinates.y_axis[axis]
         DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
         pw = PWViewerExtJS(proj, (DLE[xax], DRE[xax], DLE[yax], DRE[yax]),
                            setup = False, plot_type='ProjectionPlot')
