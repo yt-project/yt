@@ -104,6 +104,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         ng = sum(len(c.objs) for c in chunks)
         mylog.debug("Reading %s cells of %s fields in %s grids",
                    size, [f2 for f1, f2 in fields], ng)
+
         ind = 0
         for chunk in chunks:
             for g in chunk.objs:
@@ -124,47 +125,26 @@ class IOHandlerChomboHDF5(BaseIOHandler):
     def _read_particle_selection(self, chunks, selector, fields):
         rv = {}
         chunks = list(chunks)
-        #fields.sort(key=lambda a: self.field_dict[a[1]])
+
         if selector.__class__.__name__ == "GridSelector":
 
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
+                
             grid = chunks[0].objs[0]
-            lev = 'level_%i' % grid.Level
-
-            particles_per_grid = self._handle[lev]['particles:offsets'].value
-            items_per_particle = len(self.particle_field_index)
-
-            # compute global offset position
-            offsets = items_per_particle * np.cumsum(particles_per_grid)
-            offsets = np.append(np.array([0]), offsets)
-            offsets = np.array(offsets, dtype=np.int64)
-
-            # convert between the global grid id and the id on this level            
-            grid_levels = np.array([g.Level for g in self.pf.index.grids])
-            grid_ids    = np.array([g.id    for g in self.pf.index.grids])
-            grid_level_offset = grid_ids[np.where(grid_levels == grid.Level)[0][0]]
-            lo = grid.id - grid_level_offset
-            hi = lo + 1
 
             for ftype, fname in fields:
-                field_index = self.particle_field_index[fname]
-                data = self._handle[lev]['particles:data'][offsets[lo]:offsets[hi]]
-                rv[ftype, fname] = data[field_index::items_per_particle]
+                rv[ftype, fname] = self._read_particles(grid, fname)
 
             return rv
 
-    # def _read_particle_coords(self, chunks, ptf):
-    #     chucks = list(chunks)
-    #     f = self._handle # shortcut
-    #     for chunk in chunks:
-    #         for grid in chunk.objs:
-    #             for ptype, field_list in sorted(ptf.items()):
-    #                 import pdb; pdb.set_trace()
-    #                 x = self._read_particles(grid, 'particle_position_x')
-    #                 y = self._read_particles(grid, 'particle_position_y')
-    #                 x = self._read_particles(grid, 'particle_position_z')
-    #                 yield ptype, (x, y, z)
+        rv = {f:np.array([]) for f in fields}
+        for chunk in chunks:
+            for grid in chunk.objs:
+                for ftype, fname in fields:
+                    data = self._read_particles(grid, fname)
+                    rv[ftype, fname] = np.concatenate((data, rv[ftype, fname]))
+        return rv
 
     def _read_particles(self, grid, name):
 
