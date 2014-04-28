@@ -33,8 +33,6 @@ from .operator_registry import \
      finding_method_registry, \
      quantity_registry
 
-from yt.utilities.logger import ytLogger as mylog
-
 class HaloCatalog(ParallelAnalysisInterface):
     r"""Create a HaloCatalog: an object that allows for the creation and association
     of data with a set of halo objects.
