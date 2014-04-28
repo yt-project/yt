@@ -39,6 +39,7 @@ cdef struct ContourID:
     ContourID *parent
     ContourID *next
     ContourID *prev
+    np.int64_t count
 
 cdef struct CandidateContour
 

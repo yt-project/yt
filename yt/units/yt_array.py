@@ -237,7 +237,9 @@ class YTArray(np.ndarray):
 
     __array_priority__ = 2.0
 
-    def __new__(cls, input_array, input_units=None, registry=None, dtype=np.float64):
+    def __new__(cls, input_array, input_units=None, registry=None, dtype=None):
+        if dtype is None:
+            dtype = getattr(input_array, 'dtype', np.float64)
         if input_array is NotImplemented:
             return input_array
         if registry is None and isinstance(input_units, basestring):

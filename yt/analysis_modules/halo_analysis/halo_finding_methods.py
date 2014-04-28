@@ -25,6 +25,7 @@ from yt.frontends.stream.data_structures import \
 from .operator_registry import \
     finding_method_registry
 
+
 def add_finding_method(name, function):
     finding_method_registry[name] = HaloFindingMethod(function)
     
@@ -75,8 +76,14 @@ def _rockstar_method(pf):
     
     rh = RockstarHaloFinder(pf)
     rh.run()
+
+
     halos_pf = RockstarDataset("rockstar_halos/halos_0.0.bin")
-    halos_pf.create_field_info()
+    try:
+        halos_pf.create_field_info()
+    except ValueError:
+        return None
+
     return halos_pf
 add_finding_method("rockstar", _rockstar_method)
 
@@ -86,6 +93,8 @@ def _parse_old_halo_list(data_pf, halo_list):
     """
 
     num_halos = len(halo_list)
+
+    if num_halos == 0: return None
 
     # Set up fields that we want to pull from identified halos and their units
     new_fields = ['particle_identifier', 'particle_mass', 'particle_position_x', 

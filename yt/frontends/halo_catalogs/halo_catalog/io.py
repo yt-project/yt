@@ -68,7 +68,7 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
                     x = f['particle_position_x'].value.astype("float64")
                     y = f['particle_position_y'].value.astype("float64")
                     z = f['particle_position_z'].value.astype("float64")
-                    mask = selector.select_points(x, y, z)
+                    mask = selector.select_points(x, y, z, 0.0)
                     del x, y, z
                     if mask is None: continue
                     for field in field_list:

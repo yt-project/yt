@@ -93,7 +93,7 @@ class IOHandlerFLASH(BaseIOHandler):
                 x = p_fields[start:end, px]
                 y = p_fields[start:end, py]
                 z = p_fields[start:end, pz]
-                mask = selector.select_points(x, y, z)
+                mask = selector.select_points(x, y, z, 0.0)
                 if mask is None: continue
                 for field in field_list:
                     fi = self._particle_fields[field]

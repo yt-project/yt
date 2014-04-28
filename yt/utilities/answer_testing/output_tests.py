@@ -177,8 +177,8 @@ class YTDatasetTest(SingleOutputTest):
         This is a helper function that returns a 2D array of the specified
         source, in the specified field, at the specified spatial extent.
         """
-        xax = x_dict[self.axis]
-        yax = y_dict[self.axis]
+        xax = self.pf.coordinates.x_axis[self.axis]
+        yax = self.pf.coordinates.y_axis[self.axis]
         
         if edges is None:
             edges = (self.pf.domain_left_edge[xax],

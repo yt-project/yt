@@ -660,7 +660,6 @@ Function List
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_passthrough
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_root_only
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_simple_proxy
-   ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_splitter
 
 Math Utilities
 --------------

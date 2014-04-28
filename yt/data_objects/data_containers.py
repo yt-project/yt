@@ -28,7 +28,6 @@ from yt.funcs import *
 from yt.data_objects.particle_io import particle_handler_registry
 from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
-from yt.utilities.definitions import  x_dict, y_dict
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.utilities.parameter_file_storage import \
@@ -726,9 +725,10 @@ class YTSelectionContainer2D(YTSelectionContainer):
     _spatial = False
     def __init__(self, axis, pf, field_parameters):
         ParallelAnalysisInterface.__init__(self)
-        self.axis = fix_axis(axis)
         super(YTSelectionContainer2D, self).__init__(
             pf, field_parameters)
+        # We need the pf, which will exist by now, for fix_axis.
+        self.axis = fix_axis(axis, self.pf)
         self.set_field_parameter("axis", axis)
 
     def _convert_field_name(self, field):
@@ -821,8 +821,8 @@ class YTSelectionContainer2D(YTSelectionContainer):
         if not iterable(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
-        xax = x_dict[self.axis]
-        yax = y_dict[self.axis]
+        xax = self.pf.coordinates.x_axis[self.axis]
+        yax = self.pf.coordinates.y_axis[self.axis]
         bounds = (center[xax] - width*0.5, center[xax] + width*0.5,
                   center[yax] - height*0.5, center[yax] + height*0.5)
         frb = FixedResolutionBuffer(self, bounds, resolution,

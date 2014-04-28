@@ -43,8 +43,6 @@ from yt.units.unit_object import Unit
 from yt.utilities.png_writer import \
     write_png_to_string
 from yt.utilities.definitions import \
-    x_dict, y_dict, \
-    axis_names, axis_labels, \
     formatted_length_unit_names
 from yt.utilities.math_utils import \
     ortho_find
@@ -68,8 +66,8 @@ except ImportError:
     from pyparsing import ParseFatalException
 
 def fix_unitary(u):
-    if u is '1':
-        return 'code_length'
+    if u == '1':
+        return 'unitary'
     else:
         return u
 
@@ -108,7 +106,9 @@ def get_sanitized_width(axis, width, depth, pf):
     if width is None:
         # Default to code units
         if not iterable(axis):
-            w = pf.domain_width[[x_dict[axis], y_dict[axis]]]
+            xax = pf.coordinates.x_axis[axis]
+            yax = pf.coordinates.y_axis[axis]
+            w = pf.domain_width[[xax, yax]]
         else:
             # axis is actually the normal vector
             # for an off-axis data object.
@@ -189,10 +189,12 @@ def get_window_parameters(axis, center, width, pf):
             center[2] = 0.0
     else:
         raise NotImplementedError
-    bounds = (center[x_dict[axis]]-width[0] / 2,
-              center[x_dict[axis]]+width[0] / 2,
-              center[y_dict[axis]]-width[1] / 2,
-              center[y_dict[axis]]+width[1] / 2)
+    xax = pf.coordinates.x_axis[axis]
+    yax = pf.coordinates.y_axis[axis]
+    bounds = (center[xax]-width[0] / 2,
+              center[xax]+width[0] / 2,
+              center[yax]-width[1] / 2,
+              center[yax]+width[1] / 2)
     return (bounds, center)
 
 def get_oblique_window_parameters(normal, center, width, pf, depth=None):
@@ -377,10 +379,30 @@ class PlotWindow(ImagePlotContainer):
 
         Parameters
         ----------
-        deltas : sequence of floats
-            (delta_x, delta_y) in *absolute* code unit coordinates
+        deltas : Two-element sequence of floats, quantities, or (float, unit)
+                 tuples.
+            (delta_x, delta_y).  If a unit is not supplied the unit is assumed
+            to be code_length.
 
         """
+        if len(deltas) != 2:
+            raise RuntimeError(
+                "The pan function accepts a two-element sequence.\n"
+                "Received %s." % (deltas, )
+                )
+        if isinstance(deltas[0], Number) and isinstance(deltas[1], Number):
+            deltas = (self.pf.quan(deltas[0], 'code_length'),
+                      self.pf.quan(deltas[1], 'code_length'))
+        elif isinstance(deltas[0], tuple) and isinstance(deltas[1], tuple):
+            deltas = (self.pf.quan(deltas[0][0], deltas[0][1]),
+                      self.pf.quan(deltas[1][0], deltas[1][1]))
+        elif isinstance(deltas[0], YTQuantity) and isinstance(deltas[1], YTQuantity):
+            pass
+        else:
+            raise RuntimeError(
+                "The arguments of the pan function must be a sequence of floats,\n"
+                "quantities, or (float, unit) tuples. Received %s." % (deltas, )
+                )
         self.xlim = (self.xlim[0] + deltas[0], self.xlim[1] + deltas[0])
         self.ylim = (self.ylim[0] + deltas[1], self.ylim[1] + deltas[1])
         return self
@@ -652,10 +674,12 @@ class PWViewerMPL(PlotWindow):
             xllim, xrlim = self.xlim
             yllim, yrlim = self.ylim
         elif origin[2] == 'domain':
-            xllim = self.pf.domain_left_edge[x_dict[axis_index]]
-            xrlim = self.pf.domain_right_edge[x_dict[axis_index]]
-            yllim = self.pf.domain_left_edge[y_dict[axis_index]]
-            yrlim = self.pf.domain_right_edge[y_dict[axis_index]]
+            xax = pf.coordinates.x_axis[axis_index]
+            yax = pf.coordinates.y_axis[axis_index]
+            xllim = self.pf.domain_left_edge[xax]
+            xrlim = self.pf.domain_right_edge[xax]
+            yllim = self.pf.domain_left_edge[yax]
+            yrlim = self.pf.domain_right_edge[yax]
         elif origin[2] == 'native':
             return (self.pf.quan(0.0, 'code_length'),
                     self.pf.quan(0.0, 'code_length'))
@@ -786,8 +810,11 @@ class PWViewerMPL(PlotWindow):
                 labels = [r'$\rm{Image\/x'+axes_unit_labels[0]+'}$',
                           r'$\rm{Image\/y'+axes_unit_labels[1]+'}$']
             else:
-                labels = [r'$\rm{'+axis_labels[axis_index][i]+
-                          axes_unit_labels[i] + r'}$' for i in (0,1)]
+                axis_names = self.pf.coordinates.axis_name
+                xax = self.pf.coordinates.x_axis[axis_index]
+                yax = self.pf.coordinates.y_axis[axis_index]
+                labels = [r'$\rm{'+axis_names[xax]+axes_unit_labels[0] + r'}$',
+                          r'$\rm{'+axis_names[yax]+axes_unit_labels[1] + r'}$']
 
             self.plots[f].axes.set_xlabel(labels[0],fontproperties=fp)
             self.plots[f].axes.set_ylabel(labels[1],fontproperties=fp)
@@ -968,7 +995,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         ts = self._initialize_dataset(pf)
         self.ts = ts
         pf = self.pf = ts[0]
-        axis = fix_axis(axis)
+        axis = fix_axis(axis, pf)
         (bounds, center) = get_window_parameters(axis, center, width, pf)
         if field_parameters is None: field_parameters = {}
         slc = pf.slice(axis, center[axis],
@@ -1094,7 +1121,7 @@ class ProjectionPlot(PWViewerMPL):
         ts = self._initialize_dataset(pf)
         self.ts = ts
         pf = self.pf = ts[0]
-        axis = fix_axis(axis)
+        axis = fix_axis(axis, pf)
         (bounds, center) = get_window_parameters(axis, center, width, pf)
         if field_parameters is None: field_parameters = {}
         proj = pf.proj(fields, axis, weight_field=weight_field,
@@ -1424,8 +1451,11 @@ class PWViewerExtJS(PlotWindow):
                         self._frb.bounds, (nx,ny))
 
         axis = self._frb.data_source.axis
-        fx = "%s-velocity" % (axis_names[x_dict[axis]])
-        fy = "%s-velocity" % (axis_names[y_dict[axis]])
+        xax = self._frb.data_source.pf.coordinates.x_axis[axis]
+        yax = self._frb.data_source.pf.coordinates.y_axis[axis]
+        axis_names = self._frb.data_source.pf.coordinates.axis_name
+        fx = "velocity_%s" % (axis_names[xax])
+        fy = "velocity_%x" % (axis_names[yax])
         px = new_frb[fx][::-1,:]
         py = new_frb[fy][::-1,:]
         x = np.mgrid[0:vi-1:ny*1j]
@@ -1509,12 +1539,14 @@ class PWViewerExtJS(PlotWindow):
             unit = self._axes_unit_names
         units = self.get_field_units(field, strip_mathml)
         center = getattr(self._frb.data_source, "center", None)
+        xax = self.pf.coordinates.x_axis[self._frb.axis]
+        yax = self.pf.coordinates.y_axis[self._frb.axis]
         if center is None or self._frb.axis == 4:
             xc, yc, zc = -999, -999, -999
         else:
-            center[x_dict[self._frb.axis]] = 0.5 * (
+            center[xax] = 0.5 * (
                 self.xlim[0] + self.xlim[1])
-            center[y_dict[self._frb.axis]] = 0.5 * (
+            center[yax] = 0.5 * (
                 self.ylim[0] + self.ylim[1])
             xc, yc, zc = center
         if return_string:
