@@ -15,6 +15,7 @@ cdef import from "particle.h":
 
 cdef import from "rockstar.h":
     particle *global_particles "p"
+    void rockstar_cleanup()
 
 cdef import from "fof.h":
     struct fof:
@@ -73,6 +74,7 @@ cdef import from "meta_io.h":
 
 cdef import from "config.h":
     void setup_config() nogil
+    void output_config(char *fn) nogil
 
 cdef import from "config_vars.h":
     # Rockstar cleverly puts all of the config variables inside a templated
@@ -224,7 +226,10 @@ cdef class RockstarGroupiesInterface:
 
     def return_halos(self):
         cdef haloflat[:] haloview = <haloflat[:num_halos]> (<haloflat*> halos)
-        return np.asarray(haloview)
+        rv = np.asarray(haloview).copy()
+        rockstar_cleanup()
+        free_halos()
+        return rv
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -246,7 +251,6 @@ cdef class RockstarGroupiesInterface:
         cdef np.int64_t max_count = 0
         cdef np.int64_t next_tag, local_tag, last_fof_tag = -1
         fof_obj.num_p = 0
-        last_fof_tag
         j = 0
         # We're going to do one iteration to get the most frequent value.
         for i in range(pind.shape[0]):
@@ -280,8 +284,7 @@ cdef class RockstarGroupiesInterface:
             if i == pind.shape[0] - 1:
                 next_tag = local_tag + 1
             else:
-                offset = pind[i+1]
-                next_tag = fof_tags[offset]
+                next_tag = fof_tags[pind[i+1]]
             for k in range(3):
                 fof_obj.particles[j].pos[k] = pos[ind,k]
                 fof_obj.particles[j].pos[k+3] = vel[ind,k]
@@ -297,7 +300,7 @@ cdef class RockstarGroupiesInterface:
                     print >> sys.stderr, "R*-ing % 5.1f%% done (%0.3f -> %0.3f)" % (
                         (100.0 * ndone)/pcounts.size,
                         fof_obj.particles[0].pos[2],
-                        halos[num_halos - 1].pos[3])
+                        halos[num_halos - 1].pos[2])
                     counter = 0
                 global_particles = &fof_obj.particles[0]
                 find_subs(&fof_obj)
