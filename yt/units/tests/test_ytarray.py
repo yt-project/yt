@@ -592,3 +592,38 @@ def test_convenience():
 
     yield assert_array_equal, arr.value, np.array(arr)
     yield assert_array_equal, arr.v, np.array(arr)
+
+
+def test_registry_association():
+    ds = fake_random_pf(64, nprocs=1, length_unit=10)
+    a = ds.quan(3, 'cm')
+    b = YTQuantity(4, 'm')
+    c = ds.quan(6, '')
+    d = 5
+
+    yield assert_equal, id(a.units.registry), id(ds.unit_registry)
+
+    def binary_op_registry_comparison(op):
+        e = op(a, b)
+        f = op(b, a)
+        g = op(c, d)
+        h = op(d, c)
+
+        assert_equal(id(e.units.registry), id(ds.unit_registry))
+        assert_equal(id(f.units.registry), id(b.units.registry))
+        assert_equal(id(g.units.registry), id(h.units.registry))
+        assert_equal(id(g.units.registry), id(ds.unit_registry))
+
+    def unary_op_registry_comparison(op):
+        c = op(a)
+        d = op(b)
+
+        assert_equal(id(c.units.registry), id(ds.unit_registry))
+        assert_equal(id(d.units.registry), id(b.units.registry))
+
+    for op in [operator.add, operator.sub, operator.mul, operator.div,
+               operator.truediv]:
+        yield binary_op_registry_comparison, op
+
+    for op in [operator.abs, operator.neg, operator.pos]:
+        yield unary_op_registry_comparison, op

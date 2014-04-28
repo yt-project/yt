@@ -497,11 +497,15 @@ class YTArray(np.ndarray):
     def __isub__(self, other):
         """ See __sub__. """
         oth = sanitize_units_add(self, other, "subtraction")
-        return np.subtract(self, other, out=self)
+        return np.subtract(self, oth, out=self)
 
     def __neg__(self):
         """ Negate the data. """
         return YTArray(super(YTArray, self).__neg__())
+
+    def __pos__(self):
+        """ Posify the data. """
+        return YTArray(super(YTArray, self).__pos__(), self.units)
 
     def __mul__(self, right_object):
         """
@@ -665,7 +669,7 @@ class YTArray(np.ndarray):
     def __eq__(self, other):
         """ Test if this is equal to the object on the right. """
         # Check that other is a YTArray.
-        if other == None:
+        if other is None:
             # self is a YTArray, so it can't be None.
             return False
         if isinstance(other, YTArray):
@@ -679,7 +683,7 @@ class YTArray(np.ndarray):
     def __ne__(self, other):
         """ Test if this is not equal to the object on the right. """
         # Check that the other is a YTArray.
-        if other == None:
+        if other is None:
             return True
         if isinstance(other, YTArray):
             if not self.units.same_dimensions_as(other.units):
@@ -763,7 +767,7 @@ class YTArray(np.ndarray):
                 return ret
         elif context[0] in unary_operators:
             u = getattr(context[1][0], 'units', None)
-            if u == None:
+            if u is None:
                 u = Unit()
             try:
                 unit = self._ufunc_registry[context[0]](u)
@@ -774,10 +778,10 @@ class YTArray(np.ndarray):
         elif context[0] in binary_operators:
             unit1 = getattr(context[1][0], 'units', None)
             unit2 = getattr(context[1][1], 'units', None)
-            if unit1 == None:
-                unit1 = Unit()
-            if unit2 == None and context[0] is not power:
-                unit2 = Unit()
+            if unit1 is None:
+                unit1 = Unit(registry=getattr(unit2, 'registry', None))
+            if unit2 is None and context[0] is not power:
+                unit2 = Unit(registry=getattr(unit1, 'registry', None))
             elif context[0] is power:
                 unit2 = context[1][1]
                 if isinstance(unit2, np.ndarray):
@@ -817,8 +821,8 @@ class YTArray(np.ndarray):
         See the documentation for the standard library pickle module:
         http://docs.python.org/2/library/pickle.html
 
-        Unit metadata is encoded in the zeroth element of third element of the 
-        returned tuple, itself a tuple used to restore the state of the ndarray.  
+        Unit metadata is encoded in the zeroth element of third element of the
+        returned tuple, itself a tuple used to restore the state of the ndarray.
         This is always defined for numpy arrays.
         """
         np_ret = super(YTArray, self).__reduce__()
