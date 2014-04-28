@@ -739,20 +739,19 @@ cdef class ParticleContourTree(ContourTree):
         for i in range(doff.shape[0]):
             if doff[i] < 0: continue
             for j in range(pcount[i]):
-                poffset = doff[i] + j
-                c1 = container[poffset]
+                offset = pind[doff[i] + j]
+                c1 = container[offset]
                 c0 = contour_find(c1)
-                offset = ipind[poffset]
                 contour_ids[offset] = c0.contour_id
                 c0.count += 1
         for i in range(doff.shape[0]):
             if doff[i] < 0: continue
             for j in range(pcount[i]):
-                poffset = doff[i] + j
-                c1 = container[poffset]
+                offset = pind[doff[i] + j]
+                c1 = container[offset]
                 if c1 == NULL: continue
                 c0 = contour_find(c1)
-                offset = ipind[poffset]
+                offset = pind[offset]
                 if c0.count < minimum_count:
                     contour_ids[offset] = -1
         free(container)
