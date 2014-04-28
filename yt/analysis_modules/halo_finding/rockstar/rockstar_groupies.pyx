@@ -23,9 +23,15 @@ cdef import from "fof.h":
 cdef import from "halo.h":
     struct halo:
         np.int64_t id
-        float pos[6], corevel[3], bulkvel[3]
+        float pos[6]
+        float corevel[3]
+        float bulkvel[3]
         float m, r, child_r, vmax_r, mgrav,    vmax, rvmax, rs, klypin_rs, vrms
-        float J[3], energy, spin, alt_m[4], Xoff, Voff, b_to_a, c_to_a, A[3]
+        float J[3]
+        float energy, spin
+        float alt_m[4]
+        float Xoff, Voff, b_to_a, c_to_a
+        float A[3]
         float bullock_spin, kin_to_pot
         np.int64_t num_p, num_child_particles, p_start, desc, flags, n_core
         float min_pos_err, min_vel_err, min_bulkvel_err
@@ -44,7 +50,6 @@ ctypedef packed struct haloflat:
     float bullock_spin, kin_to_pot
     np.int64_t num_p, num_child_particles, p_start, desc, flags, n_core
     float min_pos_err, min_vel_err, min_bulkvel_err
-    float padding ########## REMOVE THIS IF NEED BE
 
 # For finding sub halos import finder function and global variable
 # rockstar uses to store the results
@@ -277,7 +282,7 @@ cdef class RockstarGroupiesInterface:
             for k in range(3):
                 fof_obj.particles[j].pos[k] = pos[ind,k]
                 fof_obj.particles[j].pos[k+3] = vel[ind,k]
-            fof_obj.particles[j].id = -1
+            fof_obj.particles[j].id = j
             fof_obj.num_p += 1
             j += 1
             # Now we check if we're the last one
@@ -289,13 +294,14 @@ cdef class RockstarGroupiesInterface:
                 counter += 1
                 ndone += 1
                 if counter == frac:
-                    print >> sys.stderr, "R*-ing % 5.1f%% done" % (
-                        (100.0 * ndone)/pcounts.size)
+                    print >> sys.stderr, "R*-ing % 5.1f%% done (%0.3f)" % (
+                        (100.0 * ndone)/pcounts.size,
+                        fof_obj.particles[0].pos[2])
                     counter = 0
-                p = fof_obj.particles
                 # R* computes offsets, so we need to free and whatnot every
                 # iteration, since we're not copying.
                 free_particle_copies()
+                p = fof_obj.particles
                 find_subs(&fof_obj)
                 # Now we reset
                 fof_obj.num_p = j = 0
