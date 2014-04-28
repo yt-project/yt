@@ -6,7 +6,8 @@ cimport cython
 from libc.stdlib cimport malloc, free
 import sys
 
-
+cdef import from "malloc.h":
+    void *valloc(size_t size) nogil
 
 # Importing relevant rockstar data types particle, fof halo, halo
 
@@ -262,8 +263,7 @@ cdef class RockstarGroupiesInterface:
         if j > max_count:
             max_count = j
         #print >> sys.stderr, "Most frequent occurrance: %s" % max_count
-        fof_obj.particles = <particle*> malloc(max_count * sizeof(particle))
-        alloc_particle_copies(max_count)
+        fof_obj.particles = <particle*> valloc(max_count * sizeof(particle))
         j = 0
         cdef int counter = 0, ndone = 0
         cdef np.ndarray[np.int64_t, ndim=1] pcounts 
@@ -289,21 +289,15 @@ cdef class RockstarGroupiesInterface:
             j += 1
             # Now we check if we're the last one
             if local_tag != next_tag:
-                #print >> sys.stderr, \
-                #    "Finding subs on %s particles from %s out of %s" % (
-                #    fof_obj.num_p, i, pind.shape[0])
                 pcounts[ndone] = fof_obj.num_p
                 counter += 1
                 ndone += 1
                 if counter == frac:
-                    #print >> sys.stderr, "R*-ing % 5.1f%% done (%0.3f -> %0.3f)" % (
-                    #    (100.0 * ndone)/pcounts.size,
-                    #    fof_obj.particles[0].pos[2],
-                    #    halos[num_halos - 1].pos[3])
+                    print >> sys.stderr, "R*-ing % 5.1f%% done (%0.3f -> %0.3f)" % (
+                        (100.0 * ndone)/pcounts.size,
+                        fof_obj.particles[0].pos[2],
+                        halos[num_halos - 1].pos[3])
                     counter = 0
-                # R* computes offsets, so we need to free and whatnot every
-                # iteration, since we're not copying.
-                #free_particle_copies()
                 p = &fof_obj.particles[0]
                 find_subs(&fof_obj)
                 # Now we reset
