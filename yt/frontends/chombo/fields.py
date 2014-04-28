@@ -28,10 +28,12 @@ rho_units = "code_mass / code_length**3"
 mom_units = "code_mass * code_length / code_time"
 eden_units = "code_mass / (code_time**2 * code_length)" # erg / cm^3
 
+# Chombo does not have any known fields by itself.
 class ChomboFieldInfo(FieldInfoContainer):
     known_other_fields = ()
     known_particle_fields = ()
 
+# Orion 2 Fields
 # We duplicate everything here from Boxlib, because we want to be able to
 # subclass it and that can be somewhat tricky.
 class Orion2FieldInfo(ChomboFieldInfo):

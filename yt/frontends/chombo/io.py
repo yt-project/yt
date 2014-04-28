@@ -130,7 +130,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
 
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
-                
+
             grid = chunks[0].objs[0]
 
             for ftype, fname in fields:
@@ -165,6 +165,10 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         grid_level_offset = grid_ids[np.where(grid_levels == grid.Level)[0][0]]
         lo = grid.id - grid_level_offset
         hi = lo + 1
+
+        # handle the case where this grid has no particles
+        if (offsets[lo] == offsets[hi]):
+            return np.array([], dtype=np.float64)
 
         data = self._handle[lev]['particles:data'][offsets[lo]:offsets[hi]]
         return data[field_index::items_per_particle]
