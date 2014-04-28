@@ -38,7 +38,8 @@ from .fields import \
     SDFFieldInfo
 from .io import \
     IOHandlerSDF, \
-    SDFRead
+    SDFRead,\
+    SDFIndex
 
 class SDFFile(ParticleFile):
     pass
@@ -50,10 +51,15 @@ class SDFDataset(Dataset):
     _particle_mass_name = None
     _particle_coordinates_name = None
     _particle_velocity_name = None
+    _sindex = None
 
     def __init__(self, filename, dataset_type = "sdf_particles",
                  n_ref = 64, over_refine_factor = 1,
-                 bounding_box = None):
+                 bounding_box = None,
+                 sdf_header = None,
+                 idx_filename = None,
+                 idx_header = None,
+                 idx_level = 9):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         if bounding_box is not None:
@@ -64,10 +70,15 @@ class SDFDataset(Dataset):
             self.domain_right_edge = bbox[:,1]
         else:
             self.domain_left_edge = self.domain_right_edge = None
+        self.sdf_header = sdf_header
+        self.idx_filename = idx_filename
+        self.idx_header = idx_header
+        self.idx_level = idx_level
         super(SDFDataset, self).__init__(filename, dataset_type)
 
     def _parse_parameter_file(self):
-        self.sdf_container = SDFRead(self.parameter_filename)
+        self.sdf_container = SDFRead(self.parameter_filename,
+                                     header=self.sdf_header)
         # Reference
         self.parameters = self.sdf_container.parameters
         self.dimensionality = 3
@@ -100,6 +111,18 @@ class SDFDataset(Dataset):
         mylog.info("Calculating time to be %0.3e seconds", self.current_time)
         self.filename_template = self.parameter_filename
         self.file_count = 1
+
+    @property
+    def sindex(self):
+        if self._sindex is None:
+            if self.idx_filename is not None:
+                indexdata = SDFRead(self.idx_filename,
+                                    header=self.idx_header)
+                self._sindex = SDFIndex(self.sdf_container, indexdata, level=self.idx_level)
+            else:
+                raise RuntimeError("SDF index0 file not supplied in load.")
+        else:
+            return self._sindex
 
     def _set_code_unit_attributes(self):
         self.length_unit = self.quan(1.0, "kpc")

@@ -171,7 +171,7 @@ class DataStruct(object):
     def set_offset(self, offset):
         self._offset = offset
         if self.size == -1:
-            file_size = os.path.getsize(self.filename) 
+            file_size = os.path.getsize(self.filename)
             file_size -= offset
             self.size = float(file_size) / self.itemsize
             assert(int(self.size) == self.size)
@@ -189,8 +189,11 @@ class SDFRead(dict):
 
     _eof = 'SDF-EOH'
 
-    def __init__(self, filename):
+    def __init__(self, filename, header=None):
         self.filename = filename
+        if header is None:
+            header = filename
+        self.header = header
         self.parameters = {}
         self.structs = []
         self.comments = []
@@ -201,7 +204,7 @@ class SDFRead(dict):
     def parse_header(self):
         """docstring for parse_header"""
         # Pre-process
-        ascfile = open(self.filename, 'r')
+        ascfile = open(self.header, 'r')
         while True:
             l = ascfile.readline()
             if self._eof in l: break
@@ -210,6 +213,8 @@ class SDFRead(dict):
 
         hoff = ascfile.tell()
         ascfile.close()
+        if self.header != self.filename:
+            hoff = 0
         self.parameters['header_offset'] = hoff
 
     def parse_line(self, line, ascfile):
@@ -277,4 +282,288 @@ class SDFRead(dict):
             self.update(struct.data)
 
 
+class SDFIndex(object):
 
+    """docstring for SDFIndex
+
+    This provides an index mechanism into the full SDF Dataset.
+
+    Most useful class methods:
+        get_cell_data(level, cell_iarr, fields)
+        iter_bbox_data(left, right, fields)
+        iter_bbox_data(left, right, fields)
+
+    """
+    def __init__(self, sdfdata, indexdata, level=9):
+        super(SDFIndex, self).__init__()
+        self.sdfdata = sdfdata
+        self.indexdata = indexdata
+        self.level = level
+        self.rmin = None
+        self.rmax = None
+        self.domain_width = None
+        self.domain_buffer = 0
+        self.domain_dims = 0
+        self.domain_active_dims = 0
+        self.masks = {
+            "r" : int("011"*9, 2),
+            "t" : int("101"*9, 2),
+            "p" : int("110"*9, 2),
+            "x" : int("011"*9, 2),
+            "y" : int("101"*9, 2),
+            "z" : int("110"*9, 2),
+            0 : int("011"*9, 2),
+            1 : int("101"*9, 2),
+            2 : int("110"*9, 2),
+        }
+        self. dim_slices = {
+            "r" : slice(0, None, 3),
+            "t" : slice(1, None, 3),
+            "p" : slice(2, None, 3),
+            "x" : slice(0, None, 3),
+            "y" : slice(1, None, 3),
+            "z" : slice(2, None, 3),
+            0 : slice(0, None, 3),
+            1 : slice(1, None, 3),
+            2 : slice(2, None, 3),
+        }
+        self.set_bounds()
+
+    def set_bounds(self):
+        r_0 = self.sdfdata.parameters['R0']
+        DW = 2.0 * r_0
+
+        self.rmin = np.zeros(3)
+        self.rmax = np.zeros(3)
+        sorted_rtp = self.sdfdata.parameters.get("sorted_rtp", False)
+        if sorted_rtp:
+            self.rmin[:] = [0.0, 0.0, -np.pi]
+            self.rmax[:] = [r_0*1.01, 2*np.pi, np.pi]
+        else:
+            self.rmin[0] -= self.sdfdata.parameters.get('Rx', 0.0)
+            self.rmin[1] -= self.sdfdata.parameters.get('Ry', 0.0)
+            self.rmin[2] -= self.sdfdata.parameters.get('Rz', 0.0)
+            self.rmax[0] += self.sdfdata.parameters.get('Rx', r_0)
+            self.rmax[1] += self.sdfdata.parameters.get('Ry', r_0)
+            self.rmax[2] += self.sdfdata.parameters.get('Rz', r_0)
+
+        #/* expand root for non-power-of-two */
+        expand_root = 0.0
+        ic_Nmesh = self.sdfdata.parameters.get('ic_Nmesh',0)
+        if ic_Nmesh != 0:
+            f2 = 1<<int(np.log2(ic_Nmesh-1)+1)
+            if (f2 != ic_Nmesh):
+                expand_root = 1.0*f2/ic_Nmesh - 1.0;
+            print 'Expanding: ', f2, ic_Nmesh, expand_root
+        self.rmin *= 1.0 + expand_root
+        self.rmax *= 1.0 + expand_root
+        self.domain_width = self.rmax - self.rmin
+        self.domain_dims = 1 << self.level
+        self.domain_buffer = (self.domain_dims - int(self.domain_dims/(1.0 + expand_root)))/2
+        self.domain_active_dims = self.domain_dims - 2*self.domain_buffer
+        print 'Domain stuff:', self.domain_width, self.domain_dims, self.domain_active_dims
+
+    def get_key_ijk(self, i1, i2, i3):
+        rep1 = np.binary_repr(i1, width=9)
+        rep2 = np.binary_repr(i2, width=9)
+        rep3 = np.binary_repr(i3, width=9)
+        inter = np.zeros(27, dtype='c')
+        inter[::3] = rep1
+        inter[1::3] = rep2
+        inter[2::3] = rep3
+        return int(inter.tostring(), 2)
+
+    def get_key(self, iarr, level=9):
+        i1, i2, i3 = iarr
+        rep1 = np.binary_repr(i1, width=9)
+        rep2 = np.binary_repr(i2, width=9)
+        rep3 = np.binary_repr(i3, width=9)
+        inter = np.zeros(27, dtype='c')
+        inter[::3] = rep1
+        inter[1::3] = rep2
+        inter[2::3] = rep3
+        return int(inter.tostring(), 2)
+
+    def get_slice_key(self, ind, dim='r'):
+        slb = np.binary_repr(ind, width=9)
+        expanded = np.array([0]*27, dtype='c')
+        expanded[self.dim_slices[dim]] = slb
+        return int(expanded.tostring(), 2)
+
+    def get_slice_chunks(self, slice_dim, slice_index):
+        sl_key = self.get_slice_key(slice_index, dim=slice_dim)
+        mask = (self.indexdata['index'] & ~self.masks[slice_dim]) == sl_key
+        offsets = self.indexdata['base'][mask]
+        lengths = self.indexdata['len'][mask]
+        return mask, offsets, lengths
+
+    def get_ibbox_slow(self, ileft, iright):
+        """
+        Given left and right indicies, return a mask and
+        set of offsets+lengths into the sdf data.
+        """
+        mask = np.zeros(self.indexdata['index'].shape, dtype='bool')
+        ileft = np.array(ileft)
+        iright = np.array(iright)
+        for i in range(3):
+            left_key = self.get_slice_key(ileft[i], dim=i)
+            right_key= self.get_slice_key(iright[i], dim=i)
+            dim_inds = (self.indexdata['index'] & ~self.masks[i])
+            mask *= (dim_inds >= left_key) * (dim_inds <= right_key)
+            del dim_inds
+
+        offsets = self.indexdata['base'][mask]
+        lengths = self.indexdata['len'][mask]
+        return mask, offsets, lengths
+
+    def get_ibbox(self, ileft, iright):
+        """
+        Given left and right indicies, return a mask and
+        set of offsets+lengths into the sdf data.
+        """
+        mask = np.zeros(self.indexdata['index'].shape, dtype='bool')
+
+        print 'Getting data from ileft to iright:',  ileft, iright
+
+        X, Y, Z = np.mgrid[ileft[0]:iright[0]+1,
+                           ileft[1]:iright[1]+1,
+                           ileft[2]:iright[2]+1]
+
+        X = X.ravel()
+        Y = Y.ravel()
+        Z = Z.ravel()
+        # Correct For periodicity
+        X[X < self.domain_buffer] += self.domain_active_dims
+        X[X >= self.domain_dims -  self.domain_buffer] -= self.domain_active_dims
+        Y[Y < self.domain_buffer] += self.domain_active_dims
+        Y[Y >= self.domain_dims -  self.domain_buffer] -= self.domain_active_dims
+        Z[Z < self.domain_buffer] += self.domain_active_dims
+        Z[Z >= self.domain_dims -  self.domain_buffer] -= self.domain_active_dims
+
+        print 'periodic:',  X.min(), X.max(), Y.min(), Y.max(), Z.min(), Z.max()
+
+        indices = np.array([self.get_key_ijk(x, y, z) for x, y, z in zip(X, Y, Z)])
+        indices = indices[indices < self.indexdata['index'].shape[0]]
+        return indices
+
+    def get_bbox(self, left, right):
+        """
+        Given left and right indicies, return a mask and
+        set of offsets+lengths into the sdf data.
+        """
+        ileft = np.floor((left - self.rmin) / self.domain_width *  self.domain_dims)
+        iright = np.floor((right - self.rmin) / self.domain_width * self.domain_dims)
+
+        return self.get_ibbox(ileft, iright)
+
+    def get_data(self, chunk, fields):
+        data = {}
+        for field in fields:
+            data[field] = self.sdfdata[field][chunk]
+        return data
+
+    def iter_data(self, inds, fields):
+        num_inds = len(inds)
+        num_reads = 0
+        print 'Reading %i chunks' % num_inds
+        i = 0
+        while (i < num_inds):
+            ind = inds[i]
+            base = self.indexdata['base'][ind]
+            length = self.indexdata['len'][ind]
+            # Concatenate aligned reads
+            nexti = i+1
+            combined = 0
+            while nexti < len(inds):
+                nextind = inds[nexti]
+                #        print 'b: %i l: %i end: %i  next: %i' % ( base, length, base + length, self.indexdata['base'][nextind] )
+                if base + length == self.indexdata['base'][nextind]:
+                    length += self.indexdata['len'][nextind]
+                    i += 1
+                    nexti += 1
+                    combined += 1
+                else:
+                    break
+
+            chunk = slice(base, base+length)
+            print 'Reading chunk %i of length %i after catting %i' % (i, length, combined)
+            num_reads += 1
+            data = self.get_data(chunk, fields)
+            yield data
+            del data
+            i += 1
+        print 'Read %i chunks, batched into %i reads' % (num_inds, num_reads)
+
+    def iter_bbox_data(self, left, right, fields):
+        print 'Loading region from ', left, 'to', right
+        inds = self.get_bbox(left, right)
+        return self.iter_data(inds, fields)
+
+    def iter_ibbox_data(self, left, right, fields):
+        print 'Loading region from ', left, 'to', right
+        inds = self.get_ibbox(left, right)
+        return self.iter_data(inds, fields)
+
+    def get_contiguous_chunk(self, left_key, right_key, fields):
+        max_key = self.indexdata['index'][-1]
+        if left_key > max_key:
+            raise RuntimeError("Left key is too large. Key: %i Max Key: %i" % (left_key, max_key))
+        base = self.indexdata['base'][left_key]
+        right_key = min(right_key, self.indexdata['index'][-1])
+        length = self.indexdata['base'][right_key] + \
+            self.indexdata['len'][right_key] - base
+        print 'Getting contiguous chunk of size %i starting at %i' % (length, base)
+        return self.get_data(slice(base, base + length), fields)
+
+    def iter_slice_data(self, slice_dim, slice_index, fields):
+        mask, offsets, lengths = self.get_slice_chunks(slice_dim, slice_index)
+        for off, l in zip(offsets, lengths):
+            data = {}
+            chunk = slice(off, off+l)
+            for field in fields:
+                data[field] = self.sdfdata[field][chunk]
+            yield data
+            del data
+
+    def get_key_bounds(self, level, cell_iarr):
+        """
+        Get index keys for index file supplied.
+
+        level: int
+            Requested level
+        cell_iarr: array-like, length 3
+            Requested cell from given level.
+
+        Returns:
+            lmax_lk, lmax_rk
+        """
+        shift = self.level-level
+        level_buff = 0
+        level_lk = self.get_key(cell_iarr + level_buff)
+        level_rk = self.get_key(cell_iarr + level_buff) + 1
+        lmax_lk = (level_lk << shift*3)
+        lmax_rk = (((level_rk) << shift*3) -1)
+        #print "Level ", level, np.binary_repr(level_lk, width=27), np.binary_repr(level_rk, width=27)
+        #print "Level ", self.level, np.binary_repr(lmax_lk, width=27), np.binary_repr(lmax_rk, width=27)
+        return lmax_lk, lmax_rk
+
+    def get_cell_data(self, level, cell_iarr, fields):
+        """
+        Get data from requested cell
+
+        This uses the raw cell index, and doesn't account for periodicity or
+        an expanded domain (non-power of 2).
+
+        level: int
+            Requested level
+        cell_iarr: array-like, length 3
+            Requested cell from given level.         fields: list
+            Requested fields
+
+        Returns:
+            cell_data: dict
+                Dictionary of field_name, field_data
+        """
+        cell_iarr = np.array(cell_iarr)
+        lk, rk =self.get_key_bounds(level, cell_iarr)
+        return self.get_contiguous_chunk(lk, rk, fields)
