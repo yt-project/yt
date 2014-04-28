@@ -134,6 +134,9 @@ class ChomboHierarchy(GridIndex):
 
         assert(self.num_particles == self.grid_particle_count.sum())
 
+    # Chombo datasets, by themselves, have no "known" fields. However, 
+    # we will look for "fluid" fields by finding the string "component" in
+    # the output file, and "particle" fields by finding the string "particle".
     def _detect_output_fields(self):
 
         # look for fluid fields
@@ -236,6 +239,8 @@ class ChomboDataset(Dataset):
                  storage_filename = None, ini_filename = None):
         self.fluid_types += ("chombo",)
         self._handle = h5py.File(filename, 'r')
+
+        # look up the dimensionality of the dataset
         D = self._handle['Chombo_global/'].attrs['SpaceDim']
         if D == 1:
             self.dataset_type = 'chombo1d_hdf5'
@@ -243,10 +248,14 @@ class ChomboDataset(Dataset):
             self.dataset_type = 'chombo2d_hdf5'
         if D == 3:
             self.dataset_type = 'chombo_hdf5'
+
+        # some datasets will not be time-dependent, make
+        # sure we handle that here.
         try:
             self.current_time = self._handle.attrs['time']
         except KeyError:
             self.current_time = 0.0
+
         self.geometry = "cartesian"
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)
@@ -282,6 +291,7 @@ class ChomboDataset(Dataset):
         self.domain_right_edge = self._calc_right_edge()
         self.domain_dimensions = self._calc_domain_dimensions()
 
+        # if a lower-dimensional dataset, set up pseudo-3D stuff here.
         if self.dimensionality == 1:
             self.domain_left_edge = np.concatenate((self.domain_left_edge, [0.0, 0.0]))
             self.domain_right_edge = np.concatenate((self.domain_right_edge, [1.0, 1.0]))
@@ -323,6 +333,7 @@ class ChomboDataset(Dataset):
             try:
                 fileh = h5py.File(args[0],'r')
                 valid = "Chombo_global" in fileh["/"]
+                # ORION2 simulations should always have this:
                 valid = not ('CeilVA_mass' in fileh.attrs.keys())
                 fileh.close()
                 return valid
