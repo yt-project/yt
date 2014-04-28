@@ -6,15 +6,15 @@ cimport cython
 from libc.stdlib cimport malloc, free
 import sys
 
-cdef import from "malloc.h":
-    void *valloc(size_t size) nogil
-
 # Importing relevant rockstar data types particle, fof halo, halo
 
 cdef import from "particle.h":
     struct particle:
         np.int64_t id
         float pos[6]
+
+cdef import from "rockstar.h":
+    particle *global_particles "p"
 
 cdef import from "fof.h":
     struct fof:
@@ -238,6 +238,7 @@ cdef class RockstarGroupiesInterface:
         # Find number of particles
         cdef np.int64_t i, j, k, ind, offset
         cdef np.int64_t num_particles = pind.shape[0]
+        global global_particles
 
         # Allocate space for correct number of particles
         cdef fof fof_obj
@@ -263,7 +264,7 @@ cdef class RockstarGroupiesInterface:
         if j > max_count:
             max_count = j
         #print >> sys.stderr, "Most frequent occurrance: %s" % max_count
-        fof_obj.particles = <particle*> valloc(max_count * sizeof(particle))
+        fof_obj.particles = <particle*> malloc(max_count * sizeof(particle))
         j = 0
         cdef int counter = 0, ndone = 0
         cdef np.ndarray[np.int64_t, ndim=1] pcounts 
@@ -298,7 +299,7 @@ cdef class RockstarGroupiesInterface:
                         fof_obj.particles[0].pos[2],
                         halos[num_halos - 1].pos[3])
                     counter = 0
-                p = &fof_obj.particles[0]
+                global_particles = &fof_obj.particles[0]
                 find_subs(&fof_obj)
                 # Now we reset
                 fof_obj.num_p = j = 0
