@@ -161,7 +161,7 @@ def get_sanitized_center(center, pf):
     return center
 
 def get_window_parameters(axis, center, width, pf):
-    if pf.geometry == "cartesian":
+    if pf.geometry == "cartesian" or pf.geometry == "ppv":
         width = get_sanitized_width(axis, width, None, pf)
         center = get_sanitized_center(center, pf)
     elif pf.geometry in ("polar", "cylindrical"):
@@ -813,6 +813,11 @@ class PWViewerMPL(PlotWindow):
                 comoving = False
                 hinv = False
                 for i, un in enumerate((unit_x, unit_y)):
+                    if hasattr(self.pf.coordinates, "default_unit_label"):
+                        axax = getattr(self.pf.coordinates, "%s_axis" % ("xy"[i]))[axis_index]
+                        un = self.pf.coordinates.default_unit_label[axax]
+                        axes_unit_labels[i] = '\/\/('+un+')'
+                        continue
                     # Use sympy to factor h out of the unit.  In this context 'un'
                     # is a string, so we call the Unit constructor.
                     expr = Unit(un, registry=self.pf.unit_registry).expr
@@ -847,6 +852,9 @@ class PWViewerMPL(PlotWindow):
                     axis_names = self.pf.coordinates.axis_name
                     xax = self.pf.coordinates.x_axis[axis_index]
                     yax = self.pf.coordinates.y_axis[axis_index]
+                    if hasattr(self.pf.coordinates, "axis_default_unit_label"):
+                        axes_unit_labels = [self.pf.coordinates.axis_default_unit_name[xax],
+                                            self.pf.coordinates.axis_default_unit_name[yax]]
                     labels = [r'$\rm{'+axis_names[xax]+axes_unit_labels[0] + r'}$',
                               r'$\rm{'+axis_names[yax]+axes_unit_labels[1] + r'}$']
 

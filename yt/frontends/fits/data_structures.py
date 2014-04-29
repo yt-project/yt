@@ -508,6 +508,8 @@ class FITSDataset(Dataset):
     def _setup_ppv(self):
 
         self.ppv_data = True
+        self.geometry = "ppv"
+
         end = min(self.dimensionality+1,4)
         if self.events_data:
             ctypes = self.axis_names
@@ -550,7 +552,7 @@ class FITSDataset(Dataset):
             x0 = self.wcs.wcs.crpix[self.vel_axis]
             dz = self.wcs.wcs.cdelt[self.vel_axis]
             z0 = self.wcs.wcs.crval[self.vel_axis]
-            self.vunit = str(self.wcs.wcs.cunit[self.vel_axis])
+            self.vel_unit = str(self.wcs.wcs.cunit[self.vel_axis])
 
             self.domain_left_edge[self.vel_axis] = \
                 (self.domain_left_edge[self.vel_axis]-x0)*dz + z0
@@ -562,7 +564,7 @@ class FITSDataset(Dataset):
             self.wcs_2d = self.wcs
             self.vel_axis = 2
             self.vel_name = "z"
-            self.vunit = "code length"
+            self.vel_unit = "code length"
 
     def __del__(self):
         for file in self._fits_files:

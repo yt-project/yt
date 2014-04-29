@@ -44,9 +44,9 @@ class FITSFieldInfo(FieldInfoContainer):
         if self.pf.dimensionality == 3:
             def _vel_los(field, data):
                 axis = "xyz"[data.pf.vel_axis]
-                return data.pf.arr(data[axis].ndarray_view(),data.pf.vunit)
-            self.add_field(("fits",data.pf.vel_name), function=_vel_los,
-                           units=data.pf.vunit)
+                return data.pf.arr(data[axis].ndarray_view(),data.pf.vel_unit)
+            self.add_field(("fits",self.pf.vel_name), function=_vel_los,
+                           units=self.pf.vel_unit)
 
     def setup_fluid_fields(self):
 
