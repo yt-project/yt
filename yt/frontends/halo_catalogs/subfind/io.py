@@ -71,7 +71,11 @@ class IOHandlerSubfindHDF5(BaseIOHandler):
                     del x, y, z
                     if mask is None: continue
                     for field in field_list:
-                        if field in f[ptype].keys():
+                        if field == "particle_identifier":
+                            field_data = \
+                              np.arange(data_file.particle_count[ptype]) + \
+                              data_file.index_offset[ptype]
+                        elif field in f[ptype].keys():
                             field_data = f[ptype][field].value.astype("float64")
                         else:
                             fname = field[:field.rfind("_")]
@@ -128,7 +132,8 @@ class IOHandlerSubfindHDF5(BaseIOHandler):
 
     def _identify_fields(self, data_file):
         pcount = self._count_particles(data_file)
-        fields = []
+        fields = [(ptype, "particle_identifier")
+                  for ptype in self.pf.particle_types_raw]
         with h5py.File(data_file.filename, "r") as f:
             for ptype in self.pf.particle_types_raw:
                 fields.extend(h5_field_list(f[ptype], ptype, pcount[ptype]))
