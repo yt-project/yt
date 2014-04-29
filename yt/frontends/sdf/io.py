@@ -306,15 +306,15 @@ class SDFIndex(object):
         self.domain_dims = 0
         self.domain_active_dims = 0
         self.masks = {
-            "r" : int("011"*9, 2),
-            "t" : int("101"*9, 2),
-            "p" : int("110"*9, 2),
-            "x" : int("011"*9, 2),
-            "y" : int("101"*9, 2),
-            "z" : int("110"*9, 2),
-            0 : int("011"*9, 2),
-            1 : int("101"*9, 2),
-            2 : int("110"*9, 2),
+            "r" : int("011"*level, 2),
+            "t" : int("101"*level, 2),
+            "p" : int("110"*level, 2),
+            "x" : int("011"*level, 2),
+            "y" : int("101"*level, 2),
+            "z" : int("110"*level, 2),
+            0 : int("011"*level, 2),
+            1 : int("101"*level, 2),
+            2 : int("110"*level, 2),
         }
         self. dim_slices = {
             "r" : slice(0, None, 3),
@@ -364,29 +364,31 @@ class SDFIndex(object):
         print 'Domain stuff:', self.domain_width, self.domain_dims, self.domain_active_dims
 
     def get_key_ijk(self, i1, i2, i3):
-        rep1 = np.binary_repr(i1, width=9)
-        rep2 = np.binary_repr(i2, width=9)
-        rep3 = np.binary_repr(i3, width=9)
-        inter = np.zeros(27, dtype='c')
+        rep1 = np.binary_repr(i1, width=self.level)
+        rep2 = np.binary_repr(i2, width=self.level)
+        rep3 = np.binary_repr(i3, width=self.level)
+        inter = np.zeros(self.level*3, dtype='c')
         inter[::3] = rep1
         inter[1::3] = rep2
         inter[2::3] = rep3
         return int(inter.tostring(), 2)
 
-    def get_key(self, iarr, level=9):
+    def get_key(self, iarr, level=None):
+        if level is None:
+            level = self.level
         i1, i2, i3 = iarr
-        rep1 = np.binary_repr(i1, width=9)
-        rep2 = np.binary_repr(i2, width=9)
-        rep3 = np.binary_repr(i3, width=9)
-        inter = np.zeros(27, dtype='c')
+        rep1 = np.binary_repr(i1, width=self.level)
+        rep2 = np.binary_repr(i2, width=self.level)
+        rep3 = np.binary_repr(i3, width=self.level)
+        inter = np.zeros(self.level*3, dtype='c')
         inter[::3] = rep1
         inter[1::3] = rep2
         inter[2::3] = rep3
         return int(inter.tostring(), 2)
 
     def get_slice_key(self, ind, dim='r'):
-        slb = np.binary_repr(ind, width=9)
-        expanded = np.array([0]*27, dtype='c')
+        slb = np.binary_repr(ind, width=self.level)
+        expanded = np.array([0]*self.level*3, dtype='c')
         expanded[self.dim_slices[dim]] = slb
         return int(expanded.tostring(), 2)
 
@@ -543,8 +545,8 @@ class SDFIndex(object):
         level_rk = self.get_key(cell_iarr + level_buff) + 1
         lmax_lk = (level_lk << shift*3)
         lmax_rk = (((level_rk) << shift*3) -1)
-        #print "Level ", level, np.binary_repr(level_lk, width=27), np.binary_repr(level_rk, width=27)
-        #print "Level ", self.level, np.binary_repr(lmax_lk, width=27), np.binary_repr(lmax_rk, width=27)
+        #print "Level ", level, np.binary_repr(level_lk, width=self.level*3), np.binary_repr(level_rk, width=self.level*3)
+        #print "Level ", self.level, np.binary_repr(lmax_lk, width=self.level*3), np.binary_repr(lmax_rk, width=self.level*3)
         return lmax_lk, lmax_rk
 
     def get_cell_data(self, level, cell_iarr, fields):

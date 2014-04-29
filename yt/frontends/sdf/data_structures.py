@@ -87,12 +87,13 @@ class SDFDataset(Dataset):
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         if None in (self.domain_left_edge, self.domain_right_edge):
+            R0 = self.parameters['R0']
             self.domain_left_edge = np.array([
-              -self.parameters["R%s" % ax] for ax in 'xyz'])
+              -self.parameters.get("R%s" % ax, R0) for ax in 'xyz'])
             self.domain_right_edge = np.array([
-              +self.parameters["R%s" % ax] for ax in 'xyz'])
-            self.domain_left_edge *= self.parameters["a"]
-            self.domain_right_edge *= self.parameters["a"]
+              +self.parameters.get("R%s" % ax, R0) for ax in 'xyz'])
+            self.domain_left_edge *= self.parameters.get("a", 1.0)
+            self.domain_right_edge *= self.parameters.get("a", 1.0)
 
         nz = 1 << self.over_refine_factor
         self.domain_dimensions = np.ones(3, "int32") * nz
@@ -100,7 +101,7 @@ class SDFDataset(Dataset):
 
         self.cosmological_simulation = 1
 
-        self.current_redshift = self.parameters["redshift"]
+        self.current_redshift = self.parameters.get("redshift", 0.0)
         self.omega_lambda = self.parameters["Omega0_lambda"]
         self.omega_matter = self.parameters["Omega0_m"]
         self.hubble_constant = self.parameters["h_100"]
