@@ -170,7 +170,13 @@ class FITSHierarchy(GridIndex):
         self._file_map = {}
         self._ext_map = {}
         self._scale_map = {}
+        # Since FITS header keywords are case-insensitive, we only pick a subset of
+        # prefixes, ones that we expect to end up in headers.
         known_units = dict([(unit.lower(),unit) for unit in self.pf.unit_registry.lut])
+        for unit in known_units.values():
+            if unit in prefixable_units:
+                for p in ["n","u","m","c","k"]:
+                    known_units[(p+unit).lower()] = p+unit
         # We create a field from each slice on the 4th axis
         if self.parameter_file.naxis == 4:
             naxis4 = self.parameter_file.primary_header["naxis4"]
@@ -179,7 +185,11 @@ class FITSHierarchy(GridIndex):
         for i, fits_file in enumerate(self.parameter_file._fits_files):
             for j, hdu in enumerate(fits_file):
                 if self._ensure_same_dims(hdu):
-                    for k in xrange(naxis4):
+                    if len(self.pf.override_fields) > 0:
+                        field = self.pf.override_fields.pop(0)
+                        fname = field[0]
+                        units = field[1]
+                    else:
                         units = self._determine_image_units(hdu.header, known_units)
                         try:
                             # Grab field name from btype
@@ -188,17 +198,11 @@ class FITSHierarchy(GridIndex):
                             # Try to guess the name from the units
                             fname = self._guess_name_from_units(units)
                             # When all else fails
-                            if fname is None:
-                                fname = "image_%d" % (j)
+                            if fname is None: fname = "image_%d" % (j)
+                        if self.pf.num_files > 1: fname += "_file_%d" % (i)
+                    for k in xrange(naxis4):
                         if naxis4 > 1:
                             fname += "_%s_%d" % (hdu.header["CTYPE4"], k+1)
-                        if self.pf.num_files > 1:
-                            try:
-                                fname += "_%5.3f_GHz" % (hdu.header["restfreq"]/1.0e9)
-                            except:
-                                fname += "_%5.3f_GHz" % (hdu.header["restfrq"]/1.0e9)
-                            else:
-                                fname += "_file_%d" % (i)
                         self._axis_map[fname] = k
                         self._file_map[fname] = fits_file
                         self._ext_map[fname] = j
@@ -313,11 +317,16 @@ class FITSDataset(Dataset):
                  folded_width = None,
                  line_database = None,
                  suppress_astropy_warnings = True,
-                 parameters = None):
+                 parameters = None,
+                 override_fields = None):
 
         if parameters is None:
             parameters = {}
         self.specified_parameters = parameters
+
+        if override_fields is None:
+            override_fields = []
+        self.override_fields = override_fields
 
         self.folded_axis = folded_axis
         self.folded_width = folded_width
@@ -328,6 +337,7 @@ class FITSDataset(Dataset):
 
         if suppress_astropy_warnings:
             warnings.filterwarnings('ignore', module="astropy", append=True)
+        slave_files = ensure_list(slave_files)
         self.filenames = [filename] + slave_files
         self.num_files = len(self.filenames)
         self.fluid_types += ("fits",)
@@ -345,10 +355,10 @@ class FITSDataset(Dataset):
         self._fits_files = [self._handle]
         if self.num_files > 1:
             for fits_file in slave_files:
-                self._fits_files.append(ap.pyfits.open(fits_file,
-                                                       memmap=True,
-                                                       do_not_scale_image_data=True,
-                                                       ignore_blank=True))
+                f = ap.pyfits.open(fits_file, memmap=True,
+                                   do_not_scale_image_data=True,
+                                   ignore_blank=True)
+                self._fits_files.append(f)
 
         if len(self._handle) > 1 and self._handle[1].name == "EVENTS":
             self.events_data = True
@@ -358,19 +368,20 @@ class FITSDataset(Dataset):
             self.wcs = ap.pywcs.WCS(naxis=2)
             self.events_info = {}
             for k,v in self.primary_header.items():
-                if v in ["X","Y"]:
-                    num = k.strip("TTYPE")
-                    self.events_info[v.lower()] = (self.primary_header["TLMIN"+num],
-                                                   self.primary_header["TLMAX"+num],
-                                                   self.primary_header["TCTYP"+num],
-                                                   self.primary_header["TCRVL"+num],
-                                                   self.primary_header["TCDLT"+num],
-                                                   self.primary_header["TCRPX"+num])
-                elif v in ["ENERGY","TIME"]:
-                    num = k.strip("TTYPE")
-                    unit = self.primary_header["TUNIT"+num].lower()
-                    if unit.endswith("ev"): unit = unit.replace("ev","eV")
-                    self.events_info[v.lower()] = unit
+                if k.startswith("TTYP"):
+                    if v.lower() in ["x","y"]:
+                        num = k.strip("TTYPE")
+                        self.events_info[v.lower()] = (self.primary_header["TLMIN"+num],
+                                                       self.primary_header["TLMAX"+num],
+                                                       self.primary_header["TCTYP"+num],
+                                                       self.primary_header["TCRVL"+num],
+                                                       self.primary_header["TCDLT"+num],
+                                                       self.primary_header["TCRPX"+num])
+                    elif v.lower() in ["energy","time"]:
+                        num = k.strip("TTYPE")
+                        unit = self.primary_header["TUNIT"+num].lower()
+                        if unit.endswith("ev"): unit = unit.replace("ev","eV")
+                        self.events_info[v.lower()] = unit
             self.axis_names = [self.events_info[ax][2] for ax in ["x","y"]]
             self.wcs.wcs.cdelt = [self.events_info["x"][4],self.events_info["y"][4]]
             self.wcs.wcs.crpix = [self.events_info["x"][5],self.events_info["y"][5]]
@@ -490,7 +501,7 @@ class FITSDataset(Dataset):
         if self.nprocs is None:
             self.nprocs = np.around(np.prod(self.domain_dimensions) /
                                     32**self.dimensionality).astype("int")
-            self.nprocs = min(self.nprocs, 512)
+            self.nprocs = max(min(self.nprocs, 512), 1)
 
         # Check to see if this data is in some kind of (Lat,Lon,Vel) format
         self.ppv_data = False
@@ -507,7 +518,8 @@ class FITSDataset(Dataset):
         if self.events_data:
             ctypes = self.axis_names
         else:
-            ctypes = np.array([self.primary_header["CTYPE%d" % (i)] for i in xrange(1,end)])
+            ctypes = np.array([self.primary_header["CTYPE%d" % (i)]
+                               for i in xrange(1,end)])
 
         log_str = "Detected these axes: "+"%s "*len(ctypes)
         mylog.info(log_str % tuple([ctype for ctype in ctypes]))
@@ -541,17 +553,19 @@ class FITSDataset(Dataset):
             self.wcs_2d.wcs.ctype = [self.wcs.wcs.ctype[self.lon_axis],
                                      self.wcs.wcs.ctype[self.lat_axis]]
 
-            self.wcs_1d = ap.pywcs.WCS(naxis=1)
-            self.wcs_1d.wcs.crpix = [self.wcs.wcs.crpix[self.vel_axis]]
-            self.wcs_1d.wcs.cdelt = [self.wcs.wcs.cdelt[self.vel_axis]]
-            self.wcs_1d.wcs.crval = [self.wcs.wcs.crval[self.vel_axis]]
-            self.wcs_1d.wcs.cunit = [str(self.wcs.wcs.cunit[self.vel_axis])]
-            self.wcs_1d.wcs.ctype = [self.wcs.wcs.ctype[self.vel_axis]]
+            x0 = self.wcs.wcs.crpix[self.vel_axis]
+            dz = self.wcs.wcs.cdelt[self.vel_axis]
+            z0 = self.wcs.wcs.crval[self.vel_axis]
+            self._zunit = str(self.wcs.wcs.cunit[self.vel_axis])
+
+            self.domain_left_edge[self.vel_axis] = \
+                (self.domain_left_edge[self.vel_axis]-x0)*dz + z0
+            self.domain_right_edge[self.vel_axis] = \
+                (self.domain_right_edge[self.vel_axis]-x0)*dz + z0
 
         else:
 
             self.wcs_2d = self.wcs
-            self.wcs_1d = None
             self.vel_axis = 2
             self.vel_name = "z"
 

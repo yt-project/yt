@@ -25,8 +25,6 @@ from .data_containers import \
     YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D
 from yt.data_objects.derived_quantities import \
     DerivedQuantityCollection
-from yt.utilities.definitions import \
-    x_dict, y_dict, axis_names
 from yt.utilities.exceptions import YTSphereTooSmall
 from yt.utilities.linear_interpolators import TrilinearFieldInterpolator
 from yt.utilities.minimal_representation import \
@@ -73,12 +71,15 @@ class YTOrthoRayBase(YTSelectionContainer1D):
     def __init__(self, axis, coords, pf=None, field_parameters=None):
         super(YTOrthoRayBase, self).__init__(pf, field_parameters)
         self.axis = axis
-        self.px_ax = x_dict[self.axis]
-        self.py_ax = y_dict[self.axis]
-        self.px_dx = 'd%s'%(axis_names[self.px_ax])
-        self.py_dx = 'd%s'%(axis_names[self.py_ax])
+        xax = self.pf.coordinates.x_axis[self.axis]
+        yax = self.pf.coordinates.y_axis[self.axis]
+        self.px_ax = xax
+        self.py_ax = yax
+        # Even though we may not be using x,y,z we use them here.
+        self.px_dx = 'd%s'%('xyz'[self.px_ax])
+        self.py_dx = 'd%s'%('xyz'[self.py_ax])
         self.px, self.py = coords
-        self.sort_by = axis_names[self.axis]
+        self.sort_by = 'xyz'[self.axis]
 
     @property
     def coords(self):
@@ -191,16 +192,18 @@ class YTSliceBase(YTSelectionContainer2D):
         self.coord = coord
 
     def _generate_container_field(self, field):
+        xax = self.pf.coordinates.x_axis[self.axis]
+        yax = self.pf.coordinates.y_axis[self.axis]
         if self._current_chunk is None:
             self.index._identify_base_chunk(self)
         if field == "px":
-            return self._current_chunk.fcoords[:,x_dict[self.axis]]
+            return self._current_chunk.fcoords[:,xax]
         elif field == "py":
-            return self._current_chunk.fcoords[:,y_dict[self.axis]]
+            return self._current_chunk.fcoords[:,yax]
         elif field == "pdx":
-            return self._current_chunk.fwidth[:,x_dict[self.axis]] * 0.5
+            return self._current_chunk.fwidth[:,xax] * 0.5
         elif field == "pdy":
-            return self._current_chunk.fwidth[:,y_dict[self.axis]] * 0.5
+            return self._current_chunk.fwidth[:,yax] * 0.5
         else:
             raise KeyError(field)
 
