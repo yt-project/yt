@@ -133,6 +133,7 @@ class SDFDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
+        if not os.path.isfile(args[0]): return False
         with open(args[0], "r") as f:
             line = f.readline().strip()
             return line == "# SDF 1.0"
