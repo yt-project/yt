@@ -121,6 +121,7 @@ class FITSHierarchy(GridIndex):
     def _guess_name_from_units(self, units):
         for k,v in field_from_unit.items():
             if k in units:
+                mylog.warning("Guessing this is a %s field based on its units of %s." % (v,k))
                 return v
         return None
 
