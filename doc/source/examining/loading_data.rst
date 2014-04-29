@@ -587,7 +587,15 @@ Limitations
   keywords, but the resulting field information will necessarily be incomplete.
   For example, field names may not be descriptive, and units will not be
   correct. To get the full use out of yt for FITS files,
-  make sure that the header keywords mentioned above have sensible values.
+  make sure that for each image the following header keywords have sensible values:
+
+  - ``CDELTx``: The pixel width in along axis ``x``
+  - ``CRVALx``: The coordinate value at the reference position along axis ``x``
+  - ``CRPIXx``: The the reference pixel along axis ``x``
+  - ``CTYPEx``: The projection type of axis ``x``
+  - ``CUNITx``: The units of the coordinate along axis ``x``
+  - ``BTYPE``: The type of the image
+  - ``BUNIT``: The units of the image
 
 .. _loading-moab-data:
 
