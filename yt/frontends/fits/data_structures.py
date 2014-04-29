@@ -185,24 +185,24 @@ class FITSHierarchy(GridIndex):
         for i, fits_file in enumerate(self.parameter_file._fits_files):
             for j, hdu in enumerate(fits_file):
                 if self._ensure_same_dims(hdu):
-                    if len(self.pf.override_fields) > 0:
-                        field = self.pf.override_fields.pop(0)
-                        fname = field[0]
-                        units = field[1]
-                    else:
-                        units = self._determine_image_units(hdu.header, known_units)
-                        try:
-                            # Grab field name from btype
-                            fname = hdu.header["btype"].lower()
-                        except:
-                            # Try to guess the name from the units
-                            fname = self._guess_name_from_units(units)
-                            # When all else fails
-                            if fname is None: fname = "image_%d" % (j)
-                        if self.pf.num_files > 1: fname += "_file_%d" % (i)
+                    units = self._determine_image_units(hdu.header, known_units)
+                    try:
+                        # Grab field name from btype
+                        fname = hdu.header["btype"].lower()
+                    except:
+                        # Try to guess the name from the units
+                        fname = self._guess_name_from_units(units)
+                        # When all else fails
+                        if fname is None: fname = "image_%d" % (j)
+                    if self.pf.num_files > 1 and fname.startswith("image"):
+                        fname += "_file_%d" % (i)
                     for k in xrange(naxis4):
                         if naxis4 > 1:
                             fname += "_%s_%d" % (hdu.header["CTYPE4"], k+1)
+                        if fname in self.field_list:
+                            mylog.error("You have two fields with the same name. Change one of " +
+                                        "the names in the BTYPE header keyword to distinguish " +
+                                        "them.")
                         self._axis_map[fname] = k
                         self._file_map[fname] = fits_file
                         self._ext_map[fname] = j
@@ -218,7 +218,6 @@ class FITSHierarchy(GridIndex):
                     mylog.warning("Image block %s does not have " % (hdu.name.lower()) +
                                   "the same dimensions as the primary and will not be " +
                                   "available as a field.")
-
 
         # For line fields, we still read the primary field. Not sure how to extend this
         # For now, we pick off the first field from the field list.
@@ -317,16 +316,11 @@ class FITSDataset(Dataset):
                  folded_width = None,
                  line_database = None,
                  suppress_astropy_warnings = True,
-                 parameters = None,
-                 override_fields = None):
+                 parameters = None):
 
         if parameters is None:
             parameters = {}
         self.specified_parameters = parameters
-
-        if override_fields is None:
-            override_fields = []
-        self.override_fields = override_fields
 
         self.folded_axis = folded_axis
         self.folded_width = folded_width
@@ -556,7 +550,7 @@ class FITSDataset(Dataset):
             x0 = self.wcs.wcs.crpix[self.vel_axis]
             dz = self.wcs.wcs.cdelt[self.vel_axis]
             z0 = self.wcs.wcs.crval[self.vel_axis]
-            self._zunit = str(self.wcs.wcs.cunit[self.vel_axis])
+            self.vunit = str(self.wcs.wcs.cunit[self.vel_axis])
 
             self.domain_left_edge[self.vel_axis] = \
                 (self.domain_left_edge[self.vel_axis]-x0)*dz + z0
@@ -568,6 +562,7 @@ class FITSDataset(Dataset):
             self.wcs_2d = self.wcs
             self.vel_axis = 2
             self.vel_name = "z"
+            self.vunit = "code length"
 
     def __del__(self):
         for file in self._fits_files:
