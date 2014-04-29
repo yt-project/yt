@@ -83,7 +83,7 @@ class ChomboGrid(AMRGridPatch):
     def _setup_dx(self):
         # has already been read in and stored in index
         self.dds = self.index.dds_list[self.Level]
-        self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
+        #self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
 class ChomboHierarchy(GridIndex):
 
@@ -387,6 +387,7 @@ class Orion2Hierarchy(ChomboHierarchy):
 class Orion2Dataset(ChomboDataset):
 
     _index_class = Orion2Hierarchy
+    _field_info_class = Orion2FieldInfo
 
     def __init__(self, filename, dataset_type='orion_chombo_native',
                  storage_filename = None, ini_filename = None):
