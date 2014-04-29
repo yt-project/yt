@@ -66,6 +66,7 @@ class IOHandlerFITS(BaseIOHandler):
         ng = sum(len(c.objs) for c in chunks)
         mylog.debug("Reading %s cells of %s fields in %s grids",
                     size, [f2 for f1, f2 in fields], ng)
+        dx = self.pf.domain_width/self.pf.domain_dimensions
         for field in fields:
             ftype, fname = field
             tmp_fname = fname
@@ -78,11 +79,8 @@ class IOHandlerFITS(BaseIOHandler):
             ind = 0
             for chunk in chunks:
                 for g in chunk.objs:
-                    centering = np.array([0.5]*3)
-                    if self.folded:
-                        centering[-1] = self.pf.domain_left_edge[2]
-                    start = (g.LeftEdge.ndarray_view()-centering).astype("int")
-                    end = (g.RightEdge.ndarray_view()-centering).astype("int")
+                    start = ((g.LeftEdge-self.pf.domain_left_edge)/dx).astype("int")
+                    end = ((g.RightEdge-self.pf.domain_left_edge)/dx).astype("int")
                     if self.folded:
                         my_off = \
                             self.pf.line_database.get(fname,
