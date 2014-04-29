@@ -869,23 +869,22 @@ class PWViewerMPL(PlotWindow):
 
             else:
 
-                axis = self.data_source.axis
                 wcs_axes = self.plots[f].figure.axes[-1]
                 wcs = wcs_axes.wcs.wcs
                 self.plots[f].axes.get_xaxis().set_visible(False)
                 self.plots[f].axes.get_yaxis().set_visible(False)
-                xlabel = "%s (%s)" % (wcs.ctype[x_dict[axis]].split("-")[0],
-                                      wcs.cunit[x_dict[axis]])
-                ylabel = "%s (%s)" % (wcs.ctype[y_dict[axis]].split("-")[0],
-                                      wcs.cunit[x_dict[axis]])
+                xax = self.pf.coordinates.x_axis[axis_index]
+                yax = self.pf.coordinates.y_axis[axis_index]
+                xlabel = "%s (%s)" % (wcs.ctype[xax].split("-")[0],
+                                      wcs.cunit[xax])
+                ylabel = "%s (%s)" % (wcs.ctype[yax].split("-")[0],
+                                      wcs.cunit[yax])
                 wcs_axes.coords[0].set_axislabel(xlabel, fontproperties=fp)
                 wcs_axes.coords[1].set_axislabel(ylabel, fontproperties=fp)
                 wcs_axes.set_xlim(self.xlim[0].value, self.xlim[1].value)
                 wcs_axes.set_ylim(self.ylim[0].value, self.ylim[1].value)
                 wcs_axes.coords[0].ticklabels.set_fontproperties(fp)
                 wcs_axes.coords[1].ticklabels.set_fontproperties(fp)
-                wcs_axes.coords[0].set_major_formatter('d.dd')
-                wcs_axes.coords[1].set_major_formatter('d.dd')
 
             colorbar_label = image.info['label']
 
