@@ -23,11 +23,11 @@ class FITSFieldInfo(FieldInfoContainer):
         for field in pf.field_list:
             if field[0] == "fits": self[field].take_log = False
 
-    def _get_2d_wcs(self, data, axis):
-        w_coords = data.pf.wcs_2d.wcs_pix2world(data["x"], data["y"], 1)
-        return w_coords[axis]
-
     def _setup_ppv_fields(self):
+
+        def _get_2d_wcs(self, data, axis):
+            w_coords = data.pf.wcs_2d.wcs_pix2world(data["x"], data["y"], 1)
+            return w_coords[axis]
 
         def world_f(axis, unit):
             def _world_f(field, data):
@@ -40,6 +40,13 @@ class FITSFieldInfo(FieldInfoContainer):
             if unit.lower() == "deg": unit = "degree"
             if unit.lower() == "rad": unit = "radian"
             self.add_field(("fits",name), function=world_f(axis, unit), units=unit)
+
+        if self.pf.dimensionality == 3:
+            def _vel_los(field, data):
+                axis = "xyz"[data.pf.vel_axis]
+                return data.pf.arr(data[axis].ndarray_view(),data.pf.vunit)
+            self.add_field(("fits",data.pf.vel_name), function=_vel_los,
+                           units=data.pf.vunit)
 
     def setup_fluid_fields(self):
 
