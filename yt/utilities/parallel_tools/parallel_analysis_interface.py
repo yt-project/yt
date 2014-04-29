@@ -27,8 +27,6 @@ from yt.funcs import \
     ensure_list, iterable, traceback_writer_hook
 
 from yt.config import ytcfg
-from yt.utilities.definitions import \
-    x_dict, y_dict
 import yt.utilities.logger
 from yt.utilities.lib.QuadTree import \
     QuadTree, merge_quadtrees
@@ -1066,7 +1064,8 @@ class ParallelAnalysisInterface(object):
            return False, self.index.grid_collection(self.center,
                                                         self.index.grids)
 
-        xax, yax = x_dict[axis], y_dict[axis]
+        xax = self.pf.coordinates.x_axis[axis]
+        yax = self.pf.coordinates.y_axis[axis]
         cc = MPI.Compute_dims(self.comm.size, 2)
         mi = self.comm.rank
         cx, cy = np.unravel_index(mi, cc)

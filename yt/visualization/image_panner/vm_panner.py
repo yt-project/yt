@@ -19,8 +19,6 @@ from yt.visualization.fixed_resolution import \
     FixedResolutionBuffer, ObliqueFixedResolutionBuffer
 from yt.data_objects.data_containers import \
     data_object_registry
-from yt.utilities.definitions import \
-    x_dict, y_dict
 from yt.funcs import *
 
 class VariableMeshPanner(object):
@@ -62,7 +60,8 @@ class VariableMeshPanner(object):
         if not hasattr(self, 'pf'): self.pf = self.source.pf
         DLE, DRE = self.pf.domain_left_edge, self.pf.domain_right_edge
         ax = self.source.axis
-        xax, yax = x_dict[ax], y_dict[ax]
+        xax = self.pf.coordinates.x_axis[ax]
+        yax = self.pf.coordinates.y_axis[ax]
         xbounds = DLE[xax], DRE[xax]
         ybounds = DLE[yax], DRE[yax]
         return (xbounds, ybounds)
@@ -183,8 +182,10 @@ class VariableMeshPanner(object):
         if len(center) == 2:
             centerx, centery = center
         elif len(center) == 3:
-            centerx = center[x_dict[self.source.axis]]
-            centery = center[y_dict[self.source.axis]]
+            xax = self.pf.coordinates.x_axis[self.source.axis]
+            yax = self.pf.coordinates.y_axis[self.source.axis]
+            centerx = center[xax]
+            centery = center[yax]
         else:
             raise RuntimeError
         Wx, Wy = self.width
