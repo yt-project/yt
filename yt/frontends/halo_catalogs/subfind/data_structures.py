@@ -14,6 +14,7 @@ Data structures for Subfind frontend.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from collections import defaultdict
 import h5py
 import numpy as np
 import stat
@@ -42,6 +43,22 @@ import yt.utilities.fortran_utils as fpu
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
+
+class SubfindParticleIndex(ParticleIndex):
+    def __init__(self, pf, dataset_type):
+        super(SubfindParticleIndex, self).__init__(pf, dataset_type)
+
+    def _calculate_particle_index_offsets(self):
+        particle_count = defaultdict(int)
+        for data_file in self.data_files:
+            data_file.index_offset = dict([(ptype, particle_count[ptype]) for
+                                           ptype in data_file.particle_count])
+            for ptype in data_file.particle_count:
+                particle_count[ptype] += data_file.particle_count[ptype]
+        
+    def _setup_geometry(self):
+        super(SubfindParticleIndex, self)._setup_geometry()
+        self._calculate_particle_index_offsets()
     
 class SubfindHDF5File(ParticleFile):
     def __init__(self, pf, io, filename, file_id):
@@ -52,7 +69,7 @@ class SubfindHDF5File(ParticleFile):
         super(SubfindHDF5File, self).__init__(pf, io, filename, file_id)
     
 class SubfindDataset(Dataset):
-    _index_class = ParticleIndex
+    _index_class = SubfindParticleIndex
     _file_class = SubfindHDF5File
     _field_info_class = SubfindFieldInfo
     _suffix = ".hdf5"

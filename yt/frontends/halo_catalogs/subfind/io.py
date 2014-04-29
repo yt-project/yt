@@ -121,8 +121,10 @@ class IOHandlerSubfindHDF5(BaseIOHandler):
 
     def _count_particles(self, data_file):
         with h5py.File(data_file.filename, "r") as f:
-            return dict([(ptype, f[ptype].attrs["Number_of_groups"]) \
-                         for ptype in self.pf.particle_types_raw])
+            data_file.particle_count = \
+              dict([(ptype, f[ptype].attrs["Number_of_groups"])
+                    for ptype in self.pf.particle_types_raw])
+            return data_file.particle_count
 
     def _identify_fields(self, data_file):
         pcount = self._count_particles(data_file)
