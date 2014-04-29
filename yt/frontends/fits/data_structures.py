@@ -78,8 +78,8 @@ class astropy_imports:
 
 ap = astropy_imports()
 
-lat_prefixes = ["DEC","GLAT"]
-lon_prefixes = ["RA","GLON"]
+lon_prefixes = ["X","RA","GLON"]
+lat_prefixes = ["Y","DEC","GLAT"]
 vel_prefixes = ["V","ENER","FREQ","WAV"]
 delimiters = ["*", "/", "-", "^"]
 delimiters += [str(i) for i in xrange(10)]
@@ -440,9 +440,9 @@ class FITSDataset(Dataset):
             if units == "deg": units = "degree"
             if units == "rad": units = "radian"
             pixel_area = np.prod(np.abs(self.wcs_2d.wcs.cdelt))
-            pixel_area = float(self.quan(pixel_area, "%s**2" % (units)).in_cgs().value)
-            pixel_dims = dimensions.solid_angle
-            self.unit_registry.add("pixel",pixel_area,dimensions=pixel_dims)
+            pixel_area = self.quan(pixel_area, "%s**2" % (units)).in_cgs()
+            pixel_dims = pixel_area.units.dimensions
+            self.unit_registry.add("pixel",float(pixel_area.value),dimensions=pixel_dims)
 
     def _parse_parameter_file(self):
 
