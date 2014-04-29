@@ -334,7 +334,7 @@ class ChomboDataset(Dataset):
                 fileh = h5py.File(args[0],'r')
                 valid = "Chombo_global" in fileh["/"]
                 # ORION2 simulations should always have this:
-                valid = not ('CeilVA_mass' in fileh.attrs.keys())
+                valid = valid and not ('CeilVA_mass' in fileh.attrs.keys())
                 fileh.close()
                 return valid
             except:
