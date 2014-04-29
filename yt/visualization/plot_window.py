@@ -844,8 +844,11 @@ class PWViewerMPL(PlotWindow):
                     labels = [r'$\rm{Image\/x'+axes_unit_labels[0]+'}$',
                               r'$\rm{Image\/y'+axes_unit_labels[1]+'}$']
                 else:
-                    labels = [r'$\rm{'+axis_labels[axis_index][i]+
-                              axes_unit_labels[i] + r'}$' for i in (0,1)]
+                    axis_names = self.pf.coordinates.axis_name
+                    xax = self.pf.coordinates.x_axis[axis_index]
+                    yax = self.pf.coordinates.y_axis[axis_index]
+                    labels = [r'$\rm{'+axis_names[xax]+axes_unit_labels[0] + r'}$',
+                              r'$\rm{'+axis_names[yax]+axes_unit_labels[1] + r'}$']
 
                 self.plots[f].axes.set_xlabel(labels[0],fontproperties=fp)
                 self.plots[f].axes.set_ylabel(labels[1],fontproperties=fp)
@@ -857,11 +860,6 @@ class PWViewerMPL(PlotWindow):
                     label.set_fontproperties(fp)
 
             else:
-                axis_names = self.pf.coordinates.axis_name
-                xax = self.pf.coordinates.x_axis[axis_index]
-                yax = self.pf.coordinates.y_axis[axis_index]
-                labels = [r'$\rm{'+axis_names[xax]+axes_unit_labels[0] + r'}$',
-                          r'$\rm{'+axis_names[yax]+axes_unit_labels[1] + r'}$']
 
                 axis = self.data_source.axis
                 wcs_axes = self.plots[f].figure.axes[-1]
