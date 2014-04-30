@@ -1058,10 +1058,10 @@ class Profile3D(ProfileND):
         self.z_bins.convert_to_units(new_unit)
         self.z = 0.5*(self.z_bins[1:]+self.z_bins[:-1])
 
-def create_profile(data_source, bin_fields, fields, n_bins = 64,
-                   extrema = None, logs = None,
-                   weight_field = "cell_mass",
-                   accumulation = False, fractional = False):
+def create_profile(data_source, bin_fields, fields, n_bins=64,
+                   extrema=None, logs=None, units=None,
+                   weight_field="cell_mass",
+                   accumulation=False, fractional=False):
     r"""
     Create a 1, 2, or 3D profile object.
 
@@ -1181,6 +1181,18 @@ def create_profile(data_source, bin_fields, fields, n_bins = 64,
                 temp = temp[::-1]
             temp = np.rollaxis(temp, axis)
             obj.field_data[field] = temp
-            
+    if units is not None:
+        for field, unit in units.iteritems():
+            field = data_source._determine_fields(field)[0]
+            if field == obj.x_field:
+                obj.set_x_unit(unit)
+            elif hasattr(obj, 'y_field'):
+                if field == obj.y_field:
+                    obj.set_y_unit(unit)
+            elif hasattr(obj, 'z_field'):
+                if field == obj.z_field:
+                    obj.set_z_unit(unit)
+            else:
+                obj.set_field_unit(field, unit)
     return obj
 
