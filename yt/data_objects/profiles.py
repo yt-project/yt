@@ -157,7 +157,7 @@ class BinnedProfile1D(BinnedProfile):
     """
     def __init__(self, data_source, n_bins, bin_field,
                  lower_bound, upper_bound,
-                 log_space = True, 
+                 log_space = True,
                  end_collect=False):
         BinnedProfile.__init__(self, data_source)
         self.bin_field = bin_field
@@ -212,7 +212,7 @@ class BinnedProfile1D(BinnedProfile):
         # summing up all of the histograms and dividing by the
         # weights.  Accumulation likely doesn't work with weighted
         # average fields.
-        if accumulation: 
+        if accumulation:
             binned_field = np.add.accumulate(binned_field)
         return binned_field, weight_field, q_field, \
             used_field.astype("bool")
@@ -237,12 +237,12 @@ class BinnedProfile1D(BinnedProfile):
             bin_indices = np.clip(bin_indices, 0, self.n_bins - 1)
         else: #throw away outside values
             bin_indices -= 1
-          
+
         return (mi, bin_indices)
 
     def choose_bins(self, bin_style):
         # Depending on the bin_style, choose from bin edges 0...N either:
-        # both: 0...N, left: 0...N-1, right: 1...N 
+        # both: 0...N, left: 0...N-1, right: 1...N
         # center: N bins that are the average (both in linear or log
         # space) of each pair of left/right edges
         x = self.field_data[self.bin_field]
@@ -259,7 +259,7 @@ class BinnedProfile1D(BinnedProfile):
         return x
 
     def write_out(self, filename, format="%0.16e", bin_style='left'):
-        ''' 
+        '''
         Write out data in ascii file, using *format* and
         *bin_style* (left, right, center, both).
         '''
@@ -268,12 +268,12 @@ class BinnedProfile1D(BinnedProfile):
         fields.remove(self.bin_field)
         fid.write("\t".join(["#"] + [self.bin_field] + fields + ["\n"]))
 
-        field_data = np.array(self.choose_bins(bin_style)) 
+        field_data = np.array(self.choose_bins(bin_style))
         if bin_style is 'both':
             field_data = np.append([field_data], np.array([self.field_data[field] for field in fields]), axis=0)
-        else: 
+        else:
             field_data = np.append([field_data], np.array([self.field_data[field][:-1] for field in fields]), axis=0)
-        
+
         for line in range(field_data.shape[1]):
             field_data[:,line].tofile(fid, sep="\t", format=format)
             fid.write("\n")
@@ -296,10 +296,10 @@ class BinnedProfile1D(BinnedProfile):
             name = "%s-1d" % (self.bin_field)
         else:
             name = "%s-%s-1d" % (group_prefix, self.bin_field)
-            
-        if name in fid: 
+
+        if name in fid:
             mylog.info("Profile file is getting larger since you are attempting to overwrite a profile. You may want to repack")
-            del fid[name] 
+            del fid[name]
         group = fid.create_group(name)
         group.attrs["x-axis-%s" % self.bin_field] = self.choose_bins(bin_style)
         for field in fields:
@@ -421,7 +421,7 @@ class BinnedProfile2D(BinnedProfile):
 
     def choose_bins(self, bin_style):
         # Depending on the bin_style, choose from bin edges 0...N either:
-        # both: 0...N, left: 0...N-1, right: 1...N 
+        # both: 0...N, left: 0...N-1, right: 1...N
         # center: N bins that are the average (both in linear or log
         # space) of each pair of left/right edges
 
@@ -492,9 +492,9 @@ class BinnedProfile2D(BinnedProfile):
             name = "%s-%s-2d" % (self.y_bin_field, self.x_bin_field)
         else:
             name = "%s-%s-%s-2d" % (group_prefix, self.y_bin_field, self.x_bin_field)
-        if name in fid: 
+        if name in fid:
             mylog.info("Profile file is getting larger since you are attempting to overwrite a profile. You may want to repack")
-            del fid[name] 
+            del fid[name]
         group = fid.create_group(name)
 
         xbins, ybins = self.choose_bins(bin_style)
@@ -520,11 +520,11 @@ class BinnedProfile3D(BinnedProfile):
     or a straight sum of a field in a bin defined by two other
     fields.  In the case of a weighted average, we have: p_i =
     sum( w_i * v_i ) / sum(w_i)
-    
+
     We accept a *data_source*, which will be binned into
     *(x,y,z)_n_bins* by the field *(x,y,z)_bin_field* between the
     *(x,y,z)_lower_bound* and the *(x,y,z)_upper_bound*.  These bins may or
-    may not be equally divided in log-space as specified by *(x,y,z)_log*. 
+    may not be equally divided in log-space as specified by *(x,y,z)_log*.
     If *end_collect* is True, take all values outside the given bounds and
     store them in the 0 and *n_bins*-1 values.
     """
@@ -641,7 +641,7 @@ class BinnedProfile3D(BinnedProfile):
 
     def choose_bins(self, bin_style):
         # Depending on the bin_style, choose from bin edges 0...N either:
-        # both: 0...N, left: 0...N-1, right: 1...N 
+        # both: 0...N, left: 0...N-1, right: 1...N
         # center: N bins that are the average (both in linear or log
         # space) of each pair of left/right edges
 
@@ -688,14 +688,14 @@ class BinnedProfile3D(BinnedProfile):
         attributes.
         """
         fid = h5py.File(filename)
-        fields = [field for field in sorted(self.field_data.keys()) 
+        fields = [field for field in sorted(self.field_data.keys())
                   if (field != "UsedBins" and field != self.x_bin_field and field != self.y_bin_field and field != self.z_bin_field)]
         if group_prefix is None:
             name = "%s-%s-%s-3d" % (self.z_bin_field, self.y_bin_field, self.x_bin_field)
         else:
             name = "%s-%s-%s-%s-3d" % (group_prefix,self.z_bin_field, self.y_bin_field, self.x_bin_field)
 
-        if name in fid: 
+        if name in fid:
             mylog.info("Profile file is getting larger since you are attempting to overwrite a profile. You may want to repack")
             del fid[name]
         group = fid.create_group(name)
@@ -704,7 +704,7 @@ class BinnedProfile3D(BinnedProfile):
         group.attrs["x-axis-%s" % self.x_bin_field] = xbins
         group.attrs["y-axis-%s" % self.y_bin_field] = ybins
         group.attrs["z-axis-%s" % self.z_bin_field] = zbins
-        
+
         for field in fields:
             dset = group.create_dataset("%s" % field, data=self.field_data[field][:-1,:-1,:-1])
         fid.close()
@@ -826,7 +826,7 @@ class ProfileND(ParallelAnalysisInterface):
             filter &= (data > mi)
             filter &= (data < ma)
         return filter, [data[filter] for data in bin_fields]
-        
+
     def _get_data(self, chunk, fields):
         # We are using chunks now, which will manage the field parameters and
         # the like.
@@ -843,7 +843,7 @@ class ProfileND(ParallelAnalysisInterface):
         else:
             weight_data = np.ones(chunk.ires.size, dtype="float64")
         weight_data = weight_data[filter]
-        # So that we can pass these into 
+        # So that we can pass these into
         return arr, weight_data, bin_fields
 
     def __getitem__(self, field):
@@ -857,7 +857,7 @@ class ProfileND(ParallelAnalysisInterface):
 
     def items(self):
         return [(k,self[k]) for k in self.field_data.keys()]
-    
+
     def __iter__(self):
         return sorted(self.items())
 
@@ -1065,7 +1065,7 @@ def create_profile(data_source, bin_fields, fields, n_bins = 64,
     r"""
     Create a 1, 2, or 3D profile object.
 
-    The dimensionality of the profile object is chosen by the number of 
+    The dimensionality of the profile object is chosen by the number of
     fields given in the bin_fields argument.
 
     Parameters
@@ -1077,7 +1077,7 @@ def create_profile(data_source, bin_fields, fields, n_bins = 64,
     fields : list of strings
         The fields to be profiled.
     n : int or list of ints
-        The number of bins in each dimension.  If None, 64 bins for 
+        The number of bins in each dimension.  If None, 64 bins for
         each bin are used for each bin field.
         Default: 64.
     extrema : dict of min, max tuples
@@ -1091,24 +1091,24 @@ def create_profile(data_source, bin_fields, fields, n_bins = 64,
     units : dict of strings
         The units of the fields in the profiles, including the bin_fields.
     weight_field : str
-        The weight field for computing weighted average for the profile 
-        values.  If None, the profile values are sums of the data in 
+        The weight field for computing weighted average for the profile
+        values.  If None, the profile values are sums of the data in
         each bin.
     accumulation : bool or list of bools
-        If True, the profile values for a bin n are the cumulative sum of 
-        all the values from bin 0 to n.  If -True, the sum is reversed so 
-        that the value for bin n is the cumulative sum from bin N (total bins) 
-        to n.  If the profile is 2D or 3D, a list of values can be given to 
+        If True, the profile values for a bin n are the cumulative sum of
+        all the values from bin 0 to n.  If -True, the sum is reversed so
+        that the value for bin n is the cumulative sum from bin N (total bins)
+        to n.  If the profile is 2D or 3D, a list of values can be given to
         control the summation in each dimension independently.
         Default: False.
-    fractional : If True the profile values are divided by the sum of all 
-        the profile data such that the profile represents a probability 
+    fractional : If True the profile values are divided by the sum of all
+        the profile data such that the profile represents a probability
         distribution function.
 
     Examples
     --------
 
-    Create a 1d profile.  Access bin field from profile.x and field 
+    Create a 1d profile.  Access bin field from profile.x and field
     data from profile.field_data.
 
     >>> pf = load("DD0046/DD0046")
@@ -1118,7 +1118,7 @@ def create_profile(data_source, bin_fields, fields, n_bins = 64,
     ...                          fields=["temperature", "velocity_x"]))
     >>> print profile.x
     >>> print profile.field_data["temperature"]
-    
+
     """
     bin_fields = ensure_list(bin_fields)
     fields = ensure_list(fields)
@@ -1139,7 +1139,7 @@ def create_profile(data_source, bin_fields, fields, n_bins = 64,
     if not iterable(accumulation):
         accumulation = [accumulation] * len(bin_fields)
     if logs is None:
-        logs = [data_source.pf._get_field_info(f[0],f[1]).take_log 
+        logs = [data_source.pf._get_field_info(f[0],f[1]).take_log
                 for f in bin_fields]
     else:
         logs = [logs[bin_field[-1]] for bin_field in bin_fields]
@@ -1161,7 +1161,7 @@ def create_profile(data_source, bin_fields, fields, n_bins = 64,
             ex.append(field_ex)
     args = [data_source]
     for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs):
-        args += [f, n, mi, ma, l] 
+        args += [f, n, mi, ma, l]
     obj = cls(*args, weight_field = weight_field)
     setattr(obj, "accumulation", accumulation)
     setattr(obj, "fractional", fractional)
