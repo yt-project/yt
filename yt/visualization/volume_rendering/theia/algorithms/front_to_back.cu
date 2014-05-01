@@ -8,21 +8,25 @@
 
 #include <helpers/cuda.cu>
 
+//A 3d texture holding scalar values to be volume rendered
 texture<float , cudaTextureType3D, cudaReadModeElementType> volume;
+//A 1d texture holding color transfer function values to act on raycaster results
 texture<float4, cudaTextureType1D, cudaReadModeElementType> transfer;
 
 
 extern "C"
-__global__ void front_to_back(uint *buffer, float *actual_matrix, int buffer_w,
+__global__ void front_to_back(uint *buffer, float *modelviewmatrix, int buffer_w,
                             int buffer_h, int max_steps, float density,
                             float offset, float scale,
                             float brightness, float step_size,
                             ) {
+  //Rays will terminate when opacity_threshold is reached
+  const float opacity_threshold = 0.95f; 
 
-  const float opacity_threshold = 0.95f;
+  //We don't use the far and near clipping information from the modelviewmatrix
+  float3x4 matrix = mat_array_to_3x4(modelviewmatrix); 
 
-  float3x4 matrix = mat_array_to_3x4(actual_matrix);
-
+  //The X,Y coordinate of the surface (image) array
   int x = BLOCK_X;
   int y = BLOCK_Y;
 
@@ -38,6 +42,7 @@ __global__ void front_to_back(uint *buffer, float *actual_matrix, int buffer_w,
   float tnear, tfar;
   int hit = intersect_std_box(eye_ray, &tnear, &tfar);
 
+  // If the ray misses the box set the coloro to black
   if (!hit) {
     buffer[y*buffer_w + x] = 0;
     return;

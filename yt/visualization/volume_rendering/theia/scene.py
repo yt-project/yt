@@ -6,8 +6,8 @@
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from pyRGBA.theia.source import TheiaSource
-from pyRGBA.theia.camera import Camera
+from yt.visualization.volume_rendering.theia.source import TheiaSource
+from yt.visualization.volume_rendering.theia.camera import Camera
 
 class TheiaScene:
     r"""
@@ -41,8 +41,8 @@ class TheiaScene:
 
         Example:
 
-        from pyRGBA.theia.scene import TheiaScene
-        from pyRGBA.algorithms.front_to_back import FrontToBackRaycaster
+        from yt.visualization.volume_rendering.theia.scene import TheiaScene
+        from yt.visualization.volume_rendering.algorithms.front_to_back import FrontToBackRaycaster
         import numpy as np
 
         #load 3D numpy array of float32

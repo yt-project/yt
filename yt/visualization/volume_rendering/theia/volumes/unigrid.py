@@ -8,9 +8,9 @@
 
 
 import pycuda.driver as drv
-import pyRGBA.theia.helpers.cuda as cdh
+import yt.visualization.volume_rendering.theia.helpers.cuda as cdh
 
-from pyRGBA.theia.volumes.volume import Volume
+from yt.visualization.volume_rendering.theia.volumes.volume import Volume
 
 import numpy as np
 

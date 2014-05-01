@@ -16,7 +16,7 @@ import os
 
 def sample_path():
 	#return '/pfs/sw/cuda-5.5/samples/common/inc'
-	return os.environ.get('PYRGBA_CUDA_SAMPLES')
+	return os.environ.get('CUDA_SAMPLES')
 
 def cuda_helpers_path():
 	return os.path.dirname(__file__) + "/../"

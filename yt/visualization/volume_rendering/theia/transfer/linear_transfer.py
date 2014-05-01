@@ -15,7 +15,7 @@ numpy array.
 """
 
 import pycuda.driver as drv
-import pyRGBA.theia.transfer.helper as tfh
+import yt.visualizatoin.volume_rendering.theia.transfer.helper as tfh
 
 import numpy as np
 

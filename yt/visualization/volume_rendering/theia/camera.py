@@ -7,7 +7,7 @@
 #-----------------------------------------------------------------------------
   
 #Matix helpers for camera control
-import pyRGBA.theia.helpers.matrix_transformation as mth
+import yt.visualization.volume_rendering.theia.helpers.matrix_transformation as mth
 
 import numpy as np
 
@@ -28,7 +28,7 @@ class Camera:
 
     Example:
 
-    from pyRGBA.cameras.camera import Camera
+    from yt.visualization.volume_rendering.cameras.camera import Camera
 
     cam = Camera()
     

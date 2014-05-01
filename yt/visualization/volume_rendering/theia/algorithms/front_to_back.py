@@ -8,13 +8,13 @@
 
 
 import pycuda.driver as drv
-import pyRGBA.theia.helpers.cuda as cdh
+import yt.visualization.volume_rendering.theia.helpers.cuda as cdh
 import numpy as np
 
-from pyRGBA.theia.transfer.linear_transfer import LinearTransferFunction
+from yt.visualization.volume_rendering.theia.transfer.linear_transfer import LinearTransferFunction
 
-from pyRGBA.theia.volumes.cube import Unigrid
-from pyRGBA.theia.surfaces.array_surface import ArraySurface
+from yt.visualization.volume_rendering.theia.volumes.unigrid import Unigrid
+from yt.visualization.volume_rendering.theia.surfaces.array_surface import ArraySurface
 import os
 
 class FrontToBackRaycaster:
@@ -29,7 +29,7 @@ class FrontToBackRaycaster:
 
     Example:
 
-    from pyRGBA.cameras.camera import Camera
+    from yt.visualization.volume_rendering.cameras.camera import Camera
 
     cam = Camera()
     
@@ -76,34 +76,73 @@ class FrontToBackRaycaster:
 
       def __call__(self):
             self.cast()
-
+      """
+          Parameters
+          ----------
+      """
       def get_surface(self) :
           return self.surface.get_array()
 
+      """
+          Parameters
+          ----------
+      """
       def get_sample_size(self) :
               return self.sample_size
 
+      """
+          Parameters
+          ----------
+      """
       def get_max_samples(self) :
               return self.max_samples
 
+      """
+          Parameters
+          ----------
+      """
       def get_density_scale(self) :
               return self.density_scale
 
+      """
+          Parameters
+          ----------
+      """
       def get_brightness(self):
               return self.brightness
 
+      """
+          Parameters
+          ----------
+      """
       def set_sample_size(self, size = 0.01) :
               self.sample_size = size
 
+      """
+          Parameters
+          ----------
+      """
       def set_max_samples(self, max = 5000) :
               self.max_samples = max
 
+      """
+          Parameters
+          ----------
+      """
       def set_density_scale(self, scale = 0.05) :
               self.density_scale = scale
 
+      """
+          Parameters
+          ----------
+      """
       def set_brightness(self, brightness = 1.0):
               self.brightness = brightness
 
+      """
+          Parameters
+          ----------
+      """
       def cast(self):
             w, h = self.surface.bounds
 
@@ -121,9 +160,17 @@ class FrontToBackRaycaster:
                                           )
 	   
 
+      """
+          Parameters
+          ----------
+      """
       def set_matrix(self, matrix):
 		self.matrix = matrix
 
+      """
+          Parameters
+          ----------
+      """
       def set_surface(self, surface = None, block_size = 32):
 		if surface == None:
 			self.surface = None
@@ -133,10 +180,18 @@ class FrontToBackRaycaster:
 		self.grid = cdh.block_estimate(block_size, self.surface.bounds)
 		self.block = (block_size, block_size, 1)
 
+      """
+          Parameters
+          ----------
+      """
       def send_volume_to_gpu(self, volume = None) :
             if (volume != None) :
                 self.set_volume(Unigrid(array = volume, allocate = True))
 
+      """
+          Parameters
+          ----------
+      """
       def set_volume(self, volume):
             if volume == None:
                   self.volume = None
@@ -149,6 +204,10 @@ class FrontToBackRaycaster:
             self.volume_identifier.set_address_mode(1, self.volume.address_mode)
             self.volume_identifier.set_array(self.volume.cuda_volume_array)
 
+      """
+          Parameters
+          ----------
+      """
       def set_transfer(self, transfer):
 		if transfer == None:
 			self.transfer = None
@@ -160,6 +219,18 @@ class FrontToBackRaycaster:
 		self.transfer_identifier.set_address_mode(0, self.transfer.address_mode)
 		self.transfer_identifier.set_array(self.transfer.cuda_transfer_array)
 
+      """
+          Attach the base directory path to the desired source file.
+          Parameters
+          ----------
+          dir : string  
+                Directory where source file is located
+
+          file : string 
+                Source file name
+
+          
+      """
       def base_directory(self, dir, file):
          	base = os.path.dirname(dir)
          	src = os.path.join(base, file)

@@ -10,7 +10,7 @@ import pycuda.driver as drv
 
 import numpy as np
 
-from   pyRGBA.theia.surfaces.surface import Surface
+from   yt.visualization.volume_rendering.theia.surfaces.surface import Surface
 
 
 """

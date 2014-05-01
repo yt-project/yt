@@ -50,8 +50,8 @@ class TheiaSource:
 
         Example:
 
-        from pyRGBA.theia.source import TheiaSource
-        from pyRGBA.algorithms.front_to_back import FrontToBackRaycaster
+        from yt.visualization.volume_rendering.theia.source import TheiaSource
+        from yt.visualization.volume_rendering.algorithms.front_to_back import FrontToBackRaycaster
         import numpy as np
 
         #load a 3d numpy array of float32 
