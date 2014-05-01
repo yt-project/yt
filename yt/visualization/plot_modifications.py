@@ -28,6 +28,8 @@ from yt.utilities.physical_constants import \
     sec_per_day, sec_per_hr
 from yt.visualization.image_writer import apply_colormap
 
+from matplotlib.colors import colorConverter
+
 import _MPL
 
 callback_registry = {}
@@ -337,20 +339,25 @@ class ContourCallback(PlotCallback):
 class GridBoundaryCallback(PlotCallback):
     """
     annotate_grids(alpha=0.7, min_pix=1, min_pix_ids=20, draw_ids=False, periodic=True, 
-                 min_level=None, max_level=None, cmap='B-W LINEAR_r'):
+                 min_level=None, max_level=None, cmap='B-W LINEAR_r', edgecolors=None,
+                 linewidth=1.0):
 
     Draws grids on an existing PlotWindow object.
     Adds grid boundaries to a plot, optionally with alpha-blending. By default, 
     colors different levels of grids with different colors going from white to
-    black, but you can change to any arbitrary colormap with cmap keyword 
-    (or all black cells for all levels with cmap=None).  Cuttoff for display is at 
-    min_pix wide. draw_ids puts the grid id in the corner of the grid. 
+    black, but you can change to any arbitrary colormap with cmap keyword, to all black
+    grid edges for all levels with cmap=None and edgecolors=None, or to an arbitrary single
+    color for grid edges with edgecolors='YourChosenColor' defined in any of the standard ways
+    (e.g., edgecolors='white', edgecolors='r', edgecolors='#00FFFF', or edgecolor='0.3', where
+    the last is a float in 0-1 scale indicating gray).
+    Note that setting edgecolors overrides cmap if you have both set to non-None values.
+    Cutoff for display is at min_pix wide. draw_ids puts the grid id in the corner of the grid. 
     (Not so great in projections...).  One can set min and maximum level of
-    grids to display.
+    grids to display, and can change the linewidth of the displayed grids.
     """
     _type_name = "grids"
     def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20, draw_ids=False, periodic=True, 
-                 min_level=None, max_level=None, cmap='B-W LINEAR_r'):
+                 min_level=None, max_level=None, cmap='B-W LINEAR_r', edgecolors = None, linewidth=1.0):
         PlotCallback.__init__(self)
         self.alpha = alpha
         self.min_pix = min_pix
@@ -359,7 +366,9 @@ class GridBoundaryCallback(PlotCallback):
         self.periodic = periodic
         self.min_level = min_level
         self.max_level = max_level
+        self.linewidth = linewidth
         self.cmap = cmap
+        self.edgecolors = edgecolors
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -399,13 +408,17 @@ class GridBoundaryCallback(PlotCallback):
                        ( levels >= min_level) & \
                        ( levels <= max_level)
 
-            if self.cmap is not None: 
-                edgecolors = apply_colormap(levels[(levels <= max_level) & (levels >= min_level)]*1.0,
-                                  color_bounds=[0,plot.data.pf.h.max_level],
-                                  cmap_name=self.cmap)[0,:,:]*1.0/255.
-                edgecolors[:,3] = self.alpha
-            else:
-                edgecolors = (0.0,0.0,0.0,self.alpha)
+            # Grids can either be set by edgecolors OR a colormap.
+            if self.edgecolors is not None: 
+                edgecolors = colorConverter.to_rgba(self.edgecolors, alpha=self.alpha)
+            else:  # use colormap if not explicity overridden by edgecolors
+                if self.cmap is not None: 
+                    edgecolors = apply_colormap(levels[(levels <= max_level) & (levels >= min_level)]*1.0,
+                                                color_bounds=[0,plot.data.pf.h.max_level],
+                                                cmap_name=self.cmap)[0,:,:]*1.0/255.
+                    edgecolors[:,3] = self.alpha
+                else:
+                    edgecolors = (0.0,0.0,0.0,self.alpha)
 
             if visible.nonzero()[0].size == 0: continue
             verts = np.array(
@@ -414,7 +427,7 @@ class GridBoundaryCallback(PlotCallback):
             verts=verts.transpose()[visible,:,:]
             grid_collection = matplotlib.collections.PolyCollection(
                 verts, facecolors="none",
-                edgecolors=edgecolors)
+                edgecolors=edgecolors, linewidth=self.linewidth)
             plot._axes.hold(True)
             plot._axes.add_collection(grid_collection)
 
