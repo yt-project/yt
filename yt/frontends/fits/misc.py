@@ -36,6 +36,20 @@ def _make_counts(emin, emax):
     return _counts
 
 def setup_counts_fields(ebounds):
+    r"""
+    Create deposited image fields from X-ray count data in energy bands.
+
+    Parameters
+    ----------
+    ebounds : list of tuples
+        A list of tuples, one for each field, with (emin, emax) as the
+        energy bounds for the image.
+
+    Examples
+    --------
+    >>> ebounds = [(0.1,2.0),(2.0,3.0)]
+    >>> setup_counts_fields(ebounds)
+    """
     for (emin, emax) in ebounds:
         cfunc = _make_counts(emin, emax)
         fname = "counts_%s-%s" % (emin, emax)
