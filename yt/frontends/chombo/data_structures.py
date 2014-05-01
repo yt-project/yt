@@ -27,9 +27,6 @@ from string import \
 from stat import \
      ST_CTIME
 
-from .definitions import \
-     orion2enzoDict, parameterDict
-
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
      AMRGridPatch
@@ -441,19 +438,8 @@ class Orion2Dataset(ChomboDataset):
                 param, sep, vals = map(rstrip,line.partition(' '))
             except ValueError:
                 mylog.error("ValueError: '%s'", line)
-            if orion2enzoDict.has_key(param):
-                paramName = orion2enzoDict[param]
-                t = map(parameterDict[paramName], vals.split())
-                if len(t) == 1:
-                    if paramName == "GAMMA":
-                        self.gamma = t[0]
-                    else:
-                        self.parameters[paramName] = t[0]
-                else:
-                    if paramName == "RefineBy":
-                        self.parameters[paramName] = t[0]
-                    else:
-                        self.parameters[paramName] = t
+            if param == "GAMMA":
+                self.gamma = vals
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
