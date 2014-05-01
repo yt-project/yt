@@ -581,6 +581,15 @@ and the index of the slice. So, for example, if ``BTYPE`` = ``"intensity"`` and
 ``CTYPE4`` = ``"stokes"``, then the fields will be named
 ``"intensity_stokes_1"``, ``"intensity_stokes_2"``, and so on.
 
+The third way is if auxiliary files are included along with the main file, like so:
+
+.. code-block::
+
+    ds = load("flux.fits", auxiliary_files=["temp.fits","metal.fits"])
+
+The image blocks in each of these files will be loaded as a separate field,
+provided they have the same dimensions as the image blocks in the main file.
+
 Additionally, fields corresponding to the WCS coordinates will be generated.
 based on the corresponding ``CTYPEx`` keywords. When queried, these fields
 will be generated from the pixel coordinates in the file using the WCS
@@ -588,7 +597,8 @@ transformations provided by AstroPy.
 
 X-ray event data will be loaded as particle fields in yt, but a grid will be constructed from the
 WCS information in the FITS header. There is a helper function, ``setup_counts_fields``,
-which may be used to make deposited image fields from the event data for different energy bands.
+which may be used to make deposited image fields from the event data for different energy bands
+(for an example see ).
 
 .. note::
 

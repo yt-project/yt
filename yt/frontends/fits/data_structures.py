@@ -322,7 +322,7 @@ class FITSDataset(Dataset):
 
     def __init__(self, filename,
                  dataset_type = 'fits',
-                 slave_files = [],
+                 auxiliary_files = [],
                  nprocs = None,
                  storage_filename = None,
                  nan_mask = None,
@@ -345,8 +345,8 @@ class FITSDataset(Dataset):
 
         if suppress_astropy_warnings:
             warnings.filterwarnings('ignore', module="astropy", append=True)
-        slave_files = ensure_list(slave_files)
-        self.filenames = [filename] + slave_files
+        auxiliary_files = ensure_list(auxiliary_files)
+        self.filenames = [filename] + auxiliary_files
         self.num_files = len(self.filenames)
         self.fluid_types += ("fits",)
         if nan_mask is None:
@@ -362,7 +362,7 @@ class FITSDataset(Dataset):
                                       ignore_blank=True)
         self._fits_files = [self._handle]
         if self.num_files > 1:
-            for fits_file in slave_files:
+            for fits_file in auxiliary_files:
                 if os.path.exists(fits_file):
                     fn = fits_file
                 else:
