@@ -52,9 +52,9 @@ class SubfindParticleIndex(ParticleIndex):
         particle_count = defaultdict(int)
         for data_file in self.data_files:
             data_file.index_offset = dict([(ptype, particle_count[ptype]) for
-                                           ptype in data_file.particle_count])
-            for ptype in data_file.particle_count:
-                particle_count[ptype] += data_file.particle_count[ptype]
+                                           ptype in data_file.total_particles])
+            for ptype in data_file.total_particles:
+                particle_count[ptype] += data_file.total_particles[ptype]
         
     def _setup_geometry(self):
         super(SubfindParticleIndex, self)._setup_geometry()
@@ -62,11 +62,10 @@ class SubfindParticleIndex(ParticleIndex):
     
 class SubfindHDF5File(ParticleFile):
     def __init__(self, pf, io, filename, file_id):
+        super(SubfindHDF5File, self).__init__(pf, io, filename, file_id)
         with h5py.File(filename, "r") as f:
             self.header = dict((field, f.attrs[field]) \
                                for field in f.attrs.keys())
-
-        super(SubfindHDF5File, self).__init__(pf, io, filename, file_id)
     
 class SubfindDataset(Dataset):
     _index_class = SubfindParticleIndex

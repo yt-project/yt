@@ -61,7 +61,7 @@ class IOHandlerSubfindHDF5(BaseIOHandler):
         for data_file in data_files:
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
-                    pcount = f[ptype].attrs["Number_of_groups"]
+                    pcount = data_file.total_particles[ptype]
                     coords = f[ptype]["CenterOfMass"].value.astype("float64")
                     coords = np.resize(coords, (pcount, 3))
                     x = coords[:, 0]
@@ -73,7 +73,7 @@ class IOHandlerSubfindHDF5(BaseIOHandler):
                     for field in field_list:
                         if field == "particle_identifier":
                             field_data = \
-                              np.arange(data_file.particle_count[ptype]) + \
+                              np.arange(data_file.total_particles[ptype]) + \
                               data_file.index_offset[ptype]
                         elif field in f[ptype].keys():
                             field_data = f[ptype][field].value.astype("float64")
@@ -98,8 +98,10 @@ class IOHandlerSubfindHDF5(BaseIOHandler):
             if not f.keys(): return None
             dx = np.finfo(f["FOF"]['CenterOfMass'].dtype).eps
             dx = 2.0*self.pf.quan(dx, "code_length")
-            for ptype in ["FOF", "SUBFIND"]:
-                my_pcount = f[ptype].attrs["Number_of_groups"]
+            
+            for ptype, pattr in zip(["FOF", "SUBFIND"],
+                                    ["Number_of_groups", "Number_of_subgroups"]):
+                my_pcount = f[ptype].attrs[pattr]
                 pos = f[ptype]["CenterOfMass"].value.astype("float64")
                 pos = np.resize(pos, (my_pcount, 3))
                 pos = data_file.pf.arr(pos, "code_length")
@@ -125,36 +127,41 @@ class IOHandlerSubfindHDF5(BaseIOHandler):
 
     def _count_particles(self, data_file):
         with h5py.File(data_file.filename, "r") as f:
-            data_file.particle_count = \
-              dict([(ptype, f[ptype].attrs["Number_of_groups"])
-                    for ptype in self.pf.particle_types_raw])
-            return data_file.particle_count
+            return {"FOF": f["FOF"].attrs["Number_of_groups"],
+                    "SUBFIND": f["FOF"].attrs["Number_of_subgroups"]}
 
     def _identify_fields(self, data_file):
-        pcount = self._count_particles(data_file)
         fields = [(ptype, "particle_identifier")
                   for ptype in self.pf.particle_types_raw]
+        pcount = data_file.total_particles
         with h5py.File(data_file.filename, "r") as f:
             for ptype in self.pf.particle_types_raw:
-                fields.extend(h5_field_list(f[ptype], ptype, pcount[ptype]))
+                fields.extend(h5_field_list(f[ptype], ptype,
+                                            data_file.total_particles))
         return fields, {}
 
 def h5_field_list(fh, ptype, pcount):
     fields = []
     for field in fh.keys():
-        if isinstance(fh[field], h5py.Group):
+        if "PartType" in field:
+            # These are halo member particles
+            continue
+        elif isinstance(fh[field], h5py.Group):
             fields.extend(h5_field_list(fh[field], ptype, pcount))
         else:
-            if fh[field].size % pcount:
-                pass
-                # mylog.warn("Cannot add field (%s, %s) with size %d for %d particles." % \
-                #            (ptype, field, fh[field].size, pcount))
-            else:
-                my_div = fh[field].size / pcount
+            if not fh[field].size % pcount[ptype]:
+                my_div = fh[field].size / pcount[ptype]
                 fname = fh[field].name[fh[field].name.find(ptype) + len(ptype) + 1:]
                 if my_div > 1:
                     for i in range(my_div):
                         fields.append((ptype, "%s_%d" % (fname, i)))
                 else:
                     fields.append((ptype, fname))
+            else:
+                # Some fields correspond to halos in other files.
+                # I don't know how to deal with that yet.
+                # mylog.warn("Cannot add field (%s, %s) with size %d." % \
+                #            (ptype, fh[field].name, fh[field].size))
+                continue
+            
     return fields
