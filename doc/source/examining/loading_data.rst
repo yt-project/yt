@@ -459,6 +459,67 @@ by specifying the window in seconds, ``spread=1.0e7*265*24*3600``.
 
    pf = load("/u/cmoody3/data/art_snapshots/SFG1/10MpcBox_csf512_a0.460.d")
 
+.. _loading_athena_data:
+
+Athena Data
+-----------
+
+Athena 4.x VTK data is *mostly* supported and cared for by John
+ZuHone. Both uniform grid and SMR datasets are supported.
+
+Loading Athena datasets is slightly different depending on whether
+your dataset came from a serial or a parallel run. If the data came
+from a serial run or you have joined the VTK files together using the
+Athena tool ``join_vtk``, you can load the data like this:
+
+.. code-block:: python
+
+   from yt.mods import *
+   pf = load("kh.0010.vtk")
+
+The filename corresponds to the file on SMR level 0, whereas if there
+are multiple levels the corresponding files will be picked up
+automatically, assuming they are laid out in ``lev*`` subdirectories
+under the directory where the base file is located.
+
+For parallel datasets, yt assumes that they are laid out in
+directories named ``id*``, one for each processor number, each with
+``lev*`` subdirectories for additional refinement levels. To load this
+data, call ``load`` with the base file in the ``id0`` directory:
+
+.. code-block:: python
+
+   from yt.mods import *
+   pf = load("id0/kh.0010.vtk")
+
+which will pick up all of the files in the different ``id*`` directories for
+the entire dataset.
+
+yt works in cgs ("Gaussian") units by default, but Athena data is not
+normally stored in these units. If you would like to convert data to
+cgs units, you may supply conversions for length, time, and mass to ``load``:
+
+.. code-block:: python
+
+   from yt.mods import *
+   pf = load("id0/cluster_merger.0250.vtk",
+             parameters={"length_unit":(1.0,"Mpc"),
+                         "time_unit"(1.0,"Myr"),
+                         "mass_unit":(1.0e14,"Msun")})
+
+This means that the yt fields (e.g. ``Density``, ``x-velocity``,
+``Bx``) will be in cgs units, but the Athena fields (e.g.,
+``density``, ``velocity_x``, ``cell_centered_B_x``) will be in code
+units.
+
+.. rubric:: Caveats
+
+* yt primarily works with primitive variables. If the Athena
+  dataset contains conservative variables, the yt primitive fields will be generated from the
+  conserved variables on disk.
+* Domains may be visualized assuming periodicity.
+* Particle list data is currently unsupported.
+
 .. _loading-fits-data:
 
 FITS Data
