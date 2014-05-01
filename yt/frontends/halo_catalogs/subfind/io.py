@@ -43,7 +43,7 @@ class IOHandlerSubfindHDF5(BaseIOHandler):
         for data_file in data_files:
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
-                    pcount = f[ptype].attrs["Number_of_groups"]
+                    pcount = data_file.total_particles[ptype]
                     coords = f[ptype]["CenterOfMass"].value.astype("float64")
                     coords = np.resize(coords, (pcount, 3))
                     x = coords[:, 0]
