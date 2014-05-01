@@ -47,7 +47,9 @@ from yt.utilities.definitions import \
 from yt.utilities.math_utils import \
     ortho_find
 from yt.utilities.exceptions import \
-    YTUnitNotRecognized, YTInvalidWidthError, YTCannotParseUnitDisplayName
+    YTUnitNotRecognized, \
+    YTInvalidWidthError, \
+    YTCannotParseUnitDisplayName
 
 from yt.data_objects.time_series import \
     DatasetSeries
@@ -117,26 +119,24 @@ def get_sanitized_width(axis, width, depth, pf):
         width = (w[0], w[1])
     elif iterable(width):
         width = validate_iterable_width(width, pf)
+    elif isinstance(width, YTQuantity):
+        width = (width, width)
+    elif isinstance(width, Number):
+        width = (pf.quan(width, 'code_length'),
+                 pf.quan(width, 'code_length'))
     else:
-        try:
-            assert isinstance(width, Number), \
-              "width (%s) is invalid" % str(width)
-        except AssertionError, e:
-            raise YTInvalidWidthError(e)
-        width = (pf.arr(width, 'code_length'),
-                 pf.arr(width, 'code_length'))
+        raise YTInvalidWidthError(width)
     if depth is not None:
         if iterable(depth):
             assert_valid_width_tuple(depth)
-            depth = (pf.quan(depth[0], fix_unitary(depth[1])),)
-        else:
-            try:
-                assert isinstance(depth, Number), \
-                  "width (%s) is invalid" % str(depth)
-            except AssertionError, e:
-                raise YTInvalidWidthError(e)
+            depth = (pf.quan(depth[0], fix_unitary(depth[1])), )
+        elif isinstance(depth, Number):
             depth = (pf.quan(depth, 'code_length',
-                     registry = pf.unit_registry),)
+                     registry = pf.unit_registry), )
+        elif isinstance(depth, YTQuantity):
+            depth = (depth, )
+        else:
+            raise YTInvalidWidthError(depth)
         return width + depth
     return width
 
