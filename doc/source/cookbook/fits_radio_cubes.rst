@@ -1,3 +1,5 @@
+.. _radio_cubes:
+
 FITS Radio Cubes in yt
 ----------------------
 

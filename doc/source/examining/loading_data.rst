@@ -598,7 +598,7 @@ transformations provided by AstroPy.
 X-ray event data will be loaded as particle fields in yt, but a grid will be constructed from the
 WCS information in the FITS header. There is a helper function, ``setup_counts_fields``,
 which may be used to make deposited image fields from the event data for different energy bands
-(for an example see ).
+(for an example see :ref:`xray_fits`).
 
 .. note::
 
@@ -626,6 +626,14 @@ containing different mask values for different fields:
 Generally, AstroPy may generate a lot of warnings about individual FITS
 files, many of which you may want to ignore. If you want to see these
 warnings, set ``suppress_astropy_warnings = False`` in the call to ``load``.
+
+Examples of Using FITS Data
++++++++++++++++++++++++++++
+
+The following IPython notebooks show examples of working with FITS data in yt:
+
+* :ref:`radio_cubes`
+* :ref:`xray_fits`
 
 .. _loading-moab-data:
 

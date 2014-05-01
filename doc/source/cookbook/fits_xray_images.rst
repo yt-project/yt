@@ -1,3 +1,5 @@
+.. _xray_fits:
+
 FITS X-ray Images in yt
 ----------------------
 
