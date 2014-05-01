@@ -412,8 +412,13 @@ class Orion2Dataset(ChomboDataset):
         exists in the plot file directory. If one does, attempt to parse it.
         Otherwise grab the dimensions from the hdf5 file.
         """
-        
-        if os.path.isfile('orion2.ini'): self._parse_inputs_file('orion2.ini')
+
+        orion2_ini_file_exists = False
+        dir_name = os.path.dirname(os.path.abspath(self.fullplotdir))
+        orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
+        orion2_ini_file_exists = os.path.isfile(orion2_ini_filename)
+
+        if orion2_ini_file_exists: self._parse_inputs_file('orion2.ini')
         self.unique_identifier = \
                                int(os.stat(self.parameter_filename)[ST_CTIME])
         self.dimensionality = 3
@@ -437,7 +442,7 @@ class Orion2Dataset(ChomboDataset):
             except ValueError:
                 mylog.error("ValueError: '%s'", line)
             if orion2enzoDict.has_key(param):
-                paramName = orion22enzoDict[param]
+                paramName = orion2enzoDict[param]
                 t = map(parameterDict[paramName], vals.split())
                 if len(t) == 1:
                     if paramName == "GAMMA":
