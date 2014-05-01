@@ -306,26 +306,26 @@ class SDFIndex(object):
         self.domain_dims = 0
         self.domain_active_dims = 0
         self.masks = {
-            "r" : int("011"*level, 2),
+            "p" : int("011"*level, 2),
             "t" : int("101"*level, 2),
-            "p" : int("110"*level, 2),
-            "x" : int("011"*level, 2),
+            "r" : int("110"*level, 2),
+            "z" : int("011"*level, 2),
             "y" : int("101"*level, 2),
-            "z" : int("110"*level, 2),
-            0 : int("011"*level, 2),
+            "x" : int("110"*level, 2),
+            2 : int("011"*level, 2),
             1 : int("101"*level, 2),
-            2 : int("110"*level, 2),
+            0 : int("110"*level, 2),
         }
-        self. dim_slices = {
-            "r" : slice(0, None, 3),
+        self.dim_slices = {
+            "p" : slice(0, None, 3),
             "t" : slice(1, None, 3),
-            "p" : slice(2, None, 3),
-            "x" : slice(0, None, 3),
+            "r" : slice(2, None, 3),
+            "z" : slice(0, None, 3),
             "y" : slice(1, None, 3),
-            "z" : slice(2, None, 3),
-            0 : slice(0, None, 3),
+            "x" : slice(2, None, 3),
+            2 : slice(0, None, 3),
             1 : slice(1, None, 3),
-            2 : slice(2, None, 3),
+            0 : slice(2, None, 3),
         }
         self.set_bounds()
 
@@ -363,16 +363,6 @@ class SDFIndex(object):
         self.domain_active_dims = self.domain_dims - 2*self.domain_buffer
         print 'Domain stuff:', self.domain_width, self.domain_dims, self.domain_active_dims
 
-    def get_key_ijk(self, i1, i2, i3):
-        rep1 = np.binary_repr(i1, width=self.level)
-        rep2 = np.binary_repr(i2, width=self.level)
-        rep3 = np.binary_repr(i3, width=self.level)
-        inter = np.zeros(self.level*3, dtype='c')
-        inter[::3] = rep1
-        inter[1::3] = rep2
-        inter[2::3] = rep3
-        return int(inter.tostring(), 2)
-
     def get_key(self, iarr, level=None):
         if level is None:
             level = self.level
@@ -381,10 +371,13 @@ class SDFIndex(object):
         rep2 = np.binary_repr(i2, width=self.level)
         rep3 = np.binary_repr(i3, width=self.level)
         inter = np.zeros(self.level*3, dtype='c')
-        inter[::3] = rep1
-        inter[1::3] = rep2
-        inter[2::3] = rep3
+        inter[self.dim_slices[0]] = rep1
+        inter[self.dim_slices[1]] = rep2
+        inter[self.dim_slices[2]] = rep3
         return int(inter.tostring(), 2)
+
+    def get_key_ijk(self, i1, i2, i3, level=None):
+        return self.get_key(np.array([i1, i2, i3]), level=level)
 
     def get_slice_key(self, ind, dim='r'):
         slb = np.binary_repr(ind, width=self.level)
