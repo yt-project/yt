@@ -436,8 +436,8 @@ class Orion2Dataset(ChomboDataset):
                 param, sep, vals = map(rstrip,line.partition(' '))
             except ValueError:
                 mylog.error("ValueError: '%s'", line)
-            if chombo2enzoDict.has_key(param):
-                paramName = chombo2enzoDict[param]
+            if orion2enzoDict.has_key(param):
+                paramName = orion22enzoDict[param]
                 t = map(parameterDict[paramName], vals.split())
                 if len(t) == 1:
                     if paramName == "GAMMA":
