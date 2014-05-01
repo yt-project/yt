@@ -644,7 +644,7 @@ and the index of the slice. So, for example, if ``BTYPE`` = ``"intensity"`` and
 
 The third way is if auxiliary files are included along with the main file, like so:
 
-.. code-block::
+.. code-block:: python
 
     ds = load("flux.fits", auxiliary_files=["temp.fits","metal.fits"])
 
