@@ -136,18 +136,18 @@ class IOHandlerSubfindHDF5(BaseIOHandler):
         pcount = data_file.total_particles
         with h5py.File(data_file.filename, "r") as f:
             for ptype in self.pf.particle_types_raw:
-                fields.extend(h5_field_list(f[ptype], ptype,
-                                            data_file.total_particles))
+                fields.extend(subfind_field_list(f[ptype], ptype,
+                                                 data_file.total_particles))
         return fields, {}
 
-def h5_field_list(fh, ptype, pcount):
+def subfind_field_list(fh, ptype, pcount):
     fields = []
     for field in fh.keys():
         if "PartType" in field:
             # These are halo member particles
             continue
         elif isinstance(fh[field], h5py.Group):
-            fields.extend(h5_field_list(fh[field], ptype, pcount))
+            fields.extend(subfind_field_list(fh[field], ptype, pcount))
         else:
             if not fh[field].size % pcount[ptype]:
                 my_div = fh[field].size / pcount[ptype]
@@ -157,11 +157,22 @@ def h5_field_list(fh, ptype, pcount):
                         fields.append((ptype, "%s_%d" % (fname, i)))
                 else:
                     fields.append((ptype, fname))
+            elif ptype == "SUBFIND" and \
+              not fh[field].size % fh["/SUBFIND"].attrs["Number_of_groups"]:
+                # These are actually FOF fields, but they were written after 
+                # a load balancing step moved halos around and thus they do not
+                # correspond to the halos stored in the FOF group.
+                my_div = fh[field].size / fh["/SUBFIND"].attrs["Number_of_groups"]
+                fname = fh[field].name[fh[field].name.find(ptype) + len(ptype) + 1:]
+                if my_div > 1:
+                    for i in range(my_div):
+                        fields.append(("FOF", "%s_%d" % (fname, i)))
+                else:
+                    fields.append(("FOF", fname))
+
             else:
-                # Some fields correspond to halos in other files.
-                # I don't know how to deal with that yet.
-                # mylog.warn("Cannot add field (%s, %s) with size %d." % \
-                #            (ptype, fh[field].name, fh[field].size))
+                mylog.warn("Cannot add field (%s, %s) with size %d." % \
+                           (ptype, fh[field].name, fh[field].size))
                 continue
             
     return fields
