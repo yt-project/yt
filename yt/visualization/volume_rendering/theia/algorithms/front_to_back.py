@@ -12,41 +12,43 @@ import yt.visualization.volume_rendering.theia.helpers.cuda as cdh
 import numpy as np
 
 from yt.visualization.volume_rendering.theia.transfer.linear_transfer import LinearTransferFunction
+from yt.visualization.volume_rendering.theia.transfer.helper import *
+
 
 from yt.visualization.volume_rendering.theia.volumes.unigrid import Unigrid
 from yt.visualization.volume_rendering.theia.surfaces.array_surface import ArraySurface
 import os
 
 class FrontToBackRaycaster:
-    r"""
-    This is a basic camera intended to be a base class. 
-    The camera provies utilities for controling the view point onto the data.
+      r"""
+      This is the python wrapper for the CUDA raycaster. This 
+      raycaster can act on unigrid data only. Use yt to map 
+      AMR data to unigrid prior to using this algorithm. 
 
 
-    Parameters
-    ----------
-    pos   : numpy array
+      Parameters
+      ----------
+      matrix : 4x4 numpy.matriix
+          ModelViewMatrix defines view onto volume
 
-    Example:
+      surface: yt.visualization.volume_rendering.theia.surface.array_surface.ArraySurface
+          The surface to contain the image information from
+          the results of the raycasting
 
-    from yt.visualization.volume_rendering.cameras.camera import Camera
+      volume: 3D numpy array Float32
+          Scalar values to be volume rendered
 
-    cam = Camera()
-    
-    cam.zoom(10.0)
-    cam.rotateX(np.pi)
-    cam.rotateY(np.pi)
-    cam.rotateZ(np.pi)
-    cam.translateX(-0.5)
-    cam.translateY(-0.5)
-    cam.translateZ(-0.5)
+      tf : yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction
+          Transfer function defining how the raycasting results are 
+          to be colored.
 
-    view  = cam.get_matrix()
-
-    """
+      size : Tuple of 2 Floats
+         If no surface is specified creates an ArraySurface of the specified size.
+ 
+      """
 
       def __init__(self, matrix = None, surface = None,
-                   volume = None, transfer = None,
+                   volume = None, tf = None,
                   size = (864, 480)) :
 
             # kernel module
@@ -54,9 +56,12 @@ class FrontToBackRaycaster:
             self.base_directory(__file__, "front_to_back.cu"))
 
             #kernel function definitions
-            self.cast_rays_identifier = self.kernel_module.get_function("front_to_back")
-            self.transfer_identifier  = self.kernel_module.get_texref("transfer")
-            self.volume_identifier    = self.kernel_module.get_texref("volume")
+            self.cast_rays_identifier = \
+                self.kernel_module.get_function("front_to_back")
+            self.transfer_identifier  = \
+                self.kernel_module.get_texref("transfer")
+            self.volume_identifier    = \
+                self.kernel_module.get_texref("volume")
 
             self.set_matrix(matrix)
 
@@ -67,46 +72,58 @@ class FrontToBackRaycaster:
 
 
             self.volume = None
-            self.set_transfer(transfer)
+            self.set_transfer(tf)
 
             self.set_sample_size()
             self.set_max_samples()
             self.set_density_scale()
             self.set_brightness()
 
+      """
+          Envoke the ray caster to cast rays
+      """
       def __call__(self):
             self.cast()
       """
-          Parameters
+          Returns
           ----------
+          A  2d numpy array containing the image of the
+          volumetric rendering
       """
       def get_surface(self) :
           return self.surface.get_array()
 
       """
-          Parameters
+          Returns
           ----------
+          The sample size the ray caster is
+          configured to take.
       """
       def get_sample_size(self) :
               return self.sample_size
 
       """
-          Parameters
+          Returns
           ----------
+          The Max number of samples per ray the ray caster is
+          configured to take.
       """
       def get_max_samples(self) :
               return self.max_samples
 
       """
-          Parameters
+          Returns
           ----------
+          The Global density scalar.
       """
       def get_density_scale(self) :
               return self.density_scale
 
       """
-          Parameters
+          Returns
           ----------
+          The Global brightness scalar.
+         
       """
       def get_brightness(self):
               return self.brightness
@@ -114,6 +131,9 @@ class FrontToBackRaycaster:
       """
           Parameters
           ----------
+          size : scalra Float
+              The distance between each sample, a smaller size will result in
+              more samples and can cause performance loss.
       """
       def set_sample_size(self, size = 0.01) :
               self.sample_size = size
@@ -121,6 +141,9 @@ class FrontToBackRaycaster:
       """
           Parameters
           ----------
+          max : scalar Int
+              The limit on the number of samples the ray caster will
+              take per ray.
       """
       def set_max_samples(self, max = 5000) :
               self.max_samples = max
@@ -128,6 +151,8 @@ class FrontToBackRaycaster:
       """
           Parameters
           ----------
+          scale : scalar Float
+              Global multiplier on volume data
       """
       def set_density_scale(self, scale = 0.05) :
               self.density_scale = scale
@@ -135,13 +160,15 @@ class FrontToBackRaycaster:
       """
           Parameters
           ----------
+          brightness : scalar Float
+              Global multiplier on returned alpha values
       """
       def set_brightness(self, brightness = 1.0):
               self.brightness = brightness
 
       """
-          Parameters
-          ----------
+          Causes the ray caster to act on the volume data
+          and puts the results in the surface array.
       """
       def cast(self):
             w, h = self.surface.bounds
@@ -161,15 +188,22 @@ class FrontToBackRaycaster:
 	   
 
       """
+          Set the ModelViewMatrix, this does not send data to the GPU
           Parameters
           ----------
+          matrix : 4x4 numpy.matrix
+             ModelViewMatrix 
+              
       """
       def set_matrix(self, matrix):
 		self.matrix = matrix
 
       """
+          Setup the image array for ray casting results
           Parameters
           ----------
+          surface : yt.visualization..volume_rendering.theia.surfaces.ArraySurface
+              Surface to contain results of the ray casting
       """
       def set_surface(self, surface = None, block_size = 32):
 		if surface == None:
@@ -181,8 +215,13 @@ class FrontToBackRaycaster:
 		self.block = (block_size, block_size, 1)
 
       """
+          This function will convert a 3d numpy array into a unigrid volume
+          and move the data to the gpu texture memory
           Parameters
           ----------
+          volume : 3D numpy array float32
+              Contains scalar volumes to be acted on by the ray caster
+          
       """
       def send_volume_to_gpu(self, volume = None) :
             if (volume != None) :
@@ -191,8 +230,11 @@ class FrontToBackRaycaster:
       """
           Parameters
           ----------
+          volume : yt.visualization..volume_rendering.theia.volumes.Unigrid
+              Contains scalar volumes to be acted on by the ray caster
+           
       """
-      def set_volume(self, volume):
+      def set_volume(self, volume = None):
             if volume == None:
                   self.volume = None
                   return
@@ -207,13 +249,16 @@ class FrontToBackRaycaster:
       """
           Parameters
           ----------
+          tf : yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction
+             Used to color the results of the raycasting
+
       """
-      def set_transfer(self, transfer):
-		if transfer == None:
+      def set_transfer(self, tf = None):
+		if tf == None:
 			self.transfer = None
 			return
 
-		self.transfer = transfer
+		self.transfer = LinearTransferFunction(arrays = yt_to_rgba_transfer(tf), range = tf.x_bounds)
 		self.transfer_identifier.set_flags(self.transfer.flags)
 		self.transfer_identifier.set_filter_mode(self.transfer.filter_mode)
 		self.transfer_identifier.set_address_mode(0, self.transfer.address_mode)

@@ -18,7 +18,7 @@ extern "C"
 __global__ void front_to_back(uint *buffer, float *modelviewmatrix, int buffer_w,
                             int buffer_h, int max_steps, float density,
                             float offset, float scale,
-                            float brightness, float step_size,
+                            float brightness, float step_size
                             ) {
   //Rays will terminate when opacity_threshold is reached
   const float opacity_threshold = 0.95f; 
