@@ -1,4 +1,5 @@
 """
+
 Callbacks to add additional functionality on to plots.
 
 
@@ -826,118 +827,6 @@ class SphereCallback(PlotCallback):
             plot._axes.text(center_x, center_y, self.text,
                             **self.text_args)
 
-class HopCircleCallback(PlotCallback):
-    """
-    annotate_hop_circles(hop_output, max_number=None,
-                         annotate=False, min_size=20, max_size=10000000,
-                         font_size=8, print_halo_size=False,
-                         print_halo_mass=False, width=None)
-
-    Accepts a :class:`yt.HopList` *hop_output* and plots up to
-    *max_number* (None for unlimited) halos as circles.
-    """
-    _type_name = "hop_circles"
-    def __init__(self, hop_output, max_number=None,
-                 annotate=False, min_size=20, max_size=10000000,
-                 font_size=8, print_halo_size=False,
-                 print_halo_mass=False, width=None):
-        self.hop_output = hop_output
-        self.max_number = max_number
-        self.annotate = annotate
-        self.min_size = min_size
-        self.max_size = max_size
-        self.font_size = font_size
-        self.print_halo_size = print_halo_size
-        self.print_halo_mass = print_halo_mass
-        self.width = width
-
-    def __call__(self, plot):
-        from matplotlib.patches import Circle
-        num = len(self.hop_output[:self.max_number])
-        for halo in self.hop_output[:self.max_number]:
-            size = halo.get_size()
-            if size < self.min_size or size > self.max_size: continue
-            # This could use halo.maximum_radius() instead of width
-            if self.width is not None and \
-                np.abs(halo.center_of_mass() - 
-                       plot.data.center)[plot.data.axis] > \
-                   self.width:
-                continue
-            
-            radius = halo.maximum_radius() * self.pixel_scale(plot)[0]
-            center = halo.center_of_mass()
-            
-            ax = plot.data.axis
-            (xi, yi) = (plot.data.pf.coordinates.x_axis[ax],
-                        plot.data.pf.coordinates.y_axis[ax])
-
-            (center_x,center_y) = self.convert_to_plot(plot,(center[xi], center[yi]))
-            color = np.ones(3) * (0.4 * (num - halo.id)/ num) + 0.6
-            cir = Circle((center_x, center_y), radius, fill=False, color=color)
-            plot._axes.add_patch(cir)
-            if self.annotate:
-                if self.print_halo_size:
-                    plot._axes.text(center_x+radius, center_y+radius, "%s" % size,
-                    fontsize=self.font_size, color=color)
-                elif self.print_halo_mass:
-                    plot._axes.text(center_x+radius, center_y+radius, "%s" % halo.total_mass(),
-                    fontsize=self.font_size, color=color)
-                else:
-                    plot._axes.text(center_x+radius, center_y+radius, "%s" % halo.id,
-                    fontsize=self.font_size, color=color)
-
-class HopParticleCallback(PlotCallback):
-    """
-    annotate_hop_particles(hop_output, max_number, p_size=1.0,
-                           min_size=20, alpha=0.2):
-
-    Adds particle positions for the members of each halo as identified
-    by HOP. Along *axis* up to *max_number* groups in *hop_output* that are
-    larger than *min_size* are plotted with *p_size* pixels per particle; 
-    *alpha* determines the opacity of each particle.
-    """
-    _type_name = "hop_particles"
-    def __init__(self, hop_output, max_number=None, p_size=1.0,
-                min_size=20, alpha=0.2):
-        self.hop_output = hop_output
-        self.p_size = p_size
-        self.max_number = max_number
-        self.min_size = min_size
-        self.alpha = alpha
-    
-    def __call__(self,plot):
-        (dx,dy) = self.pixel_scale(plot)
-
-        xax = plot.data.pf.coordinates.x_axis[plot.data.axis]
-        yax = plot.data.pf.coordinates.y_axis[plot.data.axis]
-        axis_names = plot.data.pf.coordinates.axis_name
-        (xi, yi) = (axis_names[xax], axis_names[yax])
-
-        # now we loop over the haloes
-        for halo in self.hop_output[:self.max_number]:
-            size = halo.get_size()
-
-            if size < self.min_size: continue
-
-            (px,py) = self.convert_to_plot(plot,(halo["particle_position_%s" % xi],
-                                                 halo["particle_position_%s" % yi]))
-            
-            # Need to get the plot limits and set the hold state before scatter
-            # and then restore the limits and turn off the hold state afterwards
-            # because scatter will automatically adjust the plot window which we
-            # do not want
-            
-            xlim = plot._axes.get_xlim()
-            ylim = plot._axes.get_ylim()
-            plot._axes.hold(True)
-
-            plot._axes.scatter(px, py, edgecolors="None",
-                s=self.p_size, c='black', alpha=self.alpha)
-            
-            plot._axes.set_xlim(xlim)
-            plot._axes.set_ylim(ylim)
-            plot._axes.hold(False)
-
 
 class TextLabelCallback(PlotCallback):
     """
@@ -970,6 +859,69 @@ class TextLabelCallback(PlotCallback):
             if not self.data_coords:
                 kwargs["transform"] = plot._axes.transAxes
         plot._axes.text(x, y, self.text, **kwargs)
+
+class HaloCatalogCallback(PlotCallback):
+
+    _type_name = 'halos'
+    region = None
+    _descriptor = None
+
+    def __init__(self, halo_catalog, col='white', alpha =1, width = None):
+        PlotCallback.__init__(self)
+        self.halo_catalog = halo_catalog
+        self.color = col
+        self.alpha = alpha
+        self.width = width
+
+    def __call__(self, plot):
+        data = plot.data
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+        
+        halo_data= self.halo_catalog.halos_pf.all_data()
+        field_x = "particle_position_%s" % axis_names[x_dict[data.axis]]
+        field_y = "particle_position_%s" % axis_names[y_dict[data.axis]]
+        field_z = "particle_position_%s" % axis_names[data.axis]
+        plot._axes.hold(True)
+
+        # Set up scales for pixel size and original data
+        units = 'Mpccm'
+        pixel_scale = self.pixel_scale(plot)[0]
+        data_scale = data.pf.length_unit
+
+        # Convert halo positions to code units of the plotted data
+        # and then to units of the plotted window
+        px = halo_data[field_x][:].in_units(units) / data_scale
+        py = halo_data[field_y][:].in_units(units) / data_scale
+        px, py = self.convert_to_plot(plot,[px,py])
+        
+        # Convert halo radii to a radius in pixels
+        radius = halo_data['radius'][:].in_units(units)
+        radius = radius*pixel_scale/data_scale
+
+        if self.width:
+            pz = halo_data[field_z][:].in_units(units)/data_scale
+            pz = data.pf.arr(pz, 'code_length')
+            c = data.center[data.axis]
+
+            # I should catch an error here if width isn't in this form
+            # but I dont really want to reimplement get_sanitized_width...
+            width = data.pf.arr(self.width[0], self.width[1]).in_units('code_length')
+
+            indices = np.where((pz > c-width) & (pz < c+width))
+
+            px = px[indices]
+            py = py[indices]
+            radius = radius[indices]
+
+        plot._axes.scatter(px, py, edgecolors='None', marker='o',
+                           s=radius, c=self.color,alpha=self.alpha)
+        plot._axes.set_xlim(xx0,xx1)
+        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.hold(False)
+
 
 class ParticleCallback(PlotCallback):
     """
