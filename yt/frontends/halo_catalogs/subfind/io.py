@@ -30,6 +30,10 @@ from yt.geometry.oct_container import _ORDER_MAX
 class IOHandlerSubfindHDF5(BaseIOHandler):
     _dataset_type = "subfind_hdf5"
 
+    def __init__(self, pf):
+        super(IOHandlerSubfindHDF5, self).__init__(pf)
+        self.special_fields = set([])
+
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
 
@@ -136,18 +140,24 @@ class IOHandlerSubfindHDF5(BaseIOHandler):
         pcount = data_file.total_particles
         with h5py.File(data_file.filename, "r") as f:
             for ptype in self.pf.particle_types_raw:
-                fields.extend(subfind_field_list(f[ptype], ptype,
-                                                 data_file.total_particles))
+                my_fields, my_special_fields = \
+                  subfind_field_list(f[ptype], ptype, data_file.total_particles)
+                fields.extend(my_fields)
+                self.special_fields = self.special_fields.union(set(my_special_fields))
         return fields, {}
 
 def subfind_field_list(fh, ptype, pcount):
     fields = []
+    special_fields = []
     for field in fh.keys():
         if "PartType" in field:
             # These are halo member particles
             continue
         elif isinstance(fh[field], h5py.Group):
-            fields.extend(subfind_field_list(fh[field], ptype, pcount))
+            my_fields, my_special_fields = \
+              subfind_field_list(fh[field], ptype, pcount)
+            fields.extend(my_fields)
+            my_special_fields.extend(special_fields)
         else:
             if not fh[field].size % pcount[ptype]:
                 my_div = fh[field].size / pcount[ptype]
@@ -169,10 +179,9 @@ def subfind_field_list(fh, ptype, pcount):
                         fields.append(("FOF", "%s_%d" % (fname, i)))
                 else:
                     fields.append(("FOF", fname))
-
+                special_fields.append(fname)
             else:
                 mylog.warn("Cannot add field (%s, %s) with size %d." % \
                            (ptype, fh[field].name, fh[field].size))
                 continue
-            
-    return fields
+    return fields, special_fields
