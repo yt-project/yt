@@ -39,6 +39,8 @@ class IOHandlerFITS(BaseIOHandler):
         x = np.asarray(pdata.field("X"), dtype="=f8")
         y = np.asarray(pdata.field("Y"), dtype="=f8")
         z = np.ones(x.shape)
+        x = (x-0.5)/self.pf.reblock+0.5
+        y = (y-0.5)/self.pf.reblock+0.5
         yield ptype, (x,y,z)
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -49,10 +51,15 @@ class IOHandlerFITS(BaseIOHandler):
         x = np.asarray(pdata.field("X"), dtype="=f8")
         y = np.asarray(pdata.field("Y"), dtype="=f8")
         z = np.ones(x.shape)
+        x = (x-0.5)/self.pf.reblock+0.5
+        y = (y-0.5)/self.pf.reblock+0.5
         mask = selector.select_points(x, y, z)
         if mask is None: return
         for field in field_list:
-            data = pdata.field(field.split("_")[-1].upper())
+            fd = field.split("_")[-1]
+            data = pdata.field(fd.upper())
+            if fd in ["x","y"]:
+                data = (data.copy()-0.5)/self.pf.reblock+0.5
             yield (ptype, field), data[mask]
 
     def _read_fluid_selection(self, chunks, selector, fields, size):

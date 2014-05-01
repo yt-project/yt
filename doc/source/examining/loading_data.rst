@@ -474,6 +474,9 @@ can read FITS image files that have the following (case-insensitive) suffixes:
 * fits.gz
 * fts.gz
 
+yt can read two kinds of FITS files: FITS image files and FITS binary table files containing
+positions, times, and energies of X-ray events.
+
 .. note::
 
   AstroPy is necessary due to the requirements of both FITS file reading and
@@ -482,8 +485,8 @@ can read FITS image files that have the following (case-insensitive) suffixes:
   installations of this package and the `PyWCS <http://stsdas.stsci
   .edu/astrolib/pywcs/>`_ package are not supported.
 
-Though FITS datasets are composed of one data cube in the FITS file,
-upon being loaded into yt they are automatically decomposed into grids:
+Though FITS a image is composed of one data cube in the FITS file,
+upon being loaded into yt it is automatically decomposed into grids:
 
 .. code-block:: python
 
@@ -506,6 +509,33 @@ set manually by passing the ``nprocs`` parameter to the ``load`` call:
 
   ds = load("m33_hi.fits", nprocs=1024)
 
+Making the Most of `yt` for FITS Data
++++++++++++++++++++++++++++++++++++++
+
+yt will load data without WCS information and/or some missing header keywords, but the resulting
+field information will necessarily be incomplete. For example, field names may not be descriptive,
+and units will not be correct. To get the full use out of yt for FITS files, make sure that for
+each image the following header keywords have sensible values:
+
+* ``CDELTx``: The pixel width in along axis ``x``
+* ``CRVALx``: The coordinate value at the reference position along axis ``x``
+* ``CRPIXx``: The the reference pixel along axis ``x``
+* ``CTYPEx``: The projection type of axis ``x``
+* ``CUNITx``: The units of the coordinate along axis ``x``
+* ``BTYPE``: The type of the image
+* ``BUNIT``: The units of the image
+
+FITS header keywords can easily be updated using AstroPy. For example,
+to set the ``BTYPE`` and ``BUNIT`` keywords:
+
+.. code-block:: python
+
+    import astropy.io.fits as pyfits
+    f = pyfits.open("xray_flux_image.fits", mode="update")
+    f[0].header["BUNIT"] = "cts/s/pixel"
+    f[0].header["BTYPE"] = "flux"
+    f.flush()
+    f.close()
 
 FITS Coordinates
 ++++++++++++++++
@@ -519,7 +549,7 @@ the following dataset types:
    etc.) defined in the ``CUNITx`` keywords
 2. 2D images in some celestial coordinate systems (RA/Dec,
    galactic latitude/longitude, defined in the ``CTYPEx``
-   keywords)
+   keywords), and X-ray binary table event files
 3. 3D images with celestial coordinates and a third axis for another
    quantity, such as velocity, frequency, wavelength, etc.
 4. 4D images with the first three axes like Case 3, where the slices
@@ -556,10 +586,21 @@ based on the corresponding ``CTYPEx`` keywords. When queried, these fields
 will be generated from the pixel coordinates in the file using the WCS
 transformations provided by AstroPy.
 
+X-ray event data will be loaded as particle fields in yt, but a grid will be constructed from the
+WCS information in the FITS header. There is a helper function, ``setup_counts_fields``,
+which may be used to make deposited image fields from the event data for different energy bands. 
+
+.. note::
+
+  Each FITS image from a single dataset, whether from one file or from one of
+  multiple files, must have the same dimensions and WCS information as the
+  first image in the primary file. If this is not the case,
+  yt will raise a warning and will not load this field.
+
 Additional Options
 ++++++++++++++++++
 
-FITS data may include ``NaNs``. If you wish to mask this data out,
+FITS image data may include ``NaNs``. If you wish to mask this data out,
 you may supply a ``nan_mask`` parameter to ``load``, which may either be a
 single floating-point number (applies to all fields) or a Python dictionary
 containing different mask values for different fields:
@@ -575,27 +616,6 @@ containing different mask values for different fields:
 Generally, AstroPy may generate a lot of warnings about individual FITS
 files, many of which you may want to ignore. If you want to see these
 warnings, set ``suppress_astropy_warnings = False`` in the call to ``load``.
-
-Limitations
-+++++++++++
-
-* Each FITS image from a single dataset, whether from one file or from one of
-  multiple files, must have the same dimensions and WCS information as the
-  first image in the primary file. If this is not the case,
-  yt will raise a warning and will not load this field.
-* yt will load data without WCS information and/or some missing header
-  keywords, but the resulting field information will necessarily be incomplete.
-  For example, field names may not be descriptive, and units will not be
-  correct. To get the full use out of yt for FITS files,
-  make sure that for each image the following header keywords have sensible values:
-
-  - ``CDELTx``: The pixel width in along axis ``x``
-  - ``CRVALx``: The coordinate value at the reference position along axis ``x``
-  - ``CRPIXx``: The the reference pixel along axis ``x``
-  - ``CTYPEx``: The projection type of axis ``x``
-  - ``CUNITx``: The units of the coordinate along axis ``x``
-  - ``BTYPE``: The type of the image
-  - ``BUNIT``: The units of the image
 
 .. _loading-moab-data:
 

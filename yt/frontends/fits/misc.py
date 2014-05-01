@@ -14,6 +14,7 @@ import numpy as np
 from yt.fields.api import add_field
 from yt.fields.derived_field import ValidateSpatial
 from yt.funcs import mylog
+from .data_structures import ap
 
 def _make_counts(emin, emax):
     def _counts(field, data):
@@ -24,6 +25,13 @@ def _make_counts(emin, emax):
         z = np.ones(x.shape)
         pos = np.array([x,y,z]).transpose()
         img = data.deposit(pos, method="count")
+        if data.has_field_parameter("sigma"):
+            sigma = data.get_field_parameter("sigma")
+        else:
+            sigma = None
+        if sigma is not None and sigma > 0.0:
+            kern = ap.conv.Gaussian2DKernel(stddev=sigma)
+            img[:,:,0] = ap.conv.convolve(img[:,:,0], kern)
         return data.pf.arr(img, "counts/pixel")
     return _counts
 

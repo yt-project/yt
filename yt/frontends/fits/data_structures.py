@@ -18,6 +18,7 @@ import weakref
 import warnings
 import re
 
+from yt.config import ytcfg
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
     AMRGridPatch
@@ -75,6 +76,18 @@ class astropy_imports:
                 log = None
             self._log = log
         return self._log
+
+    _conv = None
+    @property
+    def conv(self):
+        if self._conv is None:
+            try:
+                import astropy.convolution as conv
+                self.log
+            except ImportError:
+                conv = None
+            self._conv = conv
+        return self._conv
 
 ap = astropy_imports()
 
@@ -350,7 +363,11 @@ class FITSDataset(Dataset):
         self._fits_files = [self._handle]
         if self.num_files > 1:
             for fits_file in slave_files:
-                f = ap.pyfits.open(fits_file, memmap=True,
+                if os.path.exists(fits_file):
+                    fn = fits_file
+                else:
+                    fn = os.path.join(ytcfg.get("yt","test_data_dir"),fits_file)
+                f = ap.pyfits.open(fn, memmap=True,
                                    do_not_scale_image_data=True,
                                    ignore_blank=True)
                 self._fits_files.append(f)
@@ -378,13 +395,18 @@ class FITSDataset(Dataset):
                         if unit.endswith("ev"): unit = unit.replace("ev","eV")
                         self.events_info[v.lower()] = unit
             self.axis_names = [self.events_info[ax][2] for ax in ["x","y"]]
-            self.wcs.wcs.cdelt = [self.events_info["x"][4],self.events_info["y"][4]]
-            self.wcs.wcs.crpix = [self.events_info["x"][5],self.events_info["y"][5]]
+            self.reblock = 1
+            if "reblock" in self.specified_parameters:
+                self.reblock = self.specified_parameters["reblock"]
+            self.wcs.wcs.cdelt = [self.events_info["x"][4]*self.reblock,
+                                  self.events_info["y"][4]*self.reblock]
+            self.wcs.wcs.crpix = [(self.events_info["x"][5]-0.5)/self.reblock+0.5,
+                                  (self.events_info["y"][5]-0.5)/self.reblock+0.5]
             self.wcs.wcs.ctype = [self.events_info["x"][2],self.events_info["y"][2]]
             self.wcs.wcs.cunit = ["deg","deg"]
             self.wcs.wcs.crval = [self.events_info["x"][3],self.events_info["y"][3]]
-            self.dims = [self.events_info["x"][1]-self.events_info["x"][0],
-                         self.events_info["y"][1]-self.events_info["y"][0]]
+            self.dims = [(self.events_info["x"][1]-self.events_info["x"][0])/self.reblock,
+                         (self.events_info["y"][1]-self.events_info["y"][0])/self.reblock]
         else:
             self.events_data = False
             self.first_image = 0
@@ -568,7 +590,9 @@ class FITSDataset(Dataset):
     def __del__(self):
         for file in self._fits_files:
             file.close()
+            del file
         self._handle.close()
+        del self._handle
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
