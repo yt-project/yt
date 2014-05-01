@@ -588,7 +588,7 @@ transformations provided by AstroPy.
 
 X-ray event data will be loaded as particle fields in yt, but a grid will be constructed from the
 WCS information in the FITS header. There is a helper function, ``setup_counts_fields``,
-which may be used to make deposited image fields from the event data for different energy bands. 
+which may be used to make deposited image fields from the event data for different energy bands.
 
 .. note::
 
