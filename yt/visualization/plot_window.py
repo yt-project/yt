@@ -277,7 +277,6 @@ class PlotWindow(ImagePlotContainer):
         self._initfinished = False
         self._axes_unit_names = None
         self.center = None
-        self._wcs_axes = False
         self._periodic = periodic
         self.oblique = oblique
         self.buff_size = buff_size
@@ -645,48 +644,6 @@ class PlotWindow(ImagePlotContainer):
         self._axes_unit_names = unit_name
         return self
 
-    @invalidate_data
-    @invalidate_plot
-    def set_wcs_axes(self, set_axes, wcs_axes=None):
-        r"""
-        Use the wcsaxes library to plot celestial coordinates on the axes.
-
-        Parameters
-        ----------
-        set_axes : boolean
-            Turn on or off the WCS axes.
-        wcs_axes : WCSAxes instance
-            The WCSAxes instance, for adjusting the axes properties. See
-            http://wcsaxes.readthedocs.org for details.
-        """
-        from wcsaxes import WCSAxes
-        if self.oblique:
-            raise NotImplementedError("WCS axes are not implemented for oblique plots.")
-        if not hasattr(self.pf, "wcs_2d"):
-            raise NotImplementedError("WCS axes are not implemented for this dataset.")
-        if self.data_source.axis != self.pf.vel_axis:
-            raise NotImplementedError("WCS axes are not implemented for this axis.")
-        if set_axes and not self._wcs_axes:
-            self._wcs_axes = True
-            for f in self.plots:
-                # These will get reset later
-                self.plots[f]._ax_text_size[0] *= 1.55
-                self.plots[f]._ax_text_size[1] *= 1.14
-                rect = self.plots[f]._get_best_layout()[1]
-                fig = self.plots[f].figure
-                ax = WCSAxes(fig, rect, wcs=self.pf.wcs_2d, frameon=False)
-                fig.add_axes(ax)
-                if wcs_axes is not None: wcs_axes=ax
-        else:
-            if not self._wcs_axes: return self
-            self._wcs_axes = False
-            for f in self.plots:
-                self.plots[f].figure = None
-                self.plots[f].axes = None
-                self.plots[f].cax = None
-            self._setup_plots()
-        return self
-
 class PWViewerMPL(PlotWindow):
     """Viewer using matplotlib as a backend via the WindowPlotMPL.
 
@@ -778,10 +735,6 @@ class PWViewerMPL(PlotWindow):
             else:
                 (unit_x, unit_y) = self._axes_unit_names
 
-            dds = self.pf.index.select_grids(self.pf.index.grid_levels.max())[0].dds[:]
-            xax = self.pf.coordinates.x_axis[axis_index]
-            yax = self.pf.coordinates.y_axis[axis_index]
-
             if self.aspect is None:
                 self.aspect = np.float64(self.pf.quan(1.0, unit_y)/(self.pf.quan(1.0, unit_x)))
 
@@ -824,88 +777,65 @@ class PWViewerMPL(PlotWindow):
                 image, self._field_transform[f].name,
                 self._colormaps[f], extent, zlim,
                 self.figure_size, fp.get_size(),
-                self.aspect, fig, axes, cax, self._wcs_axes)
+                self.aspect, fig, axes, cax)
 
-            if not hasattr(self.plots[f].figure.axes[-1], "wcs"):
-                self._wcs_axes = False
+            axes_unit_labels = ['', '']
+            comoving = False
+            hinv = False
+            for i, un in enumerate((unit_x, unit_y)):
+                if hasattr(self.pf.coordinates, "default_unit_label"):
+                    axax = getattr(self.pf.coordinates, "%s_axis" % ("xy"[i]))[axis_index]
+                    un = self.pf.coordinates.default_unit_label[axax]
+                    axes_unit_labels[i] = '\/\/('+un+')'
+                    continue
+                # Use sympy to factor h out of the unit.  In this context 'un'
+                # is a string, so we call the Unit constructor.
+                expr = Unit(un, registry=self.pf.unit_registry).expr
+                h_expr = Unit('h', registry=self.pf.unit_registry).expr
+                # See http://docs.sympy.org/latest/modules/core.html#sympy.core.expr.Expr
+                h_power = expr.as_coeff_exponent(h_expr)[1]
+                # un is now the original unit, but with h factored out.
+                un = str(expr*h_expr**(-1*h_power))
+                if str(un).endswith('cm') and un != 'cm':
+                    comoving = True
+                    un = un[:-2]
+                # no length units besides code_length end in h so this is safe
+                if h_power == -1:
+                    hinv = True
+                elif h_power != 0:
+                    # It doesn't make sense to scale a position by anything
+                    # other than h**-1
+                    raise RuntimeError
+                if un in formatted_length_unit_names:
+                    un = formatted_length_unit_names[un]
+                if un not in ['1', 'u', 'unitary']:
+                    if hinv:
+                        un = un + '\,h^{-1}'
+                    if comoving:
+                        un = un + '\,(1+z)^{-1}'
+                    axes_unit_labels[i] = '\/\/('+un+')'
 
-            if not self._wcs_axes:
-                axes_unit_labels = ['', '']
-                comoving = False
-                hinv = False
-                for i, un in enumerate((unit_x, unit_y)):
-                    if hasattr(self.pf.coordinates, "default_unit_label"):
-                        axax = getattr(self.pf.coordinates, "%s_axis" % ("xy"[i]))[axis_index]
-                        un = self.pf.coordinates.default_unit_label[axax]
-                        axes_unit_labels[i] = '\/\/('+un+')'
-                        continue
-                    # Use sympy to factor h out of the unit.  In this context 'un'
-                    # is a string, so we call the Unit constructor.
-                    expr = Unit(un, registry=self.pf.unit_registry).expr
-                    h_expr = Unit('h', registry=self.pf.unit_registry).expr
-                    # See http://docs.sympy.org/latest/modules/core.html#sympy.core.expr.Expr
-                    h_power = expr.as_coeff_exponent(h_expr)[1]
-                    # un is now the original unit, but with h factored out.
-                    un = str(expr*h_expr**(-1*h_power))
-                    if str(un).endswith('cm') and un != 'cm':
-                        comoving = True
-                        un = un[:-2]
-                    # no length units besides code_length end in h so this is safe
-                    if h_power == -1:
-                        hinv = True
-                    elif h_power != 0:
-                        # It doesn't make sense to scale a position by anything
-                        # other than h**-1
-                        raise RuntimeError
-                    if un in formatted_length_unit_names:
-                        un = formatted_length_unit_names[un]
-                    if un not in ['1', 'u', 'unitary']:
-                        if hinv:
-                            un = un + '\,h^{-1}'
-                        if comoving:
-                            un = un + '\,(1+z)^{-1}'
-                        axes_unit_labels[i] = '\/\/('+un+')'
-
-                if self.oblique:
-                    labels = [r'$\rm{Image\/x'+axes_unit_labels[0]+'}$',
-                              r'$\rm{Image\/y'+axes_unit_labels[1]+'}$']
-                else:
-                    axis_names = self.pf.coordinates.axis_name
-                    xax = self.pf.coordinates.x_axis[axis_index]
-                    yax = self.pf.coordinates.y_axis[axis_index]
-                    if hasattr(self.pf.coordinates, "axis_default_unit_label"):
-                        axes_unit_labels = [self.pf.coordinates.axis_default_unit_name[xax],
-                                            self.pf.coordinates.axis_default_unit_name[yax]]
-                    labels = [r'$\rm{'+axis_names[xax]+axes_unit_labels[0] + r'}$',
-                              r'$\rm{'+axis_names[yax]+axes_unit_labels[1] + r'}$']
-
-                self.plots[f].axes.set_xlabel(labels[0],fontproperties=fp)
-                self.plots[f].axes.set_ylabel(labels[1],fontproperties=fp)
-
-                for label in (self.plots[f].axes.get_xticklabels() +
-                              self.plots[f].axes.get_yticklabels() +
-                              [self.plots[f].axes.xaxis.get_offset_text(),
-                               self.plots[f].axes.yaxis.get_offset_text()]):
-                    label.set_fontproperties(fp)
-
+            if self.oblique:
+                labels = [r'$\rm{Image\/x'+axes_unit_labels[0]+'}$',
+                          r'$\rm{Image\/y'+axes_unit_labels[1]+'}$']
             else:
-
-                wcs_axes = self.plots[f].figure.axes[-1]
-                wcs = wcs_axes.wcs.wcs
-                self.plots[f].axes.get_xaxis().set_visible(False)
-                self.plots[f].axes.get_yaxis().set_visible(False)
+                axis_names = self.pf.coordinates.axis_name
                 xax = self.pf.coordinates.x_axis[axis_index]
                 yax = self.pf.coordinates.y_axis[axis_index]
-                xlabel = "%s (%s)" % (wcs.ctype[xax].split("-")[0],
-                                      wcs.cunit[xax])
-                ylabel = "%s (%s)" % (wcs.ctype[yax].split("-")[0],
-                                      wcs.cunit[yax])
-                wcs_axes.coords[0].set_axislabel(xlabel, fontproperties=fp)
-                wcs_axes.coords[1].set_axislabel(ylabel, fontproperties=fp)
-                wcs_axes.set_xlim(self.xlim[0].value, self.xlim[1].value)
-                wcs_axes.set_ylim(self.ylim[0].value, self.ylim[1].value)
-                wcs_axes.coords[0].ticklabels.set_fontproperties(fp)
-                wcs_axes.coords[1].ticklabels.set_fontproperties(fp)
+                if hasattr(self.pf.coordinates, "axis_default_unit_label"):
+                    axes_unit_labels = [self.pf.coordinates.axis_default_unit_name[xax],
+                                        self.pf.coordinates.axis_default_unit_name[yax]]
+                labels = [r'$\rm{'+axis_names[xax]+axes_unit_labels[0] + r'}$',
+                          r'$\rm{'+axis_names[yax]+axes_unit_labels[1] + r'}$']
+
+            self.plots[f].axes.set_xlabel(labels[0],fontproperties=fp)
+            self.plots[f].axes.set_ylabel(labels[1],fontproperties=fp)
+
+            for label in (self.plots[f].axes.get_xticklabels() +
+                          self.plots[f].axes.get_yticklabels() +
+                          [self.plots[f].axes.xaxis.get_offset_text(),
+                           self.plots[f].axes.yaxis.get_offset_text()]):
+                label.set_fontproperties(fp)
 
             colorbar_label = image.info['label']
 
@@ -1672,7 +1602,7 @@ class PWViewerExtJS(PlotWindow):
 
 class WindowPlotMPL(ImagePlotMPL):
     def __init__(self, data, cbname, cmap, extent, zlim, figure_size, fontsize,
-                 unit_aspect, figure, axes, cax, wcs_axes=False):
+                 unit_aspect, figure, axes, cax):
         self._draw_colorbar = True
         self._draw_axes = True
         self._fontsize = fontsize
@@ -1689,10 +1619,6 @@ class WindowPlotMPL(ImagePlotMPL):
             fsize = figure_size
         self._cb_size = 0.0375*fsize
         self._ax_text_size = [0.9*fontscale, 0.7*fontscale]
-        if wcs_axes:
-            # Add a bit more space for the WCS coordinates
-            self._ax_text_size[0] *= 1.55
-            self._ax_text_size[1] *= 1.14
         self._top_buff_size = 0.30*fontscale
         self._aspect = ((extent[1] - extent[0])/(extent[3] - extent[2]))
 
