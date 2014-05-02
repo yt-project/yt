@@ -36,6 +36,7 @@ cdef ContourID *contour_create(np.int64_t contour_id,
     node.contour_id = contour_id
     node.next = node.parent = NULL
     node.prev = prev
+    node.count = 0
     if prev != NULL: prev.next = node
     return node
 
@@ -631,7 +632,8 @@ cdef class ParticleContourTree(ContourTree):
                                 np.ndarray[np.float64_t, ndim=2] positions,
                                 np.ndarray[np.int64_t, ndim=1] particle_ids,
                                 int domain_id = -1, int domain_offset = 0,
-                                periodicity = (True, True, True)):
+                                periodicity = (True, True, True),
+                                minimum_count = 8):
         cdef np.ndarray[np.int64_t, ndim=1] pdoms, pcount, pind, doff
         cdef np.float64_t pos[3]
         cdef Oct *oct = NULL, **neighbors = NULL
@@ -728,6 +730,16 @@ cdef class ParticleContourTree(ContourTree):
                 c1 = container[poffset]
                 c0 = contour_find(c1)
                 contour_ids[pind[poffset]] = c0.contour_id
+                c0.count += 1
+        for i in range(doff.shape[0]):
+            if doff[i] < 0: continue
+            for j in range(pcount[i]):
+                poffset = doff[i] + j
+                c1 = container[poffset]
+                if c1 == NULL: continue
+                c0 = contour_find(c1)
+                if c0.count < minimum_count:
+                    contour_ids[pind[poffset]] = -1
         free(container)
         return contour_ids
 

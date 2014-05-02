@@ -27,6 +27,7 @@ from yt.utilities.lib.misc_utilities import \
     new_bin_profile3d
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_objects
+from yt.utilities.exceptions import YTEmptyProfileData
 
 def preserve_source_parameters(func):
     def save_state(*args, **kwargs):
@@ -782,11 +783,13 @@ class ProfileND(ParallelAnalysisInterface):
            The name of the new unit.
         """
         if field in self.field_units:
-            self.field_units[field] = Unit(new_unit)
+            self.field_units[field] = \
+                Unit(new_unit, registry=self.pf.unit_registry)
         else:
             fd = self.field_map[field]
             if fd in self.field_units:
-                self.field_units[fd] = Unit(new_unit)
+                self.field_units[fd] = \
+                    Unit(new_unit, registry=self.pf.unit_registry)
             else:
                 raise KeyError("%s not in profile!" % (field))
 

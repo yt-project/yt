@@ -95,6 +95,7 @@ class GadgetDataset(ParticleDataset):
                  header_spec = "default",
                  field_spec = "default",
                  ptype_spec = "default"):
+        if self._instantiated: return
         self._header_spec = self._setup_binary_spec(
             header_spec, gadget_header_specs)
         self._field_spec = self._setup_binary_spec(
@@ -470,16 +471,20 @@ class TipsyDataset(ParticleDataset):
         self.current_time = hvals["time"]
         nz = 1 << self.over_refine_factor
         self.domain_dimensions = np.ones(3, "int32") * nz
-        if self.parameters.get('bPeriodic', True):
-            self.periodicity = (True, True, True)
+        periodic = self.parameters.get('bPeriodic', True)
+        period = self.parameters.get('dPeriod', None)
+        comoving = self.parameters.get('bComove', False)
+        self.periodicity = (periodic, periodic, periodic)
+        if comoving and period is None:
+            period = 1.0
+        if periodic and period is not None:
             # If we are periodic, that sets our domain width to either 1 or dPeriod.
-            self.domain_left_edge = np.zeros(3, "float64") - 0.5*self.parameters.get('dPeriod', 1)
-            self.domain_right_edge = np.zeros(3, "float64") + 0.5*self.parameters.get('dPeriod', 1)
+            self.domain_left_edge = np.zeros(3, "float64") - 0.5*period
+            self.domain_right_edge = np.zeros(3, "float64") + 0.5*period
         else:
-            self.periodicity = (False, False, False)
             self.domain_left_edge = None
             self.domain_right_edge = None
-        if self.parameters.get('bComove', False):
+        if comoving:
             cosm = self._cosmology_parameters or {}
             self.scale_factor = hvals["time"]#In comoving simulations, time stores the scale factor a
             self.cosmological_simulation = 1

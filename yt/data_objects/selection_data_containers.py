@@ -25,8 +25,6 @@ from .data_containers import \
     YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D
 from yt.data_objects.derived_quantities import \
     DerivedQuantityCollection
-from yt.utilities.definitions import \
-    x_dict, y_dict, axis_names
 from yt.utilities.exceptions import YTSphereTooSmall
 from yt.utilities.linear_interpolators import TrilinearFieldInterpolator
 from yt.utilities.minimal_representation import \
@@ -56,9 +54,6 @@ class YTOrthoRayBase(YTSelectionContainer1D):
     fields : list of strings, optional
         If you want the object to pre-retrieve a set of fields, supply them
         here.  This is not necessary.
-    kwargs : dict of items
-        Any additional values are passed as field parameters that can be
-        accessed by generated fields.
 
     Examples
     --------
@@ -73,12 +68,15 @@ class YTOrthoRayBase(YTSelectionContainer1D):
     def __init__(self, axis, coords, pf=None, field_parameters=None):
         super(YTOrthoRayBase, self).__init__(pf, field_parameters)
         self.axis = axis
-        self.px_ax = x_dict[self.axis]
-        self.py_ax = y_dict[self.axis]
-        self.px_dx = 'd%s'%(axis_names[self.px_ax])
-        self.py_dx = 'd%s'%(axis_names[self.py_ax])
+        xax = self.pf.coordinates.x_axis[self.axis]
+        yax = self.pf.coordinates.y_axis[self.axis]
+        self.px_ax = xax
+        self.py_ax = yax
+        # Even though we may not be using x,y,z we use them here.
+        self.px_dx = 'd%s'%('xyz'[self.px_ax])
+        self.py_dx = 'd%s'%('xyz'[self.py_ax])
         self.px, self.py = coords
-        self.sort_by = axis_names[self.axis]
+        self.sort_by = 'xyz'[self.axis]
 
     @property
     def coords(self):
@@ -105,9 +103,6 @@ class YTRayBase(YTSelectionContainer1D):
     fields : list of strings, optional
         If you want the object to pre-retrieve a set of fields, supply them
         here.  This is not necessary.
-    kwargs : dict of items
-        Any additional values are passed as field parameters that can be
-        accessed by generated fields.
 
     Examples
     --------
@@ -168,9 +163,6 @@ class YTSliceBase(YTSelectionContainer2D):
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
          fields.
-    kwargs : dict of items
-        Any additional values are passed as field parameters that can be
-        accessed by generated fields.
 
     Examples
     --------
@@ -191,16 +183,18 @@ class YTSliceBase(YTSelectionContainer2D):
         self.coord = coord
 
     def _generate_container_field(self, field):
+        xax = self.pf.coordinates.x_axis[self.axis]
+        yax = self.pf.coordinates.y_axis[self.axis]
         if self._current_chunk is None:
             self.index._identify_base_chunk(self)
         if field == "px":
-            return self._current_chunk.fcoords[:,x_dict[self.axis]]
+            return self._current_chunk.fcoords[:,xax]
         elif field == "py":
-            return self._current_chunk.fcoords[:,y_dict[self.axis]]
+            return self._current_chunk.fcoords[:,yax]
         elif field == "pdx":
-            return self._current_chunk.fwidth[:,x_dict[self.axis]] * 0.5
+            return self._current_chunk.fwidth[:,xax] * 0.5
         elif field == "pdy":
-            return self._current_chunk.fwidth[:,y_dict[self.axis]] * 0.5
+            return self._current_chunk.fwidth[:,yax] * 0.5
         else:
             raise KeyError(field)
 
@@ -247,9 +241,6 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     node_name: string, optional
         The node in the .yt file to find or store this slice at.  Should
         probably not be used.
-    kwargs : dict of items
-        Any additional values are passed as field parameters that can be
-        accessed by generated fields.
 
     Notes
     -----
@@ -458,12 +449,12 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         """
         if iterable(width):
             assert_valid_width_tuple(width)
-            width = YTQuantity(width[0], width[1])
+            width = self.pf.quan(width[0], width[1])
         if height is None:
             height = width
         elif iterable(height):
             assert_valid_width_tuple(height)
-            height = YTQuantity(height[0], height[1])
+            height = self.pf.quan(height[0], height[1])
         if not iterable(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer

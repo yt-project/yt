@@ -17,8 +17,6 @@ import tempfile
 from nose.tools import raises
 from yt.testing import \
     fake_random_pf, assert_equal, assert_array_equal, YTArray
-from yt.utilities.definitions import \
-    x_dict, y_dict
 from yt.utilities.exceptions import \
     YTNoDataInObjectError
 from yt.units.unit_object import Unit
@@ -50,8 +48,8 @@ def test_slice():
         slc_pos = 0.5
         # Some simple slice tests with single grids
         for ax, an in enumerate("xyz"):
-            xax = x_dict[ax]
-            yax = y_dict[ax]
+            xax = pf.coordinates.x_axis[ax]
+            yax = pf.coordinates.y_axis[ax]
             for wf in ["density", None]:
                 fns = []
                 slc = pf.slice(ax, slc_pos)

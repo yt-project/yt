@@ -1,4 +1,5 @@
 """
+
 Callbacks to add additional functionality on to plots.
 
 
@@ -18,11 +19,6 @@ import h5py
 
 from yt.funcs import *
 from _mpl_imports import *
-from yt.utilities.definitions import \
-    x_dict, x_names, \
-    y_dict, y_names, \
-    axis_names, \
-    axis_labels
 from yt.utilities.physical_constants import \
     sec_per_Gyr, sec_per_Myr, \
     sec_per_kyr, sec_per_year, \
@@ -115,13 +111,17 @@ class VelocityCallback(PlotCallback):
                                         "cutting_plane_velocity_y",
                                         self.factor)
         else:
-            xv = "velocity_%s" % (x_names[plot.data.axis])
-            yv = "velocity_%s" % (y_names[plot.data.axis])
+            ax = plot.data.axis
+            (xi, yi) = (plot.data.pf.coordinates.x_axis[ax],
+                        plot.data.pf.coordinates.y_axis[ax])
+            axis_names = plot.data.pf.coordinates.axis_name
+            xv = "velocity_%s" % (axis_names[xi])
+            yv = "velocity_%s" % (axis_names[yi])
 
             bv = plot.data.get_field_parameter("bulk_velocity")
             if bv is not None:
-                bv_x = bv[x_dict[plot.data.axis]]
-                bv_y = bv[y_dict[plot.data.axis]]
+                bv_x = bv[xi]
+                bv_y = bv[yi]
             else: bv_x = bv_y = YTQuantity(0, 'cm/s')
 
             qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, 
@@ -156,8 +156,11 @@ class MagFieldCallback(PlotCallback):
                                         "cutting_plane_by",
                                         self.factor)
         else:
-            xv = "magnetic_field_%s" % (x_names[plot.data.axis])
-            yv = "magnetic_field_%s" % (y_names[plot.data.axis])
+            xax = plot.data.pf.coordinates.x_axis[plot.data.axis]
+            yax = plot.data.pf.coordinates.y_axis[plot.data.axis]
+            axis_names = plot.data.pf.coordinates.axis_name
+            xv = "magnetic_field_%s" % (axis_names[xax])
+            yv = "magnetic_field_%s" % (axis_names[yax])
             qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, scale_units=self.scale_units, normalize=self.normalize)
         return qcb(plot)
 
@@ -194,8 +197,10 @@ class QuiverCallback(PlotCallback):
         # periodicity
         ax = plot.data.axis
         pf = plot.data.pf
-        period_x = pf.domain_width[x_dict[ax]]
-        period_y = pf.domain_width[y_dict[ax]]
+        (xi, yi) = (pf.coordinates.x_axis[ax],
+                    pf.coordinates.y_axis[ax])
+        period_x = pf.domain_width[xi]
+        period_y = pf.domain_width[yi]
         periodic = int(any(pf.periodicity))
         fv_x = plot.data[self.field_x]
         if self.bv_x != 0.0:
@@ -384,8 +389,9 @@ class GridBoundaryCallback(PlotCallback):
         yy0, yy1 = plot._axes.get_ylim()
         (dx, dy) = self.pixel_scale(plot)
         (xpix, ypix) = plot.image._A.shape
-        px_index = x_dict[plot.data.axis]
-        py_index = y_dict[plot.data.axis]
+        ax = plot.data.axis
+        px_index = plot.data.pf.coordinates.x_axis[ax]
+        py_index = plot.data.pf.coordinates.y_axis[ax]
         DW = plot.data.pf.domain_width
         if self.periodic:
             pxs, pys = np.mgrid[-1:1:3j,-1:1:3j]
@@ -523,66 +529,6 @@ def get_smallest_appropriate_unit(v, pf):
     if good_u is None : good_u = 'cm'
     return good_u
 
-class UnitBoundaryCallback(PlotCallback):
-    """
-    Add on a plot indicating where *factor*s of *unit* are shown.
-    Optionally *text_annotate* on the *text_which*-indexed box on display.
-    """
-    _type_name = "units"
-    def __init__(self, unit = "au", factor=4, text_annotate=True, text_which=-2):
-        PlotCallback.__init__(self)
-        self.unit = unit
-        self.factor = factor
-        self.text_annotate = text_annotate
-        self.text_which = -2
-
-    def __call__(self, plot):
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        l, b, width, height = mpl_get_bounds(plot._axes.bbox)
-        xi = x_dict[plot.data.axis]
-        yi = y_dict[plot.data.axis]
-        dx = plot.image._A.shape[0] / (x1-x0)
-        dy = plot.image._A.shape[1] / (y1-y0)
-        center = plot.data.center
-        min_dx = plot.data['pdx'].min()
-        max_dx = plot.data['pdx'].max()
-        w_min_x = 250.0 * min_dx
-        w_max_x = 1.0 / self.factor
-        min_exp_x = np.ceil(np.log10(w_min_x*plot.data.pf[self.unit])
-                           /np.log10(self.factor))
-        max_exp_x = np.floor(np.log10(w_max_x*plot.data.pf[self.unit])
-                            /np.log10(self.factor))
-        n_x = max_exp_x - min_exp_x + 1
-        widths = np.logspace(min_exp_x, max_exp_x, num = n_x, base=self.factor)
-        widths /= plot.data.pf[self.unit]
-        left_edge_px = (center[xi] - widths/2.0 - x0)*dx
-        left_edge_py = (center[yi] - widths/2.0 - y0)*dy
-        right_edge_px = (center[xi] + widths/2.0 - x0)*dx
-        right_edge_py = (center[yi] + widths/2.0 - y0)*dy
-        verts = np.array(
-                [(left_edge_px, left_edge_px, right_edge_px, right_edge_px),
-                 (left_edge_py, right_edge_py, right_edge_py, left_edge_py)])
-        visible =  ( right_edge_px - left_edge_px > 25 ) & \
-                   ( right_edge_px - left_edge_px > 25 ) & \
-                   ( (right_edge_px < width) & (left_edge_px > 0) ) & \
-                   ( (right_edge_py < height) & (left_edge_py > 0) )
-        verts=verts.transpose()[visible,:,:]
-        grid_collection = matplotlib.collections.PolyCollection(
-                verts, facecolors="none",
-                       edgecolors=(0.0,0.0,0.0,1.0),
-                       linewidths=2.5)
-        plot._axes.hold(True)
-        plot._axes.add_collection(grid_collection)
-        if self.text_annotate:
-            ti = max(self.text_which, -1*len(widths[visible]))
-            if ti < len(widths[visible]): 
-                w = widths[visible][ti]
-                good_u = get_smallest_appropriate_unit(w, plot.data.pf)
-                w *= plot.data.pf[good_u]
-                plot._axes.annotate("%0.3e %s" % (w,good_u), verts[ti,1,:]+5)
-        plot._axes.hold(False)
-
 class LinePlotCallback(PlotCallback):
     """
     annotate_line(x, y, plot_args = None)
@@ -710,11 +656,12 @@ class ClumpContourCallback(PlotCallback):
 
         plot._axes.hold(True)
 
-        px_index = x_dict[plot.data.axis]
-        py_index = y_dict[plot.data.axis]
+        ax = plot.data.axis
+        px_index = plot.data.pf.coordinates.x_axis[ax]
+        py_index = plot.data.pf.coordinates.y_axis[ax]
 
-        xf = axis_names[px_index]
-        yf = axis_names[py_index]
+        xf = plot.data.pf.coordinates.axis_name[px_index]
+        yf = plot.data.pf.coordinates.axis_name[py_index]
         dxf = "d%s" % xf
         dyf = "d%s" % yf
 
@@ -761,8 +708,10 @@ class ArrowCallback(PlotCallback):
 
     def __call__(self, plot):
         if len(self.pos) == 3:
-            pos = (self.pos[x_dict[plot.data.axis]],
-                   self.pos[y_dict[plot.data.axis]])
+            ax = plot.data.axis
+            (xi, yi) = (plot.data.pf.coordinates.x_axis[ax],
+                        plot.data.pf.coordinates.y_axis[ax])
+            pos = self.pos[xi], self.pos[yi]
         else: pos = self.pos
         if isinstance(self.code_size[1], basestring):
             code_size = plot.data.pf.quan(*self.code_size).value
@@ -792,8 +741,10 @@ class PointAnnotateCallback(PlotCallback):
 
     def __call__(self, plot):
         if len(self.pos) == 3:
-            pos = (self.pos[x_dict[plot.data.axis]],
-                   self.pos[y_dict[plot.data.axis]])
+            ax = plot.data.axis
+            (xi, yi) = (plot.data.pf.coordinates.x_axis[ax],
+                        plot.data.pf.coordinates.y_axis[ax])
+            pos = self.pos[xi], self.pos[yi]
         else: pos = self.pos
         width,height = plot.image._A.shape
         x,y = self.convert_to_plot(plot, pos)
@@ -818,8 +769,10 @@ class MarkerAnnotateCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         if len(self.pos) == 3:
-            pos = (self.pos[x_dict[plot.data.axis]],
-                   self.pos[y_dict[plot.data.axis]])
+            ax = plot.data.axis
+            (xi, yi) = (plot.data.pf.coordinates.x_axis[ax],
+                        plot.data.pf.coordinates.y_axis[ax])
+            pos = self.pos[xi], self.pos[yi]
         elif len(self.pos) == 2:
             pos = self.pos
         x,y = self.convert_to_plot(plot, pos)
@@ -862,7 +815,9 @@ class SphereCallback(PlotCallback):
         if plot.data.axis == 4:
             (xi, yi) = (0, 1)
         else:
-            (xi, yi) = (x_dict[plot.data.axis], y_dict[plot.data.axis])
+            ax = plot.data.axis
+            (xi, yi) = (plot.data.pf.coordinates.x_axis[ax],
+                        plot.data.pf.coordinates.y_axis[ax])
 
         (center_x,center_y) = self.convert_to_plot(plot,(self.center[xi], self.center[yi]))
         
@@ -872,180 +827,6 @@ class SphereCallback(PlotCallback):
             plot._axes.text(center_x, center_y, self.text,
                             **self.text_args)
 
-class HopCircleCallback(PlotCallback):
-    """
-    annotate_hop_circles(hop_output, max_number=None,
-                         annotate=False, min_size=20, max_size=10000000,
-                         font_size=8, print_halo_size=False,
-                         print_halo_mass=False, width=None)
-
-    Accepts a :class:`yt.HopList` *hop_output* and plots up to
-    *max_number* (None for unlimited) halos as circles.
-    """
-    _type_name = "hop_circles"
-    def __init__(self, hop_output, max_number=None,
-                 annotate=False, min_size=20, max_size=10000000,
-                 font_size=8, print_halo_size=False,
-                 print_halo_mass=False, width=None):
-        self.hop_output = hop_output
-        self.max_number = max_number
-        self.annotate = annotate
-        self.min_size = min_size
-        self.max_size = max_size
-        self.font_size = font_size
-        self.print_halo_size = print_halo_size
-        self.print_halo_mass = print_halo_mass
-        self.width = width
-
-    def __call__(self, plot):
-        from matplotlib.patches import Circle
-        num = len(self.hop_output[:self.max_number])
-        for halo in self.hop_output[:self.max_number]:
-            size = halo.get_size()
-            if size < self.min_size or size > self.max_size: continue
-            # This could use halo.maximum_radius() instead of width
-            if self.width is not None and \
-                np.abs(halo.center_of_mass() - 
-                       plot.data.center)[plot.data.axis] > \
-                   self.width:
-                continue
-            
-            radius = halo.maximum_radius() * self.pixel_scale(plot)[0]
-            center = halo.center_of_mass()
-            
-            (xi, yi) = (x_dict[plot.data.axis], y_dict[plot.data.axis])
-
-            (center_x,center_y) = self.convert_to_plot(plot,(center[xi], center[yi]))
-            color = np.ones(3) * (0.4 * (num - halo.id)/ num) + 0.6
-            cir = Circle((center_x, center_y), radius, fill=False, color=color)
-            plot._axes.add_patch(cir)
-            if self.annotate:
-                if self.print_halo_size:
-                    plot._axes.text(center_x+radius, center_y+radius, "%s" % size,
-                    fontsize=self.font_size, color=color)
-                elif self.print_halo_mass:
-                    plot._axes.text(center_x+radius, center_y+radius, "%s" % halo.total_mass(),
-                    fontsize=self.font_size, color=color)
-                else:
-                    plot._axes.text(center_x+radius, center_y+radius, "%s" % halo.id,
-                    fontsize=self.font_size, color=color)
-
-class HopParticleCallback(PlotCallback):
-    """
-    annotate_hop_particles(hop_output, max_number, p_size=1.0,
-                           min_size=20, alpha=0.2):
-
-    Adds particle positions for the members of each halo as identified
-    by HOP. Along *axis* up to *max_number* groups in *hop_output* that are
-    larger than *min_size* are plotted with *p_size* pixels per particle; 
-    *alpha* determines the opacity of each particle.
-    """
-    _type_name = "hop_particles"
-    def __init__(self, hop_output, max_number=None, p_size=1.0,
-                min_size=20, alpha=0.2):
-        self.hop_output = hop_output
-        self.p_size = p_size
-        self.max_number = max_number
-        self.min_size = min_size
-        self.alpha = alpha
-    
-    def __call__(self,plot):
-        (dx,dy) = self.pixel_scale(plot)
-
-        (xi, yi) = (x_names[plot.data.axis], y_names[plot.data.axis])
-
-        # now we loop over the haloes
-        for halo in self.hop_output[:self.max_number]:
-            size = halo.get_size()
-
-            if size < self.min_size: continue
-
-            (px,py) = self.convert_to_plot(plot,(halo["particle_position_%s" % xi],
-                                                 halo["particle_position_%s" % yi]))
-            
-            # Need to get the plot limits and set the hold state before scatter
-            # and then restore the limits and turn off the hold state afterwards
-            # because scatter will automatically adjust the plot window which we
-            # do not want
-            
-            xlim = plot._axes.get_xlim()
-            ylim = plot._axes.get_ylim()
-            plot._axes.hold(True)
-
-            plot._axes.scatter(px, py, edgecolors="None",
-                s=self.p_size, c='black', alpha=self.alpha)
-            
-            plot._axes.set_xlim(xlim)
-            plot._axes.set_ylim(ylim)
-            plot._axes.hold(False)
-
-
-class CoordAxesCallback(PlotCallback):
-    """
-    Creates x and y axes for a VMPlot. In the future, it will
-    attempt to guess the proper units to use.
-    """
-    _type_name = "coord_axes"
-    def __init__(self,unit=None,coords=False):
-        PlotCallback.__init__(self)
-        self.unit = unit
-        self.coords = coords
-
-    def __call__(self,plot):
-        # 1. find out what the domain is
-        # 2. pick a unit for it
-        # 3. run self._axes.set_xlabel & self._axes.set_ylabel to actually lay things down.
-        # 4. adjust extent information to make sure labels are visable.
-
-        # put the plot into data coordinates
-        nx,ny = plot.image._A.shape
-        dx = (plot.xlim[1] - plot.xlim[0])/nx
-        dy = (plot.ylim[1] - plot.ylim[0])/ny
-
-        unit_conversion = plot.pf[plot.im["Unit"]]
-        aspect = (plot.xlim[1]-plot.xlim[0])/(plot.ylim[1]-plot.ylim[0])
-
-        print "aspect ratio = ", aspect
-
-        # if coords is False, label axes relative to the center of the
-        # display. if coords is True, label axes with the absolute
-        # coordinates of the region.
-        xcenter = 0.
-        ycenter = 0.
-        if not self.coords:
-            center = plot.data.center
-            if plot.data.axis == 0:
-                xcenter = center[1]
-                ycenter = center[2]
-            elif plot.data.axis == 1:
-                xcenter = center[0]
-                ycenter = center[2]
-            else:
-                xcenter = center[0]
-                ycenter = center[1]
-
-
-            xformat_function = lambda a,b: '%7.1e' %((a*dx + plot.xlim[0] - xcenter)*unit_conversion)
-            yformat_function = lambda a,b: '%7.1e' %((a*dy + plot.ylim[0] - ycenter)*unit_conversion)
-        else:
-            xformat_function = lambda a,b: '%7.1e' %((a*dx + plot.xlim[0])*unit_conversion)
-            yformat_function = lambda a,b: '%7.1e' %((a*dy + plot.ylim[0])*unit_conversion)
-            
-        xticker = matplotlib.ticker.FuncFormatter(xformat_function)
-        yticker = matplotlib.ticker.FuncFormatter(yformat_function)
-        plot._axes.xaxis.set_major_formatter(xticker)
-        plot._axes.yaxis.set_major_formatter(yticker)
-        
-        xlabel = '%s (%s)' % (axis_labels[plot.data.axis][0],plot.im["Unit"])
-        ylabel = '%s (%s)' % (axis_labels[plot.data.axis][1],plot.im["Unit"])
-        xticksize = nx/4.
-        yticksize = ny/4.
-        plot._axes.xaxis.set_major_locator(matplotlib.ticker.FixedLocator([i*xticksize for i in range(0,5)]))
-        plot._axes.yaxis.set_major_locator(matplotlib.ticker.FixedLocator([i*yticksize for i in range(0,5)]))
-        
-        plot._axes.set_xlabel(xlabel,visible=True)
-        plot._axes.set_ylabel(ylabel,visible=True)
-        plot._figure.subplots_adjust(left=0.1,right=0.8)
 
 class TextLabelCallback(PlotCallback):
     """
@@ -1067,8 +848,10 @@ class TextLabelCallback(PlotCallback):
         kwargs = self.text_args.copy()
         if self.data_coords and len(plot.image._A.shape) == 2:
             if len(self.pos) == 3:
-                pos = (self.pos[x_dict[plot.data.axis]],
-                       self.pos[y_dict[plot.data.axis]])
+                ax = plot.data.axis
+                (xi, yi) = (plot.data.pf.coordinates.x_axis[ax],
+                            plot.data.pf.coordinates.y_axis[ax])
+                pos = self.pos[xi], self.pos[yi]
             else: pos = self.pos
             x,y = self.convert_to_plot(plot, pos)
         else:
@@ -1076,6 +859,69 @@ class TextLabelCallback(PlotCallback):
             if not self.data_coords:
                 kwargs["transform"] = plot._axes.transAxes
         plot._axes.text(x, y, self.text, **kwargs)
+
+class HaloCatalogCallback(PlotCallback):
+
+    _type_name = 'halos'
+    region = None
+    _descriptor = None
+
+    def __init__(self, halo_catalog, col='white', alpha =1, width = None):
+        PlotCallback.__init__(self)
+        self.halo_catalog = halo_catalog
+        self.color = col
+        self.alpha = alpha
+        self.width = width
+
+    def __call__(self, plot):
+        data = plot.data
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+        
+        halo_data= self.halo_catalog.halos_pf.all_data()
+        field_x = "particle_position_%s" % axis_names[x_dict[data.axis]]
+        field_y = "particle_position_%s" % axis_names[y_dict[data.axis]]
+        field_z = "particle_position_%s" % axis_names[data.axis]
+        plot._axes.hold(True)
+
+        # Set up scales for pixel size and original data
+        units = 'Mpccm'
+        pixel_scale = self.pixel_scale(plot)[0]
+        data_scale = data.pf.length_unit
+
+        # Convert halo positions to code units of the plotted data
+        # and then to units of the plotted window
+        px = halo_data[field_x][:].in_units(units) / data_scale
+        py = halo_data[field_y][:].in_units(units) / data_scale
+        px, py = self.convert_to_plot(plot,[px,py])
+        
+        # Convert halo radii to a radius in pixels
+        radius = halo_data['radius'][:].in_units(units)
+        radius = radius*pixel_scale/data_scale
+
+        if self.width:
+            pz = halo_data[field_z][:].in_units(units)/data_scale
+            pz = data.pf.arr(pz, 'code_length')
+            c = data.center[data.axis]
+
+            # I should catch an error here if width isn't in this form
+            # but I dont really want to reimplement get_sanitized_width...
+            width = data.pf.arr(self.width[0], self.width[1]).in_units('code_length')
+
+            indices = np.where((pz > c-width) & (pz < c+width))
+
+            px = px[indices]
+            py = py[indices]
+            radius = radius[indices]
+
+        plot._axes.scatter(px, py, edgecolors='None', marker='o',
+                           s=radius, c=self.color,alpha=self.alpha)
+        plot._axes.set_xlim(xx0,xx1)
+        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.hold(False)
+
 
 class ParticleCallback(PlotCallback):
     """
@@ -1119,8 +965,12 @@ class ParticleCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         reg = self._get_region((x0,x1), (y0,y1), plot.data.axis, data)
-        field_x = "particle_position_%s" % axis_names[x_dict[data.axis]]
-        field_y = "particle_position_%s" % axis_names[y_dict[data.axis]]
+        ax = data.axis
+        xax = plot.data.pf.coordinates.x_axis[ax]
+        yax = plot.data.pf.coordinates.y_axis[ax]
+        axis_names = plot.data.pf.coordinates.axis_name
+        field_x = "particle_position_%s" % axis_names[xax]
+        field_y = "particle_position_%s" % axis_names[yax]
         gg = ( ( reg[field_x] >= x0 ) & ( reg[field_x] <= x1 )
            &   ( reg[field_y] >= y0 ) & ( reg[field_y] <= y1 ) )
         if self.ptype is not None:
@@ -1148,8 +998,9 @@ class ParticleCallback(PlotCallback):
 
     def _get_region(self, xlim, ylim, axis, data):
         LE, RE = [None]*3, [None]*3
-        xax = x_dict[axis]
-        yax = y_dict[axis]
+        pf = data.pf
+        xax = pf.coordinates.x_axis[axis]
+        yax = pf.coordinates.y_axis[axis]
         zax = axis
         LE[xax], RE[xax] = xlim
         LE[yax], RE[yax] = ylim
@@ -1367,7 +1218,9 @@ class TriangleFacetsCallback(PlotCallback):
 
     def __call__(self, plot):
         plot._axes.hold(True)
-        xax, yax = x_dict[plot.data.axis], y_dict[plot.data.axis]
+        ax = data.axis
+        xax = plot.data.pf.coordinates.x_axis[ax]
+        yax = plot.data.pf.coordinates.y_axis[ax]
         l_cy = triangle_plane_intersect(plot.data.axis, plot.data.coord, self.vertices)[:,:,(xax, yax)]
         lc = matplotlib.collections.LineCollection(l_cy, **self.plot_args)
         plot._axes.add_collection(lc)

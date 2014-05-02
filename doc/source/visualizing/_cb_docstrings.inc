@@ -104,42 +104,31 @@
 
 -------------
 
-.. function:: annotate_hop_circles(self, hop_output, max_number=None, annotate=False, min_size=20, max_size=10000000, font_size=8, print_halo_size=False, print_halo_mass=False, width=None):
+.. function:: annotate_halos(self, halo_catalog, col='white', alpha =1, width= None):
 
-   (This is a proxy for :class:`~yt.visualization.plot_modifications.HopCircleCallback`.)
+   (This is a proxy for :class:`~yt.visualization.plot_modifications.HaloCatalogCallback`.)
 
-   Accepts a :class:`yt.HopList` *hop_output* and plots up
-   to *max_number* (None for unlimited) halos as circles.
-
-.. python-script::
-
-   from yt.mods import *
-   pf = load("Enzo_64/DD0043/data0043")
-   halos = HaloFinder(pf)
-   p = ProjectionPlot(pf, "z", "density")
-   p.annotate_hop_circles(halos)
-   p.save()
-
--------------
-
-.. function:: annotate_hop_particles(self, hop_output, max_number, p_size=1.0, min_size=20, alpha=0.2):
-
-   (This is a proxy for :class:`~yt.visualization.plot_modifications.HopParticleCallback`.)
-
-   Adds particle positions for the members of each halo as
-   identified by HOP. Along *axis* up to *max_number* groups
-   in *hop_output* that are larger than *min_size* are
-   plotted with *p_size* pixels per particle;  *alpha*
-   determines the opacity of each particle.
+   Accepts a :class:`yt.HaloCatalog` *HaloCatalog* and plots 
+   a circle at the location of each halo with the radius of
+   the circle corresponding to the virial radius of the halo.
+   If *width* is set to None (default) all halos are plotted.
+   Otherwise, only halos that fall within a slab with width
+   *width* centered on the center of the plot data. The 
+   color and transparency of the circles can be controlled with
+   *col* and *alpha* respectively.
 
 .. python-script::
-
+   
    from yt.mods import *
-   pf = load("Enzo_64/DD0043/data0043")
-   halos = HaloFinder(pf)
-   p = ProjectionPlot(pf, "x", "density", center='m', width=(10, 'Mpc'))
-   p.annotate_hop_particles(halos, max_number=100, p_size=5.0)
-   p.save()
+   data_pf = load('Enzo_64/RD0006/RD0006')
+   halos_pf = load('rockstar_halos/halos_0.0.bin')
+
+   hc = HaloCatalog(halos_pf=halos_pf)
+   hc.create()
+
+   prj = ProjectionPlot(data_pf, 'z', 'density')
+   prj.annotate_halos(hc)
+   prj.save()
 
 -------------
 

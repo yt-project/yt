@@ -32,7 +32,7 @@ from yt.geometry.particle_oct_container import \
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.io_handler import io_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface, parallel_splitter
+    ParallelAnalysisInterface
 
 from yt.data_objects.data_containers import data_object_registry
 from yt.data_objects.octree_subset import ParticleOctreeSubset

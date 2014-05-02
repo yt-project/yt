@@ -20,10 +20,6 @@ from yt.utilities.physical_constants import \
     mh, boltzmann_constant_cgs, amu_cgs
 from yt.fields.field_info_container import \
     FieldInfoContainer
-from yt.fields.species_fields import \
-    add_species_field_by_fraction
-from yt.utilities.chemical_formulas import \
-    ChemicalFormula
 
 rho_units = "code_mass / code_length**3"
 mom_units = "code_mass / (code_time * code_length**2)"
@@ -114,14 +110,72 @@ class BoxlibFieldInfo(FieldInfoContainer):
                            function = _get_vel(ax),
                            units = "cm/s")
 
+class CastroFieldInfo(FieldInfoContainer):
+
+    known_other_fields = (
+        ("density", ("g/cm**3", ["density"], r"\rho")),
+        ("xmom", ("g*cm/s", ["momentum_x"], r"\rho u")),
+        ("ymom", ("g*cm/s", ["momentum_y"], r"\rho v")),
+        ("zmom", ("g*cm/s", ["momentum_z"], r"\rho w")),
+        # velocity components are not always present
+        ("x_velocity", ("cm/s", ["velocity_x"], r"u")),
+        ("y_velocity", ("cm/s", ["velocity_y"], r"v")),
+        ("z_velocity", ("cm/s", ["velocity_z"], r"w")),
+        ("rho_E", ("erg/cm**3", ["energy_density"], r"\rho E")),
+        # internal energy density (not just thermal)
+        ("rho_e", ("erg/cm**3", [], r"\rho e")),
+        ("Temp", ("K", ["temperature"], r"T")),
+        ("grav_x", ("cm/s**2", [], r"g\cdot e_x")),
+        ("grav_y", ("cm/s**2", [], r"g\cdot e_y")),
+        ("grav_z", ("cm/s**2", [], r"g\cdot e_z")),
+        ("pressure", ("dyne/cm**2", [], r"p")),
+        ("kineng", ("erg/cm**3", [], r"\frac{1}{2}\rho|U|**2")),
+        ("soundspeed", ("cm/s", ["sound_speed"], None)),
+        ("Machnumber", ("", ["mach_number"], None)),
+        ("entropy", ("erg/(g*K)", ["entropy"], r"s")),
+        ("magvort", ("1/s", ["vorticity_magnitude"], r"|\nabla \times U|")),
+        ("divu", ("1/s", [], r"\nabla \cdot U")),
+        ("eint_E", ("erg/g", [], r"e(E,U)")),
+        ("eint_e", ("erg/g", [], r"e")),
+        ("magvel", ("cm/s", ["velocity_magnitude"], r"|U|")),
+        ("radvel", ("cm/s", [], r"U\cdot e_r")),
+        ("magmom", ("g*cm/s", ["momentum_magnitude"], r"|\rho U|")),
+        ("maggrav", ("cm/s**2", [], r"|g|")),
+        ("phiGrav", ("erg/g", [], r"|\Phi|")),
+    )
+
+    def setup_fluid_fields(self):
+        # add X's
+        for _, field in self.pf.field_list:
+            if field.startswith("X("):
+                # We have a fraction
+                nice_name = field[2:-1]
+                self.alias(("gas", "%s_fraction" % nice_name), ("boxlib", field),
+                           units = "")
+                def _create_density_func(field_name):
+                    def _func(field, data):
+                        return data[field_name] * data["gas", "density"]
+                    return _func
+                func = _create_density_func(("gas", "%s_fraction" % nice_name))
+                self.add_field(name = ("gas", "%s_density" % nice_name),
+                               function = func,
+                               units = "g/cm**3")
+                # We know this will either have one letter, or two.
+                if field[3] in string.letters:
+                    element, weight = field[2:4], field[4:-1]
+                else:
+                    element, weight = field[2:3], field[3:-1]
+                weight = int(weight)
+                # Here we can, later, add number density.
+
 class MaestroFieldInfo(FieldInfoContainer):
 
     known_other_fields = (
         ("density", ("g/cm**3", ["density"], None)),
-        ("x_vel", ("cm/s", ["velocity_x"], None)),
-        ("y_vel", ("cm/s", ["velocity_y"], None)),
-        ("z_vel", ("cm/s", ["velocity_z"], None)),
-        ("magvel", ("cm/s", ["velocity_magnitude"], None)),
+        ("x_vel", ("cm/s", ["velocity_x"], r"\tilde{u}")),
+        ("y_vel", ("cm/s", ["velocity_y"], r"\tilde{v}")),
+        ("z_vel", ("cm/s", ["velocity_z"], r"\tilde{w}")),
+        ("magvel", ("cm/s", ["velocity_magnitude"], r"|\tilde{U} + w_0 e_r|")),
         ("tfromp", ("K", [], None)),
         ("tfromh", ("K", [], None)),
         ("Machnumber", ("", ["mach_number"], None)),
@@ -166,7 +220,7 @@ class MaestroFieldInfo(FieldInfoContainer):
     )
 
     def setup_fluid_fields(self):
-        # Add omegadots, units of 1/s
+        # pick the correct temperature field
         if self.pf.parameters["use_tfromp"]:
             self.alias(("gas", "temperature"), ("boxlib", "tfromp"),
                        units = "K")
@@ -174,6 +228,7 @@ class MaestroFieldInfo(FieldInfoContainer):
             self.alias(("gas", "temperature"), ("boxlib", "tfromh"),
                        units = "K")
 
+        # Add X's and omegadots, units of 1/s
         for _, field in self.pf.field_list:
             if field.startswith("X("):
                 # We have a fraction
@@ -188,12 +243,17 @@ class MaestroFieldInfo(FieldInfoContainer):
                 self.add_field(name = ("gas", "%s_density" % nice_name),
                                function = func,
                                units = "g/cm**3")
-                # We know this will either have one letter, or two.
-                if field[3] in string.letters:
-                    element, weight = field[2:4], field[4:-1]
-                else:
-                    element, weight = field[2:3], field[3:-1]
-                weight = int(weight)
+                # Most of the time our species will be of the form
+                # element name + atomic weight (e.g. C12), but
+                # sometimes we make up descriptive names (e.g. ash)
+                if any(char.isdigit() for char in field):
+                    # We know this will either have one letter, or two.
+                    if field[3] in string.letters:
+                        element, weight = field[2:4], field[4:-1]
+                    else:
+                        element, weight = field[2:3], field[3:-1]
+                    weight = int(weight)
+
                 # Here we can, later, add number density.
             if field.startswith("omegadot("):
                 nice_name = field[9:-1]

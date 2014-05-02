@@ -14,7 +14,6 @@ YTArray class.
 #-----------------------------------------------------------------------------
 
 import copy
-
 import numpy as np
 
 from functools import wraps
@@ -29,7 +28,7 @@ from numpy import \
     isfinite, isinf, isnan, signbit, copysign, nextafter, modf, frexp, \
     floor, ceil, trunc, fmax, fmin
 
-from yt.units.unit_object import Unit
+from yt.units.unit_object import Unit, UnitParseError
 from yt.units.unit_registry import UnitRegistry
 from yt.units.dimensions import dimensionless
 from yt.utilities.exceptions import \
@@ -238,12 +237,24 @@ class YTArray(np.ndarray):
 
     __array_priority__ = 2.0
 
-    def __new__(cls, input_array, input_units=None, registry=None, dtype=np.float64):
+    def __new__(cls, input_array, input_units=None, registry=None, dtype=None):
+        if dtype is None:
+            dtype = getattr(input_array, 'dtype', np.float64)
         if input_array is NotImplemented:
             return input_array
+        if registry is None and isinstance(input_units, basestring):
+            if input_units.startswith('code_'):
+                raise UnitParseError(
+                    "Code units used without referring to a dataset. \n"
+                    "Perhaps you meant to do something like this instead: \n"
+                    "ds.arr(%s, \"%s\")" % (input_array, input_units)
+                    )
         if isinstance(input_array, YTArray):
             if input_units is None:
-                pass
+                if registry is None:
+                    pass
+                else:
+                    input_array.units.registry = registry
             elif isinstance(input_units, Unit):
                 input_array.units = input_units
             else:
@@ -342,6 +353,13 @@ class YTArray(np.ndarray):
         """
         return self.convert_to_units(self.units.get_cgs_equivalent())
 
+    def convert_to_mks(self):
+        """
+        Convert the array and units to the equivalent mks units.
+
+        """
+        return self.convert_to_units(self.units.get_mks_equivalent())
+
     def in_units(self, units):
         """
         Creates a copy of this array with the data in the supplied units, and
@@ -372,10 +390,22 @@ class YTArray(np.ndarray):
 
         Returns
         -------
-        Quantity object with data converted to cgs and cgs units.
+        Quantity object with data converted to cgs units.
 
         """
         return self.in_units(self.units.get_cgs_equivalent())
+
+    def in_mks(self):
+        """
+        Creates a copy of this array with the data in the equivalent mks units,
+        and returns it.
+
+        Returns
+        -------
+        Quantity object with data converted to mks units.
+
+        """
+        return self.in_units(self.units.get_mks_equivalent())
 
     def ndarray_view(self):
         """
@@ -469,11 +499,15 @@ class YTArray(np.ndarray):
     def __isub__(self, other):
         """ See __sub__. """
         oth = sanitize_units_add(self, other, "subtraction")
-        return np.subtract(self, other, out=self)
+        return np.subtract(self, oth, out=self)
 
     def __neg__(self):
         """ Negate the data. """
         return YTArray(super(YTArray, self).__neg__())
+
+    def __pos__(self):
+        """ Posify the data. """
+        return YTArray(super(YTArray, self).__pos__(), self.units)
 
     def __mul__(self, right_object):
         """
@@ -637,7 +671,7 @@ class YTArray(np.ndarray):
     def __eq__(self, other):
         """ Test if this is equal to the object on the right. """
         # Check that other is a YTArray.
-        if other == None:
+        if other is None:
             # self is a YTArray, so it can't be None.
             return False
         if isinstance(other, YTArray):
@@ -651,7 +685,7 @@ class YTArray(np.ndarray):
     def __ne__(self, other):
         """ Test if this is not equal to the object on the right. """
         # Check that the other is a YTArray.
-        if other == None:
+        if other is None:
             return True
         if isinstance(other, YTArray):
             if not self.units.same_dimensions_as(other.units):
@@ -735,7 +769,7 @@ class YTArray(np.ndarray):
                 return ret
         elif context[0] in unary_operators:
             u = getattr(context[1][0], 'units', None)
-            if u == None:
+            if u is None:
                 u = Unit()
             try:
                 unit = self._ufunc_registry[context[0]](u)
@@ -746,10 +780,10 @@ class YTArray(np.ndarray):
         elif context[0] in binary_operators:
             unit1 = getattr(context[1][0], 'units', None)
             unit2 = getattr(context[1][1], 'units', None)
-            if unit1 == None:
-                unit1 = Unit()
-            if unit2 == None and context[0] is not power:
-                unit2 = Unit()
+            if unit1 is None:
+                unit1 = Unit(registry=getattr(unit2, 'registry', None))
+            if unit2 is None and context[0] is not power:
+                unit2 = Unit(registry=getattr(unit1, 'registry', None))
             elif context[0] is power:
                 unit2 = context[1][1]
                 if isinstance(unit2, np.ndarray):
@@ -789,8 +823,8 @@ class YTArray(np.ndarray):
         See the documentation for the standard library pickle module:
         http://docs.python.org/2/library/pickle.html
 
-        Unit metadata is encoded in the zeroth element of third element of the 
-        returned tuple, itself a tuple used to restore the state of the ndarray.  
+        Unit metadata is encoded in the zeroth element of third element of the
+        returned tuple, itself a tuple used to restore the state of the ndarray.
         This is always defined for numpy arrays.
         """
         np_ret = super(YTArray, self).__reduce__()

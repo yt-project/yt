@@ -30,19 +30,8 @@ from .halo_object import \
 from .operator_registry import \
      callback_registry, \
      filter_registry, \
-     hf_registry, \
+     finding_method_registry, \
      quantity_registry
-
-from yt.analysis_modules.halo_finding.halo_objects import \
-    FOFHaloFinder, HOPHaloFinder
-from yt.frontends.halo_catalogs.halo_catalog.data_structures import \
-    HaloCatalogDataset
-from yt.frontends.stream.data_structures import \
-    load_particles
-from yt.frontends.halo_catalogs.rockstar.data_structures import \
-    RockstarDataset
-from yt.analysis_modules.halo_finding.rockstar.api import \
-    RockstarHaloFinder
 
 class HaloCatalog(ParallelAnalysisInterface):
     r"""Create a HaloCatalog: an object that allows for the creation and association
@@ -103,7 +92,7 @@ class HaloCatalog(ParallelAnalysisInterface):
 
     See Also
     --------
-    add_callback, add_filter, add_quantity
+    add_callback, add_filter, add_finding_method, add_quantity
     
     """
     
@@ -113,7 +102,6 @@ class HaloCatalog(ParallelAnalysisInterface):
         ParallelAnalysisInterface.__init__(self)
         self.halos_pf = halos_pf
         self.data_pf = data_pf
-        self.finder_method = finder_method
         self.output_dir = ensure_dir(output_dir)
         if os.path.basename(self.output_dir) != ".":
             self.output_prefix = os.path.basename(self.output_dir)
@@ -133,6 +121,10 @@ class HaloCatalog(ParallelAnalysisInterface):
                 data_source = data_pf.h.all_data()
         self.data_source = data_source
 
+        if finder_method is not None:
+            finder_method = finding_method_registry.find(finder_method)
+        self.finder_method = finder_method            
+        
         # all of the analysis actions to be performed: callbacks, filters, and quantities
         self.actions = []
         # fields to be written to the halo catalog
@@ -358,15 +350,21 @@ class HaloCatalog(ParallelAnalysisInterface):
 
         if self.halos_pf is None:
             # Find the halos and make a dataset of them
-            particles_pf = self.find_halos()
+            self.halos_pf = self.finder_method(self.data_pf)
+            if self.halos_pf is None:
+                mylog.warning('No halos were found for {0}'.format(\
+                        self.data_pf.basename))
+                if save_catalog:
+                    self.halos_pf = self.data_pf
+                    self.save_catalog()
+                    self.halos_pf = None
+                return
 
             # Assign pf and data sources appropriately
-            self.halos_pf = particles_pf
-            self.data_source = particles_pf.all_data()
+            self.data_source = self.halos_pf.all_data()
 
             # Add all of the default quantities that all halos must have
             self.add_default_quantities('all')
-
 
         my_index = np.argsort(self.data_source["particle_identifier"])
         for i in parallel_objects(my_index, njobs=njobs, dynamic=dynamic):
@@ -399,80 +397,6 @@ class HaloCatalog(ParallelAnalysisInterface):
         self.catalog.sort(key=lambda a:a['particle_identifier'].to_ndarray())
         if save_catalog:
             self.save_catalog()
-
-    def find_halos(self):
-
-        finder_method = (self.finder_method).lower()
-
-        if finder_method == "hop":
-            halo_list = HOPHaloFinder(self.data_pf)
-            halos_pf = self._parse_old_halo_list(halo_list)
-
-        elif finder_method == "fof":
-            halo_list = FOFHaloFinder(self.data_pf)
-            halos_pf = self._parse_old_halo_list(halo_list)
-            
-        elif finder_method == 'rockstar':
-            rh = RockstarHaloFinder(self.data_pf, 
-                outbase='{0}/rockstar_halos'.format(self.output_prefix))
-            rh.run()
-            halos_pf = RockstarDataset('{0}/rockstar_halos/halos_0.0.bin'.format(self.output_prefix))
-            halos_pf.create_field_info()
-        else:
-            raise RuntimeError("finder_method must be 'fof', 'hop', or 'rockstar'")
-
-        for attr in ["current_redshift", "current_time",
-                     "domain_dimensions",
-                     "cosmological_simulation", "omega_lambda",
-                     "omega_matter", "hubble_constant"]:
-            attr_val = getattr(self.data_pf, attr)
-            setattr(halos_pf, attr, attr_val)
-        halos_pf.current_time = halos_pf.current_time.in_cgs()
-
-        return halos_pf
-
-    def _parse_old_halo_list(self, halo_list):
-
-
-        data_pf = self.data_pf
-        num_halos = len(halo_list)
-
-        # Set up fields that we want to pull from identified halos and their units
-        new_fields = ['particle_identifier', 'particle_mass', 'particle_position_x', 
-            'particle_position_y','particle_position_z',
-            'virial_radius']
-        new_units = [ '', 'g', 'cm', 'cm','cm','cm']
-
-        # Set up a dictionary based on those fields 
-        # with empty arrays where we will fill in their values
-        halo_properties = { f : (np.zeros(num_halos),unit) \
-            for f, unit in zip(new_fields,new_units)}
-
-        # Iterate through the halos pulling out their positions and virial quantities
-        # and filling in the properties dictionary
-        for i,halo in enumerate(halo_list):
-            halo_properties['particle_identifier'][0][i] = i
-            halo_properties['particle_mass'][0][i] = halo.virial_mass().in_cgs()
-            halo_properties['virial_radius'][0][i] = halo.virial_radius().in_cgs()
-
-            com = halo.center_of_mass().in_cgs()
-            halo_properties['particle_position_x'][0][i] = com[0]
-            halo_properties['particle_position_y'][0][i] = com[1]
-            halo_properties['particle_position_z'][0][i] = com[2]
-
-        # Define a bounding box based on original data pf
-        bbox = np.array([data_pf.domain_left_edge.in_cgs(),
-                data_pf.domain_right_edge.in_cgs()]).T
-
-        # Create a pf with the halos as particles
-        particle_pf = load_particles(halo_properties, 
-                bbox=bbox, length_unit = 1, mass_unit=1)
-
-        # Create the field info dictionary so we can reference those fields
-        particle_pf.create_field_info()
-
-        return particle_pf
-
 
     def save_catalog(self):
         "Write out hdf5 file with all halo quantities."
@@ -512,5 +436,4 @@ class HaloCatalog(ParallelAnalysisInterface):
         self.add_quantity("particle_position_y", field_type=field_type)
         self.add_quantity("particle_position_z", field_type=field_type)
         self.add_quantity("virial_radius", field_type=field_type)
-
 

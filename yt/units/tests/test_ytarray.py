@@ -325,22 +325,43 @@ def test_unit_conversions():
 
     yield assert_equal, km_in_cm, km
     yield assert_equal, km_in_cm.in_cgs(), 1e5
+    yield assert_equal, km_in_cm.in_mks(), 1e3
     yield assert_equal, km_in_cm.units, cm_unit
 
     km.convert_to_units('cm')
 
     yield assert_equal, km, YTQuantity(1, 'km')
     yield assert_equal, km.in_cgs(), 1e5
+    yield assert_equal, km.in_mks(), 1e3
     yield assert_equal, km.units, cm_unit
 
     km.convert_to_units('kpc')
 
     yield assert_array_almost_equal_nulp, km, YTQuantity(1, 'km')
     yield assert_array_almost_equal_nulp, km.in_cgs(), YTQuantity(1e5, 'cm')
+    yield assert_array_almost_equal_nulp, km.in_mks(), YTQuantity(1e3, 'm')
     yield assert_equal, km.units, kpc_unit
 
     yield assert_isinstance, km.to_ndarray(), np.ndarray
     yield assert_isinstance, km.ndarray_view(), np.ndarray
+
+    dyne = YTQuantity(1.0, 'dyne')
+
+    yield assert_equal, dyne.in_cgs(), dyne
+    yield assert_equal, dyne.in_cgs(), 1.0
+    yield assert_equal, dyne.in_mks(), dyne
+    yield assert_equal, dyne.in_mks(), 1e-5
+    yield assert_equal, str(dyne.in_mks().units), 'kg*m/s**2'
+    yield assert_equal, str(dyne.in_cgs().units), 'cm*g/s**2'
+
+    em3 = YTQuantity(1.0, 'erg/m**3')
+
+    yield assert_equal, em3.in_cgs(), em3
+    yield assert_equal, em3.in_cgs(), 1e-6
+    yield assert_equal, em3.in_mks(), em3
+    yield assert_equal, em3.in_mks(), 1e-7
+    yield assert_equal, str(em3.in_mks().units), 'kg/(m*s**2)'
+    yield assert_equal, str(em3.in_cgs().units), 'g/(cm*s**2)'
 
 
 def test_yt_array_yt_quantity_ops():
@@ -571,3 +592,38 @@ def test_convenience():
 
     yield assert_array_equal, arr.value, np.array(arr)
     yield assert_array_equal, arr.v, np.array(arr)
+
+
+def test_registry_association():
+    ds = fake_random_pf(64, nprocs=1, length_unit=10)
+    a = ds.quan(3, 'cm')
+    b = YTQuantity(4, 'm')
+    c = ds.quan(6, '')
+    d = 5
+
+    yield assert_equal, id(a.units.registry), id(ds.unit_registry)
+
+    def binary_op_registry_comparison(op):
+        e = op(a, b)
+        f = op(b, a)
+        g = op(c, d)
+        h = op(d, c)
+
+        assert_equal(id(e.units.registry), id(ds.unit_registry))
+        assert_equal(id(f.units.registry), id(b.units.registry))
+        assert_equal(id(g.units.registry), id(h.units.registry))
+        assert_equal(id(g.units.registry), id(ds.unit_registry))
+
+    def unary_op_registry_comparison(op):
+        c = op(a)
+        d = op(b)
+
+        assert_equal(id(c.units.registry), id(ds.unit_registry))
+        assert_equal(id(d.units.registry), id(b.units.registry))
+
+    for op in [operator.add, operator.sub, operator.mul, operator.div,
+               operator.truediv]:
+        yield binary_op_registry_comparison, op
+
+    for op in [operator.abs, operator.neg, operator.pos]:
+        yield unary_op_registry_comparison, op

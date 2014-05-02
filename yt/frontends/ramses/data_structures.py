@@ -29,7 +29,6 @@ from yt.data_objects.static_output import \
 from yt.data_objects.octree_subset import \
     OctreeSubset
 
-from yt.units.yt_array import YTQuantity
 from .definitions import ramses_header, field_aliases
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
@@ -69,6 +68,12 @@ class RAMSESDomainFile(object):
 
     def __repr__(self):
         return "RAMSESDomainFile: %i" % self.domain_id
+
+    def _is_hydro(self):
+        '''
+        Does the output include hydro?
+        '''
+        return os.path.exists(self.hydro_fn)
 
     @property
     def level_count(self):
@@ -113,6 +118,9 @@ class RAMSESDomainFile(object):
         return self._hydro_offset
 
     def _read_hydro_header(self):
+        # If no hydro file is found, return
+        if not self._is_hydro():
+            return
         if self.nvar > 0: return self.nvar
         # Read the number of hydro  variables
         f = open(self.hydro_fn, "rb")
@@ -351,7 +359,7 @@ class RAMSESIndex(OctreeIndex):
         for domain in self.domains:
             pfl.update(set(domain.particle_field_offsets.keys()))
         self.particle_field_list = list(pfl)
-        self.field_list = [("gas", f) for f in self.fluid_field_list] \
+        self.field_list = [("ramses", f) for f in self.fluid_field_list] \
                         + self.particle_field_list
 
     def _setup_auto_fields(self):
@@ -360,6 +368,8 @@ class RAMSESIndex(OctreeIndex):
         '''
         # TODO: SUPPORT RT - THIS REQUIRES IMPLEMENTING A NEW FILE READER!
         # Find nvar
+        
+
         # TODO: copy/pasted from DomainFile; needs refactoring!
         num = os.path.basename(self._pf.parameter_filename).split("."
                 )[0].split("_")[1]
@@ -370,11 +380,21 @@ class RAMSESIndex(OctreeIndex):
             num, testdomain)
         hydro_fn = basename % "hydro"
         # Do we have a hydro file?
-        if hydro_fn:
-            # Read the number of hydro  variables
-            f = open(hydro_fn, "rb")
-            fpu.skip(f, 1)
-            nvar = fpu.read_vector(f, "i")[0]
+        if not os.path.exists(hydro_fn):
+            self.fluid_field_list = []
+            return
+        # Read the number of hydro  variables
+        f = open(hydro_fn, "rb")
+        hydro_header = ( ('ncpu', 1, 'i'),
+                         ('nvar', 1, 'i'),
+                         ('ndim', 1, 'i'),
+                         ('nlevelmax', 1, 'i'),
+                         ('nboundary', 1, 'i'),
+                         ('gamma', 1, 'd')
+                         )
+        hvals = fpu.read_attrs(f, hydro_header)
+        self.pf.gamma = hvals['gamma']
+        nvar = hvals['nvar']
         # OK, we got NVAR, now set up the arrays depending on what NVAR is
         # Allow some wiggle room for users to add too many variables
         if nvar < 5:
@@ -440,6 +460,7 @@ class RAMSESIndex(OctreeIndex):
 class RAMSESDataset(Dataset):
     _index_class = RAMSESIndex
     _field_info_class = RAMSESFieldInfo
+    gamma = 1.4 # This will get replaced on hydro_fn open
     
     def __init__(self, filename, dataset_type='ramses',
                  fields = None, storage_filename = None):
@@ -450,6 +471,7 @@ class RAMSESDataset(Dataset):
         fields: An array of hydro variable fields in order of position in the hydro_XXXXX.outYYYYY file
                 If set to None, will try a default set of fields
         '''
+        self.fluid_types += ("ramses",)
         self._fields_in_file = fields
         Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
@@ -472,10 +494,10 @@ class RAMSESDataset(Dataset):
 
         magnetic_unit = np.sqrt(4*np.pi * mass_unit /
                                 (time_unit**2 * length_unit))
-        self.magnetic_unit = YTQuantity(magnetic_unit, "gauss")
-        self.length_unit = YTQuantity(length_unit, "cm")
-        self.mass_unit = YTQuantity(mass_unit, "g")
-        self.time_unit = YTQuantity(time_unit, "s")
+        self.magnetic_unit = self.quan(magnetic_unit, "gauss")
+        self.length_unit = self.quan(length_unit, "cm")
+        self.mass_unit = self.quan(mass_unit, "g")
+        self.time_unit = self.quan(time_unit, "s")
         self.velocity_unit = self.length_unit / self.time_unit
 
     def _parse_parameter_file(self):
