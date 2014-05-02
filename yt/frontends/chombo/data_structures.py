@@ -80,7 +80,6 @@ class ChomboGrid(AMRGridPatch):
     def _setup_dx(self):
         # has already been read in and stored in index
         self.dds = self.pf.arr(self.index.dds_list[self.Level], "code_length")
-        #self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
 class ChomboHierarchy(GridIndex):
 
