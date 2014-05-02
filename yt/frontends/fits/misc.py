@@ -63,14 +63,12 @@ def ds9_region(ds, reg, obj=None):
 class PlotWindowWCS(object):
     r"""
     Use the wcsaxes library to plot celestial coordinates on the axes.
+    See http://wcsaxes.readthedocs.org for details.
 
     Parameters
     ----------
-    set_axes : boolean
-        Turn on or off the WCS axes.
-    wcs_axes : WCSAxes instance
-        The WCSAxes instance, for adjusting the axes properties. See
-        http://wcsaxes.readthedocs.org for details.
+    pw : on-axis PlotWindow instance
+        The PlotWindow instance to add celestial axes to.
     """
     def __init__(self, pw):
         from wcsaxes import WCSAxes
@@ -80,12 +78,21 @@ class PlotWindowWCS(object):
             raise NotImplementedError("WCS axes are not implemented for this dataset.")
         if pw.data_source.axis != pw.pf.vel_axis:
             raise NotImplementedError("WCS axes are not implemented for this axis.")
+        self.pf = pw.pf
+        self.pw = pw
         self.plots = {}
+        self.wcs_axes = []
         for f in pw.plots:
             rect = pw.plots[f]._get_best_layout()[1]
             fig = pw.plots[f].figure
             ax = WCSAxes(fig, rect, wcs=pw.pf.wcs_2d, frameon=False)
             fig.add_axes(ax)
+            self.wcs_axes.append(ax)
+        self._setup_plots()
+
+    def _setup_plots(self):
+        pw = self.pw
+        for f, ax in zip(pw.plots, self.wcs_axes):
             wcs = ax.wcs.wcs
             pw.plots[f].axes.get_xaxis().set_visible(False)
             pw.plots[f].axes.get_yaxis().set_visible(False)
@@ -105,6 +112,9 @@ class PlotWindowWCS(object):
             self.plots[f] = pw.plots[f]
         self.pw = pw
         self.pf = self.pw.pf
+
+    def refresh(self):
+        self._setup_plots(self)
 
     def keys(self):
         return self.plots.keys()
