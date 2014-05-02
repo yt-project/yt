@@ -42,7 +42,10 @@ def ds9_region(ds, reg, obj=None):
     import pyregion
     r = pyregion.open(reg)
     reg_name = reg.split(".")[0]
-    mask = r.get_mask(hdu=ds._handle[ds.first_image])
+    nx = ds.domain_dimensions[ds.lon_axis]
+    ny = ds.domain_dimensions[ds.lat_axis]
+    mask = r.get_mask(header=ds.wcs_2d.to_header(),
+                      shape=[nx,ny])
     def _reg_field(field, data):
         i = data["x"].ndarray_view().astype("int")-1
         j = data["y"].ndarray_view().astype("int")-1
