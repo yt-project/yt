@@ -14,6 +14,7 @@ import numpy as np
 from yt.fields.api import add_field
 from yt.fields.derived_field import ValidateSpatial
 from yt.funcs import mylog
+import os
 
 def _make_counts(emin, emax):
     def _counts(field, data):
@@ -36,3 +37,21 @@ def setup_counts_fields(ebounds):
                   units="counts/pixel",
                   validators = [ValidateSpatial()],
                   display_name="Counts (%s-%s keV)" % (emin, emax))
+
+def ds9_region(ds, reg, obj=None):
+    import pyregion
+    r = pyregion.open(reg)
+    reg_name = reg.split(".")[0]
+    mask = r.get_mask(hdu=ds._handle[ds.first_image])
+    def _reg_field(field, data):
+        i = data["x"].ndarray_view().astype("int")-1
+        j = data["y"].ndarray_view().astype("int")-1
+        new_mask = mask[i,j]
+        ret = data["zeros"].copy()
+        ret[new_mask] = 1.
+        return ret
+    ds.index
+    ds.field_info.add_field(("gas",reg_name), function=_reg_field)
+    if obj is None:
+        obj = ds.all_data()
+    return obj.cut_region(["obj['%s'] > 0" % (reg_name)])
