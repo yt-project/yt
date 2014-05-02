@@ -48,15 +48,18 @@ class SubfindParticleIndex(ParticleIndex):
     def __init__(self, pf, dataset_type):
         super(SubfindParticleIndex, self).__init__(pf, dataset_type)
 
-    def _calculate_particle_index_offsets(self):
+    def _calculate_particle_index_starts(self):
         # Halo indices are not saved in the file, so we must count by hand.
         # File 0 has halos 0 to N_0 - 1, file 1 has halos N_0 to N_0 + N_1 - 1, etc.
         particle_count = defaultdict(int)
+        offset_count = 0
         for data_file in self.data_files:
-            data_file.index_offset = dict([(ptype, particle_count[ptype]) for
+            data_file.index_start = dict([(ptype, particle_count[ptype]) for
                                            ptype in data_file.total_particles])
+            data_file.offset_start = offset_count
             for ptype in data_file.total_particles:
                 particle_count[ptype] += data_file.total_particles[ptype]
+            offset_count += data_file.total_offset
 
     def _calculate_file_offset_map(self):
         # After the FOF  is performed, a load-balancing step redistributes halos 
@@ -68,16 +71,14 @@ class SubfindParticleIndex(ParticleIndex):
                          for data_file in self.data_files])
         subend = isub.cumsum()
         fofend = ifof.cumsum()
-        istart = np.digitize(fofend - ifof[0], subend - isub[0], right=False) - 1
-        iend = np.digitize(fofend, subend, right=True)
+        istart = np.digitize(fofend - ifof, subend - isub) - 1
+        iend = np.clip(np.digitize(fofend, subend), 0, ifof.size - 2)
         for i, data_file in enumerate(self.data_files):
-            data_file.offset_files = \
-              [self.parameter_file.filename_template % {'num':ind}
-               for ind in range(istart[i], iend[i] + 1)]
+            data_file.offset_files = self.data_files[istart[i]: iend[i] + 1]
         
     def _setup_geometry(self):
         super(SubfindParticleIndex, self)._setup_geometry()
-        self._calculate_particle_index_offsets()
+        self._calculate_particle_index_starts()
         self._calculate_file_offset_map()
     
 class SubfindHDF5File(ParticleFile):

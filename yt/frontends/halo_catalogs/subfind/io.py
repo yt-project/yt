@@ -55,6 +55,22 @@ class IOHandlerSubfindHDF5(BaseIOHandler):
                     z = coords[:, 2]
                     yield ptype, (x, y, z)
 
+    def _read_offset_particle_field(self, field, data_file, fh):
+        field_data = np.empty(data_file.total_particles["FOF"], dtype="float64")
+        fofindex = np.arange(data_file.total_particles["FOF"]) + data_file.index_start["FOF"]
+        for offset_file in data_file.offset_files:
+            if fh.filename == offset_file.filename:
+                ofh = fh
+            else:
+                ofh = h5py.File(offset_file.filename, "r")
+            subindex = np.arange(offset_file.total_offset) + offset_file.offset_start
+            substart = max(fofindex[0] - subindex[0], 0)
+            subend = min(fofindex[-1] - subindex[0], subindex.size - 1)
+            fofstart = substart + subindex[0] - fofindex[0]
+            fofend = subend + subindex[0] - fofindex[0]
+            field_data[fofstart:fofend + 1] = ofh["SUBFIND"][field][substart:subend + 1]
+        return field_data
+                    
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
         chunks = list(chunks)
@@ -76,12 +92,13 @@ class IOHandlerSubfindHDF5(BaseIOHandler):
                     if mask is None: continue
                     for field in field_list:
                         if field in self.offset_fields:
-                            raise RuntimeError
+                            field_data = \
+                              self._read_offset_particle_field(field, data_file, f)
                         else:
                             if field == "particle_identifier":
                                 field_data = \
                                   np.arange(data_file.total_particles[ptype]) + \
-                                  data_file.index_offset[ptype]
+                                  data_file.index_start[ptype]
                             elif field in f[ptype].keys():
                                 field_data = f[ptype][field].value.astype("float64")
                             else:
