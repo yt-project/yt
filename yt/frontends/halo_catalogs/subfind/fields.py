@@ -20,7 +20,8 @@ from yt.fields.field_info_container import \
 from yt.units.yt_array import \
     YTArray
 
-m_units = "1e10 * Msun/h"
+m_units = "code_mass"
+mdot_units = "code_mass / code_time"
 p_units = "Mpccm/h"
 v_units = "1e5 * cmcm / s"
 
@@ -50,4 +51,8 @@ class SubfindFieldInfo(FieldInfoContainer):
         ("Halo_R_Mean2500", (p_units, [], None)),
         ("Halo_R_Mean500", (p_units, [], None)),
         ("Halo_R_TopHat200", (p_units, [], None)),
+        ("BH_Mass", (m_units, [], None)),
+        ("Stars/Mass", (m_units, [], None)),
+        ("BH_Mdot", (mdot_units, [], None)),
+        ("StarFormationRate", (mdot_units, [], None)),
 )
