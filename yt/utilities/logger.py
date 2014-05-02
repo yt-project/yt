@@ -46,10 +46,16 @@ def add_coloring_to_emit_ansi(fn):
 level = min(max(ytcfg.getint("yt", "loglevel"), 0), 50)
 ufstring = "%(name)-3s: [%(levelname)-9s] %(asctime)s %(message)s"
 cfstring = "%(name)-3s: [%(levelname)-18s] %(asctime)s %(message)s"
+
+if ytcfg.getboolean("yt", "StdoutStreamLogging"):
+    stream = sys.stdout
+else:
+    stream = sys.stderr
+
 logging.basicConfig(
     format=ufstring,
     level=level,
-    stream=sys.stdout
+    stream=stream,
 )
 
 rootLogger = logging.getLogger()
