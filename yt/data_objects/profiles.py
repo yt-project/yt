@@ -1186,12 +1186,10 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
             field = data_source._determine_fields(field)[0]
             if field == obj.x_field:
                 obj.set_x_unit(unit)
-            elif hasattr(obj, 'y_field'):
-                if field == obj.y_field:
-                    obj.set_y_unit(unit)
-            elif hasattr(obj, 'z_field'):
-                if field == obj.z_field:
-                    obj.set_z_unit(unit)
+            elif field == getattr(obj, "y_field", None):
+                obj.set_y_unit(unit)
+            elif field == getattr(obj, "z_field", None):
+                obj.set_z_unit(unit)
             else:
                 obj.set_field_unit(field, unit)
     return obj
