@@ -626,7 +626,7 @@ class PlotWindow(ImagePlotContainer):
         Examples
         --------
 
-        >>> p = ProjectionPlot(pf, "y", "Density")
+        >>> p = ProjectionPlot(pf, "y", "density")
         >>> p.show()
         >>> p.set_axes_unit("kpc")
         >>> p.show()
@@ -658,6 +658,9 @@ class PlotWindow(ImagePlotContainer):
         if set_axes and not self._wcs_axes:
             self._wcs_axes = True
             for f in self.plots:
+                # These will get reset later
+                self.plots[f]._ax_text_size[0] *= 1.55
+                self.plots[f]._ax_text_size[1] *= 1.14
                 rect = self.plots[f]._get_best_layout()[1]
                 fig = self.plots[f].figure
                 ax = WCSAxes(fig, rect, wcs=self.pf.wcs_2d, frameon=False)
@@ -809,7 +812,7 @@ class PWViewerMPL(PlotWindow):
                 image, self._field_transform[f].name,
                 self._colormaps[f], extent, zlim,
                 self.figure_size, fp.get_size(),
-                self.aspect, fig, axes, cax)
+                self.aspect, fig, axes, cax, self._wcs_axes)
 
             if not hasattr(self.plots[f].figure.axes[-1], "wcs"):
                 self._wcs_axes = False
@@ -1184,7 +1187,7 @@ class ProjectionPlot(PWViewerMPL):
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
                  weight_field=None, max_level=None, origin='center-window',
                  fontsize=18, field_parameters=None, data_source=None,
-                 proj_style = "integrate"):
+                 proj_style = "integrate", **kwargs):
         ts = self._initialize_dataset(pf)
         self.ts = ts
         pf = self.pf = ts[0]
@@ -1195,7 +1198,7 @@ class ProjectionPlot(PWViewerMPL):
                          center=center, data_source=data_source,
                          field_parameters = field_parameters, style = proj_style)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
-                             fontsize=fontsize)
+                             fontsize=fontsize, **kwargs)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, pf)
         self.set_axes_unit(axes_unit)
@@ -1657,7 +1660,7 @@ class PWViewerExtJS(PlotWindow):
 
 class WindowPlotMPL(ImagePlotMPL):
     def __init__(self, data, cbname, cmap, extent, zlim, figure_size, fontsize,
-                 unit_aspect, figure, axes, cax):
+                 unit_aspect, figure, axes, cax, wcs_axes=False):
         self._draw_colorbar = True
         self._draw_axes = True
         self._fontsize = fontsize
@@ -1674,6 +1677,10 @@ class WindowPlotMPL(ImagePlotMPL):
             fsize = figure_size
         self._cb_size = 0.0375*fsize
         self._ax_text_size = [0.9*fontscale, 0.7*fontscale]
+        if wcs_axes:
+            # Add a bit more space for the WCS coordinates
+            self._ax_text_size[0] *= 1.55
+            self._ax_text_size[1] *= 1.14
         self._top_buff_size = 0.30*fontscale
         self._aspect = ((extent[1] - extent[0])/(extent[3] - extent[2]))
 
