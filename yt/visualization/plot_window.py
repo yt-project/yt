@@ -269,7 +269,7 @@ class PlotWindow(ImagePlotContainer):
     _frb = None
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True,
                  periodic=True, origin='center-window', oblique=False,
-                 window_size=8.0, fields=None, fontsize=18, setup=False):
+                 window_size=8.0, fields=None, fontsize=18, aspect=None, setup=False):
         if not hasattr(self, "pf"):
             self.pf = data_source.pf
             ts = self._initialize_dataset(self.pf)
@@ -282,6 +282,7 @@ class PlotWindow(ImagePlotContainer):
         self.oblique = oblique
         self.buff_size = buff_size
         self.antialias = antialias
+        self.aspect = aspect
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
         if fields is None:
             fields = []
@@ -762,7 +763,12 @@ class PWViewerMPL(PlotWindow):
             else:
                 (unit_x, unit_y) = self._axes_unit_names
 
-            aspect = np.float64(self.pf.quan(1.0, unit_y)/self.pf.quan(1.0, unit_x))
+            dds = self.pf.index.select_grids(self.pf.index.grid_levels.max())[0].dds[:]
+            xax = self.pf.coordinates.x_axis[axis_index]
+            yax = self.pf.coordinates.y_axis[axis_index]
+
+            if self.aspect is None:
+                self.aspect = np.float64(self.pf.quan(1.0, unit_y)/(self.pf.quan(1.0, unit_x)))
 
             extentx = [(self.xlim[i] - xc).in_units(unit_x) for i in (0, 1)]
             extenty = [(self.ylim[i] - yc).in_units(unit_y) for i in (0, 1)]
@@ -803,7 +809,7 @@ class PWViewerMPL(PlotWindow):
                 image, self._field_transform[f].name,
                 self._colormaps[f], extent, zlim,
                 self.figure_size, fp.get_size(),
-                aspect, fig, axes, cax)
+                self.aspect, fig, axes, cax)
 
             if not hasattr(self.plots[f].figure.axes[-1], "wcs"):
                 self._wcs_axes = False
@@ -1051,7 +1057,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
-                 origin='center-window', fontsize=18, field_parameters=None):
+                 origin='center-window', fontsize=18, field_parameters=None, **kwargs):
         # this will handle time series data and controllers
         ts = self._initialize_dataset(pf)
         self.ts = ts
@@ -1063,7 +1069,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
             field_parameters = field_parameters, center=center)
         slc.get_data(fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin,
-                             fontsize=fontsize, fields=fields)
+                             fontsize=fontsize, fields=fields, **kwargs)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, pf)
         self.set_axes_unit(axes_unit)
@@ -1662,7 +1668,11 @@ class WindowPlotMPL(ImagePlotMPL):
         if fontscale < 1.0:
             fontscale = np.sqrt(fontscale)
 
-        self._cb_size = 0.0375*figure_size
+        if iterable(figure_size):
+            fsize = figure_size[0]
+        else:
+            fsize = figure_size
+        self._cb_size = 0.0375*fsize
         self._ax_text_size = [0.9*fontscale, 0.7*fontscale]
         self._top_buff_size = 0.30*fontscale
         self._aspect = ((extent[1] - extent[0])/(extent[3] - extent[2]))
