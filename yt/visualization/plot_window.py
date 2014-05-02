@@ -647,7 +647,17 @@ class PlotWindow(ImagePlotContainer):
 
     @invalidate_data
     @invalidate_plot
-    def set_wcs_axes(self, set_axes):
+    def set_wcs_axes(self, set_axes, wcs_axes=None):
+        r"""
+        Use the wcsaxes library to plot celestial coordinates on the axes.
+
+        Parameters
+        ----------
+        set_axes : boolean
+            Turn on or off the WCS axes.
+        wcs_axes : WCSAxes instance
+            The WCSAxes instance, for adjusting the axes properties
+        """
         from wcsaxes import WCSAxes
         if self.oblique:
             raise NotImplementedError("WCS axes are not implemented for oblique plots.")
@@ -665,6 +675,7 @@ class PlotWindow(ImagePlotContainer):
                 fig = self.plots[f].figure
                 ax = WCSAxes(fig, rect, wcs=self.pf.wcs_2d, frameon=False)
                 fig.add_axes(ax)
+                if wcs_axes is not None: wcs_axes=ax
         else:
             if not self._wcs_axes: return self
             self._wcs_axes = False
