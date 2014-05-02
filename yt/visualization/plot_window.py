@@ -656,7 +656,8 @@ class PlotWindow(ImagePlotContainer):
         set_axes : boolean
             Turn on or off the WCS axes.
         wcs_axes : WCSAxes instance
-            The WCSAxes instance, for adjusting the axes properties
+            The WCSAxes instance, for adjusting the axes properties. See
+            http://wcsaxes.readthedocs.org for details.
         """
         from wcsaxes import WCSAxes
         if self.oblique:
