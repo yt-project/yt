@@ -99,7 +99,7 @@ class IOHandlerSubfindHDF5(BaseIOHandler):
                                 field_data = \
                                   np.arange(data_file.total_particles[ptype]) + \
                                   data_file.index_start[ptype]
-                            elif field in f[ptype].keys():
+                            elif field in f[ptype]:
                                 field_data = f[ptype][field].value.astype("float64")
                             else:
                                 fname = field[:field.rfind("_")]
