@@ -227,8 +227,8 @@ def apply_colormap(image, color_bounds = None, cmap_name = 'algae', func=lambda 
     """
     image = func(image)
     if color_bounds is None:
-        mi = np.nanmin(image[~np.isinf(image)])
-        ma = np.nanmax(image[~np.isinf(image)])
+        mi = np.nanmin(image[~np.isinf(image)])*image.uq
+        ma = np.nanmax(image[~np.isinf(image)])*image.uq
         color_bounds = mi, ma
     else:
         color_bounds = [func(c) for c in color_bounds]
