@@ -181,25 +181,12 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         weight value before being integrated, and at the conclusion of the
         projection the resultant values will be divided by the projected
         `weight_field`.
-    max_level : int
-        If supplied, only cells at or below this level will be projected.
     center : array_like, optional
         The 'center' supplied to fields that use it.  Note that this does
         not have to have `coord` as one value.  Strictly optional.
     data_source : `yt.data_objects.api.AMRData`, optional
         If specified, this will be the data source used for selecting
         regions to project.
-    node_name: string, optional
-        The node in the .yt file to find or store this slice at.  Should
-        probably not be used.
-    field_cuts : list of strings, optional
-        If supplied, each of these strings will be evaluated to cut a
-        region of a grid out.  They can be of the form "grid['Temperature']
-        > 100" for instance.
-    preload_style : string
-        Either 'level', 'all', or None (default).  Defines how grids are
-        loaded -- either level by level, or all at once.  Only applicable
-        during parallel runs.
     serialize : bool, optional
         Whether we should store this projection in the .yt file or not.
     kwargs : dict of items
@@ -217,9 +204,9 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     _type_name = "proj"
     _con_args = ('axis', 'field', 'weight_field')
     _container_fields = ('px', 'py', 'pdx', 'pdy', 'weight_field')
-    def __init__(self, field, axis, weight_field = None,
-                 center = None, pf = None, data_source=None, 
-                 style = "integrate", field_parameters = None):
+    def __init__(self, field, axis, weight_field=None,
+                 center=None, pf=None, data_source=None,
+                 style="integrate", field_parameters=None):
         YTSelectionContainer2D.__init__(self, axis, pf, field_parameters)
         self.proj_style = style
         if style == "mip":
@@ -602,7 +589,7 @@ class YTArbitraryGridBase(YTCoveringGridBase):
     ----------
     left_edge : array_like
         The left edge of the region to be extracted
-    rigth_edge : array_like
+    right_edge : array_like
         The left edge of the region to be extracted
     dims : array_like
         Number of cells along each axis of resulting grid.

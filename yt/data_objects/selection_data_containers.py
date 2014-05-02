@@ -54,9 +54,6 @@ class YTOrthoRayBase(YTSelectionContainer1D):
     fields : list of strings, optional
         If you want the object to pre-retrieve a set of fields, supply them
         here.  This is not necessary.
-    kwargs : dict of items
-        Any additional values are passed as field parameters that can be
-        accessed by generated fields.
 
     Examples
     --------
@@ -106,9 +103,6 @@ class YTRayBase(YTSelectionContainer1D):
     fields : list of strings, optional
         If you want the object to pre-retrieve a set of fields, supply them
         here.  This is not necessary.
-    kwargs : dict of items
-        Any additional values are passed as field parameters that can be
-        accessed by generated fields.
 
     Examples
     --------
@@ -169,9 +163,6 @@ class YTSliceBase(YTSelectionContainer2D):
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
          fields.
-    kwargs : dict of items
-        Any additional values are passed as field parameters that can be
-        accessed by generated fields.
 
     Examples
     --------
@@ -250,9 +241,6 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     node_name: string, optional
         The node in the .yt file to find or store this slice at.  Should
         probably not be used.
-    kwargs : dict of items
-        Any additional values are passed as field parameters that can be
-        accessed by generated fields.
 
     Notes
     -----
