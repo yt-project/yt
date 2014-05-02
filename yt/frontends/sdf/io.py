@@ -418,11 +418,11 @@ class SDFIndex(object):
         """
         mask = np.zeros(self.indexdata['index'].shape, dtype='bool')
 
-        print 'Getting data from ileft to iright:',  ileft, iright
+        #print 'Getting data from ileft to iright:',  ileft, iright
 
-        X, Y, Z = np.mgrid[ileft[0]:iright[0]+1,
+        Z, Y, X = np.mgrid[ileft[2]:iright[2]+1,
                            ileft[1]:iright[1]+1,
-                           ileft[2]:iright[2]+1]
+                           ileft[0]:iright[0]+1]
 
         X = X.ravel()
         Y = Y.ravel()
@@ -438,7 +438,8 @@ class SDFIndex(object):
         print 'periodic:',  X.min(), X.max(), Y.min(), Y.max(), Z.min(), Z.max()
 
         indices = np.array([self.get_key_ijk(x, y, z) for x, y, z in zip(X, Y, Z)])
-        indices = indices[indices < self.indexdata['index'].shape[0]]
+        # Here we sort the indices to batch consecutive reads together.
+        indices = np.sort(indices[indices < self.indexdata['index'].shape[0]])
         return indices
 
     def get_bbox(self, left, right):
@@ -472,7 +473,7 @@ class SDFIndex(object):
             while nexti < len(inds):
                 nextind = inds[nexti]
                 #        print 'b: %i l: %i end: %i  next: %i' % ( base, length, base + length, self.indexdata['base'][nextind] )
-                if base + length == self.indexdata['base'][nextind]:
+                if combined < 1024 and base + length == self.indexdata['base'][nextind]:
                     length += self.indexdata['len'][nextind]
                     i += 1
                     nexti += 1
@@ -507,6 +508,16 @@ class SDFIndex(object):
         right_key = min(right_key, self.indexdata['index'][-1])
         length = self.indexdata['base'][right_key] + \
             self.indexdata['len'][right_key] - base
+        if length > 0:
+            print 'Getting contiguous chunk of size %i starting at %i' % (length, base)
+        return self.get_data(slice(base, base + length), fields)
+
+    def get_key_data(self, key, fields):
+        max_key = self.indexdata['index'][-1]
+        if left_key > max_key:
+            raise RuntimeError("Left key is too large. Key: %i Max Key: %i" % (left_key, max_key))
+        base = self.indexdata['base'][left_key]
+        length = self.indexdata['len'][left_key] - base
         print 'Getting contiguous chunk of size %i starting at %i' % (length, base)
         return self.get_data(slice(base, base + length), fields)
 
@@ -562,3 +573,5 @@ class SDFIndex(object):
         cell_iarr = np.array(cell_iarr)
         lk, rk =self.get_key_bounds(level, cell_iarr)
         return self.get_contiguous_chunk(lk, rk, fields)
+    def get_cell_width(self, level):
+        return self.domain_width / 2**level
