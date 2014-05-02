@@ -27,7 +27,7 @@ from yt.utilities.fortran_utils import read_record
 from yt.utilities.lib.geometry_utils import compute_morton
 
 from yt.geometry.oct_container import _ORDER_MAX
-CHUNKSIZE = 256**3
+CHUNKSIZE = 32**3
 
 class IOHandlerSDF(BaseIOHandler):
     _dataset_type = "sdf_particles"
