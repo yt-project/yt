@@ -32,7 +32,7 @@ class IOHandlerSubfindHDF5(BaseIOHandler):
 
     def __init__(self, pf):
         super(IOHandlerSubfindHDF5, self).__init__(pf)
-        self.special_fields = set([])
+        self.offset_fields = set([])
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
@@ -75,20 +75,23 @@ class IOHandlerSubfindHDF5(BaseIOHandler):
                     del x, y, z
                     if mask is None: continue
                     for field in field_list:
-                        if field == "particle_identifier":
-                            field_data = \
-                              np.arange(data_file.total_particles[ptype]) + \
-                              data_file.index_offset[ptype]
-                        elif field in f[ptype].keys():
-                            field_data = f[ptype][field].value.astype("float64")
+                        if field in self.offset_fields:
+                            raise RuntimeError
                         else:
-                            fname = field[:field.rfind("_")]
-                            field_data = f[ptype][fname].value.astype("float64")
-                            my_div = field_data.size / pcount
-                            if my_div > 1:
-                                field_data = np.resize(field_data, (pcount, my_div))
-                                findex = int(field[field.rfind("_") + 1:])
-                                field_data = field_data[:, findex]
+                            if field == "particle_identifier":
+                                field_data = \
+                                  np.arange(data_file.total_particles[ptype]) + \
+                                  data_file.index_offset[ptype]
+                            elif field in f[ptype].keys():
+                                field_data = f[ptype][field].value.astype("float64")
+                            else:
+                                fname = field[:field.rfind("_")]
+                                field_data = f[ptype][fname].value.astype("float64")
+                                my_div = field_data.size / pcount
+                                if my_div > 1:
+                                    field_data = np.resize(field_data, (pcount, my_div))
+                                    findex = int(field[field.rfind("_") + 1:])
+                                    field_data = field_data[:, findex]
                         data = field_data[mask]
                         yield (ptype, field), data
 
@@ -131,6 +134,8 @@ class IOHandlerSubfindHDF5(BaseIOHandler):
 
     def _count_particles(self, data_file):
         with h5py.File(data_file.filename, "r") as f:
+            # We need this to figure out where the offset fields are stored.
+            data_file.total_offset = f["SUBFIND"].attrs["Number_of_groups"]
             return {"FOF": f["FOF"].attrs["Number_of_groups"],
                     "SUBFIND": f["FOF"].attrs["Number_of_subgroups"]}
 
@@ -140,24 +145,24 @@ class IOHandlerSubfindHDF5(BaseIOHandler):
         pcount = data_file.total_particles
         with h5py.File(data_file.filename, "r") as f:
             for ptype in self.pf.particle_types_raw:
-                my_fields, my_special_fields = \
+                my_fields, my_offset_fields = \
                   subfind_field_list(f[ptype], ptype, data_file.total_particles)
                 fields.extend(my_fields)
-                self.special_fields = self.special_fields.union(set(my_special_fields))
+                self.offset_fields = self.offset_fields.union(set(my_offset_fields))
         return fields, {}
 
 def subfind_field_list(fh, ptype, pcount):
     fields = []
-    special_fields = []
+    offset_fields = []
     for field in fh.keys():
         if "PartType" in field:
             # These are halo member particles
             continue
         elif isinstance(fh[field], h5py.Group):
-            my_fields, my_special_fields = \
+            my_fields, my_offset_fields = \
               subfind_field_list(fh[field], ptype, pcount)
             fields.extend(my_fields)
-            my_special_fields.extend(special_fields)
+            my_offset_fields.extend(offset_fields)
         else:
             if not fh[field].size % pcount[ptype]:
                 my_div = fh[field].size / pcount[ptype]
@@ -179,9 +184,9 @@ def subfind_field_list(fh, ptype, pcount):
                         fields.append(("FOF", "%s_%d" % (fname, i)))
                 else:
                     fields.append(("FOF", fname))
-                special_fields.append(fname)
+                offset_fields.append(fname)
             else:
                 mylog.warn("Cannot add field (%s, %s) with size %d." % \
                            (ptype, fh[field].name, fh[field].size))
                 continue
-    return fields, special_fields
+    return fields, offset_fields

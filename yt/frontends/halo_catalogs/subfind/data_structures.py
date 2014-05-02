@@ -49,16 +49,36 @@ class SubfindParticleIndex(ParticleIndex):
         super(SubfindParticleIndex, self).__init__(pf, dataset_type)
 
     def _calculate_particle_index_offsets(self):
+        # Halo indices are not saved in the file, so we must count by hand.
+        # File 0 has halos 0 to N_0 - 1, file 1 has halos N_0 to N_0 + N_1 - 1, etc.
         particle_count = defaultdict(int)
         for data_file in self.data_files:
             data_file.index_offset = dict([(ptype, particle_count[ptype]) for
                                            ptype in data_file.total_particles])
             for ptype in data_file.total_particles:
                 particle_count[ptype] += data_file.total_particles[ptype]
+
+    def _calculate_file_offset_map(self):
+        # After the FOF  is performed, a load-balancing step redistributes halos 
+        # and then writes more fields.  Here, for each file, we create a list of 
+        # files which contain the rest of the redistributed particles.
+        ifof = np.array([data_file.total_particles["FOF"]
+                         for data_file in self.data_files])
+        isub = np.array([data_file.total_offset
+                         for data_file in self.data_files])
+        subend = isub.cumsum()
+        fofend = ifof.cumsum()
+        istart = np.digitize(fofend - ifof[0], subend - isub[0], right=False) - 1
+        iend = np.digitize(fofend, subend, right=True)
+        for i, data_file in enumerate(self.data_files):
+            data_file.offset_files = \
+              [self.parameter_file.filename_template % {'num':ind}
+               for ind in range(istart[i], iend[i] + 1)]
         
     def _setup_geometry(self):
         super(SubfindParticleIndex, self)._setup_geometry()
         self._calculate_particle_index_offsets()
+        self._calculate_file_offset_map()
     
 class SubfindHDF5File(ParticleFile):
     def __init__(self, pf, io, filename, file_id):
