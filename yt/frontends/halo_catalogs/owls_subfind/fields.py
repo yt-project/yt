@@ -1,5 +1,5 @@
 """
-Subfind-specific fields
+OWLSSubfind-specific fields
 
 
 
@@ -25,7 +25,7 @@ mdot_units = "code_mass / code_time"
 p_units = "Mpccm/h"
 v_units = "1e5 * cmcm / s"
 
-class SubfindFieldInfo(FieldInfoContainer):
+class OWLSSubfindFieldInfo(FieldInfoContainer):
     known_other_fields = (
     )
 

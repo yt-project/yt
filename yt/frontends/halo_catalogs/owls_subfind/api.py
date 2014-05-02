@@ -1,5 +1,5 @@
 """
-API for Subfind frontend
+API for OWLSSubfind frontend
 
 
 
@@ -15,10 +15,10 @@ API for Subfind frontend
 #-----------------------------------------------------------------------------
 
 from .data_structures import \
-     SubfindDataset
+     OWLSSubfindDataset
 
 from .io import \
-     IOHandlerSubfindHDF5
+     IOHandlerOWLSSubfindHDF5
 
 from .fields import \
-     SubfindFieldInfo
+     OWLSSubfindFieldInfo

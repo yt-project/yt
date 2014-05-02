@@ -24,7 +24,7 @@ from .rockstar.api import \
       IOHandlerRockstarBinary, \
       RockstarFieldInfo
 
-from .subfind.api import \
-     SubfindDataset, \
-     IOHandlerSubfindHDF5, \
-     SubfindFieldInfo
+from .owls_subfind.api import \
+     OWLSSubfindDataset, \
+     IOHandlerOWLSSubfindHDF5, \
+     OWLSSubfindFieldInfo

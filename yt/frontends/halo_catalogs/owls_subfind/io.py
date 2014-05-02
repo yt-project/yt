@@ -1,5 +1,5 @@
 """
-Subfind data-file handling function
+OWLSSubfind data-file handling function
 
 
 
@@ -27,11 +27,11 @@ from yt.utilities.lib.geometry_utils import compute_morton
 
 from yt.geometry.oct_container import _ORDER_MAX
 
-class IOHandlerSubfindHDF5(BaseIOHandler):
+class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
     _dataset_type = "subfind_hdf5"
 
     def __init__(self, pf):
-        super(IOHandlerSubfindHDF5, self).__init__(pf)
+        super(IOHandlerOWLSSubfindHDF5, self).__init__(pf)
         self.offset_fields = set([])
 
     def _read_fluid_selection(self, chunks, selector, fields, size):

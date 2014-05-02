@@ -1,5 +1,5 @@
 """
-Data structures for Subfind frontend.
+Data structures for OWLSSubfind frontend.
 
 
 
@@ -25,7 +25,7 @@ import time
 import os
 
 from .fields import \
-    SubfindFieldInfo
+    OWLSSubfindFieldInfo
 
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.definitions import \
@@ -44,9 +44,9 @@ from yt.units.yt_array import \
     YTArray, \
     YTQuantity
 
-class SubfindParticleIndex(ParticleIndex):
+class OWLSSubfindParticleIndex(ParticleIndex):
     def __init__(self, pf, dataset_type):
-        super(SubfindParticleIndex, self).__init__(pf, dataset_type)
+        super(OWLSSubfindParticleIndex, self).__init__(pf, dataset_type)
 
     def _calculate_particle_index_starts(self):
         # Halo indices are not saved in the file, so we must count by hand.
@@ -77,28 +77,28 @@ class SubfindParticleIndex(ParticleIndex):
             data_file.offset_files = self.data_files[istart[i]: iend[i] + 1]
         
     def _setup_geometry(self):
-        super(SubfindParticleIndex, self)._setup_geometry()
+        super(OWLSSubfindParticleIndex, self)._setup_geometry()
         self._calculate_particle_index_starts()
         self._calculate_file_offset_map()
     
-class SubfindHDF5File(ParticleFile):
+class OWLSSubfindHDF5File(ParticleFile):
     def __init__(self, pf, io, filename, file_id):
-        super(SubfindHDF5File, self).__init__(pf, io, filename, file_id)
+        super(OWLSSubfindHDF5File, self).__init__(pf, io, filename, file_id)
         with h5py.File(filename, "r") as f:
             self.header = dict((field, f.attrs[field]) \
                                for field in f.attrs.keys())
     
-class SubfindDataset(Dataset):
-    _index_class = SubfindParticleIndex
-    _file_class = SubfindHDF5File
-    _field_info_class = SubfindFieldInfo
+class OWLSSubfindDataset(Dataset):
+    _index_class = OWLSSubfindParticleIndex
+    _file_class = OWLSSubfindHDF5File
+    _field_info_class = OWLSSubfindFieldInfo
     _suffix = ".hdf5"
 
     def __init__(self, filename, dataset_type="subfind_hdf5",
                  n_ref = 16, over_refine_factor = 1):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
-        super(SubfindDataset, self).__init__(filename, dataset_type)
+        super(OWLSSubfindDataset, self).__init__(filename, dataset_type)
 
     def _parse_parameter_file(self):
         handle = h5py.File(self.parameter_filename, mode="r")
