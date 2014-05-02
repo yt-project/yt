@@ -40,6 +40,8 @@ from yt.funcs import \
     mylog, iterable, ensure_list, \
     fix_axis, assert_valid_width_tuple
 from yt.units.unit_object import Unit
+from yt.units.unit_registry import \
+     UnitParseError
 from yt.utilities.png_writer import \
     write_png_to_string
 from yt.utilities.definitions import \
@@ -49,7 +51,8 @@ from yt.utilities.math_utils import \
 from yt.utilities.exceptions import \
     YTUnitNotRecognized, \
     YTInvalidWidthError, \
-    YTCannotParseUnitDisplayName
+    YTCannotParseUnitDisplayName, \
+    YTUnitConversionError
 
 from yt.data_objects.time_series import \
     DatasetSeries
