@@ -204,9 +204,9 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     _type_name = "proj"
     _con_args = ('axis', 'field', 'weight_field')
     _container_fields = ('px', 'py', 'pdx', 'pdy', 'weight_field')
-    def __init__(self, field, axis, weight_field=None,
-                 center=None, pf=None, data_source=None,
-                 style="integrate", field_parameters=None):
+    def __init__(self, field, axis, weight_field = None,
+                 center = None, pf = None, data_source = None,
+                 style = "integrate", field_parameters = None):
         YTSelectionContainer2D.__init__(self, axis, pf, field_parameters)
         self.proj_style = style
         if style == "mip":
