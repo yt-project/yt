@@ -867,8 +867,7 @@ class HaloCatalogCallback(PlotCallback):
     _descriptor = None
 
     def __init__(self, halo_catalog, col='white', alpha =1, 
-            width = None, annotate_field = False, text_format_spec = '', 
-            font_kwargs = None):
+            width = None, annotate_field = False, font_kwargs = None):
 
         PlotCallback.__init__(self)
         self.halo_catalog = halo_catalog
