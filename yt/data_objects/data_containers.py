@@ -812,12 +812,12 @@ class YTSelectionContainer2D(YTSelectionContainer):
             center = self.pf.arr(center, 'code_length')
         if iterable(width):
             w, u = width
-            width = self.pf.arr(w, input_units = u)
+            width = self.pf.quan(w, input_units = u)
         if height is None:
             height = width
         elif iterable(height):
             h, u = height
-            height = self.pf.arr(w, input_units = u)
+            height = self.pf.quan(w, input_units = u)
         if not iterable(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import FixedResolutionBuffer

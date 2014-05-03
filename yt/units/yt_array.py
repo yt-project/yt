@@ -884,6 +884,10 @@ def array_like_field(data, x, field):
         units = data.pf._get_field_info(field[0],field[1]).units
     else:
         units = data.pf._get_field_info(field).units
+    if isinstance(x, YTArray):
+        arr = copy.deepcopy(x)
+        arr.convert_to_units(units)
+        return arr
     if isinstance(x, np.ndarray):
         return data.pf.arr(x, units)
     else:
