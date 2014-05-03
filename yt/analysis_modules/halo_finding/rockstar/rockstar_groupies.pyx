@@ -6,14 +6,16 @@ cimport cython
 from libc.stdlib cimport malloc, free
 import sys
 
-
-
 # Importing relevant rockstar data types particle, fof halo, halo
 
 cdef import from "particle.h":
     struct particle:
         np.int64_t id
         float pos[6]
+
+cdef import from "rockstar.h":
+    particle *global_particles "p"
+    void rockstar_cleanup()
 
 cdef import from "fof.h":
     struct fof:
@@ -23,12 +25,33 @@ cdef import from "fof.h":
 cdef import from "halo.h":
     struct halo:
         np.int64_t id
-        float pos[6], corevel[3], bulkvel[3]
+        float pos[6]
+        float corevel[3]
+        float bulkvel[3]
         float m, r, child_r, vmax_r, mgrav,    vmax, rvmax, rs, klypin_rs, vrms
-        float J[3], energy, spin, alt_m[4], Xoff, Voff, b_to_a, c_to_a, A[3]
+        float J[3]
+        float energy, spin
+        float alt_m[4]
+        float Xoff, Voff, b_to_a, c_to_a
+        float A[3]
         float bullock_spin, kin_to_pot
         np.int64_t num_p, num_child_particles, p_start, desc, flags, n_core
         float min_pos_err, min_vel_err, min_bulkvel_err
+
+ctypedef packed struct haloflat:
+    np.int64_t id
+    float pos_x, pos_y, pos_z, pos_v, pos_u, pos_w
+    float corevel_x, corevel_y, corevel_z
+    float bulkvel_x, bulkvel_y, bulkvel_z
+    float m, r, child_r, vmax_r, mgrav,    vmax, rvmax, rs, klypin_rs, vrms
+    float J1, J2, J3
+    float energy, spin
+    float alt_m1, alt_m2, alt_m3, alt_m4
+    float Xoff, Voff, b_to_a, c_to_a
+    float A1, A2, A3
+    float bullock_spin, kin_to_pot
+    np.int64_t num_p, num_child_particles, p_start, desc, flags, n_core
+    float min_pos_err, min_vel_err, min_bulkvel_err
 
 # For finding sub halos import finder function and global variable
 # rockstar uses to store the results
@@ -38,6 +61,9 @@ cdef import from "groupies.h":
     halo *halos
     np.int64_t num_halos
     void calc_mass_definition() nogil
+    void free_particle_copies() nogil
+    void alloc_particle_copies(np.int64_t total_copies) nogil
+    void free_halos() nogil
 
 # For outputing halos, rockstar style
 
@@ -48,6 +74,7 @@ cdef import from "meta_io.h":
 
 cdef import from "config.h":
     void setup_config() nogil
+    void output_config(char *fn) nogil
 
 cdef import from "config_vars.h":
     # Rockstar cleverly puts all of the config variables inside a templated
@@ -197,45 +224,87 @@ cdef class RockstarGroupiesInterface:
     def output_halos(self):
         output_halos(0, 0, 0, NULL) 
 
+    def return_halos(self):
+        cdef haloflat[:] haloview = <haloflat[:num_halos]> (<haloflat*> halos)
+        rv = np.asarray(haloview).copy()
+        rockstar_cleanup()
+        free_halos()
+        return rv
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def make_rockstar_fof(self, np.ndarray[np.int64_t, ndim=1] pid,
-                                np.ndarray[np.float64_t, ndim=2] pos,
-                                np.ndarray[np.float64_t, ndim=2] vel,
+    def make_rockstar_fof(self, np.ndarray[np.int64_t, ndim=1] pind,
                                 np.ndarray[np.int64_t, ndim=1] fof_tags,
-                                np.int64_t nfof,
-                                np.int64_t npart_max):
+                                np.ndarray[np.float64_t, ndim=2] pos,
+                                np.ndarray[np.float64_t, ndim=2] vel):
 
         # Define fof object
 
         # Find number of particles
-        cdef np.int64_t i, j
-        cdef np.int64_t num_particles = pid.shape[0]
+        cdef np.int64_t i, j, k, ind, offset
+        cdef np.int64_t num_particles = pind.shape[0]
+        global global_particles
 
         # Allocate space for correct number of particles
-        cdef particle* particles = <particle*> malloc(npart_max * sizeof(particle))
         cdef fof fof_obj
-        fof_obj.particles = particles
 
-        cdef np.int64_t last_fof_tag = 1
-        cdef np.int64_t k = 0
-        for i in range(num_particles):
-            if fof_tags[i] < 0:
+        cdef np.int64_t max_count = 0
+        cdef np.int64_t next_tag, local_tag, last_fof_tag = -1
+        fof_obj.num_p = 0
+        j = 0
+        # We're going to do one iteration to get the most frequent value.
+        for i in range(pind.shape[0]):
+            ind = pind[i]
+            local_tag = fof_tags[ind]
+            # Don't count the null group
+            if local_tag == -1: continue
+            if local_tag != last_fof_tag:
+                if j > max_count:
+                    max_count = j
+                last_fof_tag = local_tag
+                j = 1
+            else:
+                j += 1
+        if j > max_count:
+            max_count = j
+        #print >> sys.stderr, "Most frequent occurrance: %s" % max_count
+        fof_obj.particles = <particle*> malloc(max_count * sizeof(particle))
+        j = 0
+        cdef int counter = 0, ndone = 0
+        cdef np.ndarray[np.int64_t, ndim=1] pcounts 
+        pcounts = np.zeros(np.unique(fof_tags).size, dtype="int64")
+        cdef np.int64_t frac = <np.int64_t> (pcounts.shape[0] / 20.0)
+        free_halos()
+        for i in range(pind.shape[0]):
+            ind = pind[i]
+            local_tag = fof_tags[ind]
+            # Skip this one -- it means no group.
+            if local_tag == -1:
                 continue
-            if fof_tags[i] != last_fof_tag:
-                last_fof_tag = fof_tags[i]
-                if k > 16:
-                    fof_obj.num_p = k
-                    find_subs(&fof_obj)
-                k = 0
-            particles[k].id = pid[i]
-
-            # fill in locations & velocities
-            for j in range(3):
-                particles[k].pos[j] = pos[i,j]
-                particles[k].pos[j+3] = vel[i,j]
-            k += 1
-        free(particles)
-
-
-
+            if i == pind.shape[0] - 1:
+                next_tag = local_tag + 1
+            else:
+                next_tag = fof_tags[pind[i+1]]
+            for k in range(3):
+                fof_obj.particles[j].pos[k] = pos[ind,k]
+                fof_obj.particles[j].pos[k+3] = vel[ind,k]
+            fof_obj.particles[j].id = j
+            fof_obj.num_p += 1
+            j += 1
+            # Now we check if we're the last one
+            if local_tag != next_tag:
+                pcounts[ndone] = fof_obj.num_p
+                counter += 1
+                ndone += 1
+                if counter == frac:
+                    print >> sys.stderr, "R*-ing % 5.1f%% done (%0.3f -> %0.3f)" % (
+                        (100.0 * ndone)/pcounts.size,
+                        fof_obj.particles[0].pos[2],
+                        halos[num_halos - 1].pos[2])
+                    counter = 0
+                global_particles = &fof_obj.particles[0]
+                find_subs(&fof_obj)
+                # Now we reset
+                fof_obj.num_p = j = 0
+        free(fof_obj.particles)
+        return pcounts

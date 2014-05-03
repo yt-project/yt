@@ -36,6 +36,9 @@ cdef struct NeighborList:
     np.int64_t pn       # Particle number
     np.float64_t r2     # radius**2
 
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef inline np.float64_t r2dist(np.float64_t ppos[3],
                                 np.float64_t cpos[3],
                                 np.float64_t DW[3],

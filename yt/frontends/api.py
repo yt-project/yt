@@ -29,6 +29,7 @@ _frontends = [
     'moab',
     #'pluto',
     'ramses',
+    'sdf',
     'sph',
     'stream',
 ]
