@@ -38,6 +38,7 @@ from yt.units.unit_lookup_table import \
     prefixable_units, \
     unit_prefixes
 from yt.units import dimensions
+from yt.units.yt_array import YTQuantity
 
 class astropy_imports:
     _pyfits = None
@@ -238,7 +239,7 @@ class FITSHierarchy(GridIndex):
         line_db = self.parameter_file.line_database
         primary_fname = self.field_list[0][1]
         for k, v in line_db.iteritems():
-            mylog.info("Adding line field: %s at frequency %g" % (k, v))
+            mylog.info("Adding line field: %s at frequency %g GHz" % (k, v))
             self.field_list.append((self.dataset_type, k))
             self._ext_map[k] = self._ext_map[primary_fname]
             self._axis_map[k] = self._axis_map[primary_fname]
@@ -335,10 +336,13 @@ class FITSDataset(Dataset):
             parameters = {}
         self.specified_parameters = parameters
 
-        self.line_width = line_width
-        if line_database is None:
-            line_database = {}
-        self.line_database = line_database
+        if line_width is not None:
+            self.line_width = YTQuantity(line_width[0], line_width[1])
+            self.line_units = line_width[1]
+        self.line_database = {}
+        if line_database is not None:
+            for k in line_database:
+                self.line_database[k] = YTQuantity(line_database[k], self.line_units)
 
         if suppress_astropy_warnings:
             warnings.filterwarnings('ignore', module="astropy", append=True)
@@ -572,8 +576,9 @@ class FITSDataset(Dataset):
                 (self.domain_right_edge[self.vel_axis]-x0)*dz + z0
 
             if self.line_width is not None:
+                self.line_width = self.line_width.in_units(self.vel_unit)
                 self.freq_begin = self.domain_left_edge[self.vel_axis]
-                nz = int(self.line_width/dz)
+                nz = int(self.line_width.value/dz)
                 self.line_width = dz*nz
                 self.domain_left_edge[self.vel_axis] = -self.line_width/2.
                 self.domain_right_edge[self.vel_axis] = self.line_width/2.

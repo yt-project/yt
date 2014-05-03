@@ -89,10 +89,10 @@ class IOHandlerFITS(BaseIOHandler):
                 for g in chunk.objs:
                     start = ((g.LeftEdge-self.pf.domain_left_edge)/dx).astype("int")
                     end = ((g.RightEdge-self.pf.domain_left_edge)/dx).astype("int")
-                    if self.line_db is not None:
-                        my_off = self.line_db.get(fname, 0.5*self.pf.line_width)
-                        my_off -= 0.5*self.pf.line_width
-                        my_off = ((myoff-self.pf.freq_begin)/dx[self.vel_axis]).astype("int")
+                    if self.line_db is not None and fname in self.line_db:
+                        my_off = self.line_db.get(fname).in_units(self.pf.vel_unit).value
+                        my_off = my_off - 0.5*self.pf.line_width
+                        my_off = ((my_off-self.pf.freq_begin)/dx[self.pf.vel_axis].value).astype("int")
                         my_off = max(my_off, 0)
                         my_off = min(my_off, self.pf.dims[self.pf.vel_axis]-1)
                         start[-1] = start[-1] + my_off
