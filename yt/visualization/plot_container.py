@@ -270,15 +270,15 @@ class ImagePlotContainer(object):
         return self.plots[item]
 
     def run_callbacks(self, f):
-        keys = self._frb.keys()
+        keys = self.frb.keys()
         for name, (args, kwargs) in self._callbacks:
-            cbw = CallbackWrapper(self, self.plots[f], self._frb, f)
+            cbw = CallbackWrapper(self, self.plots[f], self.frb, f)
             CallbackMaker = callback_registry[name]
             callback = CallbackMaker(*args[1:], **kwargs)
             callback(cbw)
-        for key in self._frb.keys():
+        for key in self.frb.keys():
             if key not in keys:
-                del self._frb[key]
+                del self.frb[key]
 
     @invalidate_plot
     @invalidate_figure
