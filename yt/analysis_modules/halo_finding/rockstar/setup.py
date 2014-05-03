@@ -21,6 +21,8 @@ def configuration(parent_package='',top_path=None):
                          "yt/analysis_modules/halo_finding/rockstar/rockstar_interface.pyx",
                          library_dirs=[rd],
                          libraries=["rockstar"],
+                         #define_macros = [("THREADSAFE", "__thread")],
+                         define_macros = [("THREADSAFE", "")],
                          include_dirs=[rd,
                                        os.path.join(rd, "io"),
                                        os.path.join(rd, "util")])
@@ -28,6 +30,8 @@ def configuration(parent_package='',top_path=None):
                          "yt/analysis_modules/halo_finding/rockstar/rockstar_groupies.pyx",
                          library_dirs=[rd],
                          libraries=["rockstar"],
+                         #define_macros = [("THREADSAFE", "__thread")],
+                         define_macros = [("THREADSAFE", "")],
                          include_dirs=[rd,
                                        os.path.join(rd, "io"),
                                        os.path.join(rd, "util")])

@@ -116,7 +116,7 @@ try:
 except ImportError:
     pass
 
-def get_memory_usage():
+def get_memory_usage(subtract_share = False):
     """
     Returning resident size in megabytes
     """
@@ -130,6 +130,7 @@ def get_memory_usage():
         return -1024
     line = open(status_file).read()
     size, resident, share, text, library, data, dt = [int(i) for i in line.split()]
+    if subtract_share: resident -= share
     return resident * pagesize / (1024 * 1024) # return in megs
 
 def time_execution(func):
@@ -681,7 +682,7 @@ def set_intersection(some_list):
     return s
 
 @contextlib.contextmanager
-def memory_checker(interval = 15):
+def memory_checker(interval = 15, dest = None):
     r"""This is a context manager that monitors memory usage.
 
     Parameters
@@ -699,6 +700,8 @@ def memory_checker(interval = 15):
     ...     del arr
     """
     import threading
+    if dest is None:
+        dest = sys.stdout
     class MemoryChecker(threading.Thread):
         def __init__(self, event, interval):
             self.event = event
@@ -707,7 +710,7 @@ def memory_checker(interval = 15):
 
         def run(self):
             while not self.event.wait(self.interval):
-                print "MEMORY: %0.3e gb" % (get_memory_usage()/1024.)
+                print >> dest, "MEMORY: %0.3e gb" % (get_memory_usage()/1024.)
 
     e = threading.Event()
     mem_check = MemoryChecker(e, interval)
