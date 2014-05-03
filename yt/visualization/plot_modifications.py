@@ -496,8 +496,10 @@ class StreamlineCallback(PlotCallback):
                              (x0, x1, y0, y1),).transpose()
         X,Y = (np.linspace(xx0,xx1,nx,endpoint=True),
                np.linspace(yy0,yy1,ny,endpoint=True))
-        plot._axes.streamplot(X,Y, pixX, pixY, density = self.dens,
-                              **self.plot_args)
+        streamplot_args = {'x': X, 'y': Y, 'u':pixX, 'v': pixY,
+                           'density': self.dens}
+        streamplot_args.update(self.plot_args)
+        plot._axes.streamplot(**self.streamplot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
