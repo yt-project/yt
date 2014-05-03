@@ -67,7 +67,7 @@ class TransferFunctionHelper(object):
         if bounds is None:
             bounds = self.pf.h.all_data().quantities['Extrema'](self.field)
             bounds = [b.ndarray_view() for b in bounds]
-            self.bounds = bounds
+        self.bounds = bounds
 
         # Do some error checking.
         assert(len(self.bounds) == 2)
