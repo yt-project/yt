@@ -75,7 +75,25 @@ class OWLSSubfindParticleIndex(ParticleIndex):
         iend = np.clip(np.digitize(fofend, subend), 0, ifof.size - 2)
         for i, data_file in enumerate(self.data_files):
             data_file.offset_files = self.data_files[istart[i]: iend[i] + 1]
-        
+
+    def _detect_output_fields(self):
+        # TODO: Add additional fields
+        pfl = []
+        units = {}
+        for dom in self.data_files[:1]:
+            fl, _units = self.io._identify_fields(dom)
+            units.update(_units)
+            dom._calculate_offsets(fl)
+            for f in fl:
+                if f not in pfl: pfl.append(f)
+        self.field_list = pfl
+        pf = self.parameter_file
+        pf.particle_types = tuple(set(pt for pt, pf in pfl))
+        # This is an attribute that means these particle types *actually*
+        # exist.  As in, they are real, in the dataset.
+        pf.field_units.update(units)
+        pf.particle_types_raw = pf.particle_types
+            
     def _setup_geometry(self):
         super(OWLSSubfindParticleIndex, self)._setup_geometry()
         self._calculate_particle_index_starts()
