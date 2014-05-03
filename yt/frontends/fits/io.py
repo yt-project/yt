@@ -24,9 +24,10 @@ class IOHandlerFITS(BaseIOHandler):
         super(IOHandlerFITS, self).__init__(pf)
         self.pf = pf
         self._handle = pf._handle
-        self.folded = False
-        if self.pf.folded_axis is not None:
-            self.folded = True
+        if self.pf.line_width is not None:
+            self.line_db = self.pf.line_database
+        else:
+            self.line_db = None
 
     def _read_particles(self, fields_to_read, type, args, grid_list,
             count_list, conv_factors):
@@ -88,16 +89,12 @@ class IOHandlerFITS(BaseIOHandler):
                 for g in chunk.objs:
                     start = ((g.LeftEdge-self.pf.domain_left_edge)/dx).astype("int")
                     end = ((g.RightEdge-self.pf.domain_left_edge)/dx).astype("int")
-                    if self.folded:
-                        my_off = \
-                            self.pf.line_database.get(fname,
-                                                      self.pf.folded_width/2)\
-                            - self.pf.folded_width/2
+                    if self.line_db is not None:
+                        my_off = self.line_db.get(fname, 0.5*self.pf.line_width)
+                        my_off -= 0.5*self.pf.line_width
+                        my_off = ((myoff-self.pf.freq_begin)/dx[self.vel_axis]).astype("int")
                         my_off = max(my_off, 0)
-                        my_off = min(my_off,
-                                     self.pf._unfolded_domain_dimensions[
-                                         self.pf.folded_axis]-1)
-
+                        my_off = min(my_off, self.pf.dims[self.pf.vel_axis]-1)
                         start[-1] = start[-1] + my_off
                         end[-1] = end[-1] + my_off
                         mylog.debug("Reading from " + str(start) + str(end))

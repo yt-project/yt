@@ -238,7 +238,7 @@ class FITSHierarchy(GridIndex):
         line_db = self.parameter_file.line_database
         primary_fname = self.field_list[0][1]
         for k, v in line_db.iteritems():
-            mylog.info("Adding line field: %s at offset %i" % (k, v))
+            mylog.info("Adding line field: %s at frequency %g" % (k, v))
             self.field_list.append((self.dataset_type, k))
             self._ext_map[k] = self._ext_map[primary_fname]
             self._axis_map[k] = self._axis_map[primary_fname]
@@ -326,9 +326,8 @@ class FITSDataset(Dataset):
                  nprocs = None,
                  storage_filename = None,
                  nan_mask = None,
-                 folded_axis = None,
-                 folded_width = None,
                  line_database = None,
+                 line_width = None,
                  suppress_astropy_warnings = True,
                  parameters = None):
 
@@ -336,9 +335,7 @@ class FITSDataset(Dataset):
             parameters = {}
         self.specified_parameters = parameters
 
-        self.folded_axis = folded_axis
-        self.folded_width = folded_width
-        self._unfolded_domain_dimensions = None
+        self.line_width = line_width
         if line_database is None:
             line_database = {}
         self.line_database = line_database
@@ -488,12 +485,6 @@ class FITSDataset(Dataset):
         self.domain_left_edge = np.array([0.5]*3)
         self.domain_right_edge = np.array([float(dim)+0.5 for dim in self.domain_dimensions])
 
-        if self.folded_axis is not None:
-            self.domain_left_edge[self.folded_axis] = -self.folded_width/2.
-            self.domain_right_edge[self.folded_axis] = self.folded_width/2.
-            self._unfolded_domain_dimensions = self.domain_dimensions.copy()
-            self.domain_dimensions[self.folded_axis] = int(self.folded_width)
-
         if self.dimensionality == 2:
             self.domain_left_edge[-1] = 0.5
             self.domain_right_edge[-1] = 1.5
@@ -579,6 +570,14 @@ class FITSDataset(Dataset):
                 (self.domain_left_edge[self.vel_axis]-x0)*dz + z0
             self.domain_right_edge[self.vel_axis] = \
                 (self.domain_right_edge[self.vel_axis]-x0)*dz + z0
+
+            if self.line_width is not None:
+                self.freq_begin = self.domain_left_edge[self.vel_axis]
+                nz = int(self.line_width/dz)
+                self.line_width = dz*nz
+                self.domain_left_edge[self.vel_axis] = -self.line_width/2.
+                self.domain_right_edge[self.vel_axis] = self.line_width/2.
+                self.domain_dimensions[self.vel_axis] = nz
 
         else:
 
