@@ -47,7 +47,7 @@ level = min(max(ytcfg.getint("yt", "loglevel"), 0), 50)
 ufstring = "%(name)-3s: [%(levelname)-9s] %(asctime)s %(message)s"
 cfstring = "%(name)-3s: [%(levelname)-18s] %(asctime)s %(message)s"
 
-if ytcfg.getboolean("yt", "StdoutStreamLogging"):
+if ytcfg.getboolean("yt", "stdoutStreamLogging"):
     stream = sys.stdout
 else:
     stream = sys.stderr
