@@ -71,8 +71,8 @@ def plot_method_generator(pwwcs, method):
 
 class PlotWindowWCS(object):
     r"""
-    Use the wcsaxes library to plot celestial coordinates on the axes.
-    See http://wcsaxes.readthedocs.org for details.
+    Use the wcsaxes library to plot celestial coordinates on the axes of a
+    on-axis PlotWindow plot. See http://wcsaxes.readthedocs.org for details.
 
     Parameters
     ----------
