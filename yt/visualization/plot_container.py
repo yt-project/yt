@@ -17,7 +17,6 @@ from .base_plot_types import CallbackWrapper
 from yt.funcs import \
     defaultdict, get_image_suffix, \
     get_ipython_api_version
-from yt.utilities.definitions import axis_names
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 from ._mpl_imports import FigureCanvasAgg
@@ -251,10 +250,15 @@ class ImagePlotContainer(object):
         # Left blank to be overriden in subclasses
         pass
 
-    def _switch_pf(self, new_pf):
+    def _switch_pf(self, new_pf, data_source=None):
         ds = self.data_source
         name = ds._type_name
         kwargs = dict((n, getattr(ds, n)) for n in ds._con_args)
+        if data_source is not None:
+            if name != "proj":
+                raise RuntimeError("The data_source keyword argument "
+                                   "is only defined for projections.")
+            kwargs['data_source'] = data_source
         new_ds = getattr(new_pf, name)(**kwargs)
         self.pf = new_pf
         self.data_source = new_ds
@@ -419,7 +423,8 @@ class ImagePlotContainer(object):
             for k, v in self.plots.iteritems():
                 names.append(v.save(name, mpl_kwargs))
             return names
-        axis = axis_names[self.data_source.axis]
+        axis = self.pf.coordinates.axis_name.get(
+            self.data_source.axis, '')
         weight = None
         type = self._plot_type
         if type in ['Projection', 'OffAxisProjection']:

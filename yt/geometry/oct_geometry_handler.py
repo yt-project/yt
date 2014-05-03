@@ -30,7 +30,7 @@ from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.io_handler import io_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface, parallel_splitter
+    ParallelAnalysisInterface
 
 from yt.data_objects.data_containers import data_object_registry
 

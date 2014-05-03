@@ -99,7 +99,7 @@ class IOHandlerOWLS(BaseIOHandler):
                 g = f["/%s" % ptype]
                 coords = g["Coordinates"][:].astype("float64")
                 mask = selector.select_points(
-                            coords[:,0], coords[:,1], coords[:,2])
+                            coords[:,0], coords[:,1], coords[:,2], 0.0)
                 del coords
                 if mask is None: continue
                 for field in field_list:
@@ -113,7 +113,9 @@ class IOHandlerOWLS(BaseIOHandler):
                     elif field in self._element_names:
                         rfield = 'ElementAbundance/' + field
                         data = g[rfield][:][mask,...]
-
+                    elif field.startswith("Metallicity_"):
+                        col = int(field.rsplit("_", 1)[-1])
+                        data = g["Metallicity"][:,col][mask]
                     else:
                         data = g[field][:][mask,...]
 
@@ -190,6 +192,10 @@ class IOHandlerOWLS(BaseIOHandler):
                     for j in gp.keys():
                         kk = j
                         fields.append((ptype, str(kk)))
+                elif k == 'Metallicity' and len(g[k].shape) > 1:
+                    # Vector of metallicity
+                    for i in range(g[k].shape[1]):
+                        fields.append((ptype, "Metallicity_%02i" % i))
                 else:
                     kk = k
                     if not hasattr(g[kk], "shape"): continue
@@ -275,7 +281,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
                 pos = self._read_field_from_file(f,
                             tp[ptype], "Coordinates")
                 mask = selector.select_points(
-                    pos[:,0], pos[:,1], pos[:,2])
+                    pos[:,0], pos[:,1], pos[:,2], 0.0)
                 del pos
                 if mask is None: continue
                 for field in field_list:
@@ -528,7 +534,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 mask = selector.select_points(
                     p["Coordinates"]['x'].astype("float64"),
                     p["Coordinates"]['y'].astype("float64"),
-                    p["Coordinates"]['z'].astype("float64"))
+                    p["Coordinates"]['z'].astype("float64"), 0.0)
                 if mask is None: continue
                 tf = self._fill_fields(field_list, p, mask, data_file)
                 for field in field_list:
@@ -551,6 +557,8 @@ class IOHandlerTipsyBinary(BaseIOHandler):
             pf.domain_left_edge = 0
             pf.domain_right_edge = 0
             f.seek(pf._header_offset)
+            mi =   np.array([1e30, 1e30, 1e30], dtype="float64")
+            ma =  -np.array([1e30, 1e30, 1e30], dtype="float64")
             for iptype, ptype in enumerate(self._ptypes):
                 # We'll just add the individual types separately
                 count = data_file.total_particles[ptype]
@@ -560,19 +568,23 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                     c = min(CHUNKSIZE, stop - ind)
                     pp = np.fromfile(f, dtype = self._pdtypes[ptype],
                                      count = c)
-                    for ax in 'xyz':
-                        mi = pp["Coordinates"][ax].min()
-                        ma = pp["Coordinates"][ax].max()
-                        outlier = self.arr(np.max(np.abs((mi,ma))), 'code_length')
-                        if outlier > pf.domain_right_edge or -outlier < pf.domain_left_edge:
-                            # scale these up so the domain is slightly
-                            # larger than the most distant particle position
-                            pf.domain_left_edge = -1.01*outlier
-                            pf.domain_right_edge = 1.01*outlier
+                    eps = np.finfo(pp["Coordinates"]["x"].dtype).eps
+                    np.minimum(mi, [pp["Coordinates"]["x"].min(),
+                                    pp["Coordinates"]["y"].min(),
+                                    pp["Coordinates"]["z"].min()], mi)
+                    np.maximum(ma, [pp["Coordinates"]["x"].max(),
+                                    pp["Coordinates"]["y"].max(),
+                                    pp["Coordinates"]["z"].max()], ma)
                     ind += c
-        pf.domain_left_edge = np.ones(3)*pf.domain_left_edge
-        pf.domain_right_edge = np.ones(3)*pf.domain_right_edge
-        pf.domain_width = np.ones(3)*2*pf.domain_right_edge
+        # We extend by 1%.
+        DW = ma - mi
+        mi -= 0.01 * DW
+        ma += 0.01 * DW
+        pf.domain_left_edge = pf.arr(mi, 'code_length')
+        pf.domain_right_edge = pf.arr(ma, 'code_length')
+        pf.domain_width = DW = pf.domain_right_edge - pf.domain_left_edge
+        pf.unit_registry.add("unitary", float(DW.max() * DW.units.cgs_value),
+                                 DW.units.dimensions)
 
     def _initialize_index(self, data_file, regions):
         pf = data_file.pf
@@ -739,7 +751,7 @@ class IOHandlerHTTPStream(BaseIOHandler):
                 c = np.frombuffer(s, dtype="float64")
                 c.shape = (c.shape[0]/3.0, 3)
                 mask = selector.select_points(
-                            c[:,0], c[:,1], c[:,2])
+                            c[:,0], c[:,1], c[:,2], 0.0)
                 del c
                 if mask is None: continue
                 for field in field_list:

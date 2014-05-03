@@ -74,7 +74,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
                     x = halos['particle_position_x'].astype("float64")
                     y = halos['particle_position_y'].astype("float64")
                     z = halos['particle_position_z'].astype("float64")
-                    mask = selector.select_points(x, y, z)
+                    mask = selector.select_points(x, y, z, 0.0)
                     del x, y, z
                     if mask is None: continue
                     for field in field_list:

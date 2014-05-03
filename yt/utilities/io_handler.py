@@ -146,7 +146,7 @@ class BaseIOHandler(object):
             # Here, ptype_map means which particles contribute to a given type.
             # And ptf is the actual fields from disk to read.
             for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
-                psize[ptype] += selector.count_points(x, y, z)
+                psize[ptype] += selector.count_points(x, y, z, 0.0)
             self._last_selector_counts = dict(**psize)
             self._last_selector_id = hash(selector)
         # Now we allocate
