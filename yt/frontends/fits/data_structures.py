@@ -257,11 +257,21 @@ class FITSHierarchy(GridIndex):
         if pf.nprocs > 1:
             bbox = np.array([[le,re] for le, re in zip(pf.domain_left_edge,
                                                        pf.domain_right_edge)])
-            psize = get_psize(np.array(pf.domain_dimensions), pf.nprocs)
-            gle, gre, shapes, slices = decompose_array(pf.domain_dimensions, psize, bbox)
+            dims = np.array(pf.domain_dimensions)
+            # If we are creating a dataset of lines, only decompose along the position axes
+            if pf.line_database is not None:
+                dims[pf.vel_axis] = 1
+            psize = get_psize(dims, pf.nprocs)
+            gle, gre, shapes, slices = decompose_array(dims, psize, bbox)
             self.grid_left_edge = self.pf.arr(gle, "code_length")
             self.grid_right_edge = self.pf.arr(gre, "code_length")
             self.grid_dimensions = np.array([shape for shape in shapes], dtype="int32")
+            # If we are creating a dataset of lines, only decompose along the position axes
+            if pf.line_database is not None:
+                self.grid_left_edge[:,pf.vel_axis] = pf.domain_left_edge[pf.vel_axis]
+                self.grid_right_edge[:,pf.vel_axis] = pf.domain_right_edge[pf.vel_axis]
+                self.grid_dimensions[:,pf.vel_axis] = pf.domain_dimensions[pf.vel_axis]
+
         else:
             self.grid_left_edge[0,:] = pf.domain_left_edge
             self.grid_right_edge[0,:] = pf.domain_right_edge
