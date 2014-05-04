@@ -3,7 +3,7 @@ from yt.testing import *
 def _get_dobjs(c):
     dobjs = [("sphere", ("center", (1.0, "unitary"))),
              ("sphere", ("center", (0.1, "unitary"))),
-             ("ortho_ray", (0, (c[x_dict[0]], c[y_dict[0]]))),
+             ("ortho_ray", (0, (c[1], c[2]))),
              ("slice", (0, c[0])),
              #("disk", ("center", [0.1, 0.3, 0.6],
              #           (0.2, 'unitary'), (0.1, 'unitary'))),

@@ -17,6 +17,7 @@ import os
 import numpy as np
 
 from yt.funcs import *
+from yt.utilities.exceptions import YTNotInsideNotebook
 import _colormap_data as cmd
 import yt.utilities.lib.image_utilities as au
 import yt.utilities.png_writer as pw
@@ -224,13 +225,14 @@ def apply_colormap(image, color_bounds = None, cmap_name = 'algae', func=lambda 
     to_plot : uint8 image with colorbar applied.
 
     """
-    image = func(image)
+    from yt.data_objects.image_array import ImageArray
+    image = ImageArray(func(image))
     if color_bounds is None:
-        mi = np.nanmin(image[~np.isinf(image)])
-        ma = np.nanmax(image[~np.isinf(image)])
+        mi = np.nanmin(image[~np.isinf(image)])*image.uq
+        ma = np.nanmax(image[~np.isinf(image)])*image.uq
         color_bounds = mi, ma
     else:
-        color_bounds = [func(c) for c in color_bounds]
+        color_bounds = [YTQuantity(func(c), image.units) for c in color_bounds]
     image = (image - color_bounds[0])/(color_bounds[1] - color_bounds[0])
     to_plot = map_to_colors(image, cmap_name)
     to_plot = np.clip(to_plot, 0, 255)

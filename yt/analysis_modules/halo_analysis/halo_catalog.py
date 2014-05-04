@@ -30,7 +30,7 @@ from .halo_object import \
 from .operator_registry import \
      callback_registry, \
      filter_registry, \
-     hf_registry, \
+     finding_method_registry, \
      quantity_registry
 
 class HaloCatalog(ParallelAnalysisInterface):
@@ -92,7 +92,7 @@ class HaloCatalog(ParallelAnalysisInterface):
 
     See Also
     --------
-    add_callback, add_filter, add_quantity
+    add_callback, add_filter, add_finding_method, add_quantity
     
     """
     
@@ -102,7 +102,6 @@ class HaloCatalog(ParallelAnalysisInterface):
         ParallelAnalysisInterface.__init__(self)
         self.halos_pf = halos_pf
         self.data_pf = data_pf
-        self.finder_method = finder_method
         self.output_dir = ensure_dir(output_dir)
         if os.path.basename(self.output_dir) != ".":
             self.output_prefix = os.path.basename(self.output_dir)
@@ -114,6 +113,7 @@ class HaloCatalog(ParallelAnalysisInterface):
                 raise RuntimeError("Must specify a halos_pf, data_pf, or both.")
             if finder_method is None:
                 raise RuntimeError("Must specify a halos_pf or a finder_method.")
+
         if data_source is None:
             if halos_pf is not None:
                 data_source = halos_pf.h.all_data()
@@ -121,11 +121,16 @@ class HaloCatalog(ParallelAnalysisInterface):
                 data_source = data_pf.h.all_data()
         self.data_source = data_source
 
+        if finder_method is not None:
+            finder_method = finding_method_registry.find(finder_method)
+        self.finder_method = finder_method            
+        
         # all of the analysis actions to be performed: callbacks, filters, and quantities
         self.actions = []
         # fields to be written to the halo catalog
         self.quantities = []
-        self.add_default_quantities()
+        if not self.halos_pf is None:
+            self.add_default_quantities()
 
     def add_callback(self, callback, *args, **kwargs):
         r"""
@@ -344,9 +349,22 @@ class HaloCatalog(ParallelAnalysisInterface):
         if save_halos: self.halo_list = []
 
         if self.halos_pf is None:
-            # this is where we would do halo finding and assign halos_pf to 
-            # the dataset that we have just created.
-            raise NotImplementedError
+            # Find the halos and make a dataset of them
+            self.halos_pf = self.finder_method(self.data_pf)
+            if self.halos_pf is None:
+                mylog.warning('No halos were found for {0}'.format(\
+                        self.data_pf.basename))
+                if save_catalog:
+                    self.halos_pf = self.data_pf
+                    self.save_catalog()
+                    self.halos_pf = None
+                return
+
+            # Assign pf and data sources appropriately
+            self.data_source = self.halos_pf.all_data()
+
+            # Add all of the default quantities that all halos must have
+            self.add_default_quantities('all')
 
         my_index = np.argsort(self.data_source["particle_identifier"])
         for i in parallel_objects(my_index, njobs=njobs, dynamic=dynamic):
@@ -411,11 +429,11 @@ class HaloCatalog(ParallelAnalysisInterface):
                 dataset.attrs["units"] = units
         out_file.close()
 
-    def add_default_quantities(self):
-        self.add_quantity("particle_identifier", field_type="halos")
-        self.add_quantity("particle_mass", field_type="halos")
-        self.add_quantity("particle_position_x", field_type="halos")
-        self.add_quantity("particle_position_y", field_type="halos")
-        self.add_quantity("particle_position_z", field_type="halos")
-        self.add_quantity("virial_radius", field_type="halos")
-        
+    def add_default_quantities(self, field_type='halos'):
+        self.add_quantity("particle_identifier", field_type=field_type)
+        self.add_quantity("particle_mass", field_type=field_type)
+        self.add_quantity("particle_position_x", field_type=field_type)
+        self.add_quantity("particle_position_y", field_type=field_type)
+        self.add_quantity("particle_position_z", field_type=field_type)
+        self.add_quantity("virial_radius", field_type=field_type)
+

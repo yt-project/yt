@@ -27,5 +27,5 @@ class OperatorRegistry(dict):
 
 callback_registry = OperatorRegistry()
 filter_registry = OperatorRegistry()
-hf_registry = OperatorRegistry()
+finding_method_registry = OperatorRegistry()
 quantity_registry = OperatorRegistry()

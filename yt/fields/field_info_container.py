@@ -61,6 +61,7 @@ class FieldInfoContainer(dict):
         self.field_list = field_list
         self.slice_info = slice_info
         self.field_aliases = {}
+        self.species_names = []
         self.setup_fluid_aliases()
 
     def setup_fluid_fields(self):
@@ -114,6 +115,8 @@ class FieldInfoContainer(dict):
             sml_name = None
         new_aliases = []
         for _, alias_name in self.field_aliases:
+            if alias_name in ("particle_position", "particle_velocity"):
+                continue
             fn = add_volume_weighted_smoothed_field(ptype,
                 "particle_position", "particle_mass",
                 sml_name, "density", alias_name, self,
@@ -159,6 +162,8 @@ class FieldInfoContainer(dict):
         :class:`~yt.data_objects.api.DerivedField`.
 
         """
+        override = kwargs.pop("force_override", False)
+        if not override and name in self: return
         if function is None:
             def create_function(function):
                 self[name] = DerivedField(name, function, **kwargs)

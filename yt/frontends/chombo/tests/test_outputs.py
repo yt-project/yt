@@ -21,7 +21,8 @@ from yt.utilities.answer_testing.framework import \
     data_dir_load
 from yt.frontends.chombo.api import ChomboDataset
 
-_fields = ("Density", "VelocityMagnitude", "DivV", "X-magnfield")
+_fields = ("density", "velocity_magnitude", #"velocity_divergence",
+           "magnetic_field_x")
 
 gc = "GaussianCloud/data.0077.3d.hdf5"
 @requires_pf(gc)

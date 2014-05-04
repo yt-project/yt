@@ -15,18 +15,6 @@ SlicePlot and ProjectionPlot
    ~yt.visualization.plot_window.ProjectionPlot
    ~yt.visualization.plot_window.OffAxisProjectionPlot
 
-PlotCollection
-^^^^^^^^^^^^^^
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.visualization.plot_collection.PlotCollection
-   ~yt.visualization.plot_collection.PlotCollectionInteractive
-   ~yt.visualization.fixed_resolution.FixedResolutionBuffer
-   ~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer
-   ~yt.visualization.base_plot_types.get_multi_plot
-
 Data Sources
 ------------
 
@@ -672,7 +660,6 @@ Function List
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_passthrough
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_root_only
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_simple_proxy
-   ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_splitter
 
 Math Utilities
 --------------
@@ -721,8 +708,6 @@ Miscellaneous Types
    ~yt.utilities.parallel_tools.parallel_analysis_interface.ObjectIterator
    ~yt.utilities.parallel_tools.parallel_analysis_interface.ParallelAnalysisInterface
    ~yt.utilities.parallel_tools.parallel_analysis_interface.ParallelObjectIterator
-   ~yt.analysis_modules.hierarchy_subset.hierarchy_subset.ConstructedRootGrid
-   ~yt.analysis_modules.hierarchy_subset.hierarchy_subset.ExtractedHierarchy
 
 
 Testing Infrastructure

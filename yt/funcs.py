@@ -24,7 +24,6 @@ from numbers import Number as numeric_type
 
 from yt.utilities.exceptions import *
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.definitions import inv_axis_names, axis_names, x_dict, y_dict
 import yt.extern.progressbar as pb
 import yt.utilities.rpdb as rpdb
 from yt.units.yt_array import YTArray, YTQuantity
@@ -117,7 +116,7 @@ try:
 except ImportError:
     pass
 
-def get_memory_usage():
+def get_memory_usage(subtract_share = False):
     """
     Returning resident size in megabytes
     """
@@ -131,6 +130,7 @@ def get_memory_usage():
         return -1024
     line = open(status_file).read()
     size, resident, share, text, library, data, dt = [int(i) for i in line.split()]
+    if subtract_share: resident -= share
     return resident * pagesize / (1024 * 1024) # return in megs
 
 def time_execution(func):
@@ -637,8 +637,8 @@ def get_num_threads():
         return os.environ.get("OMP_NUM_THREADS", 0)
     return nt
 
-def fix_axis(axis):
-    return inv_axis_names.get(axis, axis)
+def fix_axis(axis, pf):
+    return pf.coordinates.axis_id.get(axis, axis)
 
 def get_image_suffix(name):
     suffix = os.path.splitext(name)[1]
@@ -682,7 +682,7 @@ def set_intersection(some_list):
     return s
 
 @contextlib.contextmanager
-def memory_checker(interval = 15):
+def memory_checker(interval = 15, dest = None):
     r"""This is a context manager that monitors memory usage.
 
     Parameters
@@ -700,6 +700,8 @@ def memory_checker(interval = 15):
     ...     del arr
     """
     import threading
+    if dest is None:
+        dest = sys.stdout
     class MemoryChecker(threading.Thread):
         def __init__(self, event, interval):
             self.event = event
@@ -708,7 +710,7 @@ def memory_checker(interval = 15):
 
         def run(self):
             while not self.event.wait(self.interval):
-                print "MEMORY: %0.3e gb" % (get_memory_usage()/1024.)
+                print >> dest, "MEMORY: %0.3e gb" % (get_memory_usage()/1024.)
 
     e = threading.Event()
     mem_check = MemoryChecker(e, interval)

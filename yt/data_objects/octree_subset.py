@@ -163,7 +163,8 @@ class OctreeSubset(YTSelectionContainer):
         op.initialize()
         mylog.debug("Depositing %s (%s^3) particles into %s Octs",
             positions.shape[0], positions.shape[0]**0.3333333, nvals[-1])
-        pos = np.array(positions, dtype="float64")
+        pos = np.asarray(positions.convert_to_units("code_length"),
+                         dtype="float64")
         # We should not need the following if we know in advance all our fields
         # need no casting.
         fields = [np.asarray(f, dtype="float64") for f in fields]
@@ -176,6 +177,7 @@ class OctreeSubset(YTSelectionContainer):
     def smooth(self, positions, fields = None, index_fields = None,
                method = None, create_octree = False, nneighbors = 64):
         # Here we perform our particle deposition.
+        positions.convert_to_units("code_length")
         if create_octree:
             morton = compute_morton(
                 positions[:,0], positions[:,1], positions[:,2],
@@ -247,11 +249,11 @@ class OctreeSubset(YTSelectionContainer):
 
     def count_particles(self, selector, x, y, z):
         # We don't cache the selector results
-        count = selector.count_points(x,y,z)
+        count = selector.count_points(x,y,z, 0.0)
         return count
 
     def select_particles(self, selector, x, y, z):
-        mask = selector.select_points(x,y,z)
+        mask = selector.select_points(x,y,z, 0.0)
         return mask
 
 class ParticleOctreeSubset(OctreeSubset):

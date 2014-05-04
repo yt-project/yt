@@ -104,7 +104,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                             r"particle_position_%s")
                     x, y, z = (np.asarray(pds.get(pn % ax).value, dtype="=f8")
                                for ax in 'xyz')
-                    mask = selector.select_points(x, y, z)
+                    mask = selector.select_points(x, y, z, 0.0)
                     if mask is None: continue
                     for field in field_list:
                         data = np.asarray(pds.get(field).value, "=f8")
@@ -250,7 +250,6 @@ class IOHandlerInMemory(BaseIOHandler):
         if size is None:
             size = sum((g.count(selector) for chunk in chunks
                         for g in chunk.objs))
-
         for field in fields:
             ftype, fname = field
             fsize = size
@@ -262,11 +261,14 @@ class IOHandlerInMemory(BaseIOHandler):
         ind = 0
         for chunk in chunks:
             for g in chunk.objs:
-                if g.id not in self.grids_in_memory: continue
+                # We want a *hard error* here.
+                #if g.id not in self.grids_in_memory: continue
                 for field in fields:
                     ftype, fname = field
-                    data_view = self.grids_in_memory[g.id][fname][self.my_slice]
-                    ind += g.select(selector, data_view, rv[field], ind)
+                    data_view = self.grids_in_memory[g.id][fname][self.my_slice].swapaxes(0,2)
+                    nd = g.select(selector, data_view, rv[field], ind)
+                ind += nd
+        assert(ind == fsize)
         return rv
 
     def _read_particle_coords(self, chunks, ptf):

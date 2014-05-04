@@ -185,6 +185,7 @@ class TotalMass(TotalQuantity):
     
     """
     def __call__(self):
+        self.data_source.pf.index
         fi = self.data_source.pf.field_info
         fields = []
         if ("gas", "cell_mass") in fi:

@@ -45,7 +45,7 @@ run_big_data = False
 # Set the latest gold and local standard filenames
 _latest = ytcfg.get("yt", "gold_standard_filename")
 _latest_local = ytcfg.get("yt", "local_standard_filename")
-_url_path = "http://yt-answer-tests.s3-website-us-east-1.amazonaws.com/%s_%s"
+_url_path = ytcfg.get("yt", "answer_tests_url")
 
 class AnswerTesting(Plugin):
     name = "answer-testing"
@@ -197,30 +197,20 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         if self.answer_name is None: return
         # This is where we dump our result storage up to Amazon, if we are able
         # to.
-        import boto
-        from boto.s3.key import Key
-        c = boto.connect_s3()
-        bucket = c.get_bucket("yt-answer-tests")
-        for pf_name in result_storage:
+        import pyrax
+        pyrax.set_credential_file(os.path.expanduser("~/.yt/rackspace"))
+        cf = pyrax.cloudfiles
+        c = cf.get_container("yt-answer-tests")
+        pb = get_pbar("Storing results ", len(result_storage))
+        for i, pf_name in enumerate(result_storage):
+            pb.update(i)
             rs = cPickle.dumps(result_storage[pf_name])
-            tk = bucket.get_key("%s_%s" % (self.answer_name, pf_name))
-            if tk is not None: tk.delete()
-            k = Key(bucket)
-            k.key = "%s_%s" % (self.answer_name, pf_name)
-
-            pb_widgets = [
-                unicode(k.key, errors='ignore').encode('utf-8'), ' ',
-                progressbar.FileTransferSpeed(),' <<<', progressbar.Bar(),
-                '>>> ', progressbar.Percentage(), ' ', progressbar.ETA()
-                ]
-            self.pbar = progressbar.ProgressBar(widgets=pb_widgets,
-                                                maxval=sys.getsizeof(rs))
-
-            self.pbar.start()
-            k.set_contents_from_string(rs, cb=self.progress_callback,
-                                       num_cb=100000)
-            k.set_acl("public-read")
-            self.pbar.finish()
+            object_name = "%s_%s" % (self.answer_name, pf_name)
+            if object_name in c.get_object_names():
+                obj = c.get_object(object_name)
+                c.delete_object(obj)
+            c.store_object(object_name, rs)
+        pb.finish()
 
 class AnswerTestLocalStorage(AnswerTestStorage):
     def dump(self, result_storage):
@@ -345,7 +335,7 @@ class AnswerTestingTest(object):
         This is a helper function to return the location of the most dense
         point.
         """
-        return self.pf.h.find_max("Density")[1]
+        return self.pf.h.find_max("density")[1]
 
     @property
     def entire_simulation(self):
@@ -378,9 +368,9 @@ class FieldValuesTest(AnswerTestingTest):
 
     def run(self):
         obj = create_obj(self.pf, self.obj_type)
-        avg = obj.quantities["WeightedAverageQuantity"](self.field,
-                             weight="Ones")
-        (mi, ma), = obj.quantities["Extrema"](self.field)
+        avg = obj.quantities.weighted_average_quantity(
+            self.field, weight="ones")
+        mi, ma = obj.quantities.extrema(self.field)
         return np.array([avg, mi, ma])
 
     def compare(self, new_result, old_result):
@@ -551,11 +541,11 @@ class GridHierarchyTest(AnswerTestingTest):
 
     def run(self):
         result = {}
-        result["grid_dimensions"] = self.pf.grid_dimensions
-        result["grid_left_edges"] = self.pf.grid_left_edge
-        result["grid_right_edges"] = self.pf.grid_right_edge
-        result["grid_levels"] = self.pf.grid_levels
-        result["grid_particle_count"] = self.pf.grid_particle_count
+        result["grid_dimensions"] = self.pf.index.grid_dimensions
+        result["grid_left_edges"] = self.pf.index.grid_left_edge
+        result["grid_right_edges"] = self.pf.index.grid_right_edge
+        result["grid_levels"] = self.pf.index.grid_levels
+        result["grid_particle_count"] = self.pf.index.grid_particle_count
         return result
 
     def compare(self, new_result, old_result):
@@ -710,7 +700,7 @@ def small_patch_amr(pf_fn, fields):
         yield GridValuesTest(pf_fn, field)
         for axis in [0, 1, 2]:
             for ds in dso:
-                for weight_field in [None, "Density"]:
+                for weight_field in [None, "density"]:
                     yield ProjectionValuesTest(
                         pf_fn, axis, field, weight_field,
                         ds)
@@ -726,7 +716,7 @@ def big_patch_amr(pf_fn, fields):
         yield GridValuesTest(pf_fn, field)
         for axis in [0, 1, 2]:
             for ds in dso:
-                for weight_field in [None, "Density"]:
+                for weight_field in [None, "density"]:
                     yield PixelizedProjectionValuesTest(
                         pf_fn, axis, field, weight_field,
                         ds)

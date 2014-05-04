@@ -16,6 +16,12 @@ import os
 from yt.funcs import *
 from yt import units
 import h5py
+
+try:
+    import xspec
+except ImportError:
+    pass
+
 try:
     import xspec
     from scipy.integrate import cumtrapz
