@@ -87,7 +87,7 @@ class ParticleTrajectories(object):
         for i, (sto, ds) in enumerate(self.data_series.piter(storage=my_storage)):
             dd = ds.all_data()
             idx_field = dd._determine_fields("particle_index")[0]
-            newtags = dd[idx_field].ndarray_view().astype("int")
+            newtags = dd[idx_field].ndarray_view().astype("int64")
             mask = np.in1d(newtags, indices, assume_unique=True)
             sorts = np.argsort(newtags[mask])
             self.array_indices.append(np.where(np.in1d(indices, newtags, assume_unique=True))[0])

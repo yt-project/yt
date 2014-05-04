@@ -507,10 +507,10 @@ cgs units, you may supply conversions for length, time, and mass to ``load``:
                          "time_unit"(1.0,"Myr"),
                          "mass_unit":(1.0e14,"Msun")})
 
-This means that the yt fields (e.g. ``Density``, ``x-velocity``,
-``Bx``) will be in cgs units, but the Athena fields (e.g.,
-``density``, ``velocity_x``, ``cell_centered_B_x``) will be in code
-units.
+This means that the yt fields, e.g. ``("gas","density")``, ``("gas","x-velocity")``,
+``("gas","magnetic_field_x")``, will be in cgs units, but the Athena fields, e.g.,
+``("athena","density")``, ``("athena","velocity_x")``, ``("athena","cell_centered_B_x")``, will be
+in code units.
 
 .. rubric:: Caveats
 

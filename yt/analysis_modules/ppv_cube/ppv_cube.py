@@ -19,7 +19,7 @@ from yt.funcs import get_pbar
 
 def create_intensity(vmin, vmax, ifield):
     def _intensity(field, data):
-        idxs = np.logical_and(data["v_los"] >= vmin, data["v_los"] < vmax)
+        idxs = (data["v_los"] >= vmin) & (data["v_los"] < vmax)
         f = np.zeros(data[ifield].shape)
         f[idxs] = data[ifield][idxs]
         return f
