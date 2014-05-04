@@ -339,6 +339,9 @@ class FITSDataset(Dataset):
         if line_width is not None:
             self.line_width = YTQuantity(line_width[0], line_width[1])
             self.line_units = line_width[1]
+        else:
+            self.line_width = None
+
         self.line_database = {}
         if line_database is not None:
             for k in line_database:
@@ -570,15 +573,22 @@ class FITSDataset(Dataset):
             z0 = self.wcs.wcs.crval[self.vel_axis]
             self.vel_unit = str(self.wcs.wcs.cunit[self.vel_axis])
 
-            self.domain_left_edge[self.vel_axis] = \
-                (self.domain_left_edge[self.vel_axis]-x0)*dz + z0
-            self.domain_right_edge[self.vel_axis] = \
-                (self.domain_right_edge[self.vel_axis]-x0)*dz + z0
+            if dz < 0.0:
+                self.reversed = True
+                le = self.dims[self.vel_axis]+0.5
+                re = 0.5
+            else:
+                self.reversed = False
+                le = 0.5
+                re = self.dims[self.vel_axis]+0.5
+            self.domain_left_edge[self.vel_axis] = (le-x0)*dz + z0
+            self.domain_right_edge[self.vel_axis] = (re-x0)*dz + z0
+            if self.reversed: dz *= -1
 
             if self.line_width is not None:
                 self.line_width = self.line_width.in_units(self.vel_unit)
                 self.freq_begin = self.domain_left_edge[self.vel_axis]
-                nz = int(self.line_width.value/dz)
+                nz = np.rint(self.line_width.value/dz).astype("int")
                 self.line_width = dz*nz
                 self.domain_left_edge[self.vel_axis] = -self.line_width/2.
                 self.domain_right_edge[self.vel_axis] = self.line_width/2.

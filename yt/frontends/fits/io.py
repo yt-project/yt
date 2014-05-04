@@ -87,27 +87,40 @@ class IOHandlerFITS(BaseIOHandler):
             ind = 0
             for chunk in chunks:
                 for g in chunk.objs:
-                    start = ((g.LeftEdge-self.pf.domain_left_edge)/dx).astype("int")
-                    end = ((g.RightEdge-self.pf.domain_left_edge)/dx).astype("int")
+                    start = ((g.LeftEdge-self.pf.domain_left_edge)/dx).to_ndarray().astype("int")
+                    end = ((g.RightEdge-self.pf.domain_left_edge)/dx).to_ndarray().astype("int")
+                    my_off = 0
                     if self.line_db is not None and fname in self.line_db:
                         my_off = self.line_db.get(fname).in_units(self.pf.vel_unit).value
                         my_off = my_off - 0.5*self.pf.line_width
-                        my_off = ((my_off-self.pf.freq_begin)/dx[self.pf.vel_axis].value).astype("int")
+                        my_off = int((my_off-self.pf.freq_begin)/dx[self.pf.vel_axis].value)
                         my_off = max(my_off, 0)
                         my_off = min(my_off, self.pf.dims[self.pf.vel_axis]-1)
-                        start[-1] = start[-1] + my_off
-                        end[-1] = end[-1] + my_off
+                        start[self.pf.vel_axis] += my_off
+                        end[self.pf.vel_axis] += my_off
                         mylog.debug("Reading from " + str(start) + str(end))
+                    slices = [slice(start[i],end[i]) for i in xrange(3)]
+                    if self.pf.reversed:
+                        new_start = self.pf.dims[self.pf.vel_axis]-1-start[self.pf.vel_axis]
+                        new_end = max(self.pf.dims[self.pf.vel_axis]-1-end[self.pf.vel_axis],0)
+                        slices[self.pf.vel_axis] = slice(new_start,new_end,-1)
                     if self.pf.dimensionality == 2:
                         nx, ny = g.ActiveDimensions[:2]
                         nz = 1
                         data = np.zeros((nx,ny,nz))
-                        data[:,:,0] = ds.data[start[1]:end[1],start[0]:end[0]].transpose()
+                        data[:,:,0] = ds.data[slices[1],slices[0]].transpose()
                     elif self.pf.naxis == 4:
                         idx = self.pf.index._axis_map[fname]
-                        data = ds.data[idx,start[2]:end[2],start[1]:end[1],start[0]:end[0]].transpose()
+                        data = ds.data[idx,slices[2],slices[1],slices[0]].transpose()
                     else:
-                        data = ds.data[start[2]:end[2],start[1]:end[1],start[0]:end[0]].transpose()
+                        data = ds.data[slices[2],slices[1],slices[0]].transpose()
+                    if self.line_db is not None:
+                        nz1 = data.shape[self.pf.vel_axis]
+                        nz2 = g.ActiveDimensions[self.pf.vel_axis]
+                        if nz1 != nz2:
+                            old_data = data.copy()
+                            data = np.zeros(g.ActiveDimensions)
+                            data[:,:,nz2-nz1:] = old_data
                     if fname in self.pf.nan_mask:
                         data[np.isnan(data)] = self.pf.nan_mask[fname]
                     elif "all" in self.pf.nan_mask:
