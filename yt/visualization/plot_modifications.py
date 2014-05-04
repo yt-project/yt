@@ -866,12 +866,17 @@ class HaloCatalogCallback(PlotCallback):
     region = None
     _descriptor = None
 
-    def __init__(self, halo_catalog, col='white', alpha =1, width = None):
+    def __init__(self, halo_catalog, col='white', alpha =1, 
+            width = None, annotate_field = False, font_kwargs = None):
+
         PlotCallback.__init__(self)
         self.halo_catalog = halo_catalog
         self.color = col
         self.alpha = alpha
         self.width = width
+        self.annotate_field = annotate_field
+        self.format_spec = text_format_spec
+        self.font_kwargs = font_kwargs
 
     def __call__(self, plot):
         data = plot.data
@@ -881,8 +886,11 @@ class HaloCatalogCallback(PlotCallback):
         yy0, yy1 = plot._axes.get_ylim()
         
         halo_data= self.halo_catalog.halos_pf.all_data()
-        field_x = "particle_position_%s" % axis_names[x_dict[data.axis]]
-        field_y = "particle_position_%s" % axis_names[y_dict[data.axis]]
+        axis_names = plot.data.pf.coordinates.axis_name
+        xax = plot.data.pf.coordinates.x_axis[data.axis]
+        yax = plot.data.pf.coordinates.y_axis[data.axis]
+        field_x = "particle_position_%s" % axis_names[xax]
+        field_y = "particle_position_%s" % axis_names[yax]
         field_z = "particle_position_%s" % axis_names[data.axis]
         plot._axes.hold(True)
 
@@ -922,6 +930,12 @@ class HaloCatalogCallback(PlotCallback):
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
 
+        if self.annotate_field:
+            annotate_dat = halo_data[self.annotate_field]
+            texts = ['{0}'.format(dat) for dat in annotate_dat]
+            for pos_x, pos_y, t in zip(px, py, texts): 
+                plot._axes.text(pos_x, pos_y, t, **self.font_kwargs)
+ 
 
 class ParticleCallback(PlotCallback):
     """
