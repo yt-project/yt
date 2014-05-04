@@ -6,24 +6,24 @@ Test ndarray subclass that handles symbolic units.
 
 """
 
-#-----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 
+import os
 from nose.tools import assert_true
 from numpy.testing import \
-    assert_approx_equal, assert_array_equal, \
+    assert_array_equal, \
     assert_equal, assert_raises, \
     assert_array_almost_equal_nulp
 from numpy import array
 from yt.units.yt_array import \
     YTArray, YTQuantity, \
     unary_operators, binary_operators
-from yt.units.unit_object import Unit
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUfuncUnitError
 from yt.testing import fake_random_pf
@@ -35,12 +35,15 @@ import cPickle as pickle
 import tempfile
 import itertools
 
+
 def operate_and_compare(a, b, op, answer):
     # Test generator for YTArrays tests
     assert_array_equal(op(a, b), answer)
 
+
 def assert_isinstance(a, type):
     assert isinstance(a, type)
+
 
 def test_addition():
     """
@@ -69,8 +72,8 @@ def test_addition():
     yield assert_raises, YTUfuncUnitError, np.add, a1, a2
 
     # Test dimensionless quantities
-    a1 = YTArray([1,2,3])
-    a2 = array([4,5,6])
+    a1 = YTArray([1, 2, 3])
+    a2 = array([4, 5, 6])
     answer = YTArray([5, 7, 9])
 
     yield operate_and_compare, a1, a2, operator.add, answer
@@ -84,6 +87,7 @@ def test_addition():
 
     yield assert_raises, YTUnitOperationError, operator.add, a1, a2
     yield assert_raises, YTUnitOperationError, operator.iadd, a1, a2
+
 
 def test_subtraction():
     """
@@ -113,8 +117,8 @@ def test_subtraction():
     yield assert_raises, YTUfuncUnitError, np.subtract, a1, a2
 
     # Test dimensionless quantities
-    a1 = YTArray([1,2,3])
-    a2 = array([4,5,6])
+    a1 = YTArray([1, 2, 3])
+    a2 = array([4, 5, 6])
     answer1 = YTArray([-3, -3, -3])
     answer2 = YTArray([3, 3, 3])
 
@@ -129,6 +133,7 @@ def test_subtraction():
 
     yield assert_raises, YTUnitOperationError, operator.sub, a1, a2
     yield assert_raises, YTUnitOperationError, operator.isub, a1, a2
+
 
 def test_multiplication():
     """
@@ -169,8 +174,8 @@ def test_multiplication():
     yield operate_and_compare, a2, a1, np.multiply, answer
 
     # One dimensionless, one unitful
-    a1 = YTArray([1,2,3], 'cm')
-    a2 = array([4,5,6])
+    a1 = YTArray([1, 2, 3], 'cm')
+    a2 = array([4, 5, 6])
     answer = YTArray([4, 10, 18], 'cm')
 
     yield operate_and_compare, a1, a2, operator.mul, answer
@@ -179,14 +184,15 @@ def test_multiplication():
     yield operate_and_compare, a2, a1, np.multiply, answer
 
     # Both dimensionless quantities
-    a1 = YTArray([1,2,3])
-    a2 = array([4,5,6])
+    a1 = YTArray([1, 2, 3])
+    a2 = array([4, 5, 6])
     answer = YTArray([4, 10, 18])
 
     yield operate_and_compare, a1, a2, operator.mul, answer
     yield operate_and_compare, a2, a1, operator.mul, answer
     yield operate_and_compare, a1, a2, np.multiply, answer
     yield operate_and_compare, a2, a1, np.multiply, answer
+
 
 def test_division():
     """
@@ -251,6 +257,7 @@ def test_division():
     yield operate_and_compare, a1, a2, np.divide, answer1
     yield operate_and_compare, a2, a1, np.divide, answer2
 
+
 def test_power():
     """
     Test power operator ensure units are correct.
@@ -266,20 +273,21 @@ def test_power():
     assert_equal, cm**YTQuantity(3), YTQuantity(1, 'cm**3')
     assert_raises, YTUnitOperationError, np.power, cm, YTQuantity(3, 'g')
 
-    assert_equal, cm_arr**3, YTArray([1,1], 'cm**3')
-    assert_equal, np.power(cm_arr, 3), YTArray([1,1], 'cm**3')
-    assert_equal, cm_arr**YTQuantity(3), YTArray([1,1], 'cm**3')
+    assert_equal, cm_arr**3, YTArray([1, 1], 'cm**3')
+    assert_equal, np.power(cm_arr, 3), YTArray([1, 1], 'cm**3')
+    assert_equal, cm_arr**YTQuantity(3), YTArray([1, 1], 'cm**3')
     assert_raises, YTUnitOperationError, np.power, cm_arr, YTQuantity(3, 'g')
+
 
 def test_comparisons():
     """
     Test numpy ufunc comparison operators for unit consistency.
 
     """
-    from yt.units.yt_array import YTArray, YTQuantity
+    from yt.units.yt_array import YTArray
 
-    a1 = YTArray([1,2,3], 'cm')
-    a2 = YTArray([2,1,3], 'cm')
+    a1 = YTArray([1, 2, 3], 'cm')
+    a2 = YTArray([2, 1, 3], 'cm')
     a3 = YTArray([.02, .01, .03], 'm')
 
     ops = (
@@ -309,6 +317,7 @@ def test_comparisons():
     for op, answer in zip(ops, answers):
         yield operate_and_compare, a1, a3.in_units('cm'), op, answer
 
+
 def test_unit_conversions():
     """
     Test operations that convert to different units or cast to ndarray
@@ -319,7 +328,6 @@ def test_unit_conversions():
 
     km = YTQuantity(1, 'km')
     km_in_cm = km.in_units('cm')
-    km_unit = Unit('km')
     cm_unit = Unit('cm')
     kpc_unit = Unit('kpc')
 
@@ -383,6 +391,7 @@ def test_yt_array_yt_quantity_ops():
     yield assert_isinstance, b*b, YTQuantity
     yield assert_isinstance, b/b, YTQuantity
 
+
 def test_selecting():
     """
     Test slicing of two YTArrays
@@ -390,15 +399,16 @@ def test_selecting():
     """
     a = YTArray(range(10), 'cm')
     a_slice = a[:3]
-    a_fancy_index = a[[1,1,3,5]]
-    a_array_fancy_index = a[array([[1,1], [3,5]])]
+    a_fancy_index = a[[1, 1, 3, 5]]
+    a_array_fancy_index = a[array([[1, 1], [3, 5]])]
     a_boolean_index = a[a > 5]
     a_selection = a[0]
 
     yield assert_array_equal, a_slice, YTArray([0, 1, 2], 'cm')
-    yield assert_array_equal, a_fancy_index, YTArray([1,1,3,5], 'cm')
-    yield assert_array_equal, a_array_fancy_index, YTArray([[1, 1,], [3,5]], 'cm')
-    yield assert_array_equal, a_boolean_index, YTArray([6,7,8,9], 'cm')
+    yield assert_array_equal, a_fancy_index, YTArray([1, 1, 3, 5], 'cm')
+    yield assert_array_equal, a_array_fancy_index, \
+        YTArray([[1, 1, ], [3, 5]], 'cm')
+    yield assert_array_equal, a_boolean_index, YTArray([6, 7, 8, 9], 'cm')
     yield assert_isinstance, a_selection, YTQuantity
 
     # .base points to the original array for a numpy view.  If it is not a
@@ -408,34 +418,42 @@ def test_selecting():
     yield assert_true, a_array_fancy_index.base is None
     yield assert_true, a_boolean_index.base is None
 
+
 def test_fix_length():
     """
     Test fixing the length of an array. Used in spheres and other data objects
     """
     pf = fake_random_pf(64, nprocs=1, length_unit=10)
-    length = pf.quan(1.0,'code_length')
+    length = pf.quan(1.0, 'code_length')
     new_length = fix_length(length, pf=pf)
     yield assert_equal, YTQuantity(10, 'cm'), new_length
 
+
 def test_ytarray_pickle():
     pf = fake_random_pf(64, nprocs=1)
-    test_data = [pf.quan(12.0, 'code_length'), pf.arr([1,2,3], 'code_length')]
+    test_data = [pf.quan(12.0, 'code_length'),
+                 pf.arr([1, 2, 3], 'code_length')]
 
     for data in test_data:
         tempf = tempfile.NamedTemporaryFile(delete=False)
         pickle.dump(data, tempf)
         tempf.close()
 
-        loaded_data = pickle.load(open(tempf.name, "rb"))
+        with open(tempf.name, "rb") as fname:
+            loaded_data = pickle.load(fname)
+        os.unlink(tempf.name)
 
         yield assert_array_equal, data, loaded_data
         yield assert_equal, data.units, loaded_data.units
-        yield assert_array_equal, array(data.in_cgs()), array(loaded_data.in_cgs())
-        yield assert_equal, float(data.units.cgs_value), float(loaded_data.units.cgs_value)
+        yield assert_array_equal, array(data.in_cgs()), \
+            array(loaded_data.in_cgs())
+        yield assert_equal, float(data.units.cgs_value), \
+            float(loaded_data.units.cgs_value)
+
 
 def test_copy():
     quan = YTQuantity(1, 'g')
-    arr = YTArray([1,2,3], 'cm')
+    arr = YTArray([1, 2, 3], 'cm')
 
     yield assert_equal, copy.copy(quan), quan
     yield assert_array_equal, copy.copy(arr), arr
@@ -448,6 +466,7 @@ def test_copy():
 
     yield assert_equal, np.copy(quan), quan
     yield assert_array_equal, np.copy(arr), arr
+
 
 def unary_ufunc_comparison(ufunc, a):
     out = a.copy()
@@ -517,13 +536,14 @@ def unary_ufunc_comparison(ufunc, a):
         # There shouldn't be any untested ufuncs.
         assert_true(False)
 
+
 def binary_ufunc_comparison(ufunc, a, b):
     out = a.copy()
-    if ufunc in (np.add, np.subtract, np.remainder, np.fmod, np.mod, np.arctan2,
-                 np.hypot, np.greater, np.greater_equal, np.less, np.less_equal,
-                 np.equal, np.not_equal, np.logical_and, np.logical_or,
-                 np.logical_xor, np.maximum, np.minimum, np.fmax, np.fmin,
-                 np.nextafter):
+    if ufunc in (np.add, np.subtract, np.remainder, np.fmod, np.mod,
+                 np.arctan2, np.hypot, np.greater, np.greater_equal, np.less,
+                 np.less_equal, np.equal, np.not_equal, np.logical_and,
+                 np.logical_or, np.logical_xor, np.maximum, np.minimum,
+                 np.fmax, np.fmin, np.nextafter):
         if a.units != b.units and a.units.dimensions == b.units.dimensions:
             assert_raises(YTUfuncUnitError, ufunc, a, b)
             return
@@ -540,9 +560,11 @@ def binary_ufunc_comparison(ufunc, a, b):
     elif ufunc in (np.greater, np.greater_equal, np.less, np.less_equal,
                    np.not_equal, np.equal, np.logical_and, np.logical_or,
                    np.logical_xor):
-        assert_true(not isinstance(ret, YTArray) and isinstance(ret, np.ndarray))
+        assert_true(not isinstance(ret, YTArray) and
+                    isinstance(ret, np.ndarray))
     assert_array_equal(ret, out)
     assert_array_equal(ret, ufunc(np.array(a), np.array(b)))
+
 
 def test_ufuncs():
     for ufunc in unary_operators:
@@ -568,8 +590,9 @@ def test_ufuncs():
         d = YTArray([.1, .2, .3], 'g')
         e = YTArray([.1, .2, .3], 'erg/m**3')
 
-        for pair in itertools.product([a,b,c,d,e], repeat=2):
+        for pair in itertools.product([a, b, c, d, e], repeat=2):
             yield binary_ufunc_comparison, ufunc, pair[0], pair[1]
+
 
 def test_convenience():
 
