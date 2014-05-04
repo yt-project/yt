@@ -433,7 +433,7 @@ class ProfilePlot(object):
         if field_name is None:
             field_name = r'$\rm{'+field+r'}$'
         elif field_name.find('$') == -1:
-            field_name = r'$\rm{'+field+r'}$'
+            field_name = r'$\rm{'+field_name+r'}$'
         if units is None or units == '':
             label = field_name
         else:
