@@ -17,6 +17,7 @@ import numpy as np
 import matplotlib
 import cStringIO
 import types
+import warnings
 
 from matplotlib.delaunay.triangulate import Triangulation as triang
 from matplotlib.mathtext import MathTextParser
@@ -640,6 +641,14 @@ class PlotWindow(ImagePlotContainer):
                     raise YTUnitNotRecognized(un)
         self._axes_unit_names = unit_name
         return self
+
+    @property
+    def _frb(self):
+        # Note we use SyntaxWarning because DeprecationWarning is not shown
+        # by default
+        warnings.warn("_frb is deprecated, use frb instead.",
+                      SyntaxWarning)
+        return self.frb
 
 class PWViewerMPL(PlotWindow):
     """Viewer using matplotlib as a backend via the WindowPlotMPL.
