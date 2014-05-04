@@ -54,8 +54,8 @@ class ChomboGrid(AMRGridPatch):
     def __init__(self, id, index, level, start, stop):
         AMRGridPatch.__init__(self, id, filename = index.index_filename,
                               index = index)
-        self.Parent = []
-        self.Children = []
+        self._parent_id = []
+        self._children_ids = []
         self.Level = level
         self.ActiveDimensions = stop - start + 1
 
@@ -67,7 +67,7 @@ class ChomboGrid(AMRGridPatch):
         """
         if self.start_index != None:
             return self.start_index
-        if self.Parent == []:
+        if self.Parent is None:
             iLE = self.LeftEdge - self.pf.domain_left_edge
             start_index = iLE / self.dds
             return np.rint(start_index).astype('int64').ravel()
@@ -80,6 +80,18 @@ class ChomboGrid(AMRGridPatch):
     def _setup_dx(self):
         # has already been read in and stored in index
         self.dds = self.pf.arr(self.index.dds_list[self.Level], "code_length")
+
+    @property
+    def Parent(self):
+        if len(self._parent_id) == 0:
+            return None
+        return [self.index.grids[pid - self._id_offset]
+                for pid in self._parent_id]
+
+    @property
+    def Children(self):
+        return [self.index.grids[cid - self._id_offset]
+                for cid in self._children_ids]
 
 class ChomboHierarchy(GridIndex):
 
@@ -148,7 +160,7 @@ class ChomboHierarchy(GridIndex):
             if key.startswith("particle"):
                 particle_fields.append(val)
         self.field_list.extend([("io", c) for c in particle_fields])        
-          
+
     def _count_grids(self):
         self.num_grids = 0
         for lev in self._levels:
@@ -156,6 +168,7 @@ class ChomboHierarchy(GridIndex):
 
     def _parse_index(self):
         f = self._handle # shortcut
+        self.max_level = f.attrs['max_level']
 
         grids = []
         self.dds_list = []
@@ -193,6 +206,7 @@ class ChomboHierarchy(GridIndex):
                                start = si, stop = ei)
                 grids.append(pg)
                 grids[-1]._level_id = level_id
+                self.grid_levels[i] = level_number
                 self.grid_left_edge[i] = self.dds_list[lev_index]*si.astype(self.float_type)
                 self.grid_right_edge[i] = self.dds_list[lev_index]*(ei.astype(self.float_type)+1)
                 self.grid_particle_count[i] = 0
@@ -206,7 +220,6 @@ class ChomboHierarchy(GridIndex):
         for g in self.grids:
             g._prepare_grid()
             g._setup_dx()
-        self.max_level = self.grid_levels.max()
 
     def _setup_derived_fields(self):
         self.derived_field_list = []
