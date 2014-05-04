@@ -77,7 +77,6 @@ class ChomboGrid(AMRGridPatch):
     def _setup_dx(self):
         # has already been read in and stored in index
         self.dds = self.pf.arr(self.index.dds_list[self.Level], "code_length")
-<<<<<<< local
 
     @property
     def Parent(self):
@@ -90,8 +89,6 @@ class ChomboGrid(AMRGridPatch):
     def Children(self):
         return [self.index.grids[cid - self._id_offset]
                 for cid in self._children_ids]
-=======
->>>>>>> other
 
 class ChomboHierarchy(GridIndex):
 
@@ -412,70 +409,8 @@ class Orion2Dataset(ChomboDataset):
     def __init__(self, filename, dataset_type='orion_chombo_native',
                  storage_filename = None, ini_filename = None):
 
-<<<<<<< local
         ChomboDataset.__init__(self, filename, dataset_type, 
-            storage_filename, ini_filename)
-=======
-    def _populate_grid_objects(self):
-        self._reconstruct_parent_child()
-        for g in self.grids:
-            g._prepare_grid()
-            g._setup_dx()
-        self.max_level = self.grid_levels.max()
-
-    def _setup_derived_fields(self):
-        self.derived_field_list = []
-
-    def _reconstruct_parent_child(self):
-        mask = np.empty(len(self.grids), dtype='int32')
-        mylog.debug("First pass; identifying child grids")
-        for i, grid in enumerate(self.grids):
-            get_box_grids_level(self.grid_left_edge[i,:],
-                                self.grid_right_edge[i,:],
-                                self.grid_levels[i] + 1,
-                                self.grid_left_edge, self.grid_right_edge,
-                                self.grid_levels, mask)
-            ids = np.where(mask.astype("bool")) # where is a tuple
-            grid._children_ids = ids[0] + grid._id_offset 
-        mylog.debug("Second pass; identifying parents")
-        for i, grid in enumerate(self.grids): # Second pass
-            for child in grid.Children:
-                child._parent_id.append(i + grid._id_offset)
-
-class ChomboDataset(Dataset):
-    _index_class = ChomboHierarchy
-    _field_info_class = ChomboFieldInfo
-
-    def __init__(self, filename, dataset_type='chombo_hdf5',
-                 storage_filename = None, ini_filename = None):
-        self.fluid_types += ("chombo",)
-        self._handle = h5py.File(filename,'r')
-        self.current_time = self._handle.attrs['time']
-        self.ini_filename = ini_filename
-        self.fullplotdir = os.path.abspath(filename)
-        Dataset.__init__(self,filename,dataset_type)
-        self.storage_filename = storage_filename
-        self.cosmological_simulation = False
-
-        # These are parameters that I very much wish to get rid of.
-        self.parameters["HydroMethod"] = 'chombo' # always PPM DE
-        self.parameters["DualEnergyFormalism"] = 0 
-        self.parameters["EOSType"] = -1 # default
-
-    def __del__(self):
-        self._handle.close()
-
-    def _set_code_unit_attributes(self):
-        self.length_unit = self.quan(1.0, "cm")
-        self.mass_unit = self.quan(1.0, "g")
-        self.time_unit = self.quan(1.0, "s")
-        self.velocity_unit = self.quan(1.0, "cm/s")
-
-    def _localize(self, f, default):
-        if f is None:
-            return os.path.join(self.directory, default)
-        return f
->>>>>>> other
+                    storage_filename, ini_filename)
 
     def _parse_parameter_file(self):
         """
