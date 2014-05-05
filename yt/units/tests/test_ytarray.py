@@ -634,15 +634,19 @@ def test_astropy():
 
     ap_arr = np.arange(10)*_astropy.units.km/_astropy.units.hr
     yt_arr = YTArray(np.arange(10), "km/hr")
+    yt_arr2 = YTArray.from_astropy(ap_arr)
 
     ap_quan = 10.*_astropy.units.Msun**0.5/(_astropy.units.kpc**3)
     yt_quan = YTQuantity(10.,"sqrt(Msun)/kpc**3")
+    yt_quan2 = YTQuantity.from_astropy(ap_quan)
 
     yield assert_array_equal, ap_arr, yt_arr.to_astropy()
     yield assert_array_equal, yt_arr, YTArray(ap_arr)
+    yield assert_array_equal, yt_arr, yt_arr2
 
     yield assert_equal, ap_quan, yt_quan.to_astropy()
     yield assert_equal, yt_quan, YTQuantity(ap_quan)
+    yield assert_equal, yt_quan, yt_quan2
 
     yield assert_array_equal, yt_arr, YTArray(yt_arr.to_astropy())
     yield assert_equal, yt_quan, YTQuantity(yt_quan.to_astropy())

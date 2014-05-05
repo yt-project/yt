@@ -253,20 +253,7 @@ class YTArray(np.ndarray):
                     )
         if _astropy.units is not None:
             if isinstance(input_array, _astropy.units.quantity.Quantity):
-                # Converting from AstroPy Quantity
-                u = input_array.unit
-                ap_units = []
-                for base, power in zip(u.bases, u.powers):
-                    unit_str = base.to_string()
-                    # we have to do this because AstroPy is silly and defines
-                    # hour as "h"
-                    if unit_str == "h": unit_str = "hr"
-                    ap_units.append("%s**(%s)" % (unit_str, Rational(power)))
-                ap_units = "*".join(ap_units)
-                if isinstance(input_array.value, np.ndarray):
-                    return YTArray(input_array.value, ap_units)
-                else:
-                    return YTQuantity(input_array.value, ap_units)
+                return cls.from_astropy(input_array)
         if isinstance(input_array, YTArray):
             if input_units is None:
                 if registry is None:
@@ -441,6 +428,28 @@ class YTArray(np.ndarray):
 
         """
         return np.array(self)
+
+    @classmethod
+    def from_astropy(cls, arr):
+        """
+        Creates a new YTArray with the same unit information from an
+        AstroPy quantity *arr*.
+        """
+        # Converting from AstroPy Quantity
+        u = arr.unit
+        ap_units = []
+        for base, power in zip(u.bases, u.powers):
+            unit_str = base.to_string()
+            # we have to do this because AstroPy is silly and defines
+            # hour as "h"
+            if unit_str == "h": unit_str = "hr"
+            ap_units.append("%s**(%s)" % (unit_str, Rational(power)))
+        ap_units = "*".join(ap_units)
+        if isinstance(arr.value, np.ndarray):
+            return YTArray(arr.value, ap_units)
+        else:
+            return YTQuantity(arr.value, ap_units)
+
 
     def to_astropy(self, **kwargs):
         """
