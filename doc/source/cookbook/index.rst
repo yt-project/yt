@@ -45,5 +45,6 @@ Example Notebooks
    custom_colorbar_tickmarks
    embedded_javascript_animation
    embedded_webm_animation
+   tipsy_and_yt
    ../analyzing/analysis_modules/sunyaev_zeldovich
    
