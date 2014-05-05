@@ -252,6 +252,24 @@ class FisheyeLens(Lens):
         """
         self.viewpoint = camera.position
 
+    def project_to_plane(self, camera, pos, res=None):
+        if res is None:
+            res = camera.resolution
+        # the return values here need to be px, py, dz
+        # these are the coordinates and dz for the resultant image.
+        # Basically, what we need is an inverse projection from the fisheye
+        # vectors back onto the plane.  arr_fisheye_vectors goes from px, py to
+        # vector, and we need the reverse.
+        theta = np.arccos(pos[:,2]) 
+        fov_rad = self.fov * np.pi / 180.0
+        r = 2.0 * theta / fov_rad
+        phi = np.arccos(pos[:,0] / np.sin(theta))
+        px = r * np.cos(phi) + 1.0
+        py = r * np.sin(phi) + 1.0
+        dz = np.zeros_like(py) + 1.0
+        px = np.rint(px * res)
+        py = np.rint(py * res)
+        return px, py, dz
 
 lenses = {'plane-parallel': PlaneParallelLens,
           'perspective': PerspectiveLens,
