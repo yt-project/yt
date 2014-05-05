@@ -11,7 +11,7 @@ Generating PPV FITS cubes
 #-----------------------------------------------------------------------------
 
 import numpy as np
-from yt.frontends.fits.data_structures import ap
+from yt.utilities.on_demand_imports import ap
 from yt.utilities.orientation import Orientation
 from yt.utilities.fits_image import FITSImageBuffer
 from yt.visualization.volume_rendering.camera import off_axis_projection

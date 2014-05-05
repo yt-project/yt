@@ -39,58 +39,7 @@ from yt.units.unit_lookup_table import \
     unit_prefixes
 from yt.units import dimensions
 from yt.units.yt_array import YTQuantity
-
-class astropy_imports:
-    _pyfits = None
-    @property
-    def pyfits(self):
-        if self._pyfits is None:
-            try:
-                import astropy.io.fits as pyfits
-                self.log
-            except ImportError:
-                pyfits = None
-            self._pyfits = pyfits
-        return self._pyfits
-
-    _pywcs = None
-    @property
-    def pywcs(self):
-        if self._pywcs is None:
-            try:
-                import astropy.wcs as pywcs
-                self.log
-            except ImportError:
-                pywcs = None
-            self._pywcs = pywcs
-        return self._pywcs
-
-    _log = None
-    @property
-    def log(self):
-        if self._log is None:
-            try:
-                from astropy import log
-                if log.exception_logging_enabled():
-                    log.disable_exception_logging()
-            except ImportError:
-                log = None
-            self._log = log
-        return self._log
-
-    _conv = None
-    @property
-    def conv(self):
-        if self._conv is None:
-            try:
-                import astropy.convolution as conv
-                self.log
-            except ImportError:
-                conv = None
-            self._conv = conv
-        return self._conv
-
-ap = astropy_imports()
+from yt.utilities.on_demand_imports import ap
 
 lon_prefixes = ["X","RA","GLON"]
 lat_prefixes = ["Y","DEC","GLAT"]
