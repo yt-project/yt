@@ -22,7 +22,6 @@ from yt.utilities.physical_constants import sigma_thompson, clight, hcgs, kboltz
 from yt.fields.local_fields import add_field, derived_field
 from yt.data_objects.image_array import ImageArray
 from yt.funcs import fix_axis, mylog, iterable, get_pbar
-from yt.utilities.definitions import inv_axis_names
 from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only
@@ -134,7 +133,7 @@ class SZProjection(object):
         --------
         >>> szprj.on_axis("y", center="max", width=(1.0, "Mpc"), source=my_sphere)
         """
-        axis = fix_axis(axis)
+        axis = fix_axis(axis, self.pf)
 
         if center == "c":
             ctr = self.pf.domain_center

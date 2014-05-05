@@ -4,24 +4,20 @@ Tests for AMRSlice
 
 """
 
-#-----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+# ----------------------------------------------------------------------------
 import os
 import numpy as np
 import tempfile
-from nose.tools import raises
 from yt.testing import \
-    fake_random_pf, assert_equal, assert_array_equal, YTArray
-from yt.utilities.definitions import \
-    x_dict, y_dict
-from yt.utilities.exceptions import \
-    YTNoDataInObjectError
+    fake_random_pf, assert_equal
 from yt.units.unit_object import Unit
+
 
 def setup():
     from yt.config import ytcfg
@@ -35,7 +31,9 @@ def teardown_func(fns):
         except OSError:
             pass
 
+
 def test_slice():
+    fns = []
     for nprocs in [8, 1]:
         # We want to test both 1 proc and 8 procs, to make sure that
         # parallelism isn't broken
@@ -50,10 +48,9 @@ def test_slice():
         slc_pos = 0.5
         # Some simple slice tests with single grids
         for ax, an in enumerate("xyz"):
-            xax = x_dict[ax]
-            yax = y_dict[ax]
+            xax = pf.coordinates.x_axis[ax]
+            yax = pf.coordinates.y_axis[ax]
             for wf in ["density", None]:
-                fns = []
                 slc = pf.slice(ax, slc_pos)
                 yield assert_equal, slc["ones"].sum(), slc["ones"].size
                 yield assert_equal, slc["ones"].min(), 1.0
@@ -65,7 +62,8 @@ def test_slice():
                 pw = slc.to_pw()
                 tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
                 os.close(tmpfd)
-                fns += pw.save(name=tmpname)
+                pw.save(name=tmpname)
+                fns.append(tmpname)
                 frb = slc.to_frb((1.0, 'unitary'), 64)
                 for slc_field in ['ones', 'density']:
                     fi = pf._get_field_info(slc_field)
@@ -85,9 +83,9 @@ def test_slice():
                         slc.center
                     yield assert_equal, frb[slc_field].info['coord'], \
                         slc_pos
-                teardown_func(fns)
             # wf == None
             yield assert_equal, wf, None
+    teardown_func(fns)
 
 
 def test_slice_over_edges():

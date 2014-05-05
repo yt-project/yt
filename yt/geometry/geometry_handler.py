@@ -34,7 +34,7 @@ from yt.fields.particle_fields import \
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface, parallel_splitter
+    ParallelAnalysisInterface, parallel_root_only
 from yt.utilities.exceptions import YTFieldNotFound
 
 class Index(ParallelAnalysisInterface):
@@ -124,7 +124,8 @@ class Index(ParallelAnalysisInterface):
         if getattr(self, "io", None) is not None: return
         self.io = io_registry[self.dataset_type](self.parameter_file)
 
-    def _save_data(self, array, node, name, set_attr=None, force=False, passthrough = False):
+    @parallel_root_only
+    def save_data(self, array, node, name, set_attr=None, force=False, passthrough = False):
         """
         Arbitrary numpy data will be saved to the region in the datafile
         described by *node* and *name*.  If data file does not exist, it throws
@@ -154,14 +155,6 @@ class Index(ParallelAnalysisInterface):
         self._data_file.close()
         del self._data_file
         self._data_file = h5py.File(self.__data_filename, self._data_mode)
-
-    save_data = parallel_splitter(_save_data, _reload_data_file)
-
-    def _reset_save_data(self,round_robin=False):
-        if round_robin:
-            self.save_data = self._save_data
-        else:
-            self.save_data = parallel_splitter(self._save_data, self._reload_data_file)
 
     def save_object(self, obj, name):
         """

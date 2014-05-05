@@ -1,5 +1,6 @@
 """
-Halo Finding methods
+__init__ for yt.frontends.sdf
+
 
 
 
@@ -12,9 +13,3 @@ Halo Finding methods
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-
-from .operator_registry import \
-    hf_registry
-
-class HaloFindingMethod(object):
-    pass

@@ -22,6 +22,7 @@ def configuration(parent_package='', top_path=None):
 #    config.add_subpackage("artio2")
     config.add_subpackage("pluto")
     config.add_subpackage("ramses")
+    config.add_subpackage("sdf")
     config.add_subpackage("sph")
     config.add_subpackage("stream")
     config.add_subpackage("boxlib/tests")

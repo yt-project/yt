@@ -93,3 +93,5 @@ used internally.
   uploading AMRSurface objects.
 * ``suppressStreamLogging`` (default: ``'False'``): If true, execution mode will be
   quiet.
+* ``stdoutStreamLogging`` (default: ``'False'``): If three, logging is directed
+  to stdout rather than stderr

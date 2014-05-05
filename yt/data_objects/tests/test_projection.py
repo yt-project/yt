@@ -1,11 +1,15 @@
-from yt.testing import *
+import numpy as np
+from yt.testing import \
+    fake_random_pf, assert_equal, assert_rel_equal
 from yt.units.unit_object import Unit
 import os
 import tempfile
 
+
 def setup():
     from yt.config import ytcfg
-    ytcfg["yt","__withintesting"] = "True"
+    ytcfg["yt", "__withintesting"] = "True"
+
 
 def teardown_func(fns):
     for fn in fns:
@@ -14,26 +18,29 @@ def teardown_func(fns):
         except OSError:
             pass
 
+
 def test_projection():
+    fns = []
     for nprocs in [8, 1]:
         # We want to test both 1 proc and 8 procs, to make sure that
         # parallelism isn't broken
-        pf = fake_random_pf(64, nprocs = nprocs)
+        pf = fake_random_pf(64, nprocs=nprocs)
         dims = pf.domain_dimensions
         xn, yn, zn = pf.domain_dimensions
-        xi, yi, zi = pf.domain_left_edge.to_ndarray() + 1.0/(pf.domain_dimensions * 2)
-        xf, yf, zf = pf.domain_right_edge.to_ndarray() - 1.0/(pf.domain_dimensions * 2)
+        xi, yi, zi = pf.domain_left_edge.to_ndarray() + \
+            1.0 / (pf.domain_dimensions * 2)
+        xf, yf, zf = pf.domain_right_edge.to_ndarray() - \
+            1.0 / (pf.domain_dimensions * 2)
         dd = pf.h.all_data()
         rho_tot = dd.quantities["TotalQuantity"]("density")
         coords = np.mgrid[xi:xf:xn*1j, yi:yf:yn*1j, zi:zf:zn*1j]
         uc = [np.unique(c) for c in coords]
         # Some simple projection tests with single grids
         for ax, an in enumerate("xyz"):
-            xax = x_dict[ax]
-            yax = y_dict[ax]
+            xax = pf.coordinates.x_axis[ax]
+            yax = pf.coordinates.y_axis[ax]
             for wf in ["density", None]:
-                fns = []
-                proj = pf.proj(["ones", "density"], ax, weight_field = wf)
+                proj = pf.proj(["ones", "density"], ax, weight_field=wf)
                 yield assert_equal, proj["ones"].sum(), proj["ones"].size
                 yield assert_equal, proj["ones"].min(), 1.0
                 yield assert_equal, proj["ones"].max(), 1.0
@@ -44,16 +51,17 @@ def test_projection():
                 pw = proj.to_pw()
                 tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
                 os.close(tmpfd)
-                fns += pw.save(name=tmpname)
-                frb = proj.to_frb((1.0,'unitary'), 64)
+                pw.save(name=tmpname)
+                fns.append(tmpname)
+                frb = proj.to_frb((1.0, 'unitary'), 64)
                 for proj_field in ['ones', 'density']:
                     fi = pf._get_field_info(proj_field)
                     yield assert_equal, frb[proj_field].info['data_source'], \
-                            proj.__str__()
+                        proj.__str__()
                     yield assert_equal, frb[proj_field].info['axis'], \
-                            ax
+                        ax
                     yield assert_equal, frb[proj_field].info['field'], \
-                            proj_field
+                        proj_field
                     field_unit = Unit(fi.units)
                     if wf is not None:
                         yield assert_equal, frb[proj_field].units, \
@@ -64,22 +72,21 @@ def test_projection():
                         else:
                             proj_unit = "cm"
                         if field_unit != '' and field_unit != Unit():
-                            proj_unit = "({0}) * {1}".format(field_unit, proj_unit)
+                            proj_unit = \
+                                "({0}) * {1}".format(field_unit, proj_unit)
                         yield assert_equal, frb[proj_field].units, \
                             Unit(proj_unit, registry=pf.unit_registry)
                     yield assert_equal, frb[proj_field].info['xlim'], \
-                            frb.bounds[:2]
+                        frb.bounds[:2]
                     yield assert_equal, frb[proj_field].info['ylim'], \
-                            frb.bounds[2:]
+                        frb.bounds[2:]
                     yield assert_equal, frb[proj_field].info['center'], \
-                            proj.center
+                        proj.center
                     yield assert_equal, frb[proj_field].info['weight_field'], \
-                            wf
-                teardown_func(fns)
+                        wf
             # wf == None
             yield assert_equal, wf, None
             v1 = proj["density"].sum()
             v2 = (dd["density"] * dd["d%s" % an]).sum()
             yield assert_rel_equal, v1, v2, 10
-
-
+    teardown_func(fns)

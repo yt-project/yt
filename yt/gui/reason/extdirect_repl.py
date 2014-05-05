@@ -39,7 +39,6 @@ except ImportError:
 
 from yt.funcs import *
 from yt.utilities.logger import ytLogger, ufstring
-from yt.utilities.definitions import inv_axis_names
 from yt.visualization.image_writer import apply_colormap
 from yt.visualization.api import Streamlines
 from .widget_store import WidgetStore

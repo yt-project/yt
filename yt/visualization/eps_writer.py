@@ -19,11 +19,6 @@ import matplotlib.pyplot as plt
 from _mpl_imports import FigureCanvasAgg
 
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.definitions import \
-    x_dict, x_names, \
-    y_dict, y_names, \
-    axis_names, \
-    axis_labels
 from .plot_window import PlotWindow
 from .profile_plotter import PhasePlot
 from .plot_modifications import get_smallest_appropriate_unit
@@ -296,6 +291,7 @@ class DualEPS(object):
             _yrange = (0, width * plot.pf[units])
             _xlog = False
             _ylog = False
+            axis_names = plot.pf.coordinates.axis_name
             if bare_axes:
                 _xlabel = ""
                 _ylabel = ""
@@ -305,14 +301,16 @@ class DualEPS(object):
                     _xlabel = xlabel
                 else:
                     if data.axis != 4:
-                        _xlabel = '%s (%s)' % (x_names[data.axis], units)
+                        xax = plot.pf.coordinates.x_axis[data.axis]
+                        _xlabel = '%s (%s)' % (axis_names[xax], units)
                     else:
                         _xlabel = 'Image x (%s)' % (units)
                 if ylabel != None:
                     _ylabel = ylabel
                 else:
                     if data.axis != 4:
-                        _ylabel = '%s (%s)' % (y_names[data.axis], units)
+                        yax = plot.pf.coordinatesyx_axis[data.axis]
+                        _ylabel = '%s (%s)' % (axis_names[yax], units)
                     else:
                         _ylabel = 'Image y (%s)' % (units)
             if tickcolor == None:
