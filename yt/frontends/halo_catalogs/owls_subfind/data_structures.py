@@ -159,8 +159,6 @@ class OWLSSubfindDataset(Dataset):
         self._unit_base = {}
         self._unit_base.update(
             (str(k), v) for k, v in handle["/Units"].attrs.items())
-        # Comoving cm is given in the Units
-        self._unit_base['cmcm'] = 1.0 / self._unit_base["UnitLength_in_cm"]
         handle.close()
 
     def _set_code_unit_attributes(self):
