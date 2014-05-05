@@ -494,6 +494,8 @@ class FITSDataset(Dataset):
     def _setup_ppv(self):
 
         self.ppv_data = True
+        self.geometry = "ppv"
+
         end = min(self.dimensionality+1,4)
         if self.events_data:
             ctypes = self.axis_names

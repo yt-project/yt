@@ -16,7 +16,7 @@ from .base_plot_types import CallbackWrapper
 
 from yt.funcs import \
     defaultdict, get_image_suffix, \
-    get_ipython_api_version
+    get_ipython_api_version, iterable
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 from ._mpl_imports import FigureCanvasAgg
@@ -111,7 +111,10 @@ class ImagePlotContainer(object):
 
     def __init__(self, data_source, figure_size, fontsize):
         self.data_source = data_source
-        self.figure_size = float(figure_size)
+        if iterable(figure_size):
+            self.figure_size = float(figure_size[0]), float(figure_size[1])
+        else:
+            self.figure_size = float(figure_size)
         self.plots = PlotDictionary(data_source)
         self._callbacks = []
         self._field_transform = {}
