@@ -303,6 +303,8 @@ class FITSSlice(FITSImageBuffer):
         slc = ds.slice(axis, coord, **kwargs)
         w, frb = construct_image(slc)
         super(FITSSlice, self).__init__(frb, fields=fields, wcs=w)
+        for i, field in enumerate(fields):
+            self[i].header["bunit"] = str(frb[field].units)
 
 class FITSProjection(FITSImageBuffer):
     r"""
@@ -325,6 +327,8 @@ class FITSProjection(FITSImageBuffer):
         prj = ds.proj(fields[0], axis, weight_field=weight_field, **kwargs)
         w, frb = construct_image(prj)
         super(FITSProjection, self).__init__(frb, fields=fields, wcs=w)
+        for i, field in enumerate(fields):
+            self[i].header["bunit"] = str(frb[field].units)
 
 
 

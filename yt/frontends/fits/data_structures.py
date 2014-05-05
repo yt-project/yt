@@ -94,7 +94,8 @@ class FITSHierarchy(GridIndex):
             # FITS units always return upper-case, so we need to get
             # the right case by comparing against known units. This
             # only really works for common units.
-            units = re.split(regex_pattern, field_units)
+            units = set(re.split(regex_pattern, field_units))
+            units.remove('')
             n = int(0)
             for unit in units:
                 if unit in known_units:
@@ -211,7 +212,7 @@ class FITSHierarchy(GridIndex):
                                                        pf.domain_right_edge)])
             dims = np.array(pf.domain_dimensions)
             # If we are creating a dataset of lines, only decompose along the position axes
-            if pf.line_database is not None:
+            if len(pf.line_database) > 0:
                 dims[pf.vel_axis] = 1
             psize = get_psize(dims, pf.nprocs)
             gle, gre, shapes, slices = decompose_array(dims, psize, bbox)
@@ -219,7 +220,7 @@ class FITSHierarchy(GridIndex):
             self.grid_right_edge = self.pf.arr(gre, "code_length")
             self.grid_dimensions = np.array([shape for shape in shapes], dtype="int32")
             # If we are creating a dataset of lines, only decompose along the position axes
-            if pf.line_database is not None:
+            if len(pf.line_database) > 0:
                 self.grid_left_edge[:,pf.vel_axis] = pf.domain_left_edge[pf.vel_axis]
                 self.grid_right_edge[:,pf.vel_axis] = pf.domain_right_edge[pf.vel_axis]
                 self.grid_dimensions[:,pf.vel_axis] = pf.domain_dimensions[pf.vel_axis]
@@ -480,6 +481,8 @@ class FITSDataset(Dataset):
                                     32**self.dimensionality).astype("int")
             self.nprocs = max(min(self.nprocs, 512), 1)
 
+        self.reversed = False
+
         # Check to see if this data is in some kind of (Lat,Lon,Vel) format
         self.ppv_data = False
         x = 0
@@ -540,7 +543,6 @@ class FITSDataset(Dataset):
                 le = self.dims[self.vel_axis]+0.5
                 re = 0.5
             else:
-                self.reversed = False
                 le = 0.5
                 re = self.dims[self.vel_axis]+0.5
             self.domain_left_edge[self.vel_axis] = (le-x0)*dz + z0
