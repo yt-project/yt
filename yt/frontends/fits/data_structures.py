@@ -153,7 +153,7 @@ class FITSHierarchy(GridIndex):
                     n += 1
             if n != len(units): field_units = "dimensionless"
             return field_units
-        except:
+        except KeyError:
             return "dimensionless"
 
     def _ensure_same_dims(self, hdu):
@@ -204,7 +204,7 @@ class FITSHierarchy(GridIndex):
                     try:
                         # Grab field name from btype
                         fname = hdu.header["btype"].lower()
-                    except:
+                    except KeyError:
                         # Try to guess the name from the units
                         fname = self._guess_name_from_units(units)
                         # When all else fails
@@ -229,6 +229,9 @@ class FITSHierarchy(GridIndex):
                         self.field_list.append(("fits", fname))
                         self.parameter_file.field_units[fname] = units
                         mylog.info("Adding field %s to the list of fields." % (fname))
+                        if units == "dimensionless":
+                            mylog.warning("Could not determine dimensions for field %s, " % (fname) +
+                                          "setting to dimensionless.")
                 else:
                     mylog.warning("Image block %s does not have " % (hdu.name.lower()) +
                                   "the same dimensions as the primary and will not be " +
