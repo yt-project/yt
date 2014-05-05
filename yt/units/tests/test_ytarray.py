@@ -630,12 +630,12 @@ def test_registry_association():
 
 @requires_module("astropy")
 def test_astropy():
-    from yt.utilities.on_demand_imports import ap
+    from yt.utilities.on_demand_imports import _astropy
 
-    ap_arr = np.arange(10)*ap.units.km/ap.units.hr
+    ap_arr = np.arange(10)*_astropy.units.km/_astropy.units.hr
     yt_arr = YTArray(np.arange(10), "km/hr")
 
-    ap_quan = 10.*ap.units.Msun**0.5/(ap.units.kpc**3)
+    ap_quan = 10.*_astropy.units.Msun**0.5/(_astropy.units.kpc**3)
     yt_quan = YTQuantity(10.,"sqrt(Msun)/kpc**3")
 
     yield assert_array_equal, ap_arr, yt_arr.to_astropy()

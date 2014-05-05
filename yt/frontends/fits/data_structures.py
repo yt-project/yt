@@ -39,7 +39,7 @@ from yt.units.unit_lookup_table import \
     unit_prefixes
 from yt.units import dimensions
 from yt.units.yt_array import YTQuantity
-from yt.utilities.on_demand_imports import ap
+from yt.utilities.on_demand_imports import _astropy
 
 lon_prefixes = ["X","RA","GLON"]
 lat_prefixes = ["Y","DEC","GLAT"]
@@ -323,7 +323,7 @@ class FITSDataset(Dataset):
         elif isinstance(nan_mask, dict):
             self.nan_mask = nan_mask
         self.nprocs = nprocs
-        self._handle = ap.pyfits.open(self.filenames[0],
+        self._handle = _astropy.pyfits.open(self.filenames[0],
                                       memmap=True,
                                       do_not_scale_image_data=True,
                                       ignore_blank=True)
@@ -334,7 +334,7 @@ class FITSDataset(Dataset):
                     fn = fits_file
                 else:
                     fn = os.path.join(ytcfg.get("yt","test_data_dir"),fits_file)
-                f = ap.pyfits.open(fn, memmap=True,
+                f = _astropy.pyfits.open(fn, memmap=True,
                                    do_not_scale_image_data=True,
                                    ignore_blank=True)
                 self._fits_files.append(f)
@@ -344,7 +344,7 @@ class FITSDataset(Dataset):
             self.first_image = 1
             self.primary_header = self._handle[self.first_image].header
             self.naxis = 2
-            self.wcs = ap.pywcs.WCS(naxis=2)
+            self.wcs = _astropy.pywcs.WCS(naxis=2)
             self.events_info = {}
             for k,v in self.primary_header.items():
                 if k.startswith("TTYP"):
@@ -378,7 +378,7 @@ class FITSDataset(Dataset):
             self.events_data = False
             self.first_image = 0
             self.primary_header = self._handle[self.first_image].header
-            self.wcs = ap.pywcs.WCS(header=self.primary_header)
+            self.wcs = _astropy.pywcs.WCS(header=self.primary_header)
             self.naxis = self.primary_header["naxis"]
             self.axis_names = [self.primary_header["ctype%d" % (i+1)]
                                for i in xrange(self.naxis)]
@@ -524,7 +524,7 @@ class FITSDataset(Dataset):
             self.vel_axis = np.where(self.vel_axis)[0][0]
             self.vel_name = ctypes[self.vel_axis].split("-")[0].lower()
 
-            self.wcs_2d = ap.pywcs.WCS(naxis=2)
+            self.wcs_2d = _astropy.pywcs.WCS(naxis=2)
             self.wcs_2d.wcs.crpix = self.wcs.wcs.crpix[[self.lon_axis, self.lat_axis]]
             self.wcs_2d.wcs.cdelt = self.wcs.wcs.cdelt[[self.lon_axis, self.lat_axis]]
             self.wcs_2d.wcs.crval = self.wcs.wcs.crval[[self.lon_axis, self.lat_axis]]
@@ -583,7 +583,7 @@ class FITSDataset(Dataset):
         try:
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore', category=UserWarning, append=True)
-                fileh = ap.pyfits.open(args[0])
+                fileh = _astropy.pyfits.open(args[0])
             valid = fileh[0].header["naxis"] >= 2
             if len(fileh) > 1 and fileh[1].name == "EVENTS":
                 valid = fileh[1].header["naxis"] >= 2

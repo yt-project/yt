@@ -35,7 +35,7 @@ from yt.utilities.exceptions import \
     YTUnitOperationError, YTUnitConversionError, \
     YTUfuncUnitError
 from numbers import Number as numeric_type
-from yt.utilities.on_demand_imports import ap
+from yt.utilities.on_demand_imports import _astropy
 from sympy import Rational
 
 # redefine this here to avoid a circular import from yt.funcs
@@ -251,8 +251,8 @@ class YTArray(np.ndarray):
                     "Perhaps you meant to do something like this instead: \n"
                     "ds.arr(%s, \"%s\")" % (input_array, input_units)
                     )
-        if ap.units is not None:
-            if isinstance(input_array, ap.units.quantity.Quantity):
+        if _astropy.units is not None:
+            if isinstance(input_array, _astropy.units.quantity.Quantity):
                 # Converting from AstroPy Quantity
                 u = input_array.unit
                 ap_units = []
@@ -446,10 +446,10 @@ class YTArray(np.ndarray):
         """
         Creates a new AstroPy quantity with the same unit information.
         """
-        if ap.units is None:
+        if _astropy.units is None:
             raise ImportError("You don't have AstroPy installed, so you can't convert to " +
                               "an AstroPy quantity.")
-        return self.value*ap.units.Unit(str(self.units), **kwargs)
+        return self.value*_astropy.units.Unit(str(self.units), **kwargs)
 
     #
     # End unit conversion methods

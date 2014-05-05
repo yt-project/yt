@@ -31,9 +31,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt import units
 from yt.units.yt_array import YTQuantity
 import h5py
-from yt.utilities.on_demand_imports import ap
-pyfits = ap.pyfits
-pywcs = ap.pywcs
+from yt.utilities.on_demand_imports import _astropy
+pyfits = _astropy.pyfits
+pywcs = _astropy.pywcs
 
 comm = communication_system.communicators[-1]
 

@@ -71,4 +71,4 @@ class astropy_imports:
             self._conv = conv
         return self._conv
 
-ap = astropy_imports()
+_astropy = astropy_imports()

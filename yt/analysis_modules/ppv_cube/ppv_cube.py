@@ -11,7 +11,7 @@ Generating PPV FITS cubes
 #-----------------------------------------------------------------------------
 
 import numpy as np
-from yt.utilities.on_demand_imports import ap
+from yt.utilities.on_demand_imports import _astropy
 from yt.utilities.orientation import Orientation
 from yt.utilities.fits_image import FITSImageBuffer
 from yt.visualization.volume_rendering.camera import off_axis_projection
@@ -150,7 +150,7 @@ class PPVCube(object):
         if length_unit[1] == "deg":
             dx *= -1.
 
-        w = ap.pywcs.WCS(naxis=3)
+        w = _astropy.pywcs.WCS(naxis=3)
         w.wcs.crpix = [0.5*(self.nx+1), 0.5*(self.ny+1), 0.5*(self.nv+1)]
         w.wcs.cdelt = [dx,dy,dv]
         w.wcs.crval = [center[0], center[1], v_center]
