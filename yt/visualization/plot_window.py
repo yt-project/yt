@@ -143,7 +143,7 @@ def get_sanitized_width(axis, width, depth, pf):
 def get_sanitized_center(center, pf):
     if isinstance(center, basestring):
         if center.lower() == "m" or center.lower() == "max":
-            v, center = pf.h.find_max("density")
+            v, center = pf.h.find_max(("gas", "density"))
             center = pf.arr(center, 'code_length')
         elif center.lower() == "c" or center.lower() == "center":
             center = (pf.domain_left_edge + pf.domain_right_edge) / 2
