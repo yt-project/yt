@@ -80,7 +80,7 @@ class UnitRegistry:
         """
         if symbol not in self.lut:
             raise SymbolNotFoundError(
-                "Tried to remove the symbol '%s', but it does not exist" \
+                "Tried to modify the symbol '%s', but it does not exist" \
                 "in this registry." % symbol)
 
         if hasattr(cgs_value, "in_cgs"):

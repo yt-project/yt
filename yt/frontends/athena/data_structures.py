@@ -374,6 +374,7 @@ class AthenaDataset(Dataset):
         for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g")]:
             val = self.specified_parameters.get("%s_unit" % unit, None)
             if val is None:
+                if unit == "length": self.no_cgs_equiv_length = True
                 mylog.warning("No %s conversion to cgs provided.  " +
                               "Assuming 1.0 = 1.0 %s", unit, cgs)
                 val = 1.0
@@ -386,7 +387,7 @@ class AthenaDataset(Dataset):
         self.magnetic_unit.convert_to_units("gauss")
 
     def set_code_units(self):
-        super(self, AthenaDataset).set_code_units()
+        super(AthenaDataset, self).set_code_units()
         self.unit_registry.modify("code_magnetic", self.magnetic_unit)
 
     def _parse_parameter_file(self):

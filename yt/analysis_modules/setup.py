@@ -23,4 +23,5 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("sunyaev_zeldovich")
     config.add_subpackage("particle_trajectories")
     config.add_subpackage("photon_simulator")
+    config.add_subpackage("ppv_cube")
     return config

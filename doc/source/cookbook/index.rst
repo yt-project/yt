@@ -46,4 +46,5 @@ Example Notebooks
    embedded_javascript_animation
    embedded_webm_animation
    ../analyzing/analysis_modules/sunyaev_zeldovich
-   
+   fits_radio_cubes
+   fits_xray_images

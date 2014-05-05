@@ -14,3 +14,4 @@ Visualizing Data
    mapserver
    streamlines
    colormaps/index
+   writing_fits_images

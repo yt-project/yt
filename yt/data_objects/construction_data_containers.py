@@ -325,7 +325,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
                                   registry=self.pf.unit_registry)
             if self.weight_field is None:
                 u_obj = Unit(units, registry=self.pf.unit_registry)
-                if u_obj.is_code_unit and input_units != units:
+                if u_obj.is_code_unit and input_units != units \
+                    or self.pf.no_cgs_equiv_length:
                     if units is '':
                         final_unit = "code_length"
                     else:
