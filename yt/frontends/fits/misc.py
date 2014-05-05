@@ -14,7 +14,7 @@ import numpy as np
 from yt.fields.api import add_field
 from yt.fields.derived_field import ValidateSpatial
 from yt.funcs import mylog
-from .data_structures import ap
+from yt.utilities.on_demand_imports import ap
 
 def _make_counts(emin, emax):
     def _counts(field, data):
