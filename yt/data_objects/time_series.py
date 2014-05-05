@@ -114,7 +114,12 @@ class TimeSeriesData(object):
                 return self.get_range(key.start, key.stop)
             # This will return a sliced up object!
             return TimeSeriesData(self._pre_outputs[key], self.parallel)
-        o = self._pre_outputs[key]
+        try: 
+            o = self._pre_outputs[key]
+        except IndexError:
+            raise InvalidSimulationTimeSeries("Your TimeSeries is empty. \n" + 
+                "Confirm you are running from the simulation source directory.")
+
         if isinstance(o, types.StringTypes):
             o = load(o,**self.kwargs)
         return o

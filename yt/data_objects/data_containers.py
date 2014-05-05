@@ -215,8 +215,12 @@ class AMRData(object):
         if fields == None: fields = []
         self.fields = ensure_list(fields)[:]
         self.field_data = YTFieldData()
+        self._default_field_parameters = {}
+        self._default_field_parameters["center"] = np.zeros(3, dtype='float64')
+        self._default_field_parameters["bulk_velocity"] = np.zeros(3, dtype='float64')
+        self._default_field_parameters["normal"] = np.array([0,0,1], dtype='float64')
         self.field_parameters = {}
-        self.__set_default_field_parameters()
+        self._set_default_field_parameters()
         self._cut_masks = {}
         self._point_indices = {}
         self._vc_data = {}
@@ -224,10 +228,13 @@ class AMRData(object):
             mylog.debug("Setting %s to %s", key, val)
             self.set_field_parameter(key, val)
 
-    def __set_default_field_parameters(self):
-        self.set_field_parameter("center",np.zeros(3,dtype='float64'))
-        self.set_field_parameter("bulk_velocity",np.zeros(3,dtype='float64'))
-        self.set_field_parameter("normal",np.array([0,0,1],dtype='float64'))
+    def _set_default_field_parameters(self):
+        for k,v in self._default_field_parameters.items():
+            self.set_field_parameter(k,v)
+
+    def _is_default_field_parameter(self, parameter):
+        if parameter not in self._default_field_parameters: return False
+        return self._default_field_parameters[parameter] is self.field_parameters[parameter]
 
     def _set_center(self, center):
         if center is None:
@@ -783,7 +790,6 @@ class AMRStreamlineBase(AMR1DData):
 
     @cache_mask
     def _get_cut_mask(self, grid):
-        #pdb.set_trace()
         points_in_grid = np.all(self.positions > grid.LeftEdge, axis=1) & \
                          np.all(self.positions <= grid.RightEdge, axis=1)
         pids = np.where(points_in_grid)[0]
@@ -1772,8 +1778,10 @@ class AMRQuadTreeProjBase(AMR2DData):
             self._distributed = False
             self._okay_to_serialize = False
             self._check_region = True
+            # Use the data_source's field parameters if they don't exist in the
+            # object or if they are the default values
             for k, v in source.field_parameters.items():
-                if k not in self.field_parameters:
+                if k not in self.field_parameters or self._is_default_field_parameter(k):
                     self.set_field_parameter(k,v)
         self.source = source
         if self._field_cuts is not None:
@@ -2115,7 +2123,7 @@ class AMRProjBase(AMR2DData):
             self._okay_to_serialize = False
             self._check_region = True
             for k, v in source.field_parameters.items():
-                if k not in self.field_parameters:
+                if k not in self.field_parameters or self._is_default_field_parameter(k):
                     self.set_field_parameter(k,v)
         self.source = source
         if self._field_cuts is not None:

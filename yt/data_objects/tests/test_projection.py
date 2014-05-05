@@ -70,5 +70,8 @@ def test_projection():
             v1 = proj["Density"].sum()
             v2 = (dd["Density"] * dd["d%s" % an]).sum()
             yield assert_rel_equal, v1, v2, 10
-
-
+        # test if projections inherit the field parameters of their data sources
+        dd.set_field_parameter("bulk_velocity", np.array([0,1,2]))
+        proj = pf.h.proj(0, "Density", source=dd)
+        yield assert_equal, dd.field_parameters["bulk_velocity"], \
+                proj.field_parameters["bulk_velocity"]
