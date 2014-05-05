@@ -22,6 +22,6 @@ p.annotate_contour("temperature") # We'll contour in temperature
 for i,v in enumerate(np.logspace(
             0, np.log10(pf.index.get_smallest_dx()*min_dx), n_frames)):
     # We set our width as necessary for this frame ...
-    p.set_width(v, '1')
+    p.set_width(v, 'unitary')
     # ... and we save!
     p.save(frame_template % (i))
