@@ -343,7 +343,8 @@ class OWLSDataset(GadgetHDF5Dataset):
         try:
             fileh = h5py.File(args[0], mode='r')
             if "Constants" in fileh["/"].keys() and \
-               "Header" in fileh["/"].keys():
+               "Header" in fileh["/"].keys() and \
+               "SUBFIND" not in fileh["/"].keys():
                 fileh.close()
                 return True
             fileh.close()
