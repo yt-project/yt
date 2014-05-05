@@ -295,7 +295,7 @@ class FITSSlice(FITSImageBuffer):
     """
     def __init__(self, ds, axis, fields, coord, **kwargs):
         fields = ensure_list(fields)
-        axis = fix_axis(axis)
+        axis = fix_axis(axis, ds)
         if isinstance(coord, tuple):
             coord = ds.quan(coord[0], coord[1]).in_units("code_length").value
         elif isinstance(coord, YTQuantity):
@@ -321,7 +321,7 @@ class FITSProjection(FITSImageBuffer):
     """
     def __init__(self, ds, axis, fields, weight_field=None, **kwargs):
         fields = ensure_list(fields)
-        axis = fix_axis(axis)
+        axis = fix_axis(axis, ds)
         prj = ds.proj(fields[0], axis, weight_field=weight_field, **kwargs)
         w, frb = construct_image(prj)
         super(FITSProjection, self).__init__(frb, fields=fields, wcs=w)
