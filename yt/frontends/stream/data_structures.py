@@ -614,10 +614,11 @@ Parameters
         new_data = {}
         for key in data.keys():
             psize = get_psize(np.array(data[key].shape), nprocs)
-            grid_left_edges, grid_right_edges, temp[key] = \
-                             decompose_array(data[key], psize, bbox)
-            grid_dimensions = np.array([grid.shape for grid in temp[key]],
+            grid_left_edges, grid_right_edges, shapes, slices = \
+                             decompose_array(data[key].shape, psize, bbox)
+            grid_dimensions = np.array([shape for shape in shapes],
                                        dtype="int32")
+            temp[key] = [data[key][slice] for slice in slices]
         for gid in range(nprocs):
             new_data[gid] = {}
             for key in temp.keys():

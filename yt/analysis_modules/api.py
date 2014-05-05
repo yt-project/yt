@@ -114,3 +114,6 @@ from .photon_simulator.api import \
      TableAbsorbModel, \
      PhotonModel, \
      ThermalPhotonModel
+
+from .ppv_cube.api import \
+    PPVCube

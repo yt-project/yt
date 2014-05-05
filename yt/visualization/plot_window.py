@@ -224,6 +224,8 @@ def get_axes_unit(width, pf):
     r"""
     Infers the axes unit names from the input width specification
     """
+    if pf.no_cgs_equiv_length:
+        return ("code_length",)*2
     if iterable(width):
         if isinstance(width[1], basestring):
             axes_unit = (width[1], width[1])

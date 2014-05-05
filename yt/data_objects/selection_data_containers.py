@@ -674,8 +674,9 @@ class YTCutRegionBase(YTSelectionContainer3D):
                                            chunking_style,
                                            **kwargs):
             with self.base_object._chunked_read(chunk):
-                self.get_data(fields)
-                yield self
+                with self._chunked_read(chunk):
+                    self.get_data(fields)
+                    yield self
 
     def get_data(self, fields = None):
         fields = ensure_list(fields)

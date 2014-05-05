@@ -1,5 +1,9 @@
 """
-API for yt.frontends.fits
+API for HaloCatalog frontend.
+
+
+
+
 """
 
 #-----------------------------------------------------------------------------
@@ -9,17 +13,3 @@ API for yt.frontends.fits
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-
-from .data_structures import \
-      FITSGrid, \
-      FITSHierarchy, \
-      FITSDataset
-
-from .fields import \
-      FITSFieldInfo
-
-from .io import \
-      IOHandlerFITS
-
-from .misc import \
-      setup_counts_fields

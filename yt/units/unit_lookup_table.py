@@ -87,8 +87,8 @@ default_unit_symbol_lut = {
     "amu": (amu_grams, dimensions.mass),
     "me": (mass_electron_grams, dimensions.mass),
     "angstrom": (cm_per_ang, dimensions.length),
-    "Jy": (jansky_cgs, dimensions.specific_flux)
-
+    "Jy": (jansky_cgs, dimensions.specific_flux),
+    "counts": (1.0, dimensions.dimensionless),
 }
 
 # Add LaTeX representations for units with trivial representations.

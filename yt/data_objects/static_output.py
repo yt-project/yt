@@ -177,6 +177,7 @@ class Dataset(object):
         self._instantiated = time.time()
 
         self.min_level = 0
+        self.no_cgs_equiv_length = False
 
         self._create_unit_registry()
         self._parse_parameter_file()
@@ -251,7 +252,7 @@ class Dataset(object):
     def get_smallest_appropriate_unit(self, v):
         max_nu = 1e30
         good_u = None
-        for unit in ['mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
+        for unit in ['Mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
             vv = v * self.length_unit.in_units(unit)
             if vv < max_nu and vv > 1.0:
                 good_u = unit
