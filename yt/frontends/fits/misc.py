@@ -47,6 +47,8 @@ def setup_counts_fields(ds, ebounds, ftype="gas"):
     ebounds : list of tuples
         A list of tuples, one for each field, with (emin, emax) as the
         energy bounds for the image.
+    ftype : string, optional
+        The field type of the resulting field. Defaults to "gas".
 
     Examples
     --------
@@ -64,6 +66,26 @@ def setup_counts_fields(ds, ebounds, ftype="gas"):
                      display_name="Counts (%s-%s keV)" % (emin, emax))
 
 def ds9_region(ds, reg, obj=None):
+    r"""
+    Create a data container from a ds9 region file. Requires the pyregion
+    package (http://leejjoon.github.io/pyregion/) to be installed.
+
+    Parameters
+    ----------
+    ds : FITSDataset
+        The Dataset to create the region from.
+    reg : string
+        The filename of the ds9 region.
+    obj : data container, optional
+        The data container that will be used to create the new region.
+        Defaults to ds.all_data.
+
+    Examples
+    --------
+
+    ds = yt.load("m33_hi.fits")
+
+    """
     import pyregion
     r = pyregion.open(reg)
     reg_name = reg.split(".")[0]
@@ -78,7 +100,7 @@ def ds9_region(ds, reg, obj=None):
         ret = data["zeros"].copy()
         ret[new_mask] = 1.
         return ret
-    ds.add_field(("gas",reg_name), function=_reg_field)
+    ds.add_field(("index",reg_name), function=_reg_field)
     if obj is None:
         obj = ds.all_data()
     return obj.cut_region(["obj['%s'] > 0" % (reg_name)])
