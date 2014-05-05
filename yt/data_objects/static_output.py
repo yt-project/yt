@@ -653,6 +653,15 @@ class Dataset(object):
                 registry = self.unit_registry)
         return self._quan
 
+    def add_field(self, name, function=None, **kwargs):
+        """
+        Dataset-specific call to add_field
+        """
+        self.index
+        self.field_info.add_field(name, function=function, **kwargs)
+        deps, _ = self.field_info.check_derived_fields([name])
+        self.field_dependencies.update(deps)
+
 def _reconstruct_pf(*args, **kwargs):
     pfs = ParameterFileStore()
     pf = pfs.get_pf_hash(*args)

@@ -35,26 +35,29 @@ def _make_counts(emin, emax):
         return data.pf.arr(img, "counts/pixel")
     return _counts
 
-def setup_counts_fields(ebounds):
+def setup_counts_fields(ds, ebounds):
     r"""
     Create deposited image fields from X-ray count data in energy bands.
 
     Parameters
     ----------
+    ds : Dataset
+        The FITS events file dataset to add the counts fields to.
     ebounds : list of tuples
         A list of tuples, one for each field, with (emin, emax) as the
         energy bounds for the image.
 
     Examples
     --------
+    >>> ds = yt.load("evt.fits")
     >>> ebounds = [(0.1,2.0),(2.0,3.0)]
-    >>> setup_counts_fields(ebounds)
+    >>> setup_counts_fields(ds, ebounds)
     """
     for (emin, emax) in ebounds:
         cfunc = _make_counts(emin, emax)
         fname = "counts_%s-%s" % (emin, emax)
         mylog.info("Creating counts field %s." % fname)
-        add_field(("gas",fname), function=cfunc,
-                  units="counts/pixel",
-                  validators = [ValidateSpatial()],
-                  display_name="Counts (%s-%s keV)" % (emin, emax))
+        ds.add_field(("gas",fname), function=cfunc,
+                     units="counts/pixel",
+                     validators = [ValidateSpatial()],
+                     display_name="Counts (%s-%s keV)" % (emin, emax))
