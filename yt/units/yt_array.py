@@ -442,15 +442,14 @@ class YTArray(np.ndarray):
         """
         return np.array(self)
 
-    def to_astropy(self, alt_unit=None, **kwargs):
+    def to_astropy(self, **kwargs):
         """
         Creates a new AstroPy quantity with the same unit information.
         """
-        if alt_unit is None:
-            units = str(self.units)
-        else:
-            units = alt_unit
-        return self.value*ap.units.Unit(units, **kwargs)
+        if ap.units is None:
+            raise ImportError("You don't have AstroPy installed, so you can't convert to " +
+                              "an AstroPy quantity.")
+        return self.value*ap.units.Unit(str(self.units), **kwargs)
 
     #
     # End unit conversion methods
