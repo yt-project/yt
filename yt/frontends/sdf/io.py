@@ -415,6 +415,13 @@ class SDFIndex(object):
         expanded[self.dim_slices[dim]] = slb
         return int(expanded.tostring(), 2)
 
+    def get_ind_from_key(self, key, dim='r'):
+        ind = [0,0,0]
+        br = np.binary_repr(key, width=self.level*3)
+        for dim in range(3):
+            ind[dim] = int(br[self.dim_slices[dim]],2)
+        return ind
+
     def get_slice_chunks(self, slice_dim, slice_index):
         sl_key = self.get_slice_key(slice_index, dim=slice_dim)
         mask = (self.indexdata['index'] & ~self.masks[slice_dim]) == sl_key
@@ -550,6 +557,13 @@ class SDFIndex(object):
         return self.iter_data(inds, fields)
 
     def get_contiguous_chunk(self, left_key, right_key, fields):
+        print 'Getting contiguous chunk.'
+        liarr = self.get_ind_from_key(left_key)
+        riarr = self.get_ind_from_key(right_key)
+        print "From left to right:", liarr, riarr 
+
+        lbase=0
+        llen = 0
         max_key = self.indexdata['index'][-1]
         if left_key > max_key:
             raise RuntimeError("Left key is too large. Key: %i Max Key: %i" % (left_key, max_key))
@@ -563,6 +577,8 @@ class SDFIndex(object):
             else:
                 break
         right_key = min(right_key, self.indexdata['index'][-1])
+        rbase = 0
+        rlen = 0
         while right_key > left_key:
             rbase = self.indexdata['base'][right_key]
             rlen = self.indexdata['len'][right_key]
@@ -578,10 +594,10 @@ class SDFIndex(object):
 
     def get_key_data(self, key, fields):
         max_key = self.indexdata['index'][-1]
-        if left_key > max_key:
-            raise RuntimeError("Left key is too large. Key: %i Max Key: %i" % (left_key, max_key))
-        base = self.indexdata['base'][left_key]
-        length = self.indexdata['len'][left_key] - base
+        if key > max_key:
+            raise RuntimeError("Left key is too large. Key: %i Max Key: %i" % (key, max_key))
+        base = self.indexdata['base'][key]
+        length = self.indexdata['len'][key] - base
         print 'Getting contiguous chunk of size %i starting at %i' % (length, base)
         return self.get_data(slice(base, base + length), fields)
 
