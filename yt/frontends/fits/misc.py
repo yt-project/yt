@@ -65,7 +65,7 @@ def setup_counts_fields(ds, ebounds, ftype="gas"):
                      validators = [ValidateSpatial()],
                      display_name="Counts (%s-%s keV)" % (emin, emax))
 
-def ds9_region(ds, reg, obj=None):
+def ds9_region(ds, reg, obj=None, field_parameters=None):
     r"""
     Create a data container from a ds9 region file. Requires the pyregion
     package (http://leejjoon.github.io/pyregion/) to be installed.
@@ -75,10 +75,12 @@ def ds9_region(ds, reg, obj=None):
     ds : FITSDataset
         The Dataset to create the region from.
     reg : string
-        The filename of the ds9 region.
+        The filename of the ds9 region, or a region string to be parsed.
     obj : data container, optional
         The data container that will be used to create the new region.
         Defaults to ds.all_data.
+    field_parameters : dictionary, optional
+        A set of field parameters to apply to the region.
 
     Examples
     --------
@@ -88,22 +90,28 @@ def ds9_region(ds, reg, obj=None):
     >>> print circle_region.quantities.extrema("flux")
     """
     import pyregion
-    r = pyregion.open(reg)
+    if os.path.exists(reg):
+        r = pyregion.open(reg)
+    else:
+        r = pyregion.parse(reg)
+    filter = r.get_filter(header=ds.wcs_2d.to_header())
     reg_name = reg.split(".")[0]
     nx = ds.domain_dimensions[ds.lon_axis]
     ny = ds.domain_dimensions[ds.lat_axis]
-    mask = r.get_mask(header=ds.wcs_2d.to_header(),
-                      shape=[nx,ny])
+    mask = filter.mask((ny,nx)).transpose()
     def _reg_field(field, data):
-        i = data["x"].ndarray_view().astype("int")-1
-        j = data["y"].ndarray_view().astype("int")-1
+        i = data["xyz"[ds.lon_axis]].ndarray_view().astype("int")-1
+        j = data["xyz"[ds.lat_axis]].ndarray_view().astype("int")-1
         new_mask = mask[i,j]
         ret = data["zeros"].copy()
         ret[new_mask] = 1.
         return ret
-    ds.add_field(("index",reg_name), function=_reg_field)
+    ds.add_field(("gas",reg_name), function=_reg_field)
     if obj is None:
         obj = ds.all_data()
+    if field_parameters is not None:
+        for k,v in field_parameters.items():
+            obj.set_field_parameter(k,v)
     return obj.cut_region(["obj['%s'] > 0" % (reg_name)])
 
 class PlotWindowWCS(object):
