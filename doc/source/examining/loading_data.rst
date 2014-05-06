@@ -557,11 +557,11 @@ upon being loaded into yt it is automatically decomposed into grids:
 
 .. parsed-literal::
 
-  level	  # grids	    # cells	   # cells^3
-  ----------------------------------------------
-    0	     512	  981940800	         994
-  ----------------------------------------------
-             512	  981940800
+  level	  # grids     # cells     # cells^3
+  ------------------------------------------
+    0	     512     981940800	     994
+  ------------------------------------------
+             512     981940800
 
 yt will generate its own domain decomposition, but the number of grids can be
 set manually by passing the ``nprocs`` parameter to the ``load`` call:
@@ -676,7 +676,7 @@ you may supply a ``nan_mask`` parameter to ``load``, which may either be a
 single floating-point number (applies to all fields) or a Python dictionary
 containing different mask values for different fields:
 
-.. code-block::
+.. code-block:: python
 
   # passing a single float
   ds = load("m33_hi.fits", nan_mask=0.0)
@@ -688,10 +688,68 @@ Generally, AstroPy may generate a lot of warnings about individual FITS
 files, many of which you may want to ignore. If you want to see these
 warnings, set ``suppress_astropy_warnings = False`` in the call to ``load``.
 
+Miscellaneous Tools for Use with FITS Data
+++++++++++++++++++++++++++++++++++++++++++
+
+A number of tools have been prepared for use with FITS data that enhance yt's visualization and
+analysis capabilities for this particular type of data. These are included in the ``yt.frontends.fits.misc`` module, and can be imported like so:
+
+.. code-block:: python
+
+  from yt.frontends.fits.misc import setup_counts_fields, PlotWindowWCS, ds9_region
+
+
+``setup_counts_fields``
+~~~~~~~~~~~~~~~~~~~~~~~
+
+This function can be used to create image fields from X-ray counts data in different energy bands:
+
+.. code-block:: python
+
+  ebounds = [(0.1,2.0),(2.0,5.0)] # Energies are in keV
+  setup_counts_fields(ds, ebounds)
+
+which would make two fields, ``"counts_0.1-2.0"`` and ``"counts_2.0-5.0"``,
+and add them to the field registry for the dataset ``ds``.
+
+
+``ds9_region``
+~~~~~~~~~~~~~~
+
+This function takes a `ds9 <http://ds9.si.edu/site/Home.html>`_ region and creates a "cut region"
+data container from it, that can be used to select the cells in the FITS dataset that fall within
+the region. To use this functionality, the `pyregion <http://leejjoon.github.io/pyregion/>`_
+package must be installed.
+
+.. code-block:: python
+
+  ds = yt.load("m33_hi.fits")
+  circle_region = ds9_region(ds, "circle.reg")
+  print circle_region.quantities.extrema("flux")
+
+
+``PlotWindowWCS``
+~~~~~~~~~~~~~~~~~
+
+This class takes a on-axis ``SlicePlot`` or ``ProjectionPlot`` of FITS data and adds celestial
+coordinates to the plot axes. To use it, the `WCSAxes <http://wcsaxes.readthedocs.org>`_
+package must be installed.
+
+.. code-block:: python
+
+  wcs_slc = PlotWindowWCS(slc)
+  wcs_slc.show() # for the IPython notebook
+  wcs_slc.save()
+
+``WCSAxes`` is still in an experimental state, but as its functionality improves it will be
+utilized more here.
+
+
 Examples of Using FITS Data
 +++++++++++++++++++++++++++
 
-The following IPython notebooks show examples of working with FITS data in yt:
+The following IPython notebooks show examples of working with FITS data in yt,
+which we recommend you look at in the following order:
 
 * :ref:`radio_cubes`
 * :ref:`xray_fits`
