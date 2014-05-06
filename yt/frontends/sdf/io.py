@@ -354,14 +354,14 @@ class SDFIndex(object):
             f2 = 1<<int(np.log2(ic_Nmesh-1)+1)
             if (f2 != ic_Nmesh):
                 expand_root = 1.0*f2/ic_Nmesh - 1.0;
-            print 'Expanding: ', f2, ic_Nmesh, expand_root
+            mylog.debug("Expanding: %s, %s, %s" % (f2, ic_Nmesh, expand_root))
         self.rmin *= 1.0 + expand_root
         self.rmax *= 1.0 + expand_root
         self.domain_width = self.rmax - self.rmin
         self.domain_dims = 1 << self.level
         self.domain_buffer = (self.domain_dims - int(self.domain_dims/(1.0 + expand_root)))/2
         self.domain_active_dims = self.domain_dims - 2*self.domain_buffer
-        print 'Domain stuff:', self.domain_width, self.domain_dims, self.domain_active_dims
+        mylog.debug("SINDEX: %s, %s, %s " % (self.domain_width, self.domain_dims, self.domain_active_dims))
 
     def spread_bits(self, ival, level=None):
         if level is None:
@@ -458,7 +458,7 @@ class SDFIndex(object):
         #print 'Getting data from ileft to iright:',  ileft, iright
 
         ix, iy, iz = (iright-ileft)*1j
-        print 'IBBOX:', ileft, iright, ix, iy, iz
+        #print 'IBBOX:', ileft, iright, ix, iy, iz
 
         Z, Y, X = np.mgrid[ileft[2]:iright[2]+1,
                            ileft[1]:iright[1]+1,
@@ -476,7 +476,7 @@ class SDFIndex(object):
         Z[Z < self.domain_buffer] += self.domain_active_dims
         Z[Z >= self.domain_dims -  self.domain_buffer] -= self.domain_active_dims
 
-        print 'periodic:',  X.min(), X.max(), Y.min(), Y.max(), Z.min(), Z.max()
+        #print 'periodic:',  X.min(), X.max(), Y.min(), Y.max(), Z.min(), Z.max()
 
         indices = self.get_keyv([X, Y, Z])
         indices = indices[indices < self.indexdata['index'][-1]]
@@ -546,7 +546,7 @@ class SDFIndex(object):
     def iter_data(self, inds, fields):
         num_inds = len(inds)
         num_reads = 0
-        print 'Reading %i chunks' % num_inds
+        mylog.debug('SINDEX Reading %i chunks' % num_inds)
         i = 0
         while (i < num_inds):
             ind = inds[i]
@@ -567,30 +567,28 @@ class SDFIndex(object):
                     break
 
             chunk = slice(base, base+length)
-            print 'Reading chunk %i of length %i after catting %i starting at %i' % (i, length, combined, ind)
+            mylog.debug('Reading chunk %i of length %i after catting %i starting at %i' % (i, length, combined, ind))
             num_reads += 1
             if length > 0:
                 data = self.get_data(chunk, fields)
                 yield data
                 del data
             i += 1
-        print 'Read %i chunks, batched into %i reads' % (num_inds, num_reads)
+        mylog.debug('Read %i chunks, batched into %i reads' % (num_inds, num_reads))
 
     def iter_bbox_data(self, left, right, fields):
-        print 'Loading region from ', left, 'to', right
+        mylog.debug('SINDEX Loading region from %s to %s' %(left, right))
         inds = self.get_bbox(left, right)
         return self.iter_data(inds, fields)
 
     def iter_ibbox_data(self, left, right, fields):
-        print 'Loading region from ', left, 'to', right
+        mylog.debug('SINDEX Loading region from %s to %s' %(left, right))
         inds = self.get_ibbox(left, right)
         return self.iter_data(inds, fields)
 
     def get_contiguous_chunk(self, left_key, right_key, fields):
-        print 'Getting contiguous chunk.'
         liarr = self.get_ind_from_key(left_key)
         riarr = self.get_ind_from_key(right_key)
-        print "From left to right:", liarr, riarr 
 
         lbase=0
         llen = 0
@@ -608,10 +606,9 @@ class SDFIndex(object):
         rbase = self.indexdata['base'][right_key]
         rlen = self.indexdata['len'][right_key]
 
-        print "Left, right keys:", left_key, right_key
         length = rbase + rlen - lbase
         if length > 0:
-            print 'Getting contiguous chunk of size %i starting at %i' % (length, lbase)
+            mylog.debug('Getting contiguous chunk of size %i starting at %i' % (length, lbase))
         return self.get_data(slice(lbase, lbase + length), fields)
 
     def get_key_data(self, key, fields):
@@ -620,7 +617,8 @@ class SDFIndex(object):
             raise RuntimeError("Left key is too large. Key: %i Max Key: %i" % (key, max_key))
         base = self.indexdata['base'][key]
         length = self.indexdata['len'][key] - base
-        print 'Getting contiguous chunk of size %i starting at %i' % (length, base)
+        if length > 0:
+            mylog.debug('Getting contiguous chunk of size %i starting at %i' % (length, base))
         return self.get_data(slice(base, base + length), fields)
 
     def iter_slice_data(self, slice_dim, slice_index, fields):
