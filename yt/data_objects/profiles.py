@@ -115,7 +115,7 @@ class BinnedProfile(ParallelAnalysisInterface):
 
         if fractional:
             for field in fields:
-                self.field_data[field] /= self.field_data[field].sum()
+                self.field_data[field] /= self.field_data[field].sum().v
 
     def keys(self):
         return self.field_data.keys()
@@ -1169,7 +1169,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
         obj.add_fields([field for field in fields])
     for field in fields:
         if fractional:
-            obj.field_data[field] /= obj.field_data[field].sum()
+            obj.field_data[field] /= obj.field_data[field].sum().v
         for axis, acc in enumerate(accumulation):
             if not acc: continue
             temp = obj.field_data[field]
