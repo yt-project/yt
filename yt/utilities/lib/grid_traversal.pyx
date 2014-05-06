@@ -19,7 +19,7 @@ cimport cython
 #cimport healpix_interface
 from libc.stdlib cimport malloc, free, abs
 from libc.math cimport exp, floor, log2, \
-    lrint, fabs, atan, asin, cos, sin, sqrt
+    lrint, fabs, atan, atan2, asin, cos, sin, sqrt
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
 from field_interpolation_tables cimport \
     FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
@@ -1091,22 +1091,16 @@ def arr_fisheye_vectors(int resolution, np.float64_t fov, int nimx=1, int
     cdef np.ndarray[np.float64_t, ndim=3] vp
     cdef int i, j, k
     cdef np.float64_t r, phi, theta, px, py
-    cdef np.float64_t pi = 3.1415926
-    cdef np.float64_t fov_rad = fov * pi / 180.0
+    cdef np.float64_t fov_rad = fov * np.pi / 180.0
     cdef int nx = resolution/nimx
     cdef int ny = resolution/nimy
     vp = np.zeros((nx,ny, 3), dtype="float64")
     for i in range(nx):
-        px = 2.0 * (nimi*nx + i) / (resolution) - 1.0
+        px = (2.0 * (nimi*nx + i)) / resolution - 1.0
         for j in range(ny):
-            py = 2.0 * (nimj*ny + j) / (resolution) - 1.0
+            py = (2.0 * (nimj*ny + j)) / resolution - 1.0
             r = (px*px + py*py)**0.5
-            if r == 0.0:
-                phi = 0.0
-            elif px < 0:
-                phi = pi - asin(py / r)
-            else:
-                phi = asin(py / r)
+            phi = atan2(py, px)
             theta = r * fov_rad / 2.0
             theta += off_theta
             phi += off_phi
