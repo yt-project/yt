@@ -363,7 +363,37 @@ class SDFIndex(object):
         self.domain_active_dims = self.domain_dims - 2*self.domain_buffer
         print 'Domain stuff:', self.domain_width, self.domain_dims, self.domain_active_dims
 
+    def spread_bits(self, ival, level=None):
+        if level is None:
+            level = self.level
+        res = 0
+        for i in range(level):
+            res |= ((ival>>i)&1)<<(i*3);
+        return res
+
     def get_key(self, iarr, level=None):
+        if level is None:
+            level = self.level
+        i1, i2, i3 = iarr
+        return self.spread_bits(i1, level) | self.spread_bits(i2, level) << 1 | self.spread_bits(i3, level) << 2
+
+    def spread_bitsv(self, ival, level=None):
+        if level is None:
+            level = self.level
+        res = np.zeros_like(ival, dtype='int64')
+        for i in range(level):
+            res |= np.bitwise_and((ival>>i), 1)<<(i*3);
+        return res
+
+    def get_keyv(self, iarr, level=None):
+        if level is None:
+            level = self.level
+        i1, i2, i3 = iarr
+        return np.bitwise_or(
+            np.bitwise_or(self.spread_bits(i1, level) , self.spread_bits(i2, level) << 1 ),
+            self.spread_bits(i3, level) << 2)
+
+    def get_key_slow(self, iarr, level=None):
         if level is None:
             level = self.level
         i1, i2, i3 = iarr
@@ -420,13 +450,16 @@ class SDFIndex(object):
 
         #print 'Getting data from ileft to iright:',  ileft, iright
 
-        Z, Y, X = np.mgrid[ileft[2]:iright[2]+1,
-                           ileft[1]:iright[1]+1,
-                           ileft[0]:iright[0]+1]
+        ix, iy, iz = (iright-ileft)*1j
+        print 'IBBOX:', ileft, iright, ix, iy, iz
 
-        X = X.ravel()
-        Y = Y.ravel()
-        Z = Z.ravel()
+        Z, Y, X = np.mgrid[ileft[2]:iright[2]:ix,
+                           ileft[1]:iright[1]:iy,
+                           ileft[0]:iright[0]:iz]
+
+        X = X.astype('int64').ravel()
+        Y = Y.astype('int64').ravel()
+        Z = Z.astype('int64').ravel()
         # Correct For periodicity
         X[X < self.domain_buffer] += self.domain_active_dims
         X[X >= self.domain_dims -  self.domain_buffer] -= self.domain_active_dims
@@ -437,9 +470,11 @@ class SDFIndex(object):
 
         print 'periodic:',  X.min(), X.max(), Y.min(), Y.max(), Z.min(), Z.max()
 
-        indices = np.array([self.get_key_ijk(x, y, z) for x, y, z in zip(X, Y, Z)])
+        indices = self.get_keyv([X, Y, Z])
+        #indices = np.array([self.get_key_ijk(x, y, z) for x, y, z in zip(X, Y, Z)])
         # Here we sort the indices to batch consecutive reads together.
         indices = np.sort(indices[indices < self.indexdata['index'].shape[0]])
+        indices = indices[self.indexdata['len'][indices] > 0]
         return indices
 
     def get_bbox(self, left, right):
@@ -470,7 +505,7 @@ class SDFIndex(object):
             # Concatenate aligned reads
             nexti = i+1
             combined = 0
-            while nexti < len(inds):
+            while nexti < num_inds:
                 nextind = inds[nexti]
                 #        print 'b: %i l: %i end: %i  next: %i' % ( base, length, base + length, self.indexdata['base'][nextind] )
                 if combined < 1024 and base + length == self.indexdata['base'][nextind]:
@@ -484,9 +519,10 @@ class SDFIndex(object):
             chunk = slice(base, base+length)
             print 'Reading chunk %i of length %i after catting %i' % (i, length, combined)
             num_reads += 1
-            data = self.get_data(chunk, fields)
-            yield data
-            del data
+            if length > 0:
+                data = self.get_data(chunk, fields)
+                yield data
+                del data
             i += 1
         print 'Read %i chunks, batched into %i reads' % (num_inds, num_reads)
 

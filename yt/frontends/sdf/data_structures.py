@@ -122,8 +122,7 @@ class SDFDataset(Dataset):
                 self._sindex = SDFIndex(self.sdf_container, indexdata, level=self.idx_level)
             else:
                 raise RuntimeError("SDF index0 file not supplied in load.")
-        else:
-            return self._sindex
+        return self._sindex
 
     def _set_code_unit_attributes(self):
         self.length_unit = self.quan(1.0, "kpc")
