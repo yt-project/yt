@@ -54,7 +54,7 @@ class IOHandlerFITS(BaseIOHandler):
         z = np.ones(x.shape)
         x = (x-0.5)/self.pf.reblock+0.5
         y = (y-0.5)/self.pf.reblock+0.5
-        mask = selector.select_points(x, y, z)
+        mask = selector.select_points(x, y, z, 0.0)
         if mask is None: return
         for field in field_list:
             fd = field.split("_")[-1]
