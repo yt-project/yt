@@ -460,13 +460,14 @@ class SDFIndex(object):
         ix, iy, iz = (iright-ileft)*1j
         print 'IBBOX:', ileft, iright, ix, iy, iz
 
-        Z, Y, X = np.mgrid[ileft[2]:iright[2]:ix,
-                           ileft[1]:iright[1]:iy,
-                           ileft[0]:iright[0]:iz]
+        Z, Y, X = np.mgrid[ileft[2]:iright[2]+1,
+                           ileft[1]:iright[1]+1,
+                           ileft[0]:iright[0]+1]
 
-        X = X.astype('int64').ravel()
-        Y = Y.astype('int64').ravel()
-        Z = Z.astype('int64').ravel()
+        mask = slice(0, -1, None)
+        X = X[mask, mask, mask].astype('int64').ravel()
+        Y = Y[mask, mask, mask].astype('int64').ravel()
+        Z = Z[mask, mask, mask].astype('int64').ravel()
         # Correct For periodicity
         X[X < self.domain_buffer] += self.domain_active_dims
         X[X >= self.domain_dims -  self.domain_buffer] -= self.domain_active_dims
@@ -478,10 +479,11 @@ class SDFIndex(object):
         print 'periodic:',  X.min(), X.max(), Y.min(), Y.max(), Z.min(), Z.max()
 
         indices = self.get_keyv([X, Y, Z])
+        indices = indices[indices < self.indexdata['index'][-1]]
+        indices = indices[self.indexdata['len'][indices] > 0]
         #indices = np.array([self.get_key_ijk(x, y, z) for x, y, z in zip(X, Y, Z)])
         # Here we sort the indices to batch consecutive reads together.
-        indices = np.sort(indices[indices < self.indexdata['index'].shape[0]])
-        indices = indices[self.indexdata['len'][indices] > 0]
+        indices = np.sort(indices)
         return indices
 
     def get_bbox(self, left, right):
@@ -513,6 +515,34 @@ class SDFIndex(object):
             data[field] = self.sdfdata[field][chunk]
         return data
 
+    def get_next_nonzero_chunk(self, key, stop=None):
+        # These next two while loops are to squeeze the keys if they are empty. Would be better
+        # to go through and set base equal to the last non-zero base, i think.
+        if stop is None:
+            stop = self.indexdata['index'][-1]
+        while key < stop:
+            base = self.indexdata['base'][key]
+            length = self.indexdata['len'][key]
+            if base == 0 and length == 0:
+                key += 1
+            else:
+                break
+        return key
+
+    def get_previous_nonzero_chunk(self, key, stop=None):
+        # These next two while loops are to squeeze the keys if they are empty. Would be better
+        # to go through and set base equal to the last non-zero base, i think.
+        if stop is None:
+            stop = self.indexdata['index'][0]
+        while key > stop:
+            base = self.indexdata['base'][key]
+            length = self.indexdata['len'][key]
+            if base == 0 and length == 0:
+                key -= 1
+            else:
+                break
+        return key
+
     def iter_data(self, inds, fields):
         num_inds = len(inds)
         num_reads = 0
@@ -537,7 +567,7 @@ class SDFIndex(object):
                     break
 
             chunk = slice(base, base+length)
-            print 'Reading chunk %i of length %i after catting %i' % (i, length, combined)
+            print 'Reading chunk %i of length %i after catting %i starting at %i' % (i, length, combined, ind)
             num_reads += 1
             if length > 0:
                 data = self.get_data(chunk, fields)
@@ -567,25 +597,17 @@ class SDFIndex(object):
         max_key = self.indexdata['index'][-1]
         if left_key > max_key:
             raise RuntimeError("Left key is too large. Key: %i Max Key: %i" % (left_key, max_key))
-        # These next two while loops are to squeeze the keys if they are empty. Would be better
-        # to go through and set base equal to the last non-zero base, i think.
-        while left_key < max_key:
-            lbase = self.indexdata['base'][left_key]
-            llen = self.indexdata['len'][left_key]
-            if lbase == 0 and llen == 0:
-                left_key += 1
-            else:
-                break
-        right_key = min(right_key, self.indexdata['index'][-1])
-        rbase = 0
-        rlen = 0
-        while right_key > left_key:
-            rbase = self.indexdata['base'][right_key]
-            rlen = self.indexdata['len'][right_key]
-            if rbase == 0 and rlen == 0:
-                right_key -= 1
-            else:
-                break
+        right_key = min(right_key, max_key)
+
+        left_key = self.get_next_nonzero_chunk(left_key)
+        right_key = self.get_previous_nonzero_chunk(right_key, left_key)
+
+        lbase = self.indexdata['base'][left_key]
+        llen = self.indexdata['len'][left_key]
+
+        rbase = self.indexdata['base'][right_key]
+        rlen = self.indexdata['len'][right_key]
+
         print "Left, right keys:", left_key, right_key
         length = rbase + rlen - lbase
         if length > 0:
@@ -690,7 +712,7 @@ class SDFIndex(object):
         pbox[1, 0] -= pad[1]
         pbox[1, 1] += pad[1]
         pbox[2, 0] -= pad[2]
-        pbox[2, 1] = pbox[2, 0] + pad[2]
+        pbox[2, 1] = bbox[2, 0]
         for dd in self.iter_bbox_data(pbox[:,0], pbox[:,1], fields):
             data.append(dd)
         pbox[2, 0] = bbox[2, 1]
@@ -703,7 +725,7 @@ class SDFIndex(object):
         pbox[0, 0] -= pad[0]
         pbox[0, 1] += pad[0]
         pbox[1, 0] -= pad[1]
-        pbox[1, 1] = pbox[1, 0] + pad[1]
+        pbox[1, 1] = bbox[1, 0]
         for dd in self.iter_bbox_data(pbox[:,0], pbox[:,1], fields):
             data.append(dd)
         pbox[1, 0] = bbox[1, 1]
@@ -714,7 +736,7 @@ class SDFIndex(object):
         # Left & Right 
         pbox = bbox.copy()
         pbox[0, 0] -= pad[0]
-        pbox[0, 1] = pbox[0, 0] + pad[0]
+        pbox[0, 1] = bbox[0, 0]
         for dd in self.iter_bbox_data(pbox[:,0], pbox[:,1], fields):
             data.append(dd)
         pbox[0, 0] = bbox[0, 1]
