@@ -115,7 +115,7 @@ class BinnedProfile(ParallelAnalysisInterface):
 
         if fractional:
             for field in fields:
-                self.field_data[field] /= self.field_data[field].sum().v
+                self.field_data[field] /= self.field_data[field].sum()
 
     def keys(self):
         return self.field_data.keys()
@@ -853,7 +853,10 @@ class ProfileND(ParallelAnalysisInterface):
         if fname is None:
             raise KeyError(field)
         else:
-            return self.field_data[fname].in_units(self.field_units[fname])
+            if self.fractional:
+                return self.field_data[fname]
+            else:
+                return self.field_data[fname].in_units(self.field_units[fname])
 
     def items(self):
         return [(k,self[k]) for k in self.field_data.keys()]
@@ -1169,7 +1172,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
         obj.add_fields([field for field in fields])
     for field in fields:
         if fractional:
-            obj.field_data[field] /= obj.field_data[field].sum().v
+            obj.field_data[field] /= obj.field_data[field].sum()
         for axis, acc in enumerate(accumulation):
             if not acc: continue
             temp = obj.field_data[field]
