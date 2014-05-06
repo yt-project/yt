@@ -83,8 +83,9 @@ def ds9_region(ds, reg, obj=None):
     Examples
     --------
 
-    ds = yt.load("m33_hi.fits")
-
+    >>> ds = yt.load("m33_hi.fits")
+    >>> circle_region = ds9_region(ds, "circle.reg")
+    >>> print circle_region.quantities.extrema("flux")
     """
     import pyregion
     r = pyregion.open(reg)
