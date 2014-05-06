@@ -144,12 +144,10 @@ class Scene(object):
         return
 
     def composite(self):
+        # TODO: Sam, does this look right?
         cam = self.default_camera
-        opaque = ZBuffer(
-            np.zeros([cam.resolution[0],
-                     cam.resolution[1],
-                     4]),
-            np.ones(cam.resolution) * np.inf)
+        empty = cam.lens.new_image(cam)
+        opaque = ZBuffer(empty, np.ones(empty.shape[:2]) * np.inf)
 
         for k, source in self.iter_opaque_sources():
             print "Adding opaque source:", source
