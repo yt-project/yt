@@ -487,6 +487,19 @@ class SDFIndex(object):
 
         return self.get_ibbox(ileft, iright)
 
+    def get_nparticles_bbox(self, left, right):
+        """
+        Given left and right edges, return total
+        number of particles present.
+        """
+        ileft = np.floor((left - self.rmin) / self.domain_width *  self.domain_dims)
+        iright = np.floor((right - self.rmin) / self.domain_width * self.domain_dims)
+        indices = self.get_ibbox(ileft, iright)
+        npart = 0
+        for ind in indices:
+            npart += self.indexdata['len'][ind]
+        return npart
+
     def get_data(self, chunk, fields):
         data = {}
         for field in fields:
@@ -540,13 +553,28 @@ class SDFIndex(object):
         max_key = self.indexdata['index'][-1]
         if left_key > max_key:
             raise RuntimeError("Left key is too large. Key: %i Max Key: %i" % (left_key, max_key))
-        base = self.indexdata['base'][left_key]
+        # These next two while loops are to squeeze the keys if they are empty. Would be better
+        # to go through and set base equal to the last non-zero base, i think.
+        while left_key < max_key:
+            lbase = self.indexdata['base'][left_key]
+            llen = self.indexdata['len'][left_key]
+            if lbase == 0 and llen == 0:
+                left_key += 1
+            else:
+                break
         right_key = min(right_key, self.indexdata['index'][-1])
-        length = self.indexdata['base'][right_key] + \
-            self.indexdata['len'][right_key] - base
+        while right_key > left_key:
+            rbase = self.indexdata['base'][right_key]
+            rlen = self.indexdata['len'][right_key]
+            if rbase == 0 and rlen == 0:
+                right_key -= 1
+            else:
+                break
+        print "Left, right keys:", left_key, right_key
+        length = rbase + rlen - lbase
         if length > 0:
-            print 'Getting contiguous chunk of size %i starting at %i' % (length, base)
-        return self.get_data(slice(base, base + length), fields)
+            print 'Getting contiguous chunk of size %i starting at %i' % (length, lbase)
+        return self.get_data(slice(lbase, lbase + length), fields)
 
     def get_key_data(self, key, fields):
         max_key = self.indexdata['index'][-1]
@@ -609,5 +637,76 @@ class SDFIndex(object):
         cell_iarr = np.array(cell_iarr)
         lk, rk =self.get_key_bounds(level, cell_iarr)
         return self.get_contiguous_chunk(lk, rk, fields)
+
+    def get_cell_bbox(self, level, cell_iarr):
+        """Get floating point bounding box for a given sindex cell
+
+        Returns:
+            bbox: array-like, shape (3,2)
+
+        """
+        cell_iarr = np.array(cell_iarr)
+        cell_width = self.get_cell_width(level)
+        le = self.rmin + cell_iarr*cell_width
+        re = le+cell_width
+        bbox = np.array([le, re]).T
+        assert bbox.shape == (3, 2)
+        return bbox
+
+    def get_padded_bbox_data(self, level, cell_iarr, pad, fields):
+        """Get floating point bounding box for a given sindex cell
+
+        Returns:
+            bbox: array-like, shape (3,2)
+
+        """
+        bbox = self.get_cell_bbox(level, cell_iarr)
+        data = []
+        data.append(self.get_cell_data(level, cell_iarr, fields))
+        #for dd in self.iter_bbox_data(bbox[:,0], bbox[:,1], fields):
+        #    data.append(dd)
+        #assert data[0]['x'].shape[0] > 0
+
+        # Bottom & Top
+        pbox = bbox.copy()
+        pbox[0, 0] -= pad[0]
+        pbox[0, 1] += pad[0]
+        pbox[1, 0] -= pad[1]
+        pbox[1, 1] += pad[1]
+        pbox[2, 0] -= pad[2]
+        pbox[2, 1] = pbox[2, 0] + pad[2]
+        for dd in self.iter_bbox_data(pbox[:,0], pbox[:,1], fields):
+            data.append(dd)
+        pbox[2, 0] = bbox[2, 1]
+        pbox[2, 1] = pbox[2, 0] + pad[2]
+        for dd in self.iter_bbox_data(pbox[:,0], pbox[:,1], fields):
+            data.append(dd)
+
+        # Front & Back 
+        pbox = bbox.copy()
+        pbox[0, 0] -= pad[0]
+        pbox[0, 1] += pad[0]
+        pbox[1, 0] -= pad[1]
+        pbox[1, 1] = pbox[1, 0] + pad[1]
+        for dd in self.iter_bbox_data(pbox[:,0], pbox[:,1], fields):
+            data.append(dd)
+        pbox[1, 0] = bbox[1, 1]
+        pbox[1, 1] = pbox[1, 0] + pad[1]
+        for dd in self.iter_bbox_data(pbox[:,0], pbox[:,1], fields):
+            data.append(dd)
+
+        # Left & Right 
+        pbox = bbox.copy()
+        pbox[0, 0] -= pad[0]
+        pbox[0, 1] = pbox[0, 0] + pad[0]
+        for dd in self.iter_bbox_data(pbox[:,0], pbox[:,1], fields):
+            data.append(dd)
+        pbox[0, 0] = bbox[0, 1]
+        pbox[0, 1] = pbox[0, 0] + pad[0]
+        for dd in self.iter_bbox_data(pbox[:,0], pbox[:,1], fields):
+            data.append(dd)
+
+        return data
+
     def get_cell_width(self, level):
         return self.domain_width / 2**level
