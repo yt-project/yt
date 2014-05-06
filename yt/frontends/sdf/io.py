@@ -363,7 +363,37 @@ class SDFIndex(object):
         self.domain_active_dims = self.domain_dims - 2*self.domain_buffer
         print 'Domain stuff:', self.domain_width, self.domain_dims, self.domain_active_dims
 
+    def spread_bits(self, ival, level=None):
+        if level is None:
+            level = self.level
+        res = 0
+        for i in range(level):
+            res |= ((ival>>i)&1)<<(i*3);
+        return res
+
     def get_key(self, iarr, level=None):
+        if level is None:
+            level = self.level
+        i1, i2, i3 = iarr
+        return self.spread_bits(i1, level) | self.spread_bits(i2, level) << 1 | self.spread_bits(i3, level) << 2
+
+    def spread_bitsv(self, ival, level=None):
+        if level is None:
+            level = self.level
+        res = np.zeros_like(ival, dtype='int64')
+        for i in range(level):
+            res |= np.bitwise_and((ival>>i), 1)<<(i*3);
+        return res
+
+    def get_keyv(self, iarr, level=None):
+        if level is None:
+            level = self.level
+        i1, i2, i3 = iarr
+        return np.bitwise_or(
+            np.bitwise_or(self.spread_bits(i1, level) , self.spread_bits(i2, level) << 1 ),
+            self.spread_bits(i3, level) << 2)
+
+    def get_key_slow(self, iarr, level=None):
         if level is None:
             level = self.level
         i1, i2, i3 = iarr
@@ -384,6 +414,13 @@ class SDFIndex(object):
         expanded = np.array([0]*self.level*3, dtype='c')
         expanded[self.dim_slices[dim]] = slb
         return int(expanded.tostring(), 2)
+
+    def get_ind_from_key(self, key, dim='r'):
+        ind = [0,0,0]
+        br = np.binary_repr(key, width=self.level*3)
+        for dim in range(3):
+            ind[dim] = int(br[self.dim_slices[dim]],2)
+        return ind
 
     def get_slice_chunks(self, slice_dim, slice_index):
         sl_key = self.get_slice_key(slice_index, dim=slice_dim)
@@ -418,15 +455,19 @@ class SDFIndex(object):
         """
         mask = np.zeros(self.indexdata['index'].shape, dtype='bool')
 
-        print 'Getting data from ileft to iright:',  ileft, iright
+        #print 'Getting data from ileft to iright:',  ileft, iright
 
-        X, Y, Z = np.mgrid[ileft[0]:iright[0]+1,
+        ix, iy, iz = (iright-ileft)*1j
+        print 'IBBOX:', ileft, iright, ix, iy, iz
+
+        Z, Y, X = np.mgrid[ileft[2]:iright[2]+1,
                            ileft[1]:iright[1]+1,
-                           ileft[2]:iright[2]+1]
+                           ileft[0]:iright[0]+1]
 
-        X = X.ravel()
-        Y = Y.ravel()
-        Z = Z.ravel()
+        mask = slice(0, -1, None)
+        X = X[mask, mask, mask].astype('int64').ravel()
+        Y = Y[mask, mask, mask].astype('int64').ravel()
+        Z = Z[mask, mask, mask].astype('int64').ravel()
         # Correct For periodicity
         X[X < self.domain_buffer] += self.domain_active_dims
         X[X >= self.domain_dims -  self.domain_buffer] -= self.domain_active_dims
@@ -437,8 +478,12 @@ class SDFIndex(object):
 
         print 'periodic:',  X.min(), X.max(), Y.min(), Y.max(), Z.min(), Z.max()
 
-        indices = np.array([self.get_key_ijk(x, y, z) for x, y, z in zip(X, Y, Z)])
-        indices = indices[indices < self.indexdata['index'].shape[0]]
+        indices = self.get_keyv([X, Y, Z])
+        indices = indices[indices < self.indexdata['index'][-1]]
+        indices = indices[self.indexdata['len'][indices] > 0]
+        #indices = np.array([self.get_key_ijk(x, y, z) for x, y, z in zip(X, Y, Z)])
+        # Here we sort the indices to batch consecutive reads together.
+        indices = np.sort(indices)
         return indices
 
     def get_bbox(self, left, right):
@@ -451,11 +496,52 @@ class SDFIndex(object):
 
         return self.get_ibbox(ileft, iright)
 
+    def get_nparticles_bbox(self, left, right):
+        """
+        Given left and right edges, return total
+        number of particles present.
+        """
+        ileft = np.floor((left - self.rmin) / self.domain_width *  self.domain_dims)
+        iright = np.floor((right - self.rmin) / self.domain_width * self.domain_dims)
+        indices = self.get_ibbox(ileft, iright)
+        npart = 0
+        for ind in indices:
+            npart += self.indexdata['len'][ind]
+        return npart
+
     def get_data(self, chunk, fields):
         data = {}
         for field in fields:
             data[field] = self.sdfdata[field][chunk]
         return data
+
+    def get_next_nonzero_chunk(self, key, stop=None):
+        # These next two while loops are to squeeze the keys if they are empty. Would be better
+        # to go through and set base equal to the last non-zero base, i think.
+        if stop is None:
+            stop = self.indexdata['index'][-1]
+        while key < stop:
+            base = self.indexdata['base'][key]
+            length = self.indexdata['len'][key]
+            if base == 0 and length == 0:
+                key += 1
+            else:
+                break
+        return key
+
+    def get_previous_nonzero_chunk(self, key, stop=None):
+        # These next two while loops are to squeeze the keys if they are empty. Would be better
+        # to go through and set base equal to the last non-zero base, i think.
+        if stop is None:
+            stop = self.indexdata['index'][0]
+        while key > stop:
+            base = self.indexdata['base'][key]
+            length = self.indexdata['len'][key]
+            if base == 0 and length == 0:
+                key -= 1
+            else:
+                break
+        return key
 
     def iter_data(self, inds, fields):
         num_inds = len(inds)
@@ -469,10 +555,10 @@ class SDFIndex(object):
             # Concatenate aligned reads
             nexti = i+1
             combined = 0
-            while nexti < len(inds):
+            while nexti < num_inds:
                 nextind = inds[nexti]
                 #        print 'b: %i l: %i end: %i  next: %i' % ( base, length, base + length, self.indexdata['base'][nextind] )
-                if base + length == self.indexdata['base'][nextind]:
+                if combined < 1024 and base + length == self.indexdata['base'][nextind]:
                     length += self.indexdata['len'][nextind]
                     i += 1
                     nexti += 1
@@ -481,11 +567,12 @@ class SDFIndex(object):
                     break
 
             chunk = slice(base, base+length)
-            print 'Reading chunk %i of length %i after catting %i' % (i, length, combined)
+            print 'Reading chunk %i of length %i after catting %i starting at %i' % (i, length, combined, ind)
             num_reads += 1
-            data = self.get_data(chunk, fields)
-            yield data
-            del data
+            if length > 0:
+                data = self.get_data(chunk, fields)
+                yield data
+                del data
             i += 1
         print 'Read %i chunks, batched into %i reads' % (num_inds, num_reads)
 
@@ -500,13 +587,39 @@ class SDFIndex(object):
         return self.iter_data(inds, fields)
 
     def get_contiguous_chunk(self, left_key, right_key, fields):
+        print 'Getting contiguous chunk.'
+        liarr = self.get_ind_from_key(left_key)
+        riarr = self.get_ind_from_key(right_key)
+        print "From left to right:", liarr, riarr 
+
+        lbase=0
+        llen = 0
         max_key = self.indexdata['index'][-1]
         if left_key > max_key:
             raise RuntimeError("Left key is too large. Key: %i Max Key: %i" % (left_key, max_key))
-        base = self.indexdata['base'][left_key]
-        right_key = min(right_key, self.indexdata['index'][-1])
-        length = self.indexdata['base'][right_key] + \
-            self.indexdata['len'][right_key] - base
+        right_key = min(right_key, max_key)
+
+        left_key = self.get_next_nonzero_chunk(left_key)
+        right_key = self.get_previous_nonzero_chunk(right_key, left_key)
+
+        lbase = self.indexdata['base'][left_key]
+        llen = self.indexdata['len'][left_key]
+
+        rbase = self.indexdata['base'][right_key]
+        rlen = self.indexdata['len'][right_key]
+
+        print "Left, right keys:", left_key, right_key
+        length = rbase + rlen - lbase
+        if length > 0:
+            print 'Getting contiguous chunk of size %i starting at %i' % (length, lbase)
+        return self.get_data(slice(lbase, lbase + length), fields)
+
+    def get_key_data(self, key, fields):
+        max_key = self.indexdata['index'][-1]
+        if key > max_key:
+            raise RuntimeError("Left key is too large. Key: %i Max Key: %i" % (key, max_key))
+        base = self.indexdata['base'][key]
+        length = self.indexdata['len'][key] - base
         print 'Getting contiguous chunk of size %i starting at %i' % (length, base)
         return self.get_data(slice(base, base + length), fields)
 
@@ -562,3 +675,76 @@ class SDFIndex(object):
         cell_iarr = np.array(cell_iarr)
         lk, rk =self.get_key_bounds(level, cell_iarr)
         return self.get_contiguous_chunk(lk, rk, fields)
+
+    def get_cell_bbox(self, level, cell_iarr):
+        """Get floating point bounding box for a given sindex cell
+
+        Returns:
+            bbox: array-like, shape (3,2)
+
+        """
+        cell_iarr = np.array(cell_iarr)
+        cell_width = self.get_cell_width(level)
+        le = self.rmin + cell_iarr*cell_width
+        re = le+cell_width
+        bbox = np.array([le, re]).T
+        assert bbox.shape == (3, 2)
+        return bbox
+
+    def get_padded_bbox_data(self, level, cell_iarr, pad, fields):
+        """Get floating point bounding box for a given sindex cell
+
+        Returns:
+            bbox: array-like, shape (3,2)
+
+        """
+        bbox = self.get_cell_bbox(level, cell_iarr)
+        data = []
+        data.append(self.get_cell_data(level, cell_iarr, fields))
+        #for dd in self.iter_bbox_data(bbox[:,0], bbox[:,1], fields):
+        #    data.append(dd)
+        #assert data[0]['x'].shape[0] > 0
+
+        # Bottom & Top
+        pbox = bbox.copy()
+        pbox[0, 0] -= pad[0]
+        pbox[0, 1] += pad[0]
+        pbox[1, 0] -= pad[1]
+        pbox[1, 1] += pad[1]
+        pbox[2, 0] -= pad[2]
+        pbox[2, 1] = bbox[2, 0]
+        for dd in self.iter_bbox_data(pbox[:,0], pbox[:,1], fields):
+            data.append(dd)
+        pbox[2, 0] = bbox[2, 1]
+        pbox[2, 1] = pbox[2, 0] + pad[2]
+        for dd in self.iter_bbox_data(pbox[:,0], pbox[:,1], fields):
+            data.append(dd)
+
+        # Front & Back 
+        pbox = bbox.copy()
+        pbox[0, 0] -= pad[0]
+        pbox[0, 1] += pad[0]
+        pbox[1, 0] -= pad[1]
+        pbox[1, 1] = bbox[1, 0]
+        for dd in self.iter_bbox_data(pbox[:,0], pbox[:,1], fields):
+            data.append(dd)
+        pbox[1, 0] = bbox[1, 1]
+        pbox[1, 1] = pbox[1, 0] + pad[1]
+        for dd in self.iter_bbox_data(pbox[:,0], pbox[:,1], fields):
+            data.append(dd)
+
+        # Left & Right 
+        pbox = bbox.copy()
+        pbox[0, 0] -= pad[0]
+        pbox[0, 1] = bbox[0, 0]
+        for dd in self.iter_bbox_data(pbox[:,0], pbox[:,1], fields):
+            data.append(dd)
+        pbox[0, 0] = bbox[0, 1]
+        pbox[0, 1] = pbox[0, 0] + pad[0]
+        for dd in self.iter_bbox_data(pbox[:,0], pbox[:,1], fields):
+            data.append(dd)
+
+        return data
+
+    def get_cell_width(self, level):
+        return self.domain_width / 2**level
