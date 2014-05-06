@@ -156,7 +156,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     simulation domain.
 
     This object is typically accessed through the `proj` object that
-    hangs off of index objects.  AMRQuadProj is a projection of a
+    hangs off of index objects.  YTQuadTreeProj is a projection of a
     `field` along an `axis`.  The field can have an associated
     `weight_field`, in which case the values are multiplied by a weight
     before being summed, and then divided by the sum of that weight; the
@@ -189,29 +189,21 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     data_source : `yt.data_objects.api.AMRData`, optional
         If specified, this will be the data source used for selecting
         regions to project.
-    node_name: string, optional
-        The node in the .yt file to find or store this slice at.  Should
-        probably not be used.
-    field_cuts : list of strings, optional
-        If supplied, each of these strings will be evaluated to cut a
-        region of a grid out.  They can be of the form "grid['Temperature']
-        > 100" for instance.
-    preload_style : string
-        Either 'level', 'all', or None (default).  Defines how grids are
-        loaded -- either level by level, or all at once.  Only applicable
-        during parallel runs.
-    serialize : bool, optional
-        Whether we should store this projection in the .yt file or not.
-    kwargs : dict of items
-        Any additional values are passed as field parameters that can be
+    style : string, optional
+        The style of projection to be performed.
+        "integrate" : integration along the axis
+        "mip" : maximum intensity projection
+        "sum" : same as "integrate", except that we don't multiply by the path length
+    field_parameters : dict of items
+        Values to be passed as field parameters that can be
         accessed by generated fields.
 
     Examples
     --------
 
-    >>> pf = load("RedshiftOutput0005")
-    >>> qproj = pf.h.quad_proj(0, "Density")
-    >>> print qproj["Density"]
+    >>> ds = load("RedshiftOutput0005")
+    >>> prj = ds.proj(0, "density")
+    >>> print proj["density"]
     """
     _key_fields = YTSelectionContainer2D._key_fields + ['weight_field']
     _type_name = "proj"
@@ -221,10 +213,15 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
                  center = None, pf = None, data_source=None, 
                  style = "integrate", field_parameters = None):
         YTSelectionContainer2D.__init__(self, axis, pf, field_parameters)
-        self.proj_style = style
+        if style == "sum":
+            self.proj_style = "integrate"
+            self.sum_only = True
+        else:
+            self.proj_style = style
+            self.sum_only = False
         if style == "mip":
             self.func = np.max
-        elif style == "integrate":
+        elif style == "integrate" or style == "sum":
             self.func = np.sum # for the future
         else:
             raise NotImplementedError(style)
@@ -358,7 +355,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         tree.initialize_chunk(i1, i2, ilevel)
 
     def _handle_chunk(self, chunk, fields, tree):
-        if self.proj_style == "mip":
+        if self.proj_style == "mip" or self.sum_only:
             dl = 1.0
         else:
             # This gets explicitly converted to cm
