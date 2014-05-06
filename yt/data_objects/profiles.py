@@ -853,7 +853,7 @@ class ProfileND(ParallelAnalysisInterface):
         if fname is None:
             raise KeyError(field)
         else:
-            if self.fractional:
+            if getattr(self, 'fractional', False):
                 return self.field_data[fname]
             else:
                 return self.field_data[fname].in_units(self.field_units[fname])
