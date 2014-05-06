@@ -261,7 +261,9 @@ class FisheyeLens(Lens):
         # vectors back onto the plane.  arr_fisheye_vectors goes from px, py to
         # vector, and we need the reverse.
         lpos = camera.position - pos
-        theta = np.arccos(lpos[:,2]) 
+        mag = (lpos * lpos).sum(axis=1)**0.5
+        dz = mag / self.radius
+        theta = np.arccos(lpos[:,2] / mag) 
         fov_rad = self.fov * np.pi / 180.0
         r = 2.0 * theta / fov_rad
         phi = np.arctan2(lpos[:,1], lpos[:,0])
@@ -269,8 +271,6 @@ class FisheyeLens(Lens):
         py = r * np.sin(phi)
         u = camera.focus.uq
         # dz is distance the ray would travel
-        dp = pos - camera.position
-        dz = (dp * dp).sum(axis=1)**0.5 / self.radius
         px = (px + 1.0) * res[0] / 2.0
         py = (py + 1.0) * res[1] / 2.0
         px = (u * np.rint(px)).astype("int64")
