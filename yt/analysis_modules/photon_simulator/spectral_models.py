@@ -28,8 +28,8 @@ try:
     from scipy import stats        
 except ImportError:
     pass
-from yt.frontends.fits.data_structures import ap
-pyfits = ap.pyfits
+from yt.utilities.on_demand_imports import _astropy
+pyfits = _astropy.pyfits
 
 from yt.utilities.physical_constants import hcgs, clight, erg_per_keV, amu_cgs
 

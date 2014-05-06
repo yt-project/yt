@@ -14,7 +14,7 @@ import numpy as np
 from yt.fields.api import add_field
 from yt.fields.derived_field import ValidateSpatial
 from yt.funcs import mylog
-from .data_structures import ap
+from yt.utilities.on_demand_imports import _astropy
 
 def _make_counts(emin, emax):
     def _counts(field, data):
@@ -30,31 +30,34 @@ def _make_counts(emin, emax):
         else:
             sigma = None
         if sigma is not None and sigma > 0.0:
-            kern = ap.conv.Gaussian2DKernel(stddev=sigma)
-            img[:,:,0] = ap.conv.convolve(img[:,:,0], kern)
+            kern = _astropy.conv.Gaussian2DKernel(stddev=sigma)
+            img[:,:,0] = _astropy.conv.convolve(img[:,:,0], kern)
         return data.pf.arr(img, "counts/pixel")
     return _counts
 
-def setup_counts_fields(ebounds):
+def setup_counts_fields(ds, ebounds, ftype="gas"):
     r"""
     Create deposited image fields from X-ray count data in energy bands.
 
     Parameters
     ----------
+    ds : Dataset
+        The FITS events file dataset to add the counts fields to.
     ebounds : list of tuples
         A list of tuples, one for each field, with (emin, emax) as the
         energy bounds for the image.
 
     Examples
     --------
+    >>> ds = yt.load("evt.fits")
     >>> ebounds = [(0.1,2.0),(2.0,3.0)]
-    >>> setup_counts_fields(ebounds)
+    >>> setup_counts_fields(ds, ebounds)
     """
     for (emin, emax) in ebounds:
         cfunc = _make_counts(emin, emax)
         fname = "counts_%s-%s" % (emin, emax)
         mylog.info("Creating counts field %s." % fname)
-        add_field(("gas",fname), function=cfunc,
-                  units="counts/pixel",
-                  validators = [ValidateSpatial()],
-                  display_name="Counts (%s-%s keV)" % (emin, emax))
+        ds.add_field((ftype,fname), function=cfunc,
+                     units="counts/pixel",
+                     validators = [ValidateSpatial()],
+                     display_name="Counts (%s-%s keV)" % (emin, emax))
