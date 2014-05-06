@@ -261,12 +261,15 @@ class FisheyeLens(Lens):
         theta = np.arccos(pos[:,2]) 
         fov_rad = self.fov * np.pi / 180.0
         r = 2.0 * theta / fov_rad
-        phi = np.arccos(pos[:,0] / np.sin(theta))
-        px = r * np.cos(phi) + 1.0
-        py = r * np.sin(phi) + 1.0
-        dz = np.zeros_like(py) + 1.0
-        px = np.rint(px * res)
-        py = np.rint(py * res)
+        phi = np.arctan2(pos[:,1], pos[:,0])
+        px = r * np.cos(phi) + 0.0
+        py = r * np.sin(phi) + 0.0
+        u = camera.focus.uq
+        # dz is distance the ray would travel
+        dp = pos - camera.position
+        dz = (dp * dp).sum(axis=1)**0.5 / self.radius
+        px = (u * np.rint(px * res[0])).astype("int64")
+        py = (u * np.rint(py * res[1])).astype("int64")
         return px, py, dz
 
 lenses = {'plane-parallel': PlaneParallelLens,
