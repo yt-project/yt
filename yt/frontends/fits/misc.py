@@ -105,15 +105,6 @@ def ds9_region(ds, reg, obj=None):
         obj = ds.all_data()
     return obj.cut_region(["obj['%s'] > 0" % (reg_name)])
 
-plot_method_list = ["set_width","set_font","pan","set_font_size"
-                    "set_center","set_figure_size","set_window_size"]
-
-def plot_method_generator(pwwcs, method):
-    def _method(*args, **kwargs):
-        getattr(pwwcs.pw, method)(*args, **kwargs)
-        pwwcs._setup_plots()
-    setattr(pwwcs, method, _method)
-
 class PlotWindowWCS(object):
     r"""
     Use the wcsaxes library to plot celestial coordinates on the axes of a
@@ -143,8 +134,6 @@ class PlotWindowWCS(object):
             fig.add_axes(ax)
             self.wcs_axes.append(ax)
         self._setup_plots()
-        for plot_method in plot_method_list:
-            plot_method_generator(self, plot_method)
 
     def _setup_plots(self):
         pw = self.pw
