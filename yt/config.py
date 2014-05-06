@@ -24,6 +24,7 @@ ytcfg_defaults = dict(
     logfile = 'False',
     coloredlogs = 'False',
     suppressstreamlogging = 'False',
+    stdoutStreamLogging = 'False',
     loglevel = '20',
     inline = 'False',
     numthreads = '-1',

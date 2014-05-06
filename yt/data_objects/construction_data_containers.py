@@ -17,10 +17,8 @@ Data containers that require processing before they can be utilized.
 import numpy as np
 import math
 import weakref
-import exceptions
 import itertools
 import shelve
-from exceptions import ValueError, KeyError
 from functools import wraps
 import fileinput
 from re import finditer
@@ -181,8 +179,6 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         weight value before being integrated, and at the conclusion of the
         projection the resultant values will be divided by the projected
         `weight_field`.
-    max_level : int
-        If supplied, only cells at or below this level will be projected.
     center : array_like, optional
         The 'center' supplied to fields that use it.  Note that this does
         not have to have `coord` as one value.  Strictly optional.
@@ -210,7 +206,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     _con_args = ('axis', 'field', 'weight_field')
     _container_fields = ('px', 'py', 'pdx', 'pdy', 'weight_field')
     def __init__(self, field, axis, weight_field = None,
-                 center = None, pf = None, data_source=None, 
+                 center = None, pf = None, data_source = None,
                  style = "integrate", field_parameters = None):
         YTSelectionContainer2D.__init__(self, axis, pf, field_parameters)
         if style == "sum":
@@ -600,7 +596,7 @@ class YTArbitraryGridBase(YTCoveringGridBase):
     ----------
     left_edge : array_like
         The left edge of the region to be extracted
-    rigth_edge : array_like
+    right_edge : array_like
         The left edge of the region to be extracted
     dims : array_like
         Number of cells along each axis of resulting grid.

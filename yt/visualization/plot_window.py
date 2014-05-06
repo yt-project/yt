@@ -15,8 +15,11 @@ A plotting mechanism based on the idea of a "window" into the data.
 import base64
 import numpy as np
 import matplotlib
-import cStringIO
 import types
+import sys
+import os
+from yt.extern.six.moves import builtins, StringIO
+import warnings
 
 from matplotlib.delaunay.triangulate import Triangulation as triang
 from matplotlib.mathtext import MathTextParser
@@ -40,6 +43,8 @@ from yt.funcs import \
     mylog, iterable, ensure_list, \
     fix_axis, assert_valid_width_tuple
 from yt.units.unit_object import Unit
+from yt.units.unit_registry import \
+     UnitParseError
 from yt.utilities.png_writer import \
     write_png_to_string
 from yt.utilities.definitions import \
@@ -49,7 +54,8 @@ from yt.utilities.math_utils import \
 from yt.utilities.exceptions import \
     YTUnitNotRecognized, \
     YTInvalidWidthError, \
-    YTCannotParseUnitDisplayName
+    YTCannotParseUnitDisplayName, \
+    YTUnitConversionError
 
 from yt.data_objects.time_series import \
     DatasetSeries
@@ -63,7 +69,10 @@ try:
         version.LooseVersion("1.2.0"):
         from matplotlib.pyparsing import ParseFatalException
     else:
-        from matplotlib.pyparsing_py2 import ParseFatalException
+        if sys.version_info[0] == 3:
+            from matplotlib.pyparsing_py3 import ParseFatalException
+        else:
+            from matplotlib.pyparsing_py2 import ParseFatalException
 except ImportError:
     from pyparsing import ParseFatalException
 
@@ -143,7 +152,7 @@ def get_sanitized_width(axis, width, depth, pf):
 def get_sanitized_center(center, pf):
     if isinstance(center, basestring):
         if center.lower() == "m" or center.lower() == "max":
-            v, center = pf.h.find_max("density")
+            v, center = pf.h.find_max(("gas", "density"))
             center = pf.arr(center, 'code_length')
         elif center.lower() == "c" or center.lower() == "center":
             center = (pf.domain_left_edge + pf.domain_right_edge) / 2
@@ -266,7 +275,7 @@ class PlotWindow(ImagePlotContainer):
         including the margins but not the colorbar.
 
     """
-    _frb = None
+    frb = None
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True,
                  periodic=True, origin='center-window', oblique=False,
                  window_size=8.0, fields=None, fontsize=18, aspect=None, setup=False):
@@ -297,7 +306,7 @@ class PlotWindow(ImagePlotContainer):
                       range(len(self.data_source.center))
                       if i != self.data_source.axis]
             self.set_center(center)
-        for field in self._frb.data.keys():
+        for field in self.frb.data.keys():
             finfo = self.data_source.pf._get_field_info(*field)
             if finfo.take_log:
                 self._field_transform[field] = log_transform
@@ -325,27 +334,27 @@ class PlotWindow(ImagePlotContainer):
 
     def _recreate_frb(self):
         old_fields = None
-        if self._frb is not None:
-            old_fields = self._frb.keys()
-            old_units = [str(self._frb[of].units) for of in old_fields]
+        if self.frb is not None:
+            old_fields = self.frb.keys()
+            old_units = [str(self.frb[of].units) for of in old_fields]
         if hasattr(self,'zlim'):
             bounds = self.xlim+self.ylim+self.zlim
         else:
             bounds = self.xlim+self.ylim
         if self._frb_generator is ObliqueFixedResolutionBuffer:
             bounds = np.array(bounds)
-        self._frb = self._frb_generator(self.data_source,
+        self.frb = self._frb_generator(self.data_source,
                                         bounds, self.buff_size,
                                         self.antialias,
                                         periodic=self._periodic)
         if old_fields is None:
-            self._frb._get_data_source_fields()
+            self.frb._get_data_source_fields()
         else:
             for key, unit in zip(old_fields, old_units):
-                self._frb[key]
-                self._frb[key].convert_to_units(unit)
+                self.frb[key]
+                self.frb[key].convert_to_units(unit)
         for key in self.override_fields:
-            self._frb[key]
+            self.frb[key]
         self._data_valid = True
 
     @property
@@ -445,7 +454,7 @@ class PlotWindow(ImagePlotContainer):
                 "Field list {} and unit "
                 "list {} are incompatible".format(field, new_unit))
         for f, u in zip(field, new_unit):
-            self._frb[f].convert_to_units(u)
+            self.frb[f].convert_to_units(u)
         return self
 
     @invalidate_data
@@ -512,11 +521,11 @@ class PlotWindow(ImagePlotContainer):
             if unit is None:
                 width = (width, 'code_length')
             else:
-                width = (width, unit)
+                width = (width, fix_unitary(unit))
 
         axes_unit = get_axes_unit(width, self.pf)
 
-        width = get_sanitized_width(self._frb.axis, width, None, self.pf)
+        width = get_sanitized_width(self.frb.axis, width, None, self.pf)
 
         centerx = (self.xlim[1] + self.xlim[0])/2.
         centery = (self.ylim[1] + self.ylim[0])/2.
@@ -644,6 +653,14 @@ class PlotWindow(ImagePlotContainer):
         self._axes_unit_names = unit_name
         return self
 
+    @property
+    def _frb(self):
+        # Note we use SyntaxWarning because DeprecationWarning is not shown
+        # by default
+        warnings.warn("_frb is deprecated, use frb instead.",
+                      SyntaxWarning)
+        return self.frb
+
 class PWViewerMPL(PlotWindow):
     """Viewer using matplotlib as a backend via the WindowPlotMPL.
 
@@ -748,7 +765,7 @@ class PWViewerMPL(PlotWindow):
             else:
                 zlim = (None, None)
 
-            image = self._frb[f]
+            image = self.frb[f]
 
             if image.max() == image.min():
               if self._field_transform[f] == log_transform:
@@ -840,7 +857,7 @@ class PWViewerMPL(PlotWindow):
             colorbar_label = image.info['label']
 
             # Determine the units of the data
-            units = Unit(self._frb[f].units, registry=self.pf.unit_registry)
+            units = Unit(self.frb[f].units, registry=self.pf.unit_registry)
             units = units.latex_representation()
 
             if units is None or units == '':
@@ -1385,14 +1402,14 @@ class PWViewerExtJS(PlotWindow):
             addl_keys = {'type': 'widget_payload',
                          'widget_id': self._ext_widget_id}
         else:
-            fields = self._frb.data.keys()
+            fields = self.frb.data.keys()
             addl_keys = {}
         if self._colorbar_valid == False:
             addl_keys['colorbar_image'] = self._get_cbar_image()
             self._colorbar_valid = True
         min_zoom = 200*self.pf.index.get_smallest_dx() * self.pf['unitary']
         for field in fields:
-            to_plot = apply_colormap(self._frb[field],
+            to_plot = apply_colormap(self.frb[field],
                 func = self._field_transform[field],
                 cmap_name = self._colormaps[field])
             pngs = self._apply_modifications(to_plot)
@@ -1429,7 +1446,7 @@ class PWViewerExtJS(PlotWindow):
         self._apply_vectors(ax, vi, vj)
 
         canvas = FigureCanvasAgg(fig)
-        f = cStringIO.StringIO()
+        f = StringIO()
         canvas.print_figure(f)
         f.seek(0)
         img = f.read()
@@ -1441,8 +1458,8 @@ class PWViewerExtJS(PlotWindow):
         field, number, colors, logit = self._contour_info
         if colors is not None: plot_args['colors'] = colors
 
-        raw_data = self._frb.data_source
-        b = self._frb.bounds
+        raw_data = self.frb.data_source
+        b = self.frb.bounds
         xi, yi = np.mgrid[b[0]:b[1]:(vi / 8) * 1j,
                           b[2]:b[3]:(vj / 8) * 1j]
         x = raw_data['px']
@@ -1457,15 +1474,15 @@ class PWViewerExtJS(PlotWindow):
         if self._vector_info is None: return
         skip, scale = self._vector_info
 
-        nx = self._frb.buff_size[0]/skip
-        ny = self._frb.buff_size[1]/skip
-        new_frb = FixedResolutionBuffer(self._frb.data_source,
-                        self._frb.bounds, (nx,ny))
+        nx = self.frb.buff_size[0]/skip
+        ny = self.frb.buff_size[1]/skip
+        new_frb = FixedResolutionBuffer(self.frb.data_source,
+                        self.frb.bounds, (nx,ny))
 
-        axis = self._frb.data_source.axis
-        xax = self._frb.data_source.pf.coordinates.x_axis[axis]
-        yax = self._frb.data_source.pf.coordinates.y_axis[axis]
-        axis_names = self._frb.data_source.pf.coordinates.axis_name
+        axis = self.frb.data_source.axis
+        xax = self.frb.data_source.pf.coordinates.x_axis[axis]
+        yax = self.frb.data_source.pf.coordinates.y_axis[axis]
+        axis_names = self.frb.data_source.pf.coordinates.axis_name
         fx = "velocity_%s" % (axis_names[xax])
         fy = "velocity_%x" % (axis_names[yax])
         px = new_frb[fx][::-1,:]
@@ -1483,7 +1500,7 @@ class PWViewerExtJS(PlotWindow):
         # This will eventually change to work with non-logged fields
         ticks = []
         transform = self._field_transform[field]
-        mi, ma = self._frb[field].min(), self._frb[field].max()
+        mi, ma = self.frb[field].min(), self.frb[field].max()
         tick_locs = transform.ticks(mi, ma)
         mi, ma = transform((mi, ma))
         for v1,v2 in zip(tick_locs, transform(tick_locs)):
@@ -1521,7 +1538,7 @@ class PWViewerExtJS(PlotWindow):
         self.set_center((new_x, new_y))
 
     def get_field_units(self, field, strip_mathml = True):
-        ds = self._frb.data_source
+        ds = self.frb.data_source
         pf = self.pf
         field = self._check_field(field)
         finfo = self.data_source.pf._get_field_info(*field)
@@ -1539,7 +1556,7 @@ class PWViewerExtJS(PlotWindow):
         return units
 
     def get_metadata(self, field, strip_mathml = True, return_string = True):
-        fval = self._frb[field]
+        fval = self.frb[field]
         mi = fval.min()
         ma = fval.max()
         x_width = self.xlim[1] - self.xlim[0]
@@ -1550,10 +1567,10 @@ class PWViewerExtJS(PlotWindow):
         else:
             unit = self._axes_unit_names
         units = self.get_field_units(field, strip_mathml)
-        center = getattr(self._frb.data_source, "center", None)
-        xax = self.pf.coordinates.x_axis[self._frb.axis]
-        yax = self.pf.coordinates.y_axis[self._frb.axis]
-        if center is None or self._frb.axis == 4:
+        center = getattr(self.frb.data_source, "center", None)
+        xax = self.pf.coordinates.x_axis[self.frb.axis]
+        yax = self.pf.coordinates.y_axis[self.frb.axis]
+        if center is None or self.frb.axis == 4:
             xc, yc, zc = -999, -999, -999
         else:
             center[xax] = 0.5 * (
@@ -1592,7 +1609,7 @@ class PWViewerExtJS(PlotWindow):
     def set_current_field(self, field):
         field = self._check_field(field)
         self._current_field = field
-        self._frb[field]
+        self.frb[field]
         finfo = self.data_source.pf._get_field_info(*field)
         if finfo.take_log:
             self._field_transform[field] = log_transform

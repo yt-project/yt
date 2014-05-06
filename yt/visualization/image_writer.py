@@ -21,7 +21,7 @@ from yt.utilities.exceptions import YTNotInsideNotebook
 import _colormap_data as cmd
 import yt.utilities.lib.image_utilities as au
 import yt.utilities.png_writer as pw
-import __builtin__
+from yt.extern.six.moves import builtins
 
 def scale_image(image, mi=None, ma=None):
     r"""Scale an image ([NxNxM] where M = 1-4) to be uint8 and values scaled 
@@ -225,13 +225,14 @@ def apply_colormap(image, color_bounds = None, cmap_name = 'algae', func=lambda 
     to_plot : uint8 image with colorbar applied.
 
     """
-    image = func(image)
+    from yt.data_objects.image_array import ImageArray
+    image = ImageArray(func(image))
     if color_bounds is None:
-        mi = np.nanmin(image[~np.isinf(image)])
-        ma = np.nanmax(image[~np.isinf(image)])
+        mi = np.nanmin(image[~np.isinf(image)])*image.uq
+        ma = np.nanmax(image[~np.isinf(image)])*image.uq
         color_bounds = mi, ma
     else:
-        color_bounds = [func(c) for c in color_bounds]
+        color_bounds = [YTQuantity(func(c), image.units) for c in color_bounds]
     image = (image - color_bounds[0])/(color_bounds[1] - color_bounds[0])
     to_plot = map_to_colors(image, cmap_name)
     to_plot = np.clip(to_plot, 0, 255)
@@ -239,7 +240,7 @@ def apply_colormap(image, color_bounds = None, cmap_name = 'algae', func=lambda 
 
 def map_to_colors(buff, cmap_name):
     if cmap_name not in cmd.color_map_luts:
-        print "Your color map was not found in the extracted colormap file."
+        print ("Your color map was not found in the extracted colormap file.")
         raise KeyError(cmap_name)
     lut = cmd.color_map_luts[cmap_name]
     x = np.mgrid[0.0:1.0:lut[0].shape[0]*1j]
@@ -406,7 +407,7 @@ def display_in_notebook(image, max_val=None):
         three channels.
     """
  
-    if "__IPYTHON__" in dir(__builtin__):
+    if "__IPYTHON__" in dir(builtins):
         from IPython.core.displaypub import publish_display_data
         data = write_bitmap(image, None, max_val=max_val)
         publish_display_data(

@@ -390,6 +390,11 @@ default units.  The parameters recognized are of this form:
 
 These will be used set the units, if they are specified.
 
+Using yt to view and analyze Tipsy outputs from Gasoline
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+.. notebook:: tipsy_any_yt.ipynb
+
 .. _loading-artio-data:
 
 ARTIO Data

@@ -19,10 +19,10 @@ import weakref
 import cStringIO
 
 from .definitions import ARTIOconstants
-from _artio_caller import \
+from ._artio_caller import \
     artio_is_valid, artio_fileset, ARTIOOctreeContainer, \
     ARTIORootMeshContainer, ARTIOSFCRangeHandler
-import _artio_caller
+from . import _artio_caller
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from .fields import \

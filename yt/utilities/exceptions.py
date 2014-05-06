@@ -15,7 +15,6 @@ This is a library of yt-defined exceptions
 
 
 # We don't need to import 'exceptions'
-#import exceptions
 import os.path
 
 class YTException(Exception):

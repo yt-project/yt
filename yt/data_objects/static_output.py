@@ -18,6 +18,7 @@ import string, re, gc, time, os, os.path, weakref
 import functools
 
 from yt.funcs import *
+from yt.extern.six import add_metaclass
 
 from yt.config import ytcfg
 from yt.utilities.cosmology import \
@@ -69,6 +70,12 @@ def _unsupported_object(pf, obj_name):
         raise YTObjectNotImplemented(pf, obj_name)
     return _raise_unsupp
 
+class RegisteredDataset(type):
+    def __init__(cls, name, b, d):
+        type.__init__(cls, name, b, d)
+        output_type_registry[name] = cls
+        mylog.debug("Registering: %s as %s", name, cls)
+
 class IndexProxy(object):
     # This is a simple proxy for Index objects.  It enables backwards
     # compatibility so that operations like .h.sphere, .h.print_stats and
@@ -101,6 +108,7 @@ def requires_index(attr_name):
 
     return ireq
 
+@add_metaclass(RegisteredDataset)
 class Dataset(object):
 
     default_fluid_type = "gas"
@@ -117,12 +125,6 @@ class Dataset(object):
     field_units = None
     derived_field_list = requires_index("derived_field_list")
     _instantiated = False
-
-    class __metaclass__(type):
-        def __init__(cls, name, b, d):
-            type.__init__(cls, name, b, d)
-            output_type_registry[name] = cls
-            mylog.debug("Registering: %s as %s", name, cls)
 
     def __new__(cls, filename=None, *args, **kwargs):
         from yt.frontends.stream.data_structures import StreamHandler
@@ -223,7 +225,7 @@ class Dataset(object):
             self.current_time, self.unique_identifier)
         try:
             import hashlib
-            return hashlib.md5(s).hexdigest()
+            return hashlib.md5(s.encode('utf-8')).hexdigest()
         except ImportError:
             return s.replace(";", "*")
 
@@ -246,21 +248,8 @@ class Dataset(object):
         """ Returns units, parameters, or conversion_factors in that order. """
         return self.parameters[key]
 
-    def keys(self):
-        """
-        Returns a list of possible keys, from units, parameters and
-        conversion_factors.
-
-        """
-        return self.units.keys() \
-             + self.time_units.keys() \
-             + self.parameters.keys() \
-             + self.conversion_factors.keys()
-
     def __iter__(self):
-        for ll in [self.units, self.time_units,
-                   self.parameters, self.conversion_factors]:
-            for i in ll.keys(): yield i
+      for i in self.parameters: yield i
 
     def get_smallest_appropriate_unit(self, v):
         max_nu = 1e30

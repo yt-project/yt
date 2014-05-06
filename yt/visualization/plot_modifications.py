@@ -18,6 +18,7 @@ import numpy as np
 import h5py
 
 from yt.funcs import *
+from yt.extern.six import add_metaclass
 from _mpl_imports import *
 from yt.utilities.physical_constants import \
     sec_per_Gyr, sec_per_Myr, \
@@ -27,16 +28,17 @@ from yt.units.yt_array import YTQuantity, YTArray
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 
-import _MPL
+from . import _MPL
 
 callback_registry = {}
 
-class PlotCallback(object):
-    class __metaclass__(type):
-        def __init__(cls, name, b, d):
-            type.__init__(cls, name, b, d)
-            callback_registry[name] = cls
+class RegisteredCallback(type):
+    def __init__(cls, name, b, d):
+        type.__init__(cls, name, b, d)
+        callback_registry[name] = cls
 
+@add_metaclass(RegisteredCallback)
+class PlotCallback(object):
     def __init__(self, *args, **kwargs):
         pass
 
@@ -496,8 +498,10 @@ class StreamlineCallback(PlotCallback):
                              (x0, x1, y0, y1),).transpose()
         X,Y = (np.linspace(xx0,xx1,nx,endpoint=True),
                np.linspace(yy0,yy1,ny,endpoint=True))
-        plot._axes.streamplot(X,Y, pixX, pixY, density = self.dens,
-                              **self.plot_args)
+        streamplot_args = {'x': X, 'y': Y, 'u':pixX, 'v': pixY,
+                           'density': self.dens}
+        streamplot_args.update(self.plot_args)
+        plot._axes.streamplot(**self.streamplot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
@@ -866,12 +870,17 @@ class HaloCatalogCallback(PlotCallback):
     region = None
     _descriptor = None
 
-    def __init__(self, halo_catalog, col='white', alpha =1, width = None):
+    def __init__(self, halo_catalog, col='white', alpha =1, 
+            width = None, annotate_field = False, font_kwargs = None):
+
         PlotCallback.__init__(self)
         self.halo_catalog = halo_catalog
         self.color = col
         self.alpha = alpha
         self.width = width
+        self.annotate_field = annotate_field
+        self.format_spec = text_format_spec
+        self.font_kwargs = font_kwargs
 
     def __call__(self, plot):
         data = plot.data
@@ -881,8 +890,11 @@ class HaloCatalogCallback(PlotCallback):
         yy0, yy1 = plot._axes.get_ylim()
         
         halo_data= self.halo_catalog.halos_pf.all_data()
-        field_x = "particle_position_%s" % axis_names[x_dict[data.axis]]
-        field_y = "particle_position_%s" % axis_names[y_dict[data.axis]]
+        axis_names = plot.data.pf.coordinates.axis_name
+        xax = plot.data.pf.coordinates.x_axis[data.axis]
+        yax = plot.data.pf.coordinates.y_axis[data.axis]
+        field_x = "particle_position_%s" % axis_names[xax]
+        field_y = "particle_position_%s" % axis_names[yax]
         field_z = "particle_position_%s" % axis_names[data.axis]
         plot._axes.hold(True)
 
@@ -922,6 +934,12 @@ class HaloCatalogCallback(PlotCallback):
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
 
+        if self.annotate_field:
+            annotate_dat = halo_data[self.annotate_field]
+            texts = ['{0}'.format(dat) for dat in annotate_dat]
+            for pos_x, pos_y, t in zip(px, py, texts): 
+                plot._axes.text(pos_x, pos_y, t, **self.font_kwargs)
+ 
 
 class ParticleCallback(PlotCallback):
     """

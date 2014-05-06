@@ -40,6 +40,7 @@ from yt.fields.field_exceptions import \
 from yt.fields.derived_field import \
     ValidateSpatial
 import yt.geometry.selection_routines
+from yt.extern.six import add_metaclass
 
 def force_array(item, shape):
     try:
@@ -71,7 +72,13 @@ class YTFieldData(dict):
     """
     pass
 
+class RegisteredDataContainer(type):
+    def __init__(cls, name, b, d):
+        type.__init__(cls, name, b, d)
+        if hasattr(cls, "_type_name") and not cls._skip_add:
+            data_object_registry[cls._type_name] = cls
 
+@add_metaclass(RegisteredDataContainer)
 class YTDataContainer(object):
     """
     Generic YTDataContainer container.  By itself, will attempt to
@@ -85,12 +92,6 @@ class YTDataContainer(object):
     _container_fields = ()
     _field_cache = None
     _index = None
-
-    class __metaclass__(type):
-        def __init__(cls, name, b, d):
-            type.__init__(cls, name, b, d)
-            if hasattr(cls, "_type_name") and not cls._skip_add:
-                data_object_registry[cls._type_name] = cls
 
     def __init__(self, pf, field_parameters):
         """
@@ -736,7 +737,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
 
     def _get_pw(self, fields, center, width, origin, plot_type):
         axis = self.axis
-        self.fields = [k for k in self.field_data.keys()
+        self.fields = [k for k in self.field_data
                        if k not in self._key_fields]
         from yt.visualization.plot_window import \
             get_window_parameters, PWViewerMPL
@@ -812,12 +813,12 @@ class YTSelectionContainer2D(YTSelectionContainer):
             center = self.pf.arr(center, 'code_length')
         if iterable(width):
             w, u = width
-            width = self.pf.arr(w, input_units = u)
+            width = self.pf.quan(w, input_units = u)
         if height is None:
             height = width
         elif iterable(height):
             h, u = height
-            height = self.pf.arr(w, input_units = u)
+            height = self.pf.quan(w, input_units = u)
         if not iterable(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import FixedResolutionBuffer

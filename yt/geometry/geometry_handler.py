@@ -18,8 +18,6 @@ import os
 import cPickle
 import weakref
 import h5py
-from exceptions import IOError, TypeError
-from types import ClassType
 import numpy as np
 import abc
 import copy

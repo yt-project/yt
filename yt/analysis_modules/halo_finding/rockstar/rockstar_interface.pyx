@@ -204,7 +204,7 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     p[0] = <particle *> malloc(sizeof(particle) * local_parts)
 
     conv[0] = conv[1] = conv[2] = pf.length_unit.in_units("Mpccm/h")
-    conv[3] = conv[4] = conv[5] = 1e-5
+    conv[3] = conv[4] = conv[5] = pf.velocity_unit.in_units("km/s")
     left_edge[0] = pf.domain_left_edge[0]
     left_edge[1] = pf.domain_left_edge[1]
     left_edge[2] = pf.domain_left_edge[2]
