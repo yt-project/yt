@@ -25,17 +25,17 @@ class FITSFieldInfo(FieldInfoContainer):
 
     def _setup_ppv_fields(self):
 
-        def _get_2d_wcs(self, data, axis):
+        def _get_2d_wcs(data, axis):
             w_coords = data.pf.wcs_2d.wcs_pix2world(data["x"], data["y"], 1)
             return w_coords[axis]
 
         def world_f(axis, unit):
             def _world_f(field, data):
-                return data.pf.arr(self._get_2d_wcs(data, axis), unit)
+                return data.pf.arr(_get_2d_wcs(data, axis), unit)
             return _world_f
 
         for (i, axis), name in zip(enumerate([self.pf.lon_axis, self.pf.lat_axis]),
-                             [self.pf.lon_name, self.pf.lat_name]):
+                                             [self.pf.lon_name, self.pf.lat_name]):
             unit = str(self.pf.wcs_2d.wcs.cunit[i])
             if unit.lower() == "deg": unit = "degree"
             if unit.lower() == "rad": unit = "radian"

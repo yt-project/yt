@@ -39,58 +39,7 @@ from yt.units.unit_lookup_table import \
     unit_prefixes
 from yt.units import dimensions
 from yt.units.yt_array import YTQuantity
-
-class astropy_imports:
-    _pyfits = None
-    @property
-    def pyfits(self):
-        if self._pyfits is None:
-            try:
-                import astropy.io.fits as pyfits
-                self.log
-            except ImportError:
-                pyfits = None
-            self._pyfits = pyfits
-        return self._pyfits
-
-    _pywcs = None
-    @property
-    def pywcs(self):
-        if self._pywcs is None:
-            try:
-                import astropy.wcs as pywcs
-                self.log
-            except ImportError:
-                pywcs = None
-            self._pywcs = pywcs
-        return self._pywcs
-
-    _log = None
-    @property
-    def log(self):
-        if self._log is None:
-            try:
-                from astropy import log
-                if log.exception_logging_enabled():
-                    log.disable_exception_logging()
-            except ImportError:
-                log = None
-            self._log = log
-        return self._log
-
-    _conv = None
-    @property
-    def conv(self):
-        if self._conv is None:
-            try:
-                import astropy.convolution as conv
-                self.log
-            except ImportError:
-                conv = None
-            self._conv = conv
-        return self._conv
-
-ap = astropy_imports()
+from yt.utilities.on_demand_imports import _astropy
 
 lon_prefixes = ["X","RA","GLON"]
 lat_prefixes = ["Y","DEC","GLAT"]
@@ -145,7 +94,8 @@ class FITSHierarchy(GridIndex):
             # FITS units always return upper-case, so we need to get
             # the right case by comparing against known units. This
             # only really works for common units.
-            units = re.split(regex_pattern, field_units)
+            units = set(re.split(regex_pattern, field_units))
+            units.remove('')
             n = int(0)
             for unit in units:
                 if unit in known_units:
@@ -262,7 +212,7 @@ class FITSHierarchy(GridIndex):
                                                        pf.domain_right_edge)])
             dims = np.array(pf.domain_dimensions)
             # If we are creating a dataset of lines, only decompose along the position axes
-            if pf.line_database is not None:
+            if len(pf.line_database) > 0:
                 dims[pf.vel_axis] = 1
             psize = get_psize(dims, pf.nprocs)
             gle, gre, shapes, slices = decompose_array(dims, psize, bbox)
@@ -270,7 +220,7 @@ class FITSHierarchy(GridIndex):
             self.grid_right_edge = self.pf.arr(gre, "code_length")
             self.grid_dimensions = np.array([shape for shape in shapes], dtype="int32")
             # If we are creating a dataset of lines, only decompose along the position axes
-            if pf.line_database is not None:
+            if len(pf.line_database) > 0:
                 self.grid_left_edge[:,pf.vel_axis] = pf.domain_left_edge[pf.vel_axis]
                 self.grid_right_edge[:,pf.vel_axis] = pf.domain_right_edge[pf.vel_axis]
                 self.grid_dimensions[:,pf.vel_axis] = pf.domain_dimensions[pf.vel_axis]
@@ -373,7 +323,7 @@ class FITSDataset(Dataset):
         elif isinstance(nan_mask, dict):
             self.nan_mask = nan_mask
         self.nprocs = nprocs
-        self._handle = ap.pyfits.open(self.filenames[0],
+        self._handle = _astropy.pyfits.open(self.filenames[0],
                                       memmap=True,
                                       do_not_scale_image_data=True,
                                       ignore_blank=True)
@@ -384,7 +334,7 @@ class FITSDataset(Dataset):
                     fn = fits_file
                 else:
                     fn = os.path.join(ytcfg.get("yt","test_data_dir"),fits_file)
-                f = ap.pyfits.open(fn, memmap=True,
+                f = _astropy.pyfits.open(fn, memmap=True,
                                    do_not_scale_image_data=True,
                                    ignore_blank=True)
                 self._fits_files.append(f)
@@ -394,7 +344,7 @@ class FITSDataset(Dataset):
             self.first_image = 1
             self.primary_header = self._handle[self.first_image].header
             self.naxis = 2
-            self.wcs = ap.pywcs.WCS(naxis=2)
+            self.wcs = _astropy.pywcs.WCS(naxis=2)
             self.events_info = {}
             for k,v in self.primary_header.items():
                 if k.startswith("TTYP"):
@@ -428,7 +378,7 @@ class FITSDataset(Dataset):
             self.events_data = False
             self.first_image = 0
             self.primary_header = self._handle[self.first_image].header
-            self.wcs = ap.pywcs.WCS(header=self.primary_header)
+            self.wcs = _astropy.pywcs.WCS(header=self.primary_header)
             self.naxis = self.primary_header["naxis"]
             self.axis_names = [self.primary_header["ctype%d" % (i+1)]
                                for i in xrange(self.naxis)]
@@ -531,6 +481,8 @@ class FITSDataset(Dataset):
                                     32**self.dimensionality).astype("int")
             self.nprocs = max(min(self.nprocs, 512), 1)
 
+        self.reversed = False
+
         # Check to see if this data is in some kind of (Lat,Lon,Vel) format
         self.ppv_data = False
         x = 0
@@ -572,7 +524,7 @@ class FITSDataset(Dataset):
             self.vel_axis = np.where(self.vel_axis)[0][0]
             self.vel_name = ctypes[self.vel_axis].split("-")[0].lower()
 
-            self.wcs_2d = ap.pywcs.WCS(naxis=2)
+            self.wcs_2d = _astropy.pywcs.WCS(naxis=2)
             self.wcs_2d.wcs.crpix = self.wcs.wcs.crpix[[self.lon_axis, self.lat_axis]]
             self.wcs_2d.wcs.cdelt = self.wcs.wcs.cdelt[[self.lon_axis, self.lat_axis]]
             self.wcs_2d.wcs.crval = self.wcs.wcs.crval[[self.lon_axis, self.lat_axis]]
@@ -591,7 +543,6 @@ class FITSDataset(Dataset):
                 le = self.dims[self.vel_axis]+0.5
                 re = 0.5
             else:
-                self.reversed = False
                 le = 0.5
                 re = self.dims[self.vel_axis]+0.5
             self.domain_left_edge[self.vel_axis] = (le-x0)*dz + z0
@@ -632,7 +583,7 @@ class FITSDataset(Dataset):
         try:
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore', category=UserWarning, append=True)
-                fileh = ap.pyfits.open(args[0])
+                fileh = _astropy.pyfits.open(args[0])
             valid = fileh[0].header["naxis"] >= 2
             if len(fileh) > 1 and fileh[1].name == "EVENTS":
                 valid = fileh[1].header["naxis"] >= 2

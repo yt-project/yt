@@ -14,11 +14,11 @@ import numpy as np
 from yt.funcs import mylog, iterable, fix_axis, ensure_list
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
 from yt.data_objects.construction_data_containers import YTCoveringGridBase
-from yt.frontends.fits.data_structures import ap
+from yt.utilities.on_demand_imports import _astropy
 from yt.units.yt_array import YTQuantity
 
-pyfits = ap.pyfits
-pywcs = ap.pywcs
+pyfits = _astropy.pyfits
+pywcs = _astropy.pywcs
 
 class FITSImageBuffer(pyfits.HDUList):
 
@@ -295,7 +295,7 @@ class FITSSlice(FITSImageBuffer):
     """
     def __init__(self, ds, axis, fields, coord, **kwargs):
         fields = ensure_list(fields)
-        axis = fix_axis(axis)
+        axis = fix_axis(axis, ds)
         if isinstance(coord, tuple):
             coord = ds.quan(coord[0], coord[1]).in_units("code_length").value
         elif isinstance(coord, YTQuantity):
@@ -303,6 +303,8 @@ class FITSSlice(FITSImageBuffer):
         slc = ds.slice(axis, coord, **kwargs)
         w, frb = construct_image(slc)
         super(FITSSlice, self).__init__(frb, fields=fields, wcs=w)
+        for i, field in enumerate(fields):
+            self[i].header["bunit"] = str(frb[field].units)
 
 class FITSProjection(FITSImageBuffer):
     r"""
@@ -321,10 +323,12 @@ class FITSProjection(FITSImageBuffer):
     """
     def __init__(self, ds, axis, fields, weight_field=None, **kwargs):
         fields = ensure_list(fields)
-        axis = fix_axis(axis)
+        axis = fix_axis(axis, ds)
         prj = ds.proj(fields[0], axis, weight_field=weight_field, **kwargs)
         w, frb = construct_image(prj)
         super(FITSProjection, self).__init__(frb, fields=fields, wcs=w)
+        for i, field in enumerate(fields):
+            self[i].header["bunit"] = str(frb[field].units)
 
 
 

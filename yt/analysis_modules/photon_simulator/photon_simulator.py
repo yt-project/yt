@@ -21,22 +21,19 @@ http://adsabs.harvard.edu/abs/2013MNRAS.428.1395B
 #-----------------------------------------------------------------------------
 
 import numpy as np
-from numpy.testing import assert_allclose
 from yt.funcs import *
-from yt.utilities.physical_constants import clight, \
-     cm_per_km, erg_per_keV
+from yt.utilities.physical_constants import clight
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.orientation import Orientation
-from yt.utilities.definitions import mpc_conversion
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only, get_mpi_type, \
-     op_names, parallel_capable
+     parallel_capable
 from yt import units
 from yt.units.yt_array import YTQuantity
 import h5py
-from yt.frontends.fits.data_structures import ap
-pyfits = ap.pyfits
-pywcs = ap.pywcs
+from yt.utilities.on_demand_imports import _astropy
+pyfits = _astropy.pyfits
+pywcs = _astropy.pywcs
 
 comm = communication_system.communicators[-1]
 
@@ -471,7 +468,9 @@ class PhotonList(object):
                         "but not both!")
         
         if sky_center is None:
-             sky_center = YTArray([30.,45.], "degree")
+            sky_center = YTArray([30.,45.], "degree")
+        else:
+            sky_center = YTArray(sky_center, "degree")
 
         dx = self.photons["dx"].ndarray_view()
         nx = self.parameters["Dimension"]
@@ -897,39 +896,42 @@ class EventList(object) :
         tbhdu = pyfits.new_table(coldefs)
         tbhdu.update_ext_name("EVENTS")
 
-        tbhdu.header.update("MTYPE1", "sky")
-        tbhdu.header.update("MFORM1", "x,y")        
-        tbhdu.header.update("MTYPE2", "EQPOS")
-        tbhdu.header.update("MFORM2", "RA,DEC")
-        tbhdu.header.update("TCTYP2", "RA---TAN")
-        tbhdu.header.update("TCTYP3", "DEC--TAN")
-        tbhdu.header.update("TCRVL2", float(self.parameters["sky_center"][0]))
-        tbhdu.header.update("TCRVL3", float(self.parameters["sky_center"][1]))
-        tbhdu.header.update("TCDLT2", -float(self.parameters["dtheta"]))
-        tbhdu.header.update("TCDLT3", float(self.parameters["dtheta"]))
-        tbhdu.header.update("TCRPX2", self.parameters["pix_center"][0])
-        tbhdu.header.update("TCRPX3", self.parameters["pix_center"][1])
-        tbhdu.header.update("TLMIN2", 0.5)
-        tbhdu.header.update("TLMIN3", 0.5)
-        tbhdu.header.update("TLMAX2", 2.*self.parameters["pix_center"][0]-0.5)
-        tbhdu.header.update("TLMAX3", 2.*self.parameters["pix_center"][1]-0.5)
-        tbhdu.header.update("EXPOSURE", float(self.parameters["ExposureTime"]))
-        tbhdu.header.update("AREA", float(self.parameters["Area"]))
-        tbhdu.header.update("D_A", float(self.parameters["AngularDiameterDistance"]))
-        tbhdu.header.update("REDSHIFT", self.parameters["Redshift"])
-        tbhdu.header.update("HDUVERS", "1.1.0")
-        tbhdu.header.update("RADECSYS", "FK5")
-        tbhdu.header.update("EQUINOX", 2000.0)
+        tbhdu.header["MTYPE1"] = "sky"
+        tbhdu.header["MFORM1"] = "x,y"
+        tbhdu.header["MTYPE2"] = "EQPOS"
+        tbhdu.header["MFORM2"] = "RA,DEC"
+        tbhdu.header["TCTYP2"] = "RA---TAN"
+        tbhdu.header["TCTYP3"] = "DEC--TAN"
+        tbhdu.header["TCRVL2"] = float(self.parameters["sky_center"][0])
+        tbhdu.header["TCRVL3"] = float(self.parameters["sky_center"][1])
+        tbhdu.header["TCDLT2"] = -float(self.parameters["dtheta"])
+        tbhdu.header["TCDLT3"] = float(self.parameters["dtheta"])
+        tbhdu.header["TCRPX2"] = self.parameters["pix_center"][0]
+        tbhdu.header["TCRPX3"] = self.parameters["pix_center"][1]
+        tbhdu.header["TLMIN2"] = 0.5
+        tbhdu.header["TLMIN3"] = 0.5
+        tbhdu.header["TLMAX2"] = 2.*self.parameters["pix_center"][0]-0.5
+        tbhdu.header["TLMAX3"] = 2.*self.parameters["pix_center"][1]-0.5
+        tbhdu.header["EXPOSURE"] = float(self.parameters["ExposureTime"])
+        if isinstance(self.parameters["Area"], basestring):
+            tbhdu.header["AREA"] = self.parameters["Area"]
+        else:
+            tbhdu.header["AREA"] = float(self.parameters["Area"])
+        tbhdu.header["D_A"] = float(self.parameters["AngularDiameterDistance"])
+        tbhdu.header["REDSHIFT"] = self.parameters["Redshift"]
+        tbhdu.header["HDUVERS"] = "1.1.0"
+        tbhdu.header["RADECSYS"] = "FK5"
+        tbhdu.header["EQUINOX"] = 2000.0
         if "RMF" in self.parameters:
-            tbhdu.header.update("RMF", self.parameters["RMF"])
+            tbhdu.header["RMF"] = self.parameters["RMF"]
         if "ARF" in self.parameters:
-            tbhdu.header.update("ARF", self.parameters["ARF"])
+            tbhdu.header["ARF"] = self.parameters["ARF"]
         if "ChannelType" in self.parameters:
-            tbhdu.header.update("CHANTYPE", self.parameters["ChannelType"])
+            tbhdu.header["CHANTYPE"] = self.parameters["ChannelType"]
         if "Telescope" in self.parameters:
-            tbhdu.header.update("TELESCOP", self.parameters["Telescope"])
+            tbhdu.header["TELESCOP"] = self.parameters["Telescope"]
         if "Instrument" in self.parameters:
-            tbhdu.header.update("INSTRUME", self.parameters["Instrument"])
+            tbhdu.header["INSTRUME"] = self.parameters["Instrument"]
             
         tbhdu.writeto(fitsfile, clobber=clobber)
 
@@ -978,15 +980,15 @@ class EventList(object) :
         tbhdu = pyfits.new_table(coldefs)
         tbhdu.update_ext_name("PHLIST")
 
-        tbhdu.header.update("HDUCLASS", "HEASARC/SIMPUT")
-        tbhdu.header.update("HDUCLAS1", "PHOTONS")
-        tbhdu.header.update("HDUVERS", "1.1.0")
-        tbhdu.header.update("EXTVER", 1)
-        tbhdu.header.update("REFRA", 0.0)
-        tbhdu.header.update("REFDEC", 0.0)
-        tbhdu.header.update("TUNIT1", "keV")
-        tbhdu.header.update("TUNIT2", "deg")
-        tbhdu.header.update("TUNIT3", "deg")                
+        tbhdu.header["HDUCLASS"] = "HEASARC/SIMPUT"
+        tbhdu.header["HDUCLAS1"] = "PHOTONS"
+        tbhdu.header["HDUVERS"] = "1.1.0"
+        tbhdu.header["EXTVER"] = 1
+        tbhdu.header["REFRA"] = 0.0
+        tbhdu.header["REFDEC"] = 0.0
+        tbhdu.header["TUNIT1"] = "keV"
+        tbhdu.header["TUNIT2"] = "deg"
+        tbhdu.header["TUNIT3"] = "deg"
 
         phfile = prefix+"_phlist.fits"
 
@@ -1006,17 +1008,17 @@ class EventList(object) :
         wrhdu = pyfits.new_table(coldefs)
         wrhdu.update_ext_name("SRC_CAT")
                                 
-        wrhdu.header.update("HDUCLASS", "HEASARC")
-        wrhdu.header.update("HDUCLAS1", "SIMPUT")
-        wrhdu.header.update("HDUCLAS2", "SRC_CAT")        
-        wrhdu.header.update("HDUVERS", "1.1.0")
-        wrhdu.header.update("RADECSYS", "FK5")
-        wrhdu.header.update("EQUINOX", 2000.0)
-        wrhdu.header.update("TUNIT2", "deg")
-        wrhdu.header.update("TUNIT3", "deg")
-        wrhdu.header.update("TUNIT4", "keV")
-        wrhdu.header.update("TUNIT5", "keV")
-        wrhdu.header.update("TUNIT6", "erg/s/cm**2")
+        wrhdu.header["HDUCLASS"] = "HEASARC"
+        wrhdu.header["HDUCLAS1"] = "SIMPUT"
+        wrhdu.header["HDUCLAS2"] = "SRC_CAT"
+        wrhdu.header["HDUVERS"] = "1.1.0"
+        wrhdu.header["RADECSYS"] = "FK5"
+        wrhdu.header["EQUINOX"] = 2000.0
+        wrhdu.header["TUNIT2"] = "deg"
+        wrhdu.header["TUNIT3"] = "deg"
+        wrhdu.header["TUNIT4"] = "keV"
+        wrhdu.header["TUNIT5"] = "keV"
+        wrhdu.header["TUNIT6"] = "erg/s/cm**2"
 
         simputfile = prefix+"_simput.fits"
                 
@@ -1100,19 +1102,19 @@ class EventList(object) :
         
         hdu = pyfits.PrimaryHDU(H.T)
         
-        hdu.header.update("MTYPE1", "EQPOS")
-        hdu.header.update("MFORM1", "RA,DEC")
-        hdu.header.update("CTYPE1", "RA---TAN")
-        hdu.header.update("CTYPE2", "DEC--TAN")
-        hdu.header.update("CRPIX1", 0.5*(nx+1))
-        hdu.header.update("CRPIX2", 0.5*(nx+1))                
-        hdu.header.update("CRVAL1", float(self.parameters["sky_center"][0]))
-        hdu.header.update("CRVAL2", float(self.parameters["sky_center"][1]))
-        hdu.header.update("CUNIT1", "deg")
-        hdu.header.update("CUNIT2", "deg")
-        hdu.header.update("CDELT1", -float(self.parameters["dtheta"]))
-        hdu.header.update("CDELT2", float(self.parameters["dtheta"]))
-        hdu.header.update("EXPOSURE", float(self.parameters["ExposureTime"]))
+        hdu.header["MTYPE1"] = "EQPOS"
+        hdu.header["MFORM1"] = "RA,DEC"
+        hdu.header["CTYPE1"] = "RA---TAN"
+        hdu.header["CTYPE2"] = "DEC--TAN"
+        hdu.header["CRPIX1"] = 0.5*(nx+1)
+        hdu.header["CRPIX2"] = 0.5*(nx+1)
+        hdu.header["CRVAL1"] = float(self.parameters["sky_center"][0])
+        hdu.header["CRVAL2"] = float(self.parameters["sky_center"][1])
+        hdu.header["CUNIT1"] = "deg"
+        hdu.header["CUNIT2"] = "deg"
+        hdu.header["CDELT1"] = -float(self.parameters["dtheta"])
+        hdu.header["CDELT2"] = float(self.parameters["dtheta"])
+        hdu.header["EXPOSURE"] = float(self.parameters["ExposureTime"])
         
         hdu.writeto(imagefile, clobber=clobber)
                                     
@@ -1183,41 +1185,41 @@ class EventList(object) :
         tbhdu.update_ext_name("SPECTRUM")
 
         if not energy_bins:
-            tbhdu.header.update("DETCHANS", spec.shape[0])
-            tbhdu.header.update("TOTCTS", spec.sum())
-            tbhdu.header.update("EXPOSURE", float(self.parameters["ExposureTime"]))
-            tbhdu.header.update("LIVETIME", float(self.parameters["ExposureTime"]))
-            tbhdu.header.update("CONTENT", spectype)
-            tbhdu.header.update("HDUCLASS", "OGIP")
-            tbhdu.header.update("HDUCLAS1", "SPECTRUM")
-            tbhdu.header.update("HDUCLAS2", "TOTAL")
-            tbhdu.header.update("HDUCLAS3", "TYPE:I")
-            tbhdu.header.update("HDUCLAS4", "COUNT")
-            tbhdu.header.update("HDUVERS", "1.1.0")
-            tbhdu.header.update("HDUVERS1", "1.1.0")
-            tbhdu.header.update("CHANTYPE", spectype)
-            tbhdu.header.update("BACKFILE", "none")
-            tbhdu.header.update("CORRFILE", "none")
-            tbhdu.header.update("POISSERR", True)
+            tbhdu.header["DETCHANS"] = spec.shape[0]
+            tbhdu.header["TOTCTS"] = spec.sum()
+            tbhdu.header["EXPOSURE"] = float(self.parameters["ExposureTime"])
+            tbhdu.header["LIVETIME"] = float(self.parameters["ExposureTime"])
+            tbhdu.header["CONTENT"] = spectype
+            tbhdu.header["HDUCLASS"] = "OGIP"
+            tbhdu.header["HDUCLAS1"] = "SPECTRUM"
+            tbhdu.header["HDUCLAS2"] = "TOTAL"
+            tbhdu.header["HDUCLAS3"] = "TYPE:I"
+            tbhdu.header["HDUCLAS4"] = "COUNT"
+            tbhdu.header["HDUVERS"] = "1.1.0"
+            tbhdu.header["HDUVERS1"] = "1.1.0"
+            tbhdu.header["CHANTYPE"] = spectype
+            tbhdu.header["BACKFILE"] = "none"
+            tbhdu.header["CORRFILE"] = "none"
+            tbhdu.header["POISSERR"] = True
             if self.parameters.has_key("RMF"):
-                 tbhdu.header.update("RESPFILE", self.parameters["RMF"])
+                 tbhdu.header["RESPFILE"] = self.parameters["RMF"]
             else:
-                 tbhdu.header.update("RESPFILE", "none")
+                 tbhdu.header["RESPFILE"] = "none"
             if self.parameters.has_key("ARF"):
-                tbhdu.header.update("ANCRFILE", self.parameters["ARF"])
+                tbhdu.header["ANCRFILE"] = self.parameters["ARF"]
             else:        
-                tbhdu.header.update("ANCRFILE", "none")
+                tbhdu.header["ANCRFILE"] = "none"
             if self.parameters.has_key("Telescope"):
-                tbhdu.header.update("TELESCOP", self.parameters["Telescope"])
+                tbhdu.header["TELESCOP"] = self.parameters["Telescope"]
             else:
-                tbhdu.header.update("TELESCOP", "none")
+                tbhdu.header["TELESCOP"] = "none"
             if self.parameters.has_key("Instrument"):
-                tbhdu.header.update("INSTRUME", self.parameters["Instrument"])
+                tbhdu.header["INSTRUME"] = self.parameters["Instrument"]
             else:
-                tbhdu.header.update("INSTRUME", "none")
-            tbhdu.header.update("AREASCAL", 1.0)
-            tbhdu.header.update("CORRSCAL", 0.0)
-            tbhdu.header.update("BACKSCAL", 1.0)
+                tbhdu.header["INSTRUME"] = "none"
+            tbhdu.header["AREASCAL"] = 1.0
+            tbhdu.header["CORRSCAL"] = 0.0
+            tbhdu.header["BACKSCAL"] = 1.0
                                 
         hdulist = pyfits.HDUList([pyfits.PrimaryHDU(), tbhdu])
         
