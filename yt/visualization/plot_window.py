@@ -515,7 +515,7 @@ class PlotWindow(ImagePlotContainer):
             if unit is None:
                 width = (width, 'code_length')
             else:
-                width = (width, unit)
+                width = (width, fix_unitary(unit))
 
         axes_unit = get_axes_unit(width, self.pf)
 
