@@ -14,7 +14,8 @@ pf = load(fn) # load data
 # thing!  This is a convenience parameter that prepares an object that covers
 # the whole domain.  Note, though, that it will load on demand and not before!
 data_source = pf.disk([0.5, 0.5, 0.5], [0., 0., 1.], 
-                        8./pf.units['kpc'], 1./pf.units['kpc'])
+                        pf.quan(8,'code_length'), 
+                        pf.quan(1., 'code_length'))
 
 # Now we set some sane min/max values between which we want to find contours.
 # This is how we tell the clump finder what to look for -- it won't look for
