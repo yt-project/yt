@@ -675,3 +675,51 @@ def test_astropy():
     yield assert_equal, yt_quan, YTQuantity(yt_quan.to_astropy())
 
 
+def test_subclass():
+
+    class YTASubclass(YTArray):
+        pass
+
+    a = YTASubclass([4, 5, 6], 'g')
+    b = YTASubclass([7, 8, 9], 'kg')
+    nu = YTASubclass([10, 11, 12], '')
+
+    nda = np.array([3, 4, 5])
+    yta = YTArray([6, 7, 8], 'mg')
+    ytq = YTQuantity(4, 'cm')
+
+    yield assert_isinstance, a*b, YTASubclass
+    yield assert_isinstance, b*a, YTASubclass
+    yield assert_isinstance, a*ytq, YTASubclass
+    yield assert_isinstance, ytq*a, YTASubclass
+    yield assert_isinstance, a*yta, YTASubclass
+    yield assert_isinstance, yta*a, YTASubclass
+    yield assert_isinstance, a*nda, YTASubclass
+    yield assert_isinstance, nda*a, YTASubclass
+
+    yield assert_isinstance, a/b, YTASubclass
+    yield assert_isinstance, b/a, YTASubclass
+    yield assert_isinstance, a/ytq, YTASubclass
+    yield assert_isinstance, ytq/a, YTASubclass
+    yield assert_isinstance, a/yta, YTASubclass
+    yield assert_isinstance, yta/a, YTASubclass
+    yield assert_isinstance, a/nda, YTASubclass
+    yield assert_isinstance, nda/a, YTASubclass
+
+    yield assert_isinstance, a+b, YTASubclass
+    yield assert_isinstance, b+a, YTASubclass
+    yield assert_isinstance, nu+nda, YTASubclass
+    yield assert_isinstance, nda+nu, YTASubclass
+    yield assert_isinstance, a+yta, YTASubclass
+    yield assert_isinstance, yta+a, YTASubclass
+
+    yield assert_isinstance, a-b, YTASubclass
+    yield assert_isinstance, b-a, YTASubclass
+    yield assert_isinstance, nu-nda, YTASubclass
+    yield assert_isinstance, nda-nu, YTASubclass
+    yield assert_isinstance, a-yta, YTASubclass
+    yield assert_isinstance, yta-a, YTASubclass
+
+    yield assert_isinstance, a[0], YTQuantity
+    yield assert_isinstance, a[:], YTASubclass
+    yield assert_isinstance, a[:2], YTASubclass

@@ -12,7 +12,6 @@ ImageArray Class
 #-----------------------------------------------------------------------------
 
 import numpy as np
-import h5py as h5
 from yt.visualization.image_writer import write_bitmap, write_image
 from yt.units.yt_array import YTArray
 
@@ -84,38 +83,36 @@ class ImageArray(YTArray):
         super(ImageArray, self).__array_finalize__(obj)
         self.info = getattr(obj, 'info', None)
 
-    def write_hdf5(self, filename):
+    def write_hdf5(self, filename, dataset_name=None):
         r"""Writes ImageArray to hdf5 file.
 
         Parameters
         ----------
         filename: string
-            Note filename not be modified.
-       
+        The filename to create and write a dataset to
+
+        dataset_name: string
+            The name of the dataset to create in the file.
+
         Examples
-        -------- 
+        --------
         >>> im = np.zeros([64,128,3])
         >>> for i in xrange(im.shape[0]):
         ...     for k in xrange(im.shape[2]):
         ...         im[i,:,k] = np.linspace(0.,0.3*k, im.shape[1])
 
-        >>> myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]), 
-        ...     'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),  
+        >>> myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]),
+        ...     'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),
         ...     'width':0.245, 'units':'cm', 'type':'rendering'}
 
         >>> im_arr = ImageArray(im, info=myinfo)
         >>> im_arr.write_hdf5('test_ImageArray.h5')
 
         """
-        array_name = self.info.get("name","image")
-
-        f = h5.File(filename)
-        if array_name in f.keys():
-            del f[array_name]
-        d = f.create_dataset(array_name, data=self)
-        for k, v in self.info.iteritems():
-            d.attrs.create(k, v)
-        f.close()
+        if dataset_name is None:
+            dataset_name = self.info.get("name", "image")
+        super(ImageArray, self).write_hdf5(filename, dataset_name=dataset_name,
+                                           info=self.info)
 
     def add_background_color(self, background='black', inline=True):
         r"""Adds a background color to a 4-channel ImageArray

@@ -74,7 +74,8 @@ def return_arr(func):
         if ret.shape == ():
             return YTQuantity(ret, units)
         else:
-            return YTArray(ret, units)
+            # This could be a subclass, so don't call YTArray directly.
+            return type(args[0])(ret, units)
     return wrapped
 
 def sqrt_unit(unit):
@@ -464,6 +465,87 @@ class YTArray(np.ndarray):
     # End unit conversion methods
     #
 
+    def write_hdf5(self, filename, dataset_name=None, info=None):
+        r"""Writes ImageArray to hdf5 file.
+
+        Parameters
+        ----------
+        filename: string
+            The filename to create and write a dataset to
+
+        dataset_name: string
+            The name of the dataset to create in the file.
+
+        info: dictionary
+            A dictionary of supplementary info to write to append as attributes
+            to the dataset.
+
+        Examples
+        --------
+        >>> a = YTArray([1,2,3], 'cm')
+
+        >>> myinfo = {'field':'dinosaurs', 'type':'field_data'}
+
+        >>> a.write_hdf5('test_array_data.h5', dataset_name='dinosaurs',
+        ...              info=myinfo)
+
+        """
+        import h5py as h5
+        import pickle
+        if info is None:
+            info = {}
+
+        info['units'] = str(self.units)
+        info['unit_registry'] = pickle.dumps(self.units.registry.lut)
+
+        if dataset_name is None:
+            dataset_name = 'array_data'
+
+        f = h5.File(filename)
+        if dataset_name in f.keys():
+            del f[dataset_name]
+        d = f.create_dataset(dataset_name, data=self)
+        for k, v in info.iteritems():
+            d.attrs.create(k, v)
+        f.close()
+
+    @classmethod
+    def read_hdf5(cls, filename, dataset_name=None):
+        r"""Attempts read in and convert a dataset in an hdf5 file into a YTArray.
+
+        Parameters
+        ----------
+        filename: string
+        The filename to of the hdf5 file.
+
+        dataset_name: string
+            The name of the dataset to read from.  If the dataset has a units
+            attribute, attempt to infer units as well.
+
+        """
+        import h5py as h5
+        import pickle
+
+        if dataset_name is None:
+            dataset_name = 'array_data'
+
+        f = h5.File(filename)
+        try:
+            dataset = f[dataset_name]
+        except KeyError:
+            fmt = (dataset_name, filename)
+            raise RuntimeError("Unable to open dataset {} in file {}".format(fmt))
+        data = dataset[:]
+        units = dataset.attrs.get('units', '')
+        if 'unit_regsitry' in dataset.attrs:
+            unit_lut = pickle.loads(dataset.attrs['unit_registry'])
+        else:
+            unit_lut = None
+
+
+        registry = UnitRegistry(lut=unit_lut, add_default_symbols=False)
+        return cls(data, units, registry=registry)
+
     #
     # Start convenience methods
     #
@@ -814,9 +896,13 @@ class YTArray(np.ndarray):
             # Raise YTUnitOperationError up here since we know the context now
             except RuntimeError:
                 raise YTUnitOperationError(context[0], u)
+            ret_class = type(self)
         elif context[0] in binary_operators:
             unit1 = getattr(context[1][0], 'units', None)
             unit2 = getattr(context[1][1], 'units', None)
+            cls1 = type(context[1][0])
+            cls2 = type(context[1][1])
+            ret_class = get_binary_op_return_class(cls1, cls2)
             if unit1 is None:
                 unit1 = Unit(registry=getattr(unit2, 'registry', None))
             if unit2 is None and context[0] is not power:
@@ -849,10 +935,15 @@ class YTArray(np.ndarray):
             out_arr = np.array(out_arr)
             return out_arr
         out_arr.units = unit
-        if out_arr.size > 1:
-            return YTArray(np.array(out_arr), unit)
-        else:
+        if out_arr.size == 1:
             return YTQuantity(np.array(out_arr), unit)
+        else:
+            if ret_class is YTQuantity:
+                # This happens if you do ndarray * YTQuantity. Explicitly
+                # casting to YTArray avoids creating a YTQuantity with size > 1
+                return YTArray(np.array(out_arr, unit))
+            return ret_class(np.array(out_arr), unit)
+
 
     def __reduce__(self):
         """Pickle reduction method
@@ -929,3 +1020,22 @@ def array_like_field(data, x, field):
         return data.pf.arr(x, units)
     else:
         return data.pf.quan(x, units)
+
+def get_binary_op_return_class(cls1, cls2):
+    if cls1 == cls2:
+        return cls1
+    if cls1 == np.ndarray or issubclass(cls1, numeric_type):
+        return cls2
+    if cls2 == np.ndarray or issubclass(cls2, numeric_type):
+        return cls1
+    if issubclass(cls1, YTQuantity):
+        return cls2
+    if issubclass(cls2, YTQuantity):
+        return cls1
+    if issubclass(cls1, cls2):
+        return cls1
+    if issubclass(cls2, cls1):
+        return cls2
+    else:
+        raise RuntimeError("Operations are only defined on pairs of objects"
+                           "in which one is a subclass of the other")
