@@ -847,7 +847,7 @@ class YTArray(np.ndarray):
 
     @return_arr
     def prod(self, axis=None, dtype=None, out=None):
-        if axis:
+        if axis is not None:
             units = self.units**self.shape[axis]
         else:
             units = self.units**self.size
