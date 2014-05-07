@@ -698,17 +698,13 @@ def test_subclass():
         for inst in (b, ytq, ndf, yta, nda):
             yield op_comparison, op, a, inst, YTASubclass
 
-        for inst in (nda, yta):
-            yield op_comparison, op, ytq, inst, YTArray
+        yield op_comparison, op, ytq, nda, YTArray
+        yield op_comparison, op, ytq, yta, YTArray
 
     for op in (operator.add, operator.sub):
         yield op_comparison, op, nu, nda, YTASubclass
-
-        for inst in (b, yta):
-            yield op_comparison, op, a, inst, YTASubclass
-
-        for inst in (nda, yta):
-            yield op_comparison, op, nu, nda, YTArray
+        yield op_comparison, op, a, b, YTASubclass
+        yield op_comparison, op, a, yta, YTASubclass
 
     yield assert_isinstance, a[0], YTQuantity
     yield assert_isinstance, a[:], YTASubclass
