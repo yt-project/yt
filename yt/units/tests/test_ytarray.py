@@ -646,9 +646,9 @@ def test_registry_association():
         assert_equal(id(c.units.registry), id(ds.unit_registry))
         assert_equal(id(d.units.registry), id(b.units.registry))
 
-        for op in [operator.add, operator.sub, operator.mul, operator.div,
-                   operator.truediv]:
-            yield binary_op_registry_comparison, op
+    for op in [operator.add, operator.sub, operator.mul, operator.div,
+               operator.truediv]:
+        yield binary_op_registry_comparison, op
 
     for op in [operator.abs, operator.neg, operator.pos]:
         yield unary_op_registry_comparison, op
