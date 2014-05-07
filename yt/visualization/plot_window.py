@@ -752,6 +752,9 @@ class PWViewerMPL(PlotWindow):
             else:
                 (unit_x, unit_y) = self._axes_unit_names
 
+            # For some plots we may set aspect by hand, such as for PPV data.
+            # This will likely be replaced at some point by the coordinate handler
+            # setting plot aspect.
             if self.aspect is None:
                 self.aspect = np.float64(self.pf.quan(1.0, unit_y)/(self.pf.quan(1.0, unit_x)))
 
@@ -1019,7 +1022,8 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
-                 origin='center-window', fontsize=18, field_parameters=None, **kwargs):
+                 origin='center-window', fontsize=18, field_parameters=None,
+                 window_size=8.0, aspect=None):
         # this will handle time series data and controllers
         ts = self._initialize_dataset(pf)
         self.ts = ts
@@ -1031,7 +1035,8 @@ class AxisAlignedSlicePlot(PWViewerMPL):
             field_parameters = field_parameters, center=center)
         slc.get_data(fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin,
-                             fontsize=fontsize, fields=fields, **kwargs)
+                             fontsize=fontsize, fields=fields,
+                             window_size=window_size, aspect=aspect)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, pf)
         self.set_axes_unit(axes_unit)
@@ -1146,7 +1151,7 @@ class ProjectionPlot(PWViewerMPL):
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
                  weight_field=None, max_level=None, origin='center-window',
                  fontsize=18, field_parameters=None, data_source=None,
-                 proj_style = "integrate", **kwargs):
+                 proj_style = "integrate", window_size=8.0, aspect=None):
         ts = self._initialize_dataset(pf)
         self.ts = ts
         pf = self.pf = ts[0]
@@ -1157,7 +1162,7 @@ class ProjectionPlot(PWViewerMPL):
                          center=center, data_source=data_source,
                          field_parameters = field_parameters, style = proj_style)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
-                             fontsize=fontsize, **kwargs)
+                             fontsize=fontsize, window_size=window_size, aspect=aspect)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, pf)
         self.set_axes_unit(axes_unit)

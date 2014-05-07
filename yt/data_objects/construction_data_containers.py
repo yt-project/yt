@@ -211,10 +211,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         YTSelectionContainer2D.__init__(self, axis, pf, field_parameters)
         if style == "sum":
             self.proj_style = "integrate"
-            self.sum_only = True
+            self._sum_only = True
         else:
             self.proj_style = style
-            self.sum_only = False
+            self._sum_only = False
         if style == "mip":
             self.func = np.max
         elif style == "integrate" or style == "sum":
@@ -351,7 +351,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         tree.initialize_chunk(i1, i2, ilevel)
 
     def _handle_chunk(self, chunk, fields, tree):
-        if self.proj_style == "mip" or self.sum_only:
+        if self.proj_style == "mip" or self._sum_only:
             dl = 1.0
         else:
             # This gets explicitly converted to cm
