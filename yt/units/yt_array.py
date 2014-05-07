@@ -537,11 +537,10 @@ class YTArray(np.ndarray):
             raise RuntimeError("Unable to open dataset {} in file {}".format(fmt))
         data = dataset[:]
         units = dataset.attrs.get('units', '')
-        if 'unit_regsitry' in dataset.attrs:
+        if 'unit_registry' in dataset.attrs.keys():
             unit_lut = pickle.loads(dataset.attrs['unit_registry'])
         else:
             unit_lut = None
-
 
         registry = UnitRegistry(lut=unit_lut, add_default_symbols=False)
         return cls(data, units, registry=registry)
