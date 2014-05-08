@@ -256,11 +256,10 @@ cdef class RockstarGroupiesInterface:
         cdef np.int64_t next_tag, local_tag, last_fof_tag = -1
         fof_obj.num_p = 0
         j = 0
-        max_count = pind.shape[0]
         # We're going to do one iteration to get the most frequent value.
         for i in range(pind.shape[0]):
-            ind = i #pind[i]
-            local_tag = fof_tags[i]
+            ind = pind[i]
+            local_tag = fof_tags[ind]
             # Don't count the null group
             if local_tag == -1: continue
             if local_tag != last_fof_tag:
@@ -272,7 +271,7 @@ cdef class RockstarGroupiesInterface:
                 j += 1
         if j > max_count:
             max_count = j
-        #print >> sys.stderr, "Most frequent occurrance: %s" % max_count
+        print >> sys.stderr, "Most frequent occurrance: %s" % max_count
         fof_obj.particles = <particle*> malloc(max_count * sizeof(particle))
         j = 0
         cdef int counter = 0, ndone = 0
@@ -281,7 +280,7 @@ cdef class RockstarGroupiesInterface:
         cdef np.int64_t frac = <np.int64_t> (pcounts.shape[0] / 20.0)
         free_halos()
         for i in range(pind.shape[0]):
-            ind = i #pind[i]
+            ind = pind[i]
             local_tag = fof_tags[ind]
             # Skip this one -- it means no group.
             if local_tag == -1:
@@ -289,7 +288,7 @@ cdef class RockstarGroupiesInterface:
             if i == pind.shape[0] - 1:
                 next_tag = local_tag + 1
             else:
-                next_tag = fof_tags[i+1]
+                next_tag = fof_tags[pind[i+1]]
             for k in range(3):
                 fof_obj.particles[j].pos[k] = pos[ind,k]
                 fof_obj.particles[j].pos[k+3] = vel[ind,k]
