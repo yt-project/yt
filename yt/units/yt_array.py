@@ -490,8 +490,8 @@ class YTArray(np.ndarray):
         ...              info=myinfo)
 
         """
-        import h5py as h5
-        import pickle
+        import h5py
+        from yt.extern.six.moves import cPickle as pickle
         if info is None:
             info = {}
 
@@ -501,16 +501,26 @@ class YTArray(np.ndarray):
         if dataset_name is None:
             dataset_name = 'array_data'
 
-        f = h5.File(filename)
+        f = h5py.File(filename)
         if dataset_name in f.keys():
-            del f[dataset_name]
-        d = f.create_dataset(dataset_name, data=self)
+            d = f[dataset_name]
+            # Overwrite without deleting if we can get away with it.
+            if d.shape == self.shape and d.dtype == self.dtype:
+                d[:] = self
+                for k in d.attrs.keys():
+                    del d.attrs[k]
+            else:
+                del f[dataset_name]
+                d = f.create_dataset(dataset_name, data=self)
+        else:
+            d = f.create_dataset(dataset_name, data=self)
+
         for k, v in info.iteritems():
             d.attrs.create(k, v)
         f.close()
 
     @classmethod
-    def read_hdf5(cls, filename, dataset_name=None):
+    def from_hdf5(cls, filename, dataset_name=None):
         r"""Attempts read in and convert a dataset in an hdf5 file into a YTArray.
 
         Parameters
@@ -523,18 +533,14 @@ class YTArray(np.ndarray):
             attribute, attempt to infer units as well.
 
         """
-        import h5py as h5
+        import h5py
         import pickle
 
         if dataset_name is None:
             dataset_name = 'array_data'
 
-        f = h5.File(filename)
-        try:
-            dataset = f[dataset_name]
-        except KeyError:
-            fmt = (dataset_name, filename)
-            raise RuntimeError("Unable to open dataset {} in file {}".format(fmt))
+        f = h5py.File(filename)
+        dataset = f[dataset_name]
         data = dataset[:]
         units = dataset.attrs.get('units', '')
         if 'unit_registry' in dataset.attrs.keys():

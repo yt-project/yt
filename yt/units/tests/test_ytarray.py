@@ -721,7 +721,7 @@ def test_h5_io():
 
     warr.write_hdf5('test.h5')
 
-    iarr = YTArray.read_hdf5('test.h5')
+    iarr = YTArray.from_hdf5('test.h5')
 
     yield assert_equal, warr, iarr
     yield assert_equal, warr.units.registry['code_length'], iarr.units.registry['code_length']
