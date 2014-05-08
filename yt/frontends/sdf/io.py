@@ -355,6 +355,9 @@ class SDFIndex(object):
             if (f2 != ic_Nmesh):
                 expand_root = 1.0*f2/ic_Nmesh - 1.0;
             mylog.debug("Expanding: %s, %s, %s" % (f2, ic_Nmesh, expand_root))
+        self.true_domain_left = self.rmin.copy()
+        self.true_domain_right = self.rmax.copy()
+        self.true_domain_width = self.rmax - self.rmin
         self.rmin *= 1.0 + expand_root
         self.rmax *= 1.0 + expand_root
         self.domain_width = self.rmax - self.rmin
@@ -448,7 +451,7 @@ class SDFIndex(object):
         lengths = self.indexdata['len'][mask]
         return mask, offsets, lengths
 
-    def get_ibbox(self, ileft, iright):
+    def get_ibbox(self, ileft, iright, wandering_particles=True):
         """
         Given left and right indicies, return a mask and
         set of offsets+lengths into the sdf data.
@@ -468,6 +471,21 @@ class SDFIndex(object):
         X = X[mask, mask, mask].astype('int64').ravel()
         Y = Y[mask, mask, mask].astype('int64').ravel()
         Z = Z[mask, mask, mask].astype('int64').ravel()
+
+        if wandering_particles:
+            # Need to get padded bbox around the border to catch
+            # wandering particles.
+            dmask = X == self.domain_buffer-1
+            dmask += Y == self.domain_buffer-1
+            dmask += Z == self.domain_buffer-1
+            dmask += X == self.domain_dims
+            dmask += Y == self.domain_dims
+            dmask += Z == self.domain_dims
+            dinds = self.get_keyv([X[dmask], Y[dmask], Z[dmask]])
+            dinds = dinds[dinds < self.indexdata['index'][-1]]
+            dinds = dinds[self.indexdata['len'][dinds] > 0]
+            print 'Getting boundary layers for wanderers, cells: %i' % dinds.size
+
         # Correct For periodicity
         X[X < self.domain_buffer] += self.domain_active_dims
         X[X >= self.domain_dims -  self.domain_buffer] -= self.domain_active_dims
@@ -481,9 +499,13 @@ class SDFIndex(object):
         indices = self.get_keyv([X, Y, Z])
         indices = indices[indices < self.indexdata['index'][-1]]
         indices = indices[self.indexdata['len'][indices] > 0]
+
         #indices = np.array([self.get_key_ijk(x, y, z) for x, y, z in zip(X, Y, Z)])
         # Here we sort the indices to batch consecutive reads together.
-        indices = np.sort(indices)
+        if wandering_particles:
+            indices = np.sort(np.append(indices, dinds))
+        else:
+            indices = np.sort(indices)
         return indices
 
     def get_bbox(self, left, right):
@@ -575,6 +597,41 @@ class SDFIndex(object):
                 del data
             i += 1
         mylog.debug('Read %i chunks, batched into %i reads' % (num_inds, num_reads))
+
+    def filter_bbox(self, left, right, iter):
+        """
+        Filter data by masking out data outside of a bbox defined
+        by left/right. Account for periodicity of data, allowing left/right
+        to be outside of the domain.
+        """
+        for data in iter:
+            mask = np.zeros_like(data, dtype='bool')
+            pos = np.array([data['x'], data['y'], data['z']]).T
+            # Now make pos periodic
+            for i in range(3):
+                pos[i][pos[i] < left[i]] += self.true_domain_width[i]
+                pos[i][pos[i] >= right[i]] -= self.true_domain_width[i]
+
+            # First mask out the particles outside the bbox
+            mask = np.all(pos >= left, axis=1) * \
+                np.all(pos < right, axis=1)
+
+            mylog.debug("Filtering particles, returning %i out of %i" % (mask.sum(), mask.shape[0]))
+
+            if not np.any(mask):
+                continue
+
+            filtered = {ax: pos[:, i][mask] for i, ax in enumerate('xyz')}
+            for f in data.keys():
+                if f in 'xyz': continue
+                filtered[f] = data[f][mask]
+
+            for i, ax in enumerate('xyz'):
+                print left, right
+                assert np.all(filtered[ax] >= left[i])
+                assert np.all(filtered[ax] < right[i])
+
+            yield filtered
 
     def iter_bbox_data(self, left, right, fields):
         mylog.debug('SINDEX Loading region from %s to %s' %(left, right))
@@ -697,8 +754,14 @@ class SDFIndex(object):
 
         """
         bbox = self.get_cell_bbox(level, cell_iarr)
+        filter_left = bbox[:, 0] - pad
+        filter_right = bbox[:, 1] + pad
+
         data = []
-        data.append(self.get_cell_data(level, cell_iarr, fields))
+        for dd in self.filter_bbox(
+            filter_left, filter_right,
+            [self.get_cell_data(level, cell_iarr, fields)]):
+            data.append(dd)
         #for dd in self.iter_bbox_data(bbox[:,0], bbox[:,1], fields):
         #    data.append(dd)
         #assert data[0]['x'].shape[0] > 0
@@ -711,11 +774,15 @@ class SDFIndex(object):
         pbox[1, 1] += pad[1]
         pbox[2, 0] -= pad[2]
         pbox[2, 1] = bbox[2, 0]
-        for dd in self.iter_bbox_data(pbox[:,0], pbox[:,1], fields):
+        for dd in self.filter_bbox(
+            filter_left, filter_right,
+            self.iter_bbox_data(pbox[:,0], pbox[:,1], fields)):
             data.append(dd)
         pbox[2, 0] = bbox[2, 1]
         pbox[2, 1] = pbox[2, 0] + pad[2]
-        for dd in self.iter_bbox_data(pbox[:,0], pbox[:,1], fields):
+        for dd in self.filter_bbox(
+            filter_left, filter_right,
+            self.iter_bbox_data(pbox[:,0], pbox[:,1], fields)):
             data.append(dd)
 
         # Front & Back 
@@ -724,22 +791,30 @@ class SDFIndex(object):
         pbox[0, 1] += pad[0]
         pbox[1, 0] -= pad[1]
         pbox[1, 1] = bbox[1, 0]
-        for dd in self.iter_bbox_data(pbox[:,0], pbox[:,1], fields):
+        for dd in self.filter_bbox(
+            filter_left, filter_right,
+            self.iter_bbox_data(pbox[:,0], pbox[:,1], fields)):
             data.append(dd)
         pbox[1, 0] = bbox[1, 1]
         pbox[1, 1] = pbox[1, 0] + pad[1]
-        for dd in self.iter_bbox_data(pbox[:,0], pbox[:,1], fields):
+        for dd in self.filter_bbox(
+            filter_left, filter_right,
+            self.iter_bbox_data(pbox[:,0], pbox[:,1], fields)):
             data.append(dd)
 
         # Left & Right 
         pbox = bbox.copy()
         pbox[0, 0] -= pad[0]
         pbox[0, 1] = bbox[0, 0]
-        for dd in self.iter_bbox_data(pbox[:,0], pbox[:,1], fields):
+        for dd in self.filter_bbox(
+            filter_left, filter_right,
+            self.iter_bbox_data(pbox[:,0], pbox[:,1], fields)):
             data.append(dd)
         pbox[0, 0] = bbox[0, 1]
         pbox[0, 1] = pbox[0, 0] + pad[0]
-        for dd in self.iter_bbox_data(pbox[:,0], pbox[:,1], fields):
+        for dd in self.filter_bbox(
+            filter_left, filter_right,
+            self.iter_bbox_data(pbox[:,0], pbox[:,1], fields)):
             data.append(dd)
 
         return data
