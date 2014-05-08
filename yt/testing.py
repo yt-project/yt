@@ -12,7 +12,7 @@
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import md5
+import hashlib
 import cPickle
 import itertools as it
 import numpy as np
@@ -582,7 +582,7 @@ def check_results(func):
             st = _rv.std(dtype="float64")
             su = _rv.sum(dtype="float64")
             si = _rv.size
-            ha = md5.md5(_rv.tostring()).hexdigest()
+            ha = hashlib.md5(_rv.tostring()).hexdigest()
             fn = "func_results_ref_%s.cpkl" % (name)
             with open(fn, "wb") as f:
                 cPickle.dump( (mi, ma, st, su, si, ha), f)
@@ -606,7 +606,7 @@ def check_results(func):
                     _rv.std(dtype="float64"),
                     _rv.sum(dtype="float64"),
                     _rv.size,
-                    md5.md5(_rv.tostring()).hexdigest() )
+                    hashlib.md5(_rv.tostring()).hexdigest() )
             fn = "func_results_ref_%s.cpkl" % (name)
             if not os.path.exists(fn):
                 print "Answers need to be created with --answer-reference ."

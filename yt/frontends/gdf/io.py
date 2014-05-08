@@ -15,7 +15,6 @@ The data-file handling functions
 
 import numpy as np
 import h5py
-import exceptions
 from yt.funcs import \
     mylog
 from yt.utilities.io_handler import \

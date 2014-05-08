@@ -13,7 +13,7 @@ API for halo_finding
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from halo_objects import \
+from .halo_objects import \
     Halo, \
     HOPHalo, \
     parallelHOPHalo, \

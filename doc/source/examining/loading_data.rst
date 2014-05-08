@@ -282,7 +282,7 @@ can supply alternate particle types by using the keyword ``ptype_spec`` to the
 
 .. code-block:: python
 
-    ( "Gas", "Halo", "Disk", "Bulge", "Stars", "Bndry" )
+   ( "Gas", "Halo", "Disk", "Bulge", "Stars", "Bndry" )
 
 You can specify alternate names, but note that this may cause problems with the
 field specification if none of the names match old names.
@@ -300,23 +300,23 @@ default header specification (found in ``yt/frontends/sph/definitions.py``) is:
 
 .. code-block:: python
    
-    default      = (('Npart', 6, 'i'),
-                    ('Massarr', 6, 'd'),
-                    ('Time', 1, 'd'),
-                    ('Redshift', 1, 'd'),
-                    ('FlagSfr', 1, 'i'),
-                    ('FlagFeedback', 1, 'i'),
-                    ('Nall', 6, 'i'),
-                    ('FlagCooling', 1, 'i'),
-                    ('NumFiles', 1, 'i'),
-                    ('BoxSize', 1, 'd'),
-                    ('Omega0', 1, 'd'),
-                    ('OmegaLambda', 1, 'd'),
-                    ('HubbleParam', 1, 'd'),
-                    ('FlagAge', 1, 'i'),
-                    ('FlagMEtals', 1, 'i'),
-                    ('NallHW', 6, 'i'),
-                    ('unused', 16, 'i'))
+   default      = (('Npart', 6, 'i'),
+                   ('Massarr', 6, 'd'),
+                   ('Time', 1, 'd'),
+                   ('Redshift', 1, 'd'),
+                   ('FlagSfr', 1, 'i'),
+                   ('FlagFeedback', 1, 'i'),
+                   ('Nall', 6, 'i'),
+                   ('FlagCooling', 1, 'i'),
+                   ('NumFiles', 1, 'i'),
+                   ('BoxSize', 1, 'd'),
+                   ('Omega0', 1, 'd'),
+                   ('OmegaLambda', 1, 'd'),
+                   ('HubbleParam', 1, 'd'),
+                   ('FlagAge', 1, 'i'),
+                   ('FlagMEtals', 1, 'i'),
+                   ('NallHW', 6, 'i'),
+                   ('unused', 16, 'i'))
 
 These items will all be accessible inside the object ``pf.parameters``, which
 is a dictionary.  You can add combinations of new items, specified in the same
@@ -371,7 +371,7 @@ indexing and mesh-identification with that described in
 
 .. code-block:: python
 
-    ds = load("./halo1e11_run1.00400")
+   ds = load("./halo1e11_run1.00400")
 
 .. _specifying-cosmology-tipsy:
 
@@ -389,6 +389,11 @@ default units.  The parameters recognized are of this form:
                            'hubble_constant': 0.702}
 
 These will be used set the units, if they are specified.
+
+Using yt to view and analyze Tipsy outputs from Gasoline
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+.. notebook:: tipsy_and_yt.ipynb
 
 .. _loading-artio-data:
 
@@ -409,7 +414,7 @@ To load ARTIO data, you can specify a command such as this:
 
 .. code-block:: python
 
-    ds = load("./A11QR1/s11Qzm1h2_a1.0000.art")
+   ds = load("./A11QR1/s11Qzm1h2_a1.0000.art")
 
 .. _loading-art-data:
 
@@ -551,24 +556,24 @@ upon being loaded into yt it is automatically decomposed into grids:
 
 .. code-block:: python
 
-  from yt.mods import *
-  ds = load("m33_hi.fits")
-  ds.print_stats()
+   from yt.mods import *
+   ds = load("m33_hi.fits")
+   ds.print_stats()
 
 .. parsed-literal::
 
-  level	  # grids	    # cells	   # cells^3
-  ----------------------------------------------
-    0	     512	  981940800	         994
-  ----------------------------------------------
-             512	  981940800
+   level	  # grids	    # cells	   # cells^3
+   ----------------------------------------------
+     0	     512	  981940800	         994
+   ----------------------------------------------
+              512	  981940800
 
 yt will generate its own domain decomposition, but the number of grids can be
 set manually by passing the ``nprocs`` parameter to the ``load`` call:
 
 .. code-block:: python
 
-  ds = load("m33_hi.fits", nprocs=1024)
+   ds = load("m33_hi.fits", nprocs=1024)
 
 Making the Most of `yt` for FITS Data
 +++++++++++++++++++++++++++++++++++++
@@ -591,12 +596,12 @@ to set the ``BTYPE`` and ``BUNIT`` keywords:
 
 .. code-block:: python
 
-    import astropy.io.fits as pyfits
-    f = pyfits.open("xray_flux_image.fits", mode="update")
-    f[0].header["BUNIT"] = "cts/s/pixel"
-    f[0].header["BTYPE"] = "flux"
-    f.flush()
-    f.close()
+   import astropy.io.fits as pyfits
+   f = pyfits.open("xray_flux_image.fits", mode="update")
+   f[0].header["BUNIT"] = "cts/s/pixel"
+   f[0].header["BTYPE"] = "flux"
+   f.flush()
+   f.close()
 
 FITS Coordinates
 ++++++++++++++++
@@ -646,7 +651,7 @@ The third way is if auxiliary files are included along with the main file, like 
 
 .. code-block:: python
 
-    ds = load("flux.fits", auxiliary_files=["temp.fits","metal.fits"])
+   ds = load("flux.fits", auxiliary_files=["temp.fits","metal.fits"])
 
 The image blocks in each of these files will be loaded as a separate field,
 provided they have the same dimensions as the image blocks in the main file.
@@ -676,13 +681,13 @@ you may supply a ``nan_mask`` parameter to ``load``, which may either be a
 single floating-point number (applies to all fields) or a Python dictionary
 containing different mask values for different fields:
 
-.. code-block::
+.. code-block:: python
 
-  # passing a single float
-  ds = load("m33_hi.fits", nan_mask=0.0)
+   # passing a single float
+   ds = load("m33_hi.fits", nan_mask=0.0)
 
-  # passing a dict
-  ds = load("m33_hi.fits", nan_mask={"intensity":-1.0,"temperature":0.0})
+   # passing a dict
+   ds = load("m33_hi.fits", nan_mask={"intensity":-1.0,"temperature":0.0})
 
 Generally, AstroPy may generate a lot of warnings about individual FITS
 files, many of which you may want to ignore. If you want to see these
@@ -793,9 +798,9 @@ setting the ``number_of_particles`` key to each ``grid``'s dict:
 
 .. code-block:: python
 
-    for g in grid_data:
-        g["number_of_particles"] = 100000
-        g["particle_position_x"] = np.random.random((g["number_of_particles"]))
+   for g in grid_data:
+       g["number_of_particles"] = 100000
+       g["particle_position_x"] = np.random.random((g["number_of_particles"]))
 
 .. rubric:: Caveats
 

@@ -20,7 +20,7 @@ def check_for_openmp():
         # Attempt to compile a test script.
         # See http://openmp.org/wp/openmp-compilers/
         filename = r'test.c'
-        file = open(filename,'w', 0)
+        file = open(filename,'wt', 1)
         file.write(
             "#include <omp.h>\n"
             "#include <stdio.h>\n"
@@ -151,7 +151,7 @@ def configuration(parent_package='',top_path=None):
         gpd = os.environ["GPERFTOOLS"]
         idir = os.path.join(gpd, "include")
         ldir = os.path.join(gpd, "lib")
-        print "INCLUDE AND LIB DIRS", idir, ldir
+        print("INCLUDE AND LIB DIRS", idir, ldir)
         config.add_extension("perftools_wrap",
                 ["yt/utilities/lib/perftools_wrap.pyx"],
                 libraries=["profiler"],

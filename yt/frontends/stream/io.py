@@ -15,7 +15,6 @@ Enzo-specific IO functions
 
 from collections import defaultdict
 
-import exceptions
 import os
 import numpy as np
 

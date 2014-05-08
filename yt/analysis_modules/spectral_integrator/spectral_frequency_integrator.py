@@ -14,7 +14,6 @@ bins.  Currently only supports Cloudy-style data.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from exceptions import IOError
 import h5py
 import numpy as np
 import os

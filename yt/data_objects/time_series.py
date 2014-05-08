@@ -16,6 +16,7 @@ Time series analysis functions.
 import inspect, functools, weakref, glob, types, os
 
 from yt.funcs import *
+from yt.extern.six import add_metaclass
 from yt.convenience import load
 from yt.config import ytcfg
 from .data_containers import data_object_registry
@@ -129,7 +130,7 @@ class DatasetSeries(object):
     def __new__(cls, outputs, *args, **kwargs):
         if isinstance(outputs, basestring):
             outputs = get_filenames_from_glob_pattern(outputs)
-        ret = super(DatasetSeries, cls).__new__(cls, outputs, *args, **kwargs)
+        ret = super(DatasetSeries, cls).__new__(cls, *args, **kwargs)
         try:
             ret._pre_outputs = outputs[:]
         except TypeError:
@@ -375,16 +376,16 @@ class DatasetSeriesObject(object):
         cls = getattr(pf.h, self.data_object_name)
         return cls(*self._args, **self._kwargs)
 
+class RegisteredSimulationTimeSeries(type):
+    def __init__(cls, name, b, d):
+        type.__init__(cls, name, b, d)
+        code_name = name[:name.find('Simulation')]
+        if code_name:
+            simulation_time_series_registry[code_name] = cls
+            mylog.debug("Registering simulation: %s as %s", code_name, cls)
 
+@add_metaclass(RegisteredSimulationTimeSeries)
 class SimulationTimeSeries(DatasetSeries):
-    class __metaclass__(type):
-        def __init__(cls, name, b, d):
-            type.__init__(cls, name, b, d)
-            code_name = name[:name.find('Simulation')]
-            if code_name:
-                simulation_time_series_registry[code_name] = cls
-                mylog.debug("Registering simulation: %s as %s", code_name, cls)
-
     def __init__(self, parameter_filename, find_outputs=False):
         """
         Base class for generating simulation time series types.

@@ -16,7 +16,6 @@ Data containers based on geometric selection
 
 import types
 import numpy as np
-from exceptions import ValueError, SyntaxError
 
 from yt.funcs import *
 from yt.utilities.lib.alt_ray_tracers import cylindrical_ray_trace
