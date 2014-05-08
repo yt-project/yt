@@ -110,11 +110,11 @@ class CartesianCoordinateHandler(CoordinateHandler):
     axis_id = { 'x' : 0, 'y' : 1, 'z' : 2,
                  0  : 0,  1  : 1,  2  : 2}
 
-    x_axis = { 'x' : 1, 'y' : 0, 'z' : 0,
-                0  : 1,  1  : 0,  2  : 0}
+    x_axis = { 'x' : 1, 'y' : 2, 'z' : 0,
+                0  : 1,  1  : 2,  2  : 0}
 
-    y_axis = { 'x' : 2, 'y' : 2, 'z' : 1,
-                0  : 2,  1  : 2,  2  : 1}
+    y_axis = { 'x' : 2, 'y' : 0, 'z' : 1,
+                0  : 2,  1  : 0,  2  : 1}
 
     @property
     def period(self):
