@@ -473,7 +473,7 @@ class ProfilePlot(object):
         scales = {True: 'log', False: 'linear'}
         return scales[x_log], scales[y_log]
 
-    def _get_field_label(self, field, field_info, field_unit):
+    def _get_field_label(self, field, field_info, field_unit, fractional=False):
         field_unit = field_unit.latex_representation()
         field_name = field_info.display_name
         if isinstance(field, tuple): field = field[1]
@@ -483,7 +483,9 @@ class ProfilePlot(object):
         elif field_name.find('$') == -1:
             field_name = field_name.replace(' ','\/')
             field_name = r'$\rm{'+field_name+r'}$'
-        if field_unit is None or field_unit == '':
+        if fractional:
+            label = field_name + r'$\rm{\/Probability\/Density}$'
+        elif field_unit is None or field_unit == '':
             label = field_name
         else:
             label = field_name+r'$\/\/('+field_unit+r')$'
@@ -498,9 +500,10 @@ class ProfilePlot(object):
         yfi = pf._get_field_info(*yf)
         x_unit = profile.x.units
         y_unit = profile.field_units[field_y]
+        fractional = profile.fractional
         x_title = self.x_title or self._get_field_label(field_x, xfi, x_unit)
         y_title = self.y_title.get(field_y, None) or \
-                    self._get_field_label(field_y, yfi, y_unit)
+                    self._get_field_label(field_y, yfi, y_unit, fractional)
 
         return (x_title, y_title)
             
@@ -623,13 +626,14 @@ class PhasePlot(ImagePlotContainer):
         x_unit = profile.x.units
         y_unit = profile.y.units
         z_unit = profile.field_units[field_z]
+        fractional = profile.fractional
         x_title = self.x_title or self._get_field_label(field_x, xfi, x_unit)
         y_title = self.y_title or self._get_field_label(field_y, yfi, y_unit)
         z_title = self.z_title.get(field_z, None) or \
-                    self._get_field_label(field_z, zfi, z_unit)
+                    self._get_field_label(field_z, zfi, z_unit, fractional)
         return (x_title, y_title, z_title)
 
-    def _get_field_label(self, field, field_info, field_unit):
+    def _get_field_label(self, field, field_info, field_unit, fractional=False):
         field_unit = field_unit.latex_representation()
         field_name = field_info.display_name
         if isinstance(field, tuple): field = field[1]
@@ -639,7 +643,9 @@ class PhasePlot(ImagePlotContainer):
         elif field_name.find('$') == -1:
             field_name = field_name.replace(' ','\/')
             field_name = r'$\rm{'+field_name+r'}$'
-        if field_unit is None or field_unit == '':
+        if fractional:
+            label = field_name + r'$\rm{\/Probability\/Density}$'
+        elif field_unit is None or field_unit is '':
             label = field_name
         else:
             label = field_name+r'$\/\/('+field_unit+r')$'

@@ -367,3 +367,13 @@ class YTDuplicateFieldInProfile(Exception):
                But being asked to add it with:
                %s""" % (self.field, self.old_spec, self.new_spec)
         return r
+
+class YTInvalidPositionArray(Exception):
+    def __init__(self, shape, dimensions):
+        self.shape = shape
+        self.dimensions = dimensions
+
+    def __str__(self):
+        r = """Position arrays must be length and shape (N,3).
+               But this one has %s and %s.""" % (self.dimensions, self.shape)
+        return r
