@@ -37,6 +37,7 @@ def add_points_to_image(
     #        for k in range(3):
     #            v = buffer[i, j, k]
     #            buffer[i, j, k] = iclip(v, 0, 255)
+
 def add_rgba_points_to_image(
         np.ndarray[np.float64_t, ndim=3] buffer,
         np.ndarray[np.float64_t, ndim=1] px,
@@ -44,12 +45,12 @@ def add_rgba_points_to_image(
         np.ndarray[np.float64_t, ndim=2] rgba,
         ):
     cdef int i, j, k, pi
-    cdef int np = px.shape[0]
+    cdef int npart = px.shape[0]
     cdef int xs = buffer.shape[0]
     cdef int ys = buffer.shape[1]
     cdef int v
     #iv = iclip(<int>(pv * 255), 0, 255)
-    for pi in range(np):
+    for pi in range(npart):
         j = <int> (xs * px[pi])
         i = <int> (ys * py[pi])
         if i < 0 or j < 0 or i >= xs or j >= ys:
