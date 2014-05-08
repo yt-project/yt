@@ -347,6 +347,9 @@ class SDFIndex(object):
             self.rmax[1] += self.sdfdata.parameters.get('Ry', r_0)
             self.rmax[2] += self.sdfdata.parameters.get('Rz', r_0)
 
+        self.rmin *= self.sdfdata.parameters.get("a", 1.0)
+        self.rmax *= self.sdfdata.parameters.get("a", 1.0)
+
         #/* expand root for non-power-of-two */
         expand_root = 0.0
         ic_Nmesh = self.sdfdata.parameters.get('ic_Nmesh',0)
@@ -543,9 +546,8 @@ class SDFIndex(object):
         if stop is None:
             stop = self.indexdata['index'][-1]
         while key < stop:
-            base = self.indexdata['base'][key]
-            length = self.indexdata['len'][key]
-            if base == 0 and length == 0:
+            if self.indexdata['index'][key] == 0:
+                #print 'Squeezing keys, incrementing'
                 key += 1
             else:
                 break
@@ -557,9 +559,9 @@ class SDFIndex(object):
         if stop is None:
             stop = self.indexdata['index'][0]
         while key > stop:
-            base = self.indexdata['base'][key]
-            length = self.indexdata['len'][key]
-            if base == 0 and length == 0:
+            #self.indexdata['index'][-1]:
+            if self.indexdata['index'][key] == 0:
+                #print 'Squeezing keys, decrementing'
                 key -= 1
             else:
                 break
