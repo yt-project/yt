@@ -765,17 +765,8 @@ cdef class ParticleContourTree(ContourTree):
                 offset = pind[doff[i] + j]
                 c1 = container[offset]
                 c0 = contour_find(c1)
-                contour_ids[offset] = c0.contour_id
-                c0.count += 1
-        for i in range(doff.shape[0]):
-            if doff[i] < 0: continue
-            for j in range(pcount[i]):
-                offset = pind[doff[i] + j]
-                c1 = container[offset]
-                if c1 == NULL: continue
-                c0 = contour_find(c1)
-                if c0.count < self.minimum_count:
-                    contour_ids[offset] = -1
+                # Set to the ID of the friendliest particle.
+                contour_ids[offset] = particle_ids[pind[c0.contour_id]]
         free(container)
         del pind
         # We can now remake our contour IDs, count the number of them, and
@@ -806,7 +797,7 @@ cdef class ParticleContourTree(ContourTree):
         # Note that pind0 will not monotonically increase, but 
         c0 = container[pind0]
         if c0 == NULL:
-            c0 = container[pind0] = contour_create(pind0, self.last)
+            c0 = container[pind0] = contour_create(poffset, self.last)
             self.last = c0
             if self.first == NULL:
                 self.first = c0
