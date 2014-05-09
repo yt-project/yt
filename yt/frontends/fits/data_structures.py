@@ -249,7 +249,6 @@ class FITSHierarchy(GridIndex):
             except KeyError:
                 self.grid_particle_count[:] = 0.0
             self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
-            print self.grid_particle_count, self.grid_particle_count.squeeze()
             self._particle_indices[1] = self.grid_particle_count.squeeze()
 
         self.grid_levels.flat[:] = 0
@@ -502,6 +501,8 @@ class FITSDataset(Dataset):
                           "Ignoring.")
             self.z_axis_decomp = False
 
+        if self.events_data: self.specified_parameters["nprocs"] = 1
+
         # If nprocs is None, do some automatic decomposition of the domain
         if self.specified_parameters["nprocs"] is None:
             if len(self.line_database) > 0:
@@ -513,8 +514,6 @@ class FITSDataset(Dataset):
             else:
                 nprocs = np.around(np.prod(self.domain_dimensions)/32**dims).astype("int")
             self.parameters["nprocs"] = max(min(nprocs, 512), 1)
-        elif self.events_data:
-            self.parameters["nprocs"] = 1
         else:
             self.parameters["nprocs"] = self.specified_parameters["nprocs"]
 
