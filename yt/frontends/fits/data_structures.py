@@ -209,29 +209,35 @@ class FITSHierarchy(GridIndex):
 
         # If nprocs > 1, decompose the domain into virtual grids
         if self.num_grids > 1:
-            bbox = np.array([[le,re] for le, re in zip(pf.domain_left_edge,
-                                                       pf.domain_right_edge)])
-            dims = np.array(pf.domain_dimensions)
-            # If we are creating a dataset of lines, only decompose along the position axes
-            if len(pf.line_database) > 0:
-                dims[pf.vel_axis] = 1
-            elif self.pf.dimensionality == 3:
-                dims[:2] = 1
-            psize = get_psize(dims, self.num_grids)
-            gle, gre, shapes, slices = decompose_array(dims, psize, bbox)
-            self.grid_left_edge = self.pf.arr(gle, "code_length")
-            self.grid_right_edge = self.pf.arr(gre, "code_length")
-            self.grid_dimensions = np.array([shape for shape in shapes], dtype="int32")
-            # If we are creating a dataset of lines, only decompose along the position axes
-            if len(pf.line_database) > 0:
-                self.grid_left_edge[:,pf.vel_axis] = pf.domain_left_edge[pf.vel_axis]
-                self.grid_right_edge[:,pf.vel_axis] = pf.domain_right_edge[pf.vel_axis]
-                self.grid_dimensions[:,pf.vel_axis] = pf.domain_dimensions[pf.vel_axis]
-            elif self.pf.dimensionality == 3:
+            if self.pf.z_axis_decomp:
+                dz = (pf.domain_width/pf.domain_dimensions)[2]
+                self.grid_dimensions[:,2] = np.around(float(pf.domain_dimensions[2])/
+                                                            self.num_grids).astype("int")
+                self.grid_dimensions[-1,2] += (pf.domain_dimensions[2] % self.num_grids)
+                self.grid_left_edge[0,2] = pf.domain_left_edge[2]
+                self.grid_left_edge[1:,2] = pf.domain_left_edge[2] + \
+                                            np.cumsum(self.grid_dimensions[:-1,2])*dz
+                self.grid_right_edge[:,2] = self.grid_left_edge[:,2]+self.grid_dimensions[:,2]*dz
                 self.grid_left_edge[:,:2] = pf.domain_left_edge[:2]
                 self.grid_right_edge[:,:2] = pf.domain_right_edge[:2]
                 self.grid_dimensions[:,:2] = pf.domain_dimensions[:2]
-
+            else:
+                bbox = np.array([[le,re] for le, re in zip(pf.domain_left_edge,
+                                                           pf.domain_right_edge)])
+                dims = np.array(pf.domain_dimensions)
+                # If we are creating a dataset of lines, only decompose along the position axes
+                if len(pf.line_database) > 0:
+                    dims[pf.vel_axis] = 1
+                psize = get_psize(dims, self.num_grids)
+                gle, gre, shapes, slices = decompose_array(dims, psize, bbox)
+                self.grid_left_edge = self.pf.arr(gle, "code_length")
+                self.grid_right_edge = self.pf.arr(gre, "code_length")
+                self.grid_dimensions = np.array([shape for shape in shapes], dtype="int32")
+                # If we are creating a dataset of lines, only decompose along the position axes
+                if len(pf.line_database) > 0:
+                    self.grid_left_edge[:,pf.vel_axis] = pf.domain_left_edge[pf.vel_axis]
+                    self.grid_right_edge[:,pf.vel_axis] = pf.domain_right_edge[pf.vel_axis]
+                    self.grid_dimensions[:,pf.vel_axis] = pf.domain_dimensions[pf.vel_axis]
         else:
             self.grid_left_edge[0,:] = pf.domain_left_edge
             self.grid_right_edge[0,:] = pf.domain_right_edge
@@ -298,6 +304,7 @@ class FITSDataset(Dataset):
                  nprocs = None,
                  storage_filename = None,
                  nan_mask = None,
+                 z_axis_decomp = False,
                  line_database = None,
                  line_width = None,
                  suppress_astropy_warnings = True,
@@ -307,6 +314,8 @@ class FITSDataset(Dataset):
             parameters = {}
         parameters["nprocs"] = nprocs
         self.specified_parameters = parameters
+
+        self.z_axis_decomp = z_axis_decomp
 
         if line_width is not None:
             self.line_width = YTQuantity(line_width[0], line_width[1])
@@ -488,12 +497,21 @@ class FITSDataset(Dataset):
         self.current_redshift = self.omega_lambda = self.omega_matter = \
             self.hubble_constant = self.cosmological_simulation = 0.0
 
+        if self.dimensionality == 2 and self.z_axis_decomp:
+            mylog.warning("You asked to decompose along the z-axis, but this is a 2D dataset. " +
+                          "Ignoring.")
+            self.z_axis_decomp = False
+
         # If nprocs is None, do some automatic decomposition of the domain
         if self.specified_parameters["nprocs"] is None:
-            if len(self.line_database) > 0 or self.dimensionality == 2:
-                nprocs = np.around(np.prod(self.domain_dimensions[:2])/32*32).astype("int")
+            if len(self.line_database) > 0:
+                dims = 2
             else:
-                nprocs = np.around(self.domain_dimensions[2]/32).astype("int")
+                dims = self.dimensionality
+            if self.z_axis_decomp:
+                nprocs = np.around(self.domain_dimensions[2]/8).astype("int")
+            else:
+                nprocs = np.around(np.prod(self.domain_dimensions)/32**dims).astype("int")
             self.parameters["nprocs"] = max(min(nprocs, 512), 1)
         elif self.events_data:
             self.parameters["nprocs"] = 1
