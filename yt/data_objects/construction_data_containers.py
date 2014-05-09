@@ -317,7 +317,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             finfo = self.pf._get_field_info(*field)
             mylog.debug("Setting field %s", field)
             units = finfo.units
-            if self.weight_field is None:
+            if self.weight_field is None and not self._sum_only:
                 # See _handle_chunk where we mandate cm
                 if units == '':
                     input_units = "cm"
