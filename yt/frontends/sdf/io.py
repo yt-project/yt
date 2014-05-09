@@ -471,19 +471,19 @@ class SDFIndex(object):
                            ileft[0]:iright[0]+1]
 
         mask = slice(0, -1, None)
-        X = X[mask, mask, mask].astype('int64').ravel()
-        Y = Y[mask, mask, mask].astype('int64').ravel()
-        Z = Z[mask, mask, mask].astype('int64').ravel()
+        X = X[mask, mask, mask].astype('int32').ravel()
+        Y = Y[mask, mask, mask].astype('int32').ravel()
+        Z = Z[mask, mask, mask].astype('int32').ravel()
 
         if wandering_particles:
             # Need to get padded bbox around the border to catch
             # wandering particles.
-            dmask = X == self.domain_buffer-1
-            dmask += Y == self.domain_buffer-1
-            dmask += Z == self.domain_buffer-1
-            dmask += X == self.domain_dims
-            dmask += Y == self.domain_dims
-            dmask += Z == self.domain_dims
+            dmask = X < self.domain_buffer
+            dmask += Y < self.domain_buffer
+            dmask += Z < self.domain_buffer
+            dmask += X >= self.domain_dims
+            dmask += Y >= self.domain_dims
+            dmask += Z >= self.domain_dims
             dinds = self.get_keyv([X[dmask], Y[dmask], Z[dmask]])
             dinds = dinds[dinds < self.indexdata['index'][-1]]
             dinds = dinds[self.indexdata['len'][dinds] > 0]
@@ -491,11 +491,11 @@ class SDFIndex(object):
 
         # Correct For periodicity
         X[X < self.domain_buffer] += self.domain_active_dims
-        X[X >= self.domain_dims -  self.domain_buffer] -= self.domain_active_dims
         Y[Y < self.domain_buffer] += self.domain_active_dims
-        Y[Y >= self.domain_dims -  self.domain_buffer] -= self.domain_active_dims
         Z[Z < self.domain_buffer] += self.domain_active_dims
-        Z[Z >= self.domain_dims -  self.domain_buffer] -= self.domain_active_dims
+        X[X >= self.domain_buffer + self.domain_active_dims] -= self.domain_active_dims
+        Y[Y >= self.domain_buffer + self.domain_active_dims] -= self.domain_active_dims
+        Z[Z >= self.domain_buffer + self.domain_active_dims] -= self.domain_active_dims
 
         #print 'periodic:',  X.min(), X.max(), Y.min(), Y.max(), Z.min(), Z.max()
 
@@ -600,25 +600,36 @@ class SDFIndex(object):
             i += 1
         mylog.debug('Read %i chunks, batched into %i reads' % (num_inds, num_reads))
 
-    def filter_bbox(self, left, right, iter):
+    def filter_bbox(self, left, right, myiter):
         """
         Filter data by masking out data outside of a bbox defined
         by left/right. Account for periodicity of data, allowing left/right
         to be outside of the domain.
         """
-        for data in iter:
+        for data in myiter:
             mask = np.zeros_like(data, dtype='bool')
-            pos = np.array([data['x'], data['y'], data['z']]).T
-            # Now make pos periodic
-            for i in range(3):
-                pos[i][pos[i] < left[i]] += self.true_domain_width[i]
-                pos[i][pos[i] >= right[i]] -= self.true_domain_width[i]
+            pos = np.array([data['x'].copy(), data['y'].copy(), data['z'].copy()]).T
 
-            # First mask out the particles outside the bbox
-            mask = np.all(pos >= left, axis=1) * \
-                np.all(pos < right, axis=1)
+            # Get count of particles already inside the bounds.
+            #mask = np.all(pos >= left, axis=1) * \
+            #    np.all(pos < right, axis=1)
+            #pre_fix = mask.sum()
 
-            mylog.debug("Filtering particles, returning %i out of %i" % (mask.sum(), mask.shape[0]))
+            tmp = np.mod(pos[:,0] - left[0], self.true_domain_width[0]) + left[0]
+            pmask = (tmp >= left[0]) * (tmp < right[0])
+            pos[:,0] = tmp
+            tmp = np.mod(pos[:,1] - left[1], self.true_domain_width[1]) + left[1]
+            pmask *= (tmp >= left[1]) * (tmp < right[1])
+            pos[:,1] = tmp
+            tmp = np.mod(pos[:,2] - left[2], self.true_domain_width[2]) + left[2]
+            pmask *= (tmp >= left[2]) * (tmp < right[2])
+            pos[:,2] = tmp
+
+            # Now get all particles that are within the bbox
+            mask = pmask
+            pre_fix = mask.sum()
+
+            mylog.info("Filtering particles, originally %i, now returning %i out of %i" % (pre_fix, mask.sum(), mask.shape[0]))
 
             if not np.any(mask):
                 continue
@@ -787,7 +798,7 @@ class SDFIndex(object):
             self.iter_bbox_data(pbox[:,0], pbox[:,1], fields)):
             data.append(dd)
 
-        # Front & Back 
+        # Front & Back
         pbox = bbox.copy()
         pbox[0, 0] -= pad[0]
         pbox[0, 1] += pad[0]
@@ -804,7 +815,7 @@ class SDFIndex(object):
             self.iter_bbox_data(pbox[:,0], pbox[:,1], fields)):
             data.append(dd)
 
-        # Left & Right 
+        # Left & Right
         pbox = bbox.copy()
         pbox[0, 0] -= pad[0]
         pbox[0, 1] = bbox[0, 0]
