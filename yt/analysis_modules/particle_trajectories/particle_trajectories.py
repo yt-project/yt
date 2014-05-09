@@ -32,9 +32,9 @@ class ParticleTrajectories(object):
     
     Parameters
     ----------
-    filenames : list of strings
-        A time-sorted list of filenames to construct the DatasetSeries
-        object.
+    outputs : `yt.data_objects.time_series.DatasetSeries` or list of strings
+        DatasetSeries object, or a time-sorted list of filenames to
+        construct a new DatasetSeries object.
     indices : array_like
         An integer array of particle indices whose trajectories we
         want to track. If they are not sorted they will be sorted.
@@ -59,11 +59,14 @@ class ParticleTrajectories(object):
     >>> for t in trajs :
     >>>     print t["particle_velocity_x"].max(), t["particle_velocity_x"].min()
     """
-    def __init__(self, filenames, indices, fields=None) :
+    def __init__(self, outputs, indices, fields=None) :
 
         indices.sort() # Just in case the caller wasn't careful
         self.field_data = YTFieldData()
-        self.data_series = DatasetSeries.from_filenames(filenames)
+        if isinstance(outputs, DatasetSeries):
+            self.data_series = outputs
+        else:
+            self.data_series = DatasetSeries.from_filenames(outputs)
         self.masks = []
         self.sorts = []
         self.array_indices = []

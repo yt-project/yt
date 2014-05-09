@@ -170,7 +170,7 @@ def get_sanitized_center(center, pf):
     return center
 
 def get_window_parameters(axis, center, width, pf):
-    if pf.geometry == "cartesian":
+    if pf.geometry == "cartesian" or pf.geometry == "ppv":
         width = get_sanitized_width(axis, width, None, pf)
         center = get_sanitized_center(center, pf)
     elif pf.geometry in ("polar", "cylindrical"):
@@ -278,7 +278,7 @@ class PlotWindow(ImagePlotContainer):
     frb = None
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True,
                  periodic=True, origin='center-window', oblique=False,
-                 window_size=8.0, fields=None, fontsize=18, setup=False):
+                 window_size=8.0, fields=None, fontsize=18, aspect=None, setup=False):
         if not hasattr(self, "pf"):
             self.pf = data_source.pf
             ts = self._initialize_dataset(self.pf)
@@ -290,6 +290,7 @@ class PlotWindow(ImagePlotContainer):
         self.oblique = oblique
         self.buff_size = buff_size
         self.antialias = antialias
+        self.aspect = aspect
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
         if fields is None:
             fields = []
@@ -633,7 +634,7 @@ class PlotWindow(ImagePlotContainer):
         Examples
         --------
 
-        >>> p = ProjectionPlot(pf, "y", "Density")
+        >>> p = ProjectionPlot(pf, "y", "density")
         >>> p.show()
         >>> p.set_axes_unit("kpc")
         >>> p.show()
@@ -751,7 +752,11 @@ class PWViewerMPL(PlotWindow):
             else:
                 (unit_x, unit_y) = self._axes_unit_names
 
-            aspect = np.float64(self.pf.quan(1.0, unit_y)/self.pf.quan(1.0, unit_x))
+            # For some plots we may set aspect by hand, such as for PPV data.
+            # This will likely be replaced at some point by the coordinate handler
+            # setting plot aspect.
+            if self.aspect is None:
+                self.aspect = np.float64(self.pf.quan(1.0, unit_y)/(self.pf.quan(1.0, unit_x)))
 
             extentx = [(self.xlim[i] - xc).in_units(unit_x) for i in (0, 1)]
             extenty = [(self.ylim[i] - yc).in_units(unit_y) for i in (0, 1)]
@@ -792,12 +797,17 @@ class PWViewerMPL(PlotWindow):
                 image, self._field_transform[f].name,
                 self._colormaps[f], extent, zlim,
                 self.figure_size, fp.get_size(),
-                aspect, fig, axes, cax)
+                self.aspect, fig, axes, cax)
 
             axes_unit_labels = ['', '']
             comoving = False
             hinv = False
             for i, un in enumerate((unit_x, unit_y)):
+                if hasattr(self.pf.coordinates, "default_unit_label"):
+                    axax = getattr(self.pf.coordinates, "%s_axis" % ("xy"[i]))[axis_index]
+                    un = self.pf.coordinates.default_unit_label[axax]
+                    axes_unit_labels[i] = '\/\/('+un+')'
+                    continue
                 # Use sympy to factor h out of the unit.  In this context 'un'
                 # is a string, so we call the Unit constructor.
                 expr = Unit(un, registry=self.pf.unit_registry).expr
@@ -832,6 +842,9 @@ class PWViewerMPL(PlotWindow):
                 axis_names = self.pf.coordinates.axis_name
                 xax = self.pf.coordinates.x_axis[axis_index]
                 yax = self.pf.coordinates.y_axis[axis_index]
+                if hasattr(self.pf.coordinates, "axis_default_unit_label"):
+                    axes_unit_labels = [self.pf.coordinates.axis_default_unit_name[xax],
+                                        self.pf.coordinates.axis_default_unit_name[yax]]
                 labels = [r'$\rm{'+axis_names[xax]+axes_unit_labels[0] + r'}$',
                           r'$\rm{'+axis_names[yax]+axes_unit_labels[1] + r'}$']
 
@@ -1009,7 +1022,8 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
-                 origin='center-window', fontsize=18, field_parameters=None):
+                 origin='center-window', fontsize=18, field_parameters=None,
+                 window_size=8.0, aspect=None):
         # this will handle time series data and controllers
         ts = self._initialize_dataset(pf)
         self.ts = ts
@@ -1021,7 +1035,8 @@ class AxisAlignedSlicePlot(PWViewerMPL):
             field_parameters = field_parameters, center=center)
         slc.get_data(fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin,
-                             fontsize=fontsize, fields=fields)
+                             fontsize=fontsize, fields=fields,
+                             window_size=window_size, aspect=aspect)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, pf)
         self.set_axes_unit(axes_unit)
@@ -1136,7 +1151,7 @@ class ProjectionPlot(PWViewerMPL):
     def __init__(self, pf, axis, fields, center='c', width=None, axes_unit=None,
                  weight_field=None, max_level=None, origin='center-window',
                  fontsize=18, field_parameters=None, data_source=None,
-                 proj_style = "integrate"):
+                 proj_style = "integrate", window_size=8.0, aspect=None):
         ts = self._initialize_dataset(pf)
         self.ts = ts
         pf = self.pf = ts[0]
@@ -1147,7 +1162,7 @@ class ProjectionPlot(PWViewerMPL):
                          center=center, data_source=data_source,
                          field_parameters = field_parameters, style = proj_style)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
-                             fontsize=fontsize)
+                             fontsize=fontsize, window_size=window_size, aspect=aspect)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, pf)
         self.set_axes_unit(axes_unit)
@@ -1620,7 +1635,11 @@ class WindowPlotMPL(ImagePlotMPL):
         if fontscale < 1.0:
             fontscale = np.sqrt(fontscale)
 
-        self._cb_size = 0.0375*figure_size
+        if iterable(figure_size):
+            fsize = figure_size[0]
+        else:
+            fsize = figure_size
+        self._cb_size = 0.0375*fsize
         self._ax_text_size = [0.9*fontscale, 0.7*fontscale]
         self._top_buff_size = 0.30*fontscale
         self._aspect = ((extent[1] - extent[0])/(extent[3] - extent[2]))

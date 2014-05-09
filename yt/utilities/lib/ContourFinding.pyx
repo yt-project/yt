@@ -18,7 +18,8 @@ cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free, realloc
 from yt.geometry.selection_routines cimport \
-    SelectorObject, AlwaysSelector, OctreeSubsetSelector
+    SelectorObject, AlwaysSelector, OctreeSubsetSelector, \
+    anyfloat
 from yt.utilities.lib.fp_utils cimport imax
 from yt.geometry.oct_container cimport \
     OctreeContainer, OctInfo
@@ -620,22 +621,26 @@ cdef class ParticleContourTree(ContourTree):
     cdef np.float64_t linking_length, linking_length2
     cdef np.float64_t DW[3], DLE[3], DRE[3]
     cdef bint periodicity[3]
+    cdef int minimum_count
 
-    def __init__(self, linking_length):
+    def __init__(self, linking_length, periodicity = (True, True, True),
+                 int minimum_count = 8):
+        cdef int i
         self.linking_length = linking_length
         self.linking_length2 = linking_length * linking_length
         self.first = self.last = NULL
+        for i in range(3):
+            self.periodicity[i] = periodicity[i]
+        self.minimum_count = minimum_count
 
     @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def identify_contours(self, OctreeContainer octree,
                                 np.ndarray[np.int64_t, ndim=1] dom_ind,
-                                np.ndarray[np.float64_t, ndim=2] positions,
+                                np.ndarray[anyfloat, ndim=2] positions,
                                 np.ndarray[np.int64_t, ndim=1] particle_ids,
-                                int domain_id = -1, int domain_offset = 0,
-                                periodicity = (True, True, True),
-                                int minimum_count = 8):
+                                int domain_id, int domain_offset):
         cdef np.ndarray[np.int64_t, ndim=1] pdoms, pcount, pind, doff
         cdef np.float64_t pos[3]
         cdef Oct *oct = NULL, **neighbors = NULL
@@ -657,7 +662,6 @@ cdef class ParticleContourTree(ContourTree):
             self.DW[i] = (octree.DRE[i] - octree.DLE[i])
             self.DLE[i] = octree.DLE[i]
             self.DRE[i] = octree.DRE[i]
-            self.periodicity[i] = periodicity[i]
         for i in range(positions.shape[0]):
             counter += 1
             container[i] = NULL
@@ -671,7 +675,7 @@ cdef class ParticleContourTree(ContourTree):
             pdoms[i] = offset
         pind = np.argsort(pdoms)
         cdef np.int64_t *ipind = <np.int64_t*> pind.data
-        cdef np.float64_t *fpos = <np.float64_t*> positions.data
+        cdef anyfloat *fpos = <anyfloat*> positions.data
         # pind is now the pointer into the position and particle_ids array.
         for i in range(positions.shape[0]):
             offset = pdoms[pind[i]]
@@ -751,7 +755,7 @@ cdef class ParticleContourTree(ContourTree):
                 c1 = container[offset]
                 if c1 == NULL: continue
                 c0 = contour_find(c1)
-                if c0.count < minimum_count:
+                if c0.count < self.minimum_count:
                     contour_ids[offset] = -1
         free(container)
         del pind
@@ -761,7 +765,7 @@ cdef class ParticleContourTree(ContourTree):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void link_particles(self, ContourID **container, 
-                                   np.float64_t *positions,
+                                   anyfloat *positions,
                                    np.int64_t *pind,
                                    np.int64_t pcount, 
                                    np.int64_t noffset,
