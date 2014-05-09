@@ -17,6 +17,7 @@ import numpy.core.defchararray as np_char
 import weakref
 import warnings
 import re
+import uuid
 
 from yt.config import ytcfg
 from yt.funcs import *
@@ -200,21 +201,23 @@ class FITSHierarchy(GridIndex):
             self.parameter_file.field_units[k] = self.parameter_file.field_units[primary_fname]
 
     def _count_grids(self):
-        self.num_grids = self.pf.nprocs
+        self.num_grids = self.pf.parameters["nprocs"]
 
     def _parse_index(self):
         f = self._handle # shortcut
         pf = self.parameter_file # shortcut
 
         # If nprocs > 1, decompose the domain into virtual grids
-        if pf.nprocs > 1:
+        if self.num_grids > 1:
             bbox = np.array([[le,re] for le, re in zip(pf.domain_left_edge,
                                                        pf.domain_right_edge)])
             dims = np.array(pf.domain_dimensions)
             # If we are creating a dataset of lines, only decompose along the position axes
             if len(pf.line_database) > 0:
                 dims[pf.vel_axis] = 1
-            psize = get_psize(dims, pf.nprocs)
+            elif self.pf.dimensionality == 3:
+                dims[:2] = 1
+            psize = get_psize(dims, self.num_grids)
             gle, gre, shapes, slices = decompose_array(dims, psize, bbox)
             self.grid_left_edge = self.pf.arr(gle, "code_length")
             self.grid_right_edge = self.pf.arr(gre, "code_length")
@@ -224,18 +227,23 @@ class FITSHierarchy(GridIndex):
                 self.grid_left_edge[:,pf.vel_axis] = pf.domain_left_edge[pf.vel_axis]
                 self.grid_right_edge[:,pf.vel_axis] = pf.domain_right_edge[pf.vel_axis]
                 self.grid_dimensions[:,pf.vel_axis] = pf.domain_dimensions[pf.vel_axis]
+            elif self.pf.dimensionality == 3:
+                self.grid_left_edge[:,:2] = pf.domain_left_edge[:2]
+                self.grid_right_edge[:,:2] = pf.domain_right_edge[:2]
+                self.grid_dimensions[:,:2] = pf.domain_dimensions[:2]
 
         else:
             self.grid_left_edge[0,:] = pf.domain_left_edge
             self.grid_right_edge[0,:] = pf.domain_right_edge
             self.grid_dimensions[0] = pf.domain_dimensions
 
-        if self.pf.events_data:
+        if pf.events_data:
             try:
                 self.grid_particle_count[:] = pf.primary_header["naxis2"]
             except KeyError:
                 self.grid_particle_count[:] = 0.0
             self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
+            print self.grid_particle_count, self.grid_particle_count.squeeze()
             self._particle_indices[1] = self.grid_particle_count.squeeze()
 
         self.grid_levels.flat[:] = 0
@@ -297,6 +305,7 @@ class FITSDataset(Dataset):
 
         if parameters is None:
             parameters = {}
+        parameters["nprocs"] = nprocs
         self.specified_parameters = parameters
 
         if line_width is not None:
@@ -322,11 +331,15 @@ class FITSDataset(Dataset):
             self.nan_mask = {"all":nan_mask}
         elif isinstance(nan_mask, dict):
             self.nan_mask = nan_mask
-        self.nprocs = nprocs
-        self._handle = _astropy.pyfits.open(self.filenames[0],
-                                      memmap=True,
-                                      do_not_scale_image_data=True,
-                                      ignore_blank=True)
+        if isinstance(self.filenames[0], _astropy.pyfits.PrimaryHDU):
+            self._handle = _astropy.pyfits.HDUList(self.filenames[0])
+            fn = "InMemoryFITSImage_%s" % (uuid.uuid4().hex)
+        else:
+            self._handle = _astropy.pyfits.open(self.filenames[0],
+                                                memmap=True,
+                                                do_not_scale_image_data=True,
+                                                ignore_blank=True)
+            fn = self.filenames[0]
         self._fits_files = [self._handle]
         if self.num_files > 1:
             for fits_file in auxiliary_files:
@@ -387,7 +400,7 @@ class FITSDataset(Dataset):
 
         self.refine_by = 2
 
-        Dataset.__init__(self, filename, dataset_type)
+        Dataset.__init__(self, fn, dataset_type)
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):
@@ -435,8 +448,11 @@ class FITSDataset(Dataset):
 
     def _parse_parameter_file(self):
 
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+        if self.parameter_filename.startswith("InMemory"):
+            self.unique_identifier = time.time()
+        else:
+            self.unique_identifier = \
+                int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         # Determine dimensionality
 
@@ -472,14 +488,17 @@ class FITSDataset(Dataset):
         self.current_redshift = self.omega_lambda = self.omega_matter = \
             self.hubble_constant = self.cosmological_simulation = 0.0
 
-        # If this is a 2D events file, no need to decompose
-        if self.events_data: self.nprocs = 1
-
         # If nprocs is None, do some automatic decomposition of the domain
-        if self.nprocs is None:
-            self.nprocs = np.around(np.prod(self.domain_dimensions) /
-                                    32**self.dimensionality).astype("int")
-            self.nprocs = max(min(self.nprocs, 512), 1)
+        if self.specified_parameters["nprocs"] is None:
+            if len(self.line_database) > 0 or self.dimensionality == 2:
+                nprocs = np.around(np.prod(self.domain_dimensions[:2])/32*32).astype("int")
+            else:
+                nprocs = np.around(self.domain_dimensions[2]/32).astype("int")
+            self.parameters["nprocs"] = max(min(nprocs, 512), 1)
+        elif self.events_data:
+            self.parameters["nprocs"] = 1
+        else:
+            self.parameters["nprocs"] = self.specified_parameters["nprocs"]
 
         self.reversed = False
 
