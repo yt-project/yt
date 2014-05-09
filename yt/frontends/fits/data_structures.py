@@ -95,7 +95,7 @@ class FITSHierarchy(GridIndex):
             # the right case by comparing against known units. This
             # only really works for common units.
             units = set(re.split(regex_pattern, field_units))
-            units.remove('')
+            if '' in units: units.remove('')
             n = int(0)
             for unit in units:
                 if unit in known_units:
@@ -494,6 +494,8 @@ class FITSDataset(Dataset):
     def _setup_ppv(self):
 
         self.ppv_data = True
+        self.geometry = "ppv"
+
         end = min(self.dimensionality+1,4)
         if self.events_data:
             ctypes = self.axis_names

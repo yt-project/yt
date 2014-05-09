@@ -17,7 +17,7 @@ from yt.extern.six.moves import StringIO
 from ._mpl_imports import \
     FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 from yt.funcs import \
-    get_image_suffix, mylog
+    get_image_suffix, mylog, iterable
 import numpy as np
 
 class CallbackWrapper(object):
@@ -140,12 +140,16 @@ class ImagePlotMPL(PlotMPL):
             top_buff_size = 0.0
 
         # Ensure the figure size along the long axis is always equal to _figure_size
-        if self._aspect >= 1.0:
-            x_fig_size = self._figure_size
-            y_fig_size = self._figure_size/self._aspect
-        if self._aspect < 1.0:
-            x_fig_size = self._figure_size*self._aspect
-            y_fig_size = self._figure_size
+        if iterable(self._figure_size):
+            x_fig_size = self._figure_size[0]
+            y_fig_size = self._figure_size[1]
+        else:
+            if self._aspect >= 1.0:
+                x_fig_size = self._figure_size
+                y_fig_size = self._figure_size/self._aspect
+            if self._aspect < 1.0:
+                x_fig_size = self._figure_size*self._aspect
+                y_fig_size = self._figure_size
 
         xbins = np.array([x_axis_size, x_fig_size, cb_size, cb_text_size])
         ybins = np.array([y_axis_size, y_fig_size, top_buff_size])

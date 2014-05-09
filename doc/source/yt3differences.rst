@@ -27,7 +27,7 @@ Here's a quick reference for how to update your code to work with yt-3.0.
     FieldName)``.
   * Previously, yt would use "Enzo-isms" for field names.  We now very
     specifically define fields as lowercase with underscores.  For instance,
-    what used to be ``VelocityMagnitude`` would not be ``velocity_magnitude``.
+    what used to be ``VelocityMagnitude`` would now be ``velocity_magnitude``.
   * Particles are either named by their type or default to the type ``io``.
   * Axis names are now at the *end* of field names, not the beginning.
     ``x-velocity`` is now ``velocity_x``.
