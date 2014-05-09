@@ -4,14 +4,6 @@ Cosmological Analysis
 These scripts demonstrate some basic and more advanced analysis that can be 
 performed on cosmological simulations.
 
-.. _cookbook-halo_finding:
-
-Simple Halo Finding
-~~~~~~~~~~~~~~~~~~~
-This script shows how to create a halo catalog for a single dataset.
-
-.. yt_cookbook:: halo_finding.py
-
 Plotting Halos
 ~~~~~~~~~~~~~~
 This is a mechanism for plotting circles representing identified particle halos
@@ -19,20 +11,7 @@ on an image.
 
 .. yt_cookbook:: halo_plotting.py
 
-Plotting Halo Particles
-~~~~~~~~~~~~~~~~~~~~~~~
-This is a simple mechanism for overplotting the particles belonging only to
-halos.
-
-.. yt_cookbook:: halo_particle_plotting.py
-
-.. _cookbook-halo_mass_info:
-
-Halo Information
-~~~~~~~~~~~~~~~~
-This recipe finds halos and then prints out information about them.
-
-.. yt_cookbook:: halo_mass_info.py
+.. _cookbook-halo_finding:
 
 Halo Profiling and Custom Analysis
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
