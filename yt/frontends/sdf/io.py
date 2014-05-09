@@ -487,7 +487,7 @@ class SDFIndex(object):
             dinds = self.get_keyv([X[dmask], Y[dmask], Z[dmask]])
             dinds = dinds[dinds < self.indexdata['index'][-1]]
             dinds = dinds[self.indexdata['len'][dinds] > 0]
-            print 'Getting boundary layers for wanderers, cells: %i' % dinds.size
+            #print 'Getting boundary layers for wanderers, cells: %i' % dinds.size
 
         # Correct For periodicity
         X[X < self.domain_buffer] += self.domain_active_dims
@@ -628,10 +628,10 @@ class SDFIndex(object):
                 if f in 'xyz': continue
                 filtered[f] = data[f][mask]
 
-            for i, ax in enumerate('xyz'):
-                print left, right
-                assert np.all(filtered[ax] >= left[i])
-                assert np.all(filtered[ax] < right[i])
+            #for i, ax in enumerate('xyz'):
+            #    print left, right
+            #    assert np.all(filtered[ax] >= left[i])
+            #    assert np.all(filtered[ax] < right[i])
 
             yield filtered
 
