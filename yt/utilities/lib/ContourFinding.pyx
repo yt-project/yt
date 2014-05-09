@@ -38,7 +38,7 @@ cdef inline ContourID *contour_create(np.int64_t contour_id,
     node.contour_id = contour_id
     node.next = node.parent = NULL
     node.prev = prev
-    node.count = 0
+    node.count = 1
     if prev != NULL: prev.next = node
     return node
 
@@ -66,10 +66,23 @@ cdef inline ContourID *contour_find(ContourID *node):
 cdef inline void contour_union(ContourID *node1, ContourID *node2):
     node1 = contour_find(node1)
     node2 = contour_find(node2)
-    if node1.contour_id < node2.contour_id:
-        node2.parent = node1
-    elif node2.contour_id < node1.contour_id:
-        node1.parent = node2
+    cdef ContourID *pri, *sec
+    if node1.count > node2.count:
+        pri = node1
+        sec = node2
+    elif node2.count > node1.count:
+        pri = node2
+        sec = node1
+    # might be a tie
+    elif node1.contour_id < node2.contour_id:
+        pri = node1
+        sec = node2
+    else:
+        pri = node2
+        sec = node1
+    pri.count += sec.count
+    sec.count = 0
+    sec.parent = pri
 
 cdef inline int candidate_contains(CandidateContour *first,
                             np.int64_t contour_id,
@@ -617,6 +630,12 @@ def update_joins(np.ndarray[np.int64_t, ndim=2] joins,
                         contour_ids[ci,cj,ck] = j + 1
                         break
 
+cdef class FOFNode:
+    cdef np.int64_t tag, count
+    def __init__(self, np.int64_t tag):
+        self.tag = tag
+        self.count = 0
+
 cdef class ParticleContourTree(ContourTree):
     cdef np.float64_t linking_length, linking_length2
     cdef np.float64_t DW[3], DLE[3], DRE[3]
@@ -759,6 +778,12 @@ cdef class ParticleContourTree(ContourTree):
                     contour_ids[offset] = -1
         free(container)
         del pind
+        # We can now remake our contour IDs, count the number of them, and
+        # reassign.
+        cdef np.ndarray[np.int64_t, ndim=1] ufof_tags = np.unique(contour_ids)
+        cdef np.int64_t nfof_tags = ufof_tags.size
+        # This is, at most, how many tags we'll have.  Now we just need to
+        # assign to them.
         return contour_ids
 
     @cython.cdivision(True)
@@ -781,7 +806,7 @@ cdef class ParticleContourTree(ContourTree):
         # Note that pind0 will not monotonically increase, but 
         c0 = container[pind0]
         if c0 == NULL:
-            c0 = container[pind0] = contour_create(poffset, self.last)
+            c0 = container[pind0] = contour_create(pind0, self.last)
             self.last = c0
             if self.first == NULL:
                 self.first = c0
@@ -811,6 +836,7 @@ cdef class ParticleContourTree(ContourTree):
             if link == 0: continue
             if c1 == NULL:
                 container[pind1] = c0
+                c0.count += 1
             elif c0.contour_id != c1.contour_id:
                 contour_union(c0, c1)
                 c0 = container[pind1] = container[pind0] = contour_find(c0)
