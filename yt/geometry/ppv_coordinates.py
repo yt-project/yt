@@ -45,24 +45,18 @@ class PPVCoordinateHandler(CartesianCoordinateHandler):
             if axis == 0:
                 self.x_axis[axis] = 1
                 self.x_axis[lower_ax] = 1
-                self.x_axis[axis_name] = 1
                 self.y_axis[axis] = 2
                 self.y_axis[lower_ax] = 2
-                self.y_axis[axis_name] = 2
             elif axis == 1:
-                self.x_axis[axis] = 2
-                self.x_axis[lower_ax] = 2
-                self.x_axis[axis_name] = 2
-                self.y_axis[axis] = 0
-                self.y_axis[lower_ax] = 0
-                self.y_axis[axis_name] = 0
+                self.x_axis[axis] = 0
+                self.x_axis[lower_ax] = 0
+                self.y_axis[axis] = 2
+                self.y_axis[lower_ax] = 2
             elif axis == 2:
                 self.x_axis[axis] = 0
                 self.x_axis[lower_ax] = 0
-                self.x_axis[axis_name] = 0
                 self.y_axis[axis] = 1
                 self.y_axis[lower_ax] = 1
-                self.y_axis[axis_name] = 1
 
         self.default_unit_label = {}
         self.default_unit_label[pf.lon_axis] = "pixel"
