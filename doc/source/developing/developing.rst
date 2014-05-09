@@ -215,12 +215,16 @@ How to Write Documentation
 ++++++++++++++++++++++++++
 
 The process for writing documentation is identical to the above, except that
-instead of ``yt_analysis/yt`` you should be forking and pushing to
-``yt_analysis/yt-doc``.  All the source for the documentation is written in
+you're modifying source files in the doc directory (i.e. ``$YT_DEST/src/yt-hg/doc``) 
+instead of the src directory (i.e. ``$YT_DEST/src/yt-hg/yt``) of the yt repository.
+All the source for the documentation is written in 
 `Sphinx <http://sphinx-doc.org/>`_, which uses ReST for markup.
 
 Cookbook recipes go in ``source/cookbook/`` and must be added to one of the
-``.rst`` files in that directory.
+``.rst`` files in that directory.  
+
+For more information on how to build the documentation to make sure it looks
+the way you expect it to after modifying it, see :ref:`docs_build`.
 
 How To Get The Source Code For Editing
 --------------------------------------
