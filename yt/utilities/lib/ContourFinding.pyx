@@ -751,7 +751,6 @@ cdef class ParticleContourTree(ContourTree):
                 c1 = container[offset]
                 if c1 == NULL: continue
                 c0 = contour_find(c1)
-                offset = pind[offset]
                 if c0.count < minimum_count:
                     contour_ids[offset] = -1
         free(container)

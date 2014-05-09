@@ -1,8 +1,8 @@
 .. _docs_build:
 
-=================
-Building the Docs
-=================
+==========================
+Building the Documentation
+==========================
 
 The yt documentation makes heavy use of the sphinx documentation automation
 suite.  Sphinx, written in python, was originally created for the documentation
@@ -11,13 +11,64 @@ documentation of python code.
 
 While much of the yt documentation is static text, we make heavy use of
 cross-referencing with API documentation that is automatically generated at
-build time by sphinx.  We also use sphinx to run code snippets and embed
-resulting images and example data.
+build time by sphinx.  We also use sphinx to run code snippets (e.g. the 
+cookbook and the notebooks) and embed resulting images and example data.
 
-yt Sphinx extensions
---------------------
+Quick versus full documentation builds
+--------------------------------------
 
-The documentation makes heavy use of custom sphinx extensions to transform
+Building the entire set of yt documentation is a laborious task, since you 
+need to have a large number of packages in order to successfully execute
+and render all of the notebooks and yt recipes drawing from every corner
+of the yt source.  As an quick alternative, one can do a ``quick`` build
+of the documentation, which eschews the need for downloading all of these
+dependencies, but it only produces the static docs.  The static docs do 
+not include the cookbook outputs and the notebooks, but this is good
+enough for most cases of people testing out whether or not their documentation
+contributions look OK before submitting them to the yt repository.
+
+If you want to create the full documentation locally, then you'll need
+to follow the instructions for building the ``full`` docs, so that you can
+dynamically execute and render the cookbook recipes, the notebooks, etc.
+
+Building the docs (quick)
+-------------------------
+
+You will need to have the yt repository available on your computer, which
+is done by default if you have yt installed.  In addition, you need a 
+current version of Sphinx_ (1.1.3) documentation software installed.
+
+In order to tell sphinx not to do all of the dynamical building, you must
+set the ``$READTHEDOCS`` environment variable to be True by typing this at 
+the command line:
+
+.. code-block:: bash
+
+   export READTHEDOCS=True  # for bash
+   setenv READTHEDOCS True  # for csh
+
+This variable is set for automated builds on the free ReadTheDocs service but
+can be used by anyone to force a quick, minimal build.
+
+Now all you need to do is execute sphinx on the yt doc source.  Go to the 
+documentation directory and build the docs:
+
+.. code-block:: bash
+
+   cd $YT_DEST/src/yt-hg/doc
+   make html
+
+This will produce an html version of the documentation locally in the 
+``$YT_DEST/src/yt-hg/doc/build/html`` directory.  You can now go there and open
+up ``index.html`` or whatever file you wish in your web browser.
+
+Building the docs (full)
+------------------------
+
+As alluded to earlier, building the full documentation is a bit more involved
+than simply building the static documentation.  
+
+The full documentation makes heavy use of custom sphinx extensions to transform
 recipes, notebooks, and inline code snippets into python scripts, IPython_
 notebooks, or notebook cells that are executed when the docs are built.
 
@@ -30,12 +81,9 @@ facilities to script notebook evaluation.
 .. _runipy: https://github.com/paulgb/runipy
 .. _IPython: http://ipython.org/
 
-Dependencies
-------------
-
-To build the docs, you will need yt, IPython, runipy, and all supplementary yt
-analysis modules installed. The following dependencies were used to generate the
-yt documentation during the release of yt 2.6 in late 2013.
+To build the full documentation, you will need yt, IPython, runipy, and all 
+supplementary yt analysis modules installed. The following dependencies were 
+used to generate the yt documentation during the release of yt 2.6 in late 2013.
 
 - Sphinx_ 1.1.3
 - IPython_ 1.1
@@ -58,49 +106,32 @@ You will also need the full yt suite of `yt test data
 <http://yt-project.org/data/>`_, including the larger datasets that are not used
 in the answer tests.
 
-Building the docs
------------------
-
-First, you will need to ensure that your testing configuration is properly
+You will need to ensure that your testing configuration is properly
 configured and that all of the yt test data is in the testing directory.  See
 :ref:`run_answer_testing` for more details on how to set up the testing
 configuration.
 
-Next, clone the yt-doc repository, navigate to the root of the repository, and
-do :code:`make html`.
+Now that you have everything set up properly, go to the documentation directory
+and build it using sphinx:
 
 .. code-block:: bash
 
-   hg clone https://bitbucket.org/yt_analysis/yt-doc ./yt-doc
-   cd yt-doc
+   cd $YT_DEST/src/yt-hg/doc
    make html
 
 If all of the dependencies are installed and all of the test data is in the
-testing directory, this should churn away for a while and eventually generate a
-docs build.  This process is lengthy but shouldn't last more than an hour.  We
-suggest setting :code:`suppressStreamLogging = True` in your yt configuration
-(See :ref:`configuration-file`) to suppress large amounts of debug output from
+testing directory, this should churn away for a while (~ 1 hour) and 
+eventually generate a docs build.  We suggest setting 
+:code:`suppressStreamLogging = True` in your yt configuration (See 
+:ref:`configuration-file`) to suppress large amounts of debug output from
 yt.
 
 To clean the docs build, use :code:`make clean`.  By default, :code:`make clean`
 will not delete the autogenerated API docs, so use :code:`make fullclean` to
 delete those as well.
 
-
-Quick docs builds
------------------
-
-Clearly, building the complete docs is something of an undertaking.  If you are
-adding new static content building the complete docs build is probably
-overkill.  To skip some of the lengthier operations, you can do the following
-from the bash prompt:
-
-.. code-block:: bash
-
-   export READTHEDOCS=True
-
-This variable is set for automated builds on the free ReadTheDocs service but
-can be used by anyone to force a quick, minimal build.
+Building the docs (hybrid)
+--------------------------
 
 It's also possible to create a custom sphinx build that builds a restricted set
 of notebooks or scripts.  This can be accomplished by editing the Sphinx

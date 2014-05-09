@@ -6,6 +6,10 @@ cimport cython
 from libc.stdlib cimport malloc, free
 import sys
 
+ctypedef fused anyfloat:
+    np.float32_t
+    np.float64_t
+
 # Importing relevant rockstar data types particle, fof halo, halo
 
 cdef import from "particle.h":
@@ -235,8 +239,8 @@ cdef class RockstarGroupiesInterface:
     @cython.wraparound(False)
     def make_rockstar_fof(self, np.ndarray[np.int64_t, ndim=1] pind,
                                 np.ndarray[np.int64_t, ndim=1] fof_tags,
-                                np.ndarray[np.float64_t, ndim=2] pos,
-                                np.ndarray[np.float64_t, ndim=2] vel):
+                                np.ndarray[anyfloat, ndim=2] pos,
+                                np.ndarray[anyfloat, ndim=2] vel):
 
         # Define fof object
 
