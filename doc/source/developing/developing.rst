@@ -211,6 +211,8 @@ straightforward.
   #. Update your pull request by visiting
      https://bitbucket.org/YourUsername/yt/pull-request/new
 
+.. _writing_documentation:
+
 How to Write Documentation
 ++++++++++++++++++++++++++
 
