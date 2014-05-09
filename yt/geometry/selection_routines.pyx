@@ -36,10 +36,6 @@ cdef extern from "math.h":
     long int lrint(double x) nogil
     double fabs(double x) nogil
 
-ctypedef fused anyfloat:
-    np.float32_t
-    np.float64_t
-
 # These routines are separated into a couple different categories:
 #
 #   * Routines for identifying intersections of an object with a bounding box
