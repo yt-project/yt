@@ -610,26 +610,16 @@ class SDFIndex(object):
             mask = np.zeros_like(data, dtype='bool')
             pos = np.array([data['x'].copy(), data['y'].copy(), data['z'].copy()]).T
 
-            # Get count of particles already inside the bounds.
-            #mask = np.all(pos >= left, axis=1) * \
-            #    np.all(pos < right, axis=1)
-            #pre_fix = mask.sum()
 
-            tmp = np.mod(pos[:,0] - left[0], self.true_domain_width[0]) + left[0]
-            pmask = (tmp >= left[0]) * (tmp < right[0])
-            pos[:,0] = tmp
-            tmp = np.mod(pos[:,1] - left[1], self.true_domain_width[1]) + left[1]
-            pmask *= (tmp >= left[1]) * (tmp < right[1])
-            pos[:,1] = tmp
-            tmp = np.mod(pos[:,2] - left[2], self.true_domain_width[2]) + left[2]
-            pmask *= (tmp >= left[2]) * (tmp < right[2])
-            pos[:,2] = tmp
+            # This hurts, but is useful for periodicity. Probably should check first
+            # if it is even needed for a given left/right
+            for i in range(3):
+                pos[:,i] = np.mod(pos[:,i] - left[i], self.true_domain_width[i]) + left[i]
 
             # Now get all particles that are within the bbox
-            mask = pmask
-            pre_fix = mask.sum()
+            mask = np.all(pos >= left, axis=1) * np.all(pos < right, axis=1)
 
-            mylog.info("Filtering particles, originally %i, now returning %i out of %i" % (pre_fix, mask.sum(), mask.shape[0]))
+            mylog.debug("Filtering particles, returning %i out of %i" % (mask.sum(), mask.shape[0]))
 
             if not np.any(mask):
                 continue
