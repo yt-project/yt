@@ -12,7 +12,6 @@ ImageArray Class
 #-----------------------------------------------------------------------------
 
 import numpy as np
-import h5py as h5
 from yt.visualization.image_writer import write_bitmap, write_image
 from yt.units.yt_array import YTArray
 
@@ -26,7 +25,7 @@ class ImageArray(YTArray):
     Parameters
     ----------
     input_array: array_like
-        A numpy ndarray, or list. 
+        A numpy ndarray, or list.
 
     Other Parameters
     ----------------
@@ -35,7 +34,7 @@ class ImageArray(YTArray):
 
     Returns
     -------
-    obj: ImageArray object 
+    obj: ImageArray object
 
     Raises
     ------
@@ -55,15 +54,15 @@ class ImageArray(YTArray):
     --------
     These are written in doctest format, and should illustrate how to
     use the function.  Use the variables 'pf' for the parameter file, 'pc' for
-    a plot collection, 'c' for a center, and 'L' for a vector. 
+    a plot collection, 'c' for a center, and 'L' for a vector.
 
     >>> im = np.zeros([64,128,3])
     >>> for i in xrange(im.shape[0]):
     ...     for k in xrange(im.shape[2]):
     ...         im[i,:,k] = np.linspace(0.,0.3*k, im.shape[1])
 
-    >>> myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]), 
-    ...     'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),  
+    >>> myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]),
+    ...     'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),
     ...     'width':0.245, 'units':'cm', 'type':'rendering'}
 
     >>> im_arr = ImageArray(im, info=myinfo)
@@ -84,38 +83,36 @@ class ImageArray(YTArray):
         super(ImageArray, self).__array_finalize__(obj)
         self.info = getattr(obj, 'info', None)
 
-    def write_hdf5(self, filename):
+    def write_hdf5(self, filename, dataset_name=None):
         r"""Writes ImageArray to hdf5 file.
 
         Parameters
         ----------
         filename: string
-            Note filename not be modified.
-       
+        The filename to create and write a dataset to
+
+        dataset_name: string
+            The name of the dataset to create in the file.
+
         Examples
-        -------- 
+        --------
         >>> im = np.zeros([64,128,3])
         >>> for i in xrange(im.shape[0]):
         ...     for k in xrange(im.shape[2]):
         ...         im[i,:,k] = np.linspace(0.,0.3*k, im.shape[1])
 
-        >>> myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]), 
-        ...     'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),  
+        >>> myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]),
+        ...     'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),
         ...     'width':0.245, 'units':'cm', 'type':'rendering'}
 
         >>> im_arr = ImageArray(im, info=myinfo)
         >>> im_arr.write_hdf5('test_ImageArray.h5')
 
         """
-        array_name = self.info.get("name","image")
-
-        f = h5.File(filename)
-        if array_name in f.keys():
-            del f[array_name]
-        d = f.create_dataset(array_name, data=self)
-        for k, v in self.info.iteritems():
-            d.attrs.create(k, v)
-        f.close()
+        if dataset_name is None:
+            dataset_name = self.info.get("name", "image")
+        super(ImageArray, self).write_hdf5(filename, dataset_name=dataset_name,
+                                           info=self.info)
 
     def add_background_color(self, background='black', inline=True):
         r"""Adds a background color to a 4-channel ImageArray
@@ -126,7 +123,7 @@ class ImageArray(YTArray):
 
         Parameters
         ----------
-        background: 
+        background:
             This can be used to set a background color for the image, and can
             take several types of values:
 
@@ -144,7 +141,7 @@ class ImageArray(YTArray):
         -------
         out: ImageArray
             The modified ImageArray with a background color added.
-       
+
         Examples
         --------
         >>> im = np.zeros([64,128,4])
@@ -160,8 +157,8 @@ class ImageArray(YTArray):
         >>> im_arr.write_png('black_bg.png')
         """
         assert(self.shape[-1] == 4)
-        
-        if background == None:
+
+        if background is None:
             background = (0., 0., 0., 0.)
         elif background == 'white':
             background = (1., 1., 1., 1.)
@@ -175,11 +172,10 @@ class ImageArray(YTArray):
             out = self.copy()
 
         for i in range(3):
-            out[:,:,i] = self[:,:,i]*self[:,:,3] + \
-                    background[i]*background[3]*(1.0-self[:,:,3])
-        out[:,:,3] = self[:,:,3] + background[3]*(1.0-self[:,:,3]) 
-        return out 
-
+            out[:, :, i] = self[:, :, i]*self[:, :, 3]
+            out[:, :, i] += background[i]*background[3]*(1.0-self[:, :, 3])
+        out[:, :, 3] = self[:, :, 3]+background[3]*(1.0-self[:, :, 3])
+        return out
 
     def rescale(self, cmax=None, amax=None, inline=True):
         r"""Rescales the image to be in [0,1] range.
@@ -194,7 +190,7 @@ class ImageArray(YTArray):
             corresponding to using the maximum value in the alpha channel.
         inline: boolean, optional
             Specifies whether or not the rescaling is done inline. If false,
-            a new copy of the ImageArray will be created, returned. 
+            a new copy of the ImageArray will be created, returned.
             Default:True.
 
         Returns
@@ -207,17 +203,18 @@ class ImageArray(YTArray):
         This requires that the shape of the ImageArray to have a length of 3,
         and for the third dimension to be >= 3.  If the third dimension has
         a shape of 4, the alpha channel will also be rescaled.
-       
+
         Examples
-        -------- 
+        --------
         >>> im = np.zeros([64,128,4])
         >>> for i in xrange(im.shape[0]):
         ...     for k in xrange(im.shape[2]):
         ...         im[i,:,k] = np.linspace(0.,0.3*k, im.shape[1])
 
-        >>> im_arr.write_png('original.png')
-        >>> im_arr.rescale()
-        >>> im_arr.write_png('normalized.png')
+        >>> im = ImageArray(im)
+        >>> im.write_png('original.png')
+        >>> im.rescale()
+        >>> im.write_png('normalized.png')
 
         """
         assert(len(self.shape) == 3)
@@ -226,22 +223,22 @@ class ImageArray(YTArray):
             out = self
         else:
             out = self.copy()
-        if cmax is None: 
-            cmax = self[:,:,:3].sum(axis=2).max()
+        if cmax is None:
+            cmax = self[:, :, :3].sum(axis=2).max()
 
-        np.multiply(self[:,:,:3], 1./cmax, out[:,:,:3])
+        np.multiply(self[:, :, :3], 1.0/cmax, out[:, :, :3])
 
         if self.shape[2] == 4:
             if amax is None:
-                amax = self[:,:,3].max()
+                amax = self[:, :, 3].max()
             if amax > 0.0:
-                np.multiply(self[:,:,3], 1./amax, out[:,:,3])
-        
+                np.multiply(self[:, :, 3], 1.0/amax, out[:, :, 3])
+
         np.clip(out, 0.0, 1.0, out)
         return out
 
     def write_png(self, filename, clip_ratio=None, background='black',
-                 rescale=True):
+                  rescale=True):
         r"""Writes ImageArray to png file.
 
         Parameters
@@ -250,9 +247,9 @@ class ImageArray(YTArray):
             Note filename not be modified.
         clip_ratio: float, optional
             Image will be clipped before saving to the standard deviation
-            of the image multiplied by this value.  Useful for enhancing 
+            of the image multiplied by this value.  Useful for enhancing
             images. Default: None
-        background: 
+        background:
             This can be used to set a background color for the image, and can
             take several types of values:
 
@@ -265,7 +262,7 @@ class ImageArray(YTArray):
         rescale: boolean, optional
             If True, will write out a rescaled image (without modifying the
             original image). Default: True
-       
+
         Examples
         --------
         >>> im = np.zeros([64,128,4])
@@ -292,25 +289,25 @@ class ImageArray(YTArray):
         else:
             out = scaled
 
-        if filename[-4:] != '.png': 
+        if filename[-4:] != '.png':
             filename += '.png'
 
         if clip_ratio is not None:
-            nz = out[:,:,:3][out[:,:,:3].nonzero()]
+            nz = out[:, :, :3][out[:, :, :3].nonzero()]
             return write_bitmap(out.swapaxes(0, 1), filename,
-                                nz.mean() + \
-                                clip_ratio * nz.std())
+                                nz.mean() + clip_ratio*nz.std())
         else:
             return write_bitmap(out.swapaxes(0, 1), filename)
 
-    def write_image(self, filename, color_bounds=None, channel=None,  cmap_name="algae", func=lambda x: x):
+    def write_image(self, filename, color_bounds=None, channel=None,
+                    cmap_name="algae", func=lambda x: x):
         r"""Writes a single channel of the ImageArray to a png file.
 
         Parameters
         ----------
         filename: string
             Note filename not be modified.
-       
+
         Other Parameters
         ----------------
         channel: int
@@ -323,43 +320,44 @@ class ImageArray(YTArray):
             An acceptable colormap.  See either yt.visualization.color_maps or
             http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
         func : function, optional
-            A function to transform the buffer before applying a colormap. 
+            A function to transform the buffer before applying a colormap.
 
         Returns
         -------
         scaled_image : uint8 image that has been saved
-        
+
         Examples
         --------
-        
+
         >>> im = np.zeros([64,128])
         >>> for i in xrange(im.shape[0]):
-        ...     im[i,:] = np.linspace(0.,0.3*k, im.shape[1])
+        ...     im[i,:] = np.linspace(0.,0.3*i, im.shape[1])
 
-        >>> myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]), 
-        ...     'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),  
+        >>> myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]),
+        ...     'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),
         ...     'width':0.245, 'units':'cm', 'type':'rendering'}
 
         >>> im_arr = ImageArray(im, info=myinfo)
         >>> im_arr.write_image('test_ImageArray.png')
 
         """
-        if filename[-4:] != '.png': 
+        if filename[-4:] != '.png':
             filename += '.png'
 
+        #TODO: Write info dict as png metadata
         if channel is None:
-            return write_image(self.swapaxes(0,1).to_ndarray(), filename,
+            return write_image(self.swapaxes(0, 1).to_ndarray(), filename,
                                color_bounds=color_bounds, cmap_name=cmap_name,
                                func=func)
         else:
-            return write_image(self.swapaxes(0,1)[:,:,channel].to_ndarray(),
+            return write_image(self.swapaxes(0, 1)[:, :, channel].to_ndarray(),
                                filename,
-                               color_bounds=color_bounds, cmap_name=cmap_name, 
+                               color_bounds=color_bounds, cmap_name=cmap_name,
                                func=func)
 
     def save(self, filename, png=True, hdf5=True):
         """
-        Saves ImageArray. 
+        Saves ImageArray.
 
         Arguments:
           filename: string
@@ -380,6 +378,3 @@ class ImageArray(YTArray):
                 self.write_image("%s.png" % filename)
         if hdf5:
             self.write_hdf5("%s.h5" % filename)
-
-    __doc__ += np.ndarray.__doc__
-

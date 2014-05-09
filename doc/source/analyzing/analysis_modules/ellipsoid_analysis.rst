@@ -58,7 +58,7 @@ Halo Finding
   from yt.mods import *
   from yt.analysis_modules.halo_finding.api import *
 
-  pf=load('RD0006/RD0006')
+  pf=load('Enzo_64/RD0006/RedshiftOutput0006')
   halo_list = parallelHF(pf)
   halo_list.dump('MyHaloList')
 
@@ -69,7 +69,7 @@ Ellipsoid Parameters
   from yt.mods import *
   from yt.analysis_modules.halo_finding.api import *
 
-  pf=load('RD0006/RD0006')
+  pf=load('Enzo_64/RD0006/RedshiftOutput0006')
   haloes = LoadHaloes(pf, 'MyHaloList')
 
 Once the halo information is saved you can load it into the data
