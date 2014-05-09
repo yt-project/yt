@@ -24,7 +24,10 @@ from .data_containers import \
     YTSelectionContainer1D, YTSelectionContainer2D, YTSelectionContainer3D
 from yt.data_objects.derived_quantities import \
     DerivedQuantityCollection
-from yt.utilities.exceptions import YTSphereTooSmall
+from yt.utilities.exceptions import \
+    YTSphereTooSmall, \
+    YTIllDefinedCutRegion, \
+    YTMixedCutRegion
 from yt.utilities.linear_interpolators import TrilinearFieldInterpolator
 from yt.utilities.minimal_representation import \
     MinimalSliceData
@@ -683,6 +686,9 @@ class YTCutRegionBase(YTSelectionContainer3D):
         self.base_object.get_data(fields)
         ind = self._cond_ind
         for field in fields:
+            f = self.base_object[field]
+            if f.shape != ind.shape:
+                raise YTMixedCutRegion(self.conditionals, field)
             self.field_data[field] = self.base_object[field][ind]
 
     @property
@@ -693,6 +699,8 @@ class YTCutRegionBase(YTSelectionContainer3D):
             for cond in self.conditionals:
                 res = eval(cond)
                 if ind is None: ind = res
+                if ind.shape != res.shape:
+                    raise YTIllDefinedCutRegion(self.conditionals)
                 np.logical_and(res, ind, ind)
         return ind
 
