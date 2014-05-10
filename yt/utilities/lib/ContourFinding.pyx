@@ -59,13 +59,19 @@ cdef inline ContourID *contour_find(ContourID *node):
     # root.
     while node.parent != NULL:
         temp = node.parent
+        root.count += node.count
+        node.count = 0
         node.parent = root
         node = temp
     return root
 
 cdef inline void contour_union(ContourID *node1, ContourID *node2):
+    if node1 == node2:
+        return
     node1 = contour_find(node1)
     node2 = contour_find(node2)
+    if node1 == node2:
+        return
     cdef ContourID *pri, *sec
     if node1.count > node2.count:
         pri = node1
@@ -758,24 +764,18 @@ cdef class ParticleContourTree(ContourTree):
         cdef np.ndarray[np.int64_t, ndim=1] contour_ids
         contour_ids = np.ones(positions.shape[0], dtype="int64")
         contour_ids *= -1
-        # Sort on our particle IDs.
-        for i in range(doff.shape[0]):
-            if doff[i] < 0: continue
-            for j in range(pcount[i]):
-                offset = pind[doff[i] + j]
-                c1 = container[offset]
-                c0 = contour_find(c1)
-                if c0.count >= self.minimum_count:
-                    # Set to the ID of the friendliest particle.
-                    contour_ids[offset] = particle_ids[pind[c0.contour_id]]
+        # Perform one last contour_find on each.  Note that we no longer need
+        # to look at any of the doff or internal offset stuff.
+        for i in range(positions.shape[0]):
+            if container[i] == NULL: continue
+            container[i] = contour_find(container[i])
+        for i in range(positions.shape[0]):
+            if container[i] == NULL: continue
+            c0 = container[i]
+            if c0.count < self.minimum_count: continue
+            contour_ids[i] = particle_ids[pind[c0.contour_id]]
         free(container)
         del pind
-        # We can now remake our contour IDs, count the number of them, and
-        # reassign.
-        cdef np.ndarray[np.int64_t, ndim=1] ufof_tags = np.unique(contour_ids)
-        cdef np.int64_t nfof_tags = ufof_tags.size
-        # This is, at most, how many tags we'll have.  Now we just need to
-        # assign to them.
         return contour_ids
 
     @cython.cdivision(True)
@@ -827,8 +827,8 @@ cdef class ParticleContourTree(ContourTree):
                                 self.linking_length2, edges)
             if link == 0: continue
             if c1 == NULL:
-                container[pind1] = c0
                 c0.count += 1
+                container[pind1] = c0
             elif c0.contour_id != c1.contour_id:
                 contour_union(c0, c1)
                 c0 = container[pind1] = container[pind0] = contour_find(c0)
