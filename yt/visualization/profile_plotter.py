@@ -16,6 +16,7 @@ This is a simple mechanism for interfacing with Profile and Phase plots
 
 import __builtin__
 import base64
+import os
 import types
 
 from functools import wraps
@@ -230,7 +231,8 @@ class ProfilePlot(object):
             The output file keyword.
         
         """
-        if not self._plot_valid: self._setup_plots()
+        if not self._plot_valid:
+            self._setup_plots()
         unique = set(self.figures.values())
         if len(unique) < len(self.figures):
             figiter = izip(xrange(len(unique)), sorted(unique))
@@ -677,9 +679,11 @@ class PhasePlot(ImagePlotContainer):
             cax = None
             draw_colorbar = True
             draw_axes = True
+            zlim = (None, None)
             if f in self.plots:
                 draw_colorbar = self.plots[f]._draw_colorbar
                 draw_axes = self.plots[f]._draw_axes
+                zlim = (self.plots[f].zmin, self.plots[f].zmax)
                 if self.plots[f].figure is not None:
                     fig = self.plots[f].figure
                     axes = self.plots[f].axes
@@ -688,13 +692,14 @@ class PhasePlot(ImagePlotContainer):
             x_scale, y_scale, z_scale = self._get_field_log(f, self.profile)
             x_title, y_title, z_title = self._get_field_title(f, self.profile)
 
-            if z_scale == 'log':
-                zmin = data[data > 0.0].min()
-                self._field_transform[f] = log_transform
-            else:
-                zmin = data.min()
-                self._field_transform[f] = linear_transform
-            zlim = [zmin, data.max()]
+            if zlim == (None, None):
+                if z_scale == 'log':
+                    zmin = data[data > 0.0].min()
+                    self._field_transform[f] = log_transform
+                else:
+                    zmin = data.min()
+                    self._field_transform[f] = linear_transform
+                zlim = [zmin, data.max()]
 
             fp = self._font_properties
             f = self.profile.data_source._determine_fields(f)[0]
