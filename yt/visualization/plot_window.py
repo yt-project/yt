@@ -180,8 +180,8 @@ def get_window_parameters(axis, center, width, pf):
     elif pf.geometry == "spherical":
         if axis == 0:
             width = pf.domain_width[1], pf.domain_width[2]
-            center = 0.5*(pf.domain_left_edge +
-                pf.domain_right_edge).in_units("code_length")
+            center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
+            center.convert_to_units("code_length")
         else:
             # Our default width here is the full domain
             width = [pf.domain_right_edge[0]*2.0, pf.domain_right_edge[0]*2.0]
@@ -217,7 +217,8 @@ def get_oblique_window_parameters(normal, center, width, pf, depth=None):
         mat = np.transpose(np.column_stack((perp1,perp2,normal)))
         center = np.dot(mat,center)
 
-    bounds = tuple( ( (2*(i%2))-1)*width[i//2]/2 for i in range(len(width)*2))
+    w = tuple(el.in_units('unitary') for el in width)
+    bounds = tuple(((2*(i % 2))-1)*w[i//2]/2 for i in range(len(w)*2))
 
     return (bounds, center)
 
