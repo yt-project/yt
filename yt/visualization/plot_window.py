@@ -82,18 +82,10 @@ def fix_unitary(u):
     else:
         return u
 
-def assert_valid_width_tuple(width):
-    if not iterable(width) or len(width) != 2:
-        raise YTInvalidWidthError("width (%s) is not a two element tuple" % width)
-    if not isinstance(width[0], Number) and isinstance(width[1], basestring):
-        msg = "width (%s) is invalid. " % str(width)
-        msg += "Valid widths look like this: (12, 'au')"
-        raise YTInvalidWidthError(msg)
-
 def validate_iterable_width(width, pf, unit=None):
     if isinstance(width[0], tuple) and isinstance(width[1], tuple):
-        assert_valid_width_tuple(width[0])
-        assert_valid_width_tuple(width[1])
+        validate_width_tuple(width[0])
+        validate_width_tuple(width[1])
         return (pf.quan(width[0][0], fix_unitary(width[0][1])),
                 pf.quan(width[1][0], fix_unitary(width[1][1])))
     elif isinstance(width[0], Number) and isinstance(width[1], Number):
@@ -102,11 +94,11 @@ def validate_iterable_width(width, pf, unit=None):
     elif isinstance(width[0], YTQuantity) and isinstance(width[1], YTQuantity):
         return (pf.quan(width[0]), pf.quan(width[1]))
     else:
-        assert_valid_width_tuple(width)
+        validate_width_tuple(width)
         # If width and unit are both valid width tuples, we
         # assume width controls x and unit controls y
         try:
-            assert_valid_width_tuple(unit)
+            validate_width_tuple(unit)
             return (pf.quan(width[0], fix_unitary(width[1])),
                     pf.quan(unit[0], fix_unitary(unit[1])))
         except YTInvalidWidthError:
@@ -137,7 +129,7 @@ def get_sanitized_width(axis, width, depth, pf):
         raise YTInvalidWidthError(width)
     if depth is not None:
         if iterable(depth):
-            assert_valid_width_tuple(depth)
+            validate_width_tuple(depth)
             depth = (pf.quan(depth[0], fix_unitary(depth[1])), )
         elif isinstance(depth, Number):
             depth = (pf.quan(depth, 'code_length',
