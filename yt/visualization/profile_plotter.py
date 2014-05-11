@@ -745,9 +745,11 @@ class PhasePlot(ImagePlotContainer):
         >>> plot.save(mpl_kwargs={'bbox_inches':'tight'})
         
         """
-
-        if not self._plot_valid: self._setup_plots()
-        if mpl_kwargs is None: mpl_kwargs = {}
+        names = []
+        if not self._plot_valid:
+            self._setup_plots()
+        if mpl_kwargs is None:
+            mpl_kwargs = {}
         xfn = self.profile.x_field
         yfn = self.profile.y_field
         if isinstance(xfn, types.TupleType):
@@ -756,17 +758,25 @@ class PhasePlot(ImagePlotContainer):
             yfn = yfn[1]
         for f in self.profile.field_data:
             _f = f
-            if isinstance(f, types.TupleType): _f = _f[1]
+            if isinstance(f, types.TupleType):
+                _f = _f[1]
             middle = "2d-Profile_%s_%s_%s" % (xfn, yfn, _f)
             if name is None:
                 prefix = self.profile.pf
-                name = "%s.png" % prefix
+            if name[-1] == os.sep and not os.path.isdir(name):
+                os.mkdir(name)
+            if os.path.isdir(name) and name != str(self.pf):
+                prefix = name + (os.sep if name[-1] != os.sep else '') + str(self.pf)
             suffix = get_image_suffix(name)
-            prefix = name[:name.rfind(suffix)]
+            if suffix != '':
+                for k, v in self.plots.iteritems():
+                    names.append(v.save(name, mpl_kwargs))
+                return names
+
             fn = "%s_%s%s" % (prefix, middle, suffix)
-            if not suffix:
-                suffix = ".png"
+            names.append(fn)
             self.plots[f].save(fn, mpl_kwargs)
+        return names
 
     @invalidate_plot
     def set_title(self, field, title):
