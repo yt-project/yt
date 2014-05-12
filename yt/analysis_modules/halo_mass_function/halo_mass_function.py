@@ -44,13 +44,13 @@ class HaloMassFcn(ParallelAnalysisInterface):
         Halo masses from simulated halos. Units: M_solar.
     n_cumulative_sim : Array
         Number density of halos with mass greater than the corresponding 
-        mass in masses_sim (simulated). Units: comoving (Mpc/h)^-3
+        mass in masses_sim (simulated). Units: comoving Mpc^-3
     masses_analytic : Array
         Masses used for the generation of the analytic mass function, Units:
         M_solar.
     n_cumulative_analytic : Array
         Number density of halos with mass greater then the corresponding
-        mass in masses_analytic (analytic). Units: comoving (Mpc/h)^-3
+        mass in masses_analytic (analytic). Units: comoving Mpc^-3
     dndM_dM_analytic : Array
         Differential number density of halos, (dn/dM)*dM (analytic).
 
@@ -218,15 +218,13 @@ class HaloMassFcn(ParallelAnalysisInterface):
             self.masses_analytic = YTArray(self.masses_analytic/self.hubble0, "Msun")
             # The halo arrays will already have yt units, but the analytic forms do 
             # not. If a dataset has been provided, use that to give them units. At the
-            # same time, convert to comoving (Mpc/h)^-3
+            # same time, convert to comoving (Mpc)^-3
             if simulation_ds is not None:
-                self.n_cumulative_analytic = simulation_ds.arr(self.n_cumulative_analytic * 
-                                                          self.hubble0**3, 
-                                                          "(Mpccm/h)**(-3)")
+                self.n_cumulative_analytic = simulation_ds.arr(self.n_cumulative_analytic, 
+                                                          "(Mpccm)**(-3)")
             elif halos_ds is not None:
-                self.n_cumulative_analytic = halos_ds.arr(self.n_cumulative_analytic * 
-                                                          self.hubble0**3, 
-                                                          "(Mpccm/h)**(-3)")
+                self.n_cumulative_analytic = halos_ds.arr(self.n_cumulative_analytic, 
+                                                          "(Mpccm)**(-3)")
             else:
                 from yt.units.unit_registry import UnitRegistry
                 from yt.units.dimensions import length
@@ -236,11 +234,11 @@ class HaloMassFcn(ParallelAnalysisInterface):
                     hmf_registry.add(new_unit, 
                                      hmf_registry.lut[my_unit][0] / 
                                      (1 + self.this_redshift),
-                                     length, "\\rm{%s}/(1+z)" % my_unit)
-                self.n_cumulative_analytic = YTArray(self.n_cumulative_analytic * 
-                                                     self.hubble0**3, 
-                                                     "(Mpccm/h)**(-3)", 
-                                                     registry=hmf_registry)                          
+                                     length, "\\rm{%s}/(1+z)" % my_unit)                         
+                self.n_cumulative_analytic = YTArray(self.n_cumulative_analytic, 
+                                                     "(Mpccm)**(-3)", 
+                                                     registry=hmf_registry) 
+
 
         """
         If a halo file has been supplied, make a mass function for the simulated halos.
@@ -270,7 +268,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
         # We're going to use indices to count the number of halos above a given mass
         masses_sim = np.sort(data_source['ParticleMassMsun'])
         # Determine the size of the simulation volume in comoving Mpc**3
-        sim_volume = self.halos_ds.domain_width.in_units('Mpccm/h').prod()
+        sim_volume = self.halos_ds.domain_width.in_units('Mpccm').prod()
         n_cumulative_sim = np.arange(len(masses_sim),0,-1)
         # We don't want repeated halo masses, and the unique indices tell us which values 
         # correspond to distinct halo masses.
@@ -370,8 +368,8 @@ the HaloMassFcn object.")
         sigma_normalization = self.sigma8 / sigma8_unnorm;
 
         # rho0 in units of h^2 Msolar/Mpc^3
-        rho0 = YTQuantity(self.omega_matter0 * rho_crit_g_cm3_h2, 'g/cm**3')\
-               .in_units('Msun/Mpc**3')
+        rho0 = YTQuantity(self.omega_matter0 * rho_crit_g_cm3_h2 * self.hubble0**2,
+                          'g/cm**3').in_units('Msun/Mpc**3')
         rho0 = rho0.value.item()       
 
         # spacing in mass of our sigma calculation
@@ -405,8 +403,8 @@ the HaloMassFcn object.")
     def dndm(self):
         # constants - set these before calling any functions!
         # rho0 in units of h^2 Msolar/Mpc^3
-        rho0 = YTQuantity(self.omega_matter0 * rho_crit_g_cm3_h2, 'g/cm**3')\
-               .in_units('Msun/Mpc**3')
+        rho0 = YTQuantity(self.omega_matter0 * rho_crit_g_cm3_h2 * self.hubble0**2, 
+                          'g/cm**3').in_units('Msun/Mpc**3')
         rho0 = rho0.value.item()
 
         self.delta_c0 = 1.69;  # critical density for turnaround (Press-Schechter)

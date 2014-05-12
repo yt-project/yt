@@ -61,6 +61,7 @@ The simplest way to create a halo mass function object is to simply pass it no
 arguments and let it use the default cosmological parameters.
 
 ..code-block:: python
+
   from yt.analysis_modules.halo_mass_function.api import *
 
   hmf = HaloMassFcn()
@@ -73,6 +74,7 @@ can be extracted from the halo dataset, at the same redshift, spanning a similar
 range of halo masses.
 
 ..code-block:: python
+
   from yt.mods import *
   from yt.analysis_modules.halo_mass_function.api import *
 
@@ -83,17 +85,19 @@ A simulation dataset can be passed along with additonal cosmological parameters
 to create an analytic mass function.
 
 ..code-block:: python
+
   from yt.mods import *
   from yt.analysis_modules.halo_mass_function.api import *
 
   my_ds = load("RD0027/RedshiftOutput0027")
-  hmf = HaloMassFcn(ds=my_ds, omega_baryon0=0.05, primordial_index=0.96, 
+  hmf = HaloMassFcn(simulation_ds=my_ds, omega_baryon0=0.05, primordial_index=0.96, 
                     sigma8 = 0.8, log_mass_min=5, log_mass_max=9)
 
 The analytic mass function can be created for a set of arbitrary cosmological 
 parameters without any dataset being passed as an argument.
 
 ..code-block:: python
+
   from yt.mods import *
   from yt.analysis_modules.halo_mass_function.api import *
 
@@ -188,13 +192,13 @@ A HaloMassFnc object has several arrays hanging off of it containing the
   * **masses_sim**: Halo masses from simulated halos. Units: M_solar
 
   * **n_cumulative_sim**: Number density of halos with mass greater than the 
-    corresponding mass in masses_sim. Units: comoving (Mpc/h)^-3
+    corresponding mass in masses_sim. Units: comoving Mpc^-3
 
   * **masses_analytic**: Masses used for the generation of the analytic mass 
     function. Units: M_solar
 
   * **n_cumulative_analytic**: Number density of halos with mass greater then 
-    the corresponding mass in masses_analytic. Units: comoving (Mpc/h)^-3
+    the corresponding mass in masses_analytic. Units: comoving Mpc^-3
 
   * **dndM_dM_analytic**: Differential number density of halos, (dn/dM)*dM.
 
@@ -202,6 +206,7 @@ After the mass function has been created for both simulated halos and the
 corresponding analytic fits, they can be plotted though something along the 
 lines of
 .. code-block:: python
+
   from yt.mods import *
   from yt.analysis_modules.halo_mass_function.api import *
   import matplotlib.pyplot as plt
@@ -215,6 +220,7 @@ lines of
 Attached to ``hmf`` is the convenience function ``write_out``, which saves the 
 halo mass function to a text file. (continued from above)
 .. code-block:: python
+
   hmf.write_out(prefix='hmf', analytic=True, simulated=True)
 
 This writes the files `hmf-analytic.dat' with columns 
