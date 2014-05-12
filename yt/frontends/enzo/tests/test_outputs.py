@@ -18,7 +18,8 @@ from yt.utilities.answer_testing.framework import \
     requires_pf, \
     small_patch_amr, \
     big_patch_amr, \
-    data_dir_load
+    data_dir_load, \
+    hmf_sim_and_analytic
 from yt.frontends.enzo.api import EnzoDataset
 
 _fields = ("temperature", "density", "velocity_magnitude",
