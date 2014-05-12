@@ -1,10 +1,15 @@
 import numpy as np
 
 
-def bbox_filter(left, right):
+def bbox_filter(left, right, domain_width):
 
     def myfilter(chunk, mask=None):
         pos = np.array([chunk['x'], chunk['y'], chunk['z']]).T
+
+        # This hurts, but is useful for periodicity. Probably should check first
+        # if it is even needed for a given left/right
+        for i in range(3):
+            pos[:,i] = np.mod(pos[:,i] - left[i], domain_width[i]) + left[i]
 
         # Now get all particles that are within the bbox
         if mask is None:
@@ -16,10 +21,15 @@ def bbox_filter(left, right):
 
     return myfilter
 
-def sphere_filter(center, radius):
+def sphere_filter(center, radius, domain_width):
 
     def myfilter(chunk, mask=None):
         pos = np.array([chunk['x'], chunk['y'], chunk['z']]).T
+
+        # This hurts, but is useful for periodicity. Probably should check first
+        # if it is even needed for a given left/right
+        for i in range(3):
+            pos[:,i] = np.mod(pos[:,i] - left[i], domain_width[i]) + left[i]
 
         # Now get all particles that are within the radius
         if mask is None:

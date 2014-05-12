@@ -746,7 +746,7 @@ class SDFIndex(object):
         mylog.debug('SINDEX Loading region from %s to %s' %(left, right))
         inds = self.get_bbox(left, right)
 
-        my_filter = bbox_filter(left, right)
+        my_filter = bbox_filter(left, right, self.true_domain_width)
 
         for dd in self.filter_particles(
             self.iter_data(inds, fields),
@@ -757,7 +757,7 @@ class SDFIndex(object):
         mylog.debug('SINDEX Loading spherical region %s to %s' %(center, radius))
         inds = self.get_bbox(center-radius, center+radius)
 
-        my_filter = sphere_filter(center, radius)
+        my_filter = sphere_filter(center, radius, self.true_domain_width)
 
         for dd in self.filter_particles(
             self.iter_data(inds, fields),
