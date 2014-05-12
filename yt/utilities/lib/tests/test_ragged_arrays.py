@@ -32,5 +32,5 @@ def test_index_unop():
             i = 0
             for j, v in enumerate(sizes):
                 arr = values[indices[i:i+v]]
-                yield assert_almost_equal, op(arr), out_values[j]
+                yield assert_equal, op(arr), out_values[j]
                 i += v
