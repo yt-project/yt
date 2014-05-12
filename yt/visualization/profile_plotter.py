@@ -16,6 +16,7 @@ This is a simple mechanism for interfacing with Profile and Phase plots
 
 import __builtin__
 import base64
+import os
 import types
 
 from functools import wraps
@@ -230,7 +231,8 @@ class ProfilePlot(object):
             The output file keyword.
         
         """
-        if not self._plot_valid: self._setup_plots()
+        if not self._plot_valid:
+            self._setup_plots()
         unique = set(self.figures.values())
         if len(unique) < len(self.figures):
             figiter = izip(xrange(len(unique)), sorted(unique))
@@ -677,9 +679,11 @@ class PhasePlot(ImagePlotContainer):
             cax = None
             draw_colorbar = True
             draw_axes = True
+            zlim = (None, None)
             if f in self.plots:
                 draw_colorbar = self.plots[f]._draw_colorbar
                 draw_axes = self.plots[f]._draw_axes
+                zlim = (self.plots[f].zmin, self.plots[f].zmax)
                 if self.plots[f].figure is not None:
                     fig = self.plots[f].figure
                     axes = self.plots[f].axes
@@ -688,13 +692,14 @@ class PhasePlot(ImagePlotContainer):
             x_scale, y_scale, z_scale = self._get_field_log(f, self.profile)
             x_title, y_title, z_title = self._get_field_title(f, self.profile)
 
-            if z_scale == 'log':
-                zmin = data[data > 0.0].min()
-                self._field_transform[f] = log_transform
-            else:
-                zmin = data.min()
-                self._field_transform[f] = linear_transform
-            zlim = [zmin, data.max()]
+            if zlim == (None, None):
+                if z_scale == 'log':
+                    zmin = data[data > 0.0].min()
+                    self._field_transform[f] = log_transform
+                else:
+                    zmin = data.min()
+                    self._field_transform[f] = linear_transform
+                zlim = [zmin, data.max()]
 
             fp = self._font_properties
             f = self.profile.data_source._determine_fields(f)[0]
@@ -740,9 +745,11 @@ class PhasePlot(ImagePlotContainer):
         >>> plot.save(mpl_kwargs={'bbox_inches':'tight'})
         
         """
-
-        if not self._plot_valid: self._setup_plots()
-        if mpl_kwargs is None: mpl_kwargs = {}
+        names = []
+        if not self._plot_valid:
+            self._setup_plots()
+        if mpl_kwargs is None:
+            mpl_kwargs = {}
         xfn = self.profile.x_field
         yfn = self.profile.y_field
         if isinstance(xfn, types.TupleType):
@@ -751,17 +758,25 @@ class PhasePlot(ImagePlotContainer):
             yfn = yfn[1]
         for f in self.profile.field_data:
             _f = f
-            if isinstance(f, types.TupleType): _f = _f[1]
+            if isinstance(f, types.TupleType):
+                _f = _f[1]
             middle = "2d-Profile_%s_%s_%s" % (xfn, yfn, _f)
             if name is None:
                 prefix = self.profile.pf
-                name = "%s.png" % prefix
+            if name[-1] == os.sep and not os.path.isdir(name):
+                os.mkdir(name)
+            if os.path.isdir(name) and name != str(self.pf):
+                prefix = name + (os.sep if name[-1] != os.sep else '') + str(self.pf)
             suffix = get_image_suffix(name)
-            prefix = name[:name.rfind(suffix)]
+            if suffix != '':
+                for k, v in self.plots.iteritems():
+                    names.append(v.save(name, mpl_kwargs))
+                return names
+
             fn = "%s_%s%s" % (prefix, middle, suffix)
-            if not suffix:
-                suffix = ".png"
+            names.append(fn)
             self.plots[f].save(fn, mpl_kwargs)
+        return names
 
     @invalidate_plot
     def set_title(self, field, title):

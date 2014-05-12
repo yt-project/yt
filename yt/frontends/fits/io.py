@@ -88,7 +88,7 @@ class IOHandlerFITS(BaseIOHandler):
             for chunk in chunks:
                 for g in chunk.objs:
                     start = ((g.LeftEdge-self.pf.domain_left_edge)/dx).to_ndarray().astype("int")
-                    end = ((g.RightEdge-self.pf.domain_left_edge)/dx).to_ndarray().astype("int")
+                    end = start + g.ActiveDimensions
                     if self.line_db is not None and fname in self.line_db:
                         my_off = self.line_db.get(fname).in_units(self.pf.vel_unit).value
                         my_off = my_off - 0.5*self.pf.line_width
