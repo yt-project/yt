@@ -252,7 +252,7 @@ class YTArray(np.ndarray):
                     "Perhaps you meant to do something like this instead: \n"
                     "ds.arr(%s, \"%s\")" % (input_array, input_units)
                     )
-        if _astropy.units is not None:
+        if _astropy._units is not None:
             if isinstance(input_array, _astropy.units.quantity.Quantity):
                 return cls.from_astropy(input_array)
         if isinstance(input_array, YTArray):
