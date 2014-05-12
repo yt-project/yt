@@ -148,19 +148,31 @@ can rebuild these modules by executing:
 
 .. code-block:: bash
 
-   python2.7 setup.py develop
+  $ python2.7 setup.py develop
 
 If you have previously "installed" via ``setup.py install`` you have to
 re-install:
 
 .. code-block:: bash
 
-   python2.7 setup.py install
+  $ python2.7 setup.py install
 
-Only one of these two options is needed.  yt may require you to specify the
-location to libpng and hdf5.  This can be done through files named ``png.cfg``
-and ``hdf5.cfg``.  If you are using the installation script, these will already
-exist.
+Only one of these two options is needed.
+
+If you plan to develop yt on Windows, we recommend using the `MinGW <http://www.mingw.org/>`_ gcc
+compiler that can be installed using the `Anaconda Python
+Distribution <https://store.continuum.io/cshop/anaconda/>`_. Also, the syntax for the
+setup command is slightly different; you must type:
+
+.. code-block:: bash
+
+  $ python2.7 setup.py build --compiler=mingw32 develop
+
+or
+
+.. code-block:: bash
+
+  $ python2.7 setup.py build --compiler=mingw32 install
 
 Making and Sharing Changes
 ++++++++++++++++++++++++++
