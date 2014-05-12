@@ -27,6 +27,7 @@ from yt.utilities.fortran_utils import read_record
 from yt.utilities.lib.geometry_utils import compute_morton
 
 from yt.geometry.oct_container import _ORDER_MAX
+from particle_filters import bbox_filter, sphere_filter
 CHUNKSIZE = 32**3
 
 class IOHandlerSDF(BaseIOHandler):
@@ -600,6 +601,19 @@ class SDFIndex(object):
             i += 1
         mylog.debug('Read %i chunks, batched into %i reads' % (num_inds, num_reads))
 
+
+    def filter_particles(self, myiter, myfilter):
+        for data in myiter:
+            mask = myfilter(data)
+
+            if mask.sum() == 0:
+                continue
+            filtered = {}
+            for f in data.keys():
+                filtered[f] = data[f][mask]
+
+            yield filtered
+
     def filter_bbox(self, left, right, myiter):
         """
         Filter data by masking out data outside of a bbox defined
@@ -639,7 +653,24 @@ class SDFIndex(object):
     def iter_bbox_data(self, left, right, fields):
         mylog.debug('SINDEX Loading region from %s to %s' %(left, right))
         inds = self.get_bbox(left, right)
-        return self.iter_data(inds, fields)
+
+        my_filter = bbox_filter(left, right)
+
+        for dd in self.filter_particles(
+            self.iter_data(inds, fields),
+            my_filter):
+            yield dd
+
+    def iter_sphere_data(self, center, radius, fields):
+        mylog.debug('SINDEX Loading spherical region %s to %s' %(center, radius))
+        inds = self.get_bbox(center-radius, center+radius)
+
+        my_filter = sphere_filter(center, radius)
+
+        for dd in self.filter_particles(
+            self.iter_data(inds, fields),
+            my_filter):
+            yield dd
 
     def iter_ibbox_data(self, left, right, fields):
         mylog.debug('SINDEX Loading region from %s to %s' %(left, right))
