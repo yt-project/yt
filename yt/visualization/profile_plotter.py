@@ -761,12 +761,15 @@ class PhasePlot(ImagePlotContainer):
             if isinstance(f, types.TupleType):
                 _f = _f[1]
             middle = "2d-Profile_%s_%s_%s" % (xfn, yfn, _f)
-            if name is None:
-                prefix = self.profile.pf
             if name[-1] == os.sep and not os.path.isdir(name):
                 os.mkdir(name)
-            if os.path.isdir(name) and name != str(self.pf):
-                prefix = name + (os.sep if name[-1] != os.sep else '') + str(self.pf)
+            if name is None:
+                prefix = self.profile.pf
+            elif os.path.isdir(name) and name != str(self.profile.pf):
+                prefix = name + (os.sep if name[-1] != os.sep else '')
+                prefix += str(self.profile.pf)
+            else:
+                prefix = name
             suffix = get_image_suffix(name)
             if suffix != '':
                 for k, v in self.plots.iteritems():
