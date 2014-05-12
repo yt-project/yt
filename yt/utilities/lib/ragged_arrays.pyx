@@ -82,6 +82,8 @@ def index_unop(np.ndarray[numpy_dt, ndim=1] values,
     elif operation == "min":
         ival = ma
         func = r_min
+    else:
+        raise NotImplementedError
     cdef np.int64_t i, j, ind_ind, ind_arr
     ind_ind = 0
     for i in range(sizes.size):
