@@ -76,12 +76,27 @@ keV_per_K = 1.0 / K_per_keV
 keV_per_erg = 1.0 / erg_per_keV
 eV_per_erg = 1.0 / erg_per_eV
 
+# Solar System masses
+# Standish, E.M. (1995) "Report of the IAU WGAS Sub-Group on Numerical Standards",
+# in Highlights of Astronomy (I. Appenzeller, ed.), Table 1,
+# Kluwer Academic Publishers, Dordrecht.
+# REMARK: following masses include whole systems (planet + moons)
+mass_jupiter_grams = mass_sun_grams / 1047.3486
+mass_mercury_grams = mass_sun_grams / 6023600.0
+mass_venus_grams = mass_sun_grams / 408523.71
+mass_earth_grams = mass_sun_grams / 328900.56
+mass_mars_grams = mass_sun_grams / 3098708.0
+mass_saturn_grams = mass_sun_grams / 3497.898
+mass_uranus_grams = mass_sun_grams / 22902.98
+mass_neptun_grams = mass_sun_grams / 19412.24
+
 # flux
 jansky_cgs = 1.0e-23
 # Cosmological constants
 # Calculated with H = 100 km/s/Mpc, value given in units of h^2 g cm^-3
 # Multiply by h^2 to get the critical density in units of g cm^-3
 rho_crit_g_cm3_h2 = 1.8788e-29
+primordial_H_mass_fraction = 0.76
 
 # Misc. Approximations
 mass_mean_atomic_cosmology = 1.22

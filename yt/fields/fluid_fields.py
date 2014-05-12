@@ -162,12 +162,22 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
     registry.add_field((ftype, "metal_mass"),
                        function=_metal_mass,
                        units="g")
+
+    def _number_density(field, data):
+        field_data = np.zeros_like(data["gas", "%s_number_density" % \
+                                        data.pf.field_info.species_names[0]])
+        for species in data.pf.field_info.species_names:
+            field_data += data["gas", "%s_number_density" % species]
+        return field_data
+    registry.add_field((ftype, "number_density"),
+                       function = _number_density,
+                       units="cm**-3")
     
     def _mean_molecular_weight(field, data):
         return (data[ftype, "density"] / (mh * data[ftype, "number_density"]))
     registry.add_field((ftype, "mean_molecular_weight"),
               function=_mean_molecular_weight,
-              units=r"")
+              units="")
 
     setup_gradient_fields(registry, (ftype, "pressure"), "dyne/cm**2",
                           slice_info)

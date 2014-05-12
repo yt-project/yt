@@ -18,7 +18,7 @@ from yt.utilities.physical_ratios import \
     mass_sun_grams, sec_per_year, sec_per_day, sec_per_hr, \
     sec_per_min, temp_sun_kelvin, luminosity_sun_ergs_per_sec, \
     metallicity_sun, erg_per_eV, amu_grams, mass_electron_grams, \
-    cm_per_ang, jansky_cgs
+    cm_per_ang, jansky_cgs, mass_jupiter_grams, mass_earth_grams
 import numpy as np
 
 # Lookup a unit symbol with the symbol string, and provide a tuple with the
@@ -31,17 +31,6 @@ default_unit_symbol_lut = {
     "s":  (1.0, dimensions.time),
     "K":  (1.0, dimensions.temperature),
     "radian": (1.0, dimensions.angle),
-
-    # "code" units, default to CGS conversion.
-    # These default values are overridden in the code frontends
-    "code_length" : (1.0, dimensions.length),
-    "unitary"   : (1.0, dimensions.length),
-    "code_mass" : (1.0, dimensions.mass),
-    "code_time" : (1.0, dimensions.time),
-    "code_velocity" : (1.0, dimensions.velocity),
-    "code_magnetic" : (1.0, dimensions.magnetic_field),
-    "code_temperature" : (1.0, dimensions.temperature),
-    "code_metallicity" : (1.0, dimensions.dimensionless),
 
     # other cgs
     "dyne": (1.0, dimensions.force),
@@ -70,13 +59,15 @@ default_unit_symbol_lut = {
     "yr":  (sec_per_year, dimensions.time),
 
     # Solar units
-    "Msun": ( mass_sun_grams, dimensions.mass),
-    "msun": ( mass_sun_grams, dimensions.mass),
-    "Rsun": ( cm_per_rsun, dimensions.length),
-    "rsun": ( cm_per_rsun, dimensions.length),
-    "Lsun": ( luminosity_sun_ergs_per_sec, dimensions.power),
-    "Tsun": ( temp_sun_kelvin, dimensions.temperature),
+    "Msun": (mass_sun_grams, dimensions.mass),
+    "msun": (mass_sun_grams, dimensions.mass),
+    "Rsun": (cm_per_rsun, dimensions.length),
+    "rsun": (cm_per_rsun, dimensions.length),
+    "Lsun": (luminosity_sun_ergs_per_sec, dimensions.power),
+    "Tsun": (temp_sun_kelvin, dimensions.temperature),
     "Zsun": (metallicity_sun, dimensions.dimensionless),
+    "Mjup": (mass_jupiter_grams, dimensions.mass),
+    "Mearth": (mass_earth_grams, dimensions.mass),
 
     # astro distances
     "AU": (cm_per_au, dimensions.length),
@@ -96,13 +87,28 @@ default_unit_symbol_lut = {
     "amu": (amu_grams, dimensions.mass),
     "me": (mass_electron_grams, dimensions.mass),
     "angstrom": (cm_per_ang, dimensions.length),
-    "Jy": (jansky_cgs, dimensions.specific_flux)
+    "Jy": (jansky_cgs, dimensions.specific_flux),
+    "counts": (1.0, dimensions.dimensionless),
+
+    # for AstroPy compatibility
+    "solMass": (mass_sun_grams, dimensions.mass),
+    "solRad": (cm_per_rsun, dimensions.length),
+    "solLum": (luminosity_sun_ergs_per_sec, dimensions.power),
+    "dyn": (1.0, dimensions.force),
+    "sr": (1.0, dimensions.solid_angle),
+    "rad": (1.0, dimensions.solid_angle),
+    "deg": (np.pi/180., dimensions.angle),
+    "Fr":  (1.0, dimensions.charge),
+    "G": (1.0, dimensions.magnetic_field),
+    "d": (1.0, dimensions.time),
+    "Angstrom": (cm_per_ang, dimensions.length),
 
 }
 
 # Add LaTeX representations for units with trivial representations.
 latex_symbol_lut = {
     "unitary" : "",
+    "dimensionless" : "",
     "code_length" : "\\rm{code}\/\\rm{length}",
     "code_time" : "\\rm{code}\/\\rm{time}",
     "code_mass" : "\\rm{code}\/\\rm{mass}",
@@ -166,6 +172,14 @@ prefixable_units = (
 cgs_base_units = {
     dimensions.mass:'g',
     dimensions.length:'cm',
+    dimensions.time:'s',
+    dimensions.temperature:'K',
+    dimensions.angle:'radian',
+}
+
+mks_base_units = {
+    dimensions.mass:'kg',
+    dimensions.length:'m',
     dimensions.time:'s',
     dimensions.temperature:'K',
     dimensions.angle:'radian',

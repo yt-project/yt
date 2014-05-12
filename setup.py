@@ -12,7 +12,11 @@ if StrictVersion(setuptools.__version__) < StrictVersion('0.7.0'):
     import distribute_setup
     distribute_setup.use_setuptools()
 
-from distutils.command.build_py import build_py
+try:
+   from distutils.command.build_py import build_py_2to3 \
+        as build_py
+except ImportError:
+    from distutils.command.build_py import build_py
 from numpy.distutils.misc_util import appendpath
 from numpy.distutils.command import install_data as np_install_data
 from numpy.distutils import log
@@ -100,11 +104,11 @@ except ImportError as e:
     needs_cython = True
 
 if needs_cython:
-    print "Cython is a build-time requirement for the source tree of yt."
-    print "Please either install yt from a provided, release tarball,"
-    print "or install Cython (version 0.16 or higher)."
-    print "You may be able to accomplish this by typing:"
-    print "     pip install -U Cython"
+    print("Cython is a build-time requirement for the source tree of yt.")
+    print("Please either install yt from a provided, release tarball,")
+    print("or install Cython (version 0.16 or higher).")
+    print("You may be able to accomplish this by typing:")
+    print("     pip install -U Cython")
     sys.exit(1)
 
 ######
@@ -176,12 +180,12 @@ def get_mercurial_changeset_id(target_dir):
                                      shell=True)
 
     if (get_changeset.stderr.read() != ""):
-        print "Error in obtaining current changeset of the Mercurial repository"
+        print("Error in obtaining current changeset of the Mercurial repository")
         changeset = None
 
-    changeset = get_changeset.stdout.read().strip()
+    changeset = get_changeset.stdout.read().strip().decode("UTF-8")
     if (not re.search("^[0-9a-f]{12}", changeset)):
-        print "Current changeset of the Mercurial repository is malformed"
+        print("Current changeset of the Mercurial repository is malformed")
         changeset = None
 
     return changeset
@@ -215,7 +219,7 @@ class my_build_py(build_py):
             with open(os.path.join(target_dir, '__hg_version__.py'), 'w') as fobj:
                 fobj.write("hg_version = '%s'\n" % changeset)
 
-            build_py.run(self)
+        build_py.run(self)
 
 
 def configuration(parent_package='', top_path=None):

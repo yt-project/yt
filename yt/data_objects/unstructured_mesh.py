@@ -161,7 +161,7 @@ class SemiStructuredMesh(YTSelectionContainer):
         mask = self._get_selector_mask(selector)
         count = self.count(selector)
         if count == 0: return 0
-        dest[offset:offset+count] = source[mask]
+        dest[offset:offset+count] = source.flat[mask]
         return count
 
     def count(self, selector):
@@ -171,9 +171,9 @@ class SemiStructuredMesh(YTSelectionContainer):
 
     def count_particles(self, selector, x, y, z):
         # We don't cache the selector results
-        count = selector.count_points(x,y,z)
+        count = selector.count_points(x,y,z, 0.0)
         return count
 
     def select_particles(self, selector, x, y, z):
-        mask = selector.select_points(x,y,z)
+        mask = selector.select_points(x,y,z, 0.0)
         return mask

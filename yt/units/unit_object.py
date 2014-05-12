@@ -24,7 +24,8 @@ from keyword import iskeyword
 from yt.units import dimensions as dimensions_mod
 from yt.units.unit_lookup_table import \
     latex_symbol_lut, unit_prefixes, \
-    prefixable_units, cgs_base_units
+    prefixable_units, cgs_base_units, \
+    mks_base_units
 from yt.units.unit_registry import UnitRegistry
 
 import copy
@@ -136,7 +137,7 @@ class Unit(Expr):
         """
         # Simplest case. If user passes a Unit object, just use the expr.
         unit_key = None
-        if isinstance(unit_expr, str):
+        if isinstance(unit_expr, basestring):
             if registry and unit_expr in registry.unit_objs:
                 return registry.unit_objs[unit_expr]
             else:
@@ -260,6 +261,8 @@ class Unit(Expr):
                     dimensions=(self.dimensions / u.dimensions),
                     registry=self.registry)
 
+    __truediv__ = __div__
+
     def __pow__(self, p):
         """ Take Unit to power p (float). """
         try:
@@ -317,23 +320,36 @@ class Unit(Expr):
                 return False
         return True
 
-    # @todo: might be a simpler/smarter sympy way to do this...
+    def _get_system_unit_string(self, base_units):
+        # The dimensions of a unit object is the product of the base dimensions.
+        # Use sympy to factor the dimensions into base CGS unit symbols.
+        units = []
+        my_dims = self.dimensions.expand()
+        for dim in base_units:
+            unit_string = base_units[dim]
+            power_string = "**(%s)" % my_dims.as_coeff_exponent(dim)[1]
+            units.append("".join([unit_string, power_string]))
+        return " * ".join(units)
+
+
     def get_cgs_equivalent(self):
         """
         Create and return dimensionally-equivalent cgs units.
 
         """
-        # The dimensions of a unit object is the product of the base dimensions.
-        # Use sympy to factor the dimensions into base CGS unit symbols.
-        cgs_units = []
-        my_dims = self.dimensions.expand()
-        for dim in cgs_base_units:
-            unit_string = cgs_base_units[dim]
-            power_string = "**(%s)" % my_dims.as_coeff_exponent(dim)[1]
-            cgs_units.append("".join([unit_string, power_string]))
-        cgs_units_string = " * ".join(cgs_units)
+        units_string = self._get_system_unit_string(cgs_base_units)
+        return Unit(units_string, cgs_value=1.0,
+                    dimensions=self.dimensions, registry=self.registry)
 
-        return Unit(cgs_units_string, cgs_value=1.0,
+    def get_mks_equivalent(self):
+        """
+        Create and return dimensionally-equivalent mks units.
+
+        """
+        units_string = self._get_system_unit_string(mks_base_units)
+        cgs_value = (get_conversion_factor(self, self.get_cgs_equivalent()) /
+                     get_conversion_factor(self, units_string))
+        return Unit(units_string, cgs_value=cgs_value,
                     dimensions=self.dimensions, registry=self.registry)
 
     def get_conversion_factor(self, other_units):
@@ -344,7 +360,8 @@ class Unit(Expr):
         for ex in self.expr.free_symbols:
             symbol_table[ex] = latex_symbol_lut[str(ex)]
         return latex(self.expr, symbol_names=symbol_table,
-                     fold_frac_powers=True, fold_short_frac=True)
+                     mul_symbol="dot", fold_frac_powers=True,
+                     fold_short_frac=True)
 #
 # Unit manipulation functions
 #
@@ -483,7 +500,7 @@ def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
 
             if symbol_str not in latex_symbol_lut:
                 latex_symbol_lut[symbol_str] = \
-                    string.replace(latex_symbol_lut[symbol_wo_prefix],
+                    latex_symbol_lut[symbol_wo_prefix].replace(
                                    '{'+symbol_wo_prefix+'}', '{'+symbol_str+'}')
 
             # don't forget to account for the prefix value!

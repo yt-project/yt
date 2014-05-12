@@ -31,7 +31,7 @@ from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.physical_constants import sec_per_year
 from yt.utilities.io_handler import io_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface, parallel_splitter
+    ParallelAnalysisInterface
 from yt.utilities.lib.GridTree import GridTree, MatchPointsToGrids
 
 from yt.data_objects.data_containers import data_object_registry
@@ -182,7 +182,7 @@ class GridIndex(Index):
             print "% 3i\t% 6i\t% 14i\t% 14i" % \
                   (level, self.level_stats['numgrids'][level],
                    self.level_stats['numcells'][level],
-                   self.level_stats['numcells'][level]**(1./3))
+                   np.ceil(self.level_stats['numcells'][level]**(1./3)))
             dx = self.select_grids(level)[0].dds[0]
         print "-" * 46
         print "   \t% 6i\t% 14i" % (self.level_stats['numgrids'].sum(), self.level_stats['numcells'].sum())

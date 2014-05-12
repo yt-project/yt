@@ -13,11 +13,11 @@ This is a place for base classes of the various plot types.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 import matplotlib
-import cStringIO
+from yt.extern.six.moves import StringIO
 from ._mpl_imports import \
     FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 from yt.funcs import \
-    get_image_suffix, mylog, x_dict, y_dict
+    get_image_suffix, mylog, iterable
 import numpy as np
 
 class CallbackWrapper(object):
@@ -30,8 +30,8 @@ class CallbackWrapper(object):
             self.image = self._axes.images[0]
         if frb.axis < 3:
             DD = frb.pf.domain_width
-            xax = x_dict[frb.axis]
-            yax = y_dict[frb.axis]
+            xax = frb.pf.coordinates.x_axis[frb.axis]
+            yax = frb.pf.coordinates.y_axis[frb.axis]
             self._period = (DD[xax], DD[yax])
         self.pf = frb.pf
         self.xlim = viewer.xlim
@@ -114,7 +114,7 @@ class ImagePlotMPL(PlotMPL):
 
     def _repr_png_(self):
         canvas = FigureCanvasAgg(self.figure)
-        f = cStringIO.StringIO()
+        f = StringIO()
         canvas.print_figure(f)
         f.seek(0)
         return f.read()
@@ -140,12 +140,16 @@ class ImagePlotMPL(PlotMPL):
             top_buff_size = 0.0
 
         # Ensure the figure size along the long axis is always equal to _figure_size
-        if self._aspect >= 1.0:
-            x_fig_size = self._figure_size
-            y_fig_size = self._figure_size/self._aspect
-        if self._aspect < 1.0:
-            x_fig_size = self._figure_size*self._aspect
-            y_fig_size = self._figure_size
+        if iterable(self._figure_size):
+            x_fig_size = self._figure_size[0]
+            y_fig_size = self._figure_size[1]
+        else:
+            if self._aspect >= 1.0:
+                x_fig_size = self._figure_size
+                y_fig_size = self._figure_size/self._aspect
+            if self._aspect < 1.0:
+                x_fig_size = self._figure_size*self._aspect
+                y_fig_size = self._figure_size
 
         xbins = np.array([x_axis_size, x_fig_size, cb_size, cb_text_size])
         ybins = np.array([y_axis_size, y_fig_size, top_buff_size])

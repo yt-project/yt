@@ -1,5 +1,6 @@
 """
-API for hierarchy_subset
+__init__ for yt.frontends.sdf
+
 
 
 
@@ -12,9 +13,3 @@ API for hierarchy_subset
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-
-from .hierarchy_subset import \
-    ConstructedRootGrid, \
-    AMRExtractedGridProxy, \
-    ExtractedHierarchy, \
-    ExtractedParameterFile

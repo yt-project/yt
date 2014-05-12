@@ -32,6 +32,9 @@ from yt.funcs import *
 from yt.utilities.lib.geometry_utils import compute_morton
 from yt.geometry.particle_oct_container import \
     ParticleOctreeContainer
+from yt.units.yt_array import YTArray
+from yt.units.dimensions import length
+from yt.utilities.exceptions import YTInvalidPositionArray
 
 def cell_count_cache(func):
     def cc_cache_func(self, dobj):
@@ -163,7 +166,8 @@ class OctreeSubset(YTSelectionContainer):
         op.initialize()
         mylog.debug("Depositing %s (%s^3) particles into %s Octs",
             positions.shape[0], positions.shape[0]**0.3333333, nvals[-1])
-        pos = np.array(positions, dtype="float64")
+        pos = np.asarray(positions.convert_to_units("code_length"),
+                         dtype="float64")
         # We should not need the following if we know in advance all our fields
         # need no casting.
         fields = [np.asarray(f, dtype="float64") for f in fields]
@@ -176,6 +180,7 @@ class OctreeSubset(YTSelectionContainer):
     def smooth(self, positions, fields = None, index_fields = None,
                method = None, create_octree = False, nneighbors = 64):
         # Here we perform our particle deposition.
+        positions.convert_to_units("code_length")
         if create_octree:
             morton = compute_morton(
                 positions[:,0], positions[:,1], positions[:,2],
@@ -247,11 +252,11 @@ class OctreeSubset(YTSelectionContainer):
 
     def count_particles(self, selector, x, y, z):
         # We don't cache the selector results
-        count = selector.count_points(x,y,z)
+        count = selector.count_points(x,y,z, 0.0)
         return count
 
     def select_particles(self, selector, x, y, z):
-        mask = selector.select_points(x,y,z)
+        mask = selector.select_points(x,y,z, 0.0)
         return mask
 
 class ParticleOctreeSubset(OctreeSubset):
@@ -331,3 +336,34 @@ class OctreeSubsetBlockSlice(object):
     @property
     def dds(self):
         return self._fwidth[0,0,0,self.ind,:]
+
+class YTPositionArray(YTArray):
+    @property
+    def morton(self):
+        self.validate()
+        eps = np.finfo(self.dtype).eps
+        LE = self.min(axis=0) - eps * self.uq
+        RE = self.max(axis=0) + eps * self.uq
+        morton = compute_morton(
+            self[:,0], self[:,1], self[:,2],
+            LE, RE)
+        return morton
+
+    def to_octree(self, over_refine_factor = 1, dims = (1,1,1),
+                  n_ref = 64):
+        mi = self.morton
+        mi.sort()
+        eps = np.finfo(self.dtype).eps
+        LE = self.min(axis=0) - eps * self.uq
+        RE = self.max(axis=0) + eps * self.uq
+        octree = ParticleOctreeContainer(dims, LE, RE, 
+            over_refine = over_refine_factor)
+        octree.n_ref = n_ref
+        octree.add(mi)
+        octree.finalize()
+        return octree
+
+    def validate(self):
+        if len(self.shape) != 2 or self.shape[1] != 3 \
+           or self.units.dimensions != length:
+            raise YTInvalidPositionArray(self.shape, self.units.dimensions)

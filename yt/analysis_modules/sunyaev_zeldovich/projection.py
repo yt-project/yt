@@ -19,11 +19,8 @@ Chluba, Switzer, Nagai, Nelson, MNRAS, 2012, arXiv:1211.3206
 #-----------------------------------------------------------------------------
 
 from yt.utilities.physical_constants import sigma_thompson, clight, hcgs, kboltz, mh, Tcmb
-from yt.utilities.fits_image import FITSImageBuffer
-from yt.fields.local_fields import add_field, derived_field
-from yt.data_objects.image_array import ImageArray
+from yt.units.yt_array import YTQuantity
 from yt.funcs import fix_axis, mylog, iterable, get_pbar
-from yt.utilities.definitions import inv_axis_names
 from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only
@@ -135,7 +132,7 @@ class SZProjection(object):
         --------
         >>> szprj.on_axis("y", center="max", width=(1.0, "Mpc"), source=my_sphere)
         """
-        axis = fix_axis(axis)
+        axis = fix_axis(axis, self.pf)
 
         if center == "c":
             ctr = self.pf.domain_center
@@ -150,7 +147,6 @@ class SZProjection(object):
         beta_par = generate_beta_par(L)
         self.pf.field_info.add_field(("gas","beta_par"), function=beta_par, units="g/cm**3")
         proj = self.pf.h.proj("density", axis, center=ctr, data_source=source)
-        proj.set_field_parameter("axis", axis)
         frb = proj.to_frb(width, nx)
         dens = frb["density"]
         Te = frb["t_sz"]/dens
@@ -175,6 +171,8 @@ class SZProjection(object):
                                 np.array(omega1), np.array(sigma1),
                                 np.array(kappa1), np.array(bperp2))
 
+        self.pf.field_info.pop(("gas","beta_par"))
+
     def off_axis(self, L, center="c", width=(1, "unitary"), nx=800, source=None):
         r""" Make an off-axis projection of the SZ signal.
 
@@ -198,7 +196,9 @@ class SZProjection(object):
         >>> szprj.off_axis(L, center="c", width=(2.0, "Mpc"))
         """
         if iterable(width):
-            w = width[0]/self.pf.units[width[1]]
+            w = self.pf.quan(width[0], width[1]).in_units("code_length").value
+        elif isinstance(width, YTQuantity):
+            w = width.in_units("code_length").value
         else:
             w = width
         if center == "c":
@@ -240,6 +240,8 @@ class SZProjection(object):
         self._compute_intensity(np.array(tau), np.array(Te), np.array(bpar),
                                 np.array(omega1), np.array(sigma1),
                                 np.array(kappa1), np.array(bperp2))
+
+        self.pf.field_info.pop(("gas","beta_par"))
 
     def _compute_intensity(self, tau, Te, bpar, omega1, sigma1, kappa1, bperp2):
 
@@ -319,7 +321,9 @@ class SZProjection(object):
             center = sky_center
             units = "deg"
             deltas *= sky_scale
-            
+            deltas[0] *= -1.
+
+        from yt.utilities.fits_image import FITSImageBuffer
         fib = FITSImageBuffer(self.data, fields=self.data.keys(),
                               center=center, units=units,
                               scale=deltas)

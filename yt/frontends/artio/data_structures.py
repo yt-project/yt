@@ -18,11 +18,11 @@ import stat
 import weakref
 import cStringIO
 
-from .definitions import yt_to_art, art_to_yt, ARTIOconstants
-from _artio_caller import \
+from .definitions import ARTIOconstants
+from ._artio_caller import \
     artio_is_valid, artio_fileset, ARTIOOctreeContainer, \
     ARTIORootMeshContainer, ARTIOSFCRangeHandler
-import _artio_caller
+from . import _artio_caller
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from .fields import \
@@ -59,7 +59,6 @@ class ARTIOOctreeSubset(OctreeSubset):
         self.sfc_end = sfc_end
         self.oct_handler = oct_handler
         self.pf = pf
-        self.index = self.pf.index
         self._last_mask = None
         self._last_selector_id = None
         self._current_particle_type = 'all'
@@ -94,31 +93,24 @@ class ARTIOOctreeSubset(OctreeSubset):
 
     def fill_particles(self, fields):
         if len(fields) == 0: return {}
-        art_fields = []
-        for s, f in fields:
-            fn = yt_to_art[f]
-            for i in self.pf.particle_type_map[s]:
-                if fn in self.pf.particle_variables[i]:
-                    art_fields.append((i, fn))
+        ptype_indices = self.pf.particle_types
+        art_fields = [(ptype_indices.index(ptype), fname) for
+                      ptype, fname in fields]
         species_data = self.oct_handler.fill_sfc_particles(art_fields)
         tr = defaultdict(dict)
         # Now we need to sum things up and then fill
         for s, f in fields:
             count = 0
-            fn = yt_to_art[f]
             dt = "float64" # default
-            for i in self.pf.particle_type_map[s]:
-                if (i, fn) not in species_data: continue
-                # No vector fields in ARTIO
-                count += species_data[i, fn].size
-                dt = species_data[i, fn].dtype
+            i = ptype_indices.index(s)
+            # No vector fields in ARTIO
+            count += species_data[i, f].size
+            dt = species_data[i, f].dtype
             tr[s][f] = np.zeros(count, dtype=dt)
             cp = 0
-            for i in self.pf.particle_type_map[s]:
-                if (i, fn) not in species_data: continue
-                v = species_data.pop((i, fn))
-                tr[s][f][cp:cp+v.size] = v
-                cp += v.size
+            v = species_data.pop((i, f))
+            tr[s][f][cp:cp+v.size] = v
+            cp += v.size
         return tr
 
 # We create something of a fake octree here.  This is primarily to enable us to
@@ -225,13 +217,10 @@ class ARTIOIndex(Index):
 
     def _detect_particle_fields(self):
         fields = set()
-        for ptype in self.pf.particle_types:
-            if ptype == "all": continue
-            for f in yt_to_art.values():
-                if all(f in self.pf.particle_variables[i]
-                       for i in range(self.pf.num_species)
-                       if art_to_yt[self.pf.particle_species[i]] == ptype):
-                    fields.add((ptype, art_to_yt[f]))
+        for i, ptype in enumerate(self.pf.particle_types):
+            if ptype == "all": break # This will always be after all intrinsic
+            for fname in self.pf.particle_variables[i]:
+                fields.add((ptype, fname))
         return list(fields)
 
     def _identify_base_chunk(self, dobj):
@@ -370,14 +359,9 @@ class ARTIODataset(Dataset):
             self.num_species = self.artio_parameters["num_particle_species"][0]
             self.particle_variables = [["PID", "SPECIES"]
                                    for i in range(self.num_species)]
-            self.particle_species = \
+            self.particle_types_raw = \
                 self.artio_parameters["particle_species_labels"]
-            self.particle_type_map = {}
-            for i, s in enumerate(self.particle_species):
-                f = art_to_yt[s]
-                if f not in self.particle_type_map:
-                    self.particle_type_map[f] = []
-                self.particle_type_map[f].append(i)
+            self.particle_types = tuple(self.particle_types_raw)
 
             for species in range(self.num_species):
                 # Mass would be best as a derived field,
@@ -397,10 +381,6 @@ class ARTIODataset(Dataset):
                             "species_%02d_secondary_variable_labels"
                             % (species, )])
 
-            self.particle_types_raw = tuple(
-                set(art_to_yt[s] for s in
-                    self.artio_parameters["particle_species_labels"]))
-            self.particle_types = tuple(self.particle_types)
         else:
             self.num_species = 0
             self.particle_variables = []

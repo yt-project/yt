@@ -20,6 +20,7 @@ import urllib2
 from tempfile import TemporaryFile
 from yt.config import ytcfg
 from yt.funcs import *
+from yt.extern.six import add_metaclass
 from yt.utilities.exceptions import *
 
 from .poster.streaminghttp import register_openers
@@ -41,8 +42,8 @@ class UploaderBar(object):
 class ContainerClass(object):
     pass
 
+@add_metaclass(abc.ABCMeta)
 class MinimalRepresentation(object):
-    __metaclass__ = abc.ABCMeta
 
     def _update_attrs(self, obj, attr_list):
         for attr in attr_list:
@@ -227,3 +228,15 @@ class MinimalNotebook(MinimalRepresentation):
         metadata = self._attrs
         chunks = [ ("notebook", self.data) ]
         return (metadata, ("chunks", chunks))
+
+class ImageCollection(object):
+    def __init__(self, pf, name):
+        self.pf = pf
+        self.name = name
+        self.images = []
+        self.image_metadata = []
+
+    def add_image(self, fn, descr):
+        self.image_metadata.append(descr)
+        self.images.append((os.path.basename(fn), np.fromfile(fn, dtype='c')))
+

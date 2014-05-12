@@ -172,7 +172,8 @@ class DerivedField(object):
         original_fields = data.keys() # Copy
         if self._function is NullFunc:
             raise RuntimeError(
-                "Something has gone terribly wrong, _function is NullFunc")
+                "Something has gone terribly wrong, _function is NullFunc " +
+                "for %s" % (self.name,))
         with self.unit_registry(data):
             dd = self._function(self, data)
         for field_name in data.keys():
@@ -190,7 +191,7 @@ class DerivedField(object):
         """
         Return a data label for the given field, inluding units.
         """
-        name = self.name
+        name = self.name[1]
         if self.display_name is not None:
             name = self.display_name
 
@@ -201,7 +202,7 @@ class DerivedField(object):
         if projected:
             raise NotImplementedError
         else:
-            units = self.units
+            units = Unit(self.units)
         # Add unit label
         if not units.is_dimensionless:
             data_label += r"\/\/ (%s)" % (units)

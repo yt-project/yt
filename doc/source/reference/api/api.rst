@@ -15,18 +15,6 @@ SlicePlot and ProjectionPlot
    ~yt.visualization.plot_window.ProjectionPlot
    ~yt.visualization.plot_window.OffAxisProjectionPlot
 
-PlotCollection
-^^^^^^^^^^^^^^
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.visualization.plot_collection.PlotCollection
-   ~yt.visualization.plot_collection.PlotCollectionInteractive
-   ~yt.visualization.fixed_resolution.FixedResolutionBuffer
-   ~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer
-   ~yt.visualization.base_plot_types.get_multi_plot
-
 Data Sources
 ------------
 
@@ -212,10 +200,10 @@ Halo Catalogs
 .. autosummary::
    :toctree: generated/
 
-   ~yt.frontends.halo_catalogs.data_structures.RockstarBinaryFile
-   ~yt.frontends.halo_catalogs.data_structures.RockstarDataset
-   ~yt.frontends.halo_catalogs.fields.RockstarFieldInfo
-   ~yt.frontends.halo_catalogs.io.IOHandlerRockstarBinary
+   ~yt.frontends.halo_catalogs.rockstar.data_structures.RockstarBinaryFile
+   ~yt.frontends.halo_catalogs.rockstar.data_structures.RockstarDataset
+   ~yt.frontends.halo_catalogs.rockstar.fields.RockstarFieldInfo
+   ~yt.frontends.halo_catalogs.rockstar.io.IOHandlerRockstarBinary
 
 MOAB
 ^^^^
@@ -325,7 +313,7 @@ finders as well as a few other supplemental objects.
    ~yt.analysis_modules.halo_finding.halo_objects.FOFHaloFinder
    ~yt.analysis_modules.halo_finding.halo_objects.HOPHaloFinder
    ~yt.analysis_modules.halo_finding.halo_objects.parallelHF
-   ~yt.analysis_modules.halo_finding.rockstar.api.RockstarHaloFinder
+   ~yt.analysis_modules.halo_finding.rockstar.rockstar.RockstarHaloFinder
 
 You can also operate on the Halo and HAloList objects themselves:
 
@@ -628,11 +616,8 @@ See also :ref:`callbacks`.
    ~yt.visualization.plot_modifications.ArrowCallback
    ~yt.visualization.plot_modifications.ClumpContourCallback
    ~yt.visualization.plot_modifications.ContourCallback
-   ~yt.visualization.plot_modifications.CoordAxesCallback
    ~yt.visualization.plot_modifications.CuttingQuiverCallback
    ~yt.visualization.plot_modifications.GridBoundaryCallback
-   ~yt.visualization.plot_modifications.HopCircleCallback
-   ~yt.visualization.plot_modifications.HopParticleCallback
    ~yt.visualization.plot_modifications.LabelCallback
    ~yt.visualization.plot_modifications.LinePlotCallback
    ~yt.visualization.plot_modifications.MarkerAnnotateCallback
@@ -642,7 +627,6 @@ See also :ref:`callbacks`.
    ~yt.visualization.plot_modifications.SphereCallback
    ~yt.visualization.plot_modifications.TextLabelCallback
    ~yt.visualization.plot_modifications.TitleCallback
-   ~yt.visualization.plot_modifications.UnitBoundaryCallback
    ~yt.visualization.plot_modifications.VelocityCallback
 
 Function List
@@ -672,7 +656,6 @@ Function List
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_passthrough
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_root_only
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_simple_proxy
-   ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_splitter
 
 Math Utilities
 --------------
@@ -721,8 +704,6 @@ Miscellaneous Types
    ~yt.utilities.parallel_tools.parallel_analysis_interface.ObjectIterator
    ~yt.utilities.parallel_tools.parallel_analysis_interface.ParallelAnalysisInterface
    ~yt.utilities.parallel_tools.parallel_analysis_interface.ParallelObjectIterator
-   ~yt.analysis_modules.hierarchy_subset.hierarchy_subset.ConstructedRootGrid
-   ~yt.analysis_modules.hierarchy_subset.hierarchy_subset.ExtractedHierarchy
 
 
 Testing Infrastructure

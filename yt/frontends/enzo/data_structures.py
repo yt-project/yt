@@ -56,7 +56,6 @@ class EnzoGrid(AMRGridPatch):
     Class representing a single Enzo Grid instance.
     """
 
-    __slots__ = ["NumberOfActiveParticles"]
     def __init__(self, id, index):
         """
         Returns an instance of EnzoGrid with *id*, associated with
@@ -196,7 +195,7 @@ class EnzoHierarchy(GridIndex):
     _preload_implemented = True
 
     def __init__(self, pf, dataset_type):
-        
+
         self.dataset_type = dataset_type
         if pf.file_style != None:
             self._bn = pf.file_style
@@ -272,7 +271,7 @@ class EnzoHierarchy(GridIndex):
         t1 = time.time()
         pattern = r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)\s+$"
         patt = re.compile(pattern)
-        f = open(self.index_filename, "rb")
+        f = open(self.index_filename, "rt")
         self.grids = [self.grid(1, self)]
         self.grids[0].Level = 0
         si, ei, LE, RE, fn, npart = [], [], [], [], [], []
@@ -868,7 +867,8 @@ class EnzoDataset(Dataset):
         self.unit_registry.modify("code_time", self.time_unit)
         self.unit_registry.modify("code_velocity", self.velocity_unit)
         DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
-        self.unit_registry.modify("unitary", DW.max())
+        self.unit_registry.add("unitary", float(DW.max() * DW.units.cgs_value),
+                               DW.units.dimensions)
 
     def cosmology_get_units(self):
         """
@@ -984,15 +984,15 @@ def rblocks(f, blocksize=4096):
     size = os.stat(f.name).st_size
     fullblocks, lastblock = divmod(size, blocksize)
 
-    # The first(end of file) block will be short, since this leaves 
-    # the rest aligned on a blocksize boundary.  This may be more 
+    # The first(end of file) block will be short, since this leaves
+    # the rest aligned on a blocksize boundary.  This may be more
     # efficient than having the last (first in file) block be short
     f.seek(-lastblock,2)
-    yield f.read(lastblock)
+    yield f.read(lastblock).decode('ascii')
 
     for i in range(fullblocks-1,-1, -1):
         f.seek(i * blocksize)
-        yield f.read(blocksize)
+        yield f.read(blocksize).decode('ascii')
 
 def rlines(f, keepends=False):
     """Iterate through the lines of a file in reverse order.

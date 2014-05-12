@@ -15,7 +15,6 @@ This is a library of yt-defined exceptions
 
 
 # We don't need to import 'exceptions'
-#import exceptions
 import os.path
 
 class YTException(Exception):
@@ -267,8 +266,8 @@ class YTTooManyVertices(YTException):
         return s
 
 class YTInvalidWidthError(YTException):
-    def __init__(self, error):
-        self.error = error
+    def __init__(self, width):
+        self.error = "width (%s) is invalid" % str(width)
 
     def __str__(self):
         return str(self.error)
@@ -352,6 +351,10 @@ class YTRockstarMultiMassNotSupported(YTException):
 class YTEmptyProfileData(Exception):
     pass
 
+class YTTooParallel(YTException):
+    def __str__(self):
+        return "You've used too many processors for this dataset."
+
 class YTDuplicateFieldInProfile(Exception):
     def __init__(self, field, new_spec, old_spec):
         self.field = field
@@ -363,4 +366,14 @@ class YTDuplicateFieldInProfile(Exception):
                %s
                But being asked to add it with:
                %s""" % (self.field, self.old_spec, self.new_spec)
+        return r
+
+class YTInvalidPositionArray(Exception):
+    def __init__(self, shape, dimensions):
+        self.shape = shape
+        self.dimensions = dimensions
+
+    def __str__(self):
+        r = """Position arrays must be length and shape (N,3).
+               But this one has %s and %s.""" % (self.dimensions, self.shape)
         return r

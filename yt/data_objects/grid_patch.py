@@ -13,20 +13,17 @@ Python-based grid handler, not to be confused with the SWIG-handler
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import exceptions
 import pdb
 import weakref
 import itertools
 import numpy as np
 
 from yt.funcs import *
-from yt.utilities.definitions import x_dict, y_dict
 
 from yt.data_objects.data_containers import \
     YTFieldData, \
     YTDataContainer, \
     YTSelectionContainer
-from yt.utilities.definitions import x_dict, y_dict
 from yt.fields.field_exceptions import \
     NeedsGridType, \
     NeedsOriginalGrid, \
@@ -379,9 +376,9 @@ class AMRGridPatch(YTSelectionContainer):
 
     def count_particles(self, selector, x, y, z):
         # We don't cache the selector results
-        count = selector.count_points(x,y,z)
+        count = selector.count_points(x,y,z, 0.0)
         return count
 
     def select_particles(self, selector, x, y, z):
-        mask = selector.select_points(x,y,z)
+        mask = selector.select_points(x,y,z, 0.0)
         return mask

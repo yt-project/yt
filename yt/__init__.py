@@ -137,8 +137,7 @@ TipsyStaticOutput = deprecated_class(TipsyDataset)
 
 # Now individual component imports from the visualization API
 from yt.visualization.api import \
-    PlotCollection, PlotCollectionInteractive, \
-    get_multi_plot, FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
+    FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
     write_bitmap, write_image, \
     apply_colormap, scale_image, write_projection, \
     SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, \
@@ -146,13 +145,17 @@ from yt.visualization.api import \
     show_colormaps, ProfilePlot, PhasePlot
 
 from yt.visualization.volume_rendering.api import \
-    off_axis_projection
+    off_axis_projection, ColorTransferFunction, \
+    TransferFunctionHelper
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, enable_parallelism
 
 from yt.convenience import \
     load, simulation
+
+from yt.testing import \
+    run_nose
 
 # Import some helpful math utilities
 from yt.utilities.math_utils import \

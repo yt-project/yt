@@ -17,10 +17,9 @@ left_corner = pf.domain_left_edge
 right_corner = pf.domain_right_edge
 
 # Now adjust the size of the region along the line of sight (x axis).
-depth = 10.0 # in Mpc
-left_corner[0] = center[0] - 0.5 * depth / pf.units['mpc']
-left_corner[0] = center[0] + 0.5 * depth / pf.units['mpc']
-
+depth = pf.quan(10.0,'Mpc') 
+left_corner[0] = center[0] - 0.5 * depth 
+left_corner[0] = center[0] + 0.5 * depth 
 # Create the region
 region = pf.region(center, left_corner, right_corner)
 

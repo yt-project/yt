@@ -1,5 +1,5 @@
 """
-These are common particle deposition fields.
+These are common particle fields.
 
 
 
@@ -84,7 +84,8 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
 
     def particle_mass(field, data):
         pos = data[ptype, coord_name]
-        d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
+        pmass = data[ptype, mass_name].in_units(field.units)
+        d = data.deposit(pos, [pmass], method = "sum")
         return data.apply_units(d, field.units)
 
     registry.add_field(("deposit", "%s_mass" % ptype),
@@ -132,12 +133,6 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
                        function = particle_ones,
                        particle_type = True,
                        units = "")
-
-    registry.alias((ptype, "ParticleMass"), (ptype, mass_name),
-                    units = "g")
-
-    registry.alias((ptype, "ParticleMassMsun"), (ptype, mass_name),
-                    units = "Msun")
 
     def particle_mesh_ids(field, data):
         pos = data[ptype, coord_name]

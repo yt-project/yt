@@ -60,7 +60,7 @@ class IOHandlerFLASH(BaseIOHandler):
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
         f_part = self._particle_handle
-        p_ind = self.pf.h._particle_indices
+        p_ind = self.pf.index._particle_indices
         px, py, pz = (self._particle_fields["particle_pos%s" % ax]
                       for ax in 'xyz')
         p_fields = f_part["/tracer particles"]
@@ -71,15 +71,15 @@ class IOHandlerFLASH(BaseIOHandler):
             for g1, g2 in particle_sequences(chunk.objs):
                 start = p_ind[g1.id - g1._id_offset]
                 end = p_ind[g2.id - g2._id_offset + 1]
-                x = p_fields[start:end, px]
-                y = p_fields[start:end, py]
-                z = p_fields[start:end, pz]
+                x = np.asarray(p_fields[start:end, px], dtype="=f8")
+                y = np.asarray(p_fields[start:end, py], dtype="=f8")
+                z = np.asarray(p_fields[start:end, pz], dtype="=f8")
                 yield ptype, (x, y, z)
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
         f_part = self._particle_handle
-        p_ind = self.pf.h._particle_indices
+        p_ind = self.pf.index._particle_indices
         px, py, pz = (self._particle_fields["particle_pos%s" % ax]
                       for ax in 'xyz')
         p_fields = f_part["/tracer particles"]
@@ -90,10 +90,10 @@ class IOHandlerFLASH(BaseIOHandler):
             for g1, g2 in particle_sequences(chunk.objs):
                 start = p_ind[g1.id - g1._id_offset]
                 end = p_ind[g2.id - g2._id_offset + 1]
-                x = p_fields[start:end, px]
-                y = p_fields[start:end, py]
-                z = p_fields[start:end, pz]
-                mask = selector.select_points(x, y, z)
+                x = np.asarray(p_fields[start:end, px], dtype="=f8")
+                y = np.asarray(p_fields[start:end, py], dtype="=f8")
+                z = np.asarray(p_fields[start:end, pz], dtype="=f8")
+                mask = selector.select_points(x, y, z, 0.0)
                 if mask is None: continue
                 for field in field_list:
                     fi = self._particle_fields[field]

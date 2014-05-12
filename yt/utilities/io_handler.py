@@ -16,26 +16,27 @@ The data-file handling functions
 from collections import defaultdict
 
 from yt.funcs import mylog
-import exceptions
 import cPickle
 import os
 import h5py
 import numpy as np
+from yt.extern.six import add_metaclass
 
 _axis_ids = {0:2,1:1,2:0}
 
 io_registry = {}
 
+class RegisteredIOHandler(type):
+    def __init__(cls, name, b, d):
+        type.__init__(cls, name, b, d)
+        if hasattr(cls, "_dataset_type"):
+            io_registry[cls._dataset_type] = cls
+
+@add_metaclass(RegisteredIOHandler)
 class BaseIOHandler(object):
     _vector_fields = ()
     _dataset_type = None
     _particle_reader = False
-
-    class __metaclass__(type):
-        def __init__(cls, name, b, d):
-            type.__init__(cls, name, b, d)
-            if hasattr(cls, "_dataset_type"):
-                io_registry[cls._dataset_type] = cls
 
     def __init__(self, pf):
         self.queue = defaultdict(dict)
@@ -146,7 +147,7 @@ class BaseIOHandler(object):
             # Here, ptype_map means which particles contribute to a given type.
             # And ptf is the actual fields from disk to read.
             for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
-                psize[ptype] += selector.count_points(x, y, z)
+                psize[ptype] += selector.count_points(x, y, z, 0.0)
             self._last_selector_counts = dict(**psize)
             self._last_selector_id = hash(selector)
         # Now we allocate

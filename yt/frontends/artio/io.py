@@ -35,27 +35,27 @@ class IOHandlerARTIO(BaseIOHandler):
         return tr
 
     def _read_particle_coords(self, chunks, ptf):
-        pn = "particle_position_%s"
+        pn = "POSITION_%s"
         chunks = list(chunks)
-        fields = [(ptype, "particle_position_%s" % ax)
+        fields = [(ptype, pn % ax)
                   for ptype, field_list in ptf.items()
-                  for ax in 'xyz']
+                  for ax in 'XYZ']
         for chunk in chunks: # These should be organized by grid filename
             for subset in chunk.objs:
                 rv = dict(**subset.fill_particles(fields))
                 for ptype, field_list in sorted(ptf.items()):
                     x, y, z = (np.asarray(rv[ptype][pn % ax], dtype="=f8")
-                               for ax in 'xyz')
+                               for ax in 'XYZ')
                     yield ptype, (x, y, z)
                     rv.pop(ptype)
 
     def _read_particle_fields(self, chunks, ptf, selector):
-        pn = "particle_position_%s"
+        pn = "POSITION_%s"
         chunks = list(chunks)
         fields = [(ptype, fname) for ptype, field_list in ptf.items()
                                  for fname in field_list]
         for ptype, field_list in sorted(ptf.items()):
-            for ax in 'xyz':
+            for ax in 'XYZ':
                 if pn % ax not in field_list:
                     fields.append((ptype, pn % ax))
         for chunk in chunks: # These should be organized by grid filename
@@ -63,8 +63,8 @@ class IOHandlerARTIO(BaseIOHandler):
                 rv = dict(**subset.fill_particles(fields))
                 for ptype, field_list in sorted(ptf.items()):
                     x, y, z = (np.asarray(rv[ptype][pn % ax], dtype="=f8")
-                               for ax in 'xyz')
-                    mask = selector.select_points(x, y, z)
+                               for ax in 'XYZ')
+                    mask = selector.select_points(x, y, z, 0.0)
                     if mask is None: continue
                     for field in field_list:
                         data = np.asarray(rv[ptype][field], "=f8")

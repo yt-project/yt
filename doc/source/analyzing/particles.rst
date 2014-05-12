@@ -28,8 +28,7 @@ automatically select particles based on the region of space they describe, and
 the quantities (:ref:`derived-quantities`) in those objects will operate on
 particle fields.
 
-(For information on halo finding, see :ref:`cookbook-halo_finding` and
-:ref:`cookbook-halo_mass_info`.)
+(For information on halo finding, see :ref:`cookbook-halo_finding`)
 
 .. warning:: If you use the built-in methods of interacting with particles, you
              should be well off.  Otherwise, there are caveats!

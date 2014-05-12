@@ -11,8 +11,7 @@ def test_ortho_ray():
 
         my_oray = pf.ortho_ray(ax, ocoord)
 
-        my_axes = range(3)
-        del my_axes[ax]
+        my_axes = pf.coordinates.x_axis[ax], pf.coordinates.y_axis[ax]
 
         # find the cells intersected by the ortho ray
         my_all = pf.h.all_data()

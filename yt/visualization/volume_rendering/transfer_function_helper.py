@@ -20,7 +20,7 @@ from yt.visualization.volume_rendering.api import ColorTransferFunction
 from yt.visualization._mpl_imports import FigureCanvasAgg
 from matplotlib.figure import Figure
 from IPython.core.display import Image
-import cStringIO
+from yt.extern.six.moves import StringIO
 import numpy as np
 
 
@@ -65,7 +65,7 @@ class TransferFunctionHelper(object):
             in the dataset.  This can be slow for very large datasets.
         """
         if bounds is None:
-            bounds = self.pf.h.all_data().quantities['Extrema'](self.field)[0]
+            bounds = self.pf.all_data().quantities.extrema(self.field)
         self.bounds = bounds
 
         # Do some error checking.
@@ -98,7 +98,7 @@ class TransferFunctionHelper(object):
             Sets whether the transfer function should use log or linear space.
         """
         self.log = log
-        self.pf.h
+        self.pf.index
         self.pf._get_field_info(self.field).take_log = log
 
     def build_transfer_function(self):
@@ -190,7 +190,7 @@ class TransferFunctionHelper(object):
         ax.set_ylim(y.max()*1.0e-3, y.max()*2)
 
         if fn is None:
-            f = cStringIO.StringIO()
+            f = StringIO()
             canvas.print_figure(f)
             f.seek(0)
             img = f.read()
@@ -201,7 +201,7 @@ class TransferFunctionHelper(object):
     def setup_profile(self, profile_field=None, profile_weight=None):
         if profile_field is None:
             profile_field = 'CellVolume'
-        prof = BinnedProfile1D(self.pf.h.all_data(), 128, self.field,
+        prof = BinnedProfile1D(self.pf.all_data(), 128, self.field,
                                self.bounds[0], self.bounds[1],
                                log_space=self.log,
                                end_collect=False)

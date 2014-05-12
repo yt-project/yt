@@ -14,15 +14,11 @@ Fixed resolution buffer support, along with a primitive image analysis tool.
 #-----------------------------------------------------------------------------
 
 from yt.funcs import *
-from yt.utilities.definitions import \
-    x_dict, \
-    y_dict, \
-    axis_names
 from .volume_rendering.api import off_axis_projection
 from yt.data_objects.image_array import ImageArray
 from yt.utilities.lib.misc_utilities import \
     pixelize_cylinder
-import _MPL
+from . import _MPL
 import numpy as np
 import weakref
 import re
@@ -104,8 +100,8 @@ class FixedResolutionBuffer(object):
             DRE = self.pf.domain_right_edge
             DD = float(self.periodic)*(DRE - DLE)
             axis = self.data_source.axis
-            xax = x_dict[axis]
-            yax = y_dict[axis]
+            xax = self.pf.coordinates.x_axis[axis]
+            yax = self.pf.coordinates.y_axis[axis]
             self._period = (DD[xax], DD[yax])
             self._edges = ( (DLE[xax], DRE[xax]), (DLE[yax], DRE[yax]) )
         
@@ -124,15 +120,11 @@ class FixedResolutionBuffer(object):
             if hasattr(b, "in_units"):
                 b = float(b.in_units("code_length"))
             bounds.append(b)
-        buff = _MPL.Pixelize(self.data_source['px'],
-                             self.data_source['py'],
-                             self.data_source['pdx'],
-                             self.data_source['pdy'],
-                             self.data_source[item],
-                             self.buff_size[0], self.buff_size[1],
-                             bounds, int(self.antialias),
-                             self._period, int(self.periodic),
-                             ).transpose()
+        buff = self.pf.coordinates.pixelize(self.data_source.axis,
+            self.data_source, item, bounds, self.buff_size,
+            int(self.antialias))
+        # Need to add _period and self.periodic
+        # self._period, int(self.periodic)
         ia = ImageArray(buff, input_units=self.data_source[item].units,
                         info=self._get_info(item))
         self.data[item] = ia
@@ -338,10 +330,10 @@ class FixedResolutionBuffer(object):
     @property
     def limits(self):
         rv = dict(x = None, y = None, z = None)
-        xax = x_dict[self.axis]
-        yax = y_dict[self.axis]
-        xn = axis_names[xax]
-        yn = axis_names[yax]
+        xax = self.pf.coordinates.x_axis[self.axis]
+        yax = self.pf.coordinates.y_axis[self.axis]
+        xn = self.pf.coordinates.axis_name[xax]
+        yn = self.pf.coordinates.axis_name[yax]
         rv[xn] = (self.bounds[0], self.bounds[1])
         rv[yn] = (self.bounds[2], self.bounds[3])
         return rv

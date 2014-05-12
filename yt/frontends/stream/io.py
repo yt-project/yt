@@ -15,7 +15,6 @@ Enzo-specific IO functions
 
 from collections import defaultdict
 
-import exceptions
 import os
 import numpy as np
 
@@ -85,7 +84,7 @@ class IOHandlerStream(BaseIOHandler):
                 for ptype, field_list in sorted(ptf.items()):
                     x, y, z  = (gf[ptype, "particle_position_%s" % ax]
                                 for ax in 'xyz')
-                    mask = selector.select_points(x, y, z)
+                    mask = selector.select_points(x, y, z, 0.0)
                     if mask is None: continue
                     for field in field_list:
                         data = np.asarray(gf[ptype, field])
@@ -127,7 +126,7 @@ class StreamParticleIOHandler(BaseIOHandler):
             for ptype, field_list in sorted(ptf.items()):
                 x, y, z = (f[ptype, "particle_position_%s" % ax]
                            for ax in 'xyz')
-                mask = selector.select_points(x, y, z)
+                mask = selector.select_points(x, y, z, 0.0)
                 if mask is None: continue
                 for field in field_list:
                     data = f[ptype, field][mask]

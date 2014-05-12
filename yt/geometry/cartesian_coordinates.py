@@ -19,6 +19,7 @@ from .coordinate_handler import \
     CoordinateHandler, \
     _unknown_coord, \
     _get_coord_fields
+import yt.visualization._MPL as _MPL
 
 class CartesianCoordinateHandler(CoordinateHandler):
 
@@ -46,19 +47,28 @@ class CartesianCoordinateHandler(CoordinateHandler):
              ("index", "x"), ("index", "y"), ("index", "z"),
              ("index", "cell_volume")])
 
-    def pixelize(self, dimension, data_source, field, bounds, size, antialias = True):
+    def pixelize(self, dimension, data_source, field, bounds, size,
+                 antialias = True, periodic = True):
         if dimension < 3:
-            return self._ortho_pixelize(data_source, field, bounds, size, antialias)
+            return self._ortho_pixelize(data_source, field, bounds, size,
+                                        antialias, dimension, periodic)
         else:
-            return self._oblique_pixelize(data_source, field, bounds, size, antialias)
+            return self._oblique_pixelize(data_source, field, bounds, size,
+                                          antialias)
 
-    def _ortho_pixelize(self, data_source, field, bounds, size, antialias):
+    def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
+                        dim, periodic):
         # We should be using fcoords
+        period = self.period[:2].copy() # dummy here
+        period[0] = self.period[self.x_axis[dim]]
+        period[1] = self.period[self.y_axis[dim]]
+        if hasattr(period, 'in_units'):
+            period = period.in_units("code_length").d
         buff = _MPL.Pixelize(data_source['px'], data_source['py'],
                              data_source['pdx'], data_source['pdy'],
                              data_source[field], size[0], size[1],
                              bounds, int(antialias),
-                             True, self.period).transpose()
+                             period, int(periodic)).transpose()
         return buff
 
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
@@ -100,11 +110,11 @@ class CartesianCoordinateHandler(CoordinateHandler):
     axis_id = { 'x' : 0, 'y' : 1, 'z' : 2,
                  0  : 0,  1  : 1,  2  : 2}
 
-    x_axis = { 'x' : 1, 'y' : 0, 'z' : 0,
-                0  : 1,  1  : 0,  2  : 0}
+    x_axis = { 'x' : 1, 'y' : 2, 'z' : 0,
+                0  : 1,  1  : 2,  2  : 0}
 
-    y_axis = { 'x' : 2, 'y' : 2, 'z' : 1,
-                0  : 2,  1  : 2,  2  : 1}
+    y_axis = { 'x' : 2, 'y' : 0, 'z' : 1,
+                0  : 2,  1  : 0,  2  : 1}
 
     @property
     def period(self):

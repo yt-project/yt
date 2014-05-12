@@ -11,7 +11,7 @@ sp = pf.sphere("center", (15.0, "kpc"))
 # Get the angular momentum vector for the sphere.
 L = sp.quantities["AngularMomentumVector"]()
 
-print "Angular momentum vector: %s" % (L)
+print "Angular momentum vector: {0}".format(L)
 
 # Create an OffAxisSlicePlot on the object with the L vector as its normal
 p = OffAxisProjectionPlot(pf, L, "density", sp.center, (25, "kpc"))

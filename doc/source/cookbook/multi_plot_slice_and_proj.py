@@ -1,4 +1,5 @@
 from yt.mods import * # set up our namespace
+from yt.visualization.base_plot_types import get_multi_plot
 import matplotlib.colorbar as cb
 from matplotlib.colors import LogNorm
 
@@ -18,7 +19,7 @@ fig, axes, colorbars = get_multi_plot(3, 2, colorbar=orient, bw = 4)
 
 slc = pf.slice(2, 0.0, fields=["density","temperature","velocity_magnitude"], 
                  center=pf.domain_center)
-proj = pf.proj(2, "density", weight_field="density", center=pf.domain_center)
+proj = pf.proj("density", 2, weight_field="density", center=pf.domain_center)
 
 slc_frb = slc.to_frb((1.0, "mpc"), 512)
 proj_frb = proj.to_frb((1.0, "mpc"), 512)

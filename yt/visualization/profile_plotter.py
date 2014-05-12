@@ -14,7 +14,9 @@ This is a simple mechanism for interfacing with Profile and Phase plots
 #-----------------------------------------------------------------------------
 
 
+import __builtin__
 import base64
+import os
 import types
 
 from functools import wraps
@@ -30,13 +32,15 @@ from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform
 from yt.data_objects.profiles import \
-    create_profile
+     create_profile
+from yt.utilities.exceptions import \
+     YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
 import _mpl_imports as mpl
 from yt.funcs import \
-    ensure_list, \
-    get_image_suffix, \
-    get_ipython_api_version
+     ensure_list, \
+     get_image_suffix, \
+     get_ipython_api_version
 
 def get_canvas(name):
     suffix = get_image_suffix(name)
@@ -227,7 +231,8 @@ class ProfilePlot(object):
             The output file keyword.
         
         """
-        if not self._plot_valid: self._setup_plots()
+        if not self._plot_valid:
+            self._setup_plots()
         unique = set(self.figures.values())
         if len(unique) < len(self.figures):
             figiter = izip(xrange(len(unique)), sorted(unique))
@@ -470,7 +475,7 @@ class ProfilePlot(object):
         scales = {True: 'log', False: 'linear'}
         return scales[x_log], scales[y_log]
 
-    def _get_field_label(self, field, field_info, field_unit):
+    def _get_field_label(self, field, field_info, field_unit, fractional=False):
         field_unit = field_unit.latex_representation()
         field_name = field_info.display_name
         if isinstance(field, tuple): field = field[1]
@@ -480,7 +485,9 @@ class ProfilePlot(object):
         elif field_name.find('$') == -1:
             field_name = field_name.replace(' ','\/')
             field_name = r'$\rm{'+field_name+r'}$'
-        if field_unit is None or field_unit == '':
+        if fractional:
+            label = field_name + r'$\rm{\/Probability\/Density}$'
+        elif field_unit is None or field_unit == '':
             label = field_name
         else:
             label = field_name+r'$\/\/('+field_unit+r')$'
@@ -495,9 +502,10 @@ class ProfilePlot(object):
         yfi = pf._get_field_info(*yf)
         x_unit = profile.x.units
         y_unit = profile.field_units[field_y]
+        fractional = profile.fractional
         x_title = self.x_title or self._get_field_label(field_x, xfi, x_unit)
         y_title = self.y_title.get(field_y, None) or \
-                    self._get_field_label(field_y, yfi, y_unit)
+                    self._get_field_label(field_y, yfi, y_unit, fractional)
 
         return (x_title, y_title)
             
@@ -620,13 +628,14 @@ class PhasePlot(ImagePlotContainer):
         x_unit = profile.x.units
         y_unit = profile.y.units
         z_unit = profile.field_units[field_z]
+        fractional = profile.fractional
         x_title = self.x_title or self._get_field_label(field_x, xfi, x_unit)
         y_title = self.y_title or self._get_field_label(field_y, yfi, y_unit)
         z_title = self.z_title.get(field_z, None) or \
-                    self._get_field_label(field_z, zfi, z_unit)
+                    self._get_field_label(field_z, zfi, z_unit, fractional)
         return (x_title, y_title, z_title)
 
-    def _get_field_label(self, field, field_info, field_unit):
+    def _get_field_label(self, field, field_info, field_unit, fractional=False):
         field_unit = field_unit.latex_representation()
         field_name = field_info.display_name
         if isinstance(field, tuple): field = field[1]
@@ -636,7 +645,9 @@ class PhasePlot(ImagePlotContainer):
         elif field_name.find('$') == -1:
             field_name = field_name.replace(' ','\/')
             field_name = r'$\rm{'+field_name+r'}$'
-        if field_unit is None or field_unit == '':
+        if fractional:
+            label = field_name + r'$\rm{\/Probability\/Density}$'
+        elif field_unit is None or field_unit is '':
             label = field_name
         else:
             label = field_name+r'$\/\/('+field_unit+r')$'
@@ -668,9 +679,11 @@ class PhasePlot(ImagePlotContainer):
             cax = None
             draw_colorbar = True
             draw_axes = True
+            zlim = (None, None)
             if f in self.plots:
                 draw_colorbar = self.plots[f]._draw_colorbar
                 draw_axes = self.plots[f]._draw_axes
+                zlim = (self.plots[f].zmin, self.plots[f].zmax)
                 if self.plots[f].figure is not None:
                     fig = self.plots[f].figure
                     axes = self.plots[f].axes
@@ -679,13 +692,14 @@ class PhasePlot(ImagePlotContainer):
             x_scale, y_scale, z_scale = self._get_field_log(f, self.profile)
             x_title, y_title, z_title = self._get_field_title(f, self.profile)
 
-            if z_scale == 'log':
-                zmin = data[data > 0.0].min()
-                self._field_transform[f] = log_transform
-            else:
-                zmin = data.min()
-                self._field_transform[f] = linear_transform
-            zlim = [zmin, data.max()]
+            if zlim == (None, None):
+                if z_scale == 'log':
+                    zmin = data[data > 0.0].min()
+                    self._field_transform[f] = log_transform
+                else:
+                    zmin = data.min()
+                    self._field_transform[f] = linear_transform
+                zlim = [zmin, data.max()]
 
             fp = self._font_properties
             f = self.profile.data_source._determine_fields(f)[0]
@@ -715,7 +729,6 @@ class PhasePlot(ImagePlotContainer):
                 label.set_fontproperties(fp)
                 if self._font_color is not None:
                     label.set_color(self._font_color)
-
         self._plot_valid = True
 
     def save(self, name=None, mpl_kwargs=None):
@@ -732,9 +745,11 @@ class PhasePlot(ImagePlotContainer):
         >>> plot.save(mpl_kwargs={'bbox_inches':'tight'})
         
         """
-
-        if not self._plot_valid: self._setup_plots()
-        if mpl_kwargs is None: mpl_kwargs = {}
+        names = []
+        if not self._plot_valid:
+            self._setup_plots()
+        if mpl_kwargs is None:
+            mpl_kwargs = {}
         xfn = self.profile.x_field
         yfn = self.profile.y_field
         if isinstance(xfn, types.TupleType):
@@ -743,17 +758,25 @@ class PhasePlot(ImagePlotContainer):
             yfn = yfn[1]
         for f in self.profile.field_data:
             _f = f
-            if isinstance(f, types.TupleType): _f = _f[1]
+            if isinstance(f, types.TupleType):
+                _f = _f[1]
             middle = "2d-Profile_%s_%s_%s" % (xfn, yfn, _f)
             if name is None:
                 prefix = self.profile.pf
-                name = "%s.png" % prefix
+            if name[-1] == os.sep and not os.path.isdir(name):
+                os.mkdir(name)
+            if os.path.isdir(name) and name != str(self.pf):
+                prefix = name + (os.sep if name[-1] != os.sep else '') + str(self.pf)
             suffix = get_image_suffix(name)
-            prefix = name[:name.rfind(suffix)]
+            if suffix != '':
+                for k, v in self.plots.iteritems():
+                    names.append(v.save(name, mpl_kwargs))
+                return names
+
             fn = "%s_%s%s" % (prefix, middle, suffix)
-            if not suffix:
-                suffix = ".png"
+            names.append(fn)
             self.plots[f].save(fn, mpl_kwargs)
+        return names
 
     @invalidate_plot
     def set_title(self, field, title):
