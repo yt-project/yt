@@ -113,6 +113,98 @@ class IOHandlerSDF(BaseIOHandler):
         fields.append(("dark_matter", "mass"))
         return fields, {}
 
+class IOHandlerSIndexSDF(IOHandlerSDF):
+    _dataset_type = "sindex_sdf_particles"
+
+
+    def _read_particle_coords(self, chunks, ptf):
+        dle = self.pf.domain_left_edge.in_units("code_length").d
+        dre = self.pf.domain_right_edge.in_units("code_length").d
+        for dd in self.pf.sindex.iter_bbox_data(
+            dle, dre,
+            ['x','y','z']):
+            yield "dark_matter", (
+                dd['x'], dd['y'], dd['z'])
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        dle = self.pf.domain_left_edge.in_units("code_length").d
+        dre = self.pf.domain_right_edge.in_units("code_length").d
+        required_fields = ['x','y','z']
+        for ptype, field_list in sorted(ptf.items()):
+            for field in field_list:
+                if field == "mass": continue
+                required_fields.append(field)
+
+        for dd in self.pf.sindex.iter_bbox_data(
+            dle, dre,
+            required_fields):
+
+            for ptype, field_list in sorted(ptf.items()):
+                x = dd['x']
+                y = dd['y']
+                z = dd['z']
+                mask = selector.select_points(x, y, z, 0.0)
+                del x, y, z
+                if mask is None: continue
+                for field in field_list:
+                    if field == "mass":
+                        data = np.ones(mask.sum(), dtype="float64")
+                        data *= self.pf.parameters["particle_mass"]
+                    else:
+                        data = dd[field][mask]
+                    yield (ptype, field), data
+
+    def _initialize_index(self, data_file, regions):
+        dle = self.pf.domain_left_edge.in_units("code_length").d
+        dre = self.pf.domain_right_edge.in_units("code_length").d
+        pcount = 0
+        for dd in self.pf.sindex.iter_bbox_data(
+            dle, dre,
+            ['x','y','z']):
+            pcount += dd['x'].size
+
+        morton = np.empty(pcount, dtype='uint64')
+        ind = 0
+
+        chunk_id = 0
+        for dd in self.pf.sindex.iter_bbox_data(
+            dle, dre,
+            ['x','y','z']):
+            npart = dd['x'].size
+            pos = np.empty((npart, 3), dtype=dd['x'].dtype)
+            pos[:,0] = dd['x']
+            pos[:,1] = dd['y']
+            pos[:,2] = dd['z']
+            if np.any(pos.min(axis=0) < self.pf.domain_left_edge) or \
+               np.any(pos.max(axis=0) > self.pf.domain_right_edge):
+                raise YTDomainOverflow(pos.min(axis=0),
+                                       pos.max(axis=0),
+                                       self.pf.domain_left_edge,
+                                       self.pf.domain_right_edge)
+            regions.add_data_file(pos, chunk_id)
+            morton[ind:ind+npart] = compute_morton(
+                pos[:,0], pos[:,1], pos[:,2],
+                data_file.pf.domain_left_edge,
+                data_file.pf.domain_right_edge)
+            ind += npart
+        return morton
+
+    def _count_particles(self, data_file):
+        dle = self.pf.domain_left_edge.in_units("code_length").d
+        dre = self.pf.domain_right_edge.in_units("code_length").d
+        pcount = 0
+        for dd in self.pf.sindex.iter_bbox_data(
+            dle, dre,
+            ['x','y','z']):
+            pcount += dd['x'].size
+        return {'dark_matter': pcount}
+
+    def _identify_fields(self, data_file):
+        fields = [("dark_matter", v) for v in self._handle.keys()]
+        fields.append(("dark_matter", "mass"))
+        return fields, {}
+
+
 import re
 import os
 

@@ -74,6 +74,8 @@ class SDFDataset(Dataset):
         self.idx_filename = idx_filename
         self.idx_header = idx_header
         self.idx_level = idx_level
+        if self.idx_filename is not None:
+            dataset_type = 'sindex_sdf_particles'
         super(SDFDataset, self).__init__(filename, dataset_type)
 
     def _parse_parameter_file(self):
