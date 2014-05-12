@@ -7,5 +7,6 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("halo_catalog")
     config.add_subpackage("owls_subfind")
     config.add_subpackage("rockstar")
+    config.add_subpackage("owls_subfind")    
     config.make_config_py()
     return config
