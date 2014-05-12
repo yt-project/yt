@@ -592,16 +592,25 @@ cdef class SphereSelector(SelectorObject):
             left_edge[1] <= self.center[1] <= right_edge[1] and
             left_edge[2] <= self.center[2] <= right_edge[2]):
             return 1
+        if right_edge[0] < self.bbox[0][0] or \
+           right_edge[1] < self.bbox[1][0] or \
+           right_edge[2] < self.bbox[2][0]:
+            return 0
+        if left_edge[0] > self.bbox[0][1] or \
+           left_edge[1] > self.bbox[1][1] or \
+           left_edge[2] > self.bbox[2][1]:
+            return 0
         # http://www.gamedev.net/topic/335465-is-this-the-simplest-sphere-aabb-collision-test/
         dist = 0
         for i in range(3):
+            # Early terminate
             box_center = (right_edge[i] + left_edge[i])/2.0
             relcenter = self.difference(box_center, self.center[i], i)
             edge = right_edge[i] - left_edge[i]
             closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
             dist += closest*closest
-        if dist <= self.radius2: return 1
-        return 0
+            if dist > self.radius2: return 0
+        return 1
 
     def _hash_vals(self):
         return (self.radius, self.radius2,
