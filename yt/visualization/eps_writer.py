@@ -250,7 +250,7 @@ class DualEPS(object):
                 xaxis2 = pyx.graph.axis.lin(min=xrange[0], max=xrange[1],
                                             title=xrightlabel, parter=None)
 
-        blank_data = pyx.graph.data.points([(-10,-10),(-9.99,-9.99)], x=1,y=2)
+        blank_data = pyx.graph.data.points([(-1e20,-1e20),(-1e19,-1e19)], x=1,y=2)
         if self.canvas is None:
             self.canvas = pyx.graph.graphxy \
                           (width=psize[0], height=psize[1],
@@ -310,15 +310,14 @@ class DualEPS(object):
             if units == None:
                 units = plot.ds.get_smallest_appropriate_unit(width)
             width = width.in_units(str(units))
-            _xrange = plot.xlim
-            _yrange = plot.ylim
+            _xrange = (plot.xlim[0].in_units(units), plot.xlim[1].in_units(units))
+            _yrange = (plot.ylim[0].in_units(units), plot.ylim[1].in_units(units))
             _xlog = False
             _ylog = False
             if bare_axes:
                 _xlabel = ""
                 _ylabel = ""
             else:
-                units = units.replace('mpc', 'Mpc')
                 if xlabel != None:
                     _xlabel = xlabel
                 else:
@@ -326,7 +325,7 @@ class DualEPS(object):
                         x_name = plot.ds.coordinates.x_axis[data.axis]
                         _xlabel = '%s (%s)' % (x_name, units)
                     else:
-                        _xlabel = 'Image x (%s)' % (units)
+                        _xlabel = 'x (%s)' % (units)
                 if ylabel != None:
                     _ylabel = ylabel
                 else:
@@ -334,7 +333,7 @@ class DualEPS(object):
                         y_name = plot.ds.coordinates.y_axis[data.axis]
                         _xlabel = '%s (%s)' % (x_name, units)
                     else:
-                        _ylabel = 'Image y (%s)' % (units)
+                        _ylabel = 'y (%s)' % (units)
             if tickcolor == None:
                 _tickcolor = pyx.color.cmyk.white
         elif isinstance(plot, PhasePlot):
