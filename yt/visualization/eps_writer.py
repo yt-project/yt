@@ -36,9 +36,23 @@ def convert_frac_to_tex(string):
             clevel -= 1
         level[i] = clevel
     div_pos = level.index(0)
-    result = r'${' + result[:div_pos+1] + r'\over' + result[div_pos+1:] + r'}$'
+    end_pos = level.index(0,div_pos+1)
+    result = r'${' + result[:div_pos+1] + r'\over' + result[div_pos+1:end_pos] + \
+             r'}$' + result[end_pos:]
     result = result.replace(r'\/', r'\;')
     return result
+
+def pyxize_label(string):
+    frac_pos = string.find(r'\frac')
+    if frac_pos >= 0:
+        pre = string[:frac_pos]
+        result = pre + convert_frac_to_tex(string)
+    else:
+        result = string
+    result = result.replace('$', '')
+    result = r'$' + result + r'$'
+    return result
+
 
 class DualEPS(object):
     def __init__(self, figsize=(12,12)):
@@ -323,6 +337,7 @@ class DualEPS(object):
                 if xlabel != None:
                     _xlabel = xlabel
                 else:
+                    import pdb; pdb.set_trace()
                     if data.axis != 4:
                         xi = plot.ds.coordinates.x_axis[data.axis]
                         x_name = plot.ds.coordinates.axis_name[xi]
@@ -340,7 +355,7 @@ class DualEPS(object):
                         _ylabel = 'y (%s)' % (units)
             if tickcolor == None:
                 _tickcolor = pyx.color.cmyk.white
-        elif isinstance(plot, PhasePlot):
+        elif isinstance(plot, (ProfilePlot, PhasePlot)):
             k = plot.plots.keys()[0]
             _xrange = plot[k].axes.get_xlim()
             _yrange = plot[k].axes.get_ylim()
@@ -358,6 +373,8 @@ class DualEPS(object):
                     _ylabel = ylabel
                 else:
                     _ylabel = plot[k].axes.get_ylabel()
+                _xlabel = pyxize_label(_xlabel)
+                _ylabel = pyxize_label(_ylabel)
             if tickcolor == None:
                 _tickcolor = None
         elif isinstance(plot, np.ndarray):
@@ -696,6 +713,7 @@ class DualEPS(object):
                     _zlabel = ''
             else:
                 _zlabel = plot.data_source.ds.field_info[self.field].get_label(proj)
+                _zlabel = pyxize_label(_zlabel)
             _zlabel = _zlabel.replace("_","\;")
             _zlog = plot.get_log(self.field)[self.field]
             if plot.plots[self.field].zmin == None:
