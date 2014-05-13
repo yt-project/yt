@@ -468,7 +468,7 @@ class DualEPS(object):
         
         # We need to remove the colorbar (if necessary), remove the
         # axes, and resize the figure to span the entire figure
-        shift = 0.0
+        force_square = False
         if self.canvas is None:
             self.canvas = pyx.canvas.canvas()
         if isinstance(plot, (PlotWindow, PhasePlot)):
@@ -482,9 +482,7 @@ class DualEPS(object):
             plot.plots[self.field].hide_colorbar()
             plot.refresh()
             _p1 = plot.plots[self.field].figure
-            # hack to account for non-square display ratios (not sure why)
-            #if isinstance(plot, PlotWindow):
-            #    shift = 12.0 / 340
+            force_square = True
         elif isinstance(plot, ProfilePlot):
             plot._redraw_image()
             # Remove colorbar
@@ -501,16 +499,25 @@ class DualEPS(object):
             raise RuntimeError("Unknown plot type")
 
         _p1.axes[0].set_axis_off()  # remove axes
-        _p1.axes[0].set_position([-shift,0,1,1])  # rescale figure
+        _p1.axes[0].set_position([0,0,1,1])  # rescale figure
         _p1.set_facecolor('w')  # set background color
         figure_canvas = FigureCanvasAgg(_p1)
         figure_canvas.draw()
         size = (_p1.get_size_inches() * _p1.dpi).astype('int')
+
+        # Account for 1 pixel line width of the axis box and
+        # non-square images after removing the colorbar.
+        yshift = -1.0 / _p1.dpi * 2.54
+        scale *= 1.0 - 1.0 / (_p1.dpi * self.figsize[0])
+        if force_square:
+            yscale = scale * float(size[1]) / float(size[0])
+        else:
+            yscale = scale
         image = pyx.bitmap.image(size[0], size[1], "RGB",
                                  figure_canvas.tostring_rgb())
-        self.canvas.insert(pyx.bitmap.bitmap(pos[0], pos[1], image,
-                                             width=(1.0+2*shift)*scale*self.figsize[0],
-                                             height=scale*self.figsize[1]))
+        self.canvas.insert(pyx.bitmap.bitmap(pos[0], pos[1]+yshift, image,
+                                             width=scale*self.figsize[0],
+                                             height=yscale*self.figsize[1]))
 
 #=============================================================================
 
