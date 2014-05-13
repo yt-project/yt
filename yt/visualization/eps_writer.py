@@ -310,8 +310,10 @@ class DualEPS(object):
             if units == None:
                 units = plot.ds.get_smallest_appropriate_unit(width)
             width = width.in_units(str(units))
-            _xrange = (plot.xlim[0].in_units(units), plot.xlim[1].in_units(units))
-            _yrange = (plot.ylim[0].in_units(units), plot.ylim[1].in_units(units))
+            xc = 0.5*(plot.xlim[0] + plot.xlim[1])
+            yc = 0.5*(plot.ylim[0] + plot.ylim[1])
+            _xrange = [(plot.xlim[i] - xc).in_units(units) for i in (0, 1)]
+            _yrange = [(plot.ylim[i] - yc).in_units(units) for i in (0, 1)]
             _xlog = False
             _ylog = False
             if bare_axes:
@@ -322,7 +324,8 @@ class DualEPS(object):
                     _xlabel = xlabel
                 else:
                     if data.axis != 4:
-                        x_name = plot.ds.coordinates.x_axis[data.axis]
+                        xi = plot.ds.coordinates.x_axis[data.axis]
+                        x_name = plot.ds.coordinates.axis_name[xi]
                         _xlabel = '%s (%s)' % (x_name, units)
                     else:
                         _xlabel = 'x (%s)' % (units)
@@ -330,8 +333,9 @@ class DualEPS(object):
                     _ylabel = ylabel
                 else:
                     if data.axis != 4:
-                        y_name = plot.ds.coordinates.y_axis[data.axis]
-                        _xlabel = '%s (%s)' % (x_name, units)
+                        yi = plot.ds.coordinates.y_axis[data.axis]
+                        y_name = plot.ds.coordinates.axis_name[yi]
+                        _ylabel = '%s (%s)' % (y_name, units)
                     else:
                         _ylabel = 'y (%s)' % (units)
             if tickcolor == None:
