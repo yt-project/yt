@@ -1102,11 +1102,16 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
                     else:
                         orientation = None  # Marker for interior plot
                 else:
-                    if fields[index] not in cb_location.keys():
-                        raise RuntimeError("%s not found in cb_location dict" %
-                                           fields[index])
-                        return
-                    orientation = cb_location[fields[index]]
+                    if isinstance(cb_location, dict):
+                        if fields[index] not in cb_location.keys():
+                            raise RuntimeError("%s not found in cb_location dict" %
+                                               fields[index])
+                            return
+                        orientation = cb_location[fields[index]]
+                    elif isinstance(cb_location, list):
+                        orientation = cb_location[index]
+                    else:
+                        raise RuntimeError("Bad format: cb_location")
                 if orientation == "right":
                     xpos = bbox[1]
                     ypos = ypos0
@@ -1192,7 +1197,7 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
                                (len(fields), nrow, ncol))
             return
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
-    elif isinstance(plots, list) and isinstance(plots[0], PlotWindow):
+    elif isinstance(plots, list) and isinstance(plots[0], (PlotWindow, PhasePlot)):
         if len(plots) < nrow*ncol:
             raise RuntimeError("Number of plots is less "\
                                "than nrow(%d) x ncol(%d)." % \
