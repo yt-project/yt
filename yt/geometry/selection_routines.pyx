@@ -539,15 +539,24 @@ cdef class SphereSelector(SelectorObject):
     cdef np.float64_t radius2
     cdef np.float64_t center[3]
     cdef np.float64_t bbox[3][2]
+    cdef bint check_box[3]
 
     def __init__(self, dobj):
         self.radius = _ensure_code(dobj.radius)
         self.radius2 = self.radius * self.radius
         center = _ensure_code(dobj.center)
+        cdef np.float64_t mi = np.finfo("float64").min
+        cdef np.float64_t ma = np.finfo("float64").max
         for i in range(3):
             self.center[i] = center[i]
             self.bbox[i][0] = self.center[i] - self.radius
             self.bbox[i][1] = self.center[i] + self.radius
+            if self.bbox[i][0] < dobj.pf.domain_left_edge[i]:
+                self.check_box[i] = False
+            elif self.bbox[i][1] > dobj.pf.domain_right_edge[i]:
+                self.check_box[i] = False
+            else:
+                self.check_box[i] = True
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -568,7 +577,7 @@ cdef class SphereSelector(SelectorObject):
         cdef np.float64_t dist, dist2 = 0
         for i in range(3):
             if pos[i] < self.bbox[i][0] or pos[i] > self.bbox[i][1]:
-                return 0
+                if self.check_box[i]: return 0
             dist = self.difference(pos[i], self.center[i], i)
             dist2 += dist*dist
             if dist2 > self.radius2: return 0
@@ -598,14 +607,11 @@ cdef class SphereSelector(SelectorObject):
             left_edge[1] <= self.center[1] <= right_edge[1] and
             left_edge[2] <= self.center[2] <= right_edge[2]):
             return 1
-        if right_edge[0] < self.bbox[0][0] or \
-           right_edge[1] < self.bbox[1][0] or \
-           right_edge[2] < self.bbox[2][0]:
-            return 0
-        if left_edge[0] > self.bbox[0][1] or \
-           left_edge[1] > self.bbox[1][1] or \
-           left_edge[2] > self.bbox[2][1]:
-            return 0
+        for i in range(3):
+            if not self.check_box[i]: continue
+            if right_edge[i] < self.bbox[i][0] or \
+               left_edge[i] > self.bbox[i][1]:
+                return 0
         # http://www.gamedev.net/topic/335465-is-this-the-simplest-sphere-aabb-collision-test/
         dist = 0
         for i in range(3):
