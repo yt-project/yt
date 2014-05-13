@@ -136,6 +136,7 @@ class FITSHierarchy(GridIndex):
         self._file_map = {}
         self._ext_map = {}
         self._scale_map = {}
+        dup_field_index = {}
         # Since FITS header keywords are case-insensitive, we only pick a subset of
         # prefixes, ones that we expect to end up in headers.
         known_units = dict([(unit.lower(),unit) for unit in self.pf.unit_registry.lut])
@@ -162,13 +163,19 @@ class FITSHierarchy(GridIndex):
                         if fname is None: fname = "image_%d" % (j)
                     if self.pf.num_files > 1 and fname.startswith("image"):
                         fname += "_file_%d" % (i)
+                    if ("fits", fname) in self.field_list:
+                        if fname in dup_field_index:
+                            dup_field_index[fname] += 1
+                        else:
+                            dup_field_index[fname] = 1
+                        mylog.warning("This field has the same name as a previously loaded " +
+                                      "field. Changing the name from %s to %s_%d. To avoid " %
+                                      (fname, fname, dup_field_index[fname]) +
+                                      " this, change one of the BTYPE header keywords.")
+                        fname += "_%d" % (dup_field_index[fname])
                     for k in xrange(naxis4):
                         if naxis4 > 1:
                             fname += "_%s_%d" % (hdu.header["CTYPE4"], k+1)
-                        if fname in self.field_list:
-                            mylog.error("You have two fields with the same name. Change one of " +
-                                        "the names in the BTYPE header keyword to distinguish " +
-                                        "them.")
                         self._axis_map[fname] = k
                         self._file_map[fname] = fits_file
                         self._ext_map[fname] = j
