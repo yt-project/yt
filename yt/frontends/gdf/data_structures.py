@@ -206,6 +206,7 @@ class GDFDataset(Dataset):
         else:
             self.data_software = "unknown"
         sp = self._handle["/simulation_parameters"].attrs
+        self.parameters.update(sp)
         self.domain_left_edge = sp["domain_left_edge"][:]
         self.domain_right_edge = sp["domain_right_edge"][:]
         self.domain_dimensions = sp["domain_dimensions"][:]

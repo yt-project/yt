@@ -660,17 +660,14 @@ def ensure_dir(path):
     if not os.path.exists(path):
         only_on_root(os.makedirs, path)
     return path
-        
-def assert_valid_width_tuple(width):
-    try:
-        assert iterable(width) and len(width) == 2, \
-            "width (%s) is not a two element tuple" % width
-        valid = isinstance(width[0], numeric_type) and isinstance(width[1], str)
+
+def validate_width_tuple(width):
+    if not iterable(width) or len(width) != 2:
+        raise YTInvalidWidthError("width (%s) is not a two element tuple" % width)
+    if not isinstance(width[0], numeric_type) and isinstance(width[1], basestring):
         msg = "width (%s) is invalid. " % str(width)
         msg += "Valid widths look like this: (12, 'au')"
-        assert valid, msg
-    except AssertionError, e:
-        raise YTInvalidWidthError(e)
+        raise YTInvalidWidthError(msg)
 
 def camelcase_to_underscore(name):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)

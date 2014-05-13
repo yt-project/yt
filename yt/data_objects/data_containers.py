@@ -139,12 +139,14 @@ class YTDataContainer(object):
             return
         elif isinstance(center, (types.ListType, types.TupleType, np.ndarray)):
             center = self.pf.arr(center, 'code_length')
-        elif center in ("c", "center"):
-            center = self.pf.domain_center
-        elif center == ("max"): # is this dangerous for race conditions?
-            center = self.pf.h.find_max("density")[1]
-        elif center.startswith("max_"):
-            center = self.pf.h.find_max(center[4:])[1]
+        elif isinstance(center, basestring):
+            if center.lower() in ("c", "center"):
+                center = self.pf.domain_center
+             # is this dangerous for race conditions?
+            elif center.lower() in ("max", "m"):
+                center = self.pf.h.find_max(("gas", "density"))[1]
+            elif center.startswith("max_"):
+                center = self.pf.h.find_max(center[4:])[1]
         else:
             center = np.array(center, dtype='float64')
         self.center = self.pf.arr(center, 'code_length')
