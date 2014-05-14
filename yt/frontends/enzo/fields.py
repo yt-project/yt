@@ -44,12 +44,23 @@ known_species_names = {
     'DI'      : 'D',
     'DII'     : 'D_p1',
     'HDI'     : 'HD',
-    'Electron': 'El'
+    'Electron': 'El',
+    'OI'      : 'O',
+    'OII'     : 'O_p1',
+    'OIII'    : 'O_p2',
+    'OIV'     : 'O_p3',
+    'OV'      : 'O_p4',
+    'OVI'     : 'O_p5',
+    'OVII'    : 'O_p6',
+    'OVIII'   : 'O_p7',
+    'OIX'     : 'O_p8',
 }
 
 class EnzoFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("Cooling_Time", ("code_time", ["cooling_time"], None)),
+        ("Dengo_Cooling_Rate", ("erg/g/s", [], None)),
+        ("Grackle_Cooling_Rate", ("erg/s/cm**3", [], None)),
         ("HI_kph", ("1/code_time", [], None)),
         ("HeI_kph", ("1/code_time", [], None)),
         ("HeII_kph", ("1/code_time", [], None)),
@@ -142,7 +153,8 @@ class EnzoFieldInfo(FieldInfoContainer):
 
     def setup_fluid_fields(self):
         # Now we conditionally load a few other things.
-        if self.pf.parameters["MultiSpecies"] > 0:
+        if self.pf.parameters["MultiSpecies"] > 0 or \
+           self.pf.parameters.get("DengoChemistryModel", 0) == 1:
             self.setup_species_fields()
         self.setup_energy_field()
 
