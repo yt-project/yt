@@ -217,7 +217,7 @@ class FITSHierarchy(GridIndex):
         # If nprocs > 1, decompose the domain into virtual grids
         if self.num_grids > 1:
             if self.pf.z_axis_decomp:
-                dz = pf.quan(1.0, "code_length")
+                dz = pf.quan(1.0, "code_length")*pf.spectral_factor
                 self.grid_dimensions[:,2] = np.around(float(pf.domain_dimensions[2])/
                                                             self.num_grids).astype("int")
                 self.grid_dimensions[-1,2] += (pf.domain_dimensions[2] % self.num_grids)
@@ -310,6 +310,7 @@ class FITSDataset(Dataset):
                  nprocs = None,
                  storage_filename = None,
                  nan_mask = None,
+                 spectral_factor = 1.0,
                  z_axis_decomp = False,
                  line_database = None,
                  line_width = None,
@@ -322,10 +323,13 @@ class FITSDataset(Dataset):
         self.specified_parameters = parameters
 
         self.z_axis_decomp = z_axis_decomp
+        self.spectral_factor = spectral_factor
 
         if line_width is not None:
             self.line_width = YTQuantity(line_width[0], line_width[1])
             self.line_units = line_width[1]
+            mylog.info("For line folding, spectral_factor = 1.0")
+            self.spectral_factor = 1.0
         else:
             self.line_width = None
 
@@ -363,8 +367,8 @@ class FITSDataset(Dataset):
                 else:
                     fn = os.path.join(ytcfg.get("yt","test_data_dir"),fits_file)
                 f = _astropy.pyfits.open(fn, memmap=True,
-                                   do_not_scale_image_data=True,
-                                   ignore_blank=True)
+                                         do_not_scale_image_data=True,
+                                         ignore_blank=True)
                 self._fits_files.append(f)
 
         if len(self._handle) > 1 and self._handle[1].name == "EVENTS":
@@ -611,6 +615,10 @@ class FITSDataset(Dataset):
                 self.domain_left_edge[self.vel_axis] = -0.5*float(nz)
                 self.domain_right_edge[self.vel_axis] = 0.5*float(nz)
                 self.domain_dimensions[self.vel_axis] = nz
+            else:
+                Dz = self.domain_right_edge[self.vel_axis]-self.domain_left_edge[self.vel_axis]
+                self.domain_right_edge[self.vel_axis] = self.domain_left_edge[self.vel_axis] + \
+                                                        self.spectral_factor*Dz
 
         else:
 
