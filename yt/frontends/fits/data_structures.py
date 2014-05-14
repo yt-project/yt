@@ -217,7 +217,7 @@ class FITSHierarchy(GridIndex):
         # If nprocs > 1, decompose the domain into virtual grids
         if self.num_grids > 1:
             if self.pf.z_axis_decomp:
-                dz = (pf.domain_width/pf.domain_dimensions)[2]
+                dz = pf.quan(1.0, "code_length")
                 self.grid_dimensions[:,2] = np.around(float(pf.domain_dimensions[2])/
                                                             self.num_grids).astype("int")
                 self.grid_dimensions[-1,2] += (pf.domain_dimensions[2] % self.num_grids)
@@ -406,12 +406,22 @@ class FITSDataset(Dataset):
             self.events_data = False
             self.first_image = 0
             self.primary_header = self._handle[self.first_image].header
-            self.wcs = _astropy.pywcs.WCS(header=self.primary_header)
             self.naxis = self.primary_header["naxis"]
             self.axis_names = [self.primary_header["ctype%d" % (i+1)]
                                for i in xrange(self.naxis)]
             self.dims = [self.primary_header["naxis%d" % (i+1)]
                          for i in xrange(self.naxis)]
+
+            wcs = _astropy.pywcs.WCS(header=self.primary_header)
+            if self.naxis == 4:
+                self.wcs = _astropy.pywcs.WCS(naxis=3)
+                self.wcs.wcs.crpix = wcs.wcs.crpix[:3]
+                self.wcs.wcs.cdelt = wcs.wcs.cdelt[:3]
+                self.wcs.wcs.crval = wcs.wcs.crval[:3]
+                self.wcs.wcs.cunit = [str(unit) for unit in wcs.wcs.cunit][:3]
+                self.wcs.wcs.ctype = [type for type in wcs.wcs.ctype][:3]
+            else:
+                self.wcs = wcs
 
         self.refine_by = 2
 
@@ -578,29 +588,28 @@ class FITSDataset(Dataset):
             self.wcs_2d.wcs.ctype = [self.wcs.wcs.ctype[self.lon_axis],
                                      self.wcs.wcs.ctype[self.lat_axis]]
 
-            x0 = self.wcs.wcs.crpix[self.vel_axis]
-            dz = self.wcs.wcs.cdelt[self.vel_axis]
-            z0 = self.wcs.wcs.crval[self.vel_axis]
+            self._p0 = self.wcs.wcs.crpix[self.vel_axis]
+            self._dz = self.wcs.wcs.cdelt[self.vel_axis]
+            self._z0 = self.wcs.wcs.crval[self.vel_axis]
             self.vel_unit = str(self.wcs.wcs.cunit[self.vel_axis])
 
-            if dz < 0.0:
-                self.reversed = True
-                le = self.dims[self.vel_axis]+0.5
-                re = 0.5
-            else:
-                le = 0.5
-                re = self.dims[self.vel_axis]+0.5
-            self.domain_left_edge[self.vel_axis] = (le-x0)*dz + z0
-            self.domain_right_edge[self.vel_axis] = (re-x0)*dz + z0
-            if self.reversed: dz *= -1
-
             if self.line_width is not None:
+                if self._dz < 0.0:
+                    self.reversed = True
+                    le = self.dims[self.vel_axis]+0.5
+                else:
+                    le = 0.5
                 self.line_width = self.line_width.in_units(self.vel_unit)
-                self.freq_begin = self.domain_left_edge[self.vel_axis]
-                nz = np.rint(self.line_width.value/dz).astype("int")
-                self.line_width = dz*nz
-                self.domain_left_edge[self.vel_axis] = -self.line_width/2.
-                self.domain_right_edge[self.vel_axis] = self.line_width/2.
+                self.freq_begin = (le-self._p0)*self._dz + self._z0
+                # We now reset these so that they are consistent
+                # with the new setup
+                self._dz = np.abs(self._dz)
+                self._p0 = 0.0
+                self._z0 = 0.0
+                nz = np.rint(self.line_width.value/self._dz).astype("int")
+                self.line_width = self._dz*nz
+                self.domain_left_edge[self.vel_axis] = -0.5*float(nz)
+                self.domain_right_edge[self.vel_axis] = 0.5*float(nz)
                 self.domain_dimensions[self.vel_axis] = nz
 
         else:

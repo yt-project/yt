@@ -45,6 +45,14 @@ class PPVCoordinateHandler(CartesianCoordinateHandler):
         self.default_unit_label[pf.lat_axis] = "pixel"
         self.default_unit_label[pf.vel_axis] = pf.vel_unit
 
+        def _vel_axis(ax, x, y):
+            p = (x,y)[ax]
+            return [(pp.value-self.pf._p0)*self.pf._dz+self.pf._z0
+                    for pp in p]
+
+        self.axis_field = {}
+        self.axis_field[self.pf.vel_axis] = _vel_axis
+
     def convert_to_cylindrical(self, coord):
         raise NotImplementedError
 

@@ -26,8 +26,10 @@ class IOHandlerFITS(BaseIOHandler):
         self._handle = pf._handle
         if self.pf.line_width is not None:
             self.line_db = self.pf.line_database
+            self.dz = self.pf.line_width/self.domain_dimensions[self.pf.vel_axis]
         else:
             self.line_db = None
+            self.dz = 1.
 
     def _read_particles(self, fields_to_read, type, args, grid_list,
             count_list, conv_factors):
@@ -92,7 +94,7 @@ class IOHandlerFITS(BaseIOHandler):
                     if self.line_db is not None and fname in self.line_db:
                         my_off = self.line_db.get(fname).in_units(self.pf.vel_unit).value
                         my_off = my_off - 0.5*self.pf.line_width
-                        my_off = int((my_off-self.pf.freq_begin)/dx[self.pf.vel_axis].value)
+                        my_off = int((my_off-self.pf.freq_begin)/self.dz)
                         my_off = max(my_off, 0)
                         my_off = min(my_off, self.pf.dims[self.pf.vel_axis]-1)
                         start[self.pf.vel_axis] += my_off
