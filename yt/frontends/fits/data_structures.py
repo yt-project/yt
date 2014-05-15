@@ -44,10 +44,14 @@ from yt.utilities.on_demand_imports import _astropy
 
 lon_prefixes = ["X","RA","GLON"]
 lat_prefixes = ["Y","DEC","GLAT"]
-vel_prefixes = ["V","ENER","FREQ","WAV"]
 delimiters = ["*", "/", "-", "^"]
 delimiters += [str(i) for i in xrange(10)]
 regex_pattern = '|'.join(re.escape(_) for _ in delimiters)
+
+spec_names = {"V":"Velocity",
+              "FREQ":"Frequency",
+              "ENER":"Energy",
+              "WAV":"Wavelength"}
 
 field_from_unit = {"Jy":"intensity",
                    "K":"temperature"}
@@ -234,7 +238,7 @@ class FITSHierarchy(GridIndex):
                 dims = np.array(pf.domain_dimensions)
                 # If we are creating a dataset of lines, only decompose along the position axes
                 if len(pf.line_database) > 0:
-                    dims[pf.vel_axis] = 1
+                    dims[pf.spec_axis] = 1
                 psize = get_psize(dims, self.num_grids)
                 gle, gre, shapes, slices = decompose_array(dims, psize, bbox)
                 self.grid_left_edge = self.pf.arr(gle, "code_length")
@@ -242,9 +246,9 @@ class FITSHierarchy(GridIndex):
                 self.grid_dimensions = np.array([shape for shape in shapes], dtype="int32")
                 # If we are creating a dataset of lines, only decompose along the position axes
                 if len(pf.line_database) > 0:
-                    self.grid_left_edge[:,pf.vel_axis] = pf.domain_left_edge[pf.vel_axis]
-                    self.grid_right_edge[:,pf.vel_axis] = pf.domain_right_edge[pf.vel_axis]
-                    self.grid_dimensions[:,pf.vel_axis] = pf.domain_dimensions[pf.vel_axis]
+                    self.grid_left_edge[:,pf.spec_axis] = pf.domain_left_edge[pf.spec_axis]
+                    self.grid_right_edge[:,pf.spec_axis] = pf.domain_right_edge[pf.spec_axis]
+                    self.grid_dimensions[:,pf.spec_axis] = pf.domain_dimensions[pf.spec_axis]
         else:
             self.grid_left_edge[0,:] = pf.domain_left_edge
             self.grid_right_edge[0,:] = pf.domain_right_edge
@@ -310,7 +314,7 @@ class FITSDataset(Dataset):
                  nprocs = None,
                  storage_filename = None,
                  nan_mask = None,
-                 spectral_factor = 1.0,
+                 spectral_factor = None,
                  z_axis_decomp = False,
                  line_database = None,
                  line_width = None,
@@ -462,11 +466,12 @@ class FITSDataset(Dataset):
         self.time_unit = self.quan(1.0, "s")
         self.velocity_unit = self.quan(1.0, "cm/s")
         if "beam_size" in self.specified_parameters:
+            beam_size = self.specified_parameters["beam_size"]
             beam_size = self.quan(beam_size[0], beam_size[1]).in_cgs().value
         else:
             beam_size = 1.0
         self.unit_registry.add("beam",beam_size,dimensions=dimensions.solid_angle)
-        if self.ppv_data:
+        if self.pps_data:
             units = self.wcs_2d.wcs.cunit[0]
             if units == "deg": units = "degree"
             if units == "rad": units = "radian"
@@ -541,17 +546,17 @@ class FITSDataset(Dataset):
         self.reversed = False
 
         # Check to see if this data is in some kind of (Lat,Lon,Vel) format
-        self.ppv_data = False
+        self.pps_data = False
         x = 0
-        for p in lon_prefixes+lat_prefixes+vel_prefixes:
+        for p in lon_prefixes+lat_prefixes+spec_names.keys():
             y = np_char.startswith(self.axis_names[:self.dimensionality], p)
             x += y.sum()
-        if x == self.dimensionality: self._setup_ppv()
+        if x == self.dimensionality: self._setup_pps()
 
-    def _setup_ppv(self):
+    def _setup_pps(self):
 
-        self.ppv_data = True
-        self.geometry = "ppv"
+        self.pps_data = True
+        self.geometry = "pps"
 
         end = min(self.dimensionality+1,4)
         if self.events_data:
@@ -577,11 +582,11 @@ class FITSDataset(Dataset):
 
         if self.wcs.naxis > 2:
 
-            self.vel_axis = np.zeros((end-1), dtype="bool")
-            for p in vel_prefixes:
-                self.vel_axis += np_char.startswith(ctypes, p)
-            self.vel_axis = np.where(self.vel_axis)[0][0]
-            self.vel_name = ctypes[self.vel_axis].split("-")[0].lower()
+            self.spec_axis = np.zeros((end-1), dtype="bool")
+            for p in spec_names.keys():
+                self.spec_axis += np_char.startswith(ctypes, p)
+            self.spec_axis = np.where(self.spec_axis)[0][0]
+            self.spec_name = spec_names[ctypes[self.spec_axis].split("-")[0][0]]
 
             self.wcs_2d = _astropy.pywcs.WCS(naxis=2)
             self.wcs_2d.wcs.crpix = self.wcs.wcs.crpix[[self.lon_axis, self.lat_axis]]
@@ -592,18 +597,18 @@ class FITSDataset(Dataset):
             self.wcs_2d.wcs.ctype = [self.wcs.wcs.ctype[self.lon_axis],
                                      self.wcs.wcs.ctype[self.lat_axis]]
 
-            self._p0 = self.wcs.wcs.crpix[self.vel_axis]
-            self._dz = self.wcs.wcs.cdelt[self.vel_axis]
-            self._z0 = self.wcs.wcs.crval[self.vel_axis]
-            self.vel_unit = str(self.wcs.wcs.cunit[self.vel_axis])
+            self._p0 = self.wcs.wcs.crpix[self.spec_axis]
+            self._dz = self.wcs.wcs.cdelt[self.spec_axis]
+            self._z0 = self.wcs.wcs.crval[self.spec_axis]
+            self.spec_unit = str(self.wcs.wcs.cunit[self.spec_axis])
 
             if self.line_width is not None:
                 if self._dz < 0.0:
                     self.reversed = True
-                    le = self.dims[self.vel_axis]+0.5
+                    le = self.dims[self.spec_axis]+0.5
                 else:
                     le = 0.5
-                self.line_width = self.line_width.in_units(self.vel_unit)
+                self.line_width = self.line_width.in_units(self.spec_unit)
                 self.freq_begin = (le-self._p0)*self._dz + self._z0
                 # We now reset these so that they are consistent
                 # with the new setup
@@ -612,24 +617,40 @@ class FITSDataset(Dataset):
                 self._z0 = 0.0
                 nz = np.rint(self.line_width.value/self._dz).astype("int")
                 self.line_width = self._dz*nz
-                self.domain_left_edge[self.vel_axis] = -0.5*float(nz)
-                self.domain_right_edge[self.vel_axis] = 0.5*float(nz)
-                self.domain_dimensions[self.vel_axis] = nz
+                self.domain_left_edge[self.spec_axis] = -0.5*float(nz)
+                self.domain_right_edge[self.spec_axis] = 0.5*float(nz)
+                self.domain_dimensions[self.spec_axis] = nz
             else:
-                Dz = self.domain_right_edge[self.vel_axis]-self.domain_left_edge[self.vel_axis]
-                self.domain_right_edge[self.vel_axis] = self.domain_left_edge[self.vel_axis] + \
+                if self.spectral_factor is None:
+                    self.spectral_factor = float(max(self.domain_dimensions[[self.lon_axis,
+                                                                             self.lat_axis]]))
+                    self.spectral_factor /= self.domain_dimensions[self.spec_axis]
+                    mylog.info("Setting the spectral factor to %f" % (self.spectral_factor))
+                Dz = self.domain_right_edge[self.spec_axis]-self.domain_left_edge[self.spec_axis]
+                self.domain_right_edge[self.spec_axis] = self.domain_left_edge[self.spec_axis] + \
                                                         self.spectral_factor*Dz
-
+                self._dz /= self.spectral_factor
+                self._p0 = (self._p0-0.5)*self.spectral_factor + 0.5
         else:
 
             self.wcs_2d = self.wcs
-            self.vel_axis = 2
-            self.vel_name = "z"
-            self.vel_unit = "code length"
+            self.spec_axis = 2
+            self.spec_name = "z"
+            self.spec_unit = "code length"
+
+    def spec2pixel(self, spec_value):
+        sv = self.arr(spec_value).in_units(self.spec_unit)
+        return self.arr((sv.v-self._z0)/self._dz+self._p0,
+                        "code_length")
+
+    def pixel2spec(self, pixel_value):
+        pv = self.arr(pixel_value, "code_length")
+        return self.arr((pv.v-self._p0)*self._dz+self._z0,
+                        self.spec_unit)
 
     def __del__(self):
-        for file in self._fits_files:
-            file.close()
+        for f in self._fits_files:
+            f.close()
             del file
         self._handle.close()
         del self._handle
