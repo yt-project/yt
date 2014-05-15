@@ -314,7 +314,7 @@ class FITSDataset(Dataset):
                  nprocs = None,
                  storage_filename = None,
                  nan_mask = None,
-                 spectral_factor = None,
+                 spectral_factor = 1.0,
                  z_axis_decomp = False,
                  line_database = None,
                  line_width = None,
@@ -621,7 +621,7 @@ class FITSDataset(Dataset):
                 self.domain_right_edge[self.spec_axis] = 0.5*float(nz)
                 self.domain_dimensions[self.spec_axis] = nz
             else:
-                if self.spectral_factor is None:
+                if self.spectral_factor == "auto":
                     self.spectral_factor = float(max(self.domain_dimensions[[self.lon_axis,
                                                                              self.lat_axis]]))
                     self.spectral_factor /= self.domain_dimensions[self.spec_axis]
