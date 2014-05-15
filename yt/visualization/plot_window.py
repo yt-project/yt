@@ -734,8 +734,6 @@ class PWViewerMPL(PlotWindow):
             axis_index = self.data_source.axis
 
             xc, yc = self._setup_origin()
-            xax = self.pf.coordinates.x_axis[axis_index]
-            yax = self.pf.coordinates.y_axis[axis_index]
 
             if self._axes_unit_names is None:
                 unit = get_smallest_appropriate_unit(
@@ -832,26 +830,32 @@ class PWViewerMPL(PlotWindow):
                           r'$\rm{Image\/y'+axes_unit_labels[1]+'}$']
             else:
                 axis_names = self.pf.coordinates.axis_name
+                xax = self.pf.coordinates.x_axis[axis_index]
+                yax = self.pf.coordinates.y_axis[axis_index]
+
                 if hasattr(self.pf.coordinates, "axis_default_unit_label"):
                     axes_unit_labels = [self.pf.coordinates.axis_default_unit_name[xax],
                                         self.pf.coordinates.axis_default_unit_name[yax]]
                 labels = [r'$\rm{'+axis_names[xax]+axes_unit_labels[0] + r'}$',
                           r'$\rm{'+axis_names[yax]+axes_unit_labels[1] + r'}$']
 
+                if hasattr(self.pf.coordinates, "axis_field"):
+                    if xax in self.pf.coordinates.axis_field:
+                        xmin, xmax = self.pf.coordinates.axis_field[xax](0,
+                                                                         self.xlim, self.ylim)
+                    else:
+                        xmin, xmax = [float(x) for x in extentx]
+                    if yax in self.pf.coordinates.axis_field:
+                        ymin, ymax = self.pf.coordinates.axis_field[yax](1,
+                                                                         self.xlim, self.ylim)
+                    else:
+                        ymin, ymax = [float(y) for y in extenty]
+                    self.plots[f].image.set_extent((xmin,xmax,ymin,ymax))
+                    self.plots[f].axes.set_aspect("auto")
+
             self.plots[f].axes.set_xlabel(labels[0],fontproperties=fp)
             self.plots[f].axes.set_ylabel(labels[1],fontproperties=fp)
 
-            if hasattr(self.pf.coordinates, "axis_field"):
-                if xax in self.pf.coordinates.axis_field:
-                    xmin, xmax = self.pf.coordinates.axis_field[xax](0, self.xlim, self.ylim)
-                else:
-                    xmin, xmax = [float(x) for x in extentx]
-                if yax in self.pf.coordinates.axis_field:
-                    ymin, ymax = self.pf.coordinates.axis_field[yax](1, self.xlim, self.ylim)
-                else:
-                    ymin, ymax = [float(y) for y in extenty]
-                self.plots[f].image.set_extent((xmin,xmax,ymin,ymax))
-                self.plots[f].axes.set_aspect("auto")
             for label in (self.plots[f].axes.get_xticklabels() +
                           self.plots[f].axes.get_yticklabels() +
                           [self.plots[f].axes.xaxis.get_offset_text(),
