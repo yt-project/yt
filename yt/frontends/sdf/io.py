@@ -27,6 +27,7 @@ from yt.utilities.fortran_utils import read_record
 from yt.utilities.lib.geometry_utils import compute_morton
 
 from yt.geometry.oct_container import _ORDER_MAX
+from particle_filters import bbox_filter, sphere_filter
 CHUNKSIZE = 32**3
 
 class IOHandlerSDF(BaseIOHandler):
@@ -111,6 +112,98 @@ class IOHandlerSDF(BaseIOHandler):
         fields = [("dark_matter", v) for v in self._handle.keys()]
         fields.append(("dark_matter", "mass"))
         return fields, {}
+
+class IOHandlerSIndexSDF(IOHandlerSDF):
+    _dataset_type = "sindex_sdf_particles"
+
+
+    def _read_particle_coords(self, chunks, ptf):
+        dle = self.pf.domain_left_edge.in_units("code_length").d
+        dre = self.pf.domain_right_edge.in_units("code_length").d
+        for dd in self.pf.sindex.iter_bbox_data(
+            dle, dre,
+            ['x','y','z']):
+            yield "dark_matter", (
+                dd['x'], dd['y'], dd['z'])
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        dle = self.pf.domain_left_edge.in_units("code_length").d
+        dre = self.pf.domain_right_edge.in_units("code_length").d
+        required_fields = ['x','y','z']
+        for ptype, field_list in sorted(ptf.items()):
+            for field in field_list:
+                if field == "mass": continue
+                required_fields.append(field)
+
+        for dd in self.pf.sindex.iter_bbox_data(
+            dle, dre,
+            required_fields):
+
+            for ptype, field_list in sorted(ptf.items()):
+                x = dd['x']
+                y = dd['y']
+                z = dd['z']
+                mask = selector.select_points(x, y, z, 0.0)
+                del x, y, z
+                if mask is None: continue
+                for field in field_list:
+                    if field == "mass":
+                        data = np.ones(mask.sum(), dtype="float64")
+                        data *= self.pf.parameters["particle_mass"]
+                    else:
+                        data = dd[field][mask]
+                    yield (ptype, field), data
+
+    def _initialize_index(self, data_file, regions):
+        dle = self.pf.domain_left_edge.in_units("code_length").d
+        dre = self.pf.domain_right_edge.in_units("code_length").d
+        pcount = 0
+        for dd in self.pf.sindex.iter_bbox_data(
+            dle, dre,
+            ['x','y','z']):
+            pcount += dd['x'].size
+
+        morton = np.empty(pcount, dtype='uint64')
+        ind = 0
+
+        chunk_id = 0
+        for dd in self.pf.sindex.iter_bbox_data(
+            dle, dre,
+            ['x','y','z']):
+            npart = dd['x'].size
+            pos = np.empty((npart, 3), dtype=dd['x'].dtype)
+            pos[:,0] = dd['x']
+            pos[:,1] = dd['y']
+            pos[:,2] = dd['z']
+            if np.any(pos.min(axis=0) < self.pf.domain_left_edge) or \
+               np.any(pos.max(axis=0) > self.pf.domain_right_edge):
+                raise YTDomainOverflow(pos.min(axis=0),
+                                       pos.max(axis=0),
+                                       self.pf.domain_left_edge,
+                                       self.pf.domain_right_edge)
+            regions.add_data_file(pos, chunk_id)
+            morton[ind:ind+npart] = compute_morton(
+                pos[:,0], pos[:,1], pos[:,2],
+                data_file.pf.domain_left_edge,
+                data_file.pf.domain_right_edge)
+            ind += npart
+        return morton
+
+    def _count_particles(self, data_file):
+        dle = self.pf.domain_left_edge.in_units("code_length").d
+        dre = self.pf.domain_right_edge.in_units("code_length").d
+        pcount = 0
+        for dd in self.pf.sindex.iter_bbox_data(
+            dle, dre,
+            ['x','y','z']):
+            pcount += dd['x'].size
+        return {'dark_matter': pcount}
+
+    def _identify_fields(self, data_file):
+        fields = [("dark_matter", v) for v in self._handle.keys()]
+        fields.append(("dark_matter", "mass"))
+        return fields, {}
+
 
 import re
 import os
@@ -347,6 +440,9 @@ class SDFIndex(object):
             self.rmax[1] += self.sdfdata.parameters.get('Ry', r_0)
             self.rmax[2] += self.sdfdata.parameters.get('Rz', r_0)
 
+        self.rmin *= self.sdfdata.parameters.get("a", 1.0)
+        self.rmax *= self.sdfdata.parameters.get("a", 1.0)
+
         #/* expand root for non-power-of-two */
         expand_root = 0.0
         ic_Nmesh = self.sdfdata.parameters.get('ic_Nmesh',0)
@@ -354,16 +450,49 @@ class SDFIndex(object):
             f2 = 1<<int(np.log2(ic_Nmesh-1)+1)
             if (f2 != ic_Nmesh):
                 expand_root = 1.0*f2/ic_Nmesh - 1.0;
-            print 'Expanding: ', f2, ic_Nmesh, expand_root
+            mylog.debug("Expanding: %s, %s, %s" % (f2, ic_Nmesh, expand_root))
+        self.true_domain_left = self.rmin.copy()
+        self.true_domain_right = self.rmax.copy()
+        self.true_domain_width = self.rmax - self.rmin
         self.rmin *= 1.0 + expand_root
         self.rmax *= 1.0 + expand_root
         self.domain_width = self.rmax - self.rmin
         self.domain_dims = 1 << self.level
         self.domain_buffer = (self.domain_dims - int(self.domain_dims/(1.0 + expand_root)))/2
         self.domain_active_dims = self.domain_dims - 2*self.domain_buffer
-        print 'Domain stuff:', self.domain_width, self.domain_dims, self.domain_active_dims
+        mylog.debug("SINDEX: %s, %s, %s " % (self.domain_width, self.domain_dims, self.domain_active_dims))
+
+    def spread_bits(self, ival, level=None):
+        if level is None:
+            level = self.level
+        res = 0
+        for i in range(level):
+            res |= ((ival>>i)&1)<<(i*3);
+        return res
 
     def get_key(self, iarr, level=None):
+        if level is None:
+            level = self.level
+        i1, i2, i3 = iarr
+        return self.spread_bits(i1, level) | self.spread_bits(i2, level) << 1 | self.spread_bits(i3, level) << 2
+
+    def spread_bitsv(self, ival, level=None):
+        if level is None:
+            level = self.level
+        res = np.zeros_like(ival, dtype='int64')
+        for i in range(level):
+            res |= np.bitwise_and((ival>>i), 1)<<(i*3);
+        return res
+
+    def get_keyv(self, iarr, level=None):
+        if level is None:
+            level = self.level
+        i1, i2, i3 = iarr
+        return np.bitwise_or(
+            np.bitwise_or(self.spread_bits(i1, level) , self.spread_bits(i2, level) << 1 ),
+            self.spread_bits(i3, level) << 2)
+
+    def get_key_slow(self, iarr, level=None):
         if level is None:
             level = self.level
         i1, i2, i3 = iarr
@@ -384,6 +513,13 @@ class SDFIndex(object):
         expanded = np.array([0]*self.level*3, dtype='c')
         expanded[self.dim_slices[dim]] = slb
         return int(expanded.tostring(), 2)
+
+    def get_ind_from_key(self, key, dim='r'):
+        ind = [0,0,0]
+        br = np.binary_repr(key, width=self.level*3)
+        for dim in range(3):
+            ind[dim] = int(br[self.dim_slices[dim]],2)
+        return ind
 
     def get_slice_chunks(self, slice_dim, slice_index):
         sl_key = self.get_slice_key(slice_index, dim=slice_dim)
@@ -411,34 +547,61 @@ class SDFIndex(object):
         lengths = self.indexdata['len'][mask]
         return mask, offsets, lengths
 
-    def get_ibbox(self, ileft, iright):
+    def get_ibbox(self, ileft, iright, wandering_particles=True):
         """
         Given left and right indicies, return a mask and
         set of offsets+lengths into the sdf data.
         """
         mask = np.zeros(self.indexdata['index'].shape, dtype='bool')
 
-        print 'Getting data from ileft to iright:',  ileft, iright
+        #print 'Getting data from ileft to iright:',  ileft, iright
 
-        X, Y, Z = np.mgrid[ileft[0]:iright[0]+1,
+        ix, iy, iz = (iright-ileft)*1j
+        #print 'IBBOX:', ileft, iright, ix, iy, iz
+
+        Z, Y, X = np.mgrid[ileft[2]:iright[2]+1,
                            ileft[1]:iright[1]+1,
-                           ileft[2]:iright[2]+1]
+                           ileft[0]:iright[0]+1]
 
-        X = X.ravel()
-        Y = Y.ravel()
-        Z = Z.ravel()
+        mask = slice(0, -1, None)
+        X = X[mask, mask, mask].astype('int32').ravel()
+        Y = Y[mask, mask, mask].astype('int32').ravel()
+        Z = Z[mask, mask, mask].astype('int32').ravel()
+
+        if wandering_particles:
+            # Need to get padded bbox around the border to catch
+            # wandering particles.
+            dmask = X < self.domain_buffer
+            dmask += Y < self.domain_buffer
+            dmask += Z < self.domain_buffer
+            dmask += X >= self.domain_dims
+            dmask += Y >= self.domain_dims
+            dmask += Z >= self.domain_dims
+            dinds = self.get_keyv([X[dmask], Y[dmask], Z[dmask]])
+            dinds = dinds[dinds < self.indexdata['index'][-1]]
+            dinds = dinds[self.indexdata['len'][dinds] > 0]
+            #print 'Getting boundary layers for wanderers, cells: %i' % dinds.size
+
         # Correct For periodicity
         X[X < self.domain_buffer] += self.domain_active_dims
-        X[X >= self.domain_dims -  self.domain_buffer] -= self.domain_active_dims
         Y[Y < self.domain_buffer] += self.domain_active_dims
-        Y[Y >= self.domain_dims -  self.domain_buffer] -= self.domain_active_dims
         Z[Z < self.domain_buffer] += self.domain_active_dims
-        Z[Z >= self.domain_dims -  self.domain_buffer] -= self.domain_active_dims
+        X[X >= self.domain_buffer + self.domain_active_dims] -= self.domain_active_dims
+        Y[Y >= self.domain_buffer + self.domain_active_dims] -= self.domain_active_dims
+        Z[Z >= self.domain_buffer + self.domain_active_dims] -= self.domain_active_dims
 
-        print 'periodic:',  X.min(), X.max(), Y.min(), Y.max(), Z.min(), Z.max()
+        #print 'periodic:',  X.min(), X.max(), Y.min(), Y.max(), Z.min(), Z.max()
 
-        indices = np.array([self.get_key_ijk(x, y, z) for x, y, z in zip(X, Y, Z)])
-        indices = indices[indices < self.indexdata['index'].shape[0]]
+        indices = self.get_keyv([X, Y, Z])
+        indices = indices[indices < self.indexdata['index'][-1]]
+        indices = indices[self.indexdata['len'][indices] > 0]
+
+        #indices = np.array([self.get_key_ijk(x, y, z) for x, y, z in zip(X, Y, Z)])
+        # Here we sort the indices to batch consecutive reads together.
+        if wandering_particles:
+            indices = np.sort(np.append(indices, dinds))
+        else:
+            indices = np.sort(indices)
         return indices
 
     def get_bbox(self, left, right):
@@ -451,16 +614,56 @@ class SDFIndex(object):
 
         return self.get_ibbox(ileft, iright)
 
+    def get_nparticles_bbox(self, left, right):
+        """
+        Given left and right edges, return total
+        number of particles present.
+        """
+        ileft = np.floor((left - self.rmin) / self.domain_width *  self.domain_dims)
+        iright = np.floor((right - self.rmin) / self.domain_width * self.domain_dims)
+        indices = self.get_ibbox(ileft, iright)
+        npart = 0
+        for ind in indices:
+            npart += self.indexdata['len'][ind]
+        return npart
+
     def get_data(self, chunk, fields):
         data = {}
         for field in fields:
             data[field] = self.sdfdata[field][chunk]
         return data
 
+    def get_next_nonzero_chunk(self, key, stop=None):
+        # These next two while loops are to squeeze the keys if they are empty. Would be better
+        # to go through and set base equal to the last non-zero base, i think.
+        if stop is None:
+            stop = self.indexdata['index'][-1]
+        while key < stop:
+            if self.indexdata['index'][key] == 0:
+                #print 'Squeezing keys, incrementing'
+                key += 1
+            else:
+                break
+        return key
+
+    def get_previous_nonzero_chunk(self, key, stop=None):
+        # These next two while loops are to squeeze the keys if they are empty. Would be better
+        # to go through and set base equal to the last non-zero base, i think.
+        if stop is None:
+            stop = self.indexdata['index'][0]
+        while key > stop:
+            #self.indexdata['index'][-1]:
+            if self.indexdata['index'][key] == 0:
+                #print 'Squeezing keys, decrementing'
+                key -= 1
+            else:
+                break
+        return key
+
     def iter_data(self, inds, fields):
         num_inds = len(inds)
         num_reads = 0
-        print 'Reading %i chunks' % num_inds
+        mylog.debug('SINDEX Reading %i chunks' % num_inds)
         i = 0
         while (i < num_inds):
             ind = inds[i]
@@ -469,10 +672,10 @@ class SDFIndex(object):
             # Concatenate aligned reads
             nexti = i+1
             combined = 0
-            while nexti < len(inds):
+            while nexti < num_inds:
                 nextind = inds[nexti]
                 #        print 'b: %i l: %i end: %i  next: %i' % ( base, length, base + length, self.indexdata['base'][nextind] )
-                if base + length == self.indexdata['base'][nextind]:
+                if combined < 1024 and base + length == self.indexdata['base'][nextind]:
                     length += self.indexdata['len'][nextind]
                     i += 1
                     nexti += 1
@@ -481,33 +684,124 @@ class SDFIndex(object):
                     break
 
             chunk = slice(base, base+length)
-            print 'Reading chunk %i of length %i after catting %i' % (i, length, combined)
+            mylog.debug('Reading chunk %i of length %i after catting %i starting at %i' % (i, length, combined, ind))
             num_reads += 1
-            data = self.get_data(chunk, fields)
-            yield data
-            del data
+            if length > 0:
+                data = self.get_data(chunk, fields)
+                yield data
+                del data
             i += 1
-        print 'Read %i chunks, batched into %i reads' % (num_inds, num_reads)
+        mylog.debug('Read %i chunks, batched into %i reads' % (num_inds, num_reads))
+
+
+    def filter_particles(self, myiter, myfilter):
+        for data in myiter:
+            mask = myfilter(data)
+
+            if mask.sum() == 0:
+                continue
+            filtered = {}
+            for f in data.keys():
+                filtered[f] = data[f][mask]
+
+            yield filtered
+
+    def filter_bbox(self, left, right, myiter):
+        """
+        Filter data by masking out data outside of a bbox defined
+        by left/right. Account for periodicity of data, allowing left/right
+        to be outside of the domain.
+        """
+        for data in myiter:
+            mask = np.zeros_like(data, dtype='bool')
+            pos = np.array([data['x'].copy(), data['y'].copy(), data['z'].copy()]).T
+
+
+            # This hurts, but is useful for periodicity. Probably should check first
+            # if it is even needed for a given left/right
+            for i in range(3):
+                pos[:,i] = np.mod(pos[:,i] - left[i], self.true_domain_width[i]) + left[i]
+
+            # Now get all particles that are within the bbox
+            mask = np.all(pos >= left, axis=1) * np.all(pos < right, axis=1)
+
+            mylog.debug("Filtering particles, returning %i out of %i" % (mask.sum(), mask.shape[0]))
+
+            if not np.any(mask):
+                continue
+
+            filtered = {ax: pos[:, i][mask] for i, ax in enumerate('xyz')}
+            for f in data.keys():
+                if f in 'xyz': continue
+                filtered[f] = data[f][mask]
+
+            #for i, ax in enumerate('xyz'):
+            #    print left, right
+            #    assert np.all(filtered[ax] >= left[i])
+            #    assert np.all(filtered[ax] < right[i])
+
+            yield filtered
 
     def iter_bbox_data(self, left, right, fields):
-        print 'Loading region from ', left, 'to', right
+        mylog.debug('SINDEX Loading region from %s to %s' %(left, right))
         inds = self.get_bbox(left, right)
-        return self.iter_data(inds, fields)
+
+        my_filter = bbox_filter(left, right, self.true_domain_width)
+
+        for dd in self.filter_particles(
+            self.iter_data(inds, fields),
+            my_filter):
+            yield dd
+
+    def iter_sphere_data(self, center, radius, fields):
+        mylog.debug('SINDEX Loading spherical region %s to %s' %(center, radius))
+        inds = self.get_bbox(center-radius, center+radius)
+
+        my_filter = sphere_filter(center, radius, self.true_domain_width)
+
+        for dd in self.filter_particles(
+            self.iter_data(inds, fields),
+            my_filter):
+            yield dd
 
     def iter_ibbox_data(self, left, right, fields):
-        print 'Loading region from ', left, 'to', right
+        mylog.debug('SINDEX Loading region from %s to %s' %(left, right))
         inds = self.get_ibbox(left, right)
         return self.iter_data(inds, fields)
 
     def get_contiguous_chunk(self, left_key, right_key, fields):
+        liarr = self.get_ind_from_key(left_key)
+        riarr = self.get_ind_from_key(right_key)
+
+        lbase=0
+        llen = 0
         max_key = self.indexdata['index'][-1]
         if left_key > max_key:
             raise RuntimeError("Left key is too large. Key: %i Max Key: %i" % (left_key, max_key))
-        base = self.indexdata['base'][left_key]
-        right_key = min(right_key, self.indexdata['index'][-1])
-        length = self.indexdata['base'][right_key] + \
-            self.indexdata['len'][right_key] - base
-        print 'Getting contiguous chunk of size %i starting at %i' % (length, base)
+        right_key = min(right_key, max_key)
+
+        left_key = self.get_next_nonzero_chunk(left_key)
+        right_key = self.get_previous_nonzero_chunk(right_key, left_key)
+
+        lbase = self.indexdata['base'][left_key]
+        llen = self.indexdata['len'][left_key]
+
+        rbase = self.indexdata['base'][right_key]
+        rlen = self.indexdata['len'][right_key]
+
+        length = rbase + rlen - lbase
+        if length > 0:
+            mylog.debug('Getting contiguous chunk of size %i starting at %i' % (length, lbase))
+        return self.get_data(slice(lbase, lbase + length), fields)
+
+    def get_key_data(self, key, fields):
+        max_key = self.indexdata['index'][-1]
+        if key > max_key:
+            raise RuntimeError("Left key is too large. Key: %i Max Key: %i" % (key, max_key))
+        base = self.indexdata['base'][key]
+        length = self.indexdata['len'][key] - base
+        if length > 0:
+            mylog.debug('Getting contiguous chunk of size %i starting at %i' % (length, base))
         return self.get_data(slice(base, base + length), fields)
 
     def iter_slice_data(self, slice_dim, slice_index, fields):
@@ -562,3 +856,94 @@ class SDFIndex(object):
         cell_iarr = np.array(cell_iarr)
         lk, rk =self.get_key_bounds(level, cell_iarr)
         return self.get_contiguous_chunk(lk, rk, fields)
+
+    def get_cell_bbox(self, level, cell_iarr):
+        """Get floating point bounding box for a given sindex cell
+
+        Returns:
+            bbox: array-like, shape (3,2)
+
+        """
+        cell_iarr = np.array(cell_iarr)
+        cell_width = self.get_cell_width(level)
+        le = self.rmin + cell_iarr*cell_width
+        re = le+cell_width
+        bbox = np.array([le, re]).T
+        assert bbox.shape == (3, 2)
+        return bbox
+
+    def get_padded_bbox_data(self, level, cell_iarr, pad, fields):
+        """Get floating point bounding box for a given sindex cell
+
+        Returns:
+            bbox: array-like, shape (3,2)
+
+        """
+        bbox = self.get_cell_bbox(level, cell_iarr)
+        filter_left = bbox[:, 0] - pad
+        filter_right = bbox[:, 1] + pad
+
+        data = []
+        for dd in self.filter_bbox(
+            filter_left, filter_right,
+            [self.get_cell_data(level, cell_iarr, fields)]):
+            data.append(dd)
+        #for dd in self.iter_bbox_data(bbox[:,0], bbox[:,1], fields):
+        #    data.append(dd)
+        #assert data[0]['x'].shape[0] > 0
+
+        # Bottom & Top
+        pbox = bbox.copy()
+        pbox[0, 0] -= pad[0]
+        pbox[0, 1] += pad[0]
+        pbox[1, 0] -= pad[1]
+        pbox[1, 1] += pad[1]
+        pbox[2, 0] -= pad[2]
+        pbox[2, 1] = bbox[2, 0]
+        for dd in self.filter_bbox(
+            filter_left, filter_right,
+            self.iter_bbox_data(pbox[:,0], pbox[:,1], fields)):
+            data.append(dd)
+        pbox[2, 0] = bbox[2, 1]
+        pbox[2, 1] = pbox[2, 0] + pad[2]
+        for dd in self.filter_bbox(
+            filter_left, filter_right,
+            self.iter_bbox_data(pbox[:,0], pbox[:,1], fields)):
+            data.append(dd)
+
+        # Front & Back
+        pbox = bbox.copy()
+        pbox[0, 0] -= pad[0]
+        pbox[0, 1] += pad[0]
+        pbox[1, 0] -= pad[1]
+        pbox[1, 1] = bbox[1, 0]
+        for dd in self.filter_bbox(
+            filter_left, filter_right,
+            self.iter_bbox_data(pbox[:,0], pbox[:,1], fields)):
+            data.append(dd)
+        pbox[1, 0] = bbox[1, 1]
+        pbox[1, 1] = pbox[1, 0] + pad[1]
+        for dd in self.filter_bbox(
+            filter_left, filter_right,
+            self.iter_bbox_data(pbox[:,0], pbox[:,1], fields)):
+            data.append(dd)
+
+        # Left & Right
+        pbox = bbox.copy()
+        pbox[0, 0] -= pad[0]
+        pbox[0, 1] = bbox[0, 0]
+        for dd in self.filter_bbox(
+            filter_left, filter_right,
+            self.iter_bbox_data(pbox[:,0], pbox[:,1], fields)):
+            data.append(dd)
+        pbox[0, 0] = bbox[0, 1]
+        pbox[0, 1] = pbox[0, 0] + pad[0]
+        for dd in self.filter_bbox(
+            filter_left, filter_right,
+            self.iter_bbox_data(pbox[:,0], pbox[:,1], fields)):
+            data.append(dd)
+
+        return data
+
+    def get_cell_width(self, level):
+        return self.domain_width / 2**level

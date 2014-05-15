@@ -18,6 +18,10 @@ cimport numpy as np
 from oct_visitors cimport Oct, OctVisitorData, \
     oct_visitor_function
 
+ctypedef fused anyfloat:
+    np.float32_t
+    np.float64_t
+
 cdef class SelectorObject:
     cdef public np.int32_t min_level
     cdef public np.int32_t max_level
