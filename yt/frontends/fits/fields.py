@@ -23,7 +23,7 @@ class FITSFieldInfo(FieldInfoContainer):
         for field in pf.field_list:
             if field[0] == "fits": self[field].take_log = False
 
-    def _setup_pps_fields(self):
+    def _setup_spec_cube_fields(self):
 
         def _get_2d_wcs(data, axis):
             w_coords = data.pf.wcs_2d.wcs_pix2world(data["x"], data["y"], 1)
@@ -51,9 +51,9 @@ class FITSFieldInfo(FieldInfoContainer):
 
     def setup_fluid_fields(self):
 
-        if self.pf.pps_data:
+        if self.pf.spec_cube:
             def _pixel(field, data):
                 return data.pf.arr(data["ones"], "pixel")
             self.add_field(("fits","pixel"), function=_pixel, units="pixel")
-            self._setup_pps_fields()
+            self._setup_spec_cube_fields()
             return

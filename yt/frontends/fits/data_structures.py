@@ -471,7 +471,7 @@ class FITSDataset(Dataset):
         else:
             beam_size = 1.0
         self.unit_registry.add("beam",beam_size,dimensions=dimensions.solid_angle)
-        if self.pps_data:
+        if self.spec_cube:
             units = self.wcs_2d.wcs.cunit[0]
             if units == "deg": units = "degree"
             if units == "rad": units = "radian"
@@ -546,17 +546,17 @@ class FITSDataset(Dataset):
         self.reversed = False
 
         # Check to see if this data is in some kind of (Lat,Lon,Vel) format
-        self.pps_data = False
+        self.spec_cube = False
         x = 0
         for p in lon_prefixes+lat_prefixes+spec_names.keys():
             y = np_char.startswith(self.axis_names[:self.dimensionality], p)
             x += y.sum()
-        if x == self.dimensionality: self._setup_pps()
+        if x == self.dimensionality: self._setup_spec_cube()
 
-    def _setup_pps(self):
+    def _setup_spec_cube(self):
 
-        self.pps_data = True
-        self.geometry = "pps"
+        self.spec_cube = True
+        self.geometry = "spectral_cube"
 
         end = min(self.dimensionality+1,4)
         if self.events_data:

@@ -163,7 +163,7 @@ def get_sanitized_center(center, pf):
     return center
 
 def get_window_parameters(axis, center, width, pf):
-    if pf.geometry == "cartesian" or pf.geometry == "pps":
+    if pf.geometry == "cartesian" or pf.geometry == "spectral_cube":
         width = get_sanitized_width(axis, width, None, pf)
         center = get_sanitized_center(center, pf)
     elif pf.geometry in ("polar", "cylindrical"):
@@ -742,7 +742,7 @@ class PWViewerMPL(PlotWindow):
             else:
                 (unit_x, unit_y) = self._axes_unit_names
 
-            # For some plots we may set aspect by hand, such as for PPS data.
+            # For some plots we may set aspect by hand, such as for spectral cube data.
             # This will likely be replaced at some point by the coordinate handler
             # setting plot aspect.
             if self.aspect is None:

@@ -18,10 +18,10 @@ import numpy as np
 from .cartesian_coordinates import \
     CartesianCoordinateHandler
 
-class PPSCoordinateHandler(CartesianCoordinateHandler):
+class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
 
     def __init__(self, pf):
-        super(PPSCoordinateHandler, self).__init__(pf)
+        super(SpectralCubeCoordinateHandler, self).__init__(pf)
 
         self.axis_name = {}
         self.axis_id = {}
