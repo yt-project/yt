@@ -13,11 +13,13 @@ class libconfig(dict):
             self.read(config)
 
     def read(self, config):
-        cfile = open(config, 'r')
-        lines = cfile.readlines()
+        if not hasattr(config, "read"):
+            cfile = open(config, 'r')
+        else:
+            cfile = config
 
         # Strip out spaces and blanks
-        lines = [line.strip() for line in lines if len(line) > 0]
+        lines = [line.strip() for line in cfile if len(line) > 0]
 
         # Strip out comments
         lines = [line for line in lines if not (line.startswith('#') or
@@ -63,6 +65,11 @@ class libconfig(dict):
                 this_dict[k] = self.correct_type(v)
 
     def correct_type(self, v):
+        if v == "true":
+            v = "True"
+        elif v == "false":
+            v = "False"
+        # ...are we really evaling this?  We should work around that somehow.
         return eval(v)
 
     def write(self, filename):
