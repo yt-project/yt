@@ -887,8 +887,11 @@ class EnzoDataset(Dataset):
         if self.cosmological_simulation:
             k = self.cosmology_get_units()
             # Now some CGS values
-            self.length_unit = \
-                self.quan(self.parameters["CosmologyComovingBoxSize"], "Mpccm/h")
+            box_size = self.parameters.get("CosmologyComovingBoxSize", None)
+            if box_size is None:
+                box_size = self.parameters["Physics"]["Cosmology"]\
+                    ["CosmologyComovingBoxSize"]
+            self.length_unit = self.quan(box_size, "Mpccm/h")
             self.mass_unit = \
                 self.quan(k['urho'], 'g/cm**3') * (self.length_unit.in_cgs())**3
             self.time_unit = self.quan(k['utim'], 's')
@@ -898,6 +901,11 @@ class EnzoDataset(Dataset):
                 length_unit = self.parameters["LengthUnits"]
                 mass_unit = self.parameters["DensityUnits"] * length_unit**3
                 time_unit = self.parameters["TimeUnits"]
+            elif "SimulationControl" in self.parameters:
+                units = self.parameters["SimulationControl"]["Units"]
+                length_unit = units["Length"]
+                mass_unit = units["Density"] * length_unit**3
+                time_unit = units["Time"]
             else:
                 mylog.warning("Setting 1.0 in code units to be 1.0 cm")
                 mylog.warning("Setting 1.0 in code units to be 1.0 s")
