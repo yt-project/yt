@@ -648,7 +648,7 @@ cdef class RegionSelector(SelectorObject):
                         "Dataset left edge = %s, Dataset right edge = %s" % \
                         (i, dobj.left_edge[i], dobj.right_edge[i],
                          dobj.pf.domain_left_edge[i], dobj.pf.domain_right_edge[i])
-                
+                    )
             # Already ensured in code
             self.left_edge[i] = dobj.left_edge[i]
             self.right_edge[i] = dobj.right_edge[i]
