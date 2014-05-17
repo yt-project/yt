@@ -282,15 +282,15 @@ class EnzoHierarchy(GridIndex):
         params = self.parameter_file.parameters
         if version is None and "Internal" in params:
             version = float(params["Internal"]["Provenance"]["VersionNumber"])
-        if version == 2.0:
+        if version >= 3.0:
+            active_particles = True
+            nap = dict((ap_type, []) for ap_type in 
+                params["Physics"]["ActiveParticles"]["ActiveParticlesEnabled"])
+        elif version > 2.0:
             active_particles = True
             nap = {}
             for type in self.parameters.get("AppendActiveParticleType", []):
                 nap[type] = []
-        elif version >= 3.0:
-            active_particles = True
-            nap = dict((ap_type, []) for ap_type in 
-                params["Physics"]["ActiveParticles"]["ActiveParticlesEnabled"])
         else:
             active_particles = False
             nap = None
