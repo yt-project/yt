@@ -761,7 +761,7 @@ class PWViewerMPL(PlotWindow):
 
             image = self.frb[f]
 
-            if image.max() == image.min():
+            if image.max() == image.min() and zlim == (None, None):
                 if self._field_transform[f] == log_transform:
                     mylog.warning("Plot image for field %s has zero dynamic "
                                   "range. Min = Max = %d." % (f, image.max()))
