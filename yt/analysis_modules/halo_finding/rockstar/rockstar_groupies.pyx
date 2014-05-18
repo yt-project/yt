@@ -46,7 +46,7 @@ cdef import from "halo.h":
 
 ctypedef packed struct haloflat:
     np.int64_t id
-    float pos_x, pos_y, pos_z, pos_v, pos_u, pos_w
+    float pos_x, pos_y, pos_z, vel_x, vel_y, vel_z
     float corevel_x, corevel_y, corevel_z
     float bulkvel_x, bulkvel_y, bulkvel_z
     float m, r, child_r, vmax_r, mgrav,    vmax, rvmax, rs, klypin_rs, vrms
@@ -265,8 +265,8 @@ cdef class RockstarGroupiesInterface:
     def max_halo_radius(self, int i):
         return max_halo_radius(&halos[i])
 
-    def output_halos(self):
-        output_halos(0, 0, 0, NULL) 
+    def output_halos(self, np.int64_t idoffset):
+        output_halos(idoffset, 0, 0, NULL) 
 
     def output_config(self):
         output_config(NULL) 
