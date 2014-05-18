@@ -111,6 +111,8 @@ these requirements.  They are pretty easy to meet, and we're also happy to help
 out with them.  In :ref:`code-style-guide` there is a list of handy tips for
 how to structure and write your code.
 
+.. _mercurial-with-yt:
+
 How to Use Mercurial with yt
 ++++++++++++++++++++++++++++
 
@@ -134,6 +136,8 @@ for using mercurial with yt:
     about this.)
   * If you run into any troubles, stop by IRC (see :ref:`irc`) or the mailing
     list.
+
+.. _building-yt:
 
 Building yt
 +++++++++++

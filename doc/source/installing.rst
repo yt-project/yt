@@ -101,6 +101,8 @@ If you get an error, follow the instructions it gives you to debug the problem.
 Do not hesitate to :ref:`contact us <asking-for-help>` so we can help you
 figure it out.
 
+If you like, this might be a good time :ref:`to run the test suite <testing>`.
+
 .. _updating-yt:
 
 Updating yt and its dependencies
@@ -200,3 +202,13 @@ Installing yt on Windows
 
 Installation on Microsoft Windows is only supported for Windows XP Service Pack 3 and
 higher (both 32-bit and 64-bit) using Anaconda.
+
+Keeping yt Updated via Mercurial
+++++++++++++++++++++++++++++++++
+
+If you want to maintain your yt installation via updates straight from the Bitbucket repository,
+or if you want to do some development on your own, we suggest you check out some of the
+:ref:`development docs <contributing-code>`, especially the sections on :ref:`Mercurial
+<mercurial-with-yt>`
+and :ref:`building yt from source <building-yt>`.
+
