@@ -134,24 +134,29 @@ class StreamParticleIOHandler(BaseIOHandler):
 
     def _initialize_index(self, data_file, regions):
         # self.fields[g.id][fname] is the pattern here
-        pos = np.column_stack(self.fields[data_file.filename][
-                              ("io", "particle_position_%s" % ax)]
-                              for ax in 'xyz')
-        if np.any(pos.min(axis=0) < data_file.pf.domain_left_edge) or \
-           np.any(pos.max(axis=0) > data_file.pf.domain_right_edge):
-            raise YTDomainOverflow(pos.min(axis=0), pos.max(axis=0),
-                                   data_file.pf.domain_left_edge,
-                                   data_file.pf.domain_right_edge)
-        regions.add_data_file(pos, data_file.file_id)
-        morton = compute_morton(
-                pos[:,0], pos[:,1], pos[:,2],
-                data_file.pf.domain_left_edge,
-                data_file.pf.domain_right_edge)
-        return morton
+        morton = []
+        for ptype in self.pf.particle_types_raw:
+            pos = np.column_stack(self.fields[data_file.filename][
+                                  (ptype, "particle_position_%s" % ax)]
+                                  for ax in 'xyz')
+            if np.any(pos.min(axis=0) < data_file.pf.domain_left_edge) or \
+               np.any(pos.max(axis=0) > data_file.pf.domain_right_edge):
+                raise YTDomainOverflow(pos.min(axis=0), pos.max(axis=0),
+                                       data_file.pf.domain_left_edge,
+                                       data_file.pf.domain_right_edge)
+            regions.add_data_file(pos, data_file.file_id)
+            morton.append(compute_morton(
+                    pos[:,0], pos[:,1], pos[:,2],
+                    data_file.pf.domain_left_edge,
+                    data_file.pf.domain_right_edge))
+        return np.concatenate(morton)
 
     def _count_particles(self, data_file):
-        npart = self.fields[data_file.filename]["io", "particle_position_x"].size
-        return {'io': npart}
+        pcount = {}
+        for ptype in self.pf.particle_types_raw:
+            d = self.fields[data_file.filename]
+            pcount[ptype] = d[ptype, "particle_position_x"].size
+        return pcount
 
     def _identify_fields(self, data_file):
         return self.fields[data_file.filename].keys(), {}
