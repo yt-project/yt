@@ -49,13 +49,13 @@ ctypedef packed struct haloflat:
     float pos_x, pos_y, pos_z, vel_x, vel_y, vel_z
     float corevel_x, corevel_y, corevel_z
     float bulkvel_x, bulkvel_y, bulkvel_z
-    float m, r, child_r, vmax_r, mgrav,    vmax, rvmax, rs, klypin_rs, vrms
-    float J1, J2, J3
+    float m, r, child_r, vmax_r, mgrav, vmax, rvmax, rs, klypin_rs, vrms
+    float Jx, Jy, Jz
     float energy, spin
     float alt_m1, alt_m2, alt_m3, alt_m4
     float Xoff, Voff, b_to_a, c_to_a
-    float A1, A2, A3
-    float b_to_a2, c_to_a2, A21, A22, A23
+    float Ax, Ay, Az
+    float b_to_a2, c_to_a2, A2x, A2y, A2z
     float bullock_spin, kin_to_pot, m_pe_b, m_pe_d
     np.int64_t num_p, num_child_particles, p_start, desc, flags, n_core
     float min_pos_err, min_vel_err, min_bulkvel_err
@@ -203,6 +203,7 @@ cdef class RockstarGroupiesInterface:
                        int periodic = 1, force_res = None,
                        int min_halo_size = 25, outbase = "None",
                        write_config = False,  exact_ll_calc = False,
+                       lightcone = False, lightcone_origin = [0,0,0],
                        callbacks = None):
         global FILENAME, FILE_FORMAT, NUM_SNAPS, STARTING_SNAP, h0, Ol, Om
         global BOX_SIZE, PERIODIC, PARTICLE_MASS, NUM_BLOCKS, NUM_READERS
@@ -211,6 +212,7 @@ cdef class RockstarGroupiesInterface:
         global OVERLAP_LENGTH, TOTAL_PARTICLES, FORCE_RES
         global OUTPUT_FORMAT, EXTRA_PROFILING
         global STRICT_SO_MASSES, EXACT_LL_CALC
+        global LIGHTCONE, LIGHTCONE_ORIGIN
 
         if force_res is not None:
             FORCE_RES=np.float64(force_res)
@@ -219,7 +221,7 @@ cdef class RockstarGroupiesInterface:
         
         FILENAME = "inline.<block>"
         FILE_FORMAT = "GENERIC"
-        OUTPUT_FORMAT = "ASCII"
+        OUTPUT_FORMAT = "BOTH"
         MIN_HALO_OUTPUT_SIZE=min_halo_size
         
         pf = self.pf
@@ -244,6 +246,12 @@ cdef class RockstarGroupiesInterface:
         STRICT_SO_MASSES = 1    # presumably unused in our code path
         EXTRA_PROFILING = 0
 
+        if lightcone:
+            LIGHTCONE = 1
+            LIGHTCONE_ORIGIN[0] = lightcone_origin[0]
+            LIGHTCONE_ORIGIN[1] = lightcone_origin[1]
+            LIGHTCONE_ORIGIN[2] = lightcone_origin[2]
+
         # Set up the configuration options
         setup_config()
 
@@ -265,8 +273,16 @@ cdef class RockstarGroupiesInterface:
     def max_halo_radius(self, int i):
         return max_halo_radius(&halos[i])
 
-    def output_halos(self, np.int64_t idoffset):
-        output_halos(idoffset, 0, 0, NULL) 
+    def output_halos(self, np.int64_t idoffset, np.ndarray[np.float32_t, ndim=2] bbox):
+        cdef float bounds[6]
+        if idoffset is None: idoffset = 0
+        if bbox is None:
+            output_halos(idoffset, 0, 0, NULL) 
+        else:
+            for i in range(3):
+                bounds[i] = bbox[i,0]
+                bounds[i+3] = bbox[i,1]
+            output_halos(idoffset, 0, 0, bounds) 
 
     def output_config(self):
         output_config(NULL) 
