@@ -104,7 +104,10 @@ class SDFDataset(Dataset):
 
         nz = 1 << self.over_refine_factor
         self.domain_dimensions = np.ones(3, "int32") * nz
-        self.periodicity = (True, True, True)
+        if "do_periodic" in self.parameters and self.parameters["do_periodic"]:
+            self.periodicity = (True, True, True)
+        else:
+            self.periodicity = (False, False, False)
 
         self.cosmological_simulation = 1
 
