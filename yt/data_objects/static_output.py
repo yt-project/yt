@@ -55,8 +55,8 @@ from yt.geometry.spherical_coordinates import \
     SphericalCoordinateHandler
 from yt.geometry.geographic_coordinates import \
     GeographicCoordinateHandler
-from yt.geometry.ppv_coordinates import \
-    PPVCoordinateHandler
+from yt.geometry.spec_cube_coordinates import \
+    SpectralCubeCoordinateHandler
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is contant up
@@ -361,8 +361,8 @@ class Dataset(object):
             self.coordinates = SphericalCoordinateHandler(self)
         elif self.geometry == "geographic":
             self.coordinates = GeographicCoordinateHandler(self)
-        elif self.geometry == "ppv":
-            self.coordinates = PPVCoordinateHandler(self)
+        elif self.geometry == "spectral_cube":
+            self.coordinates = SpectralCubeCoordinateHandler(self)
         else:
             raise YTGeometryNotSupported(self.geometry)
 
