@@ -259,6 +259,9 @@ class FisheyeLens(Lens):
         # vectors back onto the plane.  arr_fisheye_vectors goes from px, py to
         # vector, and we need the reverse.
         lpos = camera.position - pos
+        lpos2 = lpos.copy()
+        for i in range(3):
+          lpos[:,i] = (lpos2 * self.rotation_matrix[i,:]).sum()
         mag = (lpos * lpos).sum(axis=1)**0.5
         lpos /= mag[:,None]
         dz = mag / self.radius
