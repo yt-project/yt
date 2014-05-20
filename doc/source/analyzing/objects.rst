@@ -236,7 +236,7 @@ Cutting Objects by Field Values
 -------------------------------
 
 Data objects can be cut by their field values using the ``cut_region`` 
-method.  For example, this could be used to compute the total mass within 
+method.  For example, this could be used to compute the total gas mass within
 a certain temperature range, as in the following example.
 
 .. notebook-cell::
