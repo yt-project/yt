@@ -209,6 +209,5 @@ Keeping yt Updated via Mercurial
 If you want to maintain your yt installation via updates straight from the Bitbucket repository,
 or if you want to do some development on your own, we suggest you check out some of the
 :ref:`development docs <contributing-code>`, especially the sections on :ref:`Mercurial
-<mercurial-with-yt>`
-and :ref:`building yt from source <building-yt>`.
+<mercurial-with-yt>` and :ref:`building yt from source <building-yt>`.
 
