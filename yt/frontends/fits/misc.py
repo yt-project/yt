@@ -14,6 +14,8 @@ import numpy as np
 from yt.fields.derived_field import ValidateSpatial
 from yt.utilities.on_demand_imports import _astropy
 from yt.funcs import mylog, get_image_suffix
+from yt.visualization._mpl_imports import FigureCanvasAgg
+
 import os
 
 def _make_counts(emin, emax):
@@ -177,8 +179,8 @@ class PlotWindowWCS(object):
     def show(self):
         from IPython.core.display import display
         for k, v in sorted(self.plots.iteritems()):
-            canvas = FigureCanvasAgg(v.figure)
-            display(v.figure)
+            canvas = FigureCanvasAgg(v)
+            display(v)
 
     def save(self, name=None, mpl_kwargs=None):
         if mpl_kwargs is None:
