@@ -263,7 +263,7 @@ class FisheyeLens(Lens):
         lpos = camera.position - pos
         lpos2 = lpos.copy()
         for i in range(3):
-          lpos[:,i] = (lpos2 * self.rotation_matrix[i,:]).sum()
+          lpos[:,i] = (lpos2 * self.rotation_matrix[i,:]).sum(axis=1)
         mag = (lpos * lpos).sum(axis=1)**0.5
         lpos /= mag[:,None]
         dz = mag / self.radius
