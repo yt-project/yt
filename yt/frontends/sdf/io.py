@@ -947,3 +947,60 @@ class SDFIndex(object):
 
     def get_cell_width(self, level):
         return self.domain_width / 2**level
+
+    def iter_padded_bbox_keys(self, level, cell_iarr, pad):
+        """
+
+        Returns:
+            bbox: array-like, shape (3,2)
+
+        """
+        bbox = self.get_cell_bbox(level, cell_iarr)
+        filter_left = bbox[:, 0] - pad
+        filter_right = bbox[:, 1] + pad
+
+        # Need to get all of these
+        low_key, high_key = self.get_key_bounds(level, cell_iarr)
+        for k in xrange(low_key, high_key):
+            yield k
+
+        # Bottom & Top
+        pbox = bbox.copy()
+        pbox[0, 0] -= pad[0]
+        pbox[0, 1] += pad[0]
+        pbox[1, 0] -= pad[1]
+        pbox[1, 1] += pad[1]
+        pbox[2, 0] -= pad[2]
+        pbox[2, 1] = bbox[2, 0]
+        for k in self.get_bbox(pbox[:,0], pbox[:,1]):
+            yield k
+
+        pbox[2, 0] = bbox[2, 1]
+        pbox[2, 1] = pbox[2, 0] + pad[2]
+        for k in self.get_bbox(pbox[:,0], pbox[:,1]):
+            yield k
+
+        # Front & Back
+        pbox = bbox.copy()
+        pbox[0, 0] -= pad[0]
+        pbox[0, 1] += pad[0]
+        pbox[1, 0] -= pad[1]
+        pbox[1, 1] = bbox[1, 0]
+        for k in self.get_bbox(pbox[:,0], pbox[:,1]):
+            yield k
+        pbox[1, 0] = bbox[1, 1]
+        pbox[1, 1] = pbox[1, 0] + pad[1]
+        for k in self.get_bbox(pbox[:,0], pbox[:,1]):
+            yield k
+
+        # Left & Right
+        pbox = bbox.copy()
+        pbox[0, 0] -= pad[0]
+        pbox[0, 1] = bbox[0, 0]
+        for k in self.get_bbox(pbox[:,0], pbox[:,1]):
+            yield k
+        pbox[0, 0] = bbox[0, 1]
+        pbox[0, 1] = pbox[0, 0] + pad[0]
+        for k in self.get_bbox(pbox[:,0], pbox[:,1]):
+            yield k
+
