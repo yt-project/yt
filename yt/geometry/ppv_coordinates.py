@@ -25,8 +25,6 @@ class PPVCoordinateHandler(CartesianCoordinateHandler):
 
         self.axis_name = {}
         self.axis_id = {}
-        self.x_axis = {}
-        self.y_axis = {}
 
         for axis, axis_name in zip([pf.lon_axis, pf.lat_axis, pf.vel_axis],
                                    ["Image\ x", "Image\ y", pf.vel_name]):
@@ -42,28 +40,6 @@ class PPVCoordinateHandler(CartesianCoordinateHandler):
             self.axis_id[axis] = axis
             self.axis_id[axis_name] = axis
 
-            if axis == 0:
-                self.x_axis[axis] = 1
-                self.x_axis[lower_ax] = 1
-                self.x_axis[axis_name] = 1
-                self.y_axis[axis] = 2
-                self.y_axis[lower_ax] = 2
-                self.y_axis[axis_name] = 2
-            elif axis == 1:
-                self.x_axis[axis] = 2
-                self.x_axis[lower_ax] = 2
-                self.x_axis[axis_name] = 2
-                self.y_axis[axis] = 0
-                self.y_axis[lower_ax] = 0
-                self.y_axis[axis_name] = 0
-            elif axis == 2:
-                self.x_axis[axis] = 0
-                self.x_axis[lower_ax] = 0
-                self.x_axis[axis_name] = 0
-                self.y_axis[axis] = 1
-                self.y_axis[lower_ax] = 1
-                self.y_axis[axis_name] = 1
-
         self.default_unit_label = {}
         self.default_unit_label[pf.lon_axis] = "pixel"
         self.default_unit_label[pf.lat_axis] = "pixel"
@@ -75,3 +51,8 @@ class PPVCoordinateHandler(CartesianCoordinateHandler):
     def convert_from_cylindrical(self, coord):
         raise NotImplementedError
 
+    x_axis = { 'x' : 1, 'y' : 0, 'z' : 0,
+                0  : 1,  1  : 0,  2  : 0}
+
+    y_axis = { 'x' : 2, 'y' : 2, 'z' : 1,
+                0  : 2,  1  : 2,  2  : 1}

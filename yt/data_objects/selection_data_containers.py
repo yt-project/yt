@@ -447,12 +447,12 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         >>> write_image(np.log10(frb["Density"]), 'density_1pc.png')
         """
         if iterable(width):
-            assert_valid_width_tuple(width)
+            validate_width_tuple(width)
             width = self.pf.quan(width[0], width[1])
         if height is None:
             height = width
         elif iterable(height):
-            assert_valid_width_tuple(height)
+            validate_width_tuple(height)
             height = self.pf.quan(height[0], height[1])
         if not iterable(resolution):
             resolution = (resolution, resolution)

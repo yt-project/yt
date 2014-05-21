@@ -14,7 +14,15 @@ Test ndarray subclass that handles symbolic units.
 # The full license is in the file COPYING.txt, distributed with this software.
 # ----------------------------------------------------------------------------
 
+import copy
+import cPickle as pickle
+import itertools
+import numpy as np
+import operator
 import os
+import shutil
+import tempfile
+
 from nose.tools import assert_true
 from numpy.testing import \
     assert_array_equal, \
@@ -28,12 +36,6 @@ from yt.utilities.exceptions import \
     YTUnitOperationError, YTUfuncUnitError
 from yt.testing import fake_random_pf, requires_module
 from yt.funcs import fix_length
-import numpy as np
-import copy
-import operator
-import cPickle as pickle
-import tempfile
-import itertools
 
 
 def operate_and_compare(a, b, op, answer):
@@ -675,3 +677,54 @@ def test_astropy():
     yield assert_equal, yt_quan, YTQuantity(yt_quan.to_astropy())
 
 
+def test_subclass():
+
+    class YTASubclass(YTArray):
+        pass
+
+    a = YTASubclass([4, 5, 6], 'g')
+    b = YTASubclass([7, 8, 9], 'kg')
+    nu = YTASubclass([10, 11, 12], '')
+    nda = np.array([3, 4, 5])
+    yta = YTArray([6, 7, 8], 'mg')
+    ytq = YTQuantity(4, 'cm')
+    ndf = np.float64(3)
+
+    def op_comparison(op, inst1, inst2, compare_class):
+        assert_isinstance(op(inst1, inst2), compare_class)
+        assert_isinstance(op(inst2, inst1), compare_class)
+
+    for op in (operator.mul, operator.div, operator.truediv):
+        for inst in (b, ytq, ndf, yta, nda):
+            yield op_comparison, op, a, inst, YTASubclass
+
+        yield op_comparison, op, ytq, nda, YTArray
+        yield op_comparison, op, ytq, yta, YTArray
+
+    for op in (operator.add, operator.sub):
+        yield op_comparison, op, nu, nda, YTASubclass
+        yield op_comparison, op, a, b, YTASubclass
+        yield op_comparison, op, a, yta, YTASubclass
+
+    yield assert_isinstance, a[0], YTQuantity
+    yield assert_isinstance, a[:], YTASubclass
+    yield assert_isinstance, a[:2], YTASubclass
+
+def test_h5_io():
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
+
+    ds = fake_random_pf(64, nprocs=1, length_unit=10)
+
+    warr = ds.arr(np.random.random((256, 256)), 'code_length')
+
+    warr.write_hdf5('test.h5')
+
+    iarr = YTArray.from_hdf5('test.h5')
+
+    yield assert_equal, warr, iarr
+    yield assert_equal, warr.units.registry['code_length'], iarr.units.registry['code_length']
+
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)

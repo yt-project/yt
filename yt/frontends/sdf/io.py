@@ -549,7 +549,7 @@ class SDFIndex(object):
         lengths = self.indexdata['len'][mask]
         return mask, offsets, lengths
 
-    def get_ibbox(self, ileft, iright):
+    def get_ibbox(self, ileft, iright, wandering_particles=True):
         """
         Given left and right indicies, return a mask and
         set of offsets+lengths into the sdf data.
@@ -593,7 +593,7 @@ class SDFIndex(object):
         #print 'periodic:',  X.min(), X.max(), Y.min(), Y.max(), Z.min(), Z.max()
 
         indices = self.get_keyv([X, Y, Z])
-#       # Only mask out if we are actually getting data rather than getting indices into
+        # Only mask out if we are actually getting data rather than getting indices into
         # a space.
         if self.valid_indexdata:
             indices = indices[indices < self.indexdata['index'][-1]]
@@ -695,7 +695,6 @@ class SDFIndex(object):
                 del data
             i += 1
         mylog.debug('Read %i chunks, batched into %i reads' % (num_inds, num_reads))
-
 
     def filter_particles(self, myiter, myfilter):
         for data in myiter:
