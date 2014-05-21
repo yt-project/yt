@@ -34,7 +34,7 @@ def get_radius(data, field_prefix):
             np.subtract(r, DW[i], rdw)
             np.abs(rdw, rdw)
             np.minimum(r, rdw, r)
-        np.power(r, 2.0, r)
+        np.multiply(r, r, r)
         np.add(radius2, r, radius2)
         if data.pf.dimensionality < i+1:
             break
