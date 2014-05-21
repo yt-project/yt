@@ -398,6 +398,8 @@ class SDFIndex(object):
         self.domain_buffer = 0
         self.domain_dims = 0
         self.domain_active_dims = 0
+        self.wandering_particles = True
+        self.valid_indexdata = True
         self.masks = {
             "p" : int("011"*level, 2),
             "t" : int("101"*level, 2),
@@ -547,13 +549,11 @@ class SDFIndex(object):
         lengths = self.indexdata['len'][mask]
         return mask, offsets, lengths
 
-    def get_ibbox(self, ileft, iright, wandering_particles=True):
+    def get_ibbox(self, ileft, iright):
         """
         Given left and right indicies, return a mask and
         set of offsets+lengths into the sdf data.
         """
-        mask = np.zeros(self.indexdata['index'].shape, dtype='bool')
-
         #print 'Getting data from ileft to iright:',  ileft, iright
 
         ix, iy, iz = (iright-ileft)*1j
@@ -568,7 +568,7 @@ class SDFIndex(object):
         Y = Y[mask, mask, mask].astype('int32').ravel()
         Z = Z[mask, mask, mask].astype('int32').ravel()
 
-        if wandering_particles:
+        if self.wandering_particles:
             # Need to get padded bbox around the border to catch
             # wandering particles.
             dmask = X < self.domain_buffer
@@ -593,12 +593,15 @@ class SDFIndex(object):
         #print 'periodic:',  X.min(), X.max(), Y.min(), Y.max(), Z.min(), Z.max()
 
         indices = self.get_keyv([X, Y, Z])
-        indices = indices[indices < self.indexdata['index'][-1]]
-        indices = indices[self.indexdata['len'][indices] > 0]
+#       # Only mask out if we are actually getting data rather than getting indices into
+        # a space.
+        if self.valid_indexdata:
+            indices = indices[indices < self.indexdata['index'][-1]]
+            indices = indices[self.indexdata['len'][indices] > 0]
 
         #indices = np.array([self.get_key_ijk(x, y, z) for x, y, z in zip(X, Y, Z)])
         # Here we sort the indices to batch consecutive reads together.
-        if wandering_particles:
+        if self.wandering_particles:
             indices = np.sort(np.append(indices, dinds))
         else:
             indices = np.sort(indices)
