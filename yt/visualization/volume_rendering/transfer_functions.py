@@ -540,7 +540,6 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         """
         from matplotlib import pyplot
         from matplotlib.ticker import FuncFormatter
-        import math
         #pyplot.clf()
         if ax is None:
             ax = pyplot.axes()
@@ -573,7 +572,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         def x_format(x, pos):
             val = x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size) + self.alpha.x[0]
             if abs(val) < 1.e-3 or abs(val) > 1.e4:
-                e = math.floor(math.log10(abs(val)))
+                e = np.floor(np.log10(abs(val)))
                 return r"${:.2f}\times 10^{:d}$".format(val/10.0**e, int(e))
             else:
                 return "%.1g" % (val)
