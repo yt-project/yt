@@ -217,10 +217,7 @@ class FisheyeLens(Lens):
     def get_sampler_params(self, camera, render_source):
         vp = -arr_fisheye_vectors(camera.resolution[0], self.fov)
         vp.shape = (camera.resolution[0]**2, 1, 3)
-        vp2 = vp.copy()
-        for i in range(3):
-            vp[:, :, i] = (vp2 * self.rotation_matrix[:, i]).sum(axis=2)
-        del vp2
+        vp = vp.dot(self.rotation_matrix)
         vp *= self.radius
         uv = np.ones(3, dtype='float64')
         positions = np.ones((camera.resolution[0]**2, 1, 3),
@@ -258,10 +255,11 @@ class FisheyeLens(Lens):
         # Basically, what we need is an inverse projection from the fisheye
         # vectors back onto the plane.  arr_fisheye_vectors goes from px, py to
         # vector, and we need the reverse.
+        # First, we transform lpos into *relative to the camera* coordinates.
         lpos = camera.position - pos
-        lpos2 = lpos.copy()
-        for i in range(3):
-          lpos[:,i] = (lpos2 * self.rotation_matrix[i,:]).sum(axis=1)
+        inv_mat = np.linalg.inv(self.rotation_matrix)
+        lpos = lpos.dot(self.rotation_matrix)
+        #lpos = lpos.dot(self.rotation_matrix)
         mag = (lpos * lpos).sum(axis=1)**0.5
         lpos /= mag[:,None]
         dz = mag / self.radius
