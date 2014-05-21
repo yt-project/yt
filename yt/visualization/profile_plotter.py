@@ -750,6 +750,9 @@ class PhasePlot(ImagePlotContainer):
             self._setup_plots()
         if mpl_kwargs is None:
             mpl_kwargs = {}
+        if name is None:
+            name = str(self.profile.pf)
+        name = os.path.expanduser(name)
         xfn = self.profile.x_field
         yfn = self.profile.y_field
         if isinstance(xfn, types.TupleType):
