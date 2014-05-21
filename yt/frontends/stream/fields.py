@@ -54,9 +54,11 @@ class StreamFieldInfo(FieldInfoContainer):
     )
 
     known_particle_fields = (
+        ("particle_position", ("code_length", [], None)),
         ("particle_position_x", ("code_length", [], None)),
         ("particle_position_y", ("code_length", [], None)),
         ("particle_position_z", ("code_length", [], None)),
+        ("particle_velocity", ("code_length/code_time", [], None)),
         ("particle_velocity_x", ("code_length/code_time", [], None)),
         ("particle_velocity_y", ("code_length/code_time", [], None)),
         ("particle_velocity_z", ("code_length/code_time", [], None)),
@@ -64,6 +66,8 @@ class StreamFieldInfo(FieldInfoContainer):
         ("particle_gas_density", ("code_mass/code_length**3", [], None)),
         ("particle_gas_temperature", ("K", [], None)),
         ("particle_mass", ("code_mass", [], None)),
+        ("smoothing_length", ("code_length", [], None)),
+        ("density", ("code_mass/code_length**3", [], None)),
     )
         
     def setup_fluid_fields(self):

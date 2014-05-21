@@ -28,6 +28,7 @@ from yt.utilities.exceptions import *
 class IOHandlerStream(BaseIOHandler):
 
     _dataset_type = "stream"
+    _vector_fields = ("particle_velocity", "particle_position")
 
     def __init__(self, pf):
         self.fields = pf.stream_handler.fields
@@ -97,6 +98,7 @@ class IOHandlerStream(BaseIOHandler):
 class StreamParticleIOHandler(BaseIOHandler):
 
     _dataset_type = "stream_particles"
+    _vector_fields = ("particle_velocity", "particle_position")
 
     def __init__(self, pf):
         self.fields = pf.stream_handler.fields
@@ -163,6 +165,7 @@ class StreamParticleIOHandler(BaseIOHandler):
 
 class IOHandlerStreamHexahedral(BaseIOHandler):
     _dataset_type = "stream_hexahedral"
+    _vector_fields = ("particle_velocity", "particle_position")
 
     def __init__(self, pf):
         self.fields = pf.stream_handler.fields
@@ -192,6 +195,7 @@ class IOHandlerStreamHexahedral(BaseIOHandler):
 
 class IOHandlerStreamOctree(BaseIOHandler):
     _dataset_type = "stream_octree"
+    _vector_fields = ("particle_velocity", "particle_position")
 
     def __init__(self, pf):
         self.fields = pf.stream_handler.fields
