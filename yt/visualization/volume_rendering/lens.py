@@ -219,7 +219,7 @@ class FisheyeLens(Lens):
     def get_sampler_params(self, camera, render_source):
         vp = -arr_fisheye_vectors(camera.resolution[0], self.fov)
         vp.shape = (camera.resolution[0]**2, 1, 3)
-        vp = vp.dot(self.rotation_matrix)
+        vp = vp.dot(np.linalg.inv(self.rotation_matrix))
         vp *= self.radius
         uv = np.ones(3, dtype='float64')
         positions = np.ones((camera.resolution[0]**2, 1, 3),
