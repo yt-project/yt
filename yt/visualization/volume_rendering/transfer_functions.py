@@ -558,6 +558,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         # Set TF limits based on what is visible
         visible = np.argwhere(self.alpha.y > 1.0e-3*self.alpha.y.max())
 
+
         # Display colobar values
         xticks = np.arange(np.ceil(self.alpha.x[0]), np.floor(self.alpha.x[-1]) + 1, 1) - self.alpha.x[0]
         xticks *= self.alpha.x.size / (self.alpha.x[-1] - self.alpha.x[0])
@@ -569,7 +570,12 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         xticks = np.append(visible[-1], xticks)
         ax.yaxis.set_ticks(xticks)
         def x_format(x, pos):
-            return "%.1f" % (x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size) + self.alpha.x[0])
+            val = x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size) + self.alpha.x[0]
+            if abs(val) < 1.e-3 or abs(val) > 1.e4:
+                e = np.floor(np.log10(abs(val)))
+                return r"${:.2f}\times 10^{:d}$".format(val/10.0**e, int(e))
+            else:
+                return "%.1g" % (val)
         ax.yaxis.set_major_formatter(FuncFormatter(x_format))
 
         yticks = np.linspace(0,1,2,endpoint=True) * max_alpha

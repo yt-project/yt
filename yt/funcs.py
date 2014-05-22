@@ -622,6 +622,22 @@ def fix_length(length, pf=None):
 
 @contextlib.contextmanager
 def parallel_profile(prefix):
+    r"""A context manager for profiling parallel code execution using cProfile
+
+    This is a simple context manager that automatically profiles the execution
+    of a snippet of code.
+
+    Parameters
+    ----------
+    prefix : string
+        A string name to prefix outputs with.
+
+    Examples
+    --------
+
+    >>> with parallel_profile('my_profile'):
+    ...     yt.PhasePlot(ds.all_data(), 'density', 'temperature', 'cell_mass')
+    """
     import cProfile
     from yt.config import ytcfg
     fn = "%s_%04i_%04i.cprof" % (prefix,

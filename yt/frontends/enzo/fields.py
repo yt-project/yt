@@ -96,7 +96,10 @@ class EnzoFieldInfo(FieldInfoContainer):
     )
 
     def __init__(self, pf, field_list):
-        if pf.parameters["HydroMethod"] == 2:
+        hydro_method = pf.parameters.get("HydroMethod", None)
+        if hydro_method is None:
+            hydro_method = pf.parameters["Physics"]["Hydro"]["HydroMethod"]
+        if hydro_method == 2:
             sl_left = slice(None,-2,None)
             sl_right = slice(1,-1,None)
             div_fac = 1.0
@@ -142,7 +145,11 @@ class EnzoFieldInfo(FieldInfoContainer):
 
     def setup_fluid_fields(self):
         # Now we conditionally load a few other things.
-        if self.pf.parameters["MultiSpecies"] > 0:
+        params = self.pf.parameters
+        multi_species = params.get("MultiSpecies", None)
+        if multi_species is None:
+            multi_species = params["Physics"]["AtomicPhysics"]["MultiSpecies"]
+        if multi_species > 0:
             self.setup_species_fields()
         self.setup_energy_field()
 
@@ -150,6 +157,16 @@ class EnzoFieldInfo(FieldInfoContainer):
         # We check which type of field we need, and then we add it.
         ge_name = None
         te_name = None
+        params = self.pf.parameters
+        multi_species = params.get("MultiSpecies", None)
+        if multi_species is None:
+            multi_species = params["Physics"]["AtomicPhysics"]["MultiSpecies"]
+        hydro_method = params.get("HydroMethod", None)
+        if hydro_method is None:
+            hydro_method = params["Physics"]["Hydro"]["HydroMethod"]
+        dual_energy = params.get("DualEnergyFormalism", None)
+        if dual_energy is None:
+            dual_energy = params["Physics"]["Hydro"]["DualEnergyFormalism"]
         if ("enzo", "Gas_Energy") in self.field_list:
             ge_name = "Gas_Energy"
         elif ("enzo", "GasEnergy") in self.field_list:
@@ -159,12 +176,12 @@ class EnzoFieldInfo(FieldInfoContainer):
         elif ("enzo", "TotalEnergy") in self.field_list:
             te_name = "TotalEnergy"
 
-        if self.pf.parameters["HydroMethod"] == 2:
+        if hydro_method == 2:
             self.add_output_field(("enzo", te_name),
                 units="code_velocity**2")
             self.alias(("gas", "thermal_energy"), ("enzo", te_name))
 
-        elif self.pf.parameters["DualEnergyFormalism"] == 1:
+        elif dual_energy == 1:
             self.add_output_field(
                 ("enzo", ge_name),
                 units="code_velocity**2")
@@ -172,7 +189,7 @@ class EnzoFieldInfo(FieldInfoContainer):
                 ("gas", "thermal_energy"),
                 ("enzo", ge_name),
                 units = "erg/g")
-        elif self.pf.parameters["HydroMethod"] in (4, 6):
+        elif hydro_method in (4, 6):
             self.add_output_field(
                 ("enzo", te_name),
                 units="code_velocity**2")
