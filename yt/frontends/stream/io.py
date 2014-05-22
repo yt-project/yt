@@ -117,6 +117,19 @@ class StreamParticleIOHandler(BaseIOHandler):
                               f[ptype, "particle_position_y"],
                               f[ptype, "particle_position_z"])
             
+    def _count_particles_chunks(self, chunks, ptf, selector):
+        # This is allowed to over-estimate.  We probably *will*, too, because
+        # we're going to count *all* of the particles, not just individual
+        # types.
+        count = 0
+        psize = {}
+        for chunk in chunks:
+            for obj in chunk.objs:
+                count += selector.count_octs(obj.oct_handler, obj.domain_id)
+        for ptype in ptf:
+            psize[ptype] = self.pf.n_ref * count / float(obj.nz)
+        return psize
+
     def _read_particle_fields(self, chunks, ptf, selector):
         data_files = set([])
         for chunk in chunks:

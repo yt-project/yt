@@ -332,8 +332,8 @@ def standard_particle_fields(registry, ptype,
         dw = data.pf.domain_width
         offset = dist.copy()
         offset[:] = 0.0
-        offset += data.pf.periodicity * (dist > dw/2.0) * -dw/2.0
-        offset += data.pf.periodicity * (dist < dw/2.0) *  dw/2.0
+        offset += data.pf.periodicity * (dist >  dw/2.0) * -dw/2.0
+        offset += data.pf.periodicity * (dist < -dw/2.0) *  dw/2.0
         dist += offset
         dist = np.sqrt((dist * dist).sum(axis=1))
         return dist

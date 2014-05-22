@@ -24,7 +24,6 @@ cimport oct_visitors
 from .oct_visitors cimport cind
 from yt.utilities.lib.grid_traversal cimport \
     VolumeContainer, sample_function, walk_volume
-from yt.data_objects.octree_subset import YTPositionArray
 
 cdef extern from "math.h":
     double exp(double x) nogil
@@ -51,6 +50,7 @@ cdef extern from "math.h":
 def _ensure_code(arr):
     if hasattr(arr, "convert_to_units"):
         arr.convert_to_units("code_length")
+        return arr.d
     return arr
 
 @cython.boundscheck(False)
