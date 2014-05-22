@@ -69,7 +69,7 @@ def invalidate_plot(f):
 
 class FigureContainer(dict):
     def __init__(self):
-        super(dict, self).__init__()
+        super(FigureContainer, self).__init__()
 
     def __missing__(self, key):
         figure = mpl.matplotlib.figure.Figure((10, 8))
@@ -79,12 +79,19 @@ class FigureContainer(dict):
 class AxesContainer(dict):
     def __init__(self, fig_container):
         self.fig_container = fig_container
-        super(dict, self).__init__()
+        self.xlim = {}
+        self.ylim = {}
+        super(AxesContainer, self).__init__()
 
     def __missing__(self, key):
         figure = self.fig_container[key]
         self[key] = figure.add_subplot(111)
         return self[key]
+
+    def __setitem__(self, key, value):
+        super(AxesContainer, self).__setitem__(key, value)
+        self.xlim[key] = (None, None)
+        self.ylim[key] = (None, None)
 
 def sanitize_label(label, nprofiles):
     label = ensure_list(label)
@@ -218,7 +225,9 @@ class ProfilePlot(object):
             self.plot_spec = [dict() for p in self.profiles]
         if not isinstance(self.plot_spec, list):
             self.plot_spec = [self.plot_spec.copy() for p in self.profiles]
-        
+
+        self.figures = FigureContainer()
+        self.axes = AxesContainer(self.figures)
         self._setup_plots()
         
     def save(self, name=None):
@@ -290,7 +299,6 @@ class ProfilePlot(object):
         else:
             raise YTNotInsideNotebook
 
-
     def _repr_html_(self):
         """Return an html representation of the plot object. Will display as a
         png for each WindowPlotMPL instance in self.plots"""
@@ -310,14 +318,11 @@ class ProfilePlot(object):
         return ret
 
     def _setup_plots(self):
-        self.figures = FigureContainer()
-        self.axes = AxesContainer(self.figures)
         for i, profile in enumerate(self.profiles):
             for field, field_data in profile.items():
-                self.axes[field].plot(np.array(profile.x),
-                                      np.array(field_data),
-                                      label=self.label[i],
-                                      **self.plot_spec[i])
+                if field not in self.axes:
+                    self.axes[field].plot(np.array(profile.x), np.array(field_data),
+                                          label=self.label[i], **self.plot_spec[i])
         
         # This relies on 'profile' leaking
         for fname, axes in self.axes.items():
@@ -327,6 +332,14 @@ class ProfilePlot(object):
             axes.set_yscale(yscale)
             axes.set_xlabel(xtitle)
             axes.set_ylabel(ytitle)
+            if self.axes.xlim[fname] == (None, None):
+                axes.autoscale(axis='x')
+            else:
+                axes.set_xlim(*self.axes.xlim[fname])
+            if self.axes.ylim[fname] == (None, None):
+                axes.autoscale(axis='y')
+            else:
+                axes.set_ylim(*self.axes.ylim[fname])
             if any(self.label):
                 axes.legend(loc="best")
         self._plot_valid = True
@@ -460,6 +473,28 @@ class ProfilePlot(object):
                 raise KeyError("Field %s not in profile plot!" % (field))
         return self
 
+    @invalidate_plot
+    def set_xlim(self, xmin, xmax):
+        fields = self.axes.keys()
+        for field in fields:
+            self.axes.xlim[field] = (xmin, xmax)
+        return self
+
+    @invalidate_plot
+    def set_ylim(self, field, ymin, ymax):
+        if field is 'all':
+            fields = self.axes.keys()
+        else:
+            fields = ensure_list(field)
+        for profile in self.profiles:
+            for field in profile.data_source._determine_fields(fields):
+                if field in profile.field_map:
+                    field = profile.field_map[field]
+                self.axes.ylim[field] = (ymin, ymax)
+                # Continue on to the next profile.
+                break
+        return self
+
     def _get_field_log(self, field_y, profile):
         pf = profile.data_source.pf
         yf, = profile.data_source._determine_fields([field_y])
@@ -508,7 +543,6 @@ class ProfilePlot(object):
                     self._get_field_label(field_y, yfi, y_unit, fractional)
 
         return (x_title, y_title)
-            
 
 class PhasePlot(ImagePlotContainer):
     r"""
@@ -679,10 +713,14 @@ class PhasePlot(ImagePlotContainer):
             cax = None
             draw_colorbar = True
             draw_axes = True
+            xlim = (None, None)
+            ylim = (None, None)
             zlim = (None, None)
             if f in self.plots:
                 draw_colorbar = self.plots[f]._draw_colorbar
                 draw_axes = self.plots[f]._draw_axes
+                xlim = (self.plots[f].xmin, self.plots[f].xmax)
+                ylim = (self.plots[f].ymin, self.plots[f].ymax)
                 zlim = (self.plots[f].zmin, self.plots[f].zmax)
                 if self.plots[f].figure is not None:
                     fig = self.plots[f].figure
@@ -706,7 +744,7 @@ class PhasePlot(ImagePlotContainer):
 
             self.plots[f] = PhasePlotMPL(self.profile.x, self.profile.y, data,
                                          x_scale, y_scale, z_scale,
-                                         self._colormaps[f], np.array(zlim),
+                                         self._colormaps[f], xlim, ylim, zlim,
                                          self.figure_size, fp.get_size(),
                                          fig, axes, cax)
 
@@ -856,6 +894,18 @@ class PhasePlot(ImagePlotContainer):
             raise KeyError("Field %s not in phase plot!" % (field))
         return self
 
+    @invalidate_plot
+    def set_xlim(self, xmin, xmax):
+        for p in self.plots.values():
+            p.xmin, p.xmax = xmin, xmax
+        return self
+
+    @invalidate_plot
+    def set_ylim(self, ymin, ymax):
+        for p in self.plots.values():
+            p.ymin, p.ymax = ymin, ymax
+        return self
+
     def run_callbacks(self, *args):
         raise NotImplementedError
     def setup_callbacks(self, *args):
@@ -864,7 +914,7 @@ class PhasePlot(ImagePlotContainer):
 
 class PhasePlotMPL(ImagePlotMPL):
     def __init__(self, x_data, y_data, data,
-                 x_scale, y_scale, z_scale, cmap,
+                 x_scale, y_scale, z_scale, cmap, xlim, ylim,
                  zlim, figure_size, fontsize, figure, axes, cax):
         self._initfinished = False
         self._draw_colorbar = True
@@ -883,6 +933,9 @@ class PhasePlotMPL(ImagePlotMPL):
 
         size, axrect, caxrect = self._get_best_layout()
 
+        self.xmin, self.xmax = xlim
+        self.ymin, self.ymax = ylim
+
         super(PhasePlotMPL, self).__init__(size, axrect, caxrect, zlim,
                                            figure, axes, cax)
 
@@ -900,13 +953,15 @@ class PhasePlotMPL(ImagePlotMPL):
             norm = matplotlib.colors.Normalize(zlim[0], zlim[1])
         self.image = None
         self.cb = None
-        self.image = self.axes.pcolormesh(np.array(x_data), 
-                                          np.array(y_data), 
+        self.image = self.axes.pcolormesh(np.array(x_data),
+                                          np.array(y_data),
                                           np.array(image_data.T),
-                                          norm=norm, 
+                                          norm=norm,
                                           cmap=cmap)
         self.axes.set_xscale(x_scale)
+        self.axes.set_xlim(self.xmin, self.xmax)
         self.axes.set_yscale(y_scale)
+        self.axes.set_ylim(self.ymin, self.ymax)
         self.cb = self.figure.colorbar(self.image, self.cax)
         if z_scale == 'linear':
             self.cb.formatter.set_scientific(True)

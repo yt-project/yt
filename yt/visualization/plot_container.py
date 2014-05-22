@@ -241,7 +241,7 @@ class ImagePlotContainer(object):
         if field is 'all':
             fields = self.plots.keys()
         else:
-            fields = [field]
+            fields = ensure_list(field)
         for field in self.data_source._determine_fields(fields):
             myzmin = zmin
             myzmax = zmax
