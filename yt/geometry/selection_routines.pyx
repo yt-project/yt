@@ -24,6 +24,7 @@ cimport oct_visitors
 from .oct_visitors cimport cind
 from yt.utilities.lib.grid_traversal cimport \
     VolumeContainer, sample_function, walk_volume
+from yt.data_objects.octree_subset import YTPositionArray
 
 cdef extern from "math.h":
     double exp(double x) nogil
@@ -331,7 +332,7 @@ cdef class SelectorObject:
         # domain_width is already in code units, and we assume what is fed in
         # is too.
         cdef np.float64_t rel = x1 - x2
-        if self.periodicity[d] :
+        if self.periodicity[d]:
             if rel > self.domain_width[d] * 0.5:
                 rel -= self.domain_width[d]
             elif rel < -self.domain_width[d] * 0.5:
@@ -487,10 +488,11 @@ cdef class SelectorObject:
         cdef int i
         cdef np.float64_t pos[3]
         cdef np.ndarray[np.uint8_t, ndim=1] mask 
-        mask = np.zeros(x.shape[0], dtype='uint8')
+        mask = np.empty(x.shape[0], dtype='uint8')
         _ensure_code(x)
         _ensure_code(y)
         _ensure_code(z)
+
 
         # this is to allow selectors to optimize the point vs
         # 0-radius sphere case.  These two may have different 
@@ -513,7 +515,7 @@ cdef class SelectorObject:
                     mask[i] = self.select_sphere(pos, radius)
                     count += mask[i]
         if count == 0: return None
-        return mask.astype("bool")
+        return mask.view("bool")
 
     def __hash__(self):
         return hash(self._hash_vals() + self._base_hash())
@@ -572,9 +574,12 @@ cdef class SphereSelector(SelectorObject):
         cdef int i
         cdef np.float64_t dist, dist2 = 0
         for i in range(3):
-            if pos[i] < self.bbox[i][0] or pos[i] > self.bbox[i][1]:
-                if self.check_box[i]: return 0
-            dist = self.difference(pos[i], self.center[i], i)
+            if self.check_box[i] and \
+              (pos[i] < self.bbox[i][0] or 
+               pos[i] > self.bbox[i][1]):
+                return 0
+            dist = _periodic_dist(pos[i], self.center[i], self.domain_width[i],
+                                  self.periodicity[i])
             dist2 += dist*dist
             if dist2 > self.radius2: return 0
         return 1

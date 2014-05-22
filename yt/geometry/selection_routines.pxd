@@ -57,3 +57,13 @@ cdef class AlwaysSelector(SelectorObject):
 cdef class OctreeSubsetSelector(SelectorObject):
     cdef SelectorObject base_selector
     cdef public np.int64_t domain_id
+
+cdef inline np.float64_t _periodic_dist(np.float64_t x1, np.float64_t x2,
+                                        np.float64_t dw, bint periodic) nogil:
+    cdef np.float64_t rel = x1 - x2
+    if not periodic: return rel
+    if rel > dw * 0.5:
+        rel -= dw
+    elif rel < -dw * 0.5:
+        rel += dw
+    return rel
