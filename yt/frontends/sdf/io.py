@@ -19,6 +19,7 @@ import h5py
 import numpy as np
 from yt.funcs import *
 from yt.utilities.exceptions import *
+from yt.units.yt_array import YTArray
 
 from yt.utilities.io_handler import \
     BaseIOHandler
@@ -744,6 +745,45 @@ class SDFIndex(object):
             #    assert np.all(filtered[ax] < right[i])
 
             yield filtered
+
+    def iter_filtered_bbox_fields(self, left, right, data,
+                                  pos_fields, fields):
+        """
+        This function should be destroyed, as it will only work with units.
+        """
+
+        kpcuq = left.in_units('kpccm').uq
+        mpcuq = left.in_units('Mpc').uq
+        DW = (self.true_domain_width * kpcuq).in_units('Mpc')
+        if pos_fields is None:
+            pos_fields = 'x','y','z'
+        xf, yf, zf = pos_fields
+        print pos_fields
+
+        mask = np.zeros_like(data, dtype='bool')
+        # I'm sorry.
+        pos = mpcuq * np.array([data[xf].in_units('Mpc'), data[yf].in_units('Mpc'), data[zf].in_units('Mpc')]).T
+
+        # This hurts, but is useful for periodicity. Probably should check first
+        # if it is even needed for a given left/right
+        for i in range(3):
+            pos[:,i] = np.mod(pos[:, i] - left[i], DW[i]) + left[i]
+
+        print left, right, pos.min(axis=0), pos.max(axis=0)
+        # Now get all particles that are within the bbox
+        mask = np.all(pos >= left, axis=1) * np.all(pos < right, axis=1)
+
+        mylog.debug("Filtering particles, returning %i out of %i" % (mask.sum(), mask.shape[0]))
+
+        if np.any(mask):
+            for i,f in enumerate(pos_fields):
+                yield f, pos[:, i][mask]
+
+            for f in fields:
+                if f in pos_fields:
+                    continue
+                print 'yielding nonpos field', f
+                yield f, data[f][mask]
 
     def iter_bbox_data(self, left, right, fields):
         mylog.debug('SINDEX Loading region from %s to %s' %(left, right))
