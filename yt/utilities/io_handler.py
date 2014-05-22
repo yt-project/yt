@@ -116,12 +116,17 @@ class BaseIOHandler(object):
     def _read_chunk_data(self, chunk, fields):
         return {}
 
+    def _count_particles_chunks(self, chunks, ptf, selector):
+        psize = defaultdict(lambda: 0) # COUNT PTYPES ON DISK
+        for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
+            psize[ptype] += selector.count_points(x, y, z, 0.0)
+        return dict(psize.items())
+
     def _read_particle_selection(self, chunks, selector, fields):
         rv = {}
         ind = {}
         # We first need a set of masks for each particle type
         ptf = defaultdict(list)        # ON-DISK TO READ
-        psize = defaultdict(lambda: 0) # COUNT PTYPES ON DISK
         fsize = defaultdict(lambda: 0) # COUNT RV
         field_maps = defaultdict(list) # ptypes -> fields
         chunks = list(chunks)
@@ -139,17 +144,10 @@ class BaseIOHandler(object):
                 ptf[ftype].append(fname)
                 field_maps[field].append(field)
         # We can't hash chunks, but otherwise this is a neat idea.
-        if 0 and hash(selector) == self._last_selector_id and \
-           all(ptype in self._last_selector_counts for ptype in ptf):
-            psize.update(self._last_selector_counts)
-        else:
-            # Now we have our full listing.
-            # Here, ptype_map means which particles contribute to a given type.
-            # And ptf is the actual fields from disk to read.
-            for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
-                psize[ptype] += selector.count_points(x, y, z, 0.0)
-            self._last_selector_counts = dict(**psize)
-            self._last_selector_id = hash(selector)
+        # Now we have our full listing.
+        # Here, ptype_map means which particles contribute to a given type.
+        # And ptf is the actual fields from disk to read.
+        psize = self._count_particles_chunks(chunks, ptf, selector)
         # Now we allocate
         # ptf, remember, is our mapping of what we want to read
         #for ptype in ptf:
@@ -175,6 +173,10 @@ class BaseIOHandler(object):
                 #    field_f, my_ind, my_ind+vals.shape[0], field_r)
                 rv[field_f][my_ind:my_ind + vals.shape[0],...] = vals
                 ind[field_f] += vals.shape[0]
+        # Now we need to truncate all our fields, since we allow for
+        # over-estimating.
+        for field_f in ind:
+            rv[field_f] = rv[field_f][:ind[field_f]]
         return rv
 
 class IOHandlerExtracted(BaseIOHandler):

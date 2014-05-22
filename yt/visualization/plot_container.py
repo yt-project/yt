@@ -1,3 +1,17 @@
+"""
+A base class for "image" plots with colorbars.
+
+
+
+"""
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 import __builtin__
 import base64
 import numpy as np

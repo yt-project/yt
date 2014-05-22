@@ -66,13 +66,13 @@ class ParticleTrajectories(object):
         if isinstance(outputs, DatasetSeries):
             self.data_series = outputs
         else:
-            self.data_series = DatasetSeries.from_filenames(outputs)
+            self.data_series = DatasetSeries(outputs)
         self.masks = []
         self.sorts = []
         self.array_indices = []
         self.indices = indices
         self.num_indices = len(indices)
-        self.num_steps = len(filenames)
+        self.num_steps = len(outputs)
         self.times = []
 
         # Default fields 
