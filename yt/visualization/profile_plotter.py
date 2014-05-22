@@ -331,10 +331,7 @@ class ProfilePlot(object):
             axes.set_yscale(yscale)
             axes.set_xlabel(xtitle)
             axes.set_ylabel(ytitle)
-            if self.axes.ylim[fname] == (None, None):
-                axes.autoscale(axis='y')
-            else:
-                axes.set_ylim(*self.axes.ylim[fname])
+            axes.set_ylim(*self.axes.ylim[fname])
             if any(self.label):
                 axes.legend(loc="best")
         self._plot_valid = True
