@@ -1029,9 +1029,9 @@ def array_like_field(data, x, field):
 def get_binary_op_return_class(cls1, cls2):
     if cls1 is cls2:
         return cls1
-    if cls1 is np.ndarray or issubclass(cls1, numeric_type):
+    if cls1 is np.ndarray or issubclass(cls1, (numeric_type, np.number)):
         return cls2
-    if cls2 is np.ndarray or issubclass(cls2, numeric_type):
+    if cls2 is np.ndarray or issubclass(cls2, (numeric_type, np.number)):
         return cls1
     if issubclass(cls1, YTQuantity):
         return cls2
