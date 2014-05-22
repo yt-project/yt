@@ -474,14 +474,12 @@ class ProfilePlot(object):
         ----------
         
         xmin : float or None
-
-        The new x minimum.  Defaults to None, which leaves the xmin
-        unchanged.
+          The new x minimum.  Defaults to None, which leaves the xmin
+          unchanged.
 
         xmax : float or None
-
-        The new x maximum.  Defaults to None, which leaves the xmax
-        unchanged.
+          The new x maximum.  Defaults to None, which leaves the xmax
+          unchanged.
 
         Examples
         --------
@@ -525,14 +523,12 @@ class ProfilePlot(object):
         The field that we want to adjust the plot limits for.
         
         ymin : float or None
-
-        The new y minimum.  Defaults to None, which leaves the xmin
-        unchanged.
+          The new y minimum.  Defaults to None, which leaves the ymin
+          unchanged.
 
         ymax : float or None
-
-        The new y maximum.  Defaults to None, which leaves the xmax
-        unchanged.
+          The new y maximum.  Defaults to None, which leaves the ymax
+          unchanged.
 
         Examples
         --------
@@ -962,14 +958,12 @@ class PhasePlot(ImagePlotContainer):
         ----------
         
         xmin : float or None
-
-        The new x minimum.  Defaults to None, which leaves the xmin
-        unchanged.
+          The new x minimum.  Defaults to None, which leaves the xmin
+          unchanged.
 
         xmax : float or None
-
-        The new x maximum.  Defaults to None, which leaves the xmax
-        unchanged.
+          The new x maximum.  Defaults to None, which leaves the xmax
+          unchanged.
 
         Examples
         --------
@@ -1006,14 +1000,12 @@ class PhasePlot(ImagePlotContainer):
         ----------
 
         ymin : float or None
-
-        The new y minimum.  Defaults to None, which leaves the xmin
-        unchanged.
+          The new y minimum.  Defaults to None, which leaves the ymin
+          unchanged.
 
         ymax : float or None
-
-        The new y maximum.  Defaults to None, which leaves the xmax
-        unchanged.
+          The new y maximum.  Defaults to None, which leaves the ymax
+          unchanged.
 
         Examples
         --------
