@@ -79,7 +79,6 @@ class FigureContainer(dict):
 class AxesContainer(dict):
     def __init__(self, fig_container):
         self.fig_container = fig_container
-        self.xlim = {}
         self.ylim = {}
         super(AxesContainer, self).__init__()
 
@@ -90,7 +89,6 @@ class AxesContainer(dict):
 
     def __setitem__(self, key, value):
         super(AxesContainer, self).__setitem__(key, value)
-        self.xlim[key] = (None, None)
         self.ylim[key] = (None, None)
 
 def sanitize_label(label, nprofiles):
@@ -320,9 +318,10 @@ class ProfilePlot(object):
     def _setup_plots(self):
         for i, profile in enumerate(self.profiles):
             for field, field_data in profile.items():
-                if field not in self.axes:
-                    self.axes[field].plot(np.array(profile.x), np.array(field_data),
-                                          label=self.label[i], **self.plot_spec[i])
+                if field in self.axes:
+                    self.axes[field].cla()
+                self.axes[field].plot(np.array(profile.x), np.array(field_data),
+                                      label=self.label[i], **self.plot_spec[i])
         
         # This relies on 'profile' leaking
         for fname, axes in self.axes.items():
@@ -332,10 +331,6 @@ class ProfilePlot(object):
             axes.set_yscale(yscale)
             axes.set_xlabel(xtitle)
             axes.set_ylabel(ytitle)
-            if self.axes.xlim[fname] == (None, None):
-                axes.autoscale(axis='x')
-            else:
-                axes.set_xlim(*self.axes.xlim[fname])
             if self.axes.ylim[fname] == (None, None):
                 axes.autoscale(axis='y')
             else:
@@ -474,25 +469,41 @@ class ProfilePlot(object):
         return self
 
     @invalidate_plot
-    def set_xlim(self, xmin, xmax):
-        fields = self.axes.keys()
-        for field in fields:
-            self.axes.xlim[field] = (xmin, xmax)
+    def set_xlim(self, xmin=None, xmax=None):
+        for i, p in enumerate(self.profiles):
+            if xmin is None:
+                xmi = p.x_bins.min()
+            else:
+                xmi = xmin
+            if xmax is None:
+                xma = p.x_bins.max()
+            else:
+                xma = xmax
+            extrema = {p.x_field: (xmi, xma)}
+            self.profiles[i] = \
+                create_profile(p.data_source, p.x_field,
+                               n_bins=len(p.x_bins)-2,
+                               fields=p.field_map.values(),
+                               weight_field=p.weight_field,
+                               accumulation=p.accumulation,
+                               fractional=p.fractional,
+                               extrema=extrema)
         return self
 
     @invalidate_plot
-    def set_ylim(self, field, ymin, ymax):
-        if field is 'all':
-            fields = self.axes.keys()
-        else:
-            fields = ensure_list(field)
-        for profile in self.profiles:
-            for field in profile.data_source._determine_fields(fields):
-                if field in profile.field_map:
-                    field = profile.field_map[field]
-                self.axes.ylim[field] = (ymin, ymax)
-                # Continue on to the next profile.
-                break
+    def set_ylim(self, field, ymin=None, ymax=None):
+        for i, p in enumerate(self.profiles):
+            if field is 'all':
+                fields = self.axes.keys()
+            else:
+                fields = ensure_list(field)
+            for profile in self.profiles:
+                for field in profile.data_source._determine_fields(fields):
+                    if field in profile.field_map:
+                        field = profile.field_map[field]
+                    self.axes.ylim[field] = (ymin, ymax)
+                    # Continue on to the next profile.
+                    break
         return self
 
     def _get_field_log(self, field_y, profile):
@@ -713,14 +724,10 @@ class PhasePlot(ImagePlotContainer):
             cax = None
             draw_colorbar = True
             draw_axes = True
-            xlim = (None, None)
-            ylim = (None, None)
             zlim = (None, None)
             if f in self.plots:
                 draw_colorbar = self.plots[f]._draw_colorbar
                 draw_axes = self.plots[f]._draw_axes
-                xlim = (self.plots[f].xmin, self.plots[f].xmax)
-                ylim = (self.plots[f].ymin, self.plots[f].ymax)
                 zlim = (self.plots[f].zmin, self.plots[f].zmax)
                 if self.plots[f].figure is not None:
                     fig = self.plots[f].figure
@@ -744,7 +751,7 @@ class PhasePlot(ImagePlotContainer):
 
             self.plots[f] = PhasePlotMPL(self.profile.x, self.profile.y, data,
                                          x_scale, y_scale, z_scale,
-                                         self._colormaps[f], xlim, ylim, zlim,
+                                         self._colormaps[f], zlim,
                                          self.figure_size, fp.get_size(),
                                          fig, axes, cax)
 
@@ -895,15 +902,41 @@ class PhasePlot(ImagePlotContainer):
         return self
 
     @invalidate_plot
-    def set_xlim(self, xmin, xmax):
-        for p in self.plots.values():
-            p.xmin, p.xmax = xmin, xmax
+    def set_xlim(self, xmin=None, xmax=None):
+        p = self.profile
+        if xmin is None:
+            xmin = p.x_bins.min()
+        if xmax is None:
+            xmax = p.x_bins.max()
+        self.profile = create_profile(
+            p.data_source,
+            [p.x_field, p.y_field],
+            p.field_map.values(),
+            n_bins=[len(p.x_bins)-2, len(p.y_bins)-2],
+            weight_field=p.weight_field,
+            accumulation=p.accumulation,
+            fractional=p.fractional,
+            extrema={p.x_field: (xmin, xmax),
+                     p.y_field: (p.y_bins.min(), p.y_bins.max())})
         return self
 
     @invalidate_plot
-    def set_ylim(self, ymin, ymax):
-        for p in self.plots.values():
-            p.ymin, p.ymax = ymin, ymax
+    def set_ylim(self, ymin=None, ymax=None):
+        p = self.profile
+        if ymin is None:
+            ymin = p.y_bins.min()
+        if ymax is None:
+            ymax = p.y_bins.max()
+        self.profile = create_profile(
+            p.data_source,
+            [p.x_field, p.y_field],
+            p.field_map.values(),
+            n_bins=[len(p.x_bins), len(p.y_bins)],
+            weight_field=p.weight_field,
+            accumulation=p.accumulation,
+            fractional=p.fractional,
+            extrema={p.x_field: (p.x_bins.min(), p.x_bins.max()),
+                     p.y_field: (ymin, ymax)})
         return self
 
     def run_callbacks(self, *args):
@@ -914,7 +947,7 @@ class PhasePlot(ImagePlotContainer):
 
 class PhasePlotMPL(ImagePlotMPL):
     def __init__(self, x_data, y_data, data,
-                 x_scale, y_scale, z_scale, cmap, xlim, ylim,
+                 x_scale, y_scale, z_scale, cmap,
                  zlim, figure_size, fontsize, figure, axes, cax):
         self._initfinished = False
         self._draw_colorbar = True
@@ -932,9 +965,6 @@ class PhasePlotMPL(ImagePlotMPL):
         self._aspect = 1.0
 
         size, axrect, caxrect = self._get_best_layout()
-
-        self.xmin, self.xmax = xlim
-        self.ymin, self.ymax = ylim
 
         super(PhasePlotMPL, self).__init__(size, axrect, caxrect, zlim,
                                            figure, axes, cax)
@@ -959,9 +989,7 @@ class PhasePlotMPL(ImagePlotMPL):
                                           norm=norm,
                                           cmap=cmap)
         self.axes.set_xscale(x_scale)
-        self.axes.set_xlim(self.xmin, self.xmax)
         self.axes.set_yscale(y_scale)
-        self.axes.set_ylim(self.ymin, self.ymax)
         self.cb = self.figure.colorbar(self.image, self.cax)
         if z_scale == 'linear':
             self.cb.formatter.set_scientific(True)

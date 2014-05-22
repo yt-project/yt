@@ -1154,7 +1154,10 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
         for bin_field in bin_fields:
             bf_units = data_source.pf._get_field_info(bin_field[0],
                                                       bin_field[1]).units
-            field_ex = list(extrema[bin_field[-1]])
+            try:
+                field_ex = list(extrema[bin_field[-1]])
+            except KeyError:
+                field_ex = list(extrema[bin_field])
             if iterable(field_ex[0]):
                 field_ex[0] = data_source.pf.quan(field_ex[0][0], field_ex[0][1])
                 field_ex[0] = field_ex[0].in_units(bf_units)
