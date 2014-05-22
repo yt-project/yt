@@ -96,6 +96,7 @@ class IOHandlerStream(BaseIOHandler):
 
 class StreamParticleIOHandler(BaseIOHandler):
 
+    _vector_fields = ("particle_position", "particle_velocity")
     _dataset_type = "stream_particles"
 
     def __init__(self, pf):
@@ -124,8 +125,13 @@ class StreamParticleIOHandler(BaseIOHandler):
         for data_file in data_files:
             f = self.fields[data_file.filename]
             for ptype, field_list in sorted(ptf.items()):
-                x, y, z = (f[ptype, "particle_position_%s" % ax]
-                           for ax in 'xyz')
+                if (ptype, "particle_position") in f:
+                    x = f[ptype, "particle_position"][:,0]
+                    y = f[ptype, "particle_position"][:,1]
+                    z = f[ptype, "particle_position"][:,2]
+                else:
+                    x, y, z = (f[ptype, "particle_position_%s" % ax]
+                               for ax in 'xyz')
                 mask = selector.select_points(x, y, z, 0.0)
                 if mask is None: continue
                 for field in field_list:
