@@ -491,8 +491,8 @@ class SDFIndex(object):
             level = self.level
         i1, i2, i3 = iarr
         return np.bitwise_or(
-            np.bitwise_or(self.spread_bits(i1, level) , self.spread_bits(i2, level) << 1 ),
-            self.spread_bits(i3, level) << 2)
+            np.bitwise_or(self.spread_bitsv(i1, level) , self.spread_bitsv(i2, level) << 1 ),
+            self.spread_bitsv(i3, level) << 2)
 
     def get_key_slow(self, iarr, level=None):
         if level is None:

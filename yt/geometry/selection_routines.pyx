@@ -643,6 +643,7 @@ cdef class RegionSelector(SelectorObject):
         _ensure_code(dobj.right_edge)
         _ensure_code(dobj.left_edge)
         DW = _ensure_code(dobj.pf.domain_width.copy())
+        DW = DW.view(np.ndarray)
 
         for i in range(3):
             region_width = dobj.right_edge[i] - dobj.left_edge[i]
@@ -671,7 +672,7 @@ cdef class RegionSelector(SelectorObject):
             self.left_edge[i] = dobj.left_edge[i]
             self.right_edge[i] = dobj.right_edge[i]
             self.right_edge_shift[i] = \
-                (dobj.right_edge).to_ndarray()[i] - domain_width.to_ndarray()
+                (dobj.right_edge).to_ndarray()[i] - domain_width
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
