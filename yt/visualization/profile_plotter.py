@@ -24,7 +24,6 @@ from itertools import izip
 import matplotlib
 import numpy as np
 import cStringIO
-import __builtin__
 
 
 from .base_plot_types import ImagePlotMPL
@@ -161,16 +160,17 @@ class ProfilePlot(object):
 
     This creates profiles of a single dataset.
 
-    >>> pf = load("enzo_tiny_cosmology/DD0046/DD0046")
-    >>> ad = pf.h.all_data()
+    >>> import yt
+    >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+    >>> ad = ds.all_data()
     >>> plot = ProfilePlot(ad, "density", ["temperature", "velocity_x"],
-                           weight_field="cell_mass",
-                           plot_spec=dict(color='red', linestyle="--"))
+    ...                    weight_field="cell_mass",
+    ...                    plot_spec=dict(color='red', linestyle="--"))
     >>> plot.save()
 
     This creates profiles from a time series object.
-    
-    >>> es = simulation("AMRCosmology.enzo", "Enzo")
+
+    >>> es = yt.simulation("AMRCosmology.enzo", "Enzo")
     >>> es.get_time_series()
 
     >>> profiles = []
@@ -242,7 +242,7 @@ class ProfilePlot(object):
             self._setup_plots()
         unique = set(self.figures.values())
         if len(unique) < len(self.figures):
-            figiter = izip(xrange(len(unique)), sorted(unique))
+            iters = izip(xrange(len(unique)), sorted(unique))
         else:
             iters = self.figures.iteritems()
         if name is None:
@@ -263,8 +263,7 @@ class ProfilePlot(object):
             if isinstance(uid, types.TupleType):
                 uid = uid[1]
             canvas = canvas_cls(fig)
-            fn = "%s_1d-Profile_%s_%s%s" % \
-              (prefix, xfn, uid, suffix)
+            fn = "%s_1d-Profile_%s_%s%s" % (prefix, xfn, uid, suffix)
             mylog.info("Saving %s", fn)
             canvas.print_figure(fn)
         return self
@@ -283,8 +282,10 @@ class ProfilePlot(object):
         Examples
         --------
 
-        >>> slc = SlicePlot(pf, "x", ["Density", "VelocityMagnitude"])
-        >>> slc.show()
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> pp = ProfilePlot(ds.all_data(), 'density', 'temperature')
+        >>> pp.show()
 
         """
         if "__IPYTHON__" in dir(__builtin__):
@@ -303,7 +304,7 @@ class ProfilePlot(object):
         ret = ''
         unique = set(self.figures.values())
         if len(unique) < len(self.figures):
-            figiter = izip(xrange(len(unique)), sorted(unique))
+            iters = izip(xrange(len(unique)), sorted(unique))
         else:
             iters = self.figures.iteritems()
         for uid, fig in iters:
@@ -448,7 +449,7 @@ class ProfilePlot(object):
     def set_unit(self, field, unit):
         """Sets a new unit for the requested field
 
-        parameters
+        Parameters
         ----------
         field : string
            The name of the field that is to be changed.
@@ -467,6 +468,31 @@ class ProfilePlot(object):
 
     @invalidate_plot
     def set_xlim(self, xmin=None, xmax=None):
+        """Sets the limits of the bin field
+
+        Parameters
+        ----------
+        
+        xmin : float or None
+
+        The new x minimum.  Defaults to None, which leaves the xmin
+        unchanged.
+
+        xmax : float or None
+
+        The new x maximum.  Defaults to None, which leaves the xmax
+        unchanged.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> pp = yt.ProfilePlot(ds.all_data(), 'density', 'temperature')
+        >>> pp.set_xlim(1e-29, 1e-24)
+        >>> pp.save()
+
+        """
         for i, p in enumerate(self.profiles):
             if xmin is None:
                 xmi = p.x_bins.min()
@@ -489,6 +515,35 @@ class ProfilePlot(object):
 
     @invalidate_plot
     def set_ylim(self, field, ymin=None, ymax=None):
+        """Sets the plot limits for the specified field we are binning.
+
+        Parameters
+        ----------
+
+        field : string or field tuple
+
+        The field that we want to adjust the plot limits for.
+        
+        ymin : float or None
+
+        The new y minimum.  Defaults to None, which leaves the xmin
+        unchanged.
+
+        ymax : float or None
+
+        The new y maximum.  Defaults to None, which leaves the xmax
+        unchanged.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> pp = yt.ProfilePlot(ds.all_data(), 'density', ['temperature', 'x-velocity'])
+        >>> pp.set_ylim('temperature', 1e4, 1e6)
+        >>> pp.save()
+
+        """
         for i, p in enumerate(self.profiles):
             if field is 'all':
                 fields = self.axes.keys()
@@ -612,10 +667,11 @@ class PhasePlot(ImagePlotContainer):
     Examples
     --------
 
-    >>> pf = load("enzo_tiny_cosmology/DD0046/DD0046")
+    >>> import yt
+    >>> pf = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
     >>> ad = pf.h.all_data()
     >>> plot = PhasePlot(ad, "density", "temperature", ["cell_mass"],
-                         weight_field=None)
+    ...                  weight_field=None)
     >>> plot.save()
 
     >>> # Change plot properties.
@@ -900,6 +956,31 @@ class PhasePlot(ImagePlotContainer):
 
     @invalidate_plot
     def set_xlim(self, xmin=None, xmax=None):
+        """Sets the limits of the x bin field
+
+        Parameters
+        ----------
+        
+        xmin : float or None
+
+        The new x minimum.  Defaults to None, which leaves the xmin
+        unchanged.
+
+        xmax : float or None
+
+        The new x maximum.  Defaults to None, which leaves the xmax
+        unchanged.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> pp = yt.PhasePlot(ds.all_data(), 'density', 'temperature', 'cell_mass')
+        >>> pp.set_xlim(1e-29, 1e-24)
+        >>> pp.save()
+
+        """
         p = self.profile
         if xmin is None:
             xmin = p.x_bins.min()
@@ -919,6 +1000,31 @@ class PhasePlot(ImagePlotContainer):
 
     @invalidate_plot
     def set_ylim(self, ymin=None, ymax=None):
+        """Sets the plot limits for the y bin field.
+
+        Parameters
+        ----------
+
+        ymin : float or None
+
+        The new y minimum.  Defaults to None, which leaves the xmin
+        unchanged.
+
+        ymax : float or None
+
+        The new y maximum.  Defaults to None, which leaves the xmax
+        unchanged.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> pp = yt.PhasePlot(ds.all_data(), 'density', 'temperature', 'cell_mass')
+        >>> pp.set_ylim(1e4, 1e6)
+        >>> pp.save()
+
+        """
         p = self.profile
         if ymin is None:
             ymin = p.y_bins.min()
