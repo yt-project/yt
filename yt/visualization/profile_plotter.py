@@ -852,6 +852,7 @@ class PhasePlot(ImagePlotContainer):
             self.profile.set_y_unit(unit)
         elif field in fields:
             self.profile.set_field_unit(field, unit)
+            self.plots[field].zmin, self.plots[field].zmax = (None, None)
         else:
             raise KeyError("Field %s not in phase plot!" % (field))
         return self
