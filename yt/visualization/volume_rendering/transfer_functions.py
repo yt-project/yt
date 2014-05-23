@@ -469,7 +469,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         xticks *= self.alpha.x.size / (self.alpha.x[-1] - self.alpha.x[0])
         ax.xaxis.set_ticks(xticks)
         def x_format(x, pos):
-            return "%.1f" % (x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size) + self.alpha.x[0])
+            return "%.1f" % (x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size-1) + self.alpha.x[0])
         ax.xaxis.set_major_formatter(FuncFormatter(x_format))
         yticks = np.linspace(0,1,5) * self.alpha.y.size
         ax.yaxis.set_ticks(yticks)
@@ -512,7 +512,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             xticks = xticks[::len(xticks)/5]
         ax.xaxis.set_ticks(xticks)
         def x_format(x, pos):
-            return "%.1f" % (x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size) + self.alpha.x[0])
+            return "%.1f" % (x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size-1) + self.alpha.x[0])
         ax.xaxis.set_major_formatter(FuncFormatter(x_format))
         yticks = np.linspace(0,1,5) * self.alpha.y.size
         ax.yaxis.set_ticks(yticks)
@@ -568,9 +568,10 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         # Add colorbar limits to the ticks (May not give ideal results)
         xticks = np.append(visible[0], xticks)
         xticks = np.append(visible[-1], xticks)
+
         ax.yaxis.set_ticks(xticks)
         def x_format(x, pos):
-            val = x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size) + self.alpha.x[0]
+            val = x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size-1) + self.alpha.x[0]
             if abs(val) < 1.e-3 or abs(val) > 1.e4:
                 e = np.floor(np.log10(abs(val)))
                 return r"${:.2f}\times 10^{:d}$".format(val/10.0**e, int(e))
