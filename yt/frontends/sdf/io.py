@@ -560,9 +560,10 @@ class SDFIndex(object):
         ix, iy, iz = (iright-ileft)*1j
         #print 'IBBOX:', ileft, iright, ix, iy, iz
 
-        Z, Y, X = np.mgrid[ileft[2]:iright[2]+1,
-                           ileft[1]:iright[1]+1,
-                           ileft[0]:iright[0]+1]
+        # plus 1 that is sliced, plus a bit since mgrid is not inclusive
+        Z, Y, X = np.mgrid[ileft[2]:iright[2]+1.01,
+                           ileft[1]:iright[1]+1.01,
+                           ileft[0]:iright[0]+1.01]
 
         mask = slice(0, -1, None)
         X = X[mask, mask, mask].astype('int32').ravel()
@@ -753,8 +754,8 @@ class SDFIndex(object):
         """
 
         kpcuq = left.in_units('kpccm').uq
-        mpcuq = left.in_units('Mpc').uq
-        DW = (self.true_domain_width * kpcuq).in_units('Mpc')
+        mpcuq = left.in_units('Mpc/h').uq
+        DW = (self.true_domain_width * kpcuq).in_units('Mpc/h')
         if pos_fields is None:
             pos_fields = 'x','y','z'
         xf, yf, zf = pos_fields
@@ -762,7 +763,7 @@ class SDFIndex(object):
 
         mask = np.zeros_like(data, dtype='bool')
         # I'm sorry.
-        pos = mpcuq * np.array([data[xf].in_units('Mpc'), data[yf].in_units('Mpc'), data[zf].in_units('Mpc')]).T
+        pos = mpcuq * np.array([data[xf].in_units('Mpc/h'), data[yf].in_units('Mpc/h'), data[zf].in_units('Mpc/h')]).T
 
         # This hurts, but is useful for periodicity. Probably should check first
         # if it is even needed for a given left/right
@@ -782,7 +783,7 @@ class SDFIndex(object):
             for f in fields:
                 if f in pos_fields:
                     continue
-                print 'yielding nonpos field', f
+                # print 'yielding nonpos field', f
                 yield f, data[f][mask]
 
     def iter_bbox_data(self, left, right, fields):
