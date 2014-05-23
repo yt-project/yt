@@ -500,7 +500,10 @@ class ProfilePlot(object):
                 xma = p.x_bins.max()
             else:
                 xma = xmax
-            extrema = {p.x_field: (xmi, xma)}
+            extrema = {p.x_field: ((xmi, str(p.x.units)), (xma, str(p.x.units)))}
+            units = {p.x_field: str(p.x.units)}
+            for field in p.field_map.values():
+                units[field] = str(p.field_data[field].units)
             self.profiles[i] = \
                 create_profile(p.data_source, p.x_field,
                                n_bins=len(p.x_bins)-2,
@@ -508,7 +511,7 @@ class ProfilePlot(object):
                                weight_field=p.weight_field,
                                accumulation=p.accumulation,
                                fractional=p.fractional,
-                               extrema=extrema)
+                               extrema=extrema, units=units)
         return self
 
     @invalidate_plot
@@ -980,6 +983,8 @@ class PhasePlot(ImagePlotContainer):
             xmin = p.x_bins.min()
         if xmax is None:
             xmax = p.x_bins.max()
+        units = {p.x_field: str(p.x.units),
+                 p.y_field: str(p.y.units)}
         self.profile = create_profile(
             p.data_source,
             [p.x_field, p.y_field],
@@ -988,8 +993,10 @@ class PhasePlot(ImagePlotContainer):
             weight_field=p.weight_field,
             accumulation=p.accumulation,
             fractional=p.fractional,
-            extrema={p.x_field: (xmin, xmax),
-                     p.y_field: (p.y_bins.min(), p.y_bins.max())})
+            units=units,
+            extrema={p.x_field: ((xmin, str(p.x.units)), (xmax, str(p.x.units))),
+                     p.y_field: ((p.y_bins.min(), str(p.y.units)),
+                                 (p.y_bins.max(), str(p.y.units)))})
         return self
 
     @invalidate_plot
@@ -1022,6 +1029,8 @@ class PhasePlot(ImagePlotContainer):
             ymin = p.y_bins.min()
         if ymax is None:
             ymax = p.y_bins.max()
+        units = {p.x_field: str(p.x.units),
+                 p.y_field: str(p.y.units)}
         self.profile = create_profile(
             p.data_source,
             [p.x_field, p.y_field],
@@ -1030,8 +1039,11 @@ class PhasePlot(ImagePlotContainer):
             weight_field=p.weight_field,
             accumulation=p.accumulation,
             fractional=p.fractional,
-            extrema={p.x_field: (p.x_bins.min(), p.x_bins.max()),
-                     p.y_field: (ymin, ymax)})
+            units=units,
+            extrema={p.x_field: ((p.x_bins.min(), str(p.x.units)),
+                                 (p.x_bins.max(), str(p.x.units))),
+                     p.y_field: ((ymin, str(p.y.units)), (ymax, str(p.y.units)))})
+
         return self
 
     def run_callbacks(self, *args):
