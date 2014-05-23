@@ -466,7 +466,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.fill_between(np.arange(self.alpha.y.size), self.alpha.x.size * self.alpha.y, y2=self.alpha.x.size, color='white')
         ax.set_xlim(0, self.alpha.x.size)
         xticks = np.arange(np.ceil(self.alpha.x[0]), np.floor(self.alpha.x[-1]) + 1, 1) - self.alpha.x[0]
-        xticks *= self.alpha.x.size / (self.alpha.x[-1] - self.alpha.x[0])
+        xticks *= (self.alpha.x.size-1) / (self.alpha.x[-1] - self.alpha.x[0])
         ax.xaxis.set_ticks(xticks)
         def x_format(x, pos):
             return "%.1f" % (x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size-1) + self.alpha.x[0])
@@ -507,7 +507,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.fill_between(np.arange(self.alpha.y.size), self.alpha.x.size * self.alpha.y, y2=self.alpha.x.size, color='white')
         ax.set_xlim(0, self.alpha.x.size)
         xticks = np.arange(np.ceil(self.alpha.x[0]), np.floor(self.alpha.x[-1]) + 1, 1) - self.alpha.x[0]
-        xticks *= self.alpha.x.size / (self.alpha.x[-1] - self.alpha.x[0])
+        xticks *= (self.alpha.x.size-1) / (self.alpha.x[-1] - self.alpha.x[0])
         if len(xticks) > 5:
             xticks = xticks[::len(xticks)/5]
         ax.xaxis.set_ticks(xticks)
@@ -561,7 +561,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
 
         # Display colobar values
         xticks = np.arange(np.ceil(self.alpha.x[0]), np.floor(self.alpha.x[-1]) + 1, 1) - self.alpha.x[0]
-        xticks *= self.alpha.x.size / (self.alpha.x[-1] - self.alpha.x[0])
+        xticks *= (self.alpha.x.size-1) / (self.alpha.x[-1] - self.alpha.x[0])
         if len(xticks) > 5:
             xticks = xticks[::len(xticks)/5]
 
