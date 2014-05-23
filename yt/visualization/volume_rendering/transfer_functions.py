@@ -568,7 +568,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         # Add colorbar limits to the ticks (May not give ideal results)
         xticks = np.append(visible[0], xticks)
         xticks = np.append(visible[-1], xticks)
-
+        # remove dupes
+        xticks = list(set(xticks))
         ax.yaxis.set_ticks(xticks)
         def x_format(x, pos):
             val = x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size-1) + self.alpha.x[0]
