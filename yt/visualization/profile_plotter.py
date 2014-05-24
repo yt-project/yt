@@ -934,7 +934,7 @@ class PhasePlot(ImagePlotContainer):
     def set_unit(self, field, unit):
         """Sets a new unit for the requested field
 
-        parameters
+        Parameters
         ----------
         field : string
            The name of the field that is to be changed.
@@ -986,6 +986,10 @@ class PhasePlot(ImagePlotContainer):
             xmax = p.x_bins.max()
         units = {p.x_field: str(p.x.units),
                  p.y_field: str(p.y.units)}
+        zunits = dict((field, str(p.field_units[field])) for field in p.field_units)
+        extrema = {p.x_field: ((xmin, str(p.x.units)), (xmax, str(p.x.units))),
+                   p.y_field: ((p.y_bins.min(), str(p.y.units)),
+                               (p.y_bins.max(), str(p.y.units)))}
         self.profile = create_profile(
             p.data_source,
             [p.x_field, p.y_field],
@@ -995,9 +999,9 @@ class PhasePlot(ImagePlotContainer):
             accumulation=p.accumulation,
             fractional=p.fractional,
             units=units,
-            extrema={p.x_field: ((xmin, str(p.x.units)), (xmax, str(p.x.units))),
-                     p.y_field: ((p.y_bins.min(), str(p.y.units)),
-                                 (p.y_bins.max(), str(p.y.units)))})
+            extrema=extrema)
+        for field in zunits:
+            self.profile.set_field_unit(field, zunits[field])
         return self
 
     @invalidate_plot
@@ -1032,6 +1036,10 @@ class PhasePlot(ImagePlotContainer):
             ymax = p.y_bins.max()
         units = {p.x_field: str(p.x.units),
                  p.y_field: str(p.y.units)}
+        zunits = dict((field, str(p.field_units[field])) for field in p.field_units)
+        extrema = {p.x_field: ((p.x_bins.min(), str(p.x.units)),
+                               (p.x_bins.max(), str(p.x.units))),
+                   p.y_field: ((ymin, str(p.y.units)), (ymax, str(p.y.units)))}
         self.profile = create_profile(
             p.data_source,
             [p.x_field, p.y_field],
@@ -1041,10 +1049,9 @@ class PhasePlot(ImagePlotContainer):
             accumulation=p.accumulation,
             fractional=p.fractional,
             units=units,
-            extrema={p.x_field: ((p.x_bins.min(), str(p.x.units)),
-                                 (p.x_bins.max(), str(p.x.units))),
-                     p.y_field: ((ymin, str(p.y.units)), (ymax, str(p.y.units)))})
-
+            extrema=extrema)
+        for field in zunits:
+            self.profile.set_field_unit(field, zunits[field])
         return self
 
     def run_callbacks(self, *args):
