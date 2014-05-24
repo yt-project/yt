@@ -20,6 +20,9 @@ import numpy as np
 from yt.funcs import *
 from yt.utilities.exceptions import *
 from yt.units.yt_array import YTArray
+from httpmmap import HTTPArray
+from arbitrary_page import PageCacheURL 
+import cStringIO
 
 from yt.utilities.io_handler import \
     BaseIOHandler
@@ -107,7 +110,7 @@ class IOHandlerSDF(BaseIOHandler):
         return morton
 
     def _count_particles(self, data_file):
-        return {'dark_matter': self._handle['x'].size}
+        return {'dark_matter': self._handle['x'].http_array.shape}
 
     def _identify_fields(self, data_file):
         fields = [("dark_matter", v) for v in self._handle.keys()]
@@ -277,6 +280,51 @@ class DataStruct(object):
         for k in self.dtype.names:
             self.data[k] = self.handle[k]
 
+
+class RedirectArray(object):
+    """docstring for RedirectArray"""
+    def __init__(self, http_array, key):
+        self.http_array = http_array
+        self.key = key
+        self.size = http_array.shape
+        self.dtype = http_array.dtype[key]
+
+    def __getitem__(self, sl):
+        if isinstance(sl, int):
+            sl = slice(sl, sl+1)
+            return self.http_array[sl][self.key][0]
+        return self.http_array[sl][self.key]
+
+class HTTPDataStruct(DataStruct):
+    """docstring for HTTPDataStruct"""
+
+    def __init__(self, *args, **kwargs):
+        super(HTTPDataStruct, self).__init__(*args, **kwargs)
+        self.pcu = PageCacheURL(self.filename)
+
+    def set_offset(self, offset):
+        self._offset = offset
+        if self.size == -1:
+            # Read small piece:
+            file_size = self.pcu.total_size
+            file_size -= offset
+            self.size = float(file_size) / self.itemsize
+            assert(int(self.size) == self.size)
+
+    def build_redirect_func(self, key):
+        def redirect(sl):
+            return self.handle[sl][key]
+        return redirect
+
+    def build_memmap(self):
+        assert(self.size != -1)
+        print 'Building memmap with offset: %i' % self._offset 
+        self.handle = HTTPArray(self.filename, dtype=self.dtype,
+                        shape=self.size, offset=self._offset)
+        for k in self.dtype.names:
+            self.data[k] = RedirectArray(self.handle, k)
+
+
 class SDFRead(dict):
 
     """docstring for SDFRead"""
@@ -374,6 +422,65 @@ class SDFRead(dict):
         for struct in self.structs:
             struct.build_memmap()
             self.update(struct.data)
+
+
+class HTTPSDFRead(SDFRead):
+
+    """docstring for SDFRead"""
+
+    _eof = 'SDF-EOH'
+
+    def __init__(self, filename, header=None):
+        self.filename = filename
+        if header is None:
+            header = filename
+        self.header = header
+        self.parameters = {}
+        self.structs = []
+        self.comments = []
+        self.parse_header()
+        self.set_offsets()
+        self.load_memmaps()
+
+    def parse_header(self):
+        """docstring for parse_header"""
+        # Pre-process
+        ascfile = HTTPArray(self.header)
+        max_header_size = 1024*1024
+        lines = cStringIO.StringIO(ascfile[:max_header_size].data[:])
+        while True:
+            l = lines.readline()
+            if self._eof in l: break
+
+            self.parse_line(l, lines)
+
+        hoff = lines.tell()
+        if self.header != self.filename:
+            hoff = 0
+        self.parameters['header_offset'] = hoff
+
+    def parse_struct(self, line, ascfile):
+        assert 'struct' in line
+
+        str_types = []
+        comments = []
+        str_lines = []
+        l = ascfile.readline()
+        while "}" not in l:
+            vtype, vnames = get_struct_vars(l)
+            for v in vnames:
+                str_types.append((v, vtype))
+            l = ascfile.readline()
+        num = l.strip("}[]")
+        num = num.strip("\;\\\n]")
+        if len(num) == 0:
+            # We need to compute the number of records.  The DataStruct will
+            # handle this.
+            num = '-1'
+        num = int(num)
+        struct = HTTPDataStruct(str_types, num, self.filename)
+        self.structs.append(struct)
+        return
 
 
 class SDFIndex(object):

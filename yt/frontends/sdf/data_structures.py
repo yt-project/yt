@@ -38,7 +38,9 @@ from .fields import \
 from .io import \
     IOHandlerSDF, \
     SDFRead,\
-    SDFIndex
+    SDFIndex,\
+    HTTPSDFRead
+
 
 # currently specified by units_2HOT == 2 in header
 # in future will read directly from file
@@ -84,14 +86,23 @@ class SDFDataset(Dataset):
         super(SDFDataset, self).__init__(filename, dataset_type)
 
     def _parse_parameter_file(self):
-        self.sdf_container = SDFRead(self.parameter_filename,
-                                     header=self.sdf_header)
+        if 'http' in self.parameter_filename:
+            self.sdf_container = HTTPSDFRead(self.parameter_filename,
+                                             header=self.sdf_header)
+        else:
+            self.sdf_container = SDFRead(self.parameter_filename,
+                                         header=self.sdf_header)
+
         # Reference
         self.parameters = self.sdf_container.parameters
         self.dimensionality = 3
         self.refine_by = 2
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+        try:
+            self.unique_identifier = \
+                int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+        except:
+            self.unique_identifier = time.time()
+
 
         if None in (self.domain_left_edge, self.domain_right_edge):
             R0 = self.parameters['R0']
