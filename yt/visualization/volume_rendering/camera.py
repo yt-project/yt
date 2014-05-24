@@ -620,13 +620,13 @@ class Camera(ParallelAnalysisInterface):
             label = '$\\rm{log}\\/ $' + label
         self.transfer_function.vert_cbar(ax=cb.ax, label=label)
 
-    def show_mpl(self, im, enhance=True):
+    def show_mpl(self, im, enhance=True, clear_fig=True):
         if self._pylab is None:
             import pylab
             self._pylab = pylab
         if self._render_figure is None:
             self._render_figure = self._pylab.figure(1)
-        self._render_figure.clf()
+        if clear_fig: self._render_figure.clf()
 
         if enhance:
             nz = im[im > 0.0]
@@ -642,15 +642,10 @@ class Camera(ParallelAnalysisInterface):
     def draw(self):
         self._pylab.draw()
     
-    def save_annotated(self, fn, image, enhance=True, dpi=100, 
-                       text_x=0.1, text_y=0.9, text=None):
+    def save_annotated(self, fn, image, enhance=True, dpi=100, clear_fig=True):
         image = image.swapaxes(0,1) 
-        ax = self.show_mpl(image, enhance=enhance)
+        ax = self.show_mpl(image, enhance=enhance, clear_fig=clear_fig)
         self.annotate(ax.axes, enhance)
-        if not text == None:
-            f = self._pylab.gcf()
-            self._pylab.text(text_x, text_y, text, 
-                             transform=f.transFigure, color="white")
         self._pylab.savefig(fn, bbox_inches='tight', facecolor='black', dpi=dpi)
         
     def save_image(self, image, fn=None, clip_ratio=None, transparent=False):
