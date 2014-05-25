@@ -152,8 +152,6 @@ for k,v in _cm.color_map_luts.iteritems():
                   'green': zip(_vs,v[1],v[1]),
                   'blue': zip(_vs,v[2],v[2]) }
         add_cmap(k, cdict)
-        if k == "doom":
-            import pdb; pdb.set_trace()
 
 def _extract_lookup_table(cmap_name):
     cmap = mcm.get_cmap(cmap_name)
