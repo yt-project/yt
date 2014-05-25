@@ -616,7 +616,6 @@ class SDFIndex(object):
         """
         ileft = np.floor((left - self.rmin) / self.domain_width *  self.domain_dims)
         iright = np.floor((right - self.rmin) / self.domain_width * self.domain_dims)
-        iright[iright <= ileft+1] += 1
 
         return self.get_ibbox(ileft, iright)
 
@@ -761,17 +760,19 @@ class SDFIndex(object):
         xf, yf, zf = pos_fields
         print pos_fields
 
-        mask = np.zeros_like(data, dtype='bool')
         # I'm sorry.
         pos = mpcuq * np.array([data[xf].in_units('Mpc/h'), data[yf].in_units('Mpc/h'), data[zf].in_units('Mpc/h')]).T
 
-        # This hurts, but is useful for periodicity. Probably should check first
-        # if it is even needed for a given left/right
+        mask = np.zeros_like(data, dtype='bool')
         for i in range(3):
-            pos[:,i] = np.mod(pos[:, i] - left[i], DW[i]) + left[i]
+            mask = pos[:,i] >= DW[i] + left[i]
+            pos[mask, i] -= DW[i]
+            mask = pos[:,i] < right[i] - DW[i]
+            pos[mask, i] += DW[i]
 
         print left, right, pos.min(axis=0), pos.max(axis=0)
         # Now get all particles that are within the bbox
+        mask = np.zeros_like(data, dtype='bool')
         mask = np.all(pos >= left, axis=1) * np.all(pos < right, axis=1)
 
         mylog.debug("Filtering particles, returning %i out of %i" % (mask.sum(), mask.shape[0]))
