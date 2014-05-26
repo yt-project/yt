@@ -49,9 +49,9 @@ delimiters += [str(i) for i in xrange(10)]
 regex_pattern = '|'.join(re.escape(_) for _ in delimiters)
 
 spec_names = {"V":"Velocity",
-              "FREQ":"Frequency",
-              "ENER":"Energy",
-              "WAV":"Wavelength"}
+              "F":"Frequency",
+              "E":"Energy",
+              "W":"Wavelength"}
 
 field_from_unit = {"Jy":"intensity",
                    "K":"temperature"}
