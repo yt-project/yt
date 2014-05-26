@@ -76,7 +76,7 @@ class FrontToBackRaycaster:
 
             self.set_sample_size()
             self.set_max_samples()
-            self.set_density_scale()
+            self.set_opacity()
             self.set_brightness()
 
       """
@@ -116,8 +116,8 @@ class FrontToBackRaycaster:
           ----------
           The Global density scalar.
       """
-      def get_density_scale(self) :
-              return self.density_scale
+      def get_opacity(self) :
+              return self.opacity
 
       """
           Returns
@@ -154,8 +154,8 @@ class FrontToBackRaycaster:
           scale : scalar Float
               Global multiplier on volume data
       """
-      def set_density_scale(self, scale = 0.05) :
-              self.density_scale = scale
+      def set_opacity(self, scale = 0.05) :
+              self.opacity = scale
 
       """
           Parameters
@@ -177,7 +177,7 @@ class FrontToBackRaycaster:
                                           drv.In(self.matrix),
                                           np.int32(w), np.int32(h),
                                           np.int32(self.max_samples),
-                                          np.float32(self.density_scale),
+                                          np.float32(self.opacity),
                                           np.float32(self.transfer.offset),
                                           np.float32(self.transfer.scale),
                                           np.float32(self.brightness),
