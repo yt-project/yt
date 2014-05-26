@@ -541,14 +541,6 @@ provides controls for rotating, translating, and zooming into the volume.
 Using the :class:`~yt.visualization.volume_rendering.theia.TheiaSource`
 automatically transfers the volume to the graphic's card texture memory.
 
-
-.. warning::  The keyword *no_ghost* has been set to True by default
-              for speed considerations.  However, because this turns off ghost
-              zones, there may be artifacts at grid boundaries.  If a higher quality
-              rendering is required, use *no_ghost = False*.
-
-.. _camera_movement:
-
 Example Cookbooks
 ---------------
 
