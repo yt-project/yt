@@ -122,7 +122,8 @@ def coerce_iterable_units(input_object):
     if isinstance(input_object, YTArray):
         return input_object
     if iterable(input_object):
-        if all([isinstance(o, YTQuantity) for o in input_object]):
+        # This will create a copy of the data in the iterable.
+        if all([isinstance(o, YTArray) for o in input_object]):
             ff = input_object[0].units
             if any([not ff.same_dimensions_as(getattr(_, 'units', Unit()))
                     for _ in input_object]):
@@ -140,7 +141,7 @@ def sanitize_units_mul(this_object, other_object):
     # dimensions.
     if isinstance(ret, YTArray):
         if inp.units.same_dimensions_as(ret.units):
-            ret.convert_to_units(inp.units)
+            ret.in_units(inp.units)
     return ret
 
 def sanitize_units_add(this_object, other_object, op_string):
@@ -283,7 +284,7 @@ class YTArray(np.ndarray):
         elif isinstance(input_array, np.ndarray):
             pass
         elif iterable(input_array):
-            if isinstance(input_array[0], YTQuantity):
+            if isinstance(input_array[0], YTArray):
                 return YTArray(np.array(input_array, dtype=dtype),
                                input_array[0].units)
 
