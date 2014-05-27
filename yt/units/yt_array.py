@@ -118,16 +118,17 @@ def arctan2_unit(unit1, unit2):
 def comparison_unit(unit1, unit2):
     return None
 
+NULL_UNIT = (Unit(), )
+
 def coerce_iterable_units(input_object):
-    if isinstance(input_object, YTArray):
+    if isinstance(input_object, np.ndarray):
         return input_object
     if iterable(input_object):
-        # This will create a copy of the data in the iterable.
-        if all([isinstance(o, YTArray) for o in input_object]):
-            ff = input_object[0].units
-            if any([not ff.same_dimensions_as(getattr(_, 'units', Unit()))
-                    for _ in input_object]):
+        if any([isinstance(o, YTArray) for o in input_object]):
+            ff = getattr(input_object[0], 'units', NULL_UNIT, )
+            if any([ff != getattr(_, 'units', NULL_UNIT) for _ in input_object]):
                 raise YTIterableUnitCoercionError(input_object)
+            # This will create a copy of the data in the iterable.
             return YTArray(input_object)
         return input_object
     else:
