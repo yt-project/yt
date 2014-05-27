@@ -371,4 +371,5 @@ cdef class RockstarGroupiesInterface:
                 # Now we reset
                 fof_obj.num_p = j = 0
         free(fof_obj.particles)
+        global_particles = NULL
         return pcounts
