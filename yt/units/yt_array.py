@@ -122,13 +122,13 @@ def coerce_iterable_units(input_object):
     if isinstance(input_object, YTArray):
         return input_object
     if iterable(input_object):
-        if any([not isinstance(o, (YTQuantity, numeric_type))
-                for o in input_object]):
+        if all([isinstance(o, YTQuantity) for o in input_object]):
             ff = input_object[0].units
             if any([not ff.same_dimensions_as(getattr(_, 'units', Unit()))
                     for _ in input_object]):
                 raise YTIterableUnitCoercionError(input_object)
-        return YTArray(input_object)
+            return YTArray(input_object)
+        return input_object
     else:
         return input_object
 
