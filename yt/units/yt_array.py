@@ -118,7 +118,7 @@ def arctan2_unit(unit1, unit2):
 def comparison_unit(unit1, unit2):
     return None
 
-NULL_UNIT = (Unit(), )
+NULL_UNIT = Unit()
 
 def coerce_iterable_units(input_object):
     if isinstance(input_object, np.ndarray):
