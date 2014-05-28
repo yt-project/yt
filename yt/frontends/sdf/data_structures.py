@@ -36,7 +36,8 @@ from yt.utilities.physical_ratios import \
 from .fields import \
     SDFFieldInfo
 from .io import \
-    IOHandlerSDF, \
+    IOHandlerSDF
+from yt.utilities.sdf import \
     SDFRead,\
     SDFIndex,\
     HTTPSDFRead
