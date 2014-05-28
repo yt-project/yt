@@ -377,3 +377,26 @@ class YTInvalidPositionArray(Exception):
         r = """Position arrays must be length and shape (N,3).
                But this one has %s and %s.""" % (self.dimensions, self.shape)
         return r
+
+class YTIllDefinedCutRegion(Exception):
+    def __init__(self, conditions):
+        self.conditions = conditions
+
+    def __str__(self):
+        r = """Can't mix particle/discrete and fluid/mesh conditions or
+               quantities.  Conditions specified:
+            """
+        r += "\n".join([c for c in self.conditions])
+        return r
+
+class YTMixedCutRegion(Exception):
+    def __init__(self, conditions, field):
+        self.conditions = conditions
+        self.field = field
+
+    def __str__(self):
+        r = """Can't mix particle/discrete and fluid/mesh conditions or
+               quantities.  Field: %s and Conditions specified:
+            """ % (self.field,)
+        r += "\n".join([c for c in self.conditions])
+        return r

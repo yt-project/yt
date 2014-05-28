@@ -163,6 +163,7 @@ def configuration(parent_package='', top_path=None):
                          "yt/utilities/data_point_utilities.c",
                          libraries=["m"])
     config.add_subpackage("tests")
+    config.add_subpackage("pyparselibconfig")
     config.make_config_py()  # installs __config__.py
     # config.make_svn_version_py()
     return config

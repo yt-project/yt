@@ -519,15 +519,27 @@ class Dataset(object):
 
     def find_max(self, field):
         """
-        Returns (value, center) of location of maximum for a given field.
+        Returns (value, location) of the maximum of a given field.
         """
         mylog.debug("Searching for maximum value of %s", field)
         source = self.all_data()
         max_val, maxi, mx, my, mz = \
-            source.quantities["MaxLocation"](field)
+            source.quantities.max_location(field)
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
               max_val, mx, my, mz)
         return max_val, np.array([mx, my, mz], dtype="float64")
+
+    def find_min(self, field):
+        """
+        Returns (value, location) for the minimum of a given field.
+        """
+        mylog.debug("Searching for minimum value of %s", field)
+        source = self.all_data()
+        min_val, maxi, mx, my, mz = \
+            source.quantities.min_location(field)
+        mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f",
+              min_val, mx, my, mz)
+        return min_val, np.array([mx, my, mz], dtype="float64")
 
     # Now all the object related stuff
     def all_data(self, find_max=False):

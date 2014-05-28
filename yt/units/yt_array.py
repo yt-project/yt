@@ -252,7 +252,7 @@ class YTArray(np.ndarray):
                     "Perhaps you meant to do something like this instead: \n"
                     "ds.arr(%s, \"%s\")" % (input_array, input_units)
                     )
-        if _astropy.units is not None:
+        if _astropy._units is not None:
             if isinstance(input_array, _astropy.units.quantity.Quantity):
                 return cls.from_astropy(input_array)
         if isinstance(input_array, YTArray):
@@ -1029,9 +1029,9 @@ def array_like_field(data, x, field):
 def get_binary_op_return_class(cls1, cls2):
     if cls1 is cls2:
         return cls1
-    if cls1 is np.ndarray or issubclass(cls1, numeric_type):
+    if cls1 is np.ndarray or issubclass(cls1, (numeric_type, np.number)):
         return cls2
-    if cls2 is np.ndarray or issubclass(cls2, numeric_type):
+    if cls2 is np.ndarray or issubclass(cls2, (numeric_type, np.number)):
         return cls1
     if issubclass(cls1, YTQuantity):
         return cls2
