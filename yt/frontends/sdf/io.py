@@ -31,7 +31,7 @@ from yt.utilities.fortran_utils import read_record
 from yt.utilities.lib.geometry_utils import compute_morton
 
 from yt.geometry.oct_container import _ORDER_MAX
-from particle_filters import bbox_filter, sphere_filter
+from .particle_filters import bbox_filter, sphere_filter
 CHUNKSIZE = 32**3
 
 class IOHandlerSDF(BaseIOHandler):
@@ -116,6 +116,58 @@ class IOHandlerSDF(BaseIOHandler):
         fields = [("dark_matter", v) for v in self._handle.keys()]
         fields.append(("dark_matter", "mass"))
         return fields, {}
+
+class IOHandlerHTTPSDF(IOHandlerSDF):
+    _dataset_type = "http_sdf_particles"
+
+    def _read_particle_coords(self, chunks, ptf):
+        chunks = list(chunks)
+        data_files = set([])
+        assert(len(ptf) == 1)
+        assert(ptf.keys()[0] == "dark_matter")
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
+        assert(len(data_files) == 1)
+        for data_file in data_files:
+            pcount = self._handle['x'].size
+            yield "dark_matter", (
+                self._handle['x'][:pcount], self._handle['y'][:pcount], self._handle['z'][:pcount])
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        chunks = list(chunks)
+        data_files = set([])
+        assert(len(ptf) == 1)
+        assert(ptf.keys()[0] == "dark_matter")
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
+        assert(len(data_files) == 1)
+        for data_file in data_files:
+            pcount = self._handle['x'].size
+            for ptype, field_list in sorted(ptf.items()):
+                x = self._handle['x'][:pcount]
+                y = self._handle['y'][:pcount]
+                z = self._handle['z'][:pcount]
+                mask = selector.select_points(x, y, z, 0.0)
+                del x, y, z
+                if mask is None: continue
+                for field in field_list:
+                    if field == "mass":
+                        if 'particle_mass' in self.parameters:
+                            data = np.ones(mask.sum(), dtype="float64")
+                            data *= self.pf.parameters["particle_mass"]
+                        elif 'm200b' in self._handle.keys():
+                            data = self._handle[field]['m200b'][mask]
+                        else:
+                            raise KeyError
+                    else:
+                        data = self._handle[field][mask]
+                    yield (ptype, field), data
+
+    def _count_particles(self, data_file):
+        return {'dark_matter': self._handle['x'].http_array.shape}
+
 
 class IOHandlerSIndexSDF(IOHandlerSDF):
     _dataset_type = "sindex_sdf_particles"
