@@ -109,10 +109,15 @@ class SDFDataset(Dataset):
 
         if None in (self.domain_left_edge, self.domain_right_edge):
             R0 = self.parameters['R0']
-            self.domain_left_edge = np.array([
-              -self.parameters.get("R%s" % ax, R0) for ax in 'xyz'])
-            self.domain_right_edge = np.array([
-              +self.parameters.get("R%s" % ax, R0) for ax in 'xyz'])
+            if 'offset_center' in self.parameters and self.parameters['offset_center']:
+                self.domain_left_edge = np.array([0, 0, 0])
+                self.domain_right_edge = np.array([
+                 2.0 * self.parameters.get("R%s" % ax, R0) for ax in 'xyz'])
+            else:
+                self.domain_left_edge = np.array([
+                    -self.parameters.get("R%s" % ax, R0) for ax in 'xyz'])
+                self.domain_right_edge = np.array([
+                    +self.parameters.get("R%s" % ax, R0) for ax in 'xyz'])
             self.domain_left_edge *= self.parameters.get("a", 1.0)
             self.domain_right_edge *= self.parameters.get("a", 1.0)
 

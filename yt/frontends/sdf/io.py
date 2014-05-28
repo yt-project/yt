@@ -253,6 +253,3 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
         fields = [("dark_matter", v) for v in self._handle.keys()]
         fields.append(("dark_matter", "mass"))
         return fields, {}
-
-
-
