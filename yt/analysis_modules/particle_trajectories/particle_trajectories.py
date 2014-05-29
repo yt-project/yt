@@ -191,14 +191,13 @@ class ParticleTrajectories(object):
         with shape (num_indices, num_steps)
         """
         if not self.field_data.has_key(field):
-            old_level = int(ytcfg.get("yt","loglevel"))
-            mylog.setLevel(40)
             dd_first = self.data_series[0].all_data()
             fd = dd_first._determine_fields(field)[0]
             if field not in self.particle_fields:
                 if self.data_series[0].field_info[fd].particle_type:
                     self.particle_fields.append(field)
-            particles = np.empty((self.num_indices,self.num_steps)) * np.nan
+            particles = np.empty((self.num_indices,self.num_steps))
+            particles[:] = np.nan
             step = int(0)
             pbar = get_pbar("Generating field %s in trajectories." % (field), self.num_steps)
             my_storage={}
@@ -232,7 +231,6 @@ class ParticleTrajectories(object):
             for i, (fn, (indices, pfield)) in enumerate(sorted(my_storage.items())):
                 particles[indices,i] = pfield
             self.field_data[field] = array_like_field(dd_first, particles, fd)
-            mylog.setLevel(old_level)
         return self.field_data[field]
 
     def trajectory_from_index(self, index):
