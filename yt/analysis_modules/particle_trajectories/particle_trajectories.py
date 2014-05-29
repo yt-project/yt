@@ -83,8 +83,6 @@ class ParticleTrajectories(object):
         fields.append("particle_position_z")
         fields = list(OrderedDict.fromkeys(fields))
 
-        old_level = int(ytcfg.get("yt","loglevel"))
-        mylog.setLevel(40)
         my_storage = {}
         pbar = get_pbar("Constructing trajectory information", len(self.data_series))
         for i, (sto, ds) in enumerate(self.data_series.piter(storage=my_storage)):
@@ -100,8 +98,6 @@ class ParticleTrajectories(object):
             sto.result = ds.current_time
             pbar.update(i)
         pbar.finish()
-
-        mylog.setLevel(old_level)
 
         times = []
         for fn, time in sorted(my_storage.items()):
