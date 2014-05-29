@@ -761,12 +761,20 @@ class PWViewerMPL(PlotWindow):
 
             image = self.frb[f]
 
-            if image.max() == image.min() and zlim == (None, None):
-                if self._field_transform[f] == log_transform:
-                    mylog.warning("Plot image for field %s has zero dynamic "
-                                  "range. Min = Max = %d." % (f, image.max()))
+            if self._field_transform[f] == log_transform:
+                msg = None
+                if zlim != (None, None):
+                    pass
+                elif image.max() == image.min():
+                    msg = "Plot image for field %s has zero dynamic " \
+                          "range. Min = Max = %d." % (f, image.max())
+                elif image.max() <= 0:
+                    msg = "Plot image for field %s has no positive " \
+                          "values.  Max = %d." % (f, image.max())
+                if msg is not None:
+                    mylog.warning(msg)
                     mylog.warning("Switching to linear colorbar scaling.")
-                self._field_transform[f] = linear_transform
+                    self._field_transform[f] = linear_transform
 
             fp = self._font_properties
 
