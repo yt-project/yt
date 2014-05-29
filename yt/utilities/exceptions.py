@@ -193,9 +193,18 @@ class YTUfuncUnitError(YTException):
 
     def __str__(self):
         err = "The NumPy %s operation is only allowed on objects with " \
-        "identical units. Convert one of the arrays to the other\'s " \
-        "units first. Received units (%s) and (%s)." % \
-        (self.ufunc, self.unit1, self.unit2)
+              "identical units. Convert one of the arrays to the other\'s " \
+              "units first. Received units (%s) and (%s)." % \
+              (self.ufunc, self.unit1, self.unit2)
+        return err
+
+class YTIterableUnitCoercionError(YTException):
+    def __init__(self, quantity_list):
+        self.quantity_list = quantity_list
+
+    def __str__(self):
+        err = "Received a list or tuple of quantities with nonuniform units: " \
+              "%s" % self.quantity_list
         return err
 
 class YTHubRegisterError(YTException):
