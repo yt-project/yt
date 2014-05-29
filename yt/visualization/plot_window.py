@@ -448,6 +448,44 @@ class PlotWindow(ImagePlotContainer):
             self.frb[f].convert_to_units(u)
         return self
 
+    @invalidate_plot
+    def set_origin(self, origin):
+        """Set the plot origin.
+
+        Parameters
+        ----------
+        origin : string or length 1, 2, or 3 sequence of strings
+            The location of the origin of the plot coordinate system.  This is
+            represented by '-' separated string or a tuple of strings.  In the
+            first index the y-location is given by 'lower', 'upper', or 'center'.
+            The second index is the x-location, given as 'left', 'right', or
+            'center'.  Finally, the whether the origin is applied in 'domain'
+            space, plot 'window' space or 'native' simulation coordinate system
+            is given. For example, both 'upper-right-domain' and ['upper',
+            'right', 'domain'] both place the origin in the upper right hand
+            corner of domain space. If x or y are not given, a value is inffered.
+            For instance, 'left-domain' corresponds to the lower-left hand corner
+            of the simulation domain, 'center-domain' corresponds to the center
+            of the simulation domain, or 'center-window' for the center of the
+            plot window. Further examples:
+
+            ==================================     ============================
+            format                                 example
+            ==================================     ============================
+            '{space}'                              'domain'
+            '{xloc}-{space}'                       'left-window'
+            '{yloc}-{space}'                       'upper-domain'
+            '{yloc}-{xloc}-{space}'                'lower-right-window'
+            ('{space}',)                           ('window',)
+            ('{xloc}', '{space}')                  ('right', 'domain')
+            ('{yloc}', '{space}')                  ('lower', 'window')
+            ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
+            ==================================     ============================
+
+        """
+        self.origin = origin
+        return self
+
     @invalidate_data
     def _set_window(self, bounds):
         """Set the bounds of the plot window.
