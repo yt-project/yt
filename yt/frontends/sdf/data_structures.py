@@ -67,7 +67,8 @@ class SDFDataset(Dataset):
                  sdf_header = None,
                  idx_filename = None,
                  idx_header = None,
-                 idx_level = 9):
+                 idx_level = 9,
+                 field_map = None):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         if bounding_box is not None:
@@ -82,10 +83,15 @@ class SDFDataset(Dataset):
         self.idx_filename = idx_filename
         self.idx_header = idx_header
         self.idx_level = idx_level
+        if field_map is None:
+            field_map = {}
+        self._field_map = field_map
+        prefix = ''
         if self.idx_filename is not None:
-            dataset_type = 'sindex_sdf_particles'
+            prefix += 'sindex_'
         if 'http' in filename:
-            dataset_type = 'http_sdf_particles'
+            prefix += 'http_'
+        dataset_type = prefix + 'sdf_particles'
         super(SDFDataset, self).__init__(filename, dataset_type)
 
     def _parse_parameter_file(self):
@@ -148,18 +154,24 @@ class SDFDataset(Dataset):
     def sindex(self):
         if self._sindex is None:
             if self.idx_filename is not None:
-                indexdata = SDFRead(self.idx_filename,
-                                    header=self.idx_header)
-                self._sindex = SDFIndex(self.sdf_container, indexdata, level=self.idx_level)
+
+                if 'http' in self.idx_filename:
+                    indexdata = HTTPSDFRead(self.idx_filename,
+                                            header=self.idx_header)
+                else:
+                    indexdata = SDFRead(self.idx_filename,
+                                        header=self.idx_header)
+                self._sindex = SDFIndex(self.sdf_container, indexdata,
+                                        level=self.idx_level)
             else:
                 raise RuntimeError("SDF index0 file not supplied in load.")
         return self._sindex
 
     def _set_code_unit_attributes(self):
-        self.length_unit = self.quan(1.0, "kpc")
-        self.velocity_unit = self.quan(1.0, "kpc/Gyr")
-        self.time_unit = self.quan(1.0, "Gyr")
-        self.mass_unit = self.quan(1e10, "Msun")
+        self.length_unit = self.quan(1.0, self.parameters.get("length_unit", 'kpc'))
+        self.velocity_unit = self.quan(1.0, self.parameters.get("velocity_unit", 'kpc/Gyr'))
+        self.time_unit = self.quan(1.0, self.parameters.get("time_unit", 'Gyr'))
+        self.mass_unit = self.quan(1.0, self.parameters.get("mass_unit", 'Msun'))
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):

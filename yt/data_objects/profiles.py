@@ -110,7 +110,7 @@ class BinnedProfile(ParallelAnalysisInterface):
                 data[field][ub] /= weight_data[field][ub]
                 std_data[field][ub] /= weight_data[field][ub]
             self[field] = data[field]
-            #self["%s_std" % field] = np.sqrt(std_data[field])
+            self["%s_std" % field] = np.sqrt(std_data[field])
         self["UsedBins"] = used
 
         if fractional:
@@ -841,7 +841,7 @@ class ProfileND(ParallelAnalysisInterface):
         if self.weight_field is not None:
             weight_data = chunk[self.weight_field]
         else:
-            weight_data = np.ones(chunk.ires.size, dtype="float64")
+            weight_data = np.ones(filter.size, dtype="float64")
         weight_data = weight_data[filter]
         # So that we can pass these into
         return arr, weight_data, bin_fields

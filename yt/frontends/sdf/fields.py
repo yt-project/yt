@@ -35,13 +35,40 @@ from yt.fields.particle_fields import \
 class SDFFieldInfo(FieldInfoContainer):
     known_other_fields = ()
 
-    known_particle_fields = (
-        ("mass", ("code_mass", ["particle_mass"], None)),
-        ("x", ("code_length", ["particle_position_x"], None)),
-        ("y", ("code_length", ["particle_position_y"], None)),
-        ("z", ("code_length", ["particle_position_z"], None)),
-        ("vx", ("code_velocity", ["particle_velocity_x"], None)),
-        ("vy", ("code_velocity", ["particle_velocity_y"], None)),
-        ("vz", ("code_velocity", ["particle_velocity_z"], None)),
-        ("ident", ("", ["particle_index"], None)),
-    )
+    known_particle_fields = ()
+    _mass_field = None
+
+    def __init__(self, pf, field_list):
+
+        if 'mass' in field_list:
+            self.known_particle_fields.append(("mass", "code_mass",
+                                               ["particle_mass"], None))
+        possible_masses = ['mass', 'm200b', 'mvir']
+        mnf = 'mass'
+        for mn in possible_masses:
+            if mn in pf.sdf_container.keys():
+                mnf = mn
+                self._mass_field=mn
+                break
+
+        idf = pf._field_map.get("particle_index", 'ident')
+        xf = pf._field_map.get("particle_position_x", 'x')
+        yf = pf._field_map.get("particle_position_y", 'y')
+        zf = pf._field_map.get("particle_position_z", 'z')
+        vxf = pf._field_map.get("particle_velocity_x", 'vx')
+        vyf = pf._field_map.get("particle_velocity_z", 'vy')
+        vzf = pf._field_map.get("particle_velocity_z", 'vz')
+
+        self.known_particle_fields = (
+            (idf, ('dimensionless', ['particle_index'], None)),
+            (xf,  ('code_length', ['particle_position_x'], None)),
+            (yf,  ('code_length', ['particle_position_y'], None)),
+            (zf,  ('code_length', ['particle_position_z'], None)),
+            (vxf, ('code_velocity', ['particle_velocity_x'], None)),
+            (vyf, ('code_velocity', ['particle_velocity_y'], None)),
+            (vzf, ('code_velocity', ['particle_velocity_z'], None)),
+            (mnf, ('code_mass', ['particle_mass'], None)),
+        )
+        super(SDFFieldInfo, self).__init__(pf, field_list)
+
+

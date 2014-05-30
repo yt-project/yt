@@ -103,9 +103,6 @@ class IOHandlerSDF(BaseIOHandler):
             ind += CHUNKSIZE
         return morton
 
-    def _count_particles(self, data_file):
-        return {'dark_matter': self._handle['x'].http_array.shape}
-
     def _identify_fields(self, data_file):
         fields = [("dark_matter", v) for v in self._handle.keys()]
         fields.append(("dark_matter", "mass"))
@@ -148,13 +145,15 @@ class IOHandlerHTTPSDF(IOHandlerSDF):
                 if mask is None: continue
                 for field in field_list:
                     if field == "mass":
-                        if 'particle_mass' in self.parameters:
-                            data = np.ones(mask.sum(), dtype="float64")
-                            data *= self.pf.parameters["particle_mass"]
-                        elif 'm200b' in self._handle.keys():
-                            data = self._handle[field]['m200b'][mask]
+                        if self.pf.field_info._mass_field is None:
+                            pm = 1.0
+                            if 'particle_mass' in self.pf.parameters:
+                                pm = self.pf.parameters['particle_mass']
+                            else:
+                                raise RuntimeError
+                            data = pm * np.ones(mask.sum(), dtype="float64")
                         else:
-                            raise KeyError
+                            data = self._handle[self.pf.field_info._mass_field][mask]
                     else:
                         data = self._handle[field][mask]
                     yield (ptype, field), data
@@ -253,3 +252,8 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
         fields = [("dark_matter", v) for v in self._handle.keys()]
         fields.append(("dark_matter", "mass"))
         return fields, {}
+
+
+class IOHandlerSIndexHTTPSDF(IOHandlerSIndexSDF):
+    _dataset_type = "sindex_http_sdf_particles"
+

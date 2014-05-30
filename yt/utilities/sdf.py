@@ -4,6 +4,7 @@ import os
 import numpy as np
 from httpmmap import HTTPArray
 from arbitrary_page import PageCacheURL
+from yt.funcs import mylog
 
 _types = {
     'int': 'int32',
@@ -144,14 +145,9 @@ class HTTPDataStruct(DataStruct):
             self.size = float(file_size) / self.itemsize
             assert(int(self.size) == self.size)
 
-    def build_redirect_func(self, key):
-        def redirect(sl):
-            return self.handle[sl][key]
-        return redirect
-
     def build_memmap(self):
         assert(self.size != -1)
-        print 'Building memmap with offset: %i' % self._offset 
+        print 'Building memmap with offset: %i' % self._offset
         self.handle = HTTPArray(self.filename, dtype=self.dtype,
                         shape=self.size, offset=self._offset)
         for k in self.dtype.names:
@@ -163,6 +159,7 @@ class SDFRead(dict):
     """docstring for SDFRead"""
 
     _eof = 'SDF-EOH'
+    _data_struct = DataStruct
 
     def __init__(self, filename, header=None):
         self.filename = filename
@@ -240,7 +237,7 @@ class SDFRead(dict):
             # handle this.
             num = '-1'
         num = int(num)
-        struct = DataStruct(str_types, num, self.filename)
+        struct = self._data_struct(str_types, num, self.filename)
         self.structs.append(struct)
         return
 
@@ -261,19 +258,8 @@ class HTTPSDFRead(SDFRead):
 
     """docstring for SDFRead"""
 
+    _data_struct = HTTPDataStruct
     _eof = 'SDF-EOH'
-
-    def __init__(self, filename, header=None):
-        self.filename = filename
-        if header is None:
-            header = filename
-        self.header = header
-        self.parameters = {}
-        self.structs = []
-        self.comments = []
-        self.parse_header()
-        self.set_offsets()
-        self.load_memmaps()
 
     def parse_header(self):
         """docstring for parse_header"""
@@ -291,29 +277,6 @@ class HTTPSDFRead(SDFRead):
         if self.header != self.filename:
             hoff = 0
         self.parameters['header_offset'] = hoff
-
-    def parse_struct(self, line, ascfile):
-        assert 'struct' in line
-
-        str_types = []
-        comments = []
-        str_lines = []
-        l = ascfile.readline()
-        while "}" not in l:
-            vtype, vnames = get_struct_vars(l)
-            for v in vnames:
-                str_types.append((v, vtype))
-            l = ascfile.readline()
-        num = l.strip("}[]")
-        num = num.strip("\;\\\n]")
-        if len(num) == 0:
-            # We need to compute the number of records.  The DataStruct will
-            # handle this.
-            num = '-1'
-        num = int(num)
-        struct = HTTPDataStruct(str_types, num, self.filename)
-        self.structs.append(struct)
-        return
 
 
 class SDFIndex(object):
@@ -490,7 +453,7 @@ class SDFIndex(object):
         lengths = self.indexdata['len'][mask]
         return mask, offsets, lengths
 
-    def get_ibbox(self, ileft, iright, wandering_particles=True):
+    def get_ibbox(self, ileft, iright):
         """
         Given left and right indicies, return a mask and
         set of offsets+lengths into the sdf data.
