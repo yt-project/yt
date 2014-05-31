@@ -236,7 +236,7 @@ Cutting Objects by Field Values
 -------------------------------
 
 Data objects can be cut by their field values using the ``cut_region`` 
-method.  For example, this could be used to compute the total mass within 
+method.  For example, this could be used to compute the total gas mass within
 a certain temperature range, as in the following example.
 
 .. notebook-cell::
@@ -244,11 +244,11 @@ a certain temperature range, as in the following example.
    from yt.mods import *
    ds = load("enzo_tiny_cosmology/DD0046/DD0046")
    ad = ds.all_data()
-   total_mass = ad.quantities.total_mass()
+   total_mass = ad.quantities.total_quantity('cell_mass')
    # now select only gas with 1e5 K < T < 1e7 K.
    new_region = ad.cut_region(['obj["temperature"] > 1e5',
                                'obj["temperature"] < 1e7'])
-   cut_mass = new_region.quantities.total_mass()
+   cut_mass = new_region.quantities.total_quantity('cell_mass')
    print "The fraction of mass in this temperature range is %f." % \
      (cut_mass / total_mass)
 

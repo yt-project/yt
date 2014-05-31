@@ -30,10 +30,10 @@ from .base_plot_types import CallbackWrapper
 
 from yt.funcs import \
     defaultdict, get_image_suffix, \
-    get_ipython_api_version, iterable
+    get_ipython_api_version, iterable, \
+    ensure_list
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
-from ._mpl_imports import FigureCanvasAgg
 
 def invalidate_data(f):
     @wraps(f)
@@ -241,7 +241,7 @@ class ImagePlotContainer(object):
         if field is 'all':
             fields = self.plots.keys()
         else:
-            fields = [field]
+            fields = ensure_list(field)
         for field in self.data_source._determine_fields(fields):
             myzmin = zmin
             myzmax = zmax

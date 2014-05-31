@@ -193,9 +193,18 @@ class YTUfuncUnitError(YTException):
 
     def __str__(self):
         err = "The NumPy %s operation is only allowed on objects with " \
-        "identical units. Convert one of the arrays to the other\'s " \
-        "units first. Received units (%s) and (%s)." % \
-        (self.ufunc, self.unit1, self.unit2)
+              "identical units. Convert one of the arrays to the other\'s " \
+              "units first. Received units (%s) and (%s)." % \
+              (self.ufunc, self.unit1, self.unit2)
+        return err
+
+class YTIterableUnitCoercionError(YTException):
+    def __init__(self, quantity_list):
+        self.quantity_list = quantity_list
+
+    def __str__(self):
+        err = "Received a list or tuple of quantities with nonuniform units: " \
+              "%s" % self.quantity_list
         return err
 
 class YTHubRegisterError(YTException):
@@ -384,3 +393,26 @@ class YTImportFailure(YTException):
                "version of yt.  To resolve this, follow these steps at the command line: \n\n" + \
                "$ cd $YT_DEST/src/yt-hg \n" + \
                "$ python setup.py develop \n"
+
+class YTIllDefinedCutRegion(Exception):
+    def __init__(self, conditions):
+        self.conditions = conditions
+
+    def __str__(self):
+        r = """Can't mix particle/discrete and fluid/mesh conditions or
+               quantities.  Conditions specified:
+            """
+        r += "\n".join([c for c in self.conditions])
+        return r
+
+class YTMixedCutRegion(Exception):
+    def __init__(self, conditions, field):
+        self.conditions = conditions
+        self.field = field
+
+    def __str__(self):
+        r = """Can't mix particle/discrete and fluid/mesh conditions or
+               quantities.  Field: %s and Conditions specified:
+            """ % (self.field,)
+        r += "\n".join([c for c in self.conditions])
+        return r

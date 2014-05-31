@@ -23,7 +23,7 @@ class FITSFieldInfo(FieldInfoContainer):
         for field in pf.field_list:
             if field[0] == "fits": self[field].take_log = False
 
-    def _setup_ppv_fields(self):
+    def _setup_spec_cube_fields(self):
 
         def _get_2d_wcs(data, axis):
             w_coords = data.pf.wcs_2d.wcs_pix2world(data["x"], data["y"], 1)
@@ -42,17 +42,18 @@ class FITSFieldInfo(FieldInfoContainer):
             self.add_field(("fits",name), function=world_f(axis, unit), units=unit)
 
         if self.pf.dimensionality == 3:
-            def _vel_los(field, data):
-                axis = "xyz"[data.pf.vel_axis]
-                return data.pf.arr(data[axis].ndarray_view(),data.pf.vel_unit)
-            self.add_field(("fits",self.pf.vel_name), function=_vel_los,
-                           units=self.pf.vel_unit)
+            def _spec(field, data):
+                axis = "xyz"[data.pf.spec_axis]
+                sp = (data[axis].ndarray_view()-self.pf._p0)*self.pf._dz + self.pf._z0
+                return data.pf.arr(sp, data.pf.spec_unit)
+            self.add_field(("fits","spectral"), function=_spec,
+                           units=self.pf.spec_unit, display_name=self.pf.spec_name)
 
     def setup_fluid_fields(self):
 
-        if self.pf.ppv_data:
+        if self.pf.spec_cube:
             def _pixel(field, data):
                 return data.pf.arr(data["ones"], "pixel")
             self.add_field(("fits","pixel"), function=_pixel, units="pixel")
-            self._setup_ppv_fields()
+            self._setup_spec_cube_fields()
             return

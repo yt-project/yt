@@ -36,20 +36,20 @@ Creating an X-ray observation of a dataset on disk
 .. code:: python
 
     from yt.mods import *
-    from yt.analysis_modules.api import *
+    from yt.analysis_modules.photon_simulator.api import *
     from yt.utilities.cosmology import Cosmology
 
 We're going to load up an Athena dataset of a galaxy cluster core:
 
 .. code:: python
 
-    pf = load("MHDSloshing/virgo_low_res.0054.vtk", 
-              parameters={"TimeUnits":3.1557e13,
-                          "LengthUnits":3.0856e24,
-                          "DensityUnits":6.770424595218825e-27})
+    pf = load("MHDSloshing/virgo_low_res.0054.vtk",
+              parameters={"time_unit":(1.0,"Myr"),
+                          "length_unit":(1.0,"Mpc"),
+                          "mass_unit":(1.0e14,"Msun")}) 
 
 First, to get a sense of what the resulting image will look like, let's
-make a new ``yt`` field called ``"DensitySquared"``, since the X-ray
+make a new ``yt`` field called ``"density_squared"``, since the X-ray
 emission is proportional to :math:`\rho^2`, and a weak function of
 temperature and metallicity.
 
@@ -57,14 +57,14 @@ temperature and metallicity.
 
     def _density_squared(field, data):
         return data["density"]**2
-    add_field("DensitySquared", function=_density_squared)
+    add_field("density_squared", function=_density_squared)
 
 Then we'll project this field along the z-axis.
 
 .. code:: python
 
-    prj = ProjectionPlot(pf, "z", ["DensitySquared"], width=(500., "kpc"))
-    prj.set_cmap("DensitySquared", "gray_r")
+    prj = ProjectionPlot(ds, "z", ["density_squared"], width=(500., "kpc"))
+    prj.set_cmap("density_squared", "gray_r")
     prj.show()
 
 .. image:: _images/dsquared.png
@@ -89,7 +89,7 @@ center of the domain, with a radius of 250 kpc:
 
 .. code:: python
 
-    sp = pf.sphere("c", (250., "kpc"))
+    sp = ds.sphere("c", (250., "kpc"))
 
 This will serve as our ``data_source`` that we will use later. Next, we
 need to create the ``SpectralModel`` instance that will determine how
@@ -258,11 +258,6 @@ reading by telescope simulation codes later.
     events = photons.project_photons(L, exp_time_new=2.0e5, redshift_new=0.07, absorb_model=abs_model,
                                      sky_center=(187.5,12.333), responses=[ARF,RMF])
 
-.. parsed-literal::
-
-    WARNING:yt:This routine has not been tested to work with all RMFs. YMMV.
-
-
 Also, the optional keyword ``psf_sigma`` specifies a Gaussian standard
 deviation to scatter the photon sky positions around with, providing a
 crude representation of a PSF.
@@ -282,17 +277,17 @@ Let's just take a quick look at the raw events object:
 
 .. code:: python
 
-    {'eobs': array([  0.32086522,   0.32271389,   0.32562708, ...,   8.90600621,
-             9.73534237,  10.21614256]), 
-     'xsky': array([ 187.5177707 ,  187.4887825 ,  187.50733609, ...,  187.5059345 ,
-            187.49897546,  187.47307048]), 
-     'ysky': array([ 12.33519996,  12.3544496 ,  12.32750903, ...,  12.34907707,
-            12.33327653,  12.32955225]), 
-     'ypix': array([ 133.85374195,  180.68583074,  115.14110561, ...,  167.61447493,
-            129.17278711,  120.11508562]), 
+    {'eobs': YTArray([  0.32086522,   0.32271389,   0.32562708, ...,   8.90600621,
+             9.73534237,  10.21614256]) keV, 
+     'xsky': YTArray([ 187.5177707 ,  187.4887825 ,  187.50733609, ...,  187.5059345 ,
+            187.49897546,  187.47307048]) degree, 
+     'ysky': YTArray([ 12.33519996,  12.3544496 ,  12.32750903, ...,  12.34907707,
+            12.33327653,  12.32955225]) degree, 
+     'ypix': YTArray([ 133.85374195,  180.68583074,  115.14110561, ...,  167.61447493,
+            129.17278711,  120.11508562]) (dimensionless), 
      'PI': array([ 27,  15,  25, ..., 609, 611, 672]), 
-     'xpix': array([  86.26331108,  155.15934197,  111.06337043, ...,  114.39586907,
-            130.93509652,  192.50639633])}
+     'xpix': YTArray([  86.26331108,  155.15934197,  111.06337043, ...,  114.39586907,
+            130.93509652,  192.50639633]) (dimensionless)}
 
 
 We can bin up the events into an image and save it to a FITS file. The
@@ -436,7 +431,7 @@ Now, we create a parameter file out of this dataset:
 
    bbox = np.array([[-0.5,0.5],[-0.5,0.5],[-0.5,0.5]])
 
-   pf = load_uniform_grid(data, ddims, 2*R*cm_per_kpc, bbox=bbox)
+   ds = load_uniform_grid(data, ddims, 2*R*cm_per_kpc, bbox=bbox)
 
 where for simplicity we have set the velocities to zero, though we
 could have created a realistic velocity field as well. Now, we
@@ -445,7 +440,7 @@ example:
 
 .. code:: python
 
-   sphere = pf.sphere(pf.domain_center, 1.0/pf["mpc"])
+   sphere = ds.sphere(pf.domain_center, (1.0,"Mpc"))
        
    A = 6000.
    exp_time = 2.0e5
