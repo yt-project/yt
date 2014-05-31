@@ -1069,7 +1069,8 @@ class ParticleCallback(PlotCallback):
     """
     annotate_particles(width, p_size=1.0, col='k', marker='o', stride=1.0,
                        ptype=None, stars_only=False, dm_only=False,
-                       minimum_mass=None, alpha=1.0)
+                       minimum_mass=None, alpha=1.0, min_star_age=None,
+                       max_star_age=None)
 
     Adds particle positions, based on a thick slab along *axis* with a
     *width* along the line of sight.  *p_size* controls the number of
@@ -1077,14 +1078,16 @@ class ParticleCallback(PlotCallback):
     restrict plotted particles to only those that are of a given type.
     *minimum_mass* will require that the particles be of a given mass,
     calculated via ParticleMassMsun, to be plotted. *alpha* determines
-    each particle's opacity.
+    each particle's opacity. If stars are plotted, min_star_age and
+    max_star_age filter them (in years).
     """
     _type_name = "particles"
     region = None
     _descriptor = None
     def __init__(self, width, p_size=1.0, col='k', marker='o', stride=1.0,
                  ptype=None, stars_only=False, dm_only=False,
-                 minimum_mass=None, alpha=1.0):
+                 minimum_mass=None, alpha=1.0, min_star_age=None,
+                 max_star_age=None):
         PlotCallback.__init__(self)
         self.width = width
         self.p_size = p_size
@@ -1096,10 +1099,12 @@ class ParticleCallback(PlotCallback):
         self.dm_only = dm_only
         self.minimum_mass = minimum_mass
         self.alpha = alpha
+        self.min_star_age = min_star_age
+        self.max_star_age = max_star_age
 
     def __call__(self, plot):
         data = plot.data
-        # we construct a recantangular prism
+        # we construct a rectangular prism
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
@@ -1120,6 +1125,16 @@ class ParticleCallback(PlotCallback):
             if gg.sum() == 0: return
         if self.minimum_mass is not None:
             gg &= (reg["ParticleMassMsun"] >= self.minimum_mass)
+            if gg.sum() == 0: return
+        if self.min_star_age is not None:
+            current_time = plot.pf.current_time
+            age_in_years = (current_time - reg["creation_time"]) * (plot.pf['Time'] / 3.155e7)
+            gg &= (age_in_years >= self.min_star_age)
+            if gg.sum() == 0: return
+        if self.max_star_age is not None:
+            current_time = plot.pf.current_time
+            age_in_years = (current_time - reg["creation_time"]) * (plot.pf['Time'] / 3.155e7)
+            gg &= (age_in_years <= self.max_star_age)
             if gg.sum() == 0: return
         plot._axes.hold(True)
         px, py = self.convert_to_plot(plot,
