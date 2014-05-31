@@ -114,6 +114,32 @@ class DataStruct(object):
         for k in self.dtype.names:
             self.data[k] = self.handle[k]
 
+    def __getitem__(self, key):
+        mask = None
+        kt = type(key)
+        if kt == int or kt == np.int64 or kt == np.int32 or kt == np.int:
+            if key == -1:
+                key = slice(-1, None)
+            else:
+                key = slice(key, key+1)
+        elif type(key) == np.ndarray:
+            mask = key
+            key = slice(None, None)
+        if not isinstance(key, slice):
+            raise NotImplementedError
+        if key.start is None:
+            key = slice(0, key.stop)
+        if key.stop is None:
+            key = slice(key.start, self.shape)
+        if key.start < 0:
+            key = slice(self.size + key.start, key.stop)
+        if key.stop < 0:
+            key = slice(key.start, self.size + key.stop)
+        arr = self.handle[key.start:key.stop]
+        if mask is None:
+            return arr
+        else:
+            return arr[mask]
 
 class RedirectArray(object):
     """docstring for RedirectArray"""
@@ -125,7 +151,6 @@ class RedirectArray(object):
 
     def __getitem__(self, sl):
         if isinstance(sl, int):
-            sl = slice(sl, sl+1)
             return self.http_array[sl][self.key][0]
         return self.http_array[sl][self.key]
 
@@ -330,6 +355,10 @@ class SDFIndex(object):
 
     def set_bounds(self):
         r_0 = self.sdfdata.parameters['R0']
+        try:
+            r_0 = self.sdfdata.parameters['L0']
+        except:
+            pass
         DW = 2.0 * r_0
 
         self.rmin = np.zeros(3)
