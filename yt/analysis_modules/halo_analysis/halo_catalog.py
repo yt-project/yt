@@ -203,6 +203,10 @@ class HaloCatalog(ParallelAnalysisInterface):
             field_type = kwargs.pop("field_type")
         else:
             field_type = None
+        if 'prepend' in kwargs:
+            prepend = kwargs.pop("prepend")
+        else:
+            prepend = False
         if field_type is None:
             quantity = quantity_registry.find(key, *args, **kwargs)
         elif (field_type, key) in self.halos_pf.field_info:
@@ -210,7 +214,10 @@ class HaloCatalog(ParallelAnalysisInterface):
         else:
             raise RuntimeError("HaloCatalog quantity must be a registered function or a field of a known type.")
         self.quantities.append(key)
-        self.actions.append(("quantity", (key, quantity)))
+        if prepend:
+            self.actions.insert(0, ("quantity", (key, quantity)))
+        else:
+            self.actions.append(("quantity", (key, quantity)))
 
     def add_filter(self, halo_filter, *args, **kwargs):
         r"""
@@ -364,7 +371,7 @@ class HaloCatalog(ParallelAnalysisInterface):
             self.data_source = self.halos_pf.all_data()
 
             # Add all of the default quantities that all halos must have
-            self.add_default_quantities('all')
+            self.add_default_quantities('all', prepend=True)
 
         my_index = np.argsort(self.data_source["particle_identifier"])
         for i in parallel_objects(my_index, njobs=njobs, dynamic=dynamic):
@@ -429,11 +436,11 @@ class HaloCatalog(ParallelAnalysisInterface):
                 dataset.attrs["units"] = units
         out_file.close()
 
-    def add_default_quantities(self, field_type='halos'):
-        self.add_quantity("particle_identifier", field_type=field_type)
-        self.add_quantity("particle_mass", field_type=field_type)
-        self.add_quantity("particle_position_x", field_type=field_type)
-        self.add_quantity("particle_position_y", field_type=field_type)
-        self.add_quantity("particle_position_z", field_type=field_type)
-        self.add_quantity("virial_radius", field_type=field_type)
+    def add_default_quantities(self, field_type='halos', prepend=False):
+        self.add_quantity("particle_identifier", field_type=field_type,prepend=prepend)
+        self.add_quantity("particle_mass", field_type=field_type,prepend=prepend)
+        self.add_quantity("particle_position_x", field_type=field_type,prepend=prepend)
+        self.add_quantity("particle_position_y", field_type=field_type,prepend=prepend)
+        self.add_quantity("particle_position_z", field_type=field_type,prepend=prepend)
+        self.add_quantity("virial_radius", field_type=field_type,prepend=prepend)
 
