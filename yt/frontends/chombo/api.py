@@ -18,10 +18,14 @@ from .data_structures import \
       ChomboHierarchy, \
       ChomboDataset, \
       Orion2Hierarchy, \
-      Orion2Dataset
+      Orion2Dataset, \
+      ChomboPICHierarchy, \
+      ChomboPICDataset
 
 from .fields import \
-      ChomboFieldInfo
+      ChomboFieldInfo, \
+      Orion2FieldInfo, \
+      ChomboPICFieldInfo
 
 from .io import \
       IOHandlerChomboHDF5

@@ -88,3 +88,22 @@ class Orion2FieldInfo(ChomboFieldInfo):
                        units = "erg/cm**3")
         self.add_field("temperature", function=_temperature,
                        units="K")
+
+# Chombo does not have any known fields by itself.
+class ChomboPICFieldInfo(FieldInfoContainer):
+    known_other_fields = (
+        ("density", (rho_units, ["density", "Density"], None)),
+        ("potential", ("code_length**2 / code_time**2", ["potential"], None)),
+        ("gravitational_field_x", ("code_length / code_time**2", ["gravitational-field-x"], None)),
+        ("gravitational_field_y", ("code_length / code_time**2", ["gravitational-field-y"], None)),
+        ("gravitational_field_z", ("code_length / code_time**2", ["gravitational-field-z"], None)),
+    )
+    known_particle_fields = (
+        ("particle_mass", ("code_mass", [], None)),
+        ("particle_position_x", ("code_length", [], None)),
+        ("particle_position_y", ("code_length", [], None)),
+        ("particle_position_z", ("code_length", [], None)),
+        ("particle_velocity_x", ("code_length / code_time", [], None)),
+        ("particle_velocity_y", ("code_length / code_time", [], None)),
+        ("particle_velocity_z", ("code_length / code_time", [], None)),
+    )

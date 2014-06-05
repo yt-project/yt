@@ -40,7 +40,7 @@ from yt.utilities.lib.misc_utilities import \
 from yt.utilities.io_handler import \
     io_registry
 
-from .fields import ChomboFieldInfo, Orion2FieldInfo
+from .fields import ChomboFieldInfo, Orion2FieldInfo, ChomboPICFieldInfo
 
 class ChomboGrid(AMRGridPatch):
     _id_offset = 0
@@ -349,6 +349,7 @@ class ChomboDataset(Dataset):
                 valid = "Chombo_global" in fileh["/"]
                 # ORION2 simulations should always have this:
                 valid = valid and not ('CeilVA_mass' in fileh.attrs.keys())
+                valid = valid and not ('Charm_global' in fileh.keys())
                 fileh.close()
                 return valid
             except:
@@ -475,3 +476,44 @@ class Orion2Dataset(ChomboDataset):
                 pass
         return False
 
+class ChomboPICHierarchy(ChomboHierarchy):
+
+    def __init__(self, pf, dataset_type="chombo_hdf5"):
+        ChomboHierarchy.__init__(self, pf, dataset_type)
+
+class ChomboPICDataset(ChomboDataset):
+
+    _index_class = ChomboPICHierarchy
+    _field_info_class = ChomboPICFieldInfo
+
+    def __init__(self, filename, dataset_type='chombo_hdf5',
+                 storage_filename = None, ini_filename = None):
+
+        ChomboDataset.__init__(self, filename, dataset_type, 
+                    storage_filename, ini_filename)
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+
+        pluto_ini_file_exists  = False
+        orion2_ini_file_exists = False
+
+        if type(args[0]) == type(""):
+            dir_name = os.path.dirname(os.path.abspath(args[0]))
+            pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
+            orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
+            pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
+            orion2_ini_file_exists = os.path.isfile(orion2_ini_filename)
+        
+        if orion2_ini_file_exists:
+            return True
+
+        if not pluto_ini_file_exists:
+            try:
+                fileh = h5py.File(args[0],'r')
+                valid = "Charm_global" in fileh["/"]
+                fileh.close()
+                return valid
+            except:
+                pass
+        return False
