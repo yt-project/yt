@@ -137,19 +137,25 @@ class YTDataContainer(object):
             self.center = None
             self.set_field_parameter('center', self.center)
             return
+        elif isinstance(center, YTArray):
+            self.center = self.pf.arr(center.in_cgs())
+            self.center.convert_to_units('code_length')
         elif isinstance(center, (types.ListType, types.TupleType, np.ndarray)):
-            center = self.pf.arr(center, 'code_length')
+            if isinstance(center[0], YTQuantity):
+                self.center = self.pf.arr([c.in_cgs() for c in center])
+                self.center.convert_to_units('code_length')
+            else:
+                self.center = self.pf.arr(center, 'code_length')
         elif isinstance(center, basestring):
             if center.lower() in ("c", "center"):
-                center = self.pf.domain_center
+                self.center = self.pf.domain_center
              # is this dangerous for race conditions?
             elif center.lower() in ("max", "m"):
-                center = self.pf.h.find_max(("gas", "density"))[1]
+                self.center = self.pf.h.find_max(("gas", "density"))[1]
             elif center.startswith("max_"):
-                center = self.pf.h.find_max(center[4:])[1]
+                self.center = self.pf.h.find_max(center[4:])[1]
         else:
-            center = np.array(center, dtype='float64')
-        self.center = self.pf.arr(center, 'code_length')
+            self.center = self.pf.arr(center, 'code_length', dtype='float64')
         self.set_field_parameter('center', self.center)
 
     def get_field_parameter(self, name, default=None):

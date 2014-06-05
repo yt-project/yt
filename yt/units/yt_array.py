@@ -284,7 +284,7 @@ class YTArray(np.ndarray):
             return input_array
         elif isinstance(input_array, np.ndarray):
             pass
-        elif iterable(input_array):
+        elif iterable(input_array) and input_array:
             if isinstance(input_array[0], YTArray):
                 return YTArray(np.array(input_array, dtype=dtype),
                                input_array[0].units)
