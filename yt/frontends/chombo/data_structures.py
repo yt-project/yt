@@ -40,7 +40,8 @@ from yt.utilities.lib.misc_utilities import \
 from yt.utilities.io_handler import \
     io_registry
 
-from .fields import ChomboFieldInfo, Orion2FieldInfo, ChomboPICFieldInfo
+from .fields import ChomboFieldInfo, Orion2FieldInfo, \
+    ChomboPICFieldInfo1D, ChomboPICFieldInfo2D, ChomboPICFieldInfo3D 
 
 class ChomboGrid(AMRGridPatch):
     _id_offset = 0
@@ -484,13 +485,19 @@ class ChomboPICHierarchy(ChomboHierarchy):
 class ChomboPICDataset(ChomboDataset):
 
     _index_class = ChomboPICHierarchy
-    _field_info_class = ChomboPICFieldInfo
+    _field_info_class = ChomboPICFieldInfo3D
 
     def __init__(self, filename, dataset_type='chombo_hdf5',
                  storage_filename = None, ini_filename = None):
 
         ChomboDataset.__init__(self, filename, dataset_type, 
                     storage_filename, ini_filename)
+
+        if self.dimensionality == 1:
+            self._field_info_class = ChomboPICFieldInfo1D
+
+        if self.dimensionality == 2:
+            self._field_info_class = ChomboPICFieldInfo2D
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

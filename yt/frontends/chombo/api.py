@@ -25,7 +25,9 @@ from .data_structures import \
 from .fields import \
       ChomboFieldInfo, \
       Orion2FieldInfo, \
-      ChomboPICFieldInfo
+      ChomboPICFieldInfo1D, \
+      ChomboPICFieldInfo2D, \
+      ChomboPICFieldInfo3D
 
 from .io import \
       IOHandlerChomboHDF5

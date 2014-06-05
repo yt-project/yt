@@ -89,11 +89,10 @@ class Orion2FieldInfo(ChomboFieldInfo):
         self.add_field("temperature", function=_temperature,
                        units="K")
 
-# Chombo does not have any known fields by itself.
-class ChomboPICFieldInfo(FieldInfoContainer):
+class ChomboPICFieldInfo3D(FieldInfoContainer):
     known_other_fields = (
         ("density", (rho_units, ["density", "Density"], None)),
-        ("potential", ("code_length**2 / code_time**2", ["potential"], None)),
+        ("potential", ("code_length**2 / code_time**2", ["potential", "Potential"], None)),
         ("gravitational_field_x", ("code_length / code_time**2", ["gravitational-field-x"], None)),
         ("gravitational_field_y", ("code_length / code_time**2", ["gravitational-field-y"], None)),
         ("gravitational_field_z", ("code_length / code_time**2", ["gravitational-field-z"], None)),
@@ -107,3 +106,75 @@ class ChomboPICFieldInfo(FieldInfoContainer):
         ("particle_velocity_y", ("code_length / code_time", [], None)),
         ("particle_velocity_z", ("code_length / code_time", [], None)),
     )
+
+def _dummy_position(field, data):
+    return 0.5*np.ones_like(data['particle_position_x'])
+
+def _dummy_velocity(field, data):
+    return np.zeros_like(data['particle_velocity_x'])
+
+def _dummy_field(field, data):
+    return 0.0 * data['gravitational_field_x']
+
+class ChomboPICFieldInfo2D(FieldInfoContainer):
+    known_other_fields = (
+        ("density", (rho_units, ["density", "Density"], None)),
+        ("potential", ("code_length**2 / code_time**2", ["potential", "Potential"], None)),
+        ("gravitational_field_x", ("code_length / code_time**2", ["gravitational-field-x"], None)),
+        ("gravitational_field_y", ("code_length / code_time**2", ["gravitational-field-y"], None)),
+    )
+    known_particle_fields = (
+        ("particle_mass", ("code_mass", [], None)),
+        ("particle_position_x", ("code_length", [], None)),
+        ("particle_position_y", ("code_length", [], None)),
+        ("particle_velocity_x", ("code_length / code_time", [], None)),
+        ("particle_velocity_y", ("code_length / code_time", [], None)),
+    )
+
+    def __init__(self, pf, field_list):
+        super(ChomboPICFieldInfo2D, self).__init__(pf, field_list)
+
+        self.add_field(('chombo', 'gravitational_field_z'), function = _dummy_field, 
+                        units = "code_length / code_time**2")
+                        
+        self.add_field(("io", "particle_position_z"), function = _dummy_position,
+                       particle_type = True,
+                       units = "code_length")
+
+        self.add_field(("io", "particle_velocity_z"), function = _dummy_velocity,
+                       particle_type = True,
+                       units = "code_length / code_time")
+
+class ChomboPICFieldInfo1D(FieldInfoContainer):
+    known_other_fields = (
+        ("density", (rho_units, ["density", "Density"], None)),
+        ("potential", ("code_length**2 / code_time**2", ["potential", "Potential"], None)),
+        ("gravitational_field_x", ("code_length / code_time**2", ["gravitational-field-x"], None)),
+    )
+    known_particle_fields = (
+        ("particle_mass", ("code_mass", [], None)),
+        ("particle_position_x", ("code_length", [], None)),
+        ("particle_velocity_x", ("code_length / code_time", [], None)),
+    )
+
+    def __init__(self, pf, field_list):
+        super(ChomboPICFieldInfo1D, self).__init__(pf, field_list)
+        
+        self.add_field(('chombo', 'gravitational_field_y'), function = _dummy_field, 
+                        units = "code_length / code_time**2")
+
+        self.add_field(('chombo', 'gravitational_field_z'), function = _dummy_field, 
+                units = "code_length / code_time**2")
+
+        self.add_field(("io", "particle_position_y"), function = _dummy_position,
+                       particle_type = True,
+                       units = "code_length")
+        self.add_field(("io", "particle_position_z"), function = _dummy_position,
+                       particle_type = True,
+                       units = "code_length")
+        self.add_field(("io", "particle_velocity_y"), function = _dummy_velocity,
+                       particle_type = True,
+                       units = "code_length / code_time")
+        self.add_field(("io", "particle_velocity_z"), function = _dummy_velocity,
+                       particle_type = True,
+                       units = "code_length / code_time")
