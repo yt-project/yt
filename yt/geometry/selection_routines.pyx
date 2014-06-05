@@ -541,7 +541,7 @@ cdef class SphereSelector(SelectorObject):
 
     def __init__(self, dobj):
         for i in range(3):
-            self.center[i] = dobj.center[i]
+            self.center[i] = _ensure_code(dobj.center[i])
         self.radius = _ensure_code(dobj.radius)
         self.radius2 = self.radius * self.radius
 
@@ -702,7 +702,7 @@ cdef class DiskSelector(SelectorObject):
         cdef int i
         for i in range(3):
             self.norm_vec[i] = dobj._norm_vec[i]
-            self.center[i] = dobj.center[i]
+            self.center[i] = _ensure_code(dobj.center[i])
         self.radius = _ensure_code(dobj._radius)
         self.radius2 = self.radius * self.radius
         self.height = _ensure_code(dobj._height)
