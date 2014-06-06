@@ -898,3 +898,4 @@ setting the ``number_of_particles`` key to each ``grid``'s dict:
 Generic Particle Data
 ---------------------
 
+.. notebook:: Loading_Generic_Particle_Data.ipynb
