@@ -289,7 +289,7 @@ class DualEPS(object):
         """
         if isinstance(plot, (PlotWindow, PhasePlot)):
             plot.refresh()
-        elif isinstance(plot, (VMPlot, PlotWindow)):
+        if isinstance(plot, (VMPlot, PlotWindow)):
             if isinstance(plot, PlotWindow):
                 data = plot._frb
                 width = plot.width[0]
