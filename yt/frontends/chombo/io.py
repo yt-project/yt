@@ -171,7 +171,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
             return np.array([], dtype=np.float64)
 
         data = self._handle[lev]['particles:data'][offsets[lo]:offsets[hi]]
-        return data[field_index::items_per_particle]
+        return np.asarray(data[field_index::items_per_particle], dtype=np.float64, order='F')
 
 class IOHandlerChombo2DHDF5(IOHandlerChomboHDF5):
     _dataset_type = "chombo2d_hdf5"
