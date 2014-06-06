@@ -81,13 +81,13 @@ def halo_sphere(halo, radius_field="virial_radius", factor=1.0,
     dpf = halo.halo_catalog.data_pf
     hpf = halo.halo_catalog.halos_pf
     center = dpf.arr([halo.quantities["particle_position_%s" % axis] \
-                      for axis in "xyz"]) / dpf.length_unit
-    radius = factor * halo.quantities[radius_field] / dpf.length_unit
+                      for axis in "xyz"])
+    radius = factor * halo.quantities[radius_field]
     if radius <= 0.0:
         halo.data_object = None
         return
     try:
-        sphere = dpf.sphere(center, (radius, "code_length"))
+        sphere = dpf.sphere(center, radius)
     except YTSphereTooSmall:
         halo.data_object = None
         return
