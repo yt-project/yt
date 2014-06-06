@@ -116,6 +116,9 @@ def _dummy_velocity(field, data):
 def _dummy_field(field, data):
     return 0.0 * data['gravitational_field_x']
 
+fluid_field_types = ['chombo', 'gas']
+particle_field_types = ['io', 'all']
+
 class ChomboPICFieldInfo2D(FieldInfoContainer):
     known_other_fields = (
         ("density", (rho_units, ["density", "Density"], None)),
@@ -134,16 +137,18 @@ class ChomboPICFieldInfo2D(FieldInfoContainer):
     def __init__(self, pf, field_list):
         super(ChomboPICFieldInfo2D, self).__init__(pf, field_list)
 
-        self.add_field(('chombo', 'gravitational_field_z'), function = _dummy_field, 
-                        units = "code_length / code_time**2")
-                        
-        self.add_field(("io", "particle_position_z"), function = _dummy_position,
-                       particle_type = True,
-                       units = "code_length")
+        for ftype in fluid_field_types:
+            self.add_field((ftype, 'gravitational_field_z'), function = _dummy_field, 
+                            units = "code_length / code_time**2")
+        
+        for ptype in particle_field_types:                
+            self.add_field((ptype, "particle_position_z"), function = _dummy_position,
+                           particle_type = True,
+                           units = "code_length")
 
-        self.add_field(("io", "particle_velocity_z"), function = _dummy_velocity,
-                       particle_type = True,
-                       units = "code_length / code_time")
+            self.add_field((ptype, "particle_velocity_z"), function = _dummy_velocity,
+                           particle_type = True,
+                           units = "code_length / code_time")
 
 class ChomboPICFieldInfo1D(FieldInfoContainer):
     known_other_fields = (
@@ -160,21 +165,23 @@ class ChomboPICFieldInfo1D(FieldInfoContainer):
     def __init__(self, pf, field_list):
         super(ChomboPICFieldInfo1D, self).__init__(pf, field_list)
         
-        self.add_field(('chombo', 'gravitational_field_y'), function = _dummy_field, 
-                        units = "code_length / code_time**2")
+        for ftype in fluid_field_types:
+            self.add_field((ftype, 'gravitational_field_y'), function = _dummy_field, 
+                            units = "code_length / code_time**2")
 
-        self.add_field(('chombo', 'gravitational_field_z'), function = _dummy_field, 
-                units = "code_length / code_time**2")
+            self.add_field((ftype, 'gravitational_field_z'), function = _dummy_field, 
+                    units = "code_length / code_time**2")
 
-        self.add_field(("io", "particle_position_y"), function = _dummy_position,
-                       particle_type = True,
-                       units = "code_length")
-        self.add_field(("io", "particle_position_z"), function = _dummy_position,
-                       particle_type = True,
-                       units = "code_length")
-        self.add_field(("io", "particle_velocity_y"), function = _dummy_velocity,
-                       particle_type = True,
-                       units = "code_length / code_time")
-        self.add_field(("io", "particle_velocity_z"), function = _dummy_velocity,
-                       particle_type = True,
-                       units = "code_length / code_time")
+        for ptype in particle_field_types:
+            self.add_field((ptype, "particle_position_y"), function = _dummy_position,
+                           particle_type = True,
+                           units = "code_length")
+            self.add_field((ptype, "particle_position_z"), function = _dummy_position,
+                           particle_type = True,
+                           units = "code_length")
+            self.add_field((ptype, "particle_velocity_y"), function = _dummy_velocity,
+                           particle_type = True,
+                           units = "code_length / code_time")
+            self.add_field((ptype, "particle_velocity_z"), function = _dummy_velocity,
+                           particle_type = True,
+                           units = "code_length / code_time")
