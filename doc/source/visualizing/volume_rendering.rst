@@ -469,7 +469,6 @@ in :ref:`cookbook-amrkdtree_downsampling`.
 Hardware Volume Rendering on NVidia Graphics cards
 --------------------------------------------------
 .. versionadded:: 3.0
-As of yt 3.0, Theia has been added to yt.
 
 Theia is a hardware volume renderer that takes advantage of NVidias CUDA language
 to peform ray casting with GPUs instead of the CPU. 

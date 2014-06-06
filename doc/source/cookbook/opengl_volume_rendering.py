@@ -32,8 +32,8 @@ middleButton = False
 rightButton = False
 
 #Screen width and height
-width = 1920
-height = 1080
+width = 1024
+height = 1024
 
 eyesep = 0.1
 
@@ -42,7 +42,7 @@ eyesep = 0.1
 def create_PBO(w, h):
     global pbo, pycuda_pbo
     num_texels = w*h
-    array = np.zeros((num_texels, 3),np.float32)
+    array = np.zeros((w,h,3),np.uint32)
 
     pbo = glGenBuffers(1)
     glBindBuffer(GL_ARRAY_BUFFER, pbo)
@@ -68,8 +68,8 @@ def create_texture(w,h):
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
     # buffer data
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
-                 w, h, 0, GL_RGB, GL_FLOAT, None)
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                 w, h, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8, None)
 
 #consistent with C initPixelBuffer()
 def destroy_texture():
@@ -156,19 +156,19 @@ def mouseMotion( x, y ):
 	factor = 0.001
 
 	if leftButton == True:
-            ts.camera.rotateX( - deltaY * factor)
-            ts.camera.rotateY( - deltaX * factor)
+             ts.camera.rotateX( - deltaY * factor)
+             ts.camera.rotateY( - deltaX * factor)
 	if middleButton == True:
-	    ts.camera.translateX( deltaX* 2.0 * factor)
-	    ts.camera.translateY( - deltaY* 2.0 * factor)
+	     ts.camera.translateX( deltaX* 2.0 * factor)
+	     ts.camera.translateY( - deltaY* 2.0 * factor)
 	if rightButton == True:
-	    ts.camera.scale += deltaY * factor
+	     ts.camera.scale += deltaY * factor
 
 	oldMousePos[0], oldMousePos[1] = x, y
 	glutPostRedisplay( )
 
 def keyPressed(*args):
-    global c_tbrightness, c_tdensity, eyesep
+    global c_tbrightness, c_tdensity
     # If escape is pressed, kill everything.
     if args[0] == '\033':
         print 'Closing..'
@@ -187,12 +187,6 @@ def keyPressed(*args):
         c_tdensity -= 0.001
     elif args[0] == '\'':
         c_tdensity += 0.001 
-
-    #change the transfer scale
-    elif args[0] == '-':
-        eyesep -= 0.01
-    elif args[0] == '=':
-        eyesep += 0.01 
 
 def idle():
     glutPostRedisplay()
@@ -221,10 +215,11 @@ def process(eye = True):
     (dev_ptr, size) = dest_mapping.device_ptr_and_size()
     ts.get_raycaster().surface.device_ptr = dev_ptr
     ts.update()
+   # ts.get_raycaster().cast()
     dest_mapping.unmap()
 
 
-def process_image(eye =  True):
+def process_image():
     global output_texture, pbo, width, height
     """ copy image and process using CUDA """
     # run the Cuda kernel
@@ -233,9 +228,8 @@ def process_image(eye =  True):
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, np.uint64(pbo))
     glBindTexture(GL_TEXTURE_2D, output_texture)
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB,
-                 width, height, 0,
-                 GL_RGB, GL_FLOAT, None)
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                 width, height, 0, GL_RGBA, GL_UNSIGNED_INT_8_8_8_8_REV, None)
 
 def display_image(eye = True):
     global width, height
@@ -277,11 +271,11 @@ def display_image(eye = True):
 #note we may need to init cuda_gl here and pass it to camera
 def main():
     global window, ts, width, height
-    (width, height) = (1920, 1080)
+    (width, height) = (1024, 1024)
 
     glutInit(sys.argv)
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_ALPHA | GLUT_DEPTH )
-    glutInitWindowSize(*initial_size)
+    glutInitWindowSize(width, height)
     glutInitWindowPosition(0, 0)
     window = glutCreateWindow("Stereo Volume Rendering")
 
@@ -315,6 +309,7 @@ def main():
 
     ts.get_raycaster().set_sample_size(0.01)
     ts.get_raycaster().set_max_samples(5000)
+    ts.update()
 
     glutMainLoop()
 
