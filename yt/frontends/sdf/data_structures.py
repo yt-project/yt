@@ -60,6 +60,8 @@ class SDFDataset(Dataset):
     _particle_coordinates_name = None
     _particle_velocity_name = None
     _sindex = None
+    _skip_cache = True
+
 
     def __init__(self, filename, dataset_type = "sdf_particles",
                  n_ref = 64, over_refine_factor = 1,
