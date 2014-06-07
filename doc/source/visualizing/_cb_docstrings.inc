@@ -120,7 +120,7 @@
 .. python-script::
    
    from yt.mods import *
-   data_pf = load('Enzo_64/RD0006/RD0006')
+   data_pf = load('Enzo_64/RD0006/RedshiftOutput0006')
    halos_pf = load('rockstar_halos/halos_0.0.bin')
 
    hc = HaloCatalog(halos_pf=halos_pf)
