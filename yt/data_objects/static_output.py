@@ -527,7 +527,7 @@ class Dataset(object):
             source.quantities.max_location(field)
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
               max_val, mx, my, mz)
-        return max_val, np.array([mx, my, mz], dtype="float64")
+        return max_val, self.arr([mx, my, mz], 'code_length', dtype="float64")
 
     def find_min(self, field):
         """
@@ -539,7 +539,7 @@ class Dataset(object):
             source.quantities.min_location(field)
         mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f",
               min_val, mx, my, mz)
-        return min_val, np.array([mx, my, mz], dtype="float64")
+        return min_val, self.arr([mx, my, mz], 'code_length', dtype="float64")
 
     # Now all the object related stuff
     def all_data(self, find_max=False):
