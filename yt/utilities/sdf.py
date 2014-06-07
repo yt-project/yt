@@ -548,6 +548,7 @@ class SDFIndex(object):
         """
         ileft = np.floor((left - self.rmin) / self.domain_width *  self.domain_dims)
         iright = np.floor((right - self.rmin) / self.domain_width * self.domain_dims)
+        iright[iright <= ileft+1] += 1
 
         return self.get_ibbox(ileft, iright)
 
