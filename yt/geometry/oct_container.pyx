@@ -496,7 +496,7 @@ cdef class OctreeContainer:
             coords[:,i] += self.DLE[i]
         return coords
 
-    def save_octree(self, always_descend = False):
+    def save_octree(self):
         # Get the header
         header = dict(dims = (self.nn[0], self.nn[1], self.nn[2]),
                       left_edge = (self.DLE[0], self.DLE[1], self.DLE[2]),
@@ -507,13 +507,12 @@ cdef class OctreeContainer:
         # domain_id = -1 here, because we want *every* oct
         cdef OctVisitorData data
         self.setup_data(&data, -1)
-        data.oref = 1
+        data.oref = 0
+        data.nz = 1
         cdef np.ndarray[np.uint8_t, ndim=1] ref_mask
         ref_mask = np.zeros(self.nocts * data.nz, dtype="uint8") - 1
-        cdef void *p[2]
-        cdef np.uint8_t ad = int(always_descend)
-        p[0] = <void *> &ad
-        p[1] = ref_mask.data
+        cdef void *p[1]
+        p[0] = ref_mask.data
         data.array = p
         # Enforce partial_coverage here
         self.visit_all_octs(selector, oct_visitors.store_octree, &data, 1)
