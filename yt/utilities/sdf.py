@@ -321,6 +321,11 @@ class SDFIndex(object):
         self.sdfdata = sdfdata
         self.indexdata = indexdata
         self.level = level
+        idlevel = self.indexdata.parameters.get('level',None)
+        if idlevel and idlevel != level:
+            mylog.warning("Overriding index level to %i" % idlevel)
+            self.level = idlevel
+        
         self.rmin = None
         self.rmax = None
         self.domain_width = None
@@ -353,44 +358,88 @@ class SDFIndex(object):
         }
         self.set_bounds()
 
+
+    def _fix_rexact(self, rmin, rmax):
+
+        center = 0.5*(rmax+rmin)
+        mysize = (rmax-rmin)
+        mysize *= (1.0 + 0.0*np.finfo(np.float32).eps)
+        self.rmin = center - 0.5*mysize
+        self.rmax = center + 0.5*mysize
+
     def set_bounds(self):
+        sorted_rtp = self.sdfdata.parameters.get("sorted_rtp", False)
+        sorted_xyz = self.sdfdata.parameters.get("sorted_xyz", False)
+        morton_xyz = self.sdfdata.parameters.get("morton_xyz", False)
+        
+        self.rmin = np.zeros(3)
+        self.rmax = np.zeros(3)
         r_0 = self.sdfdata.parameters['R0']
         try:
             r_0 = self.sdfdata.parameters['L0']
         except:
             pass
-        DW = 2.0 * r_0
 
-        self.rmin = np.zeros(3)
-        self.rmax = np.zeros(3)
-        sorted_rtp = self.sdfdata.parameters.get("sorted_rtp", False)
         if sorted_rtp:
-            self.rmin[:] = [0.0, 0.0, -np.pi]
-            self.rmax[:] = [r_0*1.01, 2*np.pi, np.pi]
+            mylog.debug("Setting up Sorted RTP data")
+            rtp_min = np.array([0.0, 0.0, -np.pi])
+            rtp_max = np.array([r_0*1.01, 2*np.pi, np.pi])
+            self._fix_rexact(rtp_min, rtp_max)
+            self.true_domain_left = self.rmin.copy()
+            self.true_domain_right = self.rmax.copy()
+            self.true_domain_width = self.rmax - self.rmin
+        elif sorted_xyz:
+            mylog.debug("Setting up Sorted XYZ data")
+            offset_center = self.sdfdata.parameters.get("offset_center", False)
+            if offset_center:
+                rmin = np.zeros(3)
+                rmax = np.array([2.0*r_0]*3)
+            else:
+                rmin = -1.01*np.array([r_0]*3)
+                rmax = 1.01*np.array([r_0]*3)
+            self._fix_rexact(rmin, rmax)
+            self.true_domain_left = self.rmin.copy()
+            self.true_domain_right = self.rmax.copy()
+            self.true_domain_width = self.rmax - self.rmin
         else:
-            self.rmin[0] -= self.sdfdata.parameters.get('Rx', 0.0)
-            self.rmin[1] -= self.sdfdata.parameters.get('Ry', 0.0)
-            self.rmin[2] -= self.sdfdata.parameters.get('Rz', 0.0)
-            self.rmax[0] += self.sdfdata.parameters.get('Rx', r_0)
-            self.rmax[1] += self.sdfdata.parameters.get('Ry', r_0)
-            self.rmax[2] += self.sdfdata.parameters.get('Rz', r_0)
+            mylog.debug("Setting up regular data")
+            rx = self.sdfdata.parameters.get('Rx')
+            ry = self.sdfdata.parameters.get('Ry')
+            rz = self.sdfdata.parameters.get('Rz')
+            a =  self.sdfdata.parameters.get("a", 1.0)
+            r = np.array([rx, ry, rz])
+            rmin = -a*r
+            rmax = a*r
+            print rmin, rmax
 
-        self.rmin *= self.sdfdata.parameters.get("a", 1.0)
-        self.rmax *= self.sdfdata.parameters.get("a", 1.0)
+            #/* expand root for non-power-of-two */
+            expand_root = 0.0
+            ic_Nmesh = self.sdfdata.parameters.get('ic_Nmesh',0)
+            if ic_Nmesh != 0:
+                f2 = 1<<int(np.log2(ic_Nmesh-1)+1)
+                if (f2 != ic_Nmesh):
+                    expand_root = 1.0*f2/ic_Nmesh - 1.0;
+                mylog.debug("Expanding: %s, %s, %s" % (f2, ic_Nmesh, expand_root))
+            #self._fix_rexact(rmin, rmax)
+            self.true_domain_left = rmin.copy()
+            self.true_domain_right = rmax.copy()
+            self.true_domain_width = rmax - rmin
+            rmin *= (1.0 + expand_root)
+            rmax *= (1.0 + expand_root)
+            self._fix_rexact(rmin, rmax)
+        print self.rmin, self.rmax
 
-        #/* expand root for non-power-of-two */
-        expand_root = 0.0
-        ic_Nmesh = self.sdfdata.parameters.get('ic_Nmesh',0)
-        if ic_Nmesh != 0:
-            f2 = 1<<int(np.log2(ic_Nmesh-1)+1)
-            if (f2 != ic_Nmesh):
-                expand_root = 1.0*f2/ic_Nmesh - 1.0;
-            mylog.debug("Expanding: %s, %s, %s" % (f2, ic_Nmesh, expand_root))
-        self.true_domain_left = self.rmin.copy()
-        self.true_domain_right = self.rmax.copy()
-        self.true_domain_width = self.rmax - self.rmin
-        self.rmin *= 1.0 + expand_root
-        self.rmax *= 1.0 + expand_root
+        if self.indexdata.parameters.get("midx_version", 0) == 1.0:
+            rmin = np.zeros(3)
+            rmax = np.zeros(3)
+            rmin[0] = self.indexdata.parameters['x_min']
+            rmin[1] = self.indexdata.parameters['y_min']
+            rmin[2] = self.indexdata.parameters['z_min']
+            rmax[0] = self.indexdata.parameters['x_max']
+            rmax[1] = self.indexdata.parameters['y_max']
+            rmax[2] = self.indexdata.parameters['z_max']
+            self._fix_rexact(rmin, rmax)
+
         self.domain_width = self.rmax - self.rmin
         self.domain_dims = 1 << self.level
         self.domain_buffer = (self.domain_dims - int(self.domain_dims/(1.0 + expand_root)))/2
@@ -577,7 +626,7 @@ class SDFIndex(object):
         if stop is None:
             stop = self.indexdata['index'][-1]
         while key < stop:
-            if self.indexdata['index'][key] == 0:
+            if self.indexdata['len'][key] == 0:
                 #print 'Squeezing keys, incrementing'
                 key += 1
             else:
@@ -591,7 +640,7 @@ class SDFIndex(object):
             stop = self.indexdata['index'][0]
         while key > stop:
             #self.indexdata['index'][-1]:
-            if self.indexdata['index'][key] == 0:
+            if self.indexdata['len'][key] == 0:
                 #print 'Squeezing keys, decrementing'
                 key -= 1
             else:
@@ -649,31 +698,47 @@ class SDFIndex(object):
         by left/right. Account for periodicity of data, allowing left/right
         to be outside of the domain.
         """
+
         for data in myiter:
-            mask = np.zeros_like(data, dtype='bool')
+            #mask = np.zeros_like(data, dtype='bool')
             pos = np.array([data['x'].copy(), data['y'].copy(), data['z'].copy()]).T
 
-
+            DW = self.true_domain_width
             # This hurts, but is useful for periodicity. Probably should check first
             # if it is even needed for a given left/right
             for i in range(3):
-                pos[:,i] = np.mod(pos[:,i] - left[i], self.true_domain_width[i]) + left[i]
+                #pos[:,i] = np.mod(pos[:,i] - left[i],
+                #                  self.true_domain_width[i]) + left[i]
+                mask = pos[:,i] >= left[i] + DW[i]
+                pos[mask, i] -= DW[i]
+                mask = pos[:,i] < right[i] - DW[i] 
+                pos[mask, i] += DW[i]
+                #del mask
 
             # Now get all particles that are within the bbox
             mask = np.all(pos >= left, axis=1) * np.all(pos < right, axis=1)
+            #print 'Mask shape, sum:', mask.shape, mask.sum()
 
             mylog.debug("Filtering particles, returning %i out of %i" % (mask.sum(), mask.shape[0]))
 
             if not np.any(mask):
                 continue
 
+            #filtered = {}
+            #for i,ax in enumerate('xyz'):
+            #    print "Setting field %s" % ax
+            #    filtered[ax] = pos[:, i][mask]
+
             filtered = {ax: pos[:, i][mask] for i, ax in enumerate('xyz')}
+            #print filtered.keys(), data.keys()
             for f in data.keys():
-                if f in 'xyz': continue
+                if f in 'xyz': 
+                    continue
+                #print "Setting field %s" % f
                 filtered[f] = data[f][mask]
 
             #for i, ax in enumerate('xyz'):
-            #    print left, right
+            #    #print left, right
             #    assert np.all(filtered[ax] >= left[i])
             #    assert np.all(filtered[ax] < right[i])
 
@@ -723,13 +788,21 @@ class SDFIndex(object):
     def iter_bbox_data(self, left, right, fields):
         mylog.debug('SINDEX Loading region from %s to %s' %(left, right))
         inds = self.get_bbox(left, right)
+        # Need to put left/right in float32 to avoid fp roundoff errors
+        # in the bbox later.
+        left = left.astype('float32')
+        right = right.astype('float32')
 
-        my_filter = bbox_filter(left, right, self.true_domain_width)
-
-        for dd in self.filter_particles(
-            self.iter_data(inds, fields),
-            my_filter):
+        #my_filter = bbox_filter(left, right, self.true_domain_width)
+        data = []
+        for dd in self.filter_bbox(
+            left, right,
+            self.iter_data(inds, fields)):
             yield dd
+        #for dd in self.filter_particles(
+        #    self.iter_data(inds, fields),
+        #    my_filter):
+        #    yield dd
 
     def iter_sphere_data(self, center, radius, fields):
         mylog.debug('SINDEX Loading spherical region %s to %s' %(center, radius))
@@ -833,6 +906,7 @@ class SDFIndex(object):
         """
         cell_iarr = np.array(cell_iarr)
         lk, rk =self.get_key_bounds(level, cell_iarr)
+        print 'Reading from ', lk, rk
         return self.get_contiguous_chunk(lk, rk, fields)
 
     def get_cell_bbox(self, level, cell_iarr):

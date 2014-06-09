@@ -147,7 +147,7 @@ class SDFDataset(Dataset):
             # not correct, but most codes can't handle Omega0_r
             self.omega_matter += self.parameters["Omega0_r"]
         self.hubble_constant = self.parameters["h_100"]
-        self.current_time = units_2HOT_v2_time * self.parameters["tpos"]
+        self.current_time = units_2HOT_v2_time * self.parameters.get("tpos", 0.0)
         mylog.info("Calculating time to be %0.3e seconds", self.current_time)
         self.filename_template = self.parameter_filename
         self.file_count = 1
@@ -173,7 +173,13 @@ class SDFDataset(Dataset):
         self.length_unit = self.quan(1.0, self.parameters.get("length_unit", 'kpc'))
         self.velocity_unit = self.quan(1.0, self.parameters.get("velocity_unit", 'kpc/Gyr'))
         self.time_unit = self.quan(1.0, self.parameters.get("time_unit", 'Gyr'))
-        self.mass_unit = self.quan(1.0, self.parameters.get("mass_unit", 'Msun'))
+        mass_unit = self.parameters.get("mass_unit", 'Msun')
+        if ' ' in mass_unit:
+            factor, unit = self.parameters.get("mass_unit", 'Msun').split(' ')
+        else:
+            factor = 1.0
+            unit = mass_unit
+        self.mass_unit = self.quan(float(factor), unit)
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
