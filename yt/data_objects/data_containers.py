@@ -599,6 +599,10 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             return
         elif self._locked == True:
             raise GenerationInProgress(fields)
+        # Track which ones we want in the end
+        ofields = set(self.field_data.keys()
+                    + fields_to_get
+                    + fields_to_generate)
         # At this point, we want to figure out *all* our dependencies.
         fields_to_get = self._identify_dependencies(fields_to_get,
             self._spatial)
@@ -627,6 +631,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
 
         fields_to_generate += gen_fluids + gen_particles
         self._generate_fields(fields_to_generate)
+        for field in self.field_data.keys():
+            if field not in ofields:
+                self.field_data.pop(field)
 
     def _generate_fields(self, fields_to_generate):
         index = 0
