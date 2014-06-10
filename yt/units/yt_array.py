@@ -955,7 +955,7 @@ class YTArray(np.ndarray):
         else:
             raise RuntimeError("Operation is not defined.")
         if unit is None:
-            out_arr = np.array(out_arr)
+            out_arr = np.array(out_arr, copy=False)
             return out_arr
         out_arr.units = unit
         if out_arr.size == 1:
@@ -965,7 +965,7 @@ class YTArray(np.ndarray):
                 # This happens if you do ndarray * YTQuantity. Explicitly
                 # casting to YTArray avoids creating a YTQuantity with size > 1
                 return YTArray(np.array(out_arr, unit))
-            return ret_class(np.array(out_arr), unit)
+            return ret_class(np.array(out_arr, copy=False), unit)
 
 
     def __reduce__(self):
