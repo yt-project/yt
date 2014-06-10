@@ -212,7 +212,7 @@ cdef void load_octree(Oct *o, OctVisitorData *data, np.uint8_t selected):
             o.children = <Oct **> malloc(sizeof(Oct *) * 8)
             for i in range(8):
                 o.children[i] = NULL
-        for i in range(arr[data.index]):
+        for i in range(8):
             o.children[ii + i] = &octs[nocts[0]]
             o.children[ii + i].domain_ind = nocts[0]
             o.children[ii + i].file_ind = -1

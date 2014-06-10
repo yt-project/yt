@@ -122,6 +122,8 @@ cdef class OctreeContainer:
         cdef int i, j, k, n
         data.global_index = -1
         data.level = 0
+        data.oref = 0
+        data.nz = 1
         assert(ref_mask.shape[0] / float(data.nz) ==
             <int>(ref_mask.shape[0]/float(data.nz)))
         obj.allocate_domains([ref_mask.shape[0] / data.nz])
