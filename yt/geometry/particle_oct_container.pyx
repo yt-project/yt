@@ -300,6 +300,7 @@ cdef class ParticleRegions:
             # Now we locate the particle
             for i in range(3):
                 ind[i] = <int> ((pos[p, i] - self.left_edge[i])*self.idds[i])
+                ind[i] = iclip(ind[i], 0, self.dims[i])
             mask[ind[0],ind[1],ind[2]] |= val
 
     def identify_data_files(self, SelectorObject selector):
