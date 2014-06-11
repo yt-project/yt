@@ -325,7 +325,7 @@ class SDFIndex(object):
         if idlevel and idlevel != level:
             mylog.warning("Overriding index level to %i" % idlevel)
             self.level = idlevel
-        
+
         self.rmin = None
         self.rmax = None
         self.domain_width = None
@@ -371,7 +371,7 @@ class SDFIndex(object):
         sorted_rtp = self.sdfdata.parameters.get("sorted_rtp", False)
         sorted_xyz = self.sdfdata.parameters.get("sorted_xyz", False)
         morton_xyz = self.sdfdata.parameters.get("morton_xyz", False)
-        
+
         self.rmin = np.zeros(3)
         self.rmax = np.zeros(3)
         r_0 = self.sdfdata.parameters['R0']
@@ -429,7 +429,8 @@ class SDFIndex(object):
             self._fix_rexact(rmin, rmax)
         print self.rmin, self.rmax
 
-        if self.indexdata.parameters.get("midx_version", 0) == 1.0:
+        self._midx_version = self.indexdata.parameters.get("midx_version", 0)
+        if self._midx_version == 1.0:
             rmin = np.zeros(3)
             rmax = np.zeros(3)
             rmin[0] = self.indexdata.parameters['x_min']
@@ -819,7 +820,10 @@ class SDFIndex(object):
 
         lbase=0
         llen = 0
-        max_key = self.indexdata['index'][-1]
+        if self._midx_version >= 1.0:
+            max_key = self.get_key(np.array([2**self.level - 1]*3))
+        else:
+            max_key = self.indexdata['index'][-1]
         if left_key > max_key:
             raise RuntimeError("Left key is too large. Key: %i Max Key: %i" % (left_key, max_key))
         right_key = min(right_key, max_key)
