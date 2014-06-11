@@ -32,7 +32,7 @@ cdef import from "halo.h":
         float pos[6]
         float corevel[3]
         float bulkvel[3]
-        float m, r, child_r, vmax_r, mgrav,    vmax, rvmax, rs, klypin_rs, vrms
+        float m, r, child_r, vmax_r, mgrav, vmax, rvmax, rs, klypin_rs, vrms
         float J[3]
         float energy, spin
         float alt_m[4]
@@ -42,9 +42,9 @@ cdef import from "halo.h":
         float A2[3]
         float bullock_spin, kin_to_pot, m_pe_b, m_pe_d
         np.int64_t num_p, num_child_particles, p_start, desc, flags, n_core
-        float min_pos_err, min_vel_err, min_bulkvel_err
+        float min_pos_err, min_vel_err, min_bulkvel_err, _pad
 
-ctypedef packed struct haloflat:
+ctypedef struct haloflat:
     np.int64_t id
     float pos_x, pos_y, pos_z, vel_x, vel_y, vel_z
     float corevel_x, corevel_y, corevel_z
@@ -58,7 +58,7 @@ ctypedef packed struct haloflat:
     float b_to_a2, c_to_a2, A2x, A2y, A2z
     float bullock_spin, kin_to_pot, m_pe_b, m_pe_d
     np.int64_t num_p, num_child_particles, p_start, desc, flags, n_core
-    float min_pos_err, min_vel_err, min_bulkvel_err
+    float min_pos_err, min_vel_err, min_bulkvel_err, _pad
 
 # For finding sub halos import finder function and global variable
 # rockstar uses to store the results
