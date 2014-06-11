@@ -2,8 +2,8 @@ import cStringIO
 import re
 import os
 import numpy as np
-from httpmmap import HTTPArray
-from arbitrary_page import PageCacheURL
+from thingking.httpmmap import HTTPArray
+from thingking.arbitrary_page import PageCacheURL
 from yt.funcs import mylog
 
 _types = {
@@ -724,17 +724,10 @@ class SDFIndex(object):
             if not np.any(mask):
                 continue
 
-            #filtered = {}
-            #for i,ax in enumerate('xyz'):
-            #    print "Setting field %s" % ax
-            #    filtered[ax] = pos[:, i][mask]
-
             filtered = {ax: pos[:, i][mask] for i, ax in enumerate('xyz')}
-            #print filtered.keys(), data.keys()
             for f in data.keys():
                 if f in 'xyz': 
                     continue
-                #print "Setting field %s" % f
                 filtered[f] = data[f][mask]
 
             #for i, ax in enumerate('xyz'):
