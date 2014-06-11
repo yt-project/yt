@@ -74,7 +74,7 @@ class SDFDataset(Dataset):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         if bounding_box is not None:
-            bbox = np.array(bounding_box, dtype="float64")
+            bbox = np.array(bounding_box, dtype="float32")
             if bbox.shape == (2, 3):
                 bbox = bbox.transpose()
             self.domain_left_edge = bbox[:,0]

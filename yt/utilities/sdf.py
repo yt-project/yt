@@ -363,7 +363,7 @@ class SDFIndex(object):
 
         center = 0.5*(rmax+rmin)
         mysize = (rmax-rmin)
-        mysize *= (1.0 + 0.0*np.finfo(np.float32).eps)
+        mysize *= (1.0 + 4.0*np.finfo(np.float32).eps)
         self.rmin = center - 0.5*mysize
         self.rmax = center + 0.5*mysize
 
