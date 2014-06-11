@@ -27,8 +27,6 @@ from .derived_field import \
     NullFunc, \
     TranslationFunc, \
     ValidateSpatial
-from .field_detector import \
-    FieldDetector
 from yt.utilities.exceptions import \
     YTFieldNotFound
 from .field_plugin_registry import \
