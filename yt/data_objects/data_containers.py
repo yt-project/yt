@@ -807,7 +807,10 @@ class YTSelectionContainer2D(YTSelectionContainer):
                     "Currently we only support images centered at R=0. " +
                     "We plan to generalize this in the near future")
             from yt.visualization.fixed_resolution import CylindricalFixedResolutionBuffer
-            if iterable(width): radius = max(width)
+            if iterable(width):
+                radius = max(width)
+            else:
+                radius = width
             if iterable(resolution): resolution = max(resolution)
             frb = CylindricalFixedResolutionBuffer(self, radius, resolution)
             return frb
