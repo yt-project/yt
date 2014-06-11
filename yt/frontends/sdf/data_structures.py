@@ -69,7 +69,7 @@ class SDFDataset(Dataset):
                  sdf_header = None,
                  idx_filename = None,
                  idx_header = None,
-                 idx_level = 9,
+                 idx_level = None,
                  field_map = None):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
