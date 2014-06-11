@@ -357,6 +357,11 @@ class SDFIndex(object):
             0 : slice(2, None, 3),
         }
         self.set_bounds()
+        if self._midx_version >= 1.0:
+            max_key = self.get_key(np.array([2**self.level - 1]*3))
+        else:
+            max_key = self.indexdata['index'][-1]
+        self._max_key = max_key
 
 
     def _fix_rexact(self, rmin, rmax):
@@ -562,7 +567,7 @@ class SDFIndex(object):
             dmask += Y >= self.domain_dims
             dmask += Z >= self.domain_dims
             dinds = self.get_keyv([X[dmask], Y[dmask], Z[dmask]])
-            dinds = dinds[dinds < self.indexdata['index'][-1]]
+            dinds = dinds[dinds < self._max_key]
             dinds = dinds[self.indexdata['len'][dinds] > 0]
             #print 'Getting boundary layers for wanderers, cells: %i' % dinds.size
 
@@ -580,7 +585,7 @@ class SDFIndex(object):
         # Only mask out if we are actually getting data rather than getting indices into
         # a space.
         if self.valid_indexdata:
-            indices = indices[indices < self.indexdata['index'][-1]]
+            indices = indices[indices < self._max_key]
             indices = indices[self.indexdata['len'][indices] > 0]
 
         #indices = np.array([self.get_key_ijk(x, y, z) for x, y, z in zip(X, Y, Z)])
@@ -598,7 +603,7 @@ class SDFIndex(object):
         """
         ileft = np.floor((left - self.rmin) / self.domain_width *  self.domain_dims)
         iright = np.floor((right - self.rmin) / self.domain_width * self.domain_dims)
-        iright[iright <= ileft+1] += 1
+        #iright[iright <= ileft+1] += 1
 
         return self.get_ibbox(ileft, iright)
 
@@ -625,7 +630,7 @@ class SDFIndex(object):
         # These next two while loops are to squeeze the keys if they are empty. Would be better
         # to go through and set base equal to the last non-zero base, i think.
         if stop is None:
-            stop = self.indexdata['index'][-1]
+            stop = self._max_key
         while key < stop:
             if self.indexdata['len'][key] == 0:
                 #print 'Squeezing keys, incrementing'
@@ -640,7 +645,6 @@ class SDFIndex(object):
         if stop is None:
             stop = self.indexdata['index'][0]
         while key > stop:
-            #self.indexdata['index'][-1]:
             if self.indexdata['len'][key] == 0:
                 #print 'Squeezing keys, decrementing'
                 key -= 1
@@ -784,8 +788,8 @@ class SDFIndex(object):
         inds = self.get_bbox(left, right)
         # Need to put left/right in float32 to avoid fp roundoff errors
         # in the bbox later.
-        left = left.astype('float32')
-        right = right.astype('float32')
+        #left = left.astype('float32')
+        #right = right.astype('float32')
 
         #my_filter = bbox_filter(left, right, self.true_domain_width)
         data = []
@@ -820,13 +824,10 @@ class SDFIndex(object):
 
         lbase=0
         llen = 0
-        if self._midx_version >= 1.0:
-            max_key = self.get_key(np.array([2**self.level - 1]*3))
-        else:
-            max_key = self.indexdata['index'][-1]
-        if left_key > max_key:
-            raise RuntimeError("Left key is too large. Key: %i Max Key: %i" % (left_key, max_key))
-        right_key = min(right_key, max_key)
+        if left_key > self._max_key:
+            raise RuntimeError("Left key is too large. Key: %i Max Key: %i" % \
+                               (left_key, self._max_key))
+        right_key = min(right_key, self._max_key)
 
         left_key = self.get_next_nonzero_chunk(left_key)
         right_key = self.get_previous_nonzero_chunk(right_key, left_key)
@@ -843,9 +844,8 @@ class SDFIndex(object):
         return self.get_data(slice(lbase, lbase + length), fields)
 
     def get_key_data(self, key, fields):
-        max_key = self.indexdata['index'][-1]
-        if key > max_key:
-            raise RuntimeError("Left key is too large. Key: %i Max Key: %i" % (key, max_key))
+        if key > self._max_key:
+            raise RuntimeError("Left key is too large. Key: %i Max Key: %i" % (key, self._max_key))
         base = self.indexdata['base'][key]
         length = self.indexdata['len'][key] - base
         if length > 0:
