@@ -16,7 +16,7 @@ take your data and plot it in gnuplot, or any unnamed commercial plotting
 packages.
 
 Note that the index object associated with your snapshot file contains a
-list of plots you've made in ``pf.h.plots``.
+list of plots you've made in ``ds.plots``.
 
 .. _fixed-resolution-buffers:
 
