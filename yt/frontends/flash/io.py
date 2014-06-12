@@ -42,8 +42,8 @@ class IOHandlerFLASH(BaseIOHandler):
     def __init__(self, pf):
         super(IOHandlerFLASH, self).__init__(pf)
         # Now we cache the particle fields
-        self._handle = pf._handle
-        self._particle_handle = pf._particle_handle
+        self._handle = pf._handle.handle
+        self._particle_handle = pf._particle_handle.handle
         
         try :
             particle_fields = [s[0].strip() for s in

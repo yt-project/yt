@@ -30,6 +30,8 @@ from yt.data_objects.static_output import \
     Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
+from yt.utilities.file_handler import \
+    FileHandler
 from yt.utilities.io_handler import \
     io_registry
 from yt.utilities.physical_constants import cm_per_mpc
@@ -69,18 +71,18 @@ class FLASHHierarchy(GridIndex):
         pass
 
     def _detect_output_fields(self):
-        ncomp = self._handle["/unknown names"].shape[0]
-        self.field_list = [("flash", s) for s in self._handle["/unknown names"][:].flat]
-        if ("/particle names" in self._particle_handle) :
+        ncomp = self._handle.handle["/unknown names"].shape[0]
+        self.field_list = [("flash", s) for s in self._handle.handle["/unknown names"][:].flat]
+        if ("/particle names" in self._particle_handle.handle) :
             self.field_list += [("io", "particle_" + s[0].strip()) for s
-                                in self._particle_handle["/particle names"][:]]
+                                in self._particle_handle.handle["/particle names"][:]]
     
     def _count_grids(self):
         try:
             self.num_grids = self.parameter_file._find_parameter(
                 "integer", "globalnumblocks", True)
         except KeyError:
-            self.num_grids = self._handle["/simulation parameters"][0][0]
+            self.num_grids = self._handle.handle["/simulation parameters"][0][0]
         
     def _parse_index(self):
         f = self._handle # shortcut
@@ -95,19 +97,19 @@ class FLASHHierarchy(GridIndex):
             self.grid_left_edge[:,i] = DLE[i]
             self.grid_right_edge[:,i] = DRE[i]
         # We only go up to ND for 2D datasets
-        self.grid_left_edge[:,:ND] = f["/bounding box"][:,:ND,0]
-        self.grid_right_edge[:,:ND] = f["/bounding box"][:,:ND,1]
+        self.grid_left_edge[:,:ND] = f.handle["/bounding box"][:,:ND,0]
+        self.grid_right_edge[:,:ND] = f.handle["/bounding box"][:,:ND,1]
         # Move this to the parameter file
         try:
             nxb = pf.parameters['nxb']
             nyb = pf.parameters['nyb']
             nzb = pf.parameters['nzb']
         except KeyError:
-            nxb, nyb, nzb = [int(f["/simulation parameters"]['n%sb' % ax])
+            nxb, nyb, nzb = [int(f.handle["/simulation parameters"]['n%sb' % ax])
                               for ax in 'xyz']
         self.grid_dimensions[:] *= (nxb, nyb, nzb)
         try:
-            self.grid_particle_count[:] = f_part["/localnp"][:][:,None]
+            self.grid_particle_count[:] = f_part.handle["/localnp"][:][:,None]
         except KeyError:
             self.grid_particle_count[:] = 0.0
         self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
@@ -119,7 +121,7 @@ class FLASHHierarchy(GridIndex):
         # This will become redundant, as _prepare_grid will reset it to its
         # current value.  Note that FLASH uses 1-based indexing for refinement
         # levels, but we do not, so we reduce the level by 1.
-        self.grid_levels.flat[:] = f["/refine level"][:][:] - 1
+        self.grid_levels.flat[:] = f.handle["/refine level"][:][:] - 1
         self.grids = np.empty(self.num_grids, dtype='object')
         for i in xrange(self.num_grids):
             self.grids[i] = self.grid(i+1, self, self.grid_levels[i,0])
@@ -149,7 +151,7 @@ class FLASHHierarchy(GridIndex):
         
         offset = 7
         ii = np.argsort(self.grid_levels.flat)
-        gid = self._handle["/gid"][:]
+        gid = self._handle.handle["/gid"][:]
         first_ind = -(self.parameter_file.refine_by**self.parameter_file.dimensionality)
         for g in self.grids[ii].flat:
             gi = g.id - g._id_offset
@@ -183,7 +185,7 @@ class FLASHDataset(Dataset):
 
         self.fluid_types += ("flash",)
         if self._handle is not None: return
-        self._handle = h5py.File(filename, "r")
+        self._handle = FileHandler(filename)
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
         
@@ -192,15 +194,15 @@ class FLASHDataset(Dataset):
         if self.particle_filename is None :
             self._particle_handle = self._handle
         else :
-            try :
-                self._particle_handle = h5py.File(self.particle_filename, "r")
+            try:
+                self._particle_handle = FileHandler(self.particle_filename)
             except :
                 raise IOError(self.particle_filename)
         # These should be explicitly obtained from the file, but for now that
         # will wait until a reorganization of the source tree and better
         # generalization.
         self.refine_by = 2
-                                                                
+
         Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
@@ -241,9 +243,9 @@ class FLASHDataset(Dataset):
     def _find_parameter(self, ptype, pname, scalar = False):
         nn = "/%s %s" % (ptype,
                 {False: "runtime parameters", True: "scalars"}[scalar])
-        if nn not in self._handle: raise KeyError(nn)
-        for tpname, pval in zip(self._handle[nn][:,'name'],
-                                self._handle[nn][:,'value']):
+        if nn not in self._handle.handle: raise KeyError(nn)
+        for tpname, pval in zip(self._handle.handle[nn][:,'name'],
+                                self._handle.handle[nn][:,'value']):
             if tpname.strip() == pname:
                 if ptype == "string" :
                     return pval.strip()
@@ -254,12 +256,12 @@ class FLASHDataset(Dataset):
     def _parse_parameter_file(self):
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        if "file format version" in self._handle:
+        if "file format version" in self._handle.handle:
             self._flash_version = int(
-                self._handle["file format version"][:])
-        elif "sim info" in self._handle:
+                self._handle.handle["file format version"][:])
+        elif "sim info" in self._handle.handle:
             self._flash_version = int(
-                self._handle["sim info"][:]["file format version"])
+                self._handle.handle["sim info"][:]["file format version"])
         else:
             raise RuntimeError("Can't figure out FLASH file version.")
         # First we load all of the parameters
@@ -271,10 +273,10 @@ class FLASHDataset(Dataset):
                 hns.append("%s %s" % (vtype, ptype))
         if self._flash_version > 7:
             for hn in hns:
-                if hn not in self._handle:
+                if hn not in self._handle.handle:
                     continue
-                for varname, val in zip(self._handle[hn][:,'name'],
-                                        self._handle[hn][:,'value']):
+                for varname, val in zip(self._handle.handle[hn][:,'name'],
+                                        self._handle.handle[hn][:,'value']):
                     vn = varname.strip()
                     if hn.startswith("string") :
                         pval = val.strip()
@@ -285,12 +287,12 @@ class FLASHDataset(Dataset):
                     self.parameters[vn] = pval
         if self._flash_version == 7:
             for hn in hns:
-                if hn not in self._handle:
+                if hn not in self._handle.handle:
                     continue
                 if hn is 'simulation parameters':
-                    zipover = zip(self._handle[hn].dtype.names,self._handle[hn][0])
+                    zipover = zip(self._handle.handle[hn].dtype.names,self._handle.handle[hn][0])
                 else:
-                    zipover = zip(self._handle[hn][:,'name'],self._handle[hn][:,'value'])
+                    zipover = zip(self._handle.handle[hn][:,'name'],self._handle.handle[hn][:,'value'])
                 for varname, val in zipover:
                     vn = varname.strip()
                     if hn.startswith("string") :
@@ -307,7 +309,7 @@ class FLASHDataset(Dataset):
             nyb = self.parameters["nyb"]
             nzb = self.parameters["nzb"]
         except KeyError:
-            nxb, nyb, nzb = [int(self._handle["/simulation parameters"]['n%sb' % ax])
+            nxb, nyb, nzb = [int(self._handle.handle["/simulation parameters"]['n%sb' % ax])
                               for ax in 'xyz'] # FLASH2 only!
         
         # Determine dimensionality
@@ -384,19 +386,12 @@ class FLASHDataset(Dataset):
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
 
-    def __del__(self):
-        if self._handle is not self._particle_handle:
-            self._particle_handle.close()
-        self._handle.close()
-
     @classmethod
     def _is_valid(self, *args, **kwargs):
         try:
-            fileh = h5py.File(args[0],'r')
-            if "bounding box" in fileh["/"].keys():
-                fileh.close()
+            fileh = FileHandler(args[0])
+            if "bounding box" in fileh.handle["/"].keys():
                 return True
-            fileh.close()
         except:
             pass
         return False
