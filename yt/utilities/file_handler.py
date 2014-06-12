@@ -20,7 +20,8 @@ class FileHandler(object):
         self.handle = h5py.File(filename, 'r')
 
     def __del__(self):
-        self.handle.close()
+        if hasattr(self, 'handle'):
+            self.handle.close()
 
     def __getitem__(self, key):
         return self.handle[key]
@@ -28,9 +29,20 @@ class FileHandler(object):
     def __contains__(self, item):
         return item in self.handle
 
+    def __len__(self):
+        return len(self.handle)
+
+    @property
+    def attrs(self):
+        return self.handle.attrs
+
+    @property
+    def keys(self):
+        return self.handle.keys
+
 class FITSFileHandler(FileHandler):
-    from yt.utilities.on_demand_imports import _astropy
     def __init__(self, filename):
+        from yt.utilities.on_demand_imports import _astropy
         if isinstance(filename, _astropy.pyfits.PrimaryHDU):
             self.handle = _astropy.pyfits.HDUList(filename)
         else:
