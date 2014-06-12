@@ -808,7 +808,7 @@ class SDFIndex(object):
                                (left_key, self._max_key))
         right_key = min(right_key, self._max_key)
 
-        left_key = self.get_next_nonzero_chunk(left_key)
+        left_key = self.get_next_nonzero_chunk(left_key, right_key-1)
         right_key = self.get_previous_nonzero_chunk(right_key, left_key)
 
         lbase = self.indexdata['base'][left_key]
