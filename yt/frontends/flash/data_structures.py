@@ -71,18 +71,18 @@ class FLASHHierarchy(GridIndex):
         pass
 
     def _detect_output_fields(self):
-        ncomp = self._handle.handle["/unknown names"].shape[0]
-        self.field_list = [("flash", s) for s in self._handle.handle["/unknown names"][:].flat]
-        if ("/particle names" in self._particle_handle.handle) :
+        ncomp = self._handle["/unknown names"].shape[0]
+        self.field_list = [("flash", s) for s in self._handle["/unknown names"][:].flat]
+        if ("/particle names" in self._particle_handle) :
             self.field_list += [("io", "particle_" + s[0].strip()) for s
-                                in self._particle_handle.handle["/particle names"][:]]
+                                in self._particle_handle["/particle names"][:]]
     
     def _count_grids(self):
         try:
             self.num_grids = self.parameter_file._find_parameter(
                 "integer", "globalnumblocks", True)
         except KeyError:
-            self.num_grids = self._handle.handle["/simulation parameters"][0][0]
+            self.num_grids = self._handle["/simulation parameters"][0][0]
         
     def _parse_index(self):
         f = self._handle # shortcut
@@ -151,7 +151,7 @@ class FLASHHierarchy(GridIndex):
         
         offset = 7
         ii = np.argsort(self.grid_levels.flat)
-        gid = self._handle.handle["/gid"][:]
+        gid = self._handle["/gid"][:]
         first_ind = -(self.parameter_file.refine_by**self.parameter_file.dimensionality)
         for g in self.grids[ii].flat:
             gi = g.id - g._id_offset
@@ -243,9 +243,9 @@ class FLASHDataset(Dataset):
     def _find_parameter(self, ptype, pname, scalar = False):
         nn = "/%s %s" % (ptype,
                 {False: "runtime parameters", True: "scalars"}[scalar])
-        if nn not in self._handle.handle: raise KeyError(nn)
-        for tpname, pval in zip(self._handle.handle[nn][:,'name'],
-                                self._handle.handle[nn][:,'value']):
+        if nn not in self._handle: raise KeyError(nn)
+        for tpname, pval in zip(self._handle[nn][:,'name'],
+                                self._handle[nn][:,'value']):
             if tpname.strip() == pname:
                 if ptype == "string" :
                     return pval.strip()
@@ -256,12 +256,12 @@ class FLASHDataset(Dataset):
     def _parse_parameter_file(self):
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        if "file format version" in self._handle.handle:
+        if "file format version" in self._handle:
             self._flash_version = int(
-                self._handle.handle["file format version"][:])
-        elif "sim info" in self._handle.handle:
+                self._handle["file format version"][:])
+        elif "sim info" in self._handle:
             self._flash_version = int(
-                self._handle.handle["sim info"][:]["file format version"])
+                self._handle["sim info"][:]["file format version"])
         else:
             raise RuntimeError("Can't figure out FLASH file version.")
         # First we load all of the parameters
@@ -273,10 +273,10 @@ class FLASHDataset(Dataset):
                 hns.append("%s %s" % (vtype, ptype))
         if self._flash_version > 7:
             for hn in hns:
-                if hn not in self._handle.handle:
+                if hn not in self._handle:
                     continue
-                for varname, val in zip(self._handle.handle[hn][:,'name'],
-                                        self._handle.handle[hn][:,'value']):
+                for varname, val in zip(self._handle[hn][:,'name'],
+                                        self._handle[hn][:,'value']):
                     vn = varname.strip()
                     if hn.startswith("string") :
                         pval = val.strip()
@@ -287,12 +287,12 @@ class FLASHDataset(Dataset):
                     self.parameters[vn] = pval
         if self._flash_version == 7:
             for hn in hns:
-                if hn not in self._handle.handle:
+                if hn not in self._handle:
                     continue
                 if hn is 'simulation parameters':
-                    zipover = zip(self._handle.handle[hn].dtype.names,self._handle.handle[hn][0])
+                    zipover = zip(self._handle[hn].dtype.names,self._handle[hn][0])
                 else:
-                    zipover = zip(self._handle.handle[hn][:,'name'],self._handle.handle[hn][:,'value'])
+                    zipover = zip(self._handle[hn][:,'name'],self._handle[hn][:,'value'])
                 for varname, val in zipover:
                     vn = varname.strip()
                     if hn.startswith("string") :
@@ -309,7 +309,7 @@ class FLASHDataset(Dataset):
             nyb = self.parameters["nyb"]
             nzb = self.parameters["nzb"]
         except KeyError:
-            nxb, nyb, nzb = [int(self._handle.handle["/simulation parameters"]['n%sb' % ax])
+            nxb, nyb, nzb = [int(self._handle["/simulation parameters"]['n%sb' % ax])
                               for ax in 'xyz'] # FLASH2 only!
         
         # Determine dimensionality

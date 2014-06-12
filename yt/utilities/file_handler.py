@@ -22,3 +22,8 @@ class FileHandler(object):
     def __del__(self):
         self.handle.close()
 
+    def __getitem__(self, key):
+        return self.handle[key]
+
+    def __contains__(self, item):
+        return item in self.handle
