@@ -355,12 +355,12 @@ class SDFIndex(object):
             0 : slice(2, None, 3),
         }
         self.set_bounds()
+        self._midx_version = self.indexdata.parameters.get('midx_version', 0)
         if self._midx_version >= 1.0:
             max_key = self.get_key(np.array([2**self.level - 1]*3))
         else:
             max_key = self.indexdata['index'][-1]
         self._max_key = max_key
-
 
     def _fix_rexact(self, rmin, rmax):
 
@@ -371,83 +371,64 @@ class SDFIndex(object):
         self.rmax = center + 0.5*mysize
 
     def set_bounds(self):
-        sorted_rtp = self.sdfdata.parameters.get("sorted_rtp", False)
-        sorted_xyz = self.sdfdata.parameters.get("sorted_xyz", False)
-        morton_xyz = self.sdfdata.parameters.get("morton_xyz", False)
-
-        self.rmin = np.zeros(3)
-        self.rmax = np.zeros(3)
-        r_0 = self.sdfdata.parameters['R0']
-        try:
-            r_0 = self.sdfdata.parameters['L0']
-        except:
-            pass
-
-        if sorted_rtp:
-            mylog.debug("Setting up Sorted RTP data")
-            rtp_min = np.array([0.0, 0.0, -np.pi])
-            rtp_max = np.array([r_0*1.01, 2*np.pi, np.pi])
-            self._fix_rexact(rtp_min, rtp_max)
-            self.true_domain_left = self.rmin.copy()
-            self.true_domain_right = self.rmax.copy()
-            self.true_domain_width = self.rmax - self.rmin
-        elif sorted_xyz:
-            mylog.debug("Setting up Sorted XYZ data")
-            offset_center = self.sdfdata.parameters.get("offset_center", False)
-            if offset_center:
-                rmin = np.zeros(3)
-                rmax = np.array([2.0*r_0]*3)
-            else:
-                rmin = -1.01*np.array([r_0]*3)
-                rmax = 1.01*np.array([r_0]*3)
+        if ('x_min' in self.sdfdata.parameters and 'x_max' in self.sdfdata.parameters) or \
+           ('theta_min' in self.sdfdata.parameters and 'theta_max' in self.sdfdata.parameters):
+            if 'x_min' in self.sdfdata.parameters:
+                rmin = np.array([self.sdfdata.parameters['x_min'],
+                                 self.sdfdata.parameters['y_min'],
+                                 self.sdfdata.parameters['z_min']])
+                rmax = np.array([self.sdfdata.parameters['x_max'],
+                                 self.sdfdata.parameters['y_max'],
+                                 self.sdfdata.parameters['z_max']])
+            elif 'theta_min' in self.sdfdata.parameters:
+                rmin = np.array([self.sdfdata.parameters['r_min'],
+                                 self.sdfdata.parameters['theta_min'],
+                                 self.sdfdata.parameters['phi_min']])
+                rmax = np.array([self.sdfdata.parameters['r_max'],
+                                 self.sdfdata.parameters['theta_max'],
+                                 self.sdfdata.parameters['phi_max']])
             self._fix_rexact(rmin, rmax)
             self.true_domain_left = self.rmin.copy()
             self.true_domain_right = self.rmax.copy()
             self.true_domain_width = self.rmax - self.rmin
+            self.domain_width = self.rmax - self.rmin
+            self.domain_dims = 1 << self.level
+            self.domain_buffer = 0
+            self.domain_active_dims = self.domain_dims
         else:
-            mylog.debug("Setting up regular data")
+            mylog.debug("Setting up older data")
             rx = self.sdfdata.parameters.get('Rx')
             ry = self.sdfdata.parameters.get('Ry')
             rz = self.sdfdata.parameters.get('Rz')
             a =  self.sdfdata.parameters.get("a", 1.0)
-            r = np.array([rx, ry, rz])
-            rmin = -a*r
-            rmax = a*r
+            rmin = -a * np.array([rx, ry, rz])
+            rmax = a * np.array([rx, ry, rz])
             print rmin, rmax
-
-            #/* expand root for non-power-of-two */
-            expand_root = 0.0
-            ic_Nmesh = self.sdfdata.parameters.get('ic_Nmesh',0)
-            if ic_Nmesh != 0:
-                f2 = 1<<int(np.log2(ic_Nmesh-1)+1)
-                if (f2 != ic_Nmesh):
-                    expand_root = 1.0*f2/ic_Nmesh - 1.0;
-                mylog.debug("Expanding: %s, %s, %s" % (f2, ic_Nmesh, expand_root))
-            #self._fix_rexact(rmin, rmax)
             self.true_domain_left = rmin.copy()
             self.true_domain_right = rmax.copy()
             self.true_domain_width = rmax - rmin
-            rmin *= (1.0 + expand_root)
-            rmax *= (1.0 + expand_root)
+
+            expand_root = 0.0
+            morton_xyz = self.sdfdata.parameters.get("morton_xyz", False)
+            if not morton_xyz:
+                self.wandering_particles = True
+                ic_Nmesh = self.sdfdata.parameters.get('ic_Nmesh',0)
+                # Expand root for non power-of-2
+                if ic_Nmesh != 0:
+                    f2 = 1<<int(np.log2(ic_Nmesh-1)+1)
+                    if (f2 != ic_Nmesh):
+                        expand_root = 1.0*f2/ic_Nmesh - 1.0;
+                        mylog.debug("Expanding: %s, %s, %s" % (f2, ic_Nmesh, expand_root))
+                        rmin *= (1.0 + expand_root)
+                        rmax *= (1.0 + expand_root)
+
             self._fix_rexact(rmin, rmax)
+            self.domain_width = self.rmax - self.rmin
+            self.domain_dims = 1 << self.level
+            self.domain_buffer = (self.domain_dims - int(self.domain_dims/(1.0 + expand_root)))/2
+            self.domain_active_dims = self.domain_dims - 2*self.domain_buffer
+
         print self.rmin, self.rmax
-
-        self._midx_version = self.indexdata.parameters.get("midx_version", 0)
-        if self._midx_version == 1.0:
-            rmin = np.zeros(3)
-            rmax = np.zeros(3)
-            rmin[0] = self.indexdata.parameters['x_min']
-            rmin[1] = self.indexdata.parameters['y_min']
-            rmin[2] = self.indexdata.parameters['z_min']
-            rmax[0] = self.indexdata.parameters['x_max']
-            rmax[1] = self.indexdata.parameters['y_max']
-            rmax[2] = self.indexdata.parameters['z_max']
-            self._fix_rexact(rmin, rmax)
-
-        self.domain_width = self.rmax - self.rmin
-        self.domain_dims = 1 << self.level
-        self.domain_buffer = (self.domain_dims - int(self.domain_dims/(1.0 + expand_root)))/2
-        self.domain_active_dims = self.domain_dims - 2*self.domain_buffer
         mylog.debug("SINDEX: %s, %s, %s " % (self.domain_width, self.domain_dims, self.domain_active_dims))
 
     def spread_bits(self, ival, level=None):
