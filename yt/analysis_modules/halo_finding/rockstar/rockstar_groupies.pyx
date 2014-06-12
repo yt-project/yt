@@ -269,6 +269,34 @@ cdef class RockstarGroupiesInterface:
                                       particle_thresh_dens[4]],
                                      dtype=np.float64)
         return d
+
+    def assign_masses(self, h, np.ndarray[np.float32_t, ndim=1] r, float force_res, \
+                      double pmass, np.ndarray[np.float64_t, ndim=1] dens_thresh):
+        """Assign spherical overdensity masses to halos.  r must be sorted"""
+        cdef double total_mass = 0.0
+        cdef double m = 0.0
+        cdef double alt_m1 = 0.0
+        cdef double alt_m2 = 0.0
+        cdef double alt_m3 = 0.0
+        cdef double alt_m4 = 0.0
+        cdef double rr
+        cdef double cur_dens
+        for rr in r:
+            if rr < force_res: rr = force_res
+            total_mass += pmass
+            cur_dens = total_mass/(rr*rr*rr)
+            if cur_dens > dens_thresh[0]: m = total_mass
+            if cur_dens > dens_thresh[1]: alt_m1 = total_mass
+            if cur_dens > dens_thresh[2]: alt_m2 = total_mass
+            if cur_dens > dens_thresh[3]: alt_m3 = total_mass
+            if cur_dens > dens_thresh[4]: alt_m4 = total_mass
+            if cur_dens <= dens_thresh[1]:
+                h['m'] = m
+                h['alt_m1'] = alt_m1
+                h['alt_m2'] = alt_m2
+                h['alt_m3'] = alt_m3
+                h['alt_m4'] = alt_m4
+                return
         
     def max_halo_radius(self, int i):
         return max_halo_radius(&halos[i])
