@@ -97,19 +97,19 @@ class FLASHHierarchy(GridIndex):
             self.grid_left_edge[:,i] = DLE[i]
             self.grid_right_edge[:,i] = DRE[i]
         # We only go up to ND for 2D datasets
-        self.grid_left_edge[:,:ND] = f.handle["/bounding box"][:,:ND,0]
-        self.grid_right_edge[:,:ND] = f.handle["/bounding box"][:,:ND,1]
+        self.grid_left_edge[:,:ND] = f["/bounding box"][:,:ND,0]
+        self.grid_right_edge[:,:ND] = f["/bounding box"][:,:ND,1]
         # Move this to the parameter file
         try:
             nxb = pf.parameters['nxb']
             nyb = pf.parameters['nyb']
             nzb = pf.parameters['nzb']
         except KeyError:
-            nxb, nyb, nzb = [int(f.handle["/simulation parameters"]['n%sb' % ax])
+            nxb, nyb, nzb = [int(f["/simulation parameters"]['n%sb' % ax])
                               for ax in 'xyz']
         self.grid_dimensions[:] *= (nxb, nyb, nzb)
         try:
-            self.grid_particle_count[:] = f_part.handle["/localnp"][:][:,None]
+            self.grid_particle_count[:] = f_part["/localnp"][:][:,None]
         except KeyError:
             self.grid_particle_count[:] = 0.0
         self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
@@ -121,7 +121,7 @@ class FLASHHierarchy(GridIndex):
         # This will become redundant, as _prepare_grid will reset it to its
         # current value.  Note that FLASH uses 1-based indexing for refinement
         # levels, but we do not, so we reduce the level by 1.
-        self.grid_levels.flat[:] = f.handle["/refine level"][:][:] - 1
+        self.grid_levels.flat[:] = f["/refine level"][:][:] - 1
         self.grids = np.empty(self.num_grids, dtype='object')
         for i in xrange(self.num_grids):
             self.grids[i] = self.grid(i+1, self, self.grid_levels[i,0])
@@ -390,7 +390,7 @@ class FLASHDataset(Dataset):
     def _is_valid(self, *args, **kwargs):
         try:
             fileh = FileHandler(args[0])
-            if "bounding box" in fileh.handle["/"].keys():
+            if "bounding box" in fileh["/"].keys():
                 return True
         except:
             pass
