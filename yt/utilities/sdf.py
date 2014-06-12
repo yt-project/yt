@@ -716,7 +716,7 @@ class SDFIndex(object):
                 #                  self.true_domain_width[i]) + left[i]
                 mask = pos[:,i] >= left[i] + DW[i]
                 pos[mask, i] -= DW[i]
-                mask = pos[:,i] < right[i] - DW[i] 
+                mask = pos[:,i] < right[i] - DW[i]
                 pos[mask, i] += DW[i]
                 #del mask
 
@@ -731,7 +731,7 @@ class SDFIndex(object):
 
             filtered = {ax: pos[:, i][mask] for i, ax in enumerate('xyz')}
             for f in data.keys():
-                if f in 'xyz': 
+                if f in 'xyz':
                     continue
                 filtered[f] = data[f][mask]
 
@@ -921,25 +921,34 @@ class SDFIndex(object):
         assert bbox.shape == (3, 2)
         return bbox
 
-    def get_padded_bbox_data(self, level, cell_iarr, pad, fields):
-        """Get floating point bounding box for a given sindex cell
 
-        Returns:
-            bbox: array-like, shape (3,2)
+    def iter_padded_bbox_data(self, level, cell_iarr, pad, fields):
+        """
+        Yields data chunks for a cell on the given level
+        plus a padding around the cell, for a list of fields.
+
+        Yields:
+            dd: A dictionaries of data.
+
+        Example:
+
+        for chunk in sindex.iter_padded_bbox_data(
+            6, np.array([128]*3), 8.0, ['x','y','z','ident']):
+
+            print chunk['x'].max()
 
         """
+
         bbox = self.get_cell_bbox(level, cell_iarr)
         filter_left = bbox[:, 0] - pad
         filter_right = bbox[:, 1] + pad
 
-        data = []
+        # Center cell
         for dd in self.filter_bbox(
             filter_left, filter_right,
             [self.get_cell_data(level, cell_iarr, fields)]):
-            data.append(dd)
-        #for dd in self.iter_bbox_data(bbox[:,0], bbox[:,1], fields):
-        #    data.append(dd)
-        #assert data[0]['x'].shape[0] > 0
+            yield dd
+            del dd
 
         # Bottom & Top
         pbox = bbox.copy()
@@ -952,13 +961,16 @@ class SDFIndex(object):
         for dd in self.filter_bbox(
             filter_left, filter_right,
             self.iter_bbox_data(pbox[:,0], pbox[:,1], fields)):
-            data.append(dd)
+            yield dd
+            del dd
+
         pbox[2, 0] = bbox[2, 1]
         pbox[2, 1] = pbox[2, 0] + pad[2]
         for dd in self.filter_bbox(
             filter_left, filter_right,
             self.iter_bbox_data(pbox[:,0], pbox[:,1], fields)):
-            data.append(dd)
+            yield dd
+            del dd
 
         # Front & Back
         pbox = bbox.copy()
@@ -969,13 +981,16 @@ class SDFIndex(object):
         for dd in self.filter_bbox(
             filter_left, filter_right,
             self.iter_bbox_data(pbox[:,0], pbox[:,1], fields)):
-            data.append(dd)
+            yield dd
+            del dd
+
         pbox[1, 0] = bbox[1, 1]
         pbox[1, 1] = pbox[1, 0] + pad[1]
         for dd in self.filter_bbox(
             filter_left, filter_right,
             self.iter_bbox_data(pbox[:,0], pbox[:,1], fields)):
-            data.append(dd)
+            yield dd
+            del dd
 
         # Left & Right
         pbox = bbox.copy()
@@ -984,14 +999,36 @@ class SDFIndex(object):
         for dd in self.filter_bbox(
             filter_left, filter_right,
             self.iter_bbox_data(pbox[:,0], pbox[:,1], fields)):
-            data.append(dd)
+            yield dd
+            del dd
+
         pbox[0, 0] = bbox[0, 1]
         pbox[0, 1] = pbox[0, 0] + pad[0]
         for dd in self.filter_bbox(
             filter_left, filter_right,
             self.iter_bbox_data(pbox[:,0], pbox[:,1], fields)):
-            data.append(dd)
+            yield dd
+            del dd
 
+    def get_padded_bbox_data(self, level, cell_iarr, pad, fields):
+        """
+        Return list of data chunks for a cell on the given level
+        plus a padding around the cell, for a list of fields.
+
+        Returns:
+            data: A list of dictionaries of data.
+
+        chunks = sindex.get_padded_bbox_data(6, np.array([128]*3),
+                                             8.0, ['x','y','z','ident'])
+
+        """
+        bbox = self.get_cell_bbox(level, cell_iarr)
+        filter_left = bbox[:, 0] - pad
+        filter_right = bbox[:, 1] + pad
+
+        data = []
+        for dd in self.iter_padded_bbox_data(self, level, cell_iarr, pad, fields):
+            data.append(dd)
         return data
 
     def get_cell_width(self, level):
