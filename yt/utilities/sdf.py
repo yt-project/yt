@@ -316,15 +316,13 @@ class SDFIndex(object):
         iter_bbox_data(left, right, fields)
 
     """
-    def __init__(self, sdfdata, indexdata, level=9):
+    def __init__(self, sdfdata, indexdata, level=None):
         super(SDFIndex, self).__init__()
         self.sdfdata = sdfdata
         self.indexdata = indexdata
+        if level is None:
+            level = self.indexdata.parameters.get('level',None)
         self.level = level
-        idlevel = self.indexdata.parameters.get('level',None)
-        if idlevel and idlevel != level:
-            mylog.warning("Overriding index level to %i" % idlevel)
-            self.level = idlevel
 
         self.rmin = None
         self.rmax = None
@@ -332,7 +330,7 @@ class SDFIndex(object):
         self.domain_buffer = 0
         self.domain_dims = 0
         self.domain_active_dims = 0
-        self.wandering_particles = True
+        self.wandering_particles = False
         self.valid_indexdata = True
         self.masks = {
             "p" : int("011"*level, 2),
