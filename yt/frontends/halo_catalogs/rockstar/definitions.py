@@ -93,8 +93,7 @@ halo_dt = np.dtype([
     ('min_pos_err', np.float32),
     ('min_vel_err', np.float32),
     ('min_bulkvel_err', np.float32),
-    ('padding2', np.float32),
-])
+], align=True)
 
 particle_dt = np.dtype([
     ('particle_identifier', np.int64),
