@@ -58,7 +58,7 @@ class FieldDetector(defaultdict):
             pf.domain_right_edge = np.ones(3, 'float64')
             pf.dimensionality = 3
             pf.periodicity = (True, True, True)
-        self.pf = weakref.proxy(pf)
+        self.pf = pf
 
         class fake_index(object):
             class fake_io(object):
