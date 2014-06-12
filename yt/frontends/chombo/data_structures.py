@@ -33,6 +33,8 @@ from yt.data_objects.static_output import \
      Dataset
 from yt.utilities.definitions import \
      mpc_conversion, sec_conversion
+from yt.utilities.file_handler import \
+    FileHandler
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      parallel_root_only
 from yt.utilities.lib.misc_utilities import \
@@ -241,7 +243,7 @@ class ChomboDataset(Dataset):
     def __init__(self, filename, dataset_type='chombo_hdf5',
                  storage_filename = None, ini_filename = None):
         self.fluid_types += ("chombo",)
-        self._handle = h5py.File(filename, 'r')
+        self._handle = FileHandler(filename)
 
         # look up the dimensionality of the dataset
         D = self._handle['Chombo_global/'].attrs['SpaceDim']
@@ -270,9 +272,6 @@ class ChomboDataset(Dataset):
         self.parameters["HydroMethod"] = 'chombo'
         self.parameters["DualEnergyFormalism"] = 0 
         self.parameters["EOSType"] = -1 # default
-
-    def __del__(self):
-        self._handle.close()
 
     def _set_code_unit_attributes(self):
         self.length_unit = YTQuantity(1.0, "cm")
@@ -316,11 +315,10 @@ class ChomboDataset(Dataset):
         return LE
 
     def _calc_right_edge(self):
-        fileh = h5py.File(self.parameter_filename,'r')
+        fileh = self._handle
         dx0 = fileh['/level_0'].attrs['dx']
         D = self.dimensionality
         RE = dx0*((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[D:] + 1)
-        fileh.close()
         return RE
 
     def _calc_domain_dimensions(self):
