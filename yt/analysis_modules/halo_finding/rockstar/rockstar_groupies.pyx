@@ -330,6 +330,7 @@ cdef class RockstarGroupiesInterface:
                                 np.ndarray[anyfloat, ndim=2] pos,
                                 np.ndarray[anyfloat, ndim=2] vel):
 
+        verbose = False
         # Define fof object
 
         # Find number of particles
@@ -388,7 +389,7 @@ cdef class RockstarGroupiesInterface:
                 pcounts[ndone] = fof_obj.num_p
                 counter += 1
                 ndone += 1
-                if counter == frac:
+                if verbose and counter == frac:
                     print >> sys.stderr, "R*-ing % 5.1f%% done (%0.3f -> %0.3f)" % (
                         (100.0 * ndone)/pcounts.size,
                         fof_obj.particles[0].pos[2],
