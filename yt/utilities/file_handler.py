@@ -27,3 +27,19 @@ class FileHandler(object):
 
     def __contains__(self, item):
         return item in self.handle
+
+class FITSFileHandler(FileHandler):
+    from yt.utilities.on_demand_imports import _astropy
+    def __init__(self, filename):
+        if isinstance(filename, _astropy.pyfits.PrimaryHDU):
+            self.handle = _astropy.pyfits.HDUList(filename)
+        else:
+            self.handle = _astropy.pyfits.open(
+                filename, memmap=True, do_not_scale_image_data=True,
+                ignore_blank=True)
+
+    def __del__(self):
+        for f in self._fits_files:
+            f.close()
+            del f
+        super(FITSFileHandler, self).__del__()
