@@ -73,7 +73,6 @@ cdef import from "groupies.h":
     void free_halos() nogil
     float max_halo_radius(halo *h) nogil
 
-
 # global in groupies.c
 cdef extern double particle_thresh_dens[5]
 
@@ -87,6 +86,9 @@ cdef import from "meta_io.h":
 cdef import from "config.h":
     void setup_config() nogil
     void output_config(char *fn) nogil
+
+cdef import from "distance.h":
+    void init_cosmology() nogil
 
 cdef import from "config_vars.h":
     # Rockstar cleverly puts all of the config variables inside a templated
@@ -237,7 +239,6 @@ cdef class RockstarGroupiesInterface:
             #workaround is to make a new directory
             OUTBASE = outbase 
 
-
         PARTICLE_MASS = particle_mass.in_units('Msun/h')
         PERIODIC = periodic
         BOX_SIZE = pf.domain_width.in_units('Mpccm/h')[0]
@@ -257,6 +258,7 @@ cdef class RockstarGroupiesInterface:
 
         # Needs to be called so rockstar can use the particle mass parameter
         # to calculate virial quantities properly
+        init_cosmology()
         calc_mass_definition()
 
         if write_config: output_config(NULL)
