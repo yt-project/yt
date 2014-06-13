@@ -17,8 +17,9 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free
-from fp_utils cimport fclip
+from fp_utils cimport fclip, i64clip
 from libc.math cimport copysign
+from yt.utilities.exceptions import YTDomainOverflow
 
 cdef extern from "math.h":
     double exp(double x) nogil
@@ -348,25 +349,33 @@ ctypedef fused anyfloat:
     np.float32_t
     np.float64_t
 
-cdef position_to_morton(np.ndarray[anyfloat, ndim=1] pos_x,
+cdef np.int64_t position_to_morton(np.ndarray[anyfloat, ndim=1] pos_x,
                         np.ndarray[anyfloat, ndim=1] pos_y,
                         np.ndarray[anyfloat, ndim=1] pos_z,
                         np.float64_t dds[3], np.float64_t DLE[3],
+                        np.float64_t DRE[3],
                         np.ndarray[np.uint64_t, ndim=1] ind):
     cdef np.uint64_t mi, ii[3]
     cdef np.float64_t p[3]
     cdef np.int64_t i, j
+    cdef np.uint64_t DD[3]
+    for i in range(3):
+        DD[i] = <np.uint64_t> ((DRE[i] - DLE[i]) / dds[i])
     for i in range(pos_x.shape[0]):
         p[0] = <np.float64_t> pos_x[i]
         p[1] = <np.float64_t> pos_y[i]
         p[2] = <np.float64_t> pos_z[i]
         for j in range(3):
+            if p[j] < DLE[j] or p[j] > DRE[j]:
+                return i
             ii[j] = <np.uint64_t> ((p[j] - DLE[j])/dds[j])
+            ii[j] = i64clip(ii[j], 0, DD[j] - 1)
         mi = 0
         mi |= spread_bits(ii[2])<<0
         mi |= spread_bits(ii[1])<<1
         mi |= spread_bits(ii[0])<<2
         ind[i] = mi
+    return pos_x.shape[0]
 
 DEF ORDER_MAX=20
         
@@ -380,13 +389,21 @@ def compute_morton(np.ndarray pos_x, np.ndarray pos_y, np.ndarray pos_z,
         dds[i] = (DRE[i] - DLE[i]) / (1 << ORDER_MAX)
     cdef np.ndarray[np.uint64_t, ndim=1] ind
     ind = np.zeros(pos_x.shape[0], dtype="uint64")
+    cdef np.int64_t rv
     if pos_x.dtype == np.float32:
-        position_to_morton[np.float32_t](pos_x, pos_y, pos_z, dds, DLE, ind)
+        rv = position_to_morton[np.float32_t](
+                pos_x, pos_y, pos_z, dds, DLE, DRE, ind)
     elif pos_x.dtype == np.float64:
-        position_to_morton[np.float64_t](pos_x, pos_y, pos_z, dds, DLE, ind)
+        rv = position_to_morton[np.float64_t](
+                pos_x, pos_y, pos_z, dds, DLE, DRE, ind)
     else:
         print "Could not identify dtype.", pos_x.dtype
         raise NotImplementedError
+    if rv < pos_x.shape[0]:
+        mis = (pos_x.min(), pos_y.min(), pos_z.min())
+        mas = (pos_x.max(), pos_y.max(), pos_z.max())
+        raise YTDomainOverflow(mis, mas,
+                               domain_left_edge, domain_right_edge)
     return ind
 
 @cython.boundscheck(False)
