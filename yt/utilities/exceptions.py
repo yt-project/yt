@@ -387,13 +387,6 @@ class YTInvalidPositionArray(Exception):
                But this one has %s and %s.""" % (self.dimensions, self.shape)
         return r
 
-class YTImportFailure(YTException):
-    def __str__(self):
-        return "You cannot import yt because you have not setup your environment for this \n" + \
-               "version of yt.  To resolve this, follow these steps at the command line: \n\n" + \
-               "$ cd $YT_DEST/src/yt-hg \n" + \
-               "$ python setup.py develop \n"
-
 class YTIllDefinedCutRegion(Exception):
     def __init__(self, conditions):
         self.conditions = conditions
