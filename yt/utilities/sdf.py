@@ -728,7 +728,7 @@ class SDFIndex(object):
         """
 
         kpcuq = left.in_units('kpccm').uq
-        mpcuq = left.in_units('Mpc/h').uq
+        mpcuq = left.in_units('Mpccm/h').uq
         DW = (self.true_domain_width * kpcuq).in_units('Mpc/h')
         if pos_fields is None:
             pos_fields = 'x','y','z'
@@ -736,7 +736,7 @@ class SDFIndex(object):
         print pos_fields
 
         # I'm sorry.
-        pos = mpcuq * np.array([data[xf].in_units('Mpc/h'), data[yf].in_units('Mpc/h'), data[zf].in_units('Mpc/h')]).T
+        pos = mpcuq * np.array([data[xf].in_units('Mpccm/h'), data[yf].in_units('Mpccm/h'), data[zf].in_units('Mpccm/h')]).T
 
         # This hurts, but is useful for periodicity. Probably should check first
         # if it is even needed for a given left/right
