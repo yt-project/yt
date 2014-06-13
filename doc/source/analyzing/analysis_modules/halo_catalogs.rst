@@ -226,4 +226,4 @@ Summary
 =======
 
 For a full example of how to use these methods together see 
-:ref:`halo_analysis_example`.
+:doc:`halo_analysis_example`.

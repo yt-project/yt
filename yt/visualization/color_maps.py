@@ -83,9 +83,9 @@ _kamae_blu = np.minimum(255,
                 194.5*_vs**2.88+99.72*np.exp(-77.24*(_vs-0.742)**2.0)
               + 45.40*_vs**0.089+10.0)/255.0
 
-cdict = {'red':izip(_vs,_kamae_red,_kamae_red),
-         'green':izip(_vs,_kamae_grn,_kamae_grn),
-         'blue':izip(_vs,_kamae_blu,_kamae_blu)}
+cdict = {'red':zip(_vs,_kamae_red,_kamae_red),
+         'green':zip(_vs,_kamae_grn,_kamae_grn),
+         'blue':zip(_vs,_kamae_blu,_kamae_blu)}
 add_cmap('kamae', cdict)
 
 # This one is a simple black & green map
