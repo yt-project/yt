@@ -288,6 +288,9 @@ cdef class ParticleRegions:
         elif pos.dtype == np.float64:
             self._mask_positions[np.float64_t](pos, file_id)
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef void _mask_positions(self, np.ndarray[anyfloat, ndim=2] pos,
                               np.uint64_t file_id):
         cdef np.int64_t no = pos.shape[0]
@@ -302,6 +305,7 @@ cdef class ParticleRegions:
                 ind[i] = <int> ((pos[p, i] - self.left_edge[i])*self.idds[i])
                 ind[i] = iclip(ind[i], 0, self.dims[i])
             mask[ind[0],ind[1],ind[2]] |= val
+        return
 
     def identify_data_files(self, SelectorObject selector):
         # This is relatively cheap to iterate over.
