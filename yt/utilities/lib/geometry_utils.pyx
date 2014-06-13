@@ -349,6 +349,9 @@ ctypedef fused anyfloat:
     np.float32_t
     np.float64_t
 
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef np.int64_t position_to_morton(np.ndarray[anyfloat, ndim=1] pos_x,
                         np.ndarray[anyfloat, ndim=1] pos_y,
                         np.ndarray[anyfloat, ndim=1] pos_z,
