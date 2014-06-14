@@ -357,7 +357,8 @@ cdef np.int64_t position_to_morton(np.ndarray[anyfloat, ndim=1] pos_x,
                         np.ndarray[anyfloat, ndim=1] pos_z,
                         np.float64_t dds[3], np.float64_t DLE[3],
                         np.float64_t DRE[3],
-                        np.ndarray[np.uint64_t, ndim=1] ind):
+                        np.ndarray[np.uint64_t, ndim=1] ind,
+                        int filter):
     cdef np.uint64_t mi, ii[3]
     cdef np.float64_t p[3]
     cdef np.int64_t i, j
@@ -370,6 +371,10 @@ cdef np.int64_t position_to_morton(np.ndarray[anyfloat, ndim=1] pos_x,
         p[2] = <np.float64_t> pos_z[i]
         for j in range(3):
             if p[j] < DLE[j] or p[j] > DRE[j]:
+                if filter == 1:
+                    # We only allow 20 levels, so this is inaccessible
+                    ind[i] = -1 
+                    continue
                 return i
             ii[j] = <np.uint64_t> ((p[j] - DLE[j])/dds[j])
             ii[j] = i64clip(ii[j], 0, DD[j] - 1)
@@ -383,8 +388,13 @@ cdef np.int64_t position_to_morton(np.ndarray[anyfloat, ndim=1] pos_x,
 DEF ORDER_MAX=20
         
 def compute_morton(np.ndarray pos_x, np.ndarray pos_y, np.ndarray pos_z,
-                   domain_left_edge, domain_right_edge):
+                   domain_left_edge, domain_right_edge, filter_bbox):
     cdef int i
+    cdef int filter
+    if filter_bbox:
+        filter = 1
+    else:
+        filter = 0
     cdef np.float64_t dds[3], DLE[3], DRE[3]
     for i in range(3):
         DLE[i] = domain_left_edge[i]
@@ -395,10 +405,12 @@ def compute_morton(np.ndarray pos_x, np.ndarray pos_y, np.ndarray pos_z,
     cdef np.int64_t rv
     if pos_x.dtype == np.float32:
         rv = position_to_morton[np.float32_t](
-                pos_x, pos_y, pos_z, dds, DLE, DRE, ind)
+                pos_x, pos_y, pos_z, dds, DLE, DRE, ind,
+                filter)
     elif pos_x.dtype == np.float64:
         rv = position_to_morton[np.float64_t](
-                pos_x, pos_y, pos_z, dds, DLE, DRE, ind)
+                pos_x, pos_y, pos_z, dds, DLE, DRE, ind,
+                filter)
     else:
         print "Could not identify dtype.", pos_x.dtype
         raise NotImplementedError
