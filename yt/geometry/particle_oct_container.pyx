@@ -218,10 +218,12 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         # Now we look at the last nref particles to decide where they go.
         cdef int n = imin(p, self.n_ref)
         cdef np.uint64_t *arr = data + imax(p - self.n_ref, 0)
+        cdef np.uint64_t prefix1, prefix2
         # Now we figure out our prefix, which is the oct address at this level.
         # As long as we're actually in Morton order, we do not need to worry
         # about *any* of the other children of the oct.
         prefix1 = data[p] >> (ORDER_MAX - level)*3
+        cdef np.uint64_t prefix1, prefix2
         for i in range(n):
             prefix2 = arr[i] >> (ORDER_MAX - level)*3
             if (prefix1 == prefix2):
