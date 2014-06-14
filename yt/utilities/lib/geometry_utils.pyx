@@ -361,11 +361,13 @@ cdef np.int64_t position_to_morton(np.ndarray[anyfloat, ndim=1] pos_x,
                         int filter):
     cdef np.uint64_t mi, ii[3]
     cdef np.float64_t p[3]
-    cdef np.int64_t i, j
+    cdef np.int64_t i, j, use
     cdef np.uint64_t DD[3]
+    cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
     for i in range(3):
         DD[i] = <np.uint64_t> ((DRE[i] - DLE[i]) / dds[i])
     for i in range(pos_x.shape[0]):
+        use = 1
         p[0] = <np.float64_t> pos_x[i]
         p[1] = <np.float64_t> pos_y[i]
         p[2] = <np.float64_t> pos_z[i]
@@ -373,11 +375,14 @@ cdef np.int64_t position_to_morton(np.ndarray[anyfloat, ndim=1] pos_x,
             if p[j] < DLE[j] or p[j] > DRE[j]:
                 if filter == 1:
                     # We only allow 20 levels, so this is inaccessible
-                    ind[i] = -1 
-                    continue
+                    use = 0
+                    break
                 return i
             ii[j] = <np.uint64_t> ((p[j] - DLE[j])/dds[j])
             ii[j] = i64clip(ii[j], 0, DD[j] - 1)
+        if use == 0: 
+            ind[i] = FLAG
+            continue
         mi = 0
         mi |= spread_bits(ii[2])<<0
         mi |= spread_bits(ii[1])<<1

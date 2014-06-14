@@ -165,12 +165,13 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         cdef int i, level, ind[3]
         if self.root_mesh[0][0][0] == NULL: self.allocate_root()
         cdef np.uint64_t *data = <np.uint64_t *> indices.data
+        cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
         for p in range(no):
             # We have morton indices, which means we choose left and right by
             # looking at (MAX_ORDER - level) & with the values 1, 2, 4.
             level = 0
             index = indices[p]
-            if index == -1:
+            if index == FLAG:
                 # This is a marker for the index not being inside the domain
                 # we're interested in.
                 continue
