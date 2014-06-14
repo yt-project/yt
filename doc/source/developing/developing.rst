@@ -226,8 +226,7 @@ straightforward.
 
         hg push https://bitbucket.org/YourUsername/yt/
 
-  #. Update your pull request by visiting
-     https://bitbucket.org/YourUsername/yt/pull-request/new
+  #. Your pull request will be automatically updated.
 
 .. _writing_documentation:
 
