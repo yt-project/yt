@@ -74,6 +74,8 @@ All contributed code must be BSD-compatible.  If you'd rather not license in
 this manner, but still want to contribute, please consider creating an external
 package, which we'll happily link to.
 
+.. _requirements-for-code-submission:
+
 Requirements for Code Submission
 ++++++++++++++++++++++++++++++++
 
@@ -88,22 +90,22 @@ detail.)
   * New Features
 
     * New unit tests (possibly new answer tests) (See :ref:`testing`)
-    * Docstrings for public API
-    * Addition of new feature to the narrative documentation
-    * Addition of cookbook recipe
+    * Docstrings in the source code for the public API
+    * Addition of new feature to the narrative documentation (See :ref:`writing_documentation`)
+    * Addition of cookbook recipe (See :ref:`writing_documentation`) 
     * Issue created on issue tracker, to ensure this is added to the changelog
 
   * Extension or Breakage of API in Existing Features
 
-    * Update existing narrative docs and docstrings
-    * Update existing cookbook recipes
+    * Update existing narrative docs and docstrings (See :ref:`writing_documentation`) 
+    * Update existing cookbook recipes (See :ref:`writing_documentation`) 
     * Modify of create new unit tests (See :ref:`testing`)
     * Issue created on issue tracker, to ensure this is added to the changelog
 
   * Bug fixes
 
     * Unit test is encouraged, to ensure breakage does not happen again in the
-      future.
+      future. (See :ref:`testing`)
     * Issue created on issue tracker, to ensure this is added to the changelog
 
 When submitting, you will be asked to make sure that your changes meet all of
@@ -178,14 +180,14 @@ or
 
   $ python2.7 setup.py build --compiler=mingw32 install
 
+.. _sharing-changes:
+
 Making and Sharing Changes
 ++++++++++++++++++++++++++
 
 The simplest way to submit changes to yt is to commit changes in your
 ``$YT_DEST/src/yt-hg`` directory, fork the repository on BitBucket,  push the
-changesets to your fork, and then issue a pull request.  If you will be
-developing much more in-depth features for yt, you will also
-likely want to edit the paths in your 
+changesets to your fork, and then issue a pull request.  
 
 Here's a more detailed flowchart of how to submit changes.
 
@@ -230,19 +232,59 @@ straightforward.
 .. _writing_documentation:
 
 How to Write Documentation
-++++++++++++++++++++++++++
+--------------------------
 
-The process for writing documentation is identical to the above, except that
-you're modifying source files in the doc directory (i.e. ``$YT_DEST/src/yt-hg/doc``) 
-instead of the src directory (i.e. ``$YT_DEST/src/yt-hg/yt``) of the yt repository.
+Writing documentation is one of the most important but often overlooked tasks
+for increasing yt's impact in the community.  It is the way in which the 
+world will understand how to use our code, so it needs to be done concisely
+and understandably.  Typically, when a developer submits some piece of code 
+with new functionality, she should also include documentation on how to use 
+that functionality (as per :ref:`requirements-for-code-submission`).  
+Depending on the nature of the code addition, this could be a new narrative 
+docs section describing how the new code works and how to use it, it could 
+include a recipe in the cookbook section, or it could simply be adding a note 
+in the relevant docs text somewhere.
+
+The documentation exists in the main mercurial code repository for yt in the 
+``doc`` directory (i.e. ``$YT_DEST/src/yt-hg/doc/source`` on systems installed 
+using the installer script).  It is organized hierarchically into the main 
+categories of:
+
+ * Visualizing
+ * Analyzing
+ * Examining
+ * Cookbook
+ * Bootcamp
+ * Developing
+ * Reference
+ * Help
+
+You will have to figure out where your new/modified doc fits into this, but 
+browsing through the pre-built documentation is a good way to sort that out.
+
 All the source for the documentation is written in 
-`Sphinx <http://sphinx-doc.org/>`_, which uses ReST for markup.
+`Sphinx <http://sphinx-doc.org/>`_, which uses ReST for markup.  ReST is very
+straightforward to markup in a text editor, and if you are new to it, we
+recommend just using other .rst files in the existing documentation as 
+templates or checking out the link for more specific references.
 
-Cookbook recipes go in ``source/cookbook/`` and must be added to one of the
-``.rst`` files in that directory.  
+New cookbook recipes (see :ref:`cookbook`) are very helpful for the community 
+as they provide simple annotated recipes on how to use specific functionality.  
+To add one, create a concise python script which demonstrates some 
+functionality and pare it down to its minimum.  Add some comment lines to 
+describe what it is that you're doing along the way.  Place this ``.py`` file 
+in the ``source/cookbook/`` directory, and then link to it explicitly in one 
+of the relevant ``.rst`` files in that directory (e.g. ``complex_plots.rst``, 
+``cosmological_analysis.rst``, etc.), and add some description of what the script 
+actually does.  
 
-For more information on how to build the documentation to make sure it looks
-the way you expect it to after modifying it, see :ref:`docs_build`.
+After you have made your modifications to the docs, you will want to make sure
+that they render the way you expect them to render.  For more information on
+this, see the section on :ref:`docs_build`.
+
+When you have completed your documentation additions, commit your changes 
+to your repository and make a pull request in the same way you would contribute 
+a change to the codebase, as described in the section on :ref:`sharing-changes`.
 
 How To Get The Source Code For Editing
 --------------------------------------
