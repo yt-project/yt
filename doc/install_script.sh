@@ -945,6 +945,7 @@ then
 	[ ! -e Rockstar ] && hg clone http://bitbucket.org/MatthewTurk/rockstar
         echo "Building Rockstar"
         cd Rockstar
+	hg pull -C tip
 	hg up -C tip
         ( make lib 2>&1 ) 1>> ${LOG_FILE} || do_exit
         cp librockstar.so ${DEST_DIR}/lib
