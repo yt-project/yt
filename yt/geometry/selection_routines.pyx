@@ -1528,6 +1528,9 @@ cdef class IndexedOctreeSubsetSelector(SelectorObject):
     cdef np.uint64_t min_ind
     cdef np.uint64_t max_ind
     cdef SelectorObject base_selector
+    cdef int filter_bbox
+    cdef np.float64_t DLE[3]
+    cdef np.float64_t DRE[3]
 
     def __init__(self, dobj):
         self.min_ind = dobj.min_ind
@@ -1535,6 +1538,12 @@ cdef class IndexedOctreeSubsetSelector(SelectorObject):
         self.base_selector = dobj.base_selector
         self.min_level = self.base_selector.min_level
         self.max_level = self.base_selector.max_level
+        self.filter_bbox = 0
+        if getattr(dobj.pf, "filter_bbox", False):
+            self.filter_bbox = 1
+        for i in range(3):
+            self.DLE[i] = dobj.pf.domain_left_edge[i]
+            self.DRE[i] = dobj.pf.domain_right_edge[i]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1561,6 +1570,12 @@ cdef class IndexedOctreeSubsetSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_point(self, np.float64_t pos[3]) nogil:
+        cdef int i
+        if self.filter_bbox == 0:
+            return 1
+        for i in range(3):
+            if pos[i] < self.DLE[i] or pos[i] > self.DRE[i]:
+                return 0
         return 1
 
     @cython.boundscheck(False)
