@@ -290,7 +290,7 @@ cdef class ParticleRegions:
         for i in range(nfiles/64 + 1):
             self.masks.append(np.zeros(dims, dtype="uint64"))
 
-    def add_data_file(self, np.ndarray pos, int file_id, int filter):
+    def add_data_file(self, np.ndarray pos, int file_id, int filter = 0):
         if pos.dtype == np.float32:
             self._mask_positions[np.float32_t](pos, file_id, filter)
         elif pos.dtype == np.float64:

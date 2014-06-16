@@ -393,7 +393,7 @@ cdef np.int64_t position_to_morton(np.ndarray[anyfloat, ndim=1] pos_x,
 DEF ORDER_MAX=20
         
 def compute_morton(np.ndarray pos_x, np.ndarray pos_y, np.ndarray pos_z,
-                   domain_left_edge, domain_right_edge, filter_bbox):
+                   domain_left_edge, domain_right_edge, filter_bbox = False):
     cdef int i
     cdef int filter
     if filter_bbox:
