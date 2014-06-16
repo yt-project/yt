@@ -273,10 +273,10 @@ class VariableMeshPannerView(HasTraits):
 class OutputSelector(HasTraits):
     outputs = List
     main_plot = Instance(VariableMeshPannerView)
-    main_panner = Property(depends_on = "pf")
+    main_panner = Property(depends_on = "ds")
     weight_field = Str("Density")
 
-    pf = Any
+    ds = Any
     source = Any
     axis = Int(0)
 
@@ -298,8 +298,8 @@ class OutputSelector(HasTraits):
     def _output_changed(self, old, new):
         # We get a string here
         import yt.mods
-        self.pf = yt.mods.load(new, dataset_type="enzo_packed_3d")
-        self.source = yt.mods.projload(self.pf, self.axis, "Density")
+        self.ds = yt.mods.load(new, dataset_type="enzo_packed_3d")
+        self.source = yt.mods.projload(self.ds, self.axis, "Density")
         self.main_panner.field = self.main_plot.vm_plot.field
         self.main_plot.panner = self.main_plot.vm_plot.panner = \
             self.main_plot.vm_plot.helper.panner = self.main_panner
@@ -312,7 +312,7 @@ class OutputSelector(HasTraits):
 
     @cached_property
     def _get_main_panner(self):
-        return self.pf.h.image_panner(self.source, (512, 512), "Density")
+        return self.ds.image_panner(self.source, (512, 512), "Density")
 
 def pan_and_scan_directory(dir_name):
     import glob, os

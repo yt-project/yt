@@ -95,10 +95,10 @@ class EnzoFieldInfo(FieldInfoContainer):
         ("level", ("", [], None)),
     )
 
-    def __init__(self, pf, field_list):
-        hydro_method = pf.parameters.get("HydroMethod", None)
+    def __init__(self, ds, field_list):
+        hydro_method = ds.parameters.get("HydroMethod", None)
         if hydro_method is None:
-            hydro_method = pf.parameters["Physics"]["Hydro"]["HydroMethod"]
+            hydro_method = ds.parameters["Physics"]["Hydro"]["HydroMethod"]
         if hydro_method == 2:
             sl_left = slice(None,-2,None)
             sl_right = slice(1,-1,None)
@@ -108,7 +108,7 @@ class EnzoFieldInfo(FieldInfoContainer):
             sl_right = slice(2,None,None)
             div_fac = 2.0
         slice_info = (sl_left, sl_right, div_fac)
-        super(EnzoFieldInfo, self).__init__(pf, field_list, slice_info)
+        super(EnzoFieldInfo, self).__init__(ds, field_list, slice_info)
 
     def add_species_field(self, species):
         # This is currently specific to Enzo.  Hopefully in the future we will
@@ -145,7 +145,7 @@ class EnzoFieldInfo(FieldInfoContainer):
 
     def setup_fluid_fields(self):
         # Now we conditionally load a few other things.
-        params = self.pf.parameters
+        params = self.ds.parameters
         multi_species = params.get("MultiSpecies", None)
         if multi_species is None:
             multi_species = params["Physics"]["AtomicPhysics"]["MultiSpecies"]
@@ -157,7 +157,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         # We check which type of field we need, and then we add it.
         ge_name = None
         te_name = None
-        params = self.pf.parameters
+        params = self.ds.parameters
         multi_species = params.get("MultiSpecies", None)
         if multi_species is None:
             multi_species = params["Physics"]["AtomicPhysics"]["MultiSpecies"]
@@ -219,7 +219,7 @@ class EnzoFieldInfo(FieldInfoContainer):
     def setup_particle_fields(self, ptype):
 
         def _age(field, data):
-            return data.pf.current_time - data["creation_time"]
+            return data.ds.current_time - data["creation_time"]
         self.add_field((ptype, "age"), function = _age,
                            particle_type = True,
                            units = "yr")

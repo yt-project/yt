@@ -2,11 +2,11 @@ from yt.mods import * # set up our namespace
 import matplotlib.colorbar as cb
 from matplotlib.colors import LogNorm
 
-fn = "Enzo_64/RD0006/RedshiftOutput0006" # parameter file to load
+fn = "Enzo_64/RD0006/RedshiftOutput0006" # dataset to load
 
 
-pf = load(fn) # load data
-v, c = pf.h.find_max("density")
+ds = load(fn) # load data
+v, c = ds.find_max("density")
 
 # set up our Fixed Resolution Buffer parameters: a width, resolution, and center
 width = (1.0, 'unitary')
@@ -28,7 +28,7 @@ fig, axes, colorbars = get_multi_plot( 2, 3, colorbar=orient, bw = 6)
 # over the columns, which will become axes of slicing.
 plots = []
 for ax in range(3):
-    sli = pf.slice(ax, c[ax])
+    sli = ds.slice(ax, c[ax])
     frb = sli.to_frb(width, res)
     den_axis = axes[ax][0]
     temp_axis = axes[ax][1]
@@ -60,4 +60,4 @@ for p, cax, t in zip(plots, colorbars,titles):
     cbar.set_label(t)
 
 # And now we're done!  
-fig.savefig("%s_3x2.png" % pf)
+fig.savefig("%s_3x2.png" % ds)

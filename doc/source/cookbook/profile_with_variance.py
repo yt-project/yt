@@ -3,10 +3,10 @@ from matplotlib import pyplot
 from yt.mods import *
 
 # Load the dataset.
-pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
 # Create a sphere of radius 1000 kpc centered on the max density.
-sphere = pf.sphere("max", (1000, "kpc"))
+sphere = ds.sphere("max", (1000, "kpc"))
 
 # Calculate and store the bulk velocity for the sphere.
 bulk_velocity = sphere.quantities['BulkVelocity']()

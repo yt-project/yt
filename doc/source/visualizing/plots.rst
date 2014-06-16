@@ -25,7 +25,7 @@ Visual Inspection
 If you need to take a quick look at a single simulation output, ``yt``
 provides the ``PlotWindow`` interface for generating annotated 2D
 visualizations of simulation data.  You can create a ``PlotWindow`` plot by
-supplying a parameter file, a list of fields to plot, and a plot center to
+supplying a dataset, a list of fields to plot, and a plot center to
 create a :class:`~yt.visualization.plot_window.SlicePlot`,
 :class:`~yt.visualization.plot_window.ProjectionPlot`, or
 :class:`~yt.visualization.plot_window.OffAxisSlicePlot`.
@@ -51,11 +51,11 @@ The quickest way to plot a slice of a field through your data is to use
 :class:`~yt.visualization.plot_window.SlicePlot`.  Say we want to visualize a
 slice through the Density field along the z-axis centered on the center of the
 simulation box in a simulation dataset we've opened and stored in the parameter
-file object ``pf``.  This can be accomplished with the following command:
+file object ``ds``.  This can be accomplished with the following command:
 
 .. code-block:: python
 
-   >>> slc = SlicePlot(pf, 'z', 'density')
+   >>> slc = SlicePlot(ds, 'z', 'density')
    >>> slc.save()
 
 These two commands will create a slice object and store it in a variable we've
@@ -66,7 +66,7 @@ around, you can accomplish the same thing in one line:
 
 .. code-block:: python
    
-   >>> SlicePlot(pf, 'z', 'density').save()
+   >>> SlicePlot(ds, 'z', 'density').save()
 
 It's nice to keep the slice object around if you want to modify the plot.  By
 default, the plot width will be set to the size of the simulation box.  To zoom
@@ -75,19 +75,19 @@ object:
 
 .. code-block:: python
 
-   >>> slc = SlicePlot(pf, 'z', 'density')
+   >>> slc = SlicePlot(ds, 'z', 'density')
    >>> slc.zoom(10)
    >>> slc.save('zoom')
 
 This will save a new plot to disk with a different filename - prepended with
-'zoom' instead of the name of the parameter file. If you want to set the width
+'zoom' instead of the name of the dataset. If you want to set the width
 manually, you can do that as well. For example, the following sequence of
 commands will create a slice, set the width of the plot to 10 kiloparsecs, and
 save it to disk.
 
 .. code-block:: python
 
-   >>> slc = SlicePlot(pf, 'z', 'density')
+   >>> slc = SlicePlot(ds, 'z', 'density')
    >>> slc.set_width((10,'kpc'))
    >>> slc.save('10kpc')
 
@@ -96,7 +96,7 @@ the width of the plot:
 
 .. code-block:: python
 
-   >>> SlicePlot(pf, 'z', 'density', center=[0.2, 0.3, 0.8], 
+   >>> SlicePlot(ds, 'z', 'density', center=[0.2, 0.3, 0.8], 
    ...           width = (10,'kpc')).save()
 
 The center must be given in code units.  Optionally, you can supply 'c' or 'm'
@@ -108,8 +108,8 @@ Here is an example that combines all of the options we just discussed.
 .. python-script::
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = SlicePlot(pf, 'z', 'density', center=[0.5, 0.5, 0.5], width=(20,'kpc'))
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(ds, 'z', 'density', center=[0.5, 0.5, 0.5], width=(20,'kpc'))
    slc.save()
 
 The above example will display an annotated plot of a slice of the
@@ -124,8 +124,8 @@ into the data. For example:
 .. python-script::
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = SlicePlot(pf, 'z', 'pressure', center='c')
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(ds, 'z', 'pressure', center='c')
    slc.save()
    slc.zoom(30)
    slc.save('zoom')
@@ -146,8 +146,8 @@ For example:
 .. python-script::
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
    slc.annotate_grids()
    slc.save()
 
@@ -175,8 +175,8 @@ example:
 .. python-script::
  
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   prj = ProjectionPlot(pf, 2, 'density', width=(25, 'kpc'), 
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   prj = ProjectionPlot(ds, 2, 'density', width=(25, 'kpc'), 
                         weight_field=None)
    prj.save()
 
@@ -200,16 +200,16 @@ grid-aligned slices.  Off axis slices use
 :class:`~yt.data_objects.data_containers.AMRCuttingPlaneBase` to slice
 through simulation domains at an arbitrary oblique angle.  A
 :class:`~yt.visualization.plot_window.OffAxisSlicePlot` can be
-instantiated by specifying a parameter file, the normal to the cutting
+instantiated by specifying a dataset, the normal to the cutting
 plane, and the name of the fields to plot.  For example:
 
 .. python-script::
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
    L = [1,1,0] # vector normal to cutting plane
    north_vector = [-1,1,0]
-   cut = OffAxisSlicePlot(pf, L, 'density', width=(25, 'kpc'), 
+   cut = OffAxisSlicePlot(ds, L, 'density', width=(25, 'kpc'), 
                           north_vector=north_vector)
    cut.save()
 
@@ -247,14 +247,14 @@ projection through a simulation.
 .. python-script::
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
    L = [1,1,0] # vector normal to cutting plane
    north_vector = [-1,1,0]
    W = [0.02, 0.02, 0.02]
    c = [0.5, 0.5, 0.5]
    N = 512
-   image = off_axis_projection(pf, c, L, W, N, "density")
-   write_image(np.log10(image), "%s_offaxis_projection.png" % pf)
+   image = off_axis_projection(ds, c, L, W, N, "density")
+   write_image(np.log10(image), "%s_offaxis_projection.png" % ds)
 
 Here, ``W`` is the width of the projection in the x, y, *and* z
 directions.
@@ -269,10 +269,10 @@ to project along, and a field to project.  For example:
 .. python-script::
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
    L = [1,1,0] # vector normal to cutting plane
    north_vector = [-1,1,0]
-   prj = OffAxisProjectionPlot(pf,L,'density',width=(25, 'kpc'), 
+   prj = OffAxisProjectionPlot(ds,L,'density',width=(25, 'kpc'), 
                                north_vector=north_vector)
    prj.save()
 
@@ -292,8 +292,8 @@ will modify the following plot.
 .. python-script::
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
    slc.save()
 
 Panning and zooming
@@ -308,8 +308,8 @@ units.
 
    from yt.mods import *
    from yt.units import kpc
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
    slc.pan((2*kpc, 2*kpc))
    slc.save()
 
@@ -319,8 +319,8 @@ to the field of view of the plot.
 .. python-script::
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
    slc.pan_rel((0.1, -0.1))
    slc.save()
 
@@ -329,8 +329,8 @@ to the field of view of the plot.
 .. python-script::
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
    slc.zoom(2)
    slc.save()
 
@@ -343,8 +343,8 @@ the axes unit labels.
 .. python-script::
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
    slc.set_axes_unit('Mpc')
    slc.save()
 
@@ -357,8 +357,8 @@ center for the plot, in code units.  New centers must be two element tuples.
 .. python-script::
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
    slc.set_center((0.5, 0.5))
    slc.save()
 
@@ -370,8 +370,8 @@ Fonts
 .. python-script::
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
    slc.set_font({'family': 'sans-serif', 'style': 'italic','weight': 'bold', 'size': 24})
    slc.save()
 
@@ -389,8 +389,8 @@ colormaps listed in the :ref:`colormaps` section.
 .. python-script::
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
    slc.set_cmap('density', 'RdBu_r')
    slc.save()
 
@@ -401,8 +401,8 @@ be log scaled.  If it is `False` the colormap will be linear.
 .. python-script::
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
    slc.set_log('density', False)
    slc.save()
 
@@ -412,8 +412,8 @@ possible to set a custom colormap range.
 .. python-script::
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
    slc.set_zlim('density', 1e-30, 1e-25)
    slc.save()
 
@@ -428,8 +428,8 @@ image to see the difference more clearly.
 .. python-script::
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
    slc.set_window_size(10)
    slc.save()
 
@@ -439,8 +439,8 @@ To change the resolution of the image, call the
 .. python-script::
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = SlicePlot(pf, 'z', 'density', width=(10,'kpc'))
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
    slc.set_buff_size(1600)
    slc.save()
 
@@ -465,8 +465,8 @@ data object, the field for binning, and a list of fields to be profiled.
 .. python-script::
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   my_galaxy = pf.disk([0.5, 0.5, 0.5], [0.0, 0.0, 1.0], 0.01, 0.003)
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   my_galaxy = ds.disk([0.5, 0.5, 0.5], [0.0, 0.0, 1.0], 0.01, 0.003)
    plot = ProfilePlot(my_galaxy, "density", ["temperature"])
    plot.save()
 
@@ -484,8 +484,8 @@ well.  For instance:
 .. python-script::
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   my_sphere = pf.sphere([0.5, 0.5, 0.5], (100, "kpc"))
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   my_sphere = ds.sphere([0.5, 0.5, 0.5], (100, "kpc"))
    plot = ProfilePlot(my_sphere, "temperature", ["cell_mass"],
                       weight_field=None)
    plot.save()
@@ -540,16 +540,16 @@ method and then given to the ProfilePlot object.
    labels = []
 
    # Loop over each dataset in the time-series.
-   for pf in es:
+   for ds in es:
        # Create a data container to hold the whole dataset.
-       ad = pf.h.all_data()
+       ad = ds.all_data()
        # Create a 1d profile of density vs. temperature.
        profiles.append(create_profile(ad, ["temperature"], 
                                       fields=["cell_mass"],
                                       weight_field=None,
                                       accumulation=True))
        # Add labels
-       labels.append("z = %.2f" % pf.current_redshift)
+       labels.append("z = %.2f" % ds.current_redshift)
 
    # Create the profile plot from the list of profiles.
    plot = ProfilePlot.from_profiles(profiles, labels=labels)
@@ -590,8 +590,8 @@ either taking the average or the accumulation in a bin.  For example, to generat
 .. python-script::
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   my_sphere = pf.sphere("c", (50, "kpc"))
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   my_sphere = ds.sphere("c", (50, "kpc"))
    plot = PhasePlot(my_sphere, "density", "temperature", ["cell_mass"],
                     weight_field=None)
    plot.save()
@@ -603,8 +603,8 @@ something like:
 .. python-script::
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   my_sphere = pf.sphere("c", (50, "kpc"))
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   my_sphere = ds.sphere("c", (50, "kpc"))
    plot = PhasePlot(my_sphere, "density", "temperature", ["H_fraction"],
                     weight_field="cell_mass")
    plot.save()
@@ -647,8 +647,8 @@ plot and then call ``.show()``:
 .. notebook-cell::
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   p = ProjectionPlot(pf, "x", "density", center='m', width=(10,'kpc'),
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   p = ProjectionPlot(ds, "x", "density", center='m', width=(10,'kpc'),
                       weight_field='density')
    p.show()
 
@@ -682,7 +682,7 @@ EPS or PDF figure.  For example,
 .. code-block:: python
 
    >>> import yt.visualization.eps_writer as eps
-   >>> slc = SlicePlot(pf, 'z', 'density')
+   >>> slc = SlicePlot(ds, 'z', 'density')
    >>> slc.set_width(25, 'kpc')
    >>> eps_fig = eps.single_plot(slc)
    >>> eps_fig.save_fig('zoom', format='eps')
@@ -707,7 +707,7 @@ from a PlotWindow.  For example,
 .. code-block:: python
 
    >>> import yt.visualization.eps_writer as eps
-   >>> slc = SlicePlot(pf, 'z', ['density', 'temperature', 'Pressure',
+   >>> slc = SlicePlot(ds, 'z', ['density', 'temperature', 'Pressure',
                        'VelocityMagnitude'])
    >>> slc.set_width(25, 'kpc')
    >>> eps_fig = eps.multiplot_yt(2, 2, slc, bare_axes=True)

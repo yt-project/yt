@@ -18,15 +18,15 @@ ts = DatasetSeries.from_filenames(fns)
 storage = {}
 
 # We use the piter() method here so that this can be run in parallel.
-# Alternately, you could just iterate "for pf in ts:" and directly append to
+# Alternately, you could just iterate "for ds in ts:" and directly append to
 # times and entrs.
-for sto, pf in ts.piter(storage=storage):
-    sphere = pf.sphere("c", (100., "kpc"))
+for sto, ds in ts.piter(storage=storage):
+    sphere = ds.sphere("c", (100., "kpc"))
     temp = sphere["temperature"]/keV
     dens = sphere["density"]/(m_p*mue)
     mgas = sphere["cell_mass"]
     entr = (temp*(dens**mtt)*mgas).sum()/mgas.sum() 
-    sto.result = (pf.current_time, entr)
+    sto.result = (ds.current_time, entr)
 
 times = []
 entrs = []

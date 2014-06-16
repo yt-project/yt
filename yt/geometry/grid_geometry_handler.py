@@ -69,13 +69,13 @@ class GridIndex(Index):
 
     @property
     def parameters(self):
-        return self.parameter_file.parameters
+        return self.dataset.parameters
 
     def _detect_output_fields_backup(self):
         # grab fields from backup file as well, if present
         return
         try:
-            backup_filename = self.parameter_file.backup_filename
+            backup_filename = self.dataset.backup_filename
             f = h5py.File(backup_filename, 'r')
             g = f["data"]
             grid = self.grids[0] # simply check one of the grids
@@ -101,9 +101,9 @@ class GridIndex(Index):
     def _initialize_grid_arrays(self):
         mylog.debug("Allocating arrays for %s grids", self.num_grids)
         self.grid_dimensions = np.ones((self.num_grids,3), 'int32')
-        self.grid_left_edge = self.pf.arr(np.zeros((self.num_grids,3),
+        self.grid_left_edge = self.ds.arr(np.zeros((self.num_grids,3),
                                     self.float_type), 'code_length')
-        self.grid_right_edge = self.pf.arr(np.ones((self.num_grids,3),
+        self.grid_right_edge = self.ds.arr(np.ones((self.num_grids,3),
                                     self.float_type), 'code_length')
         self.grid_levels = np.zeros((self.num_grids,1), 'int32')
         self.grid_particle_count = np.zeros((self.num_grids,1), 'int32')
@@ -163,7 +163,7 @@ class GridIndex(Index):
         mylog.info("Locking grids to parents.")
         for i, g in enumerate(self.grids):
             si = g.get_global_startindex()
-            g.LeftEdge = self.pf.domain_left_edge + g.dds * si
+            g.LeftEdge = self.ds.domain_left_edge + g.dds * si
             g.RightEdge = g.LeftEdge + g.ActiveDimensions * g.dds
             self.grid_left_edge[i,:] = g.LeftEdge
             self.grid_right_edge[i,:] = g.RightEdge
@@ -192,9 +192,9 @@ class GridIndex(Index):
         except:
             pass
         print "t = %0.8e = %0.8e s = %0.8e years" % \
-            (self.pf.current_time.in_units("code_time"),
-             self.pf.current_time.in_units("s"),
-             self.pf.current_time.in_units("yr"))
+            (self.ds.current_time.in_units("code_time"),
+             self.ds.current_time.in_units("s"),
+             self.ds.current_time.in_units("yr"))
         print "\nSmallest Cell:"
         u=[]
         for item in ("Mpc", "pc", "AU", "cm"):
@@ -242,9 +242,9 @@ class GridIndex(Index):
 
     def get_grid_tree(self) :
 
-        left_edge = self.pf.arr(np.zeros((self.num_grids, 3)),
+        left_edge = self.ds.arr(np.zeros((self.num_grids, 3)),
                                'code_length')
-        right_edge = self.pf.arr(np.zeros((self.num_grids, 3)),
+        right_edge = self.ds.arr(np.zeros((self.num_grids, 3)),
                                 'code_length')
         level = np.zeros((self.num_grids), dtype='int64')
         parent_ind = np.zeros((self.num_grids), dtype='int64')
@@ -265,7 +265,7 @@ class GridIndex(Index):
                         level, num_children)
 
     def convert(self, unit):
-        return self.parameter_file.conversion_factors[unit]
+        return self.dataset.conversion_factors[unit]
 
     def _identify_base_chunk(self, dobj):
         if dobj._type_name == "grid":

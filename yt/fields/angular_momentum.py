@@ -37,7 +37,7 @@ from yt.utilities.lib.geometry_utils import \
 def obtain_velocities(data, ftype="gas"):
     rv_vec = obtain_rv_vec(data)
     # We know that obtain_rv_vec will always access velocity_x
-    rv_vec = data.pf.arr(rv_vec, input_units = data[ftype, "velocity_x"].units)
+    rv_vec = data.ds.arr(rv_vec, input_units = data[ftype, "velocity_x"].units)
     return rv_vec
 
 @register_field_plugin
@@ -47,7 +47,7 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
         center = data.get_field_parameter('center')
         v_vec = obtain_rvec(data)
         v_vec = np.rollaxis(v_vec, 0, len(v_vec.shape))
-        v_vec = data.pf.arr(v_vec, input_units = data["index", "x"].units)
+        v_vec = data.ds.arr(v_vec, input_units = data["index", "x"].units)
         rv = v_vec - center
         return yv * rv[...,2] - zv * rv[...,1]
 
@@ -56,7 +56,7 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
         center = data.get_field_parameter('center')
         v_vec = obtain_rvec(data)
         v_vec = np.rollaxis(v_vec, 0, len(v_vec.shape))
-        v_vec = data.pf.arr(v_vec, input_units = data["index", "x"].units)
+        v_vec = data.ds.arr(v_vec, input_units = data["index", "x"].units)
         rv = v_vec - center
         return - (xv * rv[...,2] - zv * rv[...,0])
 
@@ -65,7 +65,7 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
         center = data.get_field_parameter('center')
         v_vec = obtain_rvec(data)
         v_vec = np.rollaxis(v_vec, 0, len(v_vec.shape))
-        v_vec = data.pf.arr(v_vec, input_units = data["index", "x"].units)
+        v_vec = data.ds.arr(v_vec, input_units = data["index", "x"].units)
         rv = v_vec - center
         return xv * rv[...,1] - yv * rv[...,0]
 

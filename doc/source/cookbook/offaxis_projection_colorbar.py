@@ -1,8 +1,8 @@
 from yt.mods import * # set up our namespace
 
-fn = "IsolatedGalaxy/galaxy0030/galaxy0030" # parameter file to load
+fn = "IsolatedGalaxy/galaxy0030/galaxy0030" # dataset to load
 
-pf = load(fn) # load data
+ds = load(fn) # load data
 
 # Now we need a center of our volume to render.  Here we'll just use
 # 0.5,0.5,0.5, because volume renderings are not periodic.
@@ -31,7 +31,7 @@ Npixels = 512
 # Also note that we set the field which we want to project as "density", but
 # really we could use any arbitrary field like "temperature", "metallicity"
 # or whatever.
-image = off_axis_projection(pf, c, L, W, Npixels, "density", no_ghost=False)
+image = off_axis_projection(ds, c, L, W, Npixels, "density", no_ghost=False)
 
 # Image is now an NxN array representing the intensities of the various pixels.
 # And now, we call our direct image saver.  We save the log of the result.

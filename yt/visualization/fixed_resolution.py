@@ -70,7 +70,7 @@ class FixedResolutionBuffer(object):
     To make a projection and then several images, you can generate a
     single FRB and then access multiple fields:
 
-    >>> proj = pf.proj(0, "Density")
+    >>> proj = ds.proj(0, "Density")
     >>> frb1 = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5),
                     (1024, 1024))
     >>> print frb1["Density"].max()
@@ -82,7 +82,7 @@ class FixedResolutionBuffer(object):
     def __init__(self, data_source, bounds, buff_size, antialias = True,
                  periodic = False):
         self.data_source = data_source
-        self.pf = data_source.pf
+        self.ds = data_source.ds
         self.bounds = bounds
         self.buff_size = buff_size
         self.antialias = antialias
@@ -90,18 +90,18 @@ class FixedResolutionBuffer(object):
         self.axis = data_source.axis
         self.periodic = periodic
 
-        ds = getattr(data_source, "pf", None)
+        ds = getattr(data_source, "ds", None)
         if ds is not None:
             ds.plots.append(weakref.proxy(self))
 
         # Handle periodicity, just in case
         if self.data_source.axis < 3:
-            DLE = self.pf.domain_left_edge
-            DRE = self.pf.domain_right_edge
+            DLE = self.ds.domain_left_edge
+            DRE = self.ds.domain_right_edge
             DD = float(self.periodic)*(DRE - DLE)
             axis = self.data_source.axis
-            xax = self.pf.coordinates.x_axis[axis]
-            yax = self.pf.coordinates.y_axis[axis]
+            xax = self.ds.coordinates.x_axis[axis]
+            yax = self.ds.coordinates.y_axis[axis]
             self._period = (DD[xax], DD[yax])
             self._edges = ( (DLE[xax], DRE[xax]), (DLE[yax], DRE[yax]) )
         
@@ -120,7 +120,7 @@ class FixedResolutionBuffer(object):
             if hasattr(b, "in_units"):
                 b = float(b.in_units("code_length"))
             bounds.append(b)
-        buff = self.pf.coordinates.pixelize(self.data_source.axis,
+        buff = self.ds.coordinates.pixelize(self.data_source.axis,
             self.data_source, item, bounds, self.buff_size,
             int(self.antialias))
         # Need to add _period and self.periodic
@@ -138,7 +138,7 @@ class FixedResolutionBuffer(object):
         fields = getattr(self.data_source, "fields", [])
         fields += getattr(self.data_source, "field_data", {}).keys()
         for f in fields:
-            if f not in exclude and f[0] not in self.data_source.pf.particle_types:
+            if f not in exclude and f[0] not in self.data_source.ds.particle_types:
                 self[f]
 
 
@@ -179,13 +179,13 @@ class FixedResolutionBuffer(object):
     def _get_info(self, item):
         info = {}
         ftype, fname = field = self.data_source._determine_fields(item)[0]
-        finfo = self.data_source.pf._get_field_info(*field)
+        finfo = self.data_source.ds._get_field_info(*field)
         info['data_source'] = self.data_source.__str__()  
         info['axis'] = self.data_source.axis
         info['field'] = str(item)
         info['xlim'] = self.bounds[:2]
         info['ylim'] = self.bounds[2:]
-        info['length_unit'] = self.data_source.pf.length_unit
+        info['length_unit'] = self.data_source.ds.length_unit
         info['length_to_cm'] = info['length_unit'].in_cgs().to_ndarray()
         info['center'] = self.data_source.center
         
@@ -330,10 +330,10 @@ class FixedResolutionBuffer(object):
     @property
     def limits(self):
         rv = dict(x = None, y = None, z = None)
-        xax = self.pf.coordinates.x_axis[self.axis]
-        yax = self.pf.coordinates.y_axis[self.axis]
-        xn = self.pf.coordinates.axis_name[xax]
-        yn = self.pf.coordinates.axis_name[yax]
+        xax = self.ds.coordinates.x_axis[self.axis]
+        yax = self.ds.coordinates.y_axis[self.axis]
+        xn = self.ds.coordinates.axis_name[xax]
+        yn = self.ds.coordinates.axis_name[yax]
         rv[xn] = (self.bounds[0], self.bounds[1])
         rv[yn] = (self.bounds[2], self.bounds[3])
         return rv
@@ -343,13 +343,13 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
     def __init__(self, data_source, radius, buff_size, antialias = True) :
 
         self.data_source = data_source
-        self.pf = data_source.pf
+        self.ds = data_source.ds
         self.radius = radius
         self.buff_size = buff_size
         self.antialias = antialias
         self.data = {}
         
-        ds = getattr(data_source, "pf", None)
+        ds = getattr(data_source, "ds", None)
         if ds is not None:
             ds.plots.append(weakref.proxy(self))
 
@@ -399,10 +399,10 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         mylog.info("Making a fixed resolutuion buffer of (%s) %d by %d" % \
             (item, self.buff_size[0], self.buff_size[1]))
         ds = self.data_source
-        width = self.pf.arr((self.bounds[1] - self.bounds[0],
+        width = self.ds.arr((self.bounds[1] - self.bounds[0],
                              self.bounds[3] - self.bounds[2],
                              self.bounds[5] - self.bounds[4]))
-        buff = off_axis_projection(ds.pf, ds.center, ds.normal_vector,
+        buff = off_axis_projection(ds.ds, ds.center, ds.normal_vector,
                                    width, ds.resolution, item,
                                    weight=ds.weight_field, volume=ds.volume,
                                    no_ghost=ds.no_ghost, interpolated=ds.interpolated,

@@ -20,7 +20,7 @@ print kd.count_volume()
 print kd.count_cells()
 
 tf = yt.ColorTransferFunction((-30, -22))
-cam = ds.h.camera([0.5, 0.5, 0.5], [0.2, 0.3, 0.4], 0.10, 256,
+cam = ds.camera([0.5, 0.5, 0.5], [0.2, 0.3, 0.4], 0.10, 256,
                   tf, volume=kd)
 tf.add_layers(4, 0.01, col_bounds=[-27.5, -25.5], colormap='RdBu_r')
 cam.snapshot("v1.png", clip_ratio=6.0)

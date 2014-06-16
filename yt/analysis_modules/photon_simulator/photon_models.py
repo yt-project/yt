@@ -67,7 +67,7 @@ class ThermalPhotonModel(PhotonModel):
 
     def __call__(self, data_source, parameters):
         
-        pf = data_source.pf
+        ds = data_source.ds
 
         exp_time = parameters["FiducialExposureTime"]
         area = parameters["FiducialArea"]
@@ -75,7 +75,7 @@ class ThermalPhotonModel(PhotonModel):
         D_A = parameters["FiducialAngularDiameterDistance"].in_cgs()
         dist_fac = 1.0/(4.*np.pi*D_A.value*D_A.value*(1.+redshift)**3)
                 
-        vol_scale = 1.0/np.prod(pf.domain_width.in_cgs().to_ndarray())
+        vol_scale = 1.0/np.prod(ds.domain_width.in_cgs().to_ndarray())
 
         num_cells = data_source["temperature"].shape[0]
         start_c = comm.rank*num_cells/comm.size

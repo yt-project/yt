@@ -84,8 +84,8 @@ The default opening angle is 1.0:
   
   from yt.mods import *
   
-  pf = load("DD0000")
-  sp = pf.sphere([0.5, 0.5, 0.5], radius=0.1)
+  ds = load("DD0000")
+  sp = ds.sphere([0.5, 0.5, 0.5], radius=0.1)
   
   ratio = sp.quantities["IsBound"](truncate=False, include_thermal_energy=True,
       treecode=True, opening_angle=2.0)
@@ -97,8 +97,8 @@ N^2 method.
   
   from yt.mods import *
   
-  pf = load("DD0000")
-  sp = pf.sphere([0.5, 0.5, 0.5], radius=0.1)
+  ds = load("DD0000")
+  sp = ds.sphere([0.5, 0.5, 0.5], radius=0.1)
   
   ratio = sp.quantities["IsBound"](truncate=False, include_thermal_energy=True,
       treecode=False)

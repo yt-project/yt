@@ -158,8 +158,8 @@ class DerivedField(object):
         old_registry = self._unit_registry
         if hasattr(data, 'unit_registry'):
             ur = data.unit_registry
-        elif hasattr(data, 'pf'):
-            ur = data.pf.unit_registry
+        elif hasattr(data, 'ds'):
+            ur = data.ds.unit_registry
         else:
             ur = None
         self._unit_registry = ur
@@ -216,7 +216,7 @@ class FieldValidator(object):
 class ValidateParameter(FieldValidator):
     def __init__(self, parameters):
         """
-        This validator ensures that the parameter file has a given parameter.
+        This validator ensures that the dataset has a given parameter.
         """
         FieldValidator.__init__(self)
         self.parameters = ensure_list(parameters)

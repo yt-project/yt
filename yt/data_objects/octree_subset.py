@@ -51,24 +51,24 @@ class OctreeSubset(YTSelectionContainer):
     _num_ghost_zones = 0
     _type_name = 'octree_subset'
     _skip_add = True
-    _con_args = ('base_region', 'domain', 'pf')
+    _con_args = ('base_region', 'domain', 'ds')
     _domain_offset = 0
     _cell_count = -1
 
-    def __init__(self, base_region, domain, pf, over_refine_factor = 1):
+    def __init__(self, base_region, domain, ds, over_refine_factor = 1):
         self._num_zones = 1 << (over_refine_factor)
         self._oref = over_refine_factor
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.domain = domain
         self.domain_id = domain.domain_id
-        self.pf = domain.pf
-        self._index = self.pf.index
+        self.ds = domain.ds
+        self._index = self.ds.index
         self.oct_handler = domain.oct_handler
         self._last_mask = None
         self._last_selector_id = None
         self._current_particle_type = 'all'
-        self._current_fluid_type = self.pf.default_fluid_type
+        self._current_fluid_type = self.ds.default_fluid_type
         self.base_region = base_region
         self.base_selector = base_region.selector
 
@@ -78,7 +78,7 @@ class OctreeSubset(YTSelectionContainer):
             fields = self._determine_fields(key)
         except YTFieldTypeNotFound:
             return tr
-        finfo = self.pf._get_field_info(*fields[0])
+        finfo = self.ds._get_field_info(*fields[0])
         if not finfo.particle_type:
             # We may need to reshape the field, if it is being queried from
             # field_data.  If it's already cached, it just passes through.
@@ -170,12 +170,12 @@ class OctreeSubset(YTSelectionContainer):
         if create_octree:
             morton = compute_morton(
                 positions[:,0], positions[:,1], positions[:,2],
-                self.pf.domain_left_edge,
-                self.pf.domain_right_edge)
+                self.ds.domain_left_edge,
+                self.ds.domain_right_edge)
             morton.sort()
             particle_octree = ParticleOctreeContainer([1, 1, 1],
-                self.pf.domain_left_edge,
-                self.pf.domain_right_edge,
+                self.ds.domain_left_edge,
+                self.ds.domain_right_edge,
                 over_refine = self._oref)
             particle_octree.n_ref = nneighbors / 2
             particle_octree.add(morton)
@@ -198,7 +198,7 @@ class OctreeSubset(YTSelectionContainer):
             positions.shape[0], nvals[-1])
         op.process_octree(self.oct_handler, mdom_ind, positions, 
             self.fcoords, fields,
-            self.domain_id, self._domain_offset, self.pf.periodicity,
+            self.domain_id, self._domain_offset, self.ds.periodicity,
             index_fields, particle_octree, pdom_ind)
         vals = op.finalize()
         if vals is None: return
@@ -251,9 +251,9 @@ class ParticleOctreeSubset(OctreeSubset):
     # octree may multiply include data files.  While we can attempt to mitigate
     # this, it's unavoidable for many types of data storage on disk.
     _type_name = 'indexed_octree_subset'
-    _con_args = ('data_files', 'pf', 'min_ind', 'max_ind')
+    _con_args = ('data_files', 'ds', 'min_ind', 'max_ind')
     domain_id = -1
-    def __init__(self, base_region, data_files, pf, min_ind = 0, max_ind = 0,
+    def __init__(self, base_region, data_files, ds, min_ind = 0, max_ind = 0,
                  over_refine_factor = 1):
         # The first attempt at this will not work in parallel.
         self._num_zones = 1 << (over_refine_factor)
@@ -261,16 +261,16 @@ class ParticleOctreeSubset(OctreeSubset):
         self.data_files = data_files
         self.field_data = YTFieldData()
         self.field_parameters = {}
-        self.pf = pf
-        self._index = self.pf.index
-        self.oct_handler = pf.index.oct_handler
+        self.ds = ds
+        self._index = self.ds.index
+        self.oct_handler = ds.index.oct_handler
         self.min_ind = min_ind
         if max_ind == 0: max_ind = (1 << 63)
         self.max_ind = max_ind
         self._last_mask = None
         self._last_selector_id = None
         self._current_particle_type = 'all'
-        self._current_fluid_type = self.pf.default_fluid_type
+        self._current_fluid_type = self.ds.default_fluid_type
         self.base_region = base_region
         self.base_selector = base_region.selector
 

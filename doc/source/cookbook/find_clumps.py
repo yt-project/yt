@@ -4,7 +4,7 @@ import yt
 from yt.analysis_modules.level_sets.api import (Clump, find_clumps,
                                                 get_lowest_clumps)
 
-fn = "IsolatedGalaxy/galaxy0030/galaxy0030"  # parameter file to load
+fn = "IsolatedGalaxy/galaxy0030/galaxy0030"  # dataset to load
 # this is the field we look for contours over -- we could do
 # this over anything.  Other common choices are 'AveragedDensity'
 # and 'Dark_Matter_Density'.
@@ -66,7 +66,7 @@ prj.save('clumps')
 
 # We can also save the clump object to disk to read in later so we don't have
 # to spend a lot of time regenerating the clump objects.
-ds.h.save_object(master_clump, 'My_clumps')
+ds.save_object(master_clump, 'My_clumps')
 
 # Later, we can read in the clump object like so,
 master_clump = ds.load_object('My_clumps')

@@ -1,11 +1,11 @@
 from yt.mods import *
 import matplotlib.pyplot as plt
 
-pf = load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
+ds = load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
 
 # Get the first sphere
 
-sphere0 = pf.sphere(pf.domain_center, (500., "kpc"))
+sphere0 = ds.sphere(ds.domain_center, (500., "kpc"))
 
 # Compute the bulk velocity from the cells in this sphere
 
@@ -13,7 +13,7 @@ bulk_vel = sphere0.quantities["BulkVelocity"]()
 
 # Get the second sphere
 
-sphere1 = pf.sphere(pf.domain_center, (500., "kpc"))
+sphere1 = ds.sphere(ds.domain_center, (500., "kpc"))
 
 # Set the bulk velocity field parameter 
 sphere1.set_field_parameter("bulk_velocity", bulk_vel)
@@ -41,4 +41,4 @@ ax.set_xlabel(r"$\mathrm{r\ (kpc)}$")
 ax.set_ylabel(r"$\mathrm{v_r\ (km/s)}$")
 ax.legend(["Without Correction", "With Correction"])
 
-fig.savefig("%s_profiles.png" % pf)
+fig.savefig("%s_profiles.png" % ds)

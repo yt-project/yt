@@ -52,9 +52,9 @@ class FieldInfoContainer(dict):
     known_other_fields = ()
     known_particle_fields = ()
 
-    def __init__(self, pf, field_list, slice_info = None):
+    def __init__(self, ds, field_list, slice_info = None):
         self._show_field_errors = []
-        self.pf = pf
+        self.ds = ds
         # Now we start setting things up.
         self.field_list = field_list
         self.slice_info = slice_info
@@ -67,7 +67,7 @@ class FieldInfoContainer(dict):
 
     def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64 ):
         for f, (units, aliases, dn) in sorted(self.known_particle_fields):
-            units = self.pf.field_units.get((ptype, f), units)
+            units = self.ds.field_units.get((ptype, f), units)
             self.add_output_field((ptype, f),
                 units = units, particle_type = True, display_name = dn)
             if (ptype, f) not in self.field_list:
@@ -94,10 +94,10 @@ class FieldInfoContainer(dict):
             if field in self: continue
             if not isinstance(field, tuple):
                 raise RuntimeError
-            if field[0] not in self.pf.particle_types:
+            if field[0] not in self.ds.particle_types:
                 continue
             self.add_output_field(field, 
-                                  units = self.pf.field_units.get(field, ""),
+                                  units = self.ds.field_units.get(field, ""),
                                   particle_type = True)
         self.setup_smoothed_fields(ptype, 
                                    num_neighbors=num_neighbors,
@@ -129,15 +129,15 @@ class FieldInfoContainer(dict):
         for field in sorted(self.field_list):
             if not isinstance(field, tuple):
                 raise RuntimeError
-            if field[0] in self.pf.particle_types:
+            if field[0] in self.ds.particle_types:
                 continue
             args = known_other_fields.get(
                 field[1], ("", [], None))
             units, aliases, display_name = args
             # We allow field_units to override this.  First we check if the
             # field *name* is in there, then the field *tuple*.
-            units = self.pf.field_units.get(field[1], units)
-            units = self.pf.field_units.get(field, units)
+            units = self.ds.field_units.get(field[1], units)
+            units = self.ds.field_units.get(field, units)
             if not isinstance(units, types.StringTypes) and args[0] != "":
                 units = "((%s)*%s)" % (args[0], units)
             if isinstance(units, (numeric_type, np.number, np.ndarray)) and \
@@ -189,10 +189,10 @@ class FieldInfoContainer(dict):
 
     def find_dependencies(self, loaded):
         deps, unavailable = self.check_derived_fields(loaded)
-        self.pf.field_dependencies.update(deps)
+        self.ds.field_dependencies.update(deps)
         # Note we may have duplicated
-        dfl = set(self.pf.derived_field_list).union(deps.keys())
-        self.pf.derived_field_list = list(sorted(dfl))
+        dfl = set(self.ds.derived_field_list).union(deps.keys())
+        self.ds.derived_field_list = list(sorted(dfl))
         return loaded, unavailable
 
     def add_output_field(self, name, **kwargs):
@@ -204,7 +204,7 @@ class FieldInfoContainer(dict):
             # We default to CGS here, but in principle, this can be pluggable
             # as well.
             u = Unit(self[original_name].units,
-                      registry = self.pf.unit_registry)
+                      registry = self.ds.unit_registry)
             units = str(u.get_cgs_equivalent())
         self.field_aliases[alias_name] = original_name
         self.add_field(alias_name,
@@ -224,21 +224,21 @@ class FieldInfoContainer(dict):
 
         def _gradx(f, data):
             grad = data[field][sl,1:-1,1:-1] - data[field][sr,1:-1,1:-1]
-            grad /= 2.0*data["dx"].flat[0]*data.pf.units["cm"]
+            grad /= 2.0*data["dx"].flat[0]*data.ds.units["cm"]
             g = np.zeros(data[field].shape, dtype='float64')
             g[1:-1,1:-1,1:-1] = grad
             return g
 
         def _grady(f, data):
             grad = data[field][1:-1,sl,1:-1] - data[field][1:-1,sr,1:-1]
-            grad /= 2.0*data["dy"].flat[0]*data.pf.units["cm"]
+            grad /= 2.0*data["dy"].flat[0]*data.ds.units["cm"]
             g = np.zeros(data[field].shape, dtype='float64')
             g[1:-1,1:-1,1:-1] = grad
             return g
 
         def _gradz(f, data):
             grad = data[field][1:-1,1:-1,sl] - data[field][1:-1,1:-1,sr]
-            grad /= 2.0*data["dz"].flat[0]*data.pf.units["cm"]
+            grad /= 2.0*data["dz"].flat[0]*data.ds.units["cm"]
             g = np.zeros(data[field].shape, dtype='float64')
             g[1:-1,1:-1,1:-1] = grad
             return g
@@ -317,7 +317,7 @@ class FieldInfoContainer(dict):
             if field not in self: raise RuntimeError
             fi = self[field]
             try:
-                fd = fi.get_dependencies(pf = self.pf)
+                fd = fi.get_dependencies(ds = self.ds)
             except Exception as e:
                 if field in self._show_field_errors:
                     raise
@@ -335,6 +335,6 @@ class FieldInfoContainer(dict):
             fd.requested = set(fd.requested)
             deps[field] = fd
             mylog.debug("Succeeded with %s (needs %s)", field, fd.requested)
-        dfl = set(self.pf.derived_field_list).union(deps.keys())
-        self.pf.derived_field_list = list(sorted(dfl))
+        dfl = set(self.ds.derived_field_list).union(deps.keys())
+        self.ds.derived_field_list = list(sorted(dfl))
         return deps, unavailable

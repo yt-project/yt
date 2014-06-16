@@ -15,7 +15,7 @@ FLASH frontend tests
 
 from yt.testing import *
 from yt.utilities.answer_testing.framework import \
-    requires_pf, \
+    requires_ds, \
     small_patch_amr, \
     big_patch_amr, \
     data_dir_load
@@ -24,10 +24,10 @@ from yt.frontends.flash.api import FLASHDataset
 _fields = ("temperature", "density", "velocity_magnitude", "velocity_divergence")
 
 sloshing = "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300"
-@requires_pf(sloshing, big_data=True)
+@requires_ds(sloshing, big_data=True)
 def test_sloshing():
-    pf = data_dir_load(sloshing)
-    yield assert_equal, str(pf), "sloshing_low_res_hdf5_plt_cnt_0300"
+    ds = data_dir_load(sloshing)
+    yield assert_equal, str(ds), "sloshing_low_res_hdf5_plt_cnt_0300"
     for test in small_patch_amr(sloshing, _fields):
         test_sloshing.__name__ = test.description
         yield test
@@ -35,10 +35,10 @@ def test_sloshing():
 _fields_2d = ("temperature", "density")
 
 wt = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
-@requires_pf(wt)
+@requires_ds(wt)
 def test_wind_tunnel():
-    pf = data_dir_load(wt)
-    yield assert_equal, str(pf), "windtunnel_4lev_hdf5_plt_cnt_0030"
+    ds = data_dir_load(wt)
+    yield assert_equal, str(ds), "windtunnel_4lev_hdf5_plt_cnt_0030"
     for test in small_patch_amr(wt, _fields_2d):
         test_wind_tunnel.__name__ = test.description
         yield test

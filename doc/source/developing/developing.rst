@@ -440,7 +440,7 @@ Variable Names and Enzo-isms
    + Hard-coding parameter names that are the same as those in Enzo.  The
      following translation table should be of some help.  Note that the
      parameters are now properties on a Dataset subclass: you access them
-     like ``pf.refine_by`` .
+     like ``ds.refine_by`` .
 
      - ``RefineBy `` => `` refine_by``
      - ``TopGridRank `` => `` dimensionality``

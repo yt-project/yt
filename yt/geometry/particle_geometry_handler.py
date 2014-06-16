@@ -40,14 +40,13 @@ from yt.data_objects.octree_subset import ParticleOctreeSubset
 class ParticleIndex(Index):
     _global_mesh = False
 
-    def __init__(self, pf, dataset_type):
+    def __init__(self, ds, dataset_type):
         self.dataset_type = dataset_type
-        self.parameter_file = weakref.proxy(pf)
-        # for now, the index file is the parameter file!
-        self.index_filename = self.parameter_file.parameter_filename
+        self.dataset = weakref.proxy(ds)
+        self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
         self.float_type = np.float64
-        super(ParticleIndex, self).__init__(pf, dataset_type)
+        super(ParticleIndex, self).__init__(ds, dataset_type)
 
     def _setup_geometry(self):
         mylog.debug("Initializing Particle Geometry Handler.")
@@ -59,32 +58,32 @@ class ParticleIndex(Index):
         Returns (in code units) the smallest cell size in the simulation.
         """
         dx = 1.0/(2**self.oct_handler.max_level)
-        dx *= (self.parameter_file.domain_right_edge -
-               self.parameter_file.domain_left_edge)
+        dx *= (self.dataset.domain_right_edge -
+               self.dataset.domain_left_edge)
         return dx.min()
 
     def convert(self, unit):
-        return self.parameter_file.conversion_factors[unit]
+        return self.dataset.conversion_factors[unit]
 
     def _initialize_particle_handler(self):
         self._setup_data_io()
-        template = self.parameter_file.filename_template
-        ndoms = self.parameter_file.file_count
-        cls = self.parameter_file._file_class
-        self.data_files = [cls(self.parameter_file, self.io, template % {'num':i}, i)
+        template = self.dataset.filename_template
+        ndoms = self.dataset.file_count
+        cls = self.dataset._file_class
+        self.data_files = [cls(self.dataset, self.io, template % {'num':i}, i)
                            for i in range(ndoms)]
         self.total_particles = sum(
                 sum(d.total_particles.values()) for d in self.data_files)
-        pf = self.parameter_file
+        ds = self.dataset
         self.oct_handler = ParticleOctreeContainer(
-            [1, 1, 1], pf.domain_left_edge, pf.domain_right_edge,
-            over_refine = pf.over_refine_factor)
-        self.oct_handler.n_ref = pf.n_ref
+            [1, 1, 1], ds.domain_left_edge, ds.domain_right_edge,
+            over_refine = ds.over_refine_factor)
+        self.oct_handler.n_ref = ds.n_ref
         mylog.info("Allocating for %0.3e particles", self.total_particles)
         # No more than 256^3 in the region finder.
         N = min(len(self.data_files), 256) 
         self.regions = ParticleRegions(
-                pf.domain_left_edge, pf.domain_right_edge,
+                ds.domain_left_edge, ds.domain_right_edge,
                 [N, N, N], len(self.data_files))
         self._initialize_indices()
         self.oct_handler.finalize()
@@ -116,21 +115,21 @@ class ParticleIndex(Index):
 
     def _detect_output_fields(self):
         # TODO: Add additional fields
-        pfl = []
+        dsl = []
         units = {}
         for dom in self.data_files:
             fl, _units = self.io._identify_fields(dom)
             units.update(_units)
             dom._calculate_offsets(fl)
             for f in fl:
-                if f not in pfl: pfl.append(f)
-        self.field_list = pfl
-        pf = self.parameter_file
-        pf.particle_types = tuple(set(pt for pt, pf in pfl))
+                if f not in dsl: dsl.append(f)
+        self.field_list = dsl
+        ds = self.dataset
+        ds.particle_types = tuple(set(pt for pt, ds in dsl))
         # This is an attribute that means these particle types *actually*
         # exist.  As in, they are real, in the dataset.
-        pf.field_units.update(units)
-        pf.particle_types_raw = pf.particle_types
+        ds.field_units.update(units)
+        ds.particle_types_raw = ds.particle_types
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
@@ -139,9 +138,9 @@ class ParticleIndex(Index):
                 data_files = [self.data_files[i] for i in
                               self.regions.identify_data_files(dobj.selector)]
             base_region = getattr(dobj, "base_region", dobj)
-            oref = self.parameter_file.over_refine_factor
+            oref = self.dataset.over_refine_factor
             subset = [ParticleOctreeSubset(base_region, data_files, 
-                        self.parameter_file, over_refine_factor = oref)]
+                        self.dataset, over_refine_factor = oref)]
             dobj._chunk_info = subset
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 

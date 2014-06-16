@@ -25,14 +25,13 @@ class UnstructuredIndex(Index):
     _global_mesh = False
     _unsupported_objects = ('proj', 'covering_grid', 'smoothed_covering_grid')
 
-    def __init__(self, pf, dataset_type):
+    def __init__(self, ds, dataset_type):
         self.dataset_type = dataset_type
-        self.parameter_file = weakref.proxy(pf)
-        # for now, the index file is the parameter file!
-        self.index_filename = self.parameter_file.parameter_filename
+        self.dataset = weakref.proxy(ds)
+        self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
         self.float_type = np.float64
-        super(UnstructuredIndex, self).__init__(pf, dataset_type)
+        super(UnstructuredIndex, self).__init__(ds, dataset_type)
 
     def _setup_geometry(self):
         mylog.debug("Initializing Unstructured Mesh Geometry Handler.")
@@ -49,7 +48,7 @@ class UnstructuredIndex(Index):
         return dx
 
     def convert(self, unit):
-        return self.parameter_file.conversion_factors[unit]
+        return self.dataset.conversion_factors[unit]
 
     def _initialize_mesh(self):
         raise NotImplementedError

@@ -47,7 +47,7 @@ class LightRay(CosmologySplice):
     Parameters
     ----------
     parameter_filename : string
-        The simulation parameter file.
+        The simulation dataset.
     simulation_type : string
         The simulation type.
     near_redshift : float
@@ -83,7 +83,7 @@ class LightRay(CosmologySplice):
         datasets for time series.
         Default: True.
     find_outputs : bool
-        Whether or not to search for parameter files in the current 
+        Whether or not to search for datasets in the current 
         directory.
         Default: False.
 
@@ -388,10 +388,10 @@ class LightRay(CosmologySplice):
                                                        njobs=njobs, dynamic=dynamic):
 
             # Load dataset for segment.
-            pf = load(my_segment['filename'])
+            ds = load(my_segment['filename'])
 
             if self.near_redshift == self.far_redshift:
-                h_vel = cm_per_km * pf.units['mpc'] * \
+                h_vel = cm_per_km * ds.units['mpc'] * \
                   vector_length(my_segment['start'], my_segment['end']) * \
                   self.cosmology.HubbleConstantNow * \
                   self.cosmology.ExpansionFactor(my_segment['redshift'])
@@ -419,7 +419,7 @@ class LightRay(CosmologySplice):
             for sub_segment in sub_segments:
                 mylog.info("Getting subsegment: %s to %s." %
                            (list(sub_segment[0]), list(sub_segment[1])))
-                sub_ray = pf.ray(sub_segment[0], sub_segment[1])
+                sub_ray = ds.ray(sub_segment[0], sub_segment[1])
                 sub_data['dl'] = np.concatenate([sub_data['dl'],
                                                  (sub_ray['dts'] *
                                                   vector_length(sub_segment[0],
@@ -451,12 +451,12 @@ class LightRay(CosmologySplice):
 
             # Calculate distance to nearest object on halo list for each lixel.
             if get_nearest_halo:
-                halo_list = self._get_halo_list(pf, fields=nearest_halo_fields,
+                halo_list = self._get_halo_list(ds, fields=nearest_halo_fields,
                                                 filename=halo_list_file,
                                                 **halo_profiler_parameters)
                 sub_data.update(self._get_nearest_halo_properties(sub_data, halo_list,
                                 fields=nearest_halo_fields))
-                sub_data['nearest_halo'] *= pf.units['mpccm']
+                sub_data['nearest_halo'] *= ds.units['mpccm']
 
             # Remove empty lixels.
             sub_dl_nonzero = sub_data['dl'].nonzero()
@@ -465,13 +465,13 @@ class LightRay(CosmologySplice):
             del sub_dl_nonzero
 
             # Convert dl to cm.
-            sub_data['dl'] *= pf.units['cm']
+            sub_data['dl'] *= ds.units['cm']
 
             # Add to storage.
             my_storage.result = sub_data
 
-            pf.h.clear_all_data()
-            del pf
+            ds.index.clear_all_data()
+            del ds
 
         # Reconstruct ray data from parallel_objects storage.
         all_data = [my_data for my_data in all_ray_storage.values()]
@@ -488,20 +488,20 @@ class LightRay(CosmologySplice):
         self._data = all_data
         return all_data
 
-    def _get_halo_list(self, pf, fields=None, filename=None, 
+    def _get_halo_list(self, ds, fields=None, filename=None, 
                        halo_profiler_kwargs=None,
                        halo_profiler_actions=None, halo_list='all'):
-        "Load a list of halos for the pf."
+        "Load a list of halos for the ds."
 
-        if str(pf) in self.halo_lists:
-            return self.halo_lists[str(pf)]
+        if str(ds) in self.halo_lists:
+            return self.halo_lists[str(ds)]
 
         if fields is None: fields = []
 
         if filename is not None and \
-                os.path.exists(os.path.join(pf.fullpath, filename)):
+                os.path.exists(os.path.join(ds.fullpath, filename)):
 
-            my_filename = os.path.join(pf.fullpath, filename)
+            my_filename = os.path.join(ds.fullpath, filename)
             mylog.info("Loading halo list from %s." % my_filename)
             my_list = {}
             in_file = h5py.File(my_filename, 'r')
@@ -510,15 +510,15 @@ class LightRay(CosmologySplice):
             in_file.close()
 
         else:
-            my_list = self._halo_profiler_list(pf, fields=fields,
+            my_list = self._halo_profiler_list(ds, fields=fields,
                                                halo_profiler_kwargs=halo_profiler_kwargs,
                                                halo_profiler_actions=halo_profiler_actions,
                                                halo_list=halo_list)
 
-        self.halo_lists[str(pf)] = my_list
-        return self.halo_lists[str(pf)]
+        self.halo_lists[str(ds)] = my_list
+        return self.halo_lists[str(ds)]
 
-    def _halo_profiler_list(self, pf, fields=None, 
+    def _halo_profiler_list(self, ds, fields=None, 
                             halo_profiler_kwargs=None,
                             halo_profiler_actions=None, halo_list='all'):
         "Run the HaloProfiler to get the halo list."
@@ -526,7 +526,7 @@ class LightRay(CosmologySplice):
         if halo_profiler_kwargs is None: halo_profiler_kwargs = {}
         if halo_profiler_actions is None: halo_profiler_actions = []
 
-        hp = HaloProfiler(pf, **halo_profiler_kwargs)
+        hp = HaloProfiler(ds, **halo_profiler_kwargs)
         for action in halo_profiler_actions:
             if not action.has_key('args'): action['args'] = ()
             if not action.has_key('kwargs'): action['kwargs'] = {}

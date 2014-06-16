@@ -8,8 +8,8 @@ my_sim.get_time_series()
 
 # Calculate and store extrema for all datasets.
 all_storage = {}
-for my_storage, pf in my_sim.piter(storage=all_storage):
-    all_data = pf.h.all_data()
+for my_storage, ds in my_sim.piter(storage=all_storage):
+    all_data = ds.all_data()
     my_extrema = all_data.quantities['Extrema']('density')
 
     # Save to storage so we can get at it afterward.

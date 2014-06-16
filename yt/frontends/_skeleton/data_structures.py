@@ -45,13 +45,13 @@ class SkeletonHierarchy(AMRHierarchy):
 
     grid = SkeletonGrid
     
-    def __init__(self, pf, dataset_type='skeleton'):
+    def __init__(self, ds, dataset_type='skeleton'):
         self.dataset_type = dataset_type
-        self.parameter_file = weakref.proxy(pf)
-        # for now, the index file is the parameter file!
-        self.index_filename = self.parameter_file.parameter_filename
+        self.dataset = weakref.proxy(ds)
+        # for now, the index file is the dataset!
+        self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
-        AMRHierarchy.__init__(self, pf, dataset_type)
+        AMRHierarchy.__init__(self, ds, dataset_type)
 
     def _initialize_data_storage(self):
         pass

@@ -1,14 +1,14 @@
 from yt.mods import *
 from yt.visualization.api import Streamlines
 
-pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
 c = np.array([0.5]*3)
 N = 100
 scale = 1.0
 pos_dx = np.random.random((N,3))*scale-scale/2.
 pos = c+pos_dx
 
-streamlines = Streamlines(pf,pos,'velocity_x', 'velocity_y', 'velocity_z', length=1.0) 
+streamlines = Streamlines(ds,pos,'velocity_x', 'velocity_y', 'velocity_z', length=1.0) 
 streamlines.integrate_through_volume()
 
 import matplotlib.pylab as pl

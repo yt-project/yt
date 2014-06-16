@@ -1,10 +1,10 @@
 from yt.mods import *
 
 # Load the dataset.
-pf = load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
+ds = load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
 
 # Create a slice object
-slc = SlicePlot(pf,'x','density',width=(800.0,'kpc'))
+slc = SlicePlot(ds,'x','density',width=(800.0,'kpc'))
 
 # Get a reference to the matplotlib axes object for the plot
 ax = slc.plots['density'].axes

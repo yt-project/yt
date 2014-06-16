@@ -25,7 +25,7 @@ import h5py
 
 class ParticleTrajectories(object):
     r"""A collection of particle trajectories in time over a series of
-    parameter files. 
+    datasets. 
 
     The ParticleTrajectories object contains a collection of
     particle trajectories for a specified set of particle indices. 

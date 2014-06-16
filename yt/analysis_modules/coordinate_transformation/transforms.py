@@ -19,10 +19,10 @@ from yt.funcs import *
 from yt.utilities.linear_interpolators import \
     TrilinearFieldInterpolator
 
-def spherical_regrid(pf, nr, ntheta, nphi, rmax, fields,
+def spherical_regrid(ds, nr, ntheta, nphi, rmax, fields,
                      center=None, smoothed=True):
     """
-    This function takes a parameter file (*pf*) along with the *nr*, *ntheta*
+    This function takes a dataset (*ds*) along with the *nr*, *ntheta*
     and *nphi* points to generate out to *rmax*, and it grids *fields* onto
     those points and returns a dict.  *center* if supplied will be the center,
     otherwise the most dense point will be chosen.  *smoothed* governs whether
@@ -30,7 +30,7 @@ def spherical_regrid(pf, nr, ntheta, nphi, rmax, fields,
     """
     mylog.warning("This code may produce some artifacts of interpolation")
     mylog.warning("See yt/extensions/coordinate_transforms.py for plotting information")
-    if center is None: center = pf.h.find_max("Density")[1]
+    if center is None: center = ds.find_max("Density")[1]
     fields = ensure_list(fields)
     r,theta,phi = np.mgrid[0:rmax:nr*1j,
                            0:np.pi:ntheta*1j,
@@ -39,7 +39,7 @@ def spherical_regrid(pf, nr, ntheta, nphi, rmax, fields,
     new_grid['x'] = r*np.sin(theta)*np.cos(phi) + center[0]
     new_grid['y'] = r*np.sin(theta)*np.sin(phi) + center[1]
     new_grid['z'] = r*np.cos(theta)             + center[2]
-    sphere = pf.sphere(center, rmax)
+    sphere = ds.sphere(center, rmax)
     return arbitrary_regrid(new_grid, sphere, fields, smoothed)
 
 def arbitrary_regrid(new_grid, data_source, fields, smoothed=True):

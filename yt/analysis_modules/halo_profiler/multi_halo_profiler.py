@@ -57,14 +57,14 @@ class HaloProfiler(ParallelAnalysisInterface):
     r"""Initialize a Halo Profiler object.
 
     In order to run the halo profiler, the Halo Profiler object must be
-    instantiated. At the minimum, the path to a parameter file
+    instantiated. At the minimum, the path to a dataset
     must be provided as the first term.
 
     Parameters
     ----------
 
     dataset : string, required
-        The path to the parameter file for the dataset to be analyzed.
+        The path to the dataset for the dataset to be analyzed.
     output_dir : string, optional
         If specified, all output will be put into this path instead of
         in the dataset directories.  Default: None.
@@ -272,25 +272,25 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         # Create dataset object.
         if isinstance(self.dataset, Dataset):
-            self.pf = self.dataset
+            self.ds = self.dataset
         else:
-            self.pf = load(self.dataset)
-        self.pf.h
+            self.ds = load(self.dataset)
+        self.ds.index
 
         # Create output directories.
         self.output_dir = output_dir
         if output_dir is None:
-            self.output_dir = self.pf.fullpath
+            self.output_dir = self.ds.fullpath
         else:
             self.__check_directory(output_dir)
-            self.output_dir = os.path.join(output_dir, self.pf.directory)
+            self.output_dir = os.path.join(output_dir, self.ds.directory)
         self.__check_directory(self.output_dir)
         self.profile_output_dir = os.path.join(self.output_dir, profile_output_dir)
         self.projection_output_dir = os.path.join(self.output_dir, projection_output_dir)
 
         # Figure out what max radius to use for profiling.
         if halo_radius is not None:
-            self.halo_radius = halo_radius / self.pf[radius_units]
+            self.halo_radius = halo_radius / self.ds[radius_units]
         elif self.halos is 'single' or not 'r_max' in self.halo_list_format:
             self.halo_radius = 0.1
         else:
@@ -298,10 +298,10 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         # Get halo(s).
         if self.halos is 'single':
-            v, center = self.pf.h.find_max('Density')
+            v, center = self.ds.find_max('density')
             singleHalo = {}
             singleHalo['center'] = center
-            singleHalo['r_max'] = self.halo_radius * self.pf.units['mpc']
+            singleHalo['r_max'] = self.halo_radius * self.ds.units['mpc']
             singleHalo['id'] = 0
             self.all_halos.append(singleHalo)
         elif self.halos is 'multiple':
@@ -465,7 +465,7 @@ class HaloProfiler(ParallelAnalysisInterface):
         if not profile_format in extension_map:
             mylog.error("Invalid profile_format: %s.  Valid options are %s." %
                         (profile_format, ", ".join(extension_map.keys())))
-            raise YTException(pf=self.pf)
+            raise YTException(ds=self.ds)
 
         if len(self.all_halos) == 0:
             mylog.error("Halo list is empty, returning.")
@@ -576,7 +576,7 @@ class HaloProfiler(ParallelAnalysisInterface):
         newProfile = profile is None
         if newProfile:
 
-            r_min = 2 * self.pf.index.get_smallest_dx() * self.pf['mpc']
+            r_min = 2 * self.ds.index.get_smallest_dx() * self.ds['mpc']
             if (halo['r_max'] / r_min < PROFILE_RADIUS_THRESHOLD):
                 mylog.debug("Skipping halo with r_max / r_min = %f." % (halo['r_max']/r_min))
                 return None
@@ -626,7 +626,7 @@ class HaloProfiler(ParallelAnalysisInterface):
         and calculates bulk velocities.
         """
 
-        sphere = self.pf.sphere(halo['center'], halo['r_max']/self.pf.units['mpc'])
+        sphere = self.ds.sphere(halo['center'], halo['r_max']/self.ds.units['mpc'])
         new_sphere = False
 
         if self.recenter:
@@ -637,22 +637,22 @@ class HaloProfiler(ParallelAnalysisInterface):
             else:
                 # user supplied function
                 new_x, new_y, new_z = self.recenter(sphere)
-            if new_x < self.pf.domain_left_edge[0] or \
-                    new_y < self.pf.domain_left_edge[1] or \
-                    new_z < self.pf.domain_left_edge[2]:
+            if new_x < self.ds.domain_left_edge[0] or \
+                    new_y < self.ds.domain_left_edge[1] or \
+                    new_z < self.ds.domain_left_edge[2]:
                 mylog.info("Recentering rejected, skipping halo %d" % \
                     halo['id'])
                 return None
             halo['center'] = [new_x, new_y, new_z]
-            d = self.pf['kpc'] * periodic_dist(old, halo['center'],
-                self.pf.domain_right_edge - self.pf.domain_left_edge)
+            d = self.ds['kpc'] * periodic_dist(old, halo['center'],
+                self.ds.domain_right_edge - self.ds.domain_left_edge)
             mylog.info("Recentered halo %d %1.3e kpc away." % (halo['id'], d))
             # Expand the halo to account for recentering.
             halo['r_max'] += d / 1000. # d is in kpc -> want mpc
             new_sphere = True
 
         if new_sphere:
-            sphere = self.pf.sphere(halo['center'], halo['r_max']/self.pf.units['mpc'])
+            sphere = self.ds.sphere(halo['center'], halo['r_max']/self.ds.units['mpc'])
 
         if self._need_bulk_velocity:
             # Set bulk velocity to zero out radial velocity profiles.
@@ -670,7 +670,7 @@ class HaloProfiler(ParallelAnalysisInterface):
                 mylog.info('Setting bulk velocity with value at max %s.' % self.velocity_center[1])
                 max_val, maxi, mx, my, mz, mg = sphere.quantities['MaxLocation'](self.velocity_center[1])
                                                                                  
-                max_grid = self.pf.index.grids[mg]
+                max_grid = self.ds.index.grids[mg]
                 max_cell = np.unravel_index(maxi, max_grid.ActiveDimensions)
                 sphere.set_field_parameter('bulk_velocity', [max_grid['x-velocity'][max_cell],
                                                              max_grid['y-velocity'][max_cell],
@@ -747,20 +747,20 @@ class HaloProfiler(ParallelAnalysisInterface):
 
         # Set resolution for fixed resolution output.
         if self.project_at_level == 'max':
-            proj_level = self.pf.h.max_level
+            proj_level = self.ds.index.max_level
         else:
             proj_level = int(self.project_at_level)
-        proj_dx = self.pf.units[self.projection_width_units] / \
-            self.pf.parameters['TopGridDimensions'][0] / \
-            (self.pf.parameters['RefineBy']**proj_level)
+        proj_dx = self.ds.units[self.projection_width_units] / \
+            self.ds.parameters['TopGridDimensions'][0] / \
+            (self.ds.parameters['RefineBy']**proj_level)
         projectionResolution = int(self.projection_width / proj_dx)
 
         # Create output directory.
         self.__check_directory(self.projection_output_dir)
 
-        center = [0.5 * (self.pf.parameters['DomainLeftEdge'][w] +
-                         self.pf.parameters['DomainRightEdge'][w])
-                  for w in range(self.pf.parameters['TopGridRank'])]
+        center = [0.5 * (self.ds.parameters['DomainLeftEdge'][w] +
+                         self.ds.parameters['DomainRightEdge'][w])
+                  for w in range(self.ds.parameters['TopGridRank'])]
 
         for halo in parallel_objects(halo_projection_list, njobs=njobs, dynamic=dynamic):
             if halo is None:
@@ -768,10 +768,10 @@ class HaloProfiler(ParallelAnalysisInterface):
             # Check if region will overlap domain edge.
             # Using non-periodic regions is faster than using periodic ones.
             leftEdge = [(halo['center'][w] -
-                         0.5 * self.projection_width/self.pf.units[self.projection_width_units])
+                         0.5 * self.projection_width/self.ds.units[self.projection_width_units])
                         for w in range(len(halo['center']))]
             rightEdge = [(halo['center'][w] +
-                          0.5 * self.projection_width/self.pf.units[self.projection_width_units])
+                          0.5 * self.projection_width/self.ds.units[self.projection_width_units])
                          for w in range(len(halo['center']))]
 
             mylog.info("Projecting halo %04d in region: [%f, %f, %f] to [%f, %f, %f]." %
@@ -780,15 +780,15 @@ class HaloProfiler(ParallelAnalysisInterface):
 
             need_per = False
             for w in range(len(halo['center'])):
-                if ((leftEdge[w] < self.pf.parameters['DomainLeftEdge'][w]) or
-                    (rightEdge[w] > self.pf.parameters['DomainRightEdge'][w])):
+                if ((leftEdge[w] < self.ds.parameters['DomainLeftEdge'][w]) or
+                    (rightEdge[w] > self.ds.parameters['DomainRightEdge'][w])):
                     need_per = True
                     break
 
             # We use the same type of region regardless.  The selection will be
             # correct, but we need the need_per variable for projection
             # shifting.
-            region = self.pf.region(halo['center'], leftEdge, rightEdge)
+            region = self.ds.region(halo['center'], leftEdge, rightEdge)
 
             # Make projections.
             if not isinstance(axes, types.ListType): axes = list([axes])
@@ -801,15 +801,15 @@ class HaloProfiler(ParallelAnalysisInterface):
                 y_axis = coords[1]
 
                 for hp in self.projection_fields:
-                    projections.append(self.pf.proj(hp['field'], w,
+                    projections.append(self.ds.proj(hp['field'], w,
                                                       weight_field=hp['weight_field'],
                                                       data_source=region,
                                                       center=halo['center']))
 
                 # Set x and y limits, shift image if it overlaps domain boundary.
                 if need_per:
-                    pw = self.projection_width/self.pf.units[self.projection_width_units]
-                    _shift_projections(self.pf, projections, halo['center'], center, w)
+                    pw = self.projection_width/self.ds.units[self.projection_width_units]
+                    _shift_projections(self.ds, projections, halo['center'], center, w)
                     # Projection has now been shifted to center of box.
                     proj_left = [center[x_axis]-0.5*pw, center[y_axis]-0.5*pw]
                     proj_right = [center[x_axis]+0.5*pw, center[y_axis]+0.5*pw]
@@ -933,9 +933,9 @@ class HaloProfiler(ParallelAnalysisInterface):
         if 'ActualOverdensity' in profile.keys():
             return
 
-        rhocritnow = rho_crit_g_cm3_h2 * self.pf.hubble_constant**2 # g cm^-3
-        rho_crit = rhocritnow * ((1.0 + self.pf.current_redshift)**3.0)
-        if not self.use_critical_density: rho_crit *= self.pf.omega_matter
+        rhocritnow = rho_crit_g_cm3_h2 * self.ds.hubble_constant**2 # g cm^-3
+        rho_crit = rhocritnow * ((1.0 + self.ds.current_redshift)**3.0)
+        if not self.use_critical_density: rho_crit *= self.ds.omega_matter
 
         profile['ActualOverdensity'] = (mass_sun_cgs * profile['TotalMassMsun']) / \
             profile['CellVolume'] / rho_crit
@@ -1007,11 +1007,11 @@ class HaloProfiler(ParallelAnalysisInterface):
                         halo[field] = __get_num(onLine[self.halo_list_format[field]])
                 if getID: halo['id'] = len(haloList)
                 if self.halo_radius is not None:
-                    halo['r_max'] = self.halo_radius * self.pf.units['mpc']
+                    halo['r_max'] = self.halo_radius * self.ds.units['mpc']
                 elif has_rmax:
-                    halo['r_max'] *= self.pf.units['mpc']
+                    halo['r_max'] *= self.ds.units['mpc']
                 elif has_r200kpc:
-                    # If P-Groupfinder used, r_200 [kpc] is calculated.
+                    # If P-Groudsinder used, r_200 [kpc] is calculated.
                     # set r_max as 50% past r_200.
                     halo['r_max'] = 1.5 * halo['r200kpc'] / 1000.
                 else:
@@ -1052,7 +1052,7 @@ class HaloProfiler(ParallelAnalysisInterface):
         fields.pop(0)
 
         profile = {}
-        profile_obj = FakeProfile(self.pf)
+        profile_obj = FakeProfile(self.ds)
         for field in fields:
             profile[field] = []
 
@@ -1112,7 +1112,7 @@ class HaloProfiler(ParallelAnalysisInterface):
             profile[field] = my_group[field][:]
         in_file.close()
 
-        profile_obj = FakeProfile(self.pf)
+        profile_obj = FakeProfile(self.ds)
         profile_obj._data = profile
         return profile_obj
 
@@ -1120,12 +1120,12 @@ class HaloProfiler(ParallelAnalysisInterface):
     def _run_hop(self, hop_file):
         "Run hop to get halos."
 
-        hop_results = self.halo_finder_function(self.pf, *self.halo_finder_args,
+        hop_results = self.halo_finder_function(self.ds, *self.halo_finder_args,
                                                 **self.halo_finder_kwargs)
         hop_results.write_out(hop_file)
 
         del hop_results
-        self.pf.h.clear_all_data()
+        self.ds.index.clear_all_data()
 
     @parallel_root_only
     def _write_filtered_halo_list(self, filename, format="%s"):
@@ -1230,13 +1230,13 @@ class HaloProfiler(ParallelAnalysisInterface):
         else:
             os.makedirs(my_output_dir)
 
-def _shift_projections(pf, projections, oldCenter, newCenter, axis):
+def _shift_projections(ds, projections, oldCenter, newCenter, axis):
     """
     Shift projection data around.
     This is necessary when projecting a preiodic region.
     """
     offset = [newCenter[q]-oldCenter[q] for q in range(len(oldCenter))]
-    width = [pf.parameters['DomainRightEdge'][q]-pf.parameters['DomainLeftEdge'][q] \
+    width = [ds.parameters['DomainRightEdge'][q]-ds.parameters['DomainLeftEdge'][q] \
                  for q in range(len(oldCenter))]
 
     del offset[axis]
@@ -1326,9 +1326,9 @@ class FakeProfile(ParallelAnalysisInterface):
     """
     This is used to mimic a profile object when reading profile data from disk.
     """
-    def __init__(self, pf):
+    def __init__(self, ds):
         ParallelAnalysisInterface.__init__(self)
-        self.pf = pf
+        self.ds = ds
         self._data = {}
 
     def __getitem__(self, key):

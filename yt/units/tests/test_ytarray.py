@@ -34,7 +34,7 @@ from yt.units.yt_array import \
     unary_operators, binary_operators
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUfuncUnitError
-from yt.testing import fake_random_pf, requires_module
+from yt.testing import fake_random_ds, requires_module
 from yt.funcs import fix_length
 from yt.units.unit_symbols import \
     cm, m, g
@@ -505,16 +505,16 @@ def test_fix_length():
     """
     Test fixing the length of an array. Used in spheres and other data objects
     """
-    pf = fake_random_pf(64, nprocs=1, length_unit=10)
-    length = pf.quan(1.0, 'code_length')
-    new_length = fix_length(length, pf=pf)
+    ds = fake_random_ds(64, nprocs=1, length_unit=10)
+    length = ds.quan(1.0, 'code_length')
+    new_length = fix_length(length, ds=ds)
     yield assert_equal, YTQuantity(10, 'cm'), new_length
 
 
 def test_ytarray_pickle():
-    pf = fake_random_pf(64, nprocs=1)
-    test_data = [pf.quan(12.0, 'code_length'),
-                 pf.arr([1, 2, 3], 'code_length')]
+    ds = fake_random_ds(64, nprocs=1)
+    test_data = [ds.quan(12.0, 'code_length'),
+                 ds.arr([1, 2, 3], 'code_length')]
 
     for data in test_data:
         tempf = tempfile.NamedTemporaryFile(delete=False)
@@ -700,7 +700,7 @@ def test_convenience():
 
 
 def test_registry_association():
-    ds = fake_random_pf(64, nprocs=1, length_unit=10)
+    ds = fake_random_ds(64, nprocs=1, length_unit=10)
     a = ds.quan(3, 'cm')
     b = YTQuantity(4, 'm')
     c = ds.quan(6, '')
@@ -797,7 +797,7 @@ def test_h5_io():
     curdir = os.getcwd()
     os.chdir(tmpdir)
 
-    ds = fake_random_pf(64, nprocs=1, length_unit=10)
+    ds = fake_random_ds(64, nprocs=1, length_unit=10)
 
     warr = ds.arr(np.random.random((256, 256)), 'code_length')
 

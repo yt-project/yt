@@ -21,7 +21,7 @@ from numpy.testing import \
     assert_allclose, assert_raises
 from nose.tools import assert_true
 from sympy import Symbol
-from yt.testing import fake_random_pf
+from yt.testing import fake_random_ds
 
 # dimensions
 from yt.units.dimensions import \
@@ -421,12 +421,12 @@ def test_cgs_equivalent():
         Msun_cgs / Mpc_cgs**3, 1e-12
 
 def test_is_code_unit():
-    pf = fake_random_pf(64, nprocs=1)
-    u1 = Unit('code_mass', registry=pf.unit_registry)
-    u2 = Unit('code_mass/code_length', registry=pf.unit_registry)
-    u3 = Unit('code_velocity*code_mass**2', registry=pf.unit_registry)
-    u4 = Unit('code_time*code_mass**0.5', registry=pf.unit_registry)
-    u5 = Unit('code_mass*g', registry=pf.unit_registry)
+    ds = fake_random_ds(64, nprocs=1)
+    u1 = Unit('code_mass', registry=ds.unit_registry)
+    u2 = Unit('code_mass/code_length', registry=ds.unit_registry)
+    u3 = Unit('code_velocity*code_mass**2', registry=ds.unit_registry)
+    u4 = Unit('code_time*code_mass**0.5', registry=ds.unit_registry)
+    u5 = Unit('code_mass*g', registry=ds.unit_registry)
     u6 = Unit('g/cm**3')
 
     yield assert_true, u1.is_code_unit

@@ -70,9 +70,9 @@ def _combFreeFreeLuminosity(data, luminosity):
 yt.add_quantity("FreeFree_Luminosity", function=_FreeFreeLuminosity,
                 combine_function=_combFreeFreeLuminosity, n_ret=1)
 
-pf = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
+ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
 
-sphere = pf.sphere(pf.domain_center, (100., "kpc"))
+sphere = ds.sphere(ds.domain_center, (100., "kpc"))
 
 # Print out the total luminosity at 1 keV for the sphere
 

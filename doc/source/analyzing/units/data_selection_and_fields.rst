@@ -34,7 +34,7 @@ volume.
 
    ds = load('HiresIsolatedGalaxy/DD0044/DD0044')
 
-   dd = ds.h.all_data()
+   dd = ds.all_data()
    dd['root_cell_volume']
 
 No special unit logic needs to happen inside of the function - `np.sqrt` will
@@ -47,7 +47,7 @@ convert the units of the `density` field appropriately:
    import numpy as np
 
    ds = load('HiresIsolatedGalaxy/DD0044/DD0044')
-   dd = ds.h.all_data()
+   dd = ds.all_data()
 
    print dd['cell_volume'].in_cgs()
    print np.sqrt(dd['cell_volume'].in_cgs())
@@ -70,5 +70,5 @@ For example, let's redo the above example but ask for units of
 
    ds = load('HiresIsolatedGalaxy/DD0044/DD0044')
 
-   dd = ds.h.all_data()
+   dd = ds.all_data()
    dd['root_cell_volume']

@@ -1,11 +1,11 @@
 from yt.mods import *
 import matplotlib.pyplot as plt
 
-pf = load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
+ds = load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
 
 # Get a sphere object
 
-sphere = pf.sphere(pf.domain_center, (500., "kpc"))
+sphere = ds.sphere(ds.domain_center, (500., "kpc"))
 
 # Bin up the data from the sphere into a radial profile
 
@@ -27,7 +27,7 @@ ax.set_ylabel(r"$\mathrm{\rho\ (g\ cm^{-3})}$")
 
 # Save the default plot
 
-fig.savefig("density_profile_default.png" % pf)
+fig.savefig("density_profile_default.png" % ds)
 
 # The "dens_plot" object is a list of plot objects. In our case we only have one,
 # so we index the list by '0' to get it. 

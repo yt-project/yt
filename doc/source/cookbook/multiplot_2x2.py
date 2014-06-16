@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import AxesGrid
 
 fn = "IsolatedGalaxy/galaxy0030/galaxy0030"
-pf = load(fn) # load data
+ds = load(fn) # load data
 
 fig = plt.figure()
 
@@ -26,7 +26,7 @@ fields = ['density', 'velocity_x', 'velocity_y', 'VelocityMagnitude']
 
 # Create the plot.  Since SlicePlot accepts a list of fields, we need only
 # do this once.
-p = SlicePlot(pf, 'z', fields)
+p = SlicePlot(ds, 'z', fields)
 p.zoom(2)
 
 # For each plotted field, force the SlicePlot to redraw itself onto the AxesGrid

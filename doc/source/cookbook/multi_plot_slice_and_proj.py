@@ -3,10 +3,10 @@ from yt.visualization.base_plot_types import get_multi_plot
 import matplotlib.colorbar as cb
 from matplotlib.colors import LogNorm
 
-fn = "GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150" # parameter file to load
+fn = "GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150" # dataset to load
 orient = 'horizontal'
 
-pf = load(fn) # load data
+ds = load(fn) # load data
 
 # There's a lot in here:
 #   From this we get a containing figure, a list-of-lists of axes into which we
@@ -17,9 +17,9 @@ pf = load(fn) # load data
 #   bw is the base-width in inches, but 4 is about right for most cases.
 fig, axes, colorbars = get_multi_plot(3, 2, colorbar=orient, bw = 4)
 
-slc = pf.slice(2, 0.0, fields=["density","temperature","velocity_magnitude"], 
-                 center=pf.domain_center)
-proj = pf.proj("density", 2, weight_field="density", center=pf.domain_center)
+slc = ds.slice(2, 0.0, fields=["density","temperature","velocity_magnitude"], 
+                 center=ds.domain_center)
+proj = ds.proj("density", 2, weight_field="density", center=ds.domain_center)
 
 slc_frb = slc.to_frb((1.0, "mpc"), 512)
 proj_frb = proj.to_frb((1.0, "mpc"), 512)
@@ -66,4 +66,4 @@ for p, cax, t in zip(plots[0:6:2], colorbars, titles):
     cbar.set_label(t)
 
 # And now we're done! 
-fig.savefig("%s_3x2" % pf)
+fig.savefig("%s_3x2" % ds)

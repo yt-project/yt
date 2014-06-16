@@ -1,10 +1,10 @@
 from yt.mods import *
 
 # Load the data file.
-pf = load("Sedov_3d/sedov_hdf5_chk_0002")
+ds = load("Sedov_3d/sedov_hdf5_chk_0002")
 
 # Make a traditional slice plot.
-sp = SlicePlot(pf,"x","density")
+sp = SlicePlot(ds,"x","density")
 
 # Overlay the slice plot with thick red contours of density.
 sp.annotate_contour("density", ncont=3, clim=(1e-2,1e-1), label=True,

@@ -57,11 +57,11 @@ class VariableMeshPanner(object):
 
     @property
     def bounds(self):
-        if not hasattr(self, 'pf'): self.pf = self.source.pf
-        DLE, DRE = self.pf.domain_left_edge, self.pf.domain_right_edge
+        if not hasattr(self, 'ds'): self.ds = self.source.ds
+        DLE, DRE = self.ds.domain_left_edge, self.ds.domain_right_edge
         ax = self.source.axis
-        xax = self.pf.coordinates.x_axis[ax]
-        yax = self.pf.coordinates.y_axis[ax]
+        xax = self.ds.coordinates.x_axis[ax]
+        yax = self.ds.coordinates.y_axis[ax]
         xbounds = DLE[xax], DRE[xax]
         ybounds = DLE[yax], DRE[yax]
         return (xbounds, ybounds)
@@ -182,8 +182,8 @@ class VariableMeshPanner(object):
         if len(center) == 2:
             centerx, centery = center
         elif len(center) == 3:
-            xax = self.pf.coordinates.x_axis[self.source.axis]
-            yax = self.pf.coordinates.y_axis[self.source.axis]
+            xax = self.ds.coordinates.x_axis[self.source.axis]
+            yax = self.ds.coordinates.y_axis[self.source.axis]
             centerx = center[xax]
             centery = center[yax]
         else:

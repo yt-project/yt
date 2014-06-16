@@ -3,9 +3,9 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import matplotlib.pyplot as plt
 from yt.mods import *
 
-pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-sphere = pf.sphere("max", (1.0, "mpc"))
-surface = pf.surface(sphere, "density", 1e-25)
+ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+sphere = ds.sphere("max", (1.0, "mpc"))
+surface = ds.surface(sphere, "density", 1e-25)
 colors = apply_colormap(np.log10(surface["temperature"]), cmap_name="hot")
 
 fig = plt.figure()
@@ -17,4 +17,4 @@ ax.add_collection(p3dc)
 ax.auto_scale_xyz(surface.vertices[0,:], surface.vertices[1,:], surface.vertices[2,:])
 ax.set_aspect(1.0)
 
-plt.savefig("%s_Surface.png" % pf)
+plt.savefig("%s_Surface.png" % ds)

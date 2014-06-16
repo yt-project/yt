@@ -114,9 +114,9 @@ class VelocityCallback(PlotCallback):
                                         self.factor)
         else:
             ax = plot.data.axis
-            (xi, yi) = (plot.data.pf.coordinates.x_axis[ax],
-                        plot.data.pf.coordinates.y_axis[ax])
-            axis_names = plot.data.pf.coordinates.axis_name
+            (xi, yi) = (plot.data.ds.coordinates.x_axis[ax],
+                        plot.data.ds.coordinates.y_axis[ax])
+            axis_names = plot.data.ds.coordinates.axis_name
             xv = "velocity_%s" % (axis_names[xi])
             yv = "velocity_%s" % (axis_names[yi])
 
@@ -158,9 +158,9 @@ class MagFieldCallback(PlotCallback):
                                         "cutting_plane_by",
                                         self.factor)
         else:
-            xax = plot.data.pf.coordinates.x_axis[plot.data.axis]
-            yax = plot.data.pf.coordinates.y_axis[plot.data.axis]
-            axis_names = plot.data.pf.coordinates.axis_name
+            xax = plot.data.ds.coordinates.x_axis[plot.data.axis]
+            yax = plot.data.ds.coordinates.y_axis[plot.data.axis]
+            axis_names = plot.data.ds.coordinates.axis_name
             xv = "magnetic_field_%s" % (axis_names[xax])
             yv = "magnetic_field_%s" % (axis_names[yax])
             qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, scale_units=self.scale_units, normalize=self.normalize)
@@ -198,12 +198,12 @@ class QuiverCallback(PlotCallback):
         ny = plot.image._A.shape[1] / self.factor
         # periodicity
         ax = plot.data.axis
-        pf = plot.data.pf
-        (xi, yi) = (pf.coordinates.x_axis[ax],
-                    pf.coordinates.y_axis[ax])
-        period_x = pf.domain_width[xi]
-        period_y = pf.domain_width[yi]
-        periodic = int(any(pf.periodicity))
+        ds = plot.data.ds
+        (xi, yi) = (ds.coordinates.x_axis[ax],
+                    ds.coordinates.y_axis[ax])
+        period_x = ds.domain_width[xi]
+        period_y = ds.domain_width[yi]
+        periodic = int(any(ds.periodicity))
         fv_x = plot.data[self.field_x]
         if self.bv_x != 0.0:
             # Workaround for 0.0 without units
@@ -338,7 +338,7 @@ class ContourCallback(PlotCallback):
         
         if self.take_log is None:
             field = data._determine_fields([self.field])[0]
-            self.take_log = plot.pf._get_field_info(*field).take_log
+            self.take_log = plot.ds._get_field_info(*field).take_log
 
         if self.take_log: zi=np.log10(zi)
 
@@ -392,9 +392,9 @@ class GridBoundaryCallback(PlotCallback):
         (dx, dy) = self.pixel_scale(plot)
         (xpix, ypix) = plot.image._A.shape
         ax = plot.data.axis
-        px_index = plot.data.pf.coordinates.x_axis[ax]
-        py_index = plot.data.pf.coordinates.y_axis[ax]
-        DW = plot.data.pf.domain_width
+        px_index = plot.data.ds.coordinates.x_axis[ax]
+        py_index = plot.data.ds.coordinates.y_axis[ax]
+        DW = plot.data.ds.domain_width
         if self.periodic:
             pxs, pys = np.mgrid[-1:1:3j,-1:1:3j]
         else:
@@ -426,7 +426,7 @@ class GridBoundaryCallback(PlotCallback):
 
             if self.cmap is not None: 
                 edgecolors = apply_colormap(levels[(levels <= max_level) & (levels >= min_level)]*1.0,
-                                  color_bounds=[0,plot.data.pf.h.max_level],
+                                  color_bounds=[0,plot.data.ds.index.max_level],
                                   cmap_name=self.cmap)[0,:,:]*1.0/255.
                 edgecolors[:,3] = self.alpha
             else:
@@ -522,7 +522,7 @@ class LabelCallback(PlotCallback):
         plot._axes.set_xlabel(self.label)
         plot._axes.set_ylabel(self.label)
 
-def get_smallest_appropriate_unit(v, pf):
+def get_smallest_appropriate_unit(v, ds):
     max_nu = 1e30
     good_u = None
     for unit in ['Mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
@@ -661,16 +661,16 @@ class ClumpContourCallback(PlotCallback):
         plot._axes.hold(True)
 
         ax = plot.data.axis
-        px_index = plot.data.pf.coordinates.x_axis[ax]
-        py_index = plot.data.pf.coordinates.y_axis[ax]
+        px_index = plot.data.ds.coordinates.x_axis[ax]
+        py_index = plot.data.ds.coordinates.y_axis[ax]
 
-        xf = plot.data.pf.coordinates.axis_name[px_index]
-        yf = plot.data.pf.coordinates.axis_name[py_index]
+        xf = plot.data.ds.coordinates.axis_name[px_index]
+        yf = plot.data.ds.coordinates.axis_name[py_index]
         dxf = "d%s" % xf
         dyf = "d%s" % yf
 
-        DomainRight = plot.data.pf.domain_right_edge
-        DomainLeft = plot.data.pf.domain_left_edge
+        DomainRight = plot.data.ds.domain_right_edge
+        DomainLeft = plot.data.ds.domain_left_edge
         DomainWidth = DomainRight - DomainLeft
 
         nx, ny = plot.image._A.shape
@@ -713,12 +713,12 @@ class ArrowCallback(PlotCallback):
     def __call__(self, plot):
         if len(self.pos) == 3:
             ax = plot.data.axis
-            (xi, yi) = (plot.data.pf.coordinates.x_axis[ax],
-                        plot.data.pf.coordinates.y_axis[ax])
+            (xi, yi) = (plot.data.ds.coordinates.x_axis[ax],
+                        plot.data.ds.coordinates.y_axis[ax])
             pos = self.pos[xi], self.pos[yi]
         else: pos = self.pos
         if isinstance(self.code_size[1], basestring):
-            code_size = plot.data.pf.quan(*self.code_size).value
+            code_size = plot.data.ds.quan(*self.code_size).value
             self.code_size = (code_size, code_size)
         from matplotlib.patches import Arrow
         # Now convert the pixels to code information
@@ -746,8 +746,8 @@ class PointAnnotateCallback(PlotCallback):
     def __call__(self, plot):
         if len(self.pos) == 3:
             ax = plot.data.axis
-            (xi, yi) = (plot.data.pf.coordinates.x_axis[ax],
-                        plot.data.pf.coordinates.y_axis[ax])
+            (xi, yi) = (plot.data.ds.coordinates.x_axis[ax],
+                        plot.data.ds.coordinates.y_axis[ax])
             pos = self.pos[xi], self.pos[yi]
         else: pos = self.pos
         width,height = plot.image._A.shape
@@ -774,8 +774,8 @@ class MarkerAnnotateCallback(PlotCallback):
         yy0, yy1 = plot._axes.get_ylim()
         if len(self.pos) == 3:
             ax = plot.data.axis
-            (xi, yi) = (plot.data.pf.coordinates.x_axis[ax],
-                        plot.data.pf.coordinates.y_axis[ax])
+            (xi, yi) = (plot.data.ds.coordinates.x_axis[ax],
+                        plot.data.ds.coordinates.y_axis[ax])
             pos = self.pos[xi], self.pos[yi]
         elif len(self.pos) == 2:
             pos = self.pos
@@ -811,7 +811,7 @@ class SphereCallback(PlotCallback):
         from matplotlib.patches import Circle
 
         if iterable(self.radius):
-            self.radius = plot.data.pf.quan(self.radius[0], self.radius[1])
+            self.radius = plot.data.ds.quan(self.radius[0], self.radius[1])
             self.radius = np.float64(self.radius)
 
         radius = self.radius * self.pixel_scale(plot)[0]
@@ -820,8 +820,8 @@ class SphereCallback(PlotCallback):
             (xi, yi) = (0, 1)
         else:
             ax = plot.data.axis
-            (xi, yi) = (plot.data.pf.coordinates.x_axis[ax],
-                        plot.data.pf.coordinates.y_axis[ax])
+            (xi, yi) = (plot.data.ds.coordinates.x_axis[ax],
+                        plot.data.ds.coordinates.y_axis[ax])
 
         (center_x,center_y) = self.convert_to_plot(plot,(self.center[xi], self.center[yi]))
         
@@ -853,8 +853,8 @@ class TextLabelCallback(PlotCallback):
         if self.data_coords and len(plot.image._A.shape) == 2:
             if len(self.pos) == 3:
                 ax = plot.data.axis
-                (xi, yi) = (plot.data.pf.coordinates.x_axis[ax],
-                            plot.data.pf.coordinates.y_axis[ax])
+                (xi, yi) = (plot.data.ds.coordinates.x_axis[ax],
+                            plot.data.ds.coordinates.y_axis[ax])
                 pos = self.pos[xi], self.pos[yi]
             else: pos = self.pos
             x,y = self.convert_to_plot(plot, pos)
@@ -889,10 +889,10 @@ class HaloCatalogCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         
-        halo_data= self.halo_catalog.halos_pf.all_data()
-        axis_names = plot.data.pf.coordinates.axis_name
-        xax = plot.data.pf.coordinates.x_axis[data.axis]
-        yax = plot.data.pf.coordinates.y_axis[data.axis]
+        halo_data= self.halo_catalog.halos_ds.all_data()
+        axis_names = plot.data.ds.coordinates.axis_name
+        xax = plot.data.ds.coordinates.x_axis[data.axis]
+        yax = plot.data.ds.coordinates.y_axis[data.axis]
         field_x = "particle_position_%s" % axis_names[xax]
         field_y = "particle_position_%s" % axis_names[yax]
         field_z = "particle_position_%s" % axis_names[data.axis]
@@ -901,7 +901,7 @@ class HaloCatalogCallback(PlotCallback):
         # Set up scales for pixel size and original data
         units = 'Mpccm'
         pixel_scale = self.pixel_scale(plot)[0]
-        data_scale = data.pf.length_unit
+        data_scale = data.ds.length_unit
 
         # Convert halo positions to code units of the plotted data
         # and then to units of the plotted window
@@ -915,12 +915,12 @@ class HaloCatalogCallback(PlotCallback):
 
         if self.width:
             pz = halo_data[field_z][:].in_units(units)/data_scale
-            pz = data.pf.arr(pz, 'code_length')
+            pz = data.ds.arr(pz, 'code_length')
             c = data.center[data.axis]
 
             # I should catch an error here if width isn't in this form
             # but I dont really want to reimplement get_sanitized_width...
-            width = data.pf.arr(self.width[0], self.width[1]).in_units('code_length')
+            width = data.ds.arr(self.width[0], self.width[1]).in_units('code_length')
 
             indices = np.where((pz > c-width) & (pz < c+width))
 
@@ -976,7 +976,7 @@ class ParticleCallback(PlotCallback):
     def __call__(self, plot):
         data = plot.data
         if iterable(self.width):
-            self.width = np.float64(plot.data.pf.quan(self.width[0], self.width[1]))
+            self.width = np.float64(plot.data.ds.quan(self.width[0], self.width[1]))
         # we construct a recantangular prism
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
@@ -984,9 +984,9 @@ class ParticleCallback(PlotCallback):
         yy0, yy1 = plot._axes.get_ylim()
         reg = self._get_region((x0,x1), (y0,y1), plot.data.axis, data)
         ax = data.axis
-        xax = plot.data.pf.coordinates.x_axis[ax]
-        yax = plot.data.pf.coordinates.y_axis[ax]
-        axis_names = plot.data.pf.coordinates.axis_name
+        xax = plot.data.ds.coordinates.x_axis[ax]
+        yax = plot.data.ds.coordinates.y_axis[ax]
+        axis_names = plot.data.ds.coordinates.axis_name
         field_x = "particle_position_%s" % axis_names[xax]
         field_y = "particle_position_%s" % axis_names[yax]
         gg = ( ( reg[field_x] >= x0 ) & ( reg[field_x] <= x1 )
@@ -1016,9 +1016,9 @@ class ParticleCallback(PlotCallback):
 
     def _get_region(self, xlim, ylim, axis, data):
         LE, RE = [None]*3, [None]*3
-        pf = data.pf
-        xax = pf.coordinates.x_axis[axis]
-        yax = pf.coordinates.y_axis[axis]
+        ds = data.ds
+        xax = ds.coordinates.x_axis[axis]
+        yax = ds.coordinates.y_axis[axis]
         zax = axis
         LE[xax], RE[xax] = xlim
         LE[yax], RE[yax] = ylim
@@ -1028,7 +1028,7 @@ class ParticleCallback(PlotCallback):
             and np.all(self.region.left_edge <= LE) \
             and np.all(self.region.right_edge >= RE):
             return self.region
-        self.region = data.pf.region(data.center, LE, RE)
+        self.region = data.ds.region(data.center, LE, RE)
         return self.region
 
 class TitleCallback(PlotCallback):
@@ -1060,7 +1060,7 @@ class FlashRayDataCallback(PlotCallback):
         self.sample = sample if isinstance(sample, slice) else slice(None, None, sample)
 
     def __call__(self, plot):
-        ray_data = plot.data.pf._handle["RayData"][:]
+        ray_data = plot.data.ds._handle["RayData"][:]
         idx = ray_data[:,0].argsort(kind="mergesort")
         ray_data = ray_data[idx]
 
@@ -1167,7 +1167,7 @@ class TimestampCallback(PlotCallback):
 
     def __call__(self, plot):
         if self.units is None:
-            t = plot.data.pf.current_time * plot.data.pf['Time']
+            t = plot.data.ds.current_time * plot.data.ds['Time']
             scale_keys = ['as', 'fs', 'ps', 'ns', 'us', 'ms', 's', 
                           'hour', 'day', 'year', 'kyr', 'myr', 'gyr']
             self.units = 's'
@@ -1175,7 +1175,7 @@ class TimestampCallback(PlotCallback):
                 if t < self._time_conv[k]:
                     break
                 self.units = k
-        t = plot.data.pf.current_time * plot.data.pf['Time'] 
+        t = plot.data.ds.current_time * plot.data.ds['Time'] 
         t /= self._time_conv[self.units.lower()]
         if self.units == 'us':
             self.units = '$\\mu s$'
@@ -1237,8 +1237,8 @@ class TriangleFacetsCallback(PlotCallback):
     def __call__(self, plot):
         plot._axes.hold(True)
         ax = data.axis
-        xax = plot.data.pf.coordinates.x_axis[ax]
-        yax = plot.data.pf.coordinates.y_axis[ax]
+        xax = plot.data.ds.coordinates.x_axis[ax]
+        yax = plot.data.ds.coordinates.y_axis[ax]
         l_cy = triangle_plane_intersect(plot.data.axis, plot.data.coord, self.vertices)[:,:,(xax, yax)]
         lc = matplotlib.collections.LineCollection(l_cy, **self.plot_args)
         plot._axes.add_collection(lc)

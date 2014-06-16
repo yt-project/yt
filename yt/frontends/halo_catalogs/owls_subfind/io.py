@@ -30,8 +30,8 @@ from yt.geometry.oct_container import _ORDER_MAX
 class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
     _dataset_type = "subfind_hdf5"
 
-    def __init__(self, pf):
-        super(IOHandlerOWLSSubfindHDF5, self).__init__(pf)
+    def __init__(self, ds):
+        super(IOHandlerOWLSSubfindHDF5, self).__init__(ds)
         self.offset_fields = set([])
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
@@ -121,31 +121,31 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
         with h5py.File(data_file.filename, "r") as f:
             if not f.keys(): return None
             dx = np.finfo(f["FOF"]['CenterOfMass'].dtype).eps
-            dx = 2.0*self.pf.quan(dx, "code_length")
+            dx = 2.0*self.ds.quan(dx, "code_length")
             
             for ptype, pattr in zip(["FOF", "SUBFIND"],
                                     ["Number_of_groups", "Number_of_subgroups"]):
                 my_pcount = f[ptype].attrs[pattr]
                 pos = f[ptype]["CenterOfMass"].value.astype("float64")
                 pos = np.resize(pos, (my_pcount, 3))
-                pos = data_file.pf.arr(pos, "code_length")
+                pos = data_file.ds.arr(pos, "code_length")
                 
                 # These are 32 bit numbers, so we give a little lee-way.
                 # Otherwise, for big sets of particles, we often will bump into the
                 # domain edges.  This helps alleviate that.
-                np.clip(pos, self.pf.domain_left_edge + dx,
-                             self.pf.domain_right_edge - dx, pos)
-                if np.any(pos.min(axis=0) < self.pf.domain_left_edge) or \
-                   np.any(pos.max(axis=0) > self.pf.domain_right_edge):
+                np.clip(pos, self.ds.domain_left_edge + dx,
+                             self.ds.domain_right_edge - dx, pos)
+                if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or \
+                   np.any(pos.max(axis=0) > self.ds.domain_right_edge):
                     raise YTDomainOverflow(pos.min(axis=0),
                                            pos.max(axis=0),
-                                           self.pf.domain_left_edge,
-                                           self.pf.domain_right_edge)
+                                           self.ds.domain_left_edge,
+                                           self.ds.domain_right_edge)
                 regions.add_data_file(pos, data_file.file_id)
                 morton[ind:ind+pos.shape[0]] = compute_morton(
                     pos[:,0], pos[:,1], pos[:,2],
-                    data_file.pf.domain_left_edge,
-                    data_file.pf.domain_right_edge)
+                    data_file.ds.domain_left_edge,
+                    data_file.ds.domain_right_edge)
                 ind += pos.shape[0]
         return morton
 
@@ -158,10 +158,10 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
 
     def _identify_fields(self, data_file):
         fields = [(ptype, "particle_identifier")
-                  for ptype in self.pf.particle_types_raw]
+                  for ptype in self.ds.particle_types_raw]
         pcount = data_file.total_particles
         with h5py.File(data_file.filename, "r") as f:
-            for ptype in self.pf.particle_types_raw:
+            for ptype in self.ds.particle_types_raw:
                 my_fields, my_offset_fields = \
                   subfind_field_list(f[ptype], ptype, data_file.total_particles)
                 fields.extend(my_fields)

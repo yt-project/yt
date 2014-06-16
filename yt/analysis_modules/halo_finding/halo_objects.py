@@ -72,9 +72,9 @@ class Halo(object):
         self._max_dens = halo_list._max_dens
         self.id = id
         self.data = halo_list._data_source
-        self.pf = self.data.pf
-        self.gridsize = (self.pf.domain_right_edge - \
-                 self.pf.domain_left_edge)
+        self.ds = self.data.ds
+        self.gridsize = (self.ds.domain_right_edge - \
+                 self.ds.domain_left_edge)
         if indices is not None:
             self.indices = halo_list._base_indices[indices]
         else:
@@ -110,11 +110,11 @@ class Halo(object):
         pid = self.__getitem__('particle_index')
         # This is from the sphere.
         if self._name == "RockstarHalo":
-            ds = self.pf.sphere(self.CoM, self._radjust * self.max_radius)
+            ds = self.ds.sphere(self.CoM, self._radjust * self.max_radius)
         elif self._name == "LoadedHalo":
-            ds = self.pf.sphere(self.CoM, np.maximum(self._radjust * \
-	    self.pf.quan(self.max_radius, 'code_length'), \
-	    self.pf.index.get_smallest_dx()))
+            ds = self.ds.sphere(self.CoM, np.maximum(self._radjust * \
+	    self.ds.quan(self.max_radius, 'code_length'), \
+	    self.ds.index.get_smallest_dx()))
         sp_pid = ds['particle_index']
         self._ds_sort = sp_pid.argsort()
         sp_pid = sp_pid[self._ds_sort]
@@ -136,9 +136,9 @@ class Halo(object):
         pm = self["particle_mass"].in_units('Msun')
         c = {}
         # We shift into a box where the origin is the left edge
-        c[0] = self["particle_position_x"] - self.pf.domain_left_edge[0]
-        c[1] = self["particle_position_y"] - self.pf.domain_left_edge[1]
-        c[2] = self["particle_position_z"] - self.pf.domain_left_edge[2]
+        c[0] = self["particle_position_x"] - self.ds.domain_left_edge[0]
+        c[1] = self["particle_position_y"] - self.ds.domain_left_edge[1]
+        c[2] = self["particle_position_z"] - self.ds.domain_left_edge[2]
         com = []
         for i in range(3):
             # A halo is likely periodic around a boundary if the distance 
@@ -147,18 +147,18 @@ class Halo(object):
             # So skip the rest if the converse is true.
             # Note we might make a change here when periodicity-handling is
             # fully implemented.
-            if (c[i].max() - c[i].min()) < (self.pf.domain_width[i] / 2.):
+            if (c[i].max() - c[i].min()) < (self.ds.domain_width[i] / 2.):
                 com.append(c[i])
                 continue
             # Now we want to flip around only those close to the left boundary.
-            sel = (c[i] <= (self.pf.domain_width[i]/2))
-            c[i][sel] += self.pf.domain_width[i]
+            sel = (c[i] <= (self.ds.domain_width[i]/2))
+            c[i][sel] += self.ds.domain_width[i]
             com.append(c[i])
 
         c = (com * pm).sum(axis=1) / pm.sum()
-        c = self.pf.arr(c, 'code_length')
+        c = self.ds.arr(c, 'code_length')
 
-        return c%self.pf.domain_width + self.pf.domain_left_edge
+        return c%self.ds.domain_width + self.ds.domain_left_edge
 
     def maximum_density(self):
         r"""Return the HOP-identified maximum density. Not applicable to
@@ -221,7 +221,7 @@ class Halo(object):
         vx = (self["particle_velocity_x"] * pm).sum()
         vy = (self["particle_velocity_y"] * pm).sum()
         vz = (self["particle_velocity_z"] * pm).sum()
-        return self.pf.arr([vx, vy, vz], vx.units) / pm.sum()
+        return self.ds.arr([vx, vy, vz], vx.units) / pm.sum()
 
     def rms_velocity(self):
         r"""Returns the mass-weighted RMS velocity for the halo
@@ -277,7 +277,7 @@ class Halo(object):
         rx = np.abs(self["particle_position_x"] - center[0])
         ry = np.abs(self["particle_position_y"] - center[1])
         rz = np.abs(self["particle_position_z"] - center[2])
-        DW = self.data.pf.domain_right_edge - self.data.pf.domain_left_edge
+        DW = self.data.ds.domain_right_edge - self.data.ds.domain_left_edge
         r = np.sqrt(np.minimum(rx, DW[0] - rx) ** 2.0
                 + np.minimum(ry, DW[1] - ry) ** 2.0
                 + np.minimum(rz, DW[2] - rz) ** 2.0)
@@ -339,7 +339,7 @@ class Halo(object):
             handle.create_dataset("/%s/%s" % (gn, field), data=self[field])
 	handle.create_dataset("/%s/particle_mass" % gn,
 		data=self["particle_mass"].in_units('Msun'))
-        if ('io','creation_time') in self.data.pf.field_list:
+        if ('io','creation_time') in self.data.ds.field_list:
             handle.create_dataset("/%s/creation_time" % gn,
                 data=self['creation_time'])
         n = handle["/%s" % gn]
@@ -438,11 +438,11 @@ class Halo(object):
             return None
         self.bin_count = bins
         # Cosmology
-        h = self.pf.hubble_constant
-        Om_matter = self.pf.omega_matter
-        z = self.pf.current_redshift
-        period = self.pf.domain_right_edge - \
-            self.pf.domain_left_edge
+        h = self.ds.hubble_constant
+        Om_matter = self.ds.omega_matter
+        z = self.ds.current_redshift
+        period = self.ds.domain_right_edge - \
+            self.ds.domain_left_edge
         thissize = self.get_size()
         rho_crit = rho_crit_g_cm3_h2 * h ** 2.0 * Om_matter  # g cm^-3
         Msun2g = mass_sun_cgs
@@ -463,7 +463,7 @@ class Halo(object):
         # Multiply min and max to prevent issues with digitize below.
         self.radial_bins = np.logspace(math.log10(min(dist) * .99 + TINY),
             math.log10(max(dist) * 1.01 + 2 * TINY), num=self.bin_count + 1)
-        self.radial_bins = self.pf.arr(self.radial_bins,'code_length')
+        self.radial_bins = self.ds.arr(self.radial_bins,'code_length')
         # Find out which bin each particle goes into, and add the particle
         # mass to that bin.
         inds = np.digitize(dist, self.radial_bins) - 1
@@ -614,7 +614,7 @@ class RockstarHalo(Halo):
         # We won't store this field below in saved_fields because
         # that would mean keeping two copies of it, one in the yt
         # machinery and one here.
-        ds = self.pf.sphere(self.CoM, 4 * self.max_radius)
+        ds = self.ds.sphere(self.CoM, 4 * self.max_radius)
         return np.take(ds[key][self._ds_sort], self.particle_mask)
 
     def _get_particle_data(self, halo, fnames, size, field):
@@ -711,14 +711,14 @@ class parallelHOPHalo(Halo, ParallelAnalysisInterface):
             return None
         # Do this for all because all will use it.
         self.bin_count = bins
-        period = self.data.pf.domain_right_edge - \
-            self.data.pf.domain_left_edge
+        period = self.data.ds.domain_right_edge - \
+            self.data.ds.domain_left_edge
         self.mass_bins = np.zeros(self.bin_count + 1, dtype='float64')
         cen = self.center_of_mass()
         # Cosmology
-        h = self.data.pf.hubble_constant
-        Om_matter = self.data.pf.omega_matter
-        z = self.data.pf.current_redshift
+        h = self.data.ds.hubble_constant
+        Om_matter = self.data.ds.omega_matter
+        z = self.data.ds.current_redshift
         rho_crit = rho_crit_g_cm3_h2 * h ** 2.0 * Om_matter  # g cm^-3
         Msun2g = mass_sun_cgs
         rho_crit = rho_crit * ((1.0 + z) ** 3.0)
@@ -748,7 +748,7 @@ class parallelHOPHalo(Halo, ParallelAnalysisInterface):
         # Multiply min and max to prevent issues with digitize below.
         self.radial_bins = np.logspace(math.log10(dist_min * .99 + TINY),
             math.log10(dist_max * 1.01 + 2 * TINY), num=self.bin_count + 1)
-        self.radial_bins = pf.arr(self.radial_bins, 'code_length')
+        self.radial_bins = ds.arr(self.radial_bins, 'code_length')
 
         if self.indices is not None and self.indices.size > 1:
             # Find out which bin each particle goes into, and add the particle
@@ -817,14 +817,14 @@ class LoadedHalo(Halo):
     # See particle_mask
     _radjust = 1.05
 
-    def __init__(self, pf, id, size=None, CoM=None,
+    def __init__(self, ds, id, size=None, CoM=None,
         max_dens_point=None, group_total_mass=None, max_radius=None, bulk_vel=None,
         rms_vel=None, fnames=None, mag_A=None, mag_B=None, mag_C=None,
         e1_vec=None, tilt=None, supp=None):
 
-        self.pf = pf
-        self.gridsize = (self.pf.domain_right_edge - \
-            self.pf.domain_left_edge)
+        self.ds = ds
+        self.gridsize = (self.ds.domain_right_edge - \
+            self.ds.domain_left_edge)
         self.id = id
         self.size = size
         self.CoM = CoM
@@ -877,18 +877,18 @@ class LoadedHalo(Halo):
 		self._pid_sort = field_data.argsort().argsort()
 	    #convert to YTArray using the data from disk
 	    if key == 'particle_mass':
-		field_data = self.pf.arr(field_data, 'Msun')
+		field_data = self.ds.arr(field_data, 'Msun')
 	    else:
-	        field_data = self.pf.arr(field_data, 
-		    self.pf._get_field_info('unknown',key).units)
+	        field_data = self.ds.arr(field_data, 
+		    self.ds._get_field_info('unknown',key).units)
             self._saved_fields[key] = field_data
             return self._saved_fields[key]
         # We won't store this field below in saved_fields because
         # that would mean keeping two copies of it, one in the yt
         # machinery and one here.
-        ds = self.pf.sphere(self.CoM, np.maximum(self._radjust * \
-	    self.pf.quan(self.max_radius, 'code_length'), \
-	    self.pf.index.get_smallest_dx()))
+        ds = self.ds.sphere(self.CoM, np.maximum(self._radjust * \
+	    self.ds.quan(self.max_radius, 'code_length'), \
+	    self.ds.index.get_smallest_dx()))
 	# If particle_mask hasn't been called once then _ds_sort won't have
 	# the proper values set yet
         if self._particle_mask is None:
@@ -985,7 +985,7 @@ class LoadedHalo(Halo):
         >>> ell = halos[0].get_ellipsoid()
         """
         ep = self.get_ellipsoid_parameters()
-        ell = self.pf.index.ellipsoid(ep[0], ep[1], ep[2], ep[3],
+        ell = self.ds.index.ellipsoid(ep[0], ep[1], ep[2], ep[3],
             ep[4], ep[5])
         return ell
 
@@ -1016,18 +1016,18 @@ class LoadedHalo(Halo):
         """
         cen = self.center_of_mass()
         r = self.maximum_radius()
-        return self.pf.sphere(cen, r)
+        return self.ds.sphere(cen, r)
 
 class TextHalo(LoadedHalo):
-    def __init__(self, pf, id, size=None, CoM=None,
+    def __init__(self, ds, id, size=None, CoM=None,
 
         max_dens_point=None, group_total_mass=None, max_radius=None, bulk_vel=None,
         rms_vel=None, fnames=None, mag_A=None, mag_B=None, mag_C=None,
         e1_vec=None, tilt=None, supp=None):
 
-        self.pf = pf
-        self.gridsize = (self.pf.domain_right_edge - \
-            self.pf.domain_left_edge)
+        self.ds = ds
+        self.gridsize = (self.ds.domain_right_edge - \
+            self.ds.domain_left_edge)
         self.id = id
         self.size = size
         self.CoM = CoM
@@ -1273,16 +1273,16 @@ class RockstarHaloList(HaloList):
     # 4 and 8 byte values in the struct as to not overlap memory registers.
     _tocleanup = ['padding2']
 
-    def __init__(self, pf, out_list):
+    def __init__(self, ds, out_list):
         ParallelAnalysisInterface.__init__(self)
         mylog.info("Initializing Rockstar List")
         self._data_source = None
         self._groups = []
         self._max_dens = -1
-        self.pf = pf
-        self.redshift = pf.current_redshift
+        self.ds = ds
+        self.redshift = ds.current_redshift
         self.out_list = out_list
-        self._data_source = pf.h.all_data()
+        self._data_source = ds.all_data()
         mylog.info("Parsing Rockstar halo list")
         self._parse_output()
         mylog.info("Finished %s"%out_list)
@@ -1332,7 +1332,7 @@ class RockstarHaloList(HaloList):
         Read the out_*.list text file produced
         by Rockstar into memory."""
         
-        pf = self.pf
+        ds = self.ds
         # In order to read the binary data, we need to figure out which 
         # binary files belong to this output.
         basedir = os.path.dirname(self.out_list)
@@ -1342,13 +1342,13 @@ class RockstarHaloList(HaloList):
         fglob = path.join(basedir, 'halos_%d.*.bin' % n)
         files = glob.glob(fglob)
         halos = self._get_halos_binary(files)
-        #Jc = mass_sun_cgs/ pf['mpchcm'] * 1e5
+        #Jc = mass_sun_cgs/ ds['mpchcm'] * 1e5
         Jc = 1.0
-        length = 1.0 / pf['mpchcm']
+        length = 1.0 / ds['mpchcm']
         conv = dict(pos = np.array([length, length, length,
                                     1, 1, 1]), # to unitary
-                    r=1.0/pf['kpchcm'], # to unitary
-                    rs=1.0/pf['kpchcm'], # to unitary
+                    r=1.0/ds['kpchcm'], # to unitary
+                    rs=1.0/ds['kpchcm'], # to unitary
                     )
         #convert units
         for name in self._halo_dt.names:
@@ -1454,9 +1454,9 @@ class FOFHaloList(HaloList):
 class LoadedHaloList(HaloList):
     _name = "Loaded"
 
-    def __init__(self, pf, basename):
+    def __init__(self, ds, basename):
         ParallelAnalysisInterface.__init__(self)
-        self.pf = pf
+        self.ds = ds
         self._groups = []
         self.basename = basename
         self._retrieve_halos()
@@ -1486,7 +1486,7 @@ class LoadedHaloList(HaloList):
             rms_vel = float(line[14])
             if len(line) == 15:
                 # No ellipsoid information
-                self._groups.append(LoadedHalo(self.pf, halo, size = size,
+                self._groups.append(LoadedHalo(self.ds, halo, size = size,
                     CoM = CoM,
                     max_dens_point = max_dens_point,
                     group_total_mass = group_total_mass, max_radius = max_radius,
@@ -1501,7 +1501,7 @@ class LoadedHaloList(HaloList):
                 e1_vec2 = float(line[20])
                 e1_vec = np.array([e1_vec0, e1_vec1, e1_vec2])
                 tilt = float(line[21])
-                self._groups.append(LoadedHalo(self.pf, halo, size = size,
+                self._groups.append(LoadedHalo(self.ds, halo, size = size,
                     CoM = CoM,
                     max_dens_point = max_dens_point,
                     group_total_mass = group_total_mass, max_radius = max_radius,
@@ -1533,9 +1533,9 @@ class LoadedHaloList(HaloList):
 class TextHaloList(HaloList):
     _name = "Text"
 
-    def __init__(self, pf, fname, columns, comment):
+    def __init__(self, ds, fname, columns, comment):
         ParallelAnalysisInterface.__init__(self)
-        self.pf = pf
+        self.ds = ds
         self._groups = []
         self._retrieve_halos(fname, columns, comment)
 
@@ -1562,7 +1562,7 @@ class TextHaloList(HaloList):
                     if key not in base_set:
                         val = float(line[columns[key]])
                         temp_dict[key] = val
-            self._groups.append(TextHalo(self.pf, halo,
+            self._groups.append(TextHalo(self.ds, halo,
                 CoM = cen, max_radius = r, supp = temp_dict))
             halo += 1
 
@@ -1815,10 +1815,10 @@ class parallelHOPHaloList(HaloList, ParallelAnalysisInterface):
 
 
 class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
-    def __init__(self, pf, ds, dm_only=True, padding=0.0):
+    def __init__(self, ds, ds, dm_only=True, padding=0.0):
         ParallelAnalysisInterface.__init__(self)
-        self.pf = pf
-        self.index = pf.h
+        self.ds = ds
+        self.index = ds.index
         self.center = (np.array(ds.right_edge) + np.array(ds.left_edge)) / 2.0
 
     def _parse_halolist(self, threshold_adjustment):
@@ -1900,7 +1900,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         # This only does periodicity.  We do NOT want to deal with anything
         # else.  The only reason we even do periodicity is the
         LE, RE = bounds
-        dw = self.pf.domain_right_edge - self.pf.domain_left_edge
+        dw = self.ds.domain_right_edge - self.ds.domain_left_edge
         for i, ax in enumerate('xyz'):
             arr = self._data_source["particle_position_%s" % ax]
             arr[arr < LE[i] - self.padding] += dw[i]
@@ -2029,8 +2029,8 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
 
     Parameters
     ----------
-    pf : `Dataset`
-        The parameter file on which halo finding will be conducted.
+    ds : `Dataset`
+        The dataset on which halo finding will be conducted.
     threshold : float
         The density threshold used when building halos. Default = 160.0.
     dm_only : bool
@@ -2084,18 +2084,18 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
 
     Examples
     -------
-    >>> pf = load("RedshiftOutput0000")
-    >>> halos = parallelHF(pf)
+    >>> ds = load("RedshiftOutput0000")
+    >>> halos = parallelHF(ds)
     """
-    def __init__(self, pf, subvolume=None, threshold=160, dm_only=True, \
+    def __init__(self, ds, subvolume=None, threshold=160, dm_only=True, \
         resize=True, rearrange=True,\
         fancy_padding=True, safety=1.5, premerge=True, sample=0.03, \
         total_mass=None, num_particles=None, tree='F'):
         if subvolume is not None:
             ds_LE = np.array(subvolume.left_edge)
             ds_RE = np.array(subvolume.right_edge)
-        self._data_source = pf.h.all_data()
-        GenericHaloFinder.__init__(self, pf, self._data_source, dm_only,
+        self._data_source = ds.all_data()
+        GenericHaloFinder.__init__(self, ds, self._data_source, dm_only,
             padding=0.0)
         self.padding = 0.0
         self.num_neighbors = 65
@@ -2104,7 +2104,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         self.tree = tree
         if self.tree != 'F' and self.tree != 'C':
             mylog.error("No kD Tree specified!")
-        period = pf.domain_right_edge - pf.domain_left_edge
+        period = ds.domain_right_edge - ds.domain_left_edge
         topbounds = np.array([[0., 0., 0.], period])
         # Cut up the volume evenly initially, with no padding.
         padded, LE, RE, self._data_source = \
@@ -2141,7 +2141,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
         try:
             l = self._data_source.right_edge - self._data_source.left_edge
         except AttributeError:
-            l = pf.domain_right_edge - pf.domain_left_edge
+            l = ds.domain_right_edge - ds.domain_left_edge
         vol = l[0] * l[1] * l[2]
         full_vol = vol
         # We will use symmetric padding when a subvolume is being used.
@@ -2218,7 +2218,7 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                 np.zeros(3, dtype='float64'))
         # If we're using a subvolume, we now re-divide.
         if subvolume is not None:
-            self._data_source = pf.region([0.] * 3, ds_LE, ds_RE)
+            self._data_source = ds.region([0.] * 3, ds_LE, ds_RE)
             # Cut up the volume.
             padded, LE, RE, self._data_source = \
                 self.partition_index_3d(ds=self._data_source,
@@ -2353,8 +2353,8 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
 
     Parameters
     ----------
-    pf : `Dataset`
-        The parameter file on which halo finding will be conducted.
+    ds : `Dataset`
+        The dataset on which halo finding will be conducted.
     subvolume : `yt.data_objects.api.AMRData`, optional
         A region over which HOP will be run, which can be used to run HOP
         on a subvolume of the full volume. Default = None, which defaults
@@ -2383,17 +2383,17 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
 
     Examples
     --------
-    >>> pf = load("RedshiftOutput0000")
-    >>> halos = HaloFinder(pf)
+    >>> ds = load("RedshiftOutput0000")
+    >>> halos = HaloFinder(ds)
     """
-    def __init__(self, pf, subvolume=None, threshold=160, dm_only=True,
+    def __init__(self, ds, subvolume=None, threshold=160, dm_only=True,
             padding=0.02, total_mass=None):
         if subvolume is not None:
             ds_LE = np.array(subvolume.left_edge)
             ds_RE = np.array(subvolume.right_edge)
-        self.period = pf.domain_right_edge - pf.domain_left_edge
-        self._data_source = pf.h.all_data()
-        GenericHaloFinder.__init__(self, pf, self._data_source, dm_only,
+        self.period = ds.domain_right_edge - ds.domain_left_edge
+        self._data_source = ds.all_data()
+        GenericHaloFinder.__init__(self, ds, self._data_source, dm_only,
             padding)
         # do it once with no padding so the total_mass is correct
         # (no duplicated particles), and on the entire volume, even if only
@@ -2415,10 +2415,10 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         # object representing the entire domain and sum it "lazily" with
         # Derived Quantities.
         if subvolume is not None:
-            self._data_source = pf.region([0.] * 3, ds_LE, ds_RE)
+            self._data_source = ds.region([0.] * 3, ds_LE, ds_RE)
         else:
-            self._data_source = pf.h.all_data()
-        self.padding = padding  # * pf["unitary"] # This should be clevererer
+            self._data_source = ds.all_data()
+        self.padding = padding  # * ds["unitary"] # This should be clevererer
         padded, LE, RE, self._data_source = \
             self.partition_index_3d(ds=self._data_source,
             padding=self.padding)
@@ -2455,8 +2455,8 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
 
     Parameters
     ----------
-    pf : `Dataset`
-        The parameter file on which halo finding will be conducted.
+    ds : `Dataset`
+        The dataset on which halo finding will be conducted.
     subvolume : `yt.data_objects.api.AMRData`, optional
         A region over which HOP will be run, which can be used to run HOP
         on a subvolume of the full volume. Default = None, which defaults
@@ -2477,22 +2477,22 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
 
     Examples
     --------
-    >>> pf = load("RedshiftOutput0000")
-    >>> halos = FOFHaloFinder(pf)
+    >>> ds = load("RedshiftOutput0000")
+    >>> halos = FOFHaloFinder(ds)
     """
-    def __init__(self, pf, subvolume=None, link=0.2, dm_only=True,
+    def __init__(self, ds, subvolume=None, link=0.2, dm_only=True,
         padding=0.02):
         if subvolume is not None:
             ds_LE = np.array(subvolume.left_edge)
             ds_RE = np.array(subvolume.right_edge)
-        self.period = pf.domain_right_edge - pf.domain_left_edge
-        self.pf = pf
-        self.index = pf.h
-        self.redshift = pf.current_redshift
-        self._data_source = pf.h.all_data()
-        GenericHaloFinder.__init__(self, pf, self._data_source, dm_only,
+        self.period = ds.domain_right_edge - ds.domain_left_edge
+        self.ds = ds
+        self.index = ds.index
+        self.redshift = ds.current_redshift
+        self._data_source = ds.all_data()
+        GenericHaloFinder.__init__(self, ds, self._data_source, dm_only,
             padding)
-        self.padding = 0.0  # * pf["unitary"] # This should be clevererer
+        self.padding = 0.0  # * ds["unitary"] # This should be clevererer
         # get the total number of particles across all procs, with no padding
         padded, LE, RE, self._data_source = \
             self.partition_index_3d(ds=self._data_source,
@@ -2500,7 +2500,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         if link > 0.0:
             n_parts = self.comm.mpi_allreduce(self._data_source["particle_position_x"].size, op='sum')
             # get the average spacing between particles
-            #l = pf.domain_right_edge - pf.domain_left_edge
+            #l = ds.domain_right_edge - ds.domain_left_edge
             #vol = l[0] * l[1] * l[2]
             # Because we are now allowing for datasets with non 1-periodicity,
             # but symmetric, vol is always 1.
@@ -2511,10 +2511,10 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
             linking_length = np.abs(link)
         self.padding = padding
         if subvolume is not None:
-            self._data_source = pf.region([0.] * 3, ds_LE,
+            self._data_source = ds.region([0.] * 3, ds_LE,
                 ds_RE)
         else:
-            self._data_source = pf.h.all_data()
+            self._data_source = ds.all_data()
         padded, LE, RE, self._data_source = \
             self.partition_index_3d(ds=self._data_source,
             padding=self.padding)
@@ -2550,12 +2550,12 @@ class LoadHaloes(GenericHaloFinder, LoadedHaloList):
 
     Examples
     --------
-    >>> pf = load("data0005")
-    >>> halos = LoadHaloes(pf, "HopAnalysis")
+    >>> ds = load("data0005")
+    >>> halos = LoadHaloes(ds, "HopAnalysis")
     """
-    def __init__(self, pf, basename):
+    def __init__(self, ds, basename):
         self.basename = basename
-        LoadedHaloList.__init__(self, pf, self.basename)
+        LoadedHaloList.__init__(self, ds, self.basename)
 
 class LoadTextHaloes(GenericHaloFinder, TextHaloList):
     r"""Load a text file of halos.
@@ -2583,15 +2583,15 @@ class LoadTextHaloes(GenericHaloFinder, TextHaloList):
 
     Examples
     --------
-    >>> pf = load("data0005")
-    >>> halos = LoadTextHaloes(pf, "list.txt",
+    >>> ds = load("data0005")
+    >>> halos = LoadTextHaloes(ds, "list.txt",
         {'x':0, 'y':1, 'z':2, 'r':3, 'm':4},
         comment = ";")
     >>> halos[0].supp['m']
         3.28392048e14
     """
-    def __init__(self, pf, filename, columns, comment = "#"):
-        TextHaloList.__init__(self, pf, filename, columns, comment)
+    def __init__(self, ds, filename, columns, comment = "#"):
+        TextHaloList.__init__(self, ds, filename, columns, comment)
 
 LoadTextHalos = LoadTextHaloes
 
@@ -2606,10 +2606,10 @@ class LoadRockstarHalos(GenericHaloFinder, RockstarHaloList):
 
     Examples
     --------
-    >>> pf = load("data0005")
-    >>> halos = LoadRockstarHalos(pf, "other_name.out")
+    >>> ds = load("data0005")
+    >>> halos = LoadRockstarHalos(ds, "other_name.out")
     """
-    def __init__(self, pf, filename = None):
+    def __init__(self, ds, filename = None):
         if filename is None:
             filename = 'rockstar_halos/out_0.list'
-        RockstarHaloList.__init__(self, pf, filename)
+        RockstarHaloList.__init__(self, ds, filename)

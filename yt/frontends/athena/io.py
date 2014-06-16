@@ -45,7 +45,7 @@ class IOHandlerAthena(BaseIOHandler):
             grid_dims = grid.ActiveDimensions
             grid0_ncells = np.prod(grid.index.grid_dimensions[0,:])
             read_table_offset = get_read_table_offset(f)
-            for field in self.pf.field_list:
+            for field in self.ds.field_list:
                 dtype, offsetr = grid.index._field_map[field]
                 if grid_ncells != grid0_ncells:
                     offset = offsetr + ((grid_ncells-grid0_ncells) * (offsetr//grid0_ncells))
@@ -63,7 +63,7 @@ class IOHandlerAthena(BaseIOHandler):
                     v = v[1::3].reshape(grid_dims,order='F')
                 elif '_z' in field[-1]:
                     v = v[2::3].reshape(grid_dims,order='F')
-                if grid.pf.field_ordering == 1:
+                if grid.ds.field_ordering == 1:
                     data[grid.id][field] = v.T.astype("float64")
                 else:
                     data[grid.id][field] = v.astype("float64")
@@ -73,7 +73,7 @@ class IOHandlerAthena(BaseIOHandler):
     def _read_data_slice(self, grid, field, axis, coord):
         sl = [slice(None), slice(None), slice(None)]
         sl[axis] = slice(coord, coord + 1)
-        if grid.pf.field_ordering == 1:
+        if grid.ds.field_ordering == 1:
             sl.reverse()
         return self._read_data_set(grid, field)[sl]
 

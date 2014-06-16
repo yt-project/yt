@@ -9,7 +9,7 @@ different from the limited framework included in yt-2.x and is only
 backwards compatible in that output from old halo finders may be loaded.
 
 A catalog of halos can be created from any initial dataset given to halo 
-catalog through data_pf. These halos can be found using friends-of-friends,
+catalog through data_ds. These halos can be found using friends-of-friends,
 HOP, and Rockstar. The finder_method keyword dictates which halo finder to
 use. The available arguments are 'fof', 'hop', and'rockstar'. For more
 details on the relative differences between these halo finders see 
@@ -19,32 +19,32 @@ details on the relative differences between these halo finders see
 
    from yt.mods import *
    from yt.analysis_modules.halo_analysis.api import HaloCatalog
-   data_pf = load('Enzo_64/RD0006/RedshiftOutput0006')
-   hc = HaloCatalog(data_pf=data_pf, finder_method='hop')
+   data_ds = load('Enzo_64/RD0006/RedshiftOutput0006')
+   hc = HaloCatalog(data_ds=data_ds, finder_method='hop')
 
 A halo catalog may also be created from already run rockstar outputs. 
 This method is not implemented for previously run friends-of-friends or 
 HOP finders. Even though rockstar creates one file per processor, 
 specifying any one file allows the full catalog to be loaded. Here we 
 only specify the file output by the processor with ID 0. Note that the 
-argument for supplying a rockstar output is `halos_pf`, not `data_pf`.
+argument for supplying a rockstar output is `halos_ds`, not `data_ds`.
 
 .. code-block:: python
 
-   halos_pf = load(path+'rockstar_halos/halos_0.0.bin')
-   hc = HaloCatalog(halos_pf=halos_pf)
+   halos_ds = load(path+'rockstar_halos/halos_0.0.bin')
+   hc = HaloCatalog(halos_ds=halos_ds)
 
 Although supplying only the binary output of the rockstar halo finder 
 is sufficient for creating a halo catalog, it is not possible to find 
 any new information about the identified halos. To associate the halos 
 with the dataset from which they were found, supply arguments to both 
-halos_pf and data_pf.
+halos_ds and data_ds.
 
 .. code-block:: python
 
-   halos_pf = load(path+'rockstar_halos/halos_0.0.bin')
-   data_pf = load('Enzo_64/RD0006/RedshiftOutput0006')
-   hc = HaloCatalog(data_pf=data_pf, halos_pf=halos_pf)
+   halos_ds = load(path+'rockstar_halos/halos_0.0.bin')
+   data_ds = load('Enzo_64/RD0006/RedshiftOutput0006')
+   hc = HaloCatalog(data_ds=data_ds, halos_ds=halos_ds)
 
 A data container can also be supplied via keyword data_source, 
 associated with either dataset, to control the spatial region in 
@@ -215,8 +215,8 @@ with a load_profiles callback and a call to HaloCatalog.load.
 
 .. code-block:: python
 
-   hpf = load(path+"halo_catalogs/catalog_0046/catalog_0046.0.h5")
-   hc = HaloCatalog(halos_pf=hpf,
+   hds = load(path+"halo_catalogs/catalog_0046/catalog_0046.0.h5")
+   hc = HaloCatalog(halos_ds=hds,
                     output_dir="halo_catalogs/catalog_0046")
    hc.add_callback("load_profiles", output_dir="profiles",
                    filename="virial_profiles")

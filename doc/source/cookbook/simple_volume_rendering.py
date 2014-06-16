@@ -1,11 +1,11 @@
 from yt.mods import *
 
 # Load the dataset.
-pf = load("Enzo_64/DD0043/data0043")
+ds = load("Enzo_64/DD0043/data0043")
 
 # Create a data container (like a sphere or region) that
 # represents the entire domain.
-dd = pf.h.all_data()
+dd = ds.all_data()
 
 # Get the minimum and maximum densities.
 mi, ma = dd.quantities["Extrema"]("density")[0]
@@ -37,11 +37,11 @@ Npixels = 512
 # Create a camera object.
 # This object creates the images and
 # can be moved and rotated.
-cam = pf.h.camera(c, L, W, Npixels, tf)
+cam = ds.camera(c, L, W, Npixels, tf)
 
 # Create a snapshot.
 # The return value of this function could also be accepted, modified (or saved
 # for later manipulation) and then put written out using write_bitmap.
 # clip_ratio applies a maximum to the function, which is set to that value
 # times the .std() of the array.
-cam.snapshot("%s_volume_rendered.png" % pf, clip_ratio=8.0)
+cam.snapshot("%s_volume_rendered.png" % ds, clip_ratio=8.0)

@@ -19,18 +19,18 @@ from yt.data_objects.profiles import BinnedProfile1D
 from yt.funcs import *
 
 class StandardRadialAnalysis(object):
-    def __init__(self, pf, center, radius, n_bins = 128, inner_radius = None):
+    def __init__(self, ds, center, radius, n_bins = 128, inner_radius = None):
         raise NotImplementedError  # see TODO
-        self.pf = pf
+        self.ds = ds
         # We actually don't want to replicate the handling of setting the
         # center here, so we will pass it to the sphere creator.
         # Note also that the sphere can handle (val, unit) for radius, so we
         # will grab that from the sphere as well
-        self.obj = pf.sphere(center, radius)
+        self.obj = ds.sphere(center, radius)
         if inner_radius is None:
-            inner_radius = pf.index.get_smallest_dx() * pf['cm']
+            inner_radius = ds.index.get_smallest_dx() * ds['cm']
         self.inner_radius = inner_radius
-        self.outer_radius = self.obj.radius * pf['cm']
+        self.outer_radius = self.obj.radius * ds['cm']
         self.n_bins = n_bins
 
     def setup_field_parameters(self):
@@ -51,7 +51,7 @@ class StandardRadialAnalysis(object):
             else:
                 field, weight = fspec, "CellMassMsun"
             by_weights[weight].append(field)
-        known_fields = set(self.pf.field_list + self.pf.derived_field_list)
+        known_fields = set(self.ds.field_list + self.ds.derived_field_list)
         for weight, fields in by_weights.items():
             fields = set(fields)
             fields.intersection_update(known_fields)
@@ -60,7 +60,7 @@ class StandardRadialAnalysis(object):
 
     def plot_everything(self, dirname = None):
         if not dirname:
-            dirname = "%s_profile_plots/" % (self.pf)
+            dirname = "%s_profile_plots/" % (self.ds)
         if not os.path.isdir(dirname):
             os.makedirs(dirname)
         import matplotlib; matplotlib.use("Agg")

@@ -36,10 +36,10 @@ of any data two-dimensional data object:
    
    import pylab as P
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
-   c = pf.h.find_max('density')[1]
-   proj = pf.proj('density', 0)
+   c = ds.find_max('density')[1]
+   proj = ds.proj('density', 0)
 
    width = (10, 'kpc') # we want a 1.5 mpc view
    res = [1000, 1000] # create an image with 1000x1000 pixels
@@ -64,16 +64,16 @@ matplotlib can be found in the cookbook.
 Line Plots
 ----------
 
-This is perhaps the simplest thing to do. ``yt`` provides a number of one dimensional objects, and these return a 1-D numpy array of their contents with direct dictionary access. As a simple example, take a :class:`~yt.data_objects.data_containers.AMROrthoRayBase` object, which can be created from a index by calling ``pf.ortho_ray(axis, center)``. 
+This is perhaps the simplest thing to do. ``yt`` provides a number of one dimensional objects, and these return a 1-D numpy array of their contents with direct dictionary access. As a simple example, take a :class:`~yt.data_objects.data_containers.AMROrthoRayBase` object, which can be created from a index by calling ``ds.ortho_ray(axis, center)``. 
 
 .. python-script::
 
    from yt.mods import *
    import pylab as P
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   c = pf.h.find_max("density")[1]
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   c = ds.find_max("density")[1]
    ax = 0 # take a line cut along the x axis
-   ray = pf.ortho_ray(ax, (c[1], c[2])) # cutting through the y0,z0 such that we hit the max density
+   ray = ds.ortho_ray(ax, (c[1], c[2])) # cutting through the y0,z0 such that we hit the max density
 
    P.subplot(211)
    P.semilogy(np.array(ray['x']), np.array(ray['density']))

@@ -82,11 +82,11 @@ class LightCone(CosmologySplice):
         datasets for time series.
         Default: True.
     find_outputs : bool
-        Whether or not to search for parameter files in the current 
+        Whether or not to search for datasets in the current 
         directory.
         Default: False.
     set_parameters : dict
-        Dictionary of parameters to attach to pf.parameters.
+        Dictionary of parameters to attach to ds.parameters.
         Default: None.
     output_dir : string
         The directory in which images and data files will be written.
@@ -525,7 +525,7 @@ class LightCone(CosmologySplice):
         # Get rid of old halo mask, if one was there.
         self.halo_mask = []
 
-        # Clean pf objects out of light cone solution.
+        # Clean ds objects out of light cone solution.
         for my_slice in self.light_cone_solution:
             if my_slice.has_key('object'):
                 del my_slice['object']

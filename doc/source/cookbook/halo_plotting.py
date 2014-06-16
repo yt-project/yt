@@ -4,13 +4,13 @@ on an image.  For more information, see :ref:`halo_finding`.
 """
 from yt.mods import * # set up our namespace
 
-data_pf = load("Enzo_64/RD0006/RedshiftOutput0006")
+data_ds = load("Enzo_64/RD0006/RedshiftOutput0006")
 
-halo_pf = load('rockstar_halos/halos_0.0.bin')
+halo_ds = load('rockstar_halos/halos_0.0.bin')
 
-hc - HaloCatalog(halos_pf = halo_pf)
+hc - HaloCatalog(halos_ds = halo_ds)
 hc.load()
 
-p = ProjectionPlot(pf, "x", "density")
+p = ProjectionPlot(ds, "x", "density")
 p.annotate_halos(hc)
 p.save()

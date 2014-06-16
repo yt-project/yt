@@ -51,12 +51,12 @@ class BinnedProfile(ParallelAnalysisInterface):
     def __init__(self, data_source):
         ParallelAnalysisInterface.__init__(self)
         self._data_source = data_source
-        self.pf = data_source.pf
+        self.ds = data_source.ds
         self.field_data = YTFieldData()
 
     @property
     def index(self):
-        return self.pf.index
+        return self.ds.index
 
     def _get_dependencies(self, fields):
         return ParallelAnalysisInterface._get_dependencies(
@@ -756,7 +756,7 @@ class ProfileFieldAccumulator(object):
 class ProfileND(ParallelAnalysisInterface):
     def __init__(self, data_source, weight_field = None):
         self.data_source = data_source
-        self.pf = data_source.pf
+        self.ds = data_source.ds
         self.field_data = YTFieldData()
         self.weight_field = weight_field
         self.field_units = {}
@@ -784,12 +784,12 @@ class ProfileND(ParallelAnalysisInterface):
         """
         if field in self.field_units:
             self.field_units[field] = \
-                Unit(new_unit, registry=self.pf.unit_registry)
+                Unit(new_unit, registry=self.ds.unit_registry)
         else:
             fd = self.field_map[field]
             if fd in self.field_units:
                 self.field_units[fd] = \
-                    Unit(new_unit, registry=self.pf.unit_registry)
+                    Unit(new_unit, registry=self.ds.unit_registry)
             else:
                 raise KeyError("%s not in profile!" % (field))
 
@@ -1114,8 +1114,8 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     Create a 1d profile.  Access bin field from profile.x and field
     data from profile.field_data.
 
-    >>> pf = load("DD0046/DD0046")
-    >>> ad = pf.h.all_data()
+    >>> ds = load("DD0046/DD0046")
+    >>> ad = ds.all_data()
     >>> extrema = {"density": (1.0e-30, 1.0e-25)}
     >>> profile = create_profile(ad, ["density"], extrema=extrema,
     ...                          fields=["temperature", "velocity_x"]))
@@ -1142,7 +1142,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     if not iterable(accumulation):
         accumulation = [accumulation] * len(bin_fields)
     if logs is None:
-        logs = [data_source.pf._get_field_info(f[0],f[1]).take_log
+        logs = [data_source.ds._get_field_info(f[0],f[1]).take_log
                 for f in bin_fields]
     else:
         logs = [logs[bin_field[-1]] for bin_field in bin_fields]
@@ -1152,17 +1152,17 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     else:
         ex = []
         for bin_field in bin_fields:
-            bf_units = data_source.pf._get_field_info(bin_field[0],
+            bf_units = data_source.ds._get_field_info(bin_field[0],
                                                       bin_field[1]).units
             try:
                 field_ex = list(extrema[bin_field[-1]])
             except KeyError:
                 field_ex = list(extrema[bin_field])
             if iterable(field_ex[0]):
-                field_ex[0] = data_source.pf.quan(field_ex[0][0], field_ex[0][1])
+                field_ex[0] = data_source.ds.quan(field_ex[0][0], field_ex[0][1])
                 field_ex[0] = field_ex[0].in_units(bf_units)
             if iterable(field_ex[1]):
-                field_ex[1] = data_source.pf.quan(field_ex[1][0], field_ex[1][1])
+                field_ex[1] = data_source.ds.quan(field_ex[1][0], field_ex[1][1])
                 field_ex[1] = field_ex[1].in_units(bf_units)
             ex.append(field_ex)
     args = [data_source]

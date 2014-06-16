@@ -137,7 +137,7 @@ class CosmologySplice(object):
 
                 # For first data dump, choose closest to desired redshift.
                 if (len(cosmology_splice) == 0):
-                    # Sort data outputs by proximity to current redsfhit.
+                    # Sort data outputs by proximity to current redshift.
                     self.splice_outputs.sort(key=lambda obj:np.fabs(z - \
                         obj['redshift']))
                     cosmology_splice.append(self.splice_outputs[0])
@@ -230,7 +230,7 @@ class CosmologySplice(object):
             ensure continuity of the splice.  Default: 3.
         filename : string
             If provided, a file will be written with the redshift outputs in
-            the form in which they should be given in the enzo parameter file.
+            the form in which they should be given in the enzo dataset.
             Default: None.
         start_index : int
             The index of the first redshift output.  Default: 0.

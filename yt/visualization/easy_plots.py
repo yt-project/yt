@@ -58,4 +58,4 @@ class EasyPDFPlot(EasyPlot):
         else: f = self.axes.plot
         self.plot = f(self.profile[x_field], self.profile["CellMassMsun"],
                       **plot_args)
-        self.axes.set_xlabel(data_source.pf.field_info[x_field].get_label())
+        self.axes.set_xlabel(data_source.ds.field_info[x_field].get_label())

@@ -26,10 +26,10 @@ class IOHandlerChomboHDF5(BaseIOHandler):
     _offset_string = 'data:offsets=0'
     _data_string = 'data:datatype=0'
 
-    def __init__(self, pf, *args, **kwargs):
-        BaseIOHandler.__init__(self, pf, *args, **kwargs)
-        self.pf = pf
-        self._handle = pf._handle
+    def __init__(self, ds, *args, **kwargs):
+        BaseIOHandler.__init__(self, ds, *args, **kwargs)
+        self.ds = ds
+        self._handle = ds._handle
 
     _field_dict = None
     @property
@@ -160,8 +160,8 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         offsets = np.array(offsets, dtype=np.int64)
 
         # convert between the global grid id and the id on this level            
-        grid_levels = np.array([g.Level for g in self.pf.index.grids])
-        grid_ids    = np.array([g.id    for g in self.pf.index.grids])
+        grid_levels = np.array([g.Level for g in self.ds.index.grids])
+        grid_ids    = np.array([g.id    for g in self.ds.index.grids])
         grid_level_offset = grid_ids[np.where(grid_levels == grid.Level)[0][0]]
         lo = grid.id - grid_level_offset
         hi = lo + 1
@@ -178,20 +178,20 @@ class IOHandlerChombo2DHDF5(IOHandlerChomboHDF5):
     _offset_string = 'data:offsets=0'
     _data_string = 'data:datatype=0'
 
-    def __init__(self, pf, *args, **kwargs):
-        BaseIOHandler.__init__(self, pf, *args, **kwargs)
-        self.pf = pf
-        self._handle = pf._handle
+    def __init__(self, ds, *args, **kwargs):
+        BaseIOHandler.__init__(self, ds, *args, **kwargs)
+        self.ds = ds
+        self._handle = ds._handle
 
 class IOHandlerChombo1DHDF5(IOHandlerChomboHDF5):
     _dataset_type = "chombo1d_hdf5"
     _offset_string = 'data:offsets=0'
     _data_string = 'data:datatype=0'
 
-    def __init__(self, pf, *args, **kwargs):
-        BaseIOHandler.__init__(self, pf, *args, **kwargs)
-        self.pf = pf
-        self._handle = pf._handle   
+    def __init__(self, ds, *args, **kwargs):
+        BaseIOHandler.__init__(self, ds, *args, **kwargs)
+        self.ds = ds
+        self._handle = ds._handle   
 
 class IOHandlerOrion2HDF5(IOHandlerChomboHDF5):
     _dataset_type = "orion_chombo_native"
@@ -202,7 +202,7 @@ class IOHandlerOrion2HDF5(IOHandlerChomboHDF5):
              
         """
 
-        fn = grid.pf.fullplotdir[:-4] + "sink"
+        fn = grid.ds.fullplotdir[:-4] + "sink"
 
         # Figure out the format of the particle file
         with open(fn, 'r') as f:
@@ -253,7 +253,7 @@ class IOHandlerOrion2HDF5(IOHandlerChomboHDF5):
         def read(line, field):
             return float(line.strip().split(' ')[index[field]])
 
-        fn = grid.pf.fullplotdir[:-4] + "sink"
+        fn = grid.ds.fullplotdir[:-4] + "sink"
         with open(fn, 'r') as f:
             lines = f.readlines()
             particles = []

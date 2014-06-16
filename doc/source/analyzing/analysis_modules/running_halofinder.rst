@@ -57,8 +57,8 @@ Running HOP on a dataset is straightforward
 
   from yt.mods import *
   from yt.analysis_modules.halo_finding.api import *
-  pf = load("data0001")
-  halo_list = HaloFinder(pf)
+  ds = load("data0001")
+  halo_list = HaloFinder(ds)
 
 Running FoF is similar:
 
@@ -66,8 +66,8 @@ Running FoF is similar:
 
   from yt.mods import *
   from yt.analysis_modules.halo_finding.api import *
-  pf = load("data0001")
-  halo_list = FOFHaloFinder(pf)
+  ds = load("data0001")
+  halo_list = FOFHaloFinder(ds)
 
 Halo Data Access
 ----------------
@@ -172,8 +172,8 @@ simple with the ``.dump()`` function:
 
   from yt.mods import *
   from yt.analysis_modules.halo_finding.api import *
-  pf = load("data0001")
-  haloes = HaloFinder(pf)
+  ds = load("data0001")
+  haloes = HaloFinder(ds)
   haloes.dump("basename")
 
 It is easy to load the halos using the ``LoadHaloes`` class:
@@ -182,8 +182,8 @@ It is easy to load the halos using the ``LoadHaloes`` class:
 
   from yt.mods import *
   from yt.analysis_modules.halo_finding.api import *
-  pf = load("data0001")
-  haloes = LoadHaloes(pf, "basename")
+  ds = load("data0001")
+  haloes = LoadHaloes(ds, "basename")
 
 Everything that can be done with ``haloes`` in the first example should be
 possible with ``haloes`` in the second.
@@ -229,10 +229,10 @@ To run with parallel halo finding, there is a slight modification to the script
 
   from yt.mods import *
   from yt.analysis_modules.halo_finding.api import *
-  pf = load("data0001")
-  halo_list = HaloFinder(pf,padding=0.02)
+  ds = load("data0001")
+  halo_list = HaloFinder(ds,padding=0.02)
   # --or--
-  halo_list = FOFHaloFinder(pf,padding=0.02)
+  halo_list = FOFHaloFinder(ds,padding=0.02)
 
 The ``padding`` parameter is in simulation units and defaults to 0.02. This parameter is how much padding
 is added to each of the six sides of a subregion. This value should be 2x-3x larger than the largest
@@ -343,8 +343,8 @@ slower than normal HOP.
 
   from yt.mods import *
   from yt.analysis_modules.halo_finding.api import *
-  pf = load("data0001")
-  halo_list = parallelHF(pf)
+  ds = load("data0001")
+  halo_list = parallelHF(ds)
 
 Parallel HOP has these user-set options:
 
@@ -421,8 +421,8 @@ to ``parts.txt``.
 
   from yt.mods import *
   from yt.analysis_modules.halo_finding.api import *
-  pf = load("data0001")
-  halo_list = parallelHF(pf, threshold=80.0, dm_only=True, resize=False, 
+  ds = load("data0001")
+  halo_list = parallelHF(ds, threshold=80.0, dm_only=True, resize=False, 
   rearrange=True, safety=1.5, premerge=True)
   halo_list.write_out("ParallelHopAnalysis.out")
   halo_list.write_particle_list("parts")
@@ -445,11 +445,11 @@ Below is a simple example for HOP; the other halo finders use the same
 
   from yt.mods import *
   from yt.analysis_modules.halo_finding.api import *
-  pf = load('data0458')
+  ds = load('data0458')
   # Note that the first term below, [0.5]*3, defines the center of
   # the region and is not used. It can be any value.
-  sv = pf.region([0.5]*3, [0.21, .21, .72], [.28, .28, .79])
-  halos = HaloFinder(pf, subvolume = sv)
+  sv = ds.region([0.5]*3, [0.21, .21, .72], [.28, .28, .79])
+  halos = HaloFinder(ds, subvolume = sv)
   halos.write_out("sv.out")
 
 
@@ -522,7 +522,7 @@ The RockstarHaloFinder class has these options:
     the width of the smallest grid element in the simulation from the
     last data snapshot (i.e. the one where time has evolved the
     longest) in the time series:
-    ``pf_last.index.get_smallest_dx() * pf_last['mpch']``.
+    ``ds_last.index.get_smallest_dx() * ds_last['mpch']``.
   * ``total_particles``, if supplied, this is a pre-calculated
     total number of dark matter
     particles present in the simulation. For example, this is useful
@@ -544,21 +544,21 @@ Rockstar dumps halo information in a series of text (halo*list and
 out*list) and binary (halo*bin) files inside the ``outbase`` directory. 
 We use the halo list classes to recover the information. 
 
-Inside the ``outbase`` directory there is a text file named ``pfs.txt``
-that records the connection between pf names and the Rockstar file names.
+Inside the ``outbase`` directory there is a text file named ``datasets.txt``
+that records the connection between ds names and the Rockstar file names.
 
 The halo list can be automatically generated from the RockstarHaloFinder 
 object by calling ``RockstarHaloFinder.halo_list()``. Alternatively, the halo
 lists can be built from the RockstarHaloList class directly 
-``LoadRockstarHalos(pf,'outbase/out_0.list')``.
+``LoadRockstarHalos(ds,'outbase/out_0.list')``.
 
 .. code-block:: python
     
-    rh = RockstarHaloFinder(pf)
+    rh = RockstarHaloFinder(ds)
     #First method of creating the halo lists:
     halo_list = rh.halo_list()    
     #Alternate method of creating halo_list:
-    halo_list = LoadRockstarHalos(pf, 'rockstar_halos/out_0.list')
+    halo_list = LoadRockstarHalos(ds, 'rockstar_halos/out_0.list')
 
 The above ``halo_list`` is very similar to any other list of halos loaded off
 disk.
@@ -624,18 +624,18 @@ Here is an example ``user_script.py``:
     
     def main():
         import enzo
-        pf = EnzoDatasetInMemory()
+        ds = EnzoDatasetInMemory()
         mine = ytcfg.getint('yt','__topcomm_parallel_rank')
         size = ytcfg.getint('yt','__topcomm_parallel_size')
 
         # Call rockstar.
-        ts = DatasetSeries([pf])
-        outbase = "./rockstar_halos_%04d" % pf['NumberOfPythonTopGridCalls']
+        ts = DatasetSeries([ds])
+        outbase = "./rockstar_halos_%04d" % ds['NumberOfPythonTopGridCalls']
         rh = RockstarHaloFinder(ts, num_readers = size,
             outbase = outbase)
         rh.run()
     
         # Load the halos off disk.
         fname = outbase + "/out_0.list"
-        rhalos = LoadRockstarHalos(pf, fname)
+        rhalos = LoadRockstarHalos(ds, fname)
 

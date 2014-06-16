@@ -171,12 +171,12 @@ cdef import from "config_vars.h":
 
 cdef class RockstarGroupiesInterface:
     
-    cdef public object pf
+    cdef public object ds
     cdef public object fof
 
     # For future use/consistency
-    def __cinit__(self,pf):
-        self.pf = pf
+    def __cinit__(self,ds):
+        self.ds = ds
 
     def setup_rockstar(self,
                         particle_mass,
@@ -200,13 +200,13 @@ cdef class RockstarGroupiesInterface:
         OUTPUT_FORMAT = "ASCII"
         MIN_HALO_OUTPUT_SIZE=min_halo_size
         
-        pf = self.pf
+        ds = self.ds
 
-        h0 = pf.hubble_constant
-        Ol = pf.omega_lambda
-        Om = pf.omega_matter
+        h0 = ds.hubble_constant
+        Ol = ds.omega_lambda
+        Om = ds.omega_matter
         
-        SCALE_NOW = 1.0/(pf.current_redshift+1.0)
+        SCALE_NOW = 1.0/(ds.current_redshift+1.0)
         
         if not outbase =='None'.decode('UTF-8'):
             #output directory. since we can't change the output filenames
@@ -216,7 +216,7 @@ cdef class RockstarGroupiesInterface:
 
         PARTICLE_MASS = particle_mass.in_units('Msun/h')
         PERIODIC = periodic
-        BOX_SIZE = pf.domain_width.in_units('Mpccm/h')[0]
+        BOX_SIZE = ds.domain_width.in_units('Mpccm/h')[0]
 
         # Set up the configuration options
         setup_config()

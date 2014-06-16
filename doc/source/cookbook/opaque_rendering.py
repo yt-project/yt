@@ -9,12 +9,12 @@
 
 from yt.mods import *
 
-pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
 # We start by building a transfer function, and initializing a camera.
 
 tf = ColorTransferFunction((-30, -22))
-cam = pf.h.camera([0.5, 0.5, 0.5], [0.2, 0.3, 0.4], 0.10, 256, tf)
+cam = ds.camera([0.5, 0.5, 0.5], [0.2, 0.3, 0.4], 0.10, 256, tf)
 
 # Now let's add some isocontours, and take a snapshot.
 

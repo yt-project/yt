@@ -370,7 +370,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
 
     Calls to this function can be nested.
 
-    This should not be used to iterate over parameter files --
+    This should not be used to iterate over datasets --
     :class:`~yt.data_objects.time_series.DatasetSeries` provides a much nicer
     interface for that.
 
@@ -383,7 +383,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
         each available processor.
     storage : dict
         This is a dictionary, which will be filled with results during the
-        course of the iteration.  The keys will be the parameter file
+        course of the iteration.  The keys will be the dataset
         indices and the values will be whatever is assigned to the *result*
         attribute on the storage during iteration.
     barrier : bool
@@ -401,7 +401,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
     slice plots centered at each.
 
     >>> for c in parallel_objects(centers):
-    ...     SlicePlot(pf, "x", "Density", center = c).save()
+    ...     SlicePlot(ds, "x", "Density", center = c).save()
     ...
 
     Here's an example of calculating the angular momentum vector of a set of
@@ -410,7 +410,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
 
     >>> storage = {}
     >>> for sto, c in parallel_objects(centers, njobs=4, storage=storage):
-    ...     sp = pf.sphere(c, (100, "kpc"))
+    ...     sp = ds.sphere(c, (100, "kpc"))
     ...     sto.result = sp.quantities["AngularMomentumVector"]()
     ...
     >>> for sphere_id, L in sorted(storage.items()):
@@ -1045,11 +1045,11 @@ class ParallelAnalysisInterface(object):
 
     def get_dependencies(self, fields):
         deps = []
-        fi = self.pf.field_info
+        fi = self.ds.field_info
         for field in fields:
             if any(getattr(v,"ghost_zones", 0) > 0 for v in
                    fi[field].validators): continue
-            deps += ensure_list(fi[field].get_dependencies(pf=self.pf).requested)
+            deps += ensure_list(fi[field].get_dependencies(ds=self.ds).requested)
         return list(set(deps))
 
     def _initialize_parallel(self):
@@ -1064,15 +1064,15 @@ class ParallelAnalysisInterface(object):
            return False, self.index.grid_collection(self.center,
                                                         self.index.grids)
 
-        xax = self.pf.coordinates.x_axis[axis]
-        yax = self.pf.coordinates.y_axis[axis]
+        xax = self.ds.coordinates.x_axis[axis]
+        yax = self.ds.coordinates.y_axis[axis]
         cc = MPI.Compute_dims(self.comm.size, 2)
         mi = self.comm.rank
         cx, cy = np.unravel_index(mi, cc)
         x = np.mgrid[0:1:(cc[0]+1)*1j][cx:cx+2]
         y = np.mgrid[0:1:(cc[1]+1)*1j][cy:cy+2]
 
-        DLE, DRE = self.pf.domain_left_edge.copy(), self.pf.domain_right_edge.copy()
+        DLE, DRE = self.ds.domain_left_edge.copy(), self.ds.domain_right_edge.copy()
         LE = np.ones(3, dtype='float64') * DLE
         RE = np.ones(3, dtype='float64') * DRE
         LE[xax] = x[0] * (DRE[xax]-DLE[xax]) + DLE[xax]
@@ -1088,8 +1088,8 @@ class ParallelAnalysisInterface(object):
         LE, RE = np.array(ds.left_edge), np.array(ds.right_edge)
         # We need to establish if we're looking at a subvolume, in which case
         # we *do* want to pad things.
-        if (LE == self.pf.domain_left_edge).all() and \
-                (RE == self.pf.domain_right_edge).all():
+        if (LE == self.ds.domain_left_edge).all() and \
+                (RE == self.ds.domain_right_edge).all():
             subvol = False
         else:
             subvol = True
@@ -1103,7 +1103,7 @@ class ParallelAnalysisInterface(object):
             # this processor is assigned.
             # The only way I really know how to do this is to get the level-0
             # grid that belongs to this processor.
-            grids = self.pf.h.select_grids(0)
+            grids = self.ds.index.select_grids(0)
             root_grids = [g for g in grids
                           if g.proc_num == self.comm.rank]
             if len(root_grids) != 1: raise RuntimeError

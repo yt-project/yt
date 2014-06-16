@@ -50,7 +50,7 @@ class RadialColumnDensity(ParallelAnalysisInterface):
     
     Parameters
     ----------
-    pf : `Dataset`
+    ds : `Dataset`
         The dataset to operate on.
     field : string
         The name of the basis field over which to
@@ -86,15 +86,15 @@ class RadialColumnDensity(ParallelAnalysisInterface):
     Examples
     --------
     
-    >>> rcdnumdens = RadialColumnDensity(pf, 'NumberDensity', [0.5, 0.5, 0.5])
+    >>> rcdnumdens = RadialColumnDensity(ds, 'NumberDensity', [0.5, 0.5, 0.5])
     >>> def _RCDNumberDensity(field, data, rcd = rcdnumdens):
             return rcd._build_derived_field(data)
     >>> add_field('RCDNumberDensity', _RCDNumberDensity, units=r'1/\rm{cm}^2')
     """
-    def __init__(self, pf, field, center, max_radius = 0.5, steps = 10,
+    def __init__(self, ds, field, center, max_radius = 0.5, steps = 10,
             base='lin', Nside = 32, ang_divs = 800j):
         ParallelAnalysisInterface.__init__(self)
-        self.pf = pf
+        self.ds = ds
         self.center = np.asarray(center)
         self.max_radius = max_radius
         self.steps = steps
@@ -109,7 +109,7 @@ class RadialColumnDensity(ParallelAnalysisInterface):
         self.dtheta = self.theta1d[1] - self.theta1d[0]
         self.pixi = au.arr_ang2pix_nest(Nside, self.theta.ravel(), self.
             phi.ravel())
-        self.dw = pf.domain_right_edge - pf.domain_left_edge
+        self.dw = ds.domain_right_edge - ds.domain_left_edge
         # Here's where we actually do stuff.
         self._fix_max_radius()
         self._make_bins()
@@ -123,8 +123,8 @@ class RadialColumnDensity(ParallelAnalysisInterface):
         # It may be possible to fix this in
         # the future, and allow these calculations in the whole volume,
         # but this will work for now.
-        right = self.pf.domain_right_edge - self.center
-        left = self.center - self.pf.domain_left_edge
+        right = self.ds.domain_right_edge - self.center
+        left = self.center - self.ds.domain_left_edge
         min_r = np.min(right)
         min_l = np.min(left)
         self.max_radius = np.min([self.max_radius, min_r, min_l])
@@ -134,10 +134,10 @@ class RadialColumnDensity(ParallelAnalysisInterface):
         # specified radius. Column density inside the same cell as our 
         # center is kind of ill-defined, anyway.
         if self.base == 'lin':
-            self.bins = np.linspace(self.pf.index.get_smallest_dx(), self.max_radius,
+            self.bins = np.linspace(self.ds.index.get_smallest_dx(), self.max_radius,
                 self.steps)
         elif self.base == 'log':
-            self.bins = np.logspace(np.log10(self.pf.index.get_smallest_dx()),
+            self.bins = np.logspace(np.log10(self.ds.index.get_smallest_dx()),
                 np.log10(self.max_radius), self.steps)
     
     def _build_surfaces(self, field):
@@ -145,9 +145,9 @@ class RadialColumnDensity(ParallelAnalysisInterface):
         self.surfaces = {}
         for i, radius in enumerate(self.bins):
             cam = camera.HEALpixCamera(self.center, radius, self.Nside,
-                pf = self.pf, log_fields = [False], fields = field)
+                ds = self.ds, log_fields = [False], fields = field)
             bitmap = cam.snapshot()
-            self.surfaces[i] = radius * self.pf['cm'] * \
+            self.surfaces[i] = radius * self.ds['cm'] * \
                 bitmap[:,0,0][self.pixi].reshape((self.real_ang_divs,self.real_ang_divs))
             self.surfaces[i] = self.comm.mpi_allreduce(self.surfaces[i], op='max')
 

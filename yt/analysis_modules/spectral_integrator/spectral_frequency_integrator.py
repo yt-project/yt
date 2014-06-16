@@ -183,8 +183,8 @@ def add_xray_emissivity_field(e_min, e_max, filename=None,
     >>> from yt.mods import *
     >>> from yt.analysis_modules.spectral_integrator.api import *
     >>> add_xray_emissivity_field(0.5, 2)
-    >>> pf = load(dataset)
-    >>> p = ProjectionPlot(pf, 'x', "Xray_Emissivity_0.5_2keV")
+    >>> ds = load(dataset)
+    >>> p = ProjectionPlot(ds, 'x', "Xray_Emissivity_0.5_2keV")
     >>> p.save()
 
     """
@@ -256,8 +256,8 @@ def add_xray_luminosity_field(e_min, e_max, filename=None,
     >>> from yt.mods import *
     >>> from yt.analysis_modules.spectral_integrator.api import *
     >>> add_xray_luminosity_field(0.5, 2)
-    >>> pf = load(dataset)
-    >>> sp = pf.sphere('max', (2., 'mpc'))
+    >>> ds = load(dataset)
+    >>> sp = ds.sphere('max', (2., 'mpc'))
     >>> print sp.quantities['TotalQuantity']('Xray_Luminosity_0.5_2keV')
     
     """
@@ -313,8 +313,8 @@ def add_xray_photon_emissivity_field(e_min, e_max, filename=None,
     >>> from yt.mods import *
     >>> from yt.analysis_modules.spectral_integrator.api import *
     >>> add_xray_emissivity_field(0.5, 2)
-    >>> pf = load(dataset)
-    >>> p = ProjectionPlot(pf, 'x', "Xray_Emissivity_0.5_2keV")
+    >>> ds = load(dataset)
+    >>> p = ProjectionPlot(ds, 'x', "Xray_Emissivity_0.5_2keV")
     >>> p.save()
 
     """

@@ -395,8 +395,8 @@ skipped.
    def find_min_temp_dist(sphere):
        old = sphere.center
        ma, mini, mx, my, mz, mg = sphere.quantities['MinLocation']('temperature')
-       d = sphere.pf['kpc'] * periodic_dist(old, [mx, my, mz],
-           sphere.pf.domain_right_edge - sphere.pf.domain_left_edge)
+       d = sphere.ds['kpc'] * periodic_dist(old, [mx, my, mz],
+           sphere.ds.domain_right_edge - sphere.ds.domain_left_edge)
        # If new center farther than 5 kpc away, don't recenter
        if d > 5.: return [-1, -1, -1]
        return [mx,my,mz]
@@ -426,7 +426,7 @@ temperature for a given halo.
              128, 'temperature', 1e2, 1e7, True,
              end_collect=False)
        my_profile.add_fields('cell_mass', weight=None, fractional=False)
-       my_filename = os.path.join(sphere.pf.fullpath, '2D_profiles', 
+       my_filename = os.path.join(sphere.ds.fullpath, '2D_profiles', 
              'Halo_%04d.h5' % halo['id'])
        my_profile.write_out_h5(my_filename)
 

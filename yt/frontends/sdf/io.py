@@ -34,7 +34,7 @@ class IOHandlerSDF(BaseIOHandler):
 
     @property
     def _handle(self):
-        return self.pf.sdf_container
+        return self.ds.sdf_container
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
@@ -74,7 +74,7 @@ class IOHandlerSDF(BaseIOHandler):
                 for field in field_list:
                     if field == "mass":
                         data = np.ones(mask.sum(), dtype="float64")
-                        data *= self.pf.parameters["particle_mass"]
+                        data *= self.ds.parameters["particle_mass"]
                     else:
                         data = self._handle[field][mask]
                     yield (ptype, field), data
@@ -90,17 +90,17 @@ class IOHandlerSDF(BaseIOHandler):
             pos[:,0] = x[ind:ind+npart]
             pos[:,1] = y[ind:ind+npart]
             pos[:,2] = z[ind:ind+npart]
-            if np.any(pos.min(axis=0) < self.pf.domain_left_edge) or \
-               np.any(pos.max(axis=0) > self.pf.domain_right_edge):
+            if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or \
+               np.any(pos.max(axis=0) > self.ds.domain_right_edge):
                 raise YTDomainOverflow(pos.min(axis=0),
                                        pos.max(axis=0),
-                                       self.pf.domain_left_edge,
-                                       self.pf.domain_right_edge)
+                                       self.ds.domain_left_edge,
+                                       self.ds.domain_right_edge)
             regions.add_data_file(pos, data_file.file_id)
             morton[ind:ind+npart] = compute_morton(
                 pos[:,0], pos[:,1], pos[:,2],
-                data_file.pf.domain_left_edge,
-                data_file.pf.domain_right_edge)
+                data_file.ds.domain_left_edge,
+                data_file.ds.domain_right_edge)
             ind += CHUNKSIZE
         return morton
 

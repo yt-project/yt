@@ -1,10 +1,10 @@
 from yt.mods import *
 
 # Load the dataset.
-pf = load("GalaxyClusterMerger/fiducial_1to3_b0.273d_hdf5_plt_cnt_0175")
+ds = load("GalaxyClusterMerger/fiducial_1to3_b0.273d_hdf5_plt_cnt_0175")
 
 # Create a data object that represents the whole box.
-ad = pf.h.all_data()
+ad = ds.all_data()
 
 # This is identical to the simple phase plot, except we supply 
 # the fractional=True keyword to divide the profile data by the sum. 

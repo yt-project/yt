@@ -55,7 +55,7 @@ class AMRGridPatch(YTSelectionContainer):
         self.field_parameters = {}
         self.id = id
         self._child_mask = self._child_indices = self._child_index_mask = None
-        self.pf = index.parameter_file
+        self.ds = index.dataset
         self._index = index
         self.start_index = None
         self.filename = filename
@@ -63,7 +63,7 @@ class AMRGridPatch(YTSelectionContainer):
         self._last_count = -1
         self._last_selector_id = None
         self._current_particle_type = 'all'
-        self._current_fluid_type = self.pf.default_fluid_type
+        self._current_fluid_type = self.ds.default_fluid_type
 
     def get_global_startindex(self):
         """
@@ -74,7 +74,7 @@ class AMRGridPatch(YTSelectionContainer):
         if self.start_index is not None:
             return self.start_index
         if self.Parent is None:
-            left = self.LeftEdge - self.pf.domain_left_edge
+            left = self.LeftEdge - self.ds.domain_left_edge
             start_index = left / self.dds
             return np.rint(start_index).astype('int64').ravel().view(np.ndarray)
 
@@ -82,7 +82,7 @@ class AMRGridPatch(YTSelectionContainer):
         di = np.rint( (self.LeftEdge.ndarray_view() -
                        self.Parent.LeftEdge.ndarray_view()) / pdx)
         start_index = self.Parent.get_global_startindex() + di
-        self.start_index = (start_index * self.pf.refine_by).astype('int64').ravel()
+        self.start_index = (start_index * self.ds.refine_by).astype('int64').ravel()
         return self.start_index
 
     def __getitem__(self, key):
@@ -91,7 +91,7 @@ class AMRGridPatch(YTSelectionContainer):
             fields = self._determine_fields(key)
         except YTFieldTypeNotFound:
             return tr
-        finfo = self.pf._get_field_info(*fields[0])
+        finfo = self.ds._get_field_info(*fields[0])
         if not finfo.particle_type:
             return tr.reshape(self.ActiveDimensions)
         return tr
@@ -102,7 +102,7 @@ class AMRGridPatch(YTSelectionContainer):
         either returns the multiplicative factor or throws a KeyError.
 
         """
-        return self.pf[datatype]
+        return self.ds[datatype]
 
     @property
     def shape(self):
@@ -134,16 +134,16 @@ class AMRGridPatch(YTSelectionContainer):
         # that dx=dy=dz, at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
         if self.Parent is not None:
-            self.dds = self.Parent.dds.ndarray_view() / self.pf.refine_by
+            self.dds = self.Parent.dds.ndarray_view() / self.ds.refine_by
         else:
             LE, RE = self.index.grid_left_edge[id,:], \
                      self.index.grid_right_edge[id,:]
             self.dds = (RE - LE) / self.ActiveDimensions
-        if self.pf.dimensionality < 2:
-            self.dds[1] = self.pf.domain_right_edge[1] - self.pf.domain_left_edge[1]
-        if self.pf.dimensionality < 3:
-            self.dds[2] = self.pf.domain_right_edge[2] - self.pf.domain_left_edge[2]
-        self.dds = self.pf.arr(self.dds, "code_length")
+        if self.ds.dimensionality < 2:
+            self.dds[1] = self.ds.domain_right_edge[1] - self.ds.domain_left_edge[1]
+        if self.ds.dimensionality < 3:
+            self.dds[2] = self.ds.domain_right_edge[2] - self.ds.domain_left_edge[2]
+        self.dds = self.ds.arr(self.dds, "code_length")
 
     def __repr__(self):
         return "AMRGridPatch_%04i" % (self.id)
@@ -181,7 +181,7 @@ class AMRGridPatch(YTSelectionContainer):
         return pos
 
     def _fill_child_mask(self, child, mask, tofill, dlevel = 1):
-        rf = self.pf.refine_by
+        rf = self.ds.refine_by
         if dlevel != 1:
             rf = rf**dlevel
         gi, cgi = self.get_global_startindex(), child.get_global_startindex()
@@ -231,8 +231,8 @@ class AMRGridPatch(YTSelectionContainer):
         # than the grid by nZones*dx in each direction
         nl = self.get_global_startindex() - n_zones
         nr = nl + self.ActiveDimensions + 2 * n_zones
-        new_left_edge = nl * self.dds + self.pf.domain_left_edge
-        new_right_edge = nr * self.dds + self.pf.domain_left_edge
+        new_left_edge = nl * self.dds + self.ds.domain_left_edge
+        new_right_edge = nr * self.dds + self.ds.domain_left_edge
 
         # Something different needs to be done for the root grid, though
         level = self.Level
@@ -247,12 +247,12 @@ class AMRGridPatch(YTSelectionContainer):
         field_parameters = {}
         field_parameters.update(self.field_parameters)
         if smoothed:
-            cube = self.pf.smoothed_covering_grid(
+            cube = self.ds.smoothed_covering_grid(
                 level, new_left_edge, 
                 field_parameters = field_parameters,
                 **kwargs)
         else:
-            cube = self.pf.covering_grid(level, new_left_edge,
+            cube = self.ds.covering_grid(level, new_left_edge,
                 field_parameters = field_parameters,
                 **kwargs)
         cube._base_grid = self
@@ -272,7 +272,7 @@ class AMRGridPatch(YTSelectionContainer):
             new_field[1:,1:,:-1] += of
             new_field[1:,1:,1:] += of
             np.multiply(new_field, 0.125, new_field)
-            finfo = self.pf._get_field_info(*field)
+            finfo = self.ds._get_field_info(*field)
             if finfo.take_log:
                 new_field = np.log10(new_field)
 
