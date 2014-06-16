@@ -293,12 +293,15 @@ cdef class RockstarGroupiesInterface:
             if cur_dens > dens_thresh[3]: alt_m3 = total_mass
             if cur_dens > dens_thresh[4]: alt_m4 = total_mass
             if cur_dens <= dens_thresh[1]:
-                h['m'] = m
-                h['alt_m1'] = alt_m1
-                h['alt_m2'] = alt_m2
-                h['alt_m3'] = alt_m3
-                h['alt_m4'] = alt_m4
-                return
+                break
+        h['m'] = m
+        h['alt_m1'] = alt_m1
+        h['alt_m2'] = alt_m2
+        h['alt_m3'] = alt_m3
+        h['alt_m4'] = alt_m4
+        if cur_dens > dens_thresh[1]:
+            print >> sys.stderr, "r too small in assign_masses, m200b will be wrong!"
+            print >> sys.stderr, "edge_dens/dens_thresh[1] %.3f" % (cur_dens/dens_thresh[1])
         
     def max_halo_radius(self, int i):
         return max_halo_radius(&halos[i])
