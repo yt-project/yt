@@ -625,8 +625,6 @@ cdef class RegionSelector(SelectorObject):
         for i in range(3):
             region_width = dobj.right_edge[i] - dobj.left_edge[i]
             domain_width = DW[i]
-            dleft_edge = dobj.left_edge[i]
-            dright_edge = dobj.right_edge[i]
 
             if region_width <= 0:
                 raise RuntimeError(
@@ -635,31 +633,27 @@ cdef class RegionSelector(SelectorObject):
 
             if dobj.pf.periodicity[i]:
                 # shift so left_edge guaranteed in domain
-                if dleft_edge < dobj.pf.domain_left_edge[i]:
-                    dleft_edge += domain_width
-                    dright_edge += domain_width
-                elif dleft_edge > dobj.pf.domain_right_edge[i]:
-                    dleft_edge += domain_width
-                    dright_edge += domain_width
+                if dobj.left_edge[i] < dobj.pf.domain_left_edge[i]:
+                    dobj.left_edge[i] += domain_width
+                    dobj.right_edge[i] += domain_width
+                elif dobj.left_edge[i] > dobj.pf.domain_right_edge[i]:
+                    dobj.left_edge[i] += domain_width
+                    dobj.right_edge[i] += domain_width
             else:
-                if dleft_edge < dobj.pf.domain_left_edge[i] or \
-                   dright_edge > dobj.pf.domain_right_edge[i]:
+                if dobj.left_edge[i] < dobj.pf.domain_left_edge[i] or \
+                   dobj.right_edge[i] > dobj.pf.domain_right_edge[i]:
                     raise RuntimeError(
                         "Error: bad Region in non-periodic domain along dimension %s. "
                         "Region left edge = %s, Region right edge = %s"
                         "Dataset left edge = %s, Dataset right edge = %s" % \
-                        (i, dleft_edge, dright_edge,
+                        (i, dobj.left_edge[i], dobj.right_edge[i],
                          dobj.pf.domain_left_edge[i], dobj.pf.domain_right_edge[i])
                     )
             # Already ensured in code
-            self.left_edge[i] = dleft_edge
-            self.right_edge[i] = dright_edge
-            if not self.periodicity[i]:
-                self.right_edge_shift[i] = -np.inf
-            else:
-                self.right_edge_shift[i] = \
-                    ((dobj.right_edge).to_ndarray()[i] 
-                    - domain_width.to_ndarray())
+            self.left_edge[i] = dobj.left_edge[i]
+            self.right_edge[i] = dobj.right_edge[i]
+            self.right_edge_shift[i] = \
+                (dobj.right_edge).to_ndarray()[i] - domain_width.to_ndarray()
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
