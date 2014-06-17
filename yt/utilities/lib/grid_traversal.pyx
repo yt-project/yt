@@ -357,22 +357,25 @@ cdef class ImageSampler:
                 free(idata)
                 free(v_pos)
         else:
-            with nogil, parallel():
+            with nogil, parallel(num_threads = num_threads):
                 idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
                 idata.supp_data = self.supp_data
                 v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
                 v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
                 # If we do not have a simple image plane, we have to cast all
                 # our rays 
-                for j in prange(size, schedule="dynamic", chunksize=100):
+                every = <int> (size / 25.0)
+                for j in prange(size, schedule="static", chunksize=1):
                     offset = j * 3
                     for i in range(3): v_pos[i] = im.vp_pos[i + offset]
                     for i in range(3): v_dir[i] = im.vp_dir[i + offset]
+                    if v_dir[0] == v_dir[1] == v_dir[2] == 0.0:
+                        continue
                     # Note that for Nch != 3 we need a different offset into
                     # the image object than for the vectors!
                     for i in range(Nch): idata.rgba[i] = im.image[i + Nch*j]
                     if im.zbuffer != NULL:
-                        max_t = im.zbuffer[j]
+                        max_t = fclip(im.zbuffer[j], 0.0, 1.0)
                     else:
                         max_t = 1.0
                     walk_volume(vc, v_pos, v_dir, self.sampler, 
@@ -1100,6 +1103,9 @@ def arr_fisheye_vectors(int resolution, np.float64_t fov, int nimx=1, int
         for j in range(ny):
             py = (2.0 * (nimj*ny + j)) / resolution - 1.0
             r = (px*px + py*py)**0.5
+            if r > 1.01:
+                vp[i,j,0] = vp[i,j,1] = vp[i,j,2] = 0.0
+                continue
             phi = atan2(py, px)
             theta = r * fov_rad / 2.0
             theta += off_theta
