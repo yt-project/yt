@@ -486,7 +486,6 @@ class RAMSESDataset(Dataset):
         # Note that unit_l *already* converts to proper!
         # Also note that unit_l must be multiplied by the boxlen parameter to
         # ensure we are correctly set up for the current domain.
-        import yt.units.dimensions as dimensions
         length_unit = self.parameters['unit_l'] * self.parameters['boxlen']
         rho_u = self.parameters['unit_d']
         # We're not multiplying by the boxlength here.
@@ -500,11 +499,6 @@ class RAMSESDataset(Dataset):
         self.mass_unit = self.quan(mass_unit, "g")
         self.time_unit = self.quan(time_unit, "s")
         self.velocity_unit = self.length_unit / self.time_unit
-        self.unit_registry.add('code_density', 1.0,
-            dimensions.mass / dimensions.length**3)
-        self.density_unit = self.quan(rho_u * self.parameters["boxlen"]**3,
-                                      "g/cm**3")
-        self.unit_registry.modify("code_density", self.density_unit)
 
     def _parse_parameter_file(self):
         # hardcoded for now
