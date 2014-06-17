@@ -162,7 +162,7 @@ class ChomboHierarchy(GridIndex):
 
     def _parse_index(self):
         f = self._handle # shortcut
-        self.max_level = f.attrs['max_level']
+        self.max_level = f.attrs['num_levels'] - 1
 
         grids = []
         self.dds_list = []

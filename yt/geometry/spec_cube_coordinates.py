@@ -18,16 +18,16 @@ import numpy as np
 from .cartesian_coordinates import \
     CartesianCoordinateHandler
 
-class PPVCoordinateHandler(CartesianCoordinateHandler):
+class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
 
     def __init__(self, pf):
-        super(PPVCoordinateHandler, self).__init__(pf)
+        super(SpectralCubeCoordinateHandler, self).__init__(pf)
 
         self.axis_name = {}
         self.axis_id = {}
 
-        for axis, axis_name in zip([pf.lon_axis, pf.lat_axis, pf.vel_axis],
-                                   ["Image\ x", "Image\ y", pf.vel_name]):
+        for axis, axis_name in zip([pf.lon_axis, pf.lat_axis, pf.spec_axis],
+                                   ["Image\ x", "Image\ y", pf.spec_name]):
             lower_ax = "xyz"[axis]
             upper_ax = lower_ax.upper()
 
@@ -43,7 +43,14 @@ class PPVCoordinateHandler(CartesianCoordinateHandler):
         self.default_unit_label = {}
         self.default_unit_label[pf.lon_axis] = "pixel"
         self.default_unit_label[pf.lat_axis] = "pixel"
-        self.default_unit_label[pf.vel_axis] = pf.vel_unit
+        self.default_unit_label[pf.spec_axis] = pf.spec_unit
+
+        def _spec_axis(ax, x, y):
+            p = (x,y)[ax]
+            return [self.pf.pixel2spec(pp).v for pp in p]
+
+        self.axis_field = {}
+        self.axis_field[self.pf.spec_axis] = _spec_axis
 
     def convert_to_cylindrical(self, coord):
         raise NotImplementedError

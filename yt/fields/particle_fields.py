@@ -17,6 +17,7 @@ These are common particle fields.
 import numpy as np
 
 from yt.funcs import *
+from yt.units.yt_array import YTArray
 from yt.fields.derived_field import \
     ValidateParameter, \
     ValidateSpatial
@@ -225,12 +226,12 @@ def standard_particle_fields(registry, ptype,
         yv = data[ptype, svel % 'y'] - bv[1]
         zv = data[ptype, svel % 'z'] - bv[2]
         center = data.get_field_parameter('center')
-        coords = np.array([data[ptype, spos % 'x'],
+        coords = YTArray([data[ptype, spos % 'x'],
                            data[ptype, spos % 'y'],
                            data[ptype, spos % 'z']], dtype=np.float64)
         new_shape = tuple([3] + [1]*(len(coords.shape)-1))
         r_vec = coords - np.reshape(center,new_shape)
-        v_vec = np.array([xv,yv,zv], dtype=np.float64)
+        v_vec = YTArray([xv,yv,zv], dtype=np.float64)
         return np.cross(r_vec, v_vec, axis=0)
 
     registry.add_field((ptype, "particle_specific_angular_momentum"),
@@ -340,7 +341,7 @@ def standard_particle_fields(registry, ptype,
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
         pos = spos
-        pos = np.array([data[ptype, pos % ax] for ax in "xyz"])
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
         theta = get_sph_theta(pos, center)
         phi = get_sph_phi(pos, center)
         pos = pos - np.reshape(center, (3, 1))
@@ -358,7 +359,7 @@ def standard_particle_fields(registry, ptype,
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
         pos = spos
-        pos = np.array([data[ptype, pos % ax] for ax in "xyz"])
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
         theta = get_sph_theta(pos, center)
         phi = get_sph_phi(pos, center)
         pos = pos - np.reshape(center, (3, 1))
@@ -376,12 +377,11 @@ def standard_particle_fields(registry, ptype,
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
         pos = spos
-        pos = np.array([data[ptype, pos % ax] for ax in "xyz"])
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
         theta = get_sph_theta(pos, center)
         phi = get_sph_phi(pos, center)
         pos = pos - np.reshape(center, (3, 1))
-        vel = vel - np.reshape(bv, (3, 1))
-        sphp = get_sph_phi_component(pos, theta, phi, normal)
+        sphp = get_sph_phi_component(pos, phi, normal)
         return sphp
 
     registry.add_field((ptype, "particle_phi_spherical"),
@@ -395,9 +395,9 @@ def standard_particle_fields(registry, ptype,
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
         pos = spos
-        pos = np.array([data[ptype, pos % ax] for ax in "xyz"])
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
         vel = svel
-        vel = np.array([data[ptype, vel % ax] for ax in "xyz"])
+        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
         theta = get_sph_theta(pos, center)
         phi = get_sph_phi(pos, center)
         pos = pos - np.reshape(center, (3, 1))
@@ -416,9 +416,9 @@ def standard_particle_fields(registry, ptype,
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
         pos = spos
-        pos = np.array([data[ptype, pos % ax] for ax in "xyz"])
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
         vel = svel
-        vel = np.array([data[ptype, vel % ax] for ax in "xyz"])
+        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
         theta = get_sph_theta(pos, center)
         phi = get_sph_phi(pos, center)
         pos = pos - np.reshape(center, (3, 1))
@@ -436,8 +436,8 @@ def standard_particle_fields(registry, ptype,
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
-        pos = np.array([data[ptype, spos % ax] for ax in "xyz"])
-        vel = np.array([data[ptype, svel % ax] for ax in "xyz"])
+        pos = YTArray([data[ptype, spos % ax] for ax in "xyz"])
+        vel = YTArray([data[ptype, svel % ax] for ax in "xyz"])
         theta = get_sph_theta(pos, center)
         phi = get_sph_phi(pos, center)
         pos = pos - np.reshape(center, (3, 1))

@@ -44,6 +44,7 @@ from yt.utilities.physical_constants import \
     rho_crit_g_cm3_h2, cm_per_mpc
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.pyparselibconfig import libconfig
 
 from .fields import \
     EnzoFieldInfo
@@ -277,7 +278,15 @@ class EnzoHierarchy(GridIndex):
         si, ei, LE, RE, fn, npart = [], [], [], [], [], []
         all = [si, ei, LE, RE, fn]
         pbar = get_pbar("Parsing Hierarchy ", self.num_grids)
-        if self.parameter_file.parameters["VersionNumber"] > 2.0:
+        version = self.parameter_file.parameters.get("VersionNumber", None)
+        params = self.parameter_file.parameters
+        if version is None and "Internal" in params:
+            version = float(params["Internal"]["Provenance"]["VersionNumber"])
+        if version >= 3.0:
+            active_particles = True
+            nap = dict((ap_type, []) for ap_type in 
+                params["Physics"]["ActiveParticles"]["ActiveParticlesEnabled"])
+        elif version > 2.0:
             active_particles = True
             nap = {}
             for type in self.parameters.get("AppendActiveParticleType", []):
@@ -731,10 +740,53 @@ class EnzoDataset(Dataset):
         # Let's read the file
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        data_labels = {}
-        data_label_factors = {}
-        conversion_factors = {}
-        for line in (l.strip() for l in open(self.parameter_filename)):
+        with open(self.parameter_filename, "r") as f:
+            line = f.readline().strip() 
+            f.seek(0)
+            if line == "Internal:":
+                self._parse_enzo3_parameter_file(f)
+            else:
+                self._parse_enzo2_parameter_file(f)
+
+    def _parse_enzo3_parameter_file(self, f):
+        self.parameters = p = libconfig(f)
+        sim = p["SimulationControl"]
+        internal = p["Internal"]
+        phys = p["Physics"]
+        self.refine_by = sim["AMR"]["RefineBy"]
+        self.periodicity = tuple(a == 3 for a in
+                            sim["Domain"]["LeftFaceBoundaryCondition"])
+        self.dimensionality = sim["Domain"]["TopGridRank"]
+        self.domain_dimensions = np.array(sim["Domain"]["TopGridDimensions"],
+                                          dtype="int64")
+        self.domain_left_edge = np.array(sim["Domain"]["DomainLeftEdge"],
+                                         dtype="float64")
+        self.domain_right_edge = np.array(sim["Domain"]["DomainRightEdge"],
+                                          dtype="float64")
+        self.gamma = phys["Hydro"]["Gamma"]
+        self.unique_identifier = internal["Provenance"]["CurrentTimeIdentifier"]
+        self.current_time = internal["InitialTime"]
+        self.cosmological_simulation = phys["Cosmology"]["ComovingCoordinates"]
+        if self.cosmological_simulation == 1:
+            cosmo = phys["Cosmology"]
+            self.current_redshift = internal["CosmologyCurrentRedshift"]
+            self.omega_lambda = cosmo["OmegaLambdaNow"]
+            self.omega_matter = cosmo["OmegaMatterNow"]
+            self.hubble_constant = cosmo["HubbleConstantNow"]
+        else:
+            self.current_redshift = self.omega_lambda = self.omega_matter = \
+                self.hubble_constant = self.cosmological_simulation = 0.0
+        self.particle_types = ["DarkMatter"] + \
+            phys["ActiveParticles"]["ActiveParticlesEnabled"]
+        self.particle_types = tuple(self.particle_types)
+        self.particle_types_raw = self.particle_types
+        if self.dimensionality == 1:
+            self._setup_1d()
+        elif self.dimensionality == 2:
+            self._setup_2d()
+
+    def _parse_enzo2_parameter_file(self, f):
+        for line in (l.strip() for l in f):
             if len(line) < 2: continue
             param, vals = (i.strip() for i in line.split("=",1))
             # First we try to decipher what type of value it is.
@@ -835,8 +887,11 @@ class EnzoDataset(Dataset):
         if self.cosmological_simulation:
             k = self.cosmology_get_units()
             # Now some CGS values
-            self.length_unit = \
-                self.quan(self.parameters["CosmologyComovingBoxSize"], "Mpccm/h")
+            box_size = self.parameters.get("CosmologyComovingBoxSize", None)
+            if box_size is None:
+                box_size = self.parameters["Physics"]["Cosmology"]\
+                    ["CosmologyComovingBoxSize"]
+            self.length_unit = self.quan(box_size, "Mpccm/h")
             self.mass_unit = \
                 self.quan(k['urho'], 'g/cm**3') * (self.length_unit.in_cgs())**3
             self.time_unit = self.quan(k['utim'], 's')
@@ -846,6 +901,11 @@ class EnzoDataset(Dataset):
                 length_unit = self.parameters["LengthUnits"]
                 mass_unit = self.parameters["DensityUnits"] * length_unit**3
                 time_unit = self.parameters["TimeUnits"]
+            elif "SimulationControl" in self.parameters:
+                units = self.parameters["SimulationControl"]["Units"]
+                length_unit = units["Length"]
+                mass_unit = units["Density"] * length_unit**3
+                time_unit = units["Time"]
             else:
                 mylog.warning("Setting 1.0 in code units to be 1.0 cm")
                 mylog.warning("Setting 1.0 in code units to be 1.0 s")

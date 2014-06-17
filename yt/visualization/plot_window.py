@@ -163,7 +163,7 @@ def get_sanitized_center(center, pf):
     return center
 
 def get_window_parameters(axis, center, width, pf):
-    if pf.geometry == "cartesian" or pf.geometry == "ppv":
+    if pf.geometry == "cartesian" or pf.geometry == "spectral_cube":
         width = get_sanitized_width(axis, width, None, pf)
         center = get_sanitized_center(center, pf)
     elif pf.geometry in ("polar", "cylindrical"):
@@ -446,6 +446,44 @@ class PlotWindow(ImagePlotContainer):
                 "list {} are incompatible".format(field, new_unit))
         for f, u in zip(field, new_unit):
             self.frb[f].convert_to_units(u)
+        return self
+
+    @invalidate_plot
+    def set_origin(self, origin):
+        """Set the plot origin.
+
+        Parameters
+        ----------
+        origin : string or length 1, 2, or 3 sequence of strings
+            The location of the origin of the plot coordinate system.  This is
+            represented by '-' separated string or a tuple of strings.  In the
+            first index the y-location is given by 'lower', 'upper', or 'center'.
+            The second index is the x-location, given as 'left', 'right', or
+            'center'.  Finally, the whether the origin is applied in 'domain'
+            space, plot 'window' space or 'native' simulation coordinate system
+            is given. For example, both 'upper-right-domain' and ['upper',
+            'right', 'domain'] both place the origin in the upper right hand
+            corner of domain space. If x or y are not given, a value is inffered.
+            For instance, 'left-domain' corresponds to the lower-left hand corner
+            of the simulation domain, 'center-domain' corresponds to the center
+            of the simulation domain, or 'center-window' for the center of the
+            plot window. Further examples:
+
+            ==================================     ============================
+            format                                 example
+            ==================================     ============================
+            '{space}'                              'domain'
+            '{xloc}-{space}'                       'left-window'
+            '{yloc}-{space}'                       'upper-domain'
+            '{yloc}-{xloc}-{space}'                'lower-right-window'
+            ('{space}',)                           ('window',)
+            ('{xloc}', '{space}')                  ('right', 'domain')
+            ('{yloc}', '{space}')                  ('lower', 'window')
+            ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
+            ==================================     ============================
+
+        """
+        self.origin = origin
         return self
 
     @invalidate_data
@@ -742,7 +780,7 @@ class PWViewerMPL(PlotWindow):
             else:
                 (unit_x, unit_y) = self._axes_unit_names
 
-            # For some plots we may set aspect by hand, such as for PPV data.
+            # For some plots we may set aspect by hand, such as for spectral cube data.
             # This will likely be replaced at some point by the coordinate handler
             # setting plot aspect.
             if self.aspect is None:
@@ -761,12 +799,20 @@ class PWViewerMPL(PlotWindow):
 
             image = self.frb[f]
 
-            if image.max() == image.min():
-                if self._field_transform[f] == log_transform:
-                    mylog.warning("Plot image for field %s has zero dynamic "
-                                  "range. Min = Max = %d." % (f, image.max()))
+            if self._field_transform[f] == log_transform:
+                msg = None
+                if zlim != (None, None):
+                    pass
+                elif image.max() == image.min():
+                    msg = "Plot image for field %s has zero dynamic " \
+                          "range. Min = Max = %d." % (f, image.max())
+                elif image.max() <= 0:
+                    msg = "Plot image for field %s has no positive " \
+                          "values.  Max = %d." % (f, image.max())
+                if msg is not None:
+                    mylog.warning(msg)
                     mylog.warning("Switching to linear colorbar scaling.")
-                self._field_transform[f] = linear_transform
+                    self._field_transform[f] = linear_transform
 
             fp = self._font_properties
 
@@ -832,11 +878,26 @@ class PWViewerMPL(PlotWindow):
                 axis_names = self.pf.coordinates.axis_name
                 xax = self.pf.coordinates.x_axis[axis_index]
                 yax = self.pf.coordinates.y_axis[axis_index]
+
                 if hasattr(self.pf.coordinates, "axis_default_unit_label"):
                     axes_unit_labels = [self.pf.coordinates.axis_default_unit_name[xax],
                                         self.pf.coordinates.axis_default_unit_name[yax]]
                 labels = [r'$\rm{'+axis_names[xax]+axes_unit_labels[0] + r'}$',
                           r'$\rm{'+axis_names[yax]+axes_unit_labels[1] + r'}$']
+
+                if hasattr(self.pf.coordinates, "axis_field"):
+                    if xax in self.pf.coordinates.axis_field:
+                        xmin, xmax = self.pf.coordinates.axis_field[xax](0,
+                                                                         self.xlim, self.ylim)
+                    else:
+                        xmin, xmax = [float(x) for x in extentx]
+                    if yax in self.pf.coordinates.axis_field:
+                        ymin, ymax = self.pf.coordinates.axis_field[yax](1,
+                                                                         self.xlim, self.ylim)
+                    else:
+                        ymin, ymax = [float(y) for y in extenty]
+                    self.plots[f].image.set_extent((xmin,xmax,ymin,ymax))
+                    self.plots[f].axes.set_aspect("auto")
 
             self.plots[f].axes.set_xlabel(labels[0],fontproperties=fp)
             self.plots[f].axes.set_ylabel(labels[1],fontproperties=fp)

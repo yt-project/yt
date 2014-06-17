@@ -26,8 +26,10 @@ class IOHandlerFITS(BaseIOHandler):
         self._handle = pf._handle
         if self.pf.line_width is not None:
             self.line_db = self.pf.line_database
+            self.dz = self.pf.line_width/self.domain_dimensions[self.pf.spec_axis]
         else:
             self.line_db = None
+            self.dz = 1.
 
     def _read_particles(self, fields_to_read, type, args, grid_list,
             count_list, conv_factors):
@@ -90,19 +92,19 @@ class IOHandlerFITS(BaseIOHandler):
                     start = ((g.LeftEdge-self.pf.domain_left_edge)/dx).to_ndarray().astype("int")
                     end = start + g.ActiveDimensions
                     if self.line_db is not None and fname in self.line_db:
-                        my_off = self.line_db.get(fname).in_units(self.pf.vel_unit).value
+                        my_off = self.line_db.get(fname).in_units(self.pf.spec_unit).value
                         my_off = my_off - 0.5*self.pf.line_width
-                        my_off = int((my_off-self.pf.freq_begin)/dx[self.pf.vel_axis].value)
+                        my_off = int((my_off-self.pf.freq_begin)/self.dz)
                         my_off = max(my_off, 0)
-                        my_off = min(my_off, self.pf.dims[self.pf.vel_axis]-1)
-                        start[self.pf.vel_axis] += my_off
-                        end[self.pf.vel_axis] += my_off
+                        my_off = min(my_off, self.pf.dims[self.pf.spec_axis]-1)
+                        start[self.pf.spec_axis] += my_off
+                        end[self.pf.spec_axis] += my_off
                         mylog.debug("Reading from " + str(start) + str(end))
                     slices = [slice(start[i],end[i]) for i in xrange(3)]
                     if self.pf.reversed:
-                        new_start = self.pf.dims[self.pf.vel_axis]-1-start[self.pf.vel_axis]
-                        new_end = max(self.pf.dims[self.pf.vel_axis]-1-end[self.pf.vel_axis],0)
-                        slices[self.pf.vel_axis] = slice(new_start,new_end,-1)
+                        new_start = self.pf.dims[self.pf.spec_axis]-1-start[self.pf.spec_axis]
+                        new_end = max(self.pf.dims[self.pf.spec_axis]-1-end[self.pf.spec_axis],0)
+                        slices[self.pf.spec_axis] = slice(new_start,new_end,-1)
                     if self.pf.dimensionality == 2:
                         nx, ny = g.ActiveDimensions[:2]
                         nz = 1
@@ -114,8 +116,8 @@ class IOHandlerFITS(BaseIOHandler):
                     else:
                         data = ds.data[slices[2],slices[1],slices[0]].transpose()
                     if self.line_db is not None:
-                        nz1 = data.shape[self.pf.vel_axis]
-                        nz2 = g.ActiveDimensions[self.pf.vel_axis]
+                        nz1 = data.shape[self.pf.spec_axis]
+                        nz2 = g.ActiveDimensions[self.pf.spec_axis]
                         if nz1 != nz2:
                             old_data = data.copy()
                             data = np.zeros(g.ActiveDimensions)

@@ -55,8 +55,8 @@ from yt.geometry.spherical_coordinates import \
     SphericalCoordinateHandler
 from yt.geometry.geographic_coordinates import \
     GeographicCoordinateHandler
-from yt.geometry.ppv_coordinates import \
-    PPVCoordinateHandler
+from yt.geometry.spec_cube_coordinates import \
+    SpectralCubeCoordinateHandler
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is contant up
@@ -361,8 +361,8 @@ class Dataset(object):
             self.coordinates = SphericalCoordinateHandler(self)
         elif self.geometry == "geographic":
             self.coordinates = GeographicCoordinateHandler(self)
-        elif self.geometry == "ppv":
-            self.coordinates = PPVCoordinateHandler(self)
+        elif self.geometry == "spectral_cube":
+            self.coordinates = SpectralCubeCoordinateHandler(self)
         else:
             raise YTGeometryNotSupported(self.geometry)
 
@@ -519,15 +519,27 @@ class Dataset(object):
 
     def find_max(self, field):
         """
-        Returns (value, center) of location of maximum for a given field.
+        Returns (value, location) of the maximum of a given field.
         """
         mylog.debug("Searching for maximum value of %s", field)
         source = self.all_data()
         max_val, maxi, mx, my, mz = \
-            source.quantities["MaxLocation"](field)
+            source.quantities.max_location(field)
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
               max_val, mx, my, mz)
-        return max_val, np.array([mx, my, mz], dtype="float64")
+        return max_val, self.arr([mx, my, mz], 'code_length', dtype="float64")
+
+    def find_min(self, field):
+        """
+        Returns (value, location) for the minimum of a given field.
+        """
+        mylog.debug("Searching for minimum value of %s", field)
+        source = self.all_data()
+        min_val, maxi, mx, my, mz = \
+            source.quantities.min_location(field)
+        mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f",
+              min_val, mx, my, mz)
+        return min_val, self.arr([mx, my, mz], 'code_length', dtype="float64")
 
     # Now all the object related stuff
     def all_data(self, find_max=False):
