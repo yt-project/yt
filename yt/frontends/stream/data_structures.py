@@ -985,8 +985,12 @@ def load_particles(data, length_unit = None, bbox=None,
         This is a dict of numpy arrays, where the keys are the field names.
         Particles positions must be named "particle_position_x",
         "particle_position_y", "particle_position_z".
-    sim_unit_to_cm : float
-        Conversion factor from simulation units to centimeters
+    length_unit : float
+        Conversion factor from simulation length units to centimeters
+    mass_unit : float
+        Conversion factor from simulation mass units to grams
+    time_unit : float
+        Conversion factor from simulation time units to seconds
     bbox : array_like (xdim:zdim, LE:RE), optional
         Size of computational domain in units sim_unit_to_cm
     sim_time : float, optional

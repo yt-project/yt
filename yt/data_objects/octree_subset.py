@@ -52,12 +52,6 @@ class OctreeSubset(YTSelectionContainer):
     _type_name = 'octree_subset'
     _skip_add = True
     _con_args = ('base_region', 'domain', 'pf')
-    _container_fields = (("index", "dx"),
-                         ("index", "dy"),
-                         ("index", "dz"),
-                         ("index", "x"),
-                         ("index", "y"),
-                         ("index", "z"))
     _domain_offset = 0
     _cell_count = -1
 
@@ -77,19 +71,6 @@ class OctreeSubset(YTSelectionContainer):
         self._current_fluid_type = self.pf.default_fluid_type
         self.base_region = base_region
         self.base_selector = base_region.selector
-
-    def _generate_container_field(self, field):
-        if self._current_chunk is None:
-            self.index._identify_base_chunk(self)
-        if isinstance(field, tuple): field = field[1]
-        if field == "dx":
-            return self._current_chunk.fwidth[:,0]
-        elif field == "dy":
-            return self._current_chunk.fwidth[:,1]
-        elif field == "dz":
-            return self._current_chunk.fwidth[:,2]
-        else:
-            raise RuntimeError
 
     def __getitem__(self, key):
         tr = super(OctreeSubset, self).__getitem__(key)
@@ -111,16 +92,21 @@ class OctreeSubset(YTSelectionContainer):
         return self._num_zones + 2*self._num_ghost_zones
 
     def _reshape_vals(self, arr):
-        if len(arr.shape) == 4: return arr
+        if len(arr.shape) == 4 and arr.flags["F_CONTIGUOUS"]:
+            return arr
         nz = self.nz
         n_oct = arr.shape[0] / (nz**3.0)
         if arr.size == nz*nz*nz*n_oct:
-            arr = arr.reshape((nz, nz, nz, n_oct), order="F")
+            new_shape = (nz, nz, nz, n_oct)
         elif arr.size == nz*nz*nz*n_oct * 3:
-            arr = arr.reshape((nz, nz, nz, n_oct, 3), order="F")
+            new_shape = (nz, nz, nz, n_oct, 3)
         else:
             raise RuntimeError
-        arr = np.asfortranarray(arr)
+        # Note that if arr is already F-contiguous, this *shouldn't* copy the
+        # data.  But, it might.  However, I can't seem to figure out how to
+        # make the assignment to .shape, which *won't* copy the data, make the
+        # resultant array viewed in Fortran order.
+        arr = arr.reshape(new_shape, order="F")
         return arr
 
     _domain_ind = None
