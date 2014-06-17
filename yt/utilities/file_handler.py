@@ -15,7 +15,7 @@ A wrapper class for h5py file objects.
 
 import h5py
 
-class FileHandler(object):
+class HDF5FileHandler(object):
     def __init__(self, filename):
         self.handle = h5py.File(filename, 'r')
 
@@ -40,7 +40,7 @@ class FileHandler(object):
     def keys(self):
         return self.handle.keys
 
-class FITSFileHandler(FileHandler):
+class FITSFileHandler(HDF5FileHandler):
     def __init__(self, filename):
         from yt.utilities.on_demand_imports import _astropy
         if isinstance(filename, _astropy.pyfits.PrimaryHDU):

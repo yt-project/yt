@@ -38,7 +38,7 @@ from yt.data_objects.static_output import \
 from yt.utilities.definitions import \
      mpc_conversion, sec_conversion
 from yt.utilities.file_handler import \
-    FileHandler
+    HDF5FileHandler
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      parallel_root_only
 from yt.utilities.io_handler import \
@@ -168,7 +168,7 @@ class PlutoDataset(Dataset):
 
     def __init__(self, filename, dataset_type='pluto_hdf5',
                  storage_filename = None, ini_filename = None):
-        self._handle = FileHandler(filename)
+        self._handle = HDF5FileHandler(filename)
         self.current_time = self._handle.attrs['time']
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)

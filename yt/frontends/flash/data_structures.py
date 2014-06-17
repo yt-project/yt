@@ -31,7 +31,7 @@ from yt.data_objects.static_output import \
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.file_handler import \
-    FileHandler
+    HDF5FileHandler
 from yt.utilities.io_handler import \
     io_registry
 from yt.utilities.physical_constants import cm_per_mpc
@@ -185,7 +185,7 @@ class FLASHDataset(Dataset):
 
         self.fluid_types += ("flash",)
         if self._handle is not None: return
-        self._handle = FileHandler(filename)
+        self._handle = HDF5FileHandler(filename)
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
         
@@ -195,7 +195,7 @@ class FLASHDataset(Dataset):
             self._particle_handle = self._handle
         else :
             try:
-                self._particle_handle = FileHandler(self.particle_filename)
+                self._particle_handle = HDF5FileHandler(self.particle_filename)
             except :
                 raise IOError(self.particle_filename)
         # These should be explicitly obtained from the file, but for now that
@@ -389,7 +389,7 @@ class FLASHDataset(Dataset):
     @classmethod
     def _is_valid(self, *args, **kwargs):
         try:
-            fileh = FileHandler(args[0])
+            fileh = HDF5FileHandler(args[0])
             if "bounding box" in fileh["/"].keys():
                 return True
         except:

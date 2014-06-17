@@ -34,7 +34,7 @@ from yt.data_objects.static_output import \
 from yt.utilities.definitions import \
      mpc_conversion, sec_conversion
 from yt.utilities.file_handler import \
-    FileHandler
+    HDF5FileHandler
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      parallel_root_only
 from yt.utilities.lib.misc_utilities import \
@@ -243,7 +243,7 @@ class ChomboDataset(Dataset):
     def __init__(self, filename, dataset_type='chombo_hdf5',
                  storage_filename = None, ini_filename = None):
         self.fluid_types += ("chombo",)
-        self._handle = FileHandler(filename)
+        self._handle = HDF5FileHandler(filename)
 
         # look up the dimensionality of the dataset
         D = self._handle['Chombo_global/'].attrs['SpaceDim']
