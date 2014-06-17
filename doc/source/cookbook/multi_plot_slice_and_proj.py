@@ -1,4 +1,4 @@
-from yt.mods import * # set up our namespace
+import yt
 from yt.visualization.base_plot_types import get_multi_plot
 import matplotlib.colorbar as cb
 from matplotlib.colors import LogNorm
@@ -6,7 +6,7 @@ from matplotlib.colors import LogNorm
 fn = "GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150" # parameter file to load
 orient = 'horizontal'
 
-pf = load(fn) # load data
+ds = yt.load(fn) # load data
 
 # There's a lot in here:
 #   From this we get a containing figure, a list-of-lists of axes into which we
@@ -17,12 +17,11 @@ pf = load(fn) # load data
 #   bw is the base-width in inches, but 4 is about right for most cases.
 fig, axes, colorbars = get_multi_plot(3, 2, colorbar=orient, bw = 4)
 
-slc = pf.slice(2, 0.0, fields=["density","temperature","velocity_magnitude"], 
-                 center=pf.domain_center)
-proj = pf.proj("density", 2, weight_field="density", center=pf.domain_center)
+slc = yt.SlicePlot(ds, 'z', fields=["density","temperature","velocity_magnitude"])
+proj = yt.ProjectionPlot(ds, 'z', "density", weight_field="density")
 
-slc_frb = slc.to_frb((1.0, "mpc"), 512)
-proj_frb = proj.to_frb((1.0, "mpc"), 512)
+slc_frb = slc.data_source.to_frb((1.0, "mpc"), 512)
+proj_frb = proj.data_source.to_frb((1.0, "mpc"), 512)
 
 dens_axes = [axes[0][0], axes[1][0]]
 temp_axes = [axes[0][1], axes[1][1]]
@@ -66,4 +65,4 @@ for p, cax, t in zip(plots[0:6:2], colorbars, titles):
     cbar.set_label(t)
 
 # And now we're done! 
-fig.savefig("%s_3x2" % pf)
+fig.savefig("%s_3x2" % ds)
