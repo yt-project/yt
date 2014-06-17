@@ -7,14 +7,15 @@
 
 # Here we start by loading up a dataset, in this case galaxy0030.
 
-from yt.mods import *
+import yt
+import numpy as np
 
-pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
 # We start by building a transfer function, and initializing a camera.
 
-tf = ColorTransferFunction((-30, -22))
-cam = pf.h.camera([0.5, 0.5, 0.5], [0.2, 0.3, 0.4], 0.10, 256, tf)
+tf = yt.ColorTransferFunction((-30, -22))
+cam = ds.camera([0.5, 0.5, 0.5], [0.2, 0.3, 0.4], 0.10, 256, tf)
 
 # Now let's add some isocontours, and take a snapshot.
 
@@ -66,5 +67,3 @@ cam.snapshot("v7.png", clip_ratio=6.0)
 
 # That looks pretty different, but the main thing is that you can see that the
 # inner contours are somewhat visible again.  
-
-
