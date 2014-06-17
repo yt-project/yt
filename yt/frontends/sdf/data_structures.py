@@ -175,7 +175,7 @@ class SDFDataset(Dataset):
         self.time_unit = self.quan(1.0, self.parameters.get("time_unit", 'Gyr'))
         mass_unit = self.parameters.get("mass_unit", '1e10 Msun')
         if ' ' in mass_unit:
-            factor, unit = self.parameters.get("mass_unit", 'Msun').split(' ')
+            factor, unit = mass_unit.split(' ')
         else:
             factor = 1.0
             unit = mass_unit
