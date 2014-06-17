@@ -299,10 +299,11 @@ cdef class RockstarGroupiesInterface:
         h['alt_m2'] = alt_m2
         h['alt_m3'] = alt_m3
         h['alt_m4'] = alt_m4
-        if cur_dens > dens_thresh[1]:
-            print >> sys.stderr, "r too small in assign_masses, m200b will be wrong!"
-            print >> sys.stderr, "edge_dens/dens_thresh[1] %.3f" % (cur_dens/dens_thresh[1])
-        
+        # if cur_dens > dens_thresh[1]:
+            # This is usually a subhalo problem, and we don't know who is a subhalo
+            # print >> sys.stderr, "r too small in assign_masses, m200b will be wrong!"
+            # print >> sys.stderr, "edge_dens/dens_thresh[1] %.3f" % (cur_dens/dens_thresh[1])
+
     def max_halo_radius(self, int i):
         return max_halo_radius(&halos[i])
 

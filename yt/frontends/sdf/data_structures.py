@@ -173,7 +173,7 @@ class SDFDataset(Dataset):
         self.length_unit = self.quan(1.0, self.parameters.get("length_unit", 'kpc'))
         self.velocity_unit = self.quan(1.0, self.parameters.get("velocity_unit", 'kpc/Gyr'))
         self.time_unit = self.quan(1.0, self.parameters.get("time_unit", 'Gyr'))
-        mass_unit = self.parameters.get("mass_unit", 'Msun')
+        mass_unit = self.parameters.get("mass_unit", '1e10 Msun')
         if ' ' in mass_unit:
             factor, unit = self.parameters.get("mass_unit", 'Msun').split(' ')
         else:
