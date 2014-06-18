@@ -791,8 +791,17 @@ class PhasePlot(ImagePlotContainer):
 
             if zlim == (None, None):
                 if z_scale == 'log':
-                    zmin = data[data > 0.0].min()
-                    self._field_transform[f] = log_transform
+                    positive_values = data[data > 0.0]
+                    if len(positive_values) == 0:
+                        mylog.warning("Profiled field %s has no positive "
+                                      "values.  Max = %d." % (f, data.max()))
+                        mylog.warning("Switching to linear colorbar scaling.")
+                        zmin = data.min()
+                        z_scale = 'linear'
+                        self._field_transform[f] = linear_transform
+                    else:
+                        zmin = positive_values.min()
+                        self._field_transform[f] = log_transform
                 else:
                     zmin = data.min()
                     self._field_transform[f] = linear_transform
