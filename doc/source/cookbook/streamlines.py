@@ -10,9 +10,9 @@ ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 # Define c: the center of the box, N: the number of streamlines, 
 # scale: the spatial scale of the streamlines relative to the boxsize,
 # and then pos: the random positions of the streamlines.
-c = np.array([0.5]*3)
+c = ds.arr([0.5]*3, 'code_length')
 N = 100
-scale = 1.0
+scale = ds.arr(1.0, 'code_length')
 pos_dx = np.random.random((N,3))*scale-scale/2.
 pos = c+pos_dx
 
