@@ -691,32 +691,32 @@ def requires_pf(pf_fn, big_data = False, file_check = False):
     else:
         return ftrue
 
-def small_patch_amr(pf_fn, fields):
+def small_patch_amr(pf_fn, fields, input_center="max", input_weight="density"):
     if not can_run_pf(pf_fn): return
-    dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
+    dso = [ None, ("sphere", (input_center, (0.1, 'unitary')))]
     yield GridHierarchyTest(pf_fn)
     yield ParentageRelationshipsTest(pf_fn)
     for field in fields:
         yield GridValuesTest(pf_fn, field)
         for axis in [0, 1, 2]:
             for ds in dso:
-                for weight_field in [None, "density"]:
+                for weight_field in [None, input_weight]:
                     yield ProjectionValuesTest(
                         pf_fn, axis, field, weight_field,
                         ds)
                 yield FieldValuesTest(
                         pf_fn, field, ds)
 
-def big_patch_amr(pf_fn, fields):
+def big_patch_amr(pf_fn, fields, input_center="max", input_weight="density"):
     if not can_run_pf(pf_fn): return
-    dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
+    dso = [ None, ("sphere", (input_center, (0.1, 'unitary')))]
     yield GridHierarchyTest(pf_fn)
     yield ParentageRelationshipsTest(pf_fn)
     for field in fields:
         yield GridValuesTest(pf_fn, field)
         for axis in [0, 1, 2]:
             for ds in dso:
-                for weight_field in [None, "density"]:
+                for weight_field in [None, input_weight]:
                     yield PixelizedProjectionValuesTest(
                         pf_fn, axis, field, weight_field,
                         ds)
