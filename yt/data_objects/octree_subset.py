@@ -102,10 +102,11 @@ class OctreeSubset(YTSelectionContainer):
             new_shape = (nz, nz, nz, n_oct, 3)
         else:
             raise RuntimeError
-        # This will retain units now.
-        arr.shape = new_shape
-        if not arr.flags["F_CONTIGUOUS"]:
-            arr = arr.reshape(new_shape, order="F")
+        # Note that if arr is already F-contiguous, this *shouldn't* copy the
+        # data.  But, it might.  However, I can't seem to figure out how to
+        # make the assignment to .shape, which *won't* copy the data, make the
+        # resultant array viewed in Fortran order.
+        arr = arr.reshape(new_shape, order="F")
         return arr
 
     _domain_ind = None
