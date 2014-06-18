@@ -1,7 +1,7 @@
 import yt
 
 # Load the dataset.
-ds = yt.load("Enzo_64/DD0043/data0043")
+ds = yt.load("GalaxyClusterMerger/fiducial_1to3_b0.273d_hdf5_plt_cnt_0175")
 
 # Create a data object that represents the whole box.
 ad = ds.h.all_data()
