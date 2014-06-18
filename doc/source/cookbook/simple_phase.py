@@ -13,6 +13,9 @@ my_sphere = ds.sphere("c", (100.0, "kpc"))
 plot = yt.PhasePlot(my_sphere, "density", "temperature", "cell_mass",
                  weight_field=None)
 
+# Set the units of mass to be in solar masses (not the default in cgs)
+plot.set_unit('cell_mass', 'Msun')
+
 # Save the image.
 # Optionally, give a string as an argument
 # to name files with a keyword.
