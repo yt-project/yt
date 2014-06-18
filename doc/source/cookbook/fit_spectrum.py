@@ -9,15 +9,11 @@ from yt.analysis_modules.absorption_spectrum.api import generate_total_fit
 # Define and add a field to simulate OVI based on a constant relationship to HI
 # Do *NOT* use this for science, because this is not how OVI actually behaves;
 # it is just an example.
-def _OVI_NumberDensity(field, data):
-    return data['HI_NumberDensity']
 
-def _convertOVI(data):
-    return 4.9E-4*.2
+@yt.derived_field(name='OVI_number_density', units='cm**-3')
+def _OVI_number_density(field, data):
+    return data['HI_NumberDensity']*2.0
 
-yt.add_field('my_OVI_NumberDensity',
-             function=_OVI_NumberDensity,
-             convert_function=_convertOVI)
 
 # Define species and associated parameters to add to continuum
 # Parameters used for both adding the transition to the spectrum
@@ -40,7 +36,7 @@ HI_parameters = {'name': 'HI',
                  'init_N': 1E14}
 
 OVI_parameters = {'name': 'OVI',
-                  'field': 'my_OVI_NumberDensity',
+                  'field': 'OVI_number_density',
                   'f': [.1325, .06580],
                   'Gamma': [4.148E8, 4.076E8],
                   'wavelength': [1031.9261, 1037.6167],
