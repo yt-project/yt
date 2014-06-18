@@ -1,3 +1,6 @@
+### THIS RECIPE IS CURRENTLY BROKEN IN YT-3.0
+### DO NOT TRUST THIS RECIPE UNTIL THIS LINE IS REMOVED
+
 import yt
 
 ds = yt.load("Enzo_64/DD0043/data0043")  # load data

@@ -1,3 +1,6 @@
+### THIS RECIPE IS CURRENTLY BROKEN IN YT-3.0
+### DO NOT TRUST THIS RECIPE UNTIL THIS LINE IS REMOVED 
+
 # Using AMRKDTree Homogenized Volumes to examine large datasets
 # at lower resolution.
 

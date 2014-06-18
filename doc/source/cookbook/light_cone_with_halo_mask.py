@@ -1,3 +1,6 @@
+### THIS RECIPE IS CURRENTLY BROKEN IN YT-3.0
+### DO NOT TRUST THIS RECIPE UNTIL THIS LINE IS REMOVED
+
 import yt
 
 from yt.analysis_modules.cosmological_observation.light_cone.light_cone import LightCone

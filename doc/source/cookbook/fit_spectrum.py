@@ -1,3 +1,6 @@
+### THIS RECIPE IS CURRENTLY BROKEN IN YT-3.0
+### DO NOT TRUST THIS RECIPE UNTIL THIS LINE IS REMOVED
+
 import yt
 from yt.analysis_modules.cosmological_observation.light_ray.api import LightRay
 from yt.analysis_modules.absorption_spectrum.api import AbsorptionSpectrum

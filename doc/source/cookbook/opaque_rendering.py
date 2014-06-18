@@ -1,11 +1,5 @@
-## Opaque Volume Rendering
-
-# The new version of yt also features opaque rendering, using grey opacity.
-# For example, this makes blues opaque to red and green.  In this example we
-# will explore how the opacity model you choose changes the appearance of the
-# rendering.
-
-# Here we start by loading up a dataset, in this case galaxy0030.
+### THIS RECIPE IS CURRENTLY BROKEN IN YT-3.0
+### DO NOT TRUST THIS RECIPE UNTIL THIS LINE IS REMOVED
 
 import yt
 import numpy as np
