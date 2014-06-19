@@ -821,9 +821,9 @@ then
         ( ${HG_EXEC} --debug clone https://bitbucket.org/yt_analysis/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
         # Now we update to the branch we're interested in.
         ( ${HG_EXEC} -R ${YT_DIR} up -C ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
-    elif [ -e yt-3.0-hg ] 
+    elif [ -e yt-hg ]
     then
-        YT_DIR="$PWD/yt-3.0-hg/"
+        YT_DIR="$PWD/yt-hg/"
     fi
     echo Setting YT_DIR=${YT_DIR}
 fi
@@ -942,11 +942,11 @@ if [ $INST_ROCKSTAR -eq 1 ]
 then
     if [ ! -e Rockstar/done ]
     then
-	[ ! -e Rockstar ] && hg clone http://bitbucket.org/MatthewTurk/rockstar
+        [ ! -e Rockstar ] && hg clone http://bitbucket.org/MatthewTurk/rockstar
         echo "Building Rockstar"
         cd Rockstar
-	hg pull -C tip
-	hg up -C tip
+        hg pull
+        hg up -C tip
         ( make lib 2>&1 ) 1>> ${LOG_FILE} || do_exit
         cp librockstar.so ${DEST_DIR}/lib
         ROCKSTAR_DIR=${DEST_DIR}/src/Rockstar
