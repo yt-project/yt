@@ -348,7 +348,7 @@ Version 2.3
    there
  * WebGL interface for isocontours and a pannable map widget added to Reason
  * Performance improvements for volume rendering
- * Adaptive HEALPix support (see :ref:`adaptive_healpix_volume_rendering`)
+ * Adaptive HEALPix support
  * Column density calculations (see :ref:`radial-column-density`)
  * Massive speedup for 1D profiles
  * Lots more, bug fixes etc.

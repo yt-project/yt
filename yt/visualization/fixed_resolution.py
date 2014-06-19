@@ -90,9 +90,9 @@ class FixedResolutionBuffer(object):
         self.axis = data_source.axis
         self.periodic = periodic
 
-        #h = getattr(data_source, "index", None)
-        #if h is not None:
-        #    h.plots.append(weakref.proxy(self))
+        ds = getattr(data_source, "pf", None)
+        if ds is not None:
+            ds.plots.append(weakref.proxy(self))
 
         # Handle periodicity, just in case
         if self.data_source.axis < 3:
@@ -349,9 +349,9 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
         self.antialias = antialias
         self.data = {}
         
-        h = getattr(data_source, "index", None)
-        if h is not None:
-            h.plots.append(weakref.proxy(self))
+        ds = getattr(data_source, "pf", None)
+        if ds is not None:
+            ds.plots.append(weakref.proxy(self))
 
     def __getitem__(self, item) :
         if item in self.data: return self.data[item]

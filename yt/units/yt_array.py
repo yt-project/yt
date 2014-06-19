@@ -33,7 +33,7 @@ from yt.units.unit_registry import UnitRegistry
 from yt.units.dimensions import dimensionless
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUnitConversionError, \
-    YTUfuncUnitError
+    YTUfuncUnitError, YTIterableUnitCoercionError
 from numbers import Number as numeric_type
 from yt.utilities.on_demand_imports import _astropy
 from sympy import Rational
@@ -118,31 +118,47 @@ def arctan2_unit(unit1, unit2):
 def comparison_unit(unit1, unit2):
     return None
 
+NULL_UNIT = Unit()
+
+def coerce_iterable_units(input_object):
+    if isinstance(input_object, np.ndarray):
+        return input_object
+    if iterable(input_object):
+        if any([isinstance(o, YTArray) for o in input_object]):
+            ff = getattr(input_object[0], 'units', NULL_UNIT, )
+            if any([ff != getattr(_, 'units', NULL_UNIT) for _ in input_object]):
+                raise YTIterableUnitCoercionError(input_object)
+            # This will create a copy of the data in the iterable.
+            return YTArray(input_object)
+        return input_object
+    else:
+        return input_object
+
 def sanitize_units_mul(this_object, other_object):
-    ret = other_object
+    inp = coerce_iterable_units(this_object)
+    ret = coerce_iterable_units(other_object)
     # If the other object is a YTArray and has the same dimensions as the object
     # under consideration, convert so we don't mix units with the same
     # dimensions.
-    if isinstance(other_object, YTArray):
-        if this_object.units.same_dimensions_as(other_object.units):
-            ret = other_object.in_units(this_object.units)
+    if isinstance(ret, YTArray):
+        if inp.units.same_dimensions_as(ret.units):
+            ret.in_units(inp.units)
     return ret
 
 def sanitize_units_add(this_object, other_object, op_string):
+    inp = coerce_iterable_units(this_object)
+    ret = coerce_iterable_units(other_object)
     # Make sure the other object is a YTArray before we use the `units`
     # attribute.
-    if isinstance(other_object, YTArray):
-        if not this_object.units.same_dimensions_as(other_object.units):
-            raise YTUnitOperationError(op_string, this_object.units,
-                                       other_object.units)
-        ret = other_object.in_units(this_object.units)
+    if isinstance(ret, YTArray):
+        if not inp.units.same_dimensions_as(ret.units):
+            raise YTUnitOperationError(op_string, inp.units, ret.units)
+        ret = ret.in_units(inp.units)
     # If the other object is not a YTArray, the only valid case is adding
     # dimensionless things.
     else:
-        if not this_object.units.is_dimensionless:
-            raise YTUnitOperationError(op_string, this_object.units,
-                                       dimensionless)
-        ret = other_object
+        if not inp.units.is_dimensionless:
+            raise YTUnitOperationError(op_string, inp.units, dimensionless)
     return ret
 
 unary_operators = (
@@ -268,8 +284,8 @@ class YTArray(np.ndarray):
             return input_array
         elif isinstance(input_array, np.ndarray):
             pass
-        elif iterable(input_array):
-            if isinstance(input_array[0], YTQuantity):
+        elif iterable(input_array) and input_array:
+            if isinstance(input_array[0], YTArray):
                 return YTArray(np.array(input_array, dtype=dtype),
                                input_array[0].units)
 
@@ -903,17 +919,19 @@ class YTArray(np.ndarray):
                 raise YTUnitOperationError(context[0], u)
             ret_class = type(self)
         elif context[0] in binary_operators:
-            unit1 = getattr(context[1][0], 'units', None)
-            unit2 = getattr(context[1][1], 'units', None)
-            cls1 = type(context[1][0])
-            cls2 = type(context[1][1])
+            oper1 = coerce_iterable_units(context[1][0])
+            oper2 = coerce_iterable_units(context[1][1])
+            cls1 = type(oper1)
+            cls2 = type(oper2)
+            unit1 = getattr(oper1, 'units', None)
+            unit2 = getattr(oper2, 'units', None)
             ret_class = get_binary_op_return_class(cls1, cls2)
             if unit1 is None:
                 unit1 = Unit(registry=getattr(unit2, 'registry', None))
             if unit2 is None and context[0] is not power:
                 unit2 = Unit(registry=getattr(unit1, 'registry', None))
             elif context[0] is power:
-                unit2 = context[1][1]
+                unit2 = oper2
                 if isinstance(unit2, np.ndarray):
                     if isinstance(unit2, YTArray):
                         if unit2.units.is_dimensionless:
@@ -937,7 +955,7 @@ class YTArray(np.ndarray):
         else:
             raise RuntimeError("Operation is not defined.")
         if unit is None:
-            out_arr = np.array(out_arr)
+            out_arr = np.array(out_arr, copy=False)
             return out_arr
         out_arr.units = unit
         if out_arr.size == 1:
@@ -947,7 +965,7 @@ class YTArray(np.ndarray):
                 # This happens if you do ndarray * YTQuantity. Explicitly
                 # casting to YTArray avoids creating a YTQuantity with size > 1
                 return YTArray(np.array(out_arr, unit))
-            return ret_class(np.array(out_arr), unit)
+            return ret_class(np.array(out_arr, copy=False), unit)
 
 
     def __reduce__(self):
@@ -1029,9 +1047,9 @@ def array_like_field(data, x, field):
 def get_binary_op_return_class(cls1, cls2):
     if cls1 is cls2:
         return cls1
-    if cls1 is np.ndarray or issubclass(cls1, (numeric_type, np.number)):
+    if cls1 is np.ndarray or issubclass(cls1, (numeric_type, np.number, list, tuple)):
         return cls2
-    if cls2 is np.ndarray or issubclass(cls2, (numeric_type, np.number)):
+    if cls2 is np.ndarray or issubclass(cls2, (numeric_type, np.number, list, tuple)):
         return cls1
     if issubclass(cls1, YTQuantity):
         return cls2
@@ -1042,5 +1060,5 @@ def get_binary_op_return_class(cls1, cls2):
     if issubclass(cls2, cls1):
         return cls2
     else:
-        raise RuntimeError("Operations are only defined on pairs of objects"
-                           "in which one is a subclass of the other")
+        raise RuntimeError("Undefined operation for a YTArray subclass. "
+                           "Received operand types (%s) and (%s)" % (cls1, cls2))

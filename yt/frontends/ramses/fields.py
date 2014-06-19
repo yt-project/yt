@@ -32,7 +32,7 @@ from yt.units.yt_array import \
 
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"
-rho_units = "code_density"
+rho_units = "code_mass / code_length**3"
 vel_units = "code_length / code_time"
 
 known_species_masses = dict(
