@@ -503,9 +503,9 @@ class IOHandlerTipsyBinary(BaseIOHandler):
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
             for ptype, field_list in sorted(ptf.items(), key=lambda a: poff[a[0]]):
+                f.seek(poff[ptype], os.SEEK_SET)
                 total = 0
                 while total < tp[ptype]:
-                    f.seek(poff[ptype], os.SEEK_SET)
                     p = np.fromfile(f, self._pdtypes[ptype],
                             count=min(self._chunksize, tp[ptype] - total))
                     total += p.size
