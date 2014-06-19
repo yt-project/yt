@@ -62,8 +62,11 @@ class PlotMPL(object):
             self.axes = axes
         self.canvas = FigureCanvasAgg(self.figure)
 
-    def save(self, name, mpl_kwargs, canvas=None):
+    def save(self, name, mpl_kwargs=None, canvas=None):
         """Choose backend and save image to disk"""
+        if mpl_kwargs is None:
+            mpl_kwargs = {}
+
         suffix = get_image_suffix(name)
         if suffix == '':
             suffix = '.png'

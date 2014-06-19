@@ -744,8 +744,8 @@ class Camera(ParallelAnalysisInterface):
             if clip_ratio is not None: clip_ratio *= image.std()
             data = write_bitmap(image, None, clip_ratio)
             publish_display_data(
-                'yt.visualization.volume_rendering.camera.Camera',
-                {'image/png' : data}
+                data={'image/png': data},
+                source='yt.visualization.volume_rendering.camera.Camera',
             )
         else:
             raise YTNotInsideNotebook
