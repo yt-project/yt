@@ -317,6 +317,7 @@ class GridIndex(Index):
             # individual grids.
             yield YTDataChunk(dobj, "spatial", [g], size, cache = False)
 
+    _grid_chunksize = 1000
     def _chunk_io(self, dobj, cache = True, local_only = False):
         # local_only is only useful for inline datasets and requires
         # implementation by subclasses.
@@ -325,7 +326,14 @@ class GridIndex(Index):
         for g in gobjs:
             gfiles[g.filename].append(g)
         for fn in sorted(gfiles):
+            # We can apply a heuristic here to make sure we aren't loading too
+            # many grids all at once.
             gs = gfiles[fn]
-            yield YTDataChunk(dobj, "io", gs, self._count_selection(dobj, gs),
-                              cache = cache)
+            size = self._grid_chunksize
+            
+            for grids in (gs[pos:pos + size] for pos
+                          in xrange(0, len(gs), size)):
+                yield YTDataChunk(dobj, "io", grids,
+                        self._count_selection(dobj, grids),
+                        cache = cache)
 
