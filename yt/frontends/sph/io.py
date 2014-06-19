@@ -388,6 +388,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
     _ptypes = ( "Gas",
                 "DarkMatter",
                 "Stars" )
+    _chunksize = 64*64*64
 
     _aux_fields = None
     _fields = ( ("Gas", "Mass"),
@@ -502,12 +503,15 @@ class IOHandlerTipsyBinary(BaseIOHandler):
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
             for ptype, field_list in sorted(ptf.items(), key=lambda a: poff[a[0]]):
-                if tp[ptype] == 0: continue
-                f.seek(poff[ptype], os.SEEK_SET)
-                p = np.fromfile(f, self._pdtypes[ptype], count=tp[ptype])
-                d = [p["Coordinates"][ax].astype("float64") for ax in 'xyz']
-                del p
-                yield ptype, d
+                total = 0
+                while total < tp[ptype]:
+                    f.seek(poff[ptype], os.SEEK_SET)
+                    p = np.fromfile(f, self._pdtypes[ptype],
+                            count=min(self._chunksize, tp[ptype] - total))
+                    total += p.size
+                    d = [p["Coordinates"][ax].astype("float64") for ax in 'xyz']
+                    del p
+                    yield ptype, d
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
@@ -521,15 +525,19 @@ class IOHandlerTipsyBinary(BaseIOHandler):
             f = open(data_file.filename, "rb")
             for ptype, field_list in sorted(ptf.items(), key=lambda a: poff[a[0]]):
                 f.seek(poff[ptype], os.SEEK_SET)
-                p = np.fromfile(f, self._pdtypes[ptype], count=tp[ptype])
-                mask = selector.select_points(
-                    p["Coordinates"]['x'].astype("float64"),
-                    p["Coordinates"]['y'].astype("float64"),
-                    p["Coordinates"]['z'].astype("float64"), 0.0)
-                if mask is None: continue
-                tf = self._fill_fields(field_list, p, mask, data_file)
-                for field in field_list:
-                    yield (ptype, field), tf.pop(field)
+                total = 0
+                while total < tp[ptype]:
+                    p = np.fromfile(f, self._pdtypes[ptype],
+                        count=min(self._chunksize, tp[ptype] - total))
+                    mask = selector.select_points(
+                        p["Coordinates"]['x'].astype("float64"),
+                        p["Coordinates"]['y'].astype("float64"),
+                        p["Coordinates"]['z'].astype("float64"), 0.0)
+                    if mask is None: continue
+                    tf = self._fill_fields(field_list, p, mask, data_file)
+                    for field in field_list:
+                        yield (ptype, field), tf.pop(field)
+                    total += p.size
             f.close()
 
     def _update_domain(self, data_file):
