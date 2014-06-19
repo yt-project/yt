@@ -176,7 +176,7 @@ class HTTPDataStruct(DataStruct):
 
     def build_memmap(self):
         assert(self.size != -1)
-        print 'Building memmap with offset: %i' % self._offset
+        mylog.info('Building memmap with offset: %i and size %i' % (self._offset, self.size))
         self.handle = HTTPArray(self.filename, dtype=self.dtype,
                         shape=self.size, offset=self._offset)
         for k in self.dtype.names:
@@ -407,7 +407,6 @@ class SDFIndex(object):
             a =  self.sdfdata.parameters.get("a", 1.0)
             rmin = -a * np.array([rx, ry, rz])
             rmax = a * np.array([rx, ry, rz])
-            print rmin, rmax
             self.true_domain_left = rmin.copy()
             self.true_domain_right = rmax.copy()
             self.true_domain_width = rmax - rmin
@@ -415,6 +414,7 @@ class SDFIndex(object):
             expand_root = 0.0
             morton_xyz = self.sdfdata.parameters.get("morton_xyz", False)
             if not morton_xyz:
+                mylog.debug("Accounting for wandering particles")
                 self.wandering_particles = True
                 ic_Nmesh = self.sdfdata.parameters.get('ic_Nmesh',0)
                 # Expand root for non power-of-2
@@ -432,8 +432,9 @@ class SDFIndex(object):
             self.domain_buffer = (self.domain_dims - int(self.domain_dims/(1.0 + expand_root)))/2
             self.domain_active_dims = self.domain_dims - 2*self.domain_buffer
 
-        print self.rmin, self.rmax
-        mylog.debug("SINDEX: %s, %s, %s " % (self.domain_width, self.domain_dims, self.domain_active_dims))
+        mylog.debug("SINDEX rmin: %s, rmax: %s" % (self.rmin, self.rmax))
+        mylog.debug("SINDEX: domain_width: %s, domain_dims: %s, domain_active_dims: %s " %
+                    (self.domain_width, self.domain_dims, self.domain_active_dims))
 
     def spread_bits(self, ival, level=None):
         if level is None:
@@ -528,7 +529,7 @@ class SDFIndex(object):
         #print 'Getting data from ileft to iright:',  ileft, iright
 
         ix, iy, iz = (iright-ileft)*1j
-        #print 'IBBOX:', ileft, iright, ix, iy, iz
+        mylog.debug('SINDEX IBBOX: %s %s %s %s %s' % (ileft, iright, ix, iy, iz))
 
         # plus 1 that is sliced, plus a bit since mgrid is not inclusive
         Z, Y, X = np.mgrid[ileft[2]:iright[2]+1.01,
@@ -737,7 +738,7 @@ class SDFIndex(object):
         if pos_fields is None:
             pos_fields = 'x','y','z'
         xf, yf, zf = pos_fields
-        print pos_fields
+        mylog.debug("Using position fields: %s" % pos_fields)
 
         # I'm sorry.
         pos = mpcuq * np.array([data[xf].in_units('Mpccm/h'), data[yf].in_units('Mpccm/h'), data[zf].in_units('Mpccm/h')]).T
@@ -750,7 +751,7 @@ class SDFIndex(object):
             mask = pos[:,i] < right[i] - DW[i]
             pos[mask, i] += DW[i]
 
-        print left, right, pos.min(axis=0), pos.max(axis=0)
+        mylog.debug("Periodic filtering, %s %s %s %s" % (left, right, pos.min(axis=0), pos.max(axis=0)))
         # Now get all particles that are within the bbox
         mask = np.all(pos >= left, axis=1) * np.all(pos < right, axis=1)
 
@@ -869,6 +870,18 @@ class SDFIndex(object):
         #print "Level ", self.level, np.binary_repr(lmax_lk, width=self.level*3), np.binary_repr(lmax_rk, width=self.level*3)
         return lmax_lk, lmax_rk
 
+    def find_max_cell(self):
+        max_cell = np.argmax(self.indexdata['len'])
+        return max_cell
+
+    def find_max_cell_center(self):
+        max_cell = self.find_max_cell()
+        cell_ijk = np.array(
+            self.get_ind_from_key(self.indexdata['index'][max_cell]))
+        position = (cell_ijk + 0.5) * (self.domain_width / self.domain_dims) +\
+                self.rmin
+        return position
+
     def get_cell_data(self, level, cell_iarr, fields):
         """
         Get data from requested cell
@@ -888,7 +901,7 @@ class SDFIndex(object):
         """
         cell_iarr = np.array(cell_iarr)
         lk, rk =self.get_key_bounds(level, cell_iarr)
-        print 'Reading from ', lk, rk
+        mylog.debug("Reading contiguous chunk from %i to %i" % (lk, rk))
         return self.get_contiguous_chunk(lk, rk, fields)
 
     def get_cell_bbox(self, level, cell_iarr):
