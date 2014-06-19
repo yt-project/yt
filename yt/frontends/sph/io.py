@@ -610,10 +610,10 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                         eps = np.finfo(pp["Coordinates"][ax].dtype).eps
                         pos[:,i] = pp["Coordinates"][ax]
                     regions.add_data_file(pos, data_file.file_id,
-                                          data_file.pf.filter_bbox)
+                                          data_file.ds.filter_bbox)
                     morton[ind:ind+c] = compute_morton(
                         pos[:,0], pos[:,1], pos[:,2],
-                        DLE, DRE, data_file.pf.filter_bbox)
+                        DLE, DRE, data_file.ds.filter_bbox)
                     ind += c
         mylog.info("Adding %0.3e particles", morton.size)
         return morton
@@ -758,7 +758,7 @@ class IOHandlerHTTPStream(BaseIOHandler):
             c = np.frombuffer(s, dtype="float64")
             c.shape = (c.shape[0]/3.0, 3)
             regions.add_data_file(c, data_file.file_id,
-                                  data_file.pf.filter_bbox)
+                                  data_file.ds.filter_bbox)
             morton[ind:ind+c.shape[0]] = compute_morton(
                 c[:,0], c[:,1], c[:,2],
                 data_file.ds.domain_left_edge,

@@ -33,15 +33,15 @@ def test_sizmbhloz():
     ds.max_range = 1024*1024
     yield assert_equal, str(ds), "sizmbhloz-clref04SNth-rs9_a0.9011.art"
     dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
-    for ds in dso:
+    for dobj_name in dso:
         for field in _fields:
             for axis in [0, 1, 2]:
                 for weight_field in [None, "density"]:
                     yield PixelizedProjectionValuesTest(
                         sizmbhloz, axis, field, weight_field,
-                        ds)
-            yield FieldValuesTest(sizmbhloz, field, ds)
-        dobj = create_obj(ds, ds)
+                        dobj_name)
+            yield FieldValuesTest(sizmbhloz, field, dobj_name)
+        dobj = create_obj(ds, dobj_name)
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2

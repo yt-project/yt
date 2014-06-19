@@ -1535,11 +1535,11 @@ cdef class IndexedOctreeSubsetSelector(SelectorObject):
         self.min_level = self.base_selector.min_level
         self.max_level = self.base_selector.max_level
         self.filter_bbox = 0
-        if getattr(dobj.pf, "filter_bbox", False):
+        if getattr(dobj.ds, "filter_bbox", False):
             self.filter_bbox = 1
         for i in range(3):
-            self.DLE[i] = dobj.pf.domain_left_edge[i]
-            self.DRE[i] = dobj.pf.domain_right_edge[i]
+            self.DLE[i] = dobj.ds.domain_left_edge[i]
+            self.DRE[i] = dobj.ds.domain_right_edge[i]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

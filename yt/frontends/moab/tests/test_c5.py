@@ -53,6 +53,6 @@ def test_cantor_5():
             ray = ds.ray(p1, p2)
             yield assert_almost_equal, ray["dts"].sum(dtype="float64"), 1.0, 8
     for field in _fields:
-        for ds in dso:
-            yield FieldValuesTest(c5, field, ds)
+        for dobj_name in dso:
+            yield FieldValuesTest(c5, field, dobj_name)
 

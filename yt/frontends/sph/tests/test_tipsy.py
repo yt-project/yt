@@ -49,15 +49,15 @@ def test_pkdgrav():
     tot = sum(dd[ptype,"Coordinates"].shape[0]
               for ptype in ds.particle_types if ptype != "all")
     yield assert_equal, tot, 26847360
-    for ds in dso:
+    for dobj_name in dso:
         for field in _fields:
             for axis in [0, 1, 2]:
                 for weight_field in [None, "density"]:
                     yield PixelizedProjectionValuesTest(
                         ds, axis, field, weight_field,
-                        ds)
-            yield FieldValuesTest(ds, field, ds)
-        dobj = create_obj(ds, ds)
+                        dobj_name)
+            yield FieldValuesTest(ds, field, dobj_name)
+        dobj = create_obj(ds, dobj_name)
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2
@@ -80,15 +80,15 @@ def test_gasoline():
     tot = sum(dd[ptype,"Coordinates"].shape[0]
               for ptype in ds.particle_types if ptype != "all")
     yield assert_equal, tot, 10550576
-    for ds in dso:
+    for dobj_name in dso:
         for field in _fields:
             for axis in [0, 1, 2]:
                 for weight_field in [None, "density"]:
                     yield PixelizedProjectionValuesTest(
                         ds, axis, field, weight_field,
-                        ds)
-            yield FieldValuesTest(ds, field, ds)
-        dobj = create_obj(ds, ds)
+                        dobj_name)
+            yield FieldValuesTest(ds, field, dobj_name)
+        dobj = create_obj(ds, dobj_name)
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2

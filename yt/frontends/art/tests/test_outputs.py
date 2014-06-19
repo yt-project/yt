@@ -36,8 +36,8 @@ def test_d9p():
     dso = [None, ("sphere", ("max", (0.1, 'unitary')))]
     for field in _fields:
         for axis in [0, 1, 2]:
-            for ds in dso:
+            for dobj_name in dso:
                 for weight_field in [None, "density"]:
                     yield PixelizedProjectionValuesTest(
                         d9p, axis, field, weight_field,
-                        ds)
+                        dobj_name)

@@ -41,15 +41,15 @@ def test_snapshot_033():
     tot = sum(dd[ptype,"particle_position"].shape[0]
               for ptype in ds.particle_types if ptype != "all")
     yield assert_equal, tot, (2*128*128*128)
-    for ds in dso:
+    for dobj_name in dso:
         for field in _fields:
             for axis in [0, 1, 2]:
                 for weight_field in [None, "density"]:
                     yield PixelizedProjectionValuesTest(
                         os33, axis, field, weight_field,
-                        ds)
-            yield FieldValuesTest(os33, field, ds)
-        dobj = create_obj(ds, ds)
+                        dobj_name)
+            yield FieldValuesTest(os33, field, dobj_name)
+        dobj = create_obj(ds, dobj_name)
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2

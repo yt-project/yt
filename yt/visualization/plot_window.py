@@ -301,7 +301,7 @@ class PlotWindow(ImagePlotContainer):
                       if i != self.data_source.axis]
             self.set_center(center)
         for field in self.data_source._determine_fields(self.frb.data.keys()):
-            finfo = self.data_source.pf._get_field_info(*field)
+            finfo = self.data_source.ds._get_field_info(*field)
             if finfo.take_log:
                 self._field_transform[field] = log_transform
             else:

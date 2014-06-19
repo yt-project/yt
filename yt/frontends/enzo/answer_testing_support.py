@@ -56,14 +56,14 @@ def standard_small_simulation(ds_fn, fields):
         if bitwise:
             yield GridValuesTest(ds_fn, field)
         if 'particle' in field: continue
-        for ds in dso:
+        for dobj_name in dso:
             for axis in [0, 1, 2]:
                 for weight_field in [None, "Density"]:
                     yield ProjectionValuesTest(
                         ds_fn, axis, field, weight_field,
-                        ds, decimals=tolerance)
+                        dobj_name, decimals=tolerance)
             yield FieldValuesTest(
-                    ds_fn, field, ds, decimals=tolerance)
+                    ds_fn, field, dobj_name, decimals=tolerance)
                     
 class ShockTubeTest(object):
     def __init__(self, data_file, solution_file, fields, 

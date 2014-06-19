@@ -370,12 +370,12 @@ class RAMSESIndex(OctreeIndex):
         
 
         # TODO: copy/pasted from DomainFile; needs refactoring!
-        num = os.path.basename(self._ds.datasetname).split("."
+        num = os.path.basename(self._ds.paramaeter_filename).split("."
                 )[0].split("_")[1]
         testdomain = 1 # Just pick the first domain file to read
         basename = "%s/%%s_%s.out%05i" % (
             os.path.abspath(
-              os.path.dirname(self._ds.datasetname)),
+              os.path.dirname(self._ds.parameter_filename)),
             num, testdomain)
         hydro_fn = basename % "hydro"
         # Do we have a hydro file?

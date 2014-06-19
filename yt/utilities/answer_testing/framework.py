@@ -699,13 +699,13 @@ def small_patch_amr(ds_fn, fields):
     for field in fields:
         yield GridValuesTest(ds_fn, field)
         for axis in [0, 1, 2]:
-            for ds in dso:
+            for dobj_name in dso:
                 for weight_field in [None, "density"]:
                     yield ProjectionValuesTest(
                         ds_fn, axis, field, weight_field,
-                        ds)
+                        dboj_name)
                 yield FieldValuesTest(
-                        ds_fn, field, ds)
+                        ds_fn, field, dobj_name)
 
 def big_patch_amr(ds_fn, fields):
     if not can_run_ds(ds_fn): return
@@ -715,11 +715,11 @@ def big_patch_amr(ds_fn, fields):
     for field in fields:
         yield GridValuesTest(ds_fn, field)
         for axis in [0, 1, 2]:
-            for ds in dso:
+            for dobj_name in dso:
                 for weight_field in [None, "density"]:
                     yield PixelizedProjectionValuesTest(
                         ds_fn, axis, field, weight_field,
-                        ds)
+                        dobj_name)
 
 def create_obj(ds, obj_type):
     # obj_type should be tuple of
