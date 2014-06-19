@@ -81,6 +81,7 @@ class IOHandlerSDF(BaseIOHandler):
     def _initialize_index(self, data_file, regions):
         x, y, z = (self._handle[ax] for ax in 'xyz')
         pcount = x.size
+
         morton = np.empty(pcount, dtype='uint64')
         ind = 0
         while ind < pcount:
@@ -107,6 +108,14 @@ class IOHandlerSDF(BaseIOHandler):
         fields = [("dark_matter", v) for v in self._handle.keys()]
         fields.append(("dark_matter", "mass"))
         return fields, {}
+
+    def _count_particles(self, data_file):
+        pcount = self._handle['x'].size
+        if (pcount > 1e9):
+            mylog.warn("About to load %i particles into memory. " % (pcount) +
+                       "You may want to consider a midx-enabled load")
+        return {'dark_matter': pcount}
+
 
 class IOHandlerHTTPSDF(IOHandlerSDF):
     _dataset_type = "http_sdf_particles"
@@ -178,7 +187,7 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
     def _read_particle_fields(self, chunks, ptf, selector):
         dle = self.pf.domain_left_edge.in_units("code_length").d
         dre = self.pf.domain_right_edge.in_units("code_length").d
-        required_fields = ['x','y','z']
+        required_fields = []
         for ptype, field_list in sorted(ptf.items()):
             for field in field_list:
                 if field == "mass": continue
@@ -209,7 +218,7 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
         pcount = 0
         for dd in self.pf.sindex.iter_bbox_data(
             dle, dre,
-            ['x','y','z']):
+            ['x']):
             pcount += dd['x'].size
 
         morton = np.empty(pcount, dtype='uint64')
@@ -241,10 +250,15 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
     def _count_particles(self, data_file):
         dle = self.pf.domain_left_edge.in_units("code_length").d
         dre = self.pf.domain_right_edge.in_units("code_length").d
+        pcount_estimate = self.pf.sindex.get_nparticles_bbox(dle, dre)
+        if pcount_estimate > 1e9:
+            mylog.warning("Filtering %i particles to find total."
+                          % pcount_estimate + \
+                          " You may want to reconsider your bounding box.")
         pcount = 0
         for dd in self.pf.sindex.iter_bbox_data(
             dle, dre,
-            ['x','y','z']):
+            ['x']):
             pcount += dd['x'].size
         return {'dark_matter': pcount}
 

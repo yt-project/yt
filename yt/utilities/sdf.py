@@ -85,6 +85,10 @@ def sphere_filter(center, radius, domain_width):
 
     return myfilter
 
+def ensure_xzy_fields(fields):
+    for f in 'xyz':
+        if f not in fields:
+            fields.append(f)
 
 class DataStruct(object):
     """docstring for DataStruct"""
@@ -763,6 +767,7 @@ class SDFIndex(object):
                 yield f, data[f][mask]
 
     def iter_bbox_data(self, left, right, fields):
+        ensure_xzy_fields(fields)
         mylog.debug('SINDEX Loading region from %s to %s' %(left, right))
         inds = self.get_bbox(left, right)
         # Need to put left/right in float32 to avoid fp roundoff errors
@@ -782,6 +787,7 @@ class SDFIndex(object):
         #    yield dd
 
     def iter_sphere_data(self, center, radius, fields):
+        ensure_xzy_fields(fields)
         mylog.debug('SINDEX Loading spherical region %s to %s' %(center, radius))
         inds = self.get_bbox(center-radius, center+radius)
 
@@ -918,6 +924,7 @@ class SDFIndex(object):
 
         """
 
+        ensure_xzy_fields(fields)
         bbox = self.get_cell_bbox(level, cell_iarr)
         filter_left = bbox[:, 0] - pad
         filter_right = bbox[:, 1] + pad
@@ -1001,6 +1008,7 @@ class SDFIndex(object):
                                              8.0, ['x','y','z','ident'])
 
         """
+        ensure_xzy_fields(fields)
         bbox = self.get_cell_bbox(level, cell_iarr)
         filter_left = bbox[:, 0] - pad
         filter_right = bbox[:, 1] + pad
