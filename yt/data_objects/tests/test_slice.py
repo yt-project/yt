@@ -59,11 +59,12 @@ def test_slice():
                 yield assert_equal, np.unique(slc["py"]), uc[yax]
                 yield assert_equal, np.unique(slc["pdx"]), 0.5 / dims[xax]
                 yield assert_equal, np.unique(slc["pdy"]), 0.5 / dims[yax]
-                pw = slc.to_pw()
-                tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
-                os.close(tmpfd)
-                pw.save(name=tmpname)
-                fns.append(tmpname)
+                pw = slc.to_pw(fields='density')
+                for p in pw.plots.values():
+                    tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+                    os.close(tmpfd)
+                    p.save(name=tmpname)
+                    fns.append(tmpname)
                 frb = slc.to_frb((1.0, 'unitary'), 64)
                 for slc_field in ['ones', 'density']:
                     fi = ds._get_field_info(slc_field)

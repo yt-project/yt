@@ -1,8 +1,11 @@
-from yt.mods import *
-import matplotlib.pyplot as plt
-import h5py
+### THIS RECIPE IS CURRENTLY BROKEN IN YT-3.0
+### DO NOT TRUST THIS RECIPE UNTIL THIS LINE IS REMOVED
 
-ds = load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
+import yt
+import matplotlib.pyplot as plt
+import h5py as h5
+
+ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
 
 # Get a sphere
 
@@ -10,19 +13,19 @@ sp = ds.sphere(ds.domain_center, (500., "kpc"))
 
 # Radial profile from the sphere
 
-rad_profile = BinnedProfile1D(sp, 100, "Radiuskpc", 0.0, 500., log_space=False)
-
-# Adding density and temperature fields to the profile
-
-rad_profile.add_fields(["density","temperature"])
+prof = yt.BinnedProfile1D(sp, 100, "Radiuskpc", 0.0, 500., log_space=False)
+prof = yt.ProfilePlot(sp, 'radius', ['density', 'temperature'], weight_field="cell_mass")
+prof.set_unit('radius', 'kpc')
+prof.set_log('radius', False)
+prof.set_xlim(0, 500)
 
 # Write profiles to ASCII file
 
-rad_profile.write_out("%s_profile.dat" % ds, bin_style="center")
+prof.write_out("%s_profile.dat" % ds, bin_style="center")
 
 # Write profiles to HDF5 file
 
-rad_profile.write_out_h5("%s_profile.h5" % ds, bin_style="center")
+prof.write_out_h5("%s_profile.h5" % ds, bin_style="center")
 
 # Now we will show how using NumPy, h5py, and Matplotlib the data in these
 # files may be plotted.

@@ -1081,7 +1081,7 @@ class ParallelAnalysisInterface(object):
         RE[yax] = y[1] * (DRE[yax]-DLE[yax]) + DLE[yax]
         mylog.debug("Dimensions: %s %s", LE, RE)
 
-        reg = self.index.region(self.center, LE, RE)
+        reg = self.pf.region(self.center, LE, RE)
         return True, reg
 
     def partition_index_3d(self, ds, padding=0.0, rank_ratio = 1):
@@ -1097,7 +1097,7 @@ class ParallelAnalysisInterface(object):
             return False, LE, RE, ds
         if not self._distributed and subvol:
             return True, LE, RE, \
-            self.index.region(self.center, LE-padding, RE+padding)
+            self.pf.region(self.center, LE-padding, RE+padding)
         elif ytcfg.getboolean("yt", "inline"):
             # At this point, we want to identify the root grid tile to which
             # this processor is assigned.
@@ -1110,7 +1110,7 @@ class ParallelAnalysisInterface(object):
             #raise KeyError
             LE = root_grids[0].LeftEdge
             RE = root_grids[0].RightEdge
-            return True, LE, RE, self.index.region(self.center, LE, RE)
+            return True, LE, RE, self.pf.region(self.center, LE, RE)
 
         cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
         mi = self.comm.rank % (self.comm.size / rank_ratio)
@@ -1124,10 +1124,10 @@ class ParallelAnalysisInterface(object):
 
         if padding > 0:
             return True, \
-                LE, RE, self.index.region(self.center,
+                LE, RE, self.pf.region(self.center,
                 LE-padding, RE+padding)
 
-        return False, LE, RE, self.index.region(self.center, LE, RE)
+        return False, LE, RE, self.pf.region(self.center, LE, RE)
 
     def partition_region_3d(self, left_edge, right_edge, padding=0.0,
             rank_ratio = 1):
@@ -1152,10 +1152,10 @@ class ParallelAnalysisInterface(object):
 
         if padding > 0:
             return True, \
-                LE, RE, self.index.region(self.center, LE-padding,
+                LE, RE, self.pf.region(self.center, LE-padding,
                     RE+padding)
 
-        return False, LE, RE, self.index.region(self.center, LE, RE)
+        return False, LE, RE, self.pf.region(self.center, LE, RE)
 
     def partition_index_3d_bisection_list(self):
         """

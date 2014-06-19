@@ -411,8 +411,8 @@ def display_in_notebook(image, max_val=None):
         from IPython.core.displaypub import publish_display_data
         data = write_bitmap(image, None, max_val=max_val)
         publish_display_data(
-            'yt.visualization.image_writer.display_in_notebook',
-            {'image/png' : data}
+            data={'image/png': data},
+            source='yt.visualization.image_writer.display_in_notebook',
         )
     else:
         raise YTNotInsideNotebook

@@ -29,6 +29,8 @@ from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.data_objects.static_output import \
     Dataset
+from yt.utilities.file_handler import \
+    FITSFileHandler
 from yt.utilities.io_handler import \
     io_registry
 from .fields import FITSFieldInfo
@@ -153,7 +155,7 @@ class FITSHierarchy(GridIndex):
             naxis4 = self.dataset.primary_header["naxis4"]
         else:
             naxis4 = 1
-        for i, fits_file in enumerate(self.dataset._fits_files):
+        for i, fits_file in enumerate(self.dataset._handle._fits_files):
             for j, hdu in enumerate(fits_file):
                 if self._ensure_same_dims(hdu):
                     units = self._determine_image_units(hdu.header, known_units)
@@ -355,15 +357,12 @@ class FITSDataset(Dataset):
         elif isinstance(nan_mask, dict):
             self.nan_mask = nan_mask
         if isinstance(self.filenames[0], _astropy.pyfits.PrimaryHDU):
-            self._handle = _astropy.pyfits.HDUList(self.filenames[0])
+            self._handle = FITSFileHandler(self.filenames[0])
             fn = "InMemoryFITSImage_%s" % (uuid.uuid4().hex)
         else:
-            self._handle = _astropy.pyfits.open(self.filenames[0],
-                                                memmap=True,
-                                                do_not_scale_image_data=True,
-                                                ignore_blank=True)
+            self._handle = FITSFileHandler(self.filenames[0])
             fn = self.filenames[0]
-        self._fits_files = [self._handle]
+        self._handle._fits_files = [self._handle]
         if self.num_files > 1:
             for fits_file in auxiliary_files:
                 if os.path.exists(fits_file):
@@ -373,7 +372,7 @@ class FITSDataset(Dataset):
                 f = _astropy.pyfits.open(fn, memmap=True,
                                          do_not_scale_image_data=True,
                                          ignore_blank=True)
-                self._fits_files.append(f)
+                self._handle._fits_files.append(f)
 
         if len(self._handle) > 1 and self._handle[1].name == "EVENTS":
             self.events_data = True
@@ -647,13 +646,6 @@ class FITSDataset(Dataset):
         pv = self.arr(pixel_value, "code_length")
         return self.arr((pv.v-self._p0)*self._dz+self._z0,
                         self.spec_unit)
-
-    def __del__(self):
-        for f in self._fits_files:
-            f.close()
-            del file
-        self._handle.close()
-        del self._handle
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):

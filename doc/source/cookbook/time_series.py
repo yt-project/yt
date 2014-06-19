@@ -1,19 +1,13 @@
-from yt.mods import *
+import yt
 import glob
 import matplotlib.pyplot as plt
 
-keV = 1.16044e7
-mue = 1.0/0.875
-m_p = 1.673e-24
-mtt = -2./3.
-
 # Glob for a list of filenames, then sort them
-fns = glob.glob("GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0")
+fns = glob.glob("GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0*")
 fns.sort()
 
 # Construct the time series object
-
-ts = DatasetSeries.from_filenames(fns)
+ts = yt.DatasetSeries.from_filenames(fns)
 
 storage = {}
 
@@ -22,12 +16,11 @@ storage = {}
 # times and entrs.
 for sto, ds in ts.piter(storage=storage):
     sphere = ds.sphere("c", (100., "kpc"))
-    temp = sphere["temperature"]/keV
-    dens = sphere["density"]/(m_p*mue)
-    mgas = sphere["cell_mass"]
-    entr = (temp*(dens**mtt)*mgas).sum()/mgas.sum() 
-    sto.result = (ds.current_time, entr)
+    entr = sphere["entropy"].sum()
+    sto.result = (ds.current_time.in_units('Gyr'), entr)
 
+
+# Store these values in a couple of lists
 times = []
 entrs = []
 for k in storage:
@@ -35,8 +28,10 @@ for k in storage:
     times.append(t)
     entrs.append(e)
 
-if is_root():
-    plt.semilogy(times, entrs, 'x-')
-    plt.xlabel("Time")
-    plt.ylabel("Entropy")
-    plt.savefig("time_versus_entropy.png")
+
+# Plot up the results
+
+plt.semilogy(times, entrs, '-')
+plt.xlabel("Time (Gyr)")
+plt.ylabel("Entropy (ergs/K)")
+plt.savefig("time_versus_entropy.png")

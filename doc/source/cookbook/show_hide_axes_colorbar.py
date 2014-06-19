@@ -1,8 +1,8 @@
-from yt.mods import *
+import yt
 
-ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
-slc = SlicePlot(ds, "x", "density")
+slc = yt.SlicePlot(ds, "x", "density")
 
 slc.save("default_sliceplot.png")
 

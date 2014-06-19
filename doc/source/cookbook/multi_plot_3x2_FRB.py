@@ -1,11 +1,13 @@
-from yt.mods import * # set up our namespace
+import yt
+import numpy as np
+from yt.visualization.api import get_multi_plot
 import matplotlib.colorbar as cb
 from matplotlib.colors import LogNorm
 
 fn = "Enzo_64/RD0006/RedshiftOutput0006" # dataset to load
 
-
-ds = load(fn) # load data
+# load data and get center value and center location as maximum density location
+ds = yt.load(fn) 
 v, c = ds.find_max("density")
 
 # set up our Fixed Resolution Buffer parameters: a width, resolution, and center
@@ -39,11 +41,16 @@ for ax in range(3):
         ax.xaxis.set_visible(False)
         ax.yaxis.set_visible(False)
 
-    plots.append(den_axis.imshow(frb['density'], norm=LogNorm()))
+    # converting our fixed resolution buffers to NDarray so matplotlib can
+    # render them
+    dens = np.array(frb['density'])
+    temp = np.array(frb['temperature'])
+
+    plots.append(den_axis.imshow(dens, norm=LogNorm()))
     plots[-1].set_clim((5e-32, 1e-29))
     plots[-1].set_cmap("bds_highcontrast")
 
-    plots.append(temp_axis.imshow(frb['temperature'], norm=LogNorm()))
+    plots.append(temp_axis.imshow(temp, norm=LogNorm()))
     plots[-1].set_clim((1e3, 1e8))
     plots[-1].set_cmap("hot")
     

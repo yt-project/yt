@@ -1,18 +1,22 @@
-from yt.mods import *
+### THIS RECIPE IS CURRENTLY BROKEN IN YT-3.0
+### DO NOT TRUST THIS RECIPE UNTIL THIS LINE IS REMOVED
+
+import yt
+import numpy as np
 
 # Load the dataset.
-ds = load("Enzo_64/DD0043/data0043")
+ds = yt.load("Enzo_64/DD0043/data0043")
 
 # Create a data container (like a sphere or region) that
 # represents the entire domain.
-dd = ds.all_data()
+ad = ds.all_data()
 
 # Get the minimum and maximum densities.
-mi, ma = dd.quantities["Extrema"]("density")[0]
+mi, ma = ad.quantities.extrema("density")
 
 # Create a transfer function to map field values to colors.
 # We bump up our minimum to cut out some of the background fluid
-tf = ColorTransferFunction((np.log10(mi)+2.0, np.log10(ma)))
+tf = yt.ColorTransferFunction((np.log10(mi)+2.0, np.log10(ma)))
 
 # Add three guassians, evenly spaced between the min and
 # max specified above with widths of 0.02 and using the
@@ -58,4 +62,3 @@ nim.write_png('%s_vr_grids.png' % ds)
 # it through the camera. Then save it out.
 cam.draw_coordinate_vectors(nim)
 nim.write_png("%s_vr_vectors.png" % ds)
-

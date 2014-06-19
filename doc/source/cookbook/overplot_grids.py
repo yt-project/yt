@@ -1,10 +1,10 @@
-from yt.mods import *
+import yt
 
 # Load the dataset.
-ds = load("Enzo_64/DD0043/data0043")
+ds = yt.load("Enzo_64/DD0043/data0043")
 
 # Make a density projection.
-p = ProjectionPlot(ds, "y", "density")
+p = yt.ProjectionPlot(ds, "y", "density")
 
 # Modify the projection
 # The argument specifies the region along the line of sight

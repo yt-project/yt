@@ -320,8 +320,7 @@ class Halo(object):
             center = self.maximum_density_location()
         radius = self.maximum_radius()
         # A bit of a long-reach here...
-        sphere = self.data.index.sphere(
-                        center, radius=radius)
+        sphere = self.data.pf.sphere(center, radius=radius)
         return sphere
 
     def get_size(self):
@@ -685,7 +684,7 @@ class RockstarHalo(Halo):
         >>> ell = halos[0].get_ellipsoid()
         """
         ep = self.get_ellipsoid_parameters()
-        ell = self.data.index.ellipsoid(ep[0], ep[1], ep[2], ep[3],
+        ell = self.data.pf.ellipsoid(ep[0], ep[1], ep[2], ep[3],
             ep[4], ep[5])
         return ell
     
@@ -985,8 +984,7 @@ class LoadedHalo(Halo):
         >>> ell = halos[0].get_ellipsoid()
         """
         ep = self.get_ellipsoid_parameters()
-        ell = self.ds.index.ellipsoid(ep[0], ep[1], ep[2], ep[3],
-            ep[4], ep[5])
+        ell = self.ds.ellipsoid(ep[0], ep[1], ep[2], ep[3], ep[4], ep[5])
         return ell
 
     def get_sphere(self):
@@ -2128,11 +2126,11 @@ class parallelHF(GenericHaloFinder, parallelHOPHaloList):
                 self.comm.mpi_bcast(self.bucket_bounds)
             my_bounds = self.bucket_bounds[self.comm.rank]
             LE, RE = my_bounds[0], my_bounds[1]
-            self._data_source = self.index.region([0.] * 3, LE, RE)
+            self._data_source = self.pf.region([0.] * 3, LE, RE)
         # If this isn't parallel, define the region as an AMRRegionStrict so
         # particle IO works.
         if self.comm.size == 1:
-            self._data_source = self.index.region([0.5] * 3,
+            self._data_source = self.pf.region([0.5] * 3,
                 LE, RE)
         # get the average spacing between particles for this region
         # The except is for the serial case where the full box is what we want.
@@ -2491,7 +2489,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         self.redshift = ds.current_redshift
         self._data_source = ds.all_data()
         GenericHaloFinder.__init__(self, ds, self._data_source, dm_only,
-            padding)
+                                   padding)
         self.padding = 0.0  # * ds["unitary"] # This should be clevererer
         # get the total number of particles across all procs, with no padding
         padded, LE, RE, self._data_source = \

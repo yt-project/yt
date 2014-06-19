@@ -29,11 +29,12 @@ def test_cutting_plane():
         yield assert_equal, cut["ones"].sum(), cut["ones"].size
         yield assert_equal, cut["ones"].min(), 1.0
         yield assert_equal, cut["ones"].max(), 1.0
-        pw = cut.to_pw()
-        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
-        os.close(tmpfd)
-        pw.save(name=tmpname)
-        fns.append(tmpname)
+        pw = cut.to_pw(fields='density')
+        for p in pw.plots.values():
+            tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+            os.close(tmpfd)
+            p.save(name=tmpname)
+            fns.append(tmpname)
         frb = cut.to_frb((1.0, 'unitary'), 64)
         for cut_field in ['ones', 'density']:
             fi = ds._get_field_info("unknown", cut_field)

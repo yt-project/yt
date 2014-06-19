@@ -397,8 +397,8 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         """
         normal = self.normal
         center = self.center
-        self.fields = [k for k in self.field_data.keys()
-                       if k not in self._key_fields]
+        self.fields = ensure_list(fields) + [k for k in self.field_data.keys()
+                                             if k not in self._key_fields]
         from yt.visualization.plot_window import get_oblique_window_parameters, PWViewerMPL
         from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
         (bounds, center_rot) = get_oblique_window_parameters(normal, center, width, self.ds)
@@ -409,6 +409,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             plot_type='OffAxisSlice')
         if axes_unit is not None:
             pw.set_axes_unit(axes_unit)
+        pw._setup_plots()
         return pw
 
     def to_frb(self, width, resolution, height=None):

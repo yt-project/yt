@@ -1,16 +1,21 @@
-from yt.mods import * # set up our namespace
+import yt
+import numpy as np
 
-fn = "IsolatedGalaxy/galaxy0030/galaxy0030" # dataset to load
-n_frames = 5  # This is the number of frames to make -- below, you can see how
-              # this is used.
-min_dx = 40   # This is the minimum size in smallest_dx of our last frame.
-              # Usually it should be set to something like 400, but for THIS
-              # dataset, we actually don't have that great of resolution.:w
+# load data
+fn = "IsolatedGalaxy/galaxy0030/galaxy0030"
+ds = yt.load(fn)
 
-ds = load(fn) # load data
+# This is the number of frames to make -- below, you can see how this is used.
+n_frames = 5
+
+# This is the minimum size in smallest_dx of our last frame.
+# Usually it should be set to something like 400, but for THIS
+# dataset, we actually don't have that great of resolution.
+min_dx = 40
+
 frame_template = "frame_%05i" # Template for frame filenames
 
-p = SlicePlot(ds, "z", "density") # Add our slice, along z
+p = yt.SlicePlot(ds, "z", "density") # Add our slice, along z
 p.annotate_contour("temperature") # We'll contour in temperature
 
 # What we do now is a bit fun.  "enumerate" returns a tuple for every item --
@@ -19,9 +24,11 @@ p.annotate_contour("temperature") # We'll contour in temperature
 # argument to enumerate is the 'logspace' function, which takes a minimum and a
 # maximum and the number of items to generate.  It returns 10^power of each
 # item it generates.
-for i,v in enumerate(np.logspace(
-            0, np.log10(ds.index.get_smallest_dx()*min_dx), n_frames)):
-    # We set our width as necessary for this frame ...
+
+for i,v in enumerate(np.logspace(0,
+                                 np.log10(ds.index.get_smallest_dx()*min_dx),
+                                 n_frames)):
+    # We set our width as necessary for this frame
     p.set_width(v, 'unitary')
-    # ... and we save!
+    # save
     p.save(frame_template % (i))

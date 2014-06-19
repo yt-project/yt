@@ -1,7 +1,7 @@
-from yt.mods import *
+import yt
 
 # Load the dataset.
-ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
 # Create a 1 kpc radius sphere, centered on the max density.  Note that this
 # sphere is very small compared to the size of our final plot, and it has a
@@ -14,5 +14,5 @@ L = sp.quantities["AngularMomentumVector"]()
 print "Angular momentum vector: {0}".format(L)
 
 # Create an OffAxisSlicePlot on the object with the L vector as its normal
-p = OffAxisProjectionPlot(ds, L, "density", sp.center, (25, "kpc"))
+p = yt.OffAxisProjectionPlot(ds, L, "density", sp.center, (25, "kpc"))
 p.save()

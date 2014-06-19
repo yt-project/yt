@@ -78,7 +78,8 @@ class FixedResolutionBuffer(object):
     >>> print frb1["Temperature"].max()
     104923.1
     """
-    _exclude_fields = ('pz','pdz','dx','x','y','z')
+    _exclude_fields = ('pz','pdz','dx','x','y','z',
+                       ('index','dx'),('index','x'),('index','y'),('index','z'))
     def __init__(self, data_source, bounds, buff_size, antialias = True,
                  periodic = False):
         self.data_source = data_source

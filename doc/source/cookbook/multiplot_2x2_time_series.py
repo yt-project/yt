@@ -1,4 +1,4 @@
-from yt.mods import *
+import yt
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import AxesGrid
 
@@ -23,8 +23,8 @@ grid = AxesGrid(fig, (0.075,0.075,0.85,0.85),
 
 for i, fn in enumerate(fns):
     # Load the data and create a single plot
-    ds = load(fn) # load data
-    p = ProjectionPlot(ds, 'z', 'density', width=(55, 'Mpccm'))
+    ds = yt.load(fn) # load data
+    p = yt.ProjectionPlot(ds, 'z', 'density', width=(55, 'Mpccm'))
 
     # Ensure the colorbar limits match for all plots
     p.set_zlim('density', 1e-4, 1e-2)

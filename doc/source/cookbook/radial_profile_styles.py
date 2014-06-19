@@ -1,16 +1,20 @@
-from yt.mods import *
+### THIS RECIPE IS CURRENTLY BROKEN IN YT-3.0
+### DO NOT TRUST THIS RECIPE UNTIL THIS LINE IS REMOVED
+
+import yt
 import matplotlib.pyplot as plt
 
-ds = load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
+ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
 
 # Get a sphere object
 
-sphere = ds.sphere(ds.domain_center, (500., "kpc"))
+sp = ds.sphere(ds.domain_center, (500., "kpc"))
 
 # Bin up the data from the sphere into a radial profile
 
-rad_profile = BinnedProfile1D(sphere, 100, "Radiuskpc", 0.0, 500., log_space=False)
-rad_profile.add_fields("density","temperature")
+rp = yt.ProfilePlot(sp, 'radius', ['density', 'temperature'])
+rp.set_unit('radius', 'kpc')
+rp.set_log('radius', False)
 
 # Make plots using matplotlib
 
@@ -18,7 +22,7 @@ fig = plt.figure()
 ax = fig.add_subplot(111)
 
 # Plot the density as a log-log plot using the default settings
-dens_plot = ax.loglog(rad_profile["Radiuskpc"], rad_profile["density"])
+dens_plot = ax.loglog(rp["Radiuskpc"], rp["density"])
 
 # Here we set the labels of the plot axes
 
@@ -51,10 +55,10 @@ fig.savefig("density_profile_thick_with_xs.png")
 
 ax.lines = []
 
-# Since the rad_profile object also includes the standard deviation in each bin,
+# Since the radial profile object also includes the standard deviation in each bin,
 # we'll use these as errorbars. We have to make a new plot for this:
 
-dens_err_plot = ax.errorbar(rad_profile["Radiuskpc"], rad_profile["density"],
-                            yerr=rad_profile["Density_std"])
+dens_err_plot = ax.errorbar(pr["Radiuskpc"], rp["density"],
+                            yerr=rp["Density_std"])
                                                         
 fig.savefig("density_profile_with_errorbars.png")

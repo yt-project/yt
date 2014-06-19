@@ -18,9 +18,6 @@ All of the data used in the cookbook is freely available
 `here <http://yt-project.org/data/>`_, where you will find links to download 
 individual datasets.
 
-If you want to take a look at more complex recipes, or submit your own,
-check out the `yt Hub <http://hub.yt-project.org>`_.
-
 .. note:: To contribute your own recipes, please follow the instructions 
     on how to contribute documentation code: :ref:`writing_documentation`.
 

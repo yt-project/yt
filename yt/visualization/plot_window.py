@@ -291,7 +291,7 @@ class PlotWindow(ImagePlotContainer):
         else:
             fields = ensure_list(fields)
         self.override_fields = list(set(fields).intersection(set(skip)))
-        self.fields = fields
+        self.fields = [f for f in fields if f not in skip]
         super(PlotWindow, self).__init__(data_source, window_size, fontsize)
         self._set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
@@ -300,8 +300,8 @@ class PlotWindow(ImagePlotContainer):
                       range(len(self.data_source.center))
                       if i != self.data_source.axis]
             self.set_center(center)
-        for field in self.frb.data.keys():
-            finfo = self.data_source.ds._get_field_info(*field)
+        for field in self.data_source._determine_fields(self.frb.data.keys()):
+            finfo = self.data_source.pf._get_field_info(*field)
             if finfo.take_log:
                 self._field_transform[field] = log_transform
             else:
@@ -768,7 +768,7 @@ class PWViewerMPL(PlotWindow):
 
     def _setup_plots(self):
         self._colorbar_valid = True
-        for f in self.data_source._determine_fields(self.fields):
+        for f in list(set(self.data_source._determine_fields(self.fields))):
             axis_index = self.data_source.axis
 
             xc, yc = self._setup_origin()
