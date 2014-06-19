@@ -134,17 +134,13 @@ class IOHandlerOWLS(BaseIOHandler):
             dt = ds.dtype.newbyteorder("N") # Native
             pos = np.empty(ds.shape, dtype=dt)
             pos[:] = ds
-            if np.any(pos.min(axis=0) < self.pf.domain_left_edge) or \
-               np.any(pos.max(axis=0) > self.pf.domain_right_edge):
-                raise YTDomainOverflow(pos.min(axis=0),
-                                       pos.max(axis=0),
-                                       self.pf.domain_left_edge,
-                                       self.pf.domain_right_edge)
-            regions.add_data_file(pos, data_file.file_id)
+            regions.add_data_file(pos, data_file.file_id,
+                                  data_file.pf.filter_bbox)
             morton[ind:ind+pos.shape[0]] = compute_morton(
                 pos[:,0], pos[:,1], pos[:,2],
                 data_file.pf.domain_left_edge,
-                data_file.pf.domain_right_edge)
+                data_file.pf.domain_right_edge,
+                data_file.pf.filter_bbox)
             ind += pos.shape[0]
         f.close()
         return morton
@@ -322,14 +318,9 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             # The first total_particles * 3 values are positions
             pp = np.fromfile(f, dtype = 'float32', count = count*3)
             pp.shape = (count, 3)
-            if np.any(pp.min(axis=0) < self.pf.domain_left_edge) or \
-               np.any(pp.max(axis=0) > self.pf.domain_right_edge):
-                raise YTDomainOverflow(pp.min(axis=0),
-                                       pp.max(axis=0),
-                                       self.pf.domain_left_edge,
-                                       self.pf.domain_right_edge)
-        regions.add_data_file(pp, data_file.file_id)
-        morton = compute_morton(pp[:,0], pp[:,1], pp[:,2], DLE, DRE)
+        regions.add_data_file(pp, data_file.file_id, data_file.pf.filter_bbox)
+        morton = compute_morton(pp[:,0], pp[:,1], pp[:,2], DLE, DRE,
+                                data_file.pf.filter_bbox)
         return morton
 
     def _count_particles(self, data_file):
@@ -614,21 +605,15 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                         mylog.debug("Spanning: %0.3e .. %0.3e in %s", mi, ma, ax)
                         mis[axi] = mi
                         mas[axi] = ma
-                    if np.any(mis < pf.domain_left_edge) or \
-                       np.any(mas > pf.domain_right_edge):
-                        raise YTDomainOverflow(mis, mas,
-                                               pf.domain_left_edge,
-                                               pf.domain_right_edge)
                     pos = np.empty((pp.size, 3), dtype="float64")
                     for i, ax in enumerate("xyz"):
                         eps = np.finfo(pp["Coordinates"][ax].dtype).eps
-                        pos[:,i] = np.clip(pp["Coordinates"][ax],
-                                    self.domain_left_edge[i] + eps,
-                                    self.domain_right_edge[i] - eps)
-                    regions.add_data_file(pos, data_file.file_id)
+                        pos[:,i] = pp["Coordinates"][ax]
+                    regions.add_data_file(pos, data_file.file_id,
+                                          data_file.pf.filter_bbox)
                     morton[ind:ind+c] = compute_morton(
                         pos[:,0], pos[:,1], pos[:,2],
-                        DLE, DRE)
+                        DLE, DRE, data_file.pf.filter_bbox)
                     ind += c
         mylog.info("Adding %0.3e particles", morton.size)
         return morton
@@ -772,11 +757,13 @@ class IOHandlerHTTPStream(BaseIOHandler):
             s = self._open_stream(data_file, (ptype, "Coordinates"))
             c = np.frombuffer(s, dtype="float64")
             c.shape = (c.shape[0]/3.0, 3)
-            regions.add_data_file(c, data_file.file_id)
+            regions.add_data_file(c, data_file.file_id,
+                                  data_file.pf.filter_bbox)
             morton[ind:ind+c.shape[0]] = compute_morton(
                 c[:,0], c[:,1], c[:,2],
                 data_file.pf.domain_left_edge,
-                data_file.pf.domain_right_edge)
+                data_file.pf.domain_right_edge,
+                data_filter.pf.filter_bbox)
             ind += c.shape[0]
         return morton
 

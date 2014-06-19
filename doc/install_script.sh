@@ -568,7 +568,7 @@ fi
 mkdir -p ${DEST_DIR}/data
 cd ${DEST_DIR}/data
 echo 'de6d8c6ea849f0206d219303329a0276b3cce7c051eec34377d42aacbe0a4f47ac5145eb08966a338ecddd2b83c8f787ca9956508ad5c39ee2088ad875166410  xray_emissivity.h5' > xray_emissivity.h5.sha512
-get_ytdata xray_emissivity.h5
+[ ! -e xray_emissivity.h5 ] && get_ytdata xray_emissivity.h5
 
 # Set paths to what they should be when yt is activated.
 export PATH=${DEST_DIR}/bin:$PATH
@@ -813,6 +813,7 @@ then
         YT_DIR=`dirname $ORIG_PWD`
     elif [ ! -e yt-hg ]
     then
+        echo "Cloning yt"
         YT_DIR="$PWD/yt-hg/"
         ( ${HG_EXEC} --debug clone https://bitbucket.org/yt_analysis/yt-supplemental/ 2>&1 ) 1>> ${LOG_FILE}
         # Recently the hg server has had some issues with timeouts.  In lieu of
@@ -940,16 +941,19 @@ do_setup_py $SYMPY
 # Now we build Rockstar and set its environment variable.
 if [ $INST_ROCKSTAR -eq 1 ]
 then
-    if [ ! -e Rockstar/done ]
+    if [ ! -e rockstar/done ]
     then
-        [ ! -e Rockstar ] && hg clone http://bitbucket.org/MatthewTurk/rockstar
         echo "Building Rockstar"
-        cd Rockstar
-        hg pull
-        hg up -C tip
+        if [ ! -e rockstar ]
+        then
+            ( hg clone http://bitbucket.org/MatthewTurk/rockstar 2>&1 ) 1>> ${LOG_FILE}
+        fi
+        cd rockstar
+        ( hg pull 2>&1 ) 1>> ${LOG_FILE}
+        ( hg up -C tip 2>&1 ) 1>> ${LOG_FILE}
         ( make lib 2>&1 ) 1>> ${LOG_FILE} || do_exit
         cp librockstar.so ${DEST_DIR}/lib
-        ROCKSTAR_DIR=${DEST_DIR}/src/Rockstar
+        ROCKSTAR_DIR=${DEST_DIR}/src/rockstar
         echo $ROCKSTAR_DIR > ${YT_DIR}/rockstar.cfg
         touch done
         cd ..

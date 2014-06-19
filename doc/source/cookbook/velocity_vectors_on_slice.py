@@ -1,9 +1,10 @@
-from yt.mods import *
+import yt
 
 # Load the dataset.
-pf = load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
+ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
 
-p = SlicePlot(pf, "x", "density")
+p = yt.SlicePlot(ds, "x", "density")
+
 # Draw a velocity vector every 16 pixels.
 p.annotate_velocity(factor = 16)
 p.save()

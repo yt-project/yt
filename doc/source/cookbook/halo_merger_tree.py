@@ -1,3 +1,6 @@
+### THIS RECIPE IS CURRENTLY BROKEN IN YT-3.0
+### DO NOT TRUST THIS RECIPE UNTIL THIS LINE IS REMOVED
+
 # This script demonstrates some of the halo merger tracking infrastructure,
 # for tracking halos across multiple datadumps in a time series.
 # Ultimately, it outputs an HDF5 file with the important quantities for the
