@@ -563,7 +563,7 @@ class YTArray(np.ndarray):
             unit_lut = pickle.loads(dataset.attrs['unit_registry'])
         else:
             unit_lut = None
-
+        f.close()
         registry = UnitRegistry(lut=unit_lut, add_default_symbols=False)
         return cls(data, units, registry=registry)
 
