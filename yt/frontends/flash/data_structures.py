@@ -38,6 +38,7 @@ from yt.utilities.physical_constants import cm_per_mpc
 from .fields import FLASHFieldInfo
 
 class FLASHGrid(AMRGridPatch):
+    _cache_mask = False
     _id_offset = 1
     #__slots__ = ["_level_id", "stop_index"]
     def __init__(self, id, index, level):
