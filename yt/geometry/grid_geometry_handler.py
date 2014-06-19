@@ -290,7 +290,7 @@ class GridIndex(Index):
         count = sum((g.count(dobj.selector) for g in grids))
         return count
 
-    def _chunk_all(self, dobj, cache = False):
+    def _chunk_all(self, dobj, cache = True):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         yield YTDataChunk(dobj, "all", gobjs, dobj.size, cache)
         
@@ -317,7 +317,7 @@ class GridIndex(Index):
             # individual grids.
             yield YTDataChunk(dobj, "spatial", [g], size, cache = False)
 
-    def _chunk_io(self, dobj, cache = False, local_only = False):
+    def _chunk_io(self, dobj, cache = True, local_only = False):
         # local_only is only useful for inline datasets and requires
         # implementation by subclasses.
         gfiles = defaultdict(list)
