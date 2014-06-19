@@ -610,7 +610,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                         eps = np.finfo(pp["Coordinates"][ax].dtype).eps
                         pos[:,i] = pp["Coordinates"][ax]
                     regions.add_data_file(pos, data_file.file_id,
-                                          data_file.pf.filter_bbbox)
+                                          data_file.pf.filter_bbox)
                     morton[ind:ind+c] = compute_morton(
                         pos[:,0], pos[:,1], pos[:,2],
                         DLE, DRE, data_file.pf.filter_bbox)
