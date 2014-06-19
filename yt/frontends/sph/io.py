@@ -763,7 +763,7 @@ class IOHandlerHTTPStream(BaseIOHandler):
                 c[:,0], c[:,1], c[:,2],
                 data_file.pf.domain_left_edge,
                 data_file.pf.domain_right_edge,
-                data_filter.pf.filter_bbox)
+                data_file.pf.filter_bbox)
             ind += c.shape[0]
         return morton
 
