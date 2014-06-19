@@ -529,6 +529,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 while total < tp[ptype]:
                     p = np.fromfile(f, self._pdtypes[ptype],
                         count=min(self._chunksize, tp[ptype] - total))
+                    total += p.size
                     mask = selector.select_points(
                         p["Coordinates"]['x'].astype("float64"),
                         p["Coordinates"]['y'].astype("float64"),
@@ -537,7 +538,6 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                     tf = self._fill_fields(field_list, p, mask, data_file)
                     for field in field_list:
                         yield (ptype, field), tf.pop(field)
-                    total += p.size
             f.close()
 
     def _update_domain(self, data_file):
