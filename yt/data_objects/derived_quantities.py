@@ -614,7 +614,7 @@ class SpinParameter(DerivedQuantity):
 
     >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = pf.all_data()
-    >>> print ad.quantities.center_of_mass()
+    >>> print ad.quantities.spin_parameter()
     
     """
     def count_values(self, **kwargs):

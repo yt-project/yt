@@ -1241,10 +1241,10 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
         pbar = get_pbar("Building boolean", len(self._all_regions))
         for i, region in enumerate(self._all_regions):
             try:
-                region._get_list_of_grids()
+                region._get_list_of_grids() # This is no longer supported. 
                 alias = region
             except AttributeError:
-                alias = region.data
+                alias = region.data         # This is no longer supported.
             for grid in alias._grids:
                 if grid in self._some_overlap or grid in self._all_overlap:
                     continue

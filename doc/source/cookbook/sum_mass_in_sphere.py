@@ -1,16 +1,16 @@
-from yt.mods import *
+import yt
 
 # Load the dataset.
-pf = load("Enzo_64/DD0029/data0029")
+ds = yt.load("Enzo_64/DD0029/data0029")
 
 # Create a 1 Mpc radius sphere, centered on the max density.
-sp = pf.sphere("max", (1.0, "mpc"))
+sp = ds.sphere("max", (1.0, "Mpc"))
 
-# Use the TotalQuantity derived quantity to sum up the
+# Use the total_quantity derived quantity to sum up the
 # values of the cell_mass and particle_mass fields
 # within the sphere.
-baryon_mass, particle_mass = sp.quantities["TotalQuantity"](
-        ["cell_mass", "particle_mass"])
+baryon_mass, particle_mass = sp.quantities.total_quantity(["cell_mass", "particle_mass"])
 
-print "Total mass in sphere is %0.5e (gas = %0.5e / particles = %0.5e)" % \
-            (baryon_mass + particle_mass, baryon_mass, particle_mass)
+print "Total mass in sphere is %0.3e Msun (gas = %0.3e Msun, particles = %0.3e Msun)" % \
+      ((baryon_mass + particle_mass).in_units('Msun'), \
+       baryon_mass.in_units('Msun'), particle_mass.in_units('Msun'))
