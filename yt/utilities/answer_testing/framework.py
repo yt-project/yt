@@ -703,7 +703,7 @@ def small_patch_amr(ds_fn, fields):
                 for weight_field in [None, "density"]:
                     yield ProjectionValuesTest(
                         ds_fn, axis, field, weight_field,
-                        dboj_name)
+                        dobj_name)
                 yield FieldValuesTest(
                         ds_fn, field, dobj_name)
 

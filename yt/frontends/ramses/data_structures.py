@@ -370,7 +370,7 @@ class RAMSESIndex(OctreeIndex):
         
 
         # TODO: copy/pasted from DomainFile; needs refactoring!
-        num = os.path.basename(self._ds.paramaeter_filename).split("."
+        num = os.path.basename(self._ds.parameter_filename).split("."
                 )[0].split("_")[1]
         testdomain = 1 # Just pick the first domain file to read
         basename = "%s/%%s_%s.out%05i" % (
