@@ -42,6 +42,12 @@ from yt.utilities.sdf import \
     SDFIndex,\
     HTTPSDFRead
 
+try:
+    import requests
+except ImportError:
+    requests = None
+
+
 
 # currently specified by units_2HOT == 2 in header
 # in future will read directly from file
@@ -183,9 +189,14 @@ class SDFDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        if args[0].startswith("http") and "idx_filename" in kwargs:
-            return True
-        if not os.path.isfile(args[0]): return False
-        with open(args[0], "r") as f:
-            line = f.readline().strip()
-            return line[:5] == "# SDF"
+        if args[0].startswith("http"):
+            if requests is None: return False
+            hreq = requests.get(args[0], stream=True)
+            if hreq.status_code != 200: return False
+            line = hreq.iter_content(10).next()
+        elif os.path.isfile(args[0]): 
+            with open(args[0], "r") as f:
+                line = f.read(10).strip()
+        else:
+            return False
+        return line.startswith("# SDF")
