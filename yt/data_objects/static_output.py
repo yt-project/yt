@@ -664,6 +664,7 @@ class Dataset(object):
         """
         self.index
         self.field_info.add_field(name, function=function, **kwargs)
+        self.field_info._show_field_errors.append(name)
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
 
