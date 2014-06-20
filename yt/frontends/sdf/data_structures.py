@@ -42,6 +42,12 @@ from yt.utilities.sdf import \
     SDFIndex,\
     HTTPSDFRead
 
+try:
+    import requests
+except ImportError:
+    requests = None
+
+
 
 # currently specified by units_2HOT == 2 in header
 # in future will read directly from file
@@ -91,13 +97,13 @@ class SDFDataset(Dataset):
         prefix = ''
         if self.idx_filename is not None:
             prefix += 'sindex_'
-        if 'http' in filename:
+        if filename.startswith("http"):
             prefix += 'http_'
         dataset_type = prefix + 'sdf_particles'
         super(SDFDataset, self).__init__(filename, dataset_type)
 
     def _parse_parameter_file(self):
-        if 'http' in self.parameter_filename:
+        if self.parameter_filename.startswith("http"):
             self.sdf_container = HTTPSDFRead(self.parameter_filename,
                                              header=self.sdf_header)
         else:
@@ -183,7 +189,15 @@ class SDFDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        if not os.path.isfile(args[0]): return False
-        with open(args[0], "r") as f:
-            line = f.readline().strip()
-            return line[:5] == "# SDF"
+        if args[0].startswith("http"):
+            if requests is None: return False
+            hreq = requests.get(args[0], stream=True)
+            if hreq.status_code != 200: return False
+            # Grab a whole 4k page.
+            line = hreq.iter_content(4096).next()
+        elif os.path.isfile(args[0]): 
+            with open(args[0], "r") as f:
+                line = f.read(10).strip()
+        else:
+            return False
+        return line.startswith("# SDF")
