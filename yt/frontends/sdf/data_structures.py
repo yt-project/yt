@@ -91,13 +91,13 @@ class SDFDataset(Dataset):
         prefix = ''
         if self.idx_filename is not None:
             prefix += 'sindex_'
-        if 'http' in filename:
+        if filename.startswith("http"):
             prefix += 'http_'
         dataset_type = prefix + 'sdf_particles'
         super(SDFDataset, self).__init__(filename, dataset_type)
 
     def _parse_parameter_file(self):
-        if 'http' in self.parameter_filename:
+        if self.parameter_filename.startswith("http"):
             self.sdf_container = HTTPSDFRead(self.parameter_filename,
                                              header=self.sdf_header)
         else:
@@ -183,6 +183,8 @@ class SDFDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
+        if args[0].startswith("http") and "idx_filename" in kwargs:
+            return True
         if not os.path.isfile(args[0]): return False
         with open(args[0], "r") as f:
             line = f.readline().strip()
