@@ -193,7 +193,8 @@ class SDFDataset(Dataset):
             if requests is None: return False
             hreq = requests.get(args[0], stream=True)
             if hreq.status_code != 200: return False
-            line = hreq.iter_content(10).next()
+            # Grab a whole 4k page.
+            line = hreq.iter_content(4096).next()
         elif os.path.isfile(args[0]): 
             with open(args[0], "r") as f:
                 line = f.read(10).strip()
