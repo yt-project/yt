@@ -296,9 +296,8 @@ class PlotWindow(ImagePlotContainer):
         self._set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
         if self.data_source.center is not None and oblique == False:
-            center = [self.data_source.center[i] for i in
-                      range(len(self.data_source.center))
-                      if i != self.data_source.axis]
+            center = [(self.bounds[1] + self.bounds[0])/2.0,
+                      (self.bounds[3] + self.bounds[2])/2.0]
             self.set_center(center)
         for field in self.data_source._determine_fields(self.frb.data.keys()):
             finfo = self.data_source.pf._get_field_info(*field)
