@@ -67,6 +67,7 @@ class SDFDataset(Dataset):
     _particle_velocity_name = None
     _sindex = None
     _skip_cache = True
+    _subspace = False
 
 
     def __init__(self, filename, dataset_type = "sdf_particles",
@@ -80,6 +81,7 @@ class SDFDataset(Dataset):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         if bounding_box is not None:
+            self._subspace = True
             bbox = np.array(bounding_box, dtype="float32")
             if bbox.shape == (2, 3):
                 bbox = bbox.transpose()
