@@ -871,7 +871,7 @@ class SDFIndex(object):
         return lmax_lk, lmax_rk
 
     def find_max_cell(self):
-        max_cell = np.argmax(self.indexdata['len'])
+        max_cell = np.argmax(self.indexdata['len'][:])
         return max_cell
 
     def find_max_cell_center(self):
