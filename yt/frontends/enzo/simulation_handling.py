@@ -95,6 +95,16 @@ class EnzoSimulation(SimulationTimeSeries):
                             unit_registry=self.unit_registry)
 
             self.time_unit = self.enzo_cosmology.time_unit.in_units("s")
+            self.unit_registry.modify("h", self.hubble_constant)
+            # Comoving lengths
+            for my_unit in ["m", "pc", "AU", "au"]:
+                new_unit = "%scm" % my_unit
+                # technically not true, but should be ok
+                self.unit_registry.add(new_unit, self.unit_registry.lut[my_unit][0],
+                                       dimensions.length, "\\rm{%s}/(1+z)" % my_unit)
+            self.length_unit = self.quan(self.box_size, "Mpccm / h",
+                                         registry=self.unit_registry)
+            self.box_size = self.length_unit
         else:
             self.time_unit = self.quan(self.parameters["TimeUnits"], "s")
         self.unit_registry.modify("code_time", self.time_unit)
