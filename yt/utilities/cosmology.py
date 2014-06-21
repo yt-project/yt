@@ -16,6 +16,7 @@ and featuring time and redshift conversion functions from Enzo..
 import functools
 import numpy as np
 
+from yt.units import dimensions
 from yt.units.unit_registry import \
      UnitRegistry
 from yt.units.yt_array import \
@@ -67,6 +68,12 @@ class Cosmology(object):
         if unit_registry is None:
             unit_registry = UnitRegistry()
         self.unit_registry = unit_registry
+        self.unit_registry.modify("h", hubble_constant)
+        for my_unit in ["m", "pc", "AU", "au"]:
+            new_unit = "%scm" % my_unit
+            # technically not true, but distances here are actually comoving
+            self.unit_registry.add(new_unit, self.unit_registry.lut[my_unit][0],
+                                   dimensions.length, "\\rm{%s}/(1+z)" % my_unit)
         self.hubble_constant = self.quan(hubble_constant, "100*km/s/Mpc")
 
     def hubble_distance(self):
@@ -74,7 +81,7 @@ class Cosmology(object):
         The distance corresponding to c / h, where c is the speed of light 
         and h is the Hubble parameter in units of 1 / time.
         """
-        return (speed_of_light_cgs / self.hubble_constant).in_cgs()
+        return self.quan((speed_of_light_cgs / self.hubble_constant)).in_cgs()
 
     def comoving_radial_distance(self, z_i, z_f):
         r"""
