@@ -805,12 +805,14 @@ class PWViewerMPL(PlotWindow):
                 msg = None
                 if zlim != (None, None):
                     pass
-                elif image.max() == image.min():
+                elif np.nanmax(image) == np.nanmin(image):
                     msg = "Plot image for field %s has zero dynamic " \
-                          "range. Min = Max = %d." % (f, image.max())
-                elif image.max() <= 0:
+                          "range. Min = Max = %d." % (f, np.nanmax(image))
+                elif np.nanmax(image) <= 0:
                     msg = "Plot image for field %s has no positive " \
-                          "values.  Max = %d." % (f, image.max())
+                          "values.  Max = %d." % (f, np.nanmax(image))
+                elif np.all(np.isfinite(image)):
+                    msg = "Plot image for field %s is filled with NaNs." % (f,)
                 if msg is not None:
                     mylog.warning(msg)
                     mylog.warning("Switching to linear colorbar scaling.")
