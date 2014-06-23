@@ -194,6 +194,46 @@ class YTArray(np.ndarray):
         the registry associated with the unit object.
     dtype : string of NumPy dtype object
         The dtype of the array data.
+
+    Examples
+    --------
+
+    >>> from yt import YTArray
+    >>> a = YTArray([1,2,3], 'cm')
+    >>> b = YTArray([4,5,6], 'm')
+    >>> a + b
+    YTArray([ 401.,  502.,  603.]) cm
+    >>> b + a
+    YTArray([ 4.01,  5.02,  6.03]) m
+
+    NumPy ufuncs will pass through units where appropriate.
+
+    >>> import numpy as np
+    >>> a = YTArray(np.arange(8), 'g/cm**3')
+    >>> np.ones_like(a)
+    YTArray([1, 1, 1, 1, 1, 1, 1, 1]) g/cm**3
+
+    and strip them when it would be annoying to deal with them.
+
+    >>> np.log10(a)
+    array([       -inf,  0.        ,  0.30103   ,  0.47712125,  0.60205999,
+            0.69897   ,  0.77815125,  0.84509804])
+
+    YTArray is tightly integrated with yt datasets:
+
+    >>> import yt
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> a = ds.arr(np.ones(5), 'code_length')
+    >>> a.in_cgs()
+    YTArray([  3.08600000e+24,   3.08600000e+24,   3.08600000e+24,
+             3.08600000e+24,   3.08600000e+24]) cm
+
+    This is equivalent to:
+
+    >>> b = YTArray(np.ones(5), 'code_length', registry=ds.unit_registry)
+    >>> np.all(a == b)
+    True
+
     """
     _ufunc_registry = {
         add: preserve_units,
@@ -1038,6 +1078,44 @@ class YTQuantity(YTArray):
         the registry associated with the unit object.
     dtype : string of NumPy dtype object
         The dtype of the array data.
+
+    Examples
+    --------
+
+    >>> from yt import YTQuantity
+    >>> a = YTQuantity(1, 'cm')
+    >>> b = YTQuantity(2, 'm')
+    >>> a + b
+    201.0 cm
+    >>> b + a
+    2.01 m
+
+    NumPy ufuncs will pass through units where appropriate.
+
+    >>> import numpy as np
+    >>> a = YTQuantity(12, 'g/cm**3')
+    >>> np.ones_like(a)
+    1 g/cm**3
+
+    and strip them when it would be annoying to deal with them.
+
+    >>> print np.log10(a)
+    1.07918124605
+
+    YTQuantity is tightly integrated with yt datasets:
+
+    >>> import yt
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> a = ds.quan(5, 'code_length')
+    >>> a.in_cgs()
+    1.543e+25 cm
+
+    This is equivalent to:
+
+    >>> b = YTQuantity(5, 'code_length', registry=ds.unit_registry)
+    >>> np.all(a == b)
+    True
+
     """
     def __new__(cls, input_scalar, input_units=None, registry=None,
                 dtype=np.float64):
