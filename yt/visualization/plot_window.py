@@ -388,6 +388,7 @@ class PlotWindow(ImagePlotContainer):
         ----------
         deltas : Two-element sequence of floats, quantities, or (float, unit)
                  tuples.
+
             (delta_x, delta_y).  If a unit is not supplied the unit is assumed
             to be code_length.
 
@@ -524,6 +525,7 @@ class PlotWindow(ImagePlotContainer):
         ----------
         width : float, array of floats, (float, unit) tuple, or tuple of
                 (float, unit) tuples.
+
              Width can have four different formats to support windows with
              variable x and y widths.  They are:
 
@@ -1712,19 +1714,19 @@ class WindowPlotMPL(ImagePlotMPL):
 
 
 def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
-    r"""
-    A factory function for
+    r"""A factory function for
     :class:`yt.visualization.plot_window.AxisAlignedSlicePlot`
     and :class:`yt.visualization.plot_window.OffAxisSlicePlot` objects.  This
     essentially allows for a single entry point to both types of slice plots,
     the distinction being determined by the specified normal vector to the
     slice.
 
-        The returned plot object can be updated using one of the many helper
+    The returned plot object can be updated using one of the many helper
     functions defined in PlotWindow.
 
     Parameters
     ----------
+
     pf : :class:`yt.data_objects.api.Dataset`
         This is the parameter file object corresponding to the
         simulation output to be plotted.
@@ -1818,6 +1820,7 @@ def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
 
     Raises
     ------
+
     AssertionError
         If a proper normal axis is not specified via the normal or axis
         keywords, and/or if a field to plot is not specified.

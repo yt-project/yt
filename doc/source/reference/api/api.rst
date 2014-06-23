@@ -359,7 +359,7 @@ Stream
 Loading Data
 ------------
 
-.. autosumary::
+.. autosummary::
    :toctree: generated/
 
    yt.convenience.load
