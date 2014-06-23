@@ -38,6 +38,7 @@ from yt.data_objects.data_containers import data_object_registry
 from yt.data_objects.octree_subset import ParticleOctreeSubset
 
 class ParticleIndex(Index):
+    """The Index subclass for particle datasets"""
     _global_mesh = False
 
     def __init__(self, pf, dataset_type):

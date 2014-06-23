@@ -178,7 +178,22 @@ binary_operators = (
 
 class YTArray(np.ndarray):
     """
+    An ndarray subclass that attached a symbolic unit object to the array data.
 
+    Parameters
+    ----------
+
+    input_array : ndarray or ndarray subclass
+        An array to attach units to
+    input_units : String unit specification, unit symbol object, or astropy units
+        The units of the array. Powers must be specified using python
+        symtax (cm**3, not cm^3).
+    registry : A UnitRegistry object
+        The registry to create units from. If input_units is already associated
+        with a unit registry and this is specified, this will be used instead of
+        the registry associated with the unit object.
+    dtype : string of NumPy dtype object
+        The dtype of the array data.
     """
     _ufunc_registry = {
         add: preserve_units,
@@ -1006,10 +1021,30 @@ class YTArray(np.ndarray):
         return type(self)(ret, copy.deepcopy(self.units))
 
 class YTQuantity(YTArray):
-    def __new__(cls, input, input_units=None, registry=None, dtype=np.float64):
-        if not isinstance(input, (numeric_type, np.number, np.ndarray)):
+    """
+    A scalar associated with a unit.
+
+    Parameters
+    ----------
+
+    input_scalar : ndarray or ndarray subclass
+        An array to attach units to
+    input_units : String unit specification, unit symbol object, or astropy units
+        The units of the array. Powers must be specified using python
+        symtax (cm**3, not cm^3).
+    registry : A UnitRegistry object
+        The registry to create units from. If input_units is already associated
+        with a unit registry and this is specified, this will be used instead of
+        the registry associated with the unit object.
+    dtype : string of NumPy dtype object
+        The dtype of the array data.
+    """
+    def __new__(cls, input_scalar, input_units=None, registry=None,
+                dtype=np.float64):
+        if not isinstance(input_scalar, (numeric_type, np.number, np.ndarray)):
             raise RuntimeError("YTQuantity values must be numeric")
-        ret = YTArray.__new__(cls, input, input_units, registry, dtype=dtype)
+        ret = YTArray.__new__(cls, input_scalar, input_units, registry,
+                              dtype=dtype)
         if ret.size > 1:
             raise RuntimeError("YTQuantity instances must be scalars")
         return ret

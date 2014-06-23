@@ -37,6 +37,7 @@ from yt.utilities.lib.GridTree import GridTree, MatchPointsToGrids
 from yt.data_objects.data_containers import data_object_registry
 
 class GridIndex(Index):
+    """The index class for patch and block AMR datasets. """
     float_type = 'float64'
     _preload_implemented = False
     _index_properties = ("grid_left_edge", "grid_right_edge",
