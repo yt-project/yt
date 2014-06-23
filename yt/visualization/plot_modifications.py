@@ -1236,7 +1236,7 @@ class TriangleFacetsCallback(PlotCallback):
 
     def __call__(self, plot):
         plot._axes.hold(True)
-        ax = data.axis
+        ax = plot.data.axis
         xax = plot.data.pf.coordinates.x_axis[ax]
         yax = plot.data.pf.coordinates.y_axis[ax]
         l_cy = triangle_plane_intersect(plot.data.axis, plot.data.coord, self.vertices)[:,:,(xax, yax)]
