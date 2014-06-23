@@ -201,9 +201,9 @@ Chombo
 
    ~yt.frontends.chombo.data_structures.ChomboGrid
    ~yt.frontends.chombo.data_structures.ChomboHierarchy
-   ~yt.frontends.chombo.data_strucutres.ChomboDataset
+   ~yt.frontends.chombo.data_structures.ChomboDataset
    ~yt.frontends.chombo.data_structures.Orion2Hierarchy
-   ~yt.frontends.chombo.data_strucutres.Orion2Dataset
+   ~yt.frontends.chombo.data_structures.Orion2Dataset
    ~yt.frontends.chombo.io.IOHandlerChomboHDF5
    ~yt.frontends.chombo.io.IOHandlerChombo2DHDF5
    ~yt.frontends.chombo.io.IOHandlerChombo1DHDF5
@@ -267,7 +267,7 @@ GDF
    ~yt.frontends.gdf.data_structures.GDFGrid
    ~yt.frontends.gdf.data_structures.GDFHierarchy
    ~yt.frontends.gdf.data_structures.GDFDataset
-   ~yt.frontends.gdf.io.IOHandlerHDFHDF5
+   ~yt.frontends.gdf.io.IOHandlerGDFHDF5
 
 Halo Catalogs
 ^^^^^^^^^^^^^
