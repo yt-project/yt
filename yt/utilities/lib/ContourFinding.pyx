@@ -674,7 +674,7 @@ cdef class ParticleContourTree(ContourTree):
         cdef np.int64_t moff = octree.get_domain_offset(domain_id + domain_offset)
         cdef np.int64_t i, j, k, n, nneighbors, pind0, offset
         cdef int counter = 0
-        verbose = False
+        cdef int verbose = 0
         pcount = np.zeros_like(dom_ind)
         doff = np.zeros_like(dom_ind) - 1
         # First, we find the oct for each particle.
@@ -713,9 +713,9 @@ cdef class ParticleContourTree(ContourTree):
         counter = 0
         cdef np.int64_t frac = <np.int64_t> (doff.shape[0] / 20.0)
         cdef int inside, skip_early
-        if verbose: print >> sys.stderr, "Will be outputting every", frac
+        if verbose == 1: print >> sys.stderr, "Will be outputting every", frac
         for i in range(doff.shape[0]):
-            if verbose and counter >= frac:
+            if verbose == 1 and counter >= frac:
                 counter = 0
                 print >> sys.stderr, "FOF-ing % 5.1f%% done" % ((100.0 * i)/doff.size)
             counter += 1
