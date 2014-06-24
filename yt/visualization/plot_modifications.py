@@ -879,7 +879,6 @@ class HaloCatalogCallback(PlotCallback):
         self.alpha = alpha
         self.width = width
         self.annotate_field = annotate_field
-        self.format_spec = text_format_spec
         self.font_kwargs = font_kwargs
 
     def __call__(self, plot):
