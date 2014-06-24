@@ -329,15 +329,6 @@ def standard_particle_fields(registry, ptype,
         get_radius
 
     def _particle_radius(field, data):
-        dist = data["particle_position"] - data.get_field_parameter("center")
-        dw = data.pf.domain_width
-        offset = dist.copy()
-        offset[:] = 0.0
-        offset += data.pf.periodicity * (dist >  dw/2.0) * -dw/2.0
-        offset += data.pf.periodicity * (dist < -dw/2.0) *  dw/2.0
-        dist += offset
-        dist = np.sqrt((dist * dist).sum(axis=1))
-        return dist
         return get_radius(data, "particle_position_")
     registry.add_field((ptype, "particle_radius"),
               function=_particle_radius,
