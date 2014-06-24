@@ -30,6 +30,8 @@ from yt.data_objects.static_output import \
     Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
+from yt.utilities.file_handler import \
+    HDF5FileHandler
 from yt.utilities.io_handler import \
     io_registry
 from yt.utilities.physical_constants import cm_per_mpc
@@ -183,7 +185,7 @@ class FLASHDataset(Dataset):
 
         self.fluid_types += ("flash",)
         if self._handle is not None: return
-        self._handle = h5py.File(filename, "r")
+        self._handle = HDF5FileHandler(filename)
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
         
@@ -192,15 +194,15 @@ class FLASHDataset(Dataset):
         if self.particle_filename is None :
             self._particle_handle = self._handle
         else :
-            try :
-                self._particle_handle = h5py.File(self.particle_filename, "r")
+            try:
+                self._particle_handle = HDF5FileHandler(self.particle_filename)
             except :
                 raise IOError(self.particle_filename)
         # These should be explicitly obtained from the file, but for now that
         # will wait until a reorganization of the source tree and better
         # generalization.
         self.refine_by = 2
-                                                                
+
         Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
@@ -384,19 +386,12 @@ class FLASHDataset(Dataset):
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
 
-    def __del__(self):
-        if self._handle is not self._particle_handle:
-            self._particle_handle.close()
-        self._handle.close()
-
     @classmethod
     def _is_valid(self, *args, **kwargs):
         try:
-            fileh = h5py.File(args[0],'r')
+            fileh = HDF5FileHandler(args[0])
             if "bounding box" in fileh["/"].keys():
-                fileh.close()
                 return True
-            fileh.close()
         except:
             pass
         return False

@@ -1,9 +1,13 @@
-from yt.mods import *
-from yt.analysis_modules.api import LightCone
+### THIS RECIPE IS CURRENTLY BROKEN IN YT-3.0
+### DO NOT TRUST THIS RECIPE UNTIL THIS LINE IS REMOVED
+
+import yt
+from yt.analysis_modules.cosmological_observation.light_cone.light_cone import LightCone
 
 # Create a LightCone object extending from z = 0 to z = 0.1
 # with a 600 arcminute field of view and a resolution of
 # 60 arcseconds.
+
 # We have already set up the redshift dumps to be
 # used for this, so we will not use any of the time
 # data dumps.

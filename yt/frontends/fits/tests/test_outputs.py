@@ -17,38 +17,27 @@ from yt.testing import *
 from yt.utilities.answer_testing.framework import \
     requires_pf, \
     small_patch_amr, \
-    big_patch_amr, \
     data_dir_load
+from ..data_structures import FITSDataset
 
-_fields = ("intensity")
-
-m33 = "radio_fits/m33_hi.fits"
-@requires_pf(m33, big_data=True)
-def test_m33():
-    pf = data_dir_load(m33, nan_mask=0.0)
-    yield assert_equal, str(pf), "m33_hi.fits"
-    for test in small_patch_amr(m33, _fields):
-        test_m33.__name__ = test.description
-        yield test
-
-_fields = ("temperature")
+_fields_grs = ("temperature",)
 
 grs = "radio_fits/grs-50-cube.fits"
 @requires_pf(grs)
 def test_grs():
-    pf = data_dir_load(grs, nan_mask=0.0)
-    yield assert_equal, str(pf), "grs-50-cube.fits"
-    for test in small_patch_amr(grs, _fields):
+    ds = data_dir_load(grs, cls=FITSDataset, kwargs={"nan_mask":0.0})
+    yield assert_equal, str(ds), "grs-50-cube.fits"
+    for test in small_patch_amr(grs, _fields_grs, input_center="c", input_weight="ones"):
         test_grs.__name__ = test.description
         yield test
 
-_fields = ("x-velocity","y-velocity","z-velocity")
+_fields_vels = ("velocity_x","velocity_y","velocity_z")
 
-vf = "UniformGrid/velocity_field_20.fits"
+vf = "UnigridData/velocity_field_20.fits"
 @requires_pf(vf)
 def test_velocity_field():
-    pf = data_dir_load(bf)
-    yield assert_equal, str(pf), "velocity_field_20.fits"
-    for test in small_patch_amr(vf, _fields):
+    ds = data_dir_load(vf, cls=FITSDataset)
+    yield assert_equal, str(ds), "velocity_field_20.fits"
+    for test in small_patch_amr(vf, _fields_vels, input_center="c", input_weight="ones"):
         test_velocity_field.__name__ = test.description
         yield test

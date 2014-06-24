@@ -291,7 +291,7 @@ class PlotWindow(ImagePlotContainer):
         else:
             fields = ensure_list(fields)
         self.override_fields = list(set(fields).intersection(set(skip)))
-        self.fields = fields
+        self.fields = [f for f in fields if f not in skip]
         super(PlotWindow, self).__init__(data_source, window_size, fontsize)
         self._set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
@@ -302,7 +302,7 @@ class PlotWindow(ImagePlotContainer):
             center = [self.data_source.center[xax],
                       self.data_source.center[yax]]
             self.set_center(center)
-        for field in self.frb.data.keys():
+        for field in self.data_source._determine_fields(self.frb.data.keys()):
             finfo = self.data_source.pf._get_field_info(*field)
             if finfo.take_log:
                 self._field_transform[field] = log_transform
@@ -770,7 +770,7 @@ class PWViewerMPL(PlotWindow):
 
     def _setup_plots(self):
         self._colorbar_valid = True
-        for f in self.data_source._determine_fields(self.fields):
+        for f in list(set(self.data_source._determine_fields(self.fields))):
             axis_index = self.data_source.axis
 
             xc, yc = self._setup_origin()
@@ -805,12 +805,14 @@ class PWViewerMPL(PlotWindow):
                 msg = None
                 if zlim != (None, None):
                     pass
-                elif image.max() == image.min():
+                elif np.nanmax(image) == np.nanmin(image):
                     msg = "Plot image for field %s has zero dynamic " \
-                          "range. Min = Max = %d." % (f, image.max())
-                elif image.max() <= 0:
+                          "range. Min = Max = %d." % (f, np.nanmax(image))
+                elif np.nanmax(image) <= 0:
                     msg = "Plot image for field %s has no positive " \
-                          "values.  Max = %d." % (f, image.max())
+                          "values.  Max = %d." % (f, np.nanmax(image))
+                elif np.all(np.isfinite(image)):
+                    msg = "Plot image for field %s is filled with NaNs." % (f,)
                 if msg is not None:
                     mylog.warning(msg)
                     mylog.warning("Switching to linear colorbar scaling.")

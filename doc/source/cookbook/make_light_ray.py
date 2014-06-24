@@ -1,13 +1,16 @@
+### THIS RECIPE IS CURRENTLY BROKEN IN YT-3.0
+### DO NOT TRUST THIS RECIPE UNTIL THIS LINE IS REMOVED
+
 import os
 import sys
-
-from yt.mods import *
-
-from yt.analysis_modules.halo_profiler.api import *
-from yt.analysis_modules.cosmological_observation.light_ray.api import \
+import yt
+from yt.analysis_modules.halo_profiler.api import HaloProfiler
+from yt.analysis_modules.cosmological_observation.light_ray.light_ray import \
      LightRay
 
-if not os.path.isdir("LR"): os.mkdir('LR')
+# Create a directory for the light rays
+if not os.path.isdir("LR"): 
+    os.mkdir('LR')
      
 # Create a LightRay object extending from z = 0 to z = 0.1
 # and use only the redshift dumps.
