@@ -41,14 +41,15 @@ def setup_sunyaev_zeldovich_fields(ds):
         return data["gas","density"]*data["gas","kT"]*data["gas","kT"]
     ds.add_field(("gas", "t_squared"), function = _t_squared,
                  units="g*keV**2/cm**3")
-    def _beta_perp_squared(field, data):
-        return data["gas","density"]*data["gas","velocity_magnitude"]**2/clight/clight - data["gas","beta_par_squared"]
-    ds.add_field(("gas","beta_perp_squared"), function = _beta_perp_squared,
-                 units="g/cm**3")
 
     def _beta_par_squared(field, data):
         return data["gas","beta_par"]**2/data["gas","density"]
     ds.add_field(("gas","beta_par_squared"), function = _beta_par_squared,
+                 units="g/cm**3")
+
+    def _beta_perp_squared(field, data):
+        return data["gas","density"]*data["gas","velocity_magnitude"]**2/clight/clight - data["gas","beta_par_squared"]
+    ds.add_field(("gas","beta_perp_squared"), function = _beta_perp_squared,
                  units="g/cm**3")
 
     def _t_beta_par(field, data):
@@ -91,7 +92,6 @@ class SZProjection(object):
     def __init__(self, ds, freqs, mue=1.143, high_order=False):
 
         self.ds = ds
-        setup_sunyaev_zeldovich_fields(self.ds)
         self.num_freqs = len(freqs)
         self.high_order = high_order
         self.freqs = ds.arr(freqs, "GHz")
@@ -141,6 +141,7 @@ class SZProjection(object):
 
         beta_par = generate_beta_par(L)
         self.ds.add_field(("gas","beta_par"), function=beta_par, units="g/cm**3")
+        setup_sunyaev_zeldovich_fields(self.ds)
         proj = self.ds.proj("density", axis, center=ctr, data_source=source)
         frb = proj.to_frb(width, nx)
         dens = frb["density"]
@@ -209,6 +210,7 @@ class SZProjection(object):
 
         beta_par = generate_beta_par(L)
         self.ds.add_field(("gas","beta_par"), function=beta_par, units="g/cm**3")
+        setup_sunyaev_zeldovich_fields(self.ds)
 
         dens    = off_axis_projection(self.ds, ctr, L, w, nx, "density")
         Te      = off_axis_projection(self.ds, ctr, L, w, nx, "t_sz")/dens
