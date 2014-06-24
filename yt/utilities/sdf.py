@@ -15,11 +15,11 @@ _types = {
     'unsigned char': 'B',
 }
 
-def get_type(vtype, len=None):
+def get_type(vtype, tlen=None):
     try:
         t = _types[vtype]
-        if len is not None:
-            t = np.dtype((t, len))
+        if tlen is not None:
+            t = np.dtype((t, tlen))
         else:
             t = np.dtype(t)
     except KeyError:
