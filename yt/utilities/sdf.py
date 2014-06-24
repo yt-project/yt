@@ -58,10 +58,11 @@ def bbox_filter(left, right, domain_width):
 
         # Now get all particles that are within the bbox
         if mask is None:
-            mask = np.all(pos >= left, axis=1) * np.all(pos < right, axis=1)
+            mask = np.all(pos >= left, axis=1) 
+            np.logical_and(mask, np.all(pos < right, axis=1), mask)
         else:
-            np.multiply(mask, np.all(pos >= left, axis=1), mask)
-            np.multiply(mask, np.all(pos < right, axis=1), mask)
+            np.logical_and(mask, np.all(pos >= left, axis=1), mask)
+            np.logical_and(mask, np.all(pos < right, axis=1), mask)
         return mask
 
     return myfilter
