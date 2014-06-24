@@ -11,9 +11,30 @@ SlicePlot and ProjectionPlot
    :toctree: generated/
 
    ~yt.visualization.plot_window.SlicePlot
+   ~yt.visualization.plot_window.AxisAlignedSlicePlot
    ~yt.visualization.plot_window.OffAxisSlicePlot
    ~yt.visualization.plot_window.ProjectionPlot
    ~yt.visualization.plot_window.OffAxisProjectionPlot
+
+ProfilePlot and PhasePlot
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.visualization.profile_plotter.ProfilePlot
+   ~yt.visualization.profile_plotter.PhasePlot
+
+Fixed Resolution Pixelization
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.visualization.fixed_resolution.FixedResolutionBuffer
+   ~yt.visualization.fixed_resolution.CylindricalFixedResolutionBuffer
+   ~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer
+   ~yt.visualization.fixed_resolution.OffAxisProjectionFixedResolutionBuffer
 
 Data Sources
 ------------
@@ -91,6 +112,33 @@ datasets.
    ~yt.data_objects.time_series.TimeSeriesQuantitiesContainer
    ~yt.data_objects.time_series.AnalysisTaskProxy
 
+Geometry Handlers
+-----------------
+
+These objects generate an "index" into multiresolution data.
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.geometry.geometry_handler.Index
+   ~yt.geometry.grid_geometry_handler.GridIndex
+   ~yt.geometry.oct_geometry_handler.OctreeIndex
+   ~yt.geometry.particle_geometry_handler.ParticleIndex
+   ~yt.geometry.unstructured_mesh_handler.UnstructuredIndex
+
+Units
+-----
+
+These classes enable yt's symbolic unit handling system.
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.units.unit_object.Unit
+   ~yt.units.unit_registry.UnitRegistry
+   ~yt.units.yt_array.YTArray
+   ~yt.units.yt_array.YTQuantity
+
 Frontends
 ---------
 
@@ -145,6 +193,22 @@ Boxlib
    ~yt.frontends.boxlib.io.IOHandlerNyx
    ~yt.frontends.boxlib.io.IOHandlerOrion
 
+Chombo
+^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.frontends.chombo.data_structures.ChomboGrid
+   ~yt.frontends.chombo.data_structures.ChomboHierarchy
+   ~yt.frontends.chombo.data_structures.ChomboDataset
+   ~yt.frontends.chombo.data_structures.Orion2Hierarchy
+   ~yt.frontends.chombo.data_structures.Orion2Dataset
+   ~yt.frontends.chombo.io.IOHandlerChomboHDF5
+   ~yt.frontends.chombo.io.IOHandlerChombo2DHDF5
+   ~yt.frontends.chombo.io.IOHandlerChombo1DHDF5
+   ~yt.frontends.chombo.io.IOHandlerOrion2HDF5
+
 Enzo
 ^^^^
 
@@ -193,6 +257,17 @@ FLASH
    ~yt.frontends.flash.data_structures.FLASHDataset
    ~yt.frontends.flash.fields.FLASHFieldInfo
    ~yt.frontends.flash.io.IOHandlerFLASH
+
+GDF
+^^^
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.frontends.gdf.data_structures.GDFGrid
+   ~yt.frontends.gdf.data_structures.GDFHierarchy
+   ~yt.frontends.gdf.data_structures.GDFDataset
+   ~yt.frontends.gdf.io.IOHandlerGDFHDF5
 
 Halo Catalogs
 ^^^^^^^^^^^^^
@@ -281,6 +356,19 @@ Stream
    ~yt.frontends.stream.io.IOHandlerStreamOctree
    ~yt.frontends.stream.io.StreamParticleIOHandler
 
+Loading Data
+------------
+
+.. autosummary::
+   :toctree: generated/
+
+   yt.convenience.load
+   yt.convenience.simulation
+   yt.frontends.stream.data_structures.load_uniform_grid
+   yt.frontends.stream.data_structures.load_amr_grids
+   yt.frontends.stream.data_structures.load_particles
+   yt.frontends.stream.data_structures.load_hexahedral_mesh
+
 Derived Datatypes
 -----------------
 
@@ -288,16 +376,19 @@ Profiles and Histograms
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 These types are used to sum data up and either return that sum or return an
-average.  Typically they are more easily used through the
-`yt.visualization.plot_collection` interface.
+average.  Typically they are more easily used through the ``ProfilePlot``
+``PhasePlot`` interface. We also provide the ``create_profile`` function
+to create these objects in a uniform manner.
 
 
 .. autosummary::
    :toctree: generated/
 
-   ~yt.data_objects.profiles.BinnedProfile1D
-   ~yt.data_objects.profiles.BinnedProfile2D
-   ~yt.data_objects.profiles.BinnedProfile3D
+   ~yt.data_objects.profiles.ProfileND
+   ~yt.data_objects.profiles.Profile1D
+   ~yt.data_objects.profiles.Profile2D
+   ~yt.data_objects.profiles.Profile3D
+   ~yt.data_objects.profiles.create_profile
 
 Halo Finding and Particle Functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -415,8 +506,6 @@ writing to bitmaps.
    :toctree: generated/
 
    ~yt.data_objects.image_array.ImageArray
-   ~yt.data_objects.image_array.ImageArray.write_png
-   ~yt.data_objects.image_array.ImageArray.write_hdf5
 
 Extension Types
 ---------------

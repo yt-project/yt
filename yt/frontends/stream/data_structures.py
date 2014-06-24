@@ -519,16 +519,17 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
 
     This should allow a uniform grid of data to be loaded directly into yt and
     analyzed as would any others.  This comes with several caveats:
-        * Units will be incorrect unless the unit system is explicitly
-          specified.
-        * Some functions may behave oddly, and parallelism will be
-          disappointing or non-existent in most cases.
-        * Particles may be difficult to integrate.
+
+    * Units will be incorrect unless the unit system is explicitly
+      specified.
+    * Some functions may behave oddly, and parallelism will be
+      disappointing or non-existent in most cases.
+    * Particles may be difficult to integrate.
 
     Particle fields are detected as one-dimensional fields. The number of
     particles is set by the "number_of_particles" key in data.
     
-Parameters
+    Parameters
     ----------
     data : dict
         This is a dict of numpy arrays or (numpy array, unit spec) tuples.
@@ -690,13 +691,16 @@ def load_amr_grids(grid_data, domain_dimensions,
     This should allow a sequence of grids of varying resolution of data to be
     loaded directly into yt and analyzed as would any others.  This comes with
     several caveats:
-        * Units will be incorrect unless the unit system is explicitly specified.
-        * Some functions may behave oddly, and parallelism will be
-          disappointing or non-existent in most cases.
-        * Particles may be difficult to integrate.
-        * No consistency checks are performed on the index
-Parameters
+
+    * Units will be incorrect unless the unit system is explicitly specified.
+    * Some functions may behave oddly, and parallelism will be
+      disappointing or non-existent in most cases.
+    * Particles may be difficult to integrate.
+    * No consistency checks are performed on the index
+
+    Parameters
     ----------
+
     grid_data : list of dicts
         This is a list of dicts. Each dict must have entries "left_edge",
         "right_edge", "dimensions", "level", and then any remaining entries are
@@ -751,6 +755,7 @@ Parameters
     ...
     >>> units = dict(Density='g/cm**3')
     >>> pf = load_amr_grids(grid_data, [32, 32, 32], 1.0)
+
     """
 
     domain_dimensions = np.array(domain_dimensions)
@@ -971,10 +976,11 @@ def load_particles(data, length_unit = None, bbox=None,
 
     This should allow a collection of particle data to be loaded directly into
     yt and analyzed as would any others.  This comes with several caveats:
-        * Units will be incorrect unless the data has already been converted to
-          cgs.
-        * Some functions may behave oddly, and parallelism will be
-          disappointing or non-existent in most cases.
+
+    * Units will be incorrect unless the data has already been converted to
+      cgs.
+    * Some functions may behave oddly, and parallelism will be
+      disappointing or non-existent in most cases.
 
     This will initialize an Octree of data.  Note that fluid fields will not
     work yet, or possibly ever.
@@ -1142,11 +1148,12 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
 
     This should allow a semistructured grid of data to be loaded directly into
     yt and analyzed as would any others.  This comes with several caveats:
-        * Units will be incorrect unless the data has already been converted to
-          cgs.
-        * Some functions may behave oddly, and parallelism will be
-          disappointing or non-existent in most cases.
-        * Particles may be difficult to integrate.
+
+    * Units will be incorrect unless the data has already been converted to
+      cgs.
+    * Some functions may behave oddly, and parallelism will be
+      disappointing or non-existent in most cases.
+    * Particles may be difficult to integrate.
 
     Particle fields are detected as one-dimensional fields. The number of particles
     is set by the "number_of_particles" key in data.

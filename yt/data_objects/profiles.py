@@ -754,6 +754,7 @@ class ProfileFieldAccumulator(object):
         self.weight_values = np.zeros(size, dtype="float64")
 
 class ProfileND(ParallelAnalysisInterface):
+    """The profile object class"""
     def __init__(self, data_source, weight_field = None):
         self.data_source = data_source
         self.pf = data_source.pf
@@ -763,6 +764,14 @@ class ProfileND(ParallelAnalysisInterface):
         ParallelAnalysisInterface.__init__(self, comm=data_source.comm)
 
     def add_fields(self, fields):
+        """Add fields to profile
+
+        Parameters
+        ----------
+        fields : list of field names
+            A list of fields to create profile histograms for
+        
+        """
         fields = ensure_list(fields)
         temp_storage = ProfileFieldAccumulator(len(fields), self.size)
         cfields = fields + list(self.bin_fields)
@@ -774,7 +783,7 @@ class ProfileND(ParallelAnalysisInterface):
     def set_field_unit(self, field, new_unit):
         """Sets a new unit for the requested field
 
-        parameters
+        Parameters
         ----------
         field : string or field tuple
            The name of the field that is to be changed.
@@ -871,6 +880,28 @@ class ProfileND(ParallelAnalysisInterface):
             return np.linspace(mi, ma, n+1)
 
 class Profile1D(ProfileND):
+    """An object that represents a 1D profile.
+
+    Parameters
+    ----------
+
+    data_source : AMD3DData object
+        The data object to be profiled
+    x_field : string field name
+        The field to profile as a function of
+    x_n : integer
+        The number of bins along the x direction.
+    x_min : float
+        The minimum value of the x profile field.
+    x_max : float
+        The maximum value of hte x profile field.
+    x_log : boolean
+        Controls whether or not the bins for the x field are evenly
+        spaced in linear (False) or log (True) space.
+    weight_field : string field name
+        The field to weight the profiled fields by.
+
+    """
     def __init__(self, data_source, x_field, x_n, x_min, x_max, x_log,
                  weight_field = None):
         super(Profile1D, self).__init__(data_source, weight_field)
@@ -911,6 +942,39 @@ class Profile1D(ProfileND):
         return ((self.x_bins[0], self.x_bins[-1]),)
 
 class Profile2D(ProfileND):
+    """An object that represents a 2D profile.
+
+    Parameters
+    ----------
+
+    data_source : AMD3DData object
+        The data object to be profiled
+    x_field : string field name
+        The field to profile as a function of along the x axis.
+    x_n : integer
+        The number of bins along the x direction.
+    x_min : float
+        The minimum value of the x profile field.
+    x_max : float
+        The maximum value of hte x profile field.
+    x_log : boolean
+        Controls whether or not the bins for the x field are evenly
+        spaced in linear (False) or log (True) space.
+    y_field : string field name
+        The field to profile as a function of along the y axis
+    y_n : integer
+        The number of bins along the y direction.
+    y_min : float
+        The minimum value of the y profile field.
+    y_max : float
+        The maximum value of hte y profile field.
+    y_log : boolean
+        Controls whether or not the bins for the y field are evenly
+        spaced in linear (False) or log (True) space.
+    weight_field : string field name
+        The field to weight the profiled fields by.
+
+    """
     def __init__(self, data_source,
                  x_field, x_n, x_min, x_max, x_log,
                  y_field, y_n, y_min, y_max, y_log,
@@ -975,6 +1039,50 @@ class Profile2D(ProfileND):
                 (self.y_bins[0], self.y_bins[-1]))
 
 class Profile3D(ProfileND):
+    """An object that represents a 2D profile.
+
+    Parameters
+    ----------
+
+    data_source : AMD3DData object
+        The data object to be profiled
+    x_field : string field name
+        The field to profile as a function of along the x axis.
+    x_n : integer
+        The number of bins along the x direction.
+    x_min : float
+        The minimum value of the x profile field.
+    x_max : float
+        The maximum value of hte x profile field.
+    x_log : boolean
+        Controls whether or not the bins for the x field are evenly
+        spaced in linear (False) or log (True) space.
+    y_field : string field name
+        The field to profile as a function of along the y axis
+    y_n : integer
+        The number of bins along the y direction.
+    y_min : float
+        The minimum value of the y profile field.
+    y_max : float
+        The maximum value of hte y profile field.
+    y_log : boolean
+        Controls whether or not the bins for the y field are evenly
+        spaced in linear (False) or log (True) space.
+    z_field : string field name
+        The field to profile as a function of along the z axis
+    z_n : integer
+        The number of bins along the z direction.
+    z_min : float
+        The minimum value of the z profile field.
+    z_max : float
+        The maximum value of hte z profile field.
+    z_log : boolean
+        Controls whether or not the bins for the z field are evenly
+        spaced in linear (False) or log (True) space.
+    weight_field : string field name
+        The field to weight the profiled fields by.
+
+    """
     def __init__(self, data_source,
                  x_field, x_n, x_min, x_max, x_log,
                  y_field, y_n, y_min, y_max, y_log,
