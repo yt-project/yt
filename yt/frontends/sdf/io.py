@@ -90,12 +90,6 @@ class IOHandlerSDF(BaseIOHandler):
             pos[:,0] = x[ind:ind+npart]
             pos[:,1] = y[ind:ind+npart]
             pos[:,2] = z[ind:ind+npart]
-            if np.any(pos.min(axis=0) < self.pf.domain_left_edge) or \
-               np.any(pos.max(axis=0) > self.pf.domain_right_edge):
-                raise YTDomainOverflow(pos.min(axis=0),
-                                       pos.max(axis=0),
-                                       self.pf.domain_left_edge,
-                                       self.pf.domain_right_edge)
             regions.add_data_file(pos, data_file.file_id)
             morton[ind:ind+npart] = compute_morton(
                 pos[:,0], pos[:,1], pos[:,2],
