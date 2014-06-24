@@ -49,7 +49,7 @@ known_species_names = {
 
 class EnzoFieldInfo(FieldInfoContainer):
     known_other_fields = (
-        ("Cooling_Time", ("code_time", ["cooling_time"], None)),
+        ("Cooling_Time", ("s", ["cooling_time"], None)),
         ("HI_kph", ("1/code_time", [], None)),
         ("HeI_kph", ("1/code_time", [], None)),
         ("HeII_kph", ("1/code_time", [], None)),
