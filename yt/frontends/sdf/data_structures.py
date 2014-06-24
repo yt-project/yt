@@ -106,11 +106,11 @@ class SDFDataset(Dataset):
 
     def _parse_parameter_file(self):
         if self.parameter_filename.startswith("http"):
-            self.sdf_container = HTTPSDFRead(self.parameter_filename,
-                                             header=self.sdf_header)
+            cls = HTTPSDFRead
         else:
-            self.sdf_container = SDFRead(self.parameter_filename,
-                                         header=self.sdf_header)
+            cls = SDFRead
+        self.sdf_container = cls(self.parameter_filename,
+                                 header=self.sdf_header)
 
         # Reference
         self.parameters = self.sdf_container.parameters
@@ -166,11 +166,10 @@ class SDFDataset(Dataset):
             if self.idx_filename is not None:
 
                 if 'http' in self.idx_filename:
-                    indexdata = HTTPSDFRead(self.idx_filename,
-                                            header=self.idx_header)
+                    cls = HTTPSDFRead
                 else:
-                    indexdata = SDFRead(self.idx_filename,
-                                        header=self.idx_header)
+                    cls = SDFRead
+                indexdata = cls(self.idx_filename, header=self.idx_header)
                 self._sindex = SDFIndex(self.sdf_container, indexdata,
                                         level=self.idx_level)
             else:

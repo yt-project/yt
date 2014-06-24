@@ -47,8 +47,7 @@ class SDFFieldInfo(FieldInfoContainer):
         mnf = 'mass'
         for mn in possible_masses:
             if mn in pf.sdf_container.keys():
-                mnf = mn
-                self._mass_field=mn
+                mnf = self._mass_field = mn
                 break
 
         idf = pf._field_map.get("particle_index", 'ident')
