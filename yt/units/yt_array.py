@@ -178,7 +178,7 @@ binary_operators = (
 
 class YTArray(np.ndarray):
     """
-    An ndarray subclass that attached a symbolic unit object to the array data.
+    An ndarray subclass that attaches a symbolic unit object to the array data.
 
     Parameters
     ----------
