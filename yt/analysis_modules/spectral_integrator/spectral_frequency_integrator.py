@@ -1,6 +1,6 @@
 """
 Integrator classes to deal with interpolation and integration of input spectral
-bins.  Currently only supports Cloudy-style data.
+bins.  Currently only supports Cloudy and APEC-style data.
 
 
 
@@ -26,7 +26,7 @@ from yt.funcs import \
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.exceptions import YTException
 from yt.utilities.linear_interpolators import \
-    BilinearFieldInterpolator
+    UnilinearFieldInterpolator, BilinearFieldInterpolator
 from yt.utilities.physical_constants import \
     hcgs, mp
 from yt.units.yt_array import YTArray, YTQuantity
@@ -36,7 +36,7 @@ from yt.utilities.physical_ratios import \
 xray_data_version = 1
 
 def _get_data_file():
-    data_file = "xray_emissivity.h5"
+    data_file = "cloudy_emissivity.h5"
     data_url = "http://yt-project.org/data"
     if "YT_DEST" in os.environ and \
       os.path.isdir(os.path.join(os.environ["YT_DEST"], "data")):
@@ -77,7 +77,7 @@ class EmissivityIntegrator(object):
     ----------
     filename: string, default None
         Path to data file containing emissivity values.  If None,
-        a file called xray_emissivity.h5 is used.  This file contains 
+        a file called "cloudy_emissivity.h5" is used.  This file contains
         emissivity tables for primordial elements and for metals at 
         solar metallicity for the energy range 0.1 to 100 keV.
         Default: None.
@@ -105,7 +105,8 @@ class EmissivityIntegrator(object):
 
         for field in ["emissivity_primordial", "emissivity_metals",
                       "log_nH", "log_T", "log_E"]:
-            setattr(self, field, in_file[field][:])
+            if field in in_file:
+                setattr(self, field, in_file[field][:])
         in_file.close()
 
         E_diff = np.diff(self.log_E)
@@ -132,10 +133,17 @@ class EmissivityIntegrator(object):
         my_dnu[-1] -= ((self.E_bins[e_ie] - e_max)/hcgs).in_units("Hz")
 
         interp_data = (data[..., e_is:e_ie] * my_dnu).sum(axis=-1)
-        return BilinearFieldInterpolator(np.log10(interp_data),
-                                         [self.log_nH[0], self.log_nH[-1],
-                                          self.log_T[0],  self.log_T[-1]],
-                                         ["log_nH", "log_T"], truncate=True)
+        if len(data.shape) == 2:
+            emiss = UnilinearFieldInterpolator(np.log10(interp_data),
+                                               [self.log_T[0],  self.log_T[-1]],
+                                               "log_T", truncate=True)
+        else:
+            emiss = BilinearFieldInterpolator(np.log10(interp_data),
+                                              [self.log_nH[0], self.log_nH[-1],
+                                               self.log_T[0],  self.log_T[-1]],
+                                              ["log_nH", "log_T"], truncate=True)
+
+        return emiss
 
 def add_xray_emissivity_field(ds, e_min, e_max,
                               filename=None,
