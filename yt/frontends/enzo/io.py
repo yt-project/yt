@@ -235,7 +235,18 @@ class IOHandlerInMemory(BaseIOHandler):
         BaseIOHandler.__init__(self, pf)
 
     def _read_field_names(self, grid):
-        return [("enzo", field) for field in self.grids_in_memory[grid.id].keys()]
+        fields = []
+        add_io = "io" in grid.pf.particle_types
+        for name, v in self.grids_in_memory[grid.id].items():
+
+            # NOTE: This won't work with 1D datasets or references.
+            if not hasattr(v, "shape") or v.dtype == "O":
+                continue
+            elif v.ndim == 1:
+                if add_io: fields.append( ("io", str(name)) )
+            else:
+                fields.append( ("enzo", str(name)) )
+        return fields
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         rv = {}
@@ -296,7 +307,7 @@ class IOHandlerInMemory(BaseIOHandler):
                     x, y, z = self.grids_in_memory[g.id]['particle_position_x'], \
                                         self.grids_in_memory[g.id]['particle_position_y'], \
                                         self.grids_in_memory[g.id]['particle_position_z']
-                    mask = selector.select_points(x, y, z)
+                    mask = selector.select_points(x, y, z, 0.0)
                     if mask is None: continue
                     for field in field_list:
                         data = self.grids_in_memory[g.id][field]

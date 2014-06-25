@@ -78,7 +78,8 @@ class FixedResolutionBuffer(object):
     >>> print frb1["Temperature"].max()
     104923.1
     """
-    _exclude_fields = ('pz','pdz','dx','x','y','z')
+    _exclude_fields = ('pz','pdz','dx','x','y','z',
+                       ('index','dx'),('index','x'),('index','y'),('index','z'))
     def __init__(self, data_source, bounds, buff_size, antialias = True,
                  periodic = False):
         self.data_source = data_source
@@ -90,9 +91,9 @@ class FixedResolutionBuffer(object):
         self.axis = data_source.axis
         self.periodic = periodic
 
-        #h = getattr(data_source, "index", None)
-        #if h is not None:
-        #    h.plots.append(weakref.proxy(self))
+        ds = getattr(data_source, "pf", None)
+        if ds is not None:
+            ds.plots.append(weakref.proxy(self))
 
         # Handle periodicity, just in case
         if self.data_source.axis < 3:
@@ -349,9 +350,9 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
         self.antialias = antialias
         self.data = {}
         
-        h = getattr(data_source, "index", None)
-        if h is not None:
-            h.plots.append(weakref.proxy(self))
+        ds = getattr(data_source, "pf", None)
+        if ds is not None:
+            ds.plots.append(weakref.proxy(self))
 
     def __getitem__(self, item) :
         if item in self.data: return self.data[item]

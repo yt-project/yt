@@ -1,8 +1,11 @@
-from yt.mods import *
+### THIS RECIPE IS CURRENTLY BROKEN IN YT-3.0
+### DO NOT TRUST THIS RECIPE UNTIL THIS LINE IS REMOVED
+
+import yt
 
 # Load the dataset
-pf = load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
+ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
 
 # Create density slices of several fields along the x axis
-SlicePlot(pf, 'x', ['density','temperature','pressure','vorticity_squared'], 
-          width = (800.0, 'kpc')).save()
+yt.SlicePlot(ds, 'x', ['density','temperature','pressure','vorticity_squared'], 
+             width = (800.0, 'kpc')).save()

@@ -1,11 +1,13 @@
-import numpy as np
+### THIS RECIPE IS CURRENTLY BROKEN IN YT-3.0
+### DO NOT TRUST THIS RECIPE UNTIL THIS LINE IS REMOVED
 
 import yt
+import numpy as np
 
 # Follow the simple_volume_rendering cookbook for the first part of this.
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")  # load data
-dd = ds.all_data()
-mi, ma = dd.quantities["Extrema"]("density")
+ad = ds.all_data()
+mi, ma = ad.quantities.extrema("density")
 
 # Set up transfer function
 tf = yt.ColorTransferFunction((np.log10(mi), np.log10(ma)))

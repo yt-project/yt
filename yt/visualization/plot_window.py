@@ -291,16 +291,18 @@ class PlotWindow(ImagePlotContainer):
         else:
             fields = ensure_list(fields)
         self.override_fields = list(set(fields).intersection(set(skip)))
-        self.fields = fields
+        self.fields = [f for f in fields if f not in skip]
         super(PlotWindow, self).__init__(data_source, window_size, fontsize)
         self._set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
         if self.data_source.center is not None and oblique == False:
-            center = [self.data_source.center[i] for i in
-                      range(len(self.data_source.center))
-                      if i != self.data_source.axis]
+            ax = self.data_source.axis
+            xax = self.pf.coordinates.x_axis[ax]
+            yax = self.pf.coordinates.y_axis[ax]
+            center = [self.data_source.center[xax],
+                      self.data_source.center[yax]]
             self.set_center(center)
-        for field in self.frb.data.keys():
+        for field in self.data_source._determine_fields(self.frb.data.keys()):
             finfo = self.data_source.pf._get_field_info(*field)
             if finfo.take_log:
                 self._field_transform[field] = log_transform
@@ -446,6 +448,44 @@ class PlotWindow(ImagePlotContainer):
                 "list {} are incompatible".format(field, new_unit))
         for f, u in zip(field, new_unit):
             self.frb[f].convert_to_units(u)
+        return self
+
+    @invalidate_plot
+    def set_origin(self, origin):
+        """Set the plot origin.
+
+        Parameters
+        ----------
+        origin : string or length 1, 2, or 3 sequence of strings
+            The location of the origin of the plot coordinate system.  This is
+            represented by '-' separated string or a tuple of strings.  In the
+            first index the y-location is given by 'lower', 'upper', or 'center'.
+            The second index is the x-location, given as 'left', 'right', or
+            'center'.  Finally, the whether the origin is applied in 'domain'
+            space, plot 'window' space or 'native' simulation coordinate system
+            is given. For example, both 'upper-right-domain' and ['upper',
+            'right', 'domain'] both place the origin in the upper right hand
+            corner of domain space. If x or y are not given, a value is inffered.
+            For instance, 'left-domain' corresponds to the lower-left hand corner
+            of the simulation domain, 'center-domain' corresponds to the center
+            of the simulation domain, or 'center-window' for the center of the
+            plot window. Further examples:
+
+            ==================================     ============================
+            format                                 example
+            ==================================     ============================
+            '{space}'                              'domain'
+            '{xloc}-{space}'                       'left-window'
+            '{yloc}-{space}'                       'upper-domain'
+            '{yloc}-{xloc}-{space}'                'lower-right-window'
+            ('{space}',)                           ('window',)
+            ('{xloc}', '{space}')                  ('right', 'domain')
+            ('{yloc}', '{space}')                  ('lower', 'window')
+            ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
+            ==================================     ============================
+
+        """
+        self.origin = origin
         return self
 
     @invalidate_data
@@ -730,7 +770,7 @@ class PWViewerMPL(PlotWindow):
 
     def _setup_plots(self):
         self._colorbar_valid = True
-        for f in self.data_source._determine_fields(self.fields):
+        for f in list(set(self.data_source._determine_fields(self.fields))):
             axis_index = self.data_source.axis
 
             xc, yc = self._setup_origin()
@@ -761,12 +801,22 @@ class PWViewerMPL(PlotWindow):
 
             image = self.frb[f]
 
-            if image.max() == image.min() and zlim == (None, None):
-                if self._field_transform[f] == log_transform:
-                    mylog.warning("Plot image for field %s has zero dynamic "
-                                  "range. Min = Max = %d." % (f, image.max()))
+            if self._field_transform[f] == log_transform:
+                msg = None
+                if zlim != (None, None):
+                    pass
+                elif np.nanmax(image) == np.nanmin(image):
+                    msg = "Plot image for field %s has zero dynamic " \
+                          "range. Min = Max = %d." % (f, np.nanmax(image))
+                elif np.nanmax(image) <= 0:
+                    msg = "Plot image for field %s has no positive " \
+                          "values.  Max = %d." % (f, np.nanmax(image))
+                elif np.all(np.isfinite(image)):
+                    msg = "Plot image for field %s is filled with NaNs." % (f,)
+                if msg is not None:
+                    mylog.warning(msg)
                     mylog.warning("Switching to linear colorbar scaling.")
-                self._field_transform[f] = linear_transform
+                    self._field_transform[f] = linear_transform
 
             fp = self._font_properties
 

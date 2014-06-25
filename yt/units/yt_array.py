@@ -284,7 +284,7 @@ class YTArray(np.ndarray):
             return input_array
         elif isinstance(input_array, np.ndarray):
             pass
-        elif iterable(input_array):
+        elif iterable(input_array) and input_array:
             if isinstance(input_array[0], YTArray):
                 return YTArray(np.array(input_array, dtype=dtype),
                                input_array[0].units)
@@ -563,7 +563,7 @@ class YTArray(np.ndarray):
             unit_lut = pickle.loads(dataset.attrs['unit_registry'])
         else:
             unit_lut = None
-
+        f.close()
         registry = UnitRegistry(lut=unit_lut, add_default_symbols=False)
         return cls(data, units, registry=registry)
 
@@ -955,7 +955,7 @@ class YTArray(np.ndarray):
         else:
             raise RuntimeError("Operation is not defined.")
         if unit is None:
-            out_arr = np.array(out_arr)
+            out_arr = np.array(out_arr, copy=False)
             return out_arr
         out_arr.units = unit
         if out_arr.size == 1:
@@ -965,7 +965,7 @@ class YTArray(np.ndarray):
                 # This happens if you do ndarray * YTQuantity. Explicitly
                 # casting to YTArray avoids creating a YTQuantity with size > 1
                 return YTArray(np.array(out_arr, unit))
-            return ret_class(np.array(out_arr), unit)
+            return ret_class(np.array(out_arr, copy=False), unit)
 
 
     def __reduce__(self):

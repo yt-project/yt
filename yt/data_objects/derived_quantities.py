@@ -21,8 +21,6 @@ from yt.funcs import *
 
 from yt.config import ytcfg
 from yt.units.yt_array import YTArray, uconcatenate, array_like_field
-from yt.fields.field_info_container import \
-    FieldDetector
 from yt.utilities.data_point_utilities import FindBindingEnergy
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -616,7 +614,7 @@ class SpinParameter(DerivedQuantity):
 
     >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = pf.all_data()
-    >>> print ad.quantities.center_of_mass()
+    >>> print ad.quantities.spin_parameter()
     
     """
     def count_values(self, **kwargs):

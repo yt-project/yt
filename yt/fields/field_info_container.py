@@ -27,8 +27,6 @@ from .derived_field import \
     NullFunc, \
     TranslationFunc, \
     ValidateSpatial
-from .field_detector import \
-    FieldDetector
 from yt.utilities.exceptions import \
     YTFieldNotFound
 from .field_plugin_registry import \
@@ -160,6 +158,28 @@ class FieldInfoContainer(dict):
         available fields.  This respects a number of arguments, all of which
         are passed on to the constructor for
         :class:`~yt.data_objects.api.DerivedField`.
+
+        Parameters
+        ----------
+
+        name : str
+           is the name of the field.
+        function : callable
+           A function handle that defines the field.  Should accept
+           arguments (field, data)
+        units : str
+           A plain text string encoding the unit.  Powers must be in
+           python syntax (** instead of ^).
+        take_log : bool
+           Describes whether the field should be logged
+        validators : list
+           A list of :class:`FieldValidator` objects
+        particle_type : bool
+           Is this a particle (1D) field?
+        vector_field : bool
+           Describes the dimensionality of the field.  Currently unused.
+        display_name : str
+           A name used in the plots
 
         """
         override = kwargs.pop("force_override", False)
