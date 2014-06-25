@@ -201,7 +201,8 @@ class ParticleTrajectories(object):
             if self.suppress_logging:
                 old_level = int(ytcfg.get("yt","loglevel"))
                 mylog.setLevel(40)
-            dd_first = self.data_series[0].all_data()
+            ds_first = self.data_series[0]
+            dd_first = ds_first.all_data()
             fd = dd_first._determine_fields(field)[0]
             if field not in self.particle_fields:
                 if self.data_series[0].field_info[fd].particle_type:
