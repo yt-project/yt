@@ -686,6 +686,7 @@ class PhasePlot(ImagePlotContainer):
     _plot_valid = False
     _plot_type = 'Phase'
 
+
     def __init__(self, data_source, x_field, y_field, z_fields,
                  weight_field="cell_mass", x_bins=128, y_bins=128,
                  accumulation=False, fractional=False,
@@ -876,6 +877,35 @@ class PhasePlot(ImagePlotContainer):
         data_source = profile.data_source
         return cls._initialize_instance(obj, data_source, profile, fontsize,
                                         figure_size)
+
+
+    def text(self, xpos=0.0, ypos=0.0, text_name="YT", fontsize=18, **kwargs):
+        r"""
+        Allow the user to insert text onto the plot
+        The x-position and y-position must be given as well as the text string. 
+        Fontsize defaults to 18.
+        
+        Parameters
+        ----------
+        xpos: float
+              Position on plot in x-coordinates
+        ypos: float
+              Position on plot in y-coordinates
+        text_name: str
+              The text to insert onto the plot
+        fontsize: float
+              Fontsize for the text (defaults to 18)
+
+        >>>  plot.text(1e-15, 5e4, "Hello YT")
+
+        """
+        for f, data in self.profile.field_data.items():
+            axes = None
+            if f in self.plots:
+                if self.plots[f].figure is not None:
+                    axes = self.plots[f].axes
+
+                self.plots[f].axes.text(xpos, ypos, text_name)
 
     def save(self, name=None, mpl_kwargs=None):
         r"""
