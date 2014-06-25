@@ -203,10 +203,7 @@ class HaloCatalog(ParallelAnalysisInterface):
             field_type = kwargs.pop("field_type")
         else:
             field_type = None
-        if 'prepend' in kwargs:
-            prepend = kwargs.pop("prepend")
-        else:
-            prepend = False
+        prepend = kwargs.pop("prepend",False)
         if field_type is None:
             quantity = quantity_registry.find(key, *args, **kwargs)
         elif (field_type, key) in self.halos_pf.field_info:
