@@ -100,7 +100,7 @@ class HaloCatalog(ParallelAnalysisInterface):
     
     def __init__(self, halos_pf=None, data_pf=None, 
                  data_source=None, finder_method=None, 
-                 finder_kwargs=None,
+                 finder_kwargs={},
                  output_dir="halo_catalogs/catalog"):
         ParallelAnalysisInterface.__init__(self)
         self.halos_pf = halos_pf
@@ -125,7 +125,11 @@ class HaloCatalog(ParallelAnalysisInterface):
         self.data_source = data_source
 
         if finder_method is not None:
-            finder_method = finding_method_registry.find(finder_method, **finder_kwargs)
+            #if finder_kwargs is not None:
+            finder_method = finding_method_registry.find(finder_method,
+                        **finder_kwargs)
+            #else:
+            #    finder_method = finding_method_registry.find(finder_method)
         self.finder_method = finder_method            
         
         # all of the analysis actions to be performed: callbacks, filters, and quantities
