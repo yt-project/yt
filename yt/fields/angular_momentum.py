@@ -45,28 +45,25 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
     def _specific_angular_momentum_x(field, data):
         xv, yv, zv = obtain_velocities(data, ftype)
         center = data.get_field_parameter('center')
-        v_vec = obtain_rvec(data)
-        v_vec = np.rollaxis(v_vec, 0, len(v_vec.shape))
-        v_vec = data.pf.arr(v_vec, input_units = data["index", "x"].units)
-        rv = v_vec - center
+        rv = obtain_rvec(data)
+        rv = np.rollaxis(rv, 0, len(rv.shape))
+        rv = data.pf.arr(rv, input_units = data["index", "x"].units)
         return yv * rv[...,2] - zv * rv[...,1]
 
     def _specific_angular_momentum_y(field, data):
         xv, yv, zv = obtain_velocities(data, ftype)
         center = data.get_field_parameter('center')
-        v_vec = obtain_rvec(data)
-        v_vec = np.rollaxis(v_vec, 0, len(v_vec.shape))
-        v_vec = data.pf.arr(v_vec, input_units = data["index", "x"].units)
-        rv = v_vec - center
+        rv = obtain_rvec(data)
+        rv = np.rollaxis(rv, 0, len(rv.shape))
+        rv = data.pf.arr(rv, input_units = data["index", "x"].units)
         return - (xv * rv[...,2] - zv * rv[...,0])
 
     def _specific_angular_momentum_z(field, data):
         xv, yv, zv = obtain_velocities(data, ftype)
         center = data.get_field_parameter('center')
-        v_vec = obtain_rvec(data)
-        v_vec = np.rollaxis(v_vec, 0, len(v_vec.shape))
-        v_vec = data.pf.arr(v_vec, input_units = data["index", "x"].units)
-        rv = v_vec - center
+        rv = obtain_rvec(data)
+        rv = np.rollaxis(rv, 0, len(rv.shape))
+        rv = data.pf.arr(rv, input_units = data["index", "x"].units)
         return xv * rv[...,1] - yv * rv[...,0]
 
     registry.add_field((ftype, "specific_angular_momentum_x"),
