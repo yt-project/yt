@@ -517,11 +517,12 @@ class PhasePlot(ImagePlotContainer):
                          weight_field=None)
     >>> plot.save()
 
-    >>> # Change plot properties.
+    >>> # Change plot properties. 
     >>> plot.set_cmap("CellMassMsun", "jet")
     >>> plot.set_zlim("CellMassMsun", 1e8, 1e13)
     >>> plot.set_title("CellMassMsun", "This is a phase plot")
-    
+    >>> N.B. The above callbacks will overwrite explicit 
+    >>> callbacks like set_xlim and hence should be done first.
     """
     x_log = None
     y_log = None
@@ -531,6 +532,7 @@ class PhasePlot(ImagePlotContainer):
     plot_title = None
     _plot_valid = False
     _plot_type = 'Phase'
+
 
     def __init__(self, data_source, x_field, y_field, z_fields,
                  weight_field="CellMassMsun", x_bins=128, y_bins=128,
@@ -648,6 +650,138 @@ class PhasePlot(ImagePlotContainer):
                     label.set_color(self._font_color)
         self._plot_valid = True
 
+
+
+    def set_xlim(self, xmin=None, xmax=None):
+        r"""
+        Sets the x-axis limits on the Phase plot. 
+        Defaults to None leaving the axis unchanged
+        Parameters
+        ----------
+        xmin: float
+              The minimum value on the x-axis
+        xmax: float
+              The maximum value on the x-axis
+
+        >>> plot.set_xlim(5e-21, 1e5)
+
+        """
+        for f, data in self.profile.field_data.items():
+            axes = None
+            if f in self.plots:
+                if self.plots[f].figure is not None:
+                    axes = self.plots[f].axes
+
+                self.plots[f].axes.set_xlim(xmin, xmax)
+
+    def set_ylim(self, ymin=None, ymax=None):
+        r"""
+        Sets the y-axis limits on the Phase plot. 
+        Defaults to None leaving the axis unchanged
+        Parameters
+        ----------
+        ymin: float
+              The minimum value on the y-axis
+        ymax: float
+              The maximum value on the y-axis
+
+        >>> plot.set_ylim(1e1, 1e5)
+
+        """
+       
+        for f, data in self.profile.field_data.items():
+            axes = None
+            if f in self.plots:
+                if self.plots[f].figure is not None:
+                    axes = self.plots[f].axes
+
+                self.plots[f].axes.set_ylim(ymin, ymax)
+
+    def set_xtitle(self, x_title=x_title, fontsize=18):
+        r"""
+        Allow the user to modify the X-axis title
+        Defaults to the global value. Fontsize defaults 
+        to 18.
+        
+        Parameters
+        ----------
+        x_title: str
+              The new string for the x-axis
+        fontsize: float
+              Fontsize for the x-axis title
+
+        >>>  plot.set_xtitle("H2I Number Density (cm$^{-3}$)")
+
+        """
+        for f in self.profile.field_data:
+            self.plots[f].axes.xaxis.set_label_text(x_title, fontsize=fontsize)
+
+    def set_ytitle(self, y_title=y_title, fontsize=18):
+        r"""
+        Allow the user to modify the Y-axis title
+        Defaults to the global value. Fontsize defaults 
+        to 18.
+        
+        Parameters
+        ----------
+        y_title: str
+              The new string for the y-axis
+        fontsize: float
+              Fontsize for the y-axis title
+
+        >>>  plot.set_ytitle("Temperature (K)")
+
+        """
+        for f in self.profile.field_data:
+            self.plots[f].axes.yaxis.set_label_text(y_title, fontsize=fontsize)
+
+    def set_ztitle(self, z_title=z_title, fontsize=18):
+        r"""
+        Allow the user to modify the Z-axis title
+        Defaults to the global value. Fontsize defaults 
+        to 18.
+        
+        Parameters
+        ----------
+        z_title: str
+              The new string for the z-axis
+        fontsize: float
+              Fontsize for the z-axis title
+
+        >>>  plot.set_ztitle("Enclosed Gas Mass ($M_{\odot}$)")
+
+        """
+        for f in self.profile.field_data:
+            self.plots[f].cax.yaxis.set_label_text(z_title, fontsize=fontsize)
+
+    def text(self, xpos=0.0, ypos=0.0, text_name="YT", fontsize=18, **kwargs):
+        r"""
+        Allow the user to insert text onto the plot
+        The x-position and y-position must be given as well as the text string. 
+        Fontsize defaults to 18.
+        
+        Parameters
+        ----------
+        xpos: float
+              Position on plot in x-coordinates
+        ypos: float
+              Position on plot in y-coordinates
+        text_name: str
+              The text to insert onto the plot
+        fontsize: float
+              Fontsize for the text (defaults to 18)
+
+        >>>  plot.text(1e-15, 5e4, "Hello YT")
+
+        """
+        for f, data in self.profile.field_data.items():
+            axes = None
+            if f in self.plots:
+                if self.plots[f].figure is not None:
+                    axes = self.plots[f].axes
+
+                self.plots[f].axes.text(xpos, ypos, text_name)
+
     def save(self, name=None, mpl_kwargs=None):
         r"""
         Saves a 2d profile plot.
@@ -662,18 +796,19 @@ class PhasePlot(ImagePlotContainer):
         >>> plot.save(mpl_kwargs={'bbox_inches':'tight'})
         
         """
-
+        middle = ""
         if not self._plot_valid: self._setup_plots()
         if mpl_kwargs is None: mpl_kwargs = {}
         for f in self.profile.field_data:
-            middle = "2d-Profile_%s_%s_%s" % (self.profile.x_field, 
-                                              self.profile.y_field, f)
             if name is None:
+                middle = "2d-Profile_%s_%s_%s" % (self.profile.x_field, 
+                                                  self.profile.y_field, f)
+                
                 prefix = self.profile.pf
                 name = "%s.png" % prefix
             suffix = get_image_suffix(name)
             prefix = name[:name.rfind(suffix)]
-            fn = "%s_%s%s" % (prefix, middle, suffix)
+            fn = "%s%s%s" % (prefix, middle, suffix)
             if not suffix:
                 suffix = ".png"
             self.plots[f].save(fn, mpl_kwargs)
