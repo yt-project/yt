@@ -67,6 +67,7 @@ class YTOrthoRayBase(YTSelectionContainer1D):
     _key_fields = ['x','y','z','dx','dy','dz']
     _type_name = "ortho_ray"
     _con_args = ('axis', 'coords')
+    _sort_ind = None
     def __init__(self, axis, coords, pf=None, field_parameters=None):
         super(YTOrthoRayBase, self).__init__(pf, field_parameters)
         self.axis = axis
@@ -78,7 +79,14 @@ class YTOrthoRayBase(YTSelectionContainer1D):
         self.px_dx = 'd%s'%('xyz'[self.px_ax])
         self.py_dx = 'd%s'%('xyz'[self.py_ax])
         self.px, self.py = coords
-        self.sort_by = 'xyz'[self.axis]
+        self._sort_by = 'xyz'[self.axis]
+
+    def __getitem__(self, key):
+        if self._sort_ind is None:
+            sv = super(YTOrthoRayBase, self).__getitem__(self._sort_by)
+            self._sort_ind = np.argsort(sv)
+        v = super(YTOrthoRayBase, self).__getitem__(key)
+        return v[self._sort_ind]
 
     @property
     def coords(self):
@@ -116,6 +124,8 @@ class YTRayBase(YTSelectionContainer1D):
     _type_name = "ray"
     _con_args = ('start_point', 'end_point')
     _container_fields = ("t", "dts")
+    _sort_by = "t"
+    _sort_ind = None
     def __init__(self, start_point, end_point, pf=None, field_parameters=None):
         super(YTRayBase, self).__init__(pf, field_parameters)
         self.start_point = self.pf.arr(start_point,
@@ -137,6 +147,13 @@ class YTRayBase(YTSelectionContainer1D):
             return self._current_chunk.tcoords
         else:
             raise KeyError(field)
+
+    def __getitem__(self, key):
+        if self._sort_ind is None:
+            sv = super(YTRayBase, self).__getitem__(self._sort_by)
+            self._sort_ind = np.argsort(sv)
+        v = super(YTRayBase, self).__getitem__(key)
+        return v[self._sort_ind]
 
 class YTSliceBase(YTSelectionContainer2D):
     """
