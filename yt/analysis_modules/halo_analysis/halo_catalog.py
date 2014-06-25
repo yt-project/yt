@@ -371,7 +371,7 @@ class HaloCatalog(ParallelAnalysisInterface):
             self.data_source = self.halos_pf.all_data()
 
             # Add all of the default quantities that all halos must have
-            self.add_default_quantities('all', prepend=True)
+            self.add_default_quantities('all')
 
         my_index = np.argsort(self.data_source["particle_identifier"])
         for i in parallel_objects(my_index, njobs=njobs, dynamic=dynamic):
@@ -436,11 +436,11 @@ class HaloCatalog(ParallelAnalysisInterface):
                 dataset.attrs["units"] = units
         out_file.close()
 
-    def add_default_quantities(self, field_type='halos', prepend=False):
-        self.add_quantity("particle_identifier", field_type=field_type,prepend=prepend)
-        self.add_quantity("particle_mass", field_type=field_type,prepend=prepend)
-        self.add_quantity("particle_position_x", field_type=field_type,prepend=prepend)
-        self.add_quantity("particle_position_y", field_type=field_type,prepend=prepend)
-        self.add_quantity("particle_position_z", field_type=field_type,prepend=prepend)
-        self.add_quantity("virial_radius", field_type=field_type,prepend=prepend)
+    def add_default_quantities(self, field_type='halos'):
+        self.add_quantity("particle_identifier", field_type=field_type,prepend=True)
+        self.add_quantity("particle_mass", field_type=field_type,prepend=True)
+        self.add_quantity("particle_position_x", field_type=field_type,prepend=True)
+        self.add_quantity("particle_position_y", field_type=field_type,prepend=True)
+        self.add_quantity("particle_position_z", field_type=field_type,prepend=True)
+        self.add_quantity("virial_radius", field_type=field_type,prepend=True)
 
