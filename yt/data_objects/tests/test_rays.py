@@ -42,3 +42,8 @@ def test_ray():
             yield assert_rel_equal, my_ray['density'][ray_cells].sum(), \
                                     my_all['density'][my_cells].sum(), 14
             yield assert_rel_equal, my_ray['dts'].sum(), unitary, 14
+
+def test_amr_ray():
+    pf = fake_amr_pf()
+    ray = pf.ray(pf.domain_left_edge, pf.domain_right_edge)
+    yield assert_equal, (np.diff(ray["t"]) >= 0).all(), True
