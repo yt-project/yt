@@ -684,12 +684,10 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         if level_state is None: return
         # We need a buffer region to allow for zones that contribute to the
         # interpolation but are not directly inside our bounds
-        left_edge = self.left_edge - level_state.current_dx
-        right_edge = self.right_edge + level_state.current_dx
-        left_edge = np.maximum(left_edge, self.pf.domain_left_edge)
-        right_edge = np.minimum(right_edge, self.pf.domain_right_edge)
         level_state.data_source = self.pf.region(
-            self.center, left_edge, right_edge)
+            self.center,
+            self.left_edge - level_state.current_dx,
+            self.right_edge + level_state.current_dx)
         level_state.data_source.min_level = level_state.current_level
         level_state.data_source.max_level = level_state.current_level
 
