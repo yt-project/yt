@@ -45,7 +45,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in data_files:
+        for data_file in sorted(data_files):
             pcount = data_file.header['num_halos']
             with open(data_file.filename, "rb") as f:
                 f.seek(data_file._position_offset, os.SEEK_SET)
@@ -65,7 +65,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in data_files:
+        for data_file in sorted(data_files):
             pcount = data_file.header['num_halos']
             with open(data_file.filename, "rb") as f:
                 for ptype, field_list in sorted(ptf.items()):

@@ -43,7 +43,7 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in data_files:
+        for data_file in sorted(data_files):
             pcount = data_file.header['num_halos']
             with h5py.File(data_file.filename, "r") as f:
                 x = f['particle_position_x'].value.astype("float64")
@@ -61,7 +61,7 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in data_files:
+        for data_file in sorted(data_files):
             pcount = data_file.header['num_halos']
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
