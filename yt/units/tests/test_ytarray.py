@@ -756,16 +756,6 @@ def test_astropy():
     yield assert_array_equal, yt_arr, YTArray(yt_arr.to_astropy())
     yield assert_equal, yt_quan, YTQuantity(yt_quan.to_astropy())
 
-def test_flatiter():
-    a = YTArray(np.arange(10), 'km/hr')
-
-    yield assert_equal, a, a.flat[:]
-    yield assert_equal, a[1:3], a.flat[1:3]
-
-    yield assert_isinstance, a.flat[:], YTArray
-    yield assert_isinstance, a.flat[1:3], YTArray
-    yield assert_isinstance, a.flat[0], YTQuantity
-
 def test_subclass():
 
     class YTASubclass(YTArray):

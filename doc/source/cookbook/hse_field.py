@@ -18,7 +18,7 @@ def gravitational_acceleration_x(field, data):
     sl_right = slice(2, None, None)
     div_fac = 2.0
 
-    dx = div_fac * data['dx'].flat[0]
+    dx = div_fac * data['dx'][0]
 
     gx = data["gravitational_potential"][sl_right, 1:-1, 1:-1]/dx
     gx -= data["gravitational_potential"][sl_left, 1:-1, 1:-1]/dx
@@ -41,7 +41,7 @@ def gravitational_acceleration_y(field, data):
     sl_right = slice(2, None, None)
     div_fac = 2.0
 
-    dy = div_fac * data['dy'].flat[0]
+    dy = div_fac * data['dy'].flatten()[0]
 
     gy = data["gravitational_potential"][1:-1, sl_right, 1:-1]/dy
     gy -= data["gravitational_potential"][1:-1, sl_left, 1:-1]/dy
@@ -65,7 +65,7 @@ def gravitational_acceleration_z(field, data):
     sl_right = slice(2, None, None)
     div_fac = 2.0
 
-    dz = div_fac * data['dz'].flat[0]
+    dz = div_fac * data['dz'].flatten()[0]
 
     gz = data["gravitational_potential"][1:-1, 1:-1, sl_right]/dz
     gz -= data["gravitational_potential"][1:-1, 1:-1, sl_left]/dz
@@ -90,7 +90,7 @@ def grad_pressure_x(field, data):
     sl_right = slice(2, None, None)
     div_fac = 2.0
 
-    dx = div_fac * data['dx'].flat[0]
+    dx = div_fac * data['dx'].flatten()[0]
 
     px = data["pressure"][sl_right, 1:-1, 1:-1]/dx
     px -= data["pressure"][sl_left, 1:-1, 1:-1]/dx
@@ -111,7 +111,7 @@ def grad_pressure_y(field, data):
     sl_right = slice(2, None, None)
     div_fac = 2.0
 
-    dy = div_fac * data['dy'].flat[0]
+    dy = div_fac * data['dy'].flatten()[0]
 
     py = data["pressure"][1:-1, sl_right, 1:-1]/dy
     py -= data["pressure"][1:-1, sl_left, 1:-1]/dy
@@ -132,7 +132,7 @@ def grad_pressure_z(field, data):
     sl_right = slice(2, None, None)
     div_fac = 2.0
 
-    dz = div_fac * data['dz'].flat[0]
+    dz = div_fac * data['dz'].flatten()[0]
 
     pz = data["pressure"][1:-1, 1:-1, sl_right]/dz
     pz -= data["pressure"][1:-1, 1:-1, sl_left]/dz

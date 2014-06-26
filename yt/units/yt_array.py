@@ -176,25 +176,6 @@ binary_operators = (
     fmax, fmin, copysign, nextafter, fmod,
 )
 
-class YTArrayIterator(object):
-    def __init__(self, arr):
-        self.arr = arr
-        self.iter = self.arr.view(np.ndarray).flat
-
-    def __iter__(self):
-        return self
-
-    def __getitem__(self, indx):
-        out = self.iter[indx]
-        return out*self.arr.uq
-
-    def __setitem__(self, index, value):
-        self.iter[index] = value
-
-    def __next__(self):
-        out = next(self.iter)
-        return out*self.arr.uq
-
 class YTArray(np.ndarray):
     """
     An ndarray subclass that attaches a symbolic unit object to the array data.
@@ -672,21 +653,6 @@ class YTArray(np.ndarray):
         return np.ones_like(self)
 
     ua = unit_array
-
-    @property
-    def flat(self):
-        """A 1D iterator over the YTArray.
-
-        This returns a ``YTArrayIterator`` instance, which behaves the same as
-        the ``~np.flatiter`` instance returned by ``~np.ndarray.flat``, and is
-        similar to, but not a subclass of, Python's built-in iterator object.
-        """
-        return YTArrayIterator(self)
-
-    @flat.setter
-    def flat(self, value):
-        y = self.ravel()
-        y[:] = value
 
     #
     # Start operation methods
