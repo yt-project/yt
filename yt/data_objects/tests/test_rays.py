@@ -45,7 +45,6 @@ def test_ray():
 
 def test_amr_ray():
     pf = fake_amr_pf()
-    s = pf.slice(0, 0.5)
     ray = pf.ray(pf.domain_left_edge, pf.domain_right_edge)
     yield assert_equal, (np.diff(ray["t"]) >= 0).all(), True
     ray = pf.ortho_ray(0, (0.5, 0.5))
