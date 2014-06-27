@@ -417,6 +417,8 @@ class YTArray(np.ndarray):
 
         """
         new_units = self._unit_repr_check_same(units)
+        if new_units == self.units:
+            return self
         conversion_factor = self.units.get_conversion_factor(new_units)
 
         self.units = new_units
@@ -453,6 +455,8 @@ class YTArray(np.ndarray):
 
         """
         new_units = self._unit_repr_check_same(units)
+        if new_units == self.units:
+            return self.copy()
         conversion_factor = self.units.get_conversion_factor(new_units)
 
         new_array = self * conversion_factor
