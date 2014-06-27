@@ -18,6 +18,7 @@ cimport cython
 cimport numpy as np
 import numpy as np
 from selection_routines cimport SelectorObject
+from libc.math cimport rint
 cimport selection_routines
 
 ORDER_MAX = 20
@@ -278,7 +279,7 @@ cdef class OctreeContainer:
         cdef np.int64_t ind[3], level = -1
         for i in range(3):
             dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
-            ind[i] = <np.int64_t> ((ppos[i] - self.DLE[i])/dds[i])
+            ind[i] = <np.int64_t> (rint((ppos[i] - self.DLE[i])/dds[i]))
             cp[i] = (ind[i] + 0.5) * dds[i] + self.DLE[i]
             ipos[i] = 0
             ind32[i] = ind[i]
