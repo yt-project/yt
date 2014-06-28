@@ -22,9 +22,9 @@ interval between 0.1 keV and 100 keV.
 Adding Emission Fields
 ----------------------
 
-Fields will be created for luminosity (erg/s), emissivity (erg/s/cm**3),
-and photon emissivity (photons/s/cm**3).  The only required arguments are
-the dataset object, and the minimum and maximum energies of the band.
+Fields will be created for luminosity :math:`{\rm (erg~s^{-1})}`, emissivity :math:`{\rm (erg~s^{-1}~cm^{-3})}`,
+and photon emissivity :math:`{\rm (photons~s^{-1}~cm^{-3})}`.  The only required arguments are the
+dataset object, and the minimum and maximum energies of the energy band.
 
 .. code-block:: python
 
@@ -52,7 +52,7 @@ Additional keyword arguments are:
 The resulting fields can be used like all normal fields. The function will return the names of
 the created fields in a Python list.
 
-.. python-script::
+.. code-block:: python
 
   import yt
   from yt.analysis_modules.spectral_integrator.api import \
