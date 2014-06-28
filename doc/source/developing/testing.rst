@@ -51,7 +51,7 @@ that can import the yt module:
 
 If you are developing new functionality, it is sometimes more convenient to use
 the Nose command line interface, ``nosetests``. You can run the unit tests
-using `no`qsetets` by navigating to the base directory of the yt mercurial
+using ``nose`` by navigating to the base directory of the yt mercurial
 repository and invoking ``nosetests``:
 
 .. code-block:: bash

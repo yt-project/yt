@@ -756,7 +756,6 @@ def test_astropy():
     yield assert_array_equal, yt_arr, YTArray(yt_arr.to_astropy())
     yield assert_equal, yt_quan, YTQuantity(yt_quan.to_astropy())
 
-
 def test_subclass():
 
     class YTASubclass(YTArray):
