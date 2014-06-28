@@ -549,7 +549,7 @@ class Halo(object):
             temp_e2[:,dim] = e2_vector[dim]
         length = np.abs(np.sum(rr * temp_e2, axis = 1) * (1 - \
             np.sum(rr * temp_e0, axis = 1)**2. * mag_A**-2. - \
-            np.sum(rr * temp_e1, axis = 1)**2. * mag_B**-2)**(-0.5))
+            np.sum(rr * temp_e1, axis = 1)**2. * mag_B**-2.)**(-0.5))
         length[length == np.inf] = 0.
         tC_index = np.nanargmax(length)
         mag_C = length[tC_index]
@@ -557,14 +557,14 @@ class Halo(object):
         # needed to align e1 vector with the y axis
         # after e0 is aligned with x axis
         # find the t1 angle needed to rotate about z axis to align e0 to x
-        t1 = np.arctan(e0_vector[1] / e0_vector[0])
-        RZ = get_rotation_matrix(-t1, (0, 0, 1)).transpose()
-        r1 = (e0_vector * RZ).sum(axis = 1)
+        t1 = np.arctan(-e0_vector[1] / e0_vector[0])
+        RZ = get_rotation_matrix(t1, (0, 0, 1))
+        r1 = np.dot(RZ, e0_vector)
         # find the t2 angle needed to rotate about y axis to align e0 to x
-        t2 = np.arctan(-r1[2] / r1[0])
-        RY = get_rotation_matrix(-t2, (0, 1, 0)).transpose()
+        t2 = np.arctan(r1[2] / r1[0])
+        RY = get_rotation_matrix(t2, (0, 1, 0))
         r2 = np.dot(RY, np.dot(RZ, e1_vector))
-        tilt = np.arctan(r2[2]/r2[1])
+        tilt = np.arctan(-r2[2] / r2[1])
         return (mag_A, mag_B, mag_C, e0_vector[0], e0_vector[1],
             e0_vector[2], tilt)
 
@@ -782,13 +782,13 @@ class parallelHOPHalo(Halo, ParallelAnalysisInterface):
         
         Returns
         -------
-        tuple : (cm, mag_A, mag_B, mag_C, e1_vector, tilt)
+        tuple : (cm, mag_A, mag_B, mag_C, e0_vector, tilt)
             The 6-tuple has in order:
               #. The center of mass as an array.
               #. mag_A as a float.
               #. mag_B as a float.
               #. mag_C as a float.
-              #. e1_vector as an array.
+              #. e0_vector as an array.
               #. tilt as a float.
         
         Examples
@@ -819,7 +819,7 @@ class LoadedHalo(Halo):
     def __init__(self, ds, id, size=None, CoM=None,
         max_dens_point=None, group_total_mass=None, max_radius=None, bulk_vel=None,
         rms_vel=None, fnames=None, mag_A=None, mag_B=None, mag_C=None,
-        e1_vec=None, tilt=None, supp=None):
+        e0_vec=None, tilt=None, supp=None):
 
         self.ds = ds
         self.gridsize = (self.ds.domain_right_edge - \
@@ -835,7 +835,7 @@ class LoadedHalo(Halo):
         self.mag_A = mag_A
         self.mag_B = mag_B
         self.mag_C = mag_C
-        self.e1_vec = e1_vec
+        self.e0_vec = e0_vec
         self.tilt = tilt
         # locs=the names of the h5 files that have particle data for this halo
         self.fnames = fnames
@@ -928,8 +928,8 @@ class LoadedHalo(Halo):
 
     def _get_ellipsoid_parameters_basic_loadedhalo(self):
         if self.mag_A is not None:
-            return (self.mag_A, self.mag_B, self.mag_C, self.e1_vec[0],
-                self.e1_vec[1], self.e1_vec[2], self.tilt)
+            return (self.mag_A, self.mag_B, self.mag_C, self.e0_vec[0],
+                self.e0_vec[1], self.e0_vec[2], self.tilt)
         else:
             return self._get_ellipsoid_parameters_basic()
 
@@ -943,13 +943,13 @@ class LoadedHalo(Halo):
 
         Returns
         -------
-        tuple : (cm, mag_A, mag_B, mag_C, e1_vector, tilt)
+        tuple : (cm, mag_A, mag_B, mag_C, e0_vector, tilt)
             The 6-tuple has in order:
               #. The center of mass as an array.
               #. mag_A as a float.
               #. mag_B as a float.
               #. mag_C as a float.
-              #. e1_vector as an array.
+              #. e0_vector as an array.
               #. tilt as a float.
 
         Examples
@@ -1021,7 +1021,7 @@ class TextHalo(LoadedHalo):
 
         max_dens_point=None, group_total_mass=None, max_radius=None, bulk_vel=None,
         rms_vel=None, fnames=None, mag_A=None, mag_B=None, mag_C=None,
-        e1_vec=None, tilt=None, supp=None):
+        e0_vec=None, tilt=None, supp=None):
 
         self.ds = ds
         self.gridsize = (self.ds.domain_right_edge - \
@@ -1037,7 +1037,7 @@ class TextHalo(LoadedHalo):
         self.mag_A = mag_A
         self.mag_B = mag_B
         self.mag_C = mag_C
-        self.e1_vec = e1_vec
+        self.e0_vec = e0_vec
         self.tilt = tilt
         self.bin_count = None
         self.overdensity = None
@@ -1181,8 +1181,8 @@ class HaloList(object):
                                "x","y","z", "center-of-mass",
                                "x","y","z",
                                "vx","vy","vz","max_r","rms_v",
-                               "mag_A", "mag_B", "mag_C", "e1_vec0",
-                               "e1_vec1", "e1_vec2", "tilt", "\n"]))
+                               "mag_A", "mag_B", "mag_C", "e0_vec0",
+                               "e0_vec1", "e0_vec2", "tilt", "\n"]))
 
         for group in self:
             f.write("%10i\t" % group.id)
@@ -1494,17 +1494,17 @@ class LoadedHaloList(HaloList):
                 mag_A = float(line[15])
                 mag_B = float(line[16])
                 mag_C = float(line[17])
-                e1_vec0 = float(line[18])
-                e1_vec1 = float(line[19])
-                e1_vec2 = float(line[20])
-                e1_vec = np.array([e1_vec0, e1_vec1, e1_vec2])
+                e0_vec0 = float(line[18])
+                e0_vec1 = float(line[19])
+                e0_vec2 = float(line[20])
+                e0_vec = np.array([e0_vec0, e0_vec1, e0_vec2])
                 tilt = float(line[21])
                 self._groups.append(LoadedHalo(self.ds, halo, size = size,
                     CoM = CoM,
                     max_dens_point = max_dens_point,
                     group_total_mass = group_total_mass, max_radius = max_radius,
                     bulk_vel = bulk_vel, rms_vel = rms_vel, fnames = fnames,
-                    mag_A = mag_A, mag_B = mag_B, mag_C = mag_C, e1_vec = e1_vec,
+                    mag_A = mag_A, mag_B = mag_B, mag_C = mag_C, e0_vec = e0_vec,
                     tilt = tilt))
             else:
                 mylog.error("I am unable to parse this line. Too many or too few items. %s" % orig)
