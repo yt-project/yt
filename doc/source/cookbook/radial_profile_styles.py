@@ -12,9 +12,6 @@ sp = ds.sphere(ds.domain_center, (500., "kpc"))
 
 # Bin up the data from the sphere into a radial profile
 
-#rp = BinnedProfile1D(sphere, 100, "Radiuskpc", 0.0, 500., log_space=False)
-#rp.add_fields("density","temperature")
-rp = yt.ProfilePlot(sp, 'radius', ['density', 'temperature'])
 rp = yt.create_profile(sp, 'radius', ['density', 'temperature'],
                        units = {'radius': 'kpc'},
                        logs = {'radius': False})
