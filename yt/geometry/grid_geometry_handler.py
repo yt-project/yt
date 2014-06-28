@@ -37,6 +37,7 @@ from yt.utilities.lib.GridTree import GridTree, MatchPointsToGrids
 from yt.data_objects.data_containers import data_object_registry
 
 class GridIndex(Index):
+    """The index class for patch and block AMR datasets. """
     float_type = 'float64'
     _preload_implemented = False
     _index_properties = ("grid_left_edge", "grid_right_edge",
@@ -240,6 +241,40 @@ class GridIndex(Index):
         ind = pts.find_points_in_tree()
         return self.grids[ind], ind
 
+    def find_field_value_at_point(self, fields, coord):
+        r"""Find the value of fields at a coordinate.
+
+        Returns the values [field1, field2,...] of the fields at the given
+        (x, y, z) points. Returns a list of field values in the same order as
+        the input *fields*.
+
+        Parameters
+        ----------
+        fields : string or list of strings
+            The field(s) that will be returned.
+
+        coord : list or array of coordinates
+            The location for which field values will be returned.
+
+        Examples
+        --------
+        >>> pf.h.find_field_value_at_point(['Density', 'Temperature'],
+            [0.4, 0.3, 0.8])
+        [2.1489e-24, 1.23843e4]
+        """
+        this = self.find_points(*coord)[0][-1]
+        cellwidth = (this.RightEdge - this.LeftEdge) / this.ActiveDimensions
+        mark = np.zeros(3).astype('int')
+        # Find the index for the cell containing this point.
+        for dim in xrange(len(coord)):
+            mark[dim] = int((coord[dim] - this.LeftEdge[dim]) / cellwidth[dim])
+        out = []
+        fields = ensure_list(fields)
+        # Pull out the values and add it to the out list.
+        for field in fields:
+            out.append(this[field][mark[0], mark[1], mark[2]])
+        return out
+
     def get_grid_tree(self) :
 
         left_edge = self.pf.arr(np.zeros((self.num_grids, 3)),
@@ -317,6 +352,7 @@ class GridIndex(Index):
             # individual grids.
             yield YTDataChunk(dobj, "spatial", [g], size, cache = False)
 
+    _grid_chunksize = 1000
     def _chunk_io(self, dobj, cache = True, local_only = False):
         # local_only is only useful for inline datasets and requires
         # implementation by subclasses.
@@ -325,7 +361,14 @@ class GridIndex(Index):
         for g in gobjs:
             gfiles[g.filename].append(g)
         for fn in sorted(gfiles):
+            # We can apply a heuristic here to make sure we aren't loading too
+            # many grids all at once.
             gs = gfiles[fn]
-            yield YTDataChunk(dobj, "io", gs, self._count_selection(dobj, gs),
-                              cache = cache)
+            size = self._grid_chunksize
+            
+            for grids in (gs[pos:pos + size] for pos
+                          in xrange(0, len(gs), size)):
+                yield YTDataChunk(dobj, "io", grids,
+                        self._count_selection(dobj, grids),
+                        cache = cache)
 

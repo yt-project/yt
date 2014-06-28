@@ -291,16 +291,18 @@ class PlotWindow(ImagePlotContainer):
         else:
             fields = ensure_list(fields)
         self.override_fields = list(set(fields).intersection(set(skip)))
-        self.fields = fields
+        self.fields = [f for f in fields if f not in skip]
         super(PlotWindow, self).__init__(data_source, window_size, fontsize)
         self._set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
         if self.data_source.center is not None and oblique == False:
-            center = [self.data_source.center[i] for i in
-                      range(len(self.data_source.center))
-                      if i != self.data_source.axis]
+            ax = self.data_source.axis
+            xax = self.pf.coordinates.x_axis[ax]
+            yax = self.pf.coordinates.y_axis[ax]
+            center = [self.data_source.center[xax],
+                      self.data_source.center[yax]]
             self.set_center(center)
-        for field in self.frb.data.keys():
+        for field in self.data_source._determine_fields(self.frb.data.keys()):
             finfo = self.data_source.pf._get_field_info(*field)
             if finfo.take_log:
                 self._field_transform[field] = log_transform
@@ -386,6 +388,7 @@ class PlotWindow(ImagePlotContainer):
         ----------
         deltas : Two-element sequence of floats, quantities, or (float, unit)
                  tuples.
+
             (delta_x, delta_y).  If a unit is not supplied the unit is assumed
             to be code_length.
 
@@ -522,6 +525,7 @@ class PlotWindow(ImagePlotContainer):
         ----------
         width : float, array of floats, (float, unit) tuple, or tuple of
                 (float, unit) tuples.
+
              Width can have four different formats to support windows with
              variable x and y widths.  They are:
 
@@ -768,7 +772,7 @@ class PWViewerMPL(PlotWindow):
 
     def _setup_plots(self):
         self._colorbar_valid = True
-        for f in self.data_source._determine_fields(self.fields):
+        for f in list(set(self.data_source._determine_fields(self.fields))):
             axis_index = self.data_source.axis
 
             xc, yc = self._setup_origin()
@@ -803,12 +807,14 @@ class PWViewerMPL(PlotWindow):
                 msg = None
                 if zlim != (None, None):
                     pass
-                elif image.max() == image.min():
+                elif np.nanmax(image) == np.nanmin(image):
                     msg = "Plot image for field %s has zero dynamic " \
-                          "range. Min = Max = %d." % (f, image.max())
-                elif image.max() <= 0:
+                          "range. Min = Max = %d." % (f, np.nanmax(image))
+                elif np.nanmax(image) <= 0:
                     msg = "Plot image for field %s has no positive " \
-                          "values.  Max = %d." % (f, image.max())
+                          "values.  Max = %d." % (f, np.nanmax(image))
+                elif np.all(np.logical_not(np.isfinite(image))):
+                    msg = "Plot image for field %s is filled with NaNs." % (f,)
                 if msg is not None:
                     mylog.warning(msg)
                     mylog.warning("Switching to linear colorbar scaling.")
@@ -1710,19 +1716,19 @@ class WindowPlotMPL(ImagePlotMPL):
 
 
 def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
-    r"""
-    A factory function for
+    r"""A factory function for
     :class:`yt.visualization.plot_window.AxisAlignedSlicePlot`
     and :class:`yt.visualization.plot_window.OffAxisSlicePlot` objects.  This
     essentially allows for a single entry point to both types of slice plots,
     the distinction being determined by the specified normal vector to the
     slice.
 
-        The returned plot object can be updated using one of the many helper
+    The returned plot object can be updated using one of the many helper
     functions defined in PlotWindow.
 
     Parameters
     ----------
+
     pf : :class:`yt.data_objects.api.Dataset`
         This is the parameter file object corresponding to the
         simulation output to be plotted.
@@ -1816,6 +1822,7 @@ def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
 
     Raises
     ------
+
     AssertionError
         If a proper normal axis is not specified via the normal or axis
         keywords, and/or if a field to plot is not specified.

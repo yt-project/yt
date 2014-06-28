@@ -623,11 +623,13 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                                         fluids, self, self._current_chunk)
         for f, v in read_fluids.items():
             self.field_data[f] = self.pf.arr(v, input_units = finfos[f].units)
+            self.field_data[f].convert_to_units(finfos[f].output_units)
 
         read_particles, gen_particles = self.index._read_particle_fields(
                                         particles, self, self._current_chunk)
         for f, v in read_particles.items():
             self.field_data[f] = self.pf.arr(v, input_units = finfos[f].units)
+            self.field_data[f].convert_to_units(finfos[f].output_units)
 
         fields_to_generate += gen_fluids + gen_particles
         self._generate_fields(fields_to_generate)
@@ -751,16 +753,19 @@ class YTSelectionContainer2D(YTSelectionContainer):
         return field
 
     def _get_pw(self, fields, center, width, origin, plot_type):
-        axis = self.axis
-        self.fields = [k for k in self.field_data
-                       if k not in self._key_fields]
         from yt.visualization.plot_window import \
             get_window_parameters, PWViewerMPL
-        from yt.visualization.fixed_resolution import FixedResolutionBuffer
+        from yt.visualization.fixed_resolution import FixedResolutionBuffer as frb
+        axis = self.axis
+        skip = self._key_fields
+        skip += list(set(frb._exclude_fields).difference(set(self._key_fields)))
+        self.fields = ensure_list(fields) + \
+            [k for k in self.field_data if k not in skip]
         (bounds, center) = get_window_parameters(axis, center, width, self.pf)
-        pw = PWViewerMPL(self, bounds, fields=list(self.fields), origin=origin,
-                         frb_generator=FixedResolutionBuffer, 
+        pw = PWViewerMPL(self, bounds, fields=self.fields, origin=origin,
+                         frb_generator=frb,
                          plot_type=plot_type)
+        pw._setup_plots()
         return pw
 
 
@@ -1238,10 +1243,10 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
         pbar = get_pbar("Building boolean", len(self._all_regions))
         for i, region in enumerate(self._all_regions):
             try:
-                region._get_list_of_grids()
+                region._get_list_of_grids() # This is no longer supported. 
                 alias = region
             except AttributeError:
-                alias = region.data
+                alias = region.data         # This is no longer supported.
             for grid in alias._grids:
                 if grid in self._some_overlap or grid in self._all_overlap:
                     continue

@@ -498,7 +498,7 @@ class Dataset(object):
                 continue
             cname = cls.__name__
             if cname.endswith("Base"): cname = cname[:-4]
-            self._add_object_class(name, cname, cls, {'pf':self})
+            self._add_object_class(name, cname, cls, {'pf':weakref.proxy(self)})
         if self.refine_by != 2 and hasattr(self, 'proj') and \
             hasattr(self, 'overlap_proj'):
             mylog.warning("Refine by something other than two: reverting to"
@@ -661,9 +661,38 @@ class Dataset(object):
     def add_field(self, name, function=None, **kwargs):
         """
         Dataset-specific call to add_field
+
+        Add a new field, along with supplemental metadata, to the list of
+        available fields.  This respects a number of arguments, all of which
+        are passed on to the constructor for
+        :class:`~yt.data_objects.api.DerivedField`.
+
+        Parameters
+        ----------
+
+        name : str
+           is the name of the field.
+        function : callable
+           A function handle that defines the field.  Should accept
+           arguments (field, data)
+        units : str
+           A plain text string encoding the unit.  Powers must be in
+           python syntax (** instead of ^).
+        take_log : bool
+           Describes whether the field should be logged
+        validators : list
+           A list of :class:`FieldValidator` objects
+        particle_type : bool
+           Is this a particle (1D) field?
+        vector_field : bool
+           Describes the dimensionality of the field.  Currently unused.
+        display_name : str
+           A name used in the plots
+
         """
         self.index
         self.field_info.add_field(name, function=function, **kwargs)
+        self.field_info._show_field_errors.append(name)
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
 

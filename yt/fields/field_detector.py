@@ -130,6 +130,7 @@ class FieldDetector(defaultdict):
             if "particle_position" in (item, item[1]) or \
                "particle_velocity" in (item, item[1]) or \
                "Velocity" in (item, item[1]) or \
+               "Velocities" in (item, item[1]) or \
                "Coordinates" in (item, item[1]):
                 # A vector
                 self[item] = \

@@ -568,9 +568,9 @@ fi
 mkdir -p ${DEST_DIR}/data
 cd ${DEST_DIR}/data
 echo 'de6d8c6ea849f0206d219303329a0276b3cce7c051eec34377d42aacbe0a4f47ac5145eb08966a338ecddd2b83c8f787ca9956508ad5c39ee2088ad875166410  cloudy_emissivity.h5' > cloudy_emissivity.h5.sha512
-get_ytdata cloudy_emissivity.h5
+[ ! -e cloudy_emissivity.h5 ] && get_ytdata cloudy_emissivity.h5
 echo '0f714ae2eace0141b1381abf1160dc8f8a521335e886f99919caf3beb31df1fe271d67c7b2a804b1467949eb16b0ef87a3d53abad0e8160fccac1e90d8d9e85f  apec_emissivity.h5' > apec_emissivity.h5.sha512
-get_ytdata apec_emissivity.h5
+[ ! -e apec_emissivity.h5 ] && get_ytdata apec_emissivity.h5
 
 # Set paths to what they should be when yt is activated.
 export PATH=${DEST_DIR}/bin:$PATH
@@ -610,7 +610,6 @@ echo '9dcdda5b2ee2e63c2d3755245b7b4ed2f4592455f40feb6f8e86503195d9474559094ed27e
 echo '3f53d0b474bfd79fea2536d0a9197eaef6c0927e95f2f9fd52dbd6c1d46409d0e649c21ac418d8f7767a9f10fe6114b516e06f2be4b06aec3ab5bdebc8768220  Forthon-0.8.11.tar.gz' > Forthon-0.8.11.tar.gz.sha512
 echo '4941f5aa21aff3743546495fb073c10d2657ff42b2aff401903498638093d0e31e344cce778980f28a7170c6d29eab72ac074277b9d4088376e8692dc71e55c1  PyX-0.12.1.tar.gz' > PyX-0.12.1.tar.gz.sha512
 echo '3df0ba4b1cfef5f02fb27925de4c2ca414eca9000af6a3d475d39063720afe987287c3d51377e0a36b88015573ef699f700782e1749c7a357b8390971d858a79  Python-2.7.6.tgz' > Python-2.7.6.tgz.sha512
-echo '172f2bc671145ebb0add2669c117863db35851fb3bdb192006cd710d4d038e0037497eb39a6d01091cb923f71a7e8982a77b6e80bf71d6275d5d83a363c8d7e5  rockstar-0.99.6.tar.gz' > rockstar-0.99.6.tar.gz.sha512
 echo '276bd9c061ec9a27d478b33078a86f93164ee2da72210e12e2c9da71dcffeb64767e4460b93f257302b09328eda8655e93c4b9ae85e74472869afbeae35ca71e  blas.tar.gz' > blas.tar.gz.sha512
 echo '00ace5438cfa0c577e5f578d8a808613187eff5217c35164ffe044fbafdfec9e98f4192c02a7d67e01e5a5ccced630583ad1003c37697219b0f147343a3fdd12  bzip2-1.0.6.tar.gz' > bzip2-1.0.6.tar.gz.sha512
 echo 'a296dfcaef7e853e58eed4e24b37c4fa29cfc6ac688def048480f4bb384b9e37ca447faf96eec7b378fd764ba291713f03ac464581d62275e28eb2ec99110ab6  reason-js-20120623.zip' > reason-js-20120623.zip.sha512
@@ -626,7 +625,6 @@ echo 'a3b8060e415560a868599224449a3af636d24a060f1381990b175dcd12f30249edd181179d
 echo 'd58177f3971b6d07baf6f81a2088ba371c7e43ea64ee7ada261da97c6d725b4bd4927122ac373c55383254e4e31691939276dab08a79a238bfa55172a3eff684  numpy-1.7.1.tar.gz' > numpy-1.7.1.tar.gz.sha512
 echo '9c0a61299779aff613131aaabbc255c8648f0fa7ab1806af53f19fbdcece0c8a68ddca7880d25b926d67ff1b9201954b207919fb09f6a290acb078e8bbed7b68  python-hglib-1.0.tar.gz' > python-hglib-1.0.tar.gz.sha512
 echo 'c65013293dd4049af5db009fdf7b6890a3c6b1e12dd588b58fb5f5a5fef7286935851fb7a530e03ea16f28de48b964e50f48bbf87d34545fd23b80dd4380476b  pyzmq-13.1.0.tar.gz' > pyzmq-13.1.0.tar.gz.sha512
-echo '172f2bc671145ebb0add2669c117863db35851fb3bdb192006cd710d4d038e0037497eb39a6d01091cb923f71a7e8982a77b6e80bf71d6275d5d83a363c8d7e5  rockstar-0.99.6.tar.gz' > rockstar-0.99.6.tar.gz.sha512
 echo '80c8e137c3ccba86575d4263e144ba2c4684b94b5cd620e200f094c92d4e118ea6a631d27bdb259b0869771dfaeeae68c0fdd37fdd740b9027ee185026e921d4  scipy-0.12.0.tar.gz' > scipy-0.12.0.tar.gz.sha512
 echo '96f3e51b46741450bc6b63779c10ebb4a7066860fe544385d64d1eda52592e376a589ef282ace2e1df73df61c10eab1a0d793abbdaf770e60289494d4bf3bcb4  sqlite-autoconf-3071700.tar.gz' > sqlite-autoconf-3071700.tar.gz.sha512
 echo '2992baa3edfb4e1842fb642abf0bf0fc0bf56fc183aab8fed6b3c42fbea928fa110ede7fdddea2d63fc5953e8d304b04da433dc811134fadefb1eecc326121b8  sympy-0.7.3.tar.gz' > sympy-0.7.3.tar.gz.sha512
@@ -659,7 +657,6 @@ get_ytproject $FORTHON.tar.gz
 get_ytproject $NOSE.tar.gz
 get_ytproject $PYTHON_HGLIB.tar.gz
 get_ytproject $SYMPY.tar.gz
-get_ytproject $ROCKSTAR.tar.gz
 if [ $INST_BZLIB -eq 1 ]
 then
     if [ ! -e $BZLIB/done ]
@@ -818,6 +815,7 @@ then
         YT_DIR=`dirname $ORIG_PWD`
     elif [ ! -e yt-hg ]
     then
+        echo "Cloning yt"
         YT_DIR="$PWD/yt-hg/"
         ( ${HG_EXEC} --debug clone https://bitbucket.org/yt_analysis/yt-supplemental/ 2>&1 ) 1>> ${LOG_FILE}
         # Recently the hg server has had some issues with timeouts.  In lieu of
@@ -826,9 +824,9 @@ then
         ( ${HG_EXEC} --debug clone https://bitbucket.org/yt_analysis/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
         # Now we update to the branch we're interested in.
         ( ${HG_EXEC} -R ${YT_DIR} up -C ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
-    elif [ -e yt-3.0-hg ] 
+    elif [ -e yt-hg ]
     then
-        YT_DIR="$PWD/yt-3.0-hg/"
+        YT_DIR="$PWD/yt-hg/"
     fi
     echo Setting YT_DIR=${YT_DIR}
 fi
@@ -945,14 +943,19 @@ do_setup_py $SYMPY
 # Now we build Rockstar and set its environment variable.
 if [ $INST_ROCKSTAR -eq 1 ]
 then
-    if [ ! -e Rockstar/done ]
+    if [ ! -e rockstar/done ]
     then
-        [ ! -e Rockstar ] && tar xfz $ROCKSTAR.tar.gz
         echo "Building Rockstar"
-        cd Rockstar
+        if [ ! -e rockstar ]
+        then
+            ( hg clone http://bitbucket.org/MatthewTurk/rockstar 2>&1 ) 1>> ${LOG_FILE}
+        fi
+        cd rockstar
+        ( hg pull 2>&1 ) 1>> ${LOG_FILE}
+        ( hg up -C tip 2>&1 ) 1>> ${LOG_FILE}
         ( make lib 2>&1 ) 1>> ${LOG_FILE} || do_exit
         cp librockstar.so ${DEST_DIR}/lib
-        ROCKSTAR_DIR=${DEST_DIR}/src/Rockstar
+        ROCKSTAR_DIR=${DEST_DIR}/src/rockstar
         echo $ROCKSTAR_DIR > ${YT_DIR}/rockstar.cfg
         touch done
         cd ..

@@ -50,6 +50,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
         return
 
     def __call__(self, *args, **kwargs):
+        """Calculate results for the derived quantity"""
         self.count_values(*args, **kwargs)
         chunks = self.data_source.chunks([], chunking_style="io")
         storage = {}
@@ -614,7 +615,7 @@ class SpinParameter(DerivedQuantity):
 
     >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = pf.all_data()
-    >>> print ad.quantities.center_of_mass()
+    >>> print ad.quantities.spin_parameter()
     
     """
     def count_values(self, **kwargs):
