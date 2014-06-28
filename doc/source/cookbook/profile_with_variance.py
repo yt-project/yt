@@ -16,17 +16,15 @@ sp.set_field_parameter('bulk_velocity', bulk_velocity)
 
 # Create a 1D profile object for profiles over radius
 # and add a velocity profile.
-prof = yt.ProfilePlot(sp, 'radius', 'velocity_magnitude', 
-                      weight_field='cell_mass')
-prof.set_unit('radius', 'kpc')
-prof.set_xlim(0.1, 1000)
+prof = yt.create_profile(sp, 'radius', 'velocity_magnitude',
+                         units = {'radius': 'kpc'},
+                         extrema = {'radius': ((0.1, 'kpc'), (1000.0, 'kpc'))},
+                         weight_field='cell_mass')
 
 # Plot the average velocity magnitude.
-plt.loglog(prof['radius'], prof['velocity_magnitude'],
-              label='Mean')
+plt.loglog(prof.x, prof['velocity_magnitude'], label='Mean')
 # Plot the variance of the velocity madnitude.
-plt.loglog(prof['radius'], prof['velocity_magnitude_std'],
-              label='Standard Deviation')
+plt.loglog(prof.x, prof['velocity_magnitude_std'], label='Standard Deviation')
 plt.xlabel('r [kpc]')
 plt.ylabel('v [cm/s]')
 plt.legend()
