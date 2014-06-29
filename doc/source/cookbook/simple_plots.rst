@@ -119,6 +119,8 @@ scales and just want to take a closer look at the raw plot data.
 
 .. yt_cookbook:: show_hide_axes_colorbar.py
 
+.. _matplotlib-primitives:
+
 Accessing and Modifying Plots Directly
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

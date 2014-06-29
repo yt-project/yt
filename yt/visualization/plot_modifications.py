@@ -548,8 +548,12 @@ class LinePlotCallback(PlotCallback):
         self.plot_args = plot_args
 
     def __call__(self, plot):
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
         plot._axes.plot(self.x, self.y, **self.plot_args)
+        plot._axes.set_xlim(xx0,xx1)
+        plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
 
 class ImageLineCallback(LinePlotCallback):
@@ -718,7 +722,8 @@ class ArrowCallback(PlotCallback):
             pos = self.pos[xi], self.pos[yi]
         else: pos = self.pos
         if isinstance(self.code_size[1], basestring):
-            code_size = plot.data.pf.quan(*self.code_size).value
+            code_size = plot.data.pf.quan(*self.code_size)
+            code_size = code_size.in_units('code_length').value
             self.code_size = (code_size, code_size)
         from matplotlib.patches import Arrow
         # Now convert the pixels to code information
@@ -812,7 +817,7 @@ class SphereCallback(PlotCallback):
 
         if iterable(self.radius):
             self.radius = plot.data.pf.quan(self.radius[0], self.radius[1])
-            self.radius = np.float64(self.radius)
+            self.radius = np.float64(self.radius.in_units(plot.xlim[0].units))
 
         radius = self.radius * self.pixel_scale(plot)[0]
 

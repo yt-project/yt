@@ -15,6 +15,7 @@ SlicePlot and ProjectionPlot
    ~yt.visualization.plot_window.OffAxisSlicePlot
    ~yt.visualization.plot_window.ProjectionPlot
    ~yt.visualization.plot_window.OffAxisProjectionPlot
+   ~yt.visualization.plot_window.WindowPlotMPL
 
 ProfilePlot and PhasePlot
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -24,6 +25,7 @@ ProfilePlot and PhasePlot
 
    ~yt.visualization.profile_plotter.ProfilePlot
    ~yt.visualization.profile_plotter.PhasePlot
+   ~yt.visualization.profile_plotter.PhasePlotMPL
 
 Fixed Resolution Pixelization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

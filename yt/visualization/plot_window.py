@@ -1680,6 +1680,7 @@ class PWViewerExtJS(PlotWindow):
 
 
 class WindowPlotMPL(ImagePlotMPL):
+    """A container for a single PlotWindow matplotlib figure and axes"""
     def __init__(self, data, cbname, cmap, extent, zlim, figure_size, fontsize,
                  unit_aspect, figure, axes, cax):
         self._draw_colorbar = True
@@ -1855,7 +1856,7 @@ def SlicePlot(pf, normal=None, fields=None, axis=None, *args, **kwargs):
         if np.count_nonzero(normal) == 1:
             normal = ("x","y","z")[np.nonzero(normal)[0][0]]
         else:
-            normal = np.array(normal)
+            normal = np.array(normal, dtype='float64')
             np.divide(normal, np.dot(normal,normal), normal)
 
     # by now the normal should be properly set to get either a On/Off Axis plot
