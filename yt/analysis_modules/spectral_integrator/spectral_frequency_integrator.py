@@ -35,8 +35,9 @@ from yt.utilities.physical_ratios import \
 
 xray_data_version = 1
 
-def _get_data_file():
-    data_file = "cloudy_emissivity.h5"
+def _get_data_file(data_file=None):
+    if data_file is None:
+        data_file = "cloudy_emissivity.h5"
     data_url = "http://yt-project.org/data"
     if "YT_DEST" in os.environ and \
       os.path.isdir(os.path.join(os.environ["YT_DEST"], "data")):
@@ -64,8 +65,8 @@ class EnergyBoundsException(YTException):
 class ObsoleteDataException(YTException):
     def __str__(self):
         return "X-ray emissivity data is out of date.\n" + \
-               "Download the latest data from http://yt-project.org/data/xray_emissivity.h5 and move it to %s." % \
-          os.path.join(os.environ["YT_DEST"], "data", "xray_emissivity.h5")
+               "Download the latest data from http://yt-project.org/data/cloudy_emissivity.h5 and move it to %s." % \
+          os.path.join(os.environ["YT_DEST"], "data", "cloudy_emissivity.h5")
           
 class EmissivityIntegrator(object):
     r"""Class for making X-ray emissivity fields with hdf5 data tables 
@@ -91,7 +92,8 @@ class EmissivityIntegrator(object):
             default_filename = True
 
         if not os.path.exists(filename):
-            raise IOError("File does not exist: %s." % filename)
+            mylog.warning("File %s does not exist, will attempt to find it." % filename)
+            filename = _get_data_file(data_file=filename)
         only_on_root(mylog.info, "Loading emissivity data from %s." % filename)
         in_file = h5py.File(filename, "r")
         if "info" in in_file.attrs:
