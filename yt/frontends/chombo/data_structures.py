@@ -126,7 +126,7 @@ class ChomboHierarchy(GridIndex):
         
         self.num_particles = 0
         particles_per_grid = []
-        for key, val in self._handle.items():
+        for key, val in self._handle['/'].items():
             if key.startswith('level'):
                 level_particles = val['particles:offsets'][:]
                 self.num_particles += level_particles.sum()
