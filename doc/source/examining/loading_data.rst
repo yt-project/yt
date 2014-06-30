@@ -711,11 +711,13 @@ strides along the z-axis may result in a significant improvement in I/O speed. T
 ``spectral_factor``
 ~~~~~~~~~~~~~~~~~~~
 
-Often, the aspect ratio of 3D spectral cubes can be far from unity. Because yt sets the pixel
-scale as the ``code_length``, certain visualizations (such as volume renderings) may look extended
-or distended in ways that are undesirable. To adjust the width in ``code_length`` of the spectral
- axis, set ``spectral_factor`` equal to a constant which gives the desired scaling,
- or set it to ``"auto"`` to make the width the same as the largest axis in the sky plane.
+Often, the aspect ratio of 3D spectral cubes can be far from unity. Because yt
+sets the pixel scale as the ``code_length``, certain visualizations (such as
+volume renderings) may look extended or distended in ways that are
+undesirable. To adjust the width in ``code_length`` of the spectral axis, set
+``spectral_factor`` equal to a constant which gives the desired scaling, or set
+it to ``"auto"`` to make the width the same as the largest axis in the sky
+plane.
 
 Miscellaneous Tools for Use with FITS Data
 ++++++++++++++++++++++++++++++++++++++++++
@@ -792,10 +794,10 @@ MOAB Data
 PyNE Data
 ---------
 
-.. _loading-numpy-array:
-
 Generic Array Data
 ------------------
+
+See :ref:`loading-numpy-array` for more detail.
 
 Even if your data is not strictly related to fields commonly used in
 astrophysical codes or your code is not supported yet, you can still feed it to
@@ -847,6 +849,8 @@ arrays. If no particle arrays are supplied then ``number_of_particles`` is assum
 
 Generic AMR Data
 ----------------
+
+See :ref:`loading-numpy-array` for more detail.
 
 It is possible to create native ``yt`` parameter file from Python's dictionary
 that describes set of rectangular patches of data of possibly varying

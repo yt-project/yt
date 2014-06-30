@@ -317,10 +317,10 @@ class ProfilePlot(object):
         return ret
 
     def _setup_plots(self):
+        for f in self.axes:
+            self.axes[f].cla()
         for i, profile in enumerate(self.profiles):
             for field, field_data in profile.items():
-                if field in self.axes:
-                    self.axes[field].cla()
                 self.axes[field].plot(np.array(profile.x), np.array(field_data),
                                       label=self.label[i], **self.plot_spec[i])
         

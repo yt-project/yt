@@ -77,7 +77,7 @@ class IOHandlerOWLS(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in data_files:
+        for data_file in sorted(data_files):
             f = _get_h5_handle(data_file.filename)
             # This double-reads
             for ptype, field_list in sorted(ptf.items()):
@@ -93,7 +93,7 @@ class IOHandlerOWLS(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in data_files:
+        for data_file in sorted(data_files):
             f = _get_h5_handle(data_file.filename)
             for ptype, field_list in sorted(ptf.items()):
                 g = f["/%s" % ptype]
@@ -251,7 +251,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in data_files:
+        for data_file in sorted(data_files):
             poff = data_file.field_offsets
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
@@ -268,7 +268,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in data_files:
+        for data_file in sorted(data_files):
             poff = data_file.field_offsets
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
@@ -498,7 +498,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in data_files:
+        for data_file in sorted(data_files):
             poff = data_file.field_offsets
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
@@ -519,7 +519,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in data_files:
+        for data_file in sorted(data_files):
             poff = data_file.field_offsets
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
@@ -725,7 +725,7 @@ class IOHandlerHTTPStream(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in data_files:
+        for data_file in sorted(data_files):
             for ptype in ptf:
                 s = self._open_stream(data_file, (ptype, "Coordinates"))
                 c = np.frombuffer(s, dtype="float64")
@@ -738,7 +738,7 @@ class IOHandlerHTTPStream(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in data_files:
+        for data_file in sorted(data_files):
             for ptype, field_list in sorted(ptf.items()):
                 s = self._open_stream(data_file, (ptype, "Coordinates"))
                 c = np.frombuffer(s, dtype="float64")

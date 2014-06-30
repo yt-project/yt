@@ -581,7 +581,8 @@ class Camera(ParallelAnalysisInterface):
         return image
 
     def _render(self, double_check, num_threads, image, sampler):
-        pbar = get_pbar("Ray casting", (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+        ncells = sum(b.source_mask.size for b in self.volume.bricks)
+        pbar = get_pbar("Ray casting", ncells)
         total_cells = 0
         if double_check:
             for brick in self.volume.bricks:
@@ -592,7 +593,7 @@ class Camera(ParallelAnalysisInterface):
         view_pos = self.front_center + self.orienter.unit_vectors[2] * 1.0e6 * self.width[2]
         for brick in self.volume.traverse(view_pos):
             sampler(brick, num_threads=num_threads)
-            total_cells += np.prod(brick.my_data[0].shape)
+            total_cells += brick.source_mask.size
             pbar.update(total_cells)
 
         pbar.finish()

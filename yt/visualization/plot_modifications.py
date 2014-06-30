@@ -501,7 +501,7 @@ class StreamlineCallback(PlotCallback):
         streamplot_args = {'x': X, 'y': Y, 'u':pixX, 'v': pixY,
                            'density': self.dens}
         streamplot_args.update(self.plot_args)
-        plot._axes.streamplot(**self.streamplot_args)
+        plot._axes.streamplot(**streamplot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)

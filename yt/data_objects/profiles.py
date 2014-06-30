@@ -811,6 +811,8 @@ class ProfileND(ParallelAnalysisInterface):
         blank = ~temp_storage.used
         self.used = temp_storage.used
         if self.weight_field is not None:
+            # This is unnecessary, but it will suppress division errors.
+            temp_storage.weight_values[blank] = 1e-30
             temp_storage.values /= temp_storage.weight_values[...,None]
             self.weight = temp_storage.weight_values[...,None]
             self.weight[blank] = 0.0
