@@ -562,21 +562,19 @@ The ``profiles`` attribute contains a list of all profiles that have been
 made.  For each item in the list, the x field data can be accessed with ``x``.  
 The profiled fields can be accessed from the dictionary ``field_data``.
 
-.. notebook-cell::
+.. code-block:: python
 
    plot = ProfilePlot(my_sphere, "temperature", ["cell_mass"],
                       weight_field=None)
-   # print the x field
+   profile = plot.profiles[0]
+   # print the bin field, in this case temperature
    print plot.profiles[-1].x
-   # print the profiled temperature field
-   print plot.profiles[-1].field_data["temperature"]
+   # print the profiled cell_mass field
+   print plot.profiles[-1]["cell_mass"]
 
-Other options, such as the number of bins, are also configurable. See the 
-documentation for 
-The number of bins and other options and tweaks are 
-available for these methods.  See the documentation for 
-:class:`~yt.visualization.profile_plotter.ProfilePlot`
-for more information.
+Other options, such as the number of bins, are also configurable. See the
+documentation for :class:`~yt.visualization.profile_plotter.ProfilePlot` for
+more information.
 
 Overplotting Multiple 1D Profiles
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -602,7 +600,7 @@ method and then given to the ProfilePlot object.
    # Loop over each dataset in the time-series.
    for ds in es:
        # Create a data container to hold the whole dataset.
-       ad = ds.h.all_data()
+       ad = ds.all_data()
        # Create a 1d profile of density vs. temperature.
        profiles.append(yt.create_profile(ad, ["temperature"], 
                                          fields=["cell_mass"],
