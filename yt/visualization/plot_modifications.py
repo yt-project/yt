@@ -989,7 +989,7 @@ class ParticleCallback(PlotCallback):
         gg = ( ( reg[pt, field_x] >= x0 ) & ( reg[pt, field_x] <= x1 )
            &   ( reg[pt, field_y] >= y0 ) & ( reg[pt, field_y] <= y1 ) )
         if self.minimum_mass is not None:
-            gg &= (reg["particle_mass"] >= self.minimum_mass)
+            gg &= (reg[pt, "particle_mass"] >= self.minimum_mass)
             if gg.sum() == 0: return
         plot._axes.hold(True)
         px, py = self.convert_to_plot(plot,
