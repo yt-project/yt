@@ -392,13 +392,9 @@ class LightRay(CosmologySplice):
             pf = load(my_segment['filename'])
 
             if self.near_redshift == self.far_redshift:
-                h_vel = cm_per_km * pf.units['mpc'] * \
-                  vector_length(my_segment['start'], my_segment['end']) * \
-                  self.cosmology.HubbleConstantNow * \
-                  self.cosmology.ExpansionFactor(my_segment['redshift'])
-                next_redshift = my_segment["redshift"] + \
-                  np.sqrt((1. + h_vel / speed_of_light_cgs) /
-                          (1. - h_vel / speed_of_light_cgs)) + 1.
+                next_redshift = my_segment["redshift"] - \
+                    self._deltaz_forward(my_segment["redshift"], 
+                                         pf.units["mpc"] * my_segment["traversal_box_fraction"])
             elif my_segment['next'] is None:
                 next_redshift = self.near_redshift
             else:
