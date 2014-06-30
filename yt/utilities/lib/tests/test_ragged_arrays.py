@@ -13,7 +13,7 @@ dtypes = ((-1e8, 1e8, "float32"),
 
 def test_index_unop():
     np.random.seed(0x4d3d3d3)
-    indices = np.arange(1000)
+    indices = np.arange(1000, dtype="int64")
     np.random.shuffle(indices)
     sizes = np.array([
         200, 50, 50, 100, 32, 32, 32, 32, 32, 64, 376], dtype="int64")

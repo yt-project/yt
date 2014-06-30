@@ -34,10 +34,10 @@ def _unknown_coord(field, data):
 
 def _get_coord_fields(axi, units = "code_length"):
     def _dds(field, data):
-        rv = data.pf.arr(data.fwidth[...,axi], units)
+        rv = data.pf.arr(data.fwidth[...,axi].copy(), units)
         return data._reshape_vals(rv)
     def _coords(field, data):
-        rv = data.pf.arr(data.fcoords[...,axi], units)
+        rv = data.pf.arr(data.fcoords[...,axi].copy(), units)
         return data._reshape_vals(rv)
     return _dds, _coords
 

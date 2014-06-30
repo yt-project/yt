@@ -18,6 +18,7 @@ cimport cython
 cimport numpy as np
 import numpy as np
 from selection_routines cimport SelectorObject
+from libc.math cimport floor
 cimport selection_routines
 
 ORDER_MAX = 20
@@ -122,6 +123,8 @@ cdef class OctreeContainer:
         cdef int i, j, k, n
         data.global_index = -1
         data.level = 0
+        data.oref = 0
+        data.nz = 1
         assert(ref_mask.shape[0] / float(data.nz) ==
             <int>(ref_mask.shape[0]/float(data.nz)))
         obj.allocate_domains([ref_mask.shape[0] / data.nz])
@@ -276,7 +279,7 @@ cdef class OctreeContainer:
         cdef np.int64_t ind[3], level = -1
         for i in range(3):
             dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
-            ind[i] = <np.int64_t> ((ppos[i] - self.DLE[i])/dds[i])
+            ind[i] = <np.int64_t> (floor((ppos[i] - self.DLE[i])/dds[i]))
             cp[i] = (ind[i] + 0.5) * dds[i] + self.DLE[i]
             ipos[i] = 0
             ind32[i] = ind[i]
@@ -496,7 +499,7 @@ cdef class OctreeContainer:
             coords[:,i] += self.DLE[i]
         return coords
 
-    def save_octree(self, always_descend = False):
+    def save_octree(self):
         # Get the header
         header = dict(dims = (self.nn[0], self.nn[1], self.nn[2]),
                       left_edge = (self.DLE[0], self.DLE[1], self.DLE[2]),
@@ -507,13 +510,12 @@ cdef class OctreeContainer:
         # domain_id = -1 here, because we want *every* oct
         cdef OctVisitorData data
         self.setup_data(&data, -1)
-        data.oref = 1
+        data.oref = 0
+        data.nz = 1
         cdef np.ndarray[np.uint8_t, ndim=1] ref_mask
         ref_mask = np.zeros(self.nocts * data.nz, dtype="uint8") - 1
-        cdef void *p[2]
-        cdef np.uint8_t ad = int(always_descend)
-        p[0] = <void *> &ad
-        p[1] = ref_mask.data
+        cdef void *p[1]
+        p[0] = ref_mask.data
         data.array = p
         # Enforce partial_coverage here
         self.visit_all_octs(selector, oct_visitors.store_octree, &data, 1)

@@ -501,7 +501,7 @@ class StreamlineCallback(PlotCallback):
         streamplot_args = {'x': X, 'y': Y, 'u':pixX, 'v': pixY,
                            'density': self.dens}
         streamplot_args.update(self.plot_args)
-        plot._axes.streamplot(**self.streamplot_args)
+        plot._axes.streamplot(**streamplot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
@@ -879,7 +879,6 @@ class HaloCatalogCallback(PlotCallback):
         self.alpha = alpha
         self.width = width
         self.annotate_field = annotate_field
-        self.format_spec = text_format_spec
         self.font_kwargs = font_kwargs
 
     def __call__(self, plot):
@@ -1236,7 +1235,7 @@ class TriangleFacetsCallback(PlotCallback):
 
     def __call__(self, plot):
         plot._axes.hold(True)
-        ax = data.axis
+        ax = plot.data.axis
         xax = plot.data.pf.coordinates.x_axis[ax]
         yax = plot.data.pf.coordinates.y_axis[ax]
         l_cy = triangle_plane_intersect(plot.data.axis, plot.data.coord, self.vertices)[:,:,(xax, yax)]

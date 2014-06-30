@@ -178,6 +178,61 @@ binary_operators = (
 
 class YTArray(np.ndarray):
     """
+    An ndarray subclass that attaches a symbolic unit object to the array data.
+
+    Parameters
+    ----------
+
+    input_array : ndarray or ndarray subclass
+        An array to attach units to
+    input_units : String unit specification, unit symbol object, or astropy units
+        The units of the array. Powers must be specified using python
+        symtax (cm**3, not cm^3).
+    registry : A UnitRegistry object
+        The registry to create units from. If input_units is already associated
+        with a unit registry and this is specified, this will be used instead of
+        the registry associated with the unit object.
+    dtype : string of NumPy dtype object
+        The dtype of the array data.
+
+    Examples
+    --------
+
+    >>> from yt import YTArray
+    >>> a = YTArray([1,2,3], 'cm')
+    >>> b = YTArray([4,5,6], 'm')
+    >>> a + b
+    YTArray([ 401.,  502.,  603.]) cm
+    >>> b + a
+    YTArray([ 4.01,  5.02,  6.03]) m
+
+    NumPy ufuncs will pass through units where appropriate.
+
+    >>> import numpy as np
+    >>> a = YTArray(np.arange(8), 'g/cm**3')
+    >>> np.ones_like(a)
+    YTArray([1, 1, 1, 1, 1, 1, 1, 1]) g/cm**3
+
+    and strip them when it would be annoying to deal with them.
+
+    >>> np.log10(a)
+    array([       -inf,  0.        ,  0.30103   ,  0.47712125,  0.60205999,
+            0.69897   ,  0.77815125,  0.84509804])
+
+    YTArray is tightly integrated with yt datasets:
+
+    >>> import yt
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> a = ds.arr(np.ones(5), 'code_length')
+    >>> a.in_cgs()
+    YTArray([  3.08600000e+24,   3.08600000e+24,   3.08600000e+24,
+             3.08600000e+24,   3.08600000e+24]) cm
+
+    This is equivalent to:
+
+    >>> b = YTArray(np.ones(5), 'code_length', registry=ds.unit_registry)
+    >>> np.all(a == b)
+    True
 
     """
     _ufunc_registry = {
@@ -284,7 +339,7 @@ class YTArray(np.ndarray):
             return input_array
         elif isinstance(input_array, np.ndarray):
             pass
-        elif iterable(input_array):
+        elif iterable(input_array) and input_array:
             if isinstance(input_array[0], YTArray):
                 return YTArray(np.array(input_array, dtype=dtype),
                                input_array[0].units)
@@ -563,7 +618,7 @@ class YTArray(np.ndarray):
             unit_lut = pickle.loads(dataset.attrs['unit_registry'])
         else:
             unit_lut = None
-
+        f.close()
         registry = UnitRegistry(lut=unit_lut, add_default_symbols=False)
         return cls(data, units, registry=registry)
 
@@ -955,7 +1010,7 @@ class YTArray(np.ndarray):
         else:
             raise RuntimeError("Operation is not defined.")
         if unit is None:
-            out_arr = np.array(out_arr)
+            out_arr = np.array(out_arr, copy=False)
             return out_arr
         out_arr.units = unit
         if out_arr.size == 1:
@@ -965,7 +1020,7 @@ class YTArray(np.ndarray):
                 # This happens if you do ndarray * YTQuantity. Explicitly
                 # casting to YTArray avoids creating a YTQuantity with size > 1
                 return YTArray(np.array(out_arr, unit))
-            return ret_class(np.array(out_arr), unit)
+            return ret_class(np.array(out_arr, copy=False), unit)
 
 
     def __reduce__(self):
@@ -1006,10 +1061,68 @@ class YTArray(np.ndarray):
         return type(self)(ret, copy.deepcopy(self.units))
 
 class YTQuantity(YTArray):
-    def __new__(cls, input, input_units=None, registry=None, dtype=np.float64):
-        if not isinstance(input, (numeric_type, np.number, np.ndarray)):
+    """
+    A scalar associated with a unit.
+
+    Parameters
+    ----------
+
+    input_scalar : ndarray or ndarray subclass
+        An array to attach units to
+    input_units : String unit specification, unit symbol object, or astropy units
+        The units of the array. Powers must be specified using python
+        symtax (cm**3, not cm^3).
+    registry : A UnitRegistry object
+        The registry to create units from. If input_units is already associated
+        with a unit registry and this is specified, this will be used instead of
+        the registry associated with the unit object.
+    dtype : string of NumPy dtype object
+        The dtype of the array data.
+
+    Examples
+    --------
+
+    >>> from yt import YTQuantity
+    >>> a = YTQuantity(1, 'cm')
+    >>> b = YTQuantity(2, 'm')
+    >>> a + b
+    201.0 cm
+    >>> b + a
+    2.01 m
+
+    NumPy ufuncs will pass through units where appropriate.
+
+    >>> import numpy as np
+    >>> a = YTQuantity(12, 'g/cm**3')
+    >>> np.ones_like(a)
+    1 g/cm**3
+
+    and strip them when it would be annoying to deal with them.
+
+    >>> print np.log10(a)
+    1.07918124605
+
+    YTQuantity is tightly integrated with yt datasets:
+
+    >>> import yt
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> a = ds.quan(5, 'code_length')
+    >>> a.in_cgs()
+    1.543e+25 cm
+
+    This is equivalent to:
+
+    >>> b = YTQuantity(5, 'code_length', registry=ds.unit_registry)
+    >>> np.all(a == b)
+    True
+
+    """
+    def __new__(cls, input_scalar, input_units=None, registry=None,
+                dtype=np.float64):
+        if not isinstance(input_scalar, (numeric_type, np.number, np.ndarray)):
             raise RuntimeError("YTQuantity values must be numeric")
-        ret = YTArray.__new__(cls, input, input_units, registry, dtype=dtype)
+        ret = YTArray.__new__(cls, input_scalar, input_units, registry,
+                              dtype=dtype)
         if ret.size > 1:
             raise RuntimeError("YTQuantity instances must be scalars")
         return ret

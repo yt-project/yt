@@ -127,7 +127,8 @@ frontends = _frontend_container()
 
 from yt.frontends.stream.api import \
     load_uniform_grid, load_amr_grids, \
-    load_particles, load_hexahedral_mesh, load_octree
+    load_particles, load_hexahedral_mesh, load_octree, \
+    hexahedral_connectivity
 
 # For backwards compatibility
 GadgetDataset = frontends.sph.GadgetDataset
