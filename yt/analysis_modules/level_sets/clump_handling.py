@@ -108,10 +108,21 @@ class Clump(object):
         self.children = []
         if max_val is None: max_val = self.max_val
         nj, cids = identify_contours(self.data, self.field, min_val, max_val)
-        for cid in range(nj):
+        # Here, cids is the set of slices and values, keyed by the
+        # parent_grid_id, that defines the contours.  So we can figure out all
+        # the unique values of the contours by examining the list here.
+        unique_contours = set([])
+        for sl_list in cids.values():
+            for sl, ff in sl_list:
+                unique_contours.update(np.unique(ff))
+        for cid in sorted(unique_contours):
             new_clump = self.data.cut_region(
                     ["obj['contours'] == %s" % (cid + 1)],
                     {'contour_slices': cids})
+            if new_clump["Ones"].size == 0:
+                # This is to skip possibly duplicate clumps.  Using "Ones" here
+                # will speed things up.
+                continue
             self.children.append(Clump(new_clump, self, self.field,
                                        self.cached_fields,function=self.function,
                                        clump_info=self.clump_info))
