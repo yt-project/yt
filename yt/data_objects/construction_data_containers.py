@@ -626,7 +626,7 @@ class YTArbitraryGridBase(YTCoveringGridBase):
         self.ActiveDimensions = np.array(dims, dtype='int32')
         if self.ActiveDimensions.size == 1:
             self.ActiveDimensions = np.array([dims, dims, dims], dtype="int32")
-        self.dds = (self.right_edge - self.left_edge)/self.ActiveDimensions
+        self.dds = self.base_dds = (self.right_edge - self.left_edge)/self.ActiveDimensions
         self.level = 99
         self._setup_data_source()
 
