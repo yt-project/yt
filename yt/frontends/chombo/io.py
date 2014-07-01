@@ -30,16 +30,13 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         BaseIOHandler.__init__(self, pf, *args, **kwargs)
         self.pf = pf
         self._handle = pf._handle
+        self.dim = self._handle['Chombo_global/'].attrs['SpaceDim']
         self._read_ghost_info()
 
     def _read_ghost_info(self):
         self.ghost = tuple(self._handle['level_0/data_attributes'].attrs['outputGhost'])
-        dim = len(self.ghost)
-        self._ghost_slice = [slice(g,-g, None) for g in self.ghost]
-
         # pad with zeros if the dataset is low-dimensional
-        self.ghost += (3 - dim)*(0,)
-        
+        self.ghost += (3 - self.dim)*(0,)
         self.ghost = np.array(self.ghost)
 
     _field_dict = None
@@ -48,7 +45,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         if self._field_dict is not None:
             return self._field_dict
         field_dict = {}
-        for key, val in self._handle['/'].attrs.items():
+        for key, val in self._handle.attrs.items():
             if key.startswith('component_'):
                 comp_number = int(re.match('component_(\d)', key).groups()[0])
                 field_dict[val] = comp_number
@@ -61,7 +58,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         if self._particle_field_index is not None:
             return self._particle_field_index
         field_dict = {}
-        for key, val in self._handle['/'].attrs.items():
+        for key, val in self._handle.attrs.items():
             if key.startswith('particle_'):
                 comp_number = int(re.match('particle_component_(\d)', key).groups()[0])
                 field_dict[val] = comp_number
@@ -69,11 +66,10 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         return self._particle_field_index        
         
     def _read_field_names(self,grid):
-        ncomp = int(self._handle['/'].attrs['num_components'])
-        fns = [c[1] for c in f['/'].attrs.items()[-ncomp-1:-1]]
+        ncomp = int(self._handle.attrs['num_components'])
+        fns = [c[1] for c in f.attrs.items()[-ncomp-1:-1]]
     
     def _read_data(self,grid,field):
-
         lstring = 'level_%i' % grid.Level
         lev = self._handle[lstring]
         dims = grid.ActiveDimensions
@@ -85,7 +81,9 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         stop = start + boxsize
         data = lev[self._data_string][start:stop]
         data_no_ghost = data.reshape(shape, order='F')
-        return data_no_ghost[self._ghost_slice]
+        ghost_slice = [slice(g, d-g, None) for g, d in zip(self.ghost, grid.ActiveDimensions)]
+        ghost_slice = ghost_slice[0:self.dim]
+        return data_no_ghost[ghost_slice]
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         rv = {}
@@ -180,6 +178,7 @@ class IOHandlerChombo2DHDF5(IOHandlerChomboHDF5):
         BaseIOHandler.__init__(self, pf, *args, **kwargs)
         self.pf = pf
         self._handle = pf._handle
+        self.dim = 2
         self._read_ghost_info()
 
 class IOHandlerChombo1DHDF5(IOHandlerChomboHDF5):
@@ -190,6 +189,7 @@ class IOHandlerChombo1DHDF5(IOHandlerChomboHDF5):
     def __init__(self, pf, *args, **kwargs):
         BaseIOHandler.__init__(self, pf, *args, **kwargs)
         self.pf = pf
+        self.dim = 1
         self._handle = pf._handle   
         self._read_ghost_info()
 
