@@ -309,6 +309,14 @@ class HTTPSDFRead(SDFRead):
         self.parameters['header_offset'] = hoff
 
 
+def load_sdf(filename, header=None):
+    if 'http' in filename:
+        sdf = HTTPSDFRead(filename, header=header)
+    else:
+        sdf = SDFRead(filename, header=header)
+    return sdf
+
+
 class SDFIndex(object):
 
     """docstring for SDFIndex
