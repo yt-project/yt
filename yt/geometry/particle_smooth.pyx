@@ -40,11 +40,11 @@ cdef int Neighbor_compare(void *on1, void *on2) nogil:
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef np.float64_t cart_r2dist(np.float64_t ppos[3],
-                              np.float64_t cpos[3],
-                              np.float64_t DW[3],
-                              bint periodicity[3],
-                              np.float64_t max_dist2):
+cdef np.float64_t r2dist(np.float64_t ppos[3],
+                         np.float64_t cpos[3],
+                         np.float64_t DW[3],
+                         bint periodicity[3],
+                         np.float64_t max_dist2):
     cdef int i
     cdef np.float64_t r2, DR
     r2 = 0.0
@@ -57,41 +57,19 @@ cdef np.float64_t cart_r2dist(np.float64_t ppos[3],
         elif (DR < -DW[i]/2.0):
             DR += DW[i]
         r2 += DR * DR
+        if max_dist2 >= 0.0 and r2 > max_dist2:
+            return -1.0
     return r2
 
-@cython.cdivision(True)
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef np.float64_t spherical_r2dist(np.float64_t ppos[3],
-                                   np.float64_t cpos[3],
-                                   np.float64_t DW[3],
-                                   bint periodicity[3],
-                                   np.float64_t max_dist2):
-    cdef int i
-    cdef np.float64_t r2, DR
-    r2 = 0.0
-    cdef np.float64_t ppos_cart[3], cpos_cart[3]
-    # Hopefully the compiler will optimize this, for our clarity here in the
-    # source.
-    ppos_cart[0] = ppos[0] * sin(ppos[1]) * cos(ppos[2])
-    cpos_cart[0] = cpos[0] * sin(cpos[1]) * cos(cpos[2])
-    DR = ppos_cart[0] - cpos_cart[0]
-    r2 += DR * DR
-    if max_dist2 >= 0.0 and r2 > max_dist2:
-        return -1.0
-    ppos_cart[1] = ppos[0] * sin(ppos[1]) * sin(ppos[2])
-    cpos_cart[1] = cpos[0] * sin(cpos[1]) * sin(cpos[2])
-    DR = ppos_cart[1] - cpos_cart[1]
-    r2 += DR * DR
-    if max_dist2 >= 0.0 and r2 > max_dist2:
-        return -1.0
-    ppos_cart[2] = ppos[0] * cos(ppos[1])
-    cpos_cart[2] = cpos[0] * cos(cpos[1])
-    DR = ppos_cart[2] - cpos_cart[2]
-    r2 += DR * DR
-    if max_dist2 >= 0.0 and r2 > max_dist2:
-        return -1.0
-    return r2
+cdef void spherical_coord_setup(np.float64_t ipos[3], np.float64_t opos[3]):
+    opos[0] = ipos[0] * sin(ipos[1]) * cos(ipos[2])
+    opos[1] = ipos[0] * sin(ipos[1]) * sin(ipos[2])
+    opos[2] = ipos[0] * cos(ipos[1])
+
+cdef void cart_coord_setup(np.float64_t ipos[3], np.float64_t opos[3]):
+    opos[0] = ipos[0]
+    opos[1] = ipos[1]
+    opos[2] = ipos[2]
 
 cdef class ParticleSmoothOperation:
     def __init__(self, nvals, nfields, max_neighbors):
@@ -148,12 +126,6 @@ cdef class ParticleSmoothOperation:
         # is not the most efficient yet.  We will also need to handle some
         # mechanism of an expandable array for holding pointers to Octs, so
         # that we can deal with >27 neighbors.  
-        if geometry == "cartesian":
-            self.r2dist = cart_r2dist
-        elif geometry == "spherical":
-            self.r2dist = spherical_r2dist
-        else:
-            raise NotImplementedError
         if particle_octree is None:
             particle_octree = mesh_octree
             pdom_ind = mdom_ind
@@ -171,6 +143,25 @@ cdef class ParticleSmoothOperation:
         cdef np.ndarray[np.int64_t, ndim=2] doff_m
         cdef np.ndarray[np.float64_t, ndim=1] tarr
         cdef np.ndarray[np.float64_t, ndim=4] iarr
+        cdef np.ndarray[np.float64_t, ndim=2] cart_positions
+        if geometry == "cartesian":
+            self.pos_setup = cart_coord_setup
+            cart_positions = positions
+        elif geometry == "spherical":
+            self.pos_setup = spherical_coord_setup
+            cart_positions = np.empty((positions.shape[0], 3), dtype="float64")
+
+            cart_positions[:,0] = positions[:,0] * \
+                                  np.sin(positions[:,1]) * \
+                                  np.cos(positions[:,2])
+            cart_positions[:,1] = positions[:,0] * \
+                                  np.sin(positions[:,1]) * \
+                                  np.sin(positions[:,2])
+            cart_positions[:,2] = positions[:,0] * \
+                                  np.cos(positions[:,1])
+            periodicity = (False, False, False)
+        else:
+            raise NotImplementedError
         dims[0] = dims[1] = dims[2] = (1 << mesh_octree.oref)
         cdef int nz = dims[0] * dims[1] * dims[2]
         numpart = positions.shape[0]
@@ -237,6 +228,7 @@ cdef class ParticleSmoothOperation:
         # Now doff is full of offsets to the first entry in the pind that
         # refers to that oct's particles.
         ppos = <np.float64_t *> positions.data
+        cart_pos = <np.float64_t *> cart_positions.data
         doffs = <np.int64_t*> doff.data
         pinds = <np.int64_t*> pind.data
         pcounts = <np.int64_t*> pcount.data
@@ -276,7 +268,7 @@ cdef class ParticleSmoothOperation:
             free(neighbors)
             nproc += 1
             self.neighbor_process(dims, moi.left_edge, moi.dds,
-                         ppos, field_pointers, nneighbors, nind, doffs,
+                         cart_pos, field_pointers, nneighbors, nind, doffs,
                          pinds, pcounts, offset, index_field_pointers)
         #print "VISITED", visited.sum(), visited.size,
         #print 100.0*float(visited.sum())/visited.size
@@ -316,7 +308,7 @@ cdef class ParticleSmoothOperation:
         if self.curn < self.maxn:
             cur = &self.neighbors[self.curn]
             cur.pn = pn
-            cur.r2 = self.r2dist(ppos, cpos, self.DW, self.periodicity, -1)
+            cur.r2 = r2dist(ppos, cpos, self.DW, self.periodicity, -1)
             self.curn += 1
             if self.curn == self.maxn:
                 # This time we sort it, so that future insertions will be able
@@ -326,7 +318,7 @@ cdef class ParticleSmoothOperation:
             return
         # This will go (curn - 1) through 0.
         r2_o = self.neighbors[self.curn - 1].r2
-        r2_c = self.r2dist(ppos, cpos, self.DW, self.periodicity, r2_o)
+        r2_c = r2dist(ppos, cpos, self.DW, self.periodicity, r2_o)
         # Early terminate
         if r2_c < 0: return
         pn_c = pn
@@ -386,15 +378,16 @@ cdef class ParticleSmoothOperation:
         # units supplied.  We can now iterate over every cell in the block and
         # every particle to find the nearest.  We will use a priority heap.
         cdef int i, j, k, ntot, nntot, m
-        cdef np.float64_t cpos[3]
+        cdef np.float64_t cpos[3], opos[3]
         cpos[0] = left_edge[0] + 0.5*dds[0]
         for i in range(dim[0]):
             cpos[1] = left_edge[1] + 0.5*dds[1]
             for j in range(dim[1]):
                 cpos[2] = left_edge[2] + 0.5*dds[2]
                 for k in range(dim[2]):
+                    self.pos_setup(cpos, opos)
                     self.neighbor_find(nneighbors, nind, doffs, pcounts,
-                        pinds, ppos, cpos)
+                        pinds, ppos, opos)
                     # Now we have all our neighbors in our neighbor list.
                     if self.curn <-1*self.maxn:
                         ntot = nntot = 0
@@ -403,7 +396,7 @@ cdef class ParticleSmoothOperation:
                             nntot += 1
                             ntot += pcounts[nind[m]]
                         print "SOMETHING WRONG", self.curn, nneighbors, ntot, nntot
-                    self.process(offset, i, j, k, dim, cpos, fields,
+                    self.process(offset, i, j, k, dim, opos, fields,
                                  index_fields)
                     cpos[2] += dds[2]
                 cpos[1] += dds[1]
@@ -504,3 +497,45 @@ cdef class NearestNeighborSmooth(ParticleSmoothOperation):
         return
 
 nearest_smooth = NearestNeighborSmooth
+
+cdef class IDWInterpolationSmooth(ParticleSmoothOperation):
+    cdef np.float64_t *fp
+    cdef public int p2
+    cdef public object vals
+    def initialize(self):
+        cdef np.ndarray tarr
+        assert(self.nfields == 1)
+        tarr = np.zeros(self.nvals, dtype="float64", order="F")
+        self.vals = tarr
+        self.fp = <np.float64_t *> tarr.data
+        self.p2 = 2 # Power, for IDW, in units of 2.  So we only do even p's.
+
+    def finalize(self):
+        return self.vals
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void process(self, np.int64_t offset, int i, int j, int k,
+                      int dim[3], np.float64_t cpos[3], np.float64_t **fields,
+                      np.float64_t **index_fields):
+        # We have our i, j, k for our cell, as well as the cell position.
+        # We also have a list of neighboring particles with particle numbers.
+        cdef np.int64_t pn, ni, di
+        cdef np.float64_t total_weight = 0.0, total_value = 0.0, r2, val, w
+        # We're going to do a very simple IDW average
+        if self.neighbors[0].r2 == 0.0:
+            pn = self.neighbors[0].pn
+            self.fp[gind(i,j,k,dim) + offset] = fields[0][pn]
+        for ni in range(self.curn):
+            r2 = self.neighbors[ni].r2
+            val = fields[0][self.neighbors[ni].pn]
+            w = r2
+            for di in range(self.p2 - 1):
+                w *= r2
+            total_value += w * val
+            total_weight += w
+        self.fp[gind(i,j,k,dim) + offset] = total_value / total_weight
+        return
+
+idw_smooth = IDWInterpolationSmooth
