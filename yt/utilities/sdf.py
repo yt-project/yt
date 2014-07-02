@@ -571,7 +571,9 @@ class SDFIndex(object):
         # a space.
         if self.valid_indexdata:
             indices = indices[indices < self._max_key]
-            indices = indices[self.indexdata['len'][indices] > 0]
+            #indices = indices[self.indexdata['len'][indices] > 0]
+            # Faster for sparse lookups. Need better heuristic.
+            indices = indices[np.array([(self.indexdata['len'][ind] > 0) for ind in indices])]
 
         #indices = np.array([self.get_key_ijk(x, y, z) for x, y, z in zip(X, Y, Z)])
         # Here we sort the indices to batch consecutive reads together.
