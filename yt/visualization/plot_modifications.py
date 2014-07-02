@@ -932,7 +932,8 @@ class HaloCatalogCallback(PlotCallback):
 
         for x,y,r in zip(px, py, radius):
             plot._axes.add_artist(Circle(xy=(x,y), 
-                radius = r,  color=self.color, alpha=self.alpha))
+                radius = r,  facecolor=self.color,
+                edgecolor = 'None', alpha=self.alpha))
 
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
