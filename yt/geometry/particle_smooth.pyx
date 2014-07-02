@@ -43,7 +43,8 @@ cdef int Neighbor_compare(void *on1, void *on2) nogil:
 cdef np.float64_t cart_r2dist(np.float64_t ppos[3],
                               np.float64_t cpos[3],
                               np.float64_t DW[3],
-                              bint periodicity[3]):
+                              bint periodicity[3],
+                              np.float64_t max_dist2):
     cdef int i
     cdef np.float64_t r2, DR
     r2 = 0.0
@@ -64,7 +65,8 @@ cdef np.float64_t cart_r2dist(np.float64_t ppos[3],
 cdef np.float64_t spherical_r2dist(np.float64_t ppos[3],
                                    np.float64_t cpos[3],
                                    np.float64_t DW[3],
-                                   bint periodicity[3]):
+                                   bint periodicity[3],
+                                   np.float64_t max_dist2):
     cdef int i
     cdef np.float64_t r2, DR
     r2 = 0.0
@@ -72,15 +74,23 @@ cdef np.float64_t spherical_r2dist(np.float64_t ppos[3],
     # Hopefully the compiler will optimize this, for our clarity here in the
     # source.
     ppos_cart[0] = ppos[0] * sin(ppos[1]) * cos(ppos[2])
-    ppos_cart[1] = ppos[0] * sin(ppos[1]) * sin(ppos[2])
-    ppos_cart[2] = ppos[0] * cos(ppos[1])
     cpos_cart[0] = cpos[0] * sin(cpos[1]) * cos(cpos[2])
+    DR = ppos_cart[0] - cpos_cart[0]
+    r2 += DR * DR
+    if max_dist2 >= 0.0 and r2 > max_dist2:
+        return -1.0
+    ppos_cart[1] = ppos[0] * sin(ppos[1]) * sin(ppos[2])
     cpos_cart[1] = cpos[0] * sin(cpos[1]) * sin(cpos[2])
+    DR = ppos_cart[1] - cpos_cart[1]
+    r2 += DR * DR
+    if max_dist2 >= 0.0 and r2 > max_dist2:
+        return -1.0
+    ppos_cart[2] = ppos[0] * cos(ppos[1])
     cpos_cart[2] = cpos[0] * cos(cpos[1])
-    for i in range(3):
-        DR = (ppos_cart[i] - cpos_cart[i])
-        # We skip cartesian periodicity
-        r2 += DR * DR
+    DR = ppos_cart[2] - cpos_cart[2]
+    r2 += DR * DR
+    if max_dist2 >= 0.0 and r2 > max_dist2:
+        return -1.0
     return r2
 
 cdef class ParticleSmoothOperation:
@@ -306,7 +316,7 @@ cdef class ParticleSmoothOperation:
         if self.curn < self.maxn:
             cur = &self.neighbors[self.curn]
             cur.pn = pn
-            cur.r2 = self.r2dist(ppos, cpos, self.DW, self.periodicity)
+            cur.r2 = self.r2dist(ppos, cpos, self.DW, self.periodicity, -1)
             self.curn += 1
             if self.curn == self.maxn:
                 # This time we sort it, so that future insertions will be able
@@ -315,7 +325,10 @@ cdef class ParticleSmoothOperation:
                       Neighbor_compare)
             return
         # This will go (curn - 1) through 0.
-        r2_c = self.r2dist(ppos, cpos, self.DW, self.periodicity)
+        r2_o = self.neighbors[self.curn - 1].r2
+        r2_c = self.r2dist(ppos, cpos, self.DW, self.periodicity, r2_o)
+        # Early terminate
+        if r2_c < 0: return
         pn_c = pn
         for i in range((self.curn - 1), -1, -1):
             # First we evaluate against i.  If our candidate radius is greater

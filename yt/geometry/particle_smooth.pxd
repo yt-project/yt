@@ -51,7 +51,8 @@ cdef class ParticleSmoothOperation:
     # Note that we are preallocating here, so this is *not* threadsafe.
     cdef NeighborList *neighbors
     cdef np.float64_t (*r2dist)(np.float64_t ppos[3], np.float64_t cpos[3],
-                                np.float64_t DW[3], bint periodicity[3])
+                                np.float64_t DW[3], bint periodicity[3],
+                                np.float64_t max_dist2)
     cdef void neighbor_process(self, int dim[3], np.float64_t left_edge[3],
                                np.float64_t dds[3], np.float64_t *ppos,
                                np.float64_t **fields, np.int64_t nneighbors,
