@@ -14,7 +14,7 @@ X-ray luminosity, emissivity, and photon emissivity fields for a given
 photon energy range.  This works by interpolating from emission tables 
 created from the photoionization code `Cloudy <http://nublado.org/>`_ or
 the collisional ionization database `AtomDB <http://www.atomdb.org>`_. If
-you installed yt with the install script, the data should be located in
+you installed yt with the install script, these data files should be located in
 the *data* directory inside the installation directory, or can be downloaded
 from `<http://yt-project.org/data>`_. Emission fields can be made for any
 interval between 0.1 keV and 100 keV.
@@ -36,10 +36,12 @@ dataset object, and the minimum and maximum energies of the energy band.
 
 Additional keyword arguments are:
 
- * **filename** (*string*): Path to data file containing emissivity
-   values.  If None, a file called cloudy_emissivity.h5 is used.  This file
-   contains emissivity tables for primordial elements and for metals at 
-   solar metallicity for the energy range 0.1 to 100 keV.  Default: None.
+ * **filename** (*string*): Path to data file containing emissivity values. If None,
+   a file called "cloudy_emissivity.h5" is used, for photoionized plasmas. A second
+   option, for collisionally ionized plasmas, is in the file "apec_emissivity.h5",
+   available at http://yt-project.org/data. These files contain emissivity tables
+   for primordial elements and for metals at solar metallicity for the energy range
+   0.1 to 100 keV. Default: None.
 
  * **with_metals** (*bool*): If True, use the metallicity field to add the 
    contribution from metals.  If False, only the emission from H/He is 
@@ -58,7 +60,7 @@ the created fields in a Python list.
   from yt.analysis_modules.spectral_integrator.api import \
        add_xray_emissivity_field
 
-  xray_fields = add_xray_emissivity_field(0.5, 7.0)
+  xray_fields = add_xray_emissivity_field(0.5, 7.0, filename="apec_emissivity.h5")
 
   ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
   plot = yt.SlicePlot(ds, 'x', 'xray_luminosity_0.5_7.0_keV')

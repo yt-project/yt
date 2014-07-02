@@ -78,9 +78,11 @@ class EmissivityIntegrator(object):
     ----------
     filename: string, default None
         Path to data file containing emissivity values.  If None,
-        a file called "cloudy_emissivity.h5" is used.  This file contains
-        emissivity tables for primordial elements and for metals at 
-        solar metallicity for the energy range 0.1 to 100 keV.
+        a file called "cloudy_emissivity.h5" is used, for photoionized
+        plasmas. A second option, for collisionally ionized plasmas, is
+        in the file "apec_emissivity.h5", available at http://yt-project.org/data.
+        These files contain emissivity tables for primordial elements and
+        for metals at solar metallicity for the energy range 0.1 to 100 keV.
         Default: None.
         
     """
@@ -161,9 +163,11 @@ def add_xray_emissivity_field(ds, e_min, e_max,
         the maximum energy in keV for the energy band.
     filename: string, optional
         Path to data file containing emissivity values.  If None,
-        a file called xray_emissivity.h5 is used.  This file contains 
-        emissivity tables for primordial elements and for metals at 
-        solar metallicity for the energy range 0.1 to 100 keV.
+        a file called "cloudy_emissivity.h5" is used, for photoionized
+        plasmas. A second option, for collisionally ionized plasmas, is
+        in the file "apec_emissivity.h5", available at http://yt-project.org/data.
+        These files contain emissivity tables for primordial elements and
+        for metals at solar metallicity for the energy range 0.1 to 100 keV.
         Default: None.
     with_metals: bool, optional
         If True, use the metallicity field to add the contribution from 
