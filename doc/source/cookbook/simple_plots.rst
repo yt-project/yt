@@ -89,7 +89,7 @@ Off-Axis Slicing
 One can create slices from any arbitrary angle, not just those aligned with
 the x,y,z axes.
 
-.. yt_cookbook:: aligned_cutting_plane.py
+.. yt_cookbook:: simple_off_axis_slice.py
 
 .. _cookbook-simple-off-axis-projection:
 
