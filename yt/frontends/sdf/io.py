@@ -166,13 +166,13 @@ class IOHandlerHTTPSDF(IOHandlerSDF):
 
 
 class IOHandlerSIndexSDF(IOHandlerSDF):
-    _dataset_type = "sindex_sdf_particles"
+    _dataset_type = "midx_sdf_particles"
 
 
     def _read_particle_coords(self, chunks, ptf):
         dle = self.pf.domain_left_edge.in_units("code_length").d
         dre = self.pf.domain_right_edge.in_units("code_length").d
-        for dd in self.pf.sindex.iter_bbox_data(
+        for dd in self.pf.midx.iter_bbox_data(
             dle, dre,
             ['x','y','z']):
             yield "dark_matter", (
@@ -187,7 +187,7 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
                 if field == "mass": continue
                 required_fields.append(field)
 
-        for dd in self.pf.sindex.iter_bbox_data(
+        for dd in self.pf.midx.iter_bbox_data(
             dle, dre,
             required_fields):
 
@@ -210,7 +210,7 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
         dle = self.pf.domain_left_edge.in_units("code_length").d
         dre = self.pf.domain_right_edge.in_units("code_length").d
         pcount = 0
-        for dd in self.pf.sindex.iter_bbox_data(
+        for dd in self.pf.midx.iter_bbox_data(
             dle, dre,
             ['x']):
             pcount += dd['x'].size
@@ -219,7 +219,7 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
         ind = 0
 
         chunk_id = 0
-        for dd in self.pf.sindex.iter_bbox_data(
+        for dd in self.pf.midx.iter_bbox_data(
             dle, dre,
             ['x','y','z']):
             npart = dd['x'].size
@@ -244,13 +244,13 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
     def _count_particles(self, data_file):
         dle = self.pf.domain_left_edge.in_units("code_length").d
         dre = self.pf.domain_right_edge.in_units("code_length").d
-        pcount_estimate = self.pf.sindex.get_nparticles_bbox(dle, dre)
+        pcount_estimate = self.pf.midx.get_nparticles_bbox(dle, dre)
         if pcount_estimate > 1e9:
             mylog.warning("Filtering %i particles to find total."
                           % pcount_estimate + \
                           " You may want to reconsider your bounding box.")
         pcount = 0
-        for dd in self.pf.sindex.iter_bbox_data(
+        for dd in self.pf.midx.iter_bbox_data(
             dle, dre,
             ['x']):
             pcount += dd['x'].size
@@ -263,5 +263,5 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
 
 
 class IOHandlerSIndexHTTPSDF(IOHandlerSIndexSDF):
-    _dataset_type = "sindex_http_sdf_particles"
+    _dataset_type = "midx_http_sdf_particles"
 

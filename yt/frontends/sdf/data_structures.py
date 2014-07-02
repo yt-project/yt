@@ -65,7 +65,7 @@ class SDFDataset(Dataset):
     _particle_mass_name = None
     _particle_coordinates_name = None
     _particle_velocity_name = None
-    _sindex = None
+    _midx = None
     _skip_cache = True
     _subspace = False
 
@@ -98,7 +98,7 @@ class SDFDataset(Dataset):
         self._field_map = field_map
         prefix = ''
         if self.idx_filename is not None:
-            prefix += 'sindex_'
+            prefix += 'midx_'
         if filename.startswith("http"):
             prefix += 'http_'
         dataset_type = prefix + 'sdf_particles'
@@ -161,8 +161,8 @@ class SDFDataset(Dataset):
         self.file_count = 1
 
     @property
-    def sindex(self):
-        if self._sindex is None:
+    def midx(self):
+        if self._midx is None:
             if self.idx_filename is not None:
 
                 if 'http' in self.idx_filename:
@@ -170,11 +170,11 @@ class SDFDataset(Dataset):
                 else:
                     cls = SDFRead
                 indexdata = cls(self.idx_filename, header=self.idx_header)
-                self._sindex = SDFIndex(self.sdf_container, indexdata,
+                self._midx = SDFIndex(self.sdf_container, indexdata,
                                         level=self.idx_level)
             else:
                 raise RuntimeError("SDF index0 file not supplied in load.")
-        return self._sindex
+        return self._midx
 
     def _set_code_unit_attributes(self):
         self.length_unit = self.quan(1.0, self.parameters.get("length_unit", 'kpc'))

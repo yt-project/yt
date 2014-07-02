@@ -908,7 +908,7 @@ class SDFIndex(object):
         return self.get_contiguous_chunk(lk, rk, fields)
 
     def get_cell_bbox(self, level, cell_iarr):
-        """Get floating point bounding box for a given sindex cell
+        """Get floating point bounding box for a given midx cell
 
         Returns:
             bbox: array-like, shape (3,2)
@@ -933,7 +933,7 @@ class SDFIndex(object):
 
         Example:
 
-        for chunk in sindex.iter_padded_bbox_data(
+        for chunk in midx.iter_padded_bbox_data(
             6, np.array([128]*3), 8.0, ['x','y','z','ident']):
 
             print chunk['x'].max()
@@ -1020,7 +1020,7 @@ class SDFIndex(object):
         Returns:
             data: A list of dictionaries of data.
 
-        chunks = sindex.get_padded_bbox_data(6, np.array([128]*3),
+        chunks = midx.get_padded_bbox_data(6, np.array([128]*3),
                                              8.0, ['x','y','z','ident'])
 
         """
