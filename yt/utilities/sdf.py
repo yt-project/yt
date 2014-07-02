@@ -43,7 +43,7 @@ def get_struct_vars(line):
         if '[' in vnames[0]:
             num = int(vnames[0].split('[')[-1].strip(']'))
             #num = int(re.sub("\D", "", vnames[0]))
-    ctype = get_type(ctype, len=num)
+    ctype = get_type(ctype, tlen=num)
     return ctype, vnames
 
 def bbox_filter(left, right, domain_width):
