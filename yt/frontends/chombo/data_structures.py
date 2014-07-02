@@ -145,14 +145,14 @@ class ChomboHierarchy(GridIndex):
 
         # look for fluid fields
         output_fields = []
-        for key, val in self._handle['/'].attrs.items():
+        for key, val in self._handle.attrs.items():
             if key.startswith("component"):
                 output_fields.append(val)
         self.field_list = [("chombo", c) for c in output_fields]
 
         # look for particle fields
         particle_fields = []
-        for key, val in self._handle['/'].attrs.items():
+        for key, val in self._handle.attrs.items():
             if key.startswith("particle"):
                 particle_fields.append(val)
         self.field_list.extend([("io", c) for c in particle_fields])        
