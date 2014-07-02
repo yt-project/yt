@@ -74,9 +74,9 @@ class SDFDataset(Dataset):
                  n_ref = 64, over_refine_factor = 1,
                  bounding_box = None,
                  sdf_header = None,
-                 idx_filename = None,
-                 idx_header = None,
-                 idx_level = None,
+                 midx_filename = None,
+                 midx_header = None,
+                 midx_level = None,
                  field_map = None):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
@@ -90,14 +90,14 @@ class SDFDataset(Dataset):
         else:
             self.domain_left_edge = self.domain_right_edge = None
         self.sdf_header = sdf_header
-        self.idx_filename = idx_filename
-        self.idx_header = idx_header
-        self.idx_level = idx_level
+        self.midx_filename = midx_filename
+        self.midx_header = midx_header
+        self.midx_level = midx_level
         if field_map is None:
             field_map = {}
         self._field_map = field_map
         prefix = ''
-        if self.idx_filename is not None:
+        if self.midx_filename is not None:
             prefix += 'midx_'
         if filename.startswith("http"):
             prefix += 'http_'
@@ -163,15 +163,15 @@ class SDFDataset(Dataset):
     @property
     def midx(self):
         if self._midx is None:
-            if self.idx_filename is not None:
+            if self.midx_filename is not None:
 
-                if 'http' in self.idx_filename:
+                if 'http' in self.midx_filename:
                     cls = HTTPSDFRead
                 else:
                     cls = SDFRead
-                indexdata = cls(self.idx_filename, header=self.idx_header)
+                indexdata = cls(self.midx_filename, header=self.midx_header)
                 self._midx = SDFIndex(self.sdf_container, indexdata,
-                                        level=self.idx_level)
+                                        level=self.midx_level)
             else:
                 raise RuntimeError("SDF index0 file not supplied in load.")
         return self._midx
