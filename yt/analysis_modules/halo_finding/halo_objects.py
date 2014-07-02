@@ -556,7 +556,7 @@ class Halo(object):
         # tilt is calculated from the rotation about x axis
         # needed to align e1 vector with the y axis
         # after e0 is aligned with x axis
-        # find the t1 angle needed to rotate about z axis to align e0 to x
+        # find the t1 angle needed to rotate about z axis to align e0 onto x-z plane
         t1 = np.arctan(-e0_vector[1] / e0_vector[0])
         RZ = get_rotation_matrix(t1, (0, 0, 1))
         r1 = np.dot(RZ, e0_vector)
@@ -564,6 +564,7 @@ class Halo(object):
         t2 = np.arctan(r1[2] / r1[0])
         RY = get_rotation_matrix(t2, (0, 1, 0))
         r2 = np.dot(RY, np.dot(RZ, e1_vector))
+        # find the tilt angle needed to rotate about x axis to align e1 to y and e2 to z
         tilt = np.arctan(-r2[2] / r2[1])
         return (mag_A, mag_B, mag_C, e0_vector[0], e0_vector[1],
             e0_vector[2], tilt)
