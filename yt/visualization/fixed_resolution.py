@@ -340,7 +340,11 @@ class FixedResolutionBuffer(object):
         return rv
 
 class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
-
+    """
+    This object is a subclass of
+    :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
+    that supports non-aligned input data objects, primarily cutting planes.
+    """
     def __init__(self, data_source, radius, buff_size, antialias = True) :
 
         self.data_source = data_source
@@ -365,7 +369,8 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
         
 class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
     """
-    This object is a subclass of :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
+    This object is a subclass of
+    :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
     that supports non-aligned input data objects, primarily cutting planes.
     """
     def __getitem__(self, item):
@@ -390,7 +395,12 @@ class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
 
 
 class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
-    def __init__(self, data_source, bounds, buff_size, antialias = True,                                                         
+    """
+    This object is a subclass of
+    :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
+    that supports off axis projections.  This calls the volume renderer.
+    """
+    def __init__(self, data_source, bounds, buff_size, antialias = True,
                  periodic = False):
         self.data = {}
         FixedResolutionBuffer.__init__(self, data_source, bounds, buff_size, antialias, periodic)

@@ -66,14 +66,22 @@ class FieldInfoContainer(dict):
         pass
 
     def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64 ):
+        skip_output_units = ("code_length",)
         for f, (units, aliases, dn) in sorted(self.known_particle_fields):
             units = self.pf.field_units.get((ptype, f), units)
+            if (f in aliases or ptype not in self.pf.particle_types_raw) and \
+                units not in skip_output_units:
+                u = Unit(units, registry = self.pf.unit_registry)
+                output_units = str(u.get_cgs_equivalent())
+            else:
+                output_units = units
             self.add_output_field((ptype, f),
-                units = units, particle_type = True, display_name = dn)
+                units = units, particle_type = True, display_name = dn,
+                output_units = output_units)
             if (ptype, f) not in self.field_list:
                 continue
             for alias in aliases:
-                self.alias((ptype, alias), (ptype, f))
+                self.alias((ptype, alias), (ptype, f), units = output_units)
 
         # We'll either have particle_position or particle_position_[xyz]
         if (ptype, "particle_position") in self.field_list or \

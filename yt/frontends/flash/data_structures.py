@@ -283,7 +283,8 @@ class FLASHDataset(Dataset):
                     else :
                         pval = val
                     if vn in self.parameters and self.parameters[vn] != pval:
-                        mylog.warning("{0} {1} overwrites a simulation scalar of the same name".format(hn[:-1],vn)) 
+                        mylog.info("{0} {1} overwrites a simulation "
+                                   "scalar of the same name".format(hn[:-1],vn))
                     self.parameters[vn] = pval
         if self._flash_version == 7:
             for hn in hns:
@@ -300,7 +301,8 @@ class FLASHDataset(Dataset):
                     else :
                         pval = val
                     if vn in self.parameters and self.parameters[vn] != pval:
-                        mylog.warning("{0} {1} overwrites a simulation scalar of the same name".format(hn[:-1],vn))
+                        mylog.info("{0} {1} overwrites a simulation "
+                                   "scalar of the same name".format(hn[:-1],vn))
                     self.parameters[vn] = pval
         
         # Determine block size
@@ -363,7 +365,7 @@ class FLASHDataset(Dataset):
         try:
             self.gamma = self.parameters["gamma"]
         except:
-            mylog.warning("Cannot find Gamma")
+            mylog.info("Cannot find Gamma")
             pass
 
         # Get the simulation time

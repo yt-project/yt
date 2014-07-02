@@ -47,7 +47,7 @@ class IOHandlerSDF(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         assert(len(data_files) == 1)
-        for data_file in data_files:
+        for data_file in sorted(data_files):
             pcount = self._handle['x'].size
             yield "dark_matter", (
                 self._handle['x'], self._handle['y'], self._handle['z'])
@@ -61,7 +61,7 @@ class IOHandlerSDF(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         assert(len(data_files) == 1)
-        for data_file in data_files:
+        for data_file in sorted(data_files):
             pcount = self._handle['x'].size
             for ptype, field_list in sorted(ptf.items()):
                 x = self._handle['x']

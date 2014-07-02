@@ -109,7 +109,7 @@ class StreamParticleIOHandler(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in data_files:
+        for data_file in sorted(data_files):
             f = self.fields[data_file.filename]
             # This double-reads
             for ptype, field_list in sorted(ptf.items()):
@@ -135,7 +135,7 @@ class StreamParticleIOHandler(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in data_files:
+        for data_file in sorted(data_files):
             f = self.fields[data_file.filename]
             for ptype, field_list in sorted(ptf.items()):
                 if (ptype, "particle_position") in f:

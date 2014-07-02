@@ -501,7 +501,7 @@ class StreamlineCallback(PlotCallback):
         streamplot_args = {'x': X, 'y': Y, 'u':pixX, 'v': pixY,
                            'density': self.dens}
         streamplot_args.update(self.plot_args)
-        plot._axes.streamplot(**self.streamplot_args)
+        plot._axes.streamplot(**streamplot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
@@ -879,7 +879,6 @@ class HaloCatalogCallback(PlotCallback):
         self.alpha = alpha
         self.width = width
         self.annotate_field = annotate_field
-        self.format_spec = text_format_spec
         self.font_kwargs = font_kwargs
 
     def __call__(self, plot):
@@ -959,8 +958,7 @@ class ParticleCallback(PlotCallback):
     region = None
     _descriptor = None
     def __init__(self, width, p_size=1.0, col='k', marker='o', stride=1.0,
-                 ptype=None, stars_only=False, dm_only=False,
-                 minimum_mass=None, alpha=1.0):
+                 ptype='all', minimum_mass=None, alpha=1.0):
         PlotCallback.__init__(self)
         self.width = width
         self.p_size = p_size
@@ -968,8 +966,6 @@ class ParticleCallback(PlotCallback):
         self.marker = marker
         self.stride = stride
         self.ptype = ptype
-        self.stars_only = stars_only
-        self.dm_only = dm_only
         self.minimum_mass = minimum_mass
         self.alpha = alpha
 
@@ -989,24 +985,16 @@ class ParticleCallback(PlotCallback):
         axis_names = plot.data.pf.coordinates.axis_name
         field_x = "particle_position_%s" % axis_names[xax]
         field_y = "particle_position_%s" % axis_names[yax]
-        gg = ( ( reg[field_x] >= x0 ) & ( reg[field_x] <= x1 )
-           &   ( reg[field_y] >= y0 ) & ( reg[field_y] <= y1 ) )
-        if self.ptype is not None:
-            gg &= (reg["particle_type"] == self.ptype)
-            if gg.sum() == 0: return
-        if self.stars_only:
-            gg &= (reg["creation_time"] > 0.0)
-            if gg.sum() == 0: return
-        if self.dm_only:
-            gg &= (reg["creation_time"] <= 0.0)
-            if gg.sum() == 0: return
+        pt = self.ptype
+        gg = ( ( reg[pt, field_x] >= x0 ) & ( reg[pt, field_x] <= x1 )
+           &   ( reg[pt, field_y] >= y0 ) & ( reg[pt, field_y] <= y1 ) )
         if self.minimum_mass is not None:
-            gg &= (reg["particle_mass"] >= self.minimum_mass)
+            gg &= (reg[pt, "particle_mass"] >= self.minimum_mass)
             if gg.sum() == 0: return
         plot._axes.hold(True)
         px, py = self.convert_to_plot(plot,
-                    [np.array(reg[field_x][gg][::self.stride]),
-                     np.array(reg[field_y][gg][::self.stride])])
+                    [np.array(reg[pt, field_x][gg][::self.stride]),
+                     np.array(reg[pt, field_y][gg][::self.stride])])
         plot._axes.scatter(px, py, edgecolors='None', marker=self.marker,
                            s=self.p_size, c=self.color,alpha=self.alpha)
         plot._axes.set_xlim(xx0,xx1)
