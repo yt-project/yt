@@ -866,6 +866,31 @@ class TextLabelCallback(PlotCallback):
         plot._axes.text(x, y, self.text, **kwargs)
 
 class HaloCatalogCallback(PlotCallback):
+    """
+    annotate_halos(halo_catalog, circle_kwargs=None,
+        width = None, annotate_field=False,
+        font_kwargs = None, factor = 1.0)
+
+    Plots circles at the locations of all the halos
+    in a halo catalog with radii corresponding to the
+    virial radius of each halo. 
+
+    circle_kwargs: Contains the arguments controlling the
+        appearance of the circles, supplied to the 
+        Matplotlib patch Circle.
+    width: the width over which to select halos to plot,
+        useful when overplotting to a slice plot. Accepts
+        a tuple in the form (1.0, 'Mpc').
+    annotate_field: Accepts a field contained in the 
+        halo catalog to add text to the plot near the halo.
+        Example: annotate_field = 'particle_mass' will
+        write the halo mass next to each halo.
+    font_kwargs: Contains the arguments controlling the text
+        appearance of the annotated field.
+    factor: A number the virial radius is multiplied by for
+        plotting the circles. Ex: factor = 2.0 will plot
+        circles with twice the radius of each halo virial radius.
+    """
 
     _type_name = 'halos'
     region = None
