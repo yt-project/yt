@@ -871,18 +871,19 @@ class HaloCatalogCallback(PlotCallback):
     region = None
     _descriptor = None
 
-    def __init__(self, halo_catalog, col='white', alpha =1, 
+    def __init__(self, halo_catalog, circle_kwargs = None, 
             width = None, annotate_field = False,
             font_kwargs = None, factor = 1.0):
 
         PlotCallback.__init__(self)
         self.halo_catalog = halo_catalog
-        self.color = col
-        self.alpha = alpha
         self.width = width
         self.annotate_field = annotate_field
         self.font_kwargs = font_kwargs
         self.factor = factor
+        if circle_kwargs is None:
+            circle_kwargs = {'edgecolor':'white', 'facecolor':'None'}
+        self.circle_kwargs = circle_kwargs
 
     def __call__(self, plot):
         data = plot.data
@@ -932,8 +933,7 @@ class HaloCatalogCallback(PlotCallback):
 
         for x,y,r in zip(px, py, radius):
             plot._axes.add_artist(Circle(xy=(x,y), 
-                radius = r,  facecolor=self.color,
-                edgecolor = 'None', alpha=self.alpha))
+                radius = r, **self.circle_kwargs)) 
 
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
