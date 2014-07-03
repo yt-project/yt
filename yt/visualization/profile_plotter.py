@@ -542,6 +542,14 @@ class PhasePlot(ImagePlotContainer):
         self.z_log = {}
         self.z_title = {}
         self._initfinished = False
+        self._xlimits = [0,0]
+        self._ylimits = [0,0]
+        self._setxlims = False
+        self._setylims = False
+        self._plottext = ""
+        self._textxpos = 0.0
+        self._textypos = 0.0
+
 
         if profile is None:
             profile = create_profile(data_source,
@@ -564,10 +572,11 @@ class PhasePlot(ImagePlotContainer):
         xfi = pf.field_info[field_x]
         yfi = pf.field_info[field_y]
         zfi = pf.field_info[field_z]
+       
         x_title = self.x_title or self._get_field_label(field_x, xfi)
         y_title = self.y_title or self._get_field_label(field_y, yfi)
         z_title = self.z_title.get(field_z, None) or \
-                    self._get_field_label(field_z, zfi)
+            self._get_field_label(field_z, zfi)
         return (x_title, y_title, z_title)
 
     def _get_field_label(self, field, field_info):
@@ -614,7 +623,16 @@ class PhasePlot(ImagePlotContainer):
 
             size = (self.figure_size, self.figure_size)
             x_scale, y_scale, z_scale = self._get_field_log(f, self.profile)
+            x_label, y_label, z_label = self._get_axes_labels()
             x_title, y_title, z_title = self._get_field_title(f, self.profile)
+            #If the labels are set they take precedence
+            if x_label != None:
+                x_title = x_label
+            if y_label != None:
+                y_title = y_label
+            if z_label != None:
+                z_title = z_label
+
             if f in self.plots:
                 zlim = [self.plots[f].zmin, self.plots[f].zmax]
             else:
@@ -629,16 +647,24 @@ class PhasePlot(ImagePlotContainer):
                                          x_scale, y_scale, z_scale,
                                          self._colormaps[f], zlim, size, fp.get_size(),
                                          fig, axes, cax)
+
             self.plots[f].axes.xaxis.set_label_text(x_title)
             self.plots[f].axes.yaxis.set_label_text(y_title)
             self.plots[f].cax.yaxis.set_label_text(z_title)
+            if(self._setxlims == True):
+                self.plots[f].axes.set_xlim(self._xlimits[0], self._xlimits[1])
+            if(self._setylims == True):
+                self.plots[f].axes.set_ylim(self._ylimits[0], self._ylimits[1])
+           
+            self.plots[f].axes.text(self._textxpos, self._textypos, self._plottext,
+                                    fontproperties=self._font_properties)
             if z_scale == "log":
                 self._field_transform[f] = log_transform
             else:
                 self._field_transform[f] = linear_transform
             if f in self.plot_title:
                 self.plots[f].axes.set_title(self.plot_title[f])
-
+               
             if self._font_color is not None:
                 ax = self.plots[f].axes
                 cbax = self.plots[f].cb.ax
@@ -649,7 +675,6 @@ class PhasePlot(ImagePlotContainer):
                 for label in labels:
                     label.set_color(self._font_color)
         self._plot_valid = True
-
 
 
     def set_xlim(self, xmin=None, xmax=None):
@@ -664,8 +689,8 @@ class PhasePlot(ImagePlotContainer):
               The maximum value on the x-axis
 
         >>> plot.set_xlim(5e-21, 1e5)
-
         """
+
         for f, data in self.profile.field_data.items():
             axes = None
             if f in self.plots:
@@ -673,6 +698,9 @@ class PhasePlot(ImagePlotContainer):
                     axes = self.plots[f].axes
 
                 self.plots[f].axes.set_xlim(xmin, xmax)
+        self._setxlims = True
+        self._xlimits[0] = xmin
+        self._xlimits[1] = xmax
 
     def set_ylim(self, ymin=None, ymax=None):
         r"""
@@ -696,65 +724,11 @@ class PhasePlot(ImagePlotContainer):
                     axes = self.plots[f].axes
 
                 self.plots[f].axes.set_ylim(ymin, ymax)
-
-    def set_xtitle(self, x_title=x_title, fontsize=18):
-        r"""
-        Allow the user to modify the X-axis title
-        Defaults to the global value. Fontsize defaults 
-        to 18.
-        
-        Parameters
-        ----------
-        x_title: str
-              The new string for the x-axis
-        fontsize: float
-              Fontsize for the x-axis title
-
-        >>>  plot.set_xtitle("H2I Number Density (cm$^{-3}$)")
-
-        """
-        for f in self.profile.field_data:
-            self.plots[f].axes.xaxis.set_label_text(x_title, fontsize=fontsize)
-
-    def set_ytitle(self, y_title=y_title, fontsize=18):
-        r"""
-        Allow the user to modify the Y-axis title
-        Defaults to the global value. Fontsize defaults 
-        to 18.
-        
-        Parameters
-        ----------
-        y_title: str
-              The new string for the y-axis
-        fontsize: float
-              Fontsize for the y-axis title
-
-        >>>  plot.set_ytitle("Temperature (K)")
-
-        """
-        for f in self.profile.field_data:
-            self.plots[f].axes.yaxis.set_label_text(y_title, fontsize=fontsize)
-
-    def set_ztitle(self, z_title=z_title, fontsize=18):
-        r"""
-        Allow the user to modify the Z-axis title
-        Defaults to the global value. Fontsize defaults 
-        to 18.
-        
-        Parameters
-        ----------
-        z_title: str
-              The new string for the z-axis
-        fontsize: float
-              Fontsize for the z-axis title
-
-        >>>  plot.set_ztitle("Enclosed Gas Mass ($M_{\odot}$)")
-
-        """
-        for f in self.profile.field_data:
-            self.plots[f].cax.yaxis.set_label_text(z_title, fontsize=fontsize)
-
-    def text(self, xpos=0.0, ypos=0.0, text_name="YT", fontsize=18, **kwargs):
+        self._setylims = True
+        self._ylimits[0] = ymin
+        self._ylimits[1] = ymax
+   
+    def add_text(self, text_str, xpos, ypos, fontsize=18, **kwargs):
         r"""
         Allow the user to insert text onto the plot
         The x-position and y-position must be given as well as the text string. 
@@ -762,12 +736,12 @@ class PhasePlot(ImagePlotContainer):
         
         Parameters
         ----------
+        text_str: str
+              The text to insert onto the plot. Required argument. 
         xpos: float
-              Position on plot in x-coordinates
+              Position on plot in x-coordinates. Required argument. 
         ypos: float
-              Position on plot in y-coordinates
-        text_name: str
-              The text to insert onto the plot
+              Position on plot in y-coordinates. Required argument. 
         fontsize: float
               Fontsize for the text (defaults to 18)
 
@@ -779,8 +753,11 @@ class PhasePlot(ImagePlotContainer):
             if f in self.plots:
                 if self.plots[f].figure is not None:
                     axes = self.plots[f].axes
-
-                self.plots[f].axes.text(xpos, ypos, text_name)
+                    self.plots[f].axes.text(xpos, ypos, text_str,
+                                            fontproperties=self._font_properties)
+        self._plottext = text_str
+        self._textxpos = xpos
+        self._textypos = ypos
 
     def save(self, name=None, mpl_kwargs=None):
         r"""
