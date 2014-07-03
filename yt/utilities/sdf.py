@@ -8,11 +8,14 @@ from yt.funcs import mylog
 
 _types = {
     'int': 'int32',
+    'int32_t': 'int32',
+    'uint32_t': 'uint32',
     'int64_t': 'int64',
     'float': 'float32',
     'double': 'float64',
     'unsigned int': 'I',
     'unsigned char': 'B',
+    'char': 'B',
 }
 
 def get_type(vtype, tlen=None):
@@ -119,6 +122,15 @@ class DataStruct(object):
         for k in self.dtype.names:
             self.data[k] = self.handle[k]
 
+    def __del__(self):
+        if self.handle:
+            try:
+                self.handle.close()
+            except AttributeError:
+                pass
+            del self.handle
+            self.handle = None
+
     def __getitem__(self, key):
         mask = None
         kt = type(key)
@@ -188,7 +200,7 @@ class SDFRead(dict):
 
     """docstring for SDFRead"""
 
-    _eof = 'SDF-EOH'
+    _eof = 'SDF-EO'
     _data_struct = DataStruct
 
     def __init__(self, filename, header=None):
@@ -202,6 +214,7 @@ class SDFRead(dict):
         self.parse_header()
         self.set_offsets()
         self.load_memmaps()
+        self.get_binary_parameters()
 
     def parse_header(self):
         """docstring for parse_header"""
@@ -232,6 +245,11 @@ class SDFRead(dict):
             return
 
         spl = lstrip(line.split("="))
+        if len(spl) == 1:
+            # No equals were found.
+            self.parse_C_param(line, ascfile)
+            return
+
         vtype, vname = lstrip(spl[0].split())
         vname = vname.strip("[]")
         vval = spl[-1].strip(";")
@@ -248,9 +266,54 @@ class SDFRead(dict):
 
         self.parameters[vname] = vval
 
+    def parse_C(self, line, ascfile):
+        vtype, vnames = get_struct_vars(line)
+
+        # Test for array
+        test = line.split("}")
+        if len(test) > 1:
+            num = test[-1].strip("{}}[]")
+            num = num.strip("\;\\\n]")
+            if len(num) > 0:
+                num = int(num)
+            else:
+                num = 1
+        else:
+            num = 1
+        str_types = []
+        comments = []
+        str_lines = []
+        vtype, vnames = get_struct_vars(line)
+        for v in vnames:
+            str_types.append((v, vtype))
+        struct = self._data_struct(str_types, num, self.filename)
+        return struct
+
+    def parse_C_param(self, line, ascfile):
+        self.structs.append(self.parse_C(line, ascfile))
+        return
+
+    def get_binary_parameters(self):
+        for struct in self.structs:
+            for vname, vval in struct.data.iteritems():
+                print 'Searching for parameters:', vname, vval.size
+                if vval.size == 1:
+                    self.parameters[vname] = vval[0]
+                    del struct
+                    param_struct = self.pop(vname)
+                    del param_struct
+
     def parse_struct(self, line, ascfile):
         assert 'struct' in line
+        if "}" in line:
+            # Struct is in a single line
+            line = line.split("{")[-1].strip()
+            print line
+            struct = self.parse_C(line, ascfile)
+            self.structs.append(struct)
+            return
 
+        # Otherwise multi-line struct
         str_types = []
         comments = []
         str_lines = []
@@ -289,7 +352,6 @@ class HTTPSDFRead(SDFRead):
     """docstring for SDFRead"""
 
     _data_struct = HTTPDataStruct
-    _eof = 'SDF-EOH'
 
     def parse_header(self):
         """docstring for parse_header"""
