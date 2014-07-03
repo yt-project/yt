@@ -1,6 +1,3 @@
-### THIS RECIPE IS CURRENTLY BROKEN IN YT-3.0
-### DO NOT TRUST THIS RECIPE UNTIL THIS LINE IS REMOVED
-
 import yt
 from yt.analysis_modules.halo_analysis.halo_catalog import HaloCatalog
 
