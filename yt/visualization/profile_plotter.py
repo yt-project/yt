@@ -521,8 +521,6 @@ class PhasePlot(ImagePlotContainer):
     >>> plot.set_cmap("CellMassMsun", "jet")
     >>> plot.set_zlim("CellMassMsun", 1e8, 1e13)
     >>> plot.set_title("CellMassMsun", "This is a phase plot")
-    >>> N.B. The above callbacks will overwrite explicit 
-    >>> callbacks like set_xlim and hence should be done first.
     """
     x_log = None
     y_log = None
@@ -626,11 +624,11 @@ class PhasePlot(ImagePlotContainer):
             x_label, y_label, z_label = self._get_axes_labels()
             x_title, y_title, z_title = self._get_field_title(f, self.profile)
             #If the labels are set they take precedence
-            if x_label != None:
+            if x_label is not None:
                 x_title = x_label
-            if y_label != None:
+            if y_label is not None:
                 y_title = y_label
-            if z_label != None:
+            if z_label is not None:
                 z_title = z_label
 
             if f in self.plots:
