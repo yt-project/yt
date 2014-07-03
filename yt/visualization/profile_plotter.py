@@ -771,19 +771,18 @@ class PhasePlot(ImagePlotContainer):
         >>> plot.save(mpl_kwargs={'bbox_inches':'tight'})
         
         """
-        middle = ""
+
         if not self._plot_valid: self._setup_plots()
         if mpl_kwargs is None: mpl_kwargs = {}
         for f in self.profile.field_data:
+            middle = "2d-Profile_%s_%s_%s" % (self.profile.x_field, 
+                                              self.profile.y_field, f)
             if name is None:
-                middle = "2d-Profile_%s_%s_%s" % (self.profile.x_field, 
-                                                  self.profile.y_field, f)
-                
                 prefix = self.profile.pf
                 name = "%s.png" % prefix
             suffix = get_image_suffix(name)
             prefix = name[:name.rfind(suffix)]
-            fn = "%s%s%s" % (prefix, middle, suffix)
+            fn = "%s_%s%s" % (prefix, middle, suffix)
             if not suffix:
                 suffix = ".png"
             self.plots[f].save(fn, mpl_kwargs)
