@@ -939,7 +939,7 @@ class HaloCatalogCallback(PlotCallback):
 
         # Convert halo radii to a radius in pixels
         radius = halo_data['virial_radius'][:].in_units(units)
-        radius = radius*pixel_scale*self.factor/data_scale
+        radius = np.array(radius*pixel_scale*self.factor/data_scale)
         
         if self.width:
             pz = halo_data[field_z][:].in_units(units)/data_scale
