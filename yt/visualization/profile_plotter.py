@@ -711,6 +711,9 @@ class PhasePlot(ImagePlotContainer):
         obj._initfinished = False
         obj.x_log = None
         obj.y_log = None
+        self._plot_text = {}
+        self._text_xpos = {}
+        self._text_ypos = {}
         obj.profile = profile
         super(PhasePlot, obj).__init__(data_source, figure_size, fontsize)
         obj._setup_plots()
@@ -791,6 +794,7 @@ class PhasePlot(ImagePlotContainer):
                     cax = self.plots[f].cax
 
             x_scale, y_scale, z_scale = self._get_field_log(f, self.profile)
+            x_label, y_label, z_label = self._get_axes_labels()
             x_title, y_title, z_title = self._get_field_title(f, self.profile)
 
             if zlim == (None, None):
@@ -827,6 +831,12 @@ class PhasePlot(ImagePlotContainer):
             self.plots[f].axes.xaxis.set_label_text(x_title, fontproperties=fp)
             self.plots[f].axes.yaxis.set_label_text(y_title, fontproperties=fp)
             self.plots[f].cax.yaxis.set_label_text(z_title, fontproperties=fp)
+
+            if f in self._plot_text:
+                self.plots[f].axes.text(f, self._text_xpos[f], self._text_ypos[f],
+                                        self._plot_text[f],
+                                        fontproperties=self._font_properties,
+                                        **self._text_kwargs[f])
 
             if f in self.plot_title:
                 self.plots[f].axes.set_title(self.plot_title[f])
@@ -887,12 +897,12 @@ class PhasePlot(ImagePlotContainer):
         
         Parameters
         ----------
+        text_str: str
+              The text to insert onto the plot. Required argument. 
         xpos: float
-              Position on plot in x-coordinates
+              Position on plot in x-coordinates. Required argument. 
         ypos: float
-              Position on plot in y-coordinates
-        text_name: str
-              The text to insert onto the plot
+              Position on plot in y-coordinates. Required argument. 
         fontsize: float
               Fontsize for the text (defaults to 18)
 
@@ -904,8 +914,11 @@ class PhasePlot(ImagePlotContainer):
             if f in self.plots:
                 if self.plots[f].figure is not None:
                     axes = self.plots[f].axes
-
-                self.plots[f].axes.text(xpos, ypos, text_name)
+                    self.plots[f].axes.text(xpos, ypos, text_str,
+                                            fontproperties=self._font_properties)
+        self._plottext = text_str
+        self._textxpos = xpos
+        self._textypos = ypos
 
     def save(self, name=None, mpl_kwargs=None):
         r"""
