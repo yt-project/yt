@@ -334,11 +334,12 @@ class LightRay(CosmologySplice):
                 mylog.info("Getting subsegment: %s to %s." %
                            (list(sub_segment[0]), list(sub_segment[1])))
                 sub_ray = pf.ray(sub_segment[0], sub_segment[1])
-                sub_data['dl'].extend(sub_ray['dts'] *
+                asort = np.argsort(sub_ray["t"])
+                sub_data['dl'].extend(sub_ray['dts'][asort] *
                                       vector_length(sub_ray.start_point,
                                                     sub_ray.end_point))
                 for field in data_fields:
-                    sub_data[field].extend(sub_ray[field])
+                    sub_data[field].extend(sub_ray[field][asort])
 
                 if get_los_velocity:
                     line_of_sight = sub_segment[1] - sub_segment[0]
@@ -347,13 +348,14 @@ class LightRay(CosmologySplice):
                                       sub_ray['y-velocity'],
                                       sub_ray['z-velocity']])
                     sub_data['los_velocity'].extend((np.rollaxis(sub_vel, 1) *
-                                                     line_of_sight).sum(axis=1))
+                                                     line_of_sight).sum(axis=1)[asort])
                     del sub_vel
 
                 sub_ray.clear_data()
-                del sub_ray
+                del sub_ray, asort
 
             for key in sub_data:
+                if key in "xyz": continue
                 sub_data[key] = pf.arr(sub_data[key]).in_cgs()
 
             # Get redshift for each lixel.  Assume linear relation between l and z.
