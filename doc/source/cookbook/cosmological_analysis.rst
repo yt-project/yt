@@ -51,13 +51,13 @@ that only have a maximum amount of volume in common.
 
 .. yt_cookbook:: unique_light_cone_projections.py 
 
-Making Light Rays
-~~~~~~~~~~~~~~~~~
-This script demonstrates how to make a synthetic quasar sight line and 
-uses the halo profiler to record information about halos close to the 
-line of sight.
+Light Rays
+~~~~~~~~~~
+This script demonstrates how to make a synthetic quasar sight line that 
+extends over multiple datasets and can be used to generate a synthetic 
+absorption spectrum.
 
-.. yt_cookbook:: make_light_ray.py 
+.. yt_cookbook:: light_ray.py 
 
 Creating and Fitting Absorption Spectra
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
