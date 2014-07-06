@@ -84,9 +84,7 @@ from .radial_column_density.api import \
     RadialColumnDensity
 
 from .spectral_integrator.api import \
-     add_xray_emissivity_field, \
-     add_xray_luminosity_field, \
-     add_xray_photon_emissivity_field
+     add_xray_emissivity_field
 
 from .star_analysis.api import \
     StarFormationRate, \

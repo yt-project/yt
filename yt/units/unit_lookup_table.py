@@ -93,6 +93,7 @@ default_unit_symbol_lut = {
     "kB": (boltzmann_constant_erg_per_K,
            dimensions.energy/dimensions.temperature),
     "R": (rankine_per_kelvin, dimensions.temperature),
+    "photons": (1.0, dimensions.dimensionless),
 
     # for AstroPy compatibility
     "solMass": (mass_sun_grams, dimensions.mass),

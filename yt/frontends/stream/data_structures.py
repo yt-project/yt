@@ -970,7 +970,7 @@ class StreamParticlesDataset(StreamDataset):
 def load_particles(data, length_unit = None, bbox=None,
                    sim_time=0.0, mass_unit = None, time_unit = None,
                    velocity_unit=None, periodicity=(True, True, True),
-                   n_ref = 64, over_refine_factor = 1):
+                   n_ref = 64, over_refine_factor = 1, geometry = "cartesian"):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
 
@@ -1083,7 +1083,7 @@ def load_particles(data, length_unit = None, bbox=None,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamParticlesDataset(handler)
+    spf = StreamParticlesDataset(handler, geometry = geometry)
     spf.n_ref = n_ref
     spf.over_refine_factor = over_refine_factor
 

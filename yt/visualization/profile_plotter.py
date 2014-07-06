@@ -883,7 +883,7 @@ class PhasePlot(ImagePlotContainer):
                 for k, v in self.plots.iteritems():
                     names.append(v.save(name, mpl_kwargs))
                 return names
-            fn = "%s_%s%s" % (prefix, middle, suffix)
+            fn = "%s_%s%s" % (prefix, middle, '.png')
             names.append(fn)
             self.plots[f].save(fn, mpl_kwargs)
         return names
