@@ -59,6 +59,8 @@ class HaloCatalog(ParallelAnalysisInterface):
     output_dir : str
         The top level directory into which analysis output will be written.
         Default: "."
+    finder_kwargs : dict
+        Arguments to pass to the halo finder if finder_method is given.
 
     Examples
     --------
@@ -98,6 +100,7 @@ class HaloCatalog(ParallelAnalysisInterface):
     
     def __init__(self, halos_pf=None, data_pf=None, 
                  data_source=None, finder_method=None, 
+                 finder_kwargs=None,
                  output_dir="halo_catalogs/catalog"):
         ParallelAnalysisInterface.__init__(self)
         self.halos_pf = halos_pf
@@ -122,8 +125,11 @@ class HaloCatalog(ParallelAnalysisInterface):
         self.data_source = data_source
 
         if finder_method is not None:
-            finder_method = finding_method_registry.find(finder_method)
+            finder_method = finding_method_registry.find(finder_method,
+                        **finder_kwargs)
         self.finder_method = finder_method            
+        if finder_kwargs is None:
+            finder_kwargs = {}
         
         # all of the analysis actions to be performed: callbacks, filters, and quantities
         self.actions = []
@@ -203,6 +209,7 @@ class HaloCatalog(ParallelAnalysisInterface):
             field_type = kwargs.pop("field_type")
         else:
             field_type = None
+        prepend = kwargs.pop("prepend",False)
         if field_type is None:
             quantity = quantity_registry.find(key, *args, **kwargs)
         elif (field_type, key) in self.halos_pf.field_info:
@@ -210,7 +217,10 @@ class HaloCatalog(ParallelAnalysisInterface):
         else:
             raise RuntimeError("HaloCatalog quantity must be a registered function or a field of a known type.")
         self.quantities.append(key)
-        self.actions.append(("quantity", (key, quantity)))
+        if prepend:
+            self.actions.insert(0, ("quantity", (key, quantity)))
+        else:
+            self.actions.append(("quantity", (key, quantity)))
 
     def add_filter(self, halo_filter, *args, **kwargs):
         r"""
@@ -430,10 +440,10 @@ class HaloCatalog(ParallelAnalysisInterface):
         out_file.close()
 
     def add_default_quantities(self, field_type='halos'):
-        self.add_quantity("particle_identifier", field_type=field_type)
-        self.add_quantity("particle_mass", field_type=field_type)
-        self.add_quantity("particle_position_x", field_type=field_type)
-        self.add_quantity("particle_position_y", field_type=field_type)
-        self.add_quantity("particle_position_z", field_type=field_type)
-        self.add_quantity("virial_radius", field_type=field_type)
+        self.add_quantity("particle_identifier", field_type=field_type,prepend=True)
+        self.add_quantity("particle_mass", field_type=field_type,prepend=True)
+        self.add_quantity("particle_position_x", field_type=field_type,prepend=True)
+        self.add_quantity("particle_position_y", field_type=field_type,prepend=True)
+        self.add_quantity("particle_position_z", field_type=field_type,prepend=True)
+        self.add_quantity("virial_radius", field_type=field_type,prepend=True)
 

@@ -44,27 +44,27 @@ class HaloFindingMethod(object):
     def __call__(self, ds):
         return self.function(ds, *self.args, **self.kwargs)
 
-def _hop_method(pf):
+def _hop_method(pf, **finder_kwargs):
     r"""
     Run the Hop halo finding method.
     """
     
-    halo_list = HOPHaloFinder(pf)
+    halo_list = HOPHaloFinder(pf, **finder_kwargs)
     halos_pf = _parse_old_halo_list(pf, halo_list)
     return halos_pf
 add_finding_method("hop", _hop_method)
 
-def _fof_method(pf):
+def _fof_method(pf, **finder_kwargs):
     r"""
     Run the FoF halo finding method.
     """
 
-    halo_list = FOFHaloFinder(pf)
+    halo_list = FOFHaloFinder(pf, **finder_kwargs)
     halos_pf = _parse_old_halo_list(pf, halo_list)
     return halos_pf
 add_finding_method("fof", _fof_method)
 
-def _rockstar_method(pf):
+def _rockstar_method(pf, **finder_kwargs):
     r"""
     Run the Rockstar halo finding method.
     """
@@ -74,7 +74,7 @@ def _rockstar_method(pf):
     from yt.analysis_modules.halo_finding.rockstar.api import \
      RockstarHaloFinder
     
-    rh = RockstarHaloFinder(pf)
+    rh = RockstarHaloFinder(pf, **finder_kwargs)
     rh.run()
 
 

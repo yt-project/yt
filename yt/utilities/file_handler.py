@@ -40,6 +40,10 @@ class HDF5FileHandler(object):
     def keys(self):
         return self.handle.keys
 
+    @property
+    def items(self):
+        return self.handle.items
+
 class FITSFileHandler(HDF5FileHandler):
     def __init__(self, filename):
         from yt.utilities.on_demand_imports import _astropy
