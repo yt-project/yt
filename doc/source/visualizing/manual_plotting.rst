@@ -83,11 +83,15 @@ created from a index by calling ``pf.ortho_ray(axis, center)``.
    # cutting through the y0,z0 such that we hit the max density
    ray = ds.ortho_ray(ax, (c[1], c[2]))
 
+   # Sort the ray values by 'x' so there are no discontinuities
+   # in the line plot
+   srt = np.argsort(ray['x'])
+
    P.subplot(211)
-   P.semilogy(np.array(ray['x']), np.array(ray['density']))
+   P.semilogy(np.array(ray['x'][srt]), np.array(ray['density'][srt]))
    P.ylabel('density')
    P.subplot(212)
-   P.semilogy(np.array(ray['x']), np.array(ray['temperature']))
+   P.semilogy(np.array(ray['x'][srt]), np.array(ray['temperature'][srt]))
    P.xlabel('x')
    P.ylabel('temperature')
 
