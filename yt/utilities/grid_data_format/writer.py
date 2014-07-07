@@ -211,7 +211,7 @@ def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
     f["grid_left_index"] = np.array(
         [grid.get_global_startindex() for grid in pf.index.grids]
     ).reshape(pf.index.grid_dimensions.shape[0], 3)
-    f["grid_level"] = pf.index.grid_levels
+    f["grid_level"] = pf.index.grid_levels.flat
     # @todo: Fill with proper values
     f["grid_parent_id"] = -np.ones(pf.index.grid_dimensions.shape[0])
     f["grid_particle_count"] = pf.index.grid_particle_count
