@@ -11,6 +11,8 @@ Miscellaneous FITS routines
 #-----------------------------------------------------------------------------
 
 import numpy as np
+import base64
+from yt.extern.six.moves import StringIO
 from yt.fields.derived_field import ValidateSpatial
 from yt.utilities.on_demand_imports import _astropy
 from yt.funcs import mylog, get_image_suffix
@@ -187,3 +189,14 @@ class PlotWindowWCS(object):
             mpl_kwargs = {}
         mpl_kwargs["bbox_inches"] = "tight"
         self.pw.save(name=name, mpl_kwargs=mpl_kwargs)
+
+    def _repr_html_(self):
+        ret = ''
+        for k, v in self.plots.iteritems():
+            canvas = FigureCanvasAgg(v)
+            f = StringIO()
+            canvas.print_figure(f)
+            f.seek(0)
+            img = base64.b64encode(f.read())
+            ret += '<img src="data:image/png;base64,%s"><br>' % img
+        return ret
