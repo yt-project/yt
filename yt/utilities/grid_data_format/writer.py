@@ -18,10 +18,10 @@ import h5py
 import numpy as np
 
 from yt import __version__ as yt_version
-
+from yt.utilities.exceptions import YTGDFAlreadyExists
 
 def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
-                 particle_type_name="dark_matter"):
+                 particle_type_name="dark_matter", clobber=False):
     """
     Write a parameter file to the given path in the Grid Data Format.
 
@@ -35,7 +35,7 @@ def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
     """
 
     f = _create_new_gdf(pf, gdf_path, data_author, data_comment,
-                        particle_type_name)
+                        particle_type_name, clobber=clobber)
 
     # now add the fields one-by-one
     for field_name in pf.field_list:
@@ -140,15 +140,14 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name,
 
 
 def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
-                    particle_type_name="dark_matter"):
+                    particle_type_name="dark_matter", clobber=False):
     # Make sure we have the absolute path to the file first
     gdf_path = os.path.abspath(gdf_path)
 
     # Stupid check -- is the file already there?
     # @todo: make this a specific exception/error.
-    if os.path.exists(gdf_path):
-        raise IOError("A file already exists in the location: %s. Please \
-                      provide a new one or remove that file." % gdf_path)
+    if os.path.exists(gdf_path) and not clobber:
+        raise YTGDFAlreadyExists(gdf_path)
 
     ###
     # Create and open the file with h5py
