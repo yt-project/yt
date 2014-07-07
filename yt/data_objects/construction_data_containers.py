@@ -45,6 +45,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, parallel_root_only, ParallelAnalysisInterface
 from yt.units.unit_object import Unit
 import yt.geometry.particle_deposit as particle_deposit
+from yt.utilities.grid_data_format.writer import write_to_gdf
+from yt.frontends.stream.api import load_uniform_grid
 
 from yt.fields.field_exceptions import \
     NeedsGridType,\
@@ -580,6 +582,17 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         op.process_grid(self, positions, fields)
         vals = op.finalize()
         return vals.reshape(self.ActiveDimensions, order="C")
+
+    def write_to_gdf(self, gdf_path, fields, nprocs=1, **kwargs):
+        data = {}
+        for field in fields:
+            data[field] = (self[field].v, str(self[field].units))
+        le = self.left_edge.in_cgs().v
+        re = self.right_edge.in_cgs().v
+        bbox = np.array([[l,r] for l,r in zip(le, re)])
+        ds = load_uniform_grid(data, self.ActiveDimensions, bbox=bbox,
+                               nprocs=nprocs, sim_time=self.pf.current_time.in_cgs())
+        write_to_gdf(ds, gdf_path, **kwargs)
 
 class YTArbitraryGridBase(YTCoveringGridBase):
     """A 3D region with arbitrary bounds and dimensions.
