@@ -2669,14 +2669,14 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         i = 0
         for grid in self._grids:
             pointI = self._get_point_indices(grid)
-            np = pointI[0].ravel().size
+            npoints = pointI[0].ravel().size
             if grid.has_key(field):
                 new_field = grid[field]
             else:
                 new_field = np.ones(grid.ActiveDimensions, dtype=dtype) * default_val
-            new_field[pointI] = self[field][i:i+np]
+            new_field[pointI] = self[field][i:i+npoints]
             grid[field] = new_field
-            i += np
+            i += npoints
 
     def _is_fully_enclosed(self, grid):
         return np.all(self._get_cut_mask)
