@@ -179,10 +179,7 @@ class PlotWindowWCS(object):
                 return self.plots[k]
 
     def show(self):
-        from IPython.core.display import display
-        for k, v in sorted(self.plots.iteritems()):
-            canvas = FigureCanvasAgg(v)
-            display(v)
+        return self
 
     def save(self, name=None, mpl_kwargs=None):
         if mpl_kwargs is None:
