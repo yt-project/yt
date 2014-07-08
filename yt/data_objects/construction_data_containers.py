@@ -573,6 +573,10 @@ class YTCoveringGridBase(YTSelectionContainer3D):
     def LeftEdge(self):
         return self.left_edge
 
+    @property
+    def RightEdge(self):
+        return self.right_edge
+
     def deposit(self, positions, fields = None, method = None):
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
