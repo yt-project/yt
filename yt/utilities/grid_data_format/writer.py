@@ -22,7 +22,7 @@ from yt.utilities.exceptions import YTGDFAlreadyExists
 
 def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
                  particle_type_name="dark_matter", clobber=False):
-    """
+    r"""
     Write a parameter file to the given path in the Grid Data Format.
 
     Parameters
@@ -31,7 +31,20 @@ def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
         The yt data to write out.
     gdf_path : string
         The path of the file to output.
+    data_author : string, optional
+        The name of the author who wrote the data. Default: None.
+    data_comment : string, optional
+        A descriptive comment. Default: None.
+    particle_type_name : string, optional
+        The particle type of the particles in the dataset. Default: "dark_matter"
+    clobber : boolean, optional
+        Whether or not to clobber an already existing file. If False, attempting
+        to overwrite an existing file will result in an exception.
 
+    Examples
+    --------
+    >>> write_to_gdf(ds, "clumps.h5", data_author="Your Mom",
+    ...              data_comment="All Your Base Are Belong To Us", clobber=True)
     """
 
     f = _create_new_gdf(pf, gdf_path, data_author, data_comment,

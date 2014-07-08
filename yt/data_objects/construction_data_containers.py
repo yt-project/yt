@@ -588,6 +588,27 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         return vals.reshape(self.ActiveDimensions, order="C")
 
     def write_to_gdf(self, gdf_path, fields, nprocs=1, **kwargs):
+        r"""
+        Write the covering grid data to a GDF file.
+
+        Parameters
+        ----------
+        gdf_path : string
+            Pathname of the GDF file to write.
+        fields : list of strings
+            Fields to write to the GDF file.
+        nprocs : integer, optional
+            Split the covering grid into *nprocs* subgrids before
+            writing to the GDF file. Default: 1
+
+        All remaining keyword arguments are passed to
+        yt.utilities.grid_data_format.writer.
+
+        Examples
+        --------
+        >>> cube.write_to_gdf("clumps.h5", ["density","temperature"], nprocs=16,
+        ...                   clobber=True)
+        """
         data = {}
         for field in fields:
             data[field] = (self[field].v, str(self[field].units))
