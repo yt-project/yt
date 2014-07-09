@@ -37,22 +37,8 @@ a given redshift interval.
 
 .. yt_cookbook:: light_cone_projection.py
 
-Light Cone with Halo Mask
-~~~~~~~~~~~~~~~~~~~~~~~~~
-This script combines the light cone generator with the halo profiler to 
-make a light cone projection with all of the halos cut out of the image.
-
-.. yt_cookbook:: light_cone_with_halo_mask.py 
-
-Making Unique Light Cones
-~~~~~~~~~~~~~~~~~~~~~~~~~
-This script demonstrates how to make a series of light cone projections
-that only have a maximum amount of volume in common.
-
-.. yt_cookbook:: unique_light_cone_projections.py 
-
-Light Rays
-~~~~~~~~~~
+Light Ray
+~~~~~~~~~
 This script demonstrates how to make a synthetic quasar sight line that 
 extends over multiple datasets and can be used to generate a synthetic 
 absorption spectrum.
