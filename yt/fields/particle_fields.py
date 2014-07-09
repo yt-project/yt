@@ -72,6 +72,7 @@ def _field_concat_slice(fname, axi):
 
 def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     orig = set(registry.keys())
+    ptype_dn = ptype.replace("_","\/").title()
     def particle_count(field, data):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, method = "count")
@@ -81,7 +82,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     registry.add_field(("deposit", "%s_count" % ptype),
              function = particle_count,
              validators = [ValidateSpatial()],
-             display_name = "\\mathrm{%s Count}" % ptype)
+             display_name = "\\mathrm{%s Count}" % ptype_dn)
 
     def particle_mass(field, data):
         pos = data[ptype, coord_name]
@@ -92,7 +93,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     registry.add_field(("deposit", "%s_mass" % ptype),
              function = particle_mass,
              validators = [ValidateSpatial()],
-             display_name = "\\mathrm{%s Mass}" % ptype,
+             display_name = "\\mathrm{%s Mass}" % ptype_dn,
              units = "g")
              
     def particle_density(field, data):
@@ -108,7 +109,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     registry.add_field(("deposit", "%s_density" % ptype),
              function = particle_density,
              validators = [ValidateSpatial()],
-             display_name = "\\mathrm{%s Density}" % ptype,
+             display_name = "\\mathrm{%s Density}" % ptype_dn,
              units = "g/cm**3")
 
     def particle_cic(field, data):
@@ -121,7 +122,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     registry.add_field(("deposit", "%s_cic" % ptype),
              function = particle_cic,
              validators = [ValidateSpatial()],
-             display_name = "\\mathrm{%s CIC Density}" % ptype,
+             display_name = "\\mathrm{%s CIC Density}" % ptype_dn,
              units = "g/cm**3")
 
     # Now some translation functions.
