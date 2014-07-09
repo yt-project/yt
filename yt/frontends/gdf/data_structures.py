@@ -63,7 +63,7 @@ class GDFGrid(AMRGridPatch):
                 self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = \
             self.dds
-
+        self.dds = self.pf.arr(self.dds, "code_length")
 
 class GDFHierarchy(GridIndex):
 
