@@ -13,7 +13,6 @@ LightCone class and member functions.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import copy
 import h5py
 import numpy as np
 import os
@@ -34,8 +33,6 @@ from yt.visualization.image_writer import \
     write_image
 from yt.units.yt_array import \
     YTArray
-from .common_n_volume import \
-    common_volume
 from .light_cone_projection import \
     _light_cone_projection
 
@@ -177,6 +174,15 @@ class LightCone(CosmologySplice):
                         self.light_cone_solution[q]["redshift"]) / \
                         self.simulation.box_size).in_units("")
 
+            # Calculate fraction of box required for width corresponding to
+            # requested image size.
+            proper_box_size = self.simulation.box_size / \
+              (1.0 + self.light_cone_solution[q]["redshift"])
+            self.light_cone_solution[q]["box_width_per_angle"] = \
+              (self.cosmology.angular_diameter_distance(self.observer_redshift,
+               self.light_cone_solution[q]["redshift"]) /
+               proper_box_size).in_units("1 / degree")
+
             # Simple error check to make sure more than 100% of box depth
             # is never required.
             if self.light_cone_solution[q]["box_depth_fraction"] > 1.0:
@@ -226,10 +232,10 @@ class LightCone(CosmologySplice):
             self._save_light_cone_solution(filename=filename)
 
     def project_light_cone(self, field_of_view, image_resolution, field,
-                           weight_field=None,
+                           weight_field=None, photon_field=False,
                            save_stack=True, save_final_image=True,
                            save_slice_images=False,
-                           cmap_name="algae", photon_field=False,
+                           cmap_name="algae",
                            njobs=1, dynamic=False):
         r"""Create projections for light cone, then add them together.
 
@@ -245,6 +251,11 @@ class LightCone(CosmologySplice):
             the weight field of the projection.  This has the same meaning as
             in standard projections.
             Default: None.
+        photon_field : bool
+            if True, the projection data for each slice is decremented by 4 Pi
+            R^2`, where R is the luminosity distance between the observer and
+            the slice redshift.
+            Default: False.
         save_stack : bool
             if True, the light cone data including each individual
             slice is written to an hdf5 file.
@@ -258,11 +269,6 @@ class LightCone(CosmologySplice):
         cmap_name : string
             color map for images.
             Default: "algae".
-        photon_field : bool
-            if True, the projection data for each slice is decremented by 4 Pi
-            R^2`, where R is the luminosity distance between the observer and
-            the slice redshift.
-            Default: False.
         njobs : int
             The number of parallel jobs over which the light cone projection
             will be split.  Choose -1 for one processor per individual
@@ -309,10 +315,8 @@ class LightCone(CosmologySplice):
             # requested image size.
             proper_box_size = self.simulation.box_size / \
               (1.0 + output["redshift"])
-            output["box_width_fraction"] = \
-              (self.cosmology.angular_diameter_distance(self.observer_redshift,
-               output["redshift"]) * field_of_view /
-               proper_box_size).in_units("")
+            output["box_width_fraction"] = (output["box_width_per_angle"] *
+                                            field_of_view).in_units("")
             
             frb = _light_cone_projection(output, field, pixels,
                                          weight_field=weight_field)
@@ -392,13 +396,14 @@ class LightCone(CosmologySplice):
         mylog.info("Saving light cone solution to %s." % filename)
 
         f = open(filename, "w")
-        f.write("parameter_filename = %s\n" % self.parameter_filename)
+        f.write("# parameter_filename = %s\n" % self.parameter_filename)
         f.write("\n")
+        f.write("# Slice    Dataset    Redshift    depth/box    " + \
+                "width/degree    axis    center\n")
         for q, output in enumerate(self.light_cone_solution):
-            f.write(("Proj %04d, %s, z = %f, depth/box = %f, " +
-                    "width/box = %f, axis = %d, center = %f, %f, %f\n") %
+            f.write(("%04d %s %f %f %f %d %f %f %f\n") %
                     (q, output["filename"], output["redshift"],
-                     output["box_depth_fraction"], output["box_width_fraction"],
+                     output["box_depth_fraction"], output["box_width_per_angle"],
                      output["projection_axis"], output["projection_center"][0],
                      output["projection_center"][1], output["projection_center"][2]))
         f.close()

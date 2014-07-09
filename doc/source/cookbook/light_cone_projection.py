@@ -1,5 +1,5 @@
 import yt
-from yt.analysis_modules.cosmological_observation.light_cone.light_cone import \
+from yt.analysis_modules.cosmological_observation.api import \
      LightCone
 
 # Create a LightCone object extending from z = 0 to z = 0.1.
@@ -13,7 +13,7 @@ lc = LightCone('enzo_tiny_cosmology/32Mpc_32.enzo',
                time_data=False)
 
 # Calculate a randomization of the solution.
-lc.calculate_light_cone_solution(seed=123456789)
+lc.calculate_light_cone_solution(seed=123456789, filename="LC/solution.txt")
 
 # Choose the field to be projected.
 field = 'szy'
@@ -23,6 +23,7 @@ field = 'szy'
 # Set njobs to -1 to have one core work on each projection
 # in parallel.
 lc.project_light_cone((600.0, "arcmin"), (60.0, "arcsec"), field,
+                      weight_field=None,
                       save_stack=True,
                       save_final_image=True,
                       save_slice_images=True,
