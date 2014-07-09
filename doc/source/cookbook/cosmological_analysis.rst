@@ -29,6 +29,8 @@ at the properties of that halo over time.
 
 .. yt_cookbook:: halo_merger_tree.py
 
+.. _cookbook-light_cone:
+
 Light Cone Projection
 ~~~~~~~~~~~~~~~~~~~~~
 This script creates a light cone projection, a synthetic observation 
