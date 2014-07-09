@@ -33,8 +33,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.visualization.image_writer import \
     write_image
 from yt.units.yt_array import \
-    YTArray, \
-    YTQuantity
+    YTArray
 from .common_n_volume import \
     common_volume
 from .halo_mask import \
@@ -117,15 +116,7 @@ class LightCone(CosmologySplice):
         self.output_dir = output_dir
         self.output_prefix = output_prefix
 
-        self.master_solution = [] # kept to compare with recycled solutions
         self.halo_mask = []
-
-        # Original random seed of the first solution.
-        self.original_random_seed = 0
-
-        # Parameters for recycling light cone solutions.
-        self.recycle_solution = False
-        self.recycle_random_seed = 0
 
         # Create output directory.
         if not os.path.exists(self.output_dir):
@@ -166,18 +157,13 @@ class LightCone(CosmologySplice):
                        "minimal light cone.")
             self.minimum_coherent_box_fraction = 0
 
-        # Make sure recycling flag is off.
-        self.recycle_solution = False
-
         # Get rid of old halo mask, if one was there.
         self.halo_mask = []
 
-        if seed is not None:
-            self.original_random_seed = int(seed)
-
         # Calculate projection sizes, and get
         # random projection axes and centers.
-        np.random.seed(self.original_random_seed)
+        seed = int(seed)
+        np.random.seed(seed)
 
         # For box coherence, keep track of effective depth travelled.
         box_fraction_used = 0.0
@@ -241,10 +227,6 @@ class LightCone(CosmologySplice):
                       [self.light_cone_solution[q]["projection_axis"]] -= 1.0
 
             box_fraction_used += self.light_cone_solution[q]["box_depth_fraction"]
-
-        # Store this as the master solution.
-        self.master_solution = [copy.deepcopy(q) \
-                                for q in self.light_cone_solution]
 
         # Write solution to a file.
         if filename is not None:
@@ -491,173 +473,6 @@ class LightCone(CosmologySplice):
                 attrs={"field_of_view": str(field_of_view),
                        "image_resolution": str(image_resolution)})
 
-    def rerandomize_light_cone_solution(self, new_seed, recycle=True, filename=None):
-        """
-        When making a projection for a light cone, only randomizations along the
-        line of sight make any given projection unique, since the lateral shifting
-        and tiling is done after the projection is made.  Therefore, multiple light
-        cones can be made from a single set of projections by introducing different
-        lateral random shifts and keeping all the original shifts along the line of
-        sight.  This routine will take in a new random seed and rerandomize the
-        parts of the light cone that do not contribute to creating a unique
-        projection object.  Additionally, this routine is built such that if the
-        same random seed is given for the rerandomizing, the solution will be
-        identical to the original.
-
-        This routine has now been updated to be a general solution rescrambler.
-        If the keyword recycle is set to True, then it will recycle.  Otherwise, it
-        will create a completely new solution.
-
-        new_sed : float
-            The new random seed.
-        recycle : bool
-            If True, the new solution will have the same shift in the line of
-            sight as the original solution.  Since the projections of each
-            slice are serialized and stored for the entire width of the box
-            (even if the width used is left than the total box), the projection
-            data can be deserialized instead of being remade from scratch.
-            This can greatly speed up the creation of a large number of light
-            cone projections.
-            Default: True.
-        filename : string
-            If given, a text file detailing the solution will be written out.
-            Default: None.
-
-        """
-
-        # Get rid of old halo mask, if one was there.
-        self.halo_mask = []
-
-        # Clean pf objects out of light cone solution.
-        for my_slice in self.light_cone_solution:
-            if my_slice.has_key("object"):
-                del my_slice["object"]
-
-        if recycle:
-            mylog.debug("Recycling solution made with %s with new seed %s." %
-                        (self.original_random_seed, new_seed))
-            self.recycle_random_seed = int(new_seed)
-        else:
-            mylog.debug("Creating new solution with random seed %s." % new_seed)
-            self.original_random_seed = int(new_seed)
-            self.recycle_random_seed = 0
-
-        self.recycle_solution = recycle
-
-        # Keep track of fraction of volume in common between the original and
-        # recycled solution.
-        my_volume = 0.0
-        total_volume = 0.0
-
-        # For box coherence, keep track of effective depth travelled.
-        box_fraction_used = 0.0
-
-        # Seed random number generator with new seed.
-        np.random.seed(int(new_seed))
-
-        for q, output in enumerate(self.light_cone_solution):
-            # It is necessary to make the same number of calls to the random
-            # number generator so the original solution willbe produced if the
-            # same seed is given.
-
-            # Get projection axis and center.
-            # If using box coherence, only get random axis and center if enough
-            # of the box has been used, or if box_fraction_used will be greater
-            # than 1 after this slice.
-            if (q == 0) or (self.minimum_coherent_box_fraction == 0) or \
-                    (box_fraction_used > self.minimum_coherent_box_fraction) or \
-                    (box_fraction_used +
-                     self.light_cone_solution[q]["box_depth_fraction"] > 1.0):
-                # Get random projection axis and center.
-                # If recycling, axis will get thrown away since it is used in
-                # creating a unique projection object.
-                newAxis = np.random.randint(0, 3)
-
-                newCenter = [np.random.random() for i in range(3)]
-                box_fraction_used = 0.0
-            else:
-                # Same axis and center as previous slice, 
-                # but with depth center shifted.
-                newAxis = self.light_cone_solution[q-1]["projection_axis"]
-                newCenter = \
-                  copy.deepcopy(self.light_cone_solution[q-1]["projection_center"])
-                newCenter[newAxis] += \
-                    0.5 * (self.light_cone_solution[q]["box_depth_fraction"] +
-                           self.light_cone_solution[q-1]["box_depth_fraction"])
-                if newCenter[newAxis] >= 1.0:
-                    newCenter[newAxis] -= 1.0
-
-            if recycle:
-                output["projection_axis"] = self.master_solution[q]["projection_axis"]
-            else:
-                output["projection_axis"] = newAxis
-
-            box_fraction_used += self.light_cone_solution[q]["box_depth_fraction"]
-
-            # Make list of rectangle corners to calculate common volume.
-            newCube = np.zeros(shape=(len(newCenter), 2))
-            oldCube = np.zeros(shape=(len(newCenter), 2))
-            for w in range(len(newCenter)):
-                if (w == self.master_solution[q]["projection_axis"]):
-                    oldCube[w] = [self.master_solution[q]["projection_center"][w] -
-                                  0.5 * self.master_solution[q]["box_depth_fraction"],
-                                  self.master_solution[q]["projection_center"][w] +
-                                  0.5 * self.master_solution[q]["box_depth_fraction"]]
-                else:
-                    oldCube[w] = [self.master_solution[q]["projection_center"][w] -
-                                  0.5 * self.master_solution[q]["box_width_fraction"],
-                                  self.master_solution[q]["projection_center"][w] +
-                                  0.5 * self.master_solution[q]["box_width_fraction"]]
-
-                if (w == output["projection_axis"]):
-                    if recycle:
-                        newCube[w] = oldCube[w]
-                    else:
-                        newCube[w] = \
-                          [newCenter[w] -
-                           0.5 * self.master_solution[q]["box_depth_fraction"],
-                           newCenter[w] +
-                           0.5 * self.master_solution[q]["box_depth_fraction"]]
-                else:
-                    newCube[w] = [newCenter[w] -
-                                  0.5 * self.master_solution[q]["box_width_fraction"],
-                                  newCenter[w] +
-                                  0.5 * self.master_solution[q]["box_width_fraction"]]
-
-            my_volume += common_volume(oldCube, newCube,
-                                           periodic=np.array([[0, 1],
-                                                              [0, 1],
-                                                              [0, 1]]))
-            total_volume += output["box_depth_fraction"] * \
-              output["box_width_fraction"]**2
-
-            # Replace centers for every axis except the line of sight axis.
-            for w in range(len(newCenter)):
-                if not(recycle and
-                       (w == self.light_cone_solution[q]["projection_axis"])):
-                    self.light_cone_solution[q]["projection_center"][w] = \
-                      newCenter[w]
-
-        if recycle:
-            mylog.debug(("Fractional common volume between master and " +
-                         "recycled solution is %.2e") %
-                        (my_volume / total_volume))
-        else:
-            mylog.debug("Fraction of total volume in common with old " +
-                        "solution is %.2e." %
-                        (my_volume / total_volume))
-            self.master_solution = [copy.deepcopy(q) \
-                                    for q in self.light_cone_solution]
-
-        # Write solution to a file.
-        if filename is not None:
-            self._save_light_cone_solution(filename=filename)
-
-    def restore_master_solution(self):
-        "Reset the active light cone solution to the master solution."
-        self.light_cone_solution = [copy.deepcopy(q) \
-                                    for q in self.master_solution]
-
     @parallel_root_only
     def _save_light_cone_solution(self, filename="light_cone.dat"):
         "Write out a text file with information on light cone solution."
@@ -665,13 +480,6 @@ class LightCone(CosmologySplice):
         mylog.info("Saving light cone solution to %s." % filename)
 
         f = open(filename, "w")
-        if self.recycle_solution:
-            f.write("Recycled Solution\n")
-            f.write("OriginalRandomSeed = %s\n" % self.original_random_seed)
-            f.write("RecycleRandomSeed = %s\n" % self.recycle_random_seed)
-        else:
-            f.write("Original Solution\n")
-            f.write("OriginalRandomSeed = %s\n" % self.original_random_seed)
         f.write("parameter_filename = %s\n" % self.parameter_filename)
         f.write("\n")
         for q, output in enumerate(self.light_cone_solution):
