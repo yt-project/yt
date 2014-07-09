@@ -111,7 +111,7 @@ def _light_cone_projection(my_slice, field, pixels, weight_field=None,
     for my_field in ["px", "py", "pdx", "pdy", proj_field, "weight_field"]:
         proj.field_data[my_field] = \
           my_slice["object"].arr(proj.field_data[my_field]).flatten()
-                
+
     # Delete originals.
     del original_px
     del original_py
@@ -124,10 +124,10 @@ def _light_cone_projection(my_slice, field, pixels, weight_field=None,
     # Shift projection by random x and y offsets.
 
     image_axes = np.roll(np.arange(3), -my_slice["projection_axis"])[1:]
-    image_right_x = my_slice["object"].domain_right_edge[image_axes[0]]
-    image_left_x  = my_slice["object"].domain_left_edge[image_axes[0]]
-    image_right_y = my_slice["object"].domain_right_edge[image_axes[1]]
-    image_left_y  = my_slice["object"].domain_left_edge[image_axes[1]]
+    di_left_x  = my_slice["object"].domain_left_edge[image_axes[0]]
+    di_right_x = my_slice["object"].domain_right_edge[image_axes[0]]
+    di_left_y  = my_slice["object"].domain_left_edge[image_axes[1]]
+    di_right_y = my_slice["object"].domain_right_edge[image_axes[1]]
     
     offset = my_slice["projection_center"].copy() * \
       my_slice["object"].domain_width
@@ -138,19 +138,19 @@ def _light_cone_projection(my_slice, field, pixels, weight_field=None,
     proj.field_data["py"] -= offset[1]
 
     # Wrap off-edge cells back around to other side (periodic boundary conditions).
-    proj.field_data["px"][proj.field_data["px"] < image_left_x] += \
-      np.ceil(my_slice["box_width_fraction"]) * image_right_x
-    proj.field_data["py"][proj.field_data["py"] < image_left_y] += \
-      np.ceil(my_slice["box_width_fraction"]) * image_right_y
+    proj.field_data["px"][proj.field_data["px"] < di_left_x] += \
+      np.ceil(my_slice["box_width_fraction"]) * di_right_x
+    proj.field_data["py"][proj.field_data["py"] < di_left_y] += \
+      np.ceil(my_slice["box_width_fraction"]) * di_right_y
 
     # After shifting, some cells have fractional coverage on both sides of the box.
     # Find those cells and make copies to be placed on the other side.
 
     # Cells hanging off the right edge.
     add_x_right = proj.field_data["px"] + 0.5 * proj.field_data["pdx"] > \
-      np.ceil(my_slice["box_width_fraction"]) * image_right_x
+      np.ceil(my_slice["box_width_fraction"]) * di_right_x
     add_x_px = proj.field_data["px"][add_x_right]
-    add_x_px -= np.ceil(my_slice["box_width_fraction"]) * image_right_x
+    add_x_px -= np.ceil(my_slice["box_width_fraction"]) * di_right_x
     add_x_py = proj.field_data["py"][add_x_right]
     add_x_pdx = proj.field_data["pdx"][add_x_right]
     add_x_pdy = proj.field_data["pdy"][add_x_right]
@@ -159,9 +159,9 @@ def _light_cone_projection(my_slice, field, pixels, weight_field=None,
     del add_x_right
 
     # Cells hanging off the left edge.
-    add_x_left = proj.field_data["px"] - 0.5 * proj.field_data["pdx"] < image_left_x
+    add_x_left = proj.field_data["px"] - 0.5 * proj.field_data["pdx"] < di_left_x
     add2_x_px = proj.field_data["px"][add_x_left]
-    add2_x_px += np.ceil(my_slice["box_width_fraction"]) * image_right_x
+    add2_x_px += np.ceil(my_slice["box_width_fraction"]) * di_right_x
     add2_x_py = proj.field_data["py"][add_x_left]
     add2_x_pdx = proj.field_data["pdx"][add_x_left]
     add2_x_pdy = proj.field_data["pdy"][add_x_left]
@@ -171,10 +171,10 @@ def _light_cone_projection(my_slice, field, pixels, weight_field=None,
 
     # Cells hanging off the top edge.
     add_y_right = proj.field_data["py"] + 0.5 * proj.field_data["pdy"] > \
-      np.ceil(my_slice["box_width_fraction"]) * image_right_y
+      np.ceil(my_slice["box_width_fraction"]) * di_right_y
     add_y_px = proj.field_data["px"][add_y_right]
     add_y_py = proj.field_data["py"][add_y_right]
-    add_y_py -= np.ceil(my_slice["box_width_fraction"]) * image_right_y
+    add_y_py -= np.ceil(my_slice["box_width_fraction"]) * di_right_y
     add_y_pdx = proj.field_data["pdx"][add_y_right]
     add_y_pdy = proj.field_data["pdy"][add_y_right]
     add_y_field = proj.field_data[proj_field][add_y_right]
@@ -182,10 +182,10 @@ def _light_cone_projection(my_slice, field, pixels, weight_field=None,
     del add_y_right
 
     # Cells hanging off the bottom edge.
-    add_y_left = proj.field_data["py"] - 0.5 * proj.field_data["pdy"] < image_left_y
+    add_y_left = proj.field_data["py"] - 0.5 * proj.field_data["pdy"] < di_left_y
     add2_y_px = proj.field_data["px"][add_y_left]
     add2_y_py = proj.field_data["py"][add_y_left]
-    add2_y_py += np.ceil(my_slice["box_width_fraction"]) * image_right_y
+    add2_y_py += np.ceil(my_slice["box_width_fraction"]) * di_right_y
     add2_y_pdx = proj.field_data["pdx"][add_y_left]
     add2_y_pdy = proj.field_data["pdy"][add_y_left]
     add2_y_field = proj.field_data[proj_field][add_y_left]
@@ -224,7 +224,8 @@ def _light_cone_projection(my_slice, field, pixels, weight_field=None,
     # Tiles were made rounding up the width to the nearest integer.
     # Cut off the edges to get the specified width.
     # Cut in the x direction.
-    cut_x = proj.field_data["px"] - 0.5 * proj.field_data["pdx"] < image_right_x
+    cut_x = proj.field_data["px"] - 0.5 * proj.field_data["pdx"] < \
+      di_right_x * my_slice["box_width_fraction"]
     proj.field_data["px"] = proj.field_data["px"][cut_x]
     proj.field_data["py"] = proj.field_data["py"][cut_x]
     proj.field_data["pdx"] = proj.field_data["pdx"][cut_x]
@@ -234,7 +235,8 @@ def _light_cone_projection(my_slice, field, pixels, weight_field=None,
     del cut_x
 
     # Cut in the y direction.
-    cut_y = proj.field_data["py"] - 0.5 * proj.field_data["pdy"] < image_right_y
+    cut_y = proj.field_data["py"] - 0.5 * proj.field_data["pdy"] < \
+      di_right_y * my_slice["box_width_fraction"]
     proj.field_data["px"] = proj.field_data["px"][cut_y]
     proj.field_data["py"] = proj.field_data["py"][cut_y]
     proj.field_data["pdx"] = proj.field_data["pdx"][cut_y]
@@ -245,13 +247,9 @@ def _light_cone_projection(my_slice, field, pixels, weight_field=None,
 
     # Create fixed resolution buffer to return back to the light cone object.
     # These buffers will be stacked together to make the light cone.
-    # frb = FixedResolutionBuffer(proj, (0, my_slice["box_width_fraction"],
-    #                                    0, my_slice["box_width_fraction"]),
     frb = FixedResolutionBuffer(proj, 
-                                (image_left_x,
-                                 image_right_x * my_slice["box_width_fraction"],
-                                 image_left_y,
-                                 image_right_y * my_slice["box_width_fraction"]),
-                                (pixels, pixels), antialias=False)
+        (di_left_x, di_right_x * my_slice["box_width_fraction"],
+         di_left_y, di_right_y * my_slice["box_width_fraction"]),
+        (pixels, pixels), antialias=False)
 
     return frb
