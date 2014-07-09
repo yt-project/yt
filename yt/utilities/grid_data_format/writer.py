@@ -157,8 +157,8 @@ def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
     # Make sure we have the absolute path to the file first
     gdf_path = os.path.abspath(gdf_path)
 
-    # Stupid check -- is the file already there?
-    # @todo: make this a specific exception/error.
+    # Is the file already there? If so, are we allowing
+    # clobbering?
     if os.path.exists(gdf_path) and not clobber:
         raise YTGDFAlreadyExists(gdf_path)
 
