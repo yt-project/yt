@@ -201,10 +201,12 @@ class LightCone(CosmologySplice):
             # Simple error check to make sure more than 100% of box depth
             # is never required.
             if self.light_cone_solution[q]["box_depth_fraction"] > 1.0:
-                mylog.debug("Warning: box fraction required to go from z = %f to %f is %f" %
+                mylog.debug(("Warning: box fraction required to go from " +
+                             "z = %f to %f is %f") %
                             (self.light_cone_solution[q]["redshift"], z_next,
                              self.light_cone_solution[q]["box_depth_fraction"]))
-                mylog.debug("Full box delta z is %f, but it is %f to the next data dump." %
+                mylog.debug(("Full box delta z is %f, but it is %f to the " +
+                             "next data dump.") %
                             (self.light_cone_solution[q]["deltazMax"],
                              self.light_cone_solution[q]["redshift"]-z_next))
 
@@ -564,7 +566,8 @@ class LightCone(CosmologySplice):
             # than 1 after this slice.
             if (q == 0) or (self.minimum_coherent_box_fraction == 0) or \
                     (box_fraction_used > self.minimum_coherent_box_fraction) or \
-                    (box_fraction_used + self.light_cone_solution[q]["box_depth_fraction"] > 1.0):
+                    (box_fraction_used +
+                     self.light_cone_solution[q]["box_depth_fraction"] > 1.0):
                 # Get random projection axis and center.
                 # If recycling, axis will get thrown away since it is used in
                 # creating a unique projection object.
@@ -573,9 +576,11 @@ class LightCone(CosmologySplice):
                 newCenter = [np.random.random() for i in range(3)]
                 box_fraction_used = 0.0
             else:
-                # Same axis and center as previous slice, but with depth center shifted.
+                # Same axis and center as previous slice, 
+                # but with depth center shifted.
                 newAxis = self.light_cone_solution[q-1]["projection_axis"]
-                newCenter = copy.deepcopy(self.light_cone_solution[q-1]["projection_center"])
+                newCenter = \
+                  copy.deepcopy(self.light_cone_solution[q-1]["projection_center"])
                 newCenter[newAxis] += \
                     0.5 * (self.light_cone_solution[q]["box_depth_fraction"] +
                            self.light_cone_solution[q-1]["box_depth_fraction"])
@@ -634,10 +639,12 @@ class LightCone(CosmologySplice):
                       newCenter[w]
 
         if recycle:
-            mylog.debug("Fractional common volume between master and recycled solution is %.2e" % \
+            mylog.debug(("Fractional common volume between master and " +
+                         "recycled solution is %.2e") %
                         (my_volume / total_volume))
         else:
-            mylog.debug("Fraction of total volume in common with old solution is %.2e." % \
+            mylog.debug("Fraction of total volume in common with old " +
+                        "solution is %.2e." %
                         (my_volume / total_volume))
             self.master_solution = [copy.deepcopy(q) \
                                     for q in self.light_cone_solution]
@@ -668,7 +675,8 @@ class LightCone(CosmologySplice):
         f.write("parameter_filename = %s\n" % self.parameter_filename)
         f.write("\n")
         for q, output in enumerate(self.light_cone_solution):
-            f.write("Proj %04d, %s, z = %f, depth/box = %f, width/box = %f, axis = %d, center = %f, %f, %f\n" %
+            f.write(("Proj %04d, %s, z = %f, depth/box = %f, " +
+                    "width/box = %f, axis = %d, center = %f, %f, %f\n") %
                     (q, output["filename"], output["redshift"],
                      output["box_depth_fraction"], output["box_width_fraction"],
                      output["projection_axis"], output["projection_center"][0],
