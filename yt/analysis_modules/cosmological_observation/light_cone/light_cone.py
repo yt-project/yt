@@ -18,24 +18,29 @@ import h5py
 import numpy as np
 import os
 
-from yt.funcs import *
+from yt.funcs import \
+    mylog, \
+    only_on_root
 from yt.analysis_modules.cosmological_observation.cosmology_splice import \
-     CosmologySplice
+    CosmologySplice
 from yt.convenience import \
-     load
+    load
 from yt.utilities.cosmology import \
-     Cosmology
+    Cosmology
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, \
     parallel_root_only
 from yt.visualization.image_writer import \
-     write_image
+    write_image
+from yt.units.yt_array import \
+    YTArray, \
+    YTQuantity
 from .common_n_volume import \
-     common_volume
+    common_volume
 from .halo_mask import \
     _light_cone_halo_mask
 from .light_cone_projection import \
-     _light_cone_projection
+    _light_cone_projection
 
 class LightCone(CosmologySplice):
     """
@@ -50,12 +55,6 @@ class LightCone(CosmologySplice):
     observer_redshift : float
         The redshift of the observer.
         Default: 0.0.
-    field_of_view_in_arcminutes : float
-        The field of view of the image in units of arcminutes.
-        Default: 600.0.
-    image_resolution_in_arcseconds : float
-        The size of each image pixel in units of arcseconds.
-        Default: 60.0.
     use_minimum_datasets : bool
         If True, the minimum number of datasets is used to connect the initial
         and final redshift.  If false, the light cone solution will contain
@@ -99,8 +98,6 @@ class LightCone(CosmologySplice):
     def __init__(self, parameter_filename, simulation_type,
                  near_redshift, far_redshift,
                  observer_redshift=0.0,
-                 field_of_view_in_arcminutes=600.0,
-                 image_resolution_in_arcseconds=60.0,
                  use_minimum_datasets=True, deltaz_min=0.0,
                  minimum_coherent_box_fraction=0.0,
                  time_data=True, redshift_data=True,
@@ -110,8 +107,6 @@ class LightCone(CosmologySplice):
         self.near_redshift = near_redshift
         self.far_redshift = far_redshift
         self.observer_redshift = observer_redshift
-        self.field_of_view_in_arcminutes = field_of_view_in_arcminutes
-        self.image_resolution_in_arcseconds = image_resolution_in_arcseconds
         self.use_minimum_datasets = use_minimum_datasets
         self.deltaz_min = deltaz_min
         self.minimum_coherent_box_fraction = minimum_coherent_box_fraction
@@ -123,8 +118,6 @@ class LightCone(CosmologySplice):
         self.output_prefix = output_prefix
 
         self.master_solution = [] # kept to compare with recycled solutions
-        self.projection_stack = []
-        self.projection_weight_field_stack = []
         self.halo_mask = []
 
         # Original random seed of the first solution.
@@ -133,10 +126,6 @@ class LightCone(CosmologySplice):
         # Parameters for recycling light cone solutions.
         self.recycle_solution = False
         self.recycle_random_seed = 0
-
-        # Calculate number of pixels.
-        self.pixels = int(self.field_of_view_in_arcminutes * 60.0 / \
-                          self.image_resolution_in_arcseconds)
 
         # Create output directory.
         if not os.path.exists(self.output_dir):
@@ -173,7 +162,8 @@ class LightCone(CosmologySplice):
         # Don't use box coherence with maximum projection depths.
         if self.use_minimum_datasets and \
                 self.minimum_coherent_box_fraction > 0:
-            mylog.info("Setting minimum_coherent_box_fraction to 0 with minimal light cone.")
+            mylog.info("Setting minimum_coherent_box_fraction to 0 with " +
+                       "minimal light cone.")
             self.minimum_coherent_box_fraction = 0
 
         # Make sure recycling flag is off.
@@ -197,37 +187,26 @@ class LightCone(CosmologySplice):
                 del self.light_cone_solution[q]['previous']
             if self.light_cone_solution[q].has_key('next'):
                 del self.light_cone_solution[q]['next']
-            if (q == len(self.light_cone_solution) - 1):
+            if q == len(self.light_cone_solution) - 1:
                 z_next = self.near_redshift
             else:
                 z_next = self.light_cone_solution[q+1]['redshift']
 
             # Calculate fraction of box required for a depth of delta z
             self.light_cone_solution[q]['box_depth_fraction'] = \
-                self.cosmology.ComovingRadialDistance(z_next, \
-                        self.light_cone_solution[q]['redshift']) * \
-                        self.simulation.hubble_constant / \
-                        self.simulation.box_size
+                (self.cosmology.comoving_radial_distance(z_next, \
+                        self.light_cone_solution[q]['redshift']) / \
+                        self.simulation.box_size).in_units("")
 
             # Simple error check to make sure more than 100% of box depth
             # is never required.
-            if (self.light_cone_solution[q]['box_depth_fraction'] > 1.0):
+            if self.light_cone_solution[q]['box_depth_fraction'] > 1.0:
                 mylog.debug("Warning: box fraction required to go from z = %f to %f is %f" %
                             (self.light_cone_solution[q]['redshift'], z_next,
                              self.light_cone_solution[q]['box_depth_fraction']))
                 mylog.debug("Full box delta z is %f, but it is %f to the next data dump." %
                             (self.light_cone_solution[q]['deltazMax'],
                              self.light_cone_solution[q]['redshift']-z_next))
-
-            # Calculate fraction of box required for width corresponding to
-            # requested image size.
-            scale = self.cosmology.AngularScale_1arcsec_kpc(self.observer_redshift,
-                self.light_cone_solution[q]['redshift'])
-            size = self.field_of_view_in_arcminutes * 60.0 * scale / 1000.0
-            boxSizeProper = self.simulation.box_size / \
-              (self.simulation.hubble_constant *
-               (1.0 + self.light_cone_solution[q]['redshift']))
-            self.light_cone_solution[q]['box_width_fraction'] = size / boxSizeProper
 
             # Get projection axis and center.
             # If using box coherence, only get random axis and center if enough
@@ -241,7 +220,7 @@ class LightCone(CosmologySplice):
                 self.light_cone_solution[q]['projection_axis'] = \
                   np.random.randint(0, 3)
                 self.light_cone_solution[q]['projection_center'] = \
-                  [np.random.random() for i in range(3)]
+                  np.random.random(3)
                 box_fraction_used = 0.0
             else:
                 # Same axis and center as previous slice,
@@ -249,7 +228,7 @@ class LightCone(CosmologySplice):
                 self.light_cone_solution[q]['projection_axis'] = \
                   self.light_cone_solution[q-1]['projection_axis']
                 self.light_cone_solution[q]['projection_center'] = \
-                  copy.deepcopy(self.light_cone_solution[q-1]['projection_center'])
+                  self.light_cone_solution[q-1]['projection_center'].copy()
                 self.light_cone_solution[q]['projection_center']\
                   [self.light_cone_solution[q]['projection_axis']] += \
                     0.5 * (self.light_cone_solution[q]['box_depth_fraction'] +
@@ -281,7 +260,7 @@ class LightCone(CosmologySplice):
         mask_file : string
             An hdf5 file to output the halo mask.
             Default: None
-        cub_file : string
+        cube_file : string
             An hdf5 file to output a halo mask for each slice
             of the light cone.
             Default: None
@@ -337,8 +316,9 @@ class LightCone(CosmologySplice):
                 self.halo_mask *= mask
             del halo_mask_cube
 
-    def project_light_cone(self, field, weight_field=None, apply_halo_mask=False,
-                           node=None, save_stack=True, save_final_image=True,
+    def project_light_cone(self, field_of_view, image_resolution, field,
+                           weight_field=None, apply_halo_mask=False,
+                           save_stack=True, save_final_image=True,
                            save_slice_images=False,
                            cmap_name='algae', photon_field=False,
                            njobs=1, dynamic=False):
@@ -346,6 +326,10 @@ class LightCone(CosmologySplice):
 
         Parameters
         ----------
+        field_of_view : YTQuantity or tuple of (float, str)
+            The field of view of the image and the units.
+        image_resolution : YTQuantity or tuple of (float, str)
+            The size of each image pixel and the units.
         field : string
             The projected field.
         weight_field : string
@@ -356,10 +340,6 @@ class LightCone(CosmologySplice):
             if True, a boolean mask is apply to the light cone projection.  See
             below for a description of halo masks.
             Default: False.
-        node : string
-            a prefix to be prepended to the node name under which the
-            projection data is serialized.
-            Default: None.
         save_stack : bool
             if True, the light cone data including each individual
             slice is written to an hdf5 file.
@@ -390,14 +370,27 @@ class LightCone(CosmologySplice):
 
         """
 
-        # Clear projection stack.
-        self.projection_stack = []
-        self.projection_weight_field_stack = []
-        if (self.light_cone_solution[-1].has_key('object')):
-            del self.light_cone_solution[-1]['object']
+        if isinstance(field_of_view, tuple) and len(field_of_view) == 2:
+            field_of_view = self.simulation.quan(field_of_view[0],
+                                                 field_of_view[1])
+        elif not isinstance(field_of_view, YTArray):
+          raise RuntimeError("field_of_view argument must be either a YTQauntity " +
+                             "or a tuple of type (float, str).")
+        if isinstance(image_resolution, tuple) and len(image_resolution) == 2:
+            image_resolution = self.simulation.quan(image_resolution[0],
+                                                    image_resolution[1])
+        elif not isinstance(image_resolution, YTArray):
+          raise RuntimeError("image_resolution argument must be either a YTQauntity " +
+                             "or a tuple of type (float, str).")
+        
+        # Calculate number of pixels on a side.
+        pixels = (field_of_view / image_resolution).in_units("")
 
-        if not(self.output_dir.endswith("/")):
-                 self.output_dir += "/"
+        # Clear projection stack.
+        projection_stack = []
+        projection_weight_stack = []
+        if self.light_cone_solution[-1].has_key('object'):
+            del self.light_cone_solution[-1]['object']
 
         # for q, output in enumerate(self.light_cone_solution):
         all_storage = {}
@@ -406,19 +399,29 @@ class LightCone(CosmologySplice):
                                                    dynamic=dynamic):
             output['object'] = load(output['filename'])
             output['object'].parameters.update(self.set_parameters)
-            frb = _light_cone_projection(output, field, self.pixels,
-                                         weight_field=weight_field, node=node)
+
+            # Calculate fraction of box required for width corresponding to
+            # requested image size.
+            proper_box_size = self.simulation.box_size / \
+              (1.0 + output['redshift'])
+            output['box_width_fraction'] = \
+              (self.cosmology.angular_diameter_distance(self.observer_redshift,
+               output['redshift']) * field_of_view /
+               proper_box_size).in_units("")
+            
+            frb = _light_cone_projection(output, field, pixels,
+                                         weight_field=weight_field)
 
             if photon_field:
                 # Decrement the flux by the luminosity distance.
                 # Assume field in frb is in erg/s/cm^2/Hz
-                dL = self.cosmology.LuminosityDistance(self.observer_redshift,
-                                                       output['redshift']) #in Mpc
-                boxSizeProper = self.simulation.box_size / \
-                  (self.simulation.hubble_constant * (1.0 + output['redshift']))
-                pixelarea = (boxSizeProper/self.pixels)**2 #in proper cm^2
-                factor = pixelarea/(4.0*np.pi*dL**2)
-                mylog.info("Distance to slice = %e" % dL)
+                dL = self.cosmology.luminosity_distance(self.observer_redshift,
+                                                        output['redshift'])
+                proper_box_size = self.simulation.box_size / \
+                  (1.0 + output['redshift'])
+                pixel_xarea = (proper_box_size.in_cgs() / pixels)**2 #in proper cm^2
+                factor = pixel_area / (4.0 * np.pi * dL.in_cgs()**2)
+                mylog.info("Distance to slice = %s" % dL)
                 frb[field] *= factor #in erg/s/cm^2/Hz on observer's image plane.
 
             if weight_field is None:
@@ -435,16 +438,10 @@ class LightCone(CosmologySplice):
         all_slices.sort()
         for my_slice in all_slices:
             if save_slice_images:
-                if node is None:
-                    name = "%s%s_%04d_%04d" % (self.output_dir,
-                                               self.output_prefix,
-                                               my_slice,
-                                               len(self.light_cone_solution))
-                else:
-                    name = "%s%s_%s_%04d_%04d" % (self.output_dir,
-                                                  self.output_prefix,
-                                                  node, my_slice,
-                                                  len(self.light_cone_solution))
+                name = os.path.join(self.output_dir,
+                                    "%s_%04d_%04d" %
+                                    (self.output_prefix,
+                                     my_slice, len(self.light_cone_solution)))
                 if weight_field is None:
                     my_image = all_storage[my_slice]['field']
                 else:
@@ -453,21 +450,22 @@ class LightCone(CosmologySplice):
                 only_on_root(write_image, np.log10(my_image),
                              "%s_%s.png" % (name, field), cmap_name=cmap_name)
 
-            self.projection_stack.append(all_storage[my_slice]['field'])
+            projection_stack.append(all_storage[my_slice]['field'])
             if weight_field is not None:
-                self.projection_weight_field_stack.append(all_storage[my_slice]['field'])
+                projection_weight_stack.append(all_storage[my_slice]['field'])
 
+        projection_stack = self.simulation.arr(projection_stack)
+        projection_weight_stack = self.simulation.arr(projection_weight_stack)
+                
         # Add up slices to make light cone projection.
         if (weight_field is None):
-            light_cone_projection = sum(self.projection_stack)
+            light_cone_projection = projection_stack.sum(axis=0)
         else:
-            light_cone_projection = sum(self.projection_stack) / \
-              sum(self.projection_weight_field_stack)
+            light_cone_projection = \
+              projection_stack.sum(axis=0) / \
+              self.simulation.arr(projection_weight_stack).sum(axis=0)
 
-        if node is None:
-            filename = "%s%s" % (self.output_dir, self.output_prefix)
-        else:
-            filename = "%s%s_%s" % (self.output_dir, self.output_prefix, node)
+        filename = os.path.join(self.output_dir, self.output_prefix)
 
         # Apply halo mask.
         if apply_halo_mask:
@@ -485,8 +483,11 @@ class LightCone(CosmologySplice):
 
         # Write stack to hdf5 file.
         if save_stack:
-            self._save_light_cone_stack(field=field, weight_field=weight_field,
-                                        filename=filename)
+            self._save_light_cone_stack(field, weight_field,
+                projection_stack, projection_weight_stack,
+                filename=filename,
+                attrs={"field_of_view": str(field_of_view),
+                       "image_resolution": str(image_resolution)})
 
     def rerandomize_light_cone_solution(self, new_seed, recycle=True, filename=None):
         """
@@ -675,84 +676,57 @@ class LightCone(CosmologySplice):
         f.close()
 
     @parallel_root_only
-    def _save_light_cone_stack(self, field=None, weight_field=None,
-                               filename=None, over_write=True):
+    def _save_light_cone_stack(self, field, weight_field,
+                               pstack, wstack,
+                               filename=None, attrs=None):
         "Save the light cone projection stack as a 3d array in and hdf5 file."
 
+        if attrs is None:
+            attrs = {}
+        
         # Make list of redshifts to include as a dataset attribute.
-        redshiftList = np.array([my_slice['redshift'] \
+        redshift_list = np.array([my_slice['redshift'] \
                                  for my_slice in self.light_cone_solution])
 
         field_node = "%s_%s" % (field, weight_field)
         weight_field_node = "weight_field_%s" % weight_field
 
         if (filename is None):
-            filename = "%s/%s_data" % (self.output_dir, self.output_prefix)
+            filename = os.path.join(self.output_dir, "%s_data" % self.output_prefix)
         if not(filename.endswith('.h5')):
                filename += ".h5"
 
-        if (len(self.projection_stack) == 0):
-            mylog.debug("save_light_cone_stack: no projection data loaded.")
+        if pstack.size == 0:
+            mylog.info("save_light_cone_stack: light cone projection is empty.")
             return
 
         mylog.info("Writing light cone data to %s." % filename)
 
-        output = h5py.File(filename, "a")
+        fh = h5py.File(filename, "a")
 
-        node_exists = field_node in output
+        if field_node in fh:
+            del fh[field_node]
 
-        if node_exists:
-            if over_write:
-                mylog.info("Dataset, %s, already exists, overwriting." %
-                           field_node)
-                write_data = True
-                del output[field_node]
-            else:
-                mylog.info("Dataset, %s, already exists in %s, not saving." %
-                           (field_node, filename))
-                write_data = False
-        else:
-            write_data = True
+        mylog.info("Saving %s to %s." % (field_node, filename))
+        dataset = fh.create_dataset(field_node,
+                                          data=pstack)
+        dataset.attrs["units"] = str(pstack.units)
+        dataset.attrs['redshifts'] = redshift_list
+        dataset.attrs['observer_redshift'] = np.float(self.observer_redshift)
+        for key, value in attrs.items():
+            dataset.attrs[key] = value
 
-        if write_data:
-            mylog.info("Saving %s to %s." % (field_node, filename))
-            self.projection_stack = np.array(self.projection_stack)
-            field_dataset = output.create_dataset(field_node,
-                                                  data=self.projection_stack)
-            field_dataset.attrs['redshifts'] = redshiftList
-            field_dataset.attrs['observer_redshift'] = \
-              np.float(self.observer_redshift)
-            field_dataset.attrs['field_of_view_in_arcminutes'] = \
-              np.float(self.field_of_view_in_arcminutes)
-            field_dataset.attrs['image_resolution_in_arcseconds'] = \
-              np.float(self.image_resolution_in_arcseconds)
+        if wstack.size > 0:
+            if weight_field_node in fh:
+                del fh[weight_field_node]
 
-        if (len(self.projection_weight_field_stack) > 0):
-            if node_exists:
-                if over_write:
-                    mylog.info("Dataset, %s, already exists, overwriting." %
-                               weight_field_node)
-                    del output[field_node]
-                else:
-                    mylog.info("Dataset, %s, already exists in %s, not saving." %
-                               (weight_field_node, filename))
-                    write_data = False
-            else:
-                write_data = True
+            mylog.info("Saving %s to %s." % (weight_field_node, filename))
+            dataset = fh.create_dataset(weight_field_node,
+                                        data=wstack)
+            dataset.attrs["units"] = str(wstack.units)
+            dataset.attrs['redshifts'] = redshift_list
+            dataset.attrs['observer_redshift'] = np.float(self.observer_redshift)
+            for key, value in attrs.items():
+                dataset.attrs[key] = value
 
-            if write_data:
-                mylog.info("Saving %s to %s." % (weight_field_node, filename))
-                self.projection_weight_field_stack = \
-                  np.array(self.projection_weight_field_stack)
-                weight_field_dataset = \
-                  output.create_dataset(weight_field_node,
-                                        data=self.projection_weight_field_stack)
-                weight_field_dataset.attrs['redshifts'] = redshiftList
-                weight_field_dataset.attrs['observer_redshift'] = \
-                  np.float(self.observer_redshift)
-                weight_field_dataset.attrs['field_of_view_in_arcminutes'] = \
-                  np.float(self.field_of_view_in_arcminutes)
-                weight_field_dataset.attrs['image_resolution_in_arcseconds'] = \
-                  np.float(self.image_resolution_in_arcseconds)
-
-        output.close()
+        fh.close()
