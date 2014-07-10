@@ -209,15 +209,16 @@ class FLASHDataset(Dataset):
         
     def _set_code_unit_attributes(self):
 
-        if self['unitsystem'].lower() == "cgs":
-             b_factor = 1.0
-        elif self['unitsystem'].lower() == "si":
-             b_factor = np.sqrt(4*np.pi/1e7)
-        elif self['unitsystem'].lower() == "none":
-             b_factor = np.sqrt(4*np.pi)
-        else:
-            raise RuntimeError("Runtime parameter unitsystem with "
-                               "value %s is unrecognized" % self['unitsystem'])
+        if 'unitsystem' in self.parameters:
+            if self['unitsystem'].lower() == "cgs":
+                b_factor = 1.0
+            elif self['unitsystem'].lower() == "si":
+                b_factor = np.sqrt(4*np.pi/1e7)
+            elif self['unitsystem'].lower() == "none":
+                b_factor = np.sqrt(4*np.pi)
+            else:
+                raise RuntimeError("Runtime parameter unitsystem with "
+                                   "value %s is unrecognized" % self['unitsystem'])
         if self.cosmological_simulation == 1:
             length_factor = 1.0 / (1.0 + self.current_redshift)
             temperature_factor = 1.0 / (1.0 + self.current_redshift)**2
