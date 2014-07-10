@@ -210,9 +210,9 @@ class FLASHDataset(Dataset):
         self.parameters["Time"] = 1. # default unit is 1...
         
     def _set_code_unit_attributes(self):
-        if "cgs" in (self.parameters.get('pc_unitsbase', "").lower(),
-                     self.parameters.get('unitsystem', "").lower()):
-             b_factor = 1
+
+        if self['unitsystem'].lower() == "cgs":
+             b_factor = 1.0
         elif self['unitsystem'].lower() == "si":
              b_factor = np.sqrt(4*np.pi/1e7)
         elif self['unitsystem'].lower() == "none":
@@ -227,6 +227,7 @@ class FLASHDataset(Dataset):
             length_factor = 1.0
             temperature_factor = 1.0
         self.magnetic_unit = self.quan(b_factor, "gauss")
+
         self.length_unit = self.quan(length_factor, "cm")
         self.mass_unit = self.quan(1.0, "g")
         self.time_unit = self.quan(1.0, "s")
@@ -234,7 +235,8 @@ class FLASHDataset(Dataset):
         self.temperature_unit = self.quan(temperature_factor, "K")
         # Still need to deal with:
         #self.conversion_factors['temp'] = (1.0 + self.current_redshift)**-2.0
-
+        self.unit_registry.modify("code_magnetic", self.magnetic_unit)
+        
     def set_code_units(self):
         super(FLASHDataset, self).set_code_units()
         self.unit_registry.modify("code_temperature",
@@ -247,9 +249,9 @@ class FLASHDataset(Dataset):
         for tpname, pval in zip(self._handle[nn][:,'name'],
                                 self._handle[nn][:,'value']):
             if tpname.strip() == pname:
-                if ptype == "string" :
+                if ptype == "string":
                     return pval.strip()
-                else :
+                else:
                     return pval
         raise KeyError(pname)
 
