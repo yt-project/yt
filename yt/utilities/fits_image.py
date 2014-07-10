@@ -288,15 +288,20 @@ class FITSSlice(FITSImageBuffer):
         The axis of the slice. One of "x","y","z", or 0,1,2.
     fields : string or list of strings
         The fields to slice
-    coord : float, tuple, or YTQuantity
+    coord : float, tuple, YTQuantity, or string, optional
         The coordinate of the slice along *axis*. Can be a (value,
         unit) tuple, a YTQuantity, or a float. If a float, it will be
         interpreted as in units of code_length.
     """
-    def __init__(self, ds, axis, fields, coord, **kwargs):
+    def __init__(self, ds, axis, fields, coord="c", **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis, ds)
-        if isinstance(coord, tuple):
+        if coord == "c":
+            coord = ds.domain_center[axis].value
+        elif coord == "max":
+            v, c = ds.find_max("density")
+            coord = c[axis].value
+        elif isinstance(coord, tuple):
             coord = ds.quan(coord[0], coord[1]).in_units("code_length").value
         elif isinstance(coord, YTQuantity):
             coord = coord.in_units("code_length").value
