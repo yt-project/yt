@@ -208,9 +208,8 @@ class FLASHDataset(Dataset):
         self.parameters["Time"] = 1. # default unit is 1...
         
     def _set_code_unit_attributes(self):
-        if "cgs" in (self.parameters.get('pc_unitsbase', "").lower(),
-                     self.parameters.get('unitsystem', "").lower()):
-             b_factor = 1
+        if self['unitsystem'].lower() == "cgs":
+             b_factor = 1.0
         elif self['unitsystem'].lower() == "si":
              b_factor = np.sqrt(4*np.pi/1e7)
         elif self['unitsystem'].lower() == "none":
@@ -245,9 +244,9 @@ class FLASHDataset(Dataset):
         for tpname, pval in zip(self._handle[nn][:,'name'],
                                 self._handle[nn][:,'value']):
             if tpname.strip() == pname:
-                if ptype == "string" :
+                if ptype == "string":
                     return pval.strip()
-                else :
+                else:
                     return pval
         raise KeyError(pname)
 
