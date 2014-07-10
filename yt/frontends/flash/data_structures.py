@@ -219,6 +219,8 @@ class FLASHDataset(Dataset):
             else:
                 raise RuntimeError("Runtime parameter unitsystem with "
                                    "value %s is unrecognized" % self['unitsystem'])
+        else:
+            b_factor = 1.
         if self.cosmological_simulation == 1:
             length_factor = 1.0 / (1.0 + self.current_redshift)
             temperature_factor = 1.0 / (1.0 + self.current_redshift)**2
