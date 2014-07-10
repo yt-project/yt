@@ -110,7 +110,7 @@ class BinnedProfile(ParallelAnalysisInterface):
                 data[field][ub] /= weight_data[field][ub]
                 std_data[field][ub] /= weight_data[field][ub]
             self[field] = data[field]
-            #self["%s_std" % field] = np.sqrt(std_data[field])
+            self["%s_std" % field] = np.sqrt(std_data[field])
         self["UsedBins"] = used
 
         if fractional:

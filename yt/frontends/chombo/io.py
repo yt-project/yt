@@ -30,6 +30,14 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         BaseIOHandler.__init__(self, pf, *args, **kwargs)
         self.pf = pf
         self._handle = pf._handle
+        self.dim = self._handle['Chombo_global/'].attrs['SpaceDim']
+        self._read_ghost_info()
+
+    def _read_ghost_info(self):
+        self.ghost = tuple(self._handle['level_0/data_attributes'].attrs['outputGhost'])
+        # pad with zeros if the dataset is low-dimensional
+        self.ghost += (3 - self.dim)*(0,)
+        self.ghost = np.array(self.ghost)
 
     _field_dict = None
     @property
@@ -62,18 +70,20 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         fns = [c[1] for c in f.attrs.items()[-ncomp-1:-1]]
     
     def _read_data(self,grid,field):
-
         lstring = 'level_%i' % grid.Level
         lev = self._handle[lstring]
         dims = grid.ActiveDimensions
-        boxsize = dims.prod()
+        shape = grid.ActiveDimensions + 2*self.ghost
+        boxsize = shape.prod()
         
         grid_offset = lev[self._offset_string][grid._level_id]
         start = grid_offset+self.field_dict[field]*boxsize
         stop = start + boxsize
         data = lev[self._data_string][start:stop]
-        
-        return data.reshape(dims, order='F')
+        data_no_ghost = data.reshape(shape, order='F')
+        ghost_slice = [slice(g, d-g, None) for g, d in zip(self.ghost, grid.ActiveDimensions)]
+        ghost_slice = ghost_slice[0:self.dim]
+        return data_no_ghost[ghost_slice]
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         rv = {}
@@ -83,16 +93,8 @@ class IOHandlerChomboHDF5(BaseIOHandler):
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
             grid = chunks[0].objs[0]
-            lstring = 'level_%i' % grid.Level
-            lev = self._handle[lstring]
-            grid_offset = lev[self._offset_string][grid._level_id]
-            boxsize = grid.ActiveDimensions.prod()
             for ftype, fname in fields:
-                start = grid_offset+self.field_dict[fname]*boxsize
-                stop = start + boxsize
-                data = lev[self._data_string][start:stop]
-                rv[ftype, fname] = data.reshape(grid.ActiveDimensions,
-                                        order='F')
+                rv[ftype, fname] = self._read_data(grid, fname)
             return rv
         if size is None:
             size = sum((g.count(selector) for chunk in chunks
@@ -108,16 +110,10 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         ind = 0
         for chunk in chunks:
             for g in chunk.objs:
-                lstring = 'level_%i' % g.Level
-                lev = self._handle[lstring]
-                grid_offset = lev[self._offset_string][g._level_id]
-                boxsize = g.ActiveDimensions.prod()
                 nd = 0
                 for field in fields:
-                    start = grid_offset+self.field_dict[fname]*boxsize
-                    stop = start + boxsize
-                    data = lev[self._data_string][start:stop]
-                    data = data.reshape(g.ActiveDimensions, order='F')
+                    ftype, fname = field
+                    data = self._read_data(g, fname)
                     nd = g.select(selector, data, rv[field], ind) # caches
                 ind += nd
         return rv
@@ -182,6 +178,8 @@ class IOHandlerChombo2DHDF5(IOHandlerChomboHDF5):
         BaseIOHandler.__init__(self, pf, *args, **kwargs)
         self.pf = pf
         self._handle = pf._handle
+        self.dim = 2
+        self._read_ghost_info()
 
 class IOHandlerChombo1DHDF5(IOHandlerChomboHDF5):
     _dataset_type = "chombo1d_hdf5"
@@ -191,7 +189,9 @@ class IOHandlerChombo1DHDF5(IOHandlerChomboHDF5):
     def __init__(self, pf, *args, **kwargs):
         BaseIOHandler.__init__(self, pf, *args, **kwargs)
         self.pf = pf
+        self.dim = 1
         self._handle = pf._handle   
+        self._read_ghost_info()
 
 class IOHandlerOrion2HDF5(IOHandlerChomboHDF5):
     _dataset_type = "orion_chombo_native"
