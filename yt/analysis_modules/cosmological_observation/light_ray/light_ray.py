@@ -236,7 +236,7 @@ class LightRay(CosmologySplice):
         trajectory : list of floats
             Used only if creating a light ray from a single dataset.
             The (r, theta, phi) direction of the light ray.  Use either 
-        end_position or trajectory, not both.
+            end_position or trajectory, not both.
             Default: None.
         fields : list
             A list of fields for which to get data.

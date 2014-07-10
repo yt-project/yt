@@ -135,4 +135,4 @@ Additional keyword arguments:
  * **dynamic** (*bool*): If True, use dynamic load balancing to create the 
    projections.  Default: False.
 
-.. note:: As of verion 3.0, the halo mask and unique light cone functionality no longer exist.  These are still available in :code:`yt-2.x`.  If you would like to use these features in :code:`yt-3.x`, help is needed to port them over.  Contact the yt-users mailing list if you are interested in doing this.
+.. note:: As of :code:`yt-3.0`, the halo mask and unique light cone functionality no longer exist.  These are still available in :code:`yt-2.x`.  If you would like to use these features in :code:`yt-3.x`, help is needed to port them over.  Contact the yt-users mailing list if you are interested in doing this.

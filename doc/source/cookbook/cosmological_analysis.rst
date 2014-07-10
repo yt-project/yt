@@ -39,6 +39,8 @@ a given redshift interval.
 
 .. yt_cookbook:: light_cone_projection.py
 
+.. _cookbook-light_ray:
+
 Light Ray
 ~~~~~~~~~
 This script demonstrates how to make a synthetic quasar sight line that 
