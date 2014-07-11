@@ -151,7 +151,6 @@ def get_mercurial_changeset_id(target_dir):
 
 class my_build_src(build_src.build_src):
     def run(self):
-        self.run_command("build_forthon")
         build_src.build_src.run(self)
 
 
