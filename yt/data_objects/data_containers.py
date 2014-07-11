@@ -725,6 +725,12 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             self.index._identify_base_chunk(self)
         return self._current_chunk.fwidth
 
+class YTSelectionContainer0D(YTSelectionContainer):
+    _spatial = False
+    def __init__(self, pf, field_parameters):
+        super(YTSelectionContainer0D, self).__init__(
+            pf, field_parameters)
+
 class YTSelectionContainer1D(YTSelectionContainer):
     _spatial = False
     def __init__(self, pf, field_parameters):
