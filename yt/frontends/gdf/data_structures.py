@@ -180,19 +180,16 @@ class GDFDataset(Dataset):
         h5f = h5py.File(self.parameter_filename, "r")
         for field_name in h5f["/field_types"]:
             current_field = h5f["/field_types/%s" % field_name]
-            if 'field_to_cgs' in current_field.attrs:
-                field_conv = current_field.attrs['field_to_cgs']
-                self.field_units[field_name] = just_one(field_conv)
-            elif 'field_units' in current_field.attrs:
+            if 'field_units' in current_field.attrs:
                 field_units = current_field.attrs['field_units']
                 if isinstance(field_units, types.StringTypes):
-                    current_fields_unit = current_field.attrs['field_units']
+                    current_field_units = current_field.attrs['field_units']
                 else:
-                    current_fields_unit = \
+                    current_field_units = \
                         just_one(current_field.attrs['field_units'])
                 self.field_units[field_name] = current_field_units
             else:
-                current_fields_unit = ""
+                self.field_units[field_name] = ""
         h5f.close()
         self.length_unit = self.quan(1.0, "cm")
         self.mass_unit = self.quan(1.0, "g")

@@ -115,7 +115,7 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name,
 
     # grab the display name and units from the field info container.
     display_name = fi.display_name
-    units = fi.get_units()
+    units = fi.units
 
     # check that they actually contain something...
     if display_name:
@@ -126,8 +126,6 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name,
         sg.attrs["field_units"] = units
     else:
         sg.attrs["field_units"] = "None"
-    # @todo: the values must be in CGS already right?
-    sg.attrs["field_to_cgs"] = 1.0
     # @todo: is this always true?
     sg.attrs["staggering"] = 0
 
