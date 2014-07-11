@@ -201,31 +201,6 @@ class GridIndex(Index):
         for item in ("Mpc", "pc", "AU", "cm"):
             print "\tWidth: %0.3e %s" % (dx.in_units(item), item)
 
-    def find_max(self, field, finest_levels = 3):
-        """
-        Returns (value, center) of location of maximum for a given field.
-        """
-        if (field, finest_levels) in self._max_locations:
-            return self._max_locations[(field, finest_levels)]
-        mv, pos = self.find_max_cell_location(field, finest_levels)
-        self._max_locations[(field, finest_levels)] = (mv, pos)
-        return mv, pos
-
-    def find_max_cell_location(self, field, finest_levels = 3):
-        if finest_levels is not False:
-            gi = (self.grid_levels >= self.max_level - finest_levels).ravel()
-            source = self.data_collection([0.0]*3, self.grids[gi])
-        else:
-            source = self.all_data()
-        mylog.debug("Searching for maximum value of %s", field)
-        max_val, maxi, mx, my, mz = \
-            source.quantities["MaxLocation"](field)
-        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f", 
-              max_val, mx, my, mz)
-        self.parameters["Max%sValue" % (field)] = max_val
-        self.parameters["Max%sPos" % (field)] = "%s" % ((mx,my,mz),)
-        return max_val, np.array((mx,my,mz), dtype='float64')
-
     def find_points(self, x, y, z) :
         """
         Returns the (objects, indices) of leaf grids containing a number of (x,y,z) points
@@ -240,40 +215,6 @@ class GridIndex(Index):
         pts = MatchPointsToGrids(grid_tree, len(x), x, y, z)
         ind = pts.find_points_in_tree()
         return self.grids[ind], ind
-
-    def find_field_value_at_point(self, fields, coord):
-        r"""Find the value of fields at a coordinate.
-
-        Returns the values [field1, field2,...] of the fields at the given
-        (x, y, z) points. Returns a list of field values in the same order as
-        the input *fields*.
-
-        Parameters
-        ----------
-        fields : string or list of strings
-            The field(s) that will be returned.
-
-        coord : list or array of coordinates
-            The location for which field values will be returned.
-
-        Examples
-        --------
-        >>> pf.h.find_field_value_at_point(['Density', 'Temperature'],
-            [0.4, 0.3, 0.8])
-        [2.1489e-24, 1.23843e4]
-        """
-        this = self.find_points(*coord)[0][-1]
-        cellwidth = (this.RightEdge - this.LeftEdge) / this.ActiveDimensions
-        mark = np.zeros(3).astype('int')
-        # Find the index for the cell containing this point.
-        for dim in xrange(len(coord)):
-            mark[dim] = int((coord[dim] - this.LeftEdge[dim]) / cellwidth[dim])
-        out = []
-        fields = ensure_list(fields)
-        # Pull out the values and add it to the out list.
-        for field in fields:
-            out.append(this[field][mark[0], mark[1], mark[2]])
-        return out
 
     def get_grid_tree(self) :
 
