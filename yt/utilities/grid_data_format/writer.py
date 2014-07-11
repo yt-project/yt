@@ -194,12 +194,18 @@ def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
     g.attrs["field_ordering"] = 0
     # @todo: not yet supported by yt.
     g.attrs["boundary_conditions"] = np.array([0, 0, 0, 0, 0, 0], 'int32')
-
     if pf.cosmological_simulation:
         g.attrs["current_redshift"] = pf.current_redshift
         g.attrs["omega_matter"] = pf.omega_matter
         g.attrs["omega_lambda"] = pf.omega_lambda
         g.attrs["hubble_constant"] = pf.hubble_constant
+
+    g = f.create_group("dataset_units")
+    for u in ["length","time","mass"]:
+        unit_name = u+"_unit"
+        attr = getattr(pf, unit_name)
+        d = g.create_dataset(unit_name, data=float(attr))
+        d.attrs["unit"] = str(attr.units)
 
     ###
     # "field_types" group

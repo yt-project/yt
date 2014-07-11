@@ -190,10 +190,14 @@ class GDFDataset(Dataset):
                 self.field_units[field_name] = current_field_units
             else:
                 self.field_units[field_name] = ""
+
+        for unit_name in h5f["/dataset_units"]:
+            current_unit = h5f["/dataset_units/%s" % unit_name]
+            value = current_unit.value
+            unit = current_unit.attrs["unit"]
+            setattr(self, unit_name, self.quan(value,unit))
+
         h5f.close()
-        self.length_unit = self.quan(1.0, "cm")
-        self.mass_unit = self.quan(1.0, "g")
-        self.time_unit = self.quan(1.0, "s")
 
     def _parse_parameter_file(self):
         self._handle = h5py.File(self.parameter_filename, "r")
