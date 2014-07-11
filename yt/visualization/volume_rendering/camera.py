@@ -125,13 +125,14 @@ class Camera(ParallelAnalysisInterface):
     Examples
     --------
 
-    >>> cam = vr.Camera(c, L, W, (N,N), transfer_function = tf, pf = pf)
-    >>> image = cam.snapshot()
-
     >>> from yt.mods import *
     >>> import yt.visualization.volume_rendering.api as vr
+
+    >>> pf = load('DD1701') # Load a dataset
+
+    >>> cam = vr.Camera(c, L, W, (N,N), transfer_function = tf, pf = pf)
+    >>> image = cam.snapshot()
     
-    >>> pf = EnzoDataset('DD1701') # Load pf
     >>> c = [0.5]*3 # Center
     >>> L = [1.0,1.0,1.0] # Viewpoint
     >>> W = np.sqrt(3) # Width
@@ -645,6 +646,28 @@ class Camera(ParallelAnalysisInterface):
     
     def save_annotated(self, fn, image, enhance=True, dpi=100, clear_fig=True, 
                        label_fmt=None):
+        """
+        Save an image with the transfer function represented as a colorbar.
+
+        Parameters
+        ----------
+        fn : str
+           The output filename
+        image : ImageArray
+           The image to annotate
+        enhance : bool, optional
+           Enhance the contrast (default: True)
+        dpi : int, optional
+           Dots per inch in the output image (default: 100)
+        clear_fig : bool, optional
+           Reset the figure (through pylab.clf()) before drawing.  Setting 
+           this to false can allow us to overlay the image onto an 
+           existing figure
+        label_fmt : str, optional
+           A format specifier to use in formatting the data values that 
+           label the transfer function colorbar. 
+        
+        """
         image = image.swapaxes(0,1) 
         ax = self.show_mpl(image, enhance=enhance, clear_fig=clear_fig)
         self.annotate(ax.axes, enhance, label_fmt=label_fmt)
