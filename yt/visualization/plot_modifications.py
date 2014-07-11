@@ -1069,114 +1069,29 @@ class TitleCallback(PlotCallback):
     def __call__(self,plot):
         plot._axes.set_title(self.title)
 
-class FlashRayDataCallback(PlotCallback):
-    """ 
-    annotate_flash_ray_data(cmap_name='bone', sample=None)
-
-    Adds ray trace data to the plot.  *cmap_name* is the name of the color map 
-    ('bone', 'jet', 'hot', etc).  *sample* dictates the amount of down sampling 
-    to do to prevent all of the rays from being  plotted.  This may be None 
-    (plot all rays, default), an integer (step size), or a slice object.
-    """
-    _type_name = "flash_ray_data"
-    def __init__(self, cmap_name='bone', sample=None):
-        self.cmap_name = cmap_name
-        self.sample = sample if isinstance(sample, slice) else slice(None, None, sample)
-
-    def __call__(self, plot):
-        ray_data = plot.data.pf._handle["RayData"][:]
-        idx = ray_data[:,0].argsort(kind="mergesort")
-        ray_data = ray_data[idx]
-
-        tags = ray_data[:,0]
-        coords = ray_data[:,1:3]
-        power = ray_data[:,4]
-        power /= power.max()
-        cx, cy = self.convert_to_plot(plot, coords.T)
-        coords[:,0], coords[:,1] = cx, cy
-        splitidx = np.argwhere(0 < (tags[1:] - tags[:-1])) + 1
-        coords = np.split(coords, splitidx.flat)[self.sample]
-        power = np.split(power, splitidx.flat)[self.sample]
-        cmap = matplotlib.cm.get_cmap(self.cmap_name)
-
-        plot._axes.hold(True)
-        colors = [cmap(p.max()) for p in power]
-        lc = matplotlib.collections.LineCollection(coords, colors=colors)
-        plot._axes.add_collection(lc)
-        plot._axes.hold(False)
-
-
 class TimestampCallback(PlotCallback):
-    """ 
+    """
     annotate_timestamp(x, y, units=None, format="{time:.3G} {units}", **kwargs,
                        normalized=False, bbox_dict=None)
 
-    Adds the current time to the plot at point given by *x* and *y*.  If *units* 
-    is given ('s', 'ms', 'ns', etc), it will covert the time to this basis.  If 
-    *units* is None, it will attempt to figure out the correct value by which to 
-    scale.  The *format* keyword is a template string that will be evaluated and 
-    displayed on the plot.  If *normalized* is true, *x* and *y* are interpreted 
-    as normalized plot coordinates (0,0 is lower-left and 1,1 is upper-right) 
-    otherwise *x* and *y* are assumed to be in plot coordinates. The *bbox_dict* 
-    is an optional dict of arguments for the bbox that frames the timestamp, see 
-    matplotlib's text annotation guide for more details. All other *kwargs* will 
-    be passed to the text() method on the plot axes.  See matplotlib's text() 
+    Adds the current time to the plot at point given by *x* and *y*.  If *units*
+    is given ('s', 'ms', 'ns', etc), it will covert the time to this basis.  If
+    *units* is None, it will attempt to figure out the correct value by which to
+    scale.  The *format* keyword is a template string that will be evaluated and
+    displayed on the plot.  If *normalized* is true, *x* and *y* are interpreted
+    as normalized plot coordinates (0,0 is lower-left and 1,1 is upper-right)
+    otherwise *x* and *y* are assumed to be in plot coordinates. The *bbox_dict*
+    is an optional dict of arguments for the bbox that frames the timestamp, see
+    matplotlib's text annotation guide for more details. All other *kwargs* will
+    be passed to the text() method on the plot axes.  See matplotlib's text()
     functions for more information.
     """
     _type_name = "timestamp"
-    _time_conv = {
-          'as': 1e-18,
-          'attosec': 1e-18,
-          'attosecond': 1e-18,
-          'attoseconds': 1e-18,
-          'fs': 1e-15,
-          'femtosec': 1e-15,
-          'femtosecond': 1e-15,
-          'femtoseconds': 1e-15,
-          'ps': 1e-12,
-          'picosec': 1e-12,
-          'picosecond': 1e-12,
-          'picoseconds': 1e-12,
-          'ns': 1e-9,
-          'nanosec': 1e-9,
-          'nanosecond':1e-9,
-          'nanoseconds' : 1e-9,
-          'us': 1e-6,
-          'microsec': 1e-6,
-          'microsecond': 1e-6,
-          'microseconds': 1e-6,
-          'ms': 1e-3,
-          'millisec': 1e-3,
-          'millisecond': 1e-3,
-          'milliseconds': 1e-3,
-          's': 1.0,
-          'sec': 1.0,
-          'second':1.0,
-          'seconds': 1.0,
-          'm': 60.0,
-          'min': 60.0,
-          'minute': 60.0,
-          'minutes': 60.0,
-          'h': sec_per_hr,
-          'hour': sec_per_hr,
-          'hours': sec_per_hr,
-          'd': sec_per_day,
-          'day': sec_per_day,
-          'days': sec_per_day,
-          'y': sec_per_year,
-          'year': sec_per_year,
-          'years': sec_per_year,
-          'kyr': sec_per_kyr,
-          'myr': sec_per_Myr,
-          'gyr': sec_per_Gyr,
-          'ev': 1e-9 * 7.6e-8 / 6.03,
-          'kev': 1e-12 * 7.6e-8 / 6.03,
-          'mev': 1e-15 * 7.6e-8 / 6.03,
-          }
-    _bbox_dict = {'boxstyle': 'square,pad=0.6', 'fc': 'white', 'ec': 'black', 'alpha': 1.0}
+    _bbox_dict = {'boxstyle': 'square,pad=0.6', 'fc': 'white', 'ec': 'black',
+                  'alpha': 1.0}
 
-    def __init__(self, x, y, units=None, format="{time:.3G} {units}", normalized=False, 
-                 bbox_dict=None, **kwargs):
+    def __init__(self, x, y, units=None, format="{time:.3G} {units}",
+                 normalized=False, bbox_dict=None, **kwargs):
         self.x = x
         self.y = y
         self.format = format
@@ -1191,54 +1106,29 @@ class TimestampCallback(PlotCallback):
 
     def __call__(self, plot):
         if self.units is None:
-            t = plot.data.pf.current_time * plot.data.pf['Time']
-            scale_keys = ['as', 'fs', 'ps', 'ns', 'us', 'ms', 's', 
-                          'hour', 'day', 'year', 'kyr', 'myr', 'gyr']
-            self.units = 's'
-            for k in scale_keys:
-                if t < self._time_conv[k]:
+            t = plot.data.pf.current_time.in_units('s')
+            scale_keys = ['fs', 'ps', 'ns', 'us', 'ms', 's', 'hr', 'day',
+                          'yr', 'kyr', 'Myr', 'Gyr']
+            for i, k in enumerate(scale_keys):
+                if t < YTQuantity(1, k):
                     break
-                self.units = k
-        t = plot.data.pf.current_time * plot.data.pf['Time'] 
-        t /= self._time_conv[self.units.lower()]
+                t.convert_to_units(k)
+            self.units = scale_keys[i-1]
+        else:
+            t = plot.data.pf.current_time.in_units(self.units)
         if self.units == 'us':
             self.units = '$\\mu s$'
-        s = self.format.format(time=t, units=self.units)
+        s = self.format.format(time=float(t), units=self.units)
         plot._axes.hold(True)
         if self.normalized:
             plot._axes.text(self.x, self.y, s, horizontalalignment='center',
                             verticalalignment='center', 
-                            transform = plot._axes.transAxes, bbox=self.bbox_dict)
+                            transform = plot._axes.transAxes,
+                            bbox=self.bbox_dict)
         else:
-            plot._axes.text(self.x, self.y, s, bbox=self.bbox_dict, **self.kwargs)
+            plot._axes.text(self.x, self.y, s, bbox=self.bbox_dict,
+                            **self.kwargs)
         plot._axes.hold(False)
-
-
-class MaterialBoundaryCallback(ContourCallback):
-    """ 
-    annotate_material_boundary(self, field='targ', ncont=1, factor=4, 
-                               clim=(0.9, 1.0), **kwargs):
-
-    Add the limiting contours of *field* to the plot.  Nominally, *field* is 
-    the target material but may be any other field present in the index.
-    The number of contours generated is given by *ncount*, *factor* governs 
-    the number of points used in the interpolation, and *clim* gives the 
-    (upper, lower) limits for contouring.  For this to truly be the boundary
-    *clim* should be close to the edge.  For example the default is (0.9, 1.0)
-    for 'targ' which is defined on the range [0.0, 1.0].  All other *kwargs* 
-    will be passed to the contour() method on the plot axes.  See matplotlib
-    for more information.
-    """
-    _type_name = "material_boundary"
-    def __init__(self, field='targ', ncont=1, factor=4, clim=(0.9, 1.0), **kwargs):
-        plot_args = {'colors': 'w'}
-        plot_args.update(kwargs)
-        super(MaterialBoundaryCallback, self).__init__(field=field, ncont=ncont,
-                                                       factor=factor, clim=clim,
-                                                       plot_args=plot_args)
-
-    def __call__(self, plot):
-        super(MaterialBoundaryCallback, self).__call__(plot)
 
 class TriangleFacetsCallback(PlotCallback):
     """ 
