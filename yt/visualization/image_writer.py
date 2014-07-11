@@ -136,6 +136,10 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
     max_val : float, optional
         The upper limit to clip values to in the output, if converting to uint8.
         If `bitmap_array` is already uint8, this will be ignore.
+    transpose : boolean, optional
+        If transpose is False, we assume that the incoming bitmap_array is such
+        that the first element resides in the upper-left corner.  If True, the
+        first element will be placed in the lower-left corner.
     """
     if len(bitmap_array.shape) != 3 or bitmap_array.shape[-1] not in (3,4):
         raise RuntimeError
