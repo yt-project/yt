@@ -523,7 +523,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.set_ylabel("Opacity")
         ax.set_xlabel("Value")
 
-    def vert_cbar(self, ax=None, label=None):
+    def vert_cbar(self, ax=None, label=None, label_fmt=None):
         r"""Display an image of the transfer function
 
         This function loads up matplotlib and displays the current transfer function.
@@ -573,11 +573,14 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.yaxis.set_ticks(xticks)
         def x_format(x, pos):
             val = x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size-1) + self.alpha.x[0]
-            if abs(val) < 1.e-3 or abs(val) > 1.e4:
-                e = np.floor(np.log10(abs(val)))
-                return r"${:.2f}\times 10^{:d}$".format(val/10.0**e, int(e))
+            if label_fmt == None:
+                if abs(val) < 1.e-3 or abs(val) > 1.e4:
+                    e = np.floor(np.log10(abs(val)))
+                    return r"${:.2f}\times 10^{:d}$".format(val/10.0**e, int(e))
+                else:
+                    return "%.1g" % (val)
             else:
-                return "%.1g" % (val)
+                return label_fmt % (val)
         ax.yaxis.set_major_formatter(FuncFormatter(x_format))
 
         yticks = np.linspace(0,1,2,endpoint=True) * max_alpha

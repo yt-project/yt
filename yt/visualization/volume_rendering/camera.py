@@ -610,7 +610,7 @@ class Camera(ParallelAnalysisInterface):
             self.transfer_function.show(ax=self._tf_figure.axes)
         self._pylab.draw()
 
-    def annotate(self, ax, enhance=True):
+    def annotate(self, ax, enhance=True, label_fmt=None):
         ax.get_xaxis().set_visible(False)
         ax.get_xaxis().set_ticks([])
         ax.get_yaxis().set_visible(False)
@@ -619,7 +619,7 @@ class Camera(ParallelAnalysisInterface):
         label = self.pf._get_field_info(self.fields[0]).get_label()
         if self.log_fields[0]:
             label = '$\\rm{log}\\/ $' + label
-        self.transfer_function.vert_cbar(ax=cb.ax, label=label)
+        self.transfer_function.vert_cbar(ax=cb.ax, label=label, label_fmt=label_fmt)
 
     def show_mpl(self, im, enhance=True, clear_fig=True):
         if self._pylab is None:
@@ -643,10 +643,11 @@ class Camera(ParallelAnalysisInterface):
     def draw(self):
         self._pylab.draw()
     
-    def save_annotated(self, fn, image, enhance=True, dpi=100, clear_fig=True):
+    def save_annotated(self, fn, image, enhance=True, dpi=100, clear_fig=True, 
+                       label_fmt=None):
         image = image.swapaxes(0,1) 
         ax = self.show_mpl(image, enhance=enhance, clear_fig=clear_fig)
-        self.annotate(ax.axes, enhance)
+        self.annotate(ax.axes, enhance, label_fmt=label_fmt)
         self._pylab.savefig(fn, bbox_inches='tight', facecolor='black', dpi=dpi)
         
     def save_image(self, image, fn=None, clip_ratio=None, transparent=False):
