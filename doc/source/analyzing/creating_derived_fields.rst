@@ -19,12 +19,12 @@ this approach.
 
 .. code-block:: python
 
-   def _Pressure(field, data):
-       return (data.pf["Gamma"] - 1.0) * \
+   def _pressure(field, data):
+       return (data.pf.gamma - 1.0) * \
               data["density"] * data["thermal_energy"]
 
-Note that we do a couple different things here.  We access the "Gamma"
-parameter from the parameter file, we access the "density" field and we access
+Note that we do a couple different things here.  We access the "gamma"
+parameter from the dataset, we access the "density" field and we access
 the "thermal_energy" field.  "thermal_energy" is, in fact, another derived field!
 ("thermal_energy" deals with the distinction in storage of energy between dual
 energy formalism and non-DEF.)  We don't do any loops, we don't do any
@@ -37,7 +37,7 @@ look at the most basic ones needed for a simple scalar baryon field.
 
 .. code-block:: python
 
-   add_field("pressure", function=_Pressure, units=r"\rm{dyne}/\rm{cm}^{2}")
+   add_field("pressure", function=_pressure, units="dyne/cm**2")
 
 We feed it the name of the field, the name of the function, and the
 units.  Note that the units parameter is a "raw" string, with some
@@ -53,52 +53,10 @@ engine, so if you include LaTeX it will be rendered appropriately.
 
 We suggest that you name the function that creates a derived field
 with the intended field name prefixed by a single underscore, as in
-the ``_Pressure`` example above.
+the ``_pressure`` example above.
 
 If you find yourself using the same custom-defined fields over and over, you
 should put them in your plugins file as described in :ref:`plugin-file`.
-
-.. _conversion-factors:
-
-Conversion Factors
-~~~~~~~~~~~~~~~~~~
-
-When creating a derived field, ``yt`` does not by default do unit
-conversion.  All of the fields fed into the field are pre-supposed to
-be in CGS.  If the field does not need any constants applied after
-that, you are done. If it does, you should define a second function
-that applies the proper multiple in order to return the desired units
-and use the argument ``convert_function`` to ``add_field`` to point to
-it.  
-
-The argument that you pass to ``convert_function`` will be dependent on 
-what fields are input into your derived field, and in what form they
-are passed from their native format.  For enzo fields, nearly all the
-native on-disk fields are in CGS units already (except for ``dx``, ``dy``,
-and ``dz`` fields), so you typically only need to convert for 
-off-standard fields taking into account where those fields are 
-used in the final output derived field.  For other codes, it can vary.
-
-You can check to see the units associated with any field in a dataset
-from any code by using the ``_units`` attribute.  Here is an example 
-with one of our sample FLASH datasets available publicly at 
-http://yt-project.org/data :
-
-.. code-block:: python
-
-   >>> from yt.mods import *
-   >>> pf = load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100")
-   >>> pf.field_list
-   ['dens', 'temp', 'pres', 'gpot', 'divb', 'velx', 'vely', 'velz', 'magx', 'magy', 'magz', 'magp']
-   >>> pf.field_info['dens']._units
-   '\\rm{g}/\\rm{cm}^{3}'
-   >>> pf.field_info['temp']._units
-   '\\rm{K}'
-   >>> pf.field_info['velx']._units
-   '\\rm{cm}/\\rm{s}'
-
-Thus if you were using any of these fields as input to your derived field, you 
-wouldn't have to worry about unit conversion because they're already in CGS.
 
 Some More Complicated Examples
 ------------------------------
@@ -157,11 +115,9 @@ We can also define vector fields.
        r_vec = coords - np.reshape(center,new_shape)
        v_vec = np.array([xv,yv,zv], dtype='float64')
        return np.cross(r_vec, v_vec, axis=0)
-   def _convertSpecificAngularMomentum(data):
-       return data.convert("cm")
-   add_field("SpecificAngularMomentum",
-             convert_function=_convertSpecificAngularMomentum, vector_field=True,
-             units=r"\rm{cm}^2/\rm{s}", validators=[ValidateParameter('center')])
+   add_field("specific_angular_momentum",
+             vector_field=True, units=r"\rm{cm}^2/\rm{s}",
+             validators=[ValidateParameter('center')])
 
 Here we define the SpecificAngularMomentum field, optionally taking a
 ``bulk_velocity``, and returning a vector field that needs conversion by the
@@ -234,15 +190,16 @@ The code below creates a new derived field called "Entr" and saves it to disk:
 
 .. code-block:: python
 
+    import yt
     from yt.mods import *
     from yt.utilities.grid_data_format import writer
 
-    def _Entropy(field, data) :
+    def _entropy(field, data) :
         return data["temperature"]*data["density"]**(-2./3.)
     add_field("Entr", function=_Entropy)
 
     pf = load('GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100')
-    writer.save_field(pf, "Entr")
+    writer.save_field(pf, "entropy")
 
 This creates a "_backup.gdf" file next to your datadump. If you load up the dataset again:
 
@@ -267,17 +224,11 @@ options available, but the only mandatory ones are ``name`` and possibly
 
    ``name``
      This is the name of the field -- how you refer to it.  For instance,
-     ``Pressure`` or ``H2I_Fraction``.
+     ``pressure`` or ``magnetic_field_strength``.
    ``function``
      This is a function handle that defines the field
-   ``convert_function``
-     This is the function that converts the field to CGS.  All inputs to this
-     function are mandated to already *be* in CGS.
    ``units``
-     This is a mathtext (LaTeX-like) string that describes the units.
-   ``projected_units``
-     This is a mathtext (LaTeX-like) string that describes the units if the
-     field has been projected without a weighting.
+     This is a string that describes the units.
    ``display_name``
      This is a name used in the plots, for instance ``"Divergence of
      Velocity"``.  If not supplied, the ``name`` value is used.
@@ -355,23 +306,3 @@ Using the parsec as an example,
 
 ``pch``
     Proper parsecs, normalized by the scaled hubble constant, :math:`\rm{pc}/h`.
-
-Which Enzo Field names Does ``yt`` Know About?
-----------------------------------------------
-
-These are the names of primitive fields in the Enzo AMR code.  ``yt`` was originally
-written to analyze Enzo data so the default field names used by the various
-frontends are the same as Enzo fields.
-
-.. note::
-
-   Enzo field names are *universal* yt fields.  All frontends define conversions
-   to Enzo fields.  Enzo fields are always in CGS.
-
-* Density
-* Temperature
-* Gas Energy
-* Total Energy
-* [xyz]-velocity
-* Species fields: HI, HII, Electron, HeI, HeII, HeIII, HM, H2I, H2II, DI, DII, HDI
-* Particle mass, velocity, 
