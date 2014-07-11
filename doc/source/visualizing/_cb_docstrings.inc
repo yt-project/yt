@@ -414,3 +414,32 @@ Overplot quivers for the velocity field
    p = yt.SlicePlot(ds, 'z', 'density', center='m', width=(10, 'kpc'))
    p.annotate_velocity()
    p.save()
+
+Add a Timestamp Inset Box
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. function:: annotate_timestamp(x, y, units=None, format="{time:.3G} {units}", 
+                                 **kwargs, normalized=False, bbox_dict=None)
+
+   (This is a proxy for
+   :class:`~yt.visualization.plot_modifications.TimestampCallback`.)
+
+   Adds the current time to the plot at point given by *x* and *y*.  If *units*
+   is given ('s', 'ms', 'ns', etc), it will covert the time to this basis.  If
+   *units* is None, it will attempt to figure out the correct value by which to
+   scale.  The *format* keyword is a template string that will be evaluated and
+   displayed on the plot.  If *normalized* is true, *x* and *y* are interpreted
+   as normalized plot coordinates (0,0 is lower-left and 1,1 is upper-right)
+   otherwise *x* and *y* are assumed to be in plot coordinates. The *bbox_dict*
+   is an optional dict of arguments for the bbox that frames the timestamp, see
+   matplotlib's text annotation guide for more details. All other *kwargs* will
+   be passed to the text() method on the plot axes.  See matplotlib's text()
+   functions for more information.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   p = yt.SlicePlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
+   p.annotate_timestamp()
+   p.save()
