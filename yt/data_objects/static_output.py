@@ -541,6 +541,31 @@ class Dataset(object):
               min_val, mx, my, mz)
         return min_val, self.arr([mx, my, mz], 'code_length', dtype="float64")
 
+    def find_field_values_at_points(self, fields, coords):
+        """
+        Returns the values [field1, field2,...] of the fields at the given
+        [(x1, y1, z2), (x2, y2, z2),...] points.  Returns a list of field 
+        values in the same order as the input *fields*.
+
+        This is probably quite slow right now as it creates a new data object
+        for each point.  We'd probably need a YTPointCollection container to
+        optimize this.
+        """
+        fields = ensure_list(fields)
+        x, y, z = coords
+        x = ensure_list(x)
+        y = ensure_list(y)
+        z = ensure_list(z)
+        if not len(x) == len(y) == len(z):
+            raise AssertionError("Arrays of indices must be of the same size")
+       
+        out = [np.zeros(len(x), dtype=np.float64) for f in fields] 
+        for i in range(len(x)):
+            p = self.point([x[i],y[i],z[i]])
+            for j,field in enumerate(fields):
+                out[j][i] = p[field][0]
+        return out
+
     # Now all the object related stuff
     def all_data(self, find_max=False):
         if find_max: c = self.find_max("density")[1]

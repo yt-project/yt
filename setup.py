@@ -193,7 +193,7 @@ def get_mercurial_changeset_id(target_dir):
 
 class my_build_src(build_src.build_src):
     def run(self):
-        self.run_command("build_forthon")
+        #self.run_command("build_forthon")
         build_src.build_src.run(self)
 
 
@@ -277,8 +277,8 @@ def setup_package():
         configuration=configuration,
         zip_safe=False,
         data_files=REASON_FILES,
-        cmdclass={'build_py': my_build_py, 'build_forthon': BuildForthon,
-                  'build_src': my_build_src, 'install_data': my_install_data},
+        cmdclass={'build_py': my_build_py, #'build_forthon': BuildForthon,
+                  'build_src': my_build_src},# 'install_data': my_install_data},
     )
     return
 
