@@ -104,7 +104,7 @@ class ParticleGenerator(object) :
         self.particles[:,self.posx_index] = x[idxs]
         self.particles[:,self.posy_index] = y[idxs]
         self.particles[:,self.posz_index] = z[idxs]
-        self.NumberOfParticles = np.bincount(particle_grid_inds,
+        self.NumberOfParticles = np.bincount(particle_grid_inds.astype("intp"),
                                              minlength=self.num_grids)
         if self.num_grids > 1 :
             np.add.accumulate(self.NumberOfParticles.squeeze(),

@@ -436,7 +436,7 @@ def assign_particle_data(pf, pdata) :
         pts = MatchPointsToGrids(grid_tree, len(x), x, y, z)
         particle_grid_inds = pts.find_points_in_tree()
         idxs = np.argsort(particle_grid_inds)
-        particle_grid_count = np.bincount(particle_grid_inds,
+        particle_grid_count = np.bincount(particle_grid_inds.astype("intp"),
                                           minlength=num_grids)
         particle_indices = np.zeros(num_grids + 1, dtype='int64')
         if num_grids > 1 :
