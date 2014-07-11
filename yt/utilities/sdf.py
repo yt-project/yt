@@ -370,7 +370,8 @@ class SDFIndex(object):
         self.set_bounds()
         self._midx_version = self.indexdata.parameters.get('midx_version', 0)
         if self._midx_version >= 1.0:
-            max_key = self.get_key(np.array([2**self.level - 1]*3))
+            max_key = self.get_key(np.array([2**self.level - 1]*3,
+                                            dtype="int64"))
         else:
             max_key = self.indexdata['index'][-1]
         self._max_key = max_key
@@ -456,7 +457,7 @@ class SDFIndex(object):
     def get_key(self, iarr, level=None):
         if level is None:
             level = self.level
-        i1, i2, i3 = iarr
+        i1, i2, i3 = (v.astype("int64") for v in iarr)
         return self.spread_bits(i1, level) | self.spread_bits(i2, level) << 1 | self.spread_bits(i3, level) << 2
 
     def spread_bitsv(self, ival, level=None):
@@ -464,16 +465,20 @@ class SDFIndex(object):
             level = self.level
         res = np.zeros_like(ival, dtype='int64')
         for i in range(level):
-            res |= np.bitwise_and((ival>>i), 1)<<(i*3);
+            ares = np.bitwise_and(ival, 1<<i) << (i*2)
+            np.bitwise_or(res, ares, res)
         return res
 
     def get_keyv(self, iarr, level=None):
         if level is None:
             level = self.level
-        i1, i2, i3 = iarr
-        return np.bitwise_or(
-            np.bitwise_or(self.spread_bitsv(i1, level) , self.spread_bitsv(i2, level) << 1 ),
-            self.spread_bitsv(i3, level) << 2)
+        i1, i2, i3 = (v.astype("int64") for v in iarr)
+        i1 = self.spread_bitsv(i1, level)
+        i2 = self.spread_bitsv(i2, level) << 1
+        i3 = self.spread_bitsv(i3, level) << 2
+        np.bitwise_or(i1, i2, i1)
+        np.bitwise_or(i1, i3, i1)
+        return i1
 
     def get_key_slow(self, iarr, level=None):
         if level is None:
@@ -517,8 +522,8 @@ class SDFIndex(object):
         set of offsets+lengths into the sdf data.
         """
         mask = np.zeros(self.indexdata['index'].shape, dtype='bool')
-        ileft = np.array(ileft)
-        iright = np.array(iright)
+        ileft = np.array(ileft, dtype="int64")
+        iright = np.array(iright, dtype="int64")
         for i in range(3):
             left_key = self.get_slice_key(ileft[i], dim=i)
             right_key= self.get_slice_key(iright[i], dim=i)
@@ -546,9 +551,9 @@ class SDFIndex(object):
                            ileft[0]:iright[0]+1.01]
 
         mask = slice(0, -1, None)
-        X = X[mask, mask, mask].astype('int32').ravel()
-        Y = Y[mask, mask, mask].astype('int32').ravel()
-        Z = Z[mask, mask, mask].astype('int32').ravel()
+        X = X[mask, mask, mask].astype('int64').ravel()
+        Y = Y[mask, mask, mask].astype('int64').ravel()
+        Z = Z[mask, mask, mask].astype('int64').ravel()
 
         if self.wandering_particles:
             # Need to get padded bbox around the border to catch
@@ -581,7 +586,11 @@ class SDFIndex(object):
             indices = indices[indices < self._max_key]
             #indices = indices[self.indexdata['len'][indices] > 0]
             # Faster for sparse lookups. Need better heuristic.
-            indices = indices[np.array([(self.indexdata['len'][ind] > 0) for ind in indices])]
+            new_indices = []
+            for ind in indices:
+                if self.indexdata['len'][ind] > 0:
+                    new_indices.append(ind)
+            indices = np.array(indices, dtype="int64")
 
         #indices = np.array([self.get_key_ijk(x, y, z) for x, y, z in zip(X, Y, Z)])
         # Here we sort the indices to batch consecutive reads together.
@@ -888,7 +897,8 @@ class SDFIndex(object):
     def find_max_cell_center(self):
         max_cell = self.find_max_cell()
         cell_ijk = np.array(
-            self.get_ind_from_key(self.indexdata['index'][max_cell]))
+            self.get_ind_from_key(self.indexdata['index'][max_cell]),
+            dtype="int64")
         position = (cell_ijk + 0.5) * (self.domain_width / self.domain_dims) +\
                 self.rmin
         return position
@@ -910,7 +920,7 @@ class SDFIndex(object):
             cell_data: dict
                 Dictionary of field_name, field_data
         """
-        cell_iarr = np.array(cell_iarr)
+        cell_iarr = np.array(cell_iarr, dtype="int64")
         lk, rk =self.get_key_bounds(level, cell_iarr)
         mylog.debug("Reading contiguous chunk from %i to %i" % (lk, rk))
         return self.get_contiguous_chunk(lk, rk, fields)
@@ -922,7 +932,7 @@ class SDFIndex(object):
             bbox: array-like, shape (3,2)
 
         """
-        cell_iarr = np.array(cell_iarr)
+        cell_iarr = np.array(cell_iarr, dtype="int64")
         cell_width = self.get_cell_width(level)
         le = self.rmin + cell_iarr*cell_width
         re = le+cell_width
