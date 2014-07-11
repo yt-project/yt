@@ -16,9 +16,6 @@ API for yt.analysis_modules
 from .absorption_spectrum.api import \
     AbsorptionSpectrum
 
-from .coordinate_transformation.api import \
-    spherical_regrid
-
 from .cosmological_observation.api import \
     CosmologySplice, \
     LightCone, \
@@ -58,11 +55,6 @@ from .halo_merger_tree.api import \
     MergerTreeDotOutput, \
     MergerTreeTextOutput
 
-from .halo_profiler.api import \
-    VirialFilter, \
-    HaloProfiler, \
-    FakeProfile
-
 from .level_sets.api import \
     identify_contours, \
     Clump, \
@@ -79,9 +71,6 @@ from .level_sets.api import \
     return_bottom_clumps, \
     recursive_bottom_clumps, \
     clump_list_sort
-
-from .radial_column_density.api import \
-    RadialColumnDensity
 
 from .spectral_integrator.api import \
      add_xray_emissivity_field
