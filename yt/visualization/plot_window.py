@@ -1698,7 +1698,7 @@ class WindowPlotMPL(ImagePlotMPL):
         else:
             fsize = figure_size
         self._cb_size = 0.0375*fsize
-        self._ax_text_size = [0.9*fontscale, 0.7*fontscale]
+        self._ax_text_size = [1.2*fontscale, 0.9*fontscale]
         self._top_buff_size = 0.30*fontscale
         self._aspect = ((extent[1] - extent[0])/(extent[3] - extent[2]))
 
