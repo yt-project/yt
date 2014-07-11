@@ -61,8 +61,8 @@ class BuildForthon(Command):
         cwd = os.getcwd()
         os.chdir(os.path.join(cwd, 'yt/utilities/kdtree'))
         cmd = [Forthon_exe, "-F", "gfortran", "--compile_first",
-               "fKD_source", "--no2underscores", "--fopt", "'-O3'", "fKD",
-               "fKD_source.f90"]
+               "fKD_source", "--no2underscores", "--fopt", "'-O3'",
+               "-f", "fKD.f90", "fKD", "fKD_source.f90"]
         subprocess.check_call(cmd, shell=False)
         shutil.move(glob.glob('build/lib*/fKDpy.so')[0], os.getcwd())
         os.chdir(cwd)
