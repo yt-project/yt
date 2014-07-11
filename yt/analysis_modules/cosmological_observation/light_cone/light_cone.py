@@ -179,7 +179,7 @@ class LightCone(CosmologySplice):
             proper_box_size = self.simulation.box_size / \
               (1.0 + self.light_cone_solution[q]["redshift"])
             self.light_cone_solution[q]["box_width_per_angle"] = \
-              (self.cosmology.angular_diameter_distance(self.observer_redshift,
+              (self.cosmology.angular_scale(self.observer_redshift,
                self.light_cone_solution[q]["redshift"]) /
                proper_box_size).in_units("1 / degree")
 

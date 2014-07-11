@@ -190,6 +190,29 @@ class Cosmology(object):
 
     def angular_diameter_distance(self, z_i, z_f):
         r"""
+        Following Hogg (1999), the angular diameter distance is 'the ratio of 
+        an object's physical transverse size to its angular size in radians.'
+
+        Parameters
+        ----------
+        z_i : float
+            The redshift of the observer.
+        z_f : float
+            The redshift of the observed object.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.angular_diameter_distance(0., 1.).in_units("Mpc")
+        
+        """
+        
+        return (self.comoving_transverse_distance(0, z_f) / (1 + z_f) - 
+                self.comoving_transverse_distance(0, z_i) / (1 + z_i)).in_cgs()
+
+    def angular_scale(self, z_i, z_f):
+        r"""
         The proper transverse distance between two points at redshift z_f 
         observed at redshift z_i per unit of angular separation.
 
@@ -204,13 +227,12 @@ class Cosmology(object):
         --------
 
         >>> co = Cosmology()
-        >>> print co.angular_diameter_distance(0., 1.).in_units("Mpc/deg")
+        >>> print co.angular_scale(0., 1.).in_units("kpc / arcsec")
         
         """
-        
-        return (self.comoving_transverse_distance(0, z_f) / (1 + z_f) - 
-                self.comoving_transverse_distance(0, z_i) / (1 + z_i)).in_cgs() / \
-                self.quan(1., "radian")
+
+        return self.angular_diameter_distance(z_i, z_f) / \
+          self.quan(1, "radian")
 
     def luminosity_distance(self, z_i, z_f):
         r"""
