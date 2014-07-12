@@ -8,11 +8,14 @@ from yt.funcs import mylog
 
 _types = {
     'int': 'int32',
+    'int32_t': 'int32',
+    'uint32_t': 'uint32',
     'int64_t': 'int64',
     'float': 'float32',
     'double': 'float64',
     'unsigned int': 'I',
     'unsigned char': 'B',
+    'char': 'B',
 }
 
 def get_type(vtype, tlen=None):
@@ -119,6 +122,15 @@ class DataStruct(object):
         for k in self.dtype.names:
             self.data[k] = self.handle[k]
 
+    def __del__(self):
+        if self.handle:
+            try:
+                self.handle.close()
+            except AttributeError:
+                pass
+            del self.handle
+            self.handle = None
+
     def __getitem__(self, key):
         mask = None
         kt = type(key)
@@ -188,7 +200,7 @@ class SDFRead(dict):
 
     """docstring for SDFRead"""
 
-    _eof = 'SDF-EOH'
+    _eof = 'SDF-EO'
     _data_struct = DataStruct
 
     def __init__(self, filename, header=None):
@@ -289,7 +301,6 @@ class HTTPSDFRead(SDFRead):
     """docstring for SDFRead"""
 
     _data_struct = HTTPDataStruct
-    _eof = 'SDF-EOH'
 
     def parse_header(self):
         """docstring for parse_header"""

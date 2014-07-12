@@ -106,10 +106,10 @@ class SDFDataset(Dataset):
 
     def _parse_parameter_file(self):
         if self.parameter_filename.startswith("http"):
-            cls = HTTPSDFRead
+            sdf_class = HTTPSDFRead
         else:
-            cls = SDFRead
-        self.sdf_container = cls(self.parameter_filename,
+            sdf_class = SDFRead
+        self.sdf_container = sdf_class(self.parameter_filename,
                                  header=self.sdf_header)
 
         # Reference
@@ -166,10 +166,10 @@ class SDFDataset(Dataset):
             if self.midx_filename is not None:
 
                 if 'http' in self.midx_filename:
-                    cls = HTTPSDFRead
+                    sdf_class = HTTPSDFRead
                 else:
-                    cls = SDFRead
-                indexdata = cls(self.midx_filename, header=self.midx_header)
+                    sdf_class = SDFRead
+                indexdata = sdf_class(self.midx_filename, header=self.midx_header)
                 self._midx = SDFIndex(self.sdf_container, indexdata,
                                         level=self.midx_level)
             else:
@@ -190,14 +190,16 @@ class SDFDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        if args[0].startswith("http"):
+        sdf_header = kwargs.get('sdf_header', args[0])
+        print 'Parsing sdf_header: %s' % sdf_header
+        if sdf_header.startswith("http"):
             if requests is None: return False
-            hreq = requests.get(args[0], stream=True)
+            hreq = requests.get(sdf_header, stream=True)
             if hreq.status_code != 200: return False
             # Grab a whole 4k page.
             line = hreq.iter_content(4096).next()
-        elif os.path.isfile(args[0]): 
-            with open(args[0], "r") as f:
+        elif os.path.isfile(sdf_header):
+            with open(sdf_header, "r") as f:
                 line = f.read(10).strip()
         else:
             return False
