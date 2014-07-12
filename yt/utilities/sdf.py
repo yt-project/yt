@@ -202,12 +202,45 @@ class HTTPDataStruct(DataStruct):
 
 class SDFRead(dict):
 
-    """docstring for SDFRead"""
-
     _eof = 'SDF-EO'
     _data_struct = DataStruct
 
     def __init__(self, filename, header=None):
+        r""" Read an SDF file, loading parameters and variables.
+
+        Given an SDF file (see http://bitbucket.org/JohnSalmon/sdf), parse the
+        ASCII header and construct numpy memmap array
+        access.
+
+        Parameters
+        ----------
+        filename: string
+        The filename associated with the data to be loaded.
+        header: string, optional
+        If separate from the data file, a file containing the
+        header can be specified. Default: None.
+
+        Returns
+        -------
+        self : SDFRead object
+        Dict-like container of parameters and data.
+
+
+        References
+        ----------
+        SDF is described here:
+
+            J. K. Salmon and M. S. Warren. Self-Describing File (SDF) Library.
+            Zenodo, Jun 2014. URL http://bitbucket.org/JohnSalmon/sdf.
+
+        Examples
+        --------
+
+        >>> sdf = SDFRead("data.sdf", header="data.hdr")
+        >>> print sdf.parameters
+        >>> print sdf['x']
+
+        """
         self.filename = filename
         if header is None:
             header = filename
@@ -218,6 +251,16 @@ class SDFRead(dict):
         self.parse_header()
         self.set_offsets()
         self.load_memmaps()
+
+    def __repr__(self):
+        disp = "<SDFRead Object> file: %s\n" % self.filename
+        disp += "parameters: \n"
+        for k, v in self.parameters.iteritems():
+            disp += "\t%s: %s\n" % (k, v)
+        disp += "arrays: \n"
+        for k, v in self.iteritems():
+            disp += "\t%s[%s]\n" % (k, v.size)
+        return disp
 
     def parse_header(self):
         """docstring for parse_header"""
