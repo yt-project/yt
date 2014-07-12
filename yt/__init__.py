@@ -76,7 +76,6 @@ __version__ = "3.0-dev"
 
 # First module imports
 import numpy as np # For modern purposes
-import numpy # In case anyone wishes to use it by name
 
 from yt.funcs import \
     iterable, \
@@ -162,3 +161,9 @@ from yt.testing import \
 from yt.utilities.math_utils import \
     ortho_find, quartiles, periodic_position
 
+# The variable unparsed_args is not used internally but is provided
+# as a convenience for users who wish to parse arguments in scripts.
+# See http://lists.spacepope.org/pipermail/yt-dev-spacepope.org/2011-December/
+#     001727.html
+import startup_tasks as __startup_tasks
+unparsed_args = __startup_tasks.unparsed_args
