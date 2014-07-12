@@ -746,15 +746,15 @@ def test_astropy():
     yt_quan2 = YTQuantity.from_astropy(ap_quan)
 
     yield assert_array_equal, ap_arr, yt_arr.to_astropy()
-    yield assert_array_equal, yt_arr, YTArray(ap_arr)
+    yield assert_array_equal, yt_arr, YTArray.from_astropy(ap_arr)
     yield assert_array_equal, yt_arr, yt_arr2
 
     yield assert_equal, ap_quan, yt_quan.to_astropy()
-    yield assert_equal, yt_quan, YTQuantity(ap_quan)
+    yield assert_equal, yt_quan, YTQuantity.from_astropy(ap_quan)
     yield assert_equal, yt_quan, yt_quan2
 
-    yield assert_array_equal, yt_arr, YTArray(yt_arr.to_astropy())
-    yield assert_equal, yt_quan, YTQuantity(yt_quan.to_astropy())
+    yield assert_array_equal, yt_arr, YTArray.from_astropy(yt_arr.to_astropy())
+    yield assert_equal, yt_quan, YTQuantity.from_astropy(yt_quan.to_astropy())
 
 def test_subclass():
 
