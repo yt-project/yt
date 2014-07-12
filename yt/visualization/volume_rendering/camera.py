@@ -664,8 +664,8 @@ class Camera(ParallelAnalysisInterface):
            this to false can allow us to overlay the image onto an 
            existing figure
         label_fmt : str, optional
-           A format specifier to use in formatting the data values that 
-           label the transfer function colorbar. 
+           A format specifier (e.g., label_fmt="%.2g") to use in formatting 
+           the data values that label the transfer function colorbar. 
         
         """
         image = image.swapaxes(0,1) 
