@@ -49,8 +49,7 @@ the total accumulation (when weight_field is set to ``None``) or the average
 Simple Radial Profiles
 ~~~~~~~~~~~~~~~~~~~~~~
 
-This shows how to make a profile of a quantity with respect to the radius, in
-this case the radius in Mpc.
+This shows how to make a profile of a quantity with respect to the radius.
 
 .. yt_cookbook:: simple_radial_profile.py
 
@@ -87,17 +86,17 @@ This recipe shows how to add multiple fields to a single plot.
 Off-Axis Slicing
 ~~~~~~~~~~~~~~~~
 
-A cutting plane allows you to slice at some angle that isn't aligned with the
-axes.
+One can create slices from any arbitrary angle, not just those aligned with
+the x,y,z axes.
 
-.. yt_cookbook:: aligned_cutting_plane.py
+.. yt_cookbook:: simple_off_axis_slice.py
 
 .. _cookbook-simple-off-axis-projection:
 
 Off-Axis Projection
 ~~~~~~~~~~~~~~~~~~~
 
-Like cutting planes, off-axis projections can be created from any arbitrary 
+Like off-axis slices, off-axis projections can be created from any arbitrary 
 viewing angle.
 
 .. yt_cookbook:: simple_off_axis_projection.py
@@ -118,6 +117,8 @@ labels and colorbars.  This is useful when you don't care about the physical
 scales and just want to take a closer look at the raw plot data.
 
 .. yt_cookbook:: show_hide_axes_colorbar.py
+
+.. _matplotlib-primitives:
 
 Accessing and Modifying Plots Directly
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

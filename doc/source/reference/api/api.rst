@@ -15,6 +15,7 @@ SlicePlot and ProjectionPlot
    ~yt.visualization.plot_window.OffAxisSlicePlot
    ~yt.visualization.plot_window.ProjectionPlot
    ~yt.visualization.plot_window.OffAxisProjectionPlot
+   ~yt.visualization.plot_window.WindowPlotMPL
 
 ProfilePlot and PhasePlot
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -24,6 +25,7 @@ ProfilePlot and PhasePlot
 
    ~yt.visualization.profile_plotter.ProfilePlot
    ~yt.visualization.profile_plotter.PhasePlot
+   ~yt.visualization.profile_plotter.PhasePlotMPL
 
 Fixed Resolution Pixelization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -550,8 +552,6 @@ Absorption and X-ray spectra and spectral lines:
    ~yt.analysis_modules.absorption_spectrum.absorption_spectrum.AbsorptionSpectrum
    ~yt.analysis_modules.spectral_integrator.spectral_frequency_integrator.EmissivityIntegrator
    ~yt.analysis_modules.spectral_integrator.spectral_frequency_integrator.add_xray_emissivity_field
-   ~yt.analysis_modules.spectral_integrator.spectral_frequency_integrator.add_xray_luminosity_field
-   ~yt.analysis_modules.spectral_integrator.spectral_frequency_integrator.add_xray_photon_emissivity_field
 
 Absorption spectra fitting:
 

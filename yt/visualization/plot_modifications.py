@@ -16,6 +16,7 @@ Callbacks to add additional functionality on to plots.
 
 import numpy as np
 import h5py
+from matplotlib.patches import Circle
 
 from yt.funcs import *
 from yt.extern.six import add_metaclass
@@ -548,8 +549,12 @@ class LinePlotCallback(PlotCallback):
         self.plot_args = plot_args
 
     def __call__(self, plot):
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
         plot._axes.plot(self.x, self.y, **self.plot_args)
+        plot._axes.set_xlim(xx0,xx1)
+        plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
 
 class ImageLineCallback(LinePlotCallback):
@@ -718,7 +723,8 @@ class ArrowCallback(PlotCallback):
             pos = self.pos[xi], self.pos[yi]
         else: pos = self.pos
         if isinstance(self.code_size[1], basestring):
-            code_size = plot.data.pf.quan(*self.code_size).value
+            code_size = plot.data.pf.quan(*self.code_size)
+            code_size = code_size.in_units('code_length').value
             self.code_size = (code_size, code_size)
         from matplotlib.patches import Arrow
         # Now convert the pixels to code information
@@ -812,7 +818,7 @@ class SphereCallback(PlotCallback):
 
         if iterable(self.radius):
             self.radius = plot.data.pf.quan(self.radius[0], self.radius[1])
-            self.radius = np.float64(self.radius)
+            self.radius = np.float64(self.radius.in_units(plot.xlim[0].units))
 
         radius = self.radius * self.pixel_scale(plot)[0]
 
@@ -865,21 +871,49 @@ class TextLabelCallback(PlotCallback):
         plot._axes.text(x, y, self.text, **kwargs)
 
 class HaloCatalogCallback(PlotCallback):
+    """
+    annotate_halos(halo_catalog, circle_kwargs=None,
+        width = None, annotate_field=False,
+        font_kwargs = None, factor = 1.0)
+
+    Plots circles at the locations of all the halos
+    in a halo catalog with radii corresponding to the
+    virial radius of each halo. 
+
+    circle_kwargs: Contains the arguments controlling the
+        appearance of the circles, supplied to the 
+        Matplotlib patch Circle.
+    width: the width over which to select halos to plot,
+        useful when overplotting to a slice plot. Accepts
+        a tuple in the form (1.0, 'Mpc').
+    annotate_field: Accepts a field contained in the 
+        halo catalog to add text to the plot near the halo.
+        Example: annotate_field = 'particle_mass' will
+        write the halo mass next to each halo.
+    font_kwargs: Contains the arguments controlling the text
+        appearance of the annotated field.
+    factor: A number the virial radius is multiplied by for
+        plotting the circles. Ex: factor = 2.0 will plot
+        circles with twice the radius of each halo virial radius.
+    """
 
     _type_name = 'halos'
     region = None
     _descriptor = None
 
-    def __init__(self, halo_catalog, col='white', alpha =1, 
-            width = None, annotate_field = False, font_kwargs = None):
+    def __init__(self, halo_catalog, circle_kwargs = None, 
+            width = None, annotate_field = False,
+            font_kwargs = None, factor = 1.0):
 
         PlotCallback.__init__(self)
         self.halo_catalog = halo_catalog
-        self.color = col
-        self.alpha = alpha
         self.width = width
         self.annotate_field = annotate_field
         self.font_kwargs = font_kwargs
+        self.factor = factor
+        if circle_kwargs is None:
+            circle_kwargs = {'edgecolor':'white', 'facecolor':'None'}
+        self.circle_kwargs = circle_kwargs
 
     def __call__(self, plot):
         data = plot.data
@@ -898,20 +932,20 @@ class HaloCatalogCallback(PlotCallback):
         plot._axes.hold(True)
 
         # Set up scales for pixel size and original data
-        units = 'Mpccm'
         pixel_scale = self.pixel_scale(plot)[0]
         data_scale = data.pf.length_unit
+        units = data_scale.units
 
         # Convert halo positions to code units of the plotted data
         # and then to units of the plotted window
         px = halo_data[field_x][:].in_units(units) / data_scale
         py = halo_data[field_y][:].in_units(units) / data_scale
         px, py = self.convert_to_plot(plot,[px,py])
-        
-        # Convert halo radii to a radius in pixels
-        radius = halo_data['radius'][:].in_units(units)
-        radius = radius*pixel_scale/data_scale
 
+        # Convert halo radii to a radius in pixels
+        radius = halo_data['virial_radius'][:].in_units(units)
+        radius = np.array(radius*pixel_scale*self.factor/data_scale)
+        
         if self.width:
             pz = halo_data[field_z][:].in_units(units)/data_scale
             pz = data.pf.arr(pz, 'code_length')
@@ -927,8 +961,10 @@ class HaloCatalogCallback(PlotCallback):
             py = py[indices]
             radius = radius[indices]
 
-        plot._axes.scatter(px, py, edgecolors='None', marker='o',
-                           s=radius, c=self.color,alpha=self.alpha)
+        for x,y,r in zip(px, py, radius):
+            plot._axes.add_artist(Circle(xy=(x,y), 
+                radius = r, **self.circle_kwargs)) 
+
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
@@ -1033,114 +1069,29 @@ class TitleCallback(PlotCallback):
     def __call__(self,plot):
         plot._axes.set_title(self.title)
 
-class FlashRayDataCallback(PlotCallback):
-    """ 
-    annotate_flash_ray_data(cmap_name='bone', sample=None)
-
-    Adds ray trace data to the plot.  *cmap_name* is the name of the color map 
-    ('bone', 'jet', 'hot', etc).  *sample* dictates the amount of down sampling 
-    to do to prevent all of the rays from being  plotted.  This may be None 
-    (plot all rays, default), an integer (step size), or a slice object.
-    """
-    _type_name = "flash_ray_data"
-    def __init__(self, cmap_name='bone', sample=None):
-        self.cmap_name = cmap_name
-        self.sample = sample if isinstance(sample, slice) else slice(None, None, sample)
-
-    def __call__(self, plot):
-        ray_data = plot.data.pf._handle["RayData"][:]
-        idx = ray_data[:,0].argsort(kind="mergesort")
-        ray_data = ray_data[idx]
-
-        tags = ray_data[:,0]
-        coords = ray_data[:,1:3]
-        power = ray_data[:,4]
-        power /= power.max()
-        cx, cy = self.convert_to_plot(plot, coords.T)
-        coords[:,0], coords[:,1] = cx, cy
-        splitidx = np.argwhere(0 < (tags[1:] - tags[:-1])) + 1
-        coords = np.split(coords, splitidx.flat)[self.sample]
-        power = np.split(power, splitidx.flat)[self.sample]
-        cmap = matplotlib.cm.get_cmap(self.cmap_name)
-
-        plot._axes.hold(True)
-        colors = [cmap(p.max()) for p in power]
-        lc = matplotlib.collections.LineCollection(coords, colors=colors)
-        plot._axes.add_collection(lc)
-        plot._axes.hold(False)
-
-
 class TimestampCallback(PlotCallback):
-    """ 
+    """
     annotate_timestamp(x, y, units=None, format="{time:.3G} {units}", **kwargs,
                        normalized=False, bbox_dict=None)
 
-    Adds the current time to the plot at point given by *x* and *y*.  If *units* 
-    is given ('s', 'ms', 'ns', etc), it will covert the time to this basis.  If 
-    *units* is None, it will attempt to figure out the correct value by which to 
-    scale.  The *format* keyword is a template string that will be evaluated and 
-    displayed on the plot.  If *normalized* is true, *x* and *y* are interpreted 
-    as normalized plot coordinates (0,0 is lower-left and 1,1 is upper-right) 
-    otherwise *x* and *y* are assumed to be in plot coordinates. The *bbox_dict* 
-    is an optional dict of arguments for the bbox that frames the timestamp, see 
-    matplotlib's text annotation guide for more details. All other *kwargs* will 
-    be passed to the text() method on the plot axes.  See matplotlib's text() 
+    Adds the current time to the plot at point given by *x* and *y*.  If *units*
+    is given ('s', 'ms', 'ns', etc), it will covert the time to this basis.  If
+    *units* is None, it will attempt to figure out the correct value by which to
+    scale.  The *format* keyword is a template string that will be evaluated and
+    displayed on the plot.  If *normalized* is true, *x* and *y* are interpreted
+    as normalized plot coordinates (0,0 is lower-left and 1,1 is upper-right)
+    otherwise *x* and *y* are assumed to be in plot coordinates. The *bbox_dict*
+    is an optional dict of arguments for the bbox that frames the timestamp, see
+    matplotlib's text annotation guide for more details. All other *kwargs* will
+    be passed to the text() method on the plot axes.  See matplotlib's text()
     functions for more information.
     """
     _type_name = "timestamp"
-    _time_conv = {
-          'as': 1e-18,
-          'attosec': 1e-18,
-          'attosecond': 1e-18,
-          'attoseconds': 1e-18,
-          'fs': 1e-15,
-          'femtosec': 1e-15,
-          'femtosecond': 1e-15,
-          'femtoseconds': 1e-15,
-          'ps': 1e-12,
-          'picosec': 1e-12,
-          'picosecond': 1e-12,
-          'picoseconds': 1e-12,
-          'ns': 1e-9,
-          'nanosec': 1e-9,
-          'nanosecond':1e-9,
-          'nanoseconds' : 1e-9,
-          'us': 1e-6,
-          'microsec': 1e-6,
-          'microsecond': 1e-6,
-          'microseconds': 1e-6,
-          'ms': 1e-3,
-          'millisec': 1e-3,
-          'millisecond': 1e-3,
-          'milliseconds': 1e-3,
-          's': 1.0,
-          'sec': 1.0,
-          'second':1.0,
-          'seconds': 1.0,
-          'm': 60.0,
-          'min': 60.0,
-          'minute': 60.0,
-          'minutes': 60.0,
-          'h': sec_per_hr,
-          'hour': sec_per_hr,
-          'hours': sec_per_hr,
-          'd': sec_per_day,
-          'day': sec_per_day,
-          'days': sec_per_day,
-          'y': sec_per_year,
-          'year': sec_per_year,
-          'years': sec_per_year,
-          'kyr': sec_per_kyr,
-          'myr': sec_per_Myr,
-          'gyr': sec_per_Gyr,
-          'ev': 1e-9 * 7.6e-8 / 6.03,
-          'kev': 1e-12 * 7.6e-8 / 6.03,
-          'mev': 1e-15 * 7.6e-8 / 6.03,
-          }
-    _bbox_dict = {'boxstyle': 'square,pad=0.6', 'fc': 'white', 'ec': 'black', 'alpha': 1.0}
+    _bbox_dict = {'boxstyle': 'square,pad=0.6', 'fc': 'white', 'ec': 'black',
+                  'alpha': 1.0}
 
-    def __init__(self, x, y, units=None, format="{time:.3G} {units}", normalized=False, 
-                 bbox_dict=None, **kwargs):
+    def __init__(self, x, y, units=None, format="{time:.3G} {units}",
+                 normalized=False, bbox_dict=None, **kwargs):
         self.x = x
         self.y = y
         self.format = format
@@ -1155,54 +1106,29 @@ class TimestampCallback(PlotCallback):
 
     def __call__(self, plot):
         if self.units is None:
-            t = plot.data.pf.current_time * plot.data.pf['Time']
-            scale_keys = ['as', 'fs', 'ps', 'ns', 'us', 'ms', 's', 
-                          'hour', 'day', 'year', 'kyr', 'myr', 'gyr']
-            self.units = 's'
-            for k in scale_keys:
-                if t < self._time_conv[k]:
+            t = plot.data.pf.current_time.in_units('s')
+            scale_keys = ['fs', 'ps', 'ns', 'us', 'ms', 's', 'hr', 'day',
+                          'yr', 'kyr', 'Myr', 'Gyr']
+            for i, k in enumerate(scale_keys):
+                if t < YTQuantity(1, k):
                     break
-                self.units = k
-        t = plot.data.pf.current_time * plot.data.pf['Time'] 
-        t /= self._time_conv[self.units.lower()]
+                t.convert_to_units(k)
+            self.units = scale_keys[i-1]
+        else:
+            t = plot.data.pf.current_time.in_units(self.units)
         if self.units == 'us':
             self.units = '$\\mu s$'
-        s = self.format.format(time=t, units=self.units)
+        s = self.format.format(time=float(t), units=self.units)
         plot._axes.hold(True)
         if self.normalized:
             plot._axes.text(self.x, self.y, s, horizontalalignment='center',
                             verticalalignment='center', 
-                            transform = plot._axes.transAxes, bbox=self.bbox_dict)
+                            transform = plot._axes.transAxes,
+                            bbox=self.bbox_dict)
         else:
-            plot._axes.text(self.x, self.y, s, bbox=self.bbox_dict, **self.kwargs)
+            plot._axes.text(self.x, self.y, s, bbox=self.bbox_dict,
+                            **self.kwargs)
         plot._axes.hold(False)
-
-
-class MaterialBoundaryCallback(ContourCallback):
-    """ 
-    annotate_material_boundary(self, field='targ', ncont=1, factor=4, 
-                               clim=(0.9, 1.0), **kwargs):
-
-    Add the limiting contours of *field* to the plot.  Nominally, *field* is 
-    the target material but may be any other field present in the index.
-    The number of contours generated is given by *ncount*, *factor* governs 
-    the number of points used in the interpolation, and *clim* gives the 
-    (upper, lower) limits for contouring.  For this to truly be the boundary
-    *clim* should be close to the edge.  For example the default is (0.9, 1.0)
-    for 'targ' which is defined on the range [0.0, 1.0].  All other *kwargs* 
-    will be passed to the contour() method on the plot axes.  See matplotlib
-    for more information.
-    """
-    _type_name = "material_boundary"
-    def __init__(self, field='targ', ncont=1, factor=4, clim=(0.9, 1.0), **kwargs):
-        plot_args = {'colors': 'w'}
-        plot_args.update(kwargs)
-        super(MaterialBoundaryCallback, self).__init__(field=field, ncont=ncont,
-                                                       factor=factor, clim=clim,
-                                                       plot_args=plot_args)
-
-    def __call__(self, plot):
-        super(MaterialBoundaryCallback, self).__call__(plot)
 
 class TriangleFacetsCallback(PlotCallback):
     """ 

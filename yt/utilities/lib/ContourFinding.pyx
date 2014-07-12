@@ -25,7 +25,6 @@ from yt.geometry.oct_container cimport \
     OctreeContainer, OctInfo
 from yt.geometry.oct_visitors cimport \
     Oct
-from yt.geometry.particle_smooth cimport r2dist
 from .amr_kdtools cimport _find_node, Node
 from .grid_traversal cimport VolumeContainer, PartitionedGrid, \
     vc_index, vc_pos_index

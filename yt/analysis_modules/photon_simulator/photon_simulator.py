@@ -956,7 +956,7 @@ class EventList(object) :
 
         if isinstance(self.parameters["Area"], basestring):
              mylog.error("Writing SIMPUT files is only supported if you didn't convolve with an ARF.")
-             raise TypeError
+             raise TypeError("Writing SIMPUT files is only supported if you didn't convolve with an ARF.")
         
         if emin is None:
             emin = self.events["eobs"].min().value*0.95
@@ -1032,7 +1032,10 @@ class EventList(object) :
         f = h5py.File(h5file, "w")
 
         f.create_dataset("/exp_time", data=float(self.parameters["ExposureTime"]))
-        f.create_dataset("/area", data=float(self.parameters["Area"]))
+        area = self.parameters["Area"]
+        if not isinstance(area, basestring):
+            area = float(area)
+        f.create_dataset("/area", data=area)
         f.create_dataset("/redshift", data=self.parameters["Redshift"])
         f.create_dataset("/d_a", data=float(self.parameters["AngularDiameterDistance"]))
         if "ARF" in self.parameters:

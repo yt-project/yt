@@ -1,6 +1,11 @@
 Constructing Mock X-ray Observations
 ------------------------------------
 
+.. note::
+
+  If you just want to create derived fields for X-ray emission,
+  you should go `here <xray_emission_fields.html>`_ instead.
+
 The ``photon_simulator`` analysis module enables the creation of
 simulated X-ray photon lists of events from datasets that ``yt`` is able
 to read. The simulated events then can be exported to X-ray telescope

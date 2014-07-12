@@ -567,8 +567,10 @@ fi
 
 mkdir -p ${DEST_DIR}/data
 cd ${DEST_DIR}/data
-echo 'de6d8c6ea849f0206d219303329a0276b3cce7c051eec34377d42aacbe0a4f47ac5145eb08966a338ecddd2b83c8f787ca9956508ad5c39ee2088ad875166410  xray_emissivity.h5' > xray_emissivity.h5.sha512
-[ ! -e xray_emissivity.h5 ] && get_ytdata xray_emissivity.h5
+echo 'de6d8c6ea849f0206d219303329a0276b3cce7c051eec34377d42aacbe0a4f47ac5145eb08966a338ecddd2b83c8f787ca9956508ad5c39ee2088ad875166410  cloudy_emissivity.h5' > cloudy_emissivity.h5.sha512
+[ ! -e cloudy_emissivity.h5 ] && get_ytdata cloudy_emissivity.h5
+echo '0f714ae2eace0141b1381abf1160dc8f8a521335e886f99919caf3beb31df1fe271d67c7b2a804b1467949eb16b0ef87a3d53abad0e8160fccac1e90d8d9e85f  apec_emissivity.h5' > apec_emissivity.h5.sha512
+[ ! -e apec_emissivity.h5 ] && get_ytdata apec_emissivity.h5
 
 # Set paths to what they should be when yt is activated.
 export PATH=${DEST_DIR}/bin:$PATH

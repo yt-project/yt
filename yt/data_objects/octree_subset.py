@@ -199,7 +199,7 @@ class OctreeSubset(YTSelectionContainer):
         op.process_octree(self.oct_handler, mdom_ind, positions, 
             self.fcoords, fields,
             self.domain_id, self._domain_offset, self.pf.periodicity,
-            index_fields, particle_octree, pdom_ind)
+            index_fields, particle_octree, pdom_ind, self.pf.geometry)
         vals = op.finalize()
         if vals is None: return
         if isinstance(vals, list):

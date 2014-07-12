@@ -185,7 +185,7 @@ class AMRKDTree(ParallelAnalysisInterface):
             yield self.get_brick_data(node)
 
     def slice_traverse(self, viewpoint = None):
-        if not hasattr(self.pf.h, "grid"):
+        if not hasattr(self.pf.index, "grid"):
             raise NotImplementedError
         for node in kd_traverse(self.tree.trunk, viewpoint=viewpoint):
             grid = self.pf.index.grids[node.grid - self._id_offset]
