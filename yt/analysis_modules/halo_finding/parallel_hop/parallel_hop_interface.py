@@ -21,12 +21,14 @@ import gc
 from yt.funcs import *
 from yt.utilities.performance_counters import yt_counters, time_function
 try:
+    # Note: This is now broken due to removing of kdtree (DHR 7/11/2014)
     from yt.utilities.kdtree.api import \
         chainHOP_tags_dens, \
         create_tree, fKD, find_nn_nearest_neighbors, \
         free_tree, find_chunk_nearest_neighbors
 except ImportError:
-    mylog.debug("The Fortran kD-Tree did not import correctly.")
+    mylog.debug("The Fortran kD-Tree did not import correctly. "
+                "It was removed as of 7/11/2014.")
 
 from yt.utilities.spatial import cKDTree
 
