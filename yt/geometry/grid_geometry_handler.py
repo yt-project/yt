@@ -201,7 +201,8 @@ class GridIndex(Index):
         for item in ("Mpc", "pc", "AU", "cm"):
             print "\tWidth: %0.3e %s" % (dx.in_units(item), item)
 
-    def find_points(self, x, y, z) :
+    def _find_
+    def _find_points(self, x, y, z) :
         """
         Returns the (objects, indices) of leaf grids containing a number of (x,y,z) points
         """
@@ -211,12 +212,12 @@ class GridIndex(Index):
         if not len(x) == len(y) == len(z):
             raise AssertionError("Arrays of indices must be of the same size")
 
-        grid_tree = self.get_grid_tree()
+        grid_tree = self._get_grid_tree()
         pts = MatchPointsToGrids(grid_tree, len(x), x, y, z)
         ind = pts.find_points_in_tree()
         return self.grids[ind], ind
 
-    def get_grid_tree(self) :
+    def _get_grid_tree(self) :
 
         left_edge = self.pf.arr(np.zeros((self.num_grids, 3)),
                                'code_length')

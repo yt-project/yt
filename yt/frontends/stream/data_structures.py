@@ -402,7 +402,7 @@ def set_particle_types(data) :
 def assign_particle_data(pf, pdata) :
 
     """
-    Assign particle data to the grids using find_points. This
+    Assign particle data to the grids using MatchPointsToGrids. This
     will overwrite any existing particle data, so be careful!
     """
     
