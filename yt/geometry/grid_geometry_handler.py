@@ -201,6 +201,35 @@ class GridIndex(Index):
         for item in ("Mpc", "pc", "AU", "cm"):
             print "\tWidth: %0.3e %s" % (dx.in_units(item), item)
 
+    def _find_field_values_at_points(self, fields, coords):
+        r"""Find the value of fields at a set of coordinates.
+
+        Returns the values [field1, field2,...] of the fields at the given
+        (x, y, z) points. Returns a numpy array of field values cross coords
+        """
+        coords = YTArray(ensure_numpy_array(coords),'code_length', registry=self.pf.unit_registry)
+        grids = self._find_points(coords[:,0], coords[:,1], coords[:,2])[0]
+        fields = ensure_list(fields)
+        mark = np.zeros(3, dtype=np.int)
+        out = []
+
+        # create point -> grid mapping
+        grid_index = {}
+        for coord_index, grid in enumerate(grids):
+            if not grid_index.has_key(grid):
+                grid_index[grid] = []
+            grid_index[grid].append(coord_index)
+
+        out = np.zeros((len(fields),len(coords)), dtype=np.float64)
+        for grid in grid_index:
+            cellwidth = (grid.RightEdge - grid.LeftEdge) / grid.ActiveDimensions
+            for field in fields:
+                for coord_index in grid_index[grid]:
+                    mark = ((coords[coord_index,:] - grid.LeftEdge) / cellwidth).astype('int')
+                    out[:,coord_index] = grid[field][mark[0],mark[1],mark[2]]
+        return out
+
+
     def _find_points(self, x, y, z) :
         """
         Returns the (objects, indices) of leaf grids containing a number of (x,y,z) points
