@@ -58,14 +58,14 @@ def bbox_filter(left, right, domain_width):
     def myfilter(chunk, mask=None):
         pos = np.array([chunk['x'], chunk['y'], chunk['z']]).T
 
-        # This hurts, but is useful for periodicity. Probably should check first
-        # if it is even needed for a given left/right
+        # This hurts, but is useful for periodicity. Probably should check
+        # first if it is even needed for a given left/right
         for i in range(3):
-            pos[:,i] = np.mod(pos[:,i] - left[i], domain_width[i]) + left[i]
+            pos[:, i] = np.mod(pos[:, i] - left[i], domain_width[i]) + left[i]
 
         # Now get all particles that are within the bbox
         if mask is None:
-            mask = np.all(pos >= left, axis=1) 
+            mask = np.all(pos >= left, axis=1)
             np.logical_and(mask, np.all(pos < right, axis=1), mask)
         else:
             np.logical_and(mask, np.all(pos >= left, axis=1), mask)
@@ -74,15 +74,17 @@ def bbox_filter(left, right, domain_width):
 
     return myfilter
 
+
 def sphere_filter(center, radius, domain_width):
 
     def myfilter(chunk, mask=None):
         pos = np.array([chunk['x'], chunk['y'], chunk['z']]).T
+        left = center-radius
 
-        # This hurts, but is useful for periodicity. Probably should check first
-        # if it is even needed for a given left/right
+        # This hurts, but is useful for periodicity. Probably should check
+        # first if it is even needed for a given left/right
         for i in range(3):
-            pos[:,i] = np.mod(pos[:,i] - left[i], domain_width[i]) + left[i]
+            pos[:, i] = np.mod(pos[:, i] - left[i], domain_width[i]) + left[i]
 
         # Now get all particles that are within the radius
         if mask is None:
@@ -93,10 +95,12 @@ def sphere_filter(center, radius, domain_width):
 
     return myfilter
 
+
 def _ensure_xyz_fields(fields):
     for f in 'xyz':
         if f not in fields:
             fields.append(f)
+
 
 class DataStruct(object):
     """docstring for DataStruct"""
@@ -121,13 +125,13 @@ class DataStruct(object):
 
     def build_memmap(self):
         assert(self.size != -1)
-        self.handle = np.memmap(self.filename, dtype=self.dtype,
-                        mode='r', shape=self.size, offset=self._offset)
+        self.handle = np.memmap(self.filename, dtype=self.dtype, mode='r',
+                                shape=self.size, offset=self._offset)
         for k in self.dtype.names:
             self.data[k] = self.handle[k]
 
     def __del__(self):
-        if self.handle:
+        if self.handle is not None:
             try:
                 self.handle.close()
             except AttributeError:
