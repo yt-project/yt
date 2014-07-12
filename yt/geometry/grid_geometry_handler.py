@@ -201,7 +201,6 @@ class GridIndex(Index):
         for item in ("Mpc", "pc", "AU", "cm"):
             print "\tWidth: %0.3e %s" % (dx.in_units(item), item)
 
-    def _find_
     def _find_points(self, x, y, z) :
         """
         Returns the (objects, indices) of leaf grids containing a number of (x,y,z) points
