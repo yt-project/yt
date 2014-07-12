@@ -556,23 +556,20 @@ class Dataset(object):
         [(x1, y1, z2), (x2, y2, z2),...] points.  Returns a list of field 
         values in the same order as the input *fields*.
 
-        This is probably quite slow right now as it creates a new data object
-        for each point.  We'd probably need a YTPointCollection container to
-        optimize this.
+        This is quite slow right now as it creates a new data object for each
+        point.  If an optimized version exists on the Index object we'll use
+        that instead.
         """
+        if hasattr(self,"index") and \
+                hasattr(self.index,"_find_field_values_at_points"):
+            return self.index._find_field_values_at_points(fields,coords)
+
         fields = ensure_list(fields)
-        x, y, z = coords
-        x = ensure_list(x)
-        y = ensure_list(y)
-        z = ensure_list(z)
-        if not len(x) == len(y) == len(z):
-            raise AssertionError("Arrays of indices must be of the same size")
-       
-        out = [np.zeros(len(x), dtype=np.float64) for f in fields] 
-        for i in range(len(x)):
-            p = self.point([x[i],y[i],z[i]])
-            for j,field in enumerate(fields):
-                out[j][i] = p[field][0]
+        out = [np.zeros(len(coords), dtype=np.float64) for f in fields]
+        for i,coord in enumerate(coords):
+            data = self.point(coord)[fields]
+            for i in range(len(fields)):
+                out[j][i] = data[i]
         return out
 
     # Now all the object related stuff
