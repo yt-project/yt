@@ -50,7 +50,7 @@ def setup():
 
 def test_grid_tree():
     """Main test suite for GridTree"""
-    grid_tree = test_pf.index.get_grid_tree()
+    grid_tree = test_pf.index._get_grid_tree()
     indices, levels, nchild, children = grid_tree.return_tree_info()
 
     grid_levels = [grid.Level for grid in test_pf.index.grids]
