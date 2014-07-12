@@ -345,7 +345,41 @@ class SDFRead(dict):
 
 class HTTPSDFRead(SDFRead):
 
-    """docstring for SDFRead"""
+    r""" Read an SDF file hosted on the internet.
+
+    Given an SDF file (see http://bitbucket.org/JohnSalmon/sdf), parse the
+    ASCII header and construct numpy memmap array
+    access.
+
+    Parameters
+    ----------
+    filename: string
+    The filename associated with the data to be loaded.
+    header: string, optional
+    If separate from the data file, a file containing the
+    header can be specified. Default: None.
+
+    Returns
+    -------
+    self : SDFRead object
+    Dict-like container of parameters and data.
+
+
+    References
+    ----------
+    SDF is described here:
+
+        J. K. Salmon and M. S. Warren. Self-Describing File (SDF) Library.
+        Zenodo, Jun 2014. URL http://bitbucket.org/JohnSalmon/sdf.
+
+    Examples
+    --------
+
+    >>> sdf = SDFRead("data.sdf", header="data.hdr")
+    >>> print sdf.parameters
+    >>> print sdf['x']
+
+    """
 
     _data_struct = HTTPDataStruct
 
@@ -368,6 +402,41 @@ class HTTPSDFRead(SDFRead):
 
 
 def load_sdf(filename, header=None):
+    r""" Load an SDF file.
+
+    Given an SDF file (see http://bitbucket.org/JohnSalmon/sdf), parse the
+    ASCII header and construct numpy memmap array access. The file can
+    be either local (on a hard drive, for example), or remote (on the World
+    Wide Web).
+
+    Parameters
+    ----------
+    filename: string
+        The filename or WWW address associated with the data to be loaded.
+    header: string, optional
+        If separate from the data file, a file containing the
+        header can be specified. Default: None.
+
+    Returns
+    -------
+    sdf : SDFRead object
+        Dict-like container of parameters and data.
+
+    References
+    ----------
+    SDF is described here:
+
+        J. K. Salmon and M. S. Warren. Self-Describing File (SDF) Library.
+        Zenodo, Jun 2014. URL http://bitbucket.org/JohnSalmon/sdf.
+
+    Examples
+    --------
+
+    >>> sdf = SDFRead("data.sdf", header="data.hdr")
+    >>> print sdf.parameters
+    >>> print sdf['x']
+
+    """
     if 'http' in filename:
         sdf = HTTPSDFRead(filename, header=header)
     else:
