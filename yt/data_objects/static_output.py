@@ -547,8 +547,7 @@ class Dataset(object):
         coordinates. Returns a list of field values in the same order as 
         the input *fields*.
         """
-        fields = ensure_list(fields)
-        out = [self.point(coords)[field] for field in fields]
+        return self.point(coords)[fields]
 
     def find_field_values_at_points(self, fields, coords):
         """
@@ -565,11 +564,9 @@ class Dataset(object):
             return self.index._find_field_values_at_points(fields,coords)
 
         fields = ensure_list(fields)
-        out = [np.zeros(len(coords), dtype=np.float64) for f in fields]
+        out = np.zeros((len(fields),len(coords)), dtype=np.float64)
         for i,coord in enumerate(coords):
-            data = self.point(coord)[fields]
-            for i in range(len(fields)):
-                out[j][i] = data[i]
+            out[:][i] = self.point(coord)[fields]
         return out
 
     # Now all the object related stuff
