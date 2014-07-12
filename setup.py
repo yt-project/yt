@@ -279,6 +279,7 @@ def setup_package():
         data_files=REASON_FILES,
         cmdclass={'build_py': my_build_py, 'build_forthon': BuildForthon,
                   'build_src': my_build_src, 'install_data': my_install_data},
+        install_requires=["thingking"],
     )
     return
 
