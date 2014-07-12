@@ -41,3 +41,14 @@ def test_tb():
     for test in small_patch_amr(tb, _fields):
         test_tb.__name__ = test.description
         yield test
+
+_zp_fields = ("rhs", "phi", "gravitational_field_x",
+              "gravitational_field_y")
+zp = "ZeldovichPancake/plt32.2d.hdf5"
+@requires_pf(zp)
+def test_zp():
+    pf = data_dir_load(zp)
+    yield assert_equal, str(pf), "plt32.2d.hdf5"
+    for test in small_patch_amr(zp, _zp_fields, input_center="c", input_weight="rhs"):
+        test_tb.__name__ = test.description
+        yield test
