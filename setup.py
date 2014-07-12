@@ -25,48 +25,6 @@ from distutils import version
 from distutils.core import Command
 from distutils.spawn import find_executable
 
-def find_fortran_deps():
-    return (find_executable("Forthon"),
-            find_executable("gfortran"))
-
-class BuildForthon(Command):
-
-    """Command for building Forthon modules"""
-
-    description = "Build Forthon modules"
-    user_options = []
-
-    def initialize_options(self):
-
-        """init options"""
-
-        pass
-
-    def finalize_options(self):
-
-        """finalize options"""
-
-        pass
-
-    def run(self):
-
-        """runner"""
-        (Forthon_exe, gfortran_exe) = find_fortran_deps()
-        if None in (Forthon_exe, gfortran_exe):
-            sys.stderr.write(
-                "fKDpy.so won't be built due to missing Forthon/gfortran\n"
-            )
-            return
-
-        cwd = os.getcwd()
-        os.chdir(os.path.join(cwd, 'yt/utilities/kdtree'))
-        cmd = [Forthon_exe, "-F", "gfortran", "--compile_first",
-               "fKD_source", "--no2underscores", "--fopt", "'-O3'", "fKD",
-               "fKD_source.f90"]
-        subprocess.check_call(cmd, shell=False)
-        shutil.move(glob.glob('build/lib*/fKDpy.so')[0], os.getcwd())
-        os.chdir(cwd)
-
 REASON_FILES = []
 REASON_DIRS = [
     "",
@@ -193,20 +151,8 @@ def get_mercurial_changeset_id(target_dir):
 
 class my_build_src(build_src.build_src):
     def run(self):
-        self.run_command("build_forthon")
         build_src.build_src.run(self)
 
-
-class my_install_data(np_install_data.install_data):
-    def run(self):
-        (Forthon_exe, gfortran_exe) = find_fortran_deps()
-        if None in (Forthon_exe, gfortran_exe):
-            pass
-        else:
-            self.distribution.data_files.append(
-                ('yt/utilities/kdtree', ['yt/utilities/kdtree/fKDpy.so'])
-                )
-        np_install_data.install_data.run(self)
 
 class my_build_py(build_py):
     def run(self):
@@ -277,8 +223,7 @@ def setup_package():
         configuration=configuration,
         zip_safe=False,
         data_files=REASON_FILES,
-        cmdclass={'build_py': my_build_py, 'build_forthon': BuildForthon,
-                  'build_src': my_build_src, 'install_data': my_install_data},
+        cmdclass={'build_py': my_build_py, 'build_src': my_build_src},
     )
     return
 

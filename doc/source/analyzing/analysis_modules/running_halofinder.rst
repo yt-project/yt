@@ -300,39 +300,10 @@ normal and Parallel HOP impossible.
 Therefore Parallel HOP is not a direct substitution for
 normal HOP, but is very similar.
 
-.. _fkd_setup:
-
-Fortran kD Tree Setup
-^^^^^^^^^^^^^^^^^^^^^
-
-Parallel HOP will not build automatically with yt. Please follow the instructions
-below in order to setup Parallel HOP.
-
-  #. Download `Forthon <http://hifweb.lbl.gov/Forthon/>`_. Extract the files
-     (e.g. tar -zxvf Forthon.tgz) and cd into the new Forthon directory. 
-     Making sure you're using the same version of python you use with yt, invoke
-     ``python setup.py install``.
-  #. Change directory to your yt source. Starting from the top level, cd into
-     ``yt/utilities/kdtree``.
-  #. Inside that directory, you should see these files:
-  
-     .. code-block:: bash
-     
-        % ls
-        Makefile        fKD.f90         fKD_source.f90
-        __init__.py     fKD.v           test.py
-  
-  #. Type ``make``. If that is successful, there should be a file in the
-     directory named ``fKDpy.so``. If there are problems, please contact the
-     `yt-users email list <http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org>`_.
-  #. Go to the top level of the yt source directory, which from the ``kdtree``
-     directory is three levels up ``cd ../../..``, and invoke
-     ``python setup.py install``.
-  #. Parallel HOP should now work.
-     
-
 Running Parallel HOP
 ^^^^^^^^^^^^^^^^^^^^
+
+Note: This is probably broken now that the Fortran kdtree has been removed.
 
 In the simplest form, Parallel HOP is run very similarly to the other halo finders.
 In the example below, Parallel HOP will be run on a dataset with all the default
