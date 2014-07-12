@@ -124,11 +124,7 @@ class SDFDataset(Dataset):
 
 
         if None in (self.domain_left_edge, self.domain_right_edge):
-            if 'R0' in self.parameters:
-                R0 = self.parameters['R0']
-            elif 'BoxSize' in self.parameters:
-                R0 = self.parameters['BoxSize']/2
-
+            R0 = self.parameters['R0']
             if 'offset_center' in self.parameters and self.parameters['offset_center']:
                 self.domain_left_edge = np.array([0, 0, 0])
                 self.domain_right_edge = np.array([
@@ -151,18 +147,14 @@ class SDFDataset(Dataset):
         self.cosmological_simulation = 1
 
         self.current_redshift = self.parameters.get("redshift", 0.0)
-        try:
-            self.omega_matter = self.parameters["Omega0_m"]
-            if "Omega0_fld" in self.parameters:
-                self.omega_lambda += self.parameters["Omega0_fld"]
-            if "Omega0_r" in self.parameters:
-                # not correct, but most codes can't handle Omega0_r
-                self.omega_matter += self.parameters["Omega0_r"]
-            self.hubble_constant = self.parameters["h_100"]
-        except:
-            self.omega_matter = 1.0
-            self.omega_lambda = 0.0
-            self.hubble_constant = 1.0
+        self.omega_lambda = self.parameters["Omega0_lambda"]
+        self.omega_matter = self.parameters["Omega0_m"]
+        if "Omega0_fld" in self.parameters:
+            self.omega_lambda += self.parameters["Omega0_fld"]
+        if "Omega0_r" in self.parameters:
+            # not correct, but most codes can't handle Omega0_r
+            self.omega_matter += self.parameters["Omega0_r"]
+        self.hubble_constant = self.parameters["h_100"]
         self.current_time = units_2HOT_v2_time * self.parameters.get("tpos", 0.0)
         mylog.info("Calculating time to be %0.3e seconds", self.current_time)
         self.filename_template = self.parameter_filename
