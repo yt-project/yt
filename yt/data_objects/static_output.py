@@ -541,6 +541,15 @@ class Dataset(object):
               min_val, mx, my, mz)
         return min_val, self.arr([mx, my, mz], 'code_length', dtype="float64")
 
+    def find_field_values_at_point(self, fields, coord):
+        """
+        Returns the values [field1, field2,...] of the fields at the given
+        coordinates. Returns a list of field values in the same order as 
+        the input *fields*.
+        """
+        fields = ensure_list(fields)
+        out = [self.point(coords)[field] for field in fields]
+
     def find_field_values_at_points(self, fields, coords):
         """
         Returns the values [field1, field2,...] of the fields at the given
