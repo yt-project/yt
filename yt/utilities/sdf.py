@@ -18,7 +18,8 @@ _types = {
     'char': 'B',
 }
 
-def get_type(vtype, tlen=None):
+
+def _get_type(vtype, tlen=None):
     try:
         t = _types[vtype]
         if tlen is not None:
@@ -29,13 +30,15 @@ def get_type(vtype, tlen=None):
         t = eval("np."+vtype)
     return t
 
-def lstrip(text_list):
+
+def _lstrip(text_list):
     return [t.strip() for t in text_list]
 
-def get_struct_vars(line):
-    spl = lstrip(line.split(";"))
-    multiv = lstrip(spl[0].split(","))
-    ret = lstrip(multiv[0].split())
+
+def _get_struct_vars(line):
+    spl = _lstrip(line.split(";"))
+    multiv = _lstrip(spl[0].split(","))
+    ret = _lstrip(multiv[0].split())
     ctype = ret[0]
     vnames = [ret[-1]] + multiv[1:]
     vnames = [v.strip() for v in vnames]
@@ -46,8 +49,9 @@ def get_struct_vars(line):
         if '[' in vnames[0]:
             num = int(vnames[0].split('[')[-1].strip(']'))
             #num = int(re.sub("\D", "", vnames[0]))
-    ctype = get_type(ctype, tlen=num)
+    ctype = _get_type(ctype, tlen=num)
     return ctype, vnames
+
 
 def bbox_filter(left, right, domain_width):
 
@@ -89,7 +93,7 @@ def sphere_filter(center, radius, domain_width):
 
     return myfilter
 
-def ensure_xzy_fields(fields):
+def _ensure_xyz_fields(fields):
     for f in 'xyz':
         if f not in fields:
             fields.append(f)
@@ -243,8 +247,8 @@ class SDFRead(dict):
             self.comments.append(line)
             return
 
-        spl = lstrip(line.split("="))
-        vtype, vname = lstrip(spl[0].split())
+        spl = _lstrip(line.split("="))
+        vtype, vname = _lstrip(spl[0].split())
         vname = vname.strip("[]")
         vval = spl[-1].strip(";")
         if vtype == 'parameter':
@@ -268,7 +272,7 @@ class SDFRead(dict):
         str_lines = []
         l = ascfile.readline()
         while "}" not in l:
-            vtype, vnames = get_struct_vars(l)
+            vtype, vnames = _get_struct_vars(l)
             for v in vnames:
                 str_types.append((v, vtype))
             l = ascfile.readline()
@@ -453,8 +457,8 @@ class SDFIndex(object):
             self.domain_buffer = (self.domain_dims - int(self.domain_dims/(1.0 + expand_root)))/2
             self.domain_active_dims = self.domain_dims - 2*self.domain_buffer
 
-        mylog.debug("SINDEX rmin: %s, rmax: %s" % (self.rmin, self.rmax))
-        mylog.debug("SINDEX: domain_width: %s, domain_dims: %s, domain_active_dims: %s " %
+        mylog.debug("MIDX rmin: %s, rmax: %s" % (self.rmin, self.rmax))
+        mylog.debug("MIDX: domain_width: %s, domain_dims: %s, domain_active_dims: %s " %
                     (self.domain_width, self.domain_dims, self.domain_active_dims))
 
     def spread_bits(self, ival, level=None):
@@ -554,7 +558,7 @@ class SDFIndex(object):
         #print 'Getting data from ileft to iright:',  ileft, iright
 
         ix, iy, iz = (iright-ileft)*1j
-        mylog.debug('SINDEX IBBOX: %s %s %s %s %s' % (ileft, iright, ix, iy, iz))
+        mylog.debug('MIDX IBBOX: %s %s %s %s %s' % (ileft, iright, ix, iy, iz))
 
         # plus 1 that is sliced, plus a bit since mgrid is not inclusive
         Z, Y, X = np.mgrid[ileft[2]:iright[2]+1.01,
@@ -670,7 +674,7 @@ class SDFIndex(object):
     def iter_data(self, inds, fields):
         num_inds = len(inds)
         num_reads = 0
-        mylog.debug('SINDEX Reading %i chunks' % num_inds)
+        mylog.debug('MIDX Reading %i chunks' % num_inds)
         i = 0
         while (i < num_inds):
             ind = inds[i]
@@ -799,8 +803,8 @@ class SDFIndex(object):
                 yield f, data[f][mask]
 
     def iter_bbox_data(self, left, right, fields):
-        ensure_xzy_fields(fields)
-        mylog.debug('SINDEX Loading region from %s to %s' %(left, right))
+        _ensure_xyz_fields(fields)
+        mylog.debug('MIDX Loading region from %s to %s' %(left, right))
         inds = self.get_bbox(left, right)
         # Need to put left/right in float32 to avoid fp roundoff errors
         # in the bbox later.
@@ -819,8 +823,8 @@ class SDFIndex(object):
         #    yield dd
 
     def iter_sphere_data(self, center, radius, fields):
-        ensure_xzy_fields(fields)
-        mylog.debug('SINDEX Loading spherical region %s to %s' %(center, radius))
+        _ensure_xyz_fields(fields)
+        mylog.debug('MIDX Loading spherical region %s to %s' %(center, radius))
         inds = self.get_bbox(center-radius, center+radius)
 
         my_filter = sphere_filter(center, radius, self.true_domain_width)
@@ -831,7 +835,7 @@ class SDFIndex(object):
             yield dd
 
     def iter_ibbox_data(self, left, right, fields):
-        mylog.debug('SINDEX Loading region from %s to %s' %(left, right))
+        mylog.debug('MIDX Loading region from %s to %s' %(left, right))
         inds = self.get_ibbox(left, right)
         return self.iter_data(inds, fields)
 
@@ -969,7 +973,7 @@ class SDFIndex(object):
 
         """
 
-        ensure_xzy_fields(fields)
+        _ensure_xyz_fields(fields)
         bbox = self.get_cell_bbox(level, cell_iarr)
         filter_left = bbox[:, 0] - pad
         filter_right = bbox[:, 1] + pad
@@ -1053,7 +1057,7 @@ class SDFIndex(object):
                                              8.0, ['x','y','z','ident'])
 
         """
-        ensure_xzy_fields(fields)
+        _ensure_xyz_fields(fields)
         bbox = self.get_cell_bbox(level, cell_iarr)
         filter_left = bbox[:, 0] - pad
         filter_right = bbox[:, 1] + pad
