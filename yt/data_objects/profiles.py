@@ -1341,13 +1341,27 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
             if not acc: continue
             temp = obj.field_data[field]
             temp = np.rollaxis(temp, axis)
+            if weight_field is not None:
+                temp_weight = obj.weight
+                temp_weight = np.rollaxis(temp_weight, axis)
             if acc < 0:
                 temp = temp[::-1]
-            temp = temp.cumsum(axis=0)
+                if weight_field is not None:
+                    temp_weight = temp_weight[::-1]
+            if weight_field is None:
+                temp = temp.cumsum(axis=0)
+            else:
+                temp = (temp * temp_weight).cumsum(axis=0) / \
+                  temp_weight.cumsum(axis=0)
             if acc < 0:
                 temp = temp[::-1]
+                if weight_field is not None:
+                    temp_weight = temp_weight[::-1]
             temp = np.rollaxis(temp, axis)
             obj.field_data[field] = temp
+            if weight_field is not None:
+                temp_weight = np.rollaxis(temp_weight, axis)
+                obj.weight = temp_weight
     if units is not None:
         for field, unit in units.iteritems():
             field = data_source._determine_fields(field)[0]
