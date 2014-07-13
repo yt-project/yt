@@ -873,7 +873,8 @@ class PhasePlot(ImagePlotContainer):
         """
         obj = cls.__new__(cls)
         data_source = profile.data_source
-        return cls._initialize_instance(obj, data_source, profile, figure_size, fontsize)
+        return cls._initialize_instance(obj, data_source, profile, fontsize,
+                                        figure_size)
 
     def save(self, name=None, mpl_kwargs=None):
         r"""
