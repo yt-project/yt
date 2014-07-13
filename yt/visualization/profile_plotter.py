@@ -1109,6 +1109,7 @@ class PhasePlot(ImagePlotContainer):
 
 
 class PhasePlotMPL(ImagePlotMPL):
+    """A container for a single matplotlib figure and axes for a PhasePlot"""
     def __init__(self, x_data, y_data, data,
                  x_scale, y_scale, z_scale, cmap,
                  zlim, figure_size, fontsize, figure, axes, cax):
