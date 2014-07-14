@@ -225,7 +225,8 @@ class ParticleTrajectories(object):
                     x = self["particle_position_x"][:,step].ndarray_view()
                     y = self["particle_position_y"][:,step].ndarray_view()
                     z = self["particle_position_z"][:,step].ndarray_view()
-                    particle_grids, particle_grid_inds = ds.index.find_points(x,y,z)
+                    # This will fail for non-grid index objects
+                    particle_grids, particle_grid_inds = ds.index._find_points(x,y,z)
                     for grid in particle_grids:
                         cube = grid.retrieve_ghost_zones(1, [fd])
                         CICSample_3(x,y,z,pfield,

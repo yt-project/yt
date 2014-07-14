@@ -99,7 +99,7 @@ class ParticleGenerator(object) :
         Assigns grids to particles and sets up particle positions. *setup_fields* is
         a dict of fields other than the particle positions to set up. 
         """
-        particle_grids, particle_grid_inds = self.pf.index.find_points(x,y,z)
+        particle_grids, particle_grid_inds = self.pf.index._find_points(x,y,z)
         idxs = np.argsort(particle_grid_inds)
         self.particles[:,self.posx_index] = x[idxs]
         self.particles[:,self.posy_index] = y[idxs]
