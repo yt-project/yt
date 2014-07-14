@@ -587,7 +587,8 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         vals = op.finalize()
         return vals.reshape(self.ActiveDimensions, order="C")
 
-    def write_to_gdf(self, gdf_path, fields, nprocs=1, **kwargs):
+    def write_to_gdf(self, gdf_path, fields, nprocs=1, field_units=None,
+                     **kwargs):
         r"""
         Write the covering grid data to a GDF file.
 
@@ -600,7 +601,9 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         nprocs : integer, optional
             Split the covering grid into *nprocs* subgrids before
             writing to the GDF file. Default: 1
-
+        field_units : dictionary, optional
+            Dictionary of units to convert fields to. If not set, fields are
+            in their default units.
         All remaining keyword arguments are passed to
         yt.utilities.grid_data_format.writer.
 
@@ -611,12 +614,18 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         """
         data = {}
         for field in fields:
-            data[field] = (self[field].v, str(self[field].units))
-        le = self.left_edge.in_cgs().v
-        re = self.right_edge.in_cgs().v
+            if field in field_units:
+                units = field_units[field]
+            else:
+                units = str(self[field].units)
+            data[field] = (self[field].in_units(units).v, units)
+        le = self.left_edge.v
+        re = self.right_edge.v
         bbox = np.array([[l,r] for l,r in zip(le, re)])
         ds = load_uniform_grid(data, self.ActiveDimensions, bbox=bbox,
-                               nprocs=nprocs, sim_time=self.pf.current_time.in_cgs())
+                               length_unit=self.pf.length_unit, time_unit=self.pf.time_unit,
+                               mass_unit=self.pf.mass_unit, nprocs=nprocs,
+                               sim_time=self.pf.current_time.v)
         write_to_gdf(ds, gdf_path, **kwargs)
 
 class YTArbitraryGridBase(YTCoveringGridBase):
