@@ -18,7 +18,8 @@ from yt.utilities.physical_ratios import \
     mass_sun_grams, sec_per_year, sec_per_day, sec_per_hr, \
     sec_per_min, temp_sun_kelvin, luminosity_sun_ergs_per_sec, \
     metallicity_sun, erg_per_eV, amu_grams, mass_electron_grams, \
-    cm_per_ang, jansky_cgs, mass_jupiter_grams, mass_earth_grams
+    cm_per_ang, jansky_cgs, mass_jupiter_grams, mass_earth_grams, \
+    boltzmann_constant_erg_per_K, rankine_per_kelvin
 import numpy as np
 
 # Lookup a unit symbol with the symbol string, and provide a tuple with the
@@ -89,6 +90,9 @@ default_unit_symbol_lut = {
     "angstrom": (cm_per_ang, dimensions.length),
     "Jy": (jansky_cgs, dimensions.specific_flux),
     "counts": (1.0, dimensions.dimensionless),
+    "kB": (boltzmann_constant_erg_per_K,
+           dimensions.energy/dimensions.temperature),
+    "R": (rankine_per_kelvin, dimensions.temperature),
     "photons": (1.0, dimensions.dimensionless),
 
     # for AstroPy compatibility

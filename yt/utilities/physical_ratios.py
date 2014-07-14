@@ -75,6 +75,7 @@ K_per_keV = erg_per_keV / boltzmann_constant_erg_per_K
 keV_per_K = 1.0 / K_per_keV
 keV_per_erg = 1.0 / erg_per_keV
 eV_per_erg = 1.0 / erg_per_eV
+rankine_per_kelvin = 9./5.
 
 # Solar System masses
 # Standish, E.M. (1995) "Report of the IAU WGAS Sub-Group on Numerical Standards",
