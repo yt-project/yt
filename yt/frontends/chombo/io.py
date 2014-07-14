@@ -34,10 +34,14 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         self._read_ghost_info()
 
     def _read_ghost_info(self):
-        self.ghost = tuple(self._handle['level_0/data_attributes'].attrs['outputGhost'])
-        # pad with zeros if the dataset is low-dimensional
-        self.ghost += (3 - self.dim)*(0,)
-        self.ghost = np.array(self.ghost)
+        try:
+            self.ghost = tuple(self._handle['level_0/data_attributes'].attrs['outputGhost'])
+            # pad with zeros if the dataset is low-dimensional
+            self.ghost += (3 - self.dim)*(0,)
+            self.ghost = np.array(self.ghost)
+        except KeyError:
+            # assume zero ghosts if outputGhosts not present
+            self.ghost = np.array(self.dim)
 
     _field_dict = None
     @property
