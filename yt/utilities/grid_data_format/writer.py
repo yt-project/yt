@@ -21,7 +21,8 @@ from yt import __version__ as yt_version
 from yt.utilities.exceptions import YTGDFAlreadyExists
 
 def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
-                 particle_type_name="dark_matter", clobber=False):
+                 dataset_units=None, particle_type_name="dark_matter",
+                 clobber=False):
     r"""
     Write a parameter file to the given path in the Grid Data Format.
 
@@ -43,8 +44,8 @@ def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
 
     Examples
     --------
-    >>> write_to_gdf(ds, "clumps.h5", data_author="Your Mom",
-    ...              data_comment="All Your Base Are Belong To Us", clobber=True)
+    >>> write_to_gdf(ds, "clumps.h5", data_author="John ZuHone",
+    ...              data_comment="My Really Cool Dataset", clobber=True)
     """
 
     f = _create_new_gdf(pf, gdf_path, data_author, data_comment,
@@ -201,7 +202,7 @@ def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
         g.attrs["hubble_constant"] = pf.hubble_constant
 
     g = f.create_group("dataset_units")
-    for u in ["length","time","mass"]:
+    for u in ["length","time","mass","velocity","magnetic"]:
         unit_name = u+"_unit"
         attr = getattr(pf, unit_name)
         d = g.create_dataset(unit_name, data=float(attr))
