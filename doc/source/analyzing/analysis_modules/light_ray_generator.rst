@@ -25,7 +25,7 @@ simulation type, the nearest redshift, and the furthest redshift.
 
 .. code-block:: python
 
-  from yt.analysis_modules.api import LightRay
+  from yt.analysis_modules.cosmological_observation.api import LightRay
   lr = LightRay("enzo_tiny_cosmology/32Mpc_32.enzo",
                 'Enzo', 0.0, 0.1)
 
