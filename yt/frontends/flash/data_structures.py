@@ -141,15 +141,13 @@ class FLASHHierarchy(GridIndex):
         # Because we don't care about units, we're going to operate on views.
         gle = self.grid_left_edge.ndarray_view()
         gre = self.grid_right_edge.ndarray_view()
-        if self.parameter_file.geometry != 'cartesian' and ND < 3:
-            # We have a special fix for these files.
-            # The bounding box for grids is off by a factor of block[xyz] * 180
-            # for all the non-suppressed dimensions if dimensionality < 3.
-            # So, we correct that here.  We don't do anything with the r block.
-            for i, ax in zip(range(1,ND), 'yz'):
-                fac = 180 * self.parameter_file.parameters['nblock%s' % ax]
-                gle[:,i] *= fac
-                gre[:,i] *= fac
+        geom = self.parameter_file.geometry
+        if geom != 'cartesian' and ND < 3:
+            if geom == 'spherical' and ND < 2:
+                gle[:,1] = 0.0
+                gre[:,1] = np.pi
+            gle[:,2] = 0.0
+            gre[:,2] = 2.0 * np.pi
             return
 
         # Now, for cartesian data.
