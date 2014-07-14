@@ -11,13 +11,15 @@ Defining a New Field
 
 So once a new field has been conceived of, the best way to create it is to
 construct a function that performs an array operation -- operating on a 
-collection of data, neutral to its size, shape, and type.  (All fields should
+collection of data, neutral to its size, shape, and type. (All fields should
 be provided as 64-bit floats.)
 
 A simple example of this is the pressure field, which demonstrates the ease of
 this approach.
 
 .. code-block:: python
+
+   import yt
 
    def _pressure(field, data):
        return (data.pf.gamma - 1.0) * \
@@ -37,12 +39,12 @@ look at the most basic ones needed for a simple scalar baryon field.
 
 .. code-block:: python
 
-   add_field("pressure", function=_pressure, units="dyne/cm**2")
+   yt.add_field("pressure", function=_pressure, units="dyne/cm**2")
 
 We feed it the name of the field, the name of the function, and the
-units.  Note that the units parameter is a "raw" string, with some
-LaTeX-style formatting -- Matplotlib actually has a MathText rendering
-engine, so if you include LaTeX it will be rendered appropriately.
+units.  Note that the units parameter is a "raw" string, in the format that ``yt`` uses
+in its `symbolic units implementation <units>`_ (e.g., employing only unit names, numbers,
+and mathematical operators in the string, and using ``"**"`` for exponentiation).
 
 .. One very important thing to note about the call to ``add_field`` is
 .. that it **does not** need to specify the function name **if** the
@@ -54,6 +56,34 @@ engine, so if you include LaTeX it will be rendered appropriately.
 We suggest that you name the function that creates a derived field
 with the intended field name prefixed by a single underscore, as in
 the ``_pressure`` example above.
+
+:func:`add_field` can be invoked in two other ways. The first is by the function
+decorator :func:`derived_field`. The following code is equivalent to the previous
+example:
+
+.. code-block:: python
+
+   from yt import derived_field
+
+   @derived_field(name="pressure", units="dyne/cm**2")
+   def _pressure(field, data):
+       return (data.pf.gamma - 1.0) * \
+              data["density"] * data["thermal_energy"]
+
+The :func:`derived_field` decorator takes the same arguments as :func:`add_field`,
+and is often a more convenient shorthand in cases where you want to quickly set up
+a new field.
+
+Defining derived fields in the above fashion must be done before a dataset is loaded,
+in order for the dataset to recognize it. If you want to set up a derived field after you
+have loaded a dataset, or if you only want to set up a derived field for a particular
+dataset, there is an :meth:`add_field` method that hangs off dataset objects. The calling
+syntax is the same:
+
+.. code-block:: python
+
+   ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100")
+   ds.add_field("pressure", function=_pressure, units="dyne/cm**2")
 
 If you find yourself using the same custom-defined fields over and over, you
 should put them in your plugins file as described in :ref:`plugin-file`.
@@ -69,7 +99,7 @@ disk.
 
 .. code-block:: python
 
-   def _DiskAngle(field, data):
+   def _disk_angle(field, data):
        # We make both r_vec and h_vec into unit vectors
        center = data.get_field_parameter("center")
        r_vec = np.array([data["x"] - center[0],
@@ -81,10 +111,10 @@ disk.
           + r_vec[1,:] * h_vec[1] \
           + r_vec[2,:] * h_vec[2]
        return np.arccos(dp)
-   add_field("DiskAngle", take_log=False,
-             validators=[ValidateParameter("height_vector"),
-                         ValidateParameter("center")],
-             display_field=False)
+   yt.add_field("disk_angle", take_log=False,
+                validators=[ValidateParameter("height_vector"),
+                            ValidateParameter("center")],
+                display_field=False)
 
 Note that we have added a few parameters below the main function; we specify
 that we do not wish to display this field as logged, that we require both
@@ -102,10 +132,11 @@ We can also define vector fields.
 
 .. code-block:: python
 
-   def _SpecificAngularMomentum(field, data):
+   def _specific_angular_momentum(field, data):
        if data.has_field_parameter("bulk_velocity"):
            bv = data.get_field_parameter("bulk_velocity")
-       else: bv = np.zeros(3, dtype='float64')
+       else:
+           bv = np.zeros(3, dtype='float64')
        xv = data["velocity_x"] - bv[0]
        yv = data["velocity_y"] - bv[1]
        zv = data["velocity_z"] - bv[2]
@@ -116,12 +147,11 @@ We can also define vector fields.
        v_vec = np.array([xv,yv,zv], dtype='float64')
        return np.cross(r_vec, v_vec, axis=0)
    add_field("specific_angular_momentum",
-             vector_field=True, units=r"\rm{cm}^2/\rm{s}",
+             vector_field=True, units="cm**2/s",
              validators=[ValidateParameter('center')])
 
-Here we define the SpecificAngularMomentum field, optionally taking a
-``bulk_velocity``, and returning a vector field that needs conversion by the
-function ``_convertSpecificAngularMomentum``.
+Here we define the ``specific_angular_momentum`` field, optionally taking a
+``bulk_velocity``, and returning a vector field.
 
 It is also possible to define fields that depend on spatial derivatives of 
 other fields.  Calculating the derivative for a single grid cell requires 
@@ -186,30 +216,30 @@ To mitigate this, ``yt`` provides a mechanism for saving fields to a backup file
 using the Grid Data Format. The next time you start yt, it will check this file
 and your field will be treated as native if present. 
 
-The code below creates a new derived field called "Entr" and saves it to disk:
+The code below creates a new derived field called "dinosaurs" and saves it to disk:
 
 .. code-block:: python
 
     import yt
-    from yt.mods import *
     from yt.utilities.grid_data_format import writer
+    import numpy as np
 
-    def _entropy(field, data) :
-        return data["temperature"]*data["density"]**(-2./3.)
-    add_field("Entr", function=_Entropy)
+    def _dinosaurs(field, data) :
+        return data["temperature"]*np.sqrt(data["density"])
+    yt.add_field("dinosaurs", units="K*sqrt(g)/sqrt(cm**3)")
 
-    pf = load('GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100')
-    writer.save_field(pf, "entropy")
+    ds = yt.load('GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100')
+    writer.save_field(ds, "dinosaurs")
 
 This creates a "_backup.gdf" file next to your datadump. If you load up the dataset again:
 
 .. code-block:: python
 
-    from yt.mods import *
+    import yt
 
-    pf = load('GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100')
-    data = pf.h.all_data()
-    print data["Entr"]
+    ds = yt.load('GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100')
+    dd = ds.all_data()
+    print dd["entropy"]
 
 you can work with the field exactly as before, without having to recompute it.
 
@@ -219,7 +249,7 @@ Field Options
 The arguments to :func:`add_field` are passed on to the constructor of
 :class:`DerivedField`.  :func:`add_field` takes care of finding the arguments
 `function` and `convert_function` if it can, however.  There are a number of
-options available, but the only mandatory ones are ``name`` and possibly
+options available, but the only mandatory ones are ``name``, ``units``, and possibly
 ``function``.
 
    ``name``
@@ -228,7 +258,8 @@ options available, but the only mandatory ones are ``name`` and possibly
    ``function``
      This is a function handle that defines the field
    ``units``
-     This is a string that describes the units.
+     This is a string that describes the units. Powers must be in
+     python syntax (** instead of ^).
    ``display_name``
      This is a name used in the plots, for instance ``"Divergence of
      Velocity"``.  If not supplied, the ``name`` value is used.
@@ -240,43 +271,14 @@ options available, but the only mandatory ones are ``name`` and possibly
    ``validators``
      (*Advanced*) This is a list of :class:`FieldValidator` objects, for instance to mandate
      spatial data.
-   ``vector_field``
-     (*Advanced*) Is this field more than one value per cell?
    ``display_field``
      (*Advanced*) Should this field appear in the dropdown box in Reason?
    ``not_in_all``
      (*Advanced*) If this is *True*, the field may not be in all the grids.
-
-How Do Units Work?
-------------------
-
-The best way to understand yt's unit system is to keep in mind that ``yt`` is really
-handling *two* unit systems: the internal unit system of the dataset and the
-physical (usually CGS) unit system.  For simulation codes like FLASH and ORION
-that do all computations in CGS units internally, these two unit systems are the
-same.  Most other codes do their calculations in a non-dimensionalized unit
-system chosen so that most primitive variables are as close to unity as
-possible.  ``yt`` allows data access both in code units and physical units by
-providing a set of standard yt fields defined by all frontends.
-
-When a dataset is loaded, ``yt`` reads the conversion factors necessary convert the
-data to CGS units from the datafile itself or from a dictionary passed to the
-``load`` command.  Raw on-disk fields are presented to the user via the string
-names used in the dataset.  For a full enumeration of the known field names for
-each of the different frontends, see the :ref:`field-list`. In general, no
-conversion factors are applied to on-disk fields.
-
-To access data in physical CGS units, yt recognizes a number of 'universal'
-field names.  All primitive fields (density, pressure, magnetic field strength,
-etc.) are mapped to Enzo field names, listed in the :ref:`enzo-field-names`.
-The reason Enzo field names are used here is because ``yt`` was originally written
-to only read Enzo data.  In the future we will switch to a new system of
-universal field names - this will also make it much easier to access raw on-disk
-Enzo data!
-
-In addition to primitive fields, yt provides an extensive list of "universal"
-derived fields that are accessible from any of the frontends.  For a full
-listing of the universal derived fields, see :ref:`universal-field-list`.
+   ``output_units``
+     (*Advanced*) For fields that exist on disk, which we may want to convert to other
+     fields or that get aliased to themselves, we can specify a different
+     desired output unit than the unit found on disk.
 
 Units for Cosmological Datasets
 -------------------------------
