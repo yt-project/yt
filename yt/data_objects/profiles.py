@@ -809,10 +809,12 @@ class ProfileND(ParallelAnalysisInterface):
         # This also will fill _field_data
 
         if self.weight_field is None:
-            temp_storage.values = self.comm.mpi_allreduce(temp_storage.values, 
-                                                          op="sum", dtype="float64")
-            temp_storage.used = self.comm.mpi_allreduce(temp_storage.used, 
-                                                        op="sum", dtype="bool")
+            temp_storage.values = \
+              self.comm.mpi_allreduce(temp_storage.values, 
+                                      op="sum", dtype="float64")
+            temp_storage.used = \
+              self.comm.mpi_allreduce(temp_storage.used, 
+                                      op="sum", dtype="bool")
             blank = ~temp_storage.used
             self.used = temp_storage.used
 
@@ -828,6 +830,14 @@ class ProfileND(ParallelAnalysisInterface):
             all_var = np.zeros_like(temp_storage.qvalues)
             all_weight = np.zeros_like(temp_storage.weight_values)
             all_used = np.zeros_like(temp_storage.used, dtype="bool")
+            
+            # Combine the weighted mean and variance from each processor.
+            # For two samples with total weight, mean, and variance 
+            # given by w, m, and s, their combined mean and variance are:
+            # m12 = (m1 * w1 + m2 * w2) / (w1 + w2)
+            # s12 = (m1 * (s1**2 + (m1 - m12)**2) + 
+            #        m2 * (s2**2 + (m2 - m12)**2)) / (w1 + w2)
+            # Here, the mvalues are m and the qvalues are s**2.
             for p in sorted(all_store.keys()):
                 all_used += all_store[p].used
                 old_mean = all_mean.copy()
