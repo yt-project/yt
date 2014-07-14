@@ -271,7 +271,7 @@ class PlotWindow(ImagePlotContainer):
     """
     frb = None
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True,
-                 periodic=True, origin='center-window', oblique=False,
+                 periodic=True, origin='center-window', oblique=False, projected=False,
                  window_size=8.0, fields=None, fontsize=18, aspect=None, setup=False):
         if not hasattr(self, "pf"):
             self.pf = data_source.pf
@@ -282,6 +282,7 @@ class PlotWindow(ImagePlotContainer):
         self.center = None
         self._periodic = periodic
         self.oblique = oblique
+        self.projected = projected
         self.buff_size = buff_size
         self.antialias = antialias
         self.aspect = aspect
@@ -915,6 +916,8 @@ class PWViewerMPL(PlotWindow):
                 label.set_fontproperties(fp)
 
             colorbar_label = image.info['label']
+            if self.projected:
+                colorbar_label = "$\\rm{Projected }$ %s" % colorbar_label
 
             # Determine the units of the data
             units = Unit(self.frb[f].units, registry=self.pf.unit_registry)
@@ -1220,7 +1223,8 @@ class ProjectionPlot(PWViewerMPL):
                        center=center, data_source=data_source,
                        field_parameters = field_parameters, style = proj_style)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
-                             fontsize=fontsize, window_size=window_size, aspect=aspect)
+                             fontsize=fontsize, window_size=window_size, 
+                             aspect=aspect, projected=True)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, pf)
         self.set_axes_unit(axes_unit)
@@ -1425,7 +1429,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
         # aren't well-defined for off-axis data objects
         PWViewerMPL.__init__(
             self, OffAxisProj, bounds, fields=fields, origin='center-window',
-            periodic=False, oblique=True, fontsize=fontsize)
+            periodic=False, oblique=True, fontsize=fontsize, projected=True)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, pf)
         self.set_axes_unit(axes_unit)
