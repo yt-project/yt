@@ -126,7 +126,6 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name,
         sg.attrs["field_units"] = units
     else:
         sg.attrs["field_units"] = "None"
-    sg.attrs["field_to_cgs"] = 1.0
     # @todo: is this always true?
     sg.attrs["staggering"] = 0
 
