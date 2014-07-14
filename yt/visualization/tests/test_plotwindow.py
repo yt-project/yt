@@ -61,7 +61,7 @@ def assert_fname(fname):
     return image_type == os.path.splitext(fname)[1]
 
 
-TEST_FLNMS = [None, 'test.png', 'test.eps',
+TEST_FLNMS = [None, 'test', 'test.png', 'test.eps',
               'test.ps', 'test.pdf']
 M7 = "DD0010/moving7_0010"
 WT = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
