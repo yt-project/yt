@@ -123,7 +123,6 @@ class YTRayBase(YTSelectionContainer1D):
         self.end_point = self.pf.arr(end_point,
                             'code_length', dtype='float64')
         self.vec = self.end_point - self.start_point
-        #self.vec /= np.sqrt(np.dot(self.vec, self.vec))
         self._set_center(self.start_point)
         self.set_field_parameter('center', self.start_point)
         self._dts, self._ts = None, None
