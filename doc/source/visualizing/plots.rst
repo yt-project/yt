@@ -224,6 +224,8 @@ described in :ref:`callbacks`.  See
 :class:`~yt.visualization.plot_window.ProjectionPlot` for the full
 class description.
 
+.. _off-axis-projections:
+
 Off Axis Projection Plots
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
