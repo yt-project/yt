@@ -67,3 +67,52 @@ def test_grid_tree():
             grid_children = np.array([child.id - child._id_offset
                                       for child in grid.Children])
             yield assert_equal, grid_children, children[i]
+
+def test_find_points():
+    """Main test suite for MatchPoints"""
+    num_points = 100
+    randx = np.random.uniform(low=test_pf.domain_left_edge[0],
+                              high=test_pf.domain_right_edge[0],
+                              size=num_points)
+    randy = np.random.uniform(low=test_pf.domain_left_edge[1],
+                              high=test_pf.domain_right_edge[1],
+                              size=num_points)
+    randz = np.random.uniform(low=test_pf.domain_left_edge[2],
+                              high=test_pf.domain_right_edge[2],
+                              size=num_points)
+
+    point_grids, point_grid_inds = test_pf.index._find_points(randx, randy, randz)
+
+    grid_inds = np.zeros((num_points), dtype='int64')
+
+    for ind, ixx, iyy, izz in zip(range(num_points), randx, randy, randz):
+
+        pos = np.array([ixx, iyy, izz])
+        pt_level = -1
+
+        for grid in test_pf.index.grids:
+
+            if np.all(pos >= grid.LeftEdge) and \
+               np.all(pos <= grid.RightEdge) and \
+               grid.Level > pt_level:
+                pt_level = grid.Level
+                grid_inds[ind] = grid.id - grid._id_offset
+
+    yield assert_equal, point_grid_inds, grid_inds
+
+    # Test wheter find_points works for lists
+    point_grids, point_grid_inds = test_pf.index._find_points(randx.tolist(),
+                                                         randy.tolist(),
+                                                         randz.tolist())
+    yield assert_equal, point_grid_inds, grid_inds
+
+    # Test if find_points works for scalar
+    ind = random.randint(0, num_points - 1)
+    point_grids, point_grid_inds = test_pf.index._find_points(randx[ind],
+                                                         randy[ind],
+                                                         randz[ind])
+    yield assert_equal, point_grid_inds, grid_inds[ind]
+
+    # Test if find_points fails properly for non equal indices' array sizes
+    yield assert_raises, AssertionError, test_pf.index._find_points, \
+        [0], 1.0, [2, 3]
