@@ -16,16 +16,6 @@ found in `astro-ph/0806.1653`.
 
 .. yt_cookbook:: find_clumps.py
 
-Boolean Data Objects
-~~~~~~~~~~~~~~~~~~~~
-
-Below shows the creation of a number of boolean data objects, which are built
-upon previously-defined data objects. The boolean data objects can be used like
-any other, except for a few cases.  Please see :ref:`boolean_data_objects` for
-more information.
-
-.. yt_cookbook:: boolean_data_objects.py
-
 Extracting Fixed Resolution Data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
