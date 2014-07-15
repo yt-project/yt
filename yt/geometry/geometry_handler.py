@@ -72,7 +72,6 @@ class Index(ParallelAnalysisInterface):
         self._parallel_locking = False
         self._data_file = None
         self._data_mode = None
-        self._max_locations = {}
         self.num_grids = None
 
     def _initialize_data_storage(self):

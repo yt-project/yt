@@ -16,6 +16,9 @@ Callbacks to add additional functionality on to plots.
 
 import numpy as np
 import h5py
+
+from distutils.version import LooseVersion
+
 from matplotlib.patches import Circle
 
 from yt.funcs import *
@@ -263,8 +266,6 @@ class ContourCallback(PlotCallback):
         self.ncont = ncont
         self.field = field
         self.factor = factor
-        from matplotlib.delaunay.triangulate import Triangulation as triang
-        self.triang = triang
         self.clim = clim
         self.take_log = take_log
         if plot_args is None: plot_args = {'colors':'k'}
@@ -333,7 +334,14 @@ class ContourCallback(PlotCallback):
         
             # Both the input and output from the triangulator are in plot
             # coordinates
-            zi = self.triang(x,y).nn_interpolator(z)(xi,yi)
+            if LooseVersion(matplotlib.__version__) < LooseVersion("1.4.0"):
+                from matplotlib.delaunay.triangulate import Triangulation as \
+                    triang
+                zi = triang(x,y).nn_interpolator(z)(xi,yi)
+            else:
+                from matplotlib.tri import Triangulation, LinearTriInterpolator
+                triangulation = Triangulation(x, y)
+                zi = LinearTriInterpolator(triangulation, z)(xi,yi)
         elif plot._type_name == 'OffAxisProjection':
             zi = plot.frb[self.field][::self.factor,::self.factor].transpose()
         

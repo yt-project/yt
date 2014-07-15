@@ -343,7 +343,6 @@ class BoxlibHierarchy(GridIndex):
         self._parallel_locking = False
         self._data_file = None
         self._data_mode = None
-        self._max_locations = {}
 
     def _detect_output_fields(self):
         # This is all done in _parse_header_file

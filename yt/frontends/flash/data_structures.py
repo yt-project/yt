@@ -141,11 +141,21 @@ class FLASHHierarchy(GridIndex):
         # Because we don't care about units, we're going to operate on views.
         gle = self.grid_left_edge.ndarray_view()
         gre = self.grid_right_edge.ndarray_view()
+        geom = self.parameter_file.geometry
+        if geom != 'cartesian' and ND < 3:
+            if geom == 'spherical' and ND < 2:
+                gle[:,1] = 0.0
+                gre[:,1] = np.pi
+            gle[:,2] = 0.0
+            gre[:,2] = 2.0 * np.pi
+            return
+
+        # Now, for cartesian data.
         for i in xrange(self.num_grids):
             dx = dxs[self.grid_levels[i],:]
             gle[i][:ND] = np.rint(gle[i][:ND]/dx[0][:ND])*dx[0][:ND]
             gre[i][:ND] = np.rint(gre[i][:ND]/dx[0][:ND])*dx[0][:ND]
-                        
+
     def _populate_grid_objects(self):
         # We only handle 3D data, so offset is 7 (nfaces+1)
         
@@ -363,6 +373,9 @@ class FLASHDataset(Dataset):
         elif self.dimensionality < 3 and self.geometry == "polar":
             mylog.warning("Extending theta dimension to 2PI + left edge.")
             self.domain_right_edge[1] = self.domain_left_edge[1] + 2*np.pi
+        elif self.dimensionality < 3 and self.geometry == "spherical":
+            mylog.warning("Extending phi dimension to 2PI + left edge.")
+            self.domain_right_edge[2] = self.domain_left_edge[2] + 2*np.pi
         self.domain_dimensions = \
             np.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
 

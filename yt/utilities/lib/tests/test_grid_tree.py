@@ -50,7 +50,7 @@ def setup():
 
 def test_grid_tree():
     """Main test suite for GridTree"""
-    grid_tree = test_pf.index.get_grid_tree()
+    grid_tree = test_pf.index._get_grid_tree()
     indices, levels, nchild, children = grid_tree.return_tree_info()
 
     grid_levels = [grid.Level for grid in test_pf.index.grids]
@@ -68,7 +68,6 @@ def test_grid_tree():
                                       for child in grid.Children])
             yield assert_equal, grid_children, children[i]
 
-
 def test_find_points():
     """Main test suite for MatchPoints"""
     num_points = 100
@@ -82,7 +81,7 @@ def test_find_points():
                               high=test_pf.domain_right_edge[2],
                               size=num_points)
 
-    point_grids, point_grid_inds = test_pf.index.find_points(randx, randy, randz)
+    point_grids, point_grid_inds = test_pf.index._find_points(randx, randy, randz)
 
     grid_inds = np.zeros((num_points), dtype='int64')
 
@@ -102,18 +101,18 @@ def test_find_points():
     yield assert_equal, point_grid_inds, grid_inds
 
     # Test wheter find_points works for lists
-    point_grids, point_grid_inds = test_pf.index.find_points(randx.tolist(),
+    point_grids, point_grid_inds = test_pf.index._find_points(randx.tolist(),
                                                          randy.tolist(),
                                                          randz.tolist())
     yield assert_equal, point_grid_inds, grid_inds
 
     # Test if find_points works for scalar
     ind = random.randint(0, num_points - 1)
-    point_grids, point_grid_inds = test_pf.index.find_points(randx[ind],
+    point_grids, point_grid_inds = test_pf.index._find_points(randx[ind],
                                                          randy[ind],
                                                          randz[ind])
     yield assert_equal, point_grid_inds, grid_inds[ind]
 
     # Test if find_points fails properly for non equal indices' array sizes
-    yield assert_raises, AssertionError, test_pf.index.find_points, \
+    yield assert_raises, AssertionError, test_pf.index._find_points, \
         [0], 1.0, [2, 3]
