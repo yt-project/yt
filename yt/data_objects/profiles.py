@@ -808,71 +808,69 @@ class ProfileND(ParallelAnalysisInterface):
         # We use our main comm here
         # This also will fill _field_data
 
-        if self.weight_field is None:
-            temp_storage.values = \
-              self.comm.mpi_allreduce(temp_storage.values, 
-                                      op="sum", dtype="float64")
-            temp_storage.used = \
-              self.comm.mpi_allreduce(temp_storage.used, 
-                                      op="sum", dtype="bool")
-            blank = ~temp_storage.used
-            self.used = temp_storage.used
+        for i, field in enumerate(fields):
+            # q values are returned as q * weight but we want just q
+            temp_storage.qvalues[..., i][temp_storage.used] /= \
+              temp_storage.weight_values[temp_storage.used]
 
-        else:
+        # get the profile data from all procs
+        all_store = {self.comm.rank: temp_storage}
+        all_store = self.comm.par_combine_object(all_store,
+                                                 "join", datatype="dict")
+
+        all_val = np.zeros_like(temp_storage.values)
+        all_mean = np.zeros_like(temp_storage.mvalues)
+        all_var = np.zeros_like(temp_storage.qvalues)
+        all_weight = np.zeros_like(temp_storage.weight_values)
+        all_used = np.zeros_like(temp_storage.used, dtype="bool")
+
+        # Combine the weighted mean and variance from each processor.
+        # For two samples with total weight, mean, and variance 
+        # given by w, m, and s, their combined mean and variance are:
+        # m12 = (m1 * w1 + m2 * w2) / (w1 + w2)
+        # s12 = (m1 * (s1**2 + (m1 - m12)**2) + 
+        #        m2 * (s2**2 + (m2 - m12)**2)) / (w1 + w2)
+        # Here, the mvalues are m and the qvalues are s**2.
+        for p in sorted(all_store.keys()):
+            all_used += all_store[p].used
+            old_mean = all_mean.copy()
+            old_weight = all_weight.copy()
+            all_weight[all_store[p].used] += \
+              all_store[p].weight_values[all_store[p].used]
             for i, field in enumerate(fields):
-                temp_storage.qvalues[..., i][temp_storage.used] /= \
-                  temp_storage.weight_values[temp_storage.used]
-            all_store = {self.comm.rank: temp_storage}
-            all_store = self.comm.par_combine_object(all_store,
-                                                     "join", datatype="dict")
+                all_val[..., i][all_store[p].used] += \
+                  all_store[p].values[..., i][all_store[p].used]
 
-            all_mean = np.zeros_like(temp_storage.mvalues)
-            all_var = np.zeros_like(temp_storage.qvalues)
-            all_weight = np.zeros_like(temp_storage.weight_values)
-            all_used = np.zeros_like(temp_storage.used, dtype="bool")
-            
-            # Combine the weighted mean and variance from each processor.
-            # For two samples with total weight, mean, and variance 
-            # given by w, m, and s, their combined mean and variance are:
-            # m12 = (m1 * w1 + m2 * w2) / (w1 + w2)
-            # s12 = (m1 * (s1**2 + (m1 - m12)**2) + 
-            #        m2 * (s2**2 + (m2 - m12)**2)) / (w1 + w2)
-            # Here, the mvalues are m and the qvalues are s**2.
-            for p in sorted(all_store.keys()):
-                all_used += all_store[p].used
-                old_mean = all_mean.copy()
-                old_weight = all_weight.copy()
-                all_weight[all_store[p].used] += \
-                  all_store[p].weight_values[all_store[p].used]
-                for i, field in enumerate(fields):
-                    all_mean[..., i][all_store[p].used] = \
-                      (all_mean[..., i] * old_weight +
-                       all_store[p].mvalues[..., i] *
-                       all_store[p].weight_values)[all_store[p].used] / \
-                       all_weight[all_store[p].used]
-                    all_var[..., i][all_store[p].used] = \
-                      (old_weight * (all_var[..., i] +
-                                     (old_mean[..., i] - all_mean[..., i])**2) +
-                       all_store[p].weight_values *
-                       (all_store[p].qvalues[..., i] + 
-                        (all_store[p].mvalues[..., i] -
-                         all_mean[..., i])**2))[all_store[p].used] / \
-                        all_weight[all_store[p].used]
-            all_var = np.sqrt(all_var)
-            del all_store
-            self.used = all_used
-            blank = ~all_used
-            
-            self.weight = all_weight
-            self.weight[blank] = 0.0
+                all_mean[..., i][all_store[p].used] = \
+                  (all_mean[..., i] * old_weight +
+                   all_store[p].mvalues[..., i] *
+                   all_store[p].weight_values)[all_store[p].used] / \
+                   all_weight[all_store[p].used]
+
+                all_var[..., i][all_store[p].used] = \
+                  (old_weight * (all_var[..., i] +
+                                 (old_mean[..., i] - all_mean[..., i])**2) +
+                   all_store[p].weight_values *
+                   (all_store[p].qvalues[..., i] + 
+                    (all_store[p].mvalues[..., i] -
+                     all_mean[..., i])**2))[all_store[p].used] / \
+                    all_weight[all_store[p].used]
+
+        all_var = np.sqrt(all_var)
+        del all_store
+        self.used = all_used
+        blank = ~all_used
+
+        self.weight = all_weight
+        self.weight[blank] = 0.0
             
         self.field_map = {}
         for i, field in enumerate(fields):
             if self.weight_field is None:
                 self.field_data[field] = \
                   array_like_field(self.data_source, 
-                                   temp_storage.values[...,i], field)
-            else:                
+                                   all_val[...,i], field)
+            else:
                 self.field_data[field] = \
                   array_like_field(self.data_source, 
                                    all_mean[...,i], field)
