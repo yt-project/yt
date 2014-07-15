@@ -386,7 +386,7 @@ for details on how to do this):
    from yt.mods import *
    from yt.utilities.physical_constants import cm_per_kpc, K_per_keV, mp
    from yt.utilities.cosmology import Cosmology
-   from yt.analysis_modules.api import *
+   from yt.analysis_modules.photon_simulator.api import *
    import aplpy
 
    R = 1000. # in kpc
