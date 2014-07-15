@@ -2,8 +2,11 @@ import cStringIO
 import re
 import os
 import numpy as np
-from thingking.httpmmap import HTTPArray
-from thingking.arbitrary_page import PageCacheURL
+try:
+    from thingking.httpmmap import HTTPArray
+    from thingking.arbitrary_page import PageCacheURL
+except ImportError:
+    HTTPArray = PageCacheURL = None
 from yt.funcs import mylog
 
 _types = {
@@ -176,6 +179,8 @@ class HTTPDataStruct(DataStruct):
 
     def __init__(self, *args, **kwargs):
         super(HTTPDataStruct, self).__init__(*args, **kwargs)
+        if None in (PageCacheURL, HTTPArray):
+            raise ImportError("thingking")
         self.pcu = PageCacheURL(self.filename)
 
     def set_offset(self, offset):
@@ -301,6 +306,11 @@ class HTTPSDFRead(SDFRead):
     """docstring for SDFRead"""
 
     _data_struct = HTTPDataStruct
+
+    def __init__(self, *args, **kwargs):
+        if None in (PageCacheURL, HTTPArray):
+            raise ImportError("thingking")
+        super(HTTPSDFRead, self).__init__(*args, **kwargs)
 
     def parse_header(self):
         """docstring for parse_header"""
