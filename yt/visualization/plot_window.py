@@ -271,8 +271,9 @@ class PlotWindow(ImagePlotContainer):
     """
     frb = None
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True,
-                 periodic=True, origin='center-window', oblique=False, projected=False,
-                 window_size=8.0, fields=None, fontsize=18, aspect=None, setup=False):
+                 periodic=True, origin='center-window', oblique=False, 
+                 window_size=8.0, fields=None, fontsize=18, aspect=None, 
+                 setup=False):
         if not hasattr(self, "pf"):
             self.pf = data_source.pf
             ts = self._initialize_dataset(self.pf)
@@ -282,7 +283,6 @@ class PlotWindow(ImagePlotContainer):
         self.center = None
         self._periodic = periodic
         self.oblique = oblique
-        self.projected = projected
         self.buff_size = buff_size
         self.antialias = antialias
         self.aspect = aspect
@@ -916,7 +916,10 @@ class PWViewerMPL(PlotWindow):
                 label.set_fontproperties(fp)
 
             colorbar_label = image.info['label']
-            if self.projected:
+
+            # If we're creating a plot of a projection, change the displayed
+            # field name accordingly.
+            if hasattr(self, 'projected'):
                 colorbar_label = "$\\rm{Projected }$ %s" % colorbar_label
 
             # Determine the units of the data
@@ -1217,6 +1220,9 @@ class ProjectionPlot(PWViewerMPL):
         self.ts = ts
         pf = self.pf = ts[0]
         axis = fix_axis(axis, pf)
+        # If a non-weighted projection, assure field-label reflects that
+        if weight_field is None:
+            self.projected = True
         (bounds, center) = get_window_parameters(axis, center, width, pf)
         if field_parameters is None: field_parameters = {}
         proj = pf.proj(fields, axis, weight_field=weight_field,
@@ -1224,7 +1230,7 @@ class ProjectionPlot(PWViewerMPL):
                        field_parameters = field_parameters, style = proj_style)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
                              fontsize=fontsize, window_size=window_size, 
-                             aspect=aspect, projected=True)
+                             aspect=aspect)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, pf)
         self.set_axes_unit(axes_unit)
@@ -1425,11 +1431,14 @@ class OffAxisProjectionPlot(PWViewerMPL):
             center_rot, pf, normal, oap_width, fields, interpolated,
             weight=weight_field,  volume=volume, no_ghost=no_ghost,
             le=le, re=re, north_vector=north_vector)
+        # If a non-weighted projection, assure field-label reflects that
+        if weight_field is None:
+            self.projected = True
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
         PWViewerMPL.__init__(
             self, OffAxisProj, bounds, fields=fields, origin='center-window',
-            periodic=False, oblique=True, fontsize=fontsize, projected=True)
+            periodic=False, oblique=True, fontsize=fontsize)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, pf)
         self.set_axes_unit(axes_unit)
