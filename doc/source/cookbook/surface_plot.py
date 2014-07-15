@@ -1,6 +1,3 @@
-### THIS RECIPE IS CURRENTLY BROKEN IN YT-3.0
-### DO NOT TRUST THIS RECIPE UNTIL THIS LINE IS REMOVED
-
 import yt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
@@ -28,8 +25,20 @@ p3dc = Poly3DCollection(surface.triangles, linewidth=0.0)
 # Set the surface colors in the right scaling [0,1]
 p3dc.set_facecolors(colors[0,:,:]/255.)
 ax.add_collection(p3dc)
-ax.auto_scale_xyz(surface.vertices[0,:], surface.vertices[1,:], surface.vertices[2,:])
-ax.set_aspect(1.0)
+
+# We do this little magic to keep the axis ratio fixed in all directions
+# Take the maximum extent in one dimension and make it the bounds in all 
+# dimensions
+max_extent = np.max([np.max(surface.vertices[0,:]) - np.min(surface.vertices[0,:]), \
+                    np.max(surface.vertices[1,:]) - np.min(surface.vertices[1,:]), \
+                    np.max(surface.vertices[2,:]) - np.min(surface.vertices[2,:])])
+bounds = np.array([[np.mean(surface.vertices[0,:]) - max_extent/2,  \
+                    np.mean(surface.vertices[0,:]) + max_extent/2], \
+                   [np.mean(surface.vertices[1,:]) - max_extent/2,  \
+                    np.mean(surface.vertices[1,:]) + max_extent/2], \
+                   [np.mean(surface.vertices[2,:]) - max_extent/2,  \
+                    np.mean(surface.vertices[2,:]) + max_extent/2]])
+ax.auto_scale_xyz(bounds[0,:], bounds[1,:], bounds[2,:])
 
 # Save the figure
 plt.savefig("%s_Surface.png" % ds)
