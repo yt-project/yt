@@ -90,6 +90,9 @@ class FieldInfoContainer(dict):
                    "particle_position", "particle_velocity",
                    self)
         else:
+            if (ptype, "particle_position") in self and \
+                 self[ptype, "particle_position"]._function == NullFunc:
+                self.pop((ptype, "particle_position"))
             particle_vector_functions(ptype,
                     ["particle_position_%s" % ax for ax in 'xyz'],
                     ["particle_velocity_%s" % ax for ax in 'xyz'],
