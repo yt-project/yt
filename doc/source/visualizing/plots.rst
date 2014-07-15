@@ -224,6 +224,8 @@ described in :ref:`callbacks`.  See
 :class:`~yt.visualization.plot_window.ProjectionPlot` for the full
 class description.
 
+.. _off-axis-projections:
+
 Off Axis Projection Plots
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -772,14 +774,37 @@ how to manipulate these functions.
    ds = yt.load("sizmbhloz-clref04SNth-rs9_a0.9011/sizmbhloz-clref04SNth-rs9_a0.9011.art")
    center = ds.arr([64.0, 64.0, 64.0], 'code_length')
    rvir = ds.quan(1e-1, "Mpccm/h")
-
    sph = ds.sphere(center, rvir)
+
    plot = yt.PhasePlot(sph, "density", "temperature", "cell_mass",
                        weight_field=None)
    plot.set_unit('density', 'Msun/pc**3')
    plot.set_unit('cell_mass', 'Msun')
    plot.set_xlim(1e-5,1e1)
    plot.set_ylim(1,1e7)
+   plot.save()
+
+It is also possible to construct a custom 2D profile object and then use the
+``from_profile`` method to create a ``PhasePlot`` using the profile object.
+This will sometimes be faster, especially if you need custom x and y axes
+limits.  The following example illustrates this workflow:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("sizmbhloz-clref04SNth-rs9_a0.9011/sizmbhloz-clref04SNth-rs9_a0.9011.art")
+   center = ds.arr([64.0, 64.0, 64.0], 'code_length')
+   rvir = ds.quan(1e-1, "Mpccm/h")
+   sph = ds.sphere(center, rvir)
+   units = dict(density='Msun/pc**3', cell_mass='Msun')
+   extrema = dict(density=(1e-5, 1e1), temperature=(1, 1e7))
+
+   profile = yt.create_profile(sph, ['density', 'temperature'],
+                               n_bins=[128, 128], fields=['cell_mass'],
+                               weight_field=None, units=units, extrema=extrema)
+
+   plot = yt.PhasePlot.from_profile(profile)
+
    plot.save()
 
 Probability Distribution Functions and Accumulation

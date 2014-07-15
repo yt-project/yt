@@ -541,6 +541,34 @@ class Dataset(object):
               min_val, mx, my, mz)
         return min_val, self.arr([mx, my, mz], 'code_length', dtype="float64")
 
+    def find_field_values_at_point(self, fields, coord):
+        """
+        Returns the values [field1, field2,...] of the fields at the given
+        coordinates. Returns a list of field values in the same order as 
+        the input *fields*.
+        """
+        return self.point(coords)[fields]
+
+    def find_field_values_at_points(self, fields, coords):
+        """
+        Returns the values [field1, field2,...] of the fields at the given
+        [(x1, y1, z2), (x2, y2, z2),...] points.  Returns a list of field 
+        values in the same order as the input *fields*.
+
+        This is quite slow right now as it creates a new data object for each
+        point.  If an optimized version exists on the Index object we'll use
+        that instead.
+        """
+        if hasattr(self,"index") and \
+                hasattr(self.index,"_find_field_values_at_points"):
+            return self.index._find_field_values_at_points(fields,coords)
+
+        fields = ensure_list(fields)
+        out = np.zeros((len(fields),len(coords)), dtype=np.float64)
+        for i,coord in enumerate(coords):
+            out[:][i] = self.point(coord)[fields]
+        return out
+
     # Now all the object related stuff
     def all_data(self, find_max=False):
         if find_max: c = self.find_max("density")[1]
