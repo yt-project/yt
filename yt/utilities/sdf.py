@@ -188,7 +188,7 @@ class HTTPDataStruct(DataStruct):
     def __init__(self, *args, **kwargs):
         super(HTTPDataStruct, self).__init__(*args, **kwargs)
         if None in (PageCacheURL, HTTPArray):
-            raise ImportError("thingking")
+            raise ImportError("'thingking' is required for loading of remote HTTP data.")
         self.pcu = PageCacheURL(self.filename)
 
     def set_offset(self, offset):
