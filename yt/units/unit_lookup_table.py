@@ -19,7 +19,8 @@ from yt.utilities.physical_ratios import \
     sec_per_min, temp_sun_kelvin, luminosity_sun_ergs_per_sec, \
     metallicity_sun, erg_per_eV, amu_grams, mass_electron_grams, \
     cm_per_ang, jansky_cgs, mass_jupiter_grams, mass_earth_grams, \
-    boltzmann_constant_erg_per_K, rankine_per_kelvin
+    boltzmann_constant_erg_per_K, kelvin_per_rankine, \
+    speed_of_light_cm_per_s
 import numpy as np
 
 # Lookup a unit symbol with the symbol string, and provide a tuple with the
@@ -38,6 +39,7 @@ default_unit_symbol_lut = {
     "erg":  (1.0, dimensions.energy),
     "esu":  (1.0, dimensions.charge),
     "gauss": (1.0, dimensions.magnetic_field),
+    "C" : (1.0, dimensions.temperature, -273.15),
 
     # some SI
     "m": (1.0e2, dimensions.length),
@@ -48,6 +50,8 @@ default_unit_symbol_lut = {
     # Imperial units
     "ft": (30.48, dimensions.length),
     "mile": (160934, dimensions.length),
+    "F": (kelvin_per_rankine, dimensions.temperature, -459.67),
+    "R": (kelvin_per_rankine, dimensions.temperature),
 
     # dimensionless stuff
     "h": (1.0, dimensions.dimensionless), # needs to be added for rho_crit_now
@@ -58,6 +62,9 @@ default_unit_symbol_lut = {
     "hr":  (sec_per_hr, dimensions.time),
     "day": (sec_per_day, dimensions.time),
     "yr":  (sec_per_year, dimensions.time),
+
+    # Velocities
+    "c": (speed_of_light_cm_per_s, dimensions.velocity),
 
     # Solar units
     "Msun": (mass_sun_grams, dimensions.mass),
@@ -92,7 +99,6 @@ default_unit_symbol_lut = {
     "counts": (1.0, dimensions.dimensionless),
     "kB": (boltzmann_constant_erg_per_K,
            dimensions.energy/dimensions.temperature),
-    "R": (rankine_per_kelvin, dimensions.temperature),
     "photons": (1.0, dimensions.dimensionless),
 
     # for AstroPy compatibility

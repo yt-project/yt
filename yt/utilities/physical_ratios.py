@@ -67,6 +67,9 @@ sec_per_hr   = 3600.0
 sec_per_min  = 60.0
 day_per_year = 365.25
 
+# velocities
+speed_of_light_cm_per_s = 2.99792458e10
+
 # temperature / energy
 boltzmann_constant_erg_per_K = 1.3806488e-16
 erg_per_eV = 1.602176562e-12
@@ -75,7 +78,7 @@ K_per_keV = erg_per_keV / boltzmann_constant_erg_per_K
 keV_per_K = 1.0 / K_per_keV
 keV_per_erg = 1.0 / erg_per_keV
 eV_per_erg = 1.0 / erg_per_eV
-rankine_per_kelvin = 9./5.
+kelvin_per_rankine = 5./9.
 
 # Solar System masses
 # Standish, E.M. (1995) "Report of the IAU WGAS Sub-Group on Numerical Standards",

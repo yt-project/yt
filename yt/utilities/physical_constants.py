@@ -6,7 +6,7 @@ amu_cgs           = YTQuantity(amu_grams, 'g')
 mass_hydrogen_cgs = 1.007947*amu_cgs
 
 # Velocities
-speed_of_light_cgs = YTQuantity(2.99792458e10, 'cm/s')
+speed_of_light_cgs = YTQuantity(speed_of_light_cm_per_s, 'cm/s')
 
 # Cross Sections
 # 8*pi/3 (alpha*hbar*c/(2*pi))**2
@@ -44,6 +44,7 @@ mp = mass_hydrogen_cgs
 qp = charge_proton_cgs
 mh = mp
 clight = speed_of_light_cgs
+speed_of_light = speed_of_light_cgs
 kboltz = boltzmann_constant_cgs
 kb = kboltz
 hcgs = planck_constant_cgs
