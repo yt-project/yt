@@ -36,6 +36,16 @@ def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
         The name of the author who wrote the data. Default: None.
     data_comment : string, optional
         A descriptive comment. Default: None.
+    dataset_units : dictionary, optional
+        A dictionary of (value, unit) tuples to set the default units
+        of the dataset. Keys can be:
+            "length_unit"
+            "time_unit"
+            "mass_unit"
+            "velocity_unit"
+            "magnetic_unit"
+        If not specified, these will carry over from the parent
+        dataset.
     particle_type_name : string, optional
         The particle type of the particles in the dataset. Default: "dark_matter"
     clobber : boolean, optional
@@ -44,12 +54,16 @@ def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
 
     Examples
     --------
+    >>> dataset_units = {"length_unit":(1.0,"Mpc"),
+    ...                  "time_unit":(1.0,"Myr")}
     >>> write_to_gdf(ds, "clumps.h5", data_author="John ZuHone",
+    ...              dataset_units=dataset_units,
     ...              data_comment="My Really Cool Dataset", clobber=True)
     """
 
     f = _create_new_gdf(pf, gdf_path, data_author, data_comment,
-                        particle_type_name, clobber=clobber)
+                        dataset_units=dataset_units,
+                        particle_type_name=particle_type_name, clobber=clobber)
 
     # now add the fields one-by-one
     for field_name in pf.field_list:
@@ -152,7 +166,9 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name,
 
 
 def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
-                    particle_type_name="dark_matter", clobber=False):
+                    dataset_units=None, particle_type_name="dark_matter",
+                    clobber=False):
+
     # Make sure we have the absolute path to the file first
     gdf_path = os.path.abspath(gdf_path)
 
@@ -204,9 +220,14 @@ def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
     g = f.create_group("dataset_units")
     for u in ["length","time","mass","velocity","magnetic"]:
         unit_name = u+"_unit"
-        attr = getattr(pf, unit_name)
-        d = g.create_dataset(unit_name, data=float(attr))
-        d.attrs["unit"] = str(attr.units)
+        if unit_name in dataset_units:
+            value, units = dataset_units[unit_name]
+        else:
+            attr = getattr(pf, unit_name)
+            value = float(attr)
+            units = str(attr.units)
+        d = g.create_dataset(unit_name, data=value)
+        d.attrs["unit"] = units
 
     ###
     # "field_types" group
