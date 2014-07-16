@@ -160,9 +160,9 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name,
         # Check if this is a real field or particle data.
         grid.get_data(field_name)
         if fi.particle_type:  # particle data
-            pt_group[field_name] = grid[field_name]
+            pt_group[field_name] = grid[field_name].in_units(units)
         else:  # a field
-            grid_group[field_name] = grid[field_name]
+            grid_group[field_name] = grid[field_name].in_units(units)
 
 
 def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
@@ -216,6 +216,9 @@ def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
         g.attrs["omega_matter"] = pf.omega_matter
         g.attrs["omega_lambda"] = pf.omega_lambda
         g.attrs["hubble_constant"] = pf.hubble_constant
+
+    if dataset_units is None:
+        dataset_units = {}
 
     g = f.create_group("dataset_units")
     for u in ["length","time","mass","velocity","magnetic"]:
