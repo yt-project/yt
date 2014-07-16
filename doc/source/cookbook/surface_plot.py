@@ -1,6 +1,3 @@
-### THIS RECIPE IS CURRENTLY BROKEN IN YT-3.0
-### DO NOT TRUST THIS RECIPE UNTIL THIS LINE IS REMOVED
-
 import yt
 import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
@@ -28,8 +25,15 @@ p3dc = Poly3DCollection(surface.triangles, linewidth=0.0)
 # Set the surface colors in the right scaling [0,1]
 p3dc.set_facecolors(colors[0,:,:]/255.)
 ax.add_collection(p3dc)
-ax.auto_scale_xyz(surface.vertices[0,:], surface.vertices[1,:], surface.vertices[2,:])
-ax.set_aspect(1.0)
+
+# Let's keep the axis ratio fixed in all directions by taking the maximum 
+# extent in one dimension and make it the bounds in all dimensions
+max_extent = (surface.vertices.max(axis=1) - surface.vertices.min(axis=1)).max()
+centers = (surface.vertices.max(axis=1) + surface.vertices.min(axis=1)) / 2
+bounds = np.zeros([3,2])
+bounds[:,0] = centers[:] - max_extent/2
+bounds[:,1] = centers[:] + max_extent/2
+ax.auto_scale_xyz(bounds[0,:], bounds[1,:], bounds[2,:])
 
 # Save the figure
 plt.savefig("%s_Surface.png" % ds)
