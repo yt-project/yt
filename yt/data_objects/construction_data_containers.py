@@ -605,7 +605,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
             Dictionary of units to convert fields to. If not set, fields are
             in their default units.
         All remaining keyword arguments are passed to
-        yt.utilities.grid_data_format.writer.
+        yt.utilities.grid_data_format.writer.write_to_gdf.
 
         Examples
         --------
