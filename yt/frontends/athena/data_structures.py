@@ -362,6 +362,7 @@ class AthenaDataset(Dataset):
         if storage_filename is None:
             storage_filename = '%s.yt' % filename.split('/')[-1]
         self.storage_filename = storage_filename
+        self.backup_filename = self.filename[:-4] + "_backup.gdf"
         # Unfortunately we now have to mandate that the index gets 
         # instantiated so that we can make sure we have the correct left 
         # and right domain edges.
