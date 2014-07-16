@@ -26,18 +26,13 @@ p3dc = Poly3DCollection(surface.triangles, linewidth=0.0)
 p3dc.set_facecolors(colors[0,:,:]/255.)
 ax.add_collection(p3dc)
 
-# We do this little magic to keep the axis ratio fixed in all directions
-# Take the maximum extent in one dimension and make it the bounds in all 
-# dimensions
-max_extent = np.max([np.max(surface.vertices[0,:]) - np.min(surface.vertices[0,:]), \
-                    np.max(surface.vertices[1,:]) - np.min(surface.vertices[1,:]), \
-                    np.max(surface.vertices[2,:]) - np.min(surface.vertices[2,:])])
-bounds = np.array([[np.mean(surface.vertices[0,:]) - max_extent/2,  \
-                    np.mean(surface.vertices[0,:]) + max_extent/2], \
-                   [np.mean(surface.vertices[1,:]) - max_extent/2,  \
-                    np.mean(surface.vertices[1,:]) + max_extent/2], \
-                   [np.mean(surface.vertices[2,:]) - max_extent/2,  \
-                    np.mean(surface.vertices[2,:]) + max_extent/2]])
+# Let's keep the axis ratio fixed in all directions by taking the maximum 
+# extent in one dimension and make it the bounds in all dimensions
+max_extent = (surface.vertices.max(axis=1) - surface.vertices.min(axis=1)).max()
+centers = (surface.vertices.max(axis=1) + surface.vertices.min(axis=1)) / 2
+bounds = np.zeros([3,2])
+bounds[:,0] = centers[:] - max_extent/2
+bounds[:,1] = centers[:] + max_extent/2
 ax.auto_scale_xyz(bounds[0,:], bounds[1,:], bounds[2,:])
 
 # Save the figure
