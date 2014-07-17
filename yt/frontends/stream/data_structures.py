@@ -512,7 +512,8 @@ def unitify_data(data):
 
 def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
                       nprocs=1, sim_time=0.0, mass_unit=None, time_unit=None,
-                      velocity_unit=None, periodicity=(True, True, True),
+                      velocity_unit=None, magnetic_unit=None,
+                      periodicity=(True, True, True),
                       geometry = "cartesian"):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -551,6 +552,8 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
         Unit to use for times.  Defaults to unitless.
     velocity_unit : string
         Unit to use for velocities.  Defaults to unitless.
+    magnetic_unit : string
+        Unit to use for magnetic fields. Defaults to unitless.
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
@@ -640,6 +643,8 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
         time_unit = 'code_time'
     if velocity_unit is None:
         velocity_unit = 'code_velocity'
+    if magnetic_unit is None:
+        magnetic_unit = 'code_magnetic'
 
     handler = StreamHandler(
         grid_left_edges,
@@ -651,7 +656,7 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
         np.zeros(nprocs).reshape((nprocs,1)),
         sfh,
         field_units,
-        (length_unit, mass_unit, time_unit, velocity_unit),
+        (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
         particle_types=particle_types,
         periodicity=periodicity
     )
@@ -685,7 +690,8 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
 def load_amr_grids(grid_data, domain_dimensions,
                    field_units=None, bbox=None, sim_time=0.0, length_unit=None,
                    mass_unit=None, time_unit=None, velocity_unit=None,
-                   periodicity=(True, True, True), geometry = "cartesian"):
+                   magnetic_unit=None, periodicity=(True, True, True),
+                   geometry = "cartesian"):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
     This should allow a sequence of grids of varying resolution of data to be
@@ -723,6 +729,8 @@ def load_amr_grids(grid_data, domain_dimensions,
         Unit to use for times.  Defaults to unitless.
     velocity_unit : string or float
         Unit to use for velocities.  Defaults to unitless.
+    magnetic_unit : string or float
+        Unit to use for magnetic fields.  Defaults to unitless.
     bbox : array_like (xdim:zdim, LE:RE), optional
         Size of computational domain in units specified by length_unit.
         Defaults to a cubic unit-length domain.
@@ -806,6 +814,8 @@ def load_amr_grids(grid_data, domain_dimensions,
         time_unit = 'code_time'
     if velocity_unit is None:
         velocity_unit = 'code_velocity'
+    if magnetic_unit is None:
+        magnetic_unit = 'code_magnetic'
 
     handler = StreamHandler(
         grid_left_edges,
@@ -817,7 +827,7 @@ def load_amr_grids(grid_data, domain_dimensions,
         np.zeros(ngrids).reshape((ngrids,1)),
         sfh,
         field_units,
-        (length_unit, mass_unit, time_unit, velocity_unit),
+        (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
         particle_types=set_particle_types(grid_data[0])
     )
 
@@ -969,7 +979,8 @@ class StreamParticlesDataset(StreamDataset):
 
 def load_particles(data, length_unit = None, bbox=None,
                    sim_time=0.0, mass_unit = None, time_unit = None,
-                   velocity_unit=None, periodicity=(True, True, True),
+                   velocity_unit=None, magnetic_unit=None,
+                   periodicity=(True, True, True),
                    n_ref = 64, over_refine_factor = 1, geometry = "cartesian"):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
@@ -997,6 +1008,10 @@ def load_particles(data, length_unit = None, bbox=None,
         Conversion factor from simulation mass units to grams
     time_unit : float
         Conversion factor from simulation time units to seconds
+    velocity_unit : float
+        Conversion factor from simulation velocity units to cm/s
+    magnetic_unit : float
+        Conversion factor from simulation magnetic units to gauss
     bbox : array_like (xdim:zdim, LE:RE), optional
         Size of computational domain in units sim_unit_to_cm
     sim_time : float, optional
@@ -1057,6 +1072,8 @@ def load_particles(data, length_unit = None, bbox=None,
         time_unit = 'code_time'
     if velocity_unit is None:
         velocity_unit = 'code_velocity'
+    if magnetic_unit is None:
+        magnetic_unit = 'code_magnetic'
 
     # I'm not sure we need any of this.
     handler = StreamHandler(
@@ -1069,7 +1086,7 @@ def load_particles(data, length_unit = None, bbox=None,
         np.zeros(nprocs).reshape((nprocs,1)),
         sfh,
         field_units,
-        (length_unit, mass_unit, time_unit, velocity_unit),
+        (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
         particle_types=particle_types,
         periodicity=periodicity
     )
@@ -1141,7 +1158,8 @@ class StreamHexahedralDataset(StreamDataset):
 def load_hexahedral_mesh(data, connectivity, coordinates,
                          length_unit = None, bbox=None, sim_time=0.0,
                          mass_unit = None, time_unit = None,
-                         velocity_unit = None, periodicity=(True, True, True),
+                         velocity_unit = None, magnetic_unit = None,
+                         periodicity=(True, True, True),
                          geometry = "cartesian"):
     r"""Load a hexahedral mesh of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
@@ -1210,6 +1228,8 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
         time_unit = 'code_time'
     if velocity_unit is None:
         velocity_unit = 'code_velocity'
+    if magnetic_unit is None:
+        magnetic_unit = 'code_magnetic'
 
     # I'm not sure we need any of this.
     handler = StreamHandler(
@@ -1222,7 +1242,7 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
         np.zeros(nprocs).reshape((nprocs,1)),
         sfh,
         field_units,
-        (length_unit, mass_unit, time_unit, velocity_unit),
+        (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
         particle_types=particle_types,
         periodicity=periodicity
     )
