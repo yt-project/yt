@@ -36,10 +36,6 @@ cdef extern from "math.h":
     long int lrint(double x) nogil
     double fabs(double x) nogil
 
-ctypedef fused anyfloat:
-    np.float32_t
-    np.float64_t
-
 # These routines are separated into a couple different categories:
 #
 #   * Routines for identifying intersections of an object with a bounding box
@@ -335,10 +331,10 @@ cdef class SelectorObject:
         # domain_width is already in code units, and we assume what is fed in
         # is too.
         cdef np.float64_t rel = x1 - x2
-        if self.periodicity[d] :
-            if rel > self.domain_width[d]/2.0 :
+        if self.periodicity[d]:
+            if rel > self.domain_width[d] * 0.5:
                 rel -= self.domain_width[d]
-            elif rel < -self.domain_width[d]/2.0 :
+            elif rel < -self.domain_width[d] * 0.5:
                 rel += self.domain_width[d]
         return rel
 
@@ -491,10 +487,11 @@ cdef class SelectorObject:
         cdef int i
         cdef np.float64_t pos[3]
         cdef np.ndarray[np.uint8_t, ndim=1] mask 
-        mask = np.zeros(x.shape[0], dtype='uint8')
+        mask = np.empty(x.shape[0], dtype='uint8')
         _ensure_code(x)
         _ensure_code(y)
         _ensure_code(z)
+
 
         # this is to allow selectors to optimize the point vs
         # 0-radius sphere case.  These two may have different 
@@ -517,7 +514,7 @@ cdef class SelectorObject:
                     mask[i] = self.select_sphere(pos, radius)
                     count += mask[i]
         if count == 0: return None
-        return mask.astype("bool")
+        return mask.view("bool")
 
     def __hash__(self):
         return hash(self._hash_vals() + self._base_hash())
@@ -595,12 +592,27 @@ cdef class SphereSelector(SelectorObject):
     cdef np.float64_t radius
     cdef np.float64_t radius2
     cdef np.float64_t center[3]
+    cdef np.float64_t bbox[3][2]
+    cdef bint check_box[3]
 
     def __init__(self, dobj):
         for i in range(3):
             self.center[i] = _ensure_code(dobj.center[i])
         self.radius = _ensure_code(dobj.radius)
         self.radius2 = self.radius * self.radius
+        center = _ensure_code(dobj.center)
+        cdef np.float64_t mi = np.finfo("float64").min
+        cdef np.float64_t ma = np.finfo("float64").max
+        for i in range(3):
+            self.center[i] = center[i]
+            self.bbox[i][0] = self.center[i] - self.radius
+            self.bbox[i][1] = self.center[i] + self.radius
+            if self.bbox[i][0] < dobj.pf.domain_left_edge[i]:
+                self.check_box[i] = False
+            elif self.bbox[i][1] > dobj.pf.domain_right_edge[i]:
+                self.check_box[i] = False
+            else:
+                self.check_box[i] = True
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -620,10 +632,15 @@ cdef class SphereSelector(SelectorObject):
         cdef int i
         cdef np.float64_t dist, dist2 = 0
         for i in range(3):
-            dist = self.difference(pos[i], self.center[i], i)
+            if self.check_box[i] and \
+              (pos[i] < self.bbox[i][0] or 
+               pos[i] > self.bbox[i][1]):
+                return 0
+            dist = _periodic_dist(pos[i], self.center[i], self.domain_width[i],
+                                  self.periodicity[i])
             dist2 += dist*dist
-        if dist2 <= self.radius2: return 1
-        return 0
+            if dist2 > self.radius2: return 0
+        return 1
    
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -649,16 +666,22 @@ cdef class SphereSelector(SelectorObject):
             left_edge[1] <= self.center[1] <= right_edge[1] and
             left_edge[2] <= self.center[2] <= right_edge[2]):
             return 1
+        for i in range(3):
+            if not self.check_box[i]: continue
+            if right_edge[i] < self.bbox[i][0] or \
+               left_edge[i] > self.bbox[i][1]:
+                return 0
         # http://www.gamedev.net/topic/335465-is-this-the-simplest-sphere-aabb-collision-test/
         dist = 0
         for i in range(3):
+            # Early terminate
             box_center = (right_edge[i] + left_edge[i])/2.0
             relcenter = self.difference(box_center, self.center[i], i)
             edge = right_edge[i] - left_edge[i]
             closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
             dist += closest*closest
-        if dist <= self.radius2: return 1
-        return 0
+            if dist > self.radius2: return 0
+        return 1
 
     def _hash_vals(self):
         return (self.radius, self.radius2,

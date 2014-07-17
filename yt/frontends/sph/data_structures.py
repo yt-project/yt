@@ -649,6 +649,9 @@ class HTTPStreamDataset(ParticleDataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        if args[0].startswith("http://"):
+        if not args[0].startswith("http://"):
+            return False
+        hreq = requests.get(args[0] + "/yt_index.json")
+        if hreq.status_code == 200:
             return True
         return False

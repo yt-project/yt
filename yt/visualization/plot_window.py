@@ -811,7 +811,7 @@ class PWViewerMPL(PlotWindow):
                 elif np.nanmax(image) <= 0:
                     msg = "Plot image for field %s has no positive " \
                           "values.  Max = %d." % (f, np.nanmax(image))
-                elif np.all(np.logical_not(np.isfinite(image))):
+                elif not np.any(np.isfinite(image)):
                     msg = "Plot image for field %s is filled with NaNs." % (f,)
                 if msg is not None:
                     mylog.warning(msg)

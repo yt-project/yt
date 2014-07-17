@@ -54,6 +54,7 @@ class StreamFieldInfo(FieldInfoContainer):
     )
 
     known_particle_fields = (
+        ("particle_position", ("code_length", [], None)),
         ("particle_position_x", ("code_length", [], None)),
         ("particle_position_y", ("code_length", [], None)),
         ("particle_position_z", ("code_length", [], None)),
