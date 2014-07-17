@@ -263,7 +263,7 @@ class Unit(Expr):
             elif self.dimensions is temperature and u.is_dimensionless:
                 cgs_offset = self.cgs_offset
             else:
-                raise InvalidUnitOperation("Quantities with units of Farhenheit "
+                raise InvalidUnitOperation("Quantities with units of Fahrenheit "
                                            "and Celcius cannot be multiplied.")
 
         return Unit(self.expr * u.expr,
@@ -429,8 +429,9 @@ def get_conversion_factor(old_units, new_units):
         if old_units.dimensions is temperature:
             return ratio, ratio*old_units.cgs_offset - new_units.cgs_offset
         else:
-            raise InvalidUnitOperation("Fahrenheit and Celsius are only can "
-                                       "only be used to represent temperature.")
+            raise InvalidUnitOperation(
+                "Fahrenheit and Celsius are not absoulte temperature scales "
+                "and cannot be used in compound unit symbols.")
 
 #
 # Helper functions
