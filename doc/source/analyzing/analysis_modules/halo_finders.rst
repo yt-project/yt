@@ -59,6 +59,7 @@ simpler than HOP:
   3. The final groups are formed the networks of particles linked 
        together by friends, hence the name.
 
+
 .. warning:: The FoF halo finder in yt is not thoroughly tested! 
     It is probably fine to use, but you are strongly encouraged 
     to check your results against the data for errors.
@@ -80,7 +81,10 @@ et al. 2011 <http://rockstar.googlecode.com/files/rockstar_ap101911.pdf>`_.
 .. note:: At the moment, Rockstar does not support multiple particle masses, 
   instead using a fixed particle mass. This will not affect most dark matter 
   simulations, but does make it less useful for finding halos from the stellar
-  mass. 
+  mass. In simulations where the highest-resolution particles all have the 
+  same mass (ie: zoom-in grid based simulations), one can set up a particle
+  filter to select the lowest mass particles and perform the halo finding
+  only on those.
 
 To run the Rockstar Halo finding, you must launch python with MPI and 
 parallelization enabled. While Rockstar itself does not require MPI to run, 
@@ -94,28 +98,14 @@ nodes.
    For example, here is how Rockstar might be called using 24 cores:
    ``mpirun -n 24 --mca btl ^openib python ./run_rockstar.py --parallel``.
 
-Designing the python script itself is straightforward:
-
-.. code-block:: python
-
-  from yt.mods import *
-  from yt.analysis_modules.halo_finding.rockstar.api import RockstarHaloFinder
-
-  #find all of our simulation files
-  files = glob.glob("Enzo_64/DD*/\*index")
-  #hopefully the file name order is chronological
-  files.sort()
-  ts = DatasetSeries.from_filenames(files[:])
-  rh = RockstarHaloFinder(ts)
-  rh.run()
-
 The script above configures the Halo finder, launches a server process which 
 disseminates run information and coordinates writer-reader processes. 
 Afterwards, it launches reader and writer tasks, filling the available MPI 
 slots, which alternately read particle information and analyze for halo 
 content.
 
-The RockstarHaloFinder class has these options:
+The RockstarHaloFinder class has these options that can be supplied to the 
+halo catalog through the ``finder_kwargs`` argument:
   * ``dm_type``, the index of the dark matter particle. Default is 1. 
   * ``outbase``, This is where the out*list files that Rockstar makes should be
     placed. Default is 'rockstar_halos'.
@@ -201,11 +191,14 @@ is no way of knowing before the halo finder is run.
 .. code-block:: python
 
   from yt.mods import *
-  from yt.analysis_modules.halo_finding.api import *
-  pf = load("data0001")
-  halo_list = HaloFinder(pf,padding=0.02)
+  from yt.analysis_modules.halo_analysis.api import *
+  ds = load("data0001")
+  hc= HaloCatalog(data_pf =ds,finder_method='hop'
+    finder_kwargs={'padding':0.02})
   # --or--
-  halo_list = FOFHaloFinder(pf,padding=0.02)
+  hc= HaloCatalog(data_pf =ds,finder_method='fof'
+    finder_kwargs={'padding':0.02})
+
 
 In general, a little bit of padding goes a long way, and too much 
 just slows down the analysis and doesn't improve the answer (but 
