@@ -431,7 +431,10 @@ class Dataset(object):
         if available:
             self.particle_types += (filter.name,)
             self.filtered_particle_types.append(filter.name)
-            self._setup_particle_types([filter.name])
+            for fn in self._setup_particle_types([filter.name]):
+                if not fn in self.derived_field_list:
+                    self.derived_field_list.append(fn)
+            self.derived_field_list.sort() 
         return available
 
     def _setup_particle_types(self, ptypes = None):
