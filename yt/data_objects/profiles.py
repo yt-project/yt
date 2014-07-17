@@ -1279,7 +1279,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
                 field_ex = list(extrema[bin_field[-1]])
             except KeyError:
                 field_ex = list(extrema[bin_field])
-            if bin_field in units:
+            if units is not None and bin_field in units:
                 fe = data_source.pf.arr(field_ex, units[bin_field])
                 fe.convert_to_units(bf_units)
                 field_ex = [fe[0].v, fe[1].v]
