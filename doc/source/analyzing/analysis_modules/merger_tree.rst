@@ -5,6 +5,9 @@ Halo Merger Tree
 .. sectionauthor:: Stephen Skory <sskory@physics.ucsd.edu>
 .. versionadded:: 1.7
 
+.. note:: At the moment the merger tree is not yet implemented using new 
+    halo catalog functionality. 
+
 The Halo Merger Tree extension is capable of building a database of halo mergers
 over a set of time-ordered Enzo datasets. The fractional contribution of older
 'parent' halos to younger 'child' halos is calculated by comparing the unique
