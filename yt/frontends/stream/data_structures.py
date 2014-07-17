@@ -337,8 +337,8 @@ class StreamDataset(Dataset):
 
     def _set_code_unit_attributes(self):
         base_units = self.stream_handler.code_units
-        attrs = ('length_unit', 'mass_unit', 'time_unit', 'velocity_unit')
-        cgs_units = ('cm', 'g', 's', 'cm/s')
+        attrs = ('length_unit', 'mass_unit', 'time_unit', 'velocity_unit', 'magnetic_unit')
+        cgs_units = ('cm', 'g', 's', 'cm/s', 'gauss')
         for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
             if isinstance(unit, basestring):
                 uq = self.quan(1.0, unit)
