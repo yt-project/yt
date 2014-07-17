@@ -1440,6 +1440,9 @@ class YTNotebookCmd(YTCommand):
             dict(short="-p", longname="--port", action="store",
                  default = 0, dest='port',
                  help="Port to listen on; defaults to auto-detection."),
+            dict(short="-prof", longname="--profile", action="store",
+                 default = None, dest="profile",
+                 help="The IPython profile to use when lauching the kernel."),
             dict(short="-n", longname="--no-password", action="store_true",
                  default = False, dest='no_password',
                  help="If set, do not prompt or use a password."),
@@ -1456,7 +1459,8 @@ class YTNotebookCmd(YTCommand):
         except ImportError:
             # pre-IPython v1.0
             from IPython.frontend.html.notebook.notebookapp import NotebookApp
-        print "You must choose a password so that others cannot connect to your notebook."
+        print "You must choose a password so that others cannot connect to " \
+              "your notebook."
         pw = ytcfg.get("yt", "notebook_password")
         if len(pw) == 0 and not args.no_password:
             import IPython.lib
@@ -1471,6 +1475,8 @@ class YTNotebookCmd(YTCommand):
             pw = None
         if args.port != 0:
             kwargs['port'] = int(args.port)
+        if args.profile is not None:
+            kwargs['profile'] = args.profile
         if pw is not None:
             kwargs['password'] = pw
         app = NotebookApp(open_browser=args.open_browser,
@@ -1487,7 +1493,8 @@ class YTNotebookCmd(YTCommand):
         print "~C and then typing -L%s:localhost:%s" % (app.port, app.port)
         print "where the first number is the port on your local machine. "
         print
-        print "If you are using %s on your machine already, try -L8889:localhost:%s" % (app.port, app.port)
+        print "If you are using %s on your machine already, try " \
+              "-L8889:localhost:%s" % (app.port, app.port)
         print
         print "***************************************************************"
         print
