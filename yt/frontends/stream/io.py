@@ -127,7 +127,7 @@ class StreamParticleIOHandler(BaseIOHandler):
             for obj in chunk.objs:
                 count += selector.count_octs(obj.oct_handler, obj.domain_id)
         for ptype in ptf:
-            psize[ptype] = self.pf.n_ref * count / float(obj.nz)
+            psize[ptype] = self.pf.n_ref * count
         return psize
 
     def _read_particle_fields(self, chunks, ptf, selector):
