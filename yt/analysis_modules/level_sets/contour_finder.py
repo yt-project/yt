@@ -39,9 +39,9 @@ def identify_contours(data_source, field, min_val, max_val,
         node_ids.append(nid)
         values = g[field][sl].astype("float64")
         contour_ids = np.zeros(dims, "int64") - 1
-        gct.identify_contours(values, contour_ids, total_contours)
+        total_contours += gct.identify_contours(values, contour_ids,
+                                                total_contours)
         new_contours = tree.cull_candidates(contour_ids)
-        total_contours += new_contours.shape[0]
         tree.add_contours(new_contours)
         # Now we can create a partitioned grid with the contours.
         LE = (DLE + g.dds * gi).in_units("code_length").ndarray_view()

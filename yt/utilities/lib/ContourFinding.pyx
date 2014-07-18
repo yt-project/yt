@@ -349,6 +349,7 @@ cdef class TileContourTree:
         for i in range(ni*nj*nk): 
             if container[i] != NULL: free(container[i])
         free(container)
+        return nc
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
