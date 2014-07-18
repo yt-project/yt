@@ -1339,6 +1339,8 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
             except KeyError:
                 field_ex = list(extrema[bin_field])
             if units is not None and bin_field in units:
+                if isinstance(field_ex[0], tuple):
+                    field_ex = [data_source.pf.quan(*f) for f in field_ex]
                 fe = data_source.pf.arr(field_ex, units[bin_field])
                 fe.convert_to_units(bf_units)
                 field_ex = [fe[0].v, fe[1].v]

@@ -441,5 +441,5 @@ Add a Timestamp Inset Box
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    p = yt.SlicePlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
-   p.annotate_timestamp()
+   p.annotate_timestamp(-9, -9)
    p.save()
