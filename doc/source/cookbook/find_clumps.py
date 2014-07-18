@@ -23,7 +23,7 @@ ds = yt.load(fn)  # load data
 # thing!  This is a convenience parameter that prepares an object that covers
 # the whole domain.  Note, though, that it will load on demand and not before!
 data_source = ds.disk([0.5, 0.5, 0.5], [0., 0., 1.],
-                      (8., 'kpc'), (1., 'kpc'))
+                      (1., 'kpc'), (1., 'kpc'))
 
 # Now we set some sane min/max values between which we want to find contours.
 # This is how we tell the clump finder what to look for -- it won't look for
@@ -68,10 +68,3 @@ prj.annotate_clumps(leaf_clumps)
 
 # Lastly, we write the plot to disk.
 prj.save('clumps')
-
-# We can also save the clump object to disk to read in later so we don't have
-# to spend a lot of time regenerating the clump objects.
-ds.h.save_object(master_clump, 'My_clumps')
-
-# Later, we can read in the clump object like so,
-master_clump = ds.load_object('My_clumps')

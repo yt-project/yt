@@ -65,21 +65,21 @@ class Clump(object):
         self.clump_info = []
 
         # Number of cells.
-        self.add_info_item('self.data["CellMassMsun"].size','"Cells: %d" % value')
+        self.add_info_item('self.data["gas", "cell_mass"].size','"Cells: %d" % value')
         # Gas mass in solar masses.
-        self.add_info_item('self.data["CellMassMsun"].sum()','"Mass: %e Msolar" % value')
+        self.add_info_item('self.data["gas", "cell_mass"].sum()','"Mass: %e Msolar" % value')
         # Volume-weighted Jeans mass.
-        self.add_info_item('self.data.quantities["WeightedAverageQuantity"]("JeansMassMsun","CellVolume")',
-                           '"Jeans Mass (vol-weighted): %.6e Msolar" % value')
+        self.add_info_item('self.data.quantities.weighted_average_quantity("jeans_mass", ("index", "cell_volume"))',
+                           '"Jeans Mass (volume-weighted): %.6e Msolar" % value')
         # Mass-weighted Jeans mass.
-        self.add_info_item('self.data.quantities["WeightedAverageQuantity"]("JeansMassMsun","CellMassMsun")',
+        self.add_info_item('self.data.quantities.weighted_average_quantity("jeans_mass", ("gas", "cell_mass"))',
                            '"Jeans Mass (mass-weighted): %.6e Msolar" % value')
         # Max level.
-        self.add_info_item('self.data["GridLevel"].max()','"Max grid level: %d" % value')
+        self.add_info_item('self.data["index", "grid_level"].max()','"Max grid level: %d" % value')
         # Minimum number density.
-        self.add_info_item('self.data["NumberDensity"].min()','"Min number density: %.6e cm^-3" % value')
+        self.add_info_item('self.data["number_density"].min()','"Min number density: %.6e cm^-3" % value')
         # Maximum number density.
-        self.add_info_item('self.data["NumberDensity"].max()','"Max number density: %.6e cm^-3" % value')
+        self.add_info_item('self.data["number_density"].max()','"Max number density: %.6e cm^-3" % value')
 
     def clear_clump_info(self):
         "Clears the clump_info array and passes the instruction to its children."
@@ -239,63 +239,17 @@ def write_clumps(clump,level,f_ptr):
         for child in clump.children:
             write_clumps(child,0,f_ptr)
 
-# Old clump info writing routines.
-def write_old_clump_index(clump,level,f_ptr):
-    for q in range(level):
-        f_ptr.write("\t")
-    f_ptr.write("Clump at level %d:\n" % level)
-    clump.write_info(level,f_ptr)
-    write_old_clump_info(clump,level,f_ptr)
-    f_ptr.write("\n")
-    f_ptr.flush()
-    if ((clump.children is not None) and (len(clump.children) > 0)):
-        for child in clump.children:
-            write_clump_index(child,(level+1),f_ptr)
-
-def write_old_clumps(clump,level,f_ptr):
-    if ((clump.children is None) or (len(clump.children) == 0)):
-        f_ptr.write("%sClump:\n" % ("\t"*level))
-        write_old_clump_info(clump,level,f_ptr)
-        f_ptr.write("\n")
-        f_ptr.flush()
-    if ((clump.children is not None) and (len(clump.children) > 0)):
-        for child in clump.children:
-            write_clumps(child,0,f_ptr)
-
-__clump_info_template = \
-"""
-%(tl)sCells: %(num_cells)s
-%(tl)sMass: %(total_mass).6e Msolar
-%(tl)sJeans Mass (vol-weighted): %(jeans_mass_vol).6e Msolar
-%(tl)sJeans Mass (mass-weighted): %(jeans_mass_mass).6e Msolar
-%(tl)sMax grid level: %(max_level)s
-%(tl)sMin number density: %(min_density).6e cm^-3
-%(tl)sMax number density: %(max_density).6e cm^-3
-
-"""
-
-def write_old_clump_info(clump,level,f_ptr):
-    fmt_dict = {'tl':  "\t" * level}
-    fmt_dict['num_cells'] = clump.data["CellMassMsun"].size,
-    fmt_dict['total_mass'] = clump.data["CellMassMsun"].sum()
-    fmt_dict['jeans_mass_vol'] = clump.data.quantities["WeightedAverageQuantity"]("JeansMassMsun","CellVolume")
-    fmt_dict['jeans_mass_mass'] = clump.data.quantities["WeightedAverageQuantity"]("JeansMassMsun","CellMassMsun")
-    fmt_dict['max_level'] =  clump.data["GridLevel"].max()
-    fmt_dict['min_density'] =  clump.data["NumberDensity"].min()
-    fmt_dict['max_density'] =  clump.data["NumberDensity"].max()
-    f_ptr.write(__clump_info_template % fmt_dict)
-
 # Recipes for various clump calculations.
 recipes = {}
 
 # Distance from clump center of mass to center of mass of top level object.
 def _DistanceToMainClump(master,units='pc'):
-    masterCOM = master.data.quantities['CenterOfMass']()
+    masterCOM = master.data.quantities.center_of_mass()
     pass_command = "self.masterCOM = [%.10f, %.10f, %.10f]" % (masterCOM[0],
                                                                masterCOM[1],
                                                                masterCOM[2])
     master.pass_down(pass_command)
-    master.pass_down("self.com = self.data.quantities['CenterOfMass']()")
+    master.pass_down("self.com = self.data.quantities.center_of_mass()")
 
     quantity = "((self.com[0]-self.masterCOM[0])**2 + (self.com[1]-self.masterCOM[1])**2 + (self.com[2]-self.masterCOM[2])**2)**(0.5)*self.data.pf.units['%s']" % units
     format = "%s%s%s" % ("'Distance from center: %.6e ",units,"' % value")
