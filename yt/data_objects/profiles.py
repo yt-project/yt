@@ -1282,15 +1282,15 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     --------
 
     Create a 1d profile.  Access bin field from profile.x and field
-    data from profile.field_data.
+    data from profile[<field_name>].
 
     >>> pf = load("DD0046/DD0046")
     >>> ad = pf.h.all_data()
-    >>> extrema = {"density": (1.0e-30, 1.0e-25)}
-    >>> profile = create_profile(ad, ["density"], extrema=extrema,
-    ...                          fields=["temperature", "velocity_x"]))
+    >>> profile = create_profile(ad, [("gas", "density")], 
+    ...                              [("gas", "temperature"),
+    ...                               ("gas", "velocity_x")])
     >>> print profile.x
-    >>> print profile.field_data["temperature"]
+    >>> print profile["gas", "temperature"]
 
     """
     bin_fields = ensure_list(bin_fields)
