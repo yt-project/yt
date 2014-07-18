@@ -62,7 +62,7 @@ def write_to_gdf(ds, gdf_path, data_author=None, data_comment=None,
     """
 
     f = _create_new_gdf(ds, gdf_path, data_author, data_comment,
-                        dataset_units=datasetUnits,
+                        dataset_units=dataset_units,
                         particle_type_name=particle_type_name, clobber=clobber)
 
     # now add the fields one-by-one

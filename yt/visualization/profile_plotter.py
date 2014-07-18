@@ -797,7 +797,8 @@ class PhasePlot(ImagePlotContainer):
                     positive_values = data[data > 0.0]
                     if len(positive_values) == 0:
                         mylog.warning("Profiled field %s has no positive "
-                                      "values.  Max = %d." % (f, data.max()))
+                                      "values.  Max = %d." %
+                                      (f, np.nanmax(data)))
                         mylog.warning("Switching to linear colorbar scaling.")
                         zmin = data.min()
                         z_scale = 'linear'
