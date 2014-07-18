@@ -117,7 +117,17 @@ class StreamParticleIOHandler(BaseIOHandler):
                               f[ptype, "particle_position_y"],
                               f[ptype, "particle_position_z"])
             
-    def _count_particles_chunks(self, chunks, ptf, selector):
+    def __count_particles_chunks(self, chunks, ptf, selector):
+        # DISABLED
+        # I have left this in here, but disabled, because of two competing
+        # problems:
+        #   * The IndexedOctreeSubsetSelector currently selects *all* particles
+        #   * Slicing a deposited field thus throws an error, since the octree
+        #     estimate fails.
+        #   * BUT, it provides considerable speedup in some situations for
+        #     stream datasets.
+        # So, pending its re-enabling, we'll leave it here.
+        # 
         # This is allowed to over-estimate.  We probably *will*, too, because
         # we're going to count *all* of the particles, not just individual
         # types.
