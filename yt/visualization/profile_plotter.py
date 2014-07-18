@@ -893,6 +893,7 @@ class PhasePlot(ImagePlotContainer):
         r"""
         Allow the user to insert text onto the plot
         The x-position and y-position must be given as well as the text string. 
+        Add text_str plot at location x, y, data coordinates (see example below).
         Fontsize defaults to 18.
         
         Parameters
