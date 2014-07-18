@@ -104,7 +104,7 @@ class Clump(object):
 
     def find_children(self, min_val, max_val = None):
         if self.children is not None:
-            print "Wiping out existing children clumps."
+            print "Wiping out existing children clumps.", len(self.children)
         self.children = []
         if max_val is None: max_val = self.max_val
         nj, cids = identify_contours(self.data, self.field, min_val, max_val)
@@ -195,7 +195,7 @@ def find_clumps(clump, min_val, max_val, d_clump):
             elif (child._isValid()):
                 these_children.append(child)
             else:
-                print "Eliminating invalid, childless clump with %d cells." % len(child.data["Ones"])
+                print "Eliminating invalid, childless clump with %d cells." % len(child.data["ones"])
         if (len(these_children) > 1):
             print "%d of %d children survived." % (len(these_children),len(clump.children))            
             clump.children = these_children
