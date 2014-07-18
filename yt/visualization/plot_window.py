@@ -1220,8 +1220,8 @@ class ProjectionPlot(PWViewerMPL):
         self.ts = ts
         pf = self.pf = ts[0]
         axis = fix_axis(axis, pf)
-        # If a non-weighted projection, assure field-label reflects that
-        if weight_field is None:
+        # If a non-weighted integral projection, assure field-label reflects that
+        if weight_field is None and proj_stype = "integrate":
             self.projected = True
         (bounds, center) = get_window_parameters(axis, center, width, pf)
         if field_parameters is None: field_parameters = {}
@@ -1431,8 +1431,8 @@ class OffAxisProjectionPlot(PWViewerMPL):
             center_rot, pf, normal, oap_width, fields, interpolated,
             weight=weight_field,  volume=volume, no_ghost=no_ghost,
             le=le, re=re, north_vector=north_vector)
-        # If a non-weighted projection, assure field-label reflects that
-        if weight_field is None:
+        # If a non-weighted, integral projection, assure field-label reflects that
+        if weight_field is None and proj_stype = "integrate":
             self.projected = True
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
