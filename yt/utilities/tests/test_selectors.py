@@ -10,22 +10,22 @@ def setup():
 
 def test_point_selector():
     # generate fake amr data
-    pf = fake_random_pf(64, nprocs=51)
-    assert(all(pf.periodicity))
+    ds = fake_random_ds(64, nprocs=51)
+    assert(all(ds.periodicity))
 
-    dd = pf.h.all_data()
+    dd = ds.all_data()
     positions = np.array([dd[ax] for ax in 'xyz'])
     delta = 0.5*np.array([dd['d'+ax] for ax in 'xyz'])
-    # ensure cell centers and corners always return one and 
+    # ensure cell centers and corners always return one and
     # only one point object
     for p in positions:
-        data = pf.point(p)
-        assert_equal(data["ones"].shape[0], 1) 
+        data = ds.point(p)
+        assert_equal(data["ones"].shape[0], 1)
     for p in positions - delta:
-        data = pf.point(p)
+        data = ds.point(p)
         assert_equal(data["ones"].shape[0], 1)
     for p in positions + delta:
-        data = pf.point(p)
+        data = ds.point(p)
         assert_equal(data["ones"].shape[0], 1)
  
 def test_sphere_selector():

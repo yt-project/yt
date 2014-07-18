@@ -207,7 +207,7 @@ class GridIndex(Index):
         Returns the values [field1, field2,...] of the fields at the given
         (x, y, z) points. Returns a numpy array of field values cross coords
         """
-        coords = YTArray(ensure_numpy_array(coords),'code_length', registry=self.pf.unit_registry)
+        coords = YTArray(ensure_numpy_array(coords),'code_length', registry=self.ds.unit_registry)
         grids = self._find_points(coords[:,0], coords[:,1], coords[:,2])[0]
         fields = ensure_list(fields)
         mark = np.zeros(3, dtype=np.int)

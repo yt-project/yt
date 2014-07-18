@@ -607,9 +607,9 @@ cdef class SphereSelector(SelectorObject):
             self.center[i] = center[i]
             self.bbox[i][0] = self.center[i] - self.radius
             self.bbox[i][1] = self.center[i] + self.radius
-            if self.bbox[i][0] < dobj.pf.domain_left_edge[i]:
+            if self.bbox[i][0] < dobj.ds.domain_left_edge[i]:
                 self.check_box[i] = False
-            elif self.bbox[i][1] > dobj.pf.domain_right_edge[i]:
+            elif self.bbox[i][1] > dobj.ds.domain_right_edge[i]:
                 self.check_box[i] = False
             else:
                 self.check_box[i] = True

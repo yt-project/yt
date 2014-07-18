@@ -21,7 +21,7 @@ class VolumeRenderingConsistency(YTDatasetTest):
         n_contours = 5
         cmap = 'algae'
         field = 'Density'
-        mi, ma = self.ds.h.all_data().quantities['Extrema'](field)[0]
+        mi, ma = self.ds.all_data().quantities['Extrema'](field)[0]
         mi, ma = na.log10(mi), na.log10(ma)
         contour_width = (ma - mi) / 100.
         L = na.array([1.] * 3)
@@ -29,7 +29,7 @@ class VolumeRenderingConsistency(YTDatasetTest):
         tf.add_layers(n_contours, w=contour_width,
                       col_bounds=(mi * 1.001, ma * 0.999),
                       colormap=cmap, alpha=na.logspace(-1, 0, n_contours))
-        cam = self.ds.h.camera(c, L, W, (N, N), transfer_function=tf,
+        cam = self.ds.camera(c, L, W, (N, N), transfer_function=tf,
             no_ghost=True)
         image = cam.snapshot()
         # image = cam.snapshot('test_rendering_%s.png'%field)

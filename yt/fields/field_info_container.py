@@ -71,7 +71,7 @@ class FieldInfoContainer(dict):
             units = self.ds.field_units.get((ptype, f), units)
             if (f in aliases or ptype not in self.ds.particle_types_raw) and \
                 units not in skip_output_units:
-                u = Unit(units, registry = self.pf.unit_registry)
+                u = Unit(units, registry = self.ds.unit_registry)
                 output_units = str(u.get_cgs_equivalent())
             else:
                 output_units = units
@@ -252,66 +252,6 @@ class FieldInfoContainer(dict):
             particle_type = self[original_name].particle_type,
             display_name = self[original_name].display_name,
             units = units)
-
-    def add_grad(self, field, **kwargs):
-        """
-        Creates the partial derivative of a given field. This function will
-        autogenerate the names of the gradient fields.
-
-        """
-        sl = slice(2,None,None)
-        sr = slice(None,-2,None)
-
-        def _gradx(f, data):
-            grad = data[field][sl,1:-1,1:-1] - data[field][sr,1:-1,1:-1]
-            grad /= 2.0*data["dx"].flat[0]*data.ds.units["cm"]
-            g = np.zeros(data[field].shape, dtype='float64')
-            g[1:-1,1:-1,1:-1] = grad
-            return g
-
-        def _grady(f, data):
-            grad = data[field][1:-1,sl,1:-1] - data[field][1:-1,sr,1:-1]
-            grad /= 2.0*data["dy"].flat[0]*data.ds.units["cm"]
-            g = np.zeros(data[field].shape, dtype='float64')
-            g[1:-1,1:-1,1:-1] = grad
-            return g
-
-        def _gradz(f, data):
-            grad = data[field][1:-1,1:-1,sl] - data[field][1:-1,1:-1,sr]
-            grad /= 2.0*data["dz"].flat[0]*data.ds.units["cm"]
-            g = np.zeros(data[field].shape, dtype='float64')
-            g[1:-1,1:-1,1:-1] = grad
-            return g
-
-        d_kwargs = kwargs.copy()
-        if "display_name" in kwargs: del d_kwargs["display_name"]
-
-        for ax in "xyz":
-            if "display_name" in kwargs:
-                disp_name = r"%s\_%s" % (kwargs["display_name"], ax)
-            else:
-                disp_name = r"\partial %s/\partial %s" % (field, ax)
-            name = "Grad_%s_%s" % (field, ax)
-            self[name] = DerivedField(name, function=eval('_grad%s' % ax),
-                         take_log=False, validators=[ValidateSpatial(1,[field])],
-                         display_name = disp_name, **d_kwargs)
-
-        def _grad(f, data) :
-            a = np.power(data["Grad_%s_x" % field],2)
-            b = np.power(data["Grad_%s_y" % field],2)
-            c = np.power(data["Grad_%s_z" % field],2)
-            norm = np.sqrt(a+b+c)
-            return norm
-
-        if "display_name" in kwargs:
-            disp_name = kwargs["display_name"]
-        else:
-            disp_name = r"\Vert\nabla %s\Vert" % (field)
-        name = "Grad_%s" % field
-        self[name] = DerivedField(name, function=_grad, take_log=False,
-                                  display_name = disp_name, **d_kwargs)
-        mylog.info("Added new fields: Grad_%s_x, Grad_%s_y, Grad_%s_z, Grad_%s" \
-                   % (field, field, field, field))
 
     def has_key(self, key):
         # This gets used a lot

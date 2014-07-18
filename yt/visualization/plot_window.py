@@ -295,8 +295,8 @@ class PlotWindow(ImagePlotContainer):
         self.origin = origin
         if self.data_source.center is not None and oblique == False:
             ax = self.data_source.axis
-            xax = self.pf.coordinates.x_axis[ax]
-            yax = self.pf.coordinates.y_axis[ax]
+            xax = self.ds.coordinates.x_axis[ax]
+            yax = self.ds.coordinates.y_axis[ax]
             center = [self.data_source.center[xax],
                       self.data_source.center[yax]]
             self.set_center(center)

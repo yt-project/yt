@@ -410,18 +410,18 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         if item in self.data: return self.data[item]
         mylog.info("Making a fixed resolutuion buffer of (%s) %d by %d" % \
             (item, self.buff_size[0], self.buff_size[1]))
-        ds = self.data_source
+        dd = self.data_source
         width = self.ds.arr((self.bounds[1] - self.bounds[0],
                              self.bounds[3] - self.bounds[2],
                              self.bounds[5] - self.bounds[4]))
-        buff = off_axis_projection(ds.ds, ds.center, ds.normal_vector,
-                                   width, ds.resolution, item,
-                                   weight=ds.weight_field, volume=ds.volume,
-                                   no_ghost=ds.no_ghost, interpolated=ds.interpolated,
-                                   north_vector=ds.north_vector)
-        units = Unit(ds.pf.field_info[item].units, registry=ds.pf.unit_registry)
-        if ds.weight_field is None:
-            units *= Unit('cm', registry=ds.pf.unit_registry)
+        buff = off_axis_projection(dd.ds, dd.center, dd.normal_vector,
+                                   width, dd.resolution, item,
+                                   weight=dd.weight_field, volume=dd.volume,
+                                   no_ghost=dd.no_ghost, interpolated=dd.interpolated,
+                                   north_vector=dd.north_vector)
+        units = Unit(dd.ds.field_info[item].units, registry=dd.ds.unit_registry)
+        if dd.weight_field is None:
+            units *= Unit('cm', registry=dd.ds.unit_registry)
         ia = ImageArray(buff.swapaxes(0,1), input_units=units, info=self._get_info(item))
         self[item] = ia
         return ia 

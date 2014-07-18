@@ -111,14 +111,14 @@ def test_particle_overrefine():
     _attrs = ('icoords', 'fcoords', 'fwidth', 'ires')
     for n_ref in [16, 32, 64, 512, 1024]:
         ds1 = load_particles(data, 1.0, bbox = bbox, n_ref = n_ref)
-        dd1 = ds1.h.all_data()
+        dd1 = ds1.all_data()
         v1 = dict((a, getattr(dd1, a)) for a in _attrs)
         cv1 = dd1["cell_volume"].sum(dtype="float64")
         for over_refine in [1, 2, 3]:
             f = 1 << (3*(over_refine-1))
             ds2 = load_particles(data, 1.0, bbox = bbox, n_ref = n_ref,
                                 over_refine_factor = over_refine)
-            dd2 = ds2.h.all_data()
+            dd2 = ds2.all_data()
             v2 = dict((a, getattr(dd2, a)) for a in _attrs)
             for a in sorted(v1):
                 yield assert_equal, v1[a].size * f, v2[a].size

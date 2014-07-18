@@ -49,7 +49,7 @@ def disk(self):
 
 @register_object
 def all_data(self):
-    self.data_object = self.ds.h.all_data()
+    self.data_object = self.ds.all_data()
 
 _new_known_objects = {}
 for field in ["Density"]:  # field_list:
