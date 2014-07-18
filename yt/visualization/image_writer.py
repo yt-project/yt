@@ -18,6 +18,7 @@ import numpy as np
 
 from yt.funcs import *
 from yt.utilities.exceptions import YTNotInsideNotebook
+from color_maps import mcm
 import _colormap_data as cmd
 import yt.utilities.lib.image_utilities as au
 import yt.utilities.png_writer as pw
@@ -157,7 +158,7 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
     if transpose:
         bitmap_array = bitmap_array.swapaxes(0,1)
     if filename is not None:
-        pw.write_png(bitmap_array.copy(), filename)
+        pw.write_png(bitmap_array, filename)
     else:
         return pw.write_png_to_string(bitmap_array.copy())
     return bitmap_array
@@ -243,10 +244,18 @@ def apply_colormap(image, color_bounds = None, cmap_name = 'algae', func=lambda 
     return to_plot
 
 def map_to_colors(buff, cmap_name):
-    if cmap_name not in cmd.color_map_luts:
-        print ("Your color map was not found in the extracted colormap file.")
-        raise KeyError(cmap_name)
-    lut = cmd.color_map_luts[cmap_name]
+    try:
+        lut = cmd.color_map_luts[cmap_name]
+    except KeyError:
+        try:
+            cmap = mcm.get_cmap(cmap_name)
+            dummy = cmap(0.0)
+            lut = cmap._lut.T
+        except ValueError:
+            print "Your color map was not found in either the extracted" +\
+                " colormap file or matplotlib colormaps"
+            raise KeyError(cmap_name)
+
     x = np.mgrid[0.0:1.0:lut[0].shape[0]*1j]
     shape = buff.shape
     mapped = np.dstack(
