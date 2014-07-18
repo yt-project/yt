@@ -1,4 +1,4 @@
-from yt.testing import assert_equal, fake_random_pf
+from yt.testing import assert_equal, fake_random_ds
 from yt.units.unit_object import Unit
 import os
 import tempfile
@@ -22,10 +22,10 @@ def test_cutting_plane():
     for nprocs in [8, 1]:
         # We want to test both 1 proc and 8 procs, to make sure that
         # parallelism isn't broken
-        pf = fake_random_pf(64, nprocs=nprocs)
+        ds = fake_random_ds(64, nprocs=nprocs)
         center = [0.5, 0.5, 0.5]
         normal = [1, 1, 1]
-        cut = pf.cutting(normal, center)
+        cut = ds.cutting(normal, center)
         yield assert_equal, cut["ones"].sum(), cut["ones"].size
         yield assert_equal, cut["ones"].min(), 1.0
         yield assert_equal, cut["ones"].max(), 1.0
@@ -37,7 +37,7 @@ def test_cutting_plane():
             fns.append(tmpname)
         frb = cut.to_frb((1.0, 'unitary'), 64)
         for cut_field in ['ones', 'density']:
-            fi = pf._get_field_info("unknown", cut_field)
+            fi = ds._get_field_info("unknown", cut_field)
             yield assert_equal, frb[cut_field].info['data_source'], \
                 cut.__str__()
             yield assert_equal, frb[cut_field].info['axis'], \
@@ -51,7 +51,7 @@ def test_cutting_plane():
             yield assert_equal, frb[cut_field].info['ylim'], \
                 frb.bounds[2:]
             yield assert_equal, frb[cut_field].info['length_to_cm'], \
-                pf.length_unit.in_cgs()
+                ds.length_unit.in_cgs()
             yield assert_equal, frb[cut_field].info['center'], \
                 cut.center
     teardown_func(fns)

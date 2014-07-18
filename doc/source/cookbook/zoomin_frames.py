@@ -2,16 +2,16 @@ import yt
 import numpy as np
 
 # load data
-fn = "IsolatedGalaxy/galaxy0030/galaxy0030" 
-ds = yt.load(fn) 
+fn = "IsolatedGalaxy/galaxy0030/galaxy0030"
+ds = yt.load(fn)
 
 # This is the number of frames to make -- below, you can see how this is used.
-n_frames = 5  
+n_frames = 5
 
 # This is the minimum size in smallest_dx of our last frame.
 # Usually it should be set to something like 400, but for THIS
 # dataset, we actually don't have that great of resolution.
-min_dx = 40   
+min_dx = 40
 
 frame_template = "frame_%05i" # Template for frame filenames
 
@@ -25,10 +25,10 @@ p.annotate_contour("temperature") # We'll contour in temperature
 # maximum and the number of items to generate.  It returns 10^power of each
 # item it generates.
 
-for i,v in enumerate(np.logspace(0, 
-                                 np.log10(ds.index.get_smallest_dx()*min_dx), 
+for i,v in enumerate(np.logspace(0,
+                                 np.log10(ds.index.get_smallest_dx()*min_dx),
                                  n_frames)):
-    # We set our width as necessary for this frame 
+    # We set our width as necessary for this frame
     p.set_width(v, 'unitary')
     # save
     p.save(frame_template % (i))

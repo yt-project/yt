@@ -43,10 +43,10 @@ class Index(ParallelAnalysisInterface):
     _unsupported_objects = ()
     _index_properties = ()
 
-    def __init__(self, pf, dataset_type):
+    def __init__(self, ds, dataset_type):
         ParallelAnalysisInterface.__init__(self)
-        self.parameter_file = weakref.proxy(pf)
-        self.pf = self.parameter_file
+        self.dataset = weakref.proxy(ds)
+        self.ds = self.dataset
 
         self._initialize_state_variables()
 
@@ -76,14 +76,14 @@ class Index(ParallelAnalysisInterface):
 
     def _initialize_data_storage(self):
         if not ytcfg.getboolean('yt','serialize'): return
-        fn = self.pf.storage_filename
+        fn = self.ds.storage_filename
         if fn is None:
             if os.path.isfile(os.path.join(self.directory,
-                                "%s.yt" % self.pf.unique_identifier)):
-                fn = os.path.join(self.directory,"%s.yt" % self.pf.unique_identifier)
+                                "%s.yt" % self.ds.unique_identifier)):
+                fn = os.path.join(self.directory,"%s.yt" % self.ds.unique_identifier)
             else:
                 fn = os.path.join(self.directory,
-                        "%s.yt" % self.parameter_file.basename)
+                        "%s.yt" % self.dataset.basename)
         dir_to_check = os.path.dirname(fn)
         if dir_to_check == '':
             dir_to_check = '.'
@@ -122,7 +122,7 @@ class Index(ParallelAnalysisInterface):
 
     def _setup_data_io(self):
         if getattr(self, "io", None) is not None: return
-        self.io = io_registry[self.dataset_type](self.parameter_file)
+        self.io = io_registry[self.dataset_type](self.dataset)
 
     @parallel_root_only
     def save_data(self, array, node, name, set_attr=None, force=False, passthrough = False):
@@ -174,7 +174,7 @@ class Index(ParallelAnalysisInterface):
             return
         obj = cPickle.loads(obj.value)
         if iterable(obj) and len(obj) == 2:
-            obj = obj[1] # Just the object, not the pf
+            obj = obj[1] # Just the object, not the ds
         if hasattr(obj, '_fix_pickle'): obj._fix_pickle()
         return obj
 
@@ -233,7 +233,7 @@ class Index(ParallelAnalysisInterface):
             fields_to_read)
         for field in fields_to_read:
             ftype, fname = field
-            finfo = self.pf._get_field_info(*field)
+            finfo = self.ds._get_field_info(*field)
         return fields_to_return, fields_to_generate
 
     def _read_fluid_fields(self, fields, dobj, chunk = None):
@@ -317,7 +317,7 @@ class YTDataChunk(object):
     def fcoords(self):
         ci = np.empty((self.data_size, 3), dtype='float64')
         ci = YTArray(ci, input_units = "code_length",
-                     registry = self.dobj.pf.unit_registry)
+                     registry = self.dobj.ds.unit_registry)
         if self.data_size == 0: return ci
         ind = 0
         for obj in self.objs:
@@ -343,7 +343,7 @@ class YTDataChunk(object):
     def fwidth(self):
         ci = np.empty((self.data_size, 3), dtype='float64')
         ci = YTArray(ci, input_units = "code_length",
-                     registry = self.dobj.pf.unit_registry)
+                     registry = self.dobj.ds.unit_registry)
         if self.data_size == 0: return ci
         ind = 0
         for obj in self.objs:

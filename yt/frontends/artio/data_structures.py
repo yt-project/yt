@@ -48,21 +48,21 @@ from yt.fields.field_info_container import \
 class ARTIOOctreeSubset(OctreeSubset):
     _domain_offset = 0
     domain_id = -1
-    _con_args = ("base_region", "sfc_start", "sfc_end", "oct_handler", "pf")
+    _con_args = ("base_region", "sfc_start", "sfc_end", "oct_handler", "ds")
     _type_name = 'octree_subset'
     _num_zones = 2
 
-    def __init__(self, base_region, sfc_start, sfc_end, oct_handler, pf):
+    def __init__(self, base_region, sfc_start, sfc_end, oct_handler, ds):
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.sfc_start = sfc_start
         self.sfc_end = sfc_end
         self.oct_handler = oct_handler
-        self.pf = pf
+        self.ds = ds
         self._last_mask = None
         self._last_selector_id = None
         self._current_particle_type = 'all'
-        self._current_fluid_type = self.pf.default_fluid_type
+        self._current_fluid_type = self.ds.default_fluid_type
         self.base_region = base_region
         self.base_selector = base_region.selector
 
@@ -93,7 +93,7 @@ class ARTIOOctreeSubset(OctreeSubset):
 
     def fill_particles(self, fields):
         if len(fields) == 0: return {}
-        ptype_indices = self.pf.particle_types
+        ptype_indices = self.ds.particle_types
         art_fields = [(ptype_indices.index(ptype), fname) for
                       ptype, fname in fields]
         species_data = self.oct_handler.fill_sfc_particles(art_fields)
@@ -126,7 +126,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
     def fill(self, fields, selector):
         # We know how big these will be.
         if len(fields) == 0: return []
-        handle = self.pf._handle
+        handle = self.ds._handle
         field_indices = [handle.parameters["grid_variable_labels"].index(f)
                         for (ft, f) in fields]
         tr = self.oct_handler.fill_sfc(selector, field_indices)
@@ -155,20 +155,20 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
 
 class ARTIOIndex(Index):
 
-    def __init__(self, pf, dataset_type='artio'):
+    def __init__(self, ds, dataset_type='artio'):
         self.dataset_type = dataset_type
-        self.parameter_file = weakref.proxy(pf)
-        # for now, the index file is the parameter file!
-        self.index_filename = self.parameter_file.parameter_filename
+        self.dataset = weakref.proxy(ds)
+        # for now, the index file is the dataset!
+        self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
 
-        self.max_level = pf.max_level
+        self.max_level = ds.max_level
         self.float_type = np.float64
-        super(ARTIOIndex, self).__init__(pf, dataset_type)
+        super(ARTIOIndex, self).__init__(ds, dataset_type)
 
     @property
     def max_range(self):
-        return self.parameter_file.max_range
+        return self.dataset.max_range
 
     def _setup_geometry(self):
         mylog.debug("Initializing Geometry Handler empty for now.")
@@ -180,7 +180,30 @@ class ARTIOIndex(Index):
         return  1.0/(2**self.max_level)
 
     def convert(self, unit):
-        return self.parameter_file.conversion_factors[unit]
+        return self.dataset.conversion_factors[unit]
+
+    def find_max(self, field, finest_levels=3):
+        """
+        Returns (value, center) of location of maximum for a given field.
+        """
+        if (field, finest_levels) in self._max_locations:
+            return self._max_locations[(field, finest_levels)]
+        mv, pos = self.find_max_cell_location(field, finest_levels)
+        self._max_locations[(field, finest_levels)] = (mv, pos)
+        return mv, pos
+
+    def find_max_cell_location(self, field, finest_levels=3):
+        source = self.all_data()
+        if finest_levels is not False:
+            source.min_level = self.max_level - finest_levels
+        mylog.debug("Searching for maximum value of %s", field)
+        max_val, maxi, mx, my, mz = \
+            source.quantities["MaxLocation"](field)
+        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
+                   max_val, mx, my, mz)
+        self.ds.parameters["Max%sValue" % (field)] = max_val
+        self.ds.parameters["Max%sPos" % (field)] = "%s" % ((mx, my, mz),)
+        return max_val, np.array((mx, my, mz), dtype='float64')
 
     def _detect_output_fields(self):
         self.fluid_field_list = self._detect_fluid_fields()
@@ -190,21 +213,21 @@ class ARTIOIndex(Index):
 
     def _detect_fluid_fields(self):
         return [("artio", f) for f in
-                self.pf.artio_parameters["grid_variable_labels"]]
+                self.ds.artio_parameters["grid_variable_labels"]]
 
     def _detect_particle_fields(self):
         fields = set()
-        for i, ptype in enumerate(self.pf.particle_types):
+        for i, ptype in enumerate(self.ds.particle_types):
             if ptype == "all": break # This will always be after all intrinsic
-            for fname in self.pf.particle_variables[i]:
+            for fname in self.ds.particle_variables[i]:
                 fields.add((ptype, fname))
         return list(fields)
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
             try:
-                all_data = all(dobj.left_edge == self.pf.domain_left_edge) and\
-                    all(dobj.right_edge == self.pf.domain_right_edge)
+                all_data = all(dobj.left_edge == self.ds.domain_left_edge) and\
+                    all(dobj.right_edge == self.ds.domain_right_edge)
             except:
                 all_data = False
             base_region = getattr(dobj, "base_region", dobj)
@@ -213,30 +236,30 @@ class ARTIOIndex(Index):
             nz = getattr(dobj, "_num_zones", 0)
             if all_data:
                 mylog.debug("Selecting entire artio domain")
-                list_sfc_ranges = self.pf._handle.root_sfc_ranges_all(
+                list_sfc_ranges = self.ds._handle.root_sfc_ranges_all(
                     max_range_size = self.max_range)
             elif sfc_start is not None and sfc_end is not None:
                 mylog.debug("Restricting to %s .. %s", sfc_start, sfc_end)
                 list_sfc_ranges = [(sfc_start, sfc_end)]
             else:
                 mylog.debug("Running selector on artio base grid")
-                list_sfc_ranges = self.pf._handle.root_sfc_ranges(
+                list_sfc_ranges = self.ds._handle.root_sfc_ranges(
                     dobj.selector, max_range_size = self.max_range)
             ci = []
             #v = np.array(list_sfc_ranges)
             #list_sfc_ranges = [ (v.min(), v.max()) ]
             for (start, end) in list_sfc_ranges:
                 range_handler = ARTIOSFCRangeHandler(
-                    self.pf.domain_dimensions,
-                    self.pf.domain_left_edge, self.pf.domain_right_edge,
-                    self.pf._handle, start, end)
+                    self.ds.domain_dimensions,
+                    self.ds.domain_left_edge, self.ds.domain_right_edge,
+                    self.ds._handle, start, end)
                 range_handler.construct_mesh()
                 if nz != 2:
                     ci.append(ARTIORootMeshSubset(base_region, start, end,
-                                range_handler.root_mesh_handler, self.pf))
+                                range_handler.root_mesh_handler, self.ds))
                 if nz != 1 and range_handler.total_octs > 0:
                     ci.append(ARTIOOctreeSubset(base_region, start, end,
-                      range_handler.octree_handler, self.pf))
+                      range_handler.octree_handler, self.ds))
             dobj._chunk_info = ci
             if len(list_sfc_ranges) > 1:
                 mylog.info("Created %d chunks for ARTIO" % len(list_sfc_ranges))
@@ -394,7 +417,7 @@ class ARTIODataset(Dataset):
             self.parameters['unit_t'] = self.artio_parameters["time_unit"][0]
             self.parameters['unit_m'] = self.artio_parameters["mass_unit"][0]
 
-        # hard coded assumption of 3D periodicity (add to parameter file)
+        # hard coded assumption of 3D periodicity (add to dataset)
         self.periodicity = (True, True, True)
 
     @classmethod

@@ -20,40 +20,40 @@ import numpy as np
 from yt import __version__ as yt_version
 
 
-def write_to_gdf(pf, gdf_path, data_author=None, data_comment=None,
+def write_to_gdf(ds, gdf_path, data_author=None, data_comment=None,
                  particle_type_name="dark_matter"):
     """
-    Write a parameter file to the given path in the Grid Data Format.
+    Write a dataset to the given path in the Grid Data Format.
 
     Parameters
     ----------
-    pf : Dataset object
+    ds : Dataset object
         The yt data to write out.
     gdf_path : string
         The path of the file to output.
 
     """
 
-    f = _create_new_gdf(pf, gdf_path, data_author, data_comment,
+    f = _create_new_gdf(ds, gdf_path, data_author, data_comment,
                         particle_type_name)
 
     # now add the fields one-by-one
-    for field_name in pf.field_list:
-        _write_field_to_gdf(pf, f, field_name, particle_type_name)
+    for field_name in ds.field_list:
+        _write_field_to_gdf(ds, f, field_name, particle_type_name)
 
     # don't forget to close the file.
     f.close()
 
 
-def save_field(pf, field_name, field_parameters=None):
+def save_field(ds, field_name, field_parameters=None):
     """
-    Write a single field associated with the parameter file pf to the
+    Write a single field associated with the dataset ds to the
     backup file.
 
     Parameters
     ----------
-    pf : Dataset object
-        The yt parameter file that the field is associated with.
+    ds : Dataset object
+        The yt dataset that the field is associated with.
     field_name : string
         The name of the field to save.
     field_parameters : dictionary
@@ -62,30 +62,30 @@ def save_field(pf, field_name, field_parameters=None):
 
     if isinstance(field_name, tuple):
         field_name = field_name[1]
-    field_obj = pf._get_field_info(field_name)
+    field_obj = ds._get_field_info(field_name)
     if field_obj.particle_type:
         print("Saving particle fields currently not supported.")
         return
 
-    backup_filename = pf.backup_filename
+    backup_filename = ds.backup_filename
     if os.path.exists(backup_filename):
         # backup file already exists, open it
         f = h5py.File(backup_filename, "r+")
     else:
         # backup file does not exist, create it
-        f = _create_new_gdf(pf, backup_filename, data_author=None,
+        f = _create_new_gdf(ds, backup_filename, data_author=None,
                             data_comment=None,
                             particle_type_name="dark_matter")
 
     # now save the field
-    _write_field_to_gdf(pf, f, field_name, particle_type_name="dark_matter",
+    _write_field_to_gdf(ds, f, field_name, particle_type_name="dark_matter",
                         field_parameters=field_parameters)
 
     # don't forget to close the file.
     f.close()
 
 
-def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name,
+def _write_field_to_gdf(ds, fhandle, field_name, particle_type_name,
                         field_parameters=None):
 
     # add field info to field_types group
@@ -93,7 +93,7 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name,
     # create the subgroup with the field's name
     if isinstance(field_name, tuple):
         field_name = field_name[1]
-    fi = pf._get_field_info(field_name)
+    fi = ds._get_field_info(field_name)
     try:
         sg = g.create_group(field_name)
     except ValueError:
@@ -120,7 +120,7 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name,
 
     # now add actual data, grid by grid
     g = fhandle["data"]
-    for grid in pf.index.grids:
+    for grid in ds.index.grids:
 
         # set field parameters, if specified
         if field_parameters is not None:
@@ -139,7 +139,7 @@ def _write_field_to_gdf(pf, fhandle, field_name, particle_type_name,
             grid_group[field_name] = grid[field_name]
 
 
-def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
+def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
                     particle_type_name="dark_matter"):
     # Make sure we have the absolute path to the file first
     gdf_path = os.path.abspath(gdf_path)
@@ -170,14 +170,14 @@ def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
     # "simulation_parameters" group
     ###
     g = f.create_group("simulation_parameters")
-    g.attrs["refine_by"] = pf.refine_by
-    g.attrs["dimensionality"] = pf.dimensionality
-    g.attrs["domain_dimensions"] = pf.domain_dimensions
-    g.attrs["current_time"] = pf.current_time
-    g.attrs["domain_left_edge"] = pf.domain_left_edge
-    g.attrs["domain_right_edge"] = pf.domain_right_edge
-    g.attrs["unique_identifier"] = pf.unique_identifier
-    g.attrs["cosmological_simulation"] = pf.cosmological_simulation
+    g.attrs["refine_by"] = ds.refine_by
+    g.attrs["dimensionality"] = ds.dimensionality
+    g.attrs["domain_dimensions"] = ds.domain_dimensions
+    g.attrs["current_time"] = ds.current_time
+    g.attrs["domain_left_edge"] = ds.domain_left_edge
+    g.attrs["domain_right_edge"] = ds.domain_right_edge
+    g.attrs["unique_identifier"] = ds.unique_identifier
+    g.attrs["cosmological_simulation"] = ds.cosmological_simulation
     # @todo: Where is this in the yt API?
     g.attrs["num_ghost_zones"] = 0
     # @todo: Where is this in the yt API?
@@ -185,11 +185,11 @@ def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
     # @todo: not yet supported by yt.
     g.attrs["boundary_conditions"] = np.array([0, 0, 0, 0, 0, 0], 'int32')
 
-    if pf.cosmological_simulation:
-        g.attrs["current_redshift"] = pf.current_redshift
-        g.attrs["omega_matter"] = pf.omega_matter
-        g.attrs["omega_lambda"] = pf.omega_lambda
-        g.attrs["hubble_constant"] = pf.hubble_constant
+    if ds.cosmological_simulation:
+        g.attrs["current_redshift"] = ds.current_redshift
+        g.attrs["omega_matter"] = ds.omega_matter
+        g.attrs["omega_lambda"] = ds.omega_lambda
+        g.attrs["hubble_constant"] = ds.hubble_constant
 
     ###
     # "field_types" group
@@ -208,21 +208,21 @@ def _create_new_gdf(pf, gdf_path, data_author=None, data_comment=None,
     ###
     # root datasets -- info about the grids
     ###
-    f["grid_dimensions"] = pf.index.grid_dimensions
+    f["grid_dimensions"] = ds.index.grid_dimensions
     f["grid_left_index"] = np.array(
-        [grid.get_global_startindex() for grid in pf.index.grids]
-    ).reshape(pf.index.grid_dimensions.shape[0], 3)
-    f["grid_level"] = pf.index.grid_levels
+        [grid.get_global_startindex() for grid in ds.index.grids]
+    ).reshape(ds.index.grid_dimensions.shape[0], 3)
+    f["grid_level"] = ds.index.grid_levels
     # @todo: Fill with proper values
-    f["grid_parent_id"] = -np.ones(pf.index.grid_dimensions.shape[0])
-    f["grid_particle_count"] = pf.index.grid_particle_count
+    f["grid_parent_id"] = -np.ones(ds.index.grid_dimensions.shape[0])
+    f["grid_particle_count"] = ds.index.grid_particle_count
 
     ###
     # "data" group -- where we should spend the most time
     ###
 
     g = f.create_group("data")
-    for grid in pf.index.grids:
+    for grid in ds.index.grids:
         # add group for this grid
         grid_group = g.create_group("grid_%010i" % (grid.id - grid._id_offset))
         # add group for the particles on this grid

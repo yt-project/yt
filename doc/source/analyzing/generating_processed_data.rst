@@ -43,7 +43,7 @@ accessing the desired field.
 
 .. code-block:: python
 
-   sl = pf.slice(0, 0.5)
+   sl = ds.slice(0, 0.5)
    frb = FixedResolutionBuffer(sl, (0.3, 0.5, 0.6, 0.8), (512, 512))
    my_image = frb["density"]
 
@@ -98,7 +98,7 @@ of the bounds of density in advance to set up the profile.
 
 .. code-block:: python
 
-   source = pf.sphere( (0.3, 0.6, 0.4), 1.0/pf['pc'])
+   source = ds.sphere( (0.3, 0.6, 0.4), 1.0/ds['pc'])
    profile = BinnedProfile1D(source, 128, "density", 1e-24, 1e-10)
    profile.add_fields("cell_mass", weight = None)
    profile.add_fields("temperature")
@@ -128,7 +128,7 @@ calculating the mass in each (2D) bin.
 
 .. code-block:: python
 
-   source = pf.sphere( (0.3, 0.6, 0.4), 1.0/pf['pc'])
+   source = ds.sphere( (0.3, 0.6, 0.4), 1.0/ds['pc'])
    prof2d = BinnedProfile2D(source, 128, "density", 1e-24, 1e-10, True,
                                     128, "temperature", 10, 10000, True)
    prof2d.add_fields("cell_mass", weight = None)
@@ -171,7 +171,7 @@ along that ray:
 
 .. code-block:: python
 
-   ray = pf.ray(  (0.3, 0.5, 0.9), (0.1, 0.8, 0.5) )
+   ray = ds.ray(  (0.3, 0.5, 0.9), (0.1, 0.8, 0.5) )
    print ray["density"]
 
 The points are ordered, but the ray is also traversing cells of varying length,

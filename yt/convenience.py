@@ -95,13 +95,13 @@ def load(*args ,**kwargs):
         mylog.error("    Possible: %s", c)
     raise YTOutputNotIdentified(args, kwargs)
 
-def projload(pf, axis, weight_field = None):
+def projload(ds, axis, weight_field = None):
     # This is something of a hack, so that we can just get back a projection
     # and not utilize any of the intermediate index objects.
     class ProjMock(dict):
         pass
     import h5py
-    f = h5py.File(os.path.join(pf.fullpath, pf.parameter_filename + ".yt"))
+    f = h5py.File(os.path.join(ds.fullpath, ds.parameter_filename + ".yt"))
     b = f["/Projections/%s/" % (axis)]
     wf = "weight_field_%s" % weight_field
     if wf not in b: raise KeyError(wf)
@@ -117,7 +117,7 @@ def projload(pf, axis, weight_field = None):
         new_name = f[:-(len(weight_field) + 1)]
         proj[new_name] = b[f][:]
     proj.axis = axis
-    proj.pf = pf
+    proj.ds = ds
     f.close()
     return proj
 

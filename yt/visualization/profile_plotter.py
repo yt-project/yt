@@ -172,12 +172,12 @@ class ProfilePlot(object):
     >>> profiles = []
     >>> labels = []
     >>> plot_specs = []
-    >>> for pf in es[-4:]:
-    ...     ad = pf.h.all_data()
+    >>> for ds in es[-4:]:
+    ...     ad = ds.all_data()
     ...     profiles.append(create_profile(ad, ["density"],
     ...                                    fields=["temperature",
     ...                                            "velocity_x"]))
-    ...     labels.append(pf.current_redshift)
+    ...     labels.append(ds.current_redshift)
     ...     plot_specs.append(dict(linestyle="--", alpha=0.7))
     >>>
     >>> plot = ProfilePlot.from_profiles(profiles, labels=labels,
@@ -232,7 +232,7 @@ class ProfilePlot(object):
             iters = self.figures.iteritems()
         if name is None:
             if len(self.profiles) == 1:
-                prefix = self.profiles[0].pf
+                prefix = self.profiles[0].ds
             else:
                 prefix = "Multi-data"
             name = "%s.png" % prefix
@@ -367,12 +367,12 @@ class ProfilePlot(object):
         >>> profiles = []
         >>> labels = []
         >>> plot_specs = []
-        >>> for pf in es[-4:]:
-        ...     ad = pf.h.all_data()
+        >>> for ds in es[-4:]:
+        ...     ad = ds.all_data()
         ...     profiles.append(create_profile(ad, ["Density"],
         ...                                    fields=["Temperature",
         ...                                            "x-velocity"]))
-        ...     labels.append(pf.current_redshift)
+        ...     labels.append(ds.current_redshift)
         ...     plot_specs.append(dict(linestyle="--", alpha=0.7))
         >>>
         >>> plot = ProfilePlot.from_profiles(profiles, labels=labels,
@@ -559,9 +559,9 @@ class ProfilePlot(object):
         return self
 
     def _get_field_log(self, field_y, profile):
-        pf = profile.data_source.pf
+        ds = profile.data_source.ds
         yf, = profile.data_source._determine_fields([field_y])
-        yfi = pf._get_field_info(*yf)
+        yfi = ds._get_field_info(*yf)
         if self.x_log is None:
             x_log = profile.x_log
         else:
@@ -592,12 +592,12 @@ class ProfilePlot(object):
         return label
 
     def _get_field_title(self, field_y, profile):
-        pf = profile.data_source.pf
+        ds = profile.data_source.ds
         field_x = profile.x_field
         xf, yf = profile.data_source._determine_fields(
             [field_x, field_y])
-        xfi = pf._get_field_info(*xf)
-        yfi = pf._get_field_info(*yf)
+        xfi = ds._get_field_info(*xf)
+        yfi = ds._get_field_info(*yf)
         x_unit = profile.x.units
         y_unit = profile.field_units[field_y]
         fractional = profile.fractional
@@ -665,8 +665,8 @@ class PhasePlot(ImagePlotContainer):
     --------
 
     >>> import yt
-    >>> pf = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
-    >>> ad = pf.h.all_data()
+    >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+    >>> ad = ds.all_data()
     >>> plot = PhasePlot(ad, "density", "temperature", ["cell_mass"],
     ...                  weight_field=None)
     >>> plot.save()
@@ -717,14 +717,14 @@ class PhasePlot(ImagePlotContainer):
         return obj
 
     def _get_field_title(self, field_z, profile):
-        pf = profile.data_source.pf
+        ds = profile.data_source.ds
         field_x = profile.x_field
         field_y = profile.y_field
         xf, yf, zf = profile.data_source._determine_fields(
             [field_x, field_y, field_z])
-        xfi = pf._get_field_info(*xf)
-        yfi = pf._get_field_info(*yf)
-        zfi = pf._get_field_info(*zf)
+        xfi = ds._get_field_info(*xf)
+        yfi = ds._get_field_info(*yf)
+        zfi = ds._get_field_info(*zf)
         x_unit = profile.x.units
         y_unit = profile.y.units
         z_unit = profile.field_units[field_z]
@@ -754,9 +754,9 @@ class PhasePlot(ImagePlotContainer):
         return label
         
     def _get_field_log(self, field_z, profile):
-        pf = profile.data_source.pf
+        ds = profile.data_source.ds
         zf, = profile.data_source._determine_fields([field_z])
-        zfi = pf._get_field_info(*zf)
+        zfi = ds._get_field_info(*zf)
         if self.x_log is None:
             x_log = profile.x_log
         else:
@@ -896,7 +896,7 @@ class PhasePlot(ImagePlotContainer):
         if mpl_kwargs is None:
             mpl_kwargs = {}
         if name is None:
-            name = str(self.profile.pf)
+            name = str(self.profile.ds)
         name = os.path.expanduser(name)
         xfn = self.profile.x_field
         yfn = self.profile.y_field
@@ -912,9 +912,9 @@ class PhasePlot(ImagePlotContainer):
             splitname = os.path.split(name)
             if splitname[0] != '' and not os.path.isdir(splitname[0]):
                 os.makedirs(splitname[0])
-            if os.path.isdir(name) and name != str(self.profile.pf):
+            if os.path.isdir(name) and name != str(self.profile.ds):
                 prefix = name + (os.sep if name[-1] != os.sep else '')
-                prefix += str(self.profile.pf)
+                prefix += str(self.profile.ds)
             else:
                 prefix = name
             suffix = get_image_suffix(name)

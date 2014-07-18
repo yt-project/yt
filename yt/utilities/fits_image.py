@@ -252,7 +252,7 @@ class FITSImageBuffer(HDUList):
 axis_wcs = [[1,2],[0,2],[0,1]]
 
 def construct_image(data_source):
-    ds = data_source.pf
+    ds = data_source.ds
     axis = data_source.axis
     if hasattr(ds, "wcs"):
         # This is a FITS dataset

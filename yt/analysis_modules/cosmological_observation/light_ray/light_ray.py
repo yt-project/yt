@@ -45,7 +45,7 @@ class LightRay(CosmologySplice):
     Parameters
     ----------
     parameter_filename : string
-        The simulation parameter file.
+        The simulation dataset.
     simulation_type : string
         The simulation type.
     near_redshift : float
@@ -81,7 +81,7 @@ class LightRay(CosmologySplice):
         datasets for time series.
         Default: True.
     find_outputs : bool
-        Whether or not to search for parameter files in the current 
+        Whether or not to search for datasets in the current 
         directory.
         Default: False.
 
@@ -298,16 +298,16 @@ class LightRay(CosmologySplice):
                                                        njobs=njobs):
 
             # Load dataset for segment.
-            pf = load(my_segment['filename'])
-            my_segment["start"] = pf.domain_width * my_segment["start"] +\
-              pf.domain_left_edge
-            my_segment["end"] = pf.domain_width * my_segment["end"] +\
-              pf.domain_left_edge
+            ds = load(my_segment['filename'])
+            my_segment["start"] = ds.domain_width * my_segment["start"] + \
+                ds.domain_left_edge
+            my_segment["end"] = ds.domain_width * my_segment["end"] + \
+                ds.domain_left_edge
 
             if self.near_redshift == self.far_redshift:
                 next_redshift = my_segment["redshift"] - \
                   self._deltaz_forward(my_segment["redshift"], 
-                                       pf.domain_width[0].in_units("Mpccm / h") *
+                                       ds.domain_width[0].in_units("Mpccm / h") *
                                        my_segment["traversal_box_fraction"])
             elif my_segment['next'] is None:
                 next_redshift = self.near_redshift
@@ -333,7 +333,7 @@ class LightRay(CosmologySplice):
             for sub_segment in sub_segments:
                 mylog.info("Getting subsegment: %s to %s." %
                            (list(sub_segment[0]), list(sub_segment[1])))
-                sub_ray = pf.ray(sub_segment[0], sub_segment[1])
+                sub_ray = ds.ray(sub_segment[0], sub_segment[1])
                 asort = np.argsort(sub_ray["t"])
                 sub_data['dl'].extend(sub_ray['dts'][asort] *
                                       vector_length(sub_ray.start_point,
@@ -374,7 +374,7 @@ class LightRay(CosmologySplice):
             # Add to storage.
             my_storage.result = sub_data
 
-            del pf
+            del ds
 
         # Reconstruct ray data from parallel_objects storage.
         all_data = [my_data for my_data in all_ray_storage.values()]

@@ -96,10 +96,10 @@ class RAMSESFieldInfo(FieldInfoContainer):
                         units="K")
 
     def create_cooling_fields(self, filename):
-        num = os.path.basename(self.pf.parameter_filename).split("."
+        num = os.path.basename(self.ds.parameter_filename).split("."
                 )[0].split("_")[1]
         filename = "%s/cooling_%05i.out" % (
-            os.path.dirname(self.pf.parameter_filename), int(num))
+            os.path.dirname(self.ds.parameter_filename), int(num))
 
         if not os.path.exists(filename): return
         def _create_field(name, interp_object):
