@@ -191,7 +191,6 @@ class SDFDataset(Dataset):
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         sdf_header = kwargs.get('sdf_header', args[0])
-        print 'Parsing sdf_header: %s' % sdf_header
         if sdf_header.startswith("http"):
             if requests is None: return False
             hreq = requests.get(sdf_header, stream=True)
