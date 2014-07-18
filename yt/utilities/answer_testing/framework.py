@@ -693,7 +693,7 @@ def requires_ds(ds_fn, big_data = False, file_check = False):
 
 def small_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
     if not can_run_ds(ds_fn): return
-    dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
+    dso = [ None, ("sphere", (input_center, (0.1, 'unitary')))]
     yield GridHierarchyTest(ds_fn)
     yield ParentageRelationshipsTest(ds_fn)
     for field in fields:
