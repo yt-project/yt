@@ -156,7 +156,7 @@ Gadget Data
 yt has support for reading Gadget data in both raw binary and HDF5 formats.  It
 is able to access the particles as it would any other particle dataset, and it
 can apply smoothing kernels to the data to produce both quantitative analysis
-and visualization.
+and visualization.  See also the section :ref:`loading-sph-data` 
 
 Gadget data in HDF5 format can be loaded with the ``load`` command:
 
@@ -367,7 +367,8 @@ Tipsy Data
 yt also supports loading Tipsy data.  Many of its characteristics are similar
 to how Gadget data is loaded; specifically, it shares its definition of
 indexing and mesh-identification with that described in
-:ref:`particle-indexing-criteria`.  
+:ref:`particle-indexing-criteria`.  Like with gadget, see 
+:ref:`loading-sph-data for more details`.  
 
 .. code-block:: python
 
@@ -903,3 +904,20 @@ Generic Particle Data
 ---------------------
 
 .. notebook:: Loading_Generic_Particle_Data.ipynb
+
+.. _loading_sph_data:
+
+SPH Particle Data
+-----------------
+For all of the SPH frontends, yt uses a cython-based SPH to created deposit
+mesh fields from individual particle fields.  This uses a standard M4 smoothing
+kernel and the ``SmoothingLength`` field to calculate SPH sums, filling in the
+mesh fields.  This gives you the ability to both track individual particles
+(useful for tasks like following contiguous clouds of gas that would be require
+a clump finder in grid data) as well as doing standard grid-based analysis.
+The ``SmoothingLength`` variable is also useful for determining which particles
+can interact with each other, since particles more distant than twice the
+smoothing length do not typically see each other in SPH simulations.  By
+changing the value of the ``SmoothingLength`` and then re-depositing particles
+onto the grid, you can also effectively mimic what your data would look like at
+lower resolution.
