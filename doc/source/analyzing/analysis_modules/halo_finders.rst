@@ -65,9 +65,6 @@ simpler than HOP:
 
 Rockstar Halo Finding
 ---------------------
-.. sectionauthor:: Matthew Turk <matthewturk@gmail.com>
-.. sectionauthor:: Christopher Erick Moody<cemoody@ucsc.edu>
-.. sectionauthor:: Stephen Skory <s@skory.us>
 
 Rockstar uses an adaptive hierarchical refinement of friends-of-friends 
 groups in six phase-space dimensions and one time dimension, which 
