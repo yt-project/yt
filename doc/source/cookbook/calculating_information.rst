@@ -58,6 +58,14 @@ serial the operation ``for pf in ts:`` would also have worked identically.
 
 .. yt_cookbook:: time_series.py
 
+Simple Derived Fields
+~~~~~~~~~~~~~~~~~~~~~
+
+This recipe demonstrates how to create a simple derived field, number_density,
+ and then generate a projection from it.
+
+.. yt_cookbook:: derived_field.py
+
 Complex Derived Fields
 ~~~~~~~~~~~~~~~~~~~~~~
 
