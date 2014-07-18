@@ -1,7 +1,10 @@
-from yt.mods import *
+### THIS RECIPE IS CURRENTLY BROKEN IN YT-3.0
+### DO NOT TRUST THIS RECIPE UNTIL THIS LINE IS REMOVED
 
-from yt.analysis_modules.api import LightCone
-from yt.analysis_modules.halo_profiler.api import *
+import yt
+
+from yt.analysis_modules.cosmological_observation.light_cone.light_cone import LightCone
+from yt.analysis_modules.halo_profiler.api import HaloProfiler
 
 # Instantiate a light cone object as usual.
 lc = LightCone('enzo_tiny_cosmology/32Mpc_32.enzo',

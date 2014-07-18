@@ -21,7 +21,7 @@ from yt.utilities.answer_testing.framework import \
     data_dir_load
 from yt.frontends.flash.api import FLASHDataset
 
-_fields = ("temperature", "density", "velocity_magnitude", "velocity_divergence")
+_fields = ("temperature", "density", "velocity_magnitude")
 
 sloshing = "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300"
 @requires_pf(sloshing, big_data=True)

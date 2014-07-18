@@ -337,8 +337,8 @@ class StreamDataset(Dataset):
 
     def _set_code_unit_attributes(self):
         base_units = self.stream_handler.code_units
-        attrs = ('length_unit', 'mass_unit', 'time_unit', 'velocity_unit')
-        cgs_units = ('cm', 'g', 's', 'cm/s')
+        attrs = ('length_unit', 'mass_unit', 'time_unit', 'velocity_unit', 'magnetic_unit')
+        cgs_units = ('cm', 'g', 's', 'cm/s', 'gauss')
         for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
             if isinstance(unit, basestring):
                 uq = self.quan(1.0, unit)
@@ -512,23 +512,25 @@ def unitify_data(data):
 
 def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
                       nprocs=1, sim_time=0.0, mass_unit=None, time_unit=None,
-                      velocity_unit=None, periodicity=(True, True, True),
+                      velocity_unit=None, magnetic_unit=None,
+                      periodicity=(True, True, True),
                       geometry = "cartesian"):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
     This should allow a uniform grid of data to be loaded directly into yt and
     analyzed as would any others.  This comes with several caveats:
-        * Units will be incorrect unless the unit system is explicitly
-          specified.
-        * Some functions may behave oddly, and parallelism will be
-          disappointing or non-existent in most cases.
-        * Particles may be difficult to integrate.
+
+    * Units will be incorrect unless the unit system is explicitly
+      specified.
+    * Some functions may behave oddly, and parallelism will be
+      disappointing or non-existent in most cases.
+    * Particles may be difficult to integrate.
 
     Particle fields are detected as one-dimensional fields. The number of
     particles is set by the "number_of_particles" key in data.
     
-Parameters
+    Parameters
     ----------
     data : dict
         This is a dict of numpy arrays or (numpy array, unit spec) tuples.
@@ -550,6 +552,8 @@ Parameters
         Unit to use for times.  Defaults to unitless.
     velocity_unit : string
         Unit to use for velocities.  Defaults to unitless.
+    magnetic_unit : string
+        Unit to use for magnetic fields. Defaults to unitless.
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
@@ -639,6 +643,8 @@ Parameters
         time_unit = 'code_time'
     if velocity_unit is None:
         velocity_unit = 'code_velocity'
+    if magnetic_unit is None:
+        magnetic_unit = 'code_magnetic'
 
     handler = StreamHandler(
         grid_left_edges,
@@ -650,7 +656,7 @@ Parameters
         np.zeros(nprocs).reshape((nprocs,1)),
         sfh,
         field_units,
-        (length_unit, mass_unit, time_unit, velocity_unit),
+        (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
         particle_types=particle_types,
         periodicity=periodicity
     )
@@ -684,19 +690,23 @@ Parameters
 def load_amr_grids(grid_data, domain_dimensions,
                    field_units=None, bbox=None, sim_time=0.0, length_unit=None,
                    mass_unit=None, time_unit=None, velocity_unit=None,
-                   periodicity=(True, True, True), geometry = "cartesian"):
+                   magnetic_unit=None, periodicity=(True, True, True),
+                   geometry = "cartesian"):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
     This should allow a sequence of grids of varying resolution of data to be
     loaded directly into yt and analyzed as would any others.  This comes with
     several caveats:
-        * Units will be incorrect unless the unit system is explicitly specified.
-        * Some functions may behave oddly, and parallelism will be
-          disappointing or non-existent in most cases.
-        * Particles may be difficult to integrate.
-        * No consistency checks are performed on the index
-Parameters
+
+    * Units will be incorrect unless the unit system is explicitly specified.
+    * Some functions may behave oddly, and parallelism will be
+      disappointing or non-existent in most cases.
+    * Particles may be difficult to integrate.
+    * No consistency checks are performed on the index
+
+    Parameters
     ----------
+
     grid_data : list of dicts
         This is a list of dicts. Each dict must have entries "left_edge",
         "right_edge", "dimensions", "level", and then any remaining entries are
@@ -719,6 +729,8 @@ Parameters
         Unit to use for times.  Defaults to unitless.
     velocity_unit : string or float
         Unit to use for velocities.  Defaults to unitless.
+    magnetic_unit : string or float
+        Unit to use for magnetic fields.  Defaults to unitless.
     bbox : array_like (xdim:zdim, LE:RE), optional
         Size of computational domain in units specified by length_unit.
         Defaults to a cubic unit-length domain.
@@ -751,6 +763,7 @@ Parameters
     ...
     >>> units = dict(Density='g/cm**3')
     >>> pf = load_amr_grids(grid_data, [32, 32, 32], 1.0)
+
     """
 
     domain_dimensions = np.array(domain_dimensions)
@@ -801,6 +814,8 @@ Parameters
         time_unit = 'code_time'
     if velocity_unit is None:
         velocity_unit = 'code_velocity'
+    if magnetic_unit is None:
+        magnetic_unit = 'code_magnetic'
 
     handler = StreamHandler(
         grid_left_edges,
@@ -812,7 +827,7 @@ Parameters
         np.zeros(ngrids).reshape((ngrids,1)),
         sfh,
         field_units,
-        (length_unit, mass_unit, time_unit, velocity_unit),
+        (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
         particle_types=set_particle_types(grid_data[0])
     )
 
@@ -964,17 +979,19 @@ class StreamParticlesDataset(StreamDataset):
 
 def load_particles(data, length_unit = None, bbox=None,
                    sim_time=0.0, mass_unit = None, time_unit = None,
-                   velocity_unit=None, periodicity=(True, True, True),
-                   n_ref = 64, over_refine_factor = 1):
+                   velocity_unit=None, magnetic_unit=None,
+                   periodicity=(True, True, True),
+                   n_ref = 64, over_refine_factor = 1, geometry = "cartesian"):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
 
     This should allow a collection of particle data to be loaded directly into
     yt and analyzed as would any others.  This comes with several caveats:
-        * Units will be incorrect unless the data has already been converted to
-          cgs.
-        * Some functions may behave oddly, and parallelism will be
-          disappointing or non-existent in most cases.
+
+    * Units will be incorrect unless the data has already been converted to
+      cgs.
+    * Some functions may behave oddly, and parallelism will be
+      disappointing or non-existent in most cases.
 
     This will initialize an Octree of data.  Note that fluid fields will not
     work yet, or possibly ever.
@@ -985,8 +1002,16 @@ def load_particles(data, length_unit = None, bbox=None,
         This is a dict of numpy arrays, where the keys are the field names.
         Particles positions must be named "particle_position_x",
         "particle_position_y", "particle_position_z".
-    sim_unit_to_cm : float
-        Conversion factor from simulation units to centimeters
+    length_unit : float
+        Conversion factor from simulation length units to centimeters
+    mass_unit : float
+        Conversion factor from simulation mass units to grams
+    time_unit : float
+        Conversion factor from simulation time units to seconds
+    velocity_unit : float
+        Conversion factor from simulation velocity units to cm/s
+    magnetic_unit : float
+        Conversion factor from simulation magnetic units to gauss
     bbox : array_like (xdim:zdim, LE:RE), optional
         Size of computational domain in units sim_unit_to_cm
     sim_time : float, optional
@@ -1047,6 +1072,8 @@ def load_particles(data, length_unit = None, bbox=None,
         time_unit = 'code_time'
     if velocity_unit is None:
         velocity_unit = 'code_velocity'
+    if magnetic_unit is None:
+        magnetic_unit = 'code_magnetic'
 
     # I'm not sure we need any of this.
     handler = StreamHandler(
@@ -1059,7 +1086,7 @@ def load_particles(data, length_unit = None, bbox=None,
         np.zeros(nprocs).reshape((nprocs,1)),
         sfh,
         field_units,
-        (length_unit, mass_unit, time_unit, velocity_unit),
+        (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
         particle_types=particle_types,
         periodicity=periodicity
     )
@@ -1073,7 +1100,7 @@ def load_particles(data, length_unit = None, bbox=None,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamParticlesDataset(handler)
+    spf = StreamParticlesDataset(handler, geometry = geometry)
     spf.n_ref = n_ref
     spf.over_refine_factor = over_refine_factor
 
@@ -1131,18 +1158,20 @@ class StreamHexahedralDataset(StreamDataset):
 def load_hexahedral_mesh(data, connectivity, coordinates,
                          length_unit = None, bbox=None, sim_time=0.0,
                          mass_unit = None, time_unit = None,
-                         velocity_unit = None, periodicity=(True, True, True),
+                         velocity_unit = None, magnetic_unit = None,
+                         periodicity=(True, True, True),
                          geometry = "cartesian"):
     r"""Load a hexahedral mesh of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
     This should allow a semistructured grid of data to be loaded directly into
     yt and analyzed as would any others.  This comes with several caveats:
-        * Units will be incorrect unless the data has already been converted to
-          cgs.
-        * Some functions may behave oddly, and parallelism will be
-          disappointing or non-existent in most cases.
-        * Particles may be difficult to integrate.
+
+    * Units will be incorrect unless the data has already been converted to
+      cgs.
+    * Some functions may behave oddly, and parallelism will be
+      disappointing or non-existent in most cases.
+    * Particles may be difficult to integrate.
 
     Particle fields are detected as one-dimensional fields. The number of particles
     is set by the "number_of_particles" key in data.
@@ -1199,6 +1228,8 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
         time_unit = 'code_time'
     if velocity_unit is None:
         velocity_unit = 'code_velocity'
+    if magnetic_unit is None:
+        magnetic_unit = 'code_magnetic'
 
     # I'm not sure we need any of this.
     handler = StreamHandler(
@@ -1211,7 +1242,7 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
         np.zeros(nprocs).reshape((nprocs,1)),
         sfh,
         field_units,
-        (length_unit, mass_unit, time_unit, velocity_unit),
+        (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
         particle_types=particle_types,
         periodicity=periodicity
     )

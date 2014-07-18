@@ -193,9 +193,18 @@ class YTUfuncUnitError(YTException):
 
     def __str__(self):
         err = "The NumPy %s operation is only allowed on objects with " \
-        "identical units. Convert one of the arrays to the other\'s " \
-        "units first. Received units (%s) and (%s)." % \
-        (self.ufunc, self.unit1, self.unit2)
+              "identical units. Convert one of the arrays to the other\'s " \
+              "units first. Received units (%s) and (%s)." % \
+              (self.ufunc, self.unit1, self.unit2)
+        return err
+
+class YTIterableUnitCoercionError(YTException):
+    def __init__(self, quantity_list):
+        self.quantity_list = quantity_list
+
+    def __str__(self):
+        err = "Received a list or tuple of quantities with nonuniform units: " \
+              "%s" % self.quantity_list
         return err
 
 class YTHubRegisterError(YTException):
@@ -377,3 +386,33 @@ class YTInvalidPositionArray(Exception):
         r = """Position arrays must be length and shape (N,3).
                But this one has %s and %s.""" % (self.dimensions, self.shape)
         return r
+
+class YTIllDefinedCutRegion(Exception):
+    def __init__(self, conditions):
+        self.conditions = conditions
+
+    def __str__(self):
+        r = """Can't mix particle/discrete and fluid/mesh conditions or
+               quantities.  Conditions specified:
+            """
+        r += "\n".join([c for c in self.conditions])
+        return r
+
+class YTMixedCutRegion(Exception):
+    def __init__(self, conditions, field):
+        self.conditions = conditions
+        self.field = field
+
+    def __str__(self):
+        r = """Can't mix particle/discrete and fluid/mesh conditions or
+               quantities.  Field: %s and Conditions specified:
+            """ % (self.field,)
+        r += "\n".join([c for c in self.conditions])
+        return r
+
+class YTGDFAlreadyExists(Exception):
+    def __init__(self, filename):
+        self.filename = filename
+
+    def __str__(self):
+        return "A file already exists at %s and clobber=False." % self.filename

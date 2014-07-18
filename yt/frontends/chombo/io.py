@@ -37,7 +37,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         if self._field_dict is not None:
             return self._field_dict
         field_dict = {}
-        for key, val in self._handle['/'].attrs.items():
+        for key, val in self._handle.attrs.items():
             if key.startswith('component_'):
                 comp_number = int(re.match('component_(\d)', key).groups()[0])
                 field_dict[val] = comp_number
@@ -50,7 +50,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         if self._particle_field_index is not None:
             return self._particle_field_index
         field_dict = {}
-        for key, val in self._handle['/'].attrs.items():
+        for key, val in self._handle.attrs.items():
             if key.startswith('particle_'):
                 comp_number = int(re.match('particle_component_(\d)', key).groups()[0])
                 field_dict[val] = comp_number
@@ -58,8 +58,8 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         return self._particle_field_index        
         
     def _read_field_names(self,grid):
-        ncomp = int(self._handle['/'].attrs['num_components'])
-        fns = [c[1] for c in f['/'].attrs.items()[-ncomp-1:-1]]
+        ncomp = int(self._handle.attrs['num_components'])
+        fns = [c[1] for c in f.attrs.items()[-ncomp-1:-1]]
     
     def _read_data(self,grid,field):
 
@@ -171,7 +171,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
             return np.array([], dtype=np.float64)
 
         data = self._handle[lev]['particles:data'][offsets[lo]:offsets[hi]]
-        return data[field_index::items_per_particle]
+        return np.asarray(data[field_index::items_per_particle], dtype=np.float64, order='F')
 
 class IOHandlerChombo2DHDF5(IOHandlerChomboHDF5):
     _dataset_type = "chombo2d_hdf5"

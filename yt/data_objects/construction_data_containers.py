@@ -45,6 +45,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, parallel_root_only, ParallelAnalysisInterface
 from yt.units.unit_object import Unit
 import yt.geometry.particle_deposit as particle_deposit
+from yt.utilities.grid_data_format.writer import write_to_gdf
+from yt.frontends.stream.api import load_uniform_grid
 
 from yt.fields.field_exceptions import \
     NeedsGridType,\
@@ -127,7 +129,6 @@ class YTStreamlineBase(YTSelectionContainer1D):
         
 
     def _get_cut_mask(self, grid):
-        #pdb.set_trace()
         points_in_grid = np.all(self.positions > grid.LeftEdge, axis=1) & \
                          np.all(self.positions <= grid.RightEdge, axis=1) 
         pids = np.where(points_in_grid)[0]
@@ -572,6 +573,10 @@ class YTCoveringGridBase(YTSelectionContainer3D):
     def LeftEdge(self):
         return self.left_edge
 
+    @property
+    def RightEdge(self):
+        return self.right_edge
+
     def deposit(self, positions, fields = None, method = None):
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
@@ -581,6 +586,47 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         op.process_grid(self, positions, fields)
         vals = op.finalize()
         return vals.reshape(self.ActiveDimensions, order="C")
+
+    def write_to_gdf(self, gdf_path, fields, nprocs=1, field_units=None,
+                     **kwargs):
+        r"""
+        Write the covering grid data to a GDF file.
+
+        Parameters
+        ----------
+        gdf_path : string
+            Pathname of the GDF file to write.
+        fields : list of strings
+            Fields to write to the GDF file.
+        nprocs : integer, optional
+            Split the covering grid into *nprocs* subgrids before
+            writing to the GDF file. Default: 1
+        field_units : dictionary, optional
+            Dictionary of units to convert fields to. If not set, fields are
+            in their default units.
+        All remaining keyword arguments are passed to
+        yt.utilities.grid_data_format.writer.write_to_gdf.
+
+        Examples
+        --------
+        >>> cube.write_to_gdf("clumps.h5", ["density","temperature"], nprocs=16,
+        ...                   clobber=True)
+        """
+        data = {}
+        for field in fields:
+            if field in field_units:
+                units = field_units[field]
+            else:
+                units = str(self[field].units)
+            data[field] = (self[field].in_units(units).v, units)
+        le = self.left_edge.v
+        re = self.right_edge.v
+        bbox = np.array([[l,r] for l,r in zip(le, re)])
+        ds = load_uniform_grid(data, self.ActiveDimensions, bbox=bbox,
+                               length_unit=self.pf.length_unit, time_unit=self.pf.time_unit,
+                               mass_unit=self.pf.mass_unit, nprocs=nprocs,
+                               sim_time=self.pf.current_time.v)
+        write_to_gdf(ds, gdf_path, **kwargs)
 
 class YTArbitraryGridBase(YTCoveringGridBase):
     """A 3D region with arbitrary bounds and dimensions.
@@ -627,7 +673,7 @@ class YTArbitraryGridBase(YTCoveringGridBase):
         self.ActiveDimensions = np.array(dims, dtype='int32')
         if self.ActiveDimensions.size == 1:
             self.ActiveDimensions = np.array([dims, dims, dims], dtype="int32")
-        self.dds = (self.right_edge - self.left_edge)/self.ActiveDimensions
+        self.dds = self.base_dds = (self.right_edge - self.left_edge)/self.ActiveDimensions
         self.level = 99
         self._setup_data_source()
 

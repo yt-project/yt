@@ -188,7 +188,7 @@ class MaestroFieldInfo(FieldInfoContainer):
         # Specific entropy
         ("entropy", ("erg/(g*K)", ["entropy"], None)),
         ("entropypert", ("", [], None)),
-        ("enucdot", ("ergs/(g*s)", [], None)),
+        ("enucdot", ("erg/(g*s)", [], None)),
         ("gpi_x", ("dyne/cm**3", [], None)), # Perturbational pressure grad
         ("gpi_y", ("dyne/cm**3", [], None)),
         ("gpi_z", ("dyne/cm**3", [], None)),

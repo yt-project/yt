@@ -17,7 +17,7 @@ from yt.mods import *
 import yt.visualization.volume_rendering.camera as camera
 import yt.utilities.lib.api as au
 from yt.utilities.math_utils import periodic_dist
-from yt.fields.field_info_container import FieldDetector
+from yt.fields.field_detector import FieldDetector
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 

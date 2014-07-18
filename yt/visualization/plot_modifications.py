@@ -16,6 +16,7 @@ Callbacks to add additional functionality on to plots.
 
 import numpy as np
 import h5py
+from matplotlib.patches import Circle
 
 from yt.funcs import *
 from yt.extern.six import add_metaclass
@@ -501,7 +502,7 @@ class StreamlineCallback(PlotCallback):
         streamplot_args = {'x': X, 'y': Y, 'u':pixX, 'v': pixY,
                            'density': self.dens}
         streamplot_args.update(self.plot_args)
-        plot._axes.streamplot(**self.streamplot_args)
+        plot._axes.streamplot(**streamplot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
@@ -865,22 +866,49 @@ class TextLabelCallback(PlotCallback):
         plot._axes.text(x, y, self.text, **kwargs)
 
 class HaloCatalogCallback(PlotCallback):
+    """
+    annotate_halos(halo_catalog, circle_kwargs=None,
+        width = None, annotate_field=False,
+        font_kwargs = None, factor = 1.0)
+
+    Plots circles at the locations of all the halos
+    in a halo catalog with radii corresponding to the
+    virial radius of each halo. 
+
+    circle_kwargs: Contains the arguments controlling the
+        appearance of the circles, supplied to the 
+        Matplotlib patch Circle.
+    width: the width over which to select halos to plot,
+        useful when overplotting to a slice plot. Accepts
+        a tuple in the form (1.0, 'Mpc').
+    annotate_field: Accepts a field contained in the 
+        halo catalog to add text to the plot near the halo.
+        Example: annotate_field = 'particle_mass' will
+        write the halo mass next to each halo.
+    font_kwargs: Contains the arguments controlling the text
+        appearance of the annotated field.
+    factor: A number the virial radius is multiplied by for
+        plotting the circles. Ex: factor = 2.0 will plot
+        circles with twice the radius of each halo virial radius.
+    """
 
     _type_name = 'halos'
     region = None
     _descriptor = None
 
-    def __init__(self, halo_catalog, col='white', alpha =1, 
-            width = None, annotate_field = False, font_kwargs = None):
+    def __init__(self, halo_catalog, circle_kwargs = None, 
+            width = None, annotate_field = False,
+            font_kwargs = None, factor = 1.0):
 
         PlotCallback.__init__(self)
         self.halo_catalog = halo_catalog
-        self.color = col
-        self.alpha = alpha
         self.width = width
         self.annotate_field = annotate_field
-        self.format_spec = text_format_spec
         self.font_kwargs = font_kwargs
+        self.factor = factor
+        if circle_kwargs is None:
+            circle_kwargs = {'edgecolor':'white', 'facecolor':'None'}
+        self.circle_kwargs = circle_kwargs
 
     def __call__(self, plot):
         data = plot.data
@@ -899,20 +927,20 @@ class HaloCatalogCallback(PlotCallback):
         plot._axes.hold(True)
 
         # Set up scales for pixel size and original data
-        units = 'Mpccm'
         pixel_scale = self.pixel_scale(plot)[0]
         data_scale = data.pf.length_unit
+        units = data_scale.units
 
         # Convert halo positions to code units of the plotted data
         # and then to units of the plotted window
         px = halo_data[field_x][:].in_units(units) / data_scale
         py = halo_data[field_y][:].in_units(units) / data_scale
         px, py = self.convert_to_plot(plot,[px,py])
-        
-        # Convert halo radii to a radius in pixels
-        radius = halo_data['radius'][:].in_units(units)
-        radius = radius*pixel_scale/data_scale
 
+        # Convert halo radii to a radius in pixels
+        radius = halo_data['virial_radius'][:].in_units(units)
+        radius = np.array(radius*pixel_scale*self.factor/data_scale)
+        
         if self.width:
             pz = halo_data[field_z][:].in_units(units)/data_scale
             pz = data.pf.arr(pz, 'code_length')
@@ -928,8 +956,10 @@ class HaloCatalogCallback(PlotCallback):
             py = py[indices]
             radius = radius[indices]
 
-        plot._axes.scatter(px, py, edgecolors='None', marker='o',
-                           s=radius, c=self.color,alpha=self.alpha)
+        for x,y,r in zip(px, py, radius):
+            plot._axes.add_artist(Circle(xy=(x,y), 
+                radius = r, **self.circle_kwargs)) 
+
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
@@ -959,8 +989,7 @@ class ParticleCallback(PlotCallback):
     region = None
     _descriptor = None
     def __init__(self, width, p_size=1.0, col='k', marker='o', stride=1.0,
-                 ptype=None, stars_only=False, dm_only=False,
-                 minimum_mass=None, alpha=1.0):
+                 ptype='all', minimum_mass=None, alpha=1.0):
         PlotCallback.__init__(self)
         self.width = width
         self.p_size = p_size
@@ -968,8 +997,6 @@ class ParticleCallback(PlotCallback):
         self.marker = marker
         self.stride = stride
         self.ptype = ptype
-        self.stars_only = stars_only
-        self.dm_only = dm_only
         self.minimum_mass = minimum_mass
         self.alpha = alpha
 
@@ -989,24 +1016,16 @@ class ParticleCallback(PlotCallback):
         axis_names = plot.data.pf.coordinates.axis_name
         field_x = "particle_position_%s" % axis_names[xax]
         field_y = "particle_position_%s" % axis_names[yax]
-        gg = ( ( reg[field_x] >= x0 ) & ( reg[field_x] <= x1 )
-           &   ( reg[field_y] >= y0 ) & ( reg[field_y] <= y1 ) )
-        if self.ptype is not None:
-            gg &= (reg["particle_type"] == self.ptype)
-            if gg.sum() == 0: return
-        if self.stars_only:
-            gg &= (reg["creation_time"] > 0.0)
-            if gg.sum() == 0: return
-        if self.dm_only:
-            gg &= (reg["creation_time"] <= 0.0)
-            if gg.sum() == 0: return
+        pt = self.ptype
+        gg = ( ( reg[pt, field_x] >= x0 ) & ( reg[pt, field_x] <= x1 )
+           &   ( reg[pt, field_y] >= y0 ) & ( reg[pt, field_y] <= y1 ) )
         if self.minimum_mass is not None:
-            gg &= (reg["particle_mass"] >= self.minimum_mass)
+            gg &= (reg[pt, "particle_mass"] >= self.minimum_mass)
             if gg.sum() == 0: return
         plot._axes.hold(True)
         px, py = self.convert_to_plot(plot,
-                    [np.array(reg[field_x][gg][::self.stride]),
-                     np.array(reg[field_y][gg][::self.stride])])
+                    [np.array(reg[pt, field_x][gg][::self.stride]),
+                     np.array(reg[pt, field_y][gg][::self.stride])])
         plot._axes.scatter(px, py, edgecolors='None', marker=self.marker,
                            s=self.p_size, c=self.color,alpha=self.alpha)
         plot._axes.set_xlim(xx0,xx1)
@@ -1236,7 +1255,7 @@ class TriangleFacetsCallback(PlotCallback):
 
     def __call__(self, plot):
         plot._axes.hold(True)
-        ax = data.axis
+        ax = plot.data.axis
         xax = plot.data.pf.coordinates.x_axis[ax]
         yax = plot.data.pf.coordinates.y_axis[ax]
         l_cy = triangle_plane_intersect(plot.data.axis, plot.data.coord, self.vertices)[:,:,(xax, yax)]

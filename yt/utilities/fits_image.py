@@ -21,7 +21,12 @@ from yt.units.yt_array import YTQuantity
 pyfits = _astropy.pyfits
 pywcs = _astropy.pywcs
 
-class FITSImageBuffer(pyfits.HDUList):
+if pyfits is None:
+    HDUList = object
+else:
+    HDUList = pyfits.HDUList
+
+class FITSImageBuffer(HDUList):
 
     def __init__(self, data, fields=None, units="cm",
                  center=None, scale=None, wcs=None):

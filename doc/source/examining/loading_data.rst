@@ -676,8 +676,14 @@ which may be used to make deposited image fields from the event data for differe
 Additional Options
 ++++++++++++++++++
 
+The following are additional options that may be passed to the ``load`` command when analyzing
+FITS data:
+
+``nan_mask``
+~~~~~~~~~~~~
+
 FITS image data may include ``NaNs``. If you wish to mask this data out,
-you may supply a ``nan_mask`` parameter to ``load``, which may either be a
+you may supply a ``nan_mask`` parameter, which may either be a
 single floating-point number (applies to all fields) or a Python dictionary
 containing different mask values for different fields:
 
@@ -689,9 +695,29 @@ containing different mask values for different fields:
    # passing a dict
    ds = load("m33_hi.fits", nan_mask={"intensity":-1.0,"temperature":0.0})
 
+``suppress_astropy_warnings``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Generally, AstroPy may generate a lot of warnings about individual FITS
 files, many of which you may want to ignore. If you want to see these
-warnings, set ``suppress_astropy_warnings = False`` in the call to ``load``.
+warnings, set ``suppress_astropy_warnings = False``.
+
+``z_axis_decomp``
+~~~~~~~~~~~~~~~~~
+
+For some applications, decomposing 3D FITS data into grids that span the x-y plane with short
+strides along the z-axis may result in a significant improvement in I/O speed. To enable this feature, set ``z_axis_decomp=True``.
+
+``spectral_factor``
+~~~~~~~~~~~~~~~~~~~
+
+Often, the aspect ratio of 3D spectral cubes can be far from unity. Because yt
+sets the pixel scale as the ``code_length``, certain visualizations (such as
+volume renderings) may look extended or distended in ways that are
+undesirable. To adjust the width in ``code_length`` of the spectral axis, set
+``spectral_factor`` equal to a constant which gives the desired scaling, or set
+it to ``"auto"`` to make the width the same as the largest axis in the sky
+plane.
 
 Miscellaneous Tools for Use with FITS Data
 ++++++++++++++++++++++++++++++++++++++++++
@@ -702,7 +728,6 @@ analysis capabilities for this particular type of data. These are included in th
 .. code-block:: python
 
   from yt.frontends.fits.misc import setup_counts_fields, PlotWindowWCS, ds9_region
-
 
 ``setup_counts_fields``
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -769,10 +794,10 @@ MOAB Data
 PyNE Data
 ---------
 
-.. _loading-numpy-array:
-
 Generic Array Data
 ------------------
+
+See :ref:`loading-numpy-array` for more detail.
 
 Even if your data is not strictly related to fields commonly used in
 astrophysical codes or your code is not supported yet, you can still feed it to
@@ -825,6 +850,8 @@ arrays. If no particle arrays are supplied then ``number_of_particles`` is assum
 Generic AMR Data
 ----------------
 
+See :ref:`loading-numpy-array` for more detail.
+
 It is possible to create native ``yt`` parameter file from Python's dictionary
 that describes set of rectangular patches of data of possibly varying
 resolution. 
@@ -875,3 +902,4 @@ setting the ``number_of_particles`` key to each ``grid``'s dict:
 Generic Particle Data
 ---------------------
 
+.. notebook:: Loading_Generic_Particle_Data.ipynb

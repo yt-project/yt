@@ -1,9 +1,9 @@
-from yt.mods import *
+import yt
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import AxesGrid
 
 fn = "IsolatedGalaxy/galaxy0030/galaxy0030"
-pf = load(fn) # load data
+ds = yt.load(fn) # load data
 
 fig = plt.figure()
 
@@ -27,7 +27,7 @@ fields = ['density', 'density', 'density', 'temperature']
 
 for i, (direction, field) in enumerate(zip(cuts, fields)):
     # Load the data and create a single plot
-    p = SlicePlot(pf, direction, field)
+    p = yt.SlicePlot(ds, direction, field)
     p.zoom(40)
 
     # This forces the ProjectionPlot to redraw itself on the AxesGrid axes.

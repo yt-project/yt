@@ -541,7 +541,7 @@ cdef class SphereSelector(SelectorObject):
 
     def __init__(self, dobj):
         for i in range(3):
-            self.center[i] = dobj.center[i]
+            self.center[i] = _ensure_code(dobj.center[i])
         self.radius = _ensure_code(dobj.radius)
         self.radius2 = self.radius * self.radius
 
@@ -627,8 +627,9 @@ cdef class RegionSelector(SelectorObject):
             domain_width = DW[i]
 
             if region_width <= 0:
-                print "Error: region right edge < left edge", region_width
-                raise RuntimeError
+                raise RuntimeError(
+                    "Region right edge < left edge: width = %s" % region_width
+                    )
 
             if dobj.pf.periodicity[i]:
                 # shift so left_edge guaranteed in domain
@@ -641,15 +642,20 @@ cdef class RegionSelector(SelectorObject):
             else:
                 if dobj.left_edge[i] < dobj.pf.domain_left_edge[i] or \
                    dobj.right_edge[i] > dobj.pf.domain_right_edge[i]:
-                    print "Error: bad Region in non-periodic domain:", dobj.left_edge[i], \
-                        dobj.pf.domain_left_edge[i], dobj.right_edge[i], dobj.pf.domain_right_edge[i]
-                    raise RuntimeError
-                
+                    raise RuntimeError(
+                        "Error: bad Region in non-periodic domain along dimension %s. "
+                        "Region left edge = %s, Region right edge = %s"
+                        "Dataset left edge = %s, Dataset right edge = %s" % \
+                        (i, dobj.left_edge[i], dobj.right_edge[i],
+                         dobj.pf.domain_left_edge[i], dobj.pf.domain_right_edge[i])
+                    )
             # Already ensured in code
             self.left_edge[i] = dobj.left_edge[i]
             self.right_edge[i] = dobj.right_edge[i]
             self.right_edge_shift[i] = \
                 (dobj.right_edge).to_ndarray()[i] - domain_width.to_ndarray()
+            if not self.periodicity[i]:
+                self.right_edge_shift[i] = -np.inf
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -698,7 +704,7 @@ cdef class DiskSelector(SelectorObject):
         cdef int i
         for i in range(3):
             self.norm_vec[i] = dobj._norm_vec[i]
-            self.center[i] = dobj.center[i]
+            self.center[i] = _ensure_code(dobj.center[i])
         self.radius = _ensure_code(dobj._radius)
         self.radius2 = self.radius * self.radius
         self.height = _ensure_code(dobj._height)
@@ -1518,6 +1524,9 @@ cdef class IndexedOctreeSubsetSelector(SelectorObject):
     cdef np.uint64_t min_ind
     cdef np.uint64_t max_ind
     cdef SelectorObject base_selector
+    cdef int filter_bbox
+    cdef np.float64_t DLE[3]
+    cdef np.float64_t DRE[3]
 
     def __init__(self, dobj):
         self.min_ind = dobj.min_ind
@@ -1525,6 +1534,12 @@ cdef class IndexedOctreeSubsetSelector(SelectorObject):
         self.base_selector = dobj.base_selector
         self.min_level = self.base_selector.min_level
         self.max_level = self.base_selector.max_level
+        self.filter_bbox = 0
+        if getattr(dobj.pf, "filter_bbox", False):
+            self.filter_bbox = 1
+        for i in range(3):
+            self.DLE[i] = dobj.pf.domain_left_edge[i]
+            self.DRE[i] = dobj.pf.domain_right_edge[i]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1551,6 +1566,12 @@ cdef class IndexedOctreeSubsetSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_point(self, np.float64_t pos[3]) nogil:
+        cdef int i
+        if self.filter_bbox == 0:
+            return 1
+        for i in range(3):
+            if pos[i] < self.DLE[i] or pos[i] > self.DRE[i]:
+                return 0
         return 1
 
     @cython.boundscheck(False)

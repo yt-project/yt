@@ -36,7 +36,7 @@ This illustrates how to create a multipanel plot of slices along the coordinate
 axes.  To focus on what's happening in the x-y plane, we make an additional
 Temperature slice for the bottom-right subpanel.
 
-.. yt-cookbook:: multiplot_2x2_coordaxes_slice.py
+.. yt_cookbook:: multiplot_2x2_coordaxes_slice.py
 
 Multi-Plot Slice and Projections
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

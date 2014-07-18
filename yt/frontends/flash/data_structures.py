@@ -30,6 +30,8 @@ from yt.data_objects.static_output import \
     Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
+from yt.utilities.file_handler import \
+    HDF5FileHandler
 from yt.utilities.io_handler import \
     io_registry
 from yt.utilities.physical_constants import cm_per_mpc
@@ -183,7 +185,7 @@ class FLASHDataset(Dataset):
 
         self.fluid_types += ("flash",)
         if self._handle is not None: return
-        self._handle = h5py.File(filename, "r")
+        self._handle = HDF5FileHandler(filename)
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
         
@@ -192,15 +194,15 @@ class FLASHDataset(Dataset):
         if self.particle_filename is None :
             self._particle_handle = self._handle
         else :
-            try :
-                self._particle_handle = h5py.File(self.particle_filename, "r")
+            try:
+                self._particle_handle = HDF5FileHandler(self.particle_filename)
             except :
                 raise IOError(self.particle_filename)
         # These should be explicitly obtained from the file, but for now that
         # will wait until a reorganization of the source tree and better
         # generalization.
         self.refine_by = 2
-                                                                
+
         Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
@@ -208,16 +210,19 @@ class FLASHDataset(Dataset):
         self.parameters["Time"] = 1. # default unit is 1...
         
     def _set_code_unit_attributes(self):
-        if "cgs" in (self.parameters.get('pc_unitsbase', "").lower(),
-                     self.parameters.get('unitsystem', "").lower()):
-             b_factor = 1
-        elif self['unitsystem'].lower() == "si":
-             b_factor = np.sqrt(4*np.pi/1e7)
-        elif self['unitsystem'].lower() == "none":
-             b_factor = np.sqrt(4*np.pi)
+
+        if 'unitsystem' in self.parameters:
+            if self['unitsystem'].lower() == "cgs":
+                b_factor = 1.0
+            elif self['unitsystem'].lower() == "si":
+                b_factor = np.sqrt(4*np.pi/1e7)
+            elif self['unitsystem'].lower() == "none":
+                b_factor = np.sqrt(4*np.pi)
+            else:
+                raise RuntimeError("Runtime parameter unitsystem with "
+                                   "value %s is unrecognized" % self['unitsystem'])
         else:
-            raise RuntimeError("Runtime parameter unitsystem with "
-                               "value %s is unrecognized" % self['unitsystem'])
+            b_factor = 1.
         if self.cosmological_simulation == 1:
             length_factor = 1.0 / (1.0 + self.current_redshift)
             temperature_factor = 1.0 / (1.0 + self.current_redshift)**2
@@ -225,6 +230,7 @@ class FLASHDataset(Dataset):
             length_factor = 1.0
             temperature_factor = 1.0
         self.magnetic_unit = self.quan(b_factor, "gauss")
+
         self.length_unit = self.quan(length_factor, "cm")
         self.mass_unit = self.quan(1.0, "g")
         self.time_unit = self.quan(1.0, "s")
@@ -232,7 +238,8 @@ class FLASHDataset(Dataset):
         self.temperature_unit = self.quan(temperature_factor, "K")
         # Still need to deal with:
         #self.conversion_factors['temp'] = (1.0 + self.current_redshift)**-2.0
-
+        self.unit_registry.modify("code_magnetic", self.magnetic_unit)
+        
     def set_code_units(self):
         super(FLASHDataset, self).set_code_units()
         self.unit_registry.modify("code_temperature",
@@ -245,9 +252,9 @@ class FLASHDataset(Dataset):
         for tpname, pval in zip(self._handle[nn][:,'name'],
                                 self._handle[nn][:,'value']):
             if tpname.strip() == pname:
-                if ptype == "string" :
+                if ptype == "string":
                     return pval.strip()
-                else :
+                else:
                     return pval
         raise KeyError(pname)
 
@@ -281,7 +288,8 @@ class FLASHDataset(Dataset):
                     else :
                         pval = val
                     if vn in self.parameters and self.parameters[vn] != pval:
-                        mylog.warning("{0} {1} overwrites a simulation scalar of the same name".format(hn[:-1],vn)) 
+                        mylog.info("{0} {1} overwrites a simulation "
+                                   "scalar of the same name".format(hn[:-1],vn))
                     self.parameters[vn] = pval
         if self._flash_version == 7:
             for hn in hns:
@@ -298,7 +306,8 @@ class FLASHDataset(Dataset):
                     else :
                         pval = val
                     if vn in self.parameters and self.parameters[vn] != pval:
-                        mylog.warning("{0} {1} overwrites a simulation scalar of the same name".format(hn[:-1],vn))
+                        mylog.info("{0} {1} overwrites a simulation "
+                                   "scalar of the same name".format(hn[:-1],vn))
                     self.parameters[vn] = pval
         
         # Determine block size
@@ -361,7 +370,7 @@ class FLASHDataset(Dataset):
         try:
             self.gamma = self.parameters["gamma"]
         except:
-            mylog.warning("Cannot find Gamma")
+            mylog.info("Cannot find Gamma")
             pass
 
         # Get the simulation time
@@ -384,19 +393,12 @@ class FLASHDataset(Dataset):
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
 
-    def __del__(self):
-        if self._handle is not self._particle_handle:
-            self._particle_handle.close()
-        self._handle.close()
-
     @classmethod
     def _is_valid(self, *args, **kwargs):
         try:
-            fileh = h5py.File(args[0],'r')
+            fileh = HDF5FileHandler(args[0])
             if "bounding box" in fileh["/"].keys():
-                fileh.close()
                 return True
-            fileh.close()
         except:
             pass
         return False

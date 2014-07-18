@@ -16,6 +16,7 @@ This is a simple mechanism for interfacing with Profile and Phase plots
 
 import __builtin__
 import base64
+import os
 import types
 
 from functools import wraps
@@ -23,7 +24,6 @@ from itertools import izip
 import matplotlib
 import numpy as np
 import cStringIO
-import __builtin__
 
 
 from .base_plot_types import ImagePlotMPL
@@ -68,7 +68,7 @@ def invalidate_plot(f):
 
 class FigureContainer(dict):
     def __init__(self):
-        super(dict, self).__init__()
+        super(FigureContainer, self).__init__()
 
     def __missing__(self, key):
         figure = mpl.matplotlib.figure.Figure((10, 8))
@@ -78,12 +78,17 @@ class FigureContainer(dict):
 class AxesContainer(dict):
     def __init__(self, fig_container):
         self.fig_container = fig_container
-        super(dict, self).__init__()
+        self.ylim = {}
+        super(AxesContainer, self).__init__()
 
     def __missing__(self, key):
         figure = self.fig_container[key]
         self[key] = figure.add_subplot(111)
         return self[key]
+
+    def __setitem__(self, key, value):
+        super(AxesContainer, self).__setitem__(key, value)
+        self.ylim[key] = (None, None)
 
 def sanitize_label(label, nprofiles):
     label = ensure_list(label)
@@ -155,16 +160,17 @@ class ProfilePlot(object):
 
     This creates profiles of a single dataset.
 
-    >>> pf = load("enzo_tiny_cosmology/DD0046/DD0046")
-    >>> ad = pf.h.all_data()
+    >>> import yt
+    >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+    >>> ad = ds.all_data()
     >>> plot = ProfilePlot(ad, "density", ["temperature", "velocity_x"],
-                           weight_field="cell_mass",
-                           plot_spec=dict(color='red', linestyle="--"))
+    ...                    weight_field="cell_mass",
+    ...                    plot_spec=dict(color='red', linestyle="--"))
     >>> plot.save()
 
     This creates profiles from a time series object.
-    
-    >>> es = simulation("AMRCosmology.enzo", "Enzo")
+
+    >>> es = yt.simulation("AMRCosmology.enzo", "Enzo")
     >>> es.get_time_series()
 
     >>> profiles = []
@@ -217,7 +223,9 @@ class ProfilePlot(object):
             self.plot_spec = [dict() for p in self.profiles]
         if not isinstance(self.plot_spec, list):
             self.plot_spec = [self.plot_spec.copy() for p in self.profiles]
-        
+
+        self.figures = FigureContainer()
+        self.axes = AxesContainer(self.figures)
         self._setup_plots()
         
     def save(self, name=None):
@@ -230,10 +238,11 @@ class ProfilePlot(object):
             The output file keyword.
         
         """
-        if not self._plot_valid: self._setup_plots()
+        if not self._plot_valid:
+            self._setup_plots()
         unique = set(self.figures.values())
         if len(unique) < len(self.figures):
-            figiter = izip(xrange(len(unique)), sorted(unique))
+            iters = izip(xrange(len(unique)), sorted(unique))
         else:
             iters = self.figures.iteritems()
         if name is None:
@@ -254,8 +263,7 @@ class ProfilePlot(object):
             if isinstance(uid, types.TupleType):
                 uid = uid[1]
             canvas = canvas_cls(fig)
-            fn = "%s_1d-Profile_%s_%s%s" % \
-              (prefix, xfn, uid, suffix)
+            fn = "%s_1d-Profile_%s_%s%s" % (prefix, xfn, uid, suffix)
             mylog.info("Saving %s", fn)
             canvas.print_figure(fn)
         return self
@@ -274,8 +282,10 @@ class ProfilePlot(object):
         Examples
         --------
 
-        >>> slc = SlicePlot(pf, "x", ["Density", "VelocityMagnitude"])
-        >>> slc.show()
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> pp = ProfilePlot(ds.all_data(), 'density', 'temperature')
+        >>> pp.show()
 
         """
         if "__IPYTHON__" in dir(__builtin__):
@@ -288,14 +298,13 @@ class ProfilePlot(object):
         else:
             raise YTNotInsideNotebook
 
-
     def _repr_html_(self):
         """Return an html representation of the plot object. Will display as a
         png for each WindowPlotMPL instance in self.plots"""
         ret = ''
         unique = set(self.figures.values())
         if len(unique) < len(self.figures):
-            figiter = izip(xrange(len(unique)), sorted(unique))
+            iters = izip(xrange(len(unique)), sorted(unique))
         else:
             iters = self.figures.iteritems()
         for uid, fig in iters:
@@ -308,14 +317,12 @@ class ProfilePlot(object):
         return ret
 
     def _setup_plots(self):
-        self.figures = FigureContainer()
-        self.axes = AxesContainer(self.figures)
+        for f in self.axes:
+            self.axes[f].cla()
         for i, profile in enumerate(self.profiles):
             for field, field_data in profile.items():
-                self.axes[field].plot(np.array(profile.x),
-                                      np.array(field_data),
-                                      label=self.label[i],
-                                      **self.plot_spec[i])
+                self.axes[field].plot(np.array(profile.x), np.array(field_data),
+                                      label=self.label[i], **self.plot_spec[i])
         
         # This relies on 'profile' leaking
         for fname, axes in self.axes.items():
@@ -325,6 +332,7 @@ class ProfilePlot(object):
             axes.set_yscale(yscale)
             axes.set_xlabel(xtitle)
             axes.set_ylabel(ytitle)
+            axes.set_ylim(*self.axes.ylim[fname])
             if any(self.label):
                 axes.legend(loc="best")
         self._plot_valid = True
@@ -441,7 +449,7 @@ class ProfilePlot(object):
     def set_unit(self, field, unit):
         """Sets a new unit for the requested field
 
-        parameters
+        Parameters
         ----------
         field : string
            The name of the field that is to be changed.
@@ -456,6 +464,97 @@ class ProfilePlot(object):
                 profile.set_field_unit(field, unit)
             else:
                 raise KeyError("Field %s not in profile plot!" % (field))
+        return self
+
+    @invalidate_plot
+    def set_xlim(self, xmin=None, xmax=None):
+        """Sets the limits of the bin field
+
+        Parameters
+        ----------
+        
+        xmin : float or None
+          The new x minimum.  Defaults to None, which leaves the xmin
+          unchanged.
+
+        xmax : float or None
+          The new x maximum.  Defaults to None, which leaves the xmax
+          unchanged.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> pp = yt.ProfilePlot(ds.all_data(), 'density', 'temperature')
+        >>> pp.set_xlim(1e-29, 1e-24)
+        >>> pp.save()
+
+        """
+        for i, p in enumerate(self.profiles):
+            if xmin is None:
+                xmi = p.x_bins.min()
+            else:
+                xmi = xmin
+            if xmax is None:
+                xma = p.x_bins.max()
+            else:
+                xma = xmax
+            extrema = {p.x_field: ((xmi, str(p.x.units)), (xma, str(p.x.units)))}
+            units = {p.x_field: str(p.x.units)}
+            for field in p.field_map.values():
+                units[field] = str(p.field_data[field].units)
+            self.profiles[i] = \
+                create_profile(p.data_source, p.x_field,
+                               n_bins=len(p.x_bins)-2,
+                               fields=p.field_map.values(),
+                               weight_field=p.weight_field,
+                               accumulation=p.accumulation,
+                               fractional=p.fractional,
+                               extrema=extrema, units=units)
+        return self
+
+    @invalidate_plot
+    def set_ylim(self, field, ymin=None, ymax=None):
+        """Sets the plot limits for the specified field we are binning.
+
+        Parameters
+        ----------
+
+        field : string or field tuple
+
+        The field that we want to adjust the plot limits for.
+        
+        ymin : float or None
+          The new y minimum.  Defaults to None, which leaves the ymin
+          unchanged.
+
+        ymax : float or None
+          The new y maximum.  Defaults to None, which leaves the ymax
+          unchanged.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> pp = yt.ProfilePlot(ds.all_data(), 'density', ['temperature', 'x-velocity'])
+        >>> pp.set_ylim('temperature', 1e4, 1e6)
+        >>> pp.save()
+
+        """
+        for i, p in enumerate(self.profiles):
+            if field is 'all':
+                fields = self.axes.keys()
+            else:
+                fields = ensure_list(field)
+            for profile in self.profiles:
+                for field in profile.data_source._determine_fields(fields):
+                    if field in profile.field_map:
+                        field = profile.field_map[field]
+                    self.axes.ylim[field] = (ymin, ymax)
+                    # Continue on to the next profile.
+                    break
         return self
 
     def _get_field_log(self, field_y, profile):
@@ -506,7 +605,6 @@ class ProfilePlot(object):
                     self._get_field_label(field_y, yfi, y_unit, fractional)
 
         return (x_title, y_title)
-            
 
 class PhasePlot(ImagePlotContainer):
     r"""
@@ -568,10 +666,11 @@ class PhasePlot(ImagePlotContainer):
     Examples
     --------
 
-    >>> pf = load("enzo_tiny_cosmology/DD0046/DD0046")
+    >>> import yt
+    >>> pf = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
     >>> ad = pf.h.all_data()
     >>> plot = PhasePlot(ad, "density", "temperature", ["cell_mass"],
-                         weight_field=None)
+    ...                  weight_field=None)
     >>> plot.save()
 
     >>> # Change plot properties.
@@ -677,9 +776,11 @@ class PhasePlot(ImagePlotContainer):
             cax = None
             draw_colorbar = True
             draw_axes = True
+            zlim = (None, None)
             if f in self.plots:
                 draw_colorbar = self.plots[f]._draw_colorbar
                 draw_axes = self.plots[f]._draw_axes
+                zlim = (self.plots[f].zmin, self.plots[f].zmax)
                 if self.plots[f].figure is not None:
                     fig = self.plots[f].figure
                     axes = self.plots[f].axes
@@ -688,20 +789,30 @@ class PhasePlot(ImagePlotContainer):
             x_scale, y_scale, z_scale = self._get_field_log(f, self.profile)
             x_title, y_title, z_title = self._get_field_title(f, self.profile)
 
-            if z_scale == 'log':
-                zmin = data[data > 0.0].min()
-                self._field_transform[f] = log_transform
-            else:
-                zmin = data.min()
-                self._field_transform[f] = linear_transform
-            zlim = [zmin, data.max()]
+            if zlim == (None, None):
+                if z_scale == 'log':
+                    positive_values = data[data > 0.0]
+                    if len(positive_values) == 0:
+                        mylog.warning("Profiled field %s has no positive "
+                                      "values.  Max = %d." % (f, data.max()))
+                        mylog.warning("Switching to linear colorbar scaling.")
+                        zmin = data.min()
+                        z_scale = 'linear'
+                        self._field_transform[f] = linear_transform
+                    else:
+                        zmin = positive_values.min()
+                        self._field_transform[f] = log_transform
+                else:
+                    zmin = data.min()
+                    self._field_transform[f] = linear_transform
+                zlim = [zmin, data.max()]
 
             fp = self._font_properties
             f = self.profile.data_source._determine_fields(f)[0]
 
             self.plots[f] = PhasePlotMPL(self.profile.x, self.profile.y, data,
                                          x_scale, y_scale, z_scale,
-                                         self._colormaps[f], np.array(zlim),
+                                         self._colormaps[f], zlim,
                                          self.figure_size, fp.get_size(),
                                          fig, axes, cax)
 
@@ -740,9 +851,14 @@ class PhasePlot(ImagePlotContainer):
         >>> plot.save(mpl_kwargs={'bbox_inches':'tight'})
         
         """
-
-        if not self._plot_valid: self._setup_plots()
-        if mpl_kwargs is None: mpl_kwargs = {}
+        names = []
+        if not self._plot_valid:
+            self._setup_plots()
+        if mpl_kwargs is None:
+            mpl_kwargs = {}
+        if name is None:
+            name = str(self.profile.pf)
+        name = os.path.expanduser(name)
         xfn = self.profile.x_field
         yfn = self.profile.y_field
         if isinstance(xfn, types.TupleType):
@@ -751,17 +867,26 @@ class PhasePlot(ImagePlotContainer):
             yfn = yfn[1]
         for f in self.profile.field_data:
             _f = f
-            if isinstance(f, types.TupleType): _f = _f[1]
+            if isinstance(f, types.TupleType):
+                _f = _f[1]
             middle = "2d-Profile_%s_%s_%s" % (xfn, yfn, _f)
-            if name is None:
-                prefix = self.profile.pf
-                name = "%s.png" % prefix
+            splitname = os.path.split(name)
+            if splitname[0] != '' and not os.path.isdir(splitname[0]):
+                os.makedirs(splitname[0])
+            if os.path.isdir(name) and name != str(self.profile.pf):
+                prefix = name + (os.sep if name[-1] != os.sep else '')
+                prefix += str(self.profile.pf)
+            else:
+                prefix = name
             suffix = get_image_suffix(name)
-            prefix = name[:name.rfind(suffix)]
-            fn = "%s_%s%s" % (prefix, middle, suffix)
-            if not suffix:
-                suffix = ".png"
+            if suffix != '':
+                for k, v in self.plots.iteritems():
+                    names.append(v.save(name, mpl_kwargs))
+                return names
+            fn = "%s_%s%s" % (prefix, middle, '.png')
+            names.append(fn)
             self.plots[f].save(fn, mpl_kwargs)
+        return names
 
     @invalidate_plot
     def set_title(self, field, title):
@@ -819,7 +944,7 @@ class PhasePlot(ImagePlotContainer):
     def set_unit(self, field, unit):
         """Sets a new unit for the requested field
 
-        parameters
+        Parameters
         ----------
         field : string
            The name of the field that is to be changed.
@@ -834,8 +959,109 @@ class PhasePlot(ImagePlotContainer):
             self.profile.set_y_unit(unit)
         elif field in fields:
             self.profile.set_field_unit(field, unit)
+            self.plots[field].zmin, self.plots[field].zmax = (None, None)
         else:
             raise KeyError("Field %s not in phase plot!" % (field))
+        return self
+
+    @invalidate_plot
+    def set_xlim(self, xmin=None, xmax=None):
+        """Sets the limits of the x bin field
+
+        Parameters
+        ----------
+        
+        xmin : float or None
+          The new x minimum.  Defaults to None, which leaves the xmin
+          unchanged.
+
+        xmax : float or None
+          The new x maximum.  Defaults to None, which leaves the xmax
+          unchanged.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> pp = yt.PhasePlot(ds.all_data(), 'density', 'temperature', 'cell_mass')
+        >>> pp.set_xlim(1e-29, 1e-24)
+        >>> pp.save()
+
+        """
+        p = self.profile
+        if xmin is None:
+            xmin = p.x_bins.min()
+        if xmax is None:
+            xmax = p.x_bins.max()
+        units = {p.x_field: str(p.x.units),
+                 p.y_field: str(p.y.units)}
+        zunits = dict((field, str(p.field_units[field])) for field in p.field_units)
+        extrema = {p.x_field: ((xmin, str(p.x.units)), (xmax, str(p.x.units))),
+                   p.y_field: ((p.y_bins.min(), str(p.y.units)),
+                               (p.y_bins.max(), str(p.y.units)))}
+        self.profile = create_profile(
+            p.data_source,
+            [p.x_field, p.y_field],
+            p.field_map.values(),
+            n_bins=[len(p.x_bins)-2, len(p.y_bins)-2],
+            weight_field=p.weight_field,
+            accumulation=p.accumulation,
+            fractional=p.fractional,
+            units=units,
+            extrema=extrema)
+        for field in zunits:
+            self.profile.set_field_unit(field, zunits[field])
+        return self
+
+    @invalidate_plot
+    def set_ylim(self, ymin=None, ymax=None):
+        """Sets the plot limits for the y bin field.
+
+        Parameters
+        ----------
+
+        ymin : float or None
+          The new y minimum.  Defaults to None, which leaves the ymin
+          unchanged.
+
+        ymax : float or None
+          The new y maximum.  Defaults to None, which leaves the ymax
+          unchanged.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> pp = yt.PhasePlot(ds.all_data(), 'density', 'temperature', 'cell_mass')
+        >>> pp.set_ylim(1e4, 1e6)
+        >>> pp.save()
+
+        """
+        p = self.profile
+        if ymin is None:
+            ymin = p.y_bins.min()
+        if ymax is None:
+            ymax = p.y_bins.max()
+        units = {p.x_field: str(p.x.units),
+                 p.y_field: str(p.y.units)}
+        zunits = dict((field, str(p.field_units[field])) for field in p.field_units)
+        extrema = {p.x_field: ((p.x_bins.min(), str(p.x.units)),
+                               (p.x_bins.max(), str(p.x.units))),
+                   p.y_field: ((ymin, str(p.y.units)), (ymax, str(p.y.units)))}
+        self.profile = create_profile(
+            p.data_source,
+            [p.x_field, p.y_field],
+            p.field_map.values(),
+            n_bins=[len(p.x_bins), len(p.y_bins)],
+            weight_field=p.weight_field,
+            accumulation=p.accumulation,
+            fractional=p.fractional,
+            units=units,
+            extrema=extrema)
+        for field in zunits:
+            self.profile.set_field_unit(field, zunits[field])
         return self
 
     def run_callbacks(self, *args):
@@ -882,10 +1108,10 @@ class PhasePlotMPL(ImagePlotMPL):
             norm = matplotlib.colors.Normalize(zlim[0], zlim[1])
         self.image = None
         self.cb = None
-        self.image = self.axes.pcolormesh(np.array(x_data), 
-                                          np.array(y_data), 
+        self.image = self.axes.pcolormesh(np.array(x_data),
+                                          np.array(y_data),
                                           np.array(image_data.T),
-                                          norm=norm, 
+                                          norm=norm,
                                           cmap=cmap)
         self.axes.set_xscale(x_scale)
         self.axes.set_yscale(y_scale)

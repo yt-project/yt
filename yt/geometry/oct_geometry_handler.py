@@ -35,7 +35,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.data_objects.data_containers import data_object_registry
 
 class OctreeIndex(Index):
-
+    """The Index subclass for oct AMR datasets"""
     def _setup_geometry(self):
         mylog.debug("Initializing Octree Geometry Handler.")
         self._initialize_oct_handler()

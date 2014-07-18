@@ -60,7 +60,10 @@ def ensure_numpy_array(obj):
     convert scalar, list or tuple argument passed to functions using Cython.
     """
     if isinstance(obj, np.ndarray):
-        return obj
+        if obj.shape == ():
+            return np.array([obj])
+        # We cast to ndarray to catch ndarray subclasses
+        return np.array(obj)
     elif isinstance(obj, (types.ListType, types.TupleType)):
         return np.asarray(obj)
     else:
@@ -622,6 +625,22 @@ def fix_length(length, pf=None):
 
 @contextlib.contextmanager
 def parallel_profile(prefix):
+    r"""A context manager for profiling parallel code execution using cProfile
+
+    This is a simple context manager that automatically profiles the execution
+    of a snippet of code.
+
+    Parameters
+    ----------
+    prefix : string
+        A string name to prefix outputs with.
+
+    Examples
+    --------
+
+    >>> with parallel_profile('my_profile'):
+    ...     yt.PhasePlot(ds.all_data(), 'density', 'temperature', 'cell_mass')
+    """
     import cProfile
     from yt.config import ytcfg
     fn = "%s_%04i_%04i.cprof" % (prefix,
@@ -660,17 +679,14 @@ def ensure_dir(path):
     if not os.path.exists(path):
         only_on_root(os.makedirs, path)
     return path
-        
-def assert_valid_width_tuple(width):
-    try:
-        assert iterable(width) and len(width) == 2, \
-            "width (%s) is not a two element tuple" % width
-        valid = isinstance(width[0], numeric_type) and isinstance(width[1], str)
+
+def validate_width_tuple(width):
+    if not iterable(width) or len(width) != 2:
+        raise YTInvalidWidthError("width (%s) is not a two element tuple" % width)
+    if not isinstance(width[0], numeric_type) and isinstance(width[1], basestring):
         msg = "width (%s) is invalid. " % str(width)
         msg += "Valid widths look like this: (12, 'au')"
-        assert valid, msg
-    except AssertionError, e:
-        raise YTInvalidWidthError(e)
+        raise YTInvalidWidthError(msg)
 
 def camelcase_to_underscore(name):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)

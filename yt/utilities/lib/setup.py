@@ -139,6 +139,8 @@ def configuration(parent_package='',top_path=None):
           )
     config.add_extension("write_array",
                          ["yt/utilities/lib/write_array.pyx"])
+    config.add_extension("ragged_arrays",
+                         ["yt/utilities/lib/ragged_arrays.pyx"])
     config.add_extension("GridTree", 
     ["yt/utilities/lib/GridTree.pyx"],
         libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"])

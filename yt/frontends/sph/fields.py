@@ -62,6 +62,7 @@ class SPHFieldInfo(FieldInfoContainer):
         ("Temperature", ("K", ["temperature"], None)),
         ("Epsilon", ("code_length", [], None)),
         ("Metals", ("code_metallicity", ["metallicity"], None)),
+        ("Metallicity", ("code_metallicity", ["metallicity"], None)),
         ("Phi", ("code_length", [], None)),
         ("FormationTime", ("code_time", ["creation_time"], None)),
         # These are metallicity fields that get discovered for FIRE simulations

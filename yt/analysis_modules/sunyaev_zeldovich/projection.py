@@ -36,35 +36,31 @@ except ImportError:
     pass
 
 vlist = "xyz"
-def setup_sunyaev_zeldovich_fields(registry, ftype = "gas", slice_info = None):
+def setup_sunyaev_zeldovich_fields(ds):
     def _t_squared(field, data):
         return data["gas","density"]*data["gas","kT"]*data["gas","kT"]
-    registry.add_field(("gas", "t_squared"),
-                       function = _t_squared,
-                       units="g*keV**2/cm**3")
-    def _beta_perp_squared(field, data):
-        return data["gas","density"]*data["gas","velocity_magnitude"]**2/clight/clight - data["gas","beta_par_squared"]
-    registry.add_field(("gas","beta_perp_squared"), 
-                       function = _beta_perp_squared,
-                       units="g/cm**3")
+    ds.add_field(("gas", "t_squared"), function = _t_squared,
+                 units="g*keV**2/cm**3")
 
     def _beta_par_squared(field, data):
         return data["gas","beta_par"]**2/data["gas","density"]
-    registry.add_field(("gas","beta_par_squared"),
-                       function = _beta_par_squared,
-                       units="g/cm**3")
+    ds.add_field(("gas","beta_par_squared"), function = _beta_par_squared,
+                 units="g/cm**3")
+
+    def _beta_perp_squared(field, data):
+        return data["gas","density"]*data["gas","velocity_magnitude"]**2/clight/clight - data["gas","beta_par_squared"]
+    ds.add_field(("gas","beta_perp_squared"), function = _beta_perp_squared,
+                 units="g/cm**3")
 
     def _t_beta_par(field, data):
         return data["gas","kT"]*data["gas","beta_par"]
-    registry.add_field(("gas","t_beta_par"),
-                       function = _t_beta_par,
-                       units="keV*g/cm**3")
+    ds.add_field(("gas","t_beta_par"), function = _t_beta_par,
+                 units="keV*g/cm**3")
 
     def _t_sz(field, data):
         return data["gas","density"]*data["gas","kT"]
-    registry.add_field(("gas","t_sz"),
-                       function = _t_sz,
-                       units="keV*g/cm**3")
+    ds.add_field(("gas","t_sz"), function = _t_sz,
+                 units="keV*g/cm**3")
 
 def generate_beta_par(L):
     def _beta_par(field, data):
@@ -79,8 +75,8 @@ class SZProjection(object):
 
     Parameters
     ----------
-    pf : parameter_file
-        The parameter file.
+    ds : Dataset
+        The dataset
     freqs : array_like
         The frequencies (in GHz) at which to compute the SZ spectral distortion.
     mue : float, optional
@@ -91,15 +87,14 @@ class SZProjection(object):
     Examples
     --------
     >>> freqs = [90., 180., 240.]
-    >>> szprj = SZProjection(pf, freqs, high_order=True)
+    >>> szprj = SZProjection(ds, freqs, high_order=True)
     """
-    def __init__(self, pf, freqs, mue=1.143, high_order=False):
+    def __init__(self, ds, freqs, mue=1.143, high_order=False):
 
-        self.pf = pf
-        pf.field_info.load_plugin(setup_sunyaev_zeldovich_fields)
+        self.ds = ds
         self.num_freqs = len(freqs)
         self.high_order = high_order
-        self.freqs = pf.arr(freqs, "GHz")
+        self.freqs = ds.arr(freqs, "GHz")
         self.mueinv = 1./mue
         self.xinit = hcgs*self.freqs.in_units("Hz")/(kboltz*Tcmb)
         self.freq_fields = ["%d_GHz" % (int(freq)) for freq in freqs]
@@ -132,12 +127,12 @@ class SZProjection(object):
         --------
         >>> szprj.on_axis("y", center="max", width=(1.0, "Mpc"), source=my_sphere)
         """
-        axis = fix_axis(axis, self.pf)
+        axis = fix_axis(axis, self.ds)
 
         if center == "c":
-            ctr = self.pf.domain_center
+            ctr = self.ds.domain_center
         elif center == "max":
-            v, ctr = self.pf.h.find_max("density")
+            v, ctr = self.ds.h.find_max("density")
         else:
             ctr = center
 
@@ -145,8 +140,9 @@ class SZProjection(object):
         L[axis] = 1.0
 
         beta_par = generate_beta_par(L)
-        self.pf.field_info.add_field(("gas","beta_par"), function=beta_par, units="g/cm**3")
-        proj = self.pf.h.proj("density", axis, center=ctr, data_source=source)
+        self.ds.add_field(("gas","beta_par"), function=beta_par, units="g/cm**3")
+        setup_sunyaev_zeldovich_fields(self.ds)
+        proj = self.ds.proj("density", axis, center=ctr, data_source=source)
         frb = proj.to_frb(width, nx)
         dens = frb["density"]
         Te = frb["t_sz"]/dens
@@ -171,7 +167,7 @@ class SZProjection(object):
                                 np.array(omega1), np.array(sigma1),
                                 np.array(kappa1), np.array(bperp2))
 
-        self.pf.field_info.pop(("gas","beta_par"))
+        self.ds.field_info.pop(("gas","beta_par"))
 
     def off_axis(self, L, center="c", width=(1, "unitary"), nx=800, source=None):
         r""" Make an off-axis projection of the SZ signal.
@@ -196,15 +192,15 @@ class SZProjection(object):
         >>> szprj.off_axis(L, center="c", width=(2.0, "Mpc"))
         """
         if iterable(width):
-            w = self.pf.quan(width[0], width[1]).in_units("code_length").value
+            w = self.ds.quan(width[0], width[1]).in_units("code_length").value
         elif isinstance(width, YTQuantity):
             w = width.in_units("code_length").value
         else:
             w = width
         if center == "c":
-            ctr = self.pf.domain_center
+            ctr = self.ds.domain_center
         elif center == "max":
-            v, ctr = self.pf.h.find_max("density")
+            v, ctr = self.ds.h.find_max("density")
         else:
             ctr = center
 
@@ -213,18 +209,19 @@ class SZProjection(object):
             raise NotImplementedError
 
         beta_par = generate_beta_par(L)
-        self.pf.field_info.add_field(("gas","beta_par"), function=beta_par, units="g/cm**3")
+        self.ds.add_field(("gas","beta_par"), function=beta_par, units="g/cm**3")
+        setup_sunyaev_zeldovich_fields(self.ds)
 
-        dens    = off_axis_projection(self.pf, ctr, L, w, nx, "density")
-        Te      = off_axis_projection(self.pf, ctr, L, w, nx, "t_sz")/dens
-        bpar    = off_axis_projection(self.pf, ctr, L, w, nx, "beta_par")/dens
-        omega1  = off_axis_projection(self.pf, ctr, L, w, nx, "t_squared")/dens
+        dens    = off_axis_projection(self.ds, ctr, L, w, nx, "density")
+        Te      = off_axis_projection(self.ds, ctr, L, w, nx, "t_sz")/dens
+        bpar    = off_axis_projection(self.ds, ctr, L, w, nx, "beta_par")/dens
+        omega1  = off_axis_projection(self.ds, ctr, L, w, nx, "t_squared")/dens
         omega1  = omega1/(Te*Te) - 1.
         if self.high_order:
-            bperp2  = off_axis_projection(self.pf, ctr, L, w, nx, "beta_perp_squared")/dens
-            sigma1  = off_axis_projection(self.pf, ctr, L, w, nx, "t_beta_par")/dens
+            bperp2  = off_axis_projection(self.ds, ctr, L, w, nx, "beta_perp_squared")/dens
+            sigma1  = off_axis_projection(self.ds, ctr, L, w, nx, "t_beta_par")/dens
             sigma1  = sigma1/Te - bpar
-            kappa1  = off_axis_projection(self.pf, ctr, L, w, nx, "beta_par_squared")/dens
+            kappa1  = off_axis_projection(self.ds, ctr, L, w, nx, "beta_par_squared")/dens
             kappa1 -= bpar
         else:
             bperp2 = np.zeros((nx,nx))
@@ -241,7 +238,7 @@ class SZProjection(object):
                                 np.array(omega1), np.array(sigma1),
                                 np.array(kappa1), np.array(bperp2))
 
-        self.pf.field_info.pop(("gas","beta_par"))
+        self.ds.field_info.pop(("gas","beta_par"))
 
     def _compute_intensity(self, tau, Te, bpar, omega1, sigma1, kappa1, bperp2):
 
@@ -278,8 +275,8 @@ class SZProjection(object):
 
         for i, field in enumerate(self.freq_fields):
             self.data[field] = I0*self.xinit[i]**3*signal[i,:,:]
-        self.data["Tau"] = self.pf.arr(tau, "dimensionless")
-        self.data["TeSZ"] = self.pf.arr(Te, "keV")
+        self.data["Tau"] = self.ds.arr(tau, "dimensionless")
+        self.data["TeSZ"] = self.ds.arr(Te, "keV")
 
     @parallel_root_only
     def write_fits(self, filename, units="kpc", sky_center=None, sky_scale=None,
@@ -327,7 +324,7 @@ class SZProjection(object):
         fib = FITSImageBuffer(self.data, fields=self.data.keys(),
                               center=center, units=units,
                               scale=deltas)
-        fib.update_all_headers("Time", float(self.pf.current_time.in_units(time_units).value))
+        fib.update_all_headers("Time", float(self.ds.current_time.in_units(time_units).value))
         fib.writeto(filename, clobber=clobber)
         
     @parallel_root_only

@@ -170,29 +170,26 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
     To use the script below you must run it using MPI:
     mpirun -np 4 python run_rockstar.py --parallel
 
-    run_rockstar.py:
+    >>> from yt.mods import *
+    >>> from yt.analysis_modules.halo_finding.rockstar.api import \
+    ... RockstarHaloFinder
+    >>> from yt.data_objects.particle_filters import \
+    ... particle_filter
 
-    from yt.mods import *
+    >>> # create a particle filter to remove star particles
+    >>> @particle_filter("dark_matter", requires=["creation_time"])
+    ... def _dm_filter(pfilter, data):
+    ...     return data["creation_time"] <= 0.0
 
-    from yt.analysis_modules.halo_finding.rockstar.api import \
-        RockstarHaloFinder
-    from yt.data_objects.particle_filters import \
-        particle_filter
+    >>> def setup_pf(pf):
+    ...     pf.add_particle_filter("dark_matter")
 
-    # create a particle filter to remove star particles
-    @particle_filter("dark_matter", requires=["creation_time"])
-    def _dm_filter(pfilter, data):
-        return data["creation_time"] <= 0.0
+    >>> es = simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
+    >>> es.get_time_series(setup_function=setup_pf, redshift_data=False)
 
-    def setup_pf(pf):
-        pf.add_particle_filter("dark_matter")
-
-    es = simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
-    es.get_time_series(setup_function=setup_pf, redshift_data=False)
-
-    rh = RockstarHaloFinder(es, num_readers=1, num_writers=2,
-                            particle_type="dark_matter")
-    rh.run()
+    >>> rh = RockstarHaloFinder(es, num_readers=1, num_writers=2,
+    ...                         particle_type="dark_matter")
+    >>> rh.run()
 
     """
     def __init__(self, ts, num_readers = 1, num_writers = None,
