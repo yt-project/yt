@@ -116,8 +116,9 @@ class Clump(object):
             for sl, ff in sl_list:
                 unique_contours.update(np.unique(ff))
         for cid in sorted(unique_contours):
+            if cid == -1: continue
             new_clump = self.data.cut_region(
-                    ["obj['contours'] == %s" % cid],
+                    ["obj['contours'] == %s" % (cid)],
                     {'contour_slices': cids})
             if new_clump["ones"].size == 0:
                 # This is to skip possibly duplicate clumps.  Using "ones" here

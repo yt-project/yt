@@ -5,7 +5,9 @@ import numpy as np
 
 import yt
 from yt.analysis_modules.level_sets.api import (Clump, find_clumps,
-                                                get_lowest_clumps)
+                                                get_lowest_clumps,
+                                                write_clump_index,
+                                                write_clumps)
 
 fn = "IsolatedGalaxy/galaxy0030/galaxy0030"  # parameter file to load
 # this is the field we look for contours over -- we could do
@@ -46,12 +48,12 @@ find_clumps(master_clump, c_min, c_max, step)
 # master-clump.  Among different ways we can examine it, there's a convenience
 # function for outputting the full index to a file.
 f = open('%s_clump_index.txt' % ds, 'w')
-yt.amods.level_sets.write_clump_index(master_clump, 0, f)
+write_clump_index(master_clump, 0, f)
 f.close()
 
 # We can also output some handy information, as well.
 f = open('%s_clumps.txt' % ds, 'w')
-yt.amods.level_sets.write_clumps(master_clump, 0, f)
+write_clumps(master_clump, 0, f)
 f.close()
 
 # We can traverse the clump index to get a list of all of the 'leaf' clumps

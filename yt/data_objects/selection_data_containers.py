@@ -16,6 +16,7 @@ Data containers based on geometric selection
 
 import types
 import numpy as np
+from contextlib import contextmanager
 
 from yt.funcs import *
 from yt.utilities.lib.alt_ray_tracers import cylindrical_ray_trace
@@ -716,6 +717,14 @@ class YTCutRegionBase(YTSelectionContainer3D):
             if f.shape != ind.shape:
                 raise YTMixedCutRegion(self.conditionals, field)
             self.field_data[field] = self.base_object[field][ind]
+
+    @property
+    def blocks(self):
+        # We have to take a slightly different approach here.  Note that all
+        # that .blocks has to yield is a 3D array and a mask.
+        for b, m in self.base_object.blocks:
+            m[~self._cond_ind] = 0
+            yield b, m
 
     @property
     def _cond_ind(self):

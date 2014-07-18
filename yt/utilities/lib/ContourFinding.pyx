@@ -447,8 +447,6 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
         for j in range(nz):
             for offset_i in range(3):
                 oi = offset_i - 1
-                if i == 0 and oi == -1: continue
-                if i == nx - 1 and oi == 1: continue
                 for offset_j in range(3):
                     oj = offset_j - 1
                     get_spos(vc0, i + oi, -1, j + oj, 1, spos)
