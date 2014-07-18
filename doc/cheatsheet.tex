@@ -208,38 +208,38 @@ The first step in using yt is to reference a simulation snapshot.
 After that, simulation data is generally accessed in yt using {\it Data Containers} which are Python objects
 that define a region of simulation space from which data should be selected.
 \settowidth{\MyLen}{\texttt{multicol} }
-\texttt{pf = load(}{\it dataset}\texttt{)} \textemdash\   Reference a single snapshot.\\
-\texttt{dd = pf.h.all\_data()} \textemdash\ Select the entire volume.\\
+\texttt{ds = load(}{\it dataset}\texttt{)} \textemdash\   Reference a single snapshot.\\
+\texttt{dd = ds.all\_data()} \textemdash\ Select the entire volume.\\
 \texttt{a = dd[}{\it field\_name}\texttt{]} \textemdash\ Saves the contents of {\it field} into the
 numpy array \texttt{a}. Similarly for other data containers.\\
-\texttt{pf.h.field\_list} \textemdash\ A list of available fields in the snapshot. \\
-\texttt{pf.h.derived\_field\_list} \textemdash\ A list of available derived fields
+\texttt{ds.field\_list} \textemdash\ A list of available fields in the snapshot. \\
+\texttt{ds.derived\_field\_list} \textemdash\ A list of available derived fields
 in the snapshot. \\
-\texttt{val, loc = pf.h.find\_max("Density")} \textemdash\ Find the \texttt{val}ue of
+\texttt{val, loc = ds.find\_max("Density")} \textemdash\ Find the \texttt{val}ue of
 the maximum of the field \texttt{Density} and its \texttt{loc}ation. \\
-\texttt{sp = pf.sphere(}{\it cen}\texttt{,}{\it radius}\texttt{)} \textemdash\   Create a spherical data 
+\texttt{sp = ds.sphere(}{\it cen}\texttt{,}{\it radius}\texttt{)} \textemdash\   Create a spherical data 
 container. {\it cen} may be a coordinate, or ``max'' which 
 centers on the max density point. {\it radius} may be a float in 
 code units or a tuple of ({\it length, unit}).\\
 
-\texttt{re = pf.region({\it cen}, {\it left edge}, {\it right edge})} \textemdash\ Create a
+\texttt{re = ds.region({\it cen}, {\it left edge}, {\it right edge})} \textemdash\ Create a
 rectilinear data container. {\it cen} is required but not used.
 {\it left} and {\it right edge} are coordinate values that define the region.
 
-\texttt{di = pf.disk({\it cen}, {\it normal}, {\it radius}, {\it height})} \textemdash\ 
+\texttt{di = ds.disk({\it cen}, {\it normal}, {\it radius}, {\it height})} \textemdash\ 
 Create a cylindrical data container centered at {\it cen} along the 
 direction set by {\it normal},with total length
  2$\times${\it height} and with radius {\it radius}. \\
  
- \texttt{bl = pf.boolean({\it constructor})} \textemdash\ Create a boolean data
+ \texttt{bl = ds.boolean({\it constructor})} \textemdash\ Create a boolean data
  container. {\it constructor} is a list of pre-defined non-boolean 
  data containers with nested boolean logic using the
  ``AND'', ``NOT'', or ``OR'' operators. E.g. {\it constructor=}
  {\it [sp, ``NOT'', (di, ``OR'', re)]} gives a volume defined
  by {\it sp} minus the patches covered by {\it di} and {\it re}.\\
  
-\texttt{pf.h.save\_object(sp, {\it ``sp\_for\_later''})} \textemdash\ Save an object (\texttt{sp}) for later use.\\
-\texttt{sp = pf.h.load\_object({\it ``sp\_for\_later''})} \textemdash\ Recover a saved object.\\
+\texttt{ds.save\_object(sp, {\it ``sp\_for\_later''})} \textemdash\ Save an object (\texttt{sp}) for later use.\\
+\texttt{sp = ds.load\_object({\it ``sp\_for\_later''})} \textemdash\ Recover a saved object.\\
 
 
 \subsection{Defining New Fields \& Quantities}
@@ -261,15 +261,15 @@ Define a new quantity; note the first function operates on grids and data object
 
 \subsection{Slices and Projections}
 \settowidth{\MyLen}{\texttt{multicol} }
-\texttt{slc = SlicePlot(pf, {\it axis}, {\it field}, {\it center=}, {\it width=}, {\it weight\_field=}, {\it additional parameters})} \textemdash\ Make a slice plot
+\texttt{slc = SlicePlot(ds, {\it axis}, {\it field}, {\it center=}, {\it width=}, {\it weight\_field=}, {\it additional parameters})} \textemdash\ Make a slice plot
 perpendicular to {\it axis} of {\it field} weighted by {\it weight\_field} at (code-units) {\it center} with 
 {\it width} in code units or a (value, unit) tuple. Hint: try {\it SlicePlot?} in IPython to see additional parameters.\\
 \texttt{slc.save({\it file\_prefix})} \textemdash\ Save the slice to a png with name prefix {\it file\_prefix}.
 \texttt{.save()} works similarly for the commands below.\\
 
-\texttt{prj = ProjectionPlot(pf, {\it axis}, {\it field}, {\it addit. params})} \textemdash\ Make a projection. \\
-\texttt{prj = OffAxisSlicePlot(pf, {\it normal}, {\it fields}, {\it center=}, {\it width=}, {\it depth=},{\it north\_vector=},{\it weight\_field=})} \textemdash Make an off-axis slice. Note this takes an array of fields. \\
-\texttt{prj = OffAxisProjectionPlot(pf, {\it normal}, {\it fields}, {\it center=}, {\it width=}, {\it depth=},{\it north\_vector=},{\it weight\_field=})} \textemdash Make an off axis projection. Note this takes an array of fields. \\
+\texttt{prj = ProjectionPlot(ds, {\it axis}, {\it field}, {\it addit. params})} \textemdash\ Make a projection. \\
+\texttt{prj = OffAxisSlicePlot(ds, {\it normal}, {\it fields}, {\it center=}, {\it width=}, {\it depth=},{\it north\_vector=},{\it weight\_field=})} \textemdash Make an off-axis slice. Note this takes an array of fields. \\
+\texttt{prj = OffAxisProjectionPlot(ds, {\it normal}, {\it fields}, {\it center=}, {\it width=}, {\it depth=},{\it north\_vector=},{\it weight\_field=})} \textemdash Make an off axis projection. Note this takes an array of fields. \\
 
 \subsection{Plot Annotations}
 \settowidth{\MyLen}{\texttt{multicol} }
@@ -365,8 +365,8 @@ moved to {\it file.orig}. \\
 \subsection{FAQ}
 \settowidth{\MyLen}{\texttt{multicol}}
 
-\texttt{pf.field\_info[`field'].take\_log = False} \textemdash\ When plotting \texttt{field}, do not take log.
-Must enter \texttt{pf.h} before this command. \\
+\texttt{ds.field\_info[`field'].take\_log = False} \textemdash\ When plotting \texttt{field}, do not take log.
+Must enter \texttt{ds.index} before this command. \\
 
 
 %\rule{0.3\linewidth}{0.25pt}

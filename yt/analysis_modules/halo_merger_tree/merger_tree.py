@@ -233,9 +233,9 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
     def _run_halo_finder_add_to_db(self):
         for cycle, file in enumerate(self.restart_files):
             gc.collect()
-            pf = load(file)
-            self.zs[file] = pf.current_redshift
-            self.period = pf.domain_right_edge - pf.domain_left_edge
+            ds = load(file)
+            self.zs[file] = ds.current_redshift
+            self.period = ds.domain_right_edge - ds.domain_left_edge
             # If the halos are already found, skip this data step, unless
             # refresh is True.
             dir = os.path.dirname(file)
@@ -247,10 +247,10 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
             else:
                 # Run the halo finder.
                 if self.halo_finder_function == FOFHaloFinder:
-                    halos = self.halo_finder_function(pf,
+                    halos = self.halo_finder_function(ds,
                         link=self.FOF_link_length, dm_only=self.dm_only)
                 else:
-                    halos = self.halo_finder_function(pf,
+                    halos = self.halo_finder_function(ds,
                         threshold=self.halo_finder_threshold, dm_only=self.dm_only)
                 halos.write_out(os.path.join(dir, 'MergerHalos.out'))
                 halos.write_particle_lists(os.path.join(dir, 'MergerHalos'))
@@ -264,7 +264,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
             # checking the first halo.
             continue_check = False
             if self.comm.rank == 0:
-                currt = pf.unique_identifier
+                currt = ds.unique_identifier
                 line = "SELECT GlobalHaloID from Halos where SnapHaloID=0\
                 and SnapCurrentTimeIdentifier=%d;" % currt
                 self.cursor.execute(line)
@@ -274,7 +274,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
             continue_check = self.comm.mpi_bcast(continue_check)
             if continue_check:
                 continue
-            red = pf.current_redshift
+            red = ds.current_redshift
             # Read the halos off the disk using the Halo Profiler tools.
             hp = HaloProfiler(file, halo_list_file='MergerHalos.out',
                               halo_list_format={'id':0, 'mass':1, 'numpart':2, 'center':[7, 8, 9], 'velocity':[10, 11, 12], 'r_max':13})
@@ -290,7 +290,7 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
                     values = (None, currt, red, ID, halo['mass'], numpart,
                     halo['center'][0], halo['center'][1], halo['center'][2],
                     halo['velocity'][0], halo['velocity'][1], halo['velocity'][2],
-                    halo['r_max'] / pf['mpc'],
+                    halo['r_max'] / ds['mpc'],
                     -1,0.,-1,0.,-1,0.,-1,0.,-1,0.)
                     # 23 question marks for 23 data columns.
                     line = ''
@@ -322,15 +322,15 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         # list of children.
 
         # First, read in the locations of the child halos.
-        child_pf = load(childfile)
-        child_t = child_pf.unique_identifier
+        child_ds = load(childfile)
+        child_t = child_ds.unique_identifier
         if self.comm.rank == 0:
             line = "SELECT SnapHaloID, CenMassX, CenMassY, CenMassZ FROM \
             Halos WHERE SnapCurrentTimeIdentifier = %d" % child_t
             self.cursor.execute(line)
             
             mylog.info("Finding likely parents for z=%1.5f child halos." % \
-                child_pf.current_redshift)
+                child_ds.current_redshift)
             
             # Build the kdtree for the children by looping over the fetched rows.
             # Normalize the points for use only within the kdtree.
@@ -343,8 +343,8 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
             kdtree = cKDTree(child_points, leafsize = 10)
     
         # Find the parent points from the database.
-        parent_pf = load(parentfile)
-        parent_t = parent_pf.unique_identifier
+        parent_ds = load(parentfile)
+        parent_t = parent_ds.unique_identifier
         if self.comm.rank == 0:
             line = "SELECT SnapHaloID, CenMassX, CenMassY, CenMassZ FROM \
             Halos WHERE SnapCurrentTimeIdentifier = %d" % parent_t
@@ -399,8 +399,8 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
             self.h5files = defaultdict(dict)
         if not hasattr(self, 'names'):
             self.names = defaultdict(set)
-        file_pf = load(filename)
-        currt = file_pf.unique_identifier
+        file_ds = load(filename)
+        currt = file_ds.unique_identifier
         dir = os.path.dirname(filename)
         h5txt = os.path.join(dir, 'MergerHalos.txt')
         lines = file(h5txt)
@@ -417,13 +417,13 @@ class MergerTree(DatabaseFunctions, ParallelAnalysisInterface):
         # Given a parent and child snapshot, and a list of child candidates,
         # compute what fraction of the parent halo goes to each of the children.
         
-        parent_pf = load(parentfile)
-        child_pf = load(childfile)
-        parent_currt = parent_pf.unique_identifier
-        child_currt = child_pf.unique_identifier
+        parent_ds = load(parentfile)
+        child_ds = load(childfile)
+        parent_currt = parent_ds.unique_identifier
+        child_currt = child_ds.unique_identifier
         
         mylog.info("Computing fractional contribututions of particles to z=%1.5f halos." % \
-            child_pf.current_redshift)
+            child_ds.current_redshift)
         
         if last == None:
             # First we're going to read in the particles, haloIDs and masses from
@@ -1039,9 +1039,9 @@ class MergerTreeDotOutput(DatabaseFunctions, ParallelAnalysisInterface):
             while result:
                 res = list(result)
                 pID = result[0]
-                pfracs = res[1:6]
+                dsracs = res[1:6]
                 cIDs = res[6:11]
-                for pair in zip(cIDs, pfracs):
+                for pair in zip(cIDs, dsracs):
                     if pair[1] <= self.link_min or pair[0] != halo:
                         continue
                     else:

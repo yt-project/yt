@@ -126,7 +126,7 @@ def yt_fieldname_completer(self, event):
     if isinstance(obj, (YTDataContainer, ) ):
         #print "COMPLETING ON THIS THING"
         all_fields = [f for f in sorted(
-                obj.pf.field_list + obj.pf.derived_field_list)]
+                obj.ds.field_list + obj.ds.derived_field_list)]
         #matches = self.Completer.python_matches(text)
         #print "RETURNING ", all_fields
         return all_fields

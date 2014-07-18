@@ -7,7 +7,7 @@ class TestParticleUniqueIDs(YTDatasetTest):
 
     def run(self):
         # Test to make sure that all the particles have unique IDs.
-        all = self.pf.h.all_data()
+        all = self.ds.all_data()
         IDs = all["particle_index"]
         # Make sure the order is the same every time.
         IDs = IDs[IDs.argsort()]
@@ -31,7 +31,7 @@ class TestParticleExtrema(YTDatasetTest):
     def run(self):
         # Tests to make sure there are no particle positions aren't changing
         # drastically. This is very unlikely to be a problem.
-        all = self.pf.h.all_data()
+        all = self.ds.all_data()
         min = np.empty(3,dtype='float64')
         max = min.copy()
         dims = ["particle_position_x","particle_position_y",
@@ -48,8 +48,8 @@ class TestParticleExtrema(YTDatasetTest):
         self.compare_array_delta(min, old_min, 1e-7)
         self.compare_array_delta(max, old_max, 1e-7)
         # Also, the min/max shouldn't be outside the boundaries.
-        if (min < self.pf.domain_left_edge).any(): return False
-        if (max > self.pf.domain_right_edge).any(): return False
+        if (min < self.ds.domain_left_edge).any(): return False
+        if (max > self.ds.domain_right_edge).any(): return False
         return True
     
     def plot(self):

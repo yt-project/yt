@@ -61,7 +61,7 @@ class IOHandlerOWLS(BaseIOHandler):
     def var_mass(self):
         if self._var_mass is None:
             vm = []
-            for i, v in enumerate(self.pf["Massarr"]):
+            for i, v in enumerate(self.ds["Massarr"]):
                 if v == 0:
                     vm.append(self._known_ptypes[i])
             self._var_mass = tuple(vm)
@@ -108,7 +108,7 @@ class IOHandlerOWLS(BaseIOHandler):
                         ptype not in self.var_mass:
                         data = np.empty(mask.sum(), dtype="float64")
                         ind = self._known_ptypes.index(ptype) 
-                        data[:] = self.pf["Massarr"][ind]
+                        data[:] = self.ds["Massarr"][ind]
 
                     elif field in self._element_names:
                         rfield = 'ElementAbundance/' + field
@@ -135,12 +135,12 @@ class IOHandlerOWLS(BaseIOHandler):
             pos = np.empty(ds.shape, dtype=dt)
             pos[:] = ds
             regions.add_data_file(pos, data_file.file_id,
-                                  data_file.pf.filter_bbox)
+                                  data_file.ds.filter_bbox)
             morton[ind:ind+pos.shape[0]] = compute_morton(
                 pos[:,0], pos[:,1], pos[:,2],
-                data_file.pf.domain_left_edge,
-                data_file.pf.domain_right_edge,
-                data_file.pf.filter_bbox)
+                data_file.ds.domain_left_edge,
+                data_file.ds.domain_right_edge,
+                data_file.ds.filter_bbox)
             ind += pos.shape[0]
         f.close()
         return morton
@@ -156,8 +156,8 @@ class IOHandlerOWLS(BaseIOHandler):
     def _identify_fields(self, data_file):
         f = _get_h5_handle(data_file.filename)
         fields = []
-        cname = self.pf._particle_coordinates_name  # Coordinates
-        mname = self.pf._particle_mass_name  # Mass
+        cname = self.ds._particle_coordinates_name  # Coordinates
+        mname = self.ds._particle_mass_name  # Mass
 
         # loop over all keys in OWLS hdf5 file
         #--------------------------------------------------
@@ -228,16 +228,16 @@ class IOHandlerGadgetBinary(BaseIOHandler):
 
     _var_mass = None
 
-    def __init__(self, pf, *args, **kwargs):
-        self._fields = pf._field_spec
-        self._ptypes = pf._ptype_spec
-        super(IOHandlerGadgetBinary, self).__init__(pf, *args, **kwargs)
+    def __init__(self, ds, *args, **kwargs):
+        self._fields = ds._field_spec
+        self._ptypes = ds._ptype_spec
+        super(IOHandlerGadgetBinary, self).__init__(ds, *args, **kwargs)
 
     @property
     def var_mass(self):
         if self._var_mass is None:
             vm = []
-            for i, v in enumerate(self.pf["Massarr"]):
+            for i, v in enumerate(self.ds["Massarr"]):
                 if v == 0:
                     vm.append(self._ptypes[i])
             self._var_mass = tuple(vm)
@@ -283,7 +283,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
                 for field in field_list:
                     if field == "Mass" and ptype not in self.var_mass:
                         data = np.empty(mask.sum(), dtype="float64")
-                        m = self.pf.parameters["Massarr"][
+                        m = self.ds.parameters["Massarr"][
                             self._ptypes.index(ptype)]
                         data[:] = m
                         yield (ptype, field), data
@@ -309,8 +309,8 @@ class IOHandlerGadgetBinary(BaseIOHandler):
 
     def _initialize_index(self, data_file, regions):
         count = sum(data_file.total_particles.values())
-        DLE = data_file.pf.domain_left_edge
-        DRE = data_file.pf.domain_right_edge
+        DLE = data_file.ds.domain_left_edge
+        DRE = data_file.ds.domain_right_edge
         dx = (DRE - DLE) / 2**_ORDER_MAX
         with open(data_file.filename, "rb") as f:
             # We add on an additionally 4 for the first record.
@@ -318,9 +318,9 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             # The first total_particles * 3 values are positions
             pp = np.fromfile(f, dtype = 'float32', count = count*3)
             pp.shape = (count, 3)
-        regions.add_data_file(pp, data_file.file_id, data_file.pf.filter_bbox)
+        regions.add_data_file(pp, data_file.file_id, data_file.ds.filter_bbox)
         morton = compute_morton(pp[:,0], pp[:,1], pp[:,2], DLE, DRE,
-                                data_file.pf.filter_bbox)
+                                data_file.ds.filter_bbox)
         return morton
 
     def _count_particles(self, data_file):
@@ -438,7 +438,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 raise RuntimeError 
         except ValueError:#binary/xdr
             f = open(filename, 'rb')
-            l = struct.unpack(data_file.pf.endian+"i", f.read(4))[0]
+            l = struct.unpack(data_file.ds.endian+"i", f.read(4))[0]
             if l != np.sum(data_file.total_particles.values()):
                 print "Error reading auxiliary tipsy file"
                 raise RuntimeError
@@ -446,12 +446,12 @@ class IOHandlerTipsyBinary(BaseIOHandler):
             if field in ('iord', 'igasorder', 'grp'):#These fields are integers
                 dtype = 'i'
             try:# If we try loading doubles by default, we can catch an exception and try floats next
-                auxdata = np.array(struct.unpack(data_file.pf.endian+(l*dtype), f.read()))
+                auxdata = np.array(struct.unpack(data_file.ds.endian+(l*dtype), f.read()))
             except struct.error:
                 f.seek(4)
                 dtype = 'f'
                 try:
-                    auxdata = np.array(struct.unpack(data_file.pf.endian+(l*dtype), f.read()))
+                    auxdata = np.array(struct.unpack(data_file.ds.endian+(l*dtype), f.read()))
                 except struct.error: # None of the binary attempts to read succeeded
                     print "Error reading auxiliary tipsy file"
                     raise RuntimeError
@@ -546,16 +546,16 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         bound the particles.  It simply finds the largest position of the
         whole set of particles, and sets the domain to +/- that value.
         '''
-        pf = data_file.pf
+        ds = data_file.ds
         ind = 0
         # Check to make sure that the domain hasn't already been set
         # by the parameter file 
-        if np.all(np.isfinite(pf.domain_left_edge)) and np.all(np.isfinite(pf.domain_right_edge)):
+        if np.all(np.isfinite(ds.domain_left_edge)) and np.all(np.isfinite(ds.domain_right_edge)):
             return
         with open(data_file.filename, "rb") as f:
-            pf.domain_left_edge = 0
-            pf.domain_right_edge = 0
-            f.seek(pf._header_offset)
+            ds.domain_left_edge = 0
+            ds.domain_right_edge = 0
+            f.seek(ds._header_offset)
             mi =   np.array([1e30, 1e30, 1e30], dtype="float64")
             ma =  -np.array([1e30, 1e30, 1e30], dtype="float64")
             for iptype, ptype in enumerate(self._ptypes):
@@ -579,23 +579,23 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         DW = ma - mi
         mi -= 0.01 * DW
         ma += 0.01 * DW
-        pf.domain_left_edge = pf.arr(mi, 'code_length')
-        pf.domain_right_edge = pf.arr(ma, 'code_length')
-        pf.domain_width = DW = pf.domain_right_edge - pf.domain_left_edge
-        pf.unit_registry.add("unitary", float(DW.max() * DW.units.cgs_value),
+        ds.domain_left_edge = ds.arr(mi, 'code_length')
+        ds.domain_right_edge = ds.arr(ma, 'code_length')
+        ds.domain_width = DW = ds.domain_right_edge - ds.domain_left_edge
+        ds.unit_registry.add("unitary", float(DW.max() * DW.units.cgs_value),
                                  DW.units.dimensions)
 
     def _initialize_index(self, data_file, regions):
-        pf = data_file.pf
+        ds = data_file.ds
         morton = np.empty(sum(data_file.total_particles.values()),
                           dtype="uint64")
         ind = 0
-        DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
+        DLE, DRE = ds.domain_left_edge, ds.domain_right_edge
         dx = (DRE - DLE) / (2**_ORDER_MAX)
         self.domain_left_edge = DLE.in_units("code_length").ndarray_view()
         self.domain_right_edge = DRE.in_units("code_length").ndarray_view()
         with open(data_file.filename, "rb") as f:
-            f.seek(pf._header_offset)
+            f.seek(ds._header_offset)
             for iptype, ptype in enumerate(self._ptypes):
                 # We'll just add the individual types separately
                 count = data_file.total_particles[ptype]
@@ -618,19 +618,19 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                         eps = np.finfo(pp["Coordinates"][ax].dtype).eps
                         pos[:,i] = pp["Coordinates"][ax]
                     regions.add_data_file(pos, data_file.file_id,
-                                          data_file.pf.filter_bbox)
+                                          data_file.ds.filter_bbox)
                     morton[ind:ind+c] = compute_morton(
                         pos[:,0], pos[:,1], pos[:,2],
-                        DLE, DRE, data_file.pf.filter_bbox)
+                        DLE, DRE, data_file.ds.filter_bbox)
                     ind += c
         mylog.info("Adding %0.3e particles", morton.size)
         return morton
 
     def _count_particles(self, data_file):
         npart = {
-            "Gas": data_file.pf.parameters['nsph'],
-            "Stars": data_file.pf.parameters['nstar'],
-            "DarkMatter": data_file.pf.parameters['ndark']
+            "Gas": data_file.ds.parameters['nsph'],
+            "Stars": data_file.ds.parameters['nstar'],
+            "DarkMatter": data_file.ds.parameters['ndark']
         }
         return npart
 
@@ -652,15 +652,15 @@ class IOHandlerTipsyBinary(BaseIOHandler):
 
     def _create_dtypes(self, data_file):
         # We can just look at the particle counts.
-        self._header_offset = data_file.pf._header_offset
+        self._header_offset = data_file.ds._header_offset
         self._pdtypes = {}
         pds = {}
         field_list = []
         tp = data_file.total_particles
         aux_filenames = glob.glob(data_file.filename+'.*') # Find out which auxiliaries we have
         self._aux_fields = [f[1+len(data_file.filename):] for f in aux_filenames]
-        self._pdtypes = self._compute_dtypes(data_file.pf._field_dtypes,
-                                             data_file.pf.endian)
+        self._pdtypes = self._compute_dtypes(data_file.ds._field_dtypes,
+                                             data_file.ds.endian)
         for ptype, field in self._fields:
             if tp[ptype] == 0:
                 # We do not want out _pdtypes to have empty particles.
@@ -681,7 +681,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
 
     def _calculate_particle_offsets(self, data_file):
         field_offsets = {}
-        pos = data_file.pf._header_offset
+        pos = data_file.ds._header_offset
         for ptype in self._ptypes:
             field_offsets[ptype] = pos
             if data_file.total_particles[ptype] == 0: continue
@@ -693,13 +693,13 @@ class IOHandlerHTTPStream(BaseIOHandler):
     _dataset_type = "http_particle_stream"
     _vector_fields = ("Coordinates", "Velocity", "Velocities")
     
-    def __init__(self, pf):
+    def __init__(self, ds):
         if requests is None:
             raise RuntimeError
-        self._url = pf.base_url 
+        self._url = ds.base_url 
         # This should eventually manage the IO and cache it
         self.total_bytes = 0
-        super(IOHandlerHTTPStream, self).__init__(pf)
+        super(IOHandlerHTTPStream, self).__init__(ds)
 
     def _open_stream(self, data_file, field):
         # This does not actually stream yet!
@@ -715,7 +715,7 @@ class IOHandlerHTTPStream(BaseIOHandler):
 
     def _identify_fields(self, data_file):
         f = []
-        for ftype, fname in self.pf.parameters["field_list"]:
+        for ftype, fname in self.ds.parameters["field_list"]:
             f.append((str(ftype), str(fname)))
         return f, {}
 
@@ -756,7 +756,7 @@ class IOHandlerHTTPStream(BaseIOHandler):
                     yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):
-        header = self.pf.parameters
+        header = self.ds.parameters
         ptypes = header["particle_count"][data_file.file_id].keys()
         pcount = sum(header["particle_count"][data_file.file_id].values())
         morton = np.empty(pcount, dtype='uint64')
@@ -766,14 +766,14 @@ class IOHandlerHTTPStream(BaseIOHandler):
             c = np.frombuffer(s, dtype="float64")
             c.shape = (c.shape[0]/3.0, 3)
             regions.add_data_file(c, data_file.file_id,
-                                  data_file.pf.filter_bbox)
+                                  data_file.ds.filter_bbox)
             morton[ind:ind+c.shape[0]] = compute_morton(
                 c[:,0], c[:,1], c[:,2],
-                data_file.pf.domain_left_edge,
-                data_file.pf.domain_right_edge,
-                data_file.pf.filter_bbox)
+                data_file.ds.domain_left_edge,
+                data_file.ds.domain_right_edge,
+                data_file.ds.filter_bbox)
             ind += c.shape[0]
         return morton
 
     def _count_particles(self, data_file):
-        return self.pf.parameters["particle_count"][data_file.file_id]
+        return self.ds.parameters["particle_count"][data_file.file_id]

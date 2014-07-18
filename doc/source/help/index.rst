@@ -107,7 +107,7 @@ want to look at the source to figure out what is going on.
    data_objects/analyzer_objects.py:class SlicePlotDataset(AnalysisTask):
    data_objects/analyzer_objects.py:        from yt.visualization.api import SlicePlot
    data_objects/analyzer_objects.py:        self.SlicePlot = SlicePlot
-   data_objects/analyzer_objects.py:        slc = self.SlicePlot(pf, self.axis, self.field, center = self.center)
+   data_objects/analyzer_objects.py:        slc = self.SlicePlot(ds, self.axis, self.field, center = self.center)
    ...
 
 You can now followup on this and open up the files that have references to 

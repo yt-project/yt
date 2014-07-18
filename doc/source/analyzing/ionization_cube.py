@@ -13,9 +13,9 @@ ts = DatasetSeries.from_filenames("SED800/DD*/*.index", parallel = 8)
 ionized_z = np.zeros(ts[0].domain_dimensions, dtype="float32")
 
 t1 = time.time()
-for pf in ts.piter():
-    z = pf.current_redshift
-    for g in parallel_objects(pf.index.grids, njobs = 16):
+for ds in ts.piter():
+    z = ds.current_redshift
+    for g in parallel_objects(ds.index.grids, njobs = 16):
         i1, j1, k1 = g.get_global_startindex() # Index into our domain
         i2, j2, k2 = g.get_global_startindex() + g.ActiveDimensions
         # Look for the newly ionized gas

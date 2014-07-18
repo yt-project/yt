@@ -48,9 +48,9 @@ class MinimalRepresentation(object):
     def _update_attrs(self, obj, attr_list):
         for attr in attr_list:
             setattr(self, attr, getattr(obj, attr, None))
-        if hasattr(obj, "pf"):
-            self.output_hash = obj.pf._hash()
-            self._pf_mrep = obj.pf._mrep
+        if hasattr(obj, "ds"):
+            self.output_hash = obj.ds._hash()
+            self._ds_mrep = obj.ds._mrep
 
     def __init__(self, obj):
         self._update_attrs(obj, self._attr_list)
@@ -87,8 +87,8 @@ class MinimalRepresentation(object):
         url = ytcfg.get("yt","hub_url")
         if api_key == '': raise YTHubRegisterError
         metadata, (final_name, chunks) = self._generate_post()
-        if hasattr(self, "_pf_mrep"):
-            self._pf_mrep.upload()
+        if hasattr(self, "_ds_mrep"):
+            self._ds_mrep.upload()
         for i in metadata:
             if isinstance(metadata[i], np.ndarray):
                 metadata[i] = metadata[i].tolist()
@@ -230,8 +230,8 @@ class MinimalNotebook(MinimalRepresentation):
         return (metadata, ("chunks", chunks))
 
 class ImageCollection(object):
-    def __init__(self, pf, name):
-        self.pf = pf
+    def __init__(self, ds, name):
+        self.ds = ds
         self.name = name
         self.images = []
         self.image_metadata = []

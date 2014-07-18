@@ -285,7 +285,7 @@ def _DistanceToMainClump(master,units='pc'):
     master.pass_down(pass_command)
     master.pass_down("self.com = self.data.quantities['CenterOfMass']()")
 
-    quantity = "((self.com[0]-self.masterCOM[0])**2 + (self.com[1]-self.masterCOM[1])**2 + (self.com[2]-self.masterCOM[2])**2)**(0.5)*self.data.pf.units['%s']" % units
+    quantity = "((self.com[0]-self.masterCOM[0])**2 + (self.com[1]-self.masterCOM[1])**2 + (self.com[2]-self.masterCOM[2])**2)**(0.5)*self.data.ds.units['%s']" % units
     format = "%s%s%s" % ("'Distance from center: %.6e ",units,"' % value")
 
     master.add_info_item(quantity,format)

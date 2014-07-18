@@ -53,7 +53,7 @@ prec_accum = {
     np.dtype('complex128'): np.complex128,
 }
 
-def periodic_position(pos, pf):
+def periodic_position(pos, ds):
     r"""Assuming periodicity, find the periodic position within the domain.
 
     Parameters
@@ -61,21 +61,21 @@ def periodic_position(pos, pf):
     pos : array
         An array of floats.
 
-    pf : Dataset
+    ds : Dataset
         A simulation static output.
     
     Examples
     --------
     >>> a = np.array([1.1, 0.5, 0.5])
     >>> data = {'Density':np.ones([32,32,32])}
-    >>> pf = load_uniform_grid(data, [32,32,32], 1.0)
-    >>> ppos = periodic_position(a, pf)
+    >>> ds = load_uniform_grid(data, [32,32,32], 1.0)
+    >>> ppos = periodic_position(a, ds)
     >>> ppos
     array([ 0.1,  0.5,  0.5])
     """
  
-    off = (pos - pf.domain_left_edge) % pf.domain_width
-    return pf.domain_left_edge + off
+    off = (pos - ds.domain_left_edge) % ds.domain_width
+    return ds.domain_left_edge + off
 
 def periodic_dist(a, b, period, periodicity=(True, True, True)):
     r"""Find the Euclidean periodic distance between two sets of points.

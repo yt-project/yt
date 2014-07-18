@@ -17,15 +17,15 @@ type of code that each field is supported by.  "Universal" fields are available
 everywhere, "Enzo" fields in Enzo datasets, "Orion" fields in Orion datasets,
 and so on.
 
-Try using the ``pf.field_list`` and ``pf.derived_field_list`` to view the
+Try using the ``ds.field_list`` and ``ds.derived_field_list`` to view the
 native and derived fields available for your dataset respectively. For example
 to display the native fields in alphabetical order:
 
 .. notebook-cell::
 
   from yt.mods import *
-  pf = load("Enzo_64/DD0043/data0043")
-  for i in sorted(pf.field_list):
+  ds = load("Enzo_64/DD0043/data0043")
+  for i in sorted(ds.field_list):
     print i
 
 .. note:: Universal fields will be overridden by a code-specific field.

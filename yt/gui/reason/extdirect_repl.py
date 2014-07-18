@@ -189,7 +189,7 @@ import pylab
 from yt.mods import *
 from yt.gui.reason.utils import load_script, deliver_image
 from yt.gui.reason.widget_store import WidgetStore
-from yt.data_objects.static_output import _cached_pfs
+from yt.data_objects.static_output import _cached_datasets
 
 pylab.ion()
 data_objects = []
@@ -420,7 +420,7 @@ class ExtDirectREPL(ProgrammaticREPL, BottleDirectRouter):
     @lockit
     def load(self, base_dir, filename):
         pp = os.path.join(base_dir, filename)
-        funccall = "pfs.append(load('%s'))" % pp
+        funccall = "datasets.append(load('%s'))" % pp
         self.execute(funccall)
         return []
 

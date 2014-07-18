@@ -40,7 +40,7 @@ def _get_convert(fname):
 class AthenaGrid(AMRGridPatch):
     _id_offset = 0
     def __init__(self, id, index, level, start, dimensions):
-        df = index.parameter_file.filename[4:-4]
+        df = index.dataset.filename[4:-4]
         gname = index.grid_filenames[id]
         AMRGridPatch.__init__(self, id, filename = gname,
                               index = index)
@@ -57,13 +57,13 @@ class AthenaGrid(AMRGridPatch):
         # that dx=dy=dz , at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
         if len(self.Parent) > 0:
-            self.dds = self.Parent[0].dds / self.pf.refine_by
+            self.dds = self.Parent[0].dds / self.ds.refine_by
         else:
             LE, RE = self.index.grid_left_edge[id,:], \
                      self.index.grid_right_edge[id,:]
-            self.dds = self.pf.arr((RE-LE)/self.ActiveDimensions, "code_length")
-        if self.pf.dimensionality < 2: self.dds[1] = 1.0
-        if self.pf.dimensionality < 3: self.dds[2] = 1.0
+            self.dds = self.ds.arr((RE-LE)/self.ActiveDimensions, "code_length")
+        if self.ds.dimensionality < 2: self.dds[1] = 1.0
+        if self.ds.dimensionality < 3: self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     def __repr__(self):
@@ -102,15 +102,15 @@ class AthenaHierarchy(GridIndex):
     _dataset_type='athena'
     _data_file = None
     
-    def __init__(self, pf, dataset_type='athena'):
-        self.parameter_file = weakref.proxy(pf)
-        self.directory = os.path.dirname(self.parameter_file.filename)
+    def __init__(self, ds, dataset_type='athena'):
+        self.dataset = weakref.proxy(ds)
+        self.directory = os.path.dirname(self.dataset.filename)
         self.dataset_type = dataset_type
-        # for now, the index file is the parameter file!
-        self.index_filename = self.parameter_file.filename
+        # for now, the index file is the dataset!
+        self.index_filename = self.dataset.filename
         #self.directory = os.path.dirname(self.index_filename)
         self._fhandle = file(self.index_filename,'rb')
-        GridIndex.__init__(self, pf, dataset_type)
+        GridIndex.__init__(self, ds, dataset_type)
 
         self._fhandle.close()
 
@@ -172,7 +172,7 @@ class AthenaHierarchy(GridIndex):
         self._field_map = field_map
 
     def _count_grids(self):
-        self.num_grids = self.parameter_file.nvtk
+        self.num_grids = self.dataset.nvtk
 
     def _parse_index(self):
         f = open(self.index_filename,'rb')
@@ -271,48 +271,48 @@ class AthenaHierarchy(GridIndex):
         # Now we convert the glis, which were left edges (floats), to indices 
         # from the domain left edge.  Then we do a bunch of fixing now that we
         # know the extent of all the grids. 
-        glis = np.round((glis - self.parameter_file.domain_left_edge.ndarray_view())/gdds).astype('int')
+        glis = np.round((glis - self.dataset.domain_left_edge.ndarray_view())/gdds).astype('int')
         new_dre = np.max(gres,axis=0)
-        self.parameter_file.domain_right_edge[:] = np.round(new_dre, decimals=12)[:]
-        self.parameter_file.domain_width = \
-                (self.parameter_file.domain_right_edge - 
-                 self.parameter_file.domain_left_edge)
-        self.parameter_file.domain_center = \
-                0.5*(self.parameter_file.domain_left_edge + 
-                     self.parameter_file.domain_right_edge)
-        self.parameter_file.domain_dimensions = \
-                np.round(self.parameter_file.domain_width/gdds[0]).astype('int')
+        self.dataset.domain_right_edge[:] = np.round(new_dre, decimals=12)[:]
+        self.dataset.domain_width = \
+                (self.dataset.domain_right_edge - 
+                 self.dataset.domain_left_edge)
+        self.dataset.domain_center = \
+                0.5*(self.dataset.domain_left_edge + 
+                     self.dataset.domain_right_edge)
+        self.dataset.domain_dimensions = \
+                np.round(self.dataset.domain_width/gdds[0]).astype('int')
 
-        # Need to reset the units in the parameter file based on the correct
+        # Need to reset the units in the dataset based on the correct
         # domain left/right/dimensions.
-        self.parameter_file._set_code_unit_attributes()
+        self.dataset._set_code_unit_attributes()
 
-        if self.parameter_file.dimensionality <= 2 :
-            self.parameter_file.domain_dimensions[2] = np.int(1)
-        if self.parameter_file.dimensionality == 1 :
-            self.parameter_file.domain_dimensions[1] = np.int(1)
+        if self.dataset.dimensionality <= 2 :
+            self.dataset.domain_dimensions[2] = np.int(1)
+        if self.dataset.dimensionality == 1 :
+            self.dataset.domain_dimensions[1] = np.int(1)
         for i in range(levels.shape[0]):
             self.grids[i] = self.grid(i,self,levels[i],
                                       glis[i],
                                       gdims[i])
-            dx = (self.parameter_file.domain_right_edge-
-                  self.parameter_file.domain_left_edge)/self.parameter_file.domain_dimensions
-            dx = dx/self.parameter_file.refine_by**(levels[i])
+            dx = (self.dataset.domain_right_edge-
+                  self.dataset.domain_left_edge)/self.dataset.domain_dimensions
+            dx = dx/self.dataset.refine_by**(levels[i])
             dxs.append(dx)
 
-        dx = self.pf.arr(dxs, "code_length")
-        dle = self.parameter_file.domain_left_edge
-        dre = self.parameter_file.domain_right_edge
-        self.grid_left_edge = self.pf.arr(np.round(dle + dx*glis, decimals=12), "code_length")
+        dx = self.ds.arr(dxs, "code_length")
+        dle = self.dataset.domain_left_edge
+        dre = self.dataset.domain_right_edge
+        self.grid_left_edge = self.ds.arr(np.round(dle + dx*glis, decimals=12), "code_length")
         self.grid_dimensions = gdims.astype("int32")
-        self.grid_right_edge = self.pf.arr(np.round(self.grid_left_edge +
+        self.grid_right_edge = self.ds.arr(np.round(self.grid_left_edge +
                                                     dx*self.grid_dimensions,
                                                     decimals=12),
                                             "code_length")
         
-        if self.parameter_file.dimensionality <= 2:
+        if self.dataset.dimensionality <= 2:
             self.grid_right_edge[:,2] = dre[2]
-        if self.parameter_file.dimensionality == 1:
+        if self.dataset.dimensionality == 1:
             self.grid_right_edge[:,1:] = dre[1:]
         self.grid_particle_count = np.zeros([self.num_grids, 1], dtype='int64')
 

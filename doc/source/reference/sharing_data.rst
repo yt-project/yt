@@ -78,8 +78,8 @@ of uploading a projection:
 .. code-block:: python
 
    from yt.mods import *
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   proj = pf.proj(0, "density", weight="density")
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   proj = ds.proj(0, "density", weight="density")
    proj.hub_upload()
 
 Here is an example of uploading a slice:
@@ -87,8 +87,8 @@ Here is an example of uploading a slice:
 .. code-block:: python
 
    from yt.mods import *
-   pf = load("JHK-DD0030/galaxy0030")
-   sl = pf.slice(0, 0.5, fields=["density"])
+   ds = load("JHK-DD0030/galaxy0030")
+   sl = ds.slice(0, 0.5, fields=["density"])
    sl.hub_upload()
 
 Uploading Notebooks

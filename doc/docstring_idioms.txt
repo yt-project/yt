@@ -19,7 +19,7 @@ However, because often examples require a bit of setup, here is a list of
 useful variable names that correspond to specific instances that the user is
 presupposed to have created.
 
-   * `pf`: a parameter file, loaded successfully
+   * `ds`: a dataset, loaded successfully
    * `sp`: a sphere
    * `c`: a 3-component "center"
    * `L`: a 3-component vector that corresponds to either angular momentum or a

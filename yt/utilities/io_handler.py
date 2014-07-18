@@ -38,9 +38,9 @@ class BaseIOHandler(object):
     _dataset_type = None
     _particle_reader = False
 
-    def __init__(self, pf):
+    def __init__(self, ds):
         self.queue = defaultdict(dict)
-        self.pf = pf
+        self.ds = ds
         self._last_selector_id = None
         self._last_selector_counts = None
 
@@ -82,8 +82,8 @@ class BaseIOHandler(object):
     def _read_data_set(self, grid, field):
         # check backup file first. if field not found,
         # call frontend-specific io method
-        backup_filename = grid.pf.backup_filename
-        if not grid.pf.read_from_backup:
+        backup_filename = grid.ds.backup_filename
+        if not grid.ds.read_from_backup:
             return self._read_data(grid, field)
         elif self._field_in_backup(grid, backup_filename, field):
             fhandle = h5py.File(backup_filename, 'r')
@@ -130,7 +130,7 @@ class BaseIOHandler(object):
         fsize = defaultdict(lambda: 0) # COUNT RV
         field_maps = defaultdict(list) # ptypes -> fields
         chunks = list(chunks)
-        unions = self.pf.particle_unions
+        unions = self.ds.particle_unions
         # What we need is a mapping from particle types to return types
         for field in fields:
             ftype, fname = field

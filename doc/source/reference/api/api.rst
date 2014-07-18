@@ -777,5 +777,5 @@ These are yt-provided functions:
 
    ~yt.testing.assert_rel_equal
    ~yt.testing.amrspace
-   ~yt.testing.fake_random_pf
+   ~yt.testing.fake_random_ds
    ~yt.testing.expand_keywords

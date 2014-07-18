@@ -40,7 +40,7 @@ class UnilinearFieldInterpolator:
         Examples
         --------
 
-        ad = pf.h.all_data()
+        ad = ds.all_data()
         table_data = np.random.random(64)
         interp = UnilinearFieldInterpolator(table_data, (0.0, 1.0), "x",
                                             truncate=True)
@@ -98,7 +98,7 @@ class BilinearFieldInterpolator:
         Examples
         --------
 
-        ad = pf.h.all_data()
+        ad = ds.all_data()
         table_data = np.random.random((64, 64))
         interp = BilinearFieldInterpolator(table_data, (0.0, 1.0, 0.0, 1.0), 
                                            ["x", "y"],
@@ -171,7 +171,7 @@ class TrilinearFieldInterpolator:
         Examples
         --------
 
-        ad = pf.h.all_data()
+        ad = ds.all_data()
         table_data = np.random.random((64, 64, 64))
         interp = BilinearFieldInterpolator(table_data, 
                                            (0.0, 1.0, 0.0, 1.0, 0.0, 1.0), 
@@ -235,7 +235,7 @@ class TrilinearFieldInterpolator:
         my_vals.shape = orig_shape
         return my_vals
 
-def get_centers(pf, filename, center_cols, radius_col, unit='1'):
+def get_centers(ds, filename, center_cols, radius_col, unit='1'):
     """
     Return an iterator over EnzoSphere objects generated from the appropriate 
     columns in *filename*.  Optionally specify the *unit* radius is in.
@@ -246,4 +246,4 @@ def get_centers(pf, filename, center_cols, radius_col, unit='1'):
         vals = line.split()
         x,y,z = [float(vals[i]) for i in center_cols]
         r = float(vals[radius_col])
-        yield pf.sphere([x,y,z], r/pf[unit])
+        yield ds.sphere([x,y,z], r/ds[unit])

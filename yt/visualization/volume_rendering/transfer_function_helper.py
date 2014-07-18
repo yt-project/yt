@@ -28,7 +28,7 @@ class TransferFunctionHelper(object):
 
     profiles = None
 
-    def __init__(self, pf):
+    def __init__(self, ds):
         r"""A transfer function helper.
 
         This attempts to help set up a good transfer function by finding
@@ -37,14 +37,14 @@ class TransferFunctionHelper(object):
 
         Parameters
         ----------
-        pf: A Dataset instance
+        ds: A Dataset instance
             A static output that is currently being rendered. This is used to
             help set up data bounds.
 
         Notes
         -----
         """
-        self.pf = pf
+        self.ds = ds
         self.field = None
         self.log = False
         self.tf = None
@@ -65,7 +65,7 @@ class TransferFunctionHelper(object):
             in the dataset.  This can be slow for very large datasets.
         """
         if bounds is None:
-            bounds = self.pf.all_data().quantities.extrema(self.field)
+            bounds = self.ds.all_data().quantities.extrema(self.field)
         self.bounds = bounds
 
         # Do some error checking.
@@ -89,7 +89,7 @@ class TransferFunctionHelper(object):
     def set_log(self, log):
         """
         Set whether or not the transfer function should be in log or linear
-        space. Also modifies the pf.field_info[field].take_log attribute to
+        space. Also modifies the ds.field_info[field].take_log attribute to
         stay in sync with this setting.
 
         Parameters
@@ -98,8 +98,8 @@ class TransferFunctionHelper(object):
             Sets whether the transfer function should use log or linear space.
         """
         self.log = log
-        self.pf.index
-        self.pf._get_field_info(self.field).take_log = log
+        self.ds.index
+        self.ds._get_field_info(self.field).take_log = log
 
     def build_transfer_function(self):
         """
@@ -185,7 +185,7 @@ class TransferFunctionHelper(object):
 
         ax.set_xscale({True: 'log', False: 'linear'}[self.log])
         ax.set_xlim(x.min(), x.max())
-        ax.set_xlabel(self.pf._get_field_info(self.field).get_label())
+        ax.set_xlabel(self.ds._get_field_info(self.field).get_label())
         ax.set_ylabel(r'$\mathrm{alpha}$')
         ax.set_ylim(y.max()*1.0e-3, y.max()*2)
 
@@ -201,7 +201,7 @@ class TransferFunctionHelper(object):
     def setup_profile(self, profile_field=None, profile_weight=None):
         if profile_field is None:
             profile_field = 'CellVolume'
-        prof = BinnedProfile1D(self.pf.all_data(), 128, self.field,
+        prof = BinnedProfile1D(self.ds.all_data(), 128, self.field,
                                self.bounds[0], self.bounds[1],
                                log_space=self.log,
                                end_collect=False)
