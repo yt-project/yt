@@ -2,7 +2,6 @@
 
 Halo Finding
 ============
-.. sectionauthor:: Stephen Skory <sskory@physics.ucsd.edu>
 
 There are four methods of finding particle haloes in yt. The 
 recommended and default method is called HOP, a method described 

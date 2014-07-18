@@ -2,8 +2,6 @@
 
 Halo Merger Tree
 ================
-.. sectionauthor:: Stephen Skory <sskory@physics.ucsd.edu>
-.. versionadded:: 1.7
 
 .. note:: At the moment the merger tree is not yet implemented using new 
     halo catalog functionality. 
