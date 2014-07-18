@@ -63,7 +63,7 @@ class GDFGrid(AMRGridPatch):
                 self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = \
             self.dds
-
+        self.dds = self.pf.arr(self.dds, "code_length")
 
 class GDFHierarchy(GridIndex):
 
@@ -186,17 +186,26 @@ class GDFDataset(Dataset):
             elif 'field_units' in current_field.attrs:
                 field_units = current_field.attrs['field_units']
                 if isinstance(field_units, types.StringTypes):
-                    current_fields_unit = current_field.attrs['field_units']
+                    current_field_units = current_field.attrs['field_units']
                 else:
-                    current_fields_unit = \
+                    current_field_units = \
                         just_one(current_field.attrs['field_units'])
                 self.field_units[field_name] = current_field_units
             else:
-                current_fields_unit = ""
+                self.field_units[field_name] = ""
+
+        if "dataset_units" in h5f:
+            for unit_name in h5f["/dataset_units"]:
+                current_unit = h5f["/dataset_units/%s" % unit_name]
+                value = current_unit.value
+                unit = current_unit.attrs["unit"]
+                setattr(self, unit_name, self.quan(value,unit))
+        else:
+            self.length_unit = self.quan(1.0, "cm")
+            self.mass_unit = self.quan(1.0, "g")
+            self.time_unit = self.quan(1.0, "s")
+
         h5f.close()
-        self.length_unit = self.quan(1.0, "cm")
-        self.mass_unit = self.quan(1.0, "g")
-        self.time_unit = self.quan(1.0, "s")
 
     def _parse_parameter_file(self):
         self._handle = h5py.File(self.parameter_filename, "r")
