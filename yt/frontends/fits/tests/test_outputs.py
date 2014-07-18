@@ -25,7 +25,7 @@ _fields_grs = ("temperature",)
 m33 = "radio_fits/m33_hi.fits"
 @requires_ds(m33, big_data=True)
 def test_m33():
-    ds = data_dir_load(m33, nan_mask=0.0)
+    ds = data_dir_load(m33, kwargs=dict(nan_mask=0.0))
     yield assert_equal, str(ds), "m33_hi.fits"
     for test in small_patch_amr(m33, _fields):
         test_m33.__name__ = test.description

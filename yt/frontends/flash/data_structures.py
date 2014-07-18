@@ -141,7 +141,7 @@ class FLASHHierarchy(GridIndex):
         # Because we don't care about units, we're going to operate on views.
         gle = self.grid_left_edge.ndarray_view()
         gre = self.grid_right_edge.ndarray_view()
-        geom = self.parameter_file.geometry
+        geom = self.dataset.geometry
         if geom != 'cartesian' and ND < 3:
             if geom == 'spherical' and ND < 2:
                 gle[:,1] = 0.0
