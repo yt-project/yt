@@ -409,3 +409,10 @@ class YTMixedCutRegion(Exception):
             """ % (self.field,)
         r += "\n".join([c for c in self.conditions])
         return r
+
+class YTGDFAlreadyExists(Exception):
+    def __init__(self, filename):
+        self.filename = filename
+
+    def __str__(self):
+        return "A file already exists at %s and clobber=False." % self.filename

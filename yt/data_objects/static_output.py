@@ -431,7 +431,9 @@ class Dataset(object):
         if available:
             self.particle_types += (filter.name,)
             self.filtered_particle_types.append(filter.name)
-            self._setup_particle_types([filter.name])
+            new_fields = self._setup_particle_types([filter.name])
+            deps, _ = self.field_info.check_derived_fields(new_fields)
+            self.field_dependencies.update(deps)
         return available
 
     def _setup_particle_types(self, ptypes = None):

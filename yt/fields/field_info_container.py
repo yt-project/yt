@@ -75,11 +75,11 @@ class FieldInfoContainer(dict):
                 output_units = str(u.get_cgs_equivalent())
             else:
                 output_units = units
+            if (ptype, f) not in self.field_list:
+                continue
             self.add_output_field((ptype, f),
                 units = units, particle_type = True, display_name = dn,
                 output_units = output_units)
-            if (ptype, f) not in self.field_list:
-                continue
             for alias in aliases:
                 self.alias((ptype, alias), (ptype, f), units = output_units)
 

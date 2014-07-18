@@ -18,10 +18,11 @@ import h5py
 import numpy as np
 
 from yt import __version__ as yt_version
-
+from yt.utilities.exceptions import YTGDFAlreadyExists
 
 def write_to_gdf(ds, gdf_path, data_author=None, data_comment=None,
-                 particle_type_name="dark_matter"):
+                 dataset_units=None, particle_type_name="dark_matter",
+                 clobber=False):
     """
     Write a dataset to the given path in the Grid Data Format.
 
@@ -31,11 +32,38 @@ def write_to_gdf(ds, gdf_path, data_author=None, data_comment=None,
         The yt data to write out.
     gdf_path : string
         The path of the file to output.
+    data_author : string, optional
+        The name of the author who wrote the data. Default: None.
+    data_comment : string, optional
+        A descriptive comment. Default: None.
+    dataset_units : dictionary, optional
+        A dictionary of (value, unit) tuples to set the default units
+        of the dataset. Keys can be:
+            "length_unit"
+            "time_unit"
+            "mass_unit"
+            "velocity_unit"
+            "magnetic_unit"
+        If not specified, these will carry over from the parent
+        dataset.
+    particle_type_name : string, optional
+        The particle type of the particles in the dataset. Default: "dark_matter"
+    clobber : boolean, optional
+        Whether or not to clobber an already existing file. If False, attempting
+        to overwrite an existing file will result in an exception.
 
+    Examples
+    --------
+    >>> dataset_units = {"length_unit":(1.0,"Mpc"),
+    ...                  "time_unit":(1.0,"Myr")}
+    >>> write_to_gdf(ds, "clumps.h5", data_author="John ZuHone",
+    ...              dataset_units=dataset_units,
+    ...              data_comment="My Really Cool Dataset", clobber=True)
     """
 
     f = _create_new_gdf(ds, gdf_path, data_author, data_comment,
-                        particle_type_name)
+                        dataset_units=datasetUnits,
+                        particle_type_name=particle_type_name, clobber=clobber)
 
     # now add the fields one-by-one
     for field_name in ds.field_list:
@@ -102,7 +130,7 @@ def _write_field_to_gdf(ds, fhandle, field_name, particle_type_name,
 
     # grab the display name and units from the field info container.
     display_name = fi.display_name
-    units = fi.get_units()
+    units = fi.units
 
     # check that they actually contain something...
     if display_name:
@@ -113,8 +141,6 @@ def _write_field_to_gdf(ds, fhandle, field_name, particle_type_name,
         sg.attrs["field_units"] = units
     else:
         sg.attrs["field_units"] = "None"
-    # @todo: the values must be in CGS already right?
-    sg.attrs["field_to_cgs"] = 1.0
     # @todo: is this always true?
     sg.attrs["staggering"] = 0
 
@@ -134,21 +160,22 @@ def _write_field_to_gdf(ds, fhandle, field_name, particle_type_name,
         # Check if this is a real field or particle data.
         grid.get_data(field_name)
         if fi.particle_type:  # particle data
-            pt_group[field_name] = grid[field_name]
+            pt_group[field_name] = grid[field_name].in_units(units)
         else:  # a field
-            grid_group[field_name] = grid[field_name]
+            grid_group[field_name] = grid[field_name].in_units(units)
 
 
 def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
-                    particle_type_name="dark_matter"):
+                    dataset_units=None, particle_type_name="dark_matter",
+                    clobber=False):
+
     # Make sure we have the absolute path to the file first
     gdf_path = os.path.abspath(gdf_path)
 
-    # Stupid check -- is the file already there?
-    # @todo: make this a specific exception/error.
-    if os.path.exists(gdf_path):
-        raise IOError("A file already exists in the location: %s. Please \
-                      provide a new one or remove that file." % gdf_path)
+    # Is the file already there? If so, are we allowing
+    # clobbering?
+    if os.path.exists(gdf_path) and not clobber:
+        raise YTGDFAlreadyExists(gdf_path)
 
     ###
     # Create and open the file with h5py
@@ -191,6 +218,21 @@ def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
         g.attrs["omega_lambda"] = ds.omega_lambda
         g.attrs["hubble_constant"] = ds.hubble_constant
 
+    if dataset_units is None:
+        dataset_units = {}
+
+    g = f.create_group("dataset_units")
+    for u in ["length","time","mass","velocity","magnetic"]:
+        unit_name = u+"_unit"
+        if unit_name in dataset_units:
+            value, units = dataset_units[unit_name]
+        else:
+            attr = getattr(pf, unit_name)
+            value = float(attr)
+            units = str(attr.units)
+        d = g.create_dataset(unit_name, data=value)
+        d.attrs["unit"] = units
+
     ###
     # "field_types" group
     ###
@@ -212,7 +254,7 @@ def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
     f["grid_left_index"] = np.array(
         [grid.get_global_startindex() for grid in ds.index.grids]
     ).reshape(ds.index.grid_dimensions.shape[0], 3)
-    f["grid_level"] = ds.index.grid_levels
+    f["grid_level"] = ds.index.grid_levels.flat
     # @todo: Fill with proper values
     f["grid_parent_id"] = -np.ones(ds.index.grid_dimensions.shape[0])
     f["grid_particle_count"] = ds.index.grid_particle_count

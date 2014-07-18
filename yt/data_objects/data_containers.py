@@ -727,9 +727,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
 
 class YTSelectionContainer0D(YTSelectionContainer):
     _spatial = False
-    def __init__(self, pf, field_parameters):
+    def __init__(self, ds, field_parameters):
         super(YTSelectionContainer0D, self).__init__(
-            pf, field_parameters)
+            ds, field_parameters)
 
 class YTSelectionContainer1D(YTSelectionContainer):
     _spatial = False

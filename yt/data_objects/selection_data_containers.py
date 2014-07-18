@@ -50,14 +50,14 @@ class YTPointBase(YTSelectionContainer0D):
 
     Examples
     --------
-    >>> pf = load("DD0010/moving7_0010")
+    >>> ds = load("DD0010/moving7_0010")
     >>> c = [0.5,0.5,0.5]
-    >>> point = pf.point(c)
+    >>> point = ds.point(c)
     """
     _type_name = "point"
     _con_args = ('p',)
-    def __init__(self, p, pf = None, field_parameters = None):
-        super(YTPointBase, self).__init__(pf, field_parameters)
+    def __init__(self, p, ds = None, field_parameters = None):
+        super(YTPointBase, self).__init__(ds, field_parameters)
         self.p = p
 
 class YTOrthoRayBase(YTSelectionContainer1D):

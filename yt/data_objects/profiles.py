@@ -759,6 +759,8 @@ class ProfileND(ParallelAnalysisInterface):
         self.data_source = data_source
         self.ds = data_source.ds
         self.field_data = YTFieldData()
+        if weight_field is not None:
+            self.variance = YTFieldData()
         self.weight_field = weight_field
         self.field_units = {}
         ParallelAnalysisInterface.__init__(self, comm=data_source.comm)
@@ -805,20 +807,77 @@ class ProfileND(ParallelAnalysisInterface):
     def _finalize_storage(self, fields, temp_storage):
         # We use our main comm here
         # This also will fill _field_data
-        temp_storage.values = self.comm.mpi_allreduce(temp_storage.values, op="sum", dtype="float64")
-        temp_storage.weight_values = self.comm.mpi_allreduce(temp_storage.weight_values, op="sum", dtype="float64")
-        temp_storage.used = self.comm.mpi_allreduce(temp_storage.used, op="sum", dtype="bool")
-        blank = ~temp_storage.used
-        self.used = temp_storage.used
-        if self.weight_field is not None:
-            # This is unnecessary, but it will suppress division errors.
-            temp_storage.weight_values[blank] = 1e-30
-            temp_storage.values /= temp_storage.weight_values[...,None]
-            self.weight = temp_storage.weight_values[...,None]
-            self.weight[blank] = 0.0
+
+        for i, field in enumerate(fields):
+            # q values are returned as q * weight but we want just q
+            temp_storage.qvalues[..., i][temp_storage.used] /= \
+              temp_storage.weight_values[temp_storage.used]
+
+        # get the profile data from all procs
+        all_store = {self.comm.rank: temp_storage}
+        all_store = self.comm.par_combine_object(all_store,
+                                                 "join", datatype="dict")
+
+        all_val = np.zeros_like(temp_storage.values)
+        all_mean = np.zeros_like(temp_storage.mvalues)
+        all_var = np.zeros_like(temp_storage.qvalues)
+        all_weight = np.zeros_like(temp_storage.weight_values)
+        all_used = np.zeros_like(temp_storage.used, dtype="bool")
+
+        # Combine the weighted mean and variance from each processor.
+        # For two samples with total weight, mean, and variance 
+        # given by w, m, and s, their combined mean and variance are:
+        # m12 = (m1 * w1 + m2 * w2) / (w1 + w2)
+        # s12 = (m1 * (s1**2 + (m1 - m12)**2) + 
+        #        m2 * (s2**2 + (m2 - m12)**2)) / (w1 + w2)
+        # Here, the mvalues are m and the qvalues are s**2.
+        for p in sorted(all_store.keys()):
+            all_used += all_store[p].used
+            old_mean = all_mean.copy()
+            old_weight = all_weight.copy()
+            all_weight[all_store[p].used] += \
+              all_store[p].weight_values[all_store[p].used]
+            for i, field in enumerate(fields):
+                all_val[..., i][all_store[p].used] += \
+                  all_store[p].values[..., i][all_store[p].used]
+
+                all_mean[..., i][all_store[p].used] = \
+                  (all_mean[..., i] * old_weight +
+                   all_store[p].mvalues[..., i] *
+                   all_store[p].weight_values)[all_store[p].used] / \
+                   all_weight[all_store[p].used]
+
+                all_var[..., i][all_store[p].used] = \
+                  (old_weight * (all_var[..., i] +
+                                 (old_mean[..., i] - all_mean[..., i])**2) +
+                   all_store[p].weight_values *
+                   (all_store[p].qvalues[..., i] + 
+                    (all_store[p].mvalues[..., i] -
+                     all_mean[..., i])**2))[all_store[p].used] / \
+                    all_weight[all_store[p].used]
+
+        all_var = np.sqrt(all_var)
+        del all_store
+        self.used = all_used
+        blank = ~all_used
+
+        self.weight = all_weight
+        self.weight[blank] = 0.0
+            
         self.field_map = {}
         for i, field in enumerate(fields):
-            self.field_data[field] = array_like_field(self.data_source, temp_storage.values[...,i], field)
+            if self.weight_field is None:
+                self.field_data[field] = \
+                  array_like_field(self.data_source, 
+                                   all_val[...,i], field)
+            else:
+                self.field_data[field] = \
+                  array_like_field(self.data_source, 
+                                   all_mean[...,i], field)
+                self.variance[field] = \
+                  array_like_field(self.data_source,
+                                   all_var[...,i], field)
+                self.variance[field][blank] = 0.0
             self.field_data[field][blank] = 0.0
             self.field_units[field] = self.field_data[field].units
             if isinstance(field, tuple):
@@ -1305,13 +1364,27 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
             if not acc: continue
             temp = obj.field_data[field]
             temp = np.rollaxis(temp, axis)
+            if weight_field is not None:
+                temp_weight = obj.weight
+                temp_weight = np.rollaxis(temp_weight, axis)
             if acc < 0:
                 temp = temp[::-1]
-            temp = temp.cumsum(axis=0)
+                if weight_field is not None:
+                    temp_weight = temp_weight[::-1]
+            if weight_field is None:
+                temp = temp.cumsum(axis=0)
+            else:
+                temp = (temp * temp_weight).cumsum(axis=0) / \
+                  temp_weight.cumsum(axis=0)
             if acc < 0:
                 temp = temp[::-1]
+                if weight_field is not None:
+                    temp_weight = temp_weight[::-1]
             temp = np.rollaxis(temp, axis)
             obj.field_data[field] = temp
+            if weight_field is not None:
+                temp_weight = np.rollaxis(temp_weight, axis)
+                obj.weight = temp_weight
     if units is not None:
         for field, unit in units.iteritems():
             field = data_source._determine_fields(field)[0]

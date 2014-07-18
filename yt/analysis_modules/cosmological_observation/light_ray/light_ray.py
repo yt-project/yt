@@ -320,8 +320,8 @@ class LightRay(CosmologySplice):
 
             # Break periodic ray into non-periodic segments.
             sub_segments = periodic_ray(my_segment['start'], my_segment['end'],
-                                        left=pf.domain_left_edge,
-                                        right=pf.domain_right_edge)
+                                        left=ds.domain_left_edge,
+                                        right=ds.domain_right_edge)
 
             # Prepare data structure for subsegment.
             sub_data = {}
@@ -344,7 +344,7 @@ class LightRay(CosmologySplice):
                 if get_los_velocity:
                     line_of_sight = sub_segment[1] - sub_segment[0]
                     line_of_sight /= ((line_of_sight**2).sum())**0.5
-                    sub_vel = pf.arr([sub_ray['x-velocity'],
+                    sub_vel = ds.arr([sub_ray['x-velocity'],
                                       sub_ray['y-velocity'],
                                       sub_ray['z-velocity']])
                     sub_data['los_velocity'].extend((np.rollaxis(sub_vel, 1) *
@@ -356,7 +356,7 @@ class LightRay(CosmologySplice):
 
             for key in sub_data:
                 if key in "xyz": continue
-                sub_data[key] = pf.arr(sub_data[key]).in_cgs()
+                sub_data[key] = ds.arr(sub_data[key]).in_cgs()
 
             # Get redshift for each lixel.  Assume linear relation between l and z.
             sub_data['dredshift'] = (my_segment['redshift'] - next_redshift) * \
