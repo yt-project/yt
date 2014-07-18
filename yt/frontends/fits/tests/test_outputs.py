@@ -31,7 +31,7 @@ def test_m33():
         test_m33.__name__ = test.description
         yield test
 
-_fields = ("temperature")
+_fields = ("temperature",)
 
 grs = "radio_fits/grs-50-cube.fits"
 @requires_ds(grs)
