@@ -1,14 +1,17 @@
-from yt.mods import *
+import yt
 from yt.utilities.parallel_tools.parallel_analysis_interface \
     import communication_system
-import h5py, glob, time
 
-@derived_field(name = "IonizedHydrogen",
-               units = r"\frac{\rho_{HII}}{rho_H}")
+import h5py
+import time
+import numpy as np
+
+@yt.derived_field(name="IonizedHydrogen", units="",
+                  display_name=r"\frac{\rho_{HII}}{\rho_H}")
 def IonizedHydrogen(field, data):
     return data["HII_Density"]/(data["HI_Density"]+data["HII_Density"])
 
-ts = DatasetSeries.from_filenames("SED800/DD*/*.index", parallel = 8)
+ts = yt.DatasetSeries("SED800/DD*/*.index", parallel=8)
 
 ionized_z = np.zeros(ts[0].domain_dimensions, dtype="float32")
 
