@@ -1,37 +1,40 @@
 import yt
-import glob
 import matplotlib.pyplot as plt
+import numpy as np
 
-# Glob for a list of filenames, then sort them
-fns = glob.glob("GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0*")
-fns.sort()
+# Enable parallelism in the script (assuming it was called with
+# `mpirun -np <n_procs>` )
+yt.enable_parallelism()
 
-# Construct the time series object
-ts = yt.DatasetSeries.from_filenames(fns)
+# By using wildcards such as ? and * with the load command, we can load up a
+# Time Series containing all of these datasets simultaneously.
+ts = yt.load('GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0*')
 
 storage = {}
 
-# We use the piter() method here so that this can be run in parallel.
-# Alternately, you could just iterate "for pf in ts:" and directly append to
-# times and entrs.
-for sto, ds in ts.piter(storage=storage):
+# By using the piter() function, we can iterate on every dataset in 
+# the TimeSeries object.  By using the storage keyword, we can populate
+# a dictionary where the dataset is the key, and sto.result is the value
+# for later use when the loop is complete.
+
+# The serial equivalent of piter() here is just "for ds in ts:" .
+
+for store, ds in ts.piter(storage=storage):
+
+    # Create a sphere of radius 100 kpc at the center of the dataset volume
     sphere = ds.sphere("c", (100., "kpc"))
+    # Calculate the entropy within that sphere
     entr = sphere["entropy"].sum()
-    sto.result = (ds.current_time.in_units('Gyr'), entr)
+    # Store the current time and sphere entropy for this dataset in our 
+    # storage dictionary as a tuple
+    store.result = (ds.current_time.in_units('Gyr'), entr)
 
+# Convert the storage dictionary values to a Nx2 array, so the can be easily
+# plotted
+arr = np.array(storage.values())
 
-# Store these values in a couple of lists
-times = []
-entrs = []
-for k in storage:
-    t, e = storage[k]
-    times.append(t)
-    entrs.append(e)
-
-
-# Plot up the results
-
-plt.semilogy(times, entrs, '-')
+# Plot up the results: time versus entropy
+plt.semilogy(arr[:,0], arr[:,1], 'r-')
 plt.xlabel("Time (Gyr)")
 plt.ylabel("Entropy (ergs/K)")
 plt.savefig("time_versus_entropy.png")
