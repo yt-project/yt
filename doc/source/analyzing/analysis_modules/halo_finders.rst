@@ -192,10 +192,10 @@ is no way of knowing before the halo finder is run.
   from yt.mods import *
   from yt.analysis_modules.halo_analysis.api import *
   ds = load("data0001")
-  hc= HaloCatalog(data_pf =ds,finder_method='hop'
+  hc= HaloCatalog(data_ds =ds,finder_method='hop'
     finder_kwargs={'padding':0.02})
   # --or--
-  hc= HaloCatalog(data_pf =ds,finder_method='fof'
+  hc= HaloCatalog(data_ds =ds,finder_method='fof'
     finder_kwargs={'padding':0.02})
 
 

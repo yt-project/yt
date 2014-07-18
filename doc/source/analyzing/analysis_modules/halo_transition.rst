@@ -15,7 +15,7 @@ encouraged that you find the halos upon creation of the halo catalog
 by supplying a value to the ``finder_method`` keyword when calling
 ``HaloCatalog``. Currently, only halos found using rockstar or a 
 previous instance of a halo catalog are able to be loaded 
-using the ``halos_pf`` keyword.
+using the ``halos_ds`` keyword.
 
 To pass additional arguments to the halo finders 
 themselves, supply a dictionary to ``finder_kwargs`` where
@@ -47,8 +47,8 @@ Specifically, all quantities can be accessed as shown:
 .. code-block:: python
    from yt.mods import *
    from yt.analysis_modules.halo_analysis.api import HaloCatalog
-   data_pf = load('Enzo_64/RD0006/RedshiftOutput0006')
-   hc = HaloCatalog(data_pf=data_pf, finder_method='hop')
+   data_ds = load('Enzo_64/RD0006/RedshiftOutput0006')
+   hc = HaloCatalog(data_ds=data_ds, finder_method='hop')
    hc.create()
    ad = hc.all_data()
    masses = ad['particle_mass'][:]
@@ -64,8 +64,8 @@ is shown below
 .. code-block:: python
    from yt.mods import *
    from yt.analysis_modules.halo_analysis.api import HaloCatalog
-   data_pf = load('Enzo_64/RD0006/RedshiftOutput0006')
-   hc = HaloCatalog(data_pf=data_pf, finder_method='hop')
+   data_ds = load('Enzo_64/RD0006/RedshiftOutput0006')
+   hc = HaloCatalog(data_ds=data_ds, finder_method='hop')
    hc.add_filter("quantity_value", "particle_mass", ">", 1e13, "Msun")
    hc.create()
 
@@ -89,11 +89,11 @@ passed to the annotate halo call rather than a halo list.
    from yt.mods import *
    from yt.analysis_modules.halo_analysis.api import HaloCatalog
 
-   data_pf = load('Enzo_64/RD0006/RedshiftOutput0006')
-   hc = HaloCatalog(data_pf=data_pf, finder_method='hop')
+   data_ds = load('Enzo_64/RD0006/RedshiftOutput0006')
+   hc = HaloCatalog(data_ds=data_ds, finder_method='hop')
    hc.create()
 
-   prj = ProjectionPlot(data_pf, 'z', 'density')
+   prj = ProjectionPlot(data_ds, 'z', 'density')
    prj.annotate_halos(hc)
    prj.save()
 
