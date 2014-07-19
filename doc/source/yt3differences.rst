@@ -21,6 +21,9 @@ Cheat Sheet
 
 Here's a quick reference for how to update your code to work with yt-3.0.
 
+  * Importing yt is now as simple as ``import yt``.  The docs have been
+    extensively updated to reflect this new style.  ``from yt.mods import *``
+    still works, but we are discouraging its use going forward.
   * Fields can be accessed by a name, but are named internally as ``(fluid_type,
     fluid_name)``.
   * Fields on-disk will be in code units, and will be named ``(code_name,
@@ -36,6 +39,11 @@ Here's a quick reference for how to update your code to work with yt-3.0.
     return a single tuple if you only ask for one field.
   * Units can be tricky, and they try to keep you from making weird things like
     ``ergs`` + ``g``.  See :ref:`units` for more information.
+  * Previously, yt would capture command line arguments when being imported.
+    This no longer happens.  As a side effect, it is no longer necessary to
+    specify ``--parallel`` at the command line when running a parallel 
+    computation. Use ``yt.enable_parallelism()`` instead.  See 
+    :ref:`parallel-computation` for more detail.
 
 Cool New Things
 ---------------

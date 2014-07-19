@@ -293,7 +293,7 @@ density cell in a large number of simulation outputs:
 
    storage = {}
 
-   for sto, ds in ts.piter():
+   for sto, ds in ts.piter(storage=storage):
        sphere = ds.sphere("max", (1.0, "pc"))
        sto.result = sphere.quantities.angular_momentum_vector()
        sto.result_id = str(ds)
@@ -480,7 +480,7 @@ Additional Tips
 
        ds = yt.load("DD0152")
        t0 = time.time()
-       bigstuff, hugestuff = StuffFinder(pf)
+       bigstuff, hugestuff = StuffFinder(ds)
        BigHugeStuffParallelFunction(ds, bigstuff, hugestuff)
        t1 = time.time()
        for i in range(1000000):
