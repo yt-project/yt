@@ -27,10 +27,13 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
      
 from .halo_object import \
      Halo
-from .operator_registry import \
-     callback_registry, \
-     filter_registry, \
-     finding_method_registry, \
+from .halo_callbacks import \
+     callback_registry
+from .halo_filters import \
+     filter_registry
+from .halo_finding_methods import \
+     finding_method_registry
+from .halo_quantities import \
      quantity_registry
 
 class HaloCatalog(ParallelAnalysisInterface):
