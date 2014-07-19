@@ -69,10 +69,13 @@ class StreamFieldInfo(FieldInfoContainer):
         ("smoothing_length", ("code_length", [], None)),
         ("density", ("code_mass/code_length**3", [], None)),
     )
-        
+
     def setup_fluid_fields(self):
         for field in self.ds.stream_handler.field_units:
             units = self.ds.stream_handler.field_units[field]
             if units != '': self.add_output_field(field, units=units)
 
-        
+    def add_output_field(self, name, **kwargs):
+        if name in self.ds.stream_handler.field_units:
+            kwargs['units'] = self.ds.stream_handler.field_units[name]
+        super(StreamFieldInfo, self).add_output_field(name, **kwargs)
