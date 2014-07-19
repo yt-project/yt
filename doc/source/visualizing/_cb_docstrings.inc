@@ -388,23 +388,6 @@ Add a title to the plot
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    p = yt.ProjectionPlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
    p.annotate_title('Density Plot')
-   s.save()
-
--------------
-
-.. function:: annotate_title(self, title='Plot'):
-
-   (This is a proxy for :class:`~yt.visualization.plot_modifications.TitleCallback`.)
-
-   Accepts a *title* and adds it to the plot
-
-.. python-script::
-
-   from yt.mods import *
-   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   p = ProjectionPlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
-   p.annotate_title('Density plot')
->>>>>>> other
    p.save()
 
 Overplot quivers for the velocity field

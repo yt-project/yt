@@ -807,10 +807,10 @@ class PWViewerMPL(PlotWindow):
                     pass
                 elif np.nanmax(image) == np.nanmin(image):
                     msg = "Plot image for field %s has zero dynamic " \
-                          "range. Min = Max = %d." % (f, np.nanmax(image))
+                          "range. Min = Max = %f." % (f, np.nanmax(image))
                 elif np.nanmax(image) <= 0:
                     msg = "Plot image for field %s has no positive " \
-                          "values.  Max = %d." % (f, np.nanmax(image))
+                          "values.  Max = %f." % (f, np.nanmax(image))
                 elif not np.any(np.isfinite(image)):
                     msg = "Plot image for field %s is filled with NaNs." % (f,)
                 if msg is not None:

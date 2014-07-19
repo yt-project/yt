@@ -1813,11 +1813,12 @@ class parallelHOPHaloList(HaloList, ParallelAnalysisInterface):
 
 
 class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
-    def __init__(self, ds, ds, dm_only=True, padding=0.0):
+    def __init__(self, ds, data_source, dm_only=True, padding=0.0):
         ParallelAnalysisInterface.__init__(self)
         self.ds = ds
         self.index = ds.index
-        self.center = (np.array(ds.right_edge) + np.array(ds.left_edge)) / 2.0
+        self.center = (np.array(data_source.right_edge) +
+                       np.array(data_source.left_edge)) / 2.0
 
     def _parse_halolist(self, threshold_adjustment):
         groups = []

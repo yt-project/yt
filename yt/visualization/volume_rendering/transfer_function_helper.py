@@ -19,7 +19,6 @@ from yt.data_objects.profiles import BinnedProfile1D
 from yt.visualization.volume_rendering.api import ColorTransferFunction
 from yt.visualization._mpl_imports import FigureCanvasAgg
 from matplotlib.figure import Figure
-from IPython.core.display import Image
 from yt.extern.six.moves import StringIO
 import numpy as np
 
@@ -190,6 +189,7 @@ class TransferFunctionHelper(object):
         ax.set_ylim(y.max()*1.0e-3, y.max()*2)
 
         if fn is None:
+            from IPython.core.display import Image
             f = StringIO()
             canvas.print_figure(f)
             f.seek(0)
