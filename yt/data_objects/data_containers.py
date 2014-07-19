@@ -114,6 +114,10 @@ class YTDataContainer(object):
             self.set_field_parameter(key, val)
 
     @property
+    def pf(self):
+        return getattr(self, 'ds', None)
+
+    @property
     def index(self):
         if self._index is not None:
             return self._index

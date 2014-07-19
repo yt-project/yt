@@ -152,6 +152,11 @@ object.  To access them, you would do something like this (as for a
 Combining Objects: Boolean Data Objects
 ---------------------------------------
 
+.. note:: Boolean Data Objects have not yet been ported to yt 3.0 from
+    yt 2.x.  If you are interested in aiding in this port, please contact
+    the yt-dev mailing list.  Until it is ported, this functionality below
+    will not work.
+
 A special type of data object is the *boolean* data object.
 It works only on three-dimensional objects.
 It is built by relating already existing data objects with boolean operators.

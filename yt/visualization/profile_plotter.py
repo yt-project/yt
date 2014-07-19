@@ -797,19 +797,19 @@ class PhasePlot(ImagePlotContainer):
                     positive_values = data[data > 0.0]
                     if len(positive_values) == 0:
                         mylog.warning("Profiled field %s has no positive "
-                                      "values.  Max = %d." %
+                                      "values.  Max = %f." %
                                       (f, np.nanmax(data)))
                         mylog.warning("Switching to linear colorbar scaling.")
-                        zmin = data.min()
+                        zmin = np.nanmin(data)
                         z_scale = 'linear'
                         self._field_transform[f] = linear_transform
                     else:
                         zmin = positive_values.min()
                         self._field_transform[f] = log_transform
                 else:
-                    zmin = data.min()
+                    zmin = np.nanmin(data)
                     self._field_transform[f] = linear_transform
-                zlim = [zmin, data.max()]
+                zlim = [zmin, np.nanmax(data)]
 
             fp = self._font_properties
             f = self.profile.data_source._determine_fields(f)[0]
