@@ -227,7 +227,7 @@ def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
         if unit_name in dataset_units:
             value, units = dataset_units[unit_name]
         else:
-            attr = getattr(pf, unit_name)
+            attr = getattr(ds, unit_name)
             value = float(attr)
             units = str(attr.units)
         d = g.create_dataset(unit_name, data=value)
