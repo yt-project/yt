@@ -47,18 +47,20 @@ class HaloCatalog(ParallelAnalysisInterface):
     
     Parameters
     ----------
-    halos_pf : str
+    halos_ds : str
         Dataset created by a halo finder.  If None, a halo finder should be 
         provided with the finder_method keyword.
-    data_pf : str
+    data_ds : str
         Dataset created by a simulation.
     data_source : data container
-        Data container associated with either the halos_pf or the data_pf.
+        Data container associated with either the halos_ds or the data_ds.
     finder_method : str
-        Halo finder to be used if no halos_pf is given.
+        Halo finder to be used if no halos_ds is given.
     output_dir : str
         The top level directory into which analysis output will be written.
         Default: "."
+    finder_kwargs : dict
+        Arguments to pass to the halo finder if finder_method is given.
 
     Examples
     --------
@@ -66,10 +68,10 @@ class HaloCatalog(ParallelAnalysisInterface):
     # create profiles or overdensity vs. radius for each halo and save to disk
     >>> from yt.mods import *
     >>> from yt.analysis_modules.halo_analysis.api import *
-    >>> data_pf = load("DD0064/DD0064")
-    >>> halos_pf = load("rockstar_halos/halos_64.0.bin",
+    >>> data_ds = load("DD0064/DD0064")
+    >>> halos_ds = load("rockstar_halos/halos_64.0.bin",
     ...                 output_dir="halo_catalogs/catalog_0064")
-    >>> hc = HaloCatalog(data_pf=data_pf, halos_pf=halos_pf)
+    >>> hc = HaloCatalog(data_ds=data_ds, halos_ds=halos_ds)
     # filter out halos with mass < 1e13 Msun
     >>> hc.add_filter("quantity_value", "particle_mass", ">", 1e13, "Msun")
     # create a sphere object with radius of 2 times the virial_radius field
@@ -84,8 +86,8 @@ class HaloCatalog(ParallelAnalysisInterface):
 
 
     # load in the saved halo catalog and all the profile data
-    >>> halos_pf = load("halo_catalogs/catalog_0064/catalog_0064.0.h5")
-    >>> hc = HaloCatalog(halos_pf=halos_pf,
+    >>> halos_ds = load("halo_catalogs/catalog_0064/catalog_0064.0.h5")
+    >>> hc = HaloCatalog(halos_ds=halos_ds,
                          output_dir="halo_catalogs/catalog_0064")
     >>> hc.add_callback("load_profiles", output_dir="profiles")
     >>> hc.load()
@@ -96,40 +98,44 @@ class HaloCatalog(ParallelAnalysisInterface):
     
     """
     
-    def __init__(self, halos_pf=None, data_pf=None, 
+    def __init__(self, halos_ds=None, data_ds=None, 
                  data_source=None, finder_method=None, 
+                 finder_kwargs=None,
                  output_dir="halo_catalogs/catalog"):
         ParallelAnalysisInterface.__init__(self)
-        self.halos_pf = halos_pf
-        self.data_pf = data_pf
+        self.halos_ds = halos_ds
+        self.data_ds = data_ds
         self.output_dir = ensure_dir(output_dir)
         if os.path.basename(self.output_dir) != ".":
             self.output_prefix = os.path.basename(self.output_dir)
         else:
             self.output_prefix = "catalog"
 
-        if halos_pf is None:
-            if data_pf is None:
-                raise RuntimeError("Must specify a halos_pf, data_pf, or both.")
+        if halos_ds is None:
+            if data_ds is None:
+                raise RuntimeError("Must specify a halos_ds, data_ds, or both.")
             if finder_method is None:
-                raise RuntimeError("Must specify a halos_pf or a finder_method.")
+                raise RuntimeError("Must specify a halos_ds or a finder_method.")
 
         if data_source is None:
-            if halos_pf is not None:
-                data_source = halos_pf.h.all_data()
+            if halos_ds is not None:
+                data_source = halos_ds.all_data()
             else:
-                data_source = data_pf.h.all_data()
+                data_source = data_ds.all_data()
         self.data_source = data_source
 
         if finder_method is not None:
-            finder_method = finding_method_registry.find(finder_method)
+            finder_method = finding_method_registry.find(finder_method,
+                        **finder_kwargs)
         self.finder_method = finder_method            
+        if finder_kwargs is None:
+            finder_kwargs = {}
         
         # all of the analysis actions to be performed: callbacks, filters, and quantities
         self.actions = []
         # fields to be written to the halo catalog
         self.quantities = []
-        if not self.halos_pf is None:
+        if not self.halos_ds is None:
             self.add_default_quantities()
 
     def add_callback(self, callback, *args, **kwargs):
@@ -203,14 +209,18 @@ class HaloCatalog(ParallelAnalysisInterface):
             field_type = kwargs.pop("field_type")
         else:
             field_type = None
+        prepend = kwargs.pop("prepend",False)
         if field_type is None:
             quantity = quantity_registry.find(key, *args, **kwargs)
-        elif (field_type, key) in self.halos_pf.field_info:
+        elif (field_type, key) in self.halos_ds.field_info:
             quantity = (field_type, key)
         else:
             raise RuntimeError("HaloCatalog quantity must be a registered function or a field of a known type.")
         self.quantities.append(key)
-        self.actions.append(("quantity", (key, quantity)))
+        if prepend:
+            self.actions.insert(0, ("quantity", (key, quantity)))
+        else:
+            self.actions.append(("quantity", (key, quantity)))
 
     def add_filter(self, halo_filter, *args, **kwargs):
         r"""
@@ -348,20 +358,20 @@ class HaloCatalog(ParallelAnalysisInterface):
         self.catalog = []
         if save_halos: self.halo_list = []
 
-        if self.halos_pf is None:
+        if self.halos_ds is None:
             # Find the halos and make a dataset of them
-            self.halos_pf = self.finder_method(self.data_pf)
-            if self.halos_pf is None:
+            self.halos_ds = self.finder_method(self.data_ds)
+            if self.halos_ds is None:
                 mylog.warning('No halos were found for {0}'.format(\
-                        self.data_pf.basename))
+                        self.data_ds.basename))
                 if save_catalog:
-                    self.halos_pf = self.data_pf
+                    self.halos_ds = self.data_ds
                     self.save_catalog()
-                    self.halos_pf = None
+                    self.halos_ds = None
                 return
 
-            # Assign pf and data sources appropriately
-            self.data_source = self.halos_pf.all_data()
+            # Assign ds and data sources appropriately
+            self.data_source = self.halos_ds.all_data()
 
             # Add all of the default quantities that all halos must have
             self.add_default_quantities('all')
@@ -378,7 +388,7 @@ class HaloCatalog(ParallelAnalysisInterface):
                     if not halo_filter: break
                 elif action_type == "quantity":
                     key, quantity = action
-                    if quantity in self.halos_pf.field_info:
+                    if quantity in self.halos_ds.field_info:
                         new_halo.quantities[key] = \
                           self.data_source[quantity][int(i)].in_cgs()
                     elif callable(quantity):
@@ -412,9 +422,9 @@ class HaloCatalog(ParallelAnalysisInterface):
                      "domain_dimensions",
                      "cosmological_simulation", "omega_lambda",
                      "omega_matter", "hubble_constant"]:
-            out_file.attrs[attr] = getattr(self.halos_pf, attr)
+            out_file.attrs[attr] = getattr(self.halos_ds, attr)
         for attr in ["domain_left_edge", "domain_right_edge"]:
-            out_file.attrs[attr] = getattr(self.halos_pf, attr).in_cgs()
+            out_file.attrs[attr] = getattr(self.halos_ds, attr).in_cgs()
         out_file.attrs["data_type"] = "halo_catalog"
         out_file.attrs["num_halos"] = n_halos
         if n_halos > 0:
@@ -430,10 +440,10 @@ class HaloCatalog(ParallelAnalysisInterface):
         out_file.close()
 
     def add_default_quantities(self, field_type='halos'):
-        self.add_quantity("particle_identifier", field_type=field_type)
-        self.add_quantity("particle_mass", field_type=field_type)
-        self.add_quantity("particle_position_x", field_type=field_type)
-        self.add_quantity("particle_position_y", field_type=field_type)
-        self.add_quantity("particle_position_z", field_type=field_type)
-        self.add_quantity("virial_radius", field_type=field_type)
+        self.add_quantity("particle_identifier", field_type=field_type,prepend=True)
+        self.add_quantity("particle_mass", field_type=field_type,prepend=True)
+        self.add_quantity("particle_position_x", field_type=field_type,prepend=True)
+        self.add_quantity("particle_position_y", field_type=field_type,prepend=True)
+        self.add_quantity("particle_position_z", field_type=field_type,prepend=True)
+        self.add_quantity("virial_radius", field_type=field_type,prepend=True)
 

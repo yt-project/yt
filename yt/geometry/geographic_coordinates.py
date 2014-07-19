@@ -25,9 +25,9 @@ from yt.utilities.lib.misc_utilities import \
 
 class GeographicCoordinateHandler(CoordinateHandler):
 
-    def __init__(self, pf, ordering = 'latlonalt'):
+    def __init__(self, ds, ordering = 'latlonalt'):
         if ordering != 'latlonalt': raise NotImplementedError
-        super(GeographicCoordinateHandler, self).__init__(pf)
+        super(GeographicCoordinateHandler, self).__init__(ds)
 
     def setup_fields(self, registry):
         # return the fields for r, z, theta
@@ -79,7 +79,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
         def _altitude_to_radius(field, data):
             surface_height = data.get_field_parameter("surface_height")
             if surface_height is None:
-                surface_height = getattr(data.pf, "surface_height", 0.0)
+                surface_height = getattr(data.ds, "surface_height", 0.0)
             return data["altitude"] + surface_height
         registry.add_field(("index", "r"),
                  function=_altitude_to_radius,
@@ -190,5 +190,5 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
     @property
     def period(self):
-        return self.pf.domain_width
+        return self.ds.domain_width
 

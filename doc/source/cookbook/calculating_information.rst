@@ -57,3 +57,12 @@ files.  Note that it is parallel aware, and that if you only wanted to run in
 serial the operation ``for pf in ts:`` would also have worked identically.
 
 .. yt_cookbook:: time_series.py
+
+Complex Derived Fields
+~~~~~~~~~~~~~~~~~~~~~~
+
+This recipe estimates the ratio of gravitational and pressure forces in a galaxy
+cluster simulation.  This shows how to create and work with vector derived 
+fields.
+
+.. yt_cookbook:: hse_field.py

@@ -10,7 +10,7 @@ connect a redshift interval.
 
 .. code-block:: python
 
-  from yt.analysis_modules.api import CosmologySplice
+  from yt.analysis_modules.cosmological_observation.api import CosmologySplice
   my_splice = CosmologySplice('enzo_tiny_cosmology/32Mpc_32.enzo', 'Enzo')
   my_splice.plan_cosmology_splice(0.0, 0.1, filename='redshifts.out')
 

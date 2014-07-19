@@ -181,7 +181,7 @@ class TableApecModel(SpectralModel):
     Examples
     --------
     >>> apec_model = TableApecModel("/Users/jzuhone/Data/atomdb_v2.0.2/", 0.05, 50.0,
-                                    1000, thermal_broad=True)
+    ...                             1000, thermal_broad=True)
     """
     def __init__(self, apec_root, emin, emax, nchan,
                  apec_vers="2.0.2", thermal_broad=False):
@@ -226,7 +226,7 @@ class TableApecModel(SpectralModel):
         
         tmpspec = np.zeros((self.nchan))
         
-        i = np.where((self.line_handle[tindex].data.field('element')==element) &
+        i = np.where((self.line_handle[tindex].data.field('element') == element) &
                      (self.line_handle[tindex].data.field('lambda') > self.minlam) &
                      (self.line_handle[tindex].data.field('lambda') < self.maxlam))[0]
 
@@ -242,24 +242,24 @@ class TableApecModel(SpectralModel):
                 vec += np.diff(cdf)*a
         else:
             ie = np.searchsorted(ebins, E0, side='right')-1
-            for i,a in zip(ie,amp): vec[i] += a
+            for i, a in zip(ie, amp): vec[i] += a
         tmpspec += vec
 
-        ind = np.where((self.coco_handle[tindex].data.field('Z')==element) &
-                       (self.coco_handle[tindex].data.field('rmJ')==0))[0]
-        if len(ind)==0:
+        ind = np.where((self.coco_handle[tindex].data.field('Z') == element) &
+                       (self.coco_handle[tindex].data.field('rmJ') == 0))[0]
+        if len(ind) == 0:
             return tmpspec
         else:
-            ind=ind[0]
+            ind = ind[0]
                                                     
-        n_cont=self.coco_handle[tindex].data.field('N_Cont')[ind]
-        e_cont=self.coco_handle[tindex].data.field('E_Cont')[ind][:n_cont]
+        n_cont = self.coco_handle[tindex].data.field('N_Cont')[ind]
+        e_cont = self.coco_handle[tindex].data.field('E_Cont')[ind][:n_cont]
         continuum = self.coco_handle[tindex].data.field('Continuum')[ind][:n_cont]
 
         tmpspec += np.interp(self.emid.ndarray_view(), e_cont, continuum)*self.de.ndarray_view()
         
-        n_pseudo=self.coco_handle[tindex].data.field('N_Pseudo')[ind]
-        e_pseudo=self.coco_handle[tindex].data.field('E_Pseudo')[ind][:n_pseudo]
+        n_pseudo = self.coco_handle[tindex].data.field('N_Pseudo')[ind]
+        e_pseudo = self.coco_handle[tindex].data.field('E_Pseudo')[ind][:n_pseudo]
         pseudo = self.coco_handle[tindex].data.field('Pseudo')[ind][:n_pseudo]
         
         tmpspec += np.interp(self.emid.ndarray_view(), e_pseudo, pseudo)*self.de.ndarray_view()

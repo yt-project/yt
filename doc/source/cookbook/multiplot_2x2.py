@@ -1,9 +1,9 @@
-from yt.mods import *
+import yt
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import AxesGrid
 
 fn = "IsolatedGalaxy/galaxy0030/galaxy0030"
-pf = load(fn) # load data
+ds = yt.load(fn) # load data
 
 fig = plt.figure()
 
@@ -22,11 +22,17 @@ grid = AxesGrid(fig, (0.075,0.075,0.85,0.85),
                 cbar_size="3%",
                 cbar_pad="0%")
 
-fields = ['density', 'velocity_x', 'velocity_y', 'VelocityMagnitude']
+fields = ['density', 'velocity_x', 'velocity_y', 'velocity_magnitude']
 
 # Create the plot.  Since SlicePlot accepts a list of fields, we need only
 # do this once.
-p = SlicePlot(pf, 'z', fields)
+p = yt.SlicePlot(ds, 'z', fields)
+
+# Velocity is going to be both positive and negative, so let's make these
+# slices use a linear colorbar scale
+p.set_log('velocity_x', False)
+p.set_log('velocity_y', False)
+
 p.zoom(2)
 
 # For each plotted field, force the SlicePlot to redraw itself onto the AxesGrid

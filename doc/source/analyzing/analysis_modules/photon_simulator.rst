@@ -1,6 +1,11 @@
 Constructing Mock X-ray Observations
 ------------------------------------
 
+.. note::
+
+  If you just want to create derived fields for X-ray emission,
+  you should go `here <xray_emission_fields.html>`_ instead.
+
 The ``photon_simulator`` analysis module enables the creation of
 simulated X-ray photon lists of events from datasets that ``yt`` is able
 to read. The simulated events then can be exported to X-ray telescope
@@ -43,7 +48,7 @@ We're going to load up an Athena dataset of a galaxy cluster core:
 
 .. code:: python
 
-    pf = load("MHDSloshing/virgo_low_res.0054.vtk",
+    ds = load("MHDSloshing/virgo_low_res.0054.vtk",
               parameters={"time_unit":(1.0,"Myr"),
                           "length_unit":(1.0,"Mpc"),
                           "mass_unit":(1.0e14,"Msun")}) 
@@ -381,7 +386,7 @@ for details on how to do this):
    from yt.mods import *
    from yt.utilities.physical_constants import cm_per_kpc, K_per_keV, mp
    from yt.utilities.cosmology import Cosmology
-   from yt.analysis_modules.api import *
+   from yt.analysis_modules.photon_simulator.api import *
    import aplpy
 
    R = 1000. # in kpc
@@ -418,7 +423,7 @@ of 4 keV, and a density distribution from a :math:`\beta`-model. We then
 evacuated two "bubbles" of radius 30 kpc at a distance of 50 kpc from
 the center. 
 
-Now, we create a parameter file out of this dataset:
+Now, we create a yt Dataset object out of this dataset:
 
 .. code:: python
 
@@ -440,7 +445,7 @@ example:
 
 .. code:: python
 
-   sphere = ds.sphere(pf.domain_center, (1.0,"Mpc"))
+   sphere = ds.sphere(ds.domain_center, (1.0,"Mpc"))
        
    A = 6000.
    exp_time = 2.0e5

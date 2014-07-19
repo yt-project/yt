@@ -44,27 +44,27 @@ class HaloFindingMethod(object):
     def __call__(self, ds):
         return self.function(ds, *self.args, **self.kwargs)
 
-def _hop_method(pf):
+def _hop_method(ds, **finder_kwargs):
     r"""
     Run the Hop halo finding method.
     """
     
-    halo_list = HOPHaloFinder(pf)
-    halos_pf = _parse_old_halo_list(pf, halo_list)
-    return halos_pf
+    halo_list = HOPHaloFinder(ds, **finder_kwargs)
+    halos_ds = _parse_old_halo_list(ds, halo_list)
+    return halos_ds
 add_finding_method("hop", _hop_method)
 
-def _fof_method(pf):
+def _fof_method(ds, **finder_kwargs):
     r"""
     Run the FoF halo finding method.
     """
 
-    halo_list = FOFHaloFinder(pf)
-    halos_pf = _parse_old_halo_list(pf, halo_list)
-    return halos_pf
+    halo_list = FOFHaloFinder(ds, **finder_kwargs)
+    halos_ds = _parse_old_halo_list(ds, halo_list)
+    return halos_ds
 add_finding_method("fof", _fof_method)
 
-def _rockstar_method(pf):
+def _rockstar_method(ds, **finder_kwargs):
     r"""
     Run the Rockstar halo finding method.
     """
@@ -74,20 +74,19 @@ def _rockstar_method(pf):
     from yt.analysis_modules.halo_finding.rockstar.api import \
      RockstarHaloFinder
     
-    rh = RockstarHaloFinder(pf)
+    rh = RockstarHaloFinder(ds, **finder_kwargs)
     rh.run()
 
-
-    halos_pf = RockstarDataset("rockstar_halos/halos_0.0.bin")
+    halos_ds = RockstarDataset("rockstar_halos/halos_0.0.bin")
     try:
-        halos_pf.create_field_info()
+        halos_ds.create_field_info()
     except ValueError:
         return None
 
-    return halos_pf
+    return halos_ds
 add_finding_method("rockstar", _rockstar_method)
 
-def _parse_old_halo_list(data_pf, halo_list):
+def _parse_old_halo_list(data_ds, halo_list):
     r"""
     Convert the halo list into a loaded dataset.
     """
@@ -119,23 +118,23 @@ def _parse_old_halo_list(data_pf, halo_list):
         halo_properties['particle_position_y'][0][i] = com[1]
         halo_properties['particle_position_z'][0][i] = com[2]
 
-    # Define a bounding box based on original data pf
-    bbox = np.array([data_pf.domain_left_edge.in_cgs(),
-            data_pf.domain_right_edge.in_cgs()]).T
+    # Define a bounding box based on original data ds
+    bbox = np.array([data_ds.domain_left_edge.in_cgs(),
+            data_ds.domain_right_edge.in_cgs()]).T
 
-    # Create a pf with the halos as particles
-    particle_pf = load_particles(halo_properties, 
+    # Create a ds with the halos as particles
+    particle_ds = load_particles(halo_properties, 
             bbox=bbox, length_unit = 1, mass_unit=1)
 
     # Create the field info dictionary so we can reference those fields
-    particle_pf.create_field_info()
+    particle_ds.create_field_info()
 
     for attr in ["current_redshift", "current_time",
                  "domain_dimensions",
                  "cosmological_simulation", "omega_lambda",
                  "omega_matter", "hubble_constant"]:
-        attr_val = getattr(data_pf, attr)
-        setattr(particle_pf, attr, attr_val)
-    particle_pf.current_time = particle_pf.current_time.in_cgs()
+        attr_val = getattr(data_ds, attr)
+        setattr(particle_ds, attr, attr_val)
+    particle_ds.current_time = particle_ds.current_time.in_cgs()
     
-    return particle_pf
+    return particle_ds

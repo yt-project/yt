@@ -17,7 +17,7 @@ import shutil
 import os
 import h5py as h5
 from yt.testing import \
-    fake_random_pf, assert_equal
+    fake_random_ds, assert_equal
 from yt.utilities.grid_data_format.writer import \
     write_to_gdf
 from yt.frontends.gdf.data_structures import \
@@ -41,10 +41,10 @@ def test_write_gdf():
     tmpfile = os.path.join(tmpdir, 'test_gdf.h5')
 
     try:
-        test_pf = fake_random_pf(64)
-        write_to_gdf(test_pf, tmpfile, data_author=TEST_AUTHOR,
+        test_ds = fake_random_ds(64)
+        write_to_gdf(test_ds, tmpfile, data_author=TEST_AUTHOR,
                      data_comment=TEST_COMMENT)
-        del test_pf
+        del test_ds
         assert isinstance(load(tmpfile), GDFDataset)
 
         h5f = h5.File(tmpfile, 'r')

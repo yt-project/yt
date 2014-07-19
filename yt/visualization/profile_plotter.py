@@ -31,15 +31,15 @@ from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform
 from yt.data_objects.profiles import \
-     create_profile
+    create_profile
 from yt.utilities.exceptions import \
-     YTNotInsideNotebook
+    YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
 import _mpl_imports as mpl
 from yt.funcs import \
-     ensure_list, \
-     get_image_suffix, \
-     get_ipython_api_version
+    ensure_list, \
+    get_image_suffix, \
+    get_ipython_api_version
 
 def get_canvas(name):
     suffix = get_image_suffix(name)
@@ -150,10 +150,6 @@ class ProfilePlot(object):
         A dictionary or list of dictionaries containing plot keyword 
         arguments.  For example, dict(color="red", linestyle=":").
         Default: None.
-    profiles : list of profiles
-        If not None, a list of profile objects created with 
-        `yt.data_objects.profiles.create_profile`.
-        Default: None.
 
     Examples
     --------
@@ -176,12 +172,12 @@ class ProfilePlot(object):
     >>> profiles = []
     >>> labels = []
     >>> plot_specs = []
-    >>> for pf in es[-4:]:
-    ...     ad = pf.h.all_data()
+    >>> for ds in es[-4:]:
+    ...     ad = ds.all_data()
     ...     profiles.append(create_profile(ad, ["density"],
     ...                                    fields=["temperature",
     ...                                            "velocity_x"]))
-    ...     labels.append(pf.current_redshift)
+    ...     labels.append(ds.current_redshift)
     ...     plot_specs.append(dict(linestyle="--", alpha=0.7))
     >>>
     >>> plot = ProfilePlot.from_profiles(profiles, labels=labels,
@@ -196,48 +192,37 @@ class ProfilePlot(object):
     z_log = None
     x_title = None
     y_title = None
-
     _plot_valid = False
 
-    def __init__(self, data_source, x_field, y_fields, 
+    def __init__(self, data_source, x_field, y_fields,
                  weight_field="cell_mass", n_bins=64,
                  accumulation=False, fractional=False,
-                 label=None, plot_spec=None, profiles=None):
-        self.y_log = {}
-        self.y_title = {}
-        self.x_log = None
-        if profiles is None:
-            self.profiles = [create_profile(data_source, [x_field],
-                                            n_bins=[n_bins],
-                                            fields=ensure_list(y_fields),
-                                            weight_field=weight_field,
-                                            accumulation=accumulation,
-                                            fractional=fractional)]
-        else:
-            self.profiles = ensure_list(profiles)
-        
-        self.label = sanitize_label(label, len(self.profiles))
+                 label=None, plot_spec=None):
 
-        self.plot_spec = plot_spec
-        if self.plot_spec is None:
-            self.plot_spec = [dict() for p in self.profiles]
-        if not isinstance(self.plot_spec, list):
-            self.plot_spec = [self.plot_spec.copy() for p in self.profiles]
+        profiles = [create_profile(data_source, [x_field],
+                                   n_bins=[n_bins],
+                                   fields=ensure_list(y_fields),
+                                   weight_field=weight_field,
+                                   accumulation=accumulation,
+                                   fractional=fractional)]
 
-        self.figures = FigureContainer()
-        self.axes = AxesContainer(self.figures)
-        self._setup_plots()
-        
+        if plot_spec is None:
+            plot_spec = [dict() for p in profiles]
+        if not isinstance(plot_spec, list):
+            plot_spec = [plot_spec.copy() for p in profiles]
+
+        ProfilePlot._initialize_instance(self, profiles, label, plot_spec)
+
     def save(self, name=None):
         r"""
-        Saves a 1d profile plot.
+         Saves a 1d profile plot.
 
-        Parameters
-        ----------
-        name : str
-            The output file keyword.
-        
-        """
+         Parameters
+         ----------
+         name : str
+             The output file keyword.
+
+         """
         if not self._plot_valid:
             self._setup_plots()
         unique = set(self.figures.values())
@@ -247,7 +232,7 @@ class ProfilePlot(object):
             iters = self.figures.iteritems()
         if name is None:
             if len(self.profiles) == 1:
-                prefix = self.profiles[0].pf
+                prefix = self.profiles[0].ds
             else:
                 prefix = "Multi-data"
             name = "%s.png" % prefix
@@ -259,14 +244,15 @@ class ProfilePlot(object):
         if not suffix:
             suffix = ".png"
         canvas_cls = get_canvas(name)
+        fns = []
         for uid, fig in iters:
             if isinstance(uid, types.TupleType):
                 uid = uid[1]
             canvas = canvas_cls(fig)
-            fn = "%s_1d-Profile_%s_%s%s" % (prefix, xfn, uid, suffix)
-            mylog.info("Saving %s", fn)
-            canvas.print_figure(fn)
-        return self
+            fns.append("%s_1d-Profile_%s_%s%s" % (prefix, xfn, uid, suffix))
+            mylog.info("Saving %s", fns[-1])
+            canvas.print_figure(fns[-1])
+        return fns
 
     def show(self):
         r"""This will send any existing plots to the IPython notebook.
@@ -317,13 +303,13 @@ class ProfilePlot(object):
         return ret
 
     def _setup_plots(self):
+        for f in self.axes:
+            self.axes[f].cla()
         for i, profile in enumerate(self.profiles):
             for field, field_data in profile.items():
-                if field in self.axes:
-                    self.axes[field].cla()
                 self.axes[field].plot(np.array(profile.x), np.array(field_data),
                                       label=self.label[i], **self.plot_spec[i])
-        
+
         # This relies on 'profile' leaking
         for fname, axes in self.axes.items():
             xscale, yscale = self._get_field_log(fname, profile)
@@ -338,39 +324,55 @@ class ProfilePlot(object):
         self._plot_valid = True
 
     @classmethod
+    def _initialize_instance(cls, obj, profiles, labels, plot_specs):
+        obj.y_log = {}
+        obj.y_title = {}
+        obj.x_log = None
+        obj.profiles = ensure_list(profiles)
+        obj.label = sanitize_label(labels, len(obj.profiles))
+        if plot_specs is None:
+            plot_specs = [dict() for p in obj.profiles]
+        obj.plot_spec = plot_specs
+        obj.figures = FigureContainer()
+        obj.axes = AxesContainer(obj.figures)
+        obj._setup_plots()
+        return obj
+
+    @classmethod
     def from_profiles(cls, profiles, labels=None, plot_specs=None):
         r"""
-        Instantiate a ProfilePlot object from a list of profiles 
-        created with `yt.data_objects.profiles.create_profile`.
+        Instantiate a ProfilePlot object from a list of profiles
+        created with :func:`~yt.data_objects.profiles.create_profile`.
 
         Parameters
         ----------
-        profiles : list of profiles
-            If not None, a list of profile objects created with 
-            `yt.data_objects.profiles.create_profile`.
+        profiles : a profile or list of profiles
+            A single profile or list of profile objects created with
+            :func:`~yt.data_objects.profiles.create_profile`.
         labels : list of strings
             A list of labels for each profile to be overplotted.
             Default: None.
         plot_specs : list of dicts
-            A list of dictionaries containing plot keyword 
+            A list of dictionaries containing plot keyword
             arguments.  For example, [dict(color="red", linestyle=":")].
             Default: None.
 
         Examples
         --------
 
+        >>> from yt import simulation
         >>> es = simulation("AMRCosmology.enzo", "Enzo")
         >>> es.get_time_series()
 
         >>> profiles = []
         >>> labels = []
         >>> plot_specs = []
-        >>> for pf in es[-4:]:
-        ...     ad = pf.h.all_data()
+        >>> for ds in es[-4:]:
+        ...     ad = ds.all_data()
         ...     profiles.append(create_profile(ad, ["Density"],
         ...                                    fields=["Temperature",
         ...                                            "x-velocity"]))
-        ...     labels.append(pf.current_redshift)
+        ...     labels.append(ds.current_redshift)
         ...     plot_specs.append(dict(linestyle="--", alpha=0.7))
         >>>
         >>> plot = ProfilePlot.from_profiles(profiles, labels=labels,
@@ -382,9 +384,8 @@ class ProfilePlot(object):
             raise RuntimeError("Profiles list and labels list must be the same size.")
         if plot_specs is not None and len(plot_specs) != len(profiles):
             raise RuntimeError("Profiles list and plot_specs list must be the same size.")
-        obj = cls(None, None, None, profiles=profiles, label=labels,
-                  plot_spec=plot_specs)
-        return obj
+        obj = cls.__new__(cls)
+        return cls._initialize_instance(obj, profiles, labels, plot_specs)
 
     @invalidate_plot
     def set_line_property(self, property, value, index=None):
@@ -558,9 +559,9 @@ class ProfilePlot(object):
         return self
 
     def _get_field_log(self, field_y, profile):
-        pf = profile.data_source.pf
+        ds = profile.data_source.ds
         yf, = profile.data_source._determine_fields([field_y])
-        yfi = pf._get_field_info(*yf)
+        yfi = ds._get_field_info(*yf)
         if self.x_log is None:
             x_log = profile.x_log
         else:
@@ -591,18 +592,18 @@ class ProfilePlot(object):
         return label
 
     def _get_field_title(self, field_y, profile):
-        pf = profile.data_source.pf
+        ds = profile.data_source.ds
         field_x = profile.x_field
         xf, yf = profile.data_source._determine_fields(
             [field_x, field_y])
-        xfi = pf._get_field_info(*xf)
-        yfi = pf._get_field_info(*yf)
+        xfi = ds._get_field_info(*xf)
+        yfi = ds._get_field_info(*yf)
         x_unit = profile.x.units
         y_unit = profile.field_units[field_y]
         fractional = profile.fractional
         x_title = self.x_title or self._get_field_label(field_x, xfi, x_unit)
         y_title = self.y_title.get(field_y, None) or \
-                    self._get_field_label(field_y, yfi, y_unit, fractional)
+            self._get_field_label(field_y, yfi, y_unit, fractional)
 
         return (x_title, y_title)
 
@@ -656,9 +657,6 @@ class PhasePlot(ImagePlotContainer):
     fontsize: int
         Font size for all text in the plot.
         Default: 18.
-    font_color : str
-        Color for all text in the plot.
-        Default: "black"
     figure_size : int
         Size in inches of the image.
         Default: 8 (8x8)
@@ -667,8 +665,8 @@ class PhasePlot(ImagePlotContainer):
     --------
 
     >>> import yt
-    >>> pf = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
-    >>> ad = pf.h.all_data()
+    >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+    >>> ad = ds.all_data()
     >>> plot = PhasePlot(ad, "density", "temperature", ["cell_mass"],
     ...                  weight_field=None)
     >>> plot.save()
@@ -691,37 +689,42 @@ class PhasePlot(ImagePlotContainer):
     def __init__(self, data_source, x_field, y_field, z_fields,
                  weight_field="cell_mass", x_bins=128, y_bins=128,
                  accumulation=False, fractional=False,
-                 profile=None, fontsize=18, font_color="black", figure_size=8.0):
-        self.plot_title = {}
-        self.z_log = {}
-        self.z_title = {}
-        self._initfinished = False
-        self.x_log = None
-        self.y_log = None
+                 fontsize=18, figure_size=8.0):
 
-        if profile is None:
-            profile = create_profile(data_source,
-               [x_field, y_field],
-               ensure_list(z_fields),
-               n_bins = [x_bins, y_bins],
-               weight_field = weight_field,
-               accumulation=accumulation,
-               fractional=fractional)
-        self.profile = profile
-        super(PhasePlot, self).__init__(data_source, figure_size, fontsize)
-        # This is a fallback, in case we forget.
-        self._setup_plots()
-        self._initfinished = True
+        profile = create_profile(
+            data_source,
+            [x_field, y_field],
+            ensure_list(z_fields),
+            n_bins=[x_bins, y_bins],
+            weight_field=weight_field,
+            accumulation=accumulation,
+            fractional=fractional)
+
+        type(self)._initialize_instance(self, data_source, profile, fontsize, figure_size)
+
+    @classmethod
+    def _initialize_instance(cls, obj, data_source, profile, fontsize, figure_size):
+        obj.plot_title = {}
+        obj.z_log = {}
+        obj.z_title = {}
+        obj._initfinished = False
+        obj.x_log = None
+        obj.y_log = None
+        obj.profile = profile
+        super(PhasePlot, obj).__init__(data_source, figure_size, fontsize)
+        obj._setup_plots()
+        obj._initfinished = True
+        return obj
 
     def _get_field_title(self, field_z, profile):
-        pf = profile.data_source.pf
+        ds = profile.data_source.ds
         field_x = profile.x_field
         field_y = profile.y_field
         xf, yf, zf = profile.data_source._determine_fields(
             [field_x, field_y, field_z])
-        xfi = pf._get_field_info(*xf)
-        yfi = pf._get_field_info(*yf)
-        zfi = pf._get_field_info(*zf)
+        xfi = ds._get_field_info(*xf)
+        yfi = ds._get_field_info(*yf)
+        zfi = ds._get_field_info(*zf)
         x_unit = profile.x.units
         y_unit = profile.y.units
         z_unit = profile.field_units[field_z]
@@ -729,7 +732,7 @@ class PhasePlot(ImagePlotContainer):
         x_title = self.x_title or self._get_field_label(field_x, xfi, x_unit)
         y_title = self.y_title or self._get_field_label(field_y, yfi, y_unit)
         z_title = self.z_title.get(field_z, None) or \
-                    self._get_field_label(field_z, zfi, z_unit, fractional)
+            self._get_field_label(field_z, zfi, z_unit, fractional)
         return (x_title, y_title, z_title)
 
     def _get_field_label(self, field, field_info, field_unit, fractional=False):
@@ -751,9 +754,9 @@ class PhasePlot(ImagePlotContainer):
         return label
         
     def _get_field_log(self, field_z, profile):
-        pf = profile.data_source.pf
+        ds = profile.data_source.ds
         zf, = profile.data_source._determine_fields([field_z])
-        zfi = pf._get_field_info(*zf)
+        zfi = ds._get_field_info(*zf)
         if self.x_log is None:
             x_log = profile.x_log
         else:
@@ -791,12 +794,22 @@ class PhasePlot(ImagePlotContainer):
 
             if zlim == (None, None):
                 if z_scale == 'log':
-                    zmin = data[data > 0.0].min()
-                    self._field_transform[f] = log_transform
+                    positive_values = data[data > 0.0]
+                    if len(positive_values) == 0:
+                        mylog.warning("Profiled field %s has no positive "
+                                      "values.  Max = %f." %
+                                      (f, np.nanmax(data)))
+                        mylog.warning("Switching to linear colorbar scaling.")
+                        zmin = np.nanmin(data)
+                        z_scale = 'linear'
+                        self._field_transform[f] = linear_transform
+                    else:
+                        zmin = positive_values.min()
+                        self._field_transform[f] = log_transform
                 else:
-                    zmin = data.min()
+                    zmin = np.nanmin(data)
                     self._field_transform[f] = linear_transform
-                zlim = [zmin, data.max()]
+                zlim = [zmin, np.nanmax(data)]
 
             fp = self._font_properties
             f = self.profile.data_source._determine_fields(f)[0]
@@ -828,6 +841,42 @@ class PhasePlot(ImagePlotContainer):
                     label.set_color(self._font_color)
         self._plot_valid = True
 
+    @classmethod
+    def from_profile(cls, profile, fontsize=18, figure_size=8.0):
+        r"""
+        Instantiate a PhasePlot object from a profile object created
+        with :func:`~yt.data_objects.profiles.create_profile`.
+
+        Parameters
+        ----------
+        profile : An instance of :class:`~yt.data_objects.profiles.ProfileND`
+             A single profile object.
+        fontsize : float
+             The fontsize to use, in points.
+        figure_size : float
+             The figure size to use, in inches.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> extrema = {
+        ... 'density': (1e-31, 1e-24),
+        ... 'temperature': (1e1, 1e8),
+        ... 'cell_mass': (1e-6, 1e-1),
+        ... }
+        >>> profile = yt.create_profile(ds.all_data(), ['density', 'temperature'],
+        ...                             fields=['cell_mass'],extrema=extrema,
+        ...                             fractional=True)
+        >>> ph = yt.PhasePlot.from_profile(profile)
+        >>> ph.save()
+        """
+        obj = cls.__new__(cls)
+        data_source = profile.data_source
+        return cls._initialize_instance(obj, data_source, profile, fontsize,
+                                        figure_size)
+
     def save(self, name=None, mpl_kwargs=None):
         r"""
         Saves a 2d profile plot.
@@ -848,7 +897,8 @@ class PhasePlot(ImagePlotContainer):
         if mpl_kwargs is None:
             mpl_kwargs = {}
         if name is None:
-            name = str(self.profile.pf)
+            name = str(self.profile.ds)
+        name = os.path.expanduser(name)
         xfn = self.profile.x_field
         yfn = self.profile.y_field
         if isinstance(xfn, types.TupleType):
@@ -863,9 +913,9 @@ class PhasePlot(ImagePlotContainer):
             splitname = os.path.split(name)
             if splitname[0] != '' and not os.path.isdir(splitname[0]):
                 os.makedirs(splitname[0])
-            if os.path.isdir(name) and name != str(self.profile.pf):
+            if os.path.isdir(name) and name != str(self.profile.ds):
                 prefix = name + (os.sep if name[-1] != os.sep else '')
-                prefix += str(self.profile.pf)
+                prefix += str(self.profile.ds)
             else:
                 prefix = name
             suffix = get_image_suffix(name)
@@ -873,7 +923,7 @@ class PhasePlot(ImagePlotContainer):
                 for k, v in self.plots.iteritems():
                     names.append(v.save(name, mpl_kwargs))
                 return names
-            fn = "%s_%s%s" % (prefix, middle, suffix)
+            fn = "%s_%s%s" % (prefix, middle, '.png')
             names.append(fn)
             self.plots[f].save(fn, mpl_kwargs)
         return names
@@ -1061,6 +1111,7 @@ class PhasePlot(ImagePlotContainer):
 
 
 class PhasePlotMPL(ImagePlotMPL):
+    """A container for a single matplotlib figure and axes for a PhasePlot"""
     def __init__(self, x_data, y_data, data,
                  x_scale, y_scale, z_scale, cmap,
                  zlim, figure_size, fontsize, figure, axes, cax):

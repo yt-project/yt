@@ -45,7 +45,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in data_files:
+        for data_file in sorted(data_files):
             pcount = data_file.header['num_halos']
             with open(data_file.filename, "rb") as f:
                 f.seek(data_file._position_offset, os.SEEK_SET)
@@ -65,7 +65,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in data_files:
+        for data_file in sorted(data_files):
             pcount = data_file.header['num_halos']
             with open(data_file.filename, "rb") as f:
                 for ptype, field_list in sorted(ptf.items()):
@@ -92,29 +92,29 @@ class IOHandlerRockstarBinary(BaseIOHandler):
             halos = np.fromfile(f, dtype=halo_dt, count = pcount)
             pos = np.empty((halos.size, 3), dtype="float64")
             # These positions are in Mpc, *not* "code" units
-            pos = data_file.pf.arr(pos, "code_length")
+            pos = data_file.ds.arr(pos, "code_length")
             dx = np.finfo(halos['particle_position_x'].dtype).eps
-            dx = 2.0*self.pf.quan(dx, "code_length")
+            dx = 2.0*self.ds.quan(dx, "code_length")
             pos[:,0] = halos["particle_position_x"]
             pos[:,1] = halos["particle_position_y"]
             pos[:,2] = halos["particle_position_z"]
             # These are 32 bit numbers, so we give a little lee-way.
             # Otherwise, for big sets of particles, we often will bump into the
             # domain edges.  This helps alleviate that.
-            np.clip(pos, self.pf.domain_left_edge + dx,
-                         self.pf.domain_right_edge - dx, pos)
+            np.clip(pos, self.ds.domain_left_edge + dx,
+                         self.ds.domain_right_edge - dx, pos)
             #del halos
-            if np.any(pos.min(axis=0) < self.pf.domain_left_edge) or \
-               np.any(pos.max(axis=0) > self.pf.domain_right_edge):
+            if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or \
+               np.any(pos.max(axis=0) > self.ds.domain_right_edge):
                 raise YTDomainOverflow(pos.min(axis=0),
                                        pos.max(axis=0),
-                                       self.pf.domain_left_edge,
-                                       self.pf.domain_right_edge)
+                                       self.ds.domain_left_edge,
+                                       self.ds.domain_right_edge)
             regions.add_data_file(pos, data_file.file_id)
             morton[ind:ind+pos.shape[0]] = compute_morton(
                 pos[:,0], pos[:,1], pos[:,2],
-                data_file.pf.domain_left_edge,
-                data_file.pf.domain_right_edge)
+                data_file.ds.domain_left_edge,
+                data_file.ds.domain_right_edge)
         return morton
 
     def _count_particles(self, data_file):

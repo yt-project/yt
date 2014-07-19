@@ -178,6 +178,61 @@ binary_operators = (
 
 class YTArray(np.ndarray):
     """
+    An ndarray subclass that attaches a symbolic unit object to the array data.
+
+    Parameters
+    ----------
+
+    input_array : ndarray or ndarray subclass
+        An array to attach units to
+    input_units : String unit specification, unit symbol object, or astropy units
+        The units of the array. Powers must be specified using python
+        symtax (cm**3, not cm^3).
+    registry : A UnitRegistry object
+        The registry to create units from. If input_units is already associated
+        with a unit registry and this is specified, this will be used instead of
+        the registry associated with the unit object.
+    dtype : string of NumPy dtype object
+        The dtype of the array data.
+
+    Examples
+    --------
+
+    >>> from yt import YTArray
+    >>> a = YTArray([1,2,3], 'cm')
+    >>> b = YTArray([4,5,6], 'm')
+    >>> a + b
+    YTArray([ 401.,  502.,  603.]) cm
+    >>> b + a
+    YTArray([ 4.01,  5.02,  6.03]) m
+
+    NumPy ufuncs will pass through units where appropriate.
+
+    >>> import numpy as np
+    >>> a = YTArray(np.arange(8), 'g/cm**3')
+    >>> np.ones_like(a)
+    YTArray([1, 1, 1, 1, 1, 1, 1, 1]) g/cm**3
+
+    and strip them when it would be annoying to deal with them.
+
+    >>> np.log10(a)
+    array([       -inf,  0.        ,  0.30103   ,  0.47712125,  0.60205999,
+            0.69897   ,  0.77815125,  0.84509804])
+
+    YTArray is tightly integrated with yt datasets:
+
+    >>> import yt
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> a = ds.arr(np.ones(5), 'code_length')
+    >>> a.in_cgs()
+    YTArray([  3.08600000e+24,   3.08600000e+24,   3.08600000e+24,
+             3.08600000e+24,   3.08600000e+24]) cm
+
+    This is equivalent to:
+
+    >>> b = YTArray(np.ones(5), 'code_length', registry=ds.unit_registry)
+    >>> np.all(a == b)
+    True
 
     """
     _ufunc_registry = {
@@ -268,9 +323,6 @@ class YTArray(np.ndarray):
                     "Perhaps you meant to do something like this instead: \n"
                     "ds.arr(%s, \"%s\")" % (input_array, input_units)
                     )
-        if _astropy._units is not None:
-            if isinstance(input_array, _astropy.units.quantity.Quantity):
-                return cls.from_astropy(input_array)
         if isinstance(input_array, YTArray):
             if input_units is None:
                 if registry is None:
@@ -362,10 +414,14 @@ class YTArray(np.ndarray):
 
         """
         new_units = self._unit_repr_check_same(units)
-        conversion_factor = self.units.get_conversion_factor(new_units)
+        (conversion_factor, offset) = self.units.get_conversion_factor(new_units)
 
         self.units = new_units
         self *= conversion_factor
+
+        if offset:
+            np.subtract(self, offset*self.uq, self)
+
         return self
 
     def convert_to_cgs(self):
@@ -398,10 +454,13 @@ class YTArray(np.ndarray):
 
         """
         new_units = self._unit_repr_check_same(units)
-        conversion_factor = self.units.get_conversion_factor(new_units)
+        (conversion_factor, offset) = self.units.get_conversion_factor(new_units)
 
         new_array = self * conversion_factor
         new_array.units = new_units
+
+        if offset:
+            np.subtract(new_array, offset*new_array.uq, new_array)
 
         return new_array
 
@@ -563,7 +622,7 @@ class YTArray(np.ndarray):
             unit_lut = pickle.loads(dataset.attrs['unit_registry'])
         else:
             unit_lut = None
-
+        f.close()
         registry = UnitRegistry(lut=unit_lut, add_default_symbols=False)
         return cls(data, units, registry=registry)
 
@@ -620,7 +679,8 @@ class YTArray(np.ndarray):
     def __iadd__(self, other):
         """ See __add__. """
         oth = sanitize_units_add(self, other, "addition")
-        return np.add(self, oth, out=self)
+        np.add(self, oth, out=self)
+        return self
 
     def __sub__(self, right_object):
         """
@@ -639,7 +699,8 @@ class YTArray(np.ndarray):
     def __isub__(self, other):
         """ See __sub__. """
         oth = sanitize_units_add(self, other, "subtraction")
-        return np.subtract(self, oth, out=self)
+        np.subtract(self, oth, out=self)
+        return self
 
     def __neg__(self):
         """ Negate the data. """
@@ -666,7 +727,8 @@ class YTArray(np.ndarray):
     def __imul__(self, other):
         """ See __mul__. """
         oth = sanitize_units_mul(self, other)
-        return np.multiply(self, oth, out=self)
+        np.multiply(self, oth, out=self)
+        return self
 
     def __div__(self, right_object):
         """
@@ -684,7 +746,8 @@ class YTArray(np.ndarray):
     def __idiv__(self, other):
         """ See __div__. """
         oth = sanitize_units_mul(self, other)
-        return np.divide(self, oth, out=self)
+        np.divide(self, oth, out=self)
+        return self
 
     def __truediv__(self, right_object):
         ro = sanitize_units_mul(self, right_object)
@@ -698,7 +761,8 @@ class YTArray(np.ndarray):
     def __itruediv__(self, other):
         """ See __div__. """
         oth = sanitize_units_mul(self, other)
-        return np.true_divide(self, oth, out=self)
+        np.true_divide(self, oth, out=self)
+        return self
 
     def __floordiv__(self, right_object):
         ro = sanitize_units_mul(self, right_object)
@@ -712,7 +776,8 @@ class YTArray(np.ndarray):
     def __ifloordiv__(self, other):
         """ See __div__. """
         oth = sanitize_units_mul(self, other)
-        return np.floor_divide(self, oth, out=self)
+        np.floor_divide(self, oth, out=self)
+        return self
 
     #Should these raise errors?  I need to come back and check this.
     def __or__(self, right_object):
@@ -722,7 +787,8 @@ class YTArray(np.ndarray):
         return YTArray(super(YTArray, self).__ror__(left_object))
 
     def __ior__(self, other):
-        return np.bitwise_or(self, other, out=self)
+        np.bitwise_or(self, other, out=self)
+        return self
 
     def __xor__(self, right_object):
         return YTArray(super(YTArray, self).__xor__(right_object))
@@ -731,7 +797,8 @@ class YTArray(np.ndarray):
         return YTArray(super(YTArray, self).__rxor__(left_object))
 
     def __ixor__(self, other):
-        return np.bitwise_xor(self, other, out=self)
+        np.bitwise_xor(self, other, out=self)
+        return self
 
     def __and__(self, right_object):
         return YTArray(super(YTArray, self).__and__(right_object))
@@ -740,7 +807,8 @@ class YTArray(np.ndarray):
         return YTArray(super(YTArray, self).__rand__(left_object))
 
     def __iand__(self, other):
-        return np.bitwise_and(self, other, out=self)
+        np.bitwise_and(self, other, out=self)
+        return self
 
     def __pow__(self, power):
         """
@@ -1006,10 +1074,68 @@ class YTArray(np.ndarray):
         return type(self)(ret, copy.deepcopy(self.units))
 
 class YTQuantity(YTArray):
-    def __new__(cls, input, input_units=None, registry=None, dtype=np.float64):
-        if not isinstance(input, (numeric_type, np.number, np.ndarray)):
+    """
+    A scalar associated with a unit.
+
+    Parameters
+    ----------
+
+    input_scalar : ndarray or ndarray subclass
+        An array to attach units to
+    input_units : String unit specification, unit symbol object, or astropy units
+        The units of the array. Powers must be specified using python
+        symtax (cm**3, not cm^3).
+    registry : A UnitRegistry object
+        The registry to create units from. If input_units is already associated
+        with a unit registry and this is specified, this will be used instead of
+        the registry associated with the unit object.
+    dtype : string of NumPy dtype object
+        The dtype of the array data.
+
+    Examples
+    --------
+
+    >>> from yt import YTQuantity
+    >>> a = YTQuantity(1, 'cm')
+    >>> b = YTQuantity(2, 'm')
+    >>> a + b
+    201.0 cm
+    >>> b + a
+    2.01 m
+
+    NumPy ufuncs will pass through units where appropriate.
+
+    >>> import numpy as np
+    >>> a = YTQuantity(12, 'g/cm**3')
+    >>> np.ones_like(a)
+    1 g/cm**3
+
+    and strip them when it would be annoying to deal with them.
+
+    >>> print np.log10(a)
+    1.07918124605
+
+    YTQuantity is tightly integrated with yt datasets:
+
+    >>> import yt
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> a = ds.quan(5, 'code_length')
+    >>> a.in_cgs()
+    1.543e+25 cm
+
+    This is equivalent to:
+
+    >>> b = YTQuantity(5, 'code_length', registry=ds.unit_registry)
+    >>> np.all(a == b)
+    True
+
+    """
+    def __new__(cls, input_scalar, input_units=None, registry=None,
+                dtype=np.float64):
+        if not isinstance(input_scalar, (numeric_type, np.number, np.ndarray)):
             raise RuntimeError("YTQuantity values must be numeric")
-        ret = YTArray.__new__(cls, input, input_units, registry, dtype=dtype)
+        ret = YTArray.__new__(cls, input_scalar, input_units, registry,
+                              dtype=dtype)
         if ret.size > 1:
             raise RuntimeError("YTQuantity instances must be scalars")
         return ret
@@ -1032,17 +1158,17 @@ def uconcatenate(arrs, *args, **kwargs):
 def array_like_field(data, x, field):
     field = data._determine_fields(field)[0]
     if isinstance(field, tuple):
-        units = data.pf._get_field_info(field[0],field[1]).units
+        units = data.ds._get_field_info(field[0],field[1]).units
     else:
-        units = data.pf._get_field_info(field).units
+        units = data.ds._get_field_info(field).units
     if isinstance(x, YTArray):
         arr = copy.deepcopy(x)
         arr.convert_to_units(units)
         return arr
     if isinstance(x, np.ndarray):
-        return data.pf.arr(x, units)
+        return data.ds.arr(x, units)
     else:
-        return data.pf.quan(x, units)
+        return data.ds.quan(x, units)
 
 def get_binary_op_return_class(cls1, cls2):
     if cls1 is cls2:

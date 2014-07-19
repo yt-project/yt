@@ -40,8 +40,8 @@ def _thermal_energy(field, data):
     return data["thermal_energy_density"] / data["density"]
 
 def _temperature(field,data):
-    mu = data.pf.parameters["mu"]
-    gamma = data.pf.parameters["gamma"]
+    mu = data.ds.parameters["mu"]
+    gamma = data.ds.parameters["gamma"]
     tr  = data["thermal_energy_density"] / data["density"]
     tr *= mu * amu_cgs / boltzmann_constant_cgs
     tr *= (gamma - 1.0)
@@ -146,7 +146,7 @@ class CastroFieldInfo(FieldInfoContainer):
 
     def setup_fluid_fields(self):
         # add X's
-        for _, field in self.pf.field_list:
+        for _, field in self.ds.field_list:
             if field.startswith("X("):
                 # We have a fraction
                 nice_name = field[2:-1]
@@ -221,7 +221,7 @@ class MaestroFieldInfo(FieldInfoContainer):
 
     def setup_fluid_fields(self):
         # pick the correct temperature field
-        if self.pf.parameters["use_tfromp"]:
+        if self.ds.parameters["use_tfromp"]:
             self.alias(("gas", "temperature"), ("boxlib", "tfromp"),
                        units = "K")
         else:
@@ -229,7 +229,7 @@ class MaestroFieldInfo(FieldInfoContainer):
                        units = "K")
 
         # Add X's and omegadots, units of 1/s
-        for _, field in self.pf.field_list:
+        for _, field in self.ds.field_list:
             if field.startswith("X("):
                 # We have a fraction
                 nice_name = field[2:-1]

@@ -12,4 +12,3 @@ prune yt/frontends/_skeleton
 prune tests
 graft yt/gui/reason/html/resources
 exclude clean.sh .hgchurn
-recursive-include yt/utilities/kdtree *.f90 *.v Makefile LICENSE

@@ -156,7 +156,8 @@ class PPVCube(object):
 
     def _create_intensity(self, i):
         def _intensity(field, data):
-            w = np.abs(data["v_los"]-self.vmid[i])/self.dv
+            vlos = data["v_los"]
+            w = np.abs(vlos-self.vmid[i])/self.dv.in_units(vlos.units)
             w = 1.-w
             w[w < 0.0] = 0.0
             return data[self.field]*w

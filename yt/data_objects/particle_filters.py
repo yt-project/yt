@@ -72,6 +72,8 @@ class ParticleFilter(object):
     def wrap_func(self, field_name, old_fi):
         new_fi = copy.copy(old_fi)
         new_fi.name = (self.filtered_type, field_name[1])
+        if old_fi._function == NullFunc:
+            new_fi._function = TranslationFunc(old_fi.name)
         return new_fi
 
 def add_particle_filter(name, function, requires = None, filtered_type = "all"):

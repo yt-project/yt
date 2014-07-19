@@ -60,7 +60,10 @@ def ensure_numpy_array(obj):
     convert scalar, list or tuple argument passed to functions using Cython.
     """
     if isinstance(obj, np.ndarray):
-        return obj
+        if obj.shape == ():
+            return np.array([obj])
+        # We cast to ndarray to catch ndarray subclasses
+        return np.array(obj)
     elif isinstance(obj, (types.ListType, types.TupleType)):
         return np.asarray(obj)
     else:
@@ -601,10 +604,10 @@ def get_yt_supp():
     # Now we think we have our supplemental repository.
     return supp_path
 
-def fix_length(length, pf=None):
-    assert pf is not None
-    if pf is not None:
-        registry = pf.unit_registry
+def fix_length(length, ds=None):
+    assert ds is not None
+    if ds is not None:
+        registry = ds.unit_registry
     else:
         registry = None
     if isinstance(length, YTArray):
@@ -656,8 +659,8 @@ def get_num_threads():
         return os.environ.get("OMP_NUM_THREADS", 0)
     return nt
 
-def fix_axis(axis, pf):
-    return pf.coordinates.axis_id.get(axis, axis)
+def fix_axis(axis, ds):
+    return ds.coordinates.axis_id.get(axis, axis)
 
 def get_image_suffix(name):
     suffix = os.path.splitext(name)[1]

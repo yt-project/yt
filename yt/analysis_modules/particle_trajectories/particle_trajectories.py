@@ -25,7 +25,7 @@ import h5py
 
 class ParticleTrajectories(object):
     r"""A collection of particle trajectories in time over a series of
-    parameter files. 
+    datasets. 
 
     The ParticleTrajectories object contains a collection of
     particle trajectories for a specified set of particle indices. 
@@ -201,7 +201,8 @@ class ParticleTrajectories(object):
             if self.suppress_logging:
                 old_level = int(ytcfg.get("yt","loglevel"))
                 mylog.setLevel(40)
-            dd_first = self.data_series[0].all_data()
+            ds_first = self.data_series[0]
+            dd_first = ds_first.all_data()
             fd = dd_first._determine_fields(field)[0]
             if field not in self.particle_fields:
                 if self.data_series[0].field_info[fd].particle_type:
@@ -224,7 +225,8 @@ class ParticleTrajectories(object):
                     x = self["particle_position_x"][:,step].ndarray_view()
                     y = self["particle_position_y"][:,step].ndarray_view()
                     z = self["particle_position_z"][:,step].ndarray_view()
-                    particle_grids, particle_grid_inds = ds.index.find_points(x,y,z)
+                    # This will fail for non-grid index objects
+                    particle_grids, particle_grid_inds = ds.index._find_points(x,y,z)
                     for grid in particle_grids:
                         cube = grid.retrieve_ghost_zones(1, [fd])
                         CICSample_3(x,y,z,pfield,

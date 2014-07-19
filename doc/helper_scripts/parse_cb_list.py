@@ -2,7 +2,7 @@ from yt.mods import *
 import inspect
 from textwrap import TextWrapper
 
-pf = load("RD0005-mine/RedshiftOutput0005")
+ds = load("RD0005-mine/RedshiftOutput0005")
 
 output = open("source/visualizing/_cb_docstrings.inc", "w")
 

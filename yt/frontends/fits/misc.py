@@ -11,6 +11,8 @@ Miscellaneous FITS routines
 #-----------------------------------------------------------------------------
 
 import numpy as np
+import base64
+from yt.extern.six.moves import StringIO
 from yt.fields.derived_field import ValidateSpatial
 from yt.utilities.on_demand_imports import _astropy
 from yt.funcs import mylog, get_image_suffix
@@ -34,7 +36,7 @@ def _make_counts(emin, emax):
         if sigma is not None and sigma > 0.0:
             kern = _astropy.conv.Gaussian2DKernel(stddev=sigma)
             img[:,:,0] = _astropy.conv.convolve(img[:,:,0], kern)
-        return data.pf.arr(img, "counts/pixel")
+        return data.ds.arr(img, "counts/pixel")
     return _counts
 
 def setup_counts_fields(ds, ebounds, ftype="gas"):
@@ -129,9 +131,9 @@ class PlotWindowWCS(object):
         from wcsaxes import WCSAxes
         if pw.oblique:
             raise NotImplementedError("WCS axes are not implemented for oblique plots.")
-        if not hasattr(pw.pf, "wcs_2d"):
+        if not hasattr(pw.ds, "wcs_2d"):
             raise NotImplementedError("WCS axes are not implemented for this dataset.")
-        if pw.data_source.axis != pw.pf.spec_axis:
+        if pw.data_source.axis != pw.ds.spec_axis:
             raise NotImplementedError("WCS axes are not implemented for this axis.")
         self.plots = {}
         self.pw = pw
@@ -139,11 +141,11 @@ class PlotWindowWCS(object):
             rect = pw.plots[f]._get_best_layout()[1]
             fig = pw.plots[f].figure
             ax = fig.axes[0]
-            wcs_ax = WCSAxes(fig, rect, wcs=pw.pf.wcs_2d, frameon=False)
+            wcs_ax = WCSAxes(fig, rect, wcs=pw.ds.wcs_2d, frameon=False)
             fig.add_axes(wcs_ax)
-            wcs = pw.pf.wcs_2d.wcs
-            xax = pw.pf.coordinates.x_axis[pw.data_source.axis]
-            yax = pw.pf.coordinates.y_axis[pw.data_source.axis]
+            wcs = pw.ds.wcs_2d.wcs
+            xax = pw.ds.coordinates.x_axis[pw.data_source.axis]
+            yax = pw.ds.coordinates.y_axis[pw.data_source.axis]
             xlabel = "%s (%s)" % (wcs.ctype[xax].split("-")[0],
                                   wcs.cunit[xax])
             ylabel = "%s (%s)" % (wcs.ctype[yax].split("-")[0],
@@ -177,13 +179,21 @@ class PlotWindowWCS(object):
                 return self.plots[k]
 
     def show(self):
-        from IPython.core.display import display
-        for k, v in sorted(self.plots.iteritems()):
-            canvas = FigureCanvasAgg(v)
-            display(v)
+        return self
 
     def save(self, name=None, mpl_kwargs=None):
         if mpl_kwargs is None:
             mpl_kwargs = {}
         mpl_kwargs["bbox_inches"] = "tight"
         self.pw.save(name=name, mpl_kwargs=mpl_kwargs)
+
+    def _repr_html_(self):
+        ret = ''
+        for k, v in self.plots.iteritems():
+            canvas = FigureCanvasAgg(v)
+            f = StringIO()
+            canvas.print_figure(f)
+            f.seek(0)
+            img = base64.b64encode(f.read())
+            ret += '<img src="data:image/png;base64,%s"><br>' % img
+        return ret

@@ -1,20 +1,29 @@
-from yt.mods import *
+import yt
+yt.enable_parallelism()
+import collections
 
 # Instantiate a time series object for an Enzo simulation..
-my_sim = simulation('enzo_tiny_cosmology/32Mpc_32.enzo', 'Enzo')
+sim = yt.simulation('enzo_tiny_cosmology/32Mpc_32.enzo', 'Enzo')
 
 # Get a time series for all data made by the simulation.
-my_sim.get_time_series()
+sim.get_time_series()
 
-# Calculate and store extrema for all datasets.
-all_storage = {}
-for my_storage, pf in my_sim.piter(storage=all_storage):
-    all_data = pf.h.all_data()
-    my_extrema = all_data.quantities['Extrema']('density')
+# Calculate and store extrema for all datasets along with redshift
+# in a data dictionary with entries as tuples
 
-    # Save to storage so we can get at it afterward.
-    my_storage.result = my_extrema
+# Note that by using sim.piter(), we are automatically 
+# forcing yt to do this in parallel
+data = {}
+for ds in sim.piter():
+    ad = ds.all_data()
+    extrema = ad.quantities.extrema('density')
+    data[ds.basename] = (extrema, ds.current_redshift)
+
+# Convert dictionary to ordered dictionary to get the right order
+od = collections.OrderedDict(sorted(data.items()))
 
 # Print out all the values we calculated.
-for my_result in all_storage.values():
-    print my_result
+print "Dataset      Redshift        Density Min      Density Max"
+print "---------------------------------------------------------"
+for k, v in od.iteritems(): 
+    print "%s       %05.3f          %5.3g g/cm^3   %5.3g g/cm^3" % (k, v[1], v[0][0], v[0][1])

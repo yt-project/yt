@@ -33,6 +33,8 @@ from yt.data_objects.static_output import \
      Dataset
 from yt.utilities.definitions import \
      mpc_conversion, sec_conversion
+from yt.utilities.file_handler import \
+    HDF5FileHandler
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      parallel_root_only
 from yt.utilities.lib.misc_utilities import \
@@ -62,18 +64,18 @@ class ChomboGrid(AMRGridPatch):
         if self.start_index is not None:
             return self.start_index
         if self.Parent is None:
-            iLE = self.LeftEdge - self.pf.domain_left_edge
+            iLE = self.LeftEdge - self.ds.domain_left_edge
             start_index = iLE / self.dds
             return np.rint(start_index).astype('int64').ravel()
         pdx = self.Parent[0].dds
         start_index = (self.Parent[0].get_global_startindex()) + \
             np.rint((self.LeftEdge - self.Parent[0].LeftEdge)/pdx)
-        self.start_index = (start_index*self.pf.refine_by).astype('int64').ravel()
+        self.start_index = (start_index*self.ds.refine_by).astype('int64').ravel()
         return self.start_index
 
     def _setup_dx(self):
         # has already been read in and stored in index
-        self.dds = self.pf.arr(self.index.dds_list[self.Level], "code_length")
+        self.dds = self.ds.arr(self.index.dds_list[self.Level], "code_length")
 
     @property
     def Parent(self):
@@ -92,27 +94,27 @@ class ChomboHierarchy(GridIndex):
     grid = ChomboGrid
     _data_file = None
 
-    def __init__(self,pf,dataset_type='chombo_hdf5'):
-        self.domain_left_edge = pf.domain_left_edge
-        self.domain_right_edge = pf.domain_right_edge
+    def __init__(self,ds,dataset_type='chombo_hdf5'):
+        self.domain_left_edge = ds.domain_left_edge
+        self.domain_right_edge = ds.domain_right_edge
         self.dataset_type = dataset_type
 
-        if pf.dimensionality == 1:
+        if ds.dimensionality == 1:
             self.dataset_type = "chombo1d_hdf5"
-        if pf.dimensionality == 2:
+        if ds.dimensionality == 2:
             self.dataset_type = "chombo2d_hdf5"        
 
         self.field_indexes = {}
-        self.parameter_file = weakref.proxy(pf)
-        # for now, the index file is the parameter file!
+        self.dataset = weakref.proxy(ds)
+        # for now, the index file is the dataset!
         self.index_filename = os.path.abspath(
-            self.parameter_file.parameter_filename)
-        self.directory = pf.fullpath
-        self._handle = pf._handle
+            self.dataset.parameter_filename)
+        self.directory = ds.fullpath
+        self._handle = ds._handle
 
         self.float_type = self._handle['Chombo_global'].attrs['testReal'].dtype.name
         self._levels = [key for key in self._handle.keys() if key.startswith('level')]
-        GridIndex.__init__(self,pf,dataset_type)
+        GridIndex.__init__(self,ds,dataset_type)
 
         self._read_particles()
 
@@ -143,14 +145,14 @@ class ChomboHierarchy(GridIndex):
 
         # look for fluid fields
         output_fields = []
-        for key, val in self._handle['/'].attrs.items():
+        for key, val in self._handle.attrs.items():
             if key.startswith("component"):
                 output_fields.append(val)
         self.field_list = [("chombo", c) for c in output_fields]
 
         # look for particle fields
         particle_fields = []
-        for key, val in self._handle['/'].attrs.items():
+        for key, val in self._handle.attrs.items():
             if key.startswith("particle"):
                 particle_fields.append(val)
         self.field_list.extend([("io", c) for c in particle_fields])        
@@ -167,7 +169,7 @@ class ChomboHierarchy(GridIndex):
         grids = []
         self.dds_list = []
         i = 0
-        D = self.parameter_file.dimensionality
+        D = self.dataset.dimensionality
         for lev_index, lev in enumerate(self._levels):
             level_number = int(re.match('level_(\d+)',lev).groups()[0])
             try:
@@ -241,7 +243,7 @@ class ChomboDataset(Dataset):
     def __init__(self, filename, dataset_type='chombo_hdf5',
                  storage_filename = None, ini_filename = None):
         self.fluid_types += ("chombo",)
-        self._handle = h5py.File(filename, 'r')
+        self._handle = HDF5FileHandler(filename)
 
         # look up the dimensionality of the dataset
         D = self._handle['Chombo_global/'].attrs['SpaceDim']
@@ -270,9 +272,6 @@ class ChomboDataset(Dataset):
         self.parameters["HydroMethod"] = 'chombo'
         self.parameters["DualEnergyFormalism"] = 0 
         self.parameters["EOSType"] = -1 # default
-
-    def __del__(self):
-        self._handle.close()
 
     def _set_code_unit_attributes(self):
         self.length_unit = YTQuantity(1.0, "cm")
@@ -316,11 +315,10 @@ class ChomboDataset(Dataset):
         return LE
 
     def _calc_right_edge(self):
-        fileh = h5py.File(self.parameter_filename,'r')
+        fileh = self._handle
         dx0 = fileh['/level_0'].attrs['dx']
         D = self.dimensionality
         RE = dx0*((np.array(list(fileh['/level_0'].attrs['prob_domain'])))[D:] + 1)
-        fileh.close()
         return RE
 
     def _calc_domain_dimensions(self):
@@ -367,8 +365,8 @@ class ChomboDataset(Dataset):
 
 class Orion2Hierarchy(ChomboHierarchy):
 
-    def __init__(self, pf, dataset_type="orion_chombo_native"):
-        ChomboHierarchy.__init__(self, pf, dataset_type)
+    def __init__(self, ds, dataset_type="orion_chombo_native"):
+        ChomboHierarchy.__init__(self, ds, dataset_type)
 
     def _read_particles(self):
         self.particle_filename = self.index_filename[:-4] + 'sink'

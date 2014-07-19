@@ -1,3 +1,6 @@
+### THIS RECIPE IS CURRENTLY BROKEN IN YT-3.0
+### DO NOT TRUST THIS RECIPE UNTIL THIS LINE IS REMOVED
+
 # This script demonstrates some of the halo merger tracking infrastructure,
 # for tracking halos across multiple datadumps in a time series.
 # Ultimately, it outputs an HDF5 file with the important quantities for the
@@ -25,9 +28,9 @@ ts = DatasetSeries.from_filenames("enzo_tiny_cosmology/DD????/DD????")
 # DEPENDING ON THE SIZE OF YOUR FILES, THIS CAN BE A LONG STEP 
 # but because we're writing them out to disk, you only have to do this once.
 # ------------------------------------------------------------
-for pf in ts:
-    halo_list = FOFHaloFinder(pf)
-    i = int(pf.basename[2:])
+for ds in ts:
+    halo_list = FOFHaloFinder(ds)
+    i = int(ds.basename[2:])
     halo_list.write_out("FOF/groups_%05i.txt" % i)
     halo_list.write_particle_lists("FOF/particles_%05i" % i)
 

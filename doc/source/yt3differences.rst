@@ -128,7 +128,7 @@ have to modify them in a unitful way.
 Field Info
 ++++++++++
 
-In the past, the object ``ds`` (or ``pf``) had a ``field_info`` object which
+In the past, the object ``ds`` (or ``ds``) had a ``field_info`` object which
 was a dictionary leading to derived field definitions.  At the present time,
 because of the field naming changes (i.e., access-by-tuple) it is better to
 utilize the function ``_get_field_info`` than to directly access the
@@ -143,8 +143,8 @@ Parameter Files are Now Datasets
 ++++++++++++++++++++++++++++++++
 
 Wherever possible, we have attempted to replace the term "parameter file"
-(i.e., ``pf``) with the term "dataset."  Future revisions will change most of
-the ``pf`` atrributes of objects into ``ds`` or ``dataset`` attributes.
+(i.e., ``ds``) with the term "dataset."  Future revisions will change most of
+the ``ds`` atrributes of objects into ``ds`` or ``dataset`` attributes.
 
 Projection Argument Order
 +++++++++++++++++++++++++

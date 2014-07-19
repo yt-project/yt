@@ -51,7 +51,7 @@ that can import the yt module:
 
 If you are developing new functionality, it is sometimes more convenient to use
 the Nose command line interface, ``nosetests``. You can run the unit tests
-using `no`qsetets` by navigating to the base directory of the yt mercurial
+using ``nose`` by navigating to the base directory of the yt mercurial
 repository and invoking ``nosetests``:
 
 .. code-block:: bash
@@ -77,8 +77,8 @@ module.  Describing them in detail is somewhat outside the scope of this
 document, as in some cases they belong to other packages.  However, a few come
 in handy:
 
- * :func:`yt.testing.fake_random_pf` provides the ability to create a random
-   parameter file, with several fields and divided into several different
+ * :func:`yt.testing.fake_random_ds` provides the ability to create a random
+   dataset, with several fields and divided into several different
    grids, that can be operated on.
  * :func:`yt.testing.assert_equal` can operate on arrays.
  * :func:`yt.testing.assert_almost_equal` can operate on arrays and accepts a
@@ -101,7 +101,7 @@ To create new unit tests:
     accept no arguments.  These should ``yield`` a set of values of the form
     ``function``, ``arguments``.  For example ``yield assert_equal, 1.0, 1.0``
     would evaluate that 1.0 equaled 1.0.
- #. Use ``fake_random_pf`` to test on parameter files, and be sure to test for
+ #. Use ``fake_random_ds`` to test on datasets, and be sure to test for
     several combinations of ``nproc``, so that domain decomposition can be
     tested as well.
  #. Test multiple combinations of options by using the
@@ -209,12 +209,12 @@ You can find examples there of how to write a test.  Here is a trivial example:
    class MaximumValue(AnswerTestingTest):
        _type_name = "ParentageRelationships"
        _attrs = ("field",)
-       def __init__(self, pf_fn, field):
-           super(MaximumValue, self).__init__(pf_fn)
+       def __init__(self, ds_fn, field):
+           super(MaximumValue, self).__init__(ds_fn)
            self.field = field
 
        def run(self):
-           v, c = self.pf.h.find_max(self.field)
+           v, c = self.ds.find_max(self.field)
            result = np.empty(4, dtype="float64")
            result[0] = v
            result[1:] = c
@@ -266,7 +266,7 @@ considered canonical.  Do these things:
    * This routine should test a number of different fields and data objects.
 
    * The test routine itself should be decorated with
-     ``@requires_pf(file_name)``  This decorate can accept the argument
+     ``@requires_ds(file_name)``  This decorate can accept the argument
      ``big_data`` for if this data is too big to run all the time.
 
    * There are ``small_patch_amr`` and ``big_patch_amr`` routines that
@@ -291,7 +291,7 @@ To upload answers you can execute this command:
 The current version of the gold standard can be found in the variable
 ``_latest`` inside ``yt/utilities/answer_testing/framework.py``  As of
 the time of this writing, it is ``gold007``  Note that the name of the
-suite of results is now disconnected from the parameter file's name, so you
+suite of results is now disconnected from the dataset's name, so you
 can upload multiple outputs with the same name and not collide.
 
 To upload answers, you **must** have the package boto installed, and you

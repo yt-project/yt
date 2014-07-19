@@ -88,8 +88,8 @@ def test_particle_octree_counts():
         bbox.append( [DLE[i], DRE[i]] )
     bbox = np.array(bbox)
     for n_ref in [16, 32, 64, 512, 1024]:
-        pf = load_particles(data, 1.0, bbox = bbox, n_ref = n_ref)
-        dd = pf.h.all_data()
+        ds = load_particles(data, 1.0, bbox = bbox, n_ref = n_ref)
+        dd = ds.all_data()
         bi = dd["io","mesh_id"]
         v = np.bincount(bi.astype("int64"))
         yield assert_equal, v.max() <= n_ref, True
@@ -110,22 +110,22 @@ def test_particle_overrefine():
     bbox = np.array(bbox)
     _attrs = ('icoords', 'fcoords', 'fwidth', 'ires')
     for n_ref in [16, 32, 64, 512, 1024]:
-        pf1 = load_particles(data, 1.0, bbox = bbox, n_ref = n_ref)
-        dd1 = pf1.h.all_data()
+        ds1 = load_particles(data, 1.0, bbox = bbox, n_ref = n_ref)
+        dd1 = ds1.all_data()
         v1 = dict((a, getattr(dd1, a)) for a in _attrs)
         cv1 = dd1["cell_volume"].sum(dtype="float64")
         for over_refine in [1, 2, 3]:
             f = 1 << (3*(over_refine-1))
-            pf2 = load_particles(data, 1.0, bbox = bbox, n_ref = n_ref,
+            ds2 = load_particles(data, 1.0, bbox = bbox, n_ref = n_ref,
                                 over_refine_factor = over_refine)
-            dd2 = pf2.h.all_data()
+            dd2 = ds2.all_data()
             v2 = dict((a, getattr(dd2, a)) for a in _attrs)
             for a in sorted(v1):
                 yield assert_equal, v1[a].size * f, v2[a].size
             cv2 = dd2["cell_volume"].sum(dtype="float64")
             yield assert_equal, cv1, cv2
 
-class FakePF:
+class FakeDS:
     domain_left_edge = None
     domain_right_edge = None
     domain_width = None
@@ -135,20 +135,20 @@ class FakePF:
 
 class FakeRegion:
     def __init__(self, nfiles):
-        self.pf = FakePF()
-        self.pf.domain_left_edge = YTArray([0.0, 0.0, 0.0], "code_length",
-                                           registry=self.pf.unit_registry)
-        self.pf.domain_right_edge = YTArray([nfiles, nfiles, nfiles], "code_length",
-                                            registry=self.pf.unit_registry)
-        self.pf.domain_width = self.pf.domain_right_edge - \
-                               self.pf.domain_left_edge
+        self.ds = FakeDS()
+        self.ds.domain_left_edge = YTArray([0.0, 0.0, 0.0], "code_length",
+                                           registry=self.ds.unit_registry)
+        self.ds.domain_right_edge = YTArray([nfiles, nfiles, nfiles], "code_length",
+                                            registry=self.ds.unit_registry)
+        self.ds.domain_width = self.ds.domain_right_edge - \
+                               self.ds.domain_left_edge
         self.nfiles = nfiles
 
     def set_edges(self, file_id):
         self.left_edge = YTArray([file_id + 0.1, 0.0, 0.0],
-                                 'code_length', registry=self.pf.unit_registry)
+                                 'code_length', registry=self.ds.unit_registry)
         self.right_edge = YTArray([file_id+1 - 0.1, self.nfiles, self.nfiles],
-                                  'code_length', registry=self.pf.unit_registry)
+                                  'code_length', registry=self.ds.unit_registry)
 
 def test_particle_regions():
     np.random.seed(int(0x4d3d3d3))
