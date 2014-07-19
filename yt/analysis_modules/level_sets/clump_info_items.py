@@ -13,6 +13,8 @@ ClumpInfoCallback and callbacks.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import numpy as np
+
 from yt.utilities.operator_registry import \
      OperatorRegistry
 
@@ -73,13 +75,13 @@ def _max_number_density(clump):
     return "Max number density: %.6e cm^-3." % max_n
 add_clump_info("max_number_density", _max_number_density)
 
-def _distance_to_main_clump(clump):
-    master = clump.parent
+def _distance_to_main_clump(clump, units="pc"):
+    master = clump
     while master.parent is not None:
         master = master.parent
-    master_com = master.data.quantities.center_of_mass()
-    my_com = clump.data.quantities.center_of_mass()
+    master_com = clump.data.pf.arr(master.data.quantities.center_of_mass())
+    my_com = clump.data.pf.arr(clump.data.quantities.center_of_mass())
     distance = np.sqrt(((master_com - my_com)**2).sum())
-    return "Distance from master center of mass: %.6e pc." % \
-      distance.in_units("pc")
+    return "Distance from master center of mass: %.6e %s." % \
+      (distance.in_units(units), units)
 add_clump_info("distance_to_main_clump", _distance_to_main_clump)
