@@ -508,7 +508,7 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         pos = data[ptype, coord_name].in_units("code_length")
         mass = data[ptype, mass_name].in_cgs()
         dens = data[ptype, density_name].in_cgs()
-        quan = data[ptype, smoothed_field]
+        quan = data[ptype, smoothed_field].in_units(field_units)
         if smoothing_length_name is None:
             hsml = np.zeros(quan.shape, dtype='float64') - 1
             hsml = data.apply_units(hsml, "code_length")

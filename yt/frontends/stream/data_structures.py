@@ -465,7 +465,13 @@ def assign_particle_data(ds, pdata) :
         ds.stream_handler.particle_count[gi] = npart
                                         
 def unitify_data(data):
-    if all([isinstance(val, np.ndarray) for val in data.values()]):
+    if all([hasattr(val, 'units') for val in data.values()]):
+        new_data, field_units = {}, {}
+        for k, v in data.items():
+            field_units[k] = v.units
+            new_data[k] = v.copy().d
+        data = new_data
+    elif all([isinstance(val, np.ndarray) for val in data.values()]):
         field_units = {field:'' for field in data.keys()}
     elif all([(len(val) == 2) for val in data.values()]):
         new_data, field_units = {}, {}
