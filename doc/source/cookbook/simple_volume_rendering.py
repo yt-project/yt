@@ -6,7 +6,7 @@ ds = yt.load("Enzo_64/DD0043/data0043")
 
 # Create a data container (like a sphere or region) that
 # represents the entire domain.
-ad = ds.h.all_data()
+ad = ds.all_data()
 
 # Get the minimum and maximum densities.
 mi, ma = ad.quantities.extrema("density")

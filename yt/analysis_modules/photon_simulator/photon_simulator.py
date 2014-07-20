@@ -172,7 +172,7 @@ class PhotonList(object):
             instead of it being determined from the *redshift* and given *cosmology*.
         cosmology : `yt.utilities.cosmology.Cosmology`, optional
             Cosmological information. If not supplied, we try to get
-            the cosmology from the parameter file. Otherwise, \LambdaCDM with
+            the cosmology from the dataset. Otherwise, \LambdaCDM with
             the default yt parameters is assumed.
 
         Examples
@@ -184,7 +184,7 @@ class PhotonList(object):
         >>> redshift = 0.05
         >>> area = 6000.0
         >>> time = 2.0e5
-        >>> sp = pf.sphere("c", (500., "kpc"))
+        >>> sp = ds.sphere("c", (500., "kpc"))
         >>> my_photons = PhotonList.from_user_model(sp, redshift, area,
         ...                                         time, thermal_model)
 
@@ -214,7 +214,7 @@ class PhotonList(object):
         >>> from scipy.stats import powerlaw
         >>> def line_func(source, parameters):
         ...
-        ...     pf = source.pf
+        ...     ds = source.ds
         ... 
         ...     num_photons = parameters["num_photons"]
         ...     E0  = parameters["line_energy"] # Energies are in keV
@@ -228,7 +228,7 @@ class PhotonList(object):
         ...     photons["vx"] = np.zeros((1))
         ...     photons["vy"] = np.zeros((1))
         ...     photons["vz"] = 100.*np.ones((1))
-        ...     photons["dx"] = source["dx"][0]*pf.units["kpc"]*np.ones((1)) 
+        ...     photons["dx"] = source["dx"][0]*ds.units["kpc"]*np.ones((1)) 
         ...     photons["NumberOfPhotons"] = num_photons*np.ones((1))
         ...     photons["Energy"] = np.array(energies)
         >>>
@@ -239,21 +239,21 @@ class PhotonList(object):
         ...               "line_sigma" : 0.1}
         >>> ddims = (128,128,128)
         >>> random_data = {"Density":np.random.random(ddims)}
-        >>> pf = load_uniform_grid(random_data, ddims)
-        >>> dd = pf.h.all_data
+        >>> ds = load_uniform_grid(random_data, ddims)
+        >>> dd = ds.all_data
         >>> my_photons = PhotonList.from_user_model(dd, redshift, area,
         ...                                         time, line_func)
 
         """
 
-        pf = data_source.pf
+        ds = data_source.ds
 
         if parameters is None:
              parameters = {}
         if cosmology is None:
-            hubble = getattr(pf, "hubble_constant", None)
-            omega_m = getattr(pf, "omega_matter", None)
-            omega_l = getattr(pf, "omega_lambda", None)
+            hubble = getattr(ds, "hubble_constant", None)
+            omega_m = getattr(ds, "omega_matter", None)
+            omega_l = getattr(ds, "omega_lambda", None)
             if hubble == 0: hubble = None
             if hubble is not None and \
                omega_m is not None and \
@@ -274,14 +274,14 @@ class PhotonList(object):
             redshift = 0.0
 
         if center == "c":
-            parameters["center"] = pf.domain_center
+            parameters["center"] = ds.domain_center
         elif center == "max":
-            parameters["center"] = pf.h.find_max("Density")[-1]
+            parameters["center"] = ds.find_max("density")[-1]
         elif iterable(center):
             if isinstance(center, YTArray):
                 parameters["center"] = center.in_units("code_length")
             else:
-                parameters["center"] = pf.arr(center, "code_length")
+                parameters["center"] = ds.arr(center, "code_length")
         elif center is None:
             parameters["center"] = data_source.get_field_parameter("center")
             

@@ -39,11 +39,11 @@ class IOHandlerFLASH(BaseIOHandler):
     _particle_reader = False
     _dataset_type = "flash_hdf5"
 
-    def __init__(self, pf):
-        super(IOHandlerFLASH, self).__init__(pf)
+    def __init__(self, ds):
+        super(IOHandlerFLASH, self).__init__(ds)
         # Now we cache the particle fields
-        self._handle = pf._handle
-        self._particle_handle = pf._particle_handle
+        self._handle = ds._handle
+        self._particle_handle = ds._particle_handle
         
         try :
             particle_fields = [s[0].strip() for s in
@@ -60,7 +60,7 @@ class IOHandlerFLASH(BaseIOHandler):
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
         f_part = self._particle_handle
-        p_ind = self.pf.index._particle_indices
+        p_ind = self.ds.index._particle_indices
         px, py, pz = (self._particle_fields["particle_pos%s" % ax]
                       for ax in 'xyz')
         p_fields = f_part["/tracer particles"]
@@ -79,7 +79,7 @@ class IOHandlerFLASH(BaseIOHandler):
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
         f_part = self._particle_handle
-        p_ind = self.pf.index._particle_indices
+        p_ind = self.ds.index._particle_indices
         px, py, pz = (self._particle_fields["particle_pos%s" % ax]
                       for ax in 'xyz')
         p_fields = f_part["/tracer particles"]

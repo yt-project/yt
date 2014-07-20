@@ -51,12 +51,12 @@ class BinnedProfile(ParallelAnalysisInterface):
     def __init__(self, data_source):
         ParallelAnalysisInterface.__init__(self)
         self._data_source = data_source
-        self.pf = data_source.pf
+        self.ds = data_source.ds
         self.field_data = YTFieldData()
 
     @property
     def index(self):
-        return self.pf.index
+        return self.ds.index
 
     def _get_dependencies(self, fields):
         return ParallelAnalysisInterface._get_dependencies(
@@ -757,7 +757,7 @@ class ProfileND(ParallelAnalysisInterface):
     """The profile object class"""
     def __init__(self, data_source, weight_field = None):
         self.data_source = data_source
-        self.pf = data_source.pf
+        self.ds = data_source.ds
         self.field_data = YTFieldData()
         if weight_field is not None:
             self.variance = YTFieldData()
@@ -795,12 +795,12 @@ class ProfileND(ParallelAnalysisInterface):
         """
         if field in self.field_units:
             self.field_units[field] = \
-                Unit(new_unit, registry=self.pf.unit_registry)
+                Unit(new_unit, registry=self.ds.unit_registry)
         else:
             fd = self.field_map[field]
             if fd in self.field_units:
                 self.field_units[fd] = \
-                    Unit(new_unit, registry=self.pf.unit_registry)
+                    Unit(new_unit, registry=self.ds.unit_registry)
             else:
                 raise KeyError("%s not in profile!" % (field))
 
@@ -1282,15 +1282,15 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     --------
 
     Create a 1d profile.  Access bin field from profile.x and field
-    data from profile.field_data.
+    data from profile[<field_name>].
 
-    >>> pf = load("DD0046/DD0046")
-    >>> ad = pf.h.all_data()
-    >>> extrema = {"density": (1.0e-30, 1.0e-25)}
-    >>> profile = create_profile(ad, ["density"], extrema=extrema,
-    ...                          fields=["temperature", "velocity_x"]))
+    >>> ds = load("DD0046/DD0046")
+    >>> ad = ds.h.all_data()
+    >>> profile = create_profile(ad, [("gas", "density")], 
+    ...                              [("gas", "temperature"),
+    ...                               ("gas", "velocity_x")])
     >>> print profile.x
-    >>> print profile.field_data["temperature"]
+    >>> print profile["gas", "temperature"]
 
     """
     bin_fields = ensure_list(bin_fields)
@@ -1322,7 +1322,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     if not iterable(accumulation):
         accumulation = [accumulation] * len(bin_fields)
     if logs is None:
-        logs = [data_source.pf._get_field_info(f[0],f[1]).take_log
+        logs = [data_source.ds._get_field_info(f[0],f[1]).take_log
                 for f in bin_fields]
     else:
         logs = [logs[bin_field[-1]] for bin_field in bin_fields]
@@ -1332,21 +1332,23 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     else:
         ex = []
         for bin_field in bin_fields:
-            bf_units = data_source.pf._get_field_info(
+            bf_units = data_source.ds._get_field_info(
                 bin_field[0], bin_field[1]).units
             try:
                 field_ex = list(extrema[bin_field[-1]])
             except KeyError:
                 field_ex = list(extrema[bin_field])
             if units is not None and bin_field in units:
-                fe = data_source.pf.arr(field_ex, units[bin_field])
+                if isinstance(field_ex[0], tuple):
+                    field_ex = [data_source.ds.quan(*f) for f in field_ex]
+                fe = data_source.ds.arr(field_ex, units[bin_field])
                 fe.convert_to_units(bf_units)
                 field_ex = [fe[0].v, fe[1].v]
             if iterable(field_ex[0]):
-                field_ex[0] = data_source.pf.quan(field_ex[0][0], field_ex[0][1])
+                field_ex[0] = data_source.ds.quan(field_ex[0][0], field_ex[0][1])
                 field_ex[0] = field_ex[0].in_units(bf_units)
             if iterable(field_ex[1]):
-                field_ex[1] = data_source.pf.quan(field_ex[1][0], field_ex[1][1])
+                field_ex[1] = data_source.ds.quan(field_ex[1][0], field_ex[1][1])
                 field_ex[1] = field_ex[1].in_units(bf_units)
             ex.append(field_ex)
     args = [data_source]

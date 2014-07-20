@@ -13,29 +13,28 @@ bulk_vel = sp0.quantities["BulkVelocity"]()
 # Get the second sphere
 sp1 = ds.sphere(ds.domain_center, (500., "kpc"))
 
-# Set the bulk velocity field parameter 
+# Set the bulk velocity field parameter
 sp1.set_field_parameter("bulk_velocity", bulk_vel)
 
 # Radial profile without correction
 
 rp0 = yt.create_profile(sp0, 'radius', 'radial_velocity',
-        units = {'radius': 'kpc'},
-        logs = {'radius': False})
+                        units = {'radius': 'kpc'},
+                        logs = {'radius': False})
 
 # Radial profile with correction for bulk velocity
 
 rp1 = yt.create_profile(sp1, 'radius', 'radial_velocity',
-        units = {'radius': 'kpc'},
-        logs = {'radius': False})
+                        units = {'radius': 'kpc'},
+                        logs = {'radius': False})
 
 # Make a plot using matplotlib
 
 fig = plt.figure()
 ax = fig.add_subplot(111)
 
-# Here we scale the velocities by 1.0e5 to get into km/s
 ax.plot(rp0.x, rp0["radial_velocity"].in_units("km/s"),
-		rp1.x, rp1["radial_velocity"].in_units("km/s"))
+        rp1.x, rp1["radial_velocity"].in_units("km/s"))
 
 ax.set_xlabel(r"$\mathrm{r\ (kpc)}$")
 ax.set_ylabel(r"$\mathrm{v_r\ (km/s)}$")

@@ -93,7 +93,7 @@ class StreamGrid(AMRGridPatch):
         self.Level = -1
 
     def _guess_properties_from_parent(self):
-        rf = self.pf.refine_by
+        rf = self.ds.refine_by
         my_ind = self.id - self._id_offset
         le = self.LeftEdge
         self.dds = self.Parent.dds/rf
@@ -159,14 +159,14 @@ class StreamHierarchy(GridIndex):
 
     grid = StreamGrid
 
-    def __init__(self, pf, dataset_type = None):
+    def __init__(self, ds, dataset_type = None):
         self.dataset_type = dataset_type
         self.float_type = 'float64'
-        self.parameter_file = weakref.proxy(pf) # for _obtain_enzo
-        self.stream_handler = pf.stream_handler
+        self.dataset = weakref.proxy(ds) # for _obtain_enzo
+        self.stream_handler = ds.stream_handler
         self.float_type = "float64"
         self.directory = os.getcwd()
-        GridIndex.__init__(self, pf, dataset_type)
+        GridIndex.__init__(self, ds, dataset_type)
 
     def _count_grids(self):
         self.num_grids = self.stream_handler.num_grids
@@ -248,7 +248,7 @@ class StreamHierarchy(GridIndex):
         if self.stream_handler.io is not None:
             self.io = self.stream_handler.io
         else:
-            self.io = io_registry[self.dataset_type](self.pf)
+            self.io = io_registry[self.dataset_type](self.ds)
 
     def update_data(self, data, units = None):
 
@@ -280,11 +280,11 @@ class StreamHierarchy(GridIndex):
             
         # We only want to create a superset of fields here.
         self._detect_output_fields()
-        self.pf.create_field_info()
+        self.ds.create_field_info()
         mylog.debug("Creating Particle Union 'all'")
-        pu = ParticleUnion("all", list(self.pf.particle_types_raw))
-        self.pf.add_particle_union(pu)
-        self.pf.particle_types = tuple(set(self.pf.particle_types))
+        pu = ParticleUnion("all", list(self.ds.particle_types_raw))
+        self.ds.add_particle_union(pu)
+        self.ds.particle_types = tuple(set(self.ds.particle_types))
 
 
 class StreamDataset(Dataset):
@@ -302,8 +302,8 @@ class StreamDataset(Dataset):
         self.geometry = geometry
         self.stream_handler = stream_handler
         name = "InMemoryParameterFile_%s" % (uuid.uuid4().hex)
-        from yt.data_objects.static_output import _cached_pfs
-        _cached_pfs[name] = self
+        from yt.data_objects.static_output import _cached_datasets
+        _cached_datasets[name] = self
         Dataset.__init__(self, name, self._dataset_type)
 
     def _parse_parameter_file(self):
@@ -399,7 +399,7 @@ def set_particle_types(data) :
     
     return particle_types
 
-def assign_particle_data(pf, pdata) :
+def assign_particle_data(ds, pdata) :
 
     """
     Assign particle data to the grids using MatchPointsToGrids. This
@@ -412,25 +412,25 @@ def assign_particle_data(pf, pdata) :
     # most of the GridTree utilizing information we already have from the
     # stream handler.
     
-    if len(pf.stream_handler.fields) > 1:
+    if len(ds.stream_handler.fields) > 1:
 
         try:
             x, y, z = (pdata["io","particle_position_%s" % ax] for ax in 'xyz')
         except KeyError:
             raise KeyError("Cannot decompose particle data without position fields!")
-        num_grids = len(pf.stream_handler.fields)
-        parent_ids = pf.stream_handler.parent_ids
+        num_grids = len(ds.stream_handler.fields)
+        parent_ids = ds.stream_handler.parent_ids
         num_children = np.zeros(num_grids, dtype='int64')
         # We're going to do this the slow way
         mask = np.empty(num_grids, dtype="bool")
         for i in xrange(num_grids):
             np.equal(parent_ids, i, mask)
             num_children[i] = mask.sum()
-        levels = pf.stream_handler.levels.astype("int64").ravel()
+        levels = ds.stream_handler.levels.astype("int64").ravel()
         grid_tree = GridTree(num_grids, 
-                             pf.stream_handler.left_edges,
-                             pf.stream_handler.right_edges,
-                             pf.stream_handler.parent_ids,
+                             ds.stream_handler.left_edges,
+                             ds.stream_handler.right_edges,
+                             ds.stream_handler.parent_ids,
                              levels, num_children)
 
         pts = MatchPointsToGrids(grid_tree, len(x), x, y, z)
@@ -459,13 +459,19 @@ def assign_particle_data(pf, pdata) :
     else :
         grid_pdata = [pdata]
     
-    for pd, gi in zip(grid_pdata, sorted(pf.stream_handler.fields)):
-        pf.stream_handler.fields[gi].update(pd)
-        npart = pf.stream_handler.fields[gi].pop("number_of_particles", 0)
-        pf.stream_handler.particle_count[gi] = npart
+    for pd, gi in zip(grid_pdata, sorted(ds.stream_handler.fields)):
+        ds.stream_handler.fields[gi].update(pd)
+        npart = ds.stream_handler.fields[gi].pop("number_of_particles", 0)
+        ds.stream_handler.particle_count[gi] = npart
                                         
 def unitify_data(data):
-    if all([isinstance(val, np.ndarray) for val in data.values()]):
+    if all([hasattr(val, 'units') for val in data.values()]):
+        new_data, field_units = {}, {}
+        for k, v in data.items():
+            field_units[k] = v.units
+            new_data[k] = v.copy().d
+        data = new_data
+    elif all([isinstance(val, np.ndarray) for val in data.values()]):
         field_units = {field:'' for field in data.keys()}
     elif all([(len(val) == 2) for val in data.values()]):
         new_data, field_units = {}, {}
@@ -567,17 +573,17 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
     >>> arr = np.random.random((128, 128, 128))
 
     >>> data = dict(density = arr)
-    >>> pf = load_uniform_grid(data, arr.shape, length_unit='cm',
+    >>> ds = load_uniform_grid(data, arr.shape, length_unit='cm',
                                bbox=bbox, nprocs=12)
-    >>> dd = pf.h.all_data()
+    >>> dd = ds.all_data()
     >>> dd['Density']
 
     #FIXME
     YTArray[123.2856, 123.854, ..., 123.456, 12.42] (code_mass/code_length^3)
 
     >>> data = dict(density = (arr, 'g/cm**3'))
-    >>> pf = load_uniform_grid(data, arr.shape, 3.03e24, bbox=bbox, nprocs=12)
-    >>> dd = pf.h.all_data()
+    >>> ds = load_uniform_grid(data, arr.shape, 3.03e24, bbox=bbox, nprocs=12)
+    >>> dd = ds.all_data()
     >>> dd['Density']
 
     #FIXME
@@ -670,7 +676,7 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamDataset(handler, geometry = geometry)
+    sds = StreamDataset(handler, geometry = geometry)
 
     # Now figure out where the particles go
     if number_of_particles > 0 :
@@ -683,9 +689,9 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
             pdata_ftype.update(pdata)
             pdata = pdata_ftype
         # This will update the stream handler too
-        assign_particle_data(spf, pdata)
+        assign_particle_data(sds, pdata)
     
-    return spf
+    return sds
 
 def load_amr_grids(grid_data, domain_dimensions,
                    field_units=None, bbox=None, sim_time=0.0, length_unit=None,
@@ -762,8 +768,7 @@ def load_amr_grids(grid_data, domain_dimensions,
     ...     g["Density"] = np.random.random(g["dimensions"]) * 2**g["level"]
     ...
     >>> units = dict(Density='g/cm**3')
-    >>> pf = load_amr_grids(grid_data, [32, 32, 32], 1.0)
-
+    >>> ds = load_amr_grids(grid_data, [32, 32, 32], 1.0)
     """
 
     domain_dimensions = np.array(domain_dimensions)
@@ -840,17 +845,17 @@ def load_amr_grids(grid_data, domain_dimensions,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamDataset(handler, geometry = geometry)
-    return spf
+    sds = StreamDataset(handler, geometry = geometry)
+    return sds
 
-def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
+def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
                callback = None):
-    r"""Given a base parameter file, repeatedly apply refinement criteria and
+    r"""Given a base dataset, repeatedly apply refinement criteria and
     fluid operators until a maximum level is reached.
 
     Parameters
     ----------
-    base_pf : Dataset
+    base_ds : Dataset
         This is any static output.  It can also be a stream static output, for
         instance as returned by load_uniform_data.
     refinement_critera : list of :class:`~yt.utilities.flagging_methods.FlaggingMethod`
@@ -863,7 +868,7 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
         The maximum level to which the data will be refined
     callback : function, optional
         A function that will be called at the beginning of each refinement
-        cycle, with the current parameter file.
+        cycle, with the current dataset.
 
     Examples
     --------
@@ -872,67 +877,67 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
     >>> fo = [ic.CoredSphere(0.05, 0.3, [0.7,0.4,0.75], {"Density": (0.25, 100.0)})]
     >>> rc = [fm.flagging_method_registry["overdensity"](8.0)]
     >>> ug = load_uniform_grid({'Density': data}, domain_dims, 1.0)
-    >>> pf = refine_amr(ug, rc, fo, 5)
+    >>> ds = refine_amr(ug, rc, fo, 5)
     """
 
     # If we have particle data, set it aside for now
 
     number_of_particles = np.sum([grid.NumberOfParticles
-                                  for grid in base_pf.index.grids])
+                                  for grid in base_ds.index.grids])
 
     if number_of_particles > 0 :
         pdata = {}
-        for field in base_pf.field_list :
+        for field in base_ds.field_list :
             if not isinstance(field, tuple):
                 field = ("unknown", field)
-            fi = base_pf._get_field_info(*field)
+            fi = base_ds._get_field_info(*field)
             if fi.particle_type :
                 pdata[field] = uconcatenate([grid[field]
-                                               for grid in base_pf.index.grids])
+                                               for grid in base_ds.index.grids])
         pdata["number_of_particles"] = number_of_particles
         
-    last_gc = base_pf.index.num_grids
+    last_gc = base_ds.index.num_grids
     cur_gc = -1
-    pf = base_pf    
-    bbox = np.array( [ (pf.domain_left_edge[i], pf.domain_right_edge[i])
+    ds = base_ds    
+    bbox = np.array( [ (ds.domain_left_edge[i], ds.domain_right_edge[i])
                        for i in range(3) ])
-    while pf.h.max_level < max_level and last_gc != cur_gc:
+    while ds.index.max_level < max_level and last_gc != cur_gc:
         mylog.info("Refining another level.  Current max level: %s",
-                  pf.h.max_level)
-        last_gc = pf.index.grids.size
-        for m in fluid_operators: m.apply(pf)
-        if callback is not None: callback(pf)
+                  ds.index.max_level)
+        last_gc = ds.index.grids.size
+        for m in fluid_operators: m.apply(ds)
+        if callback is not None: callback(ds)
         grid_data = []
-        for g in pf.index.grids:
+        for g in ds.index.grids:
             gd = dict( left_edge = g.LeftEdge,
                        right_edge = g.RightEdge,
                        level = g.Level,
                        dimensions = g.ActiveDimensions )
-            for field in pf.field_list:
+            for field in ds.field_list:
                 if not isinstance(field, tuple):
                     field = ("unknown", field)
-                fi = pf._get_field_info(*field)
+                fi = ds._get_field_info(*field)
                 if not fi.particle_type :
                     gd[field] = g[field]
             grid_data.append(gd)
-            if g.Level < pf.h.max_level: continue
+            if g.Level < ds.index.max_level: continue
             fg = FlaggingGrid(g, refinement_criteria)
             nsg = fg.find_subgrids()
             for sg in nsg:
-                LE = sg.left_index * g.dds + pf.domain_left_edge
-                dims = sg.dimensions * pf.refine_by
-                grid = pf.smoothed_covering_grid(g.Level + 1, LE, dims)
+                LE = sg.left_index * g.dds + ds.domain_left_edge
+                dims = sg.dimensions * ds.refine_by
+                grid = ds.smoothed_covering_grid(g.Level + 1, LE, dims)
                 gd = dict(left_edge = LE, right_edge = grid.right_edge,
                           level = g.Level + 1, dimensions = dims)
-                for field in pf.field_list:
+                for field in ds.field_list:
                     if not isinstance(field, tuple):
                         field = ("unknown", field)
-                    fi = pf._get_field_info(*field)
+                    fi = ds._get_field_info(*field)
                     if not fi.particle_type :
                         gd[field] = grid[field]
                 grid_data.append(gd)
         
-        pf = load_amr_grids(grid_data, pf.domain_dimensions, 1.0,
+        ds = load_amr_grids(grid_data, ds.domain_dimensions, 1.0,
                             bbox = bbox)
         if number_of_particles > 0:
             if ("io", "particle_position_x") not in pdata:
@@ -943,26 +948,26 @@ def refine_amr(base_pf, refinement_criteria, fluid_operators, max_level,
                     pdata_ftype["io",f] = pdata.pop(f)
                 pdata_ftype.update(pdata)
                 pdata = pdata_ftype
-            assign_particle_data(pf, pdata)
+            assign_particle_data(ds, pdata)
             # We need to reassign the field list here.
-        cur_gc = pf.index.num_grids
+        cur_gc = ds.index.num_grids
 
     # Now reassign particle data to grids
     
-    return pf
+    return ds
 
 class StreamParticleIndex(ParticleIndex):
 
     
-    def __init__(self, pf, dataset_type = None):
-        self.stream_handler = pf.stream_handler
-        super(StreamParticleIndex, self).__init__(pf, dataset_type)
+    def __init__(self, ds, dataset_type = None):
+        self.stream_handler = ds.stream_handler
+        super(StreamParticleIndex, self).__init__(ds, dataset_type)
 
     def _setup_data_io(self):
         if self.stream_handler.io is not None:
             self.io = self.stream_handler.io
         else:
-            self.io = io_registry[self.dataset_type](self.pf)
+            self.io = io_registry[self.dataset_type](self.ds)
 
 class StreamParticleFile(ParticleFile):
     pass
@@ -1031,7 +1036,7 @@ def load_particles(data, length_unit = None, bbox=None,
     ...             particle_position_y = pos[1],
     ...             particle_position_z = pos[2])
     >>> bbox = np.array([[0., 1.0], [0.0, 1.0], [0.0, 1.0]])
-    >>> pf = load_particles(data, 3.08e24, bbox=bbox)
+    >>> ds = load_particles(data, 3.08e24, bbox=bbox)
 
     """
 
@@ -1100,11 +1105,11 @@ def load_particles(data, length_unit = None, bbox=None,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamParticlesDataset(handler, geometry = geometry)
-    spf.n_ref = n_ref
-    spf.over_refine_factor = over_refine_factor
+    sds = StreamParticlesDataset(handler, geometry=geometry)
+    sds.n_ref = n_ref
+    sds.over_refine_factor = over_refine_factor
 
-    return spf
+    return sds
 
 _cis = np.fromiter(chain.from_iterable(product([0,1], [0,1], [0,1])),
                 dtype=np.int64, count = 8*3)
@@ -1131,9 +1136,9 @@ class StreamHexahedralMesh(SemiStructuredMesh):
 
 class StreamHexahedralHierarchy(UnstructuredIndex):
 
-    def __init__(self, pf, dataset_type = None):
-        self.stream_handler = pf.stream_handler
-        super(StreamHexahedralHierarchy, self).__init__(pf, dataset_type)
+    def __init__(self, ds, dataset_type = None):
+        self.stream_handler = ds.stream_handler
+        super(StreamHexahedralHierarchy, self).__init__(ds, dataset_type)
 
     def _initialize_mesh(self):
         coords = self.stream_handler.fields.pop('coordinates')
@@ -1145,7 +1150,7 @@ class StreamHexahedralHierarchy(UnstructuredIndex):
         if self.stream_handler.io is not None:
             self.io = self.stream_handler.io
         else:
-            self.io = io_registry[self.dataset_type](self.pf)
+            self.io = io_registry[self.dataset_type](self.ds)
 
     def _detect_output_fields(self):
         self.field_list = list(set(self.stream_handler.get_fields()))
@@ -1256,25 +1261,25 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamHexahedralDataset(handler, geometry = geometry)
+    sds = StreamHexahedralDataset(handler, geometry = geometry)
 
-    return spf
+    return sds
 
 class StreamOctreeSubset(OctreeSubset):
     domain_id = 1
     _domain_offset = 1
 
-    def __init__(self, base_region, pf, oct_handler, over_refine_factor = 1):
+    def __init__(self, base_region, ds, oct_handler, over_refine_factor = 1):
         self._num_zones = 1 << (over_refine_factor)
         self.field_data = YTFieldData()
         self.field_parameters = {}
-        self.pf = pf
-        self.index = self.pf.index
+        self.ds = ds
+        self.index = self.ds.index
         self.oct_handler = oct_handler
         self._last_mask = None
         self._last_selector_id = None
         self._current_particle_type = 'io'
-        self._current_fluid_type = self.pf.default_fluid_type
+        self._current_fluid_type = self.ds.default_fluid_type
         self.base_region = base_region
         self.base_selector = base_region.selector
 
@@ -1295,32 +1300,32 @@ class StreamOctreeSubset(OctreeSubset):
 
 class StreamOctreeHandler(OctreeIndex):
 
-    def __init__(self, pf, dataset_type = None):
-        self.stream_handler = pf.stream_handler
+    def __init__(self, ds, dataset_type = None):
+        self.stream_handler = ds.stream_handler
         self.dataset_type = dataset_type
-        super(StreamOctreeHandler, self).__init__(pf, dataset_type)
+        super(StreamOctreeHandler, self).__init__(ds, dataset_type)
 
     def _setup_data_io(self):
         if self.stream_handler.io is not None:
             self.io = self.stream_handler.io
         else:
-            self.io = io_registry[self.dataset_type](self.pf)
+            self.io = io_registry[self.dataset_type](self.ds)
 
     def _initialize_oct_handler(self):
         header = dict(dims = [1, 1, 1],
-                      left_edge = self.pf.domain_left_edge,
-                      right_edge = self.pf.domain_right_edge,
-                      octree = self.pf.octree_mask,
-                      over_refine = self.pf.over_refine_factor,
-                      partial_coverage = self.pf.partial_coverage)
+                      left_edge = self.ds.domain_left_edge,
+                      right_edge = self.ds.domain_right_edge,
+                      octree = self.ds.octree_mask,
+                      over_refine = self.ds.over_refine_factor,
+                      partial_coverage = self.ds.partial_coverage)
         self.oct_handler = OctreeContainer.load_octree(header)
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
             base_region = getattr(dobj, "base_region", dobj)
-            subset = [StreamOctreeSubset(base_region, self.parameter_file,
+            subset = [StreamOctreeSubset(base_region, self.dataset,
                                          self.oct_handler,
-                                         self.pf.over_refine_factor)]
+                                         self.ds.over_refine_factor)]
             dobj._chunk_info = subset
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
@@ -1442,15 +1447,15 @@ def load_octree(octree_mask, data, sim_unit_to_cm,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    spf = StreamOctreeDataset(handler)
-    spf.octree_mask = octree_mask
-    spf.partial_coverage = partial_coverage
-    spf.units["cm"] = sim_unit_to_cm
-    spf.units['1'] = 1.0
-    spf.units["unitary"] = 1.0
+    sds = StreamOctreeDataset(handler)
+    sds.octree_mask = octree_mask
+    sds.partial_coverage = partial_coverage
+    sds.units["cm"] = sim_unit_to_cm
+    sds.units['1'] = 1.0
+    sds.units["unitary"] = 1.0
     box_in_mpc = sim_unit_to_cm / mpc_conversion['cm']
-    spf.over_refine_factor = over_refine_factor
+    sds.over_refine_factor = over_refine_factor
     for unit in mpc_conversion.keys():
-        spf.units[unit] = mpc_conversion[unit] * box_in_mpc
+        sds.units[unit] = mpc_conversion[unit] * box_in_mpc
 
-    return spf
+    return sds

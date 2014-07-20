@@ -88,13 +88,13 @@ logged, you could type:
 
 .. code-block:: python
     
-    pf = load("my_data")
-    pf.h
-    pf.field_info['density'].take_log = False
+    ds = load("my_data")
+    ds.index
+    ds.field_info['density'].take_log = False
 
 From that point forward, data products such as slices, projections, etc., would
-be presented in linear space. Note that you have to instantiate pf.h before you
-can access pf.field info.
+be presented in linear space. Note that you have to instantiate ds.index before 
+you can access ds.field info.
 
 .. _faq-handling-log-vs-linear-space:
 
@@ -109,8 +109,8 @@ example, if you have created a field for the potential called
 
 .. code-block:: python
 
-   pf = load("my_data")
-   dd = pf.h.all_data()
+   ds = load("my_data")
+   dd = ds.all_data()
    potential_field = dd["PotentialField"]
 
 The same applies to fields you might derive inside your ``yt`` script
@@ -119,8 +119,8 @@ available, look at the properties ``field_list`` and ``derived_field_list``:
 
 .. code-block:: python
 
-   print pf.field_list
-   print pf.derived_field_list
+   print ds.field_list
+   print ds.derived_field_list
 
 .. _faq-old-data:
 

@@ -135,8 +135,8 @@ def _default_nuclei_density(field, data):
 def _nuclei_density(field, data):
     element = field.name[1][:field.name[1].find("_")]
     field_data = np.zeros_like(data["gas", "%s_number_density" % 
-                                    data.pf.field_info.species_names[0]])
-    for species in data.pf.field_info.species_names:
+                                    data.ds.field_info.species_names[0]])
+    for species in data.ds.field_info.species_names:
         nucleus = species
         if "_" in species:
             nucleus = species[:species.find("_")]
@@ -166,7 +166,7 @@ def _get_element_multiple(compound, element):
 def setup_species_fields(registry, ftype = "gas", slice_info = None):
     # We have to check what type of field this is -- if it's particles, then we
     # set particle_type to True.
-    particle_type = ftype not in registry.pf.fluid_types
+    particle_type = ftype not in registry.ds.fluid_types
     for species in registry.species_names:
         # These are all the species we should be looking for fractions or
         # densities of.

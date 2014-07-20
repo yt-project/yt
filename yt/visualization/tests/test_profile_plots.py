@@ -20,7 +20,7 @@ import unittest
 from yt.data_objects.profiles import create_profile
 from yt.extern.parameterized import\
     parameterized, param
-from yt.testing import fake_random_pf
+from yt.testing import fake_random_ds
 from yt.visualization.profile_plotter import \
     ProfilePlot, PhasePlot
 from yt.visualization.tests.test_plotwindow import \
@@ -33,7 +33,7 @@ class TestProfilePlotSave(unittest.TestCase):
         fields = ('density', 'temperature', 'velocity_x', 'velocity_y',
                   'velocity_z')
         units = ('g/cm**3', 'K', 'cm/s', 'cm/s', 'cm/s')
-        test_ds = fake_random_pf(64, fields=fields, units=units)
+        test_ds = fake_random_ds(64, fields=fields, units=units)
         regions = [test_ds.region([0.5]*3, [0.4]*3, [0.6]*3), test_ds.all_data()]
         profiles = []
         phases = []

@@ -26,7 +26,7 @@ frontends.  For instance, FLASH may refer to the temperature field as "temp"
 while Enzo calls it "temperature".  Translator functions ensure that any
 derived field relying on "temp" or "temperature" works with both output types.
 
-When a field is requested, the parameter file first looks to see if that field
+When a field is requested, the dataset object first looks to see if that field
 exists on disk.  If it does not, it then queries the list of code-specific
 derived fields.  If it finds nothing there, it then defaults to examining the
 global set of derived fields.
@@ -82,7 +82,7 @@ simulation box, we would create a sphere object with:
 
 .. code-block:: python
 
-   sp = pf.sphere([0.5, 0.5, 0.5], 10.0/pf['kpc'])
+   sp = ds.sphere([0.5, 0.5, 0.5], 10.0/ds['kpc'])
 
 and then look at the temperature of its cells within it via:
 
@@ -105,25 +105,25 @@ potentially-accessible derived fields is available in the property
 
 .. code-block:: python
 
-   pf = load("my_data")
-   print pf.field_list
-   print pf.derived_field_list
+   ds = load("my_data")
+   print ds.field_list
+   print ds.derived_field_list
 
 When a field is added, it is added to a container that hangs off of the
-parameter file, as well.  All of the field creation options
+dataset, as well.  All of the field creation options
 (:ref:`derived-field-options`) are accessible through this object:
 
 .. code-block:: python
 
-   pf = load("my_data")
-   print pf.field_info["pressure"].get_units()
+   ds = load("my_data")
+   print ds.field_info["pressure"].get_units()
 
 This is a fast way to examine the units of a given field, and additionally you
 can use :meth:`yt.utilities.pydot.get_source` to get the source code:
 
 .. code-block:: python
 
-   field = pf.field_info["pressure"]
+   field = ds.field_info["pressure"]
    print field.get_source()
 
 .. _available-objects:
@@ -142,8 +142,8 @@ object.  To access them, you would do something like this (as for a
 .. code-block:: python
 
    from yt.mods import *
-   pf = load("RedshiftOutput0005")
-   reg = pf.region([0.5, 0.5, 0.5], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
+   ds = load("RedshiftOutput0005")
+   reg = ds.region([0.5, 0.5, 0.5], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
 
 .. include:: _obj_docstrings.inc
 
@@ -151,6 +151,11 @@ object.  To access them, you would do something like this (as for a
 
 Combining Objects: Boolean Data Objects
 ---------------------------------------
+
+.. note:: Boolean Data Objects have not yet been ported to yt 3.0 from
+    yt 2.x.  If you are interested in aiding in this port, please contact
+    the yt-dev mailing list.  Until it is ported, this functionality below
+    will not work.
 
 A special type of data object is the *boolean* data object.
 It works only on three-dimensional objects.
@@ -192,8 +197,8 @@ These can be accessed via the ``quantities`` interface, like so:
 
 .. code-block:: python
 
-   pf = load("my_data")
-   dd = pf.h.all_data()
+   ds = load("my_data")
+   dd = ds.all_data()
    dd.quantities["AngularMomentumVector"]()
 
 The following quantities are available via the ``quantities`` interface.
@@ -264,10 +269,10 @@ it as a data_source to a projection.
 .. python-script::
 
    from yt.mods import *
-   pf = load("enzo_tiny_cosmology/DD0046/DD0046")
-   ad = pf.h.all_data()
+   ds = load("enzo_tiny_cosmology/DD0046/DD0046")
+   ad = ds.all_data()
    new_region = ad.cut_region(['obj["density"] > 1e-29'])
-   plot = ProjectionPlot(pf, "x", "density", weight_field="density",
+   plot = ProjectionPlot(ds, "x", "density", weight_field="density",
                          data_source=new_region)
    plot.save()
 
@@ -291,7 +296,7 @@ whether or not to conduct it in log space.
 
 .. code-block:: python
 
-   sp = pf.sphere("max", (1.0, 'pc'))
+   sp = ds.sphere("max", (1.0, 'pc'))
    contour_values, connected_sets = sp.extract_connected_sets(
         "density", 3, 1e-30, 1e-20)
 
@@ -355,12 +360,12 @@ projections.
 construction of the objects is the difficult part, rather than the generation
 of the data -- this means that you can save out an object as a description of
 how to recreate it in space, but not the actual data arrays affiliated with
-that object.  The information that is saved includes the parameter file off of
+that object.  The information that is saved includes the dataset off of
 which the object "hangs."  It is this piece of information that is the most
 difficult; the object, when reloaded, must be able to reconstruct a parameter
 file from whatever limited information it has in the save file.
 
-To do this, ``yt`` is able to identify parameter files based on a "hash"
+To do this, ``yt`` is able to identify datasets based on a "hash"
 generated from the base file name, the "CurrentTimeIdentifier", and the
 simulation time.  These three characteristics should never be changed outside
 of a simulation, they are independent of the file location on disk, and in
@@ -374,10 +379,10 @@ the index or as a standalone file.  For instance, using
 .. code-block:: python
 
    from yt.mods import *
-   pf = load("my_data")
-   sp = pf.sphere([0.5, 0.5, 0.5], 10.0/pf['kpc'])
+   ds = load("my_data")
+   sp = ds.sphere([0.5, 0.5, 0.5], 10.0/ds['kpc'])
 
-   pf.h.save_object(sp, "sphere_to_analyze_later")
+   ds.save_object(sp, "sphere_to_analyze_later")
 
 
 In a later session, we can load it using
@@ -387,8 +392,8 @@ In a later session, we can load it using
 
    from yt.mods import *
 
-   pf = load("my_data")
-   sphere_to_analyze = pf.h.load_object("sphere_to_analyze_later")
+   ds = load("my_data")
+   sphere_to_analyze = ds.load_object("sphere_to_analyze_later")
 
 Additionally, if we want to store the object independent of the ``.yt`` file,
 we can save the object directly:
@@ -397,8 +402,8 @@ we can save the object directly:
 
    from yt.mods import *
 
-   pf = load("my_data")
-   sp = pf.sphere([0.5, 0.5, 0.5], 10.0/pf['kpc'])
+   ds = load("my_data")
+   sp = ds.sphere([0.5, 0.5, 0.5], 10.0/ds['kpc'])
 
    sp.save_object("my_sphere", "my_storage_file.cpkl")
 
@@ -414,10 +419,10 @@ To re-load an object saved this way, you can use the shelve module directly:
    from yt.mods import *
    import shelve
 
-   pf = load("my_data") # not necessary if storeparameterfiles is on
+   ds = load("my_data") # not necessary if storeparameterfiles is on
 
    obj_file = shelve.open("my_storage_file.cpkl")
-   pf, obj = obj_file["my_sphere"]
+   ds, obj = obj_file["my_sphere"]
 
 If you have turned on ``storeparameterfiles`` in your configuration,
 you won't need to load the parameterfile again, as the load process

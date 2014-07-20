@@ -92,7 +92,7 @@ class SPHFieldInfo(FieldInfoContainer):
 
 class TipsyFieldInfo(SPHFieldInfo):
 
-    def __init__(self, pf, field_list, slice_info = None):
+    def __init__(self, ds, field_list, slice_info = None):
         aux_particle_fields = {
                 'uDotFB':("uDotFB", ("code_mass * code_velocity**2", ["uDotFB"], None)),
                 'uDotAV':("uDotAV", ("code_mass * code_velocity**2", ["uDotAV"], None)),
@@ -116,7 +116,7 @@ class TipsyFieldInfo(SPHFieldInfo):
             if field[1] in aux_particle_fields.keys() and \
                 aux_particle_fields[field[1]] not in self.known_particle_fields:
                 self.known_particle_fields += (aux_particle_fields[field[1]],)
-        super(TipsyFieldInfo,self).__init__(pf, field_list, slice_info)
+        super(TipsyFieldInfo,self).__init__(ds, field_list, slice_info)
 
 
         
@@ -347,7 +347,7 @@ class OWLSFieldInfo(SPHFieldInfo):
             # create ionization table for this redshift
             #--------------------------------------------------------
             itab = oit.IonTableOWLS( fname )
-            itab.set_iz( data.pf.current_redshift )
+            itab.set_iz( data.ds.current_redshift )
 
             # find ion balance using log nH and log T
             #--------------------------------------------------------
