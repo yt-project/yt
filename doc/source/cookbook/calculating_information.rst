@@ -61,8 +61,8 @@ serial the operation ``for pf in ts:`` would also have worked identically.
 Simple Derived Fields
 ~~~~~~~~~~~~~~~~~~~~~
 
-This recipe demonstrates how to create a simple derived field, number_density,
- and then generate a projection from it.
+This recipe demonstrates how to create a simple derived field, 
+thermal_energy_density, and then generate a projection from it.
 
 .. yt_cookbook:: derived_field.py
 
