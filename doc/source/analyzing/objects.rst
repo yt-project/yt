@@ -36,10 +36,10 @@ the standard construction:
 
 .. code-block:: python
 
-   add_field("thermal_energy", function=_ThermalEnergy,
+   add_field("specific_thermal_energy", function=_specific_thermal_energy,
              units="ergs/g")
 
-where ``_ThermalEnergy`` is a python function that defines the field.
+where ``_specific_thermal_energy`` is a python function that defines the field.
 
 .. _accessing-fields:
 
