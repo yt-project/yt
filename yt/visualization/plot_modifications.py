@@ -689,20 +689,20 @@ class ClumpContourCallback(PlotCallback):
         nx, ny = plot.image._A.shape
         buff = np.zeros((nx,ny),dtype='float64')
         for i,clump in enumerate(reversed(self.clumps)):
-            mylog.debug("Pixelizing contour %s", i)
+            mylog.info("Pixelizing contour %s", i)
 
-            xf_copy = clump[xf].copy()
-            yf_copy = clump[yf].copy()
+            xf_copy = clump[xf].copy().in_units("code_length")
+            yf_copy = clump[yf].copy().in_units("code_length")
 
             temp = _MPL.Pixelize(xf_copy, yf_copy,
-                                 clump[dxf]/2.0,
-                                 clump[dyf]/2.0,
-                                 clump[dxf]*0.0+i+1, # inits inside Pixelize
+                                 clump[dxf].in_units("code_length")/2.0,
+                                 clump[dyf].in_units("code_length")/2.0,
+                                 clump[dxf].d*0.0+i+1, # inits inside Pixelize
                                  int(nx), int(ny),
                              (x0, x1, y0, y1), 0).transpose()
             buff = np.maximum(temp, buff)
         self.rv = plot._axes.contour(buff, np.unique(buff),
-                                     extent=extent,**self.plot_args)
+                                     extent=extent, **self.plot_args)
         plot._axes.hold(False)
 
 class ArrowCallback(PlotCallback):
