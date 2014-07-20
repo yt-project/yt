@@ -21,14 +21,6 @@ analysis.
 
 .. yt_cookbook:: halo_profiler.py
 
-Halo Tracking Across Timesteps
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-This script demonstrates tracking a halo across multiple timesteps
-in a TimeSeries object, as well as some handy functions for looking
-at the properties of that halo over time.
-
-.. yt_cookbook:: halo_merger_tree.py
-
 .. _cookbook-light_cone:
 
 Light Cone Projection
