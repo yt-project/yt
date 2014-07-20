@@ -51,7 +51,6 @@ set a simple mask based on the contents of one of our fields.
 
 .. notebook-cell::
 
-    import numpy as np
     import yt
     ds = yt.load('Enzo_64/DD0042/data0042')
     ad = ds.all_data()
@@ -68,7 +67,6 @@ used if you simply need to access the NumPy arrays:
 
 .. notebook-cell::
 
-    import numpy as np
     import yt
     ds = yt.load('Enzo_64/DD0042/data0042')
     ad = ds.all_data()
@@ -141,3 +139,30 @@ the grid as mesh fields.
 Filtering Fields by Spatial Location: Geometric Objects
 -------------------------------------------------------
 
+Creating geometric objects for a dataset provides a means for filtering
+a field based on spatial location.  The most commonly used of these are
+spheres, regions (3D prisms), ellipsoids, disks, and rays.  The `all_data`
+object which gets used throughout this documentation section is an example of 
+a geometric object, but it defaults to including all the data in the dataset
+volume.
+
+Consult the object documentation section for all of the different objects
+one can use, but here is a simple example using a sphere object to filter
+a dataset.  Let's filter out everything not within 10 Mpc of some random 
+location, say [0.2, 0.5, 0.1], in the simulation volume.  The resulting object 
+will only contain grid cells with centers falling inside of our defined sphere, 
+which may look offset based on the presence of different resolution elements
+distributed throughout the dataset.
+
+.. notebook-cell::
+
+    import yt
+    ds = yt.load('Enzo_64/DD0042/data0042')
+    center = [0.20, 0.50, 0.10]
+
+    sp = ds.sphere(center, (10, 'Mpc'))
+    prj = yt.ProjectionPlot(ds, "x", "density", center=center, width=(50, "Mpc"), data_source=sp)
+
+    # Mark the center with a big X
+    prj.annotate_marker(center, 'x', plot_args={'s':100})
+    prj.save()
