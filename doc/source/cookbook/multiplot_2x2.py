@@ -29,9 +29,10 @@ fields = ['density', 'velocity_x', 'velocity_y', 'velocity_magnitude']
 p = yt.SlicePlot(ds, 'z', fields)
 
 # Velocity is going to be both positive and negative, so let's make these
-# slices linear
+# slices use a linear colorbar scale
 p.set_log('velocity_x', False)
 p.set_log('velocity_y', False)
+
 p.zoom(2)
 
 # For each plotted field, force the SlicePlot to redraw itself onto the AxesGrid

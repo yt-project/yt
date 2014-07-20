@@ -74,16 +74,16 @@ class FITSHierarchy(GridIndex):
 
     grid = FITSGrid
 
-    def __init__(self,pf,dataset_type='fits'):
+    def __init__(self,ds,dataset_type='fits'):
         self.dataset_type = dataset_type
         self.field_indexes = {}
-        self.parameter_file = weakref.proxy(pf)
-        # for now, the index file is the parameter file!
-        self.index_filename = self.parameter_file.parameter_filename
+        self.dataset = weakref.proxy(ds)
+        # for now, the index file is the dataset!
+        self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
-        self._handle = pf._handle
+        self._handle = ds._handle
         self.float_type = np.float64
-        GridIndex.__init__(self,pf,dataset_type)
+        GridIndex.__init__(self,ds,dataset_type)
 
     def _initialize_data_storage(self):
         pass
@@ -114,7 +114,7 @@ class FITSHierarchy(GridIndex):
             return "dimensionless"
 
     def _ensure_same_dims(self, hdu):
-        ds = self.parameter_file
+        ds = self.dataset
         conditions = [hdu.header["naxis"] != ds.primary_header["naxis"]]
         for i in xrange(ds.naxis):
             nax = "naxis%d" % (i+1)
@@ -125,7 +125,7 @@ class FITSHierarchy(GridIndex):
             return True
 
     def _detect_output_fields(self):
-        ds = self.parameter_file
+        ds = self.dataset
         self.field_list = []
         if ds.events_data:
             for k,v in ds.events_info.items():
@@ -136,7 +136,7 @@ class FITSHierarchy(GridIndex):
                     unit = "code_length"
                 else:
                     unit = v
-                self.parameter_file.field_units[("io",fname)] = unit
+                self.dataset.field_units[("io",fname)] = unit
             return
         self._axis_map = {}
         self._file_map = {}
@@ -145,17 +145,17 @@ class FITSHierarchy(GridIndex):
         dup_field_index = {}
         # Since FITS header keywords are case-insensitive, we only pick a subset of
         # prefixes, ones that we expect to end up in headers.
-        known_units = dict([(unit.lower(),unit) for unit in self.pf.unit_registry.lut])
+        known_units = dict([(unit.lower(),unit) for unit in self.ds.unit_registry.lut])
         for unit in known_units.values():
             if unit in prefixable_units:
                 for p in ["n","u","m","c","k"]:
                     known_units[(p+unit).lower()] = p+unit
         # We create a field from each slice on the 4th axis
-        if self.parameter_file.naxis == 4:
-            naxis4 = self.parameter_file.primary_header["naxis4"]
+        if self.dataset.naxis == 4:
+            naxis4 = self.dataset.primary_header["naxis4"]
         else:
             naxis4 = 1
-        for i, fits_file in enumerate(self.parameter_file._handle._fits_files):
+        for i, fits_file in enumerate(self.dataset._handle._fits_files):
             for j, hdu in enumerate(fits_file):
                 if self._ensure_same_dims(hdu):
                     units = self._determine_image_units(hdu.header, known_units)
@@ -167,7 +167,7 @@ class FITSHierarchy(GridIndex):
                         fname = self._guess_name_from_units(units)
                         # When all else fails
                         if fname is None: fname = "image_%d" % (j)
-                    if self.pf.num_files > 1 and fname.startswith("image"):
+                    if self.ds.num_files > 1 and fname.startswith("image"):
                         fname += "_file_%d" % (i)
                     if ("fits", fname) in self.field_list:
                         if fname in dup_field_index:
@@ -191,7 +191,7 @@ class FITSHierarchy(GridIndex):
                         if "bscale" in hdu.header:
                             self._scale_map[fname][1] = hdu.header["bscale"]
                         self.field_list.append(("fits", fname))
-                        self.parameter_file.field_units[fname] = units
+                        self.dataset.field_units[fname] = units
                         mylog.info("Adding field %s to the list of fields." % (fname))
                         if units == "dimensionless":
                             mylog.warning("Could not determine dimensions for field %s, " % (fname) +
@@ -203,7 +203,7 @@ class FITSHierarchy(GridIndex):
 
         # For line fields, we still read the primary field. Not sure how to extend this
         # For now, we pick off the first field from the field list.
-        line_db = self.parameter_file.line_database
+        line_db = self.dataset.line_database
         primary_fname = self.field_list[0][1]
         for k, v in line_db.iteritems():
             mylog.info("Adding line field: %s at frequency %g GHz" % (k, v))
@@ -211,54 +211,54 @@ class FITSHierarchy(GridIndex):
             self._ext_map[k] = self._ext_map[primary_fname]
             self._axis_map[k] = self._axis_map[primary_fname]
             self._file_map[k] = self._file_map[primary_fname]
-            self.parameter_file.field_units[k] = self.parameter_file.field_units[primary_fname]
+            self.dataset.field_units[k] = self.dataset.field_units[primary_fname]
 
     def _count_grids(self):
-        self.num_grids = self.pf.parameters["nprocs"]
+        self.num_grids = self.ds.parameters["nprocs"]
 
     def _parse_index(self):
         f = self._handle # shortcut
-        pf = self.parameter_file # shortcut
+        ds = self.dataset # shortcut
 
         # If nprocs > 1, decompose the domain into virtual grids
         if self.num_grids > 1:
-            if self.pf.z_axis_decomp:
-                dz = pf.quan(1.0, "code_length")*pf.spectral_factor
-                self.grid_dimensions[:,2] = np.around(float(pf.domain_dimensions[2])/
+            if self.ds.z_axis_decomp:
+                dz = ds.quan(1.0, "code_length")*ds.spectral_factor
+                self.grid_dimensions[:,2] = np.around(float(ds.domain_dimensions[2])/
                                                             self.num_grids).astype("int")
-                self.grid_dimensions[-1,2] += (pf.domain_dimensions[2] % self.num_grids)
-                self.grid_left_edge[0,2] = pf.domain_left_edge[2]
-                self.grid_left_edge[1:,2] = pf.domain_left_edge[2] + \
+                self.grid_dimensions[-1,2] += (ds.domain_dimensions[2] % self.num_grids)
+                self.grid_left_edge[0,2] = ds.domain_left_edge[2]
+                self.grid_left_edge[1:,2] = ds.domain_left_edge[2] + \
                                             np.cumsum(self.grid_dimensions[:-1,2])*dz
                 self.grid_right_edge[:,2] = self.grid_left_edge[:,2]+self.grid_dimensions[:,2]*dz
-                self.grid_left_edge[:,:2] = pf.domain_left_edge[:2]
-                self.grid_right_edge[:,:2] = pf.domain_right_edge[:2]
-                self.grid_dimensions[:,:2] = pf.domain_dimensions[:2]
+                self.grid_left_edge[:,:2] = ds.domain_left_edge[:2]
+                self.grid_right_edge[:,:2] = ds.domain_right_edge[:2]
+                self.grid_dimensions[:,:2] = ds.domain_dimensions[:2]
             else:
-                bbox = np.array([[le,re] for le, re in zip(pf.domain_left_edge,
-                                                           pf.domain_right_edge)])
-                dims = np.array(pf.domain_dimensions)
+                bbox = np.array([[le,re] for le, re in zip(ds.domain_left_edge,
+                                                           ds.domain_right_edge)])
+                dims = np.array(ds.domain_dimensions)
                 # If we are creating a dataset of lines, only decompose along the position axes
-                if len(pf.line_database) > 0:
-                    dims[pf.spec_axis] = 1
+                if len(ds.line_database) > 0:
+                    dims[ds.spec_axis] = 1
                 psize = get_psize(dims, self.num_grids)
                 gle, gre, shapes, slices = decompose_array(dims, psize, bbox)
-                self.grid_left_edge = self.pf.arr(gle, "code_length")
-                self.grid_right_edge = self.pf.arr(gre, "code_length")
+                self.grid_left_edge = self.ds.arr(gle, "code_length")
+                self.grid_right_edge = self.ds.arr(gre, "code_length")
                 self.grid_dimensions = np.array([shape for shape in shapes], dtype="int32")
                 # If we are creating a dataset of lines, only decompose along the position axes
-                if len(pf.line_database) > 0:
-                    self.grid_left_edge[:,pf.spec_axis] = pf.domain_left_edge[pf.spec_axis]
-                    self.grid_right_edge[:,pf.spec_axis] = pf.domain_right_edge[pf.spec_axis]
-                    self.grid_dimensions[:,pf.spec_axis] = pf.domain_dimensions[pf.spec_axis]
+                if len(ds.line_database) > 0:
+                    self.grid_left_edge[:,ds.spec_axis] = ds.domain_left_edge[ds.spec_axis]
+                    self.grid_right_edge[:,ds.spec_axis] = ds.domain_right_edge[ds.spec_axis]
+                    self.grid_dimensions[:,ds.spec_axis] = ds.domain_dimensions[ds.spec_axis]
         else:
-            self.grid_left_edge[0,:] = pf.domain_left_edge
-            self.grid_right_edge[0,:] = pf.domain_right_edge
-            self.grid_dimensions[0] = pf.domain_dimensions
+            self.grid_left_edge[0,:] = ds.domain_left_edge
+            self.grid_right_edge[0,:] = ds.domain_right_edge
+            self.grid_dimensions[0] = ds.domain_dimensions
 
-        if pf.events_data:
+        if ds.events_data:
             try:
-                self.grid_particle_count[:] = pf.primary_header["naxis2"]
+                self.grid_particle_count[:] = ds.primary_header["naxis2"]
             except KeyError:
                 self.grid_particle_count[:] = 0.0
             self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
@@ -277,20 +277,20 @@ class FITSHierarchy(GridIndex):
 
     def _setup_derived_fields(self):
         super(FITSHierarchy, self)._setup_derived_fields()
-        [self.parameter_file.conversion_factors[field]
+        [self.dataset.conversion_factors[field]
          for field in self.field_list]
         for field in self.field_list:
             if field not in self.derived_field_list:
                 self.derived_field_list.append(field)
 
         for field in self.derived_field_list:
-            f = self.parameter_file.field_info[field]
+            f = self.dataset.field_info[field]
             if f._function.func_name == "_TranslationFunc":
                 # Translating an already-converted field
-                self.parameter_file.conversion_factors[field] = 1.0
+                self.dataset.conversion_factors[field] = 1.0
 
     def _setup_data_io(self):
-        self.io = io_registry[self.dataset_type](self.parameter_file)
+        self.io = io_registry[self.dataset_type](self.dataset)
 
     def _chunk_io(self, dobj, cache = True, local_only = False):
         # local_only is only useful for inline datasets and requires

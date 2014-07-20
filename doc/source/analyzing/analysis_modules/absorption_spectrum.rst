@@ -35,7 +35,7 @@ maximum wavelengths, and the number of wavelength bins.
 
 .. code-block:: python
 
-  from yt.analysis_modules.api import AbsorptionSpectrum
+  from yt.analysis_modules.absorption_spectrum.api import AbsorptionSpectrum
 
   sp = AbsorptionSpectrum(900.0, 1800.0, 10000)
 

@@ -157,7 +157,7 @@ The Stream frontend, which can construct datasets in memory, has been improved
 considerably.  It's now easier than ever to load data from disk.  If you know
 how to get volumetric data into Python, you can use either the
 ``load_uniform_grid`` function or the ``load_amr_grid`` function to create an
-in-memory parameter file that yt can analyze.
+in-memory dataset that yt can analyze.
 
 yt now supports the Athena code.
 
@@ -200,7 +200,7 @@ Most Visible Improvements
    * Sidecar files containing expensive derived fields can be written and
      implicitly loaded from.
    * GDF files, which are portable yt-specific representations of full
-     simulations, can be created from any parameter file.  Work is underway on
+     simulations, can be created from any dataset.  Work is underway on
      a pure C library that can be linked against to load these files into
      simulations.
 
@@ -228,7 +228,7 @@ Most Visible Improvements
  * Many, many improvements to PlotWindow.  If you're still using
    PlotCollection, check out ``ProjectionPlot``, ``SlicePlot``,
    ``OffAxisProjectionPlot`` and ``OffAxisSlicePlot``.
- * PlotWindow can now accept a timeseries instead of a parameter file.
+ * PlotWindow can now accept a timeseries instead of a dataset.
  * Many fixes for 1D and 2D data, especially in FLASH datasets.
  * Vast improvements to the particle file handling for FLASH datasets.
  * Particles can now be created ex nihilo with CICSample_3.
@@ -277,7 +277,7 @@ Most Visible Improvements
  * Many improvements to Time Series analysis:
     * EnzoSimulation now integrates with TimeSeries analysis!
     * Auto-parallelization of analysis and parallel iteration
-    * Memory usage when iterating over parameter files reduced substantially
+    * Memory usage when iterating over datasets reduced substantially
  * Many improvements to Reason, the yt GUI
     * Addition of "yt reason" as a startup command
     * Keyboard shortcuts in projection & slice mode: z, Z, x, X for zooms,

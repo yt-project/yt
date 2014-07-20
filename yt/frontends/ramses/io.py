@@ -94,5 +94,5 @@ class IOHandlerRAMSES(BaseIOHandler):
             dt = subset.domain.particle_field_types[field]
             tr[field] = fpu.read_vector(f, dt)
             if field[1].startswith("particle_position"):
-                np.divide(tr[field], subset.domain.pf["boxlen"], tr[field])
+                np.divide(tr[field], subset.domain.ds["boxlen"], tr[field])
         return tr

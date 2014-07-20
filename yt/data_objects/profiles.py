@@ -51,12 +51,12 @@ class BinnedProfile(ParallelAnalysisInterface):
     def __init__(self, data_source):
         ParallelAnalysisInterface.__init__(self)
         self._data_source = data_source
-        self.pf = data_source.pf
+        self.ds = data_source.ds
         self.field_data = YTFieldData()
 
     @property
     def index(self):
-        return self.pf.index
+        return self.ds.index
 
     def _get_dependencies(self, fields):
         return ParallelAnalysisInterface._get_dependencies(
@@ -110,7 +110,7 @@ class BinnedProfile(ParallelAnalysisInterface):
                 data[field][ub] /= weight_data[field][ub]
                 std_data[field][ub] /= weight_data[field][ub]
             self[field] = data[field]
-            #self["%s_std" % field] = np.sqrt(std_data[field])
+            self["%s_std" % field] = np.sqrt(std_data[field])
         self["UsedBins"] = used
 
         if fractional:
@@ -757,8 +757,10 @@ class ProfileND(ParallelAnalysisInterface):
     """The profile object class"""
     def __init__(self, data_source, weight_field = None):
         self.data_source = data_source
-        self.pf = data_source.pf
+        self.ds = data_source.ds
         self.field_data = YTFieldData()
+        if weight_field is not None:
+            self.variance = YTFieldData()
         self.weight_field = weight_field
         self.field_units = {}
         ParallelAnalysisInterface.__init__(self, comm=data_source.comm)
@@ -793,32 +795,89 @@ class ProfileND(ParallelAnalysisInterface):
         """
         if field in self.field_units:
             self.field_units[field] = \
-                Unit(new_unit, registry=self.pf.unit_registry)
+                Unit(new_unit, registry=self.ds.unit_registry)
         else:
             fd = self.field_map[field]
             if fd in self.field_units:
                 self.field_units[fd] = \
-                    Unit(new_unit, registry=self.pf.unit_registry)
+                    Unit(new_unit, registry=self.ds.unit_registry)
             else:
                 raise KeyError("%s not in profile!" % (field))
 
     def _finalize_storage(self, fields, temp_storage):
         # We use our main comm here
         # This also will fill _field_data
-        temp_storage.values = self.comm.mpi_allreduce(temp_storage.values, op="sum", dtype="float64")
-        temp_storage.weight_values = self.comm.mpi_allreduce(temp_storage.weight_values, op="sum", dtype="float64")
-        temp_storage.used = self.comm.mpi_allreduce(temp_storage.used, op="sum", dtype="bool")
-        blank = ~temp_storage.used
-        self.used = temp_storage.used
-        if self.weight_field is not None:
-            # This is unnecessary, but it will suppress division errors.
-            temp_storage.weight_values[blank] = 1e-30
-            temp_storage.values /= temp_storage.weight_values[...,None]
-            self.weight = temp_storage.weight_values[...,None]
-            self.weight[blank] = 0.0
+
+        for i, field in enumerate(fields):
+            # q values are returned as q * weight but we want just q
+            temp_storage.qvalues[..., i][temp_storage.used] /= \
+              temp_storage.weight_values[temp_storage.used]
+
+        # get the profile data from all procs
+        all_store = {self.comm.rank: temp_storage}
+        all_store = self.comm.par_combine_object(all_store,
+                                                 "join", datatype="dict")
+
+        all_val = np.zeros_like(temp_storage.values)
+        all_mean = np.zeros_like(temp_storage.mvalues)
+        all_var = np.zeros_like(temp_storage.qvalues)
+        all_weight = np.zeros_like(temp_storage.weight_values)
+        all_used = np.zeros_like(temp_storage.used, dtype="bool")
+
+        # Combine the weighted mean and variance from each processor.
+        # For two samples with total weight, mean, and variance 
+        # given by w, m, and s, their combined mean and variance are:
+        # m12 = (m1 * w1 + m2 * w2) / (w1 + w2)
+        # s12 = (m1 * (s1**2 + (m1 - m12)**2) + 
+        #        m2 * (s2**2 + (m2 - m12)**2)) / (w1 + w2)
+        # Here, the mvalues are m and the qvalues are s**2.
+        for p in sorted(all_store.keys()):
+            all_used += all_store[p].used
+            old_mean = all_mean.copy()
+            old_weight = all_weight.copy()
+            all_weight[all_store[p].used] += \
+              all_store[p].weight_values[all_store[p].used]
+            for i, field in enumerate(fields):
+                all_val[..., i][all_store[p].used] += \
+                  all_store[p].values[..., i][all_store[p].used]
+
+                all_mean[..., i][all_store[p].used] = \
+                  (all_mean[..., i] * old_weight +
+                   all_store[p].mvalues[..., i] *
+                   all_store[p].weight_values)[all_store[p].used] / \
+                   all_weight[all_store[p].used]
+
+                all_var[..., i][all_store[p].used] = \
+                  (old_weight * (all_var[..., i] +
+                                 (old_mean[..., i] - all_mean[..., i])**2) +
+                   all_store[p].weight_values *
+                   (all_store[p].qvalues[..., i] + 
+                    (all_store[p].mvalues[..., i] -
+                     all_mean[..., i])**2))[all_store[p].used] / \
+                    all_weight[all_store[p].used]
+
+        all_var = np.sqrt(all_var)
+        del all_store
+        self.used = all_used
+        blank = ~all_used
+
+        self.weight = all_weight
+        self.weight[blank] = 0.0
+            
         self.field_map = {}
         for i, field in enumerate(fields):
-            self.field_data[field] = array_like_field(self.data_source, temp_storage.values[...,i], field)
+            if self.weight_field is None:
+                self.field_data[field] = \
+                  array_like_field(self.data_source, 
+                                   all_val[...,i], field)
+            else:
+                self.field_data[field] = \
+                  array_like_field(self.data_source, 
+                                   all_mean[...,i], field)
+                self.variance[field] = \
+                  array_like_field(self.data_source,
+                                   all_var[...,i], field)
+                self.variance[field][blank] = 0.0
             self.field_data[field][blank] = 0.0
             self.field_units[field] = self.field_data[field].units
             if isinstance(field, tuple):
@@ -852,7 +911,7 @@ class ProfileND(ParallelAnalysisInterface):
         if self.weight_field is not None:
             weight_data = chunk[self.weight_field]
         else:
-            weight_data = np.ones(chunk.ires.size, dtype="float64")
+            weight_data = np.ones(filter.size, dtype="float64")
         weight_data = weight_data[filter]
         # So that we can pass these into
         return arr, weight_data, bin_fields
@@ -1196,7 +1255,8 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     extrema : dict of min, max tuples
         Minimum and maximum values of the bin_fields for the profiles.
         The keys correspond to the field names. Defaults to the extrema
-        of the bin_fields of the dataset.
+        of the bin_fields of the dataset. If a units dict is provided, extrema
+        are understood to be in the units specified in the dictionary.
     logs : dict of boolean values
         Whether or not to log the bin_fields for the profiles.
         The keys correspond to the field names. Defaults to the take_log
@@ -1222,15 +1282,15 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     --------
 
     Create a 1d profile.  Access bin field from profile.x and field
-    data from profile.field_data.
+    data from profile[<field_name>].
 
-    >>> pf = load("DD0046/DD0046")
-    >>> ad = pf.h.all_data()
-    >>> extrema = {"density": (1.0e-30, 1.0e-25)}
-    >>> profile = create_profile(ad, ["density"], extrema=extrema,
-    ...                          fields=["temperature", "velocity_x"]))
+    >>> ds = load("DD0046/DD0046")
+    >>> ad = ds.h.all_data()
+    >>> profile = create_profile(ad, [("gas", "density")], 
+    ...                              [("gas", "temperature"),
+    ...                               ("gas", "velocity_x")])
     >>> print profile.x
-    >>> print profile.field_data["temperature"]
+    >>> print profile["gas", "temperature"]
 
     """
     bin_fields = ensure_list(bin_fields)
@@ -1245,6 +1305,16 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
         raise NotImplementedError
     bin_fields = data_source._determine_fields(bin_fields)
     fields = data_source._determine_fields(fields)
+    if units is not None:
+        dummy = {}
+        for item in units:
+            dummy[data_source._determine_fields(item)[0]] = units[item]
+        units.update(dummy)
+    if extrema is not None:
+        dummy = {}
+        for item in extrema:
+            dummy[data_source._determine_fields(item)[0]] = extrema[item]
+        extrema.update(dummy)
     if weight_field is not None:
         weight_field, = data_source._determine_fields([weight_field])
     if not iterable(n_bins):
@@ -1252,7 +1322,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     if not iterable(accumulation):
         accumulation = [accumulation] * len(bin_fields)
     if logs is None:
-        logs = [data_source.pf._get_field_info(f[0],f[1]).take_log
+        logs = [data_source.ds._get_field_info(f[0],f[1]).take_log
                 for f in bin_fields]
     else:
         logs = [logs[bin_field[-1]] for bin_field in bin_fields]
@@ -1262,17 +1332,23 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     else:
         ex = []
         for bin_field in bin_fields:
-            bf_units = data_source.pf._get_field_info(bin_field[0],
-                                                      bin_field[1]).units
+            bf_units = data_source.ds._get_field_info(
+                bin_field[0], bin_field[1]).units
             try:
                 field_ex = list(extrema[bin_field[-1]])
             except KeyError:
                 field_ex = list(extrema[bin_field])
+            if units is not None and bin_field in units:
+                if isinstance(field_ex[0], tuple):
+                    field_ex = [data_source.ds.quan(*f) for f in field_ex]
+                fe = data_source.ds.arr(field_ex, units[bin_field])
+                fe.convert_to_units(bf_units)
+                field_ex = [fe[0].v, fe[1].v]
             if iterable(field_ex[0]):
-                field_ex[0] = data_source.pf.quan(field_ex[0][0], field_ex[0][1])
+                field_ex[0] = data_source.ds.quan(field_ex[0][0], field_ex[0][1])
                 field_ex[0] = field_ex[0].in_units(bf_units)
             if iterable(field_ex[1]):
-                field_ex[1] = data_source.pf.quan(field_ex[1][0], field_ex[1][1])
+                field_ex[1] = data_source.ds.quan(field_ex[1][0], field_ex[1][1])
                 field_ex[1] = field_ex[1].in_units(bf_units)
             ex.append(field_ex)
     args = [data_source]
@@ -1290,13 +1366,27 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
             if not acc: continue
             temp = obj.field_data[field]
             temp = np.rollaxis(temp, axis)
+            if weight_field is not None:
+                temp_weight = obj.weight
+                temp_weight = np.rollaxis(temp_weight, axis)
             if acc < 0:
                 temp = temp[::-1]
-            temp = temp.cumsum(axis=0)
+                if weight_field is not None:
+                    temp_weight = temp_weight[::-1]
+            if weight_field is None:
+                temp = temp.cumsum(axis=0)
+            else:
+                temp = (temp * temp_weight).cumsum(axis=0) / \
+                  temp_weight.cumsum(axis=0)
             if acc < 0:
                 temp = temp[::-1]
+                if weight_field is not None:
+                    temp_weight = temp_weight[::-1]
             temp = np.rollaxis(temp, axis)
             obj.field_data[field] = temp
+            if weight_field is not None:
+                temp_weight = np.rollaxis(temp_weight, axis)
+                obj.weight = temp_weight
     if units is not None:
         for field, unit in units.iteritems():
             field = data_source._determine_fields(field)[0]

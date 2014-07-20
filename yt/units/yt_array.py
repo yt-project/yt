@@ -414,10 +414,14 @@ class YTArray(np.ndarray):
 
         """
         new_units = self._unit_repr_check_same(units)
-        conversion_factor = self.units.get_conversion_factor(new_units)
+        (conversion_factor, offset) = self.units.get_conversion_factor(new_units)
 
         self.units = new_units
         self *= conversion_factor
+
+        if offset:
+            np.subtract(self, offset*self.uq, self)
+
         return self
 
     def convert_to_cgs(self):
@@ -450,10 +454,13 @@ class YTArray(np.ndarray):
 
         """
         new_units = self._unit_repr_check_same(units)
-        conversion_factor = self.units.get_conversion_factor(new_units)
+        (conversion_factor, offset) = self.units.get_conversion_factor(new_units)
 
         new_array = self * conversion_factor
         new_array.units = new_units
+
+        if offset:
+            np.subtract(new_array, offset*new_array.uq, new_array)
 
         return new_array
 
@@ -672,7 +679,8 @@ class YTArray(np.ndarray):
     def __iadd__(self, other):
         """ See __add__. """
         oth = sanitize_units_add(self, other, "addition")
-        return np.add(self, oth, out=self)
+        np.add(self, oth, out=self)
+        return self
 
     def __sub__(self, right_object):
         """
@@ -691,7 +699,8 @@ class YTArray(np.ndarray):
     def __isub__(self, other):
         """ See __sub__. """
         oth = sanitize_units_add(self, other, "subtraction")
-        return np.subtract(self, oth, out=self)
+        np.subtract(self, oth, out=self)
+        return self
 
     def __neg__(self):
         """ Negate the data. """
@@ -718,7 +727,8 @@ class YTArray(np.ndarray):
     def __imul__(self, other):
         """ See __mul__. """
         oth = sanitize_units_mul(self, other)
-        return np.multiply(self, oth, out=self)
+        np.multiply(self, oth, out=self)
+        return self
 
     def __div__(self, right_object):
         """
@@ -736,7 +746,8 @@ class YTArray(np.ndarray):
     def __idiv__(self, other):
         """ See __div__. """
         oth = sanitize_units_mul(self, other)
-        return np.divide(self, oth, out=self)
+        np.divide(self, oth, out=self)
+        return self
 
     def __truediv__(self, right_object):
         ro = sanitize_units_mul(self, right_object)
@@ -750,7 +761,8 @@ class YTArray(np.ndarray):
     def __itruediv__(self, other):
         """ See __div__. """
         oth = sanitize_units_mul(self, other)
-        return np.true_divide(self, oth, out=self)
+        np.true_divide(self, oth, out=self)
+        return self
 
     def __floordiv__(self, right_object):
         ro = sanitize_units_mul(self, right_object)
@@ -764,7 +776,8 @@ class YTArray(np.ndarray):
     def __ifloordiv__(self, other):
         """ See __div__. """
         oth = sanitize_units_mul(self, other)
-        return np.floor_divide(self, oth, out=self)
+        np.floor_divide(self, oth, out=self)
+        return self
 
     #Should these raise errors?  I need to come back and check this.
     def __or__(self, right_object):
@@ -774,7 +787,8 @@ class YTArray(np.ndarray):
         return YTArray(super(YTArray, self).__ror__(left_object))
 
     def __ior__(self, other):
-        return np.bitwise_or(self, other, out=self)
+        np.bitwise_or(self, other, out=self)
+        return self
 
     def __xor__(self, right_object):
         return YTArray(super(YTArray, self).__xor__(right_object))
@@ -783,7 +797,8 @@ class YTArray(np.ndarray):
         return YTArray(super(YTArray, self).__rxor__(left_object))
 
     def __ixor__(self, other):
-        return np.bitwise_xor(self, other, out=self)
+        np.bitwise_xor(self, other, out=self)
+        return self
 
     def __and__(self, right_object):
         return YTArray(super(YTArray, self).__and__(right_object))
@@ -792,7 +807,8 @@ class YTArray(np.ndarray):
         return YTArray(super(YTArray, self).__rand__(left_object))
 
     def __iand__(self, other):
-        return np.bitwise_and(self, other, out=self)
+        np.bitwise_and(self, other, out=self)
+        return self
 
     def __pow__(self, power):
         """
@@ -1142,17 +1158,17 @@ def uconcatenate(arrs, *args, **kwargs):
 def array_like_field(data, x, field):
     field = data._determine_fields(field)[0]
     if isinstance(field, tuple):
-        units = data.pf._get_field_info(field[0],field[1]).units
+        units = data.ds._get_field_info(field[0],field[1]).units
     else:
-        units = data.pf._get_field_info(field).units
+        units = data.ds._get_field_info(field).units
     if isinstance(x, YTArray):
         arr = copy.deepcopy(x)
         arr.convert_to_units(units)
         return arr
     if isinstance(x, np.ndarray):
-        return data.pf.arr(x, units)
+        return data.ds.arr(x, units)
     else:
-        return data.pf.quan(x, units)
+        return data.ds.quan(x, units)
 
 def get_binary_op_return_class(cls1, cls2):
     if cls1 is cls2:

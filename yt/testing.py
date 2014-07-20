@@ -1,5 +1,5 @@
 """
-
+Utilities to aid testing.
 
 
 """
@@ -141,7 +141,7 @@ def amrspace(extent, levels=7, cells=8):
 
     return left, right, level
 
-def fake_random_pf(
+def fake_random_ds(
         ndims, peak_value = 1.0,
         fields = ("density", "velocity_x", "velocity_y", "velocity_z"),
         units = ('g/cm**3', 'cm/s', 'cm/s', 'cm/s'),
@@ -178,7 +178,7 @@ def fake_random_pf(
     ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs)
     return ug
 
-def fake_amr_pf(fields = ("Density",)):
+def fake_amr_ds(fields = ("Density",)):
     from yt.frontends.stream.api import load_amr_grids
     data = []
     for gspec in _amr_grid_index:
@@ -556,16 +556,16 @@ def check_results(func):
     --------
 
     @check_results
-    def my_func(pf):
-        return pf.domain_width
+    def my_func(ds):
+        return ds.domain_width
 
-    my_func(pf)
+    my_func(ds)
 
     @check_results
     def field_checker(dd, field_name):
         return dd[field_name]
 
-    field_cheker(pf.h.all_data(), 'density', result_basename='density')
+    field_cheker(ds.all_data(), 'density', result_basename='density')
 
     """
     def compute_results(func):

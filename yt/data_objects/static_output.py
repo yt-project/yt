@@ -62,12 +62,12 @@ from yt.geometry.spec_cube_coordinates import \
 # When such a thing comes to pass, I'll move all the stuff that is contant up
 # to here, and then have it instantiate EnzoDatasets as appropriate.
 
-_cached_pfs = weakref.WeakValueDictionary()
-_pf_store = ParameterFileStore()
+_cached_datasets = weakref.WeakValueDictionary()
+_ds_store = ParameterFileStore()
 
-def _unsupported_object(pf, obj_name):
+def _unsupported_object(ds, obj_name):
     def _raise_unsupp(*args, **kwargs):
-        raise YTObjectNotImplemented(pf, obj_name)
+        raise YTObjectNotImplemented(ds, obj_name)
     return _raise_unsupp
 
 class RegisteredDataset(type):
@@ -139,12 +139,12 @@ class Dataset(object):
             return obj
         apath = os.path.abspath(filename)
         #if not os.path.exists(apath): raise IOError(filename)
-        if apath not in _cached_pfs:
+        if apath not in _cached_datasets:
             obj = object.__new__(cls)
             if obj._skip_cache is False:
-                _cached_pfs[apath] = obj
+                _cached_datasets[apath] = obj
         else:
-            obj = _cached_pfs[apath]
+            obj = _cached_datasets[apath]
         return obj
 
     def __init__(self, filename, dataset_type=None, file_style=None):
@@ -186,11 +186,11 @@ class Dataset(object):
         self.set_units()
         self._setup_coordinate_handler()
 
-        # Because we need an instantiated class to check the pf's existence in
+        # Because we need an instantiated class to check the ds's existence in
         # the cache, we move that check to here from __new__.  This avoids
         # double-instantiation.
         try:
-            _pf_store.check_pf(self)
+            _ds_store.check_ds(self)
         except NoParameterShelf:
             pass
         self.print_key_parameters()
@@ -215,7 +215,7 @@ class Dataset(object):
 
     def __reduce__(self):
         args = (self._hash(),)
-        return (_reconstruct_pf, args)
+        return (_reconstruct_ds, args)
 
     def __repr__(self):
         return self.basename
@@ -431,12 +431,14 @@ class Dataset(object):
         if available:
             self.particle_types += (filter.name,)
             self.filtered_particle_types.append(filter.name)
-            self._setup_particle_types([filter.name])
+            new_fields = self._setup_particle_types([filter.name])
+            deps, _ = self.field_info.check_derived_fields(new_fields)
+            self.field_dependencies.update(deps)
         return available
 
     def _setup_particle_types(self, ptypes = None):
         df = []
-        if ptypes is None: ptypes = self.pf.particle_types_raw
+        if ptypes is None: ptypes = self.ds.particle_types_raw
         for ptype in set(ptypes):
             df += self._setup_particle_type(ptype)
         return df
@@ -498,7 +500,7 @@ class Dataset(object):
                 continue
             cname = cls.__name__
             if cname.endswith("Base"): cname = cname[:-4]
-            self._add_object_class(name, cname, cls, {'pf':weakref.proxy(self)})
+            self._add_object_class(name, cname, cls, {'ds':weakref.proxy(self)})
         if self.refine_by != 2 and hasattr(self, 'proj') and \
             hasattr(self, 'overlap_proj'):
             mylog.warning("Refine by something other than two: reverting to"
@@ -540,6 +542,34 @@ class Dataset(object):
         mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f",
               min_val, mx, my, mz)
         return min_val, self.arr([mx, my, mz], 'code_length', dtype="float64")
+
+    def find_field_values_at_point(self, fields, coord):
+        """
+        Returns the values [field1, field2,...] of the fields at the given
+        coordinates. Returns a list of field values in the same order as 
+        the input *fields*.
+        """
+        return self.point(coords)[fields]
+
+    def find_field_values_at_points(self, fields, coords):
+        """
+        Returns the values [field1, field2,...] of the fields at the given
+        [(x1, y1, z2), (x2, y2, z2),...] points.  Returns a list of field 
+        values in the same order as the input *fields*.
+
+        This is quite slow right now as it creates a new data object for each
+        point.  If an optimized version exists on the Index object we'll use
+        that instead.
+        """
+        if hasattr(self,"index") and \
+                hasattr(self.index,"_find_field_values_at_points"):
+            return self.index._find_field_values_at_points(fields,coords)
+
+        fields = ensure_list(fields)
+        out = np.zeros((len(fields),len(coords)), dtype=np.float64)
+        for i,coord in enumerate(coords):
+            out[:][i] = self.point(coord)[fields]
+        return out
 
     # Now all the object related stuff
     def all_data(self, find_max=False):
@@ -696,14 +726,14 @@ class Dataset(object):
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
 
-def _reconstruct_pf(*args, **kwargs):
-    pfs = ParameterFileStore()
-    pf = pfs.get_pf_hash(*args)
-    return pf
+def _reconstruct_ds(*args, **kwargs):
+    datasets = ParameterFileStore()
+    ds = datasets.get_ds_hash(*args)
+    return ds
 
 class ParticleFile(object):
-    def __init__(self, pf, io, filename, file_id):
-        self.pf = pf
+    def __init__(self, ds, io, filename, file_id):
+        self.ds = ds
         self.io = weakref.proxy(io)
         self.filename = filename
         self.file_id = file_id

@@ -18,7 +18,8 @@ cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free, realloc
 from yt.geometry.selection_routines cimport \
-    SelectorObject, AlwaysSelector, OctreeSubsetSelector
+    SelectorObject, AlwaysSelector, OctreeSubsetSelector, \
+    anyfloat
 from yt.utilities.lib.fp_utils cimport imax
 from yt.geometry.oct_container cimport \
     OctreeContainer, OctInfo
@@ -36,7 +37,7 @@ cdef inline ContourID *contour_create(np.int64_t contour_id,
     node.contour_id = contour_id
     node.next = node.parent = NULL
     node.prev = prev
-    node.count = 0
+    node.count = 1
     if prev != NULL: prev.next = node
     return node
 
@@ -57,17 +58,36 @@ cdef inline ContourID *contour_find(ContourID *node):
     # root.
     while node.parent != NULL:
         temp = node.parent
+        root.count += node.count
+        node.count = 0
         node.parent = root
         node = temp
     return root
 
 cdef inline void contour_union(ContourID *node1, ContourID *node2):
+    if node1 == node2:
+        return
     node1 = contour_find(node1)
     node2 = contour_find(node2)
-    if node1.contour_id < node2.contour_id:
-        node2.parent = node1
-    elif node2.contour_id < node1.contour_id:
-        node1.parent = node2
+    if node1 == node2:
+        return
+    cdef ContourID *pri, *sec
+    if node1.count > node2.count:
+        pri = node1
+        sec = node2
+    elif node2.count > node1.count:
+        pri = node2
+        sec = node1
+    # might be a tie
+    elif node1.contour_id < node2.contour_id:
+        pri = node1
+        sec = node2
+    else:
+        pri = node2
+        sec = node1
+    pri.count += sec.count
+    sec.count = 0
+    sec.parent = pri
 
 cdef inline int candidate_contains(CandidateContour *first,
                             np.int64_t contour_id,
@@ -615,26 +635,36 @@ def update_joins(np.ndarray[np.int64_t, ndim=2] joins,
                         contour_ids[ci,cj,ck] = j + 1
                         break
 
+cdef class FOFNode:
+    cdef np.int64_t tag, count
+    def __init__(self, np.int64_t tag):
+        self.tag = tag
+        self.count = 0
+
 cdef class ParticleContourTree(ContourTree):
     cdef np.float64_t linking_length, linking_length2
     cdef np.float64_t DW[3], DLE[3], DRE[3]
     cdef bint periodicity[3]
+    cdef int minimum_count
 
-    def __init__(self, linking_length):
+    def __init__(self, linking_length, periodicity = (True, True, True),
+                 int minimum_count = 8):
+        cdef int i
         self.linking_length = linking_length
         self.linking_length2 = linking_length * linking_length
         self.first = self.last = NULL
+        for i in range(3):
+            self.periodicity[i] = periodicity[i]
+        self.minimum_count = minimum_count
 
     @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def identify_contours(self, OctreeContainer octree,
                                 np.ndarray[np.int64_t, ndim=1] dom_ind,
-                                np.ndarray[np.float64_t, ndim=2] positions,
+                                np.ndarray[anyfloat, ndim=2] positions,
                                 np.ndarray[np.int64_t, ndim=1] particle_ids,
-                                int domain_id = -1, int domain_offset = 0,
-                                periodicity = (True, True, True),
-                                int minimum_count = 8):
+                                int domain_id, int domain_offset):
         cdef np.ndarray[np.int64_t, ndim=1] pdoms, pcount, pind, doff
         cdef np.float64_t pos[3]
         cdef Oct *oct = NULL, **neighbors = NULL
@@ -643,6 +673,7 @@ cdef class ParticleContourTree(ContourTree):
         cdef np.int64_t moff = octree.get_domain_offset(domain_id + domain_offset)
         cdef np.int64_t i, j, k, n, nneighbors, pind0, offset
         cdef int counter = 0
+        cdef int verbose = 0
         pcount = np.zeros_like(dom_ind)
         doff = np.zeros_like(dom_ind) - 1
         # First, we find the oct for each particle.
@@ -656,7 +687,6 @@ cdef class ParticleContourTree(ContourTree):
             self.DW[i] = (octree.DRE[i] - octree.DLE[i])
             self.DLE[i] = octree.DLE[i]
             self.DRE[i] = octree.DRE[i]
-            self.periodicity[i] = periodicity[i]
         for i in range(positions.shape[0]):
             counter += 1
             container[i] = NULL
@@ -670,7 +700,7 @@ cdef class ParticleContourTree(ContourTree):
             pdoms[i] = offset
         pind = np.argsort(pdoms)
         cdef np.int64_t *ipind = <np.int64_t*> pind.data
-        cdef np.float64_t *fpos = <np.float64_t*> positions.data
+        cdef anyfloat *fpos = <anyfloat*> positions.data
         # pind is now the pointer into the position and particle_ids array.
         for i in range(positions.shape[0]):
             offset = pdoms[pind[i]]
@@ -681,10 +711,10 @@ cdef class ParticleContourTree(ContourTree):
         cdef np.int64_t *nind = <np.int64_t *> malloc(sizeof(np.int64_t)*nsize)
         counter = 0
         cdef np.int64_t frac = <np.int64_t> (doff.shape[0] / 20.0)
-        print >> sys.stderr, "Will be outputting every", frac
         cdef int inside, skip_early
+        if verbose == 1: print >> sys.stderr, "Will be outputting every", frac
         for i in range(doff.shape[0]):
-            if counter >= frac:
+            if verbose == 1 and counter >= frac:
                 counter = 0
                 print >> sys.stderr, "FOF-ing % 5.1f%% done" % ((100.0 * i)/doff.size)
             counter += 1
@@ -734,24 +764,16 @@ cdef class ParticleContourTree(ContourTree):
         cdef np.ndarray[np.int64_t, ndim=1] contour_ids
         contour_ids = np.ones(positions.shape[0], dtype="int64")
         contour_ids *= -1
-        # Sort on our particle IDs.
-        for i in range(doff.shape[0]):
-            if doff[i] < 0: continue
-            for j in range(pcount[i]):
-                offset = pind[doff[i] + j]
-                c1 = container[offset]
-                c0 = contour_find(c1)
-                contour_ids[offset] = c0.contour_id
-                c0.count += 1
-        for i in range(doff.shape[0]):
-            if doff[i] < 0: continue
-            for j in range(pcount[i]):
-                offset = pind[doff[i] + j]
-                c1 = container[offset]
-                if c1 == NULL: continue
-                c0 = contour_find(c1)
-                if c0.count < minimum_count:
-                    contour_ids[offset] = -1
+        # Perform one last contour_find on each.  Note that we no longer need
+        # to look at any of the doff or internal offset stuff.
+        for i in range(positions.shape[0]):
+            if container[i] == NULL: continue
+            container[i] = contour_find(container[i])
+        for i in range(positions.shape[0]):
+            if container[i] == NULL: continue
+            c0 = container[i]
+            if c0.count < self.minimum_count: continue
+            contour_ids[i] = particle_ids[pind[c0.contour_id]]
         free(container)
         del pind
         return contour_ids
@@ -760,7 +782,7 @@ cdef class ParticleContourTree(ContourTree):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void link_particles(self, ContourID **container, 
-                                   np.float64_t *positions,
+                                   anyfloat *positions,
                                    np.int64_t *pind,
                                    np.int64_t pcount, 
                                    np.int64_t noffset,
@@ -805,6 +827,7 @@ cdef class ParticleContourTree(ContourTree):
                                 self.linking_length2, edges)
             if link == 0: continue
             if c1 == NULL:
+                c0.count += 1
                 container[pind1] = c0
             elif c0.contour_id != c1.contour_id:
                 contour_union(c0, c1)

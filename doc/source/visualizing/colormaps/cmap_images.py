@@ -2,10 +2,10 @@ from yt.mods import *
 import matplotlib.cm as cm
 
 # Load the dataset.
-pf = load(os.path.join(ytcfg.get("yt", "test_data_dir"), "IsolatedGalaxy/galaxy0030/galaxy0030"))
+ds = load(os.path.join(ytcfg.get("yt", "test_data_dir"), "IsolatedGalaxy/galaxy0030/galaxy0030"))
 
 # Create projections using each colormap available.
-p = ProjectionPlot(pf, "z", "density", weight_field = "density", width=0.4)
+p = ProjectionPlot(ds, "z", "density", weight_field = "density", width=0.4)
 
 for cmap in cm.datad:
     if cmap.startswith("idl"):
