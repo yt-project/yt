@@ -79,8 +79,8 @@ def _distance_to_main_clump(clump, units="pc"):
     master = clump
     while master.parent is not None:
         master = master.parent
-    master_com = clump.data.pf.arr(master.data.quantities.center_of_mass())
-    my_com = clump.data.pf.arr(clump.data.quantities.center_of_mass())
+    master_com = clump.data.ds.arr(master.data.quantities.center_of_mass())
+    my_com = clump.data.ds.arr(clump.data.quantities.center_of_mass())
     distance = np.sqrt(((master_com - my_com)**2).sum())
     return "Distance from master center of mass: %.6e %s." % \
       (distance.in_units(units), units)
