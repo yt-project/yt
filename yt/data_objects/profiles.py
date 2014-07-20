@@ -1282,15 +1282,15 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     --------
 
     Create a 1d profile.  Access bin field from profile.x and field
-    data from profile.field_data.
+    data from profile[<field_name>].
 
     >>> ds = load("DD0046/DD0046")
-    >>> ad = ds.all_data()
-    >>> extrema = {"density": (1.0e-30, 1.0e-25)}
-    >>> profile = create_profile(ad, ["density"], extrema=extrema,
-    ...                          fields=["temperature", "velocity_x"]))
+    >>> ad = ds.h.all_data()
+    >>> profile = create_profile(ad, [("gas", "density")], 
+    ...                              [("gas", "temperature"),
+    ...                               ("gas", "velocity_x")])
     >>> print profile.x
-    >>> print profile.field_data["temperature"]
+    >>> print profile["gas", "temperature"]
 
     """
     bin_fields = ensure_list(bin_fields)
@@ -1340,7 +1340,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
                 field_ex = list(extrema[bin_field])
             if units is not None and bin_field in units:
                 if isinstance(field_ex[0], tuple):
-                    field_ex = [data_source.pf.quan(*f) for f in field_ex]
+                    field_ex = [data_source.ds.quan(*f) for f in field_ex]
                 fe = data_source.ds.arr(field_ex, units[bin_field])
                 fe.convert_to_units(bf_units)
                 field_ex = [fe[0].v, fe[1].v]
