@@ -49,7 +49,7 @@ class IOHandlerART(BaseIOHandler):
         for chunk in chunks:
             for subset in chunk.objs:
                 # Now we read the entire thing
-                f = open(subset.domain.pf._file_amr, "rb")
+                f = open(subset.domain.ds._file_amr, "rb")
                 # This contains the boundary information, so we skim through
                 # and pick off the right vectors
                 rv = subset.fill(f, fields, selector)
@@ -69,9 +69,9 @@ class IOHandlerART(BaseIOHandler):
         key = (selector, ftype)
         if key in self.masks.keys() and self.caching:
             return self.masks[key]
-        pf = self.pf
+        ds = self.ds
         ptmax = self.ws[-1]
-        pbool, idxa, idxb = _determine_field_size(pf, ftype, self.ls, ptmax)
+        pbool, idxa, idxb = _determine_field_size(ds, ftype, self.ls, ptmax)
         pstr = 'particle_position_%s'
         x,y,z = [self._get_field((ftype, pstr % ax)) for ax in 'xyz']
         mask = selector.select_points(x, y, z, 0.0)
@@ -89,7 +89,7 @@ class IOHandlerART(BaseIOHandler):
         tr = {}
         ftype, fname = field
         ptmax = self.ws[-1]
-        pbool, idxa, idxb = _determine_field_size(self.pf, ftype, 
+        pbool, idxa, idxb = _determine_field_size(self.ds, ftype, 
                                                   self.ls, ptmax)
         npa = idxb - idxa
         sizes = np.diff(np.concatenate(([0], self.ls)))
@@ -98,7 +98,7 @@ class IOHandlerART(BaseIOHandler):
             idxb=idxb, fields=ax)
         for i, ax in enumerate('xyz'):
             if fname.startswith("particle_position_%s" % ax):
-                dd = self.pf.domain_dimensions[0]
+                dd = self.ds.domain_dimensions[0]
                 off = 1.0/dd
                 tr[field] = rp([ax])[0]/dd - off
             if fname.startswith("particle_velocity_%s" % ax):
@@ -134,7 +134,7 @@ class IOHandlerART(BaseIOHandler):
                 self.file_stars,
                 self.tb,
                 self.ages,
-                self.pf.current_time)
+                self.ds.current_time)
             temp = tr.get(field, np.zeros(npa, 'f8'))
             temp[-nstars:] = data
             tr[field] = temp
@@ -149,12 +149,12 @@ class IOHandlerART(BaseIOHandler):
 
     def _read_particle_selection(self, chunks, selector, fields):
         chunk = chunks.next()
-        self.pf = chunk.objs[0].domain.pf
-        self.ws = self.pf.parameters["wspecies"]
-        self.ls = self.pf.parameters["lspecies"]
-        self.file_particle = self.pf._file_particle_data
-        self.file_stars = self.pf._file_particle_stars
-        self.Nrow = self.pf.parameters["Nrow"]
+        self.ds = chunk.objs[0].domain.ds
+        self.ws = self.ds.parameters["wspecies"]
+        self.ls = self.ds.parameters["lspecies"]
+        self.file_particle = self.ds._file_particle_data
+        self.file_stars = self.ds._file_particle_stars
+        self.Nrow = self.ds.parameters["Nrow"]
         data = {f:np.array([]) for f in fields}
         for f in fields:
             ftype, fname = f
@@ -163,7 +163,7 @@ class IOHandlerART(BaseIOHandler):
             data[f] = np.concatenate((arr, data[f]))
         return data
 
-def _determine_field_size(pf, field, lspecies, ptmax):
+def _determine_field_size(ds, field, lspecies, ptmax):
     pbool = np.zeros(len(lspecies), dtype="bool")
     idxas = np.concatenate(([0, ], lspecies[:-1]))
     idxbs = lspecies

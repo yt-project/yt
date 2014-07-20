@@ -28,11 +28,12 @@ from yt.utilities.exceptions import *
 class IOHandlerStream(BaseIOHandler):
 
     _dataset_type = "stream"
+    _vector_fields = ("particle_velocity", "particle_position")
 
-    def __init__(self, pf):
-        self.fields = pf.stream_handler.fields
-        self.field_units = pf.stream_handler.field_units
-        super(IOHandlerStream, self).__init__(pf)
+    def __init__(self, ds):
+        self.fields = ds.stream_handler.fields
+        self.field_units = ds.stream_handler.field_units
+        super(IOHandlerStream, self).__init__(ds)
 
     def _read_data_set(self, grid, field):
         # This is where we implement processor-locking
@@ -51,7 +52,7 @@ class IOHandlerStream(BaseIOHandler):
             raise NotImplementedError
         rv = {}
         for field in fields:
-            rv[field] = self.pf.arr(np.empty(size, dtype="float64"))
+            rv[field] = self.ds.arr(np.empty(size, dtype="float64"))
         ng = sum(len(c.objs) for c in chunks)
         mylog.debug("Reading %s cells of %s fields in %s blocks",
                     size, [f2 for f1, f2 in fields], ng)
@@ -98,10 +99,11 @@ class StreamParticleIOHandler(BaseIOHandler):
 
     _vector_fields = ("particle_position", "particle_velocity")
     _dataset_type = "stream_particles"
+    _vector_fields = ("particle_velocity", "particle_position")
 
-    def __init__(self, pf):
-        self.fields = pf.stream_handler.fields
-        super(StreamParticleIOHandler, self).__init__(pf)
+    def __init__(self, ds):
+        self.fields = ds.stream_handler.fields
+        super(StreamParticleIOHandler, self).__init__(ds)
 
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
@@ -127,7 +129,7 @@ class StreamParticleIOHandler(BaseIOHandler):
             for obj in chunk.objs:
                 count += selector.count_octs(obj.oct_handler, obj.domain_id)
         for ptype in ptf:
-            psize[ptype] = self.pf.n_ref * count
+            psize[ptype] = self.ds.n_ref * count
         return psize
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -154,25 +156,25 @@ class StreamParticleIOHandler(BaseIOHandler):
     def _initialize_index(self, data_file, regions):
         # self.fields[g.id][fname] is the pattern here
         morton = []
-        for ptype in self.pf.particle_types_raw:
+        for ptype in self.ds.particle_types_raw:
             pos = np.column_stack(self.fields[data_file.filename][
                                   (ptype, "particle_position_%s" % ax)]
                                   for ax in 'xyz')
-            if np.any(pos.min(axis=0) < data_file.pf.domain_left_edge) or \
-               np.any(pos.max(axis=0) > data_file.pf.domain_right_edge):
+            if np.any(pos.min(axis=0) < data_file.ds.domain_left_edge) or \
+               np.any(pos.max(axis=0) > data_file.ds.domain_right_edge):
                 raise YTDomainOverflow(pos.min(axis=0), pos.max(axis=0),
-                                       data_file.pf.domain_left_edge,
-                                       data_file.pf.domain_right_edge)
+                                       data_file.ds.domain_left_edge,
+                                       data_file.ds.domain_right_edge)
             regions.add_data_file(pos, data_file.file_id)
             morton.append(compute_morton(
                     pos[:,0], pos[:,1], pos[:,2],
-                    data_file.pf.domain_left_edge,
-                    data_file.pf.domain_right_edge))
+                    data_file.ds.domain_left_edge,
+                    data_file.ds.domain_right_edge))
         return np.concatenate(morton)
 
     def _count_particles(self, data_file):
         pcount = {}
-        for ptype in self.pf.particle_types_raw:
+        for ptype in self.ds.particle_types_raw:
             d = self.fields[data_file.filename]
             pcount[ptype] = d[ptype, "particle_position_x"].size
         return pcount
@@ -182,10 +184,11 @@ class StreamParticleIOHandler(BaseIOHandler):
 
 class IOHandlerStreamHexahedral(BaseIOHandler):
     _dataset_type = "stream_hexahedral"
+    _vector_fields = ("particle_velocity", "particle_position")
 
-    def __init__(self, pf):
-        self.fields = pf.stream_handler.fields
-        super(IOHandlerStreamHexahedral, self).__init__(pf)
+    def __init__(self, ds):
+        self.fields = ds.stream_handler.fields
+        super(IOHandlerStreamHexahedral, self).__init__(ds)
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
@@ -211,10 +214,11 @@ class IOHandlerStreamHexahedral(BaseIOHandler):
 
 class IOHandlerStreamOctree(BaseIOHandler):
     _dataset_type = "stream_octree"
+    _vector_fields = ("particle_velocity", "particle_position")
 
-    def __init__(self, pf):
-        self.fields = pf.stream_handler.fields
-        super(IOHandlerStreamOctree, self).__init__(pf)
+    def __init__(self, ds):
+        self.fields = ds.stream_handler.fields
+        super(IOHandlerStreamOctree, self).__init__(ds)
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         rv = {}

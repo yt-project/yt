@@ -9,15 +9,15 @@ type of code that each field is supported by.  "Universal" fields are available
 everywhere, "Enzo" fields in Enzo datasets, "Orion" fields in Orion datasets,
 and so on.
 
-Try using the ``pf.field_list`` and ``pf.derived_field_list`` to view the
+Try using the ``ds.field_list`` and ``ds.derived_field_list`` to view the
 native and derived fields available for your dataset respectively. For example
 to display the native fields in alphabetical order:
 
 .. notebook-cell::
 
   from yt.mods import *
-  pf = load("Enzo_64/DD0043/data0043")
-  for i in sorted(pf.field_list):
+  ds = load("Enzo_64/DD0043/data0043")
+  for i in sorted(ds.field_list):
     print i
 
 .. note:: Universal fields will be overridden by a code-specific field.
@@ -320,13 +320,13 @@ Baryon_Overdensity
 .. code-block:: python
 
   def _Baryon_Overdensity(field, data):
-      if data.pf.has_key('omega_baryon_now'):
-          omega_baryon_now = data.pf['omega_baryon_now']
+      if data.ds.has_key('omega_baryon_now'):
+          omega_baryon_now = data.ds['omega_baryon_now']
       else:
           omega_baryon_now = 0.0441
       return data['density'] / (omega_baryon_now * rho_crit_now * 
-                                (data.pf.hubble_constant**2) * 
-                                ((1+data.pf.current_redshift)**3))
+                                (data.ds.hubble_constant**2) * 
+                                ((1+data.ds.current_redshift)**3))
   
 
 **Convert Function Source**
@@ -545,7 +545,7 @@ ComovingDensity
 .. code-block:: python
 
   def _ComovingDensity(field, data):
-      ef = (1.0 + data.pf.current_redshift)**3.0
+      ef = (1.0 + data.ds.current_redshift)**3.0
       return data["density"]/ef
   
 
@@ -704,9 +704,9 @@ DensityPerturbation
 .. code-block:: python
 
   def _DensityPerturbation(field, data):
-      rho_bar = rho_crit_now * data.pf.omega_matter * \
-          data.pf.hubble_constant**2 * \
-          (1.0 + data.pf.current_redshift)**3
+      rho_bar = rho_crit_now * data.ds.omega_matter * \
+          data.ds.hubble_constant**2 * \
+          (1.0 + data.ds.current_redshift)**3
       return ((data['Matter_Density'] - rho_bar) / rho_bar)
   
 
@@ -743,7 +743,7 @@ DivV
 
   def _DivV(field, data):
       # We need to set up stencils
-      if data.pf["HydroMethod"] == 2:
+      if data.ds["HydroMethod"] == 2:
           sl_left = slice(None,-2,None)
           sl_right = slice(1,-1,None)
           div_fac = 1.0
@@ -754,11 +754,11 @@ DivV
       ds = div_fac * data['dx'].flat[0]
       f  = data["x-velocity"][sl_right,1:-1,1:-1]/ds
       f -= data["x-velocity"][sl_left ,1:-1,1:-1]/ds
-      if data.pf.dimensionality > 1:
+      if data.ds.dimensionality > 1:
           ds = div_fac * data['dy'].flat[0]
           f += data["y-velocity"][1:-1,sl_right,1:-1]/ds
           f -= data["y-velocity"][1:-1,sl_left ,1:-1]/ds
-      if data.pf.dimensionality > 2:
+      if data.ds.dimensionality > 2:
           ds = div_fac * data['dz'].flat[0]
           f += data["z-velocity"][1:-1,1:-1,sl_right]/ds
           f -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
@@ -814,7 +814,7 @@ Entropy
       else :
           mw = mh
       try:
-          gammam1 = data.pf["Gamma"] - 1.0
+          gammam1 = data.ds["Gamma"] - 1.0
       except:
           gammam1 = 5./3. - 1.0
       return kboltz * data["Temperature"] / \
@@ -1072,8 +1072,8 @@ Overdensity
 .. code-block:: python
 
   def _Convert_Overdensity(data):
-      return 1.0 / (rho_crit_now * data.pf.hubble_constant**2 * 
-                  (1+data.pf.current_redshift)**3)
+      return 1.0 / (rho_crit_now * data.ds.hubble_constant**2 * 
+                  (1+data.ds.current_redshift)**3)
   
 
 ParticleAngularMomentumX
@@ -1534,7 +1534,7 @@ Pressure
 
   def _Pressure(field, data):
       """M{(Gamma-1.0)*rho*E}"""
-      return (data.pf["Gamma"] - 1.0) * \
+      return (data.ds["Gamma"] - 1.0) * \
              data["density"] * data["ThermalEnergy"]
   
 
@@ -1844,7 +1844,7 @@ Shear
        of subtracting them)
       """
       # We need to set up stencils
-      if data.pf["HydroMethod"] == 2:
+      if data.ds["HydroMethod"] == 2:
           sl_left = slice(None,-2,None)
           sl_right = slice(1,-1,None)
           div_fac = 1.0
@@ -1853,7 +1853,7 @@ Shear
           sl_right = slice(2,None,None)
           div_fac = 2.0
       new_field = np.zeros(data["x-velocity"].shape)
-      if data.pf.dimensionality > 1:
+      if data.ds.dimensionality > 1:
           dvydx = (data["y-velocity"][sl_right,1:-1,1:-1] -
                   data["y-velocity"][sl_left,1:-1,1:-1]) \
                   / (div_fac*data["dx"].flat[0])
@@ -1862,7 +1862,7 @@ Shear
                   / (div_fac*data["dy"].flat[0])
           new_field[1:-1,1:-1,1:-1] += (dvydx + dvxdy)**2.0
           del dvydx, dvxdy
-      if data.pf.dimensionality > 2:
+      if data.ds.dimensionality > 2:
           dvzdy = (data["z-velocity"][1:-1,sl_right,1:-1] -
                   data["z-velocity"][1:-1,sl_left,1:-1]) \
                   / (div_fac*data["dy"].flat[0])
@@ -1916,7 +1916,7 @@ ShearCriterion
       to determine if refinement should occur.
       """
       # We need to set up stencils
-      if data.pf["HydroMethod"] == 2:
+      if data.ds["HydroMethod"] == 2:
           sl_left = slice(None,-2,None)
           sl_right = slice(1,-1,None)
           div_fac = 1.0
@@ -1925,7 +1925,7 @@ ShearCriterion
           sl_right = slice(2,None,None)
           div_fac = 2.0
       new_field = np.zeros(data["x-velocity"].shape)
-      if data.pf.dimensionality > 1:
+      if data.ds.dimensionality > 1:
           dvydx = (data["y-velocity"][sl_right,1:-1,1:-1] -
                   data["y-velocity"][sl_left,1:-1,1:-1]) \
                   / (div_fac*data["dx"].flat[0])
@@ -1934,7 +1934,7 @@ ShearCriterion
                   / (div_fac*data["dy"].flat[0])
           new_field[1:-1,1:-1,1:-1] += (dvydx + dvxdy)**2.0
           del dvydx, dvxdy
-      if data.pf.dimensionality > 2:
+      if data.ds.dimensionality > 2:
           dvzdy = (data["z-velocity"][1:-1,sl_right,1:-1] -
                   data["z-velocity"][1:-1,sl_left,1:-1]) \
                   / (div_fac*data["dy"].flat[0])
@@ -1989,7 +1989,7 @@ ShearMach
                       (dvx + dvz)^2  ]^(0.5) / c_sound
       """
       # We need to set up stencils
-      if data.pf["HydroMethod"] == 2:
+      if data.ds["HydroMethod"] == 2:
           sl_left = slice(None,-2,None)
           sl_right = slice(1,-1,None)
           div_fac = 1.0
@@ -1998,7 +1998,7 @@ ShearMach
           sl_right = slice(2,None,None)
           div_fac = 2.0
       new_field = np.zeros(data["x-velocity"].shape)
-      if data.pf.dimensionality > 1:
+      if data.ds.dimensionality > 1:
           dvydx = (data["y-velocity"][sl_right,1:-1,1:-1] -
                   data["y-velocity"][sl_left,1:-1,1:-1]) \
                   / (div_fac)
@@ -2007,7 +2007,7 @@ ShearMach
                   / (div_fac)
           new_field[1:-1,1:-1,1:-1] += (dvydx + dvxdy)**2.0
           del dvydx, dvxdy
-      if data.pf.dimensionality > 2:
+      if data.ds.dimensionality > 2:
           dvzdy = (data["z-velocity"][1:-1,sl_right,1:-1] -
                   data["z-velocity"][1:-1,sl_left,1:-1]) \
                   / (div_fac)
@@ -2045,10 +2045,10 @@ SoundSpeed
 .. code-block:: python
 
   def _SoundSpeed(field, data):
-      if data.pf["EOSType"] == 1:
+      if data.ds["EOSType"] == 1:
           return np.ones(data["density"].shape, dtype='float64') * \
-                  data.pf["EOSSoundSpeed"]
-      return ( data.pf["Gamma"]*data["Pressure"] / \
+                  data.ds["EOSSoundSpeed"]
+      return ( data.ds["Gamma"]*data["Pressure"] / \
                data["density"] )**(1.0/2.0)
   
 
@@ -2632,7 +2632,7 @@ VorticitySquared
   def _VorticitySquared(field, data):
       mylog.debug("Generating vorticity on %s", data)
       # We need to set up stencils
-      if data.pf["HydroMethod"] == 2:
+      if data.ds["HydroMethod"] == 2:
           sl_left = slice(None,-2,None)
           sl_right = slice(1,-1,None)
           div_fac = 1.0
@@ -2760,7 +2760,7 @@ VorticityX
 
   def _VorticityX(field, data):
       # We need to set up stencils
-      if data.pf["HydroMethod"] == 2:
+      if data.ds["HydroMethod"] == 2:
           sl_left = slice(None,-2,None)
           sl_right = slice(1,-1,None)
           div_fac = 1.0
@@ -2798,7 +2798,7 @@ VorticityY
 
   def _VorticityY(field, data):
       # We need to set up stencils
-      if data.pf["HydroMethod"] == 2:
+      if data.ds["HydroMethod"] == 2:
           sl_left = slice(None,-2,None)
           sl_right = slice(1,-1,None)
           div_fac = 1.0
@@ -2836,7 +2836,7 @@ VorticityZ
 
   def _VorticityZ(field, data):
       # We need to set up stencils
-      if data.pf["HydroMethod"] == 2:
+      if data.ds["HydroMethod"] == 2:
           sl_left = slice(None,-2,None)
           sl_right = slice(1,-1,None)
           div_fac = 1.0
@@ -2872,9 +2872,9 @@ WeakLensingConvergence
 .. code-block:: python
 
   def _DensityPerturbation(field, data):
-      rho_bar = rho_crit_now * data.pf.omega_matter * \
-          data.pf.hubble_constant**2 * \
-          (1.0 + data.pf.current_redshift)**3
+      rho_bar = rho_crit_now * data.ds.omega_matter * \
+          data.ds.hubble_constant**2 * \
+          (1.0 + data.ds.current_redshift)**3
       return ((data['Matter_Density'] - rho_bar) / rho_bar)
   
 
@@ -2883,22 +2883,22 @@ WeakLensingConvergence
 .. code-block:: python
 
   def _convertConvergence(data):
-      if not data.pf.parameters.has_key('cosmology_calculator'):
-          data.pf.parameters['cosmology_calculator'] = Cosmology(
-              HubbleConstantNow=(100.*data.pf.hubble_constant),
-              OmegaMatterNow=data.pf.omega_matter, OmegaLambdaNow=data.pf.omega_lambda)
+      if not data.ds.parameters.has_key('cosmology_calculator'):
+          data.ds.parameters['cosmology_calculator'] = Cosmology(
+              HubbleConstantNow=(100.*data.ds.hubble_constant),
+              OmegaMatterNow=data.ds.omega_matter, OmegaLambdaNow=data.ds.omega_lambda)
       # observer to lens
-      DL = data.pf.parameters['cosmology_calculator'].AngularDiameterDistance(
-          data.pf.parameters['observer_redshift'], data.pf.current_redshift)
+      DL = data.ds.parameters['cosmology_calculator'].AngularDiameterDistance(
+          data.ds.parameters['observer_redshift'], data.ds.current_redshift)
       # observer to source
-      DS = data.pf.parameters['cosmology_calculator'].AngularDiameterDistance(
-          data.pf.parameters['observer_redshift'], data.pf.parameters['lensing_source_redshift'])
+      DS = data.ds.parameters['cosmology_calculator'].AngularDiameterDistance(
+          data.ds.parameters['observer_redshift'], data.ds.parameters['lensing_source_redshift'])
       # lens to source
-      DLS = data.pf.parameters['cosmology_calculator'].AngularDiameterDistance(
-          data.pf.current_redshift, data.pf.parameters['lensing_source_redshift'])
-      return (((DL * DLS) / DS) * (1.5e14 * data.pf.omega_matter * 
-                                  (data.pf.hubble_constant / speed_of_light_cgs)**2 *
-                                  (1 + data.pf.current_redshift)))
+      DLS = data.ds.parameters['cosmology_calculator'].AngularDiameterDistance(
+          data.ds.current_redshift, data.ds.parameters['lensing_source_redshift'])
+      return (((DL * DLS) / DS) * (1.5e14 * data.ds.omega_matter * 
+                                  (data.ds.hubble_constant / speed_of_light_cgs)**2 *
+                                  (1 + data.ds.current_redshift)))
   
 
 XRayEmissivity
@@ -3303,7 +3303,7 @@ gradDensityX
 
   def _gradDensityX(field, data):
       # We need to set up stencils
-      if data.pf["HydroMethod"] == 2:
+      if data.ds["HydroMethod"] == 2:
           sl_left = slice(None,-2,None)
           sl_right = slice(1,-1,None)
           div_fac = 1.0
@@ -3338,7 +3338,7 @@ gradDensityY
 
   def _gradDensityY(field, data):
       # We need to set up stencils
-      if data.pf["HydroMethod"] == 2:
+      if data.ds["HydroMethod"] == 2:
           sl_left = slice(None,-2,None)
           sl_right = slice(1,-1,None)
           div_fac = 1.0
@@ -3373,7 +3373,7 @@ gradDensityZ
 
   def _gradDensityZ(field, data):
       # We need to set up stencils
-      if data.pf["HydroMethod"] == 2:
+      if data.ds["HydroMethod"] == 2:
           sl_left = slice(None,-2,None)
           sl_right = slice(1,-1,None)
           div_fac = 1.0
@@ -3428,7 +3428,7 @@ gradPressureX
 
   def _gradPressureX(field, data):
       # We need to set up stencils
-      if data.pf["HydroMethod"] == 2:
+      if data.ds["HydroMethod"] == 2:
           sl_left = slice(None,-2,None)
           sl_right = slice(1,-1,None)
           div_fac = 1.0
@@ -3463,7 +3463,7 @@ gradPressureY
 
   def _gradPressureY(field, data):
       # We need to set up stencils
-      if data.pf["HydroMethod"] == 2:
+      if data.ds["HydroMethod"] == 2:
           sl_left = slice(None,-2,None)
           sl_right = slice(1,-1,None)
           div_fac = 1.0
@@ -3498,7 +3498,7 @@ gradPressureZ
 
   def _gradPressureZ(field, data):
       # We need to set up stencils
-      if data.pf["HydroMethod"] == 2:
+      if data.ds["HydroMethod"] == 2:
           sl_left = slice(None,-2,None)
           sl_right = slice(1,-1,None)
           div_fac = 1.0
@@ -3786,7 +3786,7 @@ Comoving_DII_Density
 
   def _SpeciesComovingDensity(field, data):
       sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.pf.current_redshift)**3.0
+      ef = (1.0 + data.ds.current_redshift)**3.0
       return data[sp] / ef
   
 
@@ -3805,7 +3805,7 @@ Comoving_DI_Density
 
   def _SpeciesComovingDensity(field, data):
       sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.pf.current_redshift)**3.0
+      ef = (1.0 + data.ds.current_redshift)**3.0
       return data[sp] / ef
   
 
@@ -3824,7 +3824,7 @@ Comoving_Electron_Density
 
   def _SpeciesComovingDensity(field, data):
       sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.pf.current_redshift)**3.0
+      ef = (1.0 + data.ds.current_redshift)**3.0
       return data[sp] / ef
   
 
@@ -3843,7 +3843,7 @@ Comoving_H2II_Density
 
   def _SpeciesComovingDensity(field, data):
       sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.pf.current_redshift)**3.0
+      ef = (1.0 + data.ds.current_redshift)**3.0
       return data[sp] / ef
   
 
@@ -3862,7 +3862,7 @@ Comoving_H2I_Density
 
   def _SpeciesComovingDensity(field, data):
       sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.pf.current_redshift)**3.0
+      ef = (1.0 + data.ds.current_redshift)**3.0
       return data[sp] / ef
   
 
@@ -3881,7 +3881,7 @@ Comoving_HDI_Density
 
   def _SpeciesComovingDensity(field, data):
       sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.pf.current_redshift)**3.0
+      ef = (1.0 + data.ds.current_redshift)**3.0
       return data[sp] / ef
   
 
@@ -3900,7 +3900,7 @@ Comoving_HII_Density
 
   def _SpeciesComovingDensity(field, data):
       sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.pf.current_redshift)**3.0
+      ef = (1.0 + data.ds.current_redshift)**3.0
       return data[sp] / ef
   
 
@@ -3919,7 +3919,7 @@ Comoving_HI_Density
 
   def _SpeciesComovingDensity(field, data):
       sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.pf.current_redshift)**3.0
+      ef = (1.0 + data.ds.current_redshift)**3.0
       return data[sp] / ef
   
 
@@ -3938,7 +3938,7 @@ Comoving_HM_Density
 
   def _SpeciesComovingDensity(field, data):
       sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.pf.current_redshift)**3.0
+      ef = (1.0 + data.ds.current_redshift)**3.0
       return data[sp] / ef
   
 
@@ -3957,7 +3957,7 @@ Comoving_HeIII_Density
 
   def _SpeciesComovingDensity(field, data):
       sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.pf.current_redshift)**3.0
+      ef = (1.0 + data.ds.current_redshift)**3.0
       return data[sp] / ef
   
 
@@ -3976,7 +3976,7 @@ Comoving_HeII_Density
 
   def _SpeciesComovingDensity(field, data):
       sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.pf.current_redshift)**3.0
+      ef = (1.0 + data.ds.current_redshift)**3.0
       return data[sp] / ef
   
 
@@ -3995,7 +3995,7 @@ Comoving_HeI_Density
 
   def _SpeciesComovingDensity(field, data):
       sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.pf.current_redshift)**3.0
+      ef = (1.0 + data.ds.current_redshift)**3.0
       return data[sp] / ef
   
 
@@ -4014,7 +4014,7 @@ Comoving_MetalSNIa_Density
 
   def _SpeciesComovingDensity(field, data):
       sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.pf.current_redshift)**3.0
+      ef = (1.0 + data.ds.current_redshift)**3.0
       return data[sp] / ef
   
 
@@ -4033,7 +4033,7 @@ Comoving_Metal_Density
 
   def _SpeciesComovingDensity(field, data):
       sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.pf.current_redshift)**3.0
+      ef = (1.0 + data.ds.current_redshift)**3.0
       return data[sp] / ef
   
 
@@ -4052,7 +4052,7 @@ Comoving_PreShock_Density
 
   def _SpeciesComovingDensity(field, data):
       sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.pf.current_redshift)**3.0
+      ef = (1.0 + data.ds.current_redshift)**3.0
       return data[sp] / ef
   
 
@@ -4514,17 +4514,17 @@ H_NumberDensity
   def _H_NumberDensity(field, data):
       field_data = np.zeros(data["density"].shape,
                             dtype=data["density"].dtype)
-      if data.pf.parameters["MultiSpecies"] == 0:
+      if data.ds.parameters["MultiSpecies"] == 0:
           field_data += data["density"] * \
-            data.pf.parameters["HydrogenFractionByMass"]
-      if data.pf.parameters["MultiSpecies"] > 0:
+            data.ds.parameters["HydrogenFractionByMass"]
+      if data.ds.parameters["MultiSpecies"] > 0:
           field_data += data["HI_Density"]
           field_data += data["HII_Density"]
-      if data.pf.parameters["MultiSpecies"] > 1:
+      if data.ds.parameters["MultiSpecies"] > 1:
           field_data += data["HM_Density"]
           field_data += data["H2I_Density"]
           field_data += data["H2II_Density"]
-      if data.pf.parameters["MultiSpecies"] > 2:
+      if data.ds.parameters["MultiSpecies"] > 2:
           field_data += data["HDI_Density"] / 2.0
       return field_data
   
@@ -4820,24 +4820,24 @@ NumberDensity
       # but I am not currently implementing that
       fieldData = np.zeros(data["density"].shape,
                            dtype = data["density"].dtype)
-      if data.pf["MultiSpecies"] == 0:
+      if data.ds["MultiSpecies"] == 0:
           if data.has_field_parameter("mu"):
               mu = data.get_field_parameter("mu")
           else:
               mu = 0.6
           fieldData += data["density"] / mu
-      if data.pf["MultiSpecies"] > 0:
+      if data.ds["MultiSpecies"] > 0:
           fieldData += data["HI_Density"] / 1.0
           fieldData += data["HII_Density"] / 1.0
           fieldData += data["HeI_Density"] / 4.0
           fieldData += data["HeII_Density"] / 4.0
           fieldData += data["HeIII_Density"] / 4.0
           fieldData += data["Electron_Density"] / 1.0
-      if data.pf["MultiSpecies"] > 1:
+      if data.ds["MultiSpecies"] > 1:
           fieldData += data["HM_Density"] / 1.0
           fieldData += data["H2I_Density"] / 2.0
           fieldData += data["H2II_Density"] / 2.0
-      if data.pf["MultiSpecies"] > 2:
+      if data.ds["MultiSpecies"] > 2:
           fieldData += data["DI_Density"] / 2.0
           fieldData += data["DII_Density"] / 2.0
           fieldData += data["HDI_Density"] / 3.0
@@ -4862,7 +4862,7 @@ ParticleAge
 .. code-block:: python
 
   def _ParticleAge(field, data):
-      current_time = data.pf.current_time
+      current_time = data.ds.current_time
       return (current_time - data["creation_time"])
   
 
@@ -4991,8 +4991,8 @@ StarAgeYears
   def _StarAge(field, data):
       star_age = np.zeros(data['StarCreationTimeYears'].shape)
       with_stars = data['StarCreationTimeYears'] > 0
-      star_age[with_stars] = data.pf.time_units['years'] * \
-          data.pf.current_time - \
+      star_age[with_stars] = data.ds.time_units['years'] * \
+          data.ds.current_time - \
           data['StarCreationTimeYears'][with_stars]
       return star_age
   
@@ -5020,7 +5020,7 @@ StarCreationTimeYears
 .. code-block:: python
 
   def _ConvertEnzoTimeYears(data):
-      return data.pf.time_units['years']
+      return data.ds.time_units['years']
   
 
 StarDynamicalTimeYears
@@ -5042,7 +5042,7 @@ StarDynamicalTimeYears
 .. code-block:: python
 
   def _ConvertEnzoTimeYears(data):
-      return data.pf.time_units['years']
+      return data.ds.time_units['years']
   
 
 StarMetallicity
@@ -5078,13 +5078,13 @@ ThermalEnergy
 .. code-block:: python
 
   def _ThermalEnergy(field, data):
-      if data.pf["HydroMethod"] == 2:
+      if data.ds["HydroMethod"] == 2:
           return data["TotalEnergy"]
       
-      if data.pf["DualEnergyFormalism"]:
+      if data.ds["DualEnergyFormalism"]:
           return data["GasEnergy"]
   
-      if data.pf["HydroMethod"] in (4,6):
+      if data.ds["HydroMethod"] in (4,6):
           return data["TotalEnergy"] - 0.5*(
               data["x-velocity"]**2.0
               + data["y-velocity"]**2.0
@@ -5300,7 +5300,7 @@ dm_density
   def _dmpdensity(field, data):
       blank = np.zeros(data.ActiveDimensions, dtype='float64')
       if data["particle_position_x"].size == 0: return blank
-      if 'creation_time' in data.pf.field_info:
+      if 'creation_time' in data.ds.field_info:
           filter = data['creation_time'] <= 0.0
           if not filter.any(): return blank
           num = filter.sum()
@@ -5637,7 +5637,7 @@ Pressure
       """M{(Gamma-1.0)*e, where e is thermal energy density
          NB: this will need to be modified for radiation
       """
-      return (data.pf["Gamma"] - 1.0)*data["ThermalEnergy"]
+      return (data.ds["Gamma"] - 1.0)*data["ThermalEnergy"]
   
 
 **Convert Function Source**
@@ -5655,7 +5655,7 @@ Temperature
 .. code-block:: python
 
   def _Temperature(field,data):
-      return (data.pf["Gamma"]-1.0)*data.pf["mu"]*mh*data["ThermalEnergy"]/(kboltz*data["density"])
+      return (data.ds["Gamma"]-1.0)*data.ds["mu"]*mh*data["ThermalEnergy"]/(kboltz*data["density"])
   
 
 **Convert Function Source**
@@ -5677,7 +5677,7 @@ ThermalEnergy
           implemented by Stella, but this isn't how it's called, so I'll
           leave that commented out for now.
       """
-      #if data.pf["DualEnergyFormalism"]:
+      #if data.ds["DualEnergyFormalism"]:
       #    return data["GasEnergy"]
       #else:
       return data["TotalEnergy"] - 0.5 * data["density"] * (
@@ -6205,7 +6205,7 @@ Bx
 .. code-block:: python
 
   def _Bx(fields, data):
-      factor = GetMagRescalingFactor(data.pf)
+      factor = GetMagRescalingFactor(data.ds)
       return data['magx']*factor
   
 
@@ -6224,7 +6224,7 @@ By
 .. code-block:: python
 
   def _By(fields, data):
-      factor = GetMagRescalingFactor(data.pf)
+      factor = GetMagRescalingFactor(data.ds)
       return data['magy']*factor
   
 
@@ -6243,7 +6243,7 @@ Bz
 .. code-block:: python
 
   def _Bz(fields, data):
-      factor = GetMagRescalingFactor(data.pf)
+      factor = GetMagRescalingFactor(data.ds)
       return data['magz']*factor
   
 
@@ -6353,7 +6353,7 @@ DivB
 .. code-block:: python
 
   def _DivB(fields, data):
-      factor = GetMagRescalingFactor(data.pf)
+      factor = GetMagRescalingFactor(data.ds)
       return data['divb']*factor
   
 
@@ -6906,14 +6906,14 @@ ThermalEnergy
       except:
           pass
       try:
-          return data["Pressure"] / (data.pf["Gamma"] - 1.0) / data["density"]
+          return data["Pressure"] / (data.ds["Gamma"] - 1.0) / data["density"]
       except:
           pass
       if data.has_field_parameter("mu") :
           mu = data.get_field_parameter("mu")
       else:
           mu = 0.6
-      return kboltz*data["density"]*data["Temperature"]/(mu*mh) / (data.pf["Gamma"] - 1.0)
+      return kboltz*data["density"]*data["Temperature"]/(mu*mh) / (data.ds["Gamma"] - 1.0)
   
 
 **Convert Function Source**
@@ -7306,13 +7306,13 @@ Gas_Energy
 .. code-block:: python
 
   def _gasenergy(field, data) :
-      if "pressure" in data.pf.field_info:
-          return data["pressure"]/(data.pf["Gamma"]-1.0)/data["density"]
+      if "pressure" in data.ds.field_info:
+          return data["pressure"]/(data.ds["Gamma"]-1.0)/data["density"]
       else:
           eint = data["total_energy"] - 0.5*(data["momentum_x"]**2 +
                                              data["momentum_y"]**2 +
                                              data["momentum_z"]**2)/data["density"]
-          if "cell_centered_B_x" in data.pf.field_info:
+          if "cell_centered_B_x" in data.ds.field_info:
               eint -= 0.5*(data["cell_centered_B_x"]**2 +
                            data["cell_centered_B_y"]**2 +
                            data["cell_centered_B_z"]**2)
@@ -7339,17 +7339,17 @@ Pressure
 .. code-block:: python
 
   def _pressure(field, data) :
-      if "pressure" in data.pf.field_info:
+      if "pressure" in data.ds.field_info:
           return data["pressure"]
       else:
           eint = data["total_energy"] - 0.5*(data["momentum_x"]**2 +
                                              data["momentum_y"]**2 +
                                              data["momentum_z"]**2)/data["density"]
-          if "cell_centered_B_x" in data.pf.field_info:
+          if "cell_centered_B_x" in data.ds.field_info:
               eint -= 0.5*(data["cell_centered_B_x"]**2 +
                            data["cell_centered_B_y"]**2 +
                            data["cell_centered_B_z"]**2)
-          return eint*(data.pf["Gamma"]-1.0)
+          return eint*(data.ds["Gamma"]-1.0)
   
 
 **Convert Function Source**
@@ -7393,7 +7393,7 @@ x-velocity
 .. code-block:: python
 
   def _xvelocity(field, data):
-      if "velocity_x" in data.pf.field_info:
+      if "velocity_x" in data.ds.field_info:
           return data["velocity_x"]
       else:
           return data["momentum_x"]/data["density"]           
@@ -7418,7 +7418,7 @@ y-velocity
 .. code-block:: python
 
   def _yvelocity(field, data):
-      if "velocity_y" in data.pf.field_info:
+      if "velocity_y" in data.ds.field_info:
           return data["velocity_y"]
       else:
           return data["momentum_y"]/data["density"]
@@ -7443,7 +7443,7 @@ z-velocity
 .. code-block:: python
 
   def _zvelocity(field, data):
-      if "velocity_z" in data.pf.field_info:
+      if "velocity_z" in data.ds.field_info:
           return data["velocity_z"]
       else:
           return data["momentum_z"]/data["density"]
@@ -7521,7 +7521,7 @@ Pressure
       when radiation is accounted for.
   
       """
-      return (data.pf["Gamma"] - 1.0) * data["ThermalEnergy"]
+      return (data.ds["Gamma"] - 1.0) * data["ThermalEnergy"]
   
 
 **Convert Function Source**
@@ -7539,7 +7539,7 @@ Temperature
 .. code-block:: python
 
   def _temperature(field, data):
-      return ((data.pf["Gamma"] - 1.0) * data.pf["mu"] * mh *
+      return ((data.ds["Gamma"] - 1.0) * data.ds["mu"] * mh *
               data["ThermalEnergy"] / (kboltz * data["density"]))
   
 
@@ -7564,7 +7564,7 @@ ThermalEnergy
       now.
   
       """
-      #if data.pf["DualEnergyFormalism"]:
+      #if data.ds["DualEnergyFormalism"]:
       #    return data["Gas_Energy"]
       #else:
       return data["Total_Energy"] - 0.5 * data["density"] * (

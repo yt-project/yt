@@ -8,7 +8,7 @@ ds = yt.load("Enzo_64/RD0006/RedshiftOutput0006")
 halos = yt.load('rockstar_halos/halos_0.0.bin')
 
 # Create the halo catalog from this halo list
-hc = HaloCatalog(halos_pf = halos)
+hc = HaloCatalog(halos_ds=halos)
 hc.load()
 
 # Create a projection with the halos overplot on top

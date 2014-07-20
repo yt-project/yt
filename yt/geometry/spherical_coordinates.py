@@ -25,9 +25,9 @@ from yt.utilities.lib.misc_utilities import \
 
 class SphericalCoordinateHandler(CoordinateHandler):
 
-    def __init__(self, pf, ordering = 'rtp'):
+    def __init__(self, ds, ordering = 'rtp'):
         if ordering != 'rtp': raise NotImplementedError
-        super(SphericalCoordinateHandler, self).__init__(pf)
+        super(SphericalCoordinateHandler, self).__init__(ds)
 
     def setup_fields(self, registry):
         # return the fields for r, z, theta
@@ -153,5 +153,5 @@ class SphericalCoordinateHandler(CoordinateHandler):
 
     @property
     def period(self):
-        return self.pf.domain_width
+        return self.ds.domain_width
 

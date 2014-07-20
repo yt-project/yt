@@ -847,7 +847,7 @@ plot and then call ``.show()``:
 
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   p = ProjectionPlot(ds, "x", "density", center='m', width=(10,'kpc'),
+   p = yt.ProjectionPlot(ds, "x", "density", center='m', width=(10,'kpc'),
                       weight_field='density')
    p.show()
 

@@ -267,7 +267,7 @@ class ImagePlotContainer(object):
         # Left blank to be overriden in subclasses
         pass
 
-    def _switch_pf(self, new_pf, data_source=None):
+    def _switch_ds(self, new_ds, data_source=None):
         ds = self.data_source
         name = ds._type_name
         kwargs = dict((n, getattr(ds, n)) for n in ds._con_args)
@@ -276,8 +276,8 @@ class ImagePlotContainer(object):
                 raise RuntimeError("The data_source keyword argument "
                                    "is only defined for projections.")
             kwargs['data_source'] = data_source
-        new_ds = getattr(new_pf, name)(**kwargs)
-        self.pf = new_pf
+        new_ds = getattr(new_ds, name)(**kwargs)
+        self.ds = new_ds
         self.data_source = new_ds
         self._data_valid = self._plot_valid = False
         self._recreate_frb()
@@ -336,7 +336,7 @@ class ImagePlotContainer(object):
         This sets the font to be 24-pt, blue, sans-serif, italic, and
         bold-face.
 
-        >>> slc = SlicePlot(pf, 'x', 'Density')
+        >>> slc = SlicePlot(ds, 'x', 'Density')
         >>> slc.set_font({'family':'sans-serif', 'style':'italic',
                           'weight':'bold', 'size':24, 'color':'blue'})
 
@@ -429,18 +429,18 @@ class ImagePlotContainer(object):
         names = []
         if mpl_kwargs is None: mpl_kwargs = {}
         if name is None:
-            name = str(self.pf)
+            name = str(self.ds)
         name = os.path.expanduser(name)
         if name[-1] == os.sep and not os.path.isdir(name):
             os.mkdir(name)
-        if os.path.isdir(name) and name != str(self.pf):
-            name = name + (os.sep if name[-1] != os.sep else '') + str(self.pf)
+        if os.path.isdir(name) and name != str(self.ds):
+            name = name + (os.sep if name[-1] != os.sep else '') + str(self.ds)
         suffix = get_image_suffix(name)
         if suffix != '':
             for k, v in self.plots.iteritems():
                 names.append(v.save(name, mpl_kwargs))
             return names
-        axis = self.pf.coordinates.axis_name.get(
+        axis = self.ds.coordinates.axis_name.get(
             self.data_source.axis, '')
         weight = None
         type = self._plot_type
@@ -498,7 +498,7 @@ class ImagePlotContainer(object):
         --------
 
         >>> from yt.mods import SlicePlot
-        >>> slc = SlicePlot(pf, "x", ["Density", "VelocityMagnitude"])
+        >>> slc = SlicePlot(ds, "x", ["Density", "VelocityMagnitude"])
         >>> slc.show()
 
         """

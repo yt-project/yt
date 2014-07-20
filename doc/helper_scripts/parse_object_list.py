@@ -2,7 +2,7 @@ from yt.mods import *
 import inspect
 from textwrap import TextWrapper
 
-pf = load("RD0005-mine/RedshiftOutput0005")
+ds = load("RD0005-mine/RedshiftOutput0005")
 
 output = open("source/analyzing/_obj_docstrings.inc", "w")
 
@@ -27,7 +27,7 @@ def write_docstring(f, name, cls):
     f.write(template % dict(clsname = clsname, sig = sig, clsproxy=clsproxy,
                             docstring = 'physical-object-api'))
 
-for n,c in sorted(pf.h.__dict__.items()):
+for n,c in sorted(ds.__dict__.items()):
     if hasattr(c, '_con_args'):
         print n
         write_docstring(output, n, c)

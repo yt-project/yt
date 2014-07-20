@@ -58,22 +58,22 @@ from yt.utilities.physical_constants import \
 
 
 class ARTIndex(OctreeIndex):
-    def __init__(self, pf, dataset_type="art"):
+    def __init__(self, ds, dataset_type="art"):
         self.fluid_field_list = fluid_fields
         self.dataset_type = dataset_type
-        self.parameter_file = weakref.proxy(pf)
-        self.index_filename = self.parameter_file.parameter_filename
+        self.dataset = weakref.proxy(ds)
+        self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
-        self.max_level = pf.max_level
+        self.max_level = ds.max_level
         self.float_type = np.float64
-        super(ARTIndex, self).__init__(pf, dataset_type)
+        super(ARTIndex, self).__init__(ds, dataset_type)
 
     def get_smallest_dx(self):
         """
         Returns (in code units) the smallest cell size in the simulation.
         """
         # Overloaded
-        pf = self.parameter_file
+        ds = self.dataset
         return (1.0/pf.domain_dimensions.astype('f8') /
                 (2**self.max_level)).min()
 
@@ -84,12 +84,12 @@ class ARTIndex(OctreeIndex):
         """
         nv = len(self.fluid_field_list)
         self.oct_handler = ARTOctreeContainer(
-            self.parameter_file.domain_dimensions/2,  # dd is # of root cells
-            self.parameter_file.domain_left_edge,
-            self.parameter_file.domain_right_edge,
+            self.dataset.domain_dimensions/2,  # dd is # of root cells
+            self.dataset.domain_left_edge,
+            self.dataset.domain_right_edge,
             1)
         # The 1 here refers to domain_id == 1 always for ARTIO.
-        self.domains = [ARTDomainFile(self.parameter_file, nv, 
+        self.domains = [ARTDomainFile(self.dataset, nv, 
                                       self.oct_handler, 1)]
         self.octs_per_domain = [dom.level_count.sum() for dom in self.domains]
         self.total_octs = sum(self.octs_per_domain)
@@ -104,17 +104,17 @@ class ARTIndex(OctreeIndex):
         self.particle_field_list = [f for f in particle_fields]
         self.field_list = [("gas", f) for f in fluid_fields]
         # now generate all of the possible particle fields
-        if "wspecies" in self.parameter_file.parameters.keys():
-            wspecies = self.parameter_file.parameters['wspecies']
+        if "wspecies" in self.dataset.parameters.keys():
+            wspecies = self.dataset.parameters['wspecies']
             nspecies = len(wspecies)
-            self.parameter_file.particle_types = ["darkmatter", "stars"]
+            self.dataset.particle_types = ["darkmatter", "stars"]
             for specie in range(nspecies):
-                self.parameter_file.particle_types.append("specie%i" % specie)
-            self.parameter_file.particle_types_raw = tuple(
-                self.parameter_file.particle_types)
+                self.dataset.particle_types.append("specie%i" % specie)
+            self.dataset.particle_types_raw = tuple(
+                self.dataset.particle_types)
         else:
-            self.parameter_file.particle_types = []
-        for ptype in self.parameter_file.particle_types:
+            self.dataset.particle_types = []
+        for ptype in self.dataset.particle_types:
             for pfield in self.particle_field_list:
                 pfn = (ptype, pfield)
                 self.field_list.append(pfn)
@@ -132,7 +132,7 @@ class ARTIndex(OctreeIndex):
             base_region = getattr(dobj, "base_region", dobj)
             if len(domains) > 1:
                 mylog.debug("Identified %s intersecting domains", len(domains))
-            subsets = [ARTDomainSubset(base_region, domain, self.parameter_file)
+            subsets = [ARTDomainSubset(base_region, domain, self.dataset)
                        for domain in domains]
             dobj._chunk_info = subsets
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
@@ -420,7 +420,7 @@ class ARTDomainSubset(OctreeSubset):
         the order they are in in the octhandler.
         """
         oct_handler = self.oct_handler
-        all_fields = self.domain.pf.index.fluid_field_list
+        all_fields = self.domain.ds.index.fluid_field_list
         fields = [f for ft, f in ftfields]
         field_idxs = [all_fields.index(f) for f in fields]
         source, tr = {}, {}
@@ -431,10 +431,10 @@ class ARTDomainSubset(OctreeSubset):
             tr[field] = np.zeros(cell_count, 'float64')
         data = _read_root_level(content, self.domain.level_child_offsets,
                                 self.domain.level_count)
-        ns = (self.domain.pf.domain_dimensions.prod() / 8, 8)
+        ns = (self.domain.ds.domain_dimensions.prod() / 8, 8)
         for field, fi in zip(fields, field_idxs):
             source[field] = np.empty(ns, dtype="float64", order="C")
-            dt = data[fi,:].reshape(self.domain.pf.domain_dimensions,
+            dt = data[fi,:].reshape(self.domain.ds.domain_dimensions,
                                     order="F")
             for i in range(2):
                 for j in range(2):
@@ -446,15 +446,15 @@ class ARTDomainSubset(OctreeSubset):
         oct_handler.fill_level(0, levels, cell_inds, file_inds, tr, source)
         del source
         # Now we continue with the additional levels.
-        for level in range(1, self.pf.max_level + 1):
+        for level in range(1, self.ds.max_level + 1):
             no = self.domain.level_count[level]
             noct_range = [0, no]
             source = _read_child_level(
                 content, self.domain.level_child_offsets,
                 self.domain.level_offsets,
                 self.domain.level_count, level, fields,
-                self.domain.pf.domain_dimensions,
-                self.domain.pf.parameters['ncell0'],
+                self.domain.ds.domain_dimensions,
+                self.domain.ds.parameters['ncell0'],
                 noct_range=noct_range)
             oct_handler.fill_level(level, levels, cell_inds, file_inds, tr,
                 source)
@@ -470,9 +470,9 @@ class ARTDomainFile(object):
     _last_mask = None
     _last_seletor_id = None
 
-    def __init__(self, pf, nvar, oct_handler, domain_id):
+    def __init__(self, ds, nvar, oct_handler, domain_id):
         self.nvar = nvar
-        self.pf = pf
+        self.ds = ds
         self.domain_id = domain_id
         self._level_count = None
         self._level_oct_offsets = None
@@ -502,13 +502,13 @@ class ARTDomainFile(object):
         if self._level_oct_offsets is not None:
             return self._level_oct_offsets
         # We now have to open the file and calculate it
-        f = open(self.pf._file_amr, "rb")
+        f = open(self.ds._file_amr, "rb")
         nhydrovars, inoll, _level_oct_offsets, _level_child_offsets = \
-            self._count_art_octs(f,  self.pf.child_grid_offset,
-                self.pf.min_level, self.pf.max_level)
+            self._count_art_octs(f,  self.ds.child_grid_offset,
+                self.ds.min_level, self.ds.max_level)
         # remember that the root grid is by itself; manually add it back in
-        inoll[0] = self.pf.domain_dimensions.prod()/8
-        _level_child_offsets[0] = self.pf.root_grid_offset
+        inoll[0] = self.ds.domain_dimensions.prod()/8
+        _level_child_offsets[0] = self.ds.root_grid_offset
         self.nhydrovars = nhydrovars
         self.inoll = inoll  # number of octs
         self._level_oct_offsets = _level_oct_offsets
@@ -563,13 +563,13 @@ class ARTDomainFile(object):
            oct_handler.add
         """
         self.level_offsets
-        f = open(self.pf._file_amr, "rb")
-        for level in range(1, self.pf.max_level + 1):
+        f = open(self.ds._file_amr, "rb")
+        for level in range(1, self.ds.max_level + 1):
             unitary_center, fl, iocts, nocts, root_level = \
                 _read_art_level_info( f,
                     self._level_oct_offsets, level,
-                    coarse_grid=self.pf.domain_dimensions[0],
-                    root_level=self.pf.root_level)
+                    coarse_grid=self.ds.domain_dimensions[0],
+                    root_level=self.ds.root_level)
             nocts_check = oct_handler.add(self.domain_id, level,
                                           unitary_center)
             assert(nocts_check == nocts)
@@ -578,9 +578,9 @@ class ARTDomainFile(object):
 
     def _read_amr_root(self, oct_handler):
         self.level_offsets
-        f = open(self.pf._file_amr, "rb")
+        f = open(self.ds._file_amr, "rb")
         # add the root *cell* not *oct* mesh
-        root_octs_side = self.pf.domain_dimensions[0]/2
+        root_octs_side = self.ds.domain_dimensions[0]/2
         NX = np.ones(3)*root_octs_side
         octs_side = NX*2 # Level == 0
         LE = np.array([0.0, 0.0, 0.0], dtype='float64')
@@ -602,5 +602,5 @@ class ARTDomainFile(object):
         return True
         if getattr(selector, "domain_id", None) is not None:
             return selector.domain_id == self.domain_id
-        domain_ids = self.pf.index.oct_handler.domain_identify(selector)
+        domain_ids = self.ds.index.oct_handler.domain_identify(selector)
         return self.domain_id in domain_ids

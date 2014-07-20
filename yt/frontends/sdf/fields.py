@@ -38,7 +38,7 @@ class SDFFieldInfo(FieldInfoContainer):
     known_particle_fields = ()
     _mass_field = None
 
-    def __init__(self, pf, field_list):
+    def __init__(self, ds, field_list):
 
         if 'mass' in field_list:
             self.known_particle_fields.append(("mass", "code_mass",
@@ -46,17 +46,17 @@ class SDFFieldInfo(FieldInfoContainer):
         possible_masses = ['mass', 'm200b', 'mvir']
         mnf = 'mass'
         for mn in possible_masses:
-            if mn in pf.sdf_container.keys():
+            if mn in ds.sdf_container.keys():
                 mnf = self._mass_field = mn
                 break
 
-        idf = pf._field_map.get("particle_index", 'ident')
-        xf = pf._field_map.get("particle_position_x", 'x')
-        yf = pf._field_map.get("particle_position_y", 'y')
-        zf = pf._field_map.get("particle_position_z", 'z')
-        vxf = pf._field_map.get("particle_velocity_x", 'vx')
-        vyf = pf._field_map.get("particle_velocity_z", 'vy')
-        vzf = pf._field_map.get("particle_velocity_z", 'vz')
+        idf = ds._field_map.get("particle_index", 'ident')
+        xf = ds._field_map.get("particle_position_x", 'x')
+        yf = ds._field_map.get("particle_position_y", 'y')
+        zf = ds._field_map.get("particle_position_z", 'z')
+        vxf = ds._field_map.get("particle_velocity_x", 'vx')
+        vyf = ds._field_map.get("particle_velocity_z", 'vy')
+        vzf = ds._field_map.get("particle_velocity_z", 'vz')
 
         self.known_particle_fields = (
             (idf, ('dimensionless', ['particle_index'], None)),
@@ -68,6 +68,6 @@ class SDFFieldInfo(FieldInfoContainer):
             (vzf, ('code_velocity', ['particle_velocity_z'], None)),
             (mnf, ('code_mass', ['particle_mass'], None)),
         )
-        super(SDFFieldInfo, self).__init__(pf, field_list)
+        super(SDFFieldInfo, self).__init__(ds, field_list)
 
 

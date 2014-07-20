@@ -12,7 +12,7 @@ ts = yt.DatasetSeries.from_filenames(fns)
 storage = {}
 
 # We use the piter() method here so that this can be run in parallel.
-# Alternately, you could just iterate "for pf in ts:" and directly append to
+# Alternately, you could just iterate "for ds in ts:" and directly append to
 # times and entrs.
 for sto, ds in ts.piter(storage=storage):
     sphere = ds.sphere("c", (100., "kpc"))

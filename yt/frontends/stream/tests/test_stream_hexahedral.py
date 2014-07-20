@@ -36,7 +36,7 @@ def test_stream_hexahedral() :
     data = {'random_field': np.random.random(Nx*Ny*Nz)}
     bbox = np.array([ [0.0, 1.0], [0.0, 1.0], [0.0, 1.0] ])
     ds = load_hexahedral_mesh(data, conn, coords, bbox=bbox)
-    dd = ds.h.all_data()
+    dd = ds.all_data()
     #raise RuntimeError
     yield assert_almost_equal, float(dd["cell_volume"].sum(dtype="float64")), 1.0
     yield assert_equal, dd["ones"].size, Nx * Ny * Nz
@@ -48,7 +48,7 @@ def test_stream_hexahedral() :
     data = {'random_field': np.random.random(Nx*Ny*Nz)}
     bbox = np.array([ [0.0, 1.0], [0.0, 1.0], [0.0, 1.0] ])
     ds = load_hexahedral_mesh(data, conn, coords, bbox=bbox)
-    dd = ds.h.all_data()
+    dd = ds.all_data()
     yield assert_almost_equal, float(dd["cell_volume"].sum(dtype="float64")), 1.0
     yield assert_equal, dd["ones"].size, Nx * Ny * Nz
     yield assert_almost_equal, dd["dx"].to_ndarray(), 1.0/Nx

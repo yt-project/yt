@@ -42,14 +42,14 @@ Here is a working example for the IsolatedGalaxy dataset from the 2012 yt worksh
 
    from yt.mods import *
 
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
    # Choose a field
    field = 'density'
    # Do you want the log of the field?
    use_log = True
 
    # Find the bounds in log space of for your field
-   dd = pf.h.all_data()
+   dd = ds.all_data()
    mi, ma = dd.quantities["Extrema"](field)[0]
 
    if use_log:
@@ -59,13 +59,13 @@ Here is a working example for the IsolatedGalaxy dataset from the 2012 yt worksh
    tf = ColorTransferFunction((mi, ma))
 
    # Set up the camera parameters: center, looking direction, width, resolution
-   c = (pf.domain_right_edge + pf.domain_left_edge)/2.0
+   c = (ds.domain_right_edge + ds.domain_left_edge)/2.0
    L = np.array([1.0, 1.0, 1.0])
-   W = 0.3 / pf["unitary"]
+   W = 0.3 / ds["unitary"]
    N = 256 
 
    # Create a camera object
-   cam = pf.h.camera(c, L, W, N, tf, fields = [field], log_fields = [use_log])
+   cam = ds.camera(c, L, W, N, tf, fields = [field], log_fields = [use_log])
 
    # Now let's add some isocontours, and take a snapshot, saving the image
    # to a file.
@@ -280,8 +280,8 @@ image from the process.  We have provided a simple interface to this:
    from yt.mods import *
    import yt.visualization.volume_rendering.camera as camera
 
-   pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   image = camera.allsky_projection(pf, [0.5,0.5,0.5], 100.0/pf['kpc'],
+   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   image = camera.allsky_projection(ds, [0.5,0.5,0.5], 100.0/ds['kpc'],
                                     64, "density")
    camera.plot_allsky_healpix(image, 64, "allsky.png", "Column Density [g/cm^2]")
 
@@ -300,9 +300,9 @@ to the creation of a standard volume rendering.
    import yt.visualization.volume_rendering.camera as camera
 
    Nside = 32
-   pf = load("DD0008/galaxy0008")
+   ds = load("DD0008/galaxy0008")
    cam = camera.HEALpixCamera([0.5,0.5,0.5], 0.2, Nside,
-                              pf = pf, log_fields = [False])
+                              ds = ds, log_fields = [False])
    bitmap = cam.snapshot()
 
 The returned bitmap will, as per usual, be an array of integrated values.
