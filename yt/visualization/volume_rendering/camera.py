@@ -267,10 +267,9 @@ class Camera(ParallelAnalysisInterface):
         >>> write_bitmap(im, 'render_with_grids.png')
 
         """
-        region = self.ds.region((self.re + self.le) / 2.0,
-                                  self.le, self.re)
-        corners = region.grid_corners
-        levels = region.grid_levels[:,0]
+        index = self.ds.index
+        corners = index.grid_corners
+        levels = index.grid_levels[:,0]
 
         if max_level is not None:
             subset = levels <= max_level
