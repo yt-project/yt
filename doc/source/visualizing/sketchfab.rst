@@ -33,8 +33,8 @@ value.  For example:
 
 .. code-block:: python
 
-   from yt.mods import *
-   ds = load("/data/workshop2012/IsolatedGalaxy/galaxy0030/galaxy0030")
+   import yt
+   ds = yt.load("/data/workshop2012/IsolatedGalaxy/galaxy0030/galaxy0030")
    sphere = ds.sphere("max", (1.0, "mpc"))
    surface = ds.surface(sphere, "density", 1e-27)
 
@@ -92,8 +92,8 @@ Now you can run a script like this:
 
 .. code-block:: python
 
-   from yt.mods import *
-   ds = load("redshift0058")
+   import yt
+   ds = yt.load("redshift0058")
    dd = ds.sphere("max", (200, "kpc"))
    rho = 5e-27
 
@@ -144,9 +144,9 @@ galaxy simulation:
 
 .. code-block:: python
 
-   from yt.mods import *
+   import yt
 
-   ds = load("/data/workshop2012/IsolatedGalaxy/galaxy0030/galaxy0030")
+   ds = yt.load("/data/workshop2012/IsolatedGalaxy/galaxy0030/galaxy0030")
    rho = [2e-27, 1e-27]
    trans = [1.0, 0.5]
    filename = './surfaces'
@@ -216,22 +216,22 @@ to output one more type of variable on your surfaces.  For example:
 
 .. code-block:: python
 
-   from yt.mods import *
+   import yt
 
-   ds = load("/data/workshop2012/IsolatedGalaxy/galaxy0030/galaxy0030")
+   ds = yt.load("/data/workshop2012/IsolatedGalaxy/galaxy0030/galaxy0030")
    rho = [2e-27, 1e-27]
    trans = [1.0, 0.5]
    filename = './surfaces'
 
-   def _Emissivity(field, data):
+   def emissivity(field, data):
        return (data['density']*data['density']*np.sqrt(data['temperature']))
-   add_field("Emissivity", function=_Emissivity, units=r"\rm{g K}/\rm{cm}^{6}")
+   add_field("emissivity", function=_Emissivity, units=r"g*K/cm**6")
 
    sphere = ds.sphere("max", (1.0, "mpc"))
    for i,r in enumerate(rho):
        surf = ds.surface(sphere, 'density', r)
        surf.export_obj(filename, transparency = trans[i],
-                       color_field='temperature', emit_field = 'Emissivity',
+                       color_field='temperature', emit_field = 'emissivity',
 		       plot_index = i)
 
 will output the same OBJ and MTL as in our previous example, but it will scale

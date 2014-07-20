@@ -8,7 +8,7 @@ ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 sp = ds.sphere("max", (1, "Mpc"))
 
 # Calculate and store the bulk velocity for the sphere.
-bulk_velocity = sp.quantities['BulkVelocity']()
+bulk_velocity = sp.quantities.bulk_velocity()
 sp.set_field_parameter('bulk_velocity', bulk_velocity)
 
 # Create a 1D profile object for profiles over radius

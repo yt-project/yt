@@ -31,35 +31,15 @@ exists on disk.  If it does not, it then queries the list of code-specific
 derived fields.  If it finds nothing there, it then defaults to examining the
 global set of derived fields.
 
-To add a field to the list of fields that you know should exist in a particular
-frontend, call the function ``add_frontend_field`` where you replace
-``frontend`` with the name of the frontend.  Below is an example for adding
-``Cooling_Time`` to Enzo:
-
-.. code-block:: python
-
-   add_enzo_field("Cooling_Time", units=r"\rm{s}",
-                  function=NullFunc,
-                  validators=ValidateDataField("Cooling_Time"))
-
-Note that we used the ``NullFunc`` function here.  To add a derived field,
-which is not expected to necessarily exist on disk, use the standard
-construction:
+To add a derived field, which is not expected to necessarily exist on disk, use
+the standard construction:
 
 .. code-block:: python
 
    add_field("thermal_energy", function=_ThermalEnergy,
-             units=r"\rm{ergs}/\rm{g}")
+             units="ergs/g")
 
-To add a translation from one field to another, use the ``TranslationFunc`` as
-the function for reading the field.  For instance, this code appears in the Nyx
-frontend:
-
-.. code-block:: python
-
-   add_field("density", function=TranslationFunc("density"), take_log=True,
-             units=r"\rm{g} / \rm{cm}^3",
-             projected_units =r"\rm{g} / \rm{cm}^2")
+where ``_ThermalEnergy`` is a python function that defines the field.
 
 .. _accessing-fields:
 
@@ -105,7 +85,7 @@ potentially-accessible derived fields is available in the property
 
 .. code-block:: python
 
-   ds = load("my_data")
+   ds = yt.load("my_data")
    print ds.field_list
    print ds.derived_field_list
 
@@ -115,7 +95,7 @@ dataset, as well.  All of the field creation options
 
 .. code-block:: python
 
-   ds = load("my_data")
+   ds = yt.load("my_data")
    print ds.field_info["pressure"].get_units()
 
 This is a fast way to examine the units of a given field, and additionally you
@@ -141,8 +121,8 @@ object.  To access them, you would do something like this (as for a
 
 .. code-block:: python
 
-   from yt.mods import *
-   ds = load("RedshiftOutput0005")
+   import yt
+   ds = yt.load("RedshiftOutput0005")
    reg = ds.region([0.5, 0.5, 0.5], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
 
 .. include:: _obj_docstrings.inc
@@ -199,7 +179,7 @@ These can be accessed via the ``quantities`` interface, like so:
 
    ds = load("my_data")
    dd = ds.all_data()
-   dd.quantities["AngularMomentumVector"]()
+   dd.quantities.angular_momentum_vector()
 
 The following quantities are available via the ``quantities`` interface.
 
@@ -246,8 +226,8 @@ a certain temperature range, as in the following example.
 
 .. notebook-cell::
 
-   from yt.mods import *
-   ds = load("enzo_tiny_cosmology/DD0046/DD0046")
+   import yt
+   ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
    ad = ds.all_data()
    total_mass = ad.quantities.total_quantity('cell_mass')
    # now select only gas with 1e5 K < T < 1e7 K.
@@ -268,12 +248,12 @@ it as a data_source to a projection.
 
 .. python-script::
 
-   from yt.mods import *
-   ds = load("enzo_tiny_cosmology/DD0046/DD0046")
+   import yt
+   ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
    ad = ds.all_data()
    new_region = ad.cut_region(['obj["density"] > 1e-29'])
-   plot = ProjectionPlot(ds, "x", "density", weight_field="density",
-                         data_source=new_region)
+   plot = yt.ProjectionPlot(ds, "x", "density", weight_field="density",
+                            data_source=new_region)
    plot.save()
 
 .. _extracting-connected-sets:
@@ -311,10 +291,6 @@ objects.  These can be queried just as any other data object.
 
 Extracting Isocontour Information
 ---------------------------------
-.. versionadded:: 2.3
-
-.. warning::
-   This is still beta!
 
 ``yt`` contains an implementation of the `Marching Cubes
 <http://en.wikipedia.org/wiki/Marching_cubes>`_ algorithm, which can operate on
@@ -378,8 +354,8 @@ the index or as a standalone file.  For instance, using
 
 .. code-block:: python
 
-   from yt.mods import *
-   ds = load("my_data")
+   import yt
+   ds = yt.load("my_data")
    sp = ds.sphere([0.5, 0.5, 0.5], 10.0/ds['kpc'])
 
    ds.save_object(sp, "sphere_to_analyze_later")
@@ -390,9 +366,9 @@ In a later session, we can load it using
 
 .. code-block:: python
 
-   from yt.mods import *
+   import yt
 
-   ds = load("my_data")
+   ds = yt.load("my_data")
    sphere_to_analyze = ds.load_object("sphere_to_analyze_later")
 
 Additionally, if we want to store the object independent of the ``.yt`` file,
@@ -400,9 +376,9 @@ we can save the object directly:
 
 .. code-block:: python
 
-   from yt.mods import *
+   import yt
 
-   ds = load("my_data")
+   ds = yt.load("my_data")
    sp = ds.sphere([0.5, 0.5, 0.5], 10.0/ds['kpc'])
 
    sp.save_object("my_sphere", "my_storage_file.cpkl")
@@ -416,10 +392,10 @@ To re-load an object saved this way, you can use the shelve module directly:
 
 .. code-block:: python
 
-   from yt.mods import *
+   import yt
    import shelve
 
-   ds = load("my_data") # not necessary if storeparameterfiles is on
+   ds = yt.load("my_data") # not necessary if storeparameterfiles is on
 
    obj_file = shelve.open("my_storage_file.cpkl")
    ds, obj = obj_file["my_sphere"]
