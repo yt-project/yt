@@ -1,6 +1,9 @@
 What is the yt Hub?
 ===================
 
+.. warning:: The yt Hub is currently offline due to some hosting problems.  We
+             hope to have it back up online soon.
+
 The yt data hub is a mechanism by which images, data objects and projects can be
 shared with other people.  For instance, one can upload projections and browse
 them with an interface similar to Google Maps or upload notebooks and view them
