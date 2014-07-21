@@ -154,9 +154,9 @@ class BaseIOHandler(object):
         for field in fields:
             if field[0] in unions:
                 for pt in unions[field[0]]:
-                    fsize[field] += psize[pt]
+                    fsize[field] += psize.get(pt, 0)
             else:
-                fsize[field] += psize[field[0]]
+                fsize[field] += psize.get(field[0], 0)
         for field in fields:
             if field[1] in self._vector_fields:
                 shape = (fsize[field], 3)
