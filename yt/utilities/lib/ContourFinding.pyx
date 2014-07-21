@@ -344,7 +344,6 @@ cdef class TileContourTree:
                 for k in range(nk):
                     c1 = container[i*nj*nk + j*nk + k]
                     if c1 == NULL: continue
-                    cur = c1
                     c1 = contour_find(c1)
                     contour_ids[i,j,k] = c1.contour_id
         
@@ -413,73 +412,94 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
         for j in range(nz):
             for offset_i in range(3):
                 oi = offset_i - 1
+                if i == 0 and oi == -1: continue
+                if i == ny - 1 and oi == 1: continue
                 for offset_j in range(3):
                     oj = offset_j - 1
+                    if j == 0 and oj == -1: continue
+                    if j == nz - 1 and oj == 1: continue
                     # Adjust by -1 in x, then oi and oj in y and z
                     get_spos(vc0, -1, i + oi, j + oj, 0, spos)
                     adj_node = _find_node(trunk, spos)
                     vc1 = vcs[adj_node.node_ind]
-                    if examined[adj_node.node_ind] == 0 and \
-                       spos_contained(vc1, spos):
+                    if spos_contained(vc1, spos):
                         # This is outside our VC, as 0 is a boundary layer
                         index = vc_index(vc0, 0, i, j)
                         c1 = (<np.int64_t*>vc0.data[0])[index]
                         index = vc_pos_index(vc1, spos)
                         c2 = (<np.int64_t*>vc1.data[0])[index]
+                        # If the other node has been examined, then we assume
+                        # it has already resolved the conflict.
                         if c1 > -1 and c2 > -1:
-                            joins[ti,0] = i64max(c1,c2)
-                            joins[ti,1] = i64min(c1,c2)
+                            if examined[adj_node.node_ind] == 0:
+                                joins[ti,0] = i64max(c1,c2)
+                                joins[ti,1] = i64min(c1,c2)
+                            else:
+                                joins[ti,0] = c1
+                                joins[ti,1] = c2
                             ti += 1
                     # This is outside our vc
                     get_spos(vc0, nx, i + oi, j + oj, 0, spos)
                     adj_node = _find_node(trunk, spos)
                     vc1 = vcs[adj_node.node_ind]
-                    if examined[adj_node.node_ind] == 0 and \
-                       spos_contained(vc1, spos):
+                    if spos_contained(vc1, spos):
                         # This is outside our VC, as 0 is a boundary layer
                         index = vc_index(vc0, nx - 1, i, j)
                         c1 = (<np.int64_t*>vc0.data[0])[index]
                         index = vc_pos_index(vc1, spos)
                         c2 = (<np.int64_t*>vc1.data[0])[index]
                         if c1 > -1 and c2 > -1:
-                            joins[ti,0] = i64max(c1,c2)
-                            joins[ti,1] = i64min(c1,c2)
-                            ti += 1
+                            if examined[adj_node.node_ind] == 0:
+                                joins[ti,0] = i64max(c1,c2)
+                                joins[ti,1] = i64min(c1,c2)
+                            else:
+                                joins[ti,0] = c1
+                                joins[ti,1] = c2
     # Now y-pass
     for i in range(nx):
         for j in range(nz):
             for offset_i in range(3):
                 oi = offset_i - 1
+                if i == 0 and oi == -1: continue
+                if i == nx - 1 and oi == 1: continue
                 for offset_j in range(3):
                     oj = offset_j - 1
+                    if j == 0 and oj == -1: continue
+                    if j == nz - 1 and oj == 1: continue
                     get_spos(vc0, i + oi, -1, j + oj, 1, spos)
                     adj_node = _find_node(trunk, spos)
                     vc1 = vcs[adj_node.node_ind]
-                    if examined[adj_node.node_ind] == 0 and \
-                       spos_contained(vc1, spos):
+                    if spos_contained(vc1, spos):
                         # This is outside our VC, as 0 is a boundary layer
                         index = vc_index(vc0, i, 0, j)
                         c1 = (<np.int64_t*>vc0.data[0])[index]
                         index = vc_pos_index(vc1, spos)
                         c2 = (<np.int64_t*>vc1.data[0])[index]
                         if c1 > -1 and c2 > -1:
-                            joins[ti,0] = i64max(c1,c2)
-                            joins[ti,1] = i64min(c1,c2)
+                            if examined[adj_node.node_ind] == 0:
+                                joins[ti,0] = i64max(c1,c2)
+                                joins[ti,1] = i64min(c1,c2)
+                            else:
+                                joins[ti,0] = c1
+                                joins[ti,1] = c2
                             ti += 1
 
                     get_spos(vc0, i + oi, ny, j + oj, 1, spos)
                     adj_node = _find_node(trunk, spos)
                     vc1 = vcs[adj_node.node_ind]
-                    if examined[adj_node.node_ind] == 0 and \
-                       spos_contained(vc1, spos):
+                    if spos_contained(vc1, spos):
                         # This is outside our VC, as 0 is a boundary layer
                         index = vc_index(vc0, i, ny - 1, j)
                         c1 = (<np.int64_t*>vc0.data[0])[index]
                         index = vc_pos_index(vc1, spos)
                         c2 = (<np.int64_t*>vc1.data[0])[index]
                         if c1 > -1 and c2 > -1:
-                            joins[ti,0] = i64max(c1,c2)
-                            joins[ti,1] = i64min(c1,c2)
+                            if examined[adj_node.node_ind] == 0:
+                                joins[ti,0] = i64max(c1,c2)
+                                joins[ti,1] = i64min(c1,c2)
+                            else:
+                                joins[ti,0] = c1
+                                joins[ti,1] = c2
                             ti += 1
 
     # Now z-pass
@@ -487,36 +507,46 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
         for j in range(ny):
             for offset_i in range(3):
                 oi = offset_i - 1
+                if i == 0 and oi == -1: continue
+                if i == nx - 1 and oi == 1: continue
                 for offset_j in range(3):
                     oj = offset_j - 1
+                    if j == 0 and oj == -1: continue
+                    if j == ny - 1 and oj == 1: continue
                     get_spos(vc0, i + oi,  j + oj, -1, 2, spos)
                     adj_node = _find_node(trunk, spos)
                     vc1 = vcs[adj_node.node_ind]
-                    if examined[adj_node.node_ind] == 0 and \
-                       spos_contained(vc1, spos):
+                    if spos_contained(vc1, spos):
                         # This is outside our VC, as 0 is a boundary layer
                         index = vc_index(vc0, i, j, 0)
                         c1 = (<np.int64_t*>vc0.data[0])[index]
                         index = vc_pos_index(vc1, spos)
                         c2 = (<np.int64_t*>vc1.data[0])[index]
                         if c1 > -1 and c2 > -1:
-                            joins[ti,0] = i64max(c1,c2)
-                            joins[ti,1] = i64min(c1,c2)
+                            if examined[adj_node.node_ind] == 0:
+                                joins[ti,0] = i64max(c1,c2)
+                                joins[ti,1] = i64min(c1,c2)
+                            else:
+                                joins[ti,0] = c1
+                                joins[ti,1] = c2
                             ti += 1
 
                     get_spos(vc0, i + oi, j + oj, nz, 2, spos)
                     adj_node = _find_node(trunk, spos)
                     vc1 = vcs[adj_node.node_ind]
-                    if examined[adj_node.node_ind] == 0 and \
-                       spos_contained(vc1, spos):
+                    if spos_contained(vc1, spos):
                         # This is outside our VC, as 0 is a boundary layer
                         index = vc_index(vc0, i, j, nz - 1)
                         c1 = (<np.int64_t*>vc0.data[0])[index]
                         index = vc_pos_index(vc1, spos)
                         c2 = (<np.int64_t*>vc1.data[0])[index]
                         if c1 > -1 and c2 > -1:
-                            joins[ti,0] = i64max(c1,c2)
-                            joins[ti,1] = i64min(c1,c2)
+                            if examined[adj_node.node_ind] == 0:
+                                joins[ti,0] = i64max(c1,c2)
+                                joins[ti,1] = i64min(c1,c2)
+                            else:
+                                joins[ti,0] = c1
+                                joins[ti,1] = c2
                             ti += 1
     if ti == 0: return
     new_joins = tree.cull_joins(joins[:ti,:])
