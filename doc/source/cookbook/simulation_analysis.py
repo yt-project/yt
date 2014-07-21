@@ -1,4 +1,5 @@
 import yt
+yt.enable_parallelism()
 import collections
 
 # Instantiate a time series object for an Enzo simulation..

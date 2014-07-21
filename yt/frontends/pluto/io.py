@@ -25,10 +25,10 @@ class IOHandlerPlutoHDF5(BaseIOHandler):
     _offset_string = 'data:offsets=0'
     _data_string = 'data:datatype=0'
 
-    def __init__(self, pf, *args, **kwargs):
+    def __init__(self, ds, *args, **kwargs):
         BaseIOHandler.__init__(self, *args, **kwargs)
-        self.pf = pf
-        self._handle = pf._handle
+        self.ds = ds
+        self._handle = ds._handle
 
     _field_dict = None
     @property

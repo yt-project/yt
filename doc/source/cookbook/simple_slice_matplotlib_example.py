@@ -23,7 +23,7 @@ rect = (0.2,0.2,0.2,0.2)
 new_ax = fig.add_axes(rect)
 
 n, bins, patches = new_ax.hist(np.random.randn(1000)+20, 50,
-    facecolor='black', edgecolor='black')
+                               facecolor='black', edgecolor='black')
 
 # Make sure its visible
 new_ax.tick_params(colors='white')

@@ -1,7 +1,7 @@
 import yt
 import numpy as np
 
-fn = "IsolatedGalaxy/galaxy0030/galaxy0030" # parameter file to load
+fn = "IsolatedGalaxy/galaxy0030/galaxy0030" # dataset to load
 
 ds = yt.load(fn) # load data
 

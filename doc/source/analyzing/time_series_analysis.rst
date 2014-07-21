@@ -11,10 +11,10 @@ loop:
 
 .. code-block:: python
 
-   for pfi in range(30):
-       fn = "DD%04i/DD%04i" % (pfi, pfi)
-       pf = load(fn)
-       process_output(pf)
+   for dsi in range(30):
+       fn = "DD%04i/DD%04i" % (dsi, dsi)
+       ds = load(fn)
+       process_output(ds)
 
 But this is not really very nice.  This ends up requiring a lot of maintenance.
 The :class:`~yt.data_objects.time_series.DatasetSeries` object has been
@@ -66,8 +66,8 @@ is returned for iteration:
 
    from yt.mods import *
    ts = DatasetSeries.from_filenames("*/*.index")
-   for pf in ts:
-       print pf.current_time
+   for ds in ts:
+       print ds.current_time
 
 This can also operate in parallel, using
 :meth:`~yt.data_objects.time_series.DatasetSeries.piter`.  For more examples,
@@ -101,7 +101,7 @@ maximum value we want to evaluate:
    max_rho = ts.tasks["MaximumValue"]("density")
 
 When we call the task, the time series object executes the task on each
-component parameter file.  The results are then returned to the user.  More
+component dataset.  The results are then returned to the user.  More
 complex, multi-task evaluations can be conducted by using the
 :meth:`~yt.data_objects.time_series.DatasetSeries.eval` call, which accepts a
 list of analysis tasks.
@@ -140,14 +140,14 @@ Creating Analysis Tasks
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 If you wanted to look at the mass in star particles as a function of time, you
-would write a function that accepts params and pf and then decorate it with
+would write a function that accepts params and ds and then decorate it with
 analysis_task. Here we have done so:
 
 .. code-block:: python
 
    @analysis_task(('particle_type',))
-   def MassInParticleType(params, pf):
-       dd = pf.h.all_data()
+   def MassInParticleType(params, ds):
+       dd = ds.all_data()
        ptype = (dd["particle_type"] == params.particle_type)
        return (ptype.sum(), dd["ParticleMassMsun"][ptype].sum())
 
@@ -196,8 +196,8 @@ After this, time series analysis can be done normally.
 
 .. code-block:: python
 
-  for pf in my_sim.piter()
-      all_data = pf.h.all_data()
+  for ds in my_sim.piter()
+      all_data = ds.all_data()
       print all_data.quantities['Extrema']('density')
  
 Additional keywords can be given to :meth:`get_time_series` to select a subset

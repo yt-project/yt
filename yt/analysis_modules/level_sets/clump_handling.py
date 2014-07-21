@@ -13,12 +13,14 @@ Clump finding helper classes
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
 import copy
+import numpy as np
 
-from yt.funcs import *
+from .clump_info_items import \
+     clump_info_registry
 
-from .contour_finder import identify_contours
+from .contour_finder import \
+     identify_contours
 
 class Clump(object):
     children = None
@@ -50,13 +52,14 @@ class Clump(object):
         # Return value of validity function, saved so it does not have to be calculated again.
         self.function_value = None
 
-    def add_info_item(self,quantity,format):
+    def add_info_item(self, info_item, *args, **kwargs):
         "Adds an entry to clump_info list and tells children to do the same."
 
-        self.clump_info.append({'quantity':quantity, 'format':format})
+        callback = clump_info_registry.find(info_item, *args, **kwargs)
+        self.clump_info.append(callback)
         if self.children is None: return
         for child in self.children:
-            child.add_info_item(quantity,format)
+            child.add_info_item(info_item)
 
     def set_default_clump_info(self):
         "Defines default entries in the clump_info array."
@@ -64,22 +67,13 @@ class Clump(object):
         # add_info_item is recursive so this function does not need to be.
         self.clump_info = []
 
-        # Number of cells.
-        self.add_info_item('self.data["gas", "cell_mass"].size','"Cells: %d" % value')
-        # Gas mass in solar masses.
-        self.add_info_item('self.data["gas", "cell_mass"].sum()','"Mass: %e Msolar" % value')
-        # Volume-weighted Jeans mass.
-        self.add_info_item('self.data.quantities.weighted_average_quantity("jeans_mass", ("index", "cell_volume"))',
-                           '"Jeans Mass (volume-weighted): %.6e Msolar" % value')
-        # Mass-weighted Jeans mass.
-        self.add_info_item('self.data.quantities.weighted_average_quantity("jeans_mass", ("gas", "cell_mass"))',
-                           '"Jeans Mass (mass-weighted): %.6e Msolar" % value')
-        # Max level.
-        self.add_info_item('self.data["index", "grid_level"].max()','"Max grid level: %d" % value')
-        # Minimum number density.
-        self.add_info_item('self.data["number_density"].min()','"Min number density: %.6e cm^-3" % value')
-        # Maximum number density.
-        self.add_info_item('self.data["number_density"].max()','"Max number density: %.6e cm^-3" % value')
+        self.add_info_item("total_cells")
+        self.add_info_item("cell_mass")
+        self.add_info_item("mass_weighted_jeans_mass")
+        self.add_info_item("volume_weighted_jeans_mass")
+        self.add_info_item("max_grid_level")
+        self.add_info_item("min_number_density")
+        self.add_info_item("max_number_density")
 
     def clear_clump_info(self):
         "Clears the clump_info array and passes the instruction to its children."
@@ -89,18 +83,12 @@ class Clump(object):
         for child in self.children:
             child.clear_clump_info()
 
-    def write_info(self,level,f_ptr):
+    def write_info(self, level, f_ptr):
         "Writes information for clump using the list of items in clump_info."
 
         for item in self.clump_info:
-            # Call if callable, otherwise do an eval.
-            if callable(item['quantity']):
-                value = item['quantity']()
-            else:
-                value = eval(item['quantity'])
-            output = eval(item['format'])
-            f_ptr.write("%s%s" % ('\t'*level,output))
-            f_ptr.write("\n")
+            value = item(self)
+            f_ptr.write("%s%s\n" % ('\t'*level, value))
 
     def find_children(self, min_val, max_val = None):
         if self.children is not None:
@@ -218,42 +206,35 @@ def get_lowest_clumps(clump, clump_list=None):
 
     return clump_list
 
-def write_clump_index(clump,level,f_ptr):
+def write_clump_index(clump, level, fh):
+    top = False
+    if not isinstance(fh, file):
+        fh = open(fh, "w")
+        top = True
     for q in range(level):
-        f_ptr.write("\t")
-    f_ptr.write("Clump at level %d:\n" % level)
-    clump.write_info(level,f_ptr)
-    f_ptr.write("\n")
-    f_ptr.flush()
+        fh.write("\t")
+    fh.write("Clump at level %d:\n" % level)
+    clump.write_info(level, fh)
+    fh.write("\n")
+    fh.flush()
     if ((clump.children is not None) and (len(clump.children) > 0)):
         for child in clump.children:
-            write_clump_index(child,(level+1),f_ptr)
+            write_clump_index(child, (level+1), fh)
+    if top:
+        fh.close()
 
-def write_clumps(clump,level,f_ptr):
+def write_clumps(clump, level, fh):
+    top = False
+    if not isinstance(fh, file):
+        fh = open(fh, "w")
+        top = True
     if ((clump.children is None) or (len(clump.children) == 0)):
-        f_ptr.write("%sClump:\n" % ("\t"*level))
-        clump.write_info(level,f_ptr)
-        f_ptr.write("\n")
-        f_ptr.flush()
+        fh.write("%sClump:\n" % ("\t"*level))
+        clump.write_info(level, fh)
+        fh.write("\n")
+        fh.flush()
     if ((clump.children is not None) and (len(clump.children) > 0)):
         for child in clump.children:
-            write_clumps(child,0,f_ptr)
-
-# Recipes for various clump calculations.
-recipes = {}
-
-# Distance from clump center of mass to center of mass of top level object.
-def _DistanceToMainClump(master,units='pc'):
-    masterCOM = master.data.quantities.center_of_mass()
-    pass_command = "self.masterCOM = [%.10f, %.10f, %.10f]" % (masterCOM[0],
-                                                               masterCOM[1],
-                                                               masterCOM[2])
-    master.pass_down(pass_command)
-    master.pass_down("self.com = self.data.quantities.center_of_mass()")
-
-    quantity = "((self.com[0]-self.masterCOM[0])**2 + (self.com[1]-self.masterCOM[1])**2 + (self.com[2]-self.masterCOM[2])**2)**(0.5)*self.data.pf.units['%s']" % units
-    format = "%s%s%s" % ("'Distance from center: %.6e ",units,"' % value")
-
-    master.add_info_item(quantity,format)
-
-recipes['DistanceToMainClump'] = _DistanceToMainClump
+            write_clumps(child, 0, fh)
+    if top:
+        fh.close()

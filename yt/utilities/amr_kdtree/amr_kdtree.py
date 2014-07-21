@@ -42,17 +42,17 @@ steps = np.array([[-1, -1, -1], [-1, -1,  0], [-1, -1,  1],
                   [ 1,  1, -1], [ 1,  1,  0], [ 1,  1,  1] ])
 
 class Tree(object):
-    def __init__(self, pf, comm_rank=0, comm_size=1, left=None, right=None, 
+    def __init__(self, ds, comm_rank=0, comm_size=1, left=None, right=None, 
         min_level=None, max_level=None, data_source=None):
 
-        self.pf = pf
+        self.ds = ds
         try:
-            self._id_offset = pf.index.grids[0]._id_offset
+            self._id_offset = ds.index.grids[0]._id_offset
         except AttributeError:
             self._id_offset = 0
 
         if data_source is None:
-            data_source = pf.h.all_data()
+            data_source = ds.all_data()
         self.data_source = data_source
         if left is None:
             left = np.array([-np.inf]*3)
@@ -60,7 +60,7 @@ class Tree(object):
             right = np.array([np.inf]*3)
 
         if min_level is None: min_level = 0
-        if max_level is None: max_level = pf.h.max_level
+        if max_level is None: max_level = ds.index.max_level
         self.min_level = min_level
         self.max_level = max_level
         self.comm_rank = comm_rank
@@ -90,12 +90,12 @@ class Tree(object):
         for node in depth_traverse(self.trunk):
             if node.grid == -1:
                 continue
-            grid = self.pf.index.grids[node.grid - self._id_offset]
+            grid = self.ds.index.grids[node.grid - self._id_offset]
             dds = grid.dds
             gle = grid.LeftEdge
             gre = grid.RightEdge
-            nle = self.pf.arr(get_left_edge(node), input_units="code_length")
-            nre = self.pf.arr(get_right_edge(node), input_units="code_length")
+            nle = self.ds.arr(get_left_edge(node), input_units="code_length")
+            nre = self.ds.arr(get_right_edge(node), input_units="code_length")
             li = np.rint((nle-gle)/dds).astype('int32')
             ri = np.rint((nre-gle)/dds).astype('int32')
             dims = (ri - li).astype('int32')
@@ -116,11 +116,11 @@ class Tree(object):
                 continue
             if not all_cells and not kd_is_leaf(node):
                 continue
-            grid = self.pf.index.grids[node.grid - self._id_offset]
+            grid = self.ds.index.grids[node.grid - self._id_offset]
             dds = grid.dds
             gle = grid.LeftEdge
-            nle = self.pf.arr(get_left_edge(node), input_units="code_length")
-            nre = self.pf.arr(get_right_edge(node), input_units="code_length")
+            nle = self.ds.arr(get_left_edge(node), input_units="code_length")
+            nre = self.ds.arr(get_right_edge(node), input_units="code_length")
             li = np.rint((nle-gle)/dds).astype('int32')
             ri = np.rint((nre-gle)/dds).astype('int32')
             dims = (ri - li).astype('int32')
@@ -134,30 +134,30 @@ class AMRKDTree(ParallelAnalysisInterface):
     log_fields = None
     no_ghost = True
 
-    def __init__(self, pf, min_level=None, max_level=None,
+    def __init__(self, ds, min_level=None, max_level=None,
                  data_source=None):
 
         ParallelAnalysisInterface.__init__(self)
 
-        self.pf = pf
+        self.ds = ds
         self.current_vcds = []
         self.current_saved_grids = []
         self.bricks = []
         self.brick_dimensions = []
-        self.sdx = pf.index.get_smallest_dx()
+        self.sdx = ds.index.get_smallest_dx()
 
         self._initialized = False
         try:
-            self._id_offset = pf.index.grids[0]._id_offset
+            self._id_offset = ds.index.grids[0]._id_offset
         except AttributeError:
             self._id_offset = 0
 
         if data_source is None:
-            data_source = self.pf.h.all_data()
+            data_source = self.ds.all_data()
         self.data_source = data_source
 
         mylog.debug('Building AMRKDTree')
-        self.tree = Tree(pf, self.comm.rank, self.comm.size,
+        self.tree = Tree(ds, self.comm.rank, self.comm.size,
                          min_level=min_level, max_level=max_level,
                          data_source=data_source)
 
@@ -185,10 +185,10 @@ class AMRKDTree(ParallelAnalysisInterface):
             yield self.get_brick_data(node)
 
     def slice_traverse(self, viewpoint = None):
-        if not hasattr(self.pf.index, "grid"):
+        if not hasattr(self.ds.index, "grid"):
             raise NotImplementedError
         for node in kd_traverse(self.tree.trunk, viewpoint=viewpoint):
-            grid = self.pf.index.grids[node.grid - self._id_offset]
+            grid = self.ds.index.grids[node.grid - self._id_offset]
             dds = grid.dds
             gle = grid.LeftEdge.in_units("code_length").ndarray_view()
             nle = get_left_edge(node)
@@ -253,7 +253,7 @@ class AMRKDTree(ParallelAnalysisInterface):
 
     def get_brick_data(self, node):
         if node.data is not None: return node.data
-        grid = self.pf.index.grids[node.grid - self._id_offset]
+        grid = self.ds.index.grids[node.grid - self._id_offset]
         dds = grid.dds.ndarray_view()
         gle = grid.LeftEdge.ndarray_view()
         nle = get_left_edge(node)
@@ -340,7 +340,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         in_grid = np.all((new_cis >=0)*
                          (new_cis < grid.ActiveDimensions),axis=1)
         new_positions = position + steps*offs
-        new_positions = [periodic_position(p, self.pf) for p in new_positions]
+        new_positions = [periodic_position(p, self.ds) for p in new_positions]
         grids[in_grid] = grid
                 
         get_them = np.argwhere(in_grid != True).ravel()
@@ -348,7 +348,7 @@ class AMRKDTree(ParallelAnalysisInterface):
 
         if (in_grid != True).sum()>0:
             grids[in_grid != True] = \
-                [self.pf.index.grids[self.locate_brick(new_positions[i]).grid -
+                [self.ds.index.grids[self.locate_brick(new_positions[i]).grid -
                                  self._id_offset]
                  for i in get_them]
             cis[in_grid != True] = \
@@ -386,7 +386,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         
         """
         position = np.array(position)
-        grid = self.pf.index.grids[self.locate_brick(position).grid -
+        grid = self.ds.index.grids[self.locate_brick(position).grid -
                                self._id_offset]
         ci = ((position-grid.LeftEdge)/grid.dds).astype('int64')
         return self.locate_neighbors(grid,ci)
@@ -395,7 +395,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         if not self._initialized:
             self.initialize_source()
         if fn is None:
-            fn = '%s_kd_bricks.h5'%self.pf
+            fn = '%s_kd_bricks.h5'%self.ds
         if self.comm.rank != 0:
             self.comm.recv_array(self.comm.rank-1, tag=self.comm.rank-1)
         f = h5py.File(fn,'w')
@@ -415,7 +415,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         
     def load_kd_bricks(self,fn=None):
         if fn is None:
-            fn = '%s_kd_bricks.h5' % self.pf
+            fn = '%s_kd_bricks.h5' % self.ds
         if self.comm.rank != 0:
             self.comm.recv_array(self.comm.rank-1, tag=self.comm.rank-1)
         try:
@@ -539,11 +539,11 @@ class AMRKDTree(ParallelAnalysisInterface):
 if __name__ == "__main__":
     from yt.mods import *
     from time import time
-    pf = load('/Users/skillman/simulations/DD1717/DD1717')
-    pf.h
+    ds = load('/Users/skillman/simulations/DD1717/DD1717')
+    ds.index
 
     t1 = time()
-    hv = AMRKDTree(pf)
+    hv = AMRKDTree(ds)
     t2 = time()
 
     print kd_sum_volume(hv.tree.trunk)

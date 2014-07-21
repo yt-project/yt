@@ -20,14 +20,14 @@ from .cartesian_coordinates import \
 
 class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
 
-    def __init__(self, pf):
-        super(SpectralCubeCoordinateHandler, self).__init__(pf)
+    def __init__(self, ds):
+        super(SpectralCubeCoordinateHandler, self).__init__(ds)
 
         self.axis_name = {}
         self.axis_id = {}
 
-        for axis, axis_name in zip([pf.lon_axis, pf.lat_axis, pf.spec_axis],
-                                   ["Image\ x", "Image\ y", pf.spec_name]):
+        for axis, axis_name in zip([ds.lon_axis, ds.lat_axis, ds.spec_axis],
+                                   ["Image\ x", "Image\ y", ds.spec_name]):
             lower_ax = "xyz"[axis]
             upper_ax = lower_ax.upper()
 
@@ -41,16 +41,16 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
             self.axis_id[axis_name] = axis
 
         self.default_unit_label = {}
-        self.default_unit_label[pf.lon_axis] = "pixel"
-        self.default_unit_label[pf.lat_axis] = "pixel"
-        self.default_unit_label[pf.spec_axis] = pf.spec_unit
+        self.default_unit_label[ds.lon_axis] = "pixel"
+        self.default_unit_label[ds.lat_axis] = "pixel"
+        self.default_unit_label[ds.spec_axis] = ds.spec_unit
 
         def _spec_axis(ax, x, y):
             p = (x,y)[ax]
-            return [self.pf.pixel2spec(pp).v for pp in p]
+            return [self.ds.pixel2spec(pp).v for pp in p]
 
         self.axis_field = {}
-        self.axis_field[self.pf.spec_axis] = _spec_axis
+        self.axis_field[self.ds.spec_axis] = _spec_axis
 
     def convert_to_cylindrical(self, coord):
         raise NotImplementedError

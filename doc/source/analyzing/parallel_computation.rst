@@ -22,14 +22,11 @@ Currently, ``yt`` is able to perform the following actions in parallel:
    :ref:`derived-quantities`)
  * 1-, 2-, and 3-D profiles (:ref:`generating-profiles-and-histograms`)
  * Halo finding (:ref:`halo_finding`)
- * Merger tree (:ref:`merger_tree`)
- * Two point functions (:ref:`two_point_functions`)
  * Volume rendering (:ref:`volume_rendering`)
- * Radial column density (:ref:`radial-column-density`)
  * Isocontours & flux calculations (:ref:`extracting-isocontour-information`)
 
 This list covers just about every action ``yt`` can take!  Additionally, almost all
-scripts will benefit from parallelization without any modification.  The goal
+scripts will benefit from parallelization with minimal modification.  The goal
 of Parallel-``yt`` has been to retain API compatibility and abstract all
 parallelism.
 
@@ -45,14 +42,15 @@ mpi4py website, but you may have luck by just running:
 
     $ pip install mpi4py
 
-Once that has been installed, you're all done!  You just need to launch your 
-scripts with ``mpirun`` (or equivalent) and signal to ``yt`` that you want to run 
-them in parallel.  In general, that's all it takes to get a speed benefit on a 
+Once that has been installed, you're all done!  You just need to launch your
+scripts with ``mpirun`` (or equivalent) and signal to ``yt`` that you want to
+run them in parallel by invoking the ``yt.enable_parallelism()`` function in
+your script.  In general, that's all it takes to get a speed benefit on a
 multi-core machine.  Here is an example on an 8-core desktop:
 
 .. code-block:: bash
 
-    $ mpirun -np 8 python script.py --parallel
+    $ mpirun -np 8 python script.py
 
 Throughout its normal operation, ``yt`` keeps you aware of what is happening with
 regular messages to the stderr usually prefaced with: 
@@ -71,10 +69,9 @@ of your processors to this log mode, as in:
 
 in the case of two cores being used.
 
-It's important to note that all of the processes listed in `capabilities` work
--- and no additional work is necessary to parallelize those processes.
-Furthermore, the ``yt`` command itself recognizes the ``--parallel`` option, so
-those commands will work in parallel as well.
+It's important to note that all of the processes listed in :ref:`capabilities`
+work in parallel -- and no additional work is necessary to parallelize those
+processes.
 
 Running a ``yt`` script in parallel
 -----------------------------------
@@ -85,11 +82,12 @@ in the simulation and then makes a plot of the projected density:
 
 .. code-block:: python
 
-   from yt.pmods import *
-   pf = load("RD0035/RedshiftOutput0035")
-   v, c = pf.h.find_max("density")
+   import yt
+   yt.enable_parallelism()
+   ds = yt.load("RD0035/RedshiftOutput0035")
+   v, c = ds.find_max("density")
    print v, c
-   p = ProjectionPlot(pf, "x", "density")
+   p = yt.ProjectionPlot(ds, "x", "density")
    p.save()
 
 If this script is run in parallel, two of the most expensive operations -
@@ -99,7 +97,7 @@ processes using the following Bash command:
 
 .. code-block:: bash
 
-   $ mpirun -np 16 python2.7 my_script.py --parallel
+   $ mpirun -np 16 python2.7 my_script.py
 
 .. note::
 
@@ -126,11 +124,11 @@ so:
 
 .. code-block:: python
 
-   from yt.pmods import *
-   pf = load("RD0035/RedshiftOutput0035")
-   v, c = pf.h.find_max("density")
-   p = ProjectionPlot(pf, "x", "density")
-   if is_root():
+   import yt
+   ds = yt.load("RD0035/RedshiftOutput0035")
+   v, c = ds.find_max("density")
+   p = yt.ProjectionPlot(ds, "x", "density")
+   if yt.is_root():
        print v, c
        p.save()
 
@@ -144,17 +142,17 @@ how to use it:
 
 .. code-block:: python
 
-   from yt.pmods import *
+   import yt
 
    def print_and_save_plot(v, c, plot, print=True):
        if print:
           print v, c
        plot.save()
 
-   pf = load("RD0035/RedshiftOutput0035")
-   v, c = pf.h.find_max("density")
-   p = ProjectionPlot(pf, "x", "density")
-   only_on_root(print_and_save_plot, v, c, plot, print=True)
+   ds = yt.load("RD0035/RedshiftOutput0035")
+   v, c = ds.find_max("density")
+   p = yt.ProjectionPlot(ds, "x", "density")
+   yt.only_on_root(print_and_save_plot, v, c, plot, print=True)
 
 Types of Parallelism
 --------------------
@@ -174,19 +172,17 @@ has been shown to obtain good results overall.
 The following operations use spatial decomposition:
 
   * Halo finding
-  * Merger tree
-  * Two point functions
   * Volume rendering
-  * Radial column density
 
 Grid Decomposition
 ++++++++++++++++++
 
-The alternative to spatial decomposition is a simple round-robin of the grids.
-This process allows ``yt`` to pool data access to a given Enzo data file, which
-ultimately results in faster read times and better parallelism.
+The alternative to spatial decomposition is a simple round-robin of data chunks,
+which could be grids, octs, or whatever chunking mechanism is used by the code
+frontend begin used.  This process allows ``yt`` to pool data access to a given
+data file, which ultimately results in faster read times and better parallelism.
 
-The following operations use grid decomposition:
+The following operations use chunk decomposition:
 
   * Projections
   * Slices
@@ -211,16 +207,15 @@ Parallelizing Your Analysis
 ---------------------------
 
 It is easy within ``yt`` to parallelize a list of tasks, as long as those tasks
-are independent of one another.
-Using object-based parallelism, the function :func:`parallel_objects` will
-automatically split up a list of tasks over the specified number of processors
-(or cores).
-Please see this heavily-commented example:
+are independent of one another. Using object-based parallelism, the function
+:func:`~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_objects`
+will automatically split up a list of tasks over the specified number of
+processors (or cores).  Please see this heavily-commented example:
 
 .. code-block:: python
    
    # As always...
-   from yt.mods import *
+   import yt
    
    import glob
    
@@ -249,19 +244,19 @@ Please see this heavily-commented example:
    # If data does not need to be combined after the loop is done, the line
    # would look like:
    #       for fn in parallel_objects(fns, num_procs):
-   for sto, fn in parallel_objects(fns, num_procs, storage = my_storage):
+   for sto, fn in yt.parallel_objects(fns, num_procs, storage = my_storage):
 
        # Open a data file, remembering that fn is different on each task.
-       pf = load(fn)
-       dd = pf.h.all_data()
+       ds = yt.load(fn)
+       dd = ds.all_data()
 
        # This copies fn and the min/max of density to the local copy of
        # my_storage
        sto.result_id = fn
-       sto.result = dd.quantities["Extrema"]("density")
+       sto.result = dd.quantities.extrema("density")
 
        # Makes and saves a plot of the gas density.
-       p = ProjectionPlot(pf, "x", "density")
+       p = yt.ProjectionPlot(ds, "x", "density")
        p.save()
 
    # At this point, as the loop exits, the local copies of my_storage are
@@ -270,7 +265,7 @@ Please see this heavily-commented example:
    # tasks have produced.
    # Below, the values in my_storage are printed by only one task. The other
    # tasks do nothing.
-   if is_root()
+   if yt.is_root()
        for fn, vals in sorted(my_storage.items()):
            print fn, vals
 
@@ -282,43 +277,33 @@ a Python list: halos, data files, arrays, and more.
 Parallel Time Series Analysis
 -----------------------------
 
-The same :func:`parallel_objects` machinery discussed above is turned on by
-default when using a ``DatasetSeries`` object (see :ref:`time-series-analysis`)
-to iterate over simulation outputs.  The syntax for this is very simple.  As an
-example, we can use the following script to find the angular momentum vector in
-a 1 pc sphere centered on the maximum density cell in a large number of
-simulation outputs:
+The same ``parallel_objects`` machinery discussed above is turned on by
+default when using a :class:`~yt.data_objects.time_series.DatasetSeries` object
+(see :ref:`time-series-analysis`) to iterate over simulation outputs.  The
+syntax for this is very simple.  As an example, we can use the following script
+to find the angular momentum vector in a 1 pc sphere centered on the maximum
+density cell in a large number of simulation outputs:
 
 .. code-block:: python
 
-   from yt.pmods import *
-   ts = DatasetSeries.from_filenames("DD*/output_*", parallel = True)
-   sphere = ts.sphere("max", (1.0, "pc"))
-   L_vecs = sphere.quantities["AngularMomentumVector"]()
+   import yt
+   yt.enable_parallelism()
+
+   ts = yt.load("DD*/output_*")
+
+   storage = {}
+
+   for sto, ds in ts.piter(storage=storage):
+       sphere = ds.sphere("max", (1.0, "pc"))
+       sto.result = sphere.quantities.angular_momentum_vector()
+       sto.result_id = str(ds)
+
+   for L in sorted(storage.items()):
+       print L
 
 Note that this script can be run in serial or parallel with an arbitrary number
 of processors.  When running in parallel, each output is given to a different
-processor.  By default, parallel is set to ``True``, so you do not have to
-explicitly set ``parallel = True`` as in the above example. 
-
-One could get the same effect by iterating over the individual parameter files
-in the DatasetSeries object:
-
-.. code-block:: python
-
-   from yt.pmods import *
-   ts = DatasetSeries.from_filenames("DD*/output_*", parallel = True)
-   my_storage = {}
-   for sto,pf in ts.piter(storage=my_storage):
-       sphere = pf.sphere("max", (1.0, "pc"))
-       L_vec = sphere.quantities["AngularMomentumVector"]()
-       sto.result_id = pf.parameter_filename
-       sto.result = L_vec
-
-   L_vecs = []
-   for fn, L_vec in sorted(my_storage.items()):
-       L_vecs.append(L_vec)
-
+processor.
 
 You can also request a fixed number of processors to calculate each
 angular momentum vector.  For example, this script will calculate each angular
@@ -328,16 +313,18 @@ whereas parallel=True will run with Nprocs workgroups.
 
 .. code-block:: python
 
-   from yt.pmods import *
-   ts = DatasetSeries.from_filenames("DD*/output_*", parallel = 4)
-   sphere = ts.sphere("max", (1.0, "pc))
-   L_vecs = sphere.quantities["AngularMomentumVector"]()
+   import yt
+   ts = yt.DatasetSeries("DD*/output_*", parallel = 4)
+   
+   for ds in ts.piter():
+       sphere = ds.sphere("max", (1.0, "pc))
+       L_vecs = sphere.quantities.angular_momentum_vector()
 
 If you do not want to use ``parallel_objects`` parallelism when using a
-TimeSeries object, set ``parallel = False``.  When running python in parallel,
+DatasetSeries object, set ``parallel = False``.  When running python in parallel,
 this will use all of the available processors to evaluate the requested
 operation on each simulation output.  Some care and possibly trial and error
-might be necessary to estimate the correct settings for your Simulation
+might be necessary to estimate the correct settings for your simulation
 outputs.
 
 Parallel Performance, Resources, and Tuning
@@ -350,53 +337,50 @@ needed, is through trial and error.  However, this section will attempt to
 provide some insight into what are good starting values for a given parallel
 task.
 
-Grid Decomposition
-++++++++++++++++++
+Chunk Decomposition
++++++++++++++++++++
 
 In general, these types of parallel calculations scale very well with number of
-processors.
-They are also fairly memory-conservative.
-The two limiting factors is therefore the number of grids in the dataset,
-and the speed of the disk the data is stored on.
-There is no point in running a parallel job of this kind with more processors
-than grids, because the extra processors will do absolutely nothing, and will
-in fact probably just serve to slow down the whole calculation due to the extra
-overhead.
-The speed of the disk is also a consideration - if it is not a high-end parallel
-file system, adding more tasks will not speed up the calculation if the disk
-is already swamped with activity.
+processors.  They are also fairly memory-conservative.  The two limiting factors
+is therefore the number of chunks in the dataset, and the speed of the disk the
+data is stored on.  There is no point in running a parallel job of this kind
+with more processors than chunks, because the extra processors will do absolutely
+nothing, and will in fact probably just serve to slow down the whole calculation
+due to the extra overhead.  The speed of the disk is also a consideration - if
+it is not a high-end parallel file system, adding more tasks will not speed up
+the calculation if the disk is already swamped with activity.
 
-The best advice for these sort of calculations is to run 
-with just a few processors and go from there, seeing if it the runtime
-improves noticeably.
+The best advice for these sort of calculations is to run with just a few
+processors and go from there, seeing if it the runtime improves noticeably.
 
 **Projections, Slices, and Cutting Planes**
 
 Projections, slices and cutting planes are the most common methods of creating
 two-dimensional representations of data.  All three have been parallelized in a
-grid-based fashion.
+chunk-based fashion.
 
  * Projections: projections are parallelized utilizing a quad-tree approach.
    Data is loaded for each processor, typically by a process that consolidates
-   open/close/read operations, and each grid is then iterated over and cells
-   are deposited into a data structure that stores values corresponding to
-   positions in the two-dimensional plane.  This provides excellent load
-   balancing, and in serial is quite fast.  However, as of ``yt`` 2.3, the
-   operation by which quadtrees are joined across processors scales poorly;
-   while memory consumption scales well, the time to completion does not.  As
-   such, projections can often be done very fast when operating only on a single
-   processor!  The quadtree algorithm can be used inline (and, indeed, it is
-   for this reason that it is slow.)  It is recommended that you attempt to
-   project in serial before projecting in parallel; even for the very largest
-   datasets (Enzo 1024^3 root grid with 7 levels of refinement) in the absence
-   of IO the quadtree algorithm takes only three minutes or so on a decent
-   processor.
- * Slices: to generate a slice, grids that intersect a given slice are iterated
-   over and their finest-resolution cells are deposited.  The grids are
+   open/close/read operations, and each grid is then iterated over and cells are
+   deposited into a data structure that stores values corresponding to positions
+   in the two-dimensional plane.  This provides excellent load balancing, and in
+   serial is quite fast.  However, the operation by which quadtrees are joined
+   across processors scales poorly; while memory consumption scales well, the
+   time to completion does not.  As such, projections can often be done very
+   fast when operating only on a single processor!  The quadtree algorithm can
+   be used inline (and, indeed, it is for this reason that it is slow.)  It is
+   recommended that you attempt to project in serial before projecting in
+   parallel; even for the very largest datasets (Enzo 1024^3 root grid with 7
+   levels of refinement) in the absence of IO the quadtree algorithm takes only
+   three minutes or so on a decent processor.
+
+ * Slices: to generate a slice, chunks that intersect a given slice are iterated
+   over and their finest-resolution cells are deposited.  The chunks are
    decomposed via standard load balancing.  While this operation is parallel,
    **it is almost never necessary to slice a dataset in parallel**, as all data is
    loaded on demand anyway.  The slice operation has been parallelized so as to
    enable slicing when running *in situ*.
+
  * Cutting planes: cutting planes are parallelized exactly as slices are.
    However, in contrast to slices, because the data-selection operation can be
    much more time consuming, cutting planes often benefit from parallelism.
@@ -404,7 +388,7 @@ grid-based fashion.
 Object-Based
 ++++++++++++
 
-Like grid decomposition, it does not help to run with more processors than the
+Like chunk decomposition, it does not help to run with more processors than the
 number of objects to be iterated over.
 There is also the matter of the kind of work being done on each object, and
 whether it is disk-intensive, cpu-intensive, or memory-intensive.
@@ -436,37 +420,28 @@ different enough ways that they are be discussed separately.
 
 **Halo-Finding**
 
-Halo finding, along with the merger tree that uses halo finding, operates
-on the particles in the volume, and is therefore mostly grid-agnostic.
-Generally, the biggest concern for halo finding is the amount of memory needed.
-There is subtle art in estimating the amount of memory needed for halo finding,
-but a rule of thumb is that Parallel HOP (:func:`parallelHF`) is the most
-memory-intensive, followed by plain HOP (:func:`HaloFinder`),
-with Friends of Friends (:func:`FOFHaloFinder`) being
-the most memory-conservative.
-It has been found that :func:`parallelHF` needs roughly
-1 MB of memory per 5,000
-particles, although recent work has improved this and the memory requirement
-is now smaller than this. But this is a good starting point for beginning to
-calculate the memory required for halo-finding.
-
-**Two point functions**
-
-Please see :ref:`tpf_strategies` for more details.
+Halo finding, along with the merger tree that uses halo finding, operates on the
+particles in the volume, and is therefore mostly chunk-agnostic.  Generally, the
+biggest concern for halo finding is the amount of memory needed.  There is
+subtle art in estimating the amount of memory needed for halo finding, but a
+rule of thumb is that the HOP halo finder is the most memory intensive
+(:func:`HaloFinder`), and Friends of Friends (:func:`FOFHaloFinder`) being the
+most memory-conservative.  It has been found that :func:`parallelHF` needs
+roughly 1 MB of memory per 5,000 particles, although recent work has improved
+this and the memory requirement is now smaller than this. But this is a good
+starting point for beginning to calculate the memory required for halo-finding.
 
 **Volume Rendering**
 
-The simplest way to think about volume rendering, and the radial column density
-module that uses it, is that it load-balances over the grids in the dataset.
-Each processor is given roughly the same sized volume to operate on.
-In practice, there are just a few things to keep in mind when doing volume
-rendering.
-First, it only uses a power of two number of processors.
-If the job is run with 100 processors, only 64 of them will actually do anything.
-Second, the absolute maximum number of processors is the number of grids.
-But in order to keep work distributed evenly, typically the number of processors
-should be no greater than one-eighth or one-quarter the number of processors
-that were used to produce the dataset.
+The simplest way to think about volume rendering, is that it load-balances over
+the i/o chunks in the dataset.  Each processor is given roughly the same sized
+volume to operate on.  In practice, there are just a few things to keep in mind
+when doing volume rendering.  First, it only uses a power of two number of
+processors.  If the job is run with 100 processors, only 64 of them will
+actually do anything.  Second, the absolute maximum number of processors is the
+number of chunks.  In order to keep work distributed evenly, typically the
+number of processors should be no greater than one-eighth or one-quarter the
+number of processors that were used to produce the dataset.
 
 Additional Tips
 ---------------
@@ -500,21 +475,21 @@ Additional Tips
     
     .. code-block:: python
     
-       from yt.mods import *
+       import yt
        import time
-       
-       pf = load("DD0152")
+
+       ds = yt.load("DD0152")
        t0 = time.time()
-       bigstuff, hugestuff = StuffFinder(pf)
-       BigHugeStuffParallelFunction(pf, bigstuff, hugestuff)
+       bigstuff, hugestuff = StuffFinder(ds)
+       BigHugeStuffParallelFunction(ds, bigstuff, hugestuff)
        t1 = time.time()
        for i in range(1000000):
            tinystuff, ministuff = GetTinyMiniStuffOffDisk("in%06d.txt" % i)
-           array = TinyTeensyParallelFunction(pf, tinystuff, ministuff)
+           array = TinyTeensyParallelFunction(ds, tinystuff, ministuff)
            SaveTinyMiniStuffToDisk("out%06d.txt" % i, array)
        t2 = time.time()
        
-       if is_root()
+       if yt.is_root()
            print "BigStuff took %.5e sec, TinyStuff took %.5e sec" % (t1 - t0, t2 - t1)
   
   * Remember that if the script handles disk IO explicitly, and does not use
@@ -526,7 +501,7 @@ Additional Tips
     
     .. code-block:: python
        
-       if is_root()
+       if yt.is_root()
            file = open("out.txt", "w")
            file.write(stuff)
            file.close()

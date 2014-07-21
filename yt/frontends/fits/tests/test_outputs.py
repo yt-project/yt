@@ -15,7 +15,7 @@ FITS frontend tests
 
 from yt.testing import *
 from yt.utilities.answer_testing.framework import \
-    requires_pf, \
+    requires_ds, \
     small_patch_amr, \
     data_dir_load
 from ..data_structures import FITSDataset
@@ -23,7 +23,7 @@ from ..data_structures import FITSDataset
 _fields_grs = ("temperature",)
 
 grs = "radio_fits/grs-50-cube.fits"
-@requires_pf(grs)
+@requires_ds(grs)
 def test_grs():
     ds = data_dir_load(grs, cls=FITSDataset, kwargs={"nan_mask":0.0})
     yield assert_equal, str(ds), "grs-50-cube.fits"
@@ -33,8 +33,8 @@ def test_grs():
 
 _fields_vels = ("velocity_x","velocity_y","velocity_z")
 
-vf = "UnigridData/velocity_field_20.fits"
-@requires_pf(vf)
+vf = "UniformGrid/velocity_field_20.fits"
+@requires_ds(vf)
 def test_velocity_field():
     ds = data_dir_load(vf, cls=FITSDataset)
     yield assert_equal, str(ds), "velocity_field_20.fits"

@@ -60,7 +60,7 @@ The additional keyword arguments are:
    when gathering datasets for time series.  Default: True.
 
  * **set_parameters** (*dict*): Dictionary of parameters to attach to 
-   pf.parameters.  Default: None.
+   ds.parameters.  Default: None.
 
  * **output_dir** (*string*): The directory in which images and data files
     will be written.  Default: 'LC'.

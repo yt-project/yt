@@ -41,8 +41,8 @@ Now load up a dataset and call the
 
 .. code-block:: python
 
-    pf = load("galaxy0030/galaxy0030")
-    writer = RadMC3DWriter(pf)
+    ds = load("galaxy0030/galaxy0030")
+    writer = RadMC3DWriter(ds)
     
     writer.write_amr_grid()
     writer.write_dust_file("DustDensity", "dust_density.inp")
@@ -87,8 +87,8 @@ to include doppler broadening.
         return (x_co/mu_h)*data["density"]
     add_field("NumberDensityCO", function=_NumberDensityCO)
     
-    pf = load("galaxy0030/galaxy0030")
-    writer = RadMC3DWriter(pf)
+    ds = load("galaxy0030/galaxy0030")
+    writer = RadMC3DWriter(ds)
     
     writer.write_amr_grid()
     writer.write_line_file("NumberDensityCO", "numberdens_co.inp")

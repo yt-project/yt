@@ -113,18 +113,18 @@ cdef class SelectorObject:
         self.overlap_cells = 0
 
         for i in range(3) :
-            pf = getattr(dobj, 'pf', None)
-            if pf is None:
+            ds = getattr(dobj, 'ds', None)
+            if ds is None:
                 for i in range(3):
                     # NOTE that this is not universal.
                     self.domain_width[i] = 1.0
                     self.periodicity[i] = False
             else:
-                DLE = _ensure_code(pf.domain_left_edge)
-                DRE = _ensure_code(pf.domain_right_edge)
+                DLE = _ensure_code(ds.domain_left_edge)
+                DRE = _ensure_code(ds.domain_right_edge)
                 for i in range(3):
                     self.domain_width[i] = DRE[i] - DLE[i]
-                    self.periodicity[i] = pf.periodicity[i]
+                    self.periodicity[i] = ds.periodicity[i]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -607,9 +607,9 @@ cdef class SphereSelector(SelectorObject):
             self.center[i] = center[i]
             self.bbox[i][0] = self.center[i] - self.radius
             self.bbox[i][1] = self.center[i] + self.radius
-            if self.bbox[i][0] < dobj.pf.domain_left_edge[i]:
+            if self.bbox[i][0] < dobj.ds.domain_left_edge[i]:
                 self.check_box[i] = False
-            elif self.bbox[i][1] > dobj.pf.domain_right_edge[i]:
+            elif self.bbox[i][1] > dobj.ds.domain_right_edge[i]:
                 self.check_box[i] = False
             else:
                 self.check_box[i] = True
@@ -700,7 +700,7 @@ cdef class RegionSelector(SelectorObject):
         # do an in-place conversion of those arrays.
         _ensure_code(dobj.right_edge)
         _ensure_code(dobj.left_edge)
-        DW = _ensure_code(dobj.pf.domain_width.copy())
+        DW = _ensure_code(dobj.ds.domain_width.copy())
 
         for i in range(3):
             region_width = dobj.right_edge[i] - dobj.left_edge[i]
@@ -711,23 +711,23 @@ cdef class RegionSelector(SelectorObject):
                     "Region right edge < left edge: width = %s" % region_width
                     )
 
-            if dobj.pf.periodicity[i]:
+            if dobj.ds.periodicity[i]:
                 # shift so left_edge guaranteed in domain
-                if dobj.left_edge[i] < dobj.pf.domain_left_edge[i]:
+                if dobj.left_edge[i] < dobj.ds.domain_left_edge[i]:
                     dobj.left_edge[i] += domain_width
                     dobj.right_edge[i] += domain_width
-                elif dobj.left_edge[i] > dobj.pf.domain_right_edge[i]:
+                elif dobj.left_edge[i] > dobj.ds.domain_right_edge[i]:
                     dobj.left_edge[i] += domain_width
                     dobj.right_edge[i] += domain_width
             else:
-                if dobj.left_edge[i] < dobj.pf.domain_left_edge[i] or \
-                   dobj.right_edge[i] > dobj.pf.domain_right_edge[i]:
+                if dobj.left_edge[i] < dobj.ds.domain_left_edge[i] or \
+                   dobj.right_edge[i] > dobj.ds.domain_right_edge[i]:
                     raise RuntimeError(
                         "Error: bad Region in non-periodic domain along dimension %s. "
                         "Region left edge = %s, Region right edge = %s"
                         "Dataset left edge = %s, Dataset right edge = %s" % \
                         (i, dobj.left_edge[i], dobj.right_edge[i],
-                         dobj.pf.domain_left_edge[i], dobj.pf.domain_right_edge[i])
+                         dobj.ds.domain_left_edge[i], dobj.ds.domain_right_edge[i])
                     )
             # Already ensured in code
             self.left_edge[i] = dobj.left_edge[i]
@@ -1615,11 +1615,11 @@ cdef class IndexedOctreeSubsetSelector(SelectorObject):
         self.min_level = self.base_selector.min_level
         self.max_level = self.base_selector.max_level
         self.filter_bbox = 0
-        if getattr(dobj.pf, "filter_bbox", False):
+        if getattr(dobj.ds, "filter_bbox", False):
             self.filter_bbox = 1
         for i in range(3):
-            self.DLE[i] = dobj.pf.domain_left_edge[i]
-            self.DRE[i] = dobj.pf.domain_right_edge[i]
+            self.DLE[i] = dobj.ds.domain_left_edge[i]
+            self.DRE[i] = dobj.ds.domain_right_edge[i]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

@@ -89,7 +89,7 @@ class BoxlibGrid(AMRGridPatch):
 
     def _setup_dx(self):
         # has already been read in and stored in index
-        self.dds = self.index.pf.arr(self.index.level_dds[self.Level, :], 'code_length')
+        self.dds = self.index.ds.arr(self.index.level_dds[self.Level, :], 'code_length')
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
     def __repr__(self):
@@ -122,12 +122,12 @@ class BoxlibGrid(AMRGridPatch):
         mask = self._get_selector_mask(dobj.selector)
         if mask is None: return np.empty(0, dtype='int64')
         coords = np.empty(self._last_count, dtype='int64')
-        coords[:] = self.Level + self.pf.level_offsets[self.Level]
+        coords[:] = self.Level + self.ds.level_offsets[self.Level]
         return coords
 
     # Override this as well, since refine_by can vary
     def _fill_child_mask(self, child, mask, tofill, dlevel = 1):
-        rf = self.pf.ref_factors[self.Level]
+        rf = self.ds.ref_factors[self.Level]
         if dlevel != 1:
             raise NotImplementedError
         gi, cgi = self.get_global_startindex(), child.get_global_startindex()
@@ -141,12 +141,12 @@ class BoxlibGrid(AMRGridPatch):
 
 class BoxlibHierarchy(GridIndex):
     grid = BoxlibGrid
-    def __init__(self, pf, dataset_type='boxlib_native'):
+    def __init__(self, ds, dataset_type='boxlib_native'):
         self.dataset_type = dataset_type
-        self.header_filename = os.path.join(pf.output_dir, 'Header')
-        self.directory = pf.output_dir
+        self.header_filename = os.path.join(ds.output_dir, 'Header')
+        self.directory = ds.output_dir
 
-        GridIndex.__init__(self, pf, dataset_type)
+        GridIndex.__init__(self, ds, dataset_type)
         self._cache_endianness(self.grids[-1])
 
         #self._read_particles()
@@ -155,16 +155,16 @@ class BoxlibHierarchy(GridIndex):
         """
         read the global header file for an Boxlib plotfile output.
         """
-        self.max_level = self.parameter_file._max_level
+        self.max_level = self.dataset._max_level
         header_file = open(self.header_filename,'r')
 
-        self.dimensionality = self.parameter_file.dimensionality
+        self.dimensionality = self.dataset.dimensionality
         _our_dim_finder = _dim_finder[self.dimensionality-1]
-        DRE = self.parameter_file.domain_right_edge # shortcut
-        DLE = self.parameter_file.domain_left_edge # shortcut
+        DRE = self.dataset.domain_right_edge # shortcut
+        DLE = self.dataset.domain_left_edge # shortcut
 
         # We can now skip to the point in the file we want to start parsing.
-        header_file.seek(self.parameter_file._header_mesh_start)
+        header_file.seek(self.dataset._header_mesh_start)
 
         dx = []
         for i in range(self.max_level + 1):
@@ -176,10 +176,10 @@ class BoxlibHierarchy(GridIndex):
                 dx[i].append(DRE[2] - DLE[1])
         self.level_dds = np.array(dx, dtype="float64")
         header_file.next()
-        if self.pf.geometry == "cartesian":
+        if self.ds.geometry == "cartesian":
             default_ybounds = (0.0, 1.0)
             default_zbounds = (0.0, 1.0)
-        elif self.pf.geometry == "cylindrical":
+        elif self.ds.geometry == "cylindrical":
             # Now we check for dimensionality issues
             if self.dimensionality != 2:
                 raise RuntimeError("yt needs cylindrical to be 2D")
@@ -212,7 +212,7 @@ class BoxlibHierarchy(GridIndex):
                 self.grid_left_edge[grid_counter + gi, :] = [xlo, ylo, zlo]
                 self.grid_right_edge[grid_counter + gi, :] = [xhi, yhi, zhi]
             # Now we get to the level header filename, which we open and parse.
-            fn = os.path.join(self.parameter_file.output_dir,
+            fn = os.path.join(self.dataset.output_dir,
                               header_file.next().strip())
             level_header_file = open(fn + "_H")
             level_dir = os.path.dirname(fn)
@@ -320,9 +320,9 @@ class BoxlibHierarchy(GridIndex):
         # duplicating some work done elsewhere.  In a future where we don't
         # pre-allocate grid arrays, this becomes unnecessary.
         header_file = open(self.header_filename, 'r')
-        header_file.seek(self.parameter_file._header_mesh_start)
+        header_file.seek(self.dataset._header_mesh_start)
         # Skip over the level dxs, geometry and the zero:
-        [header_file.next() for i in range(self.parameter_file._max_level + 3)]
+        [header_file.next() for i in range(self.dataset._max_level + 3)]
         # Now we need to be very careful, as we've seeked, and now we iterate.
         # Does this work?  We are going to count the number of places that we
         # have a three-item line.  The three items would be level, number of
@@ -347,7 +347,7 @@ class BoxlibHierarchy(GridIndex):
     def _detect_output_fields(self):
         # This is all done in _parse_header_file
         self.field_list = [("boxlib", f) for f in
-                           self.parameter_file._field_list]
+                           self.dataset._field_list]
         self.field_indexes = dict((f[1], i)
                                 for i, f in enumerate(self.field_list))
         # There are times when field_list may change.  We copy it here to
@@ -355,7 +355,7 @@ class BoxlibHierarchy(GridIndex):
         self.field_order = [f for f in self.field_list]
 
     def _setup_data_io(self):
-        self.io = io_registry[self.dataset_type](self.parameter_file)
+        self.io = io_registry[self.dataset_type](self.dataset)
 
 class BoxlibDataset(Dataset):
     """
@@ -636,8 +636,8 @@ class BoxlibDataset(Dataset):
 
 class OrionHierarchy(BoxlibHierarchy):
     
-    def __init__(self, pf, dataset_type='orion_native'):
-        BoxlibHierarchy.__init__(self, pf, dataset_type)
+    def __init__(self, ds, dataset_type='orion_native'):
+        BoxlibHierarchy.__init__(self, ds, dataset_type)
         self._read_particles()
         #self.io = IOHandlerOrion
 
@@ -653,7 +653,7 @@ class OrionHierarchy(BoxlibHierarchy):
         self.grid_particle_count = np.zeros(len(self.grids))
 
         for particle_filename in ["StarParticles", "SinkParticles"]:
-            fn = os.path.join(self.pf.output_dir, particle_filename)
+            fn = os.path.join(self.ds.output_dir, particle_filename)
             if os.path.exists(fn): self._read_particle_file(fn)
 
     def _read_particle_file(self, fn):
@@ -804,19 +804,19 @@ class MaestroDataset(BoxlibDataset):
 
 class NyxHierarchy(BoxlibHierarchy):
 
-    def __init__(self, pf, dataset_type='nyx_native'):
-        super(NyxHierarchy, self).__init__(pf, dataset_type)
+    def __init__(self, ds, dataset_type='nyx_native'):
+        super(NyxHierarchy, self).__init__(ds, dataset_type)
         self._read_particle_header()
 
     def _read_particle_header(self):
-        if not self.pf.parameters["particles.write_in_plotfile"]:
+        if not self.ds.parameters["particles.write_in_plotfile"]:
             self.pgrid_info = np.zeros((self.num_grids, 3), dtype='int64')
             return
         for fn in ['particle_position_%s' % ax for ax in 'xyz'] + \
                   ['particle_mass'] +  \
                   ['particle_velocity_%s' % ax for ax in 'xyz']:
             self.field_list.append(("io", fn))
-        header = open(os.path.join(self.pf.output_dir, "DM", "Header"))
+        header = open(os.path.join(self.ds.output_dir, "DM", "Header"))
         version = header.readline()
         ndim = header.readline()
         nfields = header.readline()
@@ -834,7 +834,7 @@ class NyxHierarchy(BoxlibHierarchy):
         # we need grid_info in `populate_grid_objects`, so save it to self
 
         for g, pg in itertools.izip(self.grids, grid_info):
-            g.particle_filename = os.path.join(self.pf.output_dir, "DM",
+            g.particle_filename = os.path.join(self.ds.output_dir, "DM",
                                                "Level_%s" % (g.Level),
                                                "DATA_%04i" % pg[0])
             g.NumberOfParticles = pg[1]
