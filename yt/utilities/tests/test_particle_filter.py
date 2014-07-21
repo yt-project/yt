@@ -1,13 +1,5 @@
-import numpy as np
 import yt
-from yt.mods import *
 from yt.testing import *
-from yt.utilities.particle_generator import *
-from yt.frontends.stream.api import load_uniform_grid, refine_amr
-import yt.utilities.initial_conditions as ic
-import yt.utilities.flagging_methods as fm
-from IPython import embed
-from yt.units.yt_array import uconcatenate
 from yt.data_objects.particle_filters import add_particle_filter
 
 def setup() :
