@@ -103,6 +103,7 @@ class HaloCatalog(ParallelAnalysisInterface):
                  finder_kwargs=None,
                  output_dir="halo_catalogs/catalog"):
         ParallelAnalysisInterface.__init__(self)
+        halos_ds.index
         self.halos_ds = halos_ds
         self.data_ds = data_ds
         self.output_dir = ensure_dir(output_dir)
@@ -204,7 +205,6 @@ class HaloCatalog(ParallelAnalysisInterface):
         >>> hc.add_quantity("mass_squared")
         
         """
-        
         if "field_type" in kwargs:
             field_type = kwargs.pop("field_type")
         else:
@@ -361,6 +361,7 @@ class HaloCatalog(ParallelAnalysisInterface):
         if self.halos_ds is None:
             # Find the halos and make a dataset of them
             self.halos_ds = self.finder_method(self.data_ds)
+            self.halos_ds.index
             if self.halos_ds is None:
                 mylog.warning('No halos were found for {0}'.format(\
                         self.data_ds.basename))

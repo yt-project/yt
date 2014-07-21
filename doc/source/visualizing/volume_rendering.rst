@@ -2,7 +2,6 @@
 
 Volume Rendering
 ================
-.. versionadded:: 1.6
 
 Volume rendering, as implemented in yt, is a mechanism by which rays are cast
 through a domain, converting field values to emission and absorption, and producing a final image.
@@ -25,7 +24,6 @@ As of yt 2.4, this code is threaded using OpenMP.  Many of the commands
 
 Tutorial
 --------
-.. versionadded:: 1.6
 
 Volume renderings are created by combining three objects: a volume
 homogenization; a transfer function, and a camera object.
@@ -38,11 +36,12 @@ homogenization; a transfer function, and a camera object.
 
 Here is a working example for the IsolatedGalaxy dataset from the 2012 yt workshop.
 
-.. code-block:: python
+.. python-script::
 
-   from yt.mods import *
+   import yt
+   import numpy as np
 
-   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    # Choose a field
    field = 'density'
    # Do you want the log of the field?
@@ -50,18 +49,18 @@ Here is a working example for the IsolatedGalaxy dataset from the 2012 yt worksh
 
    # Find the bounds in log space of for your field
    dd = ds.all_data()
-   mi, ma = dd.quantities["Extrema"](field)[0]
+   mi, ma = dd.quantities.extrema(field)
 
    if use_log:
        mi,ma = np.log10(mi), np.log10(ma)
 
    # Instantiate the ColorTransferfunction.
-   tf = ColorTransferFunction((mi, ma))
+   tf = yt.ColorTransferFunction((mi, ma))
 
    # Set up the camera parameters: center, looking direction, width, resolution
    c = (ds.domain_right_edge + ds.domain_left_edge)/2.0
    L = np.array([1.0, 1.0, 1.0])
-   W = 0.3 / ds["unitary"]
+   W = ds.quan(0.3, 'unitary)
    N = 256 
 
    # Create a camera object
@@ -129,8 +128,6 @@ The volume rendering in ``yt`` follows a relatively straightforward approach.
 
 The Camera Interface
 --------------------
-
-.. versionadded:: 1.7
 
 A camera object has also been created, to allow for more programmatic
 descriptions of the viewpoint and image plane, and to allow for moving the
@@ -262,93 +259,6 @@ TransferFunctionHelper
 
 .. _healpix_volume_rendering:
 
-HEALPix Volume Rendering
-------------------------
-
-yt now comes with a volume rendering module that casts rays out in all
-directions from a central location, according to the equal-area iso latitude
-pixelization mechanism, `HEALPix <http://healpix.jpl.nasa.gov/>`_.  This can be
-used to generate all-sky column density maps as well as planetarium-ready
-visualizations.
-
-Unfortunately, due to spherical-projection issues, the generation of
-the initial volume rendering is much easier than the generation of the output
-image from the process.  We have provided a simple interface to this:
-
-.. code-block:: python
-
-   from yt.mods import *
-   import yt.visualization.volume_rendering.camera as camera
-
-   ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   image = camera.allsky_projection(ds, [0.5,0.5,0.5], 100.0/ds['kpc'],
-                                    64, "density")
-   camera.plot_allsky_healpix(image, 64, "allsky.png", "Column Density [g/cm^2]")
-
-This produces an image like this:
-
-.. image:: _images/allsky.png
-   :width: 512
-
-However, below we describe a longer, build-it-yourself method.  To actually
-issue the rays from a central location, the call is similar but not identical
-to the creation of a standard volume rendering.
-
-.. code-block:: python
-
-   from yt.mods import *
-   import yt.visualization.volume_rendering.camera as camera
-
-   Nside = 32
-   ds = load("DD0008/galaxy0008")
-   cam = camera.HEALpixCamera([0.5,0.5,0.5], 0.2, Nside,
-                              ds = ds, log_fields = [False])
-   bitmap = cam.snapshot()
-
-The returned bitmap will, as per usual, be an array of integrated values.
-Because we’re using the projection transfer function, with the HEALpix camera,
-it will be an ordered pixel list of shape (12 times Nside times Nside, 1, 4)
-where the first channel is ordered in order of pixels as per the HEALPix
-notation. We now have to convert this to a regularly gridded set of values,
-between 0 and 2pi and 0 and pi, for the theta and phi coordinates.
-
-yt provides a helper function to go from pixel ID to angle (as well as a few
-other things). You can access this helper function in this manner:
-
-.. code-block:: python
-
-   import yt.utilities.amr_utils as au
-   from numpy import pi
-   phi, theta = np.mgrid[0.0:2*pi:800j, 0:pi:800j]
-   pixi = au.arr_ang2pix_nest(Nside, theta.ravel(), phi.ravel())
-   img = np.log10(bitmap[:,0,0][pixi]).reshape((800,800))
-
-The call to mgrid creates a regularly-spaced mesh of values. We then ask
-HEALPix what the pixel IDs are that fall into each of these regularly spaced
-mesh values, and then we apply those pixels in that order. This transformation
-will, someday, be implicit in the snapshot() call.
-
-At this point we can plot our regularly spaced mesh using one of several
-projections. We’ll do the Mollweide projection. To do this, we import the
-appropriate Matplotlib components and plot using the imshow command:
-
-.. code-block:: python
-
-   import matplotlib.figure
-   import matplotlib.backends.backend_agg
-   
-   fig = matplotlib.figure.Figure((10, 5))
-   ax = fig.add_subplot(1,1,1,projection='mollweide')
-   image = ax.imshow(img, extent=(-pi,pi,-pi/2,pi/2), clip_on=False, aspect=0.5)
-   cb = fig.colorbar(image, orientation='horizontal')
-   
-   cb.set_label(r"$\mathrm{Column}\/\mathrm{Density}\/[\mathrm{g}/\mathrm{cm}^2]$")
-   canvas = matplotlib.backends.backend_agg.FigureCanvasAgg(fig)
-   canvas.print_figure("allsky.png")
-
-As it stands, this is still a bit do-it-yourself.  Improvements and suggestions
-would be welcomed!
-
 MPI Parallelization
 -------------------
 Currently the volume renderer is parallelized using MPI to decompose the volume
@@ -382,7 +292,6 @@ Caveats:
 
 OpenMP Parallelization
 ----------------------
-.. versionadded:: 2.4
 
 The volume rendering also parallelized using the OpenMP interface in Cython.
 While the MPI parallelization is done using domain decomposition, the OpenMP
@@ -399,7 +308,6 @@ by default by modifying the environment variable OMP_NUM_THREADS.
 
 Running in Hybrid MPI + OpenMP
 ------------------------------
-.. versionadded:: 2.4
 
 The two methods for volume rendering parallelization can be used together to
 leverage large supercomputing resources.  When choosing how to balance the
@@ -423,7 +331,6 @@ nodes, each with cores_per_node cores per node.
 
 Opacity
 -------
-.. versionadded:: 2.4
 
 There are currently two models for opacity when rendering a volume, which are
 controlled in the ColorTransferFunction with the keyword
@@ -440,7 +347,6 @@ For an in-depth example, please see the cookbook example on opaque renders here:
 
 Lighting
 --------
-.. versionadded:: 2.4
 
 Lighting can be optionally used in volume renders by specifying use_light=True
 in the Camera object creation.  If used, one can then change the default
@@ -465,89 +371,3 @@ The creation of these homogenized volumes is done during the
 instantiation by default.  However, in some cases it is useful to first build
 your homogenized volume to then be passed in to the camera. A sample usage is shown
 in :ref:`cookbook-amrkdtree_downsampling`.
-
-Hardware Volume Rendering on NVidia Graphics cards
---------------------------------------------------
-.. versionadded:: 3.0
-
-Theia is a hardware volume renderer that takes advantage of NVidias CUDA language
-to peform ray casting with GPUs instead of the CPU. 
-
-Only unigrid rendering is supported, but yt provides a grid mapping function
- to get unigrid data from amr or sph formats : 
-    :ref:`cookbook-amrkdtree_to_uniformgrid`.
-
-System Requirements
-+++++++++++++++++++
-
-Nvidia graphics card - The memory limit of the graphics card sets the limit
-                       on the size of the data source.
-
-CUDA 5 or later and
-
-The environment variable CUDA_SAMPLES must be set pointing to
-the common/inc samples shipped with CUDA. The following shows an example
-in bash with CUDA 5.5 installed in /usr/local :
-
-    export CUDA_SAMPLES=/usr/local/cuda-5.5/samples/common/inc
-
-PyCUDA must also be installed to use Theia. 
-
-PyCUDA can be installed following these instructions :
-
-    git clone --recursive http://git.tiker.net/trees/pycuda.git
-
-    python configure.py
-    python setup.py install
-
-
-Tutorial
-++++++++
-
-Currently rendering only works on uniform grids. Here is an example
-on a 1024 cube of float32 scalars.
-
-.. code-block:: python
-
-   from yt.visualization.volume_rendering.theia.scene import TheiaScene
-   from yt.visualization.volume_rendering.algorithms.front_to_back import FrontToBackRaycaster
-   import numpy as np
-
-   #load 3D numpy array of float32
-   volume = np.load("/home/bogert/log_densities_1024.npy")
-
-   scene = TheiaScene( volume = volume, raycaster = FrontToBackRaycaster() )
-
-   scene.camera.rotateX(1.0)
-   scene.update()
-
-   surface = scene.get_results()
-   #surface now contains an image array 2x2 int32 rbga values
-
-.. _the-theiascene-interface:
-
-The TheiaScene Interface
-++++++++++++++++++++++++
-
-A TheiaScene object has been created to provide a high level entry point for
-controlling the raycaster's view onto the data. The class
-:class:`~yt.visualization.volume_rendering.theia.TheiaScene` encapsulates a
-Camera object and a TheiaSource that intern encapsulates a volume. The
-:class:`~yt.visualization.volume_rendering.theia.Camera` provides controls for
-rotating, translating, and zooming into the volume.  Using the
-:class:`~yt.visualization.volume_rendering.theia.TheiaSource` automatically
-transfers the volume to the graphic's card texture memory.
-
-Example Cookbooks
-+++++++++++++++++
-
-OpenGL Example for interactive volume rendering:
-:ref:`cookbook-opengl_volume_rendering`.
-
-.. warning::  Frame rate will suffer significantly from stereoscopic rendering.
-              ~2x slower since the volume must be rendered twice.
-
-OpenGL Stereoscopic Example: :ref:`cookbook-opengl_stereo_volume_rendering`.
-
-Pseudo-Realtime video rendering with ffmpeg :
-:ref:`cookbook-ffmpeg_volume_rendering`.

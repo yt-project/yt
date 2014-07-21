@@ -142,8 +142,8 @@ lowest level data, we run:
 
 .. code-block:: python
 
-   from yt.mods import *
-   ds = load('Enzo_64/DD0043/data0043')
+   import yt
+   ds = yt.load('Enzo_64/DD0043/data0043')
    all_data_level_0 = ds.covering_grid(level=0, left_edge=[0,0.0,0.0], 
                                          dims=[64, 64, 64])
 

@@ -638,14 +638,17 @@ See :ref:`derived-quantities`.
    ~yt.data_objects.derived_quantities.DerivedQuantity
    ~yt.data_objects.derived_quantities.DerivedQuantityCollection
    ~yt.data_objects.derived_quantities.WeightedAverageQuantity
-   ~yt.data_objects.derived_quantities.TotalQuantity
-   ~yt.data_objects.derived_quantities.TotalMass
-   ~yt.data_objects.derived_quantities.CenterOfMass
-   ~yt.data_objects.derived_quantities.BulkVelocity
    ~yt.data_objects.derived_quantities.AngularMomentumVector
+   ~yt.data_objects.derived_quantities.BulkVelocity
+   ~yt.data_objects.derived_quantities.CenterOfMass
    ~yt.data_objects.derived_quantities.Extrema
    ~yt.data_objects.derived_quantities.MaxLocation
    ~yt.data_objects.derived_quantities.MinLocation
+   ~yt.data_objects.derived_quantities.SpinParameter
+   ~yt.data_objects.derived_quantities.TotalMass
+   ~yt.data_objects.derived_quantities.TotalQuantity
+   ~yt.data_objects.derived_quantities.WeightedAverageQuantity
+   ~yt.data_objects.derived_quantities.WeightedVariance
 
 .. _callback-api:
 

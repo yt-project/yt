@@ -339,10 +339,10 @@ code (a previous changeset or version) by executing the command:
 
    $ hg up revision_specifier
 
-Lastly, if you want to use this new downloaded version of your yt repository
-as the *active* version of yt on your computer (i.e. the one which is executed
-when you run yt from the command line or ``from yt.mods import *``),
-then you must "activate" it using the following commands from within the
+Lastly, if you want to use this new downloaded version of your yt repository as
+the *active* version of yt on your computer (i.e. the one which is executed when
+you run yt from the command line or the one that is loaded when you do ``import
+yt``), then you must "activate" it using the following commands from within the
 repository directory.
 
 In order to do this for the first time with a new repository, you have to

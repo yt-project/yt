@@ -67,13 +67,13 @@ class Cosmology(object):
         self.omega_curvature = omega_curvature
         if unit_registry is None:
             unit_registry = UnitRegistry()
+            unit_registry.modify("h", hubble_constant)
+            for my_unit in ["m", "pc", "AU", "au"]:
+                new_unit = "%scm" % my_unit
+                # technically not true, but distances here are actually comoving
+                unit_registry.add(new_unit, unit_registry.lut[my_unit][0],
+                                  dimensions.length, "\\rm{%s}/(1+z)" % my_unit)
         self.unit_registry = unit_registry
-        self.unit_registry.modify("h", hubble_constant)
-        for my_unit in ["m", "pc", "AU", "au"]:
-            new_unit = "%scm" % my_unit
-            # technically not true, but distances here are actually comoving
-            self.unit_registry.add(new_unit, self.unit_registry.lut[my_unit][0],
-                                   dimensions.length, "\\rm{%s}/(1+z)" % my_unit)
         self.hubble_constant = self.quan(hubble_constant, "100*km/s/Mpc")
 
     def hubble_distance(self):

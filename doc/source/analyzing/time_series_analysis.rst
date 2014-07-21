@@ -33,27 +33,23 @@ distinct.  There are several operators provided, as well as facilities for
 creating your own, and these operators can be applied either to datasets on the
 whole or to subregions of individual datasets.
 
-The simplest mechanism for creating a ``DatasetSeries`` object is to use the
-class method
-:meth:`~yt.data_objects.time_series.DatasetSeries.from_filenames`.  This
-method accepts a list of strings that can be supplied to ``load``.  For
-example:
+The simplest mechanism for creating a ``DatasetSeries`` object is to pass a glob
+pattern to the ``yt.load`` function.
 
 .. code-block:: python
 
-   from yt.mods import *
-   filenames = ["DD0030/output_0030", "DD0040/output_0040"]
-   ts = DatasetSeries.from_filenames(filenames)
+   import yt
+   ts = yt.load("DD????/DD????")
 
-This will create a new time series, populated with the output files ``DD0030``
-and ``DD0040``.  This object, here called ``ts``, can now be analyzed in bulk.
-Alternately, you can specify a pattern that is supplied to :mod:`glob`, and
-those filenames will be sorted and returned.  Here is an example:
+This will create a new time series, populated with all datasets that match the
+pattern "DD" followed by four digits.  This object, here called ``ts``, can now
+be analyzed in bulk.  Alternately, you can specify an already formatted list of
+filenames directly to the `DatasetSeries` initializer:
 
 .. code-block:: python
 
-   from yt.mods import *
-   ts = DatasetSeries.from_filenames("*/*.index")
+   import yt
+   ts = DatasetSeries(["DD0030/DD0030", "DD0040/DD0040")
 
 Analyzing Each Dataset In Sequence
 ----------------------------------
@@ -64,8 +60,8 @@ is returned for iteration:
 
 .. code-block:: python
 
-   from yt.mods import *
-   ts = DatasetSeries.from_filenames("*/*.index")
+   import yt
+   ts = yt.load("*/*.index")
    for ds in ts:
        print ds.current_time
 
@@ -76,87 +72,6 @@ see:
  * :ref:`parallel-time-series-analysis`
  * The cookbook recipe for :ref:`cookbook-time-series-analysis`
  * :class:`~yt.data_objects.time_series.DatasetSeries`
-
-Prepared Time Series Analysis
------------------------------
-
-A few handy functions for treating time series data as a uniform, single object
-are also available.
-
-.. warning:: The future of these functions is uncertain: they may be removed in
-   the future!
-
-Simple Analysis Tasks
-~~~~~~~~~~~~~~~~~~~~~
-
-The available tasks that come built-in can be seen by looking at the output of
-``ts.tasks.keys()``.  For instance, one of the simplest ones is the
-``MaxValue`` task.  We can execute this task by calling it with the field whose
-maximum value we want to evaluate:
-
-.. code-block:: python
-
-   from yt.mods import *
-   ts = TimeSeries.from_filenames("*/*.index")
-   max_rho = ts.tasks["MaximumValue"]("density")
-
-When we call the task, the time series object executes the task on each
-component dataset.  The results are then returned to the user.  More
-complex, multi-task evaluations can be conducted by using the
-:meth:`~yt.data_objects.time_series.DatasetSeries.eval` call, which accepts a
-list of analysis tasks.
-
-Analysis Tasks Applied to Objects
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Just as some tasks can be applied to datasets as a whole, one can also apply
-the creation of objects to datasets.  This means that you are able to construct
-a generalized "sphere" operator that will be created inside all datasets, which
-you can then calculate derived quantities (see :ref:`derived-quantities`) from.
-
-For instance, imagine that you wanted to create a sphere that is centered on
-the most dense point in the simulation and that is 1 pc in radius, and then
-calculate the angular momentum vector on this sphere.  You could do that with
-this script:
-
-.. code-block:: python
-
-   from yt.mods import *
-   ts = TimeSeries.from_filenames("*/*.index")
-   sphere = ts.sphere("max", (1.0, "pc"))
-   L_vecs = sphere.quantities["AngularMomentumVector"]()
-
-Note that we have specified the units differently than usual -- the time series
-objects allow units as a tuple, so that in cases where units may change over
-the course of several outputs they are correctly set at all times.  This script
-simply sets up the time series object, creates a sphere, and then runs
-quantities on it.  It is designed to look very similar to the code that would
-conduct this analysis on a single output.
-
-All of the objects listed in :ref:`available-objects` are made available in
-the same manner as "sphere" was used above.
-
-Creating Analysis Tasks
-~~~~~~~~~~~~~~~~~~~~~~~
-
-If you wanted to look at the mass in star particles as a function of time, you
-would write a function that accepts params and ds and then decorate it with
-analysis_task. Here we have done so:
-
-.. code-block:: python
-
-   @analysis_task(('particle_type',))
-   def MassInParticleType(params, ds):
-       dd = ds.all_data()
-       ptype = (dd["particle_type"] == params.particle_type)
-       return (ptype.sum(), dd["ParticleMassMsun"][ptype].sum())
-
-   ms = ts.tasks["MassInParticleType"](4)
-   print ms
-
-This allows you to create your own analysis tasks that will be then available
-to time series data objects.  Since ``DatasetSeries`` objects iterate over
-filenames in parallel by default, this allows for transparent parallelization. 
 
 .. _analyzing-an-entire-simulation:
 
@@ -175,9 +90,9 @@ To instantiate, give the parameter file and the simulation type.
 
 .. code-block:: python
 
-  from yt.mods import *
-  my_sim = simulation('enzo_tiny_cosmology/32Mpc_32.enzo', 'Enzo',
-                      find_outputs=False)
+  import yt
+  my_sim = yt.simulation('enzo_tiny_cosmology/32Mpc_32.enzo', 'Enzo',
+                         find_outputs=False)
 
 Then, create a ``DatasetSeries`` object with the :meth:`get_time_series` 
 function.  With no additional keywords, the time series will include every 
@@ -198,7 +113,7 @@ After this, time series analysis can be done normally.
 
   for ds in my_sim.piter()
       all_data = ds.all_data()
-      print all_data.quantities['Extrema']('density')
+      print all_data.quantities.extrema('density')
  
 Additional keywords can be given to :meth:`get_time_series` to select a subset
 of the total data:

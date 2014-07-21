@@ -25,6 +25,8 @@ found in `astro-ph/0806.1653`.
 
 .. yt_cookbook:: find_clumps.py
 
+.. _extract_frb:
+
 Extracting Fixed Resolution Data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
