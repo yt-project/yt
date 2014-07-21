@@ -3,10 +3,8 @@ from yt.testing import *
 from yt.data_objects.particle_filters import add_particle_filter
 from yt.utilities.answer_testing.framework import requires_ds
 
+# Dataset required for this test
 iso_galaxy = 'IsolatedGalaxy/galaxy0030/galaxy0030'
-
-def setup():
-    pass
 
 # Stars function for stars particle filter
 # Define particle filter to filter stars younger than 100 Myr
