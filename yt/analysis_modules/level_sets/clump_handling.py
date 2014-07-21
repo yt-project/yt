@@ -15,12 +15,32 @@ Clump finding helper classes
 
 import copy
 import numpy as np
+import uuid
 
 from .clump_info_items import \
      clump_info_registry
 
 from .contour_finder import \
      identify_contours
+
+from yt.fields.derived_field import \
+    ValidateSpatial
+
+def add_contour_field(ds, contour_key):
+    def _contours(field, data):
+        fd = data.get_field_parameter("contour_slices_%s" % contour_key)
+        vals = data["index", "ones"] * -1
+        if fd is None or fd == 0.0:
+            return vals
+        for sl, v in fd.get(data.id, []):
+            vals[sl] = v
+        return vals
+
+    ds.add_field(("index", "contours_%s" % contour_key),
+                 function=_contours,
+                 validators=[ValidateSpatial(0)],
+                 take_log=False,
+                 display_field=False)
 
 class Clump(object):
     children = None
@@ -103,11 +123,14 @@ class Clump(object):
         for sl_list in cids.values():
             for sl, ff in sl_list:
                 unique_contours.update(np.unique(ff))
+        contour_key = uuid.uuid4().hex
+        base_object = getattr(self.data, 'base_object', self.data)
+        add_contour_field(base_object.pf, contour_key)
         for cid in sorted(unique_contours):
             if cid == -1: continue
-            new_clump = self.data.cut_region(
-                    ["obj['contours'] == %s" % (cid)],
-                    {'contour_slices': cids})
+            new_clump = base_object.cut_region(
+                    ["obj['contours_%s'] == %s" % (contour_key, cid)],
+                    {('contour_slices_%s' % contour_key): cids})
             if new_clump["ones"].size == 0:
                 # This is to skip possibly duplicate clumps.  Using "ones" here
                 # will speed things up.

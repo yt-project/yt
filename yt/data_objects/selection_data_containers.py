@@ -722,9 +722,17 @@ class YTCutRegionBase(YTSelectionContainer3D):
     def blocks(self):
         # We have to take a slightly different approach here.  Note that all
         # that .blocks has to yield is a 3D array and a mask.
-        for b, m in self.base_object.blocks:
-            m[~self._cond_ind] = 0
-            yield b, m
+        for obj, m in self.base_object.blocks:
+            m = m.copy()
+            with obj._field_parameter_state(self.field_parameters):
+                for cond in self.conditionals:
+                    ss = eval(cond)
+                    m = np.logical_and(m, ss, m)
+            if not np.any(m): continue
+            yield obj, m
+
+    def cut_region(self, *args, **kwargs):
+        raise NotImplementedError
 
     @property
     def _cond_ind(self):

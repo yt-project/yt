@@ -51,6 +51,8 @@ def identify_contours(data_source, field, min_val, max_val,
             LE, RE, dims.astype("int64"))
         contours[nid] = (g.Level, node.node_ind, pg, sl)
     node_ids = np.array(node_ids)
+    if node_ids.size == 0:
+        return 0, {}
     trunk = data_source.tiles.tree.trunk
     mylog.info("Linking node (%s) contours.", len(contours))
     link_node_contours(trunk, contours, tree, node_ids)
