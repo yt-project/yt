@@ -176,6 +176,7 @@ class MaestroFieldInfo(FieldInfoContainer):
         ("y_vel", ("cm/s", ["velocity_y"], r"\tilde{v}")),
         ("z_vel", ("cm/s", ["velocity_z"], r"\tilde{w}")),
         ("magvel", ("cm/s", ["velocity_magnitude"], r"|\tilde{U} + w_0 e_r|")),
+        ("radial_velocity", ("cm/s", [], r"U\cdot e_r")),
         ("tfromp", ("K", [], None)),
         ("tfromh", ("K", [], None)),
         ("Machnumber", ("", ["mach_number"], None)),
