@@ -235,14 +235,14 @@ class CenterOfMass(DerivedQuantity):
           (("all", "particle_mass") in self.data_source.ds.field_info)
         vals = []
         if use_gas:
-            vals += [(data[ax] * data["cell_mass"]).sum(dtype=np.float64)
+            vals += [(data[ax] * data["gas", "cell_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
-            vals.append(data["cell_mass"].sum(dtype=np.float64))
+            vals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
         if use_particles:
-            vals += [(data["particle_position_%s" % ax] *
-                      data["particle_mass"]).sum(dtype=np.float64)
+            vals += [(data["all", "particle_position_%s" % ax] *
+                      data["all", "particle_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
-            vals.append(data["particle_mass"].sum(dtype=np.float64))
+            vals.append(data["all", "particle_mass"].sum(dtype=np.float64))
         return vals
 
     def reduce_intermediate(self, values):
@@ -297,15 +297,15 @@ class BulkVelocity(DerivedQuantity):
     def process_chunk(self, data, use_gas = True, use_particles = False):
         vals = []
         if use_gas:
-            vals += [(data["velocity_%s" % ax] * 
-                      data["cell_mass"]).sum(dtype=np.float64)
+            vals += [(data["gas", "velocity_%s" % ax] * 
+                      data["gas", "cell_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
-            vals.append(data["cell_mass"].sum(dtype=np.float64))
+            vals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
         if use_particles:
-            vals += [(data["particle_velocity_%s" % ax] *
-                      data["particle_mass"]).sum(dtype=np.float64)
+            vals += [(data["all", "particle_velocity_%s" % ax] *
+                      data["all", "particle_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
-            vals.append(data["particle_mass"].sum(dtype=np.float64))
+            vals.append(data["all", "particle_mass"].sum(dtype=np.float64))
         return vals
 
     def reduce_intermediate(self, values):
