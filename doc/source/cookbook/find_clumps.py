@@ -22,11 +22,12 @@ data_source = ds.disk([0.5, 0.5, 0.5], [0., 0., 1.],
 c_min = 10**np.floor(np.log10(data_source[field]).min()  )
 c_max = 10**np.floor(np.log10(data_source[field]).max()+1)
 
-# keep only clumps with at least 20 cells
-function = 'self.data[\'%s\'].size > 20' % field
-
 # Now find get our 'base' clump -- this one just covers the whole domain.
-master_clump = Clump(data_source, None, field, function=function)
+master_clump = Clump(data_source, None, field)
+
+# Add a "validator" to weed out clumps with less than 20 cells.
+# As many validators can be added as you want.
+master_clump.add_validator("min_cells", 20)
 
 # This next command accepts our base clump and we say the range between which
 # we want to contour.  It recursively finds clumps within the master clump, at

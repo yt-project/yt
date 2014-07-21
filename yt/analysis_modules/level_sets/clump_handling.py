@@ -19,6 +19,8 @@ import uuid
 
 from .clump_info_items import \
      clump_info_registry
+from .clump_validators import \
+     clump_validator_registry
 
 from .contour_finder import \
      identify_contours
@@ -45,7 +47,7 @@ def add_contour_field(ds, contour_key):
 class Clump(object):
     children = None
     def __init__(self, data, parent, field, cached_fields = None, 
-                 function=None, clump_info=None):
+                 clump_info=None, validators=None):
         self.parent = parent
         self.data = data
         self.quantities = data.quantities
@@ -62,16 +64,23 @@ class Clump(object):
             # Clump info will act the same if add_info_item is called before or after clump finding.
             self.clump_info = copy.deepcopy(clump_info)
 
-        # Function determining whether a clump is valid and should be kept.
-        self.default_function = 'self.data.quantities["IsBound"](truncate=True,include_thermal_energy=True) > 1.0'
-        if function is None:
-            self.function = self.default_function
-        else:
-            self.function = function
+        if validators is None:
+            validators = []
+        self.validators = validators
+        # Return value of validity function.
+        self.valid = None
 
-        # Return value of validity function, saved so it does not have to be calculated again.
-        self.function_value = None
-
+    def add_validator(self, validator, *args, **kwargs):
+        """
+        Add a validating function to determine whether the clump should 
+        be kept.
+        """
+        callback = clump_validator_registry.find(validator, *args, **kwargs)
+        self.validators.append(callback)
+        if self.children is None: return
+        for child in self.children:
+            child.add_validator(validator)
+        
     def add_info_item(self, info_item, *args, **kwargs):
         "Adds an entry to clump_info list and tells children to do the same."
 
@@ -136,7 +145,7 @@ class Clump(object):
                 # will speed things up.
                 continue
             self.children.append(Clump(new_clump, self, self.field,
-                                       self.cached_fields,function=self.function,
+                                       self.cached_fields,validators=self.validators,
                                        clump_info=self.clump_info))
 
     def pass_down(self,operation):
@@ -152,24 +161,30 @@ class Clump(object):
         for child in self.children:
             child.pass_down(operation)
 
-    def _isValid(self):
-        "Perform user specified function to determine if child clumps should be kept."
+    def _validate(self):
+        "Apply all user specified validator functions."
 
-        # Only call function if it has not been already.
-        if self.function_value is None:
-            self.function_value = eval(self.function)
+        # Only call functions if not done already.
+        if self.valid is not None:
+            return self.valid
 
-        return self.function_value
+        self.valid = True
+        for validator in self.validators:
+            self.valid &= validator(self)
+            if not self.valid:
+                break
+
+        return self.valid
 
     def __reduce__(self):
         return (_reconstruct_clump, 
                 (self.parent, self.field, self.min_val, self.max_val,
-                 self.function_value, self.children, self.data, self.clump_info, self.function))
+                 self.valid, self.children, self.data, self.clump_info, self.function))
 
     def __getitem__(self,request):
         return self.data[request]
 
-def _reconstruct_clump(parent, field, mi, ma, function_value, children, data, clump_info, 
+def _reconstruct_clump(parent, field, mi, ma, valid, children, data, clump_info, 
         function=None):
     obj = object.__new__(Clump)
     if iterable(parent):
@@ -178,8 +193,8 @@ def _reconstruct_clump(parent, field, mi, ma, function_value, children, data, cl
         except KeyError:
             parent = parent
     if children is None: children = []
-    obj.parent, obj.field, obj.min_val, obj.max_val, obj.function_value, obj.children, obj.clump_info, obj.function = \
-        parent, field, mi, ma, function_value, children, clump_info, function
+    obj.parent, obj.field, obj.min_val, obj.max_val, obj.valid, obj.children, obj.clump_info, obj.function = \
+        parent, field, mi, ma, valid, children, clump_info, function
     # Now we override, because the parent/child relationship seems a bit
     # unreliable in the unpickling
     for child in children: child.parent = obj
@@ -203,7 +218,7 @@ def find_clumps(clump, min_val, max_val, d_clump):
             find_clumps(child, min_val*d_clump, max_val, d_clump)
             if ((child.children is not None) and (len(child.children) > 0)):
                 these_children.append(child)
-            elif (child._isValid()):
+            elif (child._validate()):
                 these_children.append(child)
             else:
                 print "Eliminating invalid, childless clump with %d cells." % len(child.data["ones"])
