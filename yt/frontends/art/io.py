@@ -110,12 +110,6 @@ class IOHandlerART(BaseIOHandler):
                 if ptb:
                     data[a:a+size] = m
                     a += size
-            # We now divide by NGrid in order to make this match up.  Note that
-            # this means that even when requested in *code units*, we are
-            # giving them as modified by the ng value.  This only works for
-            # dark_matter -- stars are regular matter.
-            if ftype == "darkmatter":
-                data /= self.pf.domain_dimensions.prod()
             tr[field] = data
         elif fname == "particle_index":
             tr[field] = np.arange(idxa, idxb)
@@ -145,6 +139,13 @@ class IOHandlerART(BaseIOHandler):
             temp[-nstars:] = data
             tr[field] = temp
             del data
+        # We check again, after it's been filled
+        if fname == "particle_mass":
+            # We now divide by NGrid in order to make this match up.  Note that
+            # this means that even when requested in *code units*, we are
+            # giving them as modified by the ng value.  This only works for
+            # dark_matter -- stars are regular matter.
+            tr[field] /= self.pf.domain_dimensions.prod()
         if tr == {}:
             tr = dict((f, np.array([])) for f in fields)
         if self.caching:
