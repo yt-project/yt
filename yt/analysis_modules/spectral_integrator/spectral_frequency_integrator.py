@@ -240,7 +240,8 @@ def add_xray_emissivity_field(ds, e_min, e_max,
                 my_Z = constant_metallicity
             my_emissivity += my_Z * np.power(10, em_Z(dd))
 
-        return data["gas","H_number_density"]**2 * YTArray(my_emissivity, "erg*cm**3/s")
+        return data["gas","H_number_density"]**2 * \
+            YTArray(my_emissivity, "erg*cm**3/s")
 
     emiss_name = "xray_emissivity_%s_%s_keV" % (e_min, e_max)
     ds.add_field(emiss_name, function=_emissivity_field,
@@ -267,7 +268,8 @@ def add_xray_emissivity_field(ds, e_min, e_max,
                 my_Z = constant_metallicity
             my_emissivity += my_Z * np.power(10, emp_Z(dd))
 
-        return data["gas","H_number_density"]**2 * YTArray(my_emissivity, "photons*cm**3/s")
+        return data["gas","H_number_density"]**2 * \
+            YTArray(my_emissivity, "photons*cm**3/s")
 
     phot_name = "xray_photon_emissivity_%s_%s_keV" % (e_min, e_max)
     ds.add_field(phot_name, function=_photon_emissivity_field,

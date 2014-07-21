@@ -63,8 +63,8 @@ do that.  Here is an example of selecting all star particles in the domain.
 .. code-block:: python
 
    from yt.mods import *
-   pf = load("galaxy1200.dir/galaxy1200")
-   dd = pf.h.all_data()
+   ds = load("galaxy1200.dir/galaxy1200")
+   dd = ds.all_data()
 
    star_particles = dd["creation_time"] > 0.0
    print dd["ParticleMassMsun"][star_particles].max()
@@ -80,8 +80,8 @@ In Enzo, star particles are type 2.  So we will select using the boolean array
 .. code-block:: python
 
    from yt.mods import *
-   pf = load("galaxy1200.dir/galaxy1200")
-   dd = pf.h.all_data()
+   ds = load("galaxy1200.dir/galaxy1200")
+   dd = ds.all_data()
 
    star_particles = dd["particle_type"] == 2
    print dd["ParticleMassMsun"][star_particles].max()

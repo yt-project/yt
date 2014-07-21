@@ -74,7 +74,7 @@ class AthenaFieldInfo(FieldInfoContainer):
                 eint -= emag(data)
             return eint
         def etot_from_pres(data):
-            etot = data["athena","pressure"]/(data.pf.gamma-1.)
+            etot = data["athena","pressure"]/(data.ds.gamma-1.)
             etot += ekin2(data)
             if ("athena","cell_centered_B_x") in self.field_list:
                 etot += emag(data)
@@ -86,7 +86,7 @@ class AthenaFieldInfo(FieldInfoContainer):
                        units="dyne/cm**2")
             def _thermal_energy(field, data):
                 return data["athena","pressure"] / \
-                       (data.pf.gamma-1.)/data["athena","density"]
+                       (data.ds.gamma-1.)/data["athena","density"]
             self.add_field(("gas","thermal_energy"),
                            function=_thermal_energy,
                            units="erg/g")
@@ -97,7 +97,7 @@ class AthenaFieldInfo(FieldInfoContainer):
                            units="erg/g")
         elif ("athena","total_energy") in self.field_list:
             def _pressure(field, data):
-                return eint_from_etot(data)*(data.pf.gamma-1.0)
+                return eint_from_etot(data)*(data.ds.gamma-1.0)
             self.add_field(("gas","pressure"), function=_pressure,
                            units="dyne/cm**2")
             def _thermal_energy(field, data):

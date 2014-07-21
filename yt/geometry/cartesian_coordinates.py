@@ -23,8 +23,8 @@ import yt.visualization._MPL as _MPL
 
 class CartesianCoordinateHandler(CoordinateHandler):
 
-    def __init__(self, pf):
-        super(CartesianCoordinateHandler, self).__init__(pf)
+    def __init__(self, ds):
+        super(CartesianCoordinateHandler, self).__init__(ds)
 
     def setup_fields(self, registry):
         for axi, ax in enumerate('xyz'):
@@ -88,11 +88,11 @@ class CartesianCoordinateHandler(CoordinateHandler):
         return coord
 
     def convert_to_cylindrical(self, coord):
-        center = self.pf.domain_center
+        center = self.ds.domain_center
         return cartesian_to_cylindrical(coord, center)
 
     def convert_from_cylindrical(self, coord):
-        center = self.pf.domain_center
+        center = self.ds.domain_center
         return cylindrical_to_cartesian(coord, center)
 
     def convert_to_spherical(self, coord):
@@ -118,5 +118,5 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
     @property
     def period(self):
-        return self.pf.domain_width
+        return self.ds.domain_width
 

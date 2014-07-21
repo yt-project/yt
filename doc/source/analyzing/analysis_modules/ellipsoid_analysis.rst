@@ -58,8 +58,8 @@ Halo Finding
   from yt.mods import *
   from yt.analysis_modules.halo_finding.api import *
 
-  pf=load('Enzo_64/RD0006/RedshiftOutput0006')
-  halo_list = parallelHF(pf)
+  ds=load('Enzo_64/RD0006/RedshiftOutput0006')
+  halo_list = parallelHF(ds)
   halo_list.dump('MyHaloList')
 
 Ellipsoid Parameters
@@ -69,8 +69,8 @@ Ellipsoid Parameters
   from yt.mods import *
   from yt.analysis_modules.halo_finding.api import *
 
-  pf=load('Enzo_64/RD0006/RedshiftOutput0006')
-  haloes = LoadHaloes(pf, 'MyHaloList')
+  ds=load('Enzo_64/RD0006/RedshiftOutput0006')
+  haloes = LoadHaloes(ds, 'MyHaloList')
 
 Once the halo information is saved you can load it into the data
 object "haloes", you can get loop over the list of haloes and do
@@ -107,7 +107,7 @@ ellipsoid container as:
 
 .. code-block:: python
 
-  ell = pf.ellipsoid(ell_param[0],
+  ell = ds.ellipsoid(ell_param[0],
   ell_param[1],
   ell_param[2],
   ell_param[3],

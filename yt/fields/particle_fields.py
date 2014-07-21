@@ -47,10 +47,10 @@ from .vector_operations import \
 def _field_concat(fname):
     def _AllFields(field, data):
         v = []
-        for ptype in data.pf.particle_types:
-            data.pf._last_freq = (ptype, None)
+        for ptype in data.ds.particle_types:
+            data.ds._last_freq = (ptype, None)
             if ptype == "all" or \
-                ptype in data.pf.known_filters:
+                ptype in data.ds.known_filters:
                   continue
             v.append(data[ptype, fname].copy())
         rv = uconcatenate(v, axis=0)
@@ -60,10 +60,10 @@ def _field_concat(fname):
 def _field_concat_slice(fname, axi):
     def _AllFields(field, data):
         v = []
-        for ptype in data.pf.particle_types:
-            data.pf._last_freq = (ptype, None)
+        for ptype in data.ds.particle_types:
+            data.ds._last_freq = (ptype, None)
             if ptype == "all" or \
-                ptype in data.pf.known_filters:
+                ptype in data.ds.known_filters:
                   continue
             v.append(data[ptype, fname][:,axi])
         rv = uconcatenate(v, axis=0)
@@ -76,7 +76,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     def particle_count(field, data):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, method = "count")
-        d = data.pf.arr(d, input_units = "cm**-3")
+        d = data.ds.arr(d, input_units = "cm**-3")
         return data.apply_units(d, field.units)
 
     registry.add_field(("deposit", "%s_count" % ptype),
@@ -102,7 +102,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         pos.convert_to_units("code_length")
         mass.convert_to_units("code_mass")
         d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
-        d = data.pf.arr(d, "code_mass")
+        d = data.ds.arr(d, "code_mass")
         d /= data["index", "cell_volume"]
         return d
 
@@ -467,7 +467,7 @@ def standard_particle_fields(registry, ptype,
             top[bottom == 0] = 0.0
             bnz = bottom.nonzero()
             top[bnz] /= bottom[bnz]
-            d = data.pf.arr(top, input_units = units)
+            d = data.ds.arr(top, input_units = units)
             return top
 
     for ax in 'xyz':
@@ -508,7 +508,7 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         pos = data[ptype, coord_name].in_units("code_length")
         mass = data[ptype, mass_name].in_cgs()
         dens = data[ptype, density_name].in_cgs()
-        quan = data[ptype, smoothed_field]
+        quan = data[ptype, smoothed_field].in_units(field_units)
         if smoothing_length_name is None:
             hsml = np.zeros(quan.shape, dtype='float64') - 1
             hsml = data.apply_units(hsml, "code_length")

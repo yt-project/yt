@@ -26,8 +26,8 @@ class IOHandlerBoxlib(BaseIOHandler):
 
     _dataset_type = "boxlib_native"
 
-    def __init__(self, pf, *args, **kwargs):
-        self.pf = pf
+    def __init__(self, ds, *args, **kwargs):
+        self.ds = ds
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
@@ -58,7 +58,7 @@ class IOHandlerBoxlib(BaseIOHandler):
             if g.filename is None:
                 continue
             grids_by_file[g.filename].append(g)
-        dtype = self.pf.index._dtype
+        dtype = self.ds.index._dtype
         bpr = dtype.itemsize
         for filename in grids_by_file:
             grids = grids_by_file[filename]
@@ -69,7 +69,7 @@ class IOHandlerBoxlib(BaseIOHandler):
                 grid._seek(f)
                 count = grid.ActiveDimensions.prod()
                 size = count * bpr
-                for field in self.pf.index.field_order:
+                for field in self.ds.index.field_order:
                     if field in fields:
                         # We read it ...
                         v = np.fromfile(f, dtype=dtype, count=count)
@@ -88,9 +88,9 @@ class IOHandlerOrion(IOHandlerBoxlib):
         
         """
 
-        fn = grid.pf.fullplotdir + "/StarParticles"
+        fn = grid.ds.fullplotdir + "/StarParticles"
         if not os.path.exists(fn):
-            fn = grid.pf.fullplotdir + "/SinkParticles"
+            fn = grid.ds.fullplotdir + "/SinkParticles"
 
         # Figure out the format of the particle file
         with open(fn, 'r') as f:

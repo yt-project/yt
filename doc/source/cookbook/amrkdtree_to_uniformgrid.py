@@ -15,7 +15,7 @@ lmax = ds.parameters['MaximumRefinementLevel']
 domain_center = (ds.domain_right_edge - ds.domain_left_edge)/2
 
 #determine the cellsize in the highest refinement level
-cell_size = pf.domain_width/(pf.domain_dimensions*2**lmax)
+cell_size = ds.domain_width/(ds.domain_dimensions*2**lmax)
 
 #calculate the left edge of the new grid
 left_edge = domain_center - 512*cell_size
@@ -24,7 +24,7 @@ left_edge = domain_center - 512*cell_size
 ncells = 1024
 
 #ask yt for the specified covering grid
-cgrid = pf.h.covering_grid(lmax, left_edge, np.array([ncells,]*3))
+cgrid = ds.covering_grid(lmax, left_edge, np.array([ncells,]*3))
 
 #get a map of the density into the new grid
 density_map = cgrid["density"].astype(dtype="float32")

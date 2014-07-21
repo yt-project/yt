@@ -23,7 +23,7 @@ of available callbacks.  For example:
 
 .. code-block:: python
 
-   slc = SlicePlot(pf,0,'density')
+   slc = SlicePlot(ds,0,'density')
    slc.annotate_title('This is a Density plot')
 
 would add the :func:`title` callback to the plot object.  All of the

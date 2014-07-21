@@ -53,7 +53,7 @@ class ImageArray(YTArray):
     Examples
     --------
     These are written in doctest format, and should illustrate how to
-    use the function.  Use the variables 'pf' for the parameter file, 'pc' for
+    use the function.  Use the variables 'ds' for the dataset, 'pc' for
     a plot collection, 'c' for a center, and 'L' for a vector.
 
     >>> im = np.zeros([64,128,3])
