@@ -5,7 +5,6 @@ from yt.utilities.answer_testing.framework import requires_ds
 
 iso_galaxy = 'IsolatedGalaxy/galaxy0030/galaxy0030'
 
-@requires_ds(iso_galaxy)
 def setup():
     pass
 
@@ -18,6 +17,7 @@ def Stars(pfilter, data):
 # Simple test to create a particle filter, then access the deposition field 
 # (was a problem in previous versions on this dataset because there are chunks 
 #  with no stars in them).
+
 @requires_ds(iso_galaxy)
 def test_particle_filter() :
     add_particle_filter("stars", function=Stars, filtered_type='all', requires=["creation_time"])
