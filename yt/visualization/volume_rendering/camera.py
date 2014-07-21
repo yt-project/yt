@@ -267,9 +267,24 @@ class Camera(ParallelAnalysisInterface):
         >>> write_bitmap(im, 'render_with_grids.png')
 
         """
-        index = self.ds.index
-        corners = index.grid_corners
-        levels = index.grid_levels[:,0]
+        region = self.data_source
+        corners = []
+        levels = []
+        for block, mask in region.blocks:
+            block_corners = np.array([
+                    [block.LeftEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
+                    [block.RightEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
+                    [block.RightEdge[0], block.RightEdge[1], block.LeftEdge[2]],
+                    [block.LeftEdge[0], block.RightEdge[1], block.LeftEdge[2]],
+                    [block.LeftEdge[0], block.LeftEdge[1], block.RightEdge[2]],
+                    [block.RightEdge[0], block.LeftEdge[1], block.RightEdge[2]],
+                    [block.RightEdge[0], block.RightEdge[1], block.RightEdge[2]],
+                    [block.LeftEdge[0], block.RightEdge[1], block.RightEdge[2]],
+                ], dtype='float64')
+            corners.append(block_corners)
+            levels.append(block.Level)
+        corners = np.dstack(corners)
+        levels = np.array(levels)
 
         if max_level is not None:
             subset = levels <= max_level
