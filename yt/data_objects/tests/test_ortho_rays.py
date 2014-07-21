@@ -1,20 +1,20 @@
 from yt.testing import *
 
 def test_ortho_ray():
-    pf = fake_random_pf(64, nprocs=8)
-    dx = (pf.domain_right_edge - pf.domain_left_edge) / \
-          pf.domain_dimensions
+    ds = fake_random_ds(64, nprocs=8)
+    dx = (ds.domain_right_edge - ds.domain_left_edge) / \
+          ds.domain_dimensions
 
     axes = ['x', 'y', 'z']
     for ax, an in enumerate(axes):
-        ocoord = pf.arr(np.random.random(2), 'code_length')
+        ocoord = ds.arr(np.random.random(2), 'code_length')
 
-        my_oray = pf.ortho_ray(ax, ocoord)
+        my_oray = ds.ortho_ray(ax, ocoord)
 
-        my_axes = pf.coordinates.x_axis[ax], pf.coordinates.y_axis[ax]
+        my_axes = ds.coordinates.x_axis[ax], ds.coordinates.y_axis[ax]
 
         # find the cells intersected by the ortho ray
-        my_all = pf.h.all_data()
+        my_all = ds.all_data()
         my_cells = (np.abs(my_all[axes[my_axes[0]]] - ocoord[0]) <= 
                     0.5 * dx[my_axes[0]]) & \
                    (np.abs(my_all[axes[my_axes[1]]] - ocoord[1]) <= 

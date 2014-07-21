@@ -55,17 +55,17 @@ class FLASHHierarchy(GridIndex):
     grid = FLASHGrid
     _preload_implemented = True
     
-    def __init__(self,pf,dataset_type='flash_hdf5'):
+    def __init__(self,ds,dataset_type='flash_hdf5'):
         self.dataset_type = dataset_type
         self.field_indexes = {}
-        self.parameter_file = weakref.proxy(pf)
-        # for now, the index file is the parameter file!
-        self.index_filename = self.parameter_file.parameter_filename
+        self.dataset = weakref.proxy(ds)
+        # for now, the index file is the dataset!
+        self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
-        self._handle = pf._handle
-        self._particle_handle = pf._particle_handle
+        self._handle = ds._handle
+        self._particle_handle = ds._particle_handle
         self.float_type = np.float64
-        GridIndex.__init__(self,pf,dataset_type)
+        GridIndex.__init__(self,ds,dataset_type)
 
     def _initialize_data_storage(self):
         pass
@@ -79,20 +79,20 @@ class FLASHHierarchy(GridIndex):
     
     def _count_grids(self):
         try:
-            self.num_grids = self.parameter_file._find_parameter(
+            self.num_grids = self.dataset._find_parameter(
                 "integer", "globalnumblocks", True)
         except KeyError:
             self.num_grids = self._handle["/simulation parameters"][0][0]
         
     def _parse_index(self):
         f = self._handle # shortcut
-        pf = self.parameter_file # shortcut
+        ds = self.dataset # shortcut
         f_part = self._particle_handle # shortcut
         
         # Initialize to the domain left / domain right
-        ND = self.parameter_file.dimensionality
-        DLE = self.parameter_file.domain_left_edge
-        DRE = self.parameter_file.domain_right_edge
+        ND = self.dataset.dimensionality
+        DLE = self.dataset.domain_left_edge
+        DRE = self.dataset.domain_right_edge
         for i in range(3):
             self.grid_left_edge[:,i] = DLE[i]
             self.grid_right_edge[:,i] = DRE[i]
@@ -101,9 +101,9 @@ class FLASHHierarchy(GridIndex):
         self.grid_right_edge[:,:ND] = f["/bounding box"][:,:ND,1]
         # Move this to the parameter file
         try:
-            nxb = pf.parameters['nxb']
-            nyb = pf.parameters['nyb']
-            nzb = pf.parameters['nzb']
+            nxb = ds.parameters['nxb']
+            nyb = ds.parameters['nyb']
+            nzb = ds.parameters['nzb']
         except KeyError:
             nxb, nyb, nzb = [int(f["/simulation parameters"]['n%sb' % ax])
                               for ax in 'xyz']
@@ -128,12 +128,12 @@ class FLASHHierarchy(GridIndex):
         
 
         # This is a possibly slow and verbose fix, and should be re-examined!
-        rdx = (self.parameter_file.domain_width /
-                self.parameter_file.domain_dimensions)
+        rdx = (self.dataset.domain_width /
+                self.dataset.domain_dimensions)
         nlevels = self.grid_levels.max()
         dxs = np.ones((nlevels+1,3),dtype='float64')
         for i in range(nlevels+1):
-            dxs[i,:ND] = rdx[:ND]/self.parameter_file.refine_by**i
+            dxs[i,:ND] = rdx[:ND]/self.dataset.refine_by**i
        
         if ND < 3:
             dxs[:,ND:] = rdx[ND:]
@@ -141,18 +141,28 @@ class FLASHHierarchy(GridIndex):
         # Because we don't care about units, we're going to operate on views.
         gle = self.grid_left_edge.ndarray_view()
         gre = self.grid_right_edge.ndarray_view()
+        geom = self.dataset.geometry
+        if geom != 'cartesian' and ND < 3:
+            if geom == 'spherical' and ND < 2:
+                gle[:,1] = 0.0
+                gre[:,1] = np.pi
+            gle[:,2] = 0.0
+            gre[:,2] = 2.0 * np.pi
+            return
+
+        # Now, for cartesian data.
         for i in xrange(self.num_grids):
             dx = dxs[self.grid_levels[i],:]
             gle[i][:ND] = np.rint(gle[i][:ND]/dx[0][:ND])*dx[0][:ND]
             gre[i][:ND] = np.rint(gre[i][:ND]/dx[0][:ND])*dx[0][:ND]
-                        
+
     def _populate_grid_objects(self):
         # We only handle 3D data, so offset is 7 (nfaces+1)
         
         offset = 7
         ii = np.argsort(self.grid_levels.flat)
         gid = self._handle["/gid"][:]
-        first_ind = -(self.parameter_file.refine_by**self.parameter_file.dimensionality)
+        first_ind = -(self.dataset.refine_by**self.dataset.dimensionality)
         for g in self.grids[ii].flat:
             gi = g.id - g._id_offset
             # FLASH uses 1-indexed group info
@@ -161,14 +171,14 @@ class FLASHHierarchy(GridIndex):
                 g1.Parent = g
             g._prepare_grid()
             g._setup_dx()
-        if self.parameter_file.dimensionality < 3:
-            DD = (self.parameter_file.domain_right_edge[2] -
-                  self.parameter_file.domain_left_edge[2])
+        if self.dataset.dimensionality < 3:
+            DD = (self.dataset.domain_right_edge[2] -
+                  self.dataset.domain_left_edge[2])
             for g in self.grids:
                 g.dds[2] = DD
-        if self.parameter_file.dimensionality < 2:
-            DD = (self.parameter_file.domain_right_edge[1] -
-                  self.parameter_file.domain_left_edge[1])
+        if self.dataset.dimensionality < 2:
+            DD = (self.dataset.domain_right_edge[1] -
+                  self.dataset.domain_left_edge[1])
             for g in self.grids:
                 g.dds[1] = DD
         self.max_level = self.grid_levels.max()
@@ -363,6 +373,9 @@ class FLASHDataset(Dataset):
         elif self.dimensionality < 3 and self.geometry == "polar":
             mylog.warning("Extending theta dimension to 2PI + left edge.")
             self.domain_right_edge[1] = self.domain_left_edge[1] + 2*np.pi
+        elif self.dimensionality < 3 and self.geometry == "spherical":
+            mylog.warning("Extending phi dimension to 2PI + left edge.")
+            self.domain_right_edge[2] = self.domain_left_edge[2] + 2*np.pi
         self.domain_dimensions = \
             np.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
 

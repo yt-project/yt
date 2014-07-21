@@ -132,7 +132,7 @@ class SZProjection(object):
         if center == "c":
             ctr = self.ds.domain_center
         elif center == "max":
-            v, ctr = self.ds.h.find_max("density")
+            v, ctr = self.ds.find_max("density")
         else:
             ctr = center
 
@@ -200,7 +200,7 @@ class SZProjection(object):
         if center == "c":
             ctr = self.ds.domain_center
         elif center == "max":
-            v, ctr = self.ds.h.find_max("density")
+            v, ctr = self.ds.find_max("density")
         else:
             ctr = center
 

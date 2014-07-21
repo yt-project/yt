@@ -10,16 +10,16 @@ def test_covering_grid():
     # We decompose in different ways
     for level in [0, 1, 2]:
         for nprocs in [1, 2, 4, 8]:
-            pf = fake_random_pf(16, nprocs = nprocs)
-            dn = pf.refine_by**level 
-            cg = pf.covering_grid(level, [0.0, 0.0, 0.0],
-                    dn * pf.domain_dimensions)
+            ds = fake_random_ds(16, nprocs = nprocs)
+            dn = ds.refine_by**level 
+            cg = ds.covering_grid(level, [0.0, 0.0, 0.0],
+                    dn * ds.domain_dimensions)
             # Test coordinate generation
             yield assert_equal, np.unique(cg["dx"]).size, 1
             xmi = cg["x"].min()
             xma = cg["x"].max()
             dx = cg["dx"].flat[0:1]
-            edges = pf.arr([[0,1],[0,1],[0,1]], 'code_length')
+            edges = ds.arr([[0,1],[0,1],[0,1]], 'code_length')
             yield assert_equal, xmi, edges[0,0] + dx/2.0
             yield assert_equal, xmi, cg["x"][0,0,0]
             yield assert_equal, xmi, cg["x"][0,1,1]
@@ -50,8 +50,8 @@ def test_covering_grid():
             yield assert_equal, cg["ones"].max(), 1.0
             yield assert_equal, cg["ones"].min(), 1.0
             yield assert_equal, cg["grid_level"], 0
-            yield assert_equal, cg["cell_volume"].sum(), pf.domain_width.prod()
-            for g in pf.index.grids:
+            yield assert_equal, cg["cell_volume"].sum(), ds.domain_width.prod()
+            for g in ds.index.grids:
                 di = g.get_global_startindex()
                 dd = g.ActiveDimensions
                 for i in range(dn):
@@ -64,14 +64,14 @@ def test_smoothed_covering_grid():
     # We decompose in different ways
     for level in [0, 1, 2]:
         for nprocs in [1, 2, 4, 8]:
-            pf = fake_random_pf(16, nprocs = nprocs)
-            dn = pf.refine_by**level 
-            cg = pf.smoothed_covering_grid(level, [0.0, 0.0, 0.0],
-                    dn * pf.domain_dimensions)
+            ds = fake_random_ds(16, nprocs = nprocs)
+            dn = ds.refine_by**level 
+            cg = ds.smoothed_covering_grid(level, [0.0, 0.0, 0.0],
+                    dn * ds.domain_dimensions)
             yield assert_equal, cg["ones"].max(), 1.0
             yield assert_equal, cg["ones"].min(), 1.0
-            yield assert_equal, cg["cell_volume"].sum(), pf.domain_width.prod()
-            for g in pf.index.grids:
+            yield assert_equal, cg["cell_volume"].sum(), ds.domain_width.prod()
+            for g in ds.index.grids:
                 if level != g.Level: continue
                 di = g.get_global_startindex()
                 dd = g.ActiveDimensions

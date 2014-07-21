@@ -27,14 +27,15 @@ from nose.tools import assert_true
 from numpy.testing import \
     assert_array_equal, \
     assert_equal, assert_raises, \
-    assert_array_almost_equal_nulp
+    assert_array_almost_equal_nulp, \
+    assert_array_almost_equal
 from numpy import array
 from yt.units.yt_array import \
     YTArray, YTQuantity, \
     unary_operators, binary_operators
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUfuncUnitError
-from yt.testing import fake_random_pf, requires_module
+from yt.testing import fake_random_ds, requires_module
 from yt.funcs import fix_length
 from yt.units.unit_symbols import \
     cm, m, g
@@ -418,7 +419,9 @@ def test_unit_conversions():
     yield assert_equal, km_in_cm.in_mks(), 1e3
     yield assert_equal, km_in_cm.units, cm_unit
 
+    km_view = km.ndarray_view()
     km.convert_to_units('cm')
+    assert_true(km_view.base is km.base)
 
     yield assert_equal, km, YTQuantity(1, 'km')
     yield assert_equal, km.in_cgs(), 1e5
@@ -426,6 +429,7 @@ def test_unit_conversions():
     yield assert_equal, km.units, cm_unit
 
     km.convert_to_units('kpc')
+    assert_true(km_view.base is km.base)
 
     yield assert_array_almost_equal_nulp, km, YTQuantity(1, 'km')
     yield assert_array_almost_equal_nulp, km.in_cgs(), YTQuantity(1e5, 'cm')
@@ -452,6 +456,49 @@ def test_unit_conversions():
     yield assert_equal, em3.in_mks(), 1e-7
     yield assert_equal, str(em3.in_mks().units), 'kg/(m*s**2)'
     yield assert_equal, str(em3.in_cgs().units), 'g/(cm*s**2)'
+
+def test_temperature_conversions():
+    """
+    Test conversions between various supported temperatue scales.
+
+    Also ensure we only allow compound units with temperature
+    scales that have a proper zero point.
+
+    """
+    from yt.units.unit_object import InvalidUnitOperation
+
+    km = YTQuantity(1, 'km')
+    balmy = YTQuantity(300, 'K')
+    balmy_F = YTQuantity(80.33, 'F')
+    balmy_C = YTQuantity(26.85, 'C')
+    balmy_R = YTQuantity(540, 'R')
+
+    assert_array_almost_equal(balmy.in_units('F'), balmy_F)
+    assert_array_almost_equal(balmy.in_units('C'), balmy_C)
+    assert_array_almost_equal(balmy.in_units('R'), balmy_R)
+
+    balmy_view = balmy.ndarray_view()
+
+    balmy.convert_to_units('F')
+    yield assert_true, balmy_view.base is balmy.base
+    yield assert_array_almost_equal, np.array(balmy), np.array(balmy_F)
+
+    balmy.convert_to_units('C')
+    yield assert_true, balmy_view.base is balmy.base
+    yield assert_array_almost_equal, np.array(balmy), np.array(balmy_C)
+
+    balmy.convert_to_units('R')
+    yield assert_true, balmy_view.base is balmy.base
+    yield assert_array_almost_equal, np.array(balmy), np.array(balmy_R)
+
+    balmy.convert_to_units('F')
+    yield assert_true, balmy_view.base is balmy.base
+    yield assert_array_almost_equal, np.array(balmy), np.array(balmy_F)
+
+    yield assert_raises, InvalidUnitOperation, np.multiply, balmy, km
+
+    # Does CGS convergion from F to K work?
+    yield assert_array_almost_equal, balmy.in_cgs(), YTQuantity(300, 'K')
 
 
 def test_yt_array_yt_quantity_ops():
@@ -505,16 +552,16 @@ def test_fix_length():
     """
     Test fixing the length of an array. Used in spheres and other data objects
     """
-    pf = fake_random_pf(64, nprocs=1, length_unit=10)
-    length = pf.quan(1.0, 'code_length')
-    new_length = fix_length(length, pf=pf)
+    ds = fake_random_ds(64, nprocs=1, length_unit=10)
+    length = ds.quan(1.0, 'code_length')
+    new_length = fix_length(length, ds=ds)
     yield assert_equal, YTQuantity(10, 'cm'), new_length
 
 
 def test_ytarray_pickle():
-    pf = fake_random_pf(64, nprocs=1)
-    test_data = [pf.quan(12.0, 'code_length'),
-                 pf.arr([1, 2, 3], 'code_length')]
+    ds = fake_random_ds(64, nprocs=1)
+    test_data = [ds.quan(12.0, 'code_length'),
+                 ds.arr([1, 2, 3], 'code_length')]
 
     for data in test_data:
         tempf = tempfile.NamedTemporaryFile(delete=False)
@@ -700,7 +747,7 @@ def test_convenience():
 
 
 def test_registry_association():
-    ds = fake_random_pf(64, nprocs=1, length_unit=10)
+    ds = fake_random_ds(64, nprocs=1, length_unit=10)
     a = ds.quan(3, 'cm')
     b = YTQuantity(4, 'm')
     c = ds.quan(6, '')
@@ -746,15 +793,15 @@ def test_astropy():
     yt_quan2 = YTQuantity.from_astropy(ap_quan)
 
     yield assert_array_equal, ap_arr, yt_arr.to_astropy()
-    yield assert_array_equal, yt_arr, YTArray(ap_arr)
+    yield assert_array_equal, yt_arr, YTArray.from_astropy(ap_arr)
     yield assert_array_equal, yt_arr, yt_arr2
 
     yield assert_equal, ap_quan, yt_quan.to_astropy()
-    yield assert_equal, yt_quan, YTQuantity(ap_quan)
+    yield assert_equal, yt_quan, YTQuantity.from_astropy(ap_quan)
     yield assert_equal, yt_quan, yt_quan2
 
-    yield assert_array_equal, yt_arr, YTArray(yt_arr.to_astropy())
-    yield assert_equal, yt_quan, YTQuantity(yt_quan.to_astropy())
+    yield assert_array_equal, yt_arr, YTArray.from_astropy(yt_arr.to_astropy())
+    yield assert_equal, yt_quan, YTQuantity.from_astropy(yt_quan.to_astropy())
 
 def test_subclass():
 
@@ -796,7 +843,7 @@ def test_h5_io():
     curdir = os.getcwd()
     os.chdir(tmpdir)
 
-    ds = fake_random_pf(64, nprocs=1, length_unit=10)
+    ds = fake_random_ds(64, nprocs=1, length_unit=10)
 
     warr = ds.arr(np.random.random((256, 256)), 'code_length')
 

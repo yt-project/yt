@@ -32,11 +32,15 @@ Py_EnzoFOF(PyObject *obj, PyObject *args)
     PyArrayObject    *xpos, *ypos, *zpos;
     xpos=ypos=zpos=NULL;
     float link = 0.2;
+    float fPeriod[3] = {1.0, 1.0, 1.0};
+	int nMembers = 8;
 
     int i;
 
-    if (!PyArg_ParseTuple(args, "OOO|f",
-        &oxpos, &oypos, &ozpos, &link))
+    if (!PyArg_ParseTuple(args, "OOO|f(fff)i",
+        &oxpos, &oypos, &ozpos, &link,
+        &fPeriod[0], &fPeriod[1], &fPeriod[2],
+        &nMembers))
     return PyErr_Format(_FOFerror,
             "EnzoFOF: Invalid parameters.");
 
@@ -74,8 +78,8 @@ Py_EnzoFOF(PyObject *obj, PyObject *args)
 
 	KDFOF kd;
 	int nBucket,j;
-	float fPeriod[3],fEps;
-	int nMembers,nGroup,bVerbose=1;
+	float fEps;
+	int nGroup,bVerbose=1;
 	int sec,usec;
 	
 	/* linking length */
@@ -83,9 +87,6 @@ Py_EnzoFOF(PyObject *obj, PyObject *args)
 	fEps = link;
 	
 	nBucket = 16;
-	nMembers = 8;
-
-	for (j=0;j<3;++j) fPeriod[j] = 1.0;
 
     /* initialize the kd FOF structure */
 

@@ -29,16 +29,16 @@ def test_periodicity():
 
     # Now test the more complicated cases where we're calculaing radii based 
     # on data objects
-    pf = fake_random_pf(64)
+    ds = fake_random_ds(64)
 
     # First we test flattened data
-    data = pf.h.all_data()
+    data = ds.all_data()
     positions = np.array([data[ax] for ax in 'xyz'])
     c = [0.1, 0.1, 0.1]
     n_tup = tuple([1 for i in range(positions.ndim-1)])
     center = np.tile(np.reshape(np.array(c), (positions.shape[0],)+n_tup),(1,)+positions.shape[1:])
     
-    dist = periodic_dist(positions, center, period, pf.periodicity)
+    dist = periodic_dist(positions, center, period, ds.periodicity)
     yield assert_almost_equal, dist.min(), 0.00270632938683
     yield assert_almost_equal, dist.max(), 0.863319074398
 
@@ -47,13 +47,13 @@ def test_periodicity():
     yield assert_almost_equal, dist.max(), 1.54531407988
 
     # Then grid-like data
-    data = pf.index.grids[0]
+    data = ds.index.grids[0]
     positions = np.array([data[ax] for ax in 'xyz'])
     c = [0.1, 0.1, 0.1]
     n_tup = tuple([1 for i in range(positions.ndim-1)])
     center = np.tile(np.reshape(np.array(c), (positions.shape[0],)+n_tup),(1,)+positions.shape[1:])
     
-    dist = periodic_dist(positions, center, period, pf.periodicity)
+    dist = periodic_dist(positions, center, period, ds.periodicity)
     yield assert_almost_equal, dist.min(), 0.00270632938683
     yield assert_almost_equal, dist.max(), 0.863319074398
     

@@ -31,8 +31,8 @@ class GDFFieldInfo(FieldInfoContainer):
         ("velocity_x", ("cm/s", ["velocity_x"], None)),
         ("velocity_y", ("cm/s", ["velocity_y"], None)),
         ("velocity_z", ("cm/s", ["velocity_z"], None)),
-        ("magnetic_field_x", ("gauss", ["magnetic_field_x"], None)),
-        ("magnetic_field_y", ("gauss", ["magnetic_field_y"], None)),
-        ("magnetic_field_z", ("gauss", ["magnetic_field_z"], None)),
+        ("mag_field_x", ("gauss", ["magnetic_field_x"], None)),
+        ("mag_field_y", ("gauss", ["magnetic_field_y"], None)),
+        ("mag_field_z", ("gauss", ["magnetic_field_z"], None)),
     )
     known_particle_fields = ()

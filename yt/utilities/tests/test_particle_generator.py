@@ -21,7 +21,7 @@ def test_particle_generator() :
     ug = load_uniform_grid(fields, domain_dims, 1.0)
     fo = [ic.BetaModelSphere(1.0,0.1,0.5,[0.5,0.5,0.5],{"density":(10.0)})]
     rc = [fm.flagging_method_registry["overdensity"](4.0)]
-    pf = refine_amr(ug, rc, fo, 3)
+    ds = refine_amr(ug, rc, fo, 3)
 
     # Now generate particles from density
 
@@ -32,20 +32,20 @@ def test_particle_generator() :
                   ("io", "particle_gas_density")]
     num_particles = 1000000
     field_dict = {("gas", "density"): ("io", "particle_gas_density")}
-    sphere = pf.sphere(pf.domain_center, 0.45)
+    sphere = ds.sphere(ds.domain_center, 0.45)
 
-    particles1 = WithDensityParticleGenerator(pf, sphere, num_particles, field_list)
+    particles1 = WithDensityParticleGenerator(ds, sphere, num_particles, field_list)
     particles1.assign_indices()
     particles1.map_grid_fields_to_particles(field_dict)
     
     # Test to make sure we ended up with the right number of particles per grid
     particles1.apply_to_stream()
-    particles_per_grid1 = [grid.NumberOfParticles for grid in pf.index.grids]
+    particles_per_grid1 = [grid.NumberOfParticles for grid in ds.index.grids]
     yield assert_equal, particles_per_grid1, particles1.NumberOfParticles
-    particles_per_grid1 = [len(grid["particle_position_x"]) for grid in pf.index.grids]
+    particles_per_grid1 = [len(grid["particle_position_x"]) for grid in ds.index.grids]
     yield assert_equal, particles_per_grid1, particles1.NumberOfParticles
 
-    tags = uconcatenate([grid["particle_index"] for grid in pf.index.grids])
+    tags = uconcatenate([grid["particle_index"] for grid in ds.index.grids])
     assert(np.unique(tags).size == num_particles)
     # Set up a lattice of particles
     pdims = np.array([64,64,64])
@@ -58,7 +58,7 @@ def test_particle_generator() :
     new_field_dict = {("gas", "density"): ("io", "particle_gas_density"),
                       ("gas", "temperature"): ("io", "particle_gas_temperature")}
 
-    particles2 = LatticeParticleGenerator(pf, pdims, le, re, new_field_list)
+    particles2 = LatticeParticleGenerator(ds, pdims, le, re, new_field_list)
     particles2.assign_indices(function=new_indices)
     particles2.map_grid_fields_to_particles(new_field_dict)
 
@@ -77,39 +77,39 @@ def test_particle_generator() :
 
     #Test the number of particles again
     particles2.apply_to_stream()
-    particles_per_grid2 = [grid.NumberOfParticles for grid in pf.index.grids]
+    particles_per_grid2 = [grid.NumberOfParticles for grid in ds.index.grids]
     yield assert_equal, particles_per_grid2, particles1.NumberOfParticles+particles2.NumberOfParticles
 
-    [grid.field_data.clear() for grid in pf.index.grids]
-    particles_per_grid2 = [len(grid["particle_position_x"]) for grid in pf.index.grids]
+    [grid.field_data.clear() for grid in ds.index.grids]
+    particles_per_grid2 = [len(grid["particle_position_x"]) for grid in ds.index.grids]
     yield assert_equal, particles_per_grid2, particles1.NumberOfParticles+particles2.NumberOfParticles
 
     #Test the uniqueness of tags
-    tags = np.concatenate([grid["particle_index"] for grid in pf.index.grids])
+    tags = np.concatenate([grid["particle_index"] for grid in ds.index.grids])
     tags.sort()
     yield assert_equal, tags, np.arange((np.product(pdims)+num_particles))
 
     # Test that the old particles have zero for the new field
     old_particle_temps = [grid["particle_gas_temperature"][:particles_per_grid1[i]]
-                          for i, grid in enumerate(pf.index.grids)]
+                          for i, grid in enumerate(ds.index.grids)]
     test_zeros = [np.zeros((particles_per_grid1[i])) 
-                  for i, grid in enumerate(pf.index.grids)]
+                  for i, grid in enumerate(ds.index.grids)]
     yield assert_equal, old_particle_temps, test_zeros
 
     #Now dump all of these particle fields out into a dict
     pdata = {}
-    dd = pf.h.all_data()
+    dd = ds.all_data()
     for field in new_field_list :
         pdata[field] = dd[field]
 
     #Test the "from-list" generator and particle field clobber
-    particles3 = FromListParticleGenerator(pf, num_particles+np.product(pdims), pdata)
+    particles3 = FromListParticleGenerator(ds, num_particles+np.product(pdims), pdata)
     particles3.apply_to_stream(clobber=True)
     
     #Test the number of particles again
-    particles_per_grid3 = [grid.NumberOfParticles for grid in pf.index.grids]
+    particles_per_grid3 = [grid.NumberOfParticles for grid in ds.index.grids]
     yield assert_equal, particles_per_grid3, particles1.NumberOfParticles+particles2.NumberOfParticles
-    particles_per_grid2 = [len(grid["particle_position_z"]) for grid in pf.index.grids]
+    particles_per_grid2 = [len(grid["particle_position_z"]) for grid in ds.index.grids]
     yield assert_equal, particles_per_grid3, particles1.NumberOfParticles+particles2.NumberOfParticles
 
 if __name__=="__main__":

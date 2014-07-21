@@ -15,6 +15,7 @@ SlicePlot and ProjectionPlot
    ~yt.visualization.plot_window.OffAxisSlicePlot
    ~yt.visualization.plot_window.ProjectionPlot
    ~yt.visualization.plot_window.OffAxisProjectionPlot
+   ~yt.visualization.plot_window.WindowPlotMPL
 
 ProfilePlot and PhasePlot
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -24,6 +25,7 @@ ProfilePlot and PhasePlot
 
    ~yt.visualization.profile_plotter.ProfilePlot
    ~yt.visualization.profile_plotter.PhasePlot
+   ~yt.visualization.profile_plotter.PhasePlotMPL
 
 Fixed Resolution Pixelization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -454,18 +456,6 @@ You can use Halo catalogs generatedl externally as well:
    ~yt.analysis_modules.halo_merger_tree.enzofof_merger_tree.EnzoFOFMergerTree
    ~yt.analysis_modules.halo_merger_tree.enzofof_merger_tree.plot_halo_evolution
 
-Halo Profiling
-^^^^^^^^^^^^^^
-
-yt provides a comprehensive halo profiler that can filter, center, and analyze
-halos en masse.
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.analysis_modules.halo_profiler.multi_halo_profiler.HaloProfiler
-   ~yt.analysis_modules.halo_profiler.multi_halo_profiler.VirialFilter
-
 
 Two Point Functions
 ^^^^^^^^^^^^^^^^^^^
@@ -509,16 +499,6 @@ writing to bitmaps.
 
 Extension Types
 ---------------
-
-Coordinate Transformations
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.analysis_modules.coordinate_transformation.transforms.arbitrary_regrid
-   ~yt.analysis_modules.coordinate_transformation.transforms.spherical_regrid
 
 Cosmology, Star Particle Analysis, and Simulated Observations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -573,17 +553,6 @@ RADMC-3D exporting:
 
    ~yt.analysis_modules.radmc3d_export.RadMC3DInterface.RadMC3DLayer
    ~yt.analysis_modules.radmc3d_export.RadMC3DInterface.RadMC3DWriter
-
-Radial Column Density
-^^^^^^^^^^^^^^^^^^^^^
-
-If you'd like to calculate the column density out to a given point, from a
-specified center, yt can provide that information.
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.analysis_modules.radial_column_density.radial_column_density.RadialColumnDensity
 
 Volume Rendering
 ^^^^^^^^^^^^^^^^
@@ -819,5 +788,5 @@ These are yt-provided functions:
 
    ~yt.testing.assert_rel_equal
    ~yt.testing.amrspace
-   ~yt.testing.fake_random_pf
+   ~yt.testing.fake_random_ds
    ~yt.testing.expand_keywords

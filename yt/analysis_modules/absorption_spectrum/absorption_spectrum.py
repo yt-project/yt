@@ -118,7 +118,7 @@ class AbsorptionSpectrum(object):
            if True, include line of sight velocity for shifting lines.
         """
 
-        input_fields = ['dl', 'redshift', 'Temperature']
+        input_fields = ['dl', 'redshift', 'temperature']
         field_data = {}
         if use_peculiar_velocity: input_fields.append('los_velocity')
         for feature in self.line_list + self.continuum_list:
@@ -201,14 +201,14 @@ class AbsorptionSpectrum(object):
                 delta_lambda += line['wavelength'] * (1 + field_data['redshift']) * \
                     field_data['los_velocity'] / speed_of_light_cgs
             thermal_b = km_per_cm * np.sqrt((2 * boltzmann_constant_cgs *
-                                             field_data['Temperature']) /
+                                             field_data['temperature']) /
                                             (amu_cgs * line['atomic_mass']))
             center_bins = np.digitize((delta_lambda + line['wavelength']),
                                       self.lambda_bins)
 
             # ratio of line width to bin width
-            width_ratio = (line['wavelength'] + delta_lambda) * \
-                thermal_b / speed_of_light_kms / self.bin_width
+            width_ratio = ((line['wavelength'] + delta_lambda) * \
+                thermal_b / speed_of_light_kms / self.bin_width).value
 
             # do voigt profiles for a subset of the full spectrum
             left_index  = (center_bins -

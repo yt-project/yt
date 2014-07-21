@@ -13,6 +13,7 @@ FITSImageBuffer Class
 import numpy as np
 from yt.funcs import mylog, iterable, fix_axis, ensure_list
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
+from yt.visualization.plot_window import get_sanitized_center
 from yt.data_objects.construction_data_containers import YTCoveringGridBase
 from yt.utilities.on_demand_imports import _astropy
 from yt.units.yt_array import YTQuantity
@@ -252,7 +253,7 @@ class FITSImageBuffer(HDUList):
 axis_wcs = [[1,2],[0,2],[0,1]]
 
 def construct_image(data_source):
-    ds = data_source.pf
+    ds = data_source.ds
     axis = data_source.axis
     if hasattr(ds, "wcs"):
         # This is a FITS dataset
@@ -293,19 +294,20 @@ class FITSSlice(FITSImageBuffer):
         The axis of the slice. One of "x","y","z", or 0,1,2.
     fields : string or list of strings
         The fields to slice
-    coord : float, tuple, or YTQuantity
-        The coordinate of the slice along *axis*. Can be a (value,
-        unit) tuple, a YTQuantity, or a float. If a float, it will be
-        interpreted as in units of code_length.
+    center : A sequence floats, a string, or a tuple.
+         The coordinate of the center of the image. If set to 'c', 'center' or
+         left blank, the plot is centered on the middle of the domain. If set to
+         'max' or 'm', the center will be located at the maximum of the
+         ('gas', 'density') field. Units can be specified by passing in center
+         as a tuple containing a coordinate and string unit name or by passing
+         in a YTArray.  If a list or unitless array is supplied, code units are
+         assumed.
     """
-    def __init__(self, ds, axis, fields, coord, **kwargs):
+    def __init__(self, ds, axis, fields, center="c", **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis, ds)
-        if isinstance(coord, tuple):
-            coord = ds.quan(coord[0], coord[1]).in_units("code_length").value
-        elif isinstance(coord, YTQuantity):
-            coord = coord.in_units("code_length").value
-        slc = ds.slice(axis, coord, **kwargs)
+        center = get_sanitized_center(center, ds)
+        slc = ds.slice(axis, center[axis], **kwargs)
         w, frb = construct_image(slc)
         super(FITSSlice, self).__init__(frb, fields=fields, wcs=w)
         for i, field in enumerate(fields):

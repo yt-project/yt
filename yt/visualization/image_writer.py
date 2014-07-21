@@ -18,6 +18,7 @@ import numpy as np
 
 from yt.funcs import *
 from yt.utilities.exceptions import YTNotInsideNotebook
+from color_maps import mcm
 import _colormap_data as cmd
 import yt.utilities.lib.image_utilities as au
 import yt.utilities.png_writer as pw
@@ -136,6 +137,10 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
     max_val : float, optional
         The upper limit to clip values to in the output, if converting to uint8.
         If `bitmap_array` is already uint8, this will be ignore.
+    transpose : boolean, optional
+        If transpose is False, we assume that the incoming bitmap_array is such
+        that the first element resides in the upper-left corner.  If True, the
+        first element will be placed in the lower-left corner.
     """
     if len(bitmap_array.shape) != 3 or bitmap_array.shape[-1] not in (3,4):
         raise RuntimeError
@@ -153,7 +158,7 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
     if transpose:
         bitmap_array = bitmap_array.swapaxes(0,1)
     if filename is not None:
-        pw.write_png(bitmap_array.copy(), filename)
+        pw.write_png(bitmap_array, filename)
     else:
         return pw.write_png_to_string(bitmap_array.copy())
     return bitmap_array
@@ -188,7 +193,7 @@ def write_image(image, filename, color_bounds = None, cmap_name = "algae", func 
     Examples
     --------
 
-    >>> sl = pf.slice(0, 0.5, "Density")
+    >>> sl = ds.slice(0, 0.5, "Density")
     >>> frb1 = FixedResolutionBuffer(sl, (0.2, 0.3, 0.4, 0.5),
                     (1024, 1024))
     >>> write_image(frb1["Density"], "saved.png")
@@ -239,10 +244,18 @@ def apply_colormap(image, color_bounds = None, cmap_name = 'algae', func=lambda 
     return to_plot
 
 def map_to_colors(buff, cmap_name):
-    if cmap_name not in cmd.color_map_luts:
-        print ("Your color map was not found in the extracted colormap file.")
-        raise KeyError(cmap_name)
-    lut = cmd.color_map_luts[cmap_name]
+    try:
+        lut = cmd.color_map_luts[cmap_name]
+    except KeyError:
+        try:
+            cmap = mcm.get_cmap(cmap_name)
+            dummy = cmap(0.0)
+            lut = cmap._lut.T
+        except ValueError:
+            print "Your color map was not found in either the extracted" +\
+                " colormap file or matplotlib colormaps"
+            raise KeyError(cmap_name)
+
     x = np.mgrid[0.0:1.0:lut[0].shape[0]*1j]
     shape = buff.shape
     mapped = np.dstack(
@@ -324,7 +337,7 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     Examples
     --------
 
-    >>> image = off_axis_projection(pf, c, L, W, N, "Density", no_ghost=False)
+    >>> image = off_axis_projection(ds, c, L, W, N, "Density", no_ghost=False)
     >>> write_projection(image, 'test.png', 
                          colorbar_label="Column Density (cm$^{-2}$)", 
                          title="Offaxis Projection", limits=(1e-5,1e-3), 

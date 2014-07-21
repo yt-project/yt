@@ -6,5 +6,5 @@ def setup():
     ytcfg["yt","__withintesting"] = "True"
 
 def test_domain_sphere():
-    pf = fake_random_pf(16, fields = ("density"))
-    sp = pf.sphere(pf.domain_center, pf.domain_width[0])
+    ds = fake_random_ds(16, fields = ("density"))
+    sp = ds.sphere(ds.domain_center, ds.domain_width[0])

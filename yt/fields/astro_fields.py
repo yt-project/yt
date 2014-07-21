@@ -73,7 +73,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         logT0 = np.log10(data[ftype, "temperature"].to_ndarray().astype(np.float64)) - 7
         # we get rid of the units here since this is a fit and not an 
         # analytical expression
-        return data.pf.arr(data[ftype, "number_density"].to_ndarray().astype(np.float64)**2
+        return data.ds.arr(data[ftype, "number_density"].to_ndarray().astype(np.float64)**2
                            * (10**(- 0.0103 * logT0**8 + 0.0417 * logT0**7
                                    - 0.0636 * logT0**6 + 0.1149 * logT0**5
                                    - 0.3151 * logT0**4 + 0.6655 * logT0**3
@@ -94,7 +94,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
     
     def _xray_emissivity(field, data):
         # old scaling coefficient was 2.168e60
-        return data.pf.arr(data[ftype, "density"].to_ndarray().astype(np.float64)**2
+        return data.ds.arr(data[ftype, "density"].to_ndarray().astype(np.float64)**2
                            * data[ftype, "temperature"].to_ndarray()**0.5,
                            "") # add correct units here
 

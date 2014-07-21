@@ -4,7 +4,7 @@ from yt.visualization.base_plot_types import get_multi_plot
 import matplotlib.colorbar as cb
 from matplotlib.colors import LogNorm
 
-fn = "GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150" # parameter file to load
+fn = "GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150" # dataset to load
 orient = 'horizontal'
 
 ds = yt.load(fn) # load data
