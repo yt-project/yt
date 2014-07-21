@@ -31,9 +31,9 @@ cam.snapshot("v1.png", clip_ratio=6.0)
 # This rendering is okay, but lets say I'd like to improve it, and I don't want
 # to spend the time rendering the high resolution data.  What we can do is
 # generate a low resolution version of the AMRKDTree and pass that in to the
-# camera.  We do this by specifying a maximum refinement level of 3.
+# camera.  We do this by specifying a maximum refinement level of 6.
 
-kd_low_res = AMRKDTree(ds, max_level=3)
+kd_low_res = AMRKDTree(ds, max_level=6)
 print kd_low_res.count_volume()
 print kd_low_res.count_cells()
 
