@@ -215,8 +215,12 @@ class AMRData(object):
         if fields == None: fields = []
         self.fields = ensure_list(fields)[:]
         self.field_data = YTFieldData()
+        self._default_field_parameters = {}
+        self._default_field_parameters["center"] = np.zeros(3, dtype='float64')
+        self._default_field_parameters["bulk_velocity"] = np.zeros(3, dtype='float64')
+        self._default_field_parameters["normal"] = np.array([0,0,1], dtype='float64')
         self.field_parameters = {}
-        self.__set_default_field_parameters()
+        self._set_default_field_parameters()
         self._cut_masks = {}
         self._point_indices = {}
         self._vc_data = {}
@@ -224,10 +228,13 @@ class AMRData(object):
             mylog.debug("Setting %s to %s", key, val)
             self.set_field_parameter(key, val)
 
-    def __set_default_field_parameters(self):
-        self.set_field_parameter("center",np.zeros(3,dtype='float64'))
-        self.set_field_parameter("bulk_velocity",np.zeros(3,dtype='float64'))
-        self.set_field_parameter("normal",np.array([0,0,1],dtype='float64'))
+    def _set_default_field_parameters(self):
+        for k,v in self._default_field_parameters.items():
+            self.set_field_parameter(k,v)
+
+    def _is_default_field_parameter(self, parameter):
+        if parameter not in self._default_field_parameters: return False
+        return self._default_field_parameters[parameter] is self.field_parameters[parameter]
 
     def _set_center(self, center):
         if center is None:
@@ -783,7 +790,6 @@ class AMRStreamlineBase(AMR1DData):
 
     @cache_mask
     def _get_cut_mask(self, grid):
-        #pdb.set_trace()
         points_in_grid = np.all(self.positions > grid.LeftEdge, axis=1) & \
                          np.all(self.positions <= grid.RightEdge, axis=1)
         pids = np.where(points_in_grid)[0]
@@ -1772,8 +1778,10 @@ class AMRQuadTreeProjBase(AMR2DData):
             self._distributed = False
             self._okay_to_serialize = False
             self._check_region = True
+            # Use the data_source's field parameters if they don't exist in the
+            # object or if they are the default values
             for k, v in source.field_parameters.items():
-                if k not in self.field_parameters:
+                if k not in self.field_parameters or self._is_default_field_parameter(k):
                     self.set_field_parameter(k,v)
         self.source = source
         if self._field_cuts is not None:
@@ -2115,7 +2123,7 @@ class AMRProjBase(AMR2DData):
             self._okay_to_serialize = False
             self._check_region = True
             for k, v in source.field_parameters.items():
-                if k not in self.field_parameters:
+                if k not in self.field_parameters or self._is_default_field_parameter(k):
                     self.set_field_parameter(k,v)
         self.source = source
         if self._field_cuts is not None:
@@ -2661,14 +2669,14 @@ class AMR3DData(AMRData, GridPropertiesMixin, ParallelAnalysisInterface):
         i = 0
         for grid in self._grids:
             pointI = self._get_point_indices(grid)
-            np = pointI[0].ravel().size
+            npoints = pointI[0].ravel().size
             if grid.has_key(field):
                 new_field = grid[field]
             else:
                 new_field = np.ones(grid.ActiveDimensions, dtype=dtype) * default_val
-            new_field[pointI] = self[field][i:i+np]
+            new_field[pointI] = self[field][i:i+npoints]
             grid[field] = new_field
-            i += np
+            i += npoints
 
     def _is_fully_enclosed(self, grid):
         return np.all(self._get_cut_mask)
@@ -3579,23 +3587,23 @@ class AMREllipsoidBase(AMR3DData):
         self._tilt = tilt
 
         # find the t1 angle needed to rotate about z axis to align e0 to x
-        t1 = np.arctan(e0[1] / e0[0])
+        t1 = np.arctan(-e0[1] / e0[0])
         # rotate e0 by -t1
-        RZ = get_rotation_matrix(t1, (0,0,1)).transpose()
-        r1 = (e0 * RZ).sum(axis = 1)
+        RZ = get_rotation_matrix(t1, (0,0,1))
+        r1 = np.dot(RZ, e0)
         # find the t2 angle needed to rotate about y axis to align e0 to x
-        t2 = np.arctan(-r1[2] / r1[0])
+        t2 = np.arctan(r1[2] / r1[0])
         """
         calculate the original e1
         given the tilt about the x axis when e0 was aligned
         to x after t1, t2 rotations about z, y
         """
-        RX = get_rotation_matrix(-tilt, (1, 0, 0)).transpose()
-        RY = get_rotation_matrix(-t2,   (0, 1, 0)).transpose()
-        RZ = get_rotation_matrix(-t1,   (0, 0, 1)).transpose()
-        e1 = ((0, 1, 0) * RX).sum(axis=1)
-        e1 = (e1 * RY).sum(axis=1)
-        e1 = (e1 * RZ).sum(axis=1)
+        RX = get_rotation_matrix(-tilt, (1, 0, 0))
+        RY = get_rotation_matrix(-t2,   (0, 1, 0))
+        RZ = get_rotation_matrix(-t1,   (0, 0, 1))
+        e1 = np.dot(RX, (0,1,0))
+        e1 = np.dot(RY, e1)
+        e1 = np.dot(RZ, e1)
         e2 = np.cross(e0, e1)
 
         self._e1 = e1

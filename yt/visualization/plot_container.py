@@ -7,6 +7,7 @@ import types
 from functools import wraps
 from matplotlib.font_manager import FontProperties
 
+from ._mpl_imports import FigureCanvasAgg
 from .tick_locators import LogLocator, LinearLocator
 from .color_maps import yt_colormaps, is_colormap
 from .plot_modifications import \
@@ -108,6 +109,9 @@ class ImagePlotContainer(object):
         font_path = matplotlib.get_data_path() + '/fonts/ttf/STIXGeneral.ttf'
         self._font_properties = FontProperties(size=fontsize, fname=font_path)
         self._font_color = None
+        self._xlabel = None
+        self._ylabel = None
+        self._colorbarlabel = None
 
     @invalidate_plot
     def set_log(self, field, log):
@@ -474,3 +478,67 @@ class ImagePlotContainer(object):
             img = base64.b64encode(self.plots[field]._repr_png_())
             ret += '<img src="data:image/png;base64,%s"><br>' % img
         return ret
+
+    def set_xlabel(self, x_title, fontsize=18):
+        r"""
+        Allow the user to modify the X-axis title
+        Defaults to the global value. Fontsize defaults 
+        to 18.
+        
+        Parameters
+        ----------
+        x_title: str
+              The new string for the x-axis. This is a required argument. 
+
+        fontsize: float
+              Fontsize for the x-axis title
+
+        >>>  plot.set_xtitle("H2I Number Density (cm$^{-3}$)")
+
+        """
+        for f in self.plots:
+            self.plots[f].axes.xaxis.set_label_text(x_title, fontsize=fontsize)
+        self._xlabel = x_title
+
+    def set_ylabel(self, y_title, fontsize=18):
+        r"""
+        Allow the user to modify the Y-axis title
+        Defaults to the global value. Fontsize defaults 
+        to 18.
+        
+        Parameters
+        ----------
+        y_title: str
+              The new string for the y-axis. This is a required argument. 
+        fontsize: float
+              Fontsize for the y-axis title
+
+        >>>  plot.set_ytitle("Temperature (K)")
+
+        """
+        for f in self.plots:
+            self.plots[f].axes.yaxis.set_label_text(y_title, fontsize=fontsize)
+        self._ylabel = y_title
+
+    def set_colorbar_label(self, z_title, fontsize=18):
+        r"""
+        Allow the user to modify the Z-axis title
+        Defaults to the global value. Fontsize defaults 
+        to 18.
+        
+        Parameters
+        ----------
+        z_title: str
+              The new string for the colorbar. This is a required argument.
+        fontsize: float
+              Fontsize for the z-axis title
+
+        >>>  plot.set_ztitle("Enclosed Gas Mass ($M_{\odot}$)")
+
+        """
+        for f in self.plots:
+            self.plots[f].cax.yaxis.set_label_text(z_title, fontsize=fontsize)
+        self._colorbarlabel = z_title
+
+    def _get_axes_labels(self):
+        return(self._xlabel, self._ylabel, self._colorbarlabel)

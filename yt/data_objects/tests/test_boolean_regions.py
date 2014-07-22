@@ -246,10 +246,8 @@ def test_boolean_ellipsoids_no_overlap():
     for n in [1, 2, 4, 8]:
         pf = fake_random_pf(64, nprocs=n)
         pf.h
-        ell1 = pf.h.ellipsoid([0.25]*3, 0.05, 0.05, 0.05, np.array([0.1]*3),
-            np.array([0.1]*3))
-        ell2 = pf.h.ellipsoid([0.75]*3, 0.05, 0.05, 0.05, np.array([0.1]*3),
-            np.array([0.1]*3))
+        ell1 = pf.h.ellipsoid([0.25]*3, 0.05, 0.05, 0.05, np.array([0.1]*3), 0.1)
+        ell2 = pf.h.ellipsoid([0.75]*3, 0.05, 0.05, 0.05, np.array([0.1]*3), 0.1)
         # Store the original indices
         i1 = ell1['ID']
         i1.sort()
@@ -287,10 +285,8 @@ def test_boolean_ellipsoids_overlap():
     for n in [1, 2, 4, 8]:
         pf = fake_random_pf(64, nprocs=n)
         pf.h
-        ell1 = pf.h.ellipsoid([0.45]*3, 0.05, 0.05, 0.05, np.array([0.1]*3),
-            np.array([0.1]*3))
-        ell2 = pf.h.ellipsoid([0.55]*3, 0.05, 0.05, 0.05, np.array([0.1]*3),
-            np.array([0.1]*3))
+        ell1 = pf.h.ellipsoid([0.45]*3, 0.05, 0.05, 0.05, np.array([0.1]*3), 0.1)
+        ell2 = pf.h.ellipsoid([0.55]*3, 0.05, 0.05, 0.05, np.array([0.1]*3), 0.1)
         # Get indices of both.
         i1 = ell1['ID']
         i2 = ell2['ID']

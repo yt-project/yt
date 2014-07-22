@@ -433,7 +433,7 @@ class ProfilePlot(object):
         if field_name is None:
             field_name = r'$\rm{'+field+r'}$'
         elif field_name.find('$') == -1:
-            field_name = r'$\rm{'+field+r'}$'
+            field_name = r'$\rm{'+field_name+r'}$'
         if units is None or units == '':
             label = field_name
         else:
@@ -517,11 +517,10 @@ class PhasePlot(ImagePlotContainer):
                          weight_field=None)
     >>> plot.save()
 
-    >>> # Change plot properties.
+    >>> # Change plot properties. 
     >>> plot.set_cmap("CellMassMsun", "jet")
     >>> plot.set_zlim("CellMassMsun", 1e8, 1e13)
     >>> plot.set_title("CellMassMsun", "This is a phase plot")
-    
     """
     x_log = None
     y_log = None
@@ -532,6 +531,7 @@ class PhasePlot(ImagePlotContainer):
     _plot_valid = False
     _plot_type = 'Phase'
 
+
     def __init__(self, data_source, x_field, y_field, z_fields,
                  weight_field="CellMassMsun", x_bins=128, y_bins=128,
                  accumulation=False, fractional=False,
@@ -540,6 +540,14 @@ class PhasePlot(ImagePlotContainer):
         self.z_log = {}
         self.z_title = {}
         self._initfinished = False
+        self._xlimits = [0,0]
+        self._ylimits = [0,0]
+        self._setxlims = False
+        self._setylims = False
+        self._plottext = ""
+        self._textxpos = 0.0
+        self._textypos = 0.0
+
 
         if profile is None:
             profile = create_profile(data_source,
@@ -562,10 +570,11 @@ class PhasePlot(ImagePlotContainer):
         xfi = pf.field_info[field_x]
         yfi = pf.field_info[field_y]
         zfi = pf.field_info[field_z]
+       
         x_title = self.x_title or self._get_field_label(field_x, xfi)
         y_title = self.y_title or self._get_field_label(field_y, yfi)
         z_title = self.z_title.get(field_z, None) or \
-                    self._get_field_label(field_z, zfi)
+            self._get_field_label(field_z, zfi)
         return (x_title, y_title, z_title)
 
     def _get_field_label(self, field, field_info):
@@ -574,13 +583,13 @@ class PhasePlot(ImagePlotContainer):
         if field_name is None:
             field_name = r'$\rm{'+field+r'}$'
         elif field_name.find('$') == -1:
-            field_name = r'$\rm{'+field+r'}$'
+            field_name = r'$\rm{'+field_name+r'}$'
         if units is None or units == '':
             label = field_name
         else:
             label = field_name+r'$\/\/('+units+r')$'
         return label
-        
+
     def _get_field_log(self, field_z, profile):
         pf = profile.data_source.pf
         zfi = pf.field_info[field_z]
@@ -612,7 +621,16 @@ class PhasePlot(ImagePlotContainer):
 
             size = (self.figure_size, self.figure_size)
             x_scale, y_scale, z_scale = self._get_field_log(f, self.profile)
+            x_label, y_label, z_label = self._get_axes_labels()
             x_title, y_title, z_title = self._get_field_title(f, self.profile)
+            #If the labels are set they take precedence
+            if x_label is not None:
+                x_title = x_label
+            if y_label is not None:
+                y_title = y_label
+            if z_label is not None:
+                z_title = z_label
+
             if f in self.plots:
                 zlim = [self.plots[f].zmin, self.plots[f].zmax]
             else:
@@ -627,16 +645,24 @@ class PhasePlot(ImagePlotContainer):
                                          x_scale, y_scale, z_scale,
                                          self._colormaps[f], zlim, size, fp.get_size(),
                                          fig, axes, cax)
+
             self.plots[f].axes.xaxis.set_label_text(x_title)
             self.plots[f].axes.yaxis.set_label_text(y_title)
             self.plots[f].cax.yaxis.set_label_text(z_title)
+            if(self._setxlims == True):
+                self.plots[f].axes.set_xlim(self._xlimits[0], self._xlimits[1])
+            if(self._setylims == True):
+                self.plots[f].axes.set_ylim(self._ylimits[0], self._ylimits[1])
+           
+            self.plots[f].axes.text(self._textxpos, self._textypos, self._plottext,
+                                    fontproperties=self._font_properties)
             if z_scale == "log":
                 self._field_transform[f] = log_transform
             else:
                 self._field_transform[f] = linear_transform
             if f in self.plot_title:
                 self.plots[f].axes.set_title(self.plot_title[f])
-
+               
             if self._font_color is not None:
                 ax = self.plots[f].axes
                 cbax = self.plots[f].cb.ax
@@ -647,6 +673,90 @@ class PhasePlot(ImagePlotContainer):
                 for label in labels:
                     label.set_color(self._font_color)
         self._plot_valid = True
+
+
+    def set_xlim(self, xmin=None, xmax=None):
+        r"""
+        Sets the x-axis limits on the Phase plot. 
+        Defaults to None leaving the axis unchanged
+        Parameters
+        ----------
+        xmin: float
+              The minimum value on the x-axis
+        xmax: float
+              The maximum value on the x-axis
+
+        >>> plot.set_xlim(5e-21, 1e5)
+        """
+
+        for f, data in self.profile.field_data.items():
+            axes = None
+            if f in self.plots:
+                if self.plots[f].figure is not None:
+                    axes = self.plots[f].axes
+
+                self.plots[f].axes.set_xlim(xmin, xmax)
+        self._setxlims = True
+        self._xlimits[0] = xmin
+        self._xlimits[1] = xmax
+
+    def set_ylim(self, ymin=None, ymax=None):
+        r"""
+        Sets the y-axis limits on the Phase plot. 
+        Defaults to None leaving the axis unchanged
+        Parameters
+        ----------
+        ymin: float
+              The minimum value on the y-axis
+        ymax: float
+              The maximum value on the y-axis
+
+        >>> plot.set_ylim(1e1, 1e5)
+
+        """
+       
+        for f, data in self.profile.field_data.items():
+            axes = None
+            if f in self.plots:
+                if self.plots[f].figure is not None:
+                    axes = self.plots[f].axes
+
+                self.plots[f].axes.set_ylim(ymin, ymax)
+        self._setylims = True
+        self._ylimits[0] = ymin
+        self._ylimits[1] = ymax
+   
+    def add_text(self, text_str, xpos, ypos, fontsize=18, **kwargs):
+        r"""
+        Allow the user to insert text onto the plot
+        The x-position and y-position must be given as well as the text string. 
+        Add text_str plot at location x, y, data coordinates (see example below).
+        Fontsize defaults to 18.
+        
+        Parameters
+        ----------
+        text_str: str
+              The text to insert onto the plot. Required argument. 
+        xpos: float
+              Position on plot in x-coordinates. Required argument. 
+        ypos: float
+              Position on plot in y-coordinates. Required argument. 
+        fontsize: float
+              Fontsize for the text (defaults to 18)
+
+        >>>  plot.text(1e-15, 5e4, "Hello YT")
+
+        """
+        for f, data in self.profile.field_data.items():
+            axes = None
+            if f in self.plots:
+                if self.plots[f].figure is not None:
+                    axes = self.plots[f].axes
+                    self.plots[f].axes.text(xpos, ypos, text_str,
+                                            fontproperties=self._font_properties)
+        self._plottext = text_str
+        self._textxpos = xpos
+        self._textypos = ypos
 
     def save(self, name=None, mpl_kwargs=None):
         r"""

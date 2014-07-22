@@ -15,6 +15,7 @@ DualEPS: A class to combine bitmap compression and vector graphics
 import pyx
 import numpy as np
 from matplotlib import cm
+import matplotlib.pyplot as plt
 from _mpl_imports import FigureCanvasAgg
 
 from yt.utilities.logger import ytLogger as mylog
@@ -288,8 +289,6 @@ class DualEPS(object):
         """
         if isinstance(plot, (PlotWindow, PhasePlot)):
             plot.refresh()
-        else:
-            plot._redraw_image()
         if isinstance(plot, (VMPlot, PlotWindow)):
             if isinstance(plot, PlotWindow):
                 data = plot._frb
@@ -342,6 +341,26 @@ class DualEPS(object):
                     _ylabel = ylabel
                 else:
                     _ylabel = plot[k].axes.get_ylabel()
+            if tickcolor == None:
+                _tickcolor = None
+        elif isinstance(plot, np.ndarray):
+            ax = plt.gca()
+            _xrange = ax.get_xlim()
+            _yrange = ax.get_ylim()
+            _xlog=False
+            _ylog=False
+            if bare_axes:
+                _xlabel = ""
+                _ylabel = ""
+            else:
+                if xlabel != None:
+                    _xlabel = xlabel
+                else:
+                    _xlabel = ax.get_xlabel()
+                if ylabel != None:
+                    _ylabel = ylabel
+                else:
+                    _ylabel = ax.get_ylabel()
             if tickcolor == None:
                 _tickcolor = None
         else:
@@ -461,6 +480,13 @@ class DualEPS(object):
             # Remove colorbar
             _p1 = plot._figure
             _p1.delaxes(_p1.axes[1])
+        elif isinstance(plot, np.ndarray):
+            fig = plt.figure()
+            iplot = plt.figimage(plot)
+            _p1 =  iplot.figure
+            _p1.set_size_inches(self.figsize[0], self.figsize[1])
+            ax = plt.gca();
+            _p1.add_axes(ax)
         else:
             raise RuntimeError("Unknown plot type")
 
@@ -855,7 +881,7 @@ class DualEPS(object):
         
 #=============================================================================
 
-    def save_fig(self, filename="test", format="eps"):
+    def save_fig(self, filename="test", format="eps", resolution=250):
         r"""Saves current figure to a file.
 
         Parameters
@@ -875,6 +901,10 @@ class DualEPS(object):
             self.canvas.writeEPSfile(filename)
         elif format == "pdf":
             self.canvas.writePDFfile(filename)
+        elif format == "png":
+             self.canvas.writeGSfile(filename+".png", "png16m", resolution=resolution)
+        elif format == "jpg":
+             self.canvas.writeGSfile(filename+".jpeg", "jpeg", resolution=resolution)
         else:
             raise RuntimeError("format %s unknown." % (format))
             

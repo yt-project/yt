@@ -811,6 +811,7 @@ class ProfileND(ParallelAnalysisInterface):
         self.pf = data_source.pf
         self.field_data = YTFieldData()
         self.weight_field = weight_field
+        ParallelAnalysisInterface.__init__(self, comm=data_source.comm)
 
     def add_fields(self, fields):
         fields = ensure_list(fields)
@@ -822,7 +823,9 @@ class ProfileND(ParallelAnalysisInterface):
     def _finalize_storage(self, fields, temp_storage):
         # We use our main comm here
         # This also will fill _field_data
-        # FIXME: Add parallelism and combining std stuff
+        temp_storage.values = self.comm.mpi_allreduce(temp_storage.values, op="sum", dtype="float64")
+        temp_storage.weight_values = self.comm.mpi_allreduce(temp_storage.weight_values, op="sum", dtype="float64")
+        temp_storage.used = self.comm.mpi_allreduce(temp_storage.used, op="sum", dtype="bool")
         if self.weight_field is not None:
             temp_storage.values /= temp_storage.weight_values[...,None]
         blank = ~temp_storage.used

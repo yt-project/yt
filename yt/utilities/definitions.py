@@ -15,7 +15,7 @@ Various definitions for various other modules and routines
 
 from .physical_constants import \
    mpc_per_mpc, kpc_per_mpc, pc_per_mpc, au_per_mpc, rsun_per_mpc, \
-   miles_per_mpc, km_per_mpc, cm_per_mpc, sec_per_Gyr, sec_per_Myr, \
+   miles_per_mpc, km_per_mpc, m_per_mpc, cm_per_mpc, sec_per_Gyr, sec_per_Myr, \
    sec_per_year, sec_per_day
 
 # The number of levels we expect to have at most
@@ -44,6 +44,7 @@ mpc_conversion = {'Mpc'   : mpc_per_mpc,
                   'rsun'  : rsun_per_mpc,
                   'miles' : miles_per_mpc,
                   'km'    : km_per_mpc,
+                  'm'     : m_per_mpc,
                   'cm'    : cm_per_mpc}
 
 # Nicely formatted versions of common length units
