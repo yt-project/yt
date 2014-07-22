@@ -103,7 +103,6 @@ class HaloCatalog(ParallelAnalysisInterface):
                  finder_kwargs=None,
                  output_dir="halo_catalogs/catalog"):
         ParallelAnalysisInterface.__init__(self)
-        halos_ds.index
         self.halos_ds = halos_ds
         self.data_ds = data_ds
         self.output_dir = ensure_dir(output_dir)
@@ -120,17 +119,18 @@ class HaloCatalog(ParallelAnalysisInterface):
 
         if data_source is None:
             if halos_ds is not None:
+                halos_ds.index
                 data_source = halos_ds.all_data()
             else:
                 data_source = data_ds.all_data()
         self.data_source = data_source
 
+        if finder_kwargs is None:
+            finder_kwargs = {}
         if finder_method is not None:
             finder_method = finding_method_registry.find(finder_method,
                         **finder_kwargs)
         self.finder_method = finder_method            
-        if finder_kwargs is None:
-            finder_kwargs = {}
         
         # all of the analysis actions to be performed: callbacks, filters, and quantities
         self.actions = []
@@ -446,5 +446,5 @@ class HaloCatalog(ParallelAnalysisInterface):
         self.add_quantity("particle_position_x", field_type=field_type,prepend=True)
         self.add_quantity("particle_position_y", field_type=field_type,prepend=True)
         self.add_quantity("particle_position_z", field_type=field_type,prepend=True)
-        self.add_quantity("virial_radius", field_type=field_type,prepend=True)
+        self.add_quantity("radius", field_type=field_type,prepend=True)
 

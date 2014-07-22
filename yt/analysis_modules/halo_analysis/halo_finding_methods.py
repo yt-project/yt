@@ -98,7 +98,7 @@ def _parse_old_halo_list(data_ds, halo_list):
     # Set up fields that we want to pull from identified halos and their units
     new_fields = ['particle_identifier', 'particle_mass', 'particle_position_x', 
         'particle_position_y','particle_position_z',
-        'virial_radius']
+        'radius']
     new_units = [ '', 'g', 'cm', 'cm','cm','cm']
 
     # Set up a dictionary based on those fields 
@@ -111,7 +111,7 @@ def _parse_old_halo_list(data_ds, halo_list):
     for i,halo in enumerate(halo_list):
         halo_properties['particle_identifier'][0][i] = i
         halo_properties['particle_mass'][0][i] = halo.virial_mass().in_cgs()
-        halo_properties['virial_radius'][0][i] = halo.virial_radius().in_cgs()
+        halo_properties['radius'][0][i] = halo.virial_radius().in_cgs()
 
         com = halo.center_of_mass().in_cgs()
         halo_properties['particle_position_x'][0][i] = com[0]
