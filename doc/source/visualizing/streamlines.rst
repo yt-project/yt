@@ -49,14 +49,14 @@ The implementation of streamlining  in ``yt`` is described below.
    :obj:`~yt.visualization.streamlines.Streamlines.streamlines` object.
 
 Example Script
-++++++++++++++++
+++++++++++++++
 
 .. code-block:: python
 
-    from yt.mods import *
+    import yt
     from yt.visualization.api import Streamlines
     
-    ds = load('DD1701') # Load ds 
+    ds = yt.load('DD1701') # Load ds 
     c = np.array([0.5]*3)
     N = 100
     scale = 1.0
@@ -94,10 +94,10 @@ Example Script
 
 .. code-block:: python
 
-    from yt.mods import *
+    import yt
     from yt.visualization.api import Streamlines
     
-    ds = load('DD1701') # Load ds 
+    ds = yt.load('DD1701') # Load ds 
     streamlines = Streamlines(ds, [0.5]*3) 
     streamlines.integrate_through_volume()
     stream = streamlines.path(0)

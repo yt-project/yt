@@ -1,43 +1,20 @@
 
 
-.. function:: Action(action, combine_action, filter=None):
+.. function:: angular_momentum_vector()
 
-   (This is a proxy for :func:`~yt.data_objects.derived_quantities._Action`.)
-   This function evals the string given by the action arg and uses 
-   the function thrown with the combine_action to combine the values.  
-   A filter can be thrown to be evaled to short-circuit the calculation 
-   if some criterion is not met.
-   :param action: a string containing the desired action to be evaled.
-   :param combine_action: the function used to combine the answers when done lazily.
-   :param filter: a string to be evaled to serve as a data filter.
-
-
-
-.. function:: AngularMomentumVector():
-
-   (This is a proxy for :func:`~yt.data_objects.derived_quantities._AngularMomentumVector`.)
+   (This is a proxy for :func:`~yt.data_objects.derived_quantities.AngularMomentumVector`.)
    This function returns the mass-weighted average angular momentum vector.
 
 
+.. function:: bulk_velocity():
 
-.. function:: BaryonSpinParameter():
-
-   (This is a proxy for :func:`~yt.data_objects.derived_quantities._BaryonSpinParameter`.)
-   This function returns the spin parameter for the baryons, but it uses
-   the particles in calculating enclosed mass.
-
-
-
-.. function:: BulkVelocity():
-
-   (This is a proxy for :func:`~yt.data_objects.derived_quantities._BulkVelocity`.)
+   (This is a proxy for :func:`~yt.data_objects.derived_quantities.BulkVelocity`.)
    This function returns the mass-weighted average velocity in the object.
 
 
+.. function:: center_of_mass(use_cells=True, use_particles=False):
 
-.. function:: CenterOfMass(use_cells=True, use_particles=False):
-
-   (This is a proxy for :func:`~yt.data_objects.derived_quantities._CenterOfMass`.)
+   (This is a proxy for :func:`~yt.data_objects.derived_quantities.CenterOfMass`.)
    This function returns the location of the center
    of mass. By default, it computes of the *non-particle* data in the object. 
    
@@ -51,112 +28,64 @@
 
 
 
-.. function:: Extrema(fields, non_zero=False, filter=None):
+.. function:: extrema(fields, non_zero=False, filter=None):
 
-   (This is a proxy for :func:`~yt.data_objects.derived_quantities._Extrema`.)
+   (This is a proxy for :func:`~yt.data_objects.derived_quantities.Extrema`.)
    This function returns the extrema of a set of fields
    
    :param fields: A field name, or a list of field names
    :param filter: a string to be evaled to serve as a data filter.
 
 
+.. function:: max_location(field):
 
-.. function:: IsBound(truncate=True, include_thermal_energy=False, treecode=True, opening_angle=1.0, periodic_test=False, include_particles=True):
-
-   (This is a proxy for :func:`~yt.data_objects.derived_quantities._IsBound`.)
-   This returns whether or not the object is gravitationally bound. If this
-   returns a value greater than one, it is bound, and otherwise not.
-   
-   Parameters
-   ----------
-   truncate : Bool
-       Should the calculation stop once the ratio of
-       gravitational:kinetic is 1.0?
-   include_thermal_energy : Bool
-       Should we add the energy from ThermalEnergy
-       on to the kinetic energy to calculate 
-       binding energy?
-   treecode : Bool
-       Whether or not to use the treecode.
-   opening_angle : Float 
-       The maximal angle a remote node may subtend in order
-       for the treecode method of mass conglomeration may be
-       used to calculate the potential between masses.
-   periodic_test : Bool 
-       Used for testing the periodic adjustment machinery
-       of this derived quantity.
-   include_particles : Bool
-       Should we add the mass contribution of particles
-       to calculate binding energy?
-   
-   Examples
-   --------
-   >>> sp.quantities["IsBound"](truncate=False,
-   ... include_thermal_energy=True, treecode=False, opening_angle=2.0)
-   0.32493
-
-
-
-.. function:: MaxLocation(field):
-
-   (This is a proxy for :func:`~yt.data_objects.derived_quantities._MaxLocation`.)
+   (This is a proxy for :func:`~yt.data_objects.derived_quantities.max_location`.)
    This function returns the location of the maximum of a set
    of fields.
 
 
+.. function:: min_location(field):
 
-.. function:: MinLocation(field):
-
-   (This is a proxy for :func:`~yt.data_objects.derived_quantities._MinLocation`.)
+   (This is a proxy for :func:`~yt.data_objects.derived_quantities.MinLocation`.)
    This function returns the location of the minimum of a set
    of fields.
 
 
 
-.. function:: ParticleSpinParameter():
+.. function:: spin_parameter(use_gas=True, use_particles=True):
 
-   (This is a proxy for :func:`~yt.data_objects.derived_quantities._ParticleSpinParameter`.)
+   (This is a proxy for :func:`~yt.data_objects.derived_quantities.SpinParameter`.)
    This function returns the spin parameter for the baryons, but it uses
    the particles in calculating enclosed mass.
 
 
+.. function:: total_mass():
 
-.. function:: StarAngularMomentumVector():
-
-   (This is a proxy for :func:`~yt.data_objects.derived_quantities._StarAngularMomentumVector`.)
-   This function returns the mass-weighted average angular momentum vector 
-   for stars.
-
-
-
-.. function:: TotalMass():
-
-   (This is a proxy for :func:`~yt.data_objects.derived_quantities._TotalMass`.)
+   (This is a proxy for :func:`~yt.data_objects.derived_quantities.TotalMass`.)
    This function takes no arguments and returns the sum of cell masses and
    particle masses in the object.
 
 
+.. function:: total_quantity(fields):
 
-.. function:: TotalQuantity(fields):
-
-   (This is a proxy for :func:`~yt.data_objects.derived_quantities._TotalQuantity`.)
+   (This is a proxy for :func:`~yt.data_objects.derived_quantities.TotalQuantity`.)
    This function sums up a given field over the entire region
    
    :param fields: The fields to sum up
 
 
 
-.. function:: WeightedAverageQuantity(field, weight):
+.. function:: weighted_average_quantity(field, weight):
 
-   (This is a proxy for :func:`~yt.data_objects.derived_quantities._WeightedAverageQuantity`.)
+   (This is a proxy for :func:`~yt.data_objects.derived_quantities.WeightedAverageQuantity`.)
    This function returns an averaged quantity.
    
    :param field: The field to average
    :param weight: The field to weight by
 
-.. function:: WeightedVariance(field, weight):
+.. function:: weighted_variance(field, weight):
 
-   (This is a proxy for :func:`~yt.data_objects.derived_quantities._WeightedVariance`.)
+   (This is a proxy for :func:`~yt.data_objects.derived_quantities.WeightedVariance`.)
     This function returns the variance of a field.
 
     :param field: The target field

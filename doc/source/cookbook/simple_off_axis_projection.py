@@ -7,7 +7,7 @@ ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 sp = ds.sphere("center", (15.0, "kpc"))
 
 # Get the angular momentum vector for the sphere.
-L = sp.quantities["AngularMomentumVector"]()
+L = sp.quantities.angular_momentum_vector()
 
 print "Angular momentum vector: {0}".format(L)
 

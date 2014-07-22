@@ -34,15 +34,15 @@ To display the most up to date colormaps locally, you can run:
 
 .. code-block:: python
 
-    from yt.mods import *
-    show_colormaps()
+    import yt
+    yt.show_colormaps()
 
 or to output just the colormaps native to yt to an image file, try:
 
 .. code-block:: python
 
-    from yt.mods import *
-    show_colormaps(subset = "yt_native", filename = "yt_native.png")
+    import yt
+    yt.show_colormaps(subset = "yt_native", filename = "yt_native.png")
 
 Applying a Colormap to your Rendering
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -52,7 +52,7 @@ manually specify a specific colormap.  For example:
 
 .. code-block:: python
 
-    write_image(im, "output.png", cmap_name = 'jet')
+    yt.write_image(im, "output.png", cmap_name = 'jet')
 
 If you're using the Plot Window interface (e.g. SlicePlot, ProjectionPlot, 
 etc.), it's even easier than that.  Simply create your rendering, and you
@@ -61,8 +61,8 @@ callback:
 
 .. code-block:: python
 
-    ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    p = ProjectionPlot(ds, "z", "density")
+    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    p = yt.ProjectionPlot(ds, "z", "density")
 
     p.set_cmap(field="density", cmap='jet')
     p.save('proj_with_jet_cmap.png')

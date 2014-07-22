@@ -87,7 +87,7 @@ The default opening angle is 1.0:
   ds = load("DD0000")
   sp = ds.sphere([0.5, 0.5, 0.5], radius=0.1)
   
-  ratio = sp.quantities["IsBound"](truncate=False, include_thermal_energy=True,
+  ratio = sp.quantities.is_bound(truncate=False, include_thermal_energy=True,
       treecode=True, opening_angle=2.0)
 
 This example will accomplish the same as the above, but will use the full
@@ -100,7 +100,7 @@ N^2 method.
   ds = load("DD0000")
   sp = ds.sphere([0.5, 0.5, 0.5], radius=0.1)
   
-  ratio = sp.quantities["IsBound"](truncate=False, include_thermal_energy=True,
+  ratio = sp.quantities.is_bound(truncate=False, include_thermal_energy=True,
       treecode=False)
 
 Here the treecode method is specified for clump finding (this is default).
@@ -109,7 +109,7 @@ trailing backslash is important!):
 
 .. code-block:: python
   
-  function_name = 'self.data.quantities["IsBound"](truncate=True, \
+  function_name = 'self.data.quantities.is_bound(truncate=True, \
       include_thermal_energy=True, treecode=True, opening_angle=2.0) > 1.0'
   master_clump = amods.level_sets.Clump(data_source, None, field,
       function=function_name)

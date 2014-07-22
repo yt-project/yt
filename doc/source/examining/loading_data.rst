@@ -31,8 +31,8 @@ mentioned.
 
 .. code-block:: python
 
-   from yt.mods import *
-   ds = load("DD0010/data0010")
+   import yt
+   ds = yt.load("DD0010/data0010")
 
 .. rubric:: Caveats
 
@@ -78,8 +78,8 @@ You would feed it the filename ``pltgmlcs5600``:
 
 .. code-block:: python
 
-   from yt.mods import *
-   ds = load("pltgmlcs5600")
+   import yt
+   ds = yt.load("pltgmlcs5600")
 
 .. _loading-flash-data:
 
@@ -101,8 +101,8 @@ You would feed it the filename ``cosmoSim_coolhdf5_chk_0026``:
 
 .. code-block:: python
 
-   from yt.mods import *
-   ds = load("cosmoSim_coolhdf5_chk_0026")
+   import yt
+   ds = yt.load("cosmoSim_coolhdf5_chk_0026")
 
 If you have a FLASH particle file that was created at the same time as
 a plotfile or checkpoint file (therefore having particle data
@@ -111,8 +111,8 @@ consistent with the grid structure of the latter), its data may be loaded with t
 
 .. code-block:: python
 
-    from yt.mods import *
-    ds = load("radio_halo_1kpc_hdf5_plt_cnt_0100", particle_filename="radio_halo_1kpc_hdf5_part_0100")
+    import yt
+    ds = yt.load("radio_halo_1kpc_hdf5_plt_cnt_0100", particle_filename="radio_halo_1kpc_hdf5_part_0100")
 
 .. rubric:: Caveats
 
@@ -142,8 +142,8 @@ You would feed it the filename ``output_00007/info_00007.txt``:
 
 .. code-block:: python
 
-   from yt.mods import *
-   ds = load("output_00007/info_00007.txt")
+   import yt
+   ds = yt.load("output_00007/info_00007.txt")
 
 yt will attempt to guess the fields in the file.  You may also specify a list
 of fields by supplying the ``fields`` keyword in your call to ``load``.
@@ -162,16 +162,16 @@ Gadget data in HDF5 format can be loaded with the ``load`` command:
 
 .. code-block:: python
 
-   from yt.mods import *
-   ds = load("snapshot_061.hdf5")
+   import yt
+   ds = yt.load("snapshot_061.hdf5")
 
 However, yt cannot detect raw-binary Gadget data, and so you must specify the
 format as being Gadget:
 
 .. code-block:: python
 
-   from yt.mods import *
-   ds = GadgetDataset("snapshot_061")
+   import yt
+   ds = yt.GadgetDataset("snapshot_061")
 
 .. _particle-bbox:
 
@@ -461,9 +461,9 @@ by specifying the window in seconds, ``spread=1.0e7*265*24*3600``.
 
 .. code-block:: python
     
-   from yt.mods import *
+   import yt
 
-   ds = load("/u/cmoody3/data/art_snapshots/SFG1/10MpcBox_csf512_a0.460.d")
+   ds = yt.load("SFG1/10MpcBox_csf512_a0.460.d")
 
 .. _loading_athena_data:
 
@@ -480,8 +480,8 @@ Athena tool ``join_vtk``, you can load the data like this:
 
 .. code-block:: python
 
-   from yt.mods import *
-   ds = load("kh.0010.vtk")
+   import yt
+   ds = yt.load("kh.0010.vtk")
 
 The filename corresponds to the file on SMR level 0, whereas if there
 are multiple levels the corresponding files will be picked up
@@ -495,8 +495,8 @@ data, call ``load`` with the base file in the ``id0`` directory:
 
 .. code-block:: python
 
-   from yt.mods import *
-   ds = load("id0/kh.0010.vtk")
+   import yt
+   ds = yt.load("id0/kh.0010.vtk")
 
 which will pick up all of the files in the different ``id*`` directories for
 the entire dataset.
@@ -507,11 +507,11 @@ cgs units, you may supply conversions for length, time, and mass to ``load``:
 
 .. code-block:: python
 
-   from yt.mods import *
-   ds = load("id0/cluster_merger.0250.vtk",
-             parameters={"length_unit":(1.0,"Mpc"),
-                         "time_unit"(1.0,"Myr"),
-                         "mass_unit":(1.0e14,"Msun")})
+   import yt
+   ds = yt.load("id0/cluster_merger.0250.vtk",
+                parameters={"length_unit":(1.0,"Mpc"),
+                            "time_unit"(1.0,"Myr"),
+                            "mass_unit":(1.0e14,"Msun")})
 
 This means that the yt fields, e.g. ``("gas","density")``, ``("gas","x-velocity")``,
 ``("gas","magnetic_field_x")``, will be in cgs units, but the Athena fields, e.g.,
@@ -557,8 +557,8 @@ upon being loaded into yt it is automatically decomposed into grids:
 
 .. code-block:: python
 
-   from yt.mods import *
-   ds = load("m33_hi.fits")
+   import yt
+   ds = yt.load("m33_hi.fits")
    ds.print_stats()
 
 .. parsed-literal::
@@ -809,11 +809,11 @@ the following code:
 
 .. code-block:: python
 
-   from yt.frontends.stream.api import load_uniform_grid
+   import yt
 
    data = dict(Density = arr)
    bbox = np.array([[-1.5, 1.5], [-1.5, 1.5], [1.5, 1.5]])
-   ds = load_uniform_grid(data, arr.shape, 3.08e24, bbox=bbox, nprocs=12)
+   ds = yt.load_uniform_grid(data, arr.shape, 3.08e24, bbox=bbox, nprocs=12)
 
 will create ``yt``-native dataset ``ds`` that will treat your array as
 density field in cubic domain of 3 Mpc edge size (3 * 3.08e24 cm) and
@@ -827,7 +827,7 @@ a similar manner as the three-dimensional grid fields:
 
 .. code-block:: python
 
-   from yt.frontends.stream.api import load_uniform_grid
+   import yt
 
    data = dict(Density = dens, 
                number_of_particles = 1000000,
@@ -835,7 +835,7 @@ a similar manner as the three-dimensional grid fields:
 	       particle_position_y = posy_arr,
 	       particle_position_z = posz_arr)
    bbox = np.array([[-1.5, 1.5], [-1.5, 1.5], [1.5, 1.5]])
-   ds = load_uniform_grid(data, arr.shape, 3.08e24, bbox=bbox, nprocs=12)
+   ds = yt.load_uniform_grid(data, arr.shape, 3.08e24, bbox=bbox, nprocs=12)
 
 where in this exampe the particle position fields have been assigned. ``number_of_particles`` must be the same size as the particle
 arrays. If no particle arrays are supplied then ``number_of_particles`` is assumed to be zero. 
@@ -859,7 +859,7 @@ resolution.
 
 .. code-block:: python
 
-   from yt.frontends.stream.api import load_amr_grids
+   import yt
 
    grid_data = [
        dict(left_edge = [0.0, 0.0, 0.0],
@@ -877,7 +877,7 @@ resolution.
    for g in grid_data:
        g["density"] = np.random.random(g["dimensions"]) * 2**g["level"]
   
-   ds = load_amr_grids(grid_data, [32, 32, 32], 1.0)
+   ds = yt.load_amr_grids(grid_data, [32, 32, 32], 1.0)
 
 Particle fields are supported by adding 1-dimensional arrays and
 setting the ``number_of_particles`` key to each ``grid``'s dict:

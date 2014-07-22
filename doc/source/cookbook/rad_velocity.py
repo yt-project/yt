@@ -7,7 +7,7 @@ ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
 sp0 = ds.sphere(ds.domain_center, (500., "kpc"))
 
 # Compute the bulk velocity from the cells in this sphere
-bulk_vel = sp0.quantities["BulkVelocity"]()
+bulk_vel = sp0.quantities.bulk_velocity()
 
 
 # Get the second sphere
