@@ -420,13 +420,14 @@ class Camera(ParallelAnalysisInterface):
         
         Returns
         -------
-        None
+        nim: Numpy ndarray
+            A new image with the domain lines drawn
 
         Examples
         --------
         >>> im = cam.snapshot() 
-        >>> cam.draw_domain(im)
-        >>> write_bitmap(im, 'render_with_domain_boundary.png')
+        >>> nim = cam.draw_domain(im)
+        >>> write_bitmap(nim, 'render_with_domain_boundary.png')
 
         """
         # Must normalize the image
