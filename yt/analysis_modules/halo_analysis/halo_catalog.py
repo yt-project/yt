@@ -446,5 +446,5 @@ class HaloCatalog(ParallelAnalysisInterface):
         self.add_quantity("particle_position_x", field_type=field_type,prepend=True)
         self.add_quantity("particle_position_y", field_type=field_type,prepend=True)
         self.add_quantity("particle_position_z", field_type=field_type,prepend=True)
-        self.add_quantity("radius", field_type=field_type,prepend=True)
+        self.add_quantity("virial_radius", field_type=field_type,prepend=True)
 
