@@ -24,8 +24,3 @@ class OperatorRegistry(dict):
             op.args = args
             op.kwargs = kwargs
         return op
-
-callback_registry = OperatorRegistry()
-filter_registry = OperatorRegistry()
-finding_method_registry = OperatorRegistry()
-quantity_registry = OperatorRegistry()

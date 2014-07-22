@@ -207,18 +207,3 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
              units="cm",
              display_field=False)
 
-    def _contours(field, data):
-        fd = data.get_field_parameter("contour_slices")
-        vals = data["index", "ones"] * -1
-        if fd is None or fd == 0.0:
-            return vals
-        for sl, v in fd.get(data.id, []):
-            vals[sl] = v
-        return vals
-    
-    registry.add_field(("index", "contours"),
-                       function=_contours,
-                       validators=[ValidateSpatial(0)],
-                       take_log=False,
-                       display_field=False)
-
