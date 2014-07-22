@@ -152,7 +152,7 @@ There are a number of options available, but the only mandatory ones are ``name`
      This is a function handle that defines the field
    ``units``
      This is a string that describes the units. Powers must be in
-     python syntax (** instead of ^).
+     Python syntax (``**`` instead of ``^``).
    ``display_name``
      This is a name used in the plots, for instance ``"Divergence of
      Velocity"``.  If not supplied, the ``name`` value is used.
