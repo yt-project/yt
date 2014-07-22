@@ -177,12 +177,8 @@ def _determine_field_size(pf, field, lspecies, ptmax):
     if "specie" in field:
         index = int(field.replace("specie", ""))
         pbool[index] = True
-    elif field == "stars":
-        pbool[-1] = True
-    elif field == "darkmatter":
-        pbool[0:-1] = True
     else:
-        pbool[:] = True
+        raise RuntimeError
     idxa, idxb = idxas[pbool][0], idxbs[pbool][-1]
     return pbool, idxa, idxb
 
