@@ -21,14 +21,12 @@ from yt.funcs import *
 
 from yt.config import ytcfg
 from yt.units.yt_array import YTArray, uconcatenate, array_like_field
-from yt.utilities.data_point_utilities import FindBindingEnergy
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_objects
 from yt.utilities.lib.Octree import Octree
 from yt.utilities.physical_constants import \
     gravitational_constant_cgs, \
-    mass_sun_cgs, \
     HUGE
 from yt.utilities.math_utils import prec_accum
 
@@ -237,14 +235,14 @@ class CenterOfMass(DerivedQuantity):
           (("all", "particle_mass") in self.data_source.ds.field_info)
         vals = []
         if use_gas:
-            vals += [(data[ax] * data["cell_mass"]).sum(dtype=np.float64)
+            vals += [(data[ax] * data["gas", "cell_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
-            vals.append(data["cell_mass"].sum(dtype=np.float64))
+            vals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
         if use_particles:
-            vals += [(data["particle_position_%s" % ax] *
-                      data["particle_mass"]).sum(dtype=np.float64)
+            vals += [(data["all", "particle_position_%s" % ax] *
+                      data["all", "particle_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
-            vals.append(data["particle_mass"].sum(dtype=np.float64))
+            vals.append(data["all", "particle_mass"].sum(dtype=np.float64))
         return vals
 
     def reduce_intermediate(self, values):
@@ -261,7 +259,7 @@ class CenterOfMass(DerivedQuantity):
             y += values.pop(0).sum(dtype=np.float64)
             z += values.pop(0).sum(dtype=np.float64)
             w += values.pop(0).sum(dtype=np.float64)
-        return [v/w for v in [x, y, z]]
+        return self.data_source.ds.arr([v/w for v in [x, y, z]])
 
 class BulkVelocity(DerivedQuantity):
     r"""
@@ -299,14 +297,15 @@ class BulkVelocity(DerivedQuantity):
     def process_chunk(self, data, use_gas = True, use_particles = False):
         vals = []
         if use_gas:
-            vals += [(data["velocity_%s" % ax] * data["cell_mass"]).sum(dtype=np.float64)
+            vals += [(data["gas", "velocity_%s" % ax] * 
+                      data["gas", "cell_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
-            vals.append(data["cell_mass"].sum(dtype=np.float64))
+            vals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
         if use_particles:
-            vals += [(data["particle_velocity_%s" % ax] *
-                      data["particle_mass"]).sum(dtype=np.float64)
+            vals += [(data["all", "particle_velocity_%s" % ax] *
+                      data["all", "particle_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
-            vals.append(data["particle_mass"].sum(dtype=np.float64))
+            vals.append(data["all", "particle_mass"].sum(dtype=np.float64))
         return vals
 
     def reduce_intermediate(self, values):
@@ -323,7 +322,7 @@ class BulkVelocity(DerivedQuantity):
             y += values.pop(0).sum(dtype=np.float64)
             z += values.pop(0).sum(dtype=np.float64)
             w += values.pop(0).sum(dtype=np.float64)
-        return [v/w for v in [x, y, z]]
+        return self.data_source.ds.arr([v/w for v in [x, y, z]])
 
 class WeightedVariance(DerivedQuantity):
     r"""

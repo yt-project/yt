@@ -13,17 +13,41 @@ Clump finding helper classes
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
 import copy
+import numpy as np
+import uuid
 
-from yt.funcs import *
+from .clump_info_items import \
+     clump_info_registry
+from .clump_validators import \
+     clump_validator_registry
 
-from .contour_finder import identify_contours
+from .contour_finder import \
+     identify_contours
+
+from yt.fields.derived_field import \
+    ValidateSpatial
+
+def add_contour_field(ds, contour_key):
+    def _contours(field, data):
+        fd = data.get_field_parameter("contour_slices_%s" % contour_key)
+        vals = data["index", "ones"] * -1
+        if fd is None or fd == 0.0:
+            return vals
+        for sl, v in fd.get(data.id, []):
+            vals[sl] = v
+        return vals
+
+    ds.add_field(("index", "contours_%s" % contour_key),
+                 function=_contours,
+                 validators=[ValidateSpatial(0)],
+                 take_log=False,
+                 display_field=False)
 
 class Clump(object):
     children = None
     def __init__(self, data, parent, field, cached_fields = None, 
-                 function=None, clump_info=None):
+                 clump_info=None, validators=None):
         self.parent = parent
         self.data = data
         self.quantities = data.quantities
@@ -40,23 +64,31 @@ class Clump(object):
             # Clump info will act the same if add_info_item is called before or after clump finding.
             self.clump_info = copy.deepcopy(clump_info)
 
-        # Function determining whether a clump is valid and should be kept.
-        self.default_function = 'self.data.quantities["IsBound"](truncate=True,include_thermal_energy=True) > 1.0'
-        if function is None:
-            self.function = self.default_function
-        else:
-            self.function = function
+        if validators is None:
+            validators = []
+        self.validators = validators
+        # Return value of validity function.
+        self.valid = None
 
-        # Return value of validity function, saved so it does not have to be calculated again.
-        self.function_value = None
-
-    def add_info_item(self,quantity,format):
-        "Adds an entry to clump_info list and tells children to do the same."
-
-        self.clump_info.append({'quantity':quantity, 'format':format})
+    def add_validator(self, validator, *args, **kwargs):
+        """
+        Add a validating function to determine whether the clump should 
+        be kept.
+        """
+        callback = clump_validator_registry.find(validator, *args, **kwargs)
+        self.validators.append(callback)
         if self.children is None: return
         for child in self.children:
-            child.add_info_item(quantity,format)
+            child.add_validator(validator)
+        
+    def add_info_item(self, info_item, *args, **kwargs):
+        "Adds an entry to clump_info list and tells children to do the same."
+
+        callback = clump_info_registry.find(info_item, *args, **kwargs)
+        self.clump_info.append(callback)
+        if self.children is None: return
+        for child in self.children:
+            child.add_info_item(info_item)
 
     def set_default_clump_info(self):
         "Defines default entries in the clump_info array."
@@ -64,22 +96,13 @@ class Clump(object):
         # add_info_item is recursive so this function does not need to be.
         self.clump_info = []
 
-        # Number of cells.
-        self.add_info_item('self.data["CellMassMsun"].size','"Cells: %d" % value')
-        # Gas mass in solar masses.
-        self.add_info_item('self.data["CellMassMsun"].sum()','"Mass: %e Msolar" % value')
-        # Volume-weighted Jeans mass.
-        self.add_info_item('self.data.quantities["WeightedAverageQuantity"]("JeansMassMsun","CellVolume")',
-                           '"Jeans Mass (vol-weighted): %.6e Msolar" % value')
-        # Mass-weighted Jeans mass.
-        self.add_info_item('self.data.quantities["WeightedAverageQuantity"]("JeansMassMsun","CellMassMsun")',
-                           '"Jeans Mass (mass-weighted): %.6e Msolar" % value')
-        # Max level.
-        self.add_info_item('self.data["GridLevel"].max()','"Max grid level: %d" % value')
-        # Minimum number density.
-        self.add_info_item('self.data["NumberDensity"].min()','"Min number density: %.6e cm^-3" % value')
-        # Maximum number density.
-        self.add_info_item('self.data["NumberDensity"].max()','"Max number density: %.6e cm^-3" % value')
+        self.add_info_item("total_cells")
+        self.add_info_item("cell_mass")
+        self.add_info_item("mass_weighted_jeans_mass")
+        self.add_info_item("volume_weighted_jeans_mass")
+        self.add_info_item("max_grid_level")
+        self.add_info_item("min_number_density")
+        self.add_info_item("max_number_density")
 
     def clear_clump_info(self):
         "Clears the clump_info array and passes the instruction to its children."
@@ -89,31 +112,40 @@ class Clump(object):
         for child in self.children:
             child.clear_clump_info()
 
-    def write_info(self,level,f_ptr):
+    def write_info(self, level, f_ptr):
         "Writes information for clump using the list of items in clump_info."
 
         for item in self.clump_info:
-            # Call if callable, otherwise do an eval.
-            if callable(item['quantity']):
-                value = item['quantity']()
-            else:
-                value = eval(item['quantity'])
-            output = eval(item['format'])
-            f_ptr.write("%s%s" % ('\t'*level,output))
-            f_ptr.write("\n")
+            value = item(self)
+            f_ptr.write("%s%s\n" % ('\t'*level, value))
 
     def find_children(self, min_val, max_val = None):
         if self.children is not None:
-            print "Wiping out existing children clumps."
+            print "Wiping out existing children clumps.", len(self.children)
         self.children = []
         if max_val is None: max_val = self.max_val
         nj, cids = identify_contours(self.data, self.field, min_val, max_val)
-        for cid in range(nj):
-            new_clump = self.data.cut_region(
-                    ["obj['contours'] == %s" % (cid + 1)],
-                    {'contour_slices': cids})
+        # Here, cids is the set of slices and values, keyed by the
+        # parent_grid_id, that defines the contours.  So we can figure out all
+        # the unique values of the contours by examining the list here.
+        unique_contours = set([])
+        for sl_list in cids.values():
+            for sl, ff in sl_list:
+                unique_contours.update(np.unique(ff))
+        contour_key = uuid.uuid4().hex
+        base_object = getattr(self.data, 'base_object', self.data)
+        add_contour_field(base_object.pf, contour_key)
+        for cid in sorted(unique_contours):
+            if cid == -1: continue
+            new_clump = base_object.cut_region(
+                    ["obj['contours_%s'] == %s" % (contour_key, cid)],
+                    {('contour_slices_%s' % contour_key): cids})
+            if new_clump["ones"].size == 0:
+                # This is to skip possibly duplicate clumps.  Using "ones" here
+                # will speed things up.
+                continue
             self.children.append(Clump(new_clump, self, self.field,
-                                       self.cached_fields,function=self.function,
+                                       self.cached_fields,validators=self.validators,
                                        clump_info=self.clump_info))
 
     def pass_down(self,operation):
@@ -129,24 +161,30 @@ class Clump(object):
         for child in self.children:
             child.pass_down(operation)
 
-    def _isValid(self):
-        "Perform user specified function to determine if child clumps should be kept."
+    def _validate(self):
+        "Apply all user specified validator functions."
 
-        # Only call function if it has not been already.
-        if self.function_value is None:
-            self.function_value = eval(self.function)
+        # Only call functions if not done already.
+        if self.valid is not None:
+            return self.valid
 
-        return self.function_value
+        self.valid = True
+        for validator in self.validators:
+            self.valid &= validator(self)
+            if not self.valid:
+                break
+
+        return self.valid
 
     def __reduce__(self):
         return (_reconstruct_clump, 
                 (self.parent, self.field, self.min_val, self.max_val,
-                 self.function_value, self.children, self.data, self.clump_info, self.function))
+                 self.valid, self.children, self.data, self.clump_info, self.function))
 
     def __getitem__(self,request):
         return self.data[request]
 
-def _reconstruct_clump(parent, field, mi, ma, function_value, children, data, clump_info, 
+def _reconstruct_clump(parent, field, mi, ma, valid, children, data, clump_info, 
         function=None):
     obj = object.__new__(Clump)
     if iterable(parent):
@@ -155,8 +193,8 @@ def _reconstruct_clump(parent, field, mi, ma, function_value, children, data, cl
         except KeyError:
             parent = parent
     if children is None: children = []
-    obj.parent, obj.field, obj.min_val, obj.max_val, obj.function_value, obj.children, obj.clump_info, obj.function = \
-        parent, field, mi, ma, function_value, children, clump_info, function
+    obj.parent, obj.field, obj.min_val, obj.max_val, obj.valid, obj.children, obj.clump_info, obj.function = \
+        parent, field, mi, ma, valid, children, clump_info, function
     # Now we override, because the parent/child relationship seems a bit
     # unreliable in the unpickling
     for child in children: child.parent = obj
@@ -180,10 +218,10 @@ def find_clumps(clump, min_val, max_val, d_clump):
             find_clumps(child, min_val*d_clump, max_val, d_clump)
             if ((child.children is not None) and (len(child.children) > 0)):
                 these_children.append(child)
-            elif (child._isValid()):
+            elif (child._validate()):
                 these_children.append(child)
             else:
-                print "Eliminating invalid, childless clump with %d cells." % len(child.data["Ones"])
+                print "Eliminating invalid, childless clump with %d cells." % len(child.data["ones"])
         if (len(these_children) > 1):
             print "%d of %d children survived." % (len(these_children),len(clump.children))            
             clump.children = these_children
@@ -206,88 +244,35 @@ def get_lowest_clumps(clump, clump_list=None):
 
     return clump_list
 
-def write_clump_index(clump,level,f_ptr):
+def write_clump_index(clump, level, fh):
+    top = False
+    if not isinstance(fh, file):
+        fh = open(fh, "w")
+        top = True
     for q in range(level):
-        f_ptr.write("\t")
-    f_ptr.write("Clump at level %d:\n" % level)
-    clump.write_info(level,f_ptr)
-    f_ptr.write("\n")
-    f_ptr.flush()
+        fh.write("\t")
+    fh.write("Clump at level %d:\n" % level)
+    clump.write_info(level, fh)
+    fh.write("\n")
+    fh.flush()
     if ((clump.children is not None) and (len(clump.children) > 0)):
         for child in clump.children:
-            write_clump_index(child,(level+1),f_ptr)
+            write_clump_index(child, (level+1), fh)
+    if top:
+        fh.close()
 
-def write_clumps(clump,level,f_ptr):
+def write_clumps(clump, level, fh):
+    top = False
+    if not isinstance(fh, file):
+        fh = open(fh, "w")
+        top = True
     if ((clump.children is None) or (len(clump.children) == 0)):
-        f_ptr.write("%sClump:\n" % ("\t"*level))
-        clump.write_info(level,f_ptr)
-        f_ptr.write("\n")
-        f_ptr.flush()
+        fh.write("%sClump:\n" % ("\t"*level))
+        clump.write_info(level, fh)
+        fh.write("\n")
+        fh.flush()
     if ((clump.children is not None) and (len(clump.children) > 0)):
         for child in clump.children:
-            write_clumps(child,0,f_ptr)
-
-# Old clump info writing routines.
-def write_old_clump_index(clump,level,f_ptr):
-    for q in range(level):
-        f_ptr.write("\t")
-    f_ptr.write("Clump at level %d:\n" % level)
-    clump.write_info(level,f_ptr)
-    write_old_clump_info(clump,level,f_ptr)
-    f_ptr.write("\n")
-    f_ptr.flush()
-    if ((clump.children is not None) and (len(clump.children) > 0)):
-        for child in clump.children:
-            write_clump_index(child,(level+1),f_ptr)
-
-def write_old_clumps(clump,level,f_ptr):
-    if ((clump.children is None) or (len(clump.children) == 0)):
-        f_ptr.write("%sClump:\n" % ("\t"*level))
-        write_old_clump_info(clump,level,f_ptr)
-        f_ptr.write("\n")
-        f_ptr.flush()
-    if ((clump.children is not None) and (len(clump.children) > 0)):
-        for child in clump.children:
-            write_clumps(child,0,f_ptr)
-
-__clump_info_template = \
-"""
-%(tl)sCells: %(num_cells)s
-%(tl)sMass: %(total_mass).6e Msolar
-%(tl)sJeans Mass (vol-weighted): %(jeans_mass_vol).6e Msolar
-%(tl)sJeans Mass (mass-weighted): %(jeans_mass_mass).6e Msolar
-%(tl)sMax grid level: %(max_level)s
-%(tl)sMin number density: %(min_density).6e cm^-3
-%(tl)sMax number density: %(max_density).6e cm^-3
-
-"""
-
-def write_old_clump_info(clump,level,f_ptr):
-    fmt_dict = {'tl':  "\t" * level}
-    fmt_dict['num_cells'] = clump.data["CellMassMsun"].size,
-    fmt_dict['total_mass'] = clump.data["CellMassMsun"].sum()
-    fmt_dict['jeans_mass_vol'] = clump.data.quantities["WeightedAverageQuantity"]("JeansMassMsun","CellVolume")
-    fmt_dict['jeans_mass_mass'] = clump.data.quantities["WeightedAverageQuantity"]("JeansMassMsun","CellMassMsun")
-    fmt_dict['max_level'] =  clump.data["GridLevel"].max()
-    fmt_dict['min_density'] =  clump.data["NumberDensity"].min()
-    fmt_dict['max_density'] =  clump.data["NumberDensity"].max()
-    f_ptr.write(__clump_info_template % fmt_dict)
-
-# Recipes for various clump calculations.
-recipes = {}
-
-# Distance from clump center of mass to center of mass of top level object.
-def _DistanceToMainClump(master,units='pc'):
-    masterCOM = master.data.quantities['CenterOfMass']()
-    pass_command = "self.masterCOM = [%.10f, %.10f, %.10f]" % (masterCOM[0],
-                                                               masterCOM[1],
-                                                               masterCOM[2])
-    master.pass_down(pass_command)
-    master.pass_down("self.com = self.data.quantities['CenterOfMass']()")
-
-    quantity = "((self.com[0]-self.masterCOM[0])**2 + (self.com[1]-self.masterCOM[1])**2 + (self.com[2]-self.masterCOM[2])**2)**(0.5)*self.data.ds.units['%s']" % units
-    format = "%s%s%s" % ("'Distance from center: %.6e ",units,"' % value")
-
-    master.add_info_item(quantity,format)
-
-recipes['DistanceToMainClump'] = _DistanceToMainClump
+            write_clumps(child, 0, fh)
+    if top:
+        fh.close()

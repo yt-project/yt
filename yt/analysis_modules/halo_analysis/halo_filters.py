@@ -15,10 +15,13 @@ Halo filter object
 
 import numpy as np
 
+from yt.utilities.operator_registry import \
+     OperatorRegistry
 from yt.utilities.spatial import KDTree
 
 from .halo_callbacks import HaloCallback
-from .operator_registry import filter_registry
+
+filter_registry = OperatorRegistry()
 
 def add_filter(name, function):
     filter_registry[name] = HaloFilter(function)

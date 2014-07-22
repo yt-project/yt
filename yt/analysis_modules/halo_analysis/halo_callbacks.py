@@ -27,14 +27,15 @@ from yt.funcs import \
      ensure_list, is_root
 from yt.utilities.exceptions import YTUnitConversionError
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.operator_registry import \
+     OperatorRegistry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 from yt.visualization.profile_plotter import \
      PhasePlot
-     
-from .operator_registry import \
-    callback_registry
 
+callback_registry = OperatorRegistry()
+    
 def add_callback(name, function):
     callback_registry[name] =  HaloCallback(function)
 
