@@ -15,8 +15,11 @@ ClumpValidators and callbacks.
 
 import numpy as np
 
+from yt.utilities.data_point_utilities import FindBindingEnergy
 from yt.utilities.operator_registry import \
-     OperatorRegistry
+    OperatorRegistry
+from yt.utilities.physical_constants import \
+    gravitational_constant_cgs as G
 
 clump_validator_registry = OperatorRegistry()
 
@@ -38,11 +41,52 @@ class ClumpValidator(object):
     def __call__(self, clump):
         return self.function(clump, *self.args, **self.kwargs)
     
-def _gravitationally_bound(clump, truncate=True,
-                           include_thermal_energy=True):
+def _gravitationally_bound(clump, use_thermal_energy=True,
+                           use_particles=True, truncate=True):
     "True if clump is gravitationally bound."
-    return (clump.quantities.is_bound(truncate=truncate,
-        include_thermal_energy=include_thermal_energy) > 1.0)
+
+    use_particles &= \
+      ("all", "particle_mass") in clump.data.ds.field_info
+    
+    bulk_velocity = clump.quantities.bulk_velocity(use_particles=use_particles)
+
+    kinetic = 0.5 * (clump["gas", "cell_mass"] *
+        ((bulk_velocity[0] - clump["gas", "velocity_x"])**2 +
+         (bulk_velocity[1] - clump["gas", "velocity_y"])**2 +
+         (bulk_velocity[2] - clump["gas", "velocity_z"])**2)).sum()
+
+    if use_thermal_energy:
+        kinetic += (clump["gas", "cell_mass"] *
+                    clump["gas", "thermal_energy"]).sum()
+
+    if use_particles:
+        kinetic += 0.5 * (clump["all", "particle_mass"] *
+            ((bulk_velocity[0] - clump["all", "particle_velocity_x"])**2 +
+             (bulk_velocity[1] - clump["all", "particle_velocity_y"])**2 +
+             (bulk_velocity[2] - clump["all", "particle_velocity_z"])**2)).sum()
+
+    potential = clump.data.ds.quan(G *
+        FindBindingEnergy(clump["gas", "cell_mass"].in_cgs(),
+                          clump["index", "x"].in_cgs(),
+                          clump["index", "y"].in_cgs(),
+                          clump["index", "z"].in_cgs(),
+                          truncate, (kinetic / G).in_cgs()),
+        kinetic.in_cgs().units)
+    
+    if truncate and potential >= kinetic:
+        return True
+
+    if use_particles:
+        potential += clump.data.ds.quan(G *
+            FindBindingEnergy(
+                clump["all", "particle_mass"].in_cgs(),
+                clump["all", "particle_position_x"].in_cgs(),
+                clump["all", "particle_position_y"].in_cgs(),
+                clump["all", "particle_position_z"].in_cgs(),
+                truncate, ((kinetic - potential) / G).in_cgs()),
+        kinetic.in_cgs().units)
+
+    return potential >= kinetic
 add_validator("gravitationally_bound", _gravitationally_bound)
 
 def _min_cells(clump, n_cells):
