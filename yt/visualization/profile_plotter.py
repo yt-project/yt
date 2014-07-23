@@ -909,7 +909,7 @@ class PhasePlot(ImagePlotContainer):
         text_kwargs: dict
           Dictionary of text keyword arguments to be passed to matplotlib
 
-        >>>  plot.annotate_text('density', 1e-15, 5e4, "Hello YT")
+        >>>  plot.annotate_text(1e-15, 5e4, "Hello YT")
 
         """
         for f in self.data_source._determine_fields(self.plots.keys()):

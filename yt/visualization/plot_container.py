@@ -117,10 +117,7 @@ class PlotDictionary(defaultdict):
 
     def __init__(self, data_source, default_factory=None):
         self.data_source = data_source
-        if default_factory is None:
-            return defaultdict.__init__(self, None)
-        else:
-            return defaultdict.__init__(self, default_factory)
+        return defaultdict.__init__(self, default_factory)
 
 class ImagePlotContainer(object):
     """A countainer for plots with colorbars.
