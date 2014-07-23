@@ -17,16 +17,16 @@ import copy
 import numpy as np
 import uuid
 
-from .clump_info_items import \
-     clump_info_registry
-from .clump_validators import \
-     clump_validator_registry
-
-from .contour_finder import \
-     identify_contours
-
 from yt.fields.derived_field import \
     ValidateSpatial
+from yt.funcs import mylog
+    
+from .clump_info_items import \
+    clump_info_registry
+from .clump_validators import \
+    clump_validator_registry
+from .contour_finder import \
+    identify_contours
 
 def add_contour_field(ds, contour_key):
     def _contours(field, data):
@@ -60,7 +60,8 @@ class Clump(object):
         if clump_info is None:
             self.set_default_clump_info()
         else:
-            # Clump info will act the same if add_info_item is called before or after clump finding.
+            # Clump info will act the same if add_info_item is called 
+            # before or after clump finding.
             self.clump_info = copy.deepcopy(clump_info)
 
         if validators is None:
@@ -104,7 +105,10 @@ class Clump(object):
         self.add_info_item("max_number_density")
 
     def clear_clump_info(self):
-        "Clears the clump_info array and passes the instruction to its children."
+        """
+        Clears the clump_info array and passes the instruction to its 
+        children.
+        """
 
         self.clump_info = []
         if self.children is None: return
@@ -120,7 +124,8 @@ class Clump(object):
 
     def find_children(self, min_val, max_val = None):
         if self.children is not None:
-            print "Wiping out existing children clumps.", len(self.children)
+            mylog.info("Wiping out existing children clumps: %d.",
+                       len(self.children))
         self.children = []
         if max_val is None: max_val = self.max_val
         nj, cids = identify_contours(self.data, self.field, min_val, max_val)
@@ -140,15 +145,18 @@ class Clump(object):
                     ["obj['contours_%s'] == %s" % (contour_key, cid)],
                     {('contour_slices_%s' % contour_key): cids})
             if new_clump["ones"].size == 0:
-                # This is to skip possibly duplicate clumps.  Using "ones" here
-                # will speed things up.
+                # This is to skip possibly duplicate clumps.
+                # Using "ones" here will speed things up.
                 continue
             self.children.append(Clump(new_clump, self.field, parent=self,
                                        clump_info=self.clump_info,
                                        validators=self.validators))
 
     def pass_down(self,operation):
-        "Performs an operation on a clump with an exec and passes the instruction down to clump children."
+        """
+        Performs an operation on a clump with an exec and passes the 
+        instruction down to clump children.
+        """
 
         # Call if callable, otherwise do an exec.
         if callable(operation):
@@ -178,12 +186,14 @@ class Clump(object):
     def __reduce__(self):
         return (_reconstruct_clump, 
                 (self.parent, self.field, self.min_val, self.max_val,
-                 self.valid, self.children, self.data, self.clump_info, self.function))
+                 self.valid, self.children, self.data, self.clump_info, 
+                 self.function))
 
     def __getitem__(self,request):
         return self.data[request]
 
-def _reconstruct_clump(parent, field, mi, ma, valid, children, data, clump_info, 
+def _reconstruct_clump(parent, field, mi, ma, valid, children, 
+                       data, clump_info, 
         function=None):
     obj = object.__new__(Clump)
     if iterable(parent):
@@ -192,7 +202,8 @@ def _reconstruct_clump(parent, field, mi, ma, valid, children, data, clump_info,
         except KeyError:
             parent = parent
     if children is None: children = []
-    obj.parent, obj.field, obj.min_val, obj.max_val, obj.valid, obj.children, obj.clump_info, obj.function = \
+    obj.parent, obj.field, obj.min_val, obj.max_val, \
+      obj.valid, obj.children, obj.clump_info, obj.function = \
         parent, field, mi, ma, valid, children, clump_info, function
     # Now we override, because the parent/child relationship seems a bit
     # unreliable in the unpickling
@@ -203,7 +214,8 @@ def _reconstruct_clump(parent, field, mi, ma, valid, children, data, clump_info,
     return obj
 
 def find_clumps(clump, min_val, max_val, d_clump):
-    print "Finding clumps: min: %e, max: %e, step: %f" % (min_val, max_val, d_clump)
+    mylog.info("Finding clumps: min: %e, max: %e, step: %f" % 
+               (min_val, max_val, d_clump))
     if min_val >= max_val: return
     clump.find_children(min_val)
 
@@ -212,7 +224,7 @@ def find_clumps(clump, min_val, max_val, d_clump):
 
     elif (len(clump.children) > 0):
         these_children = []
-        print "Investigating %d children." % len(clump.children)
+        mylog.info("Investigating %d children." % len(clump.children))
         for child in clump.children:
             find_clumps(child, min_val*d_clump, max_val, d_clump)
             if ((child.children is not None) and (len(child.children) > 0)):
@@ -220,15 +232,20 @@ def find_clumps(clump, min_val, max_val, d_clump):
             elif (child._validate()):
                 these_children.append(child)
             else:
-                print "Eliminating invalid, childless clump with %d cells." % len(child.data["ones"])
+                mylog.info(("Eliminating invalid, childless clump with " +
+                            "%d cells.") % len(child.data["ones"]))
         if (len(these_children) > 1):
-            print "%d of %d children survived." % (len(these_children),len(clump.children))            
+            mylog.info("%d of %d children survived." %
+                       (len(these_children),len(clump.children)))
             clump.children = these_children
         elif (len(these_children) == 1):
-            print "%d of %d children survived, linking its children to parent." % (len(these_children),len(clump.children))
+            mylog.info(("%d of %d children survived, linking its " +
+                        "children to parent.") % 
+                        (len(these_children),len(clump.children)))
             clump.children = these_children[0].children
         else:
-            print "%d of %d children survived, erasing children." % (len(these_children),len(clump.children))
+            mylog.info("%d of %d children survived, erasing children." %
+                       (len(these_children),len(clump.children)))
             clump.children = []
 
 def get_lowest_clumps(clump, clump_list=None):
