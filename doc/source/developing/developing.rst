@@ -165,10 +165,15 @@ re-install:
 
 Only one of these two options is needed.
 
-If you plan to develop yt on Windows, we recommend using the `MinGW <http://www.mingw.org/>`_ gcc
-compiler that can be installed using the `Anaconda Python
-Distribution <https://store.continuum.io/cshop/anaconda/>`_. Also, the syntax for the
-setup command is slightly different; you must type:
+.. _windows-developing:
+
+Developing yt on Windows
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you plan to develop yt on Windows, we recommend using the `MinGW
+<http://www.mingw.org/>`_ gcc compiler that can be installed using the `Anaconda
+Python Distribution <https://store.continuum.io/cshop/anaconda/>`_. Also, the
+syntax for the setup command is slightly different; you must type:
 
 .. code-block:: bash
 
@@ -187,10 +192,10 @@ Making and Sharing Changes
 
 The simplest way to submit changes to yt is to do the following:
 
-  * Build yt from the mercurial repository (
+  * Build yt from the mercurial repository
   * Navigate to the root of the yt repository 
   * Make some changes and commit them
-  * Fork the ` ytrepository on BitBucket<https://bitbucket.org/yt_analysis/yt>`_
+  * Fork the `yt repository on BitBucket <https://bitbucket.org/yt_analysis/yt>`_
   * Push the changesets to your fork
   * Issue a pull request.
 

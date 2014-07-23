@@ -8,11 +8,31 @@ Getting and Installing yt
 Getting yt
 ----------
 
-yt is a Python package, using NumPy as a computation engine, Matplotlib for some
-visualization tasks, h5py and the hdf5 library for I/O, sympy for symbolic
-computations, Cython for speedy computations, and Mercurial for version
-control. To install yt, all of these supplementary packages must already be
-available.
+In this document we describe several methods for installing yt. The method that
+will work best for you depends on your precise situation:
+
+* If you already have a scientific python software stack installed on your
+  computer and are comfortable installing python packages,
+  :ref:`source-installation` will probably be the best choice. If you have set
+  up python using a source-based package manager like `Homebrew
+  <http://brew.sh>`_ or `MacPorts <http://www.macports.org/>`_ this choice will
+  let you install yt using the python installed by the package manager. Similarly
+  for python environments set up via linux package managers so long as you
+  have the the necessary compilers installed (e.g. the ``build-essentials``
+  package on debian and ubuntu).
+
+* If you use the `Anaconda <https://store.continuum.io/cshop/anaconda/>`_ python
+  distribution see :ref:`anaconda-installation` for details on how to install
+  yt using the ``conda`` package manager.  Source-based installation from the
+  mercurial repository or via ``pip`` should also work under Anaconda. Note that
+  this is currently the only supported installation mechanism on Windows.
+
+* If you do not have root access on your computer, are not comfortable managing
+  python packages, or are working on a supercomputer or cluster computer, you
+  will probably want to use the bash installation script.  This builds python,
+  numpy, matplotlib, and yt from source to set up an isolated scientific python
+  environment inside of a single folder in your home directory. See
+  :ref:`install-script` for more details.
 
 .. _source-installation:
 
@@ -22,28 +42,40 @@ Installing yt Using pip or from Source
 To install yt from source, you must make sure you have yt's dependencies
 installed on your system.  These include: a C compiler, ``HDF5``, ``python``,
 ``Cython``, ``NumPy``, ``matplotlib``, ``sympy``, and ``h5py``. From here, you
-can use ``pip`` (which comes with ``Python``) to install yt as:
+can use ``pip`` (which comes with ``Python``) to install the latest stable
+version of yt:
 
 .. code-block:: bash
 
   $ pip install yt
 
-The source code for yt may be found at the Bitbucket project site and can also be
-utilized for installation. If you prefer to use it instead of relying on external
-tools, you will need ``mercurial`` to clone the official repo:
+The source code for yt may be found at the Bitbucket project site and can also
+be utilized for installation. If you prefer to install the development version
+of yt instead of the latest stable release, you will need ``mercurial`` to clone
+the official repo:
 
 .. code-block:: bash
 
-  $ hg clone https://bitbucket.org/yt_analysis/yt
-  $ cd yt
-  $ hg update yt
-  $ python setup.py install --user
+  hg clone https://bitbucket.org/yt_analysis/yt
+  cd yt
+  hg update yt
+  python setup.py install --user
 
-It will install yt into ``$HOME/.local/lib64/python2.7/site-packages``. 
+This will install yt into ``$HOME/.local/lib64/python2.7/site-packages``. 
 Please refer to ``setuptools`` documentation for the additional options.
 
-If you choose this installation method, you do not need to run the activation
-script as it is unnecessary.
+If you will be modifying yt, you can also make the clone of the yt mercurial
+repository the "active" installed copy:
+
+..code-block:: bash
+
+  hg clone https://bitbucket.org/yt_analysis/yt
+  cd yt
+  hg update yt
+  python setup.py develop  
+
+If you choose this installation method, you do not need to run any activation
+script since this will install yt into your global python environment.
 
 Keeping yt Updated via Mercurial
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -53,6 +85,16 @@ Bitbucket repository or if you want to do some development on your own, we
 suggest you check out some of the :ref:`development docs <contributing-code>`,
 especially the sections on :ref:`Mercurial <mercurial-with-yt>` and
 :ref:`building yt from source <building-yt>`.
+
+You can also make use of the following command to keep yt up to date from the
+command line:
+
+.. code-block:: bash
+
+  yt update
+
+This will detect that you have installed yt from the mercurial repository, pull
+any changes from bitbucket, and then recompile yt if necessary.
 
 .. _anaconda-installation:
 
@@ -102,24 +144,27 @@ Note that building a yt conda package requires a C compiler.
 .. _windows-installation:
 
 Installing yt on Windows
-++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Installation on Microsoft Windows is only supported for Windows XP Service Pack
 3 and higher (both 32-bit and 64-bit) using Anaconda, see
-:ref:`anaconda-installation`.
+:ref:`anaconda-installation`.  Also see :ref:`windows-developing` for details on
+how to build yt from source in Windows.
+
+.. _install-script:
 
 All-in-one installation script
 ++++++++++++++++++++++++++++++
 
 Because installation of all of the interlocking parts necessary to install yt
-its self can be time-consuming, yt provides an all-in-one installation script
+itself can be time-consuming, yt provides an all-in-one installation script
 which downloads and builds a fully-isolated Python + NumPy + Matplotlib + HDF5 +
 Mercurial installation. Since the install script compiles yt's dependencies from
 source, you must have C, C++, and optionally Fortran compilers installed.
 
 The install script supports UNIX-like systems, including Linux, OS X, and most
 supercomputer and cluster environments. It is particularly suited for deployment
-on clusters where users do not usually have root access and can only install
+in environments where users do not have root access and can only install
 software into their home directory.
 
 Since the install is fully-isolated in a single directory, if you get tired of
