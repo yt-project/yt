@@ -27,7 +27,7 @@ cdef extern from "stdlib.h":
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def new_bin_profile1d(np.ndarray[np.int64_t, ndim=1] bins_x,
+def new_bin_profile1d(np.ndarray[np.intp_t, ndim=1] bins_x,
                   np.ndarray[np.float64_t, ndim=1] wsource,
                   np.ndarray[np.float64_t, ndim=2] bsource,
                   np.ndarray[np.float64_t, ndim=1] wresult,
@@ -58,8 +58,8 @@ def new_bin_profile1d(np.ndarray[np.int64_t, ndim=1] bins_x,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def new_bin_profile2d(np.ndarray[np.int64_t, ndim=1] bins_x,
-                  np.ndarray[np.int64_t, ndim=1] bins_y,
+def new_bin_profile2d(np.ndarray[np.intp_t, ndim=1] bins_x,
+                  np.ndarray[np.intp_t, ndim=1] bins_y,
                   np.ndarray[np.float64_t, ndim=1] wsource,
                   np.ndarray[np.float64_t, ndim=2] bsource,
                   np.ndarray[np.float64_t, ndim=2] wresult,
@@ -91,9 +91,9 @@ def new_bin_profile2d(np.ndarray[np.int64_t, ndim=1] bins_x,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def new_bin_profile3d(np.ndarray[np.int64_t, ndim=1] bins_x,
-                  np.ndarray[np.int64_t, ndim=1] bins_y,
-                  np.ndarray[np.int64_t, ndim=1] bins_z,
+def new_bin_profile3d(np.ndarray[np.intp_t, ndim=1] bins_x,
+                  np.ndarray[np.intp_t, ndim=1] bins_y,
+                  np.ndarray[np.intp_t, ndim=1] bins_z,
                   np.ndarray[np.float64_t, ndim=1] wsource,
                   np.ndarray[np.float64_t, ndim=2] bsource,
                   np.ndarray[np.float64_t, ndim=3] wresult,

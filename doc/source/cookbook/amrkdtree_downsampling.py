@@ -1,6 +1,3 @@
-### THIS RECIPE IS CURRENTLY BROKEN IN YT-3.0
-### DO NOT TRUST THIS RECIPE UNTIL THIS LINE IS REMOVED 
-
 # Using AMRKDTree Homogenized Volumes to examine large datasets
 # at lower resolution.
 
@@ -13,15 +10,15 @@ import numpy as np
 import yt
 from yt.utilities.amr_kdtree.api import AMRKDTree
 
-# Load up a dataset
+# Load up a dataset and define the kdtree
 ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-
 kd = AMRKDTree(ds)
 
 # Print out specifics of KD Tree
 print "Total volume of all bricks = %i" % kd.count_volume()
 print "Total number of cells = %i" % kd.count_cells()
 
+# Define a camera and take an volume rendering.
 tf = yt.ColorTransferFunction((-30, -22))
 cam = ds.camera([0.5, 0.5, 0.5], [0.2, 0.3, 0.4], 0.10, 256,
                   tf, volume=kd)

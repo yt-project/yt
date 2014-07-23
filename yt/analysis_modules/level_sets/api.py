@@ -21,12 +21,14 @@ from .clump_handling import \
     find_clumps, \
     get_lowest_clumps, \
     write_clump_index, \
-    write_clumps, \
-    write_old_clump_index, \
-    write_old_clumps, \
-    write_old_clump_info, \
-    _DistanceToMainClump
+    write_clumps
 
+from .clump_info_items import \
+    add_clump_info
+
+from .clump_validators import \
+    add_validator
+    
 from .clump_tools import \
     recursive_all_clumps, \
     return_all_clumps, \
