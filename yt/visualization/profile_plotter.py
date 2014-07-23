@@ -679,12 +679,10 @@ class PhasePlot(ImagePlotContainer):
     """
     x_log = None
     y_log = None
-    x_title = None
-    y_title = None
-    z_title = None
     plot_title = None
     _plot_valid = False
     _plot_type = 'Phase'
+
 
     def __init__(self, data_source, x_field, y_field, z_fields,
                  weight_field="cell_mass", x_bins=128, y_bins=128,
@@ -700,16 +698,22 @@ class PhasePlot(ImagePlotContainer):
             accumulation=accumulation,
             fractional=fractional)
 
-        type(self)._initialize_instance(self, data_source, profile, fontsize, figure_size)
+        type(self)._initialize_instance(self, data_source, profile, fontsize,
+                                        figure_size)
 
     @classmethod
-    def _initialize_instance(cls, obj, data_source, profile, fontsize, figure_size):
+    def _initialize_instance(cls, obj, data_source, profile, fontsize,
+                             figure_size):
         obj.plot_title = {}
         obj.z_log = {}
         obj.z_title = {}
         obj._initfinished = False
         obj.x_log = None
         obj.y_log = None
+        obj._plot_text = {}
+        obj._text_xpos = {}
+        obj._text_ypos = {}
+        obj._text_kwargs = {}
         obj.profile = profile
         super(PhasePlot, obj).__init__(data_source, figure_size, fontsize)
         obj._setup_plots()
@@ -729,10 +733,11 @@ class PhasePlot(ImagePlotContainer):
         y_unit = profile.y.units
         z_unit = profile.field_units[field_z]
         fractional = profile.fractional
-        x_title = self.x_title or self._get_field_label(field_x, xfi, x_unit)
-        y_title = self.y_title or self._get_field_label(field_y, yfi, y_unit)
-        z_title = self.z_title.get(field_z, None) or \
-            self._get_field_label(field_z, zfi, z_unit, fractional)
+        x_label, y_label, z_label = self._get_axes_labels(field_z)
+        x_title = x_label or self._get_field_label(field_x, xfi, x_unit)
+        y_title = y_label or self._get_field_label(field_y, yfi, y_unit)
+        z_title = z_label or self._get_field_label(field_z, zfi, z_unit,
+                                                   fractional)
         return (x_title, y_title, z_title)
 
     def _get_field_label(self, field, field_info, field_unit, fractional=False):
@@ -827,6 +832,12 @@ class PhasePlot(ImagePlotContainer):
             self.plots[f].axes.yaxis.set_label_text(y_title, fontproperties=fp)
             self.plots[f].cax.yaxis.set_label_text(z_title, fontproperties=fp)
 
+            if f in self._plot_text:
+                self.plots[f].axes.text(self._text_xpos[f], self._text_ypos[f],
+                                        self._plot_text[f],
+                                        fontproperties=self._font_properties,
+                                        **self._text_kwargs[f])
+
             if f in self.plot_title:
                 self.plots[f].axes.set_title(self.plot_title[f])
 
@@ -876,6 +887,41 @@ class PhasePlot(ImagePlotContainer):
         data_source = profile.data_source
         return cls._initialize_instance(obj, data_source, profile, fontsize,
                                         figure_size)
+
+
+    def annotate_text(self, xpos=0.0, ypos=0.0, text=None, **text_kwargs):
+        r"""
+        Allow the user to insert text onto the plot
+        The x-position and y-position must be given as well as the text string. 
+        Add *text* tp plot at location *xpos*, *ypos* in plot coordinates
+        (see example below).
+                
+        Parameters
+        ----------
+        field: str or tuple
+          The name of the field to add text to. 
+        xpos: float
+          Position on plot in x-coordinates.
+        ypos: float
+          Position on plot in y-coordinates.
+        text: str
+          The text to insert onto the plot.
+        text_kwargs: dict
+          Dictionary of text keyword arguments to be passed to matplotlib
+
+        >>>  plot.annotate_text(1e-15, 5e4, "Hello YT")
+
+        """
+        for f in self.data_source._determine_fields(self.plots.keys()):
+            if self.plots[f].figure is not None and text is not None:
+                self.plots[f].axes.text(xpos, ypos, text,
+                                        fontproperties=self._font_properties,
+                                        **text_kwargs)
+            self._plot_text[f] = text
+            self._text_xpos[f] = xpos
+            self._text_ypos[f] = ypos
+            self._text_kwargs[f] = text_kwargs
+        return self
 
     def save(self, name=None, mpl_kwargs=None):
         r"""

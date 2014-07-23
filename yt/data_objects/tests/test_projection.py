@@ -35,6 +35,12 @@ def test_projection():
         rho_tot = dd.quantities["TotalQuantity"]("density")
         coords = np.mgrid[xi:xf:xn*1j, yi:yf:yn*1j, zi:zf:zn*1j]
         uc = [np.unique(c) for c in coords]
+        # test if projections inherit the field parameters of their data sources
+        dd.set_field_parameter("bulk_velocity", np.array([0,1,2]))
+        proj = ds.proj(0, "density", data_source=dd)
+        yield assert_equal, dd.field_parameters["bulk_velocity"], \
+          proj.field_parameters["bulk_velocity"]
+
         # Some simple projection tests with single grids
         for ax, an in enumerate("xyz"):
             xax = ds.coordinates.x_axis[ax]

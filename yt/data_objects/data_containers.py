@@ -107,10 +107,19 @@ class YTDataContainer(object):
         self.ds.objects.append(weakref.proxy(self))
         mylog.debug("Appending object to %s (type: %s)", self.ds, type(self))
         self.field_data = YTFieldData()
-        if field_parameters is None: field_parameters = {}
+        self._default_field_parameters = {
+            'center': np.zeros(3, dtype='float64'),
+            'bulk_velocity': np.zeros(3, dtype='float64'),
+            'normal': np.zeros(3, dtype='float64'),
+        }
+        if field_parameters is None:
+            self.field_parameters = {}
+        else:
+            self.field_parameters = field_parameters
         self._set_default_field_parameters()
-        for key, val in field_parameters.items():
-            mylog.debug("Setting %s to %s", key, val)
+        for key, val in self.field_parameters.items():
+            if not self._is_default_field_parameter(key):
+                mylog.debug("Setting %s to %s", key, val)
             self.set_field_parameter(key, val)
 
     @property
@@ -125,13 +134,13 @@ class YTDataContainer(object):
         return self._index
 
     def _set_default_field_parameters(self):
-        self.field_parameters = {}
-        self.set_field_parameter(
-            "center",self.ds.arr(np.zeros(3,dtype='float64'),'cm'))
-        self.set_field_parameter(
-            "bulk_velocity",self.ds.arr(np.zeros(3,dtype='float64'),'cm/s'))
-        self.set_field_parameter(
-            "normal",np.array([0,0,1],dtype='float64'))
+        for k,v in self._default_field_parameters.items():
+            self.set_field_parameter(k,v)
+
+    def _is_default_field_parameter(self, parameter):
+        if parameter not in self._default_field_parameters:
+            return False
+        return self._default_field_parameters[parameter] is self.field_parameters[parameter]
 
     def apply_units(self, arr, units):
         return self.ds.arr(arr, input_units = units)

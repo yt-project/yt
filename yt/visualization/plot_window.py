@@ -885,24 +885,32 @@ class PWViewerMPL(PlotWindow):
                 yax = self.ds.coordinates.y_axis[axis_index]
 
                 if hasattr(self.ds.coordinates, "axis_default_unit_label"):
-                    axes_unit_labels = [self.ds.coordinates.axis_default_unit_name[xax],
-                                        self.ds.coordinates.axis_default_unit_name[yax]]
+                    axes_unit_labels = \
+                    [self.ds.coordinates.axis_default_unit_name[xax],
+                     self.ds.coordinates.axis_default_unit_name[yax]]
                 labels = [r'$\rm{'+axis_names[xax]+axes_unit_labels[0] + r'}$',
                           r'$\rm{'+axis_names[yax]+axes_unit_labels[1] + r'}$']
 
                 if hasattr(self.ds.coordinates, "axis_field"):
                     if xax in self.ds.coordinates.axis_field:
-                        xmin, xmax = self.ds.coordinates.axis_field[xax](0,
-                                                                         self.xlim, self.ylim)
+                        xmin, xmax = self.ds.coordinates.axis_field[xax](
+                            0, self.xlim, self.ylim)
                     else:
                         xmin, xmax = [float(x) for x in extentx]
                     if yax in self.ds.coordinates.axis_field:
-                        ymin, ymax = self.ds.coordinates.axis_field[yax](1,
-                                                                         self.xlim, self.ylim)
+                        ymin, ymax = self.ds.coordinates.axis_field[yax](
+                            1, self.xlim, self.ylim)
                     else:
                         ymin, ymax = [float(y) for y in extenty]
                     self.plots[f].image.set_extent((xmin,xmax,ymin,ymax))
                     self.plots[f].axes.set_aspect("auto")
+
+            x_label, y_label, colorbar_label = self._get_axes_labels(f)
+
+            if x_label is not None:
+                labels[0] = x_label
+            if y_label is not None:
+                labels[1] = y_label
 
             self.plots[f].axes.set_xlabel(labels[0],fontproperties=fp)
             self.plots[f].axes.set_ylabel(labels[1],fontproperties=fp)
@@ -913,21 +921,18 @@ class PWViewerMPL(PlotWindow):
                            self.plots[f].axes.yaxis.get_offset_text()]):
                 label.set_fontproperties(fp)
 
-            colorbar_label = image.info['label']
-
-            # If we're creating a plot of a projection, change the displayed
-            # field name accordingly.
-            if hasattr(self, 'projected'):
-                colorbar_label = "$\\rm{Projected }$ %s" % colorbar_label
-
             # Determine the units of the data
             units = Unit(self.frb[f].units, registry=self.ds.unit_registry)
             units = units.latex_representation()
 
-            if units is None or units == '':
-                pass
-            else:
-                colorbar_label += r'$\/\/('+units+r')$'
+            if colorbar_label is None:
+                colorbar_label = image.info['label']
+                if hasattr(self, 'projected'):
+                    colorbar_label = "$\\rm{Projected }$ %s" % colorbar_label
+                if units is None or units == '':
+                    pass
+                else:
+                    colorbar_label += r'$\/\/('+units+r')$'
 
             parser = MathTextParser('Agg')
             try:
