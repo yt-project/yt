@@ -795,6 +795,47 @@ MOAB Data
 PyNE Data
 ---------
 
+`PyNE <http://pyne.io/>`_ meshes are supported by yt and cared for by Anthony Scopatz and Elliot Biondo. 
+PyNE meshes are based on faceted geometried contained in hdf5 files (sufix ".h5m").
+
+To load a pyne mesh:
+
+.. code-block:: python
+
+  from pyne.mesh import Mesh
+  from pyne.dagmc import load, discretize_geom
+
+  from yt.config import ytcfg; ytcfg["yt","suppressStreamLogging"] = "True"
+  from yt.frontends.moab.api import PyneMoabHex8StaticOutput
+  from yt.visualization.plot_window import SlicePlot
+
+  load("faceted_file.h5m")
+  
+Set up parameters for the mesh:
+
+.. code-block:: python
+
+  num_divisions = 50
+  coords0 = linspace(-6, 6, num_divisions)
+  coords1 = linspace(0, 7, num_divisions)
+  coords2 = linspace(-4, 4, num_divisions)
+
+Generate the mesh and convert to a yt object using PyneHex8StaticOutput:
+
+.. code-block:: python 
+
+  m = Mesh(structured=True, structured_coords=[coords0, coords1, coords2], structured_ordering='zyx')
+  pf = PyneMoabHex8StaticOutput(m)
+
+The field (tag) data on the mesh can then be viewed just like any other yt dataset!
+
+.. code-block:: python 
+
+  s = SlicePlot(pf, 'z', 'density')
+  s.display()
+
+  
+
 Generic Array Data
 ------------------
 
