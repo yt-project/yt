@@ -108,9 +108,9 @@ class YTDataContainer(object):
         mylog.debug("Appending object to %s (type: %s)", self.ds, type(self))
         self.field_data = YTFieldData()
         self._default_field_parameters = {
-            'center': np.zeros(3, dtype='float64'),
-            'bulk_velocity': np.zeros(3, dtype='float64'),
-            'normal': np.zeros(3, dtype='float64'),
+            'center': self.ds.arr(np.zeros(3, dtype='float64'), 'cm'),
+            'bulk_velocity': self.ds.arr(np.zeros(3, dtype='float64'), 'cm/s'),
+            'normal': self.ds.arr(np.zeros(3, dtype='float64'), ''),
         }
         if field_parameters is None:
             self.field_parameters = {}
@@ -140,7 +140,8 @@ class YTDataContainer(object):
     def _is_default_field_parameter(self, parameter):
         if parameter not in self._default_field_parameters:
             return False
-        return self._default_field_parameters[parameter] is self.field_parameters[parameter]
+        return self._default_field_parameters[parameter] is \
+          self.field_parameters[parameter]
 
     def apply_units(self, arr, units):
         return self.ds.arr(arr, input_units = units)

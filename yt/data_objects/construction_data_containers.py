@@ -226,7 +226,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         self._set_center(center)
         if data_source is None: data_source = self.ds.all_data()
         for k, v in data_source.field_parameters.items():
-            if k not in self.field_parameters or self._is_default_field_parameter(k):
+            if k not in self.field_parameters or \
+              self._is_default_field_parameter(k):
                 self.set_field_parameter(k, v)
         self.data_source = data_source
         self.weight_field = weight_field
