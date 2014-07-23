@@ -889,39 +889,39 @@ class PhasePlot(ImagePlotContainer):
                                         figure_size)
 
 
-    def annotate_text(self, field, xpos=0.0, ypos=0.0, text_name="YT", **text_kwargs):
+    def annotate_text(self, xpos=0.0, ypos=0.0, text=None, **text_kwargs):
         r"""
         Allow the user to insert text onto the plot
         The x-position and y-position must be given as well as the text string. 
-        Add text_str plot at location x, y, data coordinates (see example below).
-        Fontsize defaults to 18.
-        
+        Add *text* tp plot at location *xpos*, *ypos* in plot coordinates
+        (see example below).
+                
         Parameters
         ----------
         field: str or tuple
           The name of the field to add text to. 
-        text_str: str
-          The text to insert onto the plot.
         xpos: float
           Position on plot in x-coordinates.
         ypos: float
           Position on plot in y-coordinates.
+        text: str
+          The text to insert onto the plot.
         text_kwargs: dict
           Dictionary of text keyword arguments to be passed to matplotlib
 
         >>>  plot.annotate_text('density', 1e-15, 5e4, "Hello YT")
 
         """
-        if field in self.plots:
-            if self.plots[f].figure is not None:
-                axes = self.plots[f].axes
-                self.plots[f].axes.text(xpos, ypos, text_str,
+        for f in self.data_source._determine_fields(self.plots.keys()):
+            if self.plots[f].figure is not None and text is not None:
+                self.plots[f].axes.text(xpos, ypos, text,
                                         fontproperties=self._font_properties,
                                         **text_kwargs)
-        self._plot_text[field] = text_str
-        self._text_xpos[field] = xpos
-        self._text_ypos[field] = ypos
-        self._text_kwargs[field] = text_kwargs
+            self._plot_text[f] = text
+            self._text_xpos[f] = xpos
+            self._text_ypos[f] = ypos
+            self._text_kwargs[f] = text_kwargs
+        return self
 
     def save(self, name=None, mpl_kwargs=None):
         r"""
