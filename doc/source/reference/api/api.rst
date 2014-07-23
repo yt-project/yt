@@ -439,13 +439,6 @@ There are also functions for loading halos from disk:
 
 You can use Halo catalogs generated externally as well:
 
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.analysis_modules.halo_merger_tree.enzofof_merger_tree.HaloCatalog
-   ~yt.analysis_modules.halo_merger_tree.enzofof_merger_tree.EnzoFOFMergerTree
-   ~yt.analysis_modules.halo_merger_tree.enzofof_merger_tree.plot_halo_evolution
-
 Two Point Functions
 ^^^^^^^^^^^^^^^^^^^
 
