@@ -114,9 +114,9 @@ class CastroFieldInfo(FieldInfoContainer):
 
     known_other_fields = (
         ("density", ("g/cm**3", ["density"], r"\rho")),
-        ("xmom", ("g*cm/s", ["momentum_x"], r"\rho u")),
-        ("ymom", ("g*cm/s", ["momentum_y"], r"\rho v")),
-        ("zmom", ("g*cm/s", ["momentum_z"], r"\rho w")),
+        ("xmom", ("g/(cm**2 * s)", ["momentum_x"], r"\rho u")),
+        ("ymom", ("g/(cm**2 * s)", ["momentum_y"], r"\rho v")),
+        ("zmom", ("g/(cm**2 * s)", ["momentum_z"], r"\rho w")),
         # velocity components are not always present
         ("x_velocity", ("cm/s", ["velocity_x"], r"u")),
         ("y_velocity", ("cm/s", ["velocity_y"], r"v")),
