@@ -46,15 +46,14 @@ def add_contour_field(ds, contour_key):
 
 class Clump(object):
     children = None
-    def __init__(self, data, parent, field, cached_fields = None, 
+    def __init__(self, data, field, parent=None,
                  clump_info=None, validators=None):
-        self.parent = parent
         self.data = data
-        self.quantities = data.quantities
         self.field = field
+        self.parent = parent
+        self.quantities = data.quantities
         self.min_val = self.data[field].min()
         self.max_val = self.data[field].max()
-        self.cached_fields = cached_fields
 
         # List containing characteristics about clumps that are to be written 
         # out by the write routines.
@@ -144,9 +143,9 @@ class Clump(object):
                 # This is to skip possibly duplicate clumps.  Using "ones" here
                 # will speed things up.
                 continue
-            self.children.append(Clump(new_clump, self, self.field,
-                                       self.cached_fields,validators=self.validators,
-                                       clump_info=self.clump_info))
+            self.children.append(Clump(new_clump, self.field, parent=self,
+                                       clump_info=self.clump_info,
+                                       validators=self.validators))
 
     def pass_down(self,operation):
         "Performs an operation on a clump with an exec and passes the instruction down to clump children."
