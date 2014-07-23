@@ -11,4 +11,5 @@ and using the halo mass function.
    halo_transition
    halo_finding
    halo_mass_function
+   halo_merger_tree
    halo_analysis_example
