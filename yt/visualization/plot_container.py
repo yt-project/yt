@@ -102,18 +102,25 @@ class FieldTransform(object):
 log_transform = FieldTransform('log10', np.log10, LogLocator())
 linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
 
-class PlotDictionary(dict):
+class PlotDictionary(defaultdict):
     def __getitem__(self, item):
-        item = self.data_source._determine_fields(item)[0]
-        return dict.__getitem__(self, item)
+        return defaultdict.__getitem__(
+            self, self.data_source._determine_fields(item)[0])
+
+    def __setitem__(self, item, value):
+        return defaultdict.__setitem__(
+            self, self.data_source._determine_fields(item)[0], value)
 
     def __contains__(self, item):
-        item = self.data_source._determine_fields(item)[0]
-        return dict.__contains__(self, item)
+        return defaultdict.__contains__(
+            self, self.data_source._determine_fields(item)[0])
 
-    def __init__(self, data_source, *args):
+    def __init__(self, data_source, default_factory=None):
         self.data_source = data_source
-        return dict.__init__(self, args)
+        if default_factory is None:
+            return defaultdict.__init__(self, None)
+        else:
+            return defaultdict.__init__(self, default_factory)
 
 class ImagePlotContainer(object):
     """A countainer for plots with colorbars.
@@ -138,7 +145,8 @@ class ImagePlotContainer(object):
         self._font_color = None
         self._xlabel = None
         self._ylabel = None
-        self._colorbarlabel = None
+        self._colorbar_label = PlotDictionary(
+            self.data_source, lambda: None)
 
     @invalidate_plot
     def set_log(self, field, log):
@@ -187,7 +195,7 @@ class ImagePlotContainer(object):
     @invalidate_plot
     def set_transform(self, field, name):
         field = self.data_source._determine_fields(field)[0]
-        if name not in field_transforms: 
+        if name not in field_transforms:
             raise KeyError(name)
         self._field_transform[field] = field_transforms[name]
         return self
@@ -533,66 +541,58 @@ class ImagePlotContainer(object):
             ret += '<img src="data:image/png;base64,%s"><br>' % img
         return ret
 
-    def set_xlabel(self, x_title, fontsize=18):
+    @invalidate_plot
+    def set_xlabel(self, label):
         r"""
         Allow the user to modify the X-axis title
-        Defaults to the global value. Fontsize defaults 
+        Defaults to the global value. Fontsize defaults
         to 18.
-        
+
         Parameters
         ----------
         x_title: str
-              The new string for the x-axis. This is a required argument. 
-
-        fontsize: float
-              Fontsize for the x-axis title
+              The new string for the x-axis.
 
         >>>  plot.set_xtitle("H2I Number Density (cm$^{-3}$)")
 
         """
-        for f in self.plots:
-            self.plots[f].axes.xaxis.set_label_text(x_title, fontsize=fontsize)
-        self._xlabel = x_title
+        self._xlabel = label
+        return self
 
-    def set_ylabel(self, y_title, fontsize=18):
+    @invalidate_plot
+    def set_ylabel(self, label):
         r"""
         Allow the user to modify the Y-axis title
-        Defaults to the global value. Fontsize defaults 
-        to 18.
-        
+        Defaults to the global value.
+
         Parameters
         ----------
-        y_title: str
-              The new string for the y-axis. This is a required argument. 
-        fontsize: float
-              Fontsize for the y-axis title
+        label: str
+          The new string for the y-axis.
 
         >>>  plot.set_ytitle("Temperature (K)")
 
         """
-        for f in self.plots:
-            self.plots[f].axes.yaxis.set_label_text(y_title, fontsize=fontsize)
-        self._ylabel = y_title
+        self._ylabel = label
+        return self
 
-    def set_colorbar_label(self, z_title, fontsize=18):
+    @invalidate_plot
+    def set_colorbar_label(self, field, label):
         r"""
-        Allow the user to modify the Z-axis title
-        Defaults to the global value. Fontsize defaults 
-        to 18.
-        
+        Sets the colorbar label.
+
         Parameters
         ----------
-        z_title: str
-              The new string for the colorbar. This is a required argument.
-        fontsize: float
-              Fontsize for the z-axis title
+        field: str or tuple
+          The name of the field to modify the label for.
+        label: str
+          The new label
 
-        >>>  plot.set_ztitle("Enclosed Gas Mass ($M_{\odot}$)")
+        >>>  plot.set_colorbar_label("Enclosed Gas Mass ($M_{\odot}$)")
 
         """
-        for f in self.plots:
-            self.plots[f].cax.yaxis.set_label_text(z_title, fontsize=fontsize)
-        self._colorbarlabel = z_title
+        self._colorbar_label[field] = label
+        return self
 
-    def _get_axes_labels(self):
-        return(self._xlabel, self._ylabel, self._colorbarlabel)
+    def _get_axes_labels(self, field):
+        return(self._xlabel, self._ylabel, self._colorbar_label[field])

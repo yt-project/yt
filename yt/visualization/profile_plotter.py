@@ -679,9 +679,6 @@ class PhasePlot(ImagePlotContainer):
     """
     x_log = None
     y_log = None
-    x_title = None
-    y_title = None
-    z_title = None
     plot_title = None
     _plot_valid = False
     _plot_type = 'Phase'
@@ -701,19 +698,22 @@ class PhasePlot(ImagePlotContainer):
             accumulation=accumulation,
             fractional=fractional)
 
-        type(self)._initialize_instance(self, data_source, profile, fontsize, figure_size)
+        type(self)._initialize_instance(self, data_source, profile, fontsize,
+                                        figure_size)
 
     @classmethod
-    def _initialize_instance(cls, obj, data_source, profile, fontsize, figure_size):
+    def _initialize_instance(cls, obj, data_source, profile, fontsize,
+                             figure_size):
         obj.plot_title = {}
         obj.z_log = {}
         obj.z_title = {}
         obj._initfinished = False
         obj.x_log = None
         obj.y_log = None
-        self._plot_text = {}
-        self._text_xpos = {}
-        self._text_ypos = {}
+        obj._plot_text = {}
+        obj._text_xpos = {}
+        obj._text_ypos = {}
+        obj._text_kwargs = {}
         obj.profile = profile
         super(PhasePlot, obj).__init__(data_source, figure_size, fontsize)
         obj._setup_plots()
@@ -733,10 +733,11 @@ class PhasePlot(ImagePlotContainer):
         y_unit = profile.y.units
         z_unit = profile.field_units[field_z]
         fractional = profile.fractional
-        x_title = self.x_title or self._get_field_label(field_x, xfi, x_unit)
-        y_title = self.y_title or self._get_field_label(field_y, yfi, y_unit)
-        z_title = self.z_title.get(field_z, None) or \
-            self._get_field_label(field_z, zfi, z_unit, fractional)
+        x_label, y_label, z_label = self._get_axes_labels(field_z)
+        x_title = x_label or self._get_field_label(field_x, xfi, x_unit)
+        y_title = y_label or self._get_field_label(field_y, yfi, y_unit)
+        z_title = z_label or self._get_field_label(field_z, zfi, z_unit,
+                                                   fractional)
         return (x_title, y_title, z_title)
 
     def _get_field_label(self, field, field_info, field_unit, fractional=False):
@@ -794,7 +795,6 @@ class PhasePlot(ImagePlotContainer):
                     cax = self.plots[f].cax
 
             x_scale, y_scale, z_scale = self._get_field_log(f, self.profile)
-            x_label, y_label, z_label = self._get_axes_labels()
             x_title, y_title, z_title = self._get_field_title(f, self.profile)
 
             if zlim == (None, None):
@@ -833,7 +833,7 @@ class PhasePlot(ImagePlotContainer):
             self.plots[f].cax.yaxis.set_label_text(z_title, fontproperties=fp)
 
             if f in self._plot_text:
-                self.plots[f].axes.text(f, self._text_xpos[f], self._text_ypos[f],
+                self.plots[f].axes.text(self._text_xpos[f], self._text_ypos[f],
                                         self._plot_text[f],
                                         fontproperties=self._font_properties,
                                         **self._text_kwargs[f])
@@ -889,7 +889,7 @@ class PhasePlot(ImagePlotContainer):
                                         figure_size)
 
 
-    def text(self, xpos=0.0, ypos=0.0, text_name="YT", fontsize=18, **kwargs):
+    def annotate_text(self, field, xpos=0.0, ypos=0.0, text_name="YT", **text_kwargs):
         r"""
         Allow the user to insert text onto the plot
         The x-position and y-position must be given as well as the text string. 
@@ -898,28 +898,30 @@ class PhasePlot(ImagePlotContainer):
         
         Parameters
         ----------
+        field: str or tuple
+          The name of the field to add text to. 
         text_str: str
-              The text to insert onto the plot. Required argument. 
+          The text to insert onto the plot.
         xpos: float
-              Position on plot in x-coordinates. Required argument. 
+          Position on plot in x-coordinates.
         ypos: float
-              Position on plot in y-coordinates. Required argument. 
-        fontsize: float
-              Fontsize for the text (defaults to 18)
+          Position on plot in y-coordinates.
+        text_kwargs: dict
+          Dictionary of text keyword arguments to be passed to matplotlib
 
-        >>>  plot.text(1e-15, 5e4, "Hello YT")
+        >>>  plot.annotate_text('density', 1e-15, 5e4, "Hello YT")
 
         """
-        for f, data in self.profile.field_data.items():
-            axes = None
-            if f in self.plots:
-                if self.plots[f].figure is not None:
-                    axes = self.plots[f].axes
-                    self.plots[f].axes.text(xpos, ypos, text_str,
-                                            fontproperties=self._font_properties)
-        self._plottext = text_str
-        self._textxpos = xpos
-        self._textypos = ypos
+        if field in self.plots:
+            if self.plots[f].figure is not None:
+                axes = self.plots[f].axes
+                self.plots[f].axes.text(xpos, ypos, text_str,
+                                        fontproperties=self._font_properties,
+                                        **text_kwargs)
+        self._plot_text[field] = text_str
+        self._text_xpos[field] = xpos
+        self._text_ypos[field] = ypos
+        self._text_kwargs[field] = text_kwargs
 
     def save(self, name=None, mpl_kwargs=None):
         r"""
