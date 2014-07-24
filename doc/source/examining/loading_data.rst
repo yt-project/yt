@@ -785,14 +785,9 @@ which we recommend you look at in the following order:
 * :ref:`radio_cubes`
 * :ref:`xray_fits`
 
-.. _loading-moab-data:
+.. _loading-pyne/moab-data:
 
-MOAB Data
----------
-
-.. _loading-pyne-data:
-
-PyNE Data
+PyNE/MOAB Data
 ---------
 
 `PyNE <http://pyne.io/>`_ Hex8 meshes are supported by yt and cared for by the PyNE development team
