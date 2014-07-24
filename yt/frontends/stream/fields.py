@@ -68,6 +68,7 @@ class StreamFieldInfo(FieldInfoContainer):
         ("particle_mass", ("code_mass", [], None)),
         ("smoothing_length", ("code_length", [], None)),
         ("density", ("code_mass/code_length**3", [], None)),
+        ("creation_time", ("code_time", [], None)),
     )
 
     def setup_fluid_fields(self):

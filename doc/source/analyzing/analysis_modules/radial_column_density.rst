@@ -5,6 +5,14 @@ Radial Column Density
 .. sectionauthor:: Stephen Skory <s@skory.us>
 .. versionadded:: 2.3
 
+.. note:: 
+
+    As of :code:`yt-3.0`, the radial column density analysis module is not
+    currently functional.  This functionality is still available in
+    :code:`yt-2.x`.  If you would like to use these features in :code:`yt-3.x`,
+    help is needed to port them over.  Contact the yt-users mailing list if you
+    are interested in doing this.
+
 This module allows the calculation of column densities around a point over a
 field such as ``NumberDensity`` or ``Density``.
 This uses :ref:`healpix_volume_rendering` to interpolate column densities
