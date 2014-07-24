@@ -165,10 +165,15 @@ re-install:
 
 Only one of these two options is needed.
 
-If you plan to develop yt on Windows, we recommend using the `MinGW <http://www.mingw.org/>`_ gcc
-compiler that can be installed using the `Anaconda Python
-Distribution <https://store.continuum.io/cshop/anaconda/>`_. Also, the syntax for the
-setup command is slightly different; you must type:
+.. _windows-developing:
+
+Developing yt on Windows
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you plan to develop yt on Windows, we recommend using the `MinGW
+<http://www.mingw.org/>`_ gcc compiler that can be installed using the `Anaconda
+Python Distribution <https://store.continuum.io/cshop/anaconda/>`_. Also, the
+syntax for the setup command is slightly different; you must type:
 
 .. code-block:: bash
 
@@ -185,17 +190,24 @@ or
 Making and Sharing Changes
 ++++++++++++++++++++++++++
 
-The simplest way to submit changes to yt is to commit changes in your
-``$YT_DEST/src/yt-hg`` directory, fork the repository on BitBucket,  push the
-changesets to your fork, and then issue a pull request.  
+The simplest way to submit changes to yt is to do the following:
+
+  * Build yt from the mercurial repository
+  * Navigate to the root of the yt repository 
+  * Make some changes and commit them
+  * Fork the `yt repository on BitBucket <https://bitbucket.org/yt_analysis/yt>`_
+  * Push the changesets to your fork
+  * Issue a pull request.
 
 Here's a more detailed flowchart of how to submit changes.
 
   #. If you have used the installation script, the source code for yt can be
-     found in ``$YT_DEST/src/yt-hg``.  (Below, in :ref:`reading-source`, 
-     we describe how to find items of interest.)  Edit the source file you are
-     interested in and test your changes.  (See :ref:`testing` for more
-     information.)
+     found in ``$YT_DEST/src/yt-hg``.  Alternatively see
+     :ref:`source-installation` for instructions on how to build yt from the
+     mercurial repository. (Below, in :ref:`reading-source`, we describe how to
+     find items of interest.)  
+  #. Edit the source file you are interested in and
+     test your changes.  (See :ref:`testing` for more information.)
   #. Fork yt on BitBucket.  (This step only has to be done once.)  You can do
      this at: https://bitbucket.org/yt_analysis/yt/fork .  Call this repository
      ``yt``.
@@ -207,7 +219,7 @@ Here's a more detailed flowchart of how to submit changes.
      these changes as well.
   #. Push your changes to your new fork using the command::
 
-        hg push https://bitbucket.org/YourUsername/yt/
+        hg push -r . https://bitbucket.org/YourUsername/yt/
  
      If you end up doing considerable development, you can set an alias in the
      file ``.hg/hgrc`` to point to this path.
@@ -244,9 +256,9 @@ docs section describing how the new code works and how to use it, it could
 include a recipe in the cookbook section, or it could simply be adding a note 
 in the relevant docs text somewhere.
 
-The documentation exists in the main mercurial code repository for yt in the 
-``doc`` directory (i.e. ``$YT_DEST/src/yt-hg/doc/source`` on systems installed 
-using the installer script).  It is organized hierarchically into the main 
+The documentation exists in the main mercurial code repository for yt in the
+``doc`` directory (i.e. ``$YT_HG/doc/source`` where ``$YT_HG`` is the path of
+the yt mercurial repository).  It is organized hierarchically into the main
 categories of:
 
  * Visualizing
@@ -345,16 +357,6 @@ you run yt from the command line or the one that is loaded when you do ``import
 yt``), then you must "activate" it using the following commands from within the
 repository directory.
 
-In order to do this for the first time with a new repository, you have to
-copy some config files over from your yt installation directory (where yt
-was initially installed from the install_script.sh).  Try this:
-
-.. code-block:: bash
-
-   $ cp $YT_DEST/src/yt-hg/*.cfg <REPOSITORY_NAME>
-
-and then every time you want to "activate" a different repository of yt.
-
 .. code-block:: bash
 
    $ cd <REPOSITORY_NAME>
@@ -367,11 +369,16 @@ This will rebuild all C modules as well.
 How To Read The Source Code
 ---------------------------
 
-If you just want to *look* at the source code, you already have it on your
-computer.  Go to the directory where you ran the install_script.sh, then
-go to ``$YT_DEST/src/yt-hg`` .  In this directory are a number of
-subdirectories with different components of the code, although most of them
-are in the yt subdirectory.  Feel free to explore here.
+If you just want to *look* at the source code, you may already have it on your
+computer.  If you build yt using the install script, the source is available at
+``$YT_DEST/src/yt-hg``.  See :ref:`source-installation` for more details about
+to obtain the yt source code if you did not build yt using the install
+script. 
+
+The root directory of the yt mercurial repository contains a number of
+subdirectories with different components of the code.  Most of the yt source
+code is contained in the ``yt`` subdirectory.  This directory its self contains
+the following subdirectories:
 
    ``frontends``
       This is where interfaces to codes are created.  Within each subdirectory of
@@ -380,9 +387,18 @@ are in the yt subdirectory.  Feel free to explore here.
       * ``data_structures.py``, where subclasses of AMRGridPatch, Dataset
         and AMRHierarchy are defined.
       * ``io.py``, where a subclass of IOHandler is defined.
+      * ``fields.py``, where fields we expect to find in datasets are defined
       * ``misc.py``, where any miscellaneous functions or classes are defined.
       * ``definitions.py``, where any definitions specific to the frontend are
         defined.  (i.e., header formats, etc.)
+
+   ``fields``
+      This is where all of the derived fields that ship with yt are defined.
+
+   ``geometry`` 
+      This is where geometric helpler routines are defined. Handlers
+      for grid and oct data, as well as helpers for coordinate transformations
+      can be found here.
 
    ``visualization``
       This is where all visualization modules are stored.  This includes plot
@@ -408,6 +424,10 @@ are in the yt subdirectory.  Feel free to explore here.
    ``utilities``
       All broadly useful code that doesn't clearly fit in one of the other
       categories goes here.
+
+   ``extern`` 
+      Bundled external modules (i.e. code that was not written by one of
+      the yt authors but that yt depends on) lives here.
 
 
 If you're looking for a specific file or function in the yt source code, use
