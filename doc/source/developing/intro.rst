@@ -66,11 +66,11 @@ Whether that is adding a section, updating an outdated section, contributing
 typo or grammatical fixes, adding a FAQ, or increasing coverage of
 functionality, it would be very helpful if you wanted to help out.
 
-The easiest way to help out is to fork the main yt repository (where 
-the documentation lives in the ``$YT_DEST/src/yt-hg/doc`` directory,
-and then make your changes in your own fork.  When you are done, issue a pull
-request through the website for your new fork, and we can comment back and
-forth and eventually accept your changes.
+The easiest way to help out is to fork the main yt repository (where the
+documentation lives in the ``doc`` directory in the root of the yt mercurial
+repository) and then make your changes in your own fork.  When you are done,
+issue a pull request through the website for your new fork, and we can comment
+back and forth and eventually accept your changes.
 
 One of the more interesting ways we are attempting to do lately is to add
 screencasts to the documentation -- these are recordings of people executing
