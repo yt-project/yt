@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
+import numpy as np
 import pylab
 
-from yt.mods import *
+import yt
 import yt.visualization.volume_rendering.api as vr
 
-ds = load("maestro_subCh_plt00248")
+ds = yt.load("maestro_subCh_plt00248")
 
 dd = ds.all_data()
 
