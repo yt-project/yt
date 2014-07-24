@@ -6,6 +6,13 @@ Exporting to Sunrise
 .. sectionauthor:: Christopher Moody <cemoody@ucsc.edu>
 .. versionadded:: 1.8
 
+.. note:: 
+
+    As of :code:`yt-3.0`, the sunrise exporter is not.  currently functional.
+    This functionality is still available in :code:`yt-2.x`.  If you would like
+    to use these features in :code:`yt-3.x`, help is needed to port them over.
+    Contact the yt-users mailing list if you are interested in doing this.
+
 The yt-Sunrise exporter essentially takes grid cell data and translates it into a binary octree format, attaches star particles, and saves the output to a FITS file Sunrise can read. For every cell, the gas mass, metals mass (a fraction of which is later assumed to be in the form of dust), and the temperature are saved. Star particles are defined entirely by their mass, position, metallicity, and a 'radius.' This guide outlines the steps to exporting the data, troubleshoots common problems, and reviews recommended sanity checks. 
 
 Simple Export
