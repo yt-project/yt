@@ -408,8 +408,6 @@ finders as well as a few other supplemental objects.
    ~yt.analysis_modules.halo_finding.halo_objects.parallelHF
    ~yt.analysis_modules.halo_finding.rockstar.rockstar.RockstarHaloFinder
 
-You can use Halo catalogs generated externally as well:
-
 Two Point Functions
 ^^^^^^^^^^^^^^^^^^^
 
