@@ -19,7 +19,7 @@ import sys
 
 from yt.visualization.image_writer import apply_colormap
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
-from yt.utilities.lib import get_color_bounds
+from yt.utilities.lib.misc_utilities import get_color_bounds
 from yt.utilities.png_writer import write_png_to_string
 
 import yt.extern.bottle as bottle
@@ -82,7 +82,7 @@ class PannableMapServer(object):
                                     self.ds.domain_right_edge[1],
                                     dd*DW[0] / (64*256),
                                     dd*DW[0])
-        if self.ds.field_info[self.field].take_log:
+        if self.ds._get_field_info(self.field).take_log:
             cmi = np.log10(cmi)
             cma = np.log10(cma)
             to_plot = apply_colormap(np.log10(frb[self.field]), color_bounds = (cmi, cma))

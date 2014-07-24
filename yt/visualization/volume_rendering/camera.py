@@ -649,7 +649,7 @@ class Camera(ParallelAnalysisInterface):
             del nz
         else:
             nim = im
-        ax = self._pylab.imshow(nim[:,:,:3]/nim[:,:,:3].max(), origin='upper')
+        ax = self._pylab.imshow(nim[:,:,:3]/nim[:,:,:3].max(), origin='lower')
         return ax
 
     def draw(self):

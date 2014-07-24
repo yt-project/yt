@@ -59,7 +59,6 @@ This will print the list of available subcommands,
     help                Print help message
     bootstrap_dev       Bootstrap a yt development environment
     bugreport           Report a bug in yt
-    hop                 Run HOP on one or more datasets
     hub_register        Register a user on the Hub: http://hub.yt-project.org/
     hub_submit          Submit a mercurial repository to the yt Hub
                         (http://hub.yt-project.org/), creating a BitBucket
@@ -67,18 +66,14 @@ This will print the list of available subcommands,
     instinfo            Get some information about the yt installation
     version             Get some information about the yt installation
     load                Load a single dataset into an IPython instance
-    mapserver           Serve a plot in a GMaps-style interface
     pastebin            Post a script to an anonymous pastebin
     pastebin_grab       Print an online pastebin to STDOUT for local use.
     upload_notebook     Upload an IPython notebook to hub.yt-project.org.
     plot                Create a set of images
-    render              Create a simple volume rendering
     rpdb                Connect to a currently running (on localhost) rpd
                         session. Commands run with --rpdb will trigger an rpdb
                         session with any uncaught exceptions.
     notebook            Run the IPython Notebook
-    serve               Run the Web GUI Reason
-    reason              Run the Web GUI Reason
     stats               Print stats and max/min value of a given field (if
                         requested), for one or more datasets (default field is
                         Density)
@@ -154,15 +149,6 @@ help
 
 Help lists all of the various command-line options in yt.
 
-bootstrap_dev
-+++++++++++++
-
-After you have installed yt and you want to do some development, there may 
-be a few more steps to complete.  This subcommand automates building a 
-development environment for you by setting up your hg preferences correctly,
-creating/linking to a bitbucket account for hosting and sharing your code, 
-and setting up a pasteboard for your code snippets.  A full description of 
-how this works can be found in :ref:`bootstrap-dev`.
 
 bugreport         
 +++++++++
@@ -173,16 +159,6 @@ make it as easy as possible for users to report bugs they find in yt.
 After you go through the necessary channels to make sure you're not just
 making a mistake (see :ref:`asking-for-help`), you can submit bug 
 reports using this nice utility.
-
-hop               
-+++
-
-This lets you run the HOP algorithm as a halo-finder on one or more 
-datasets.  It nominally reproduces the behavior of enzohop from the 
-enzo suite.  There are several flags you can use in order to specify
-your threshold, input names, output names, and whether you want to use 
-dark matter or all particles.  To view these flags run help with the 
-hop subcommand.
 
 hub_register and hub_submit
 +++++++++++++++++++++++++++
@@ -214,13 +190,6 @@ load
 
 This will start the iyt interactive environment with your specified 
 dataset already loaded.  See :ref:`interactive-prompt` for more details.
-
-mapserver
-+++++++++
-
-Ever wanted to interact with your data using the 
-`google maps <http://maps.google.com/>`_ interface?  Now you can by using the
-yt mapserver.  See :ref:`mapserver` for more details.
 
 pastebin and pastebin_grab
 ++++++++++++++++++++++++++
@@ -263,14 +232,6 @@ their output, narrative information, and then sharing that with others.  These
 notebooks will be viewable online, and the appropriate URLs will be returned on
 the command line.
 
-render
-++++++
-
-This command generates a volume rendering for a single dataset.  By specifying
-the center, width, number of pixels, number and thickness of contours, etc.
-(run ``yt help render`` for details),  you can create high-quality volume
-renderings at the command-line before moving on to more involved volume
-rendering scripts.
 
 rpdb
 ++++

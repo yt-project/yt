@@ -102,18 +102,22 @@ class FieldTransform(object):
 log_transform = FieldTransform('log10', np.log10, LogLocator())
 linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
 
-class PlotDictionary(dict):
+class PlotDictionary(defaultdict):
     def __getitem__(self, item):
-        item = self.data_source._determine_fields(item)[0]
-        return dict.__getitem__(self, item)
+        return defaultdict.__getitem__(
+            self, self.data_source._determine_fields(item)[0])
+
+    def __setitem__(self, item, value):
+        return defaultdict.__setitem__(
+            self, self.data_source._determine_fields(item)[0], value)
 
     def __contains__(self, item):
-        item = self.data_source._determine_fields(item)[0]
-        return dict.__contains__(self, item)
+        return defaultdict.__contains__(
+            self, self.data_source._determine_fields(item)[0])
 
-    def __init__(self, data_source, *args):
+    def __init__(self, data_source, default_factory=None):
         self.data_source = data_source
-        return dict.__init__(self, args)
+        return defaultdict.__init__(self, default_factory)
 
 class ImagePlotContainer(object):
     """A countainer for plots with colorbars.
@@ -136,6 +140,10 @@ class ImagePlotContainer(object):
         font_path = matplotlib.get_data_path() + '/fonts/ttf/STIXGeneral.ttf'
         self._font_properties = FontProperties(size=fontsize, fname=font_path)
         self._font_color = None
+        self._xlabel = None
+        self._ylabel = None
+        self._colorbar_label = PlotDictionary(
+            self.data_source, lambda: None)
 
     @invalidate_plot
     def set_log(self, field, log):
@@ -184,7 +192,7 @@ class ImagePlotContainer(object):
     @invalidate_plot
     def set_transform(self, field, name):
         field = self.data_source._determine_fields(field)[0]
-        if name not in field_transforms: 
+        if name not in field_transforms:
             raise KeyError(name)
         self._field_transform[field] = field_transforms[name]
         return self
@@ -529,3 +537,59 @@ class ImagePlotContainer(object):
             img = base64.b64encode(self.plots[field]._repr_png_())
             ret += '<img src="data:image/png;base64,%s"><br>' % img
         return ret
+
+    @invalidate_plot
+    def set_xlabel(self, label):
+        r"""
+        Allow the user to modify the X-axis title
+        Defaults to the global value. Fontsize defaults
+        to 18.
+
+        Parameters
+        ----------
+        x_title: str
+              The new string for the x-axis.
+
+        >>>  plot.set_xtitle("H2I Number Density (cm$^{-3}$)")
+
+        """
+        self._xlabel = label
+        return self
+
+    @invalidate_plot
+    def set_ylabel(self, label):
+        r"""
+        Allow the user to modify the Y-axis title
+        Defaults to the global value.
+
+        Parameters
+        ----------
+        label: str
+          The new string for the y-axis.
+
+        >>>  plot.set_ytitle("Temperature (K)")
+
+        """
+        self._ylabel = label
+        return self
+
+    @invalidate_plot
+    def set_colorbar_label(self, field, label):
+        r"""
+        Sets the colorbar label.
+
+        Parameters
+        ----------
+        field: str or tuple
+          The name of the field to modify the label for.
+        label: str
+          The new label
+
+        >>>  plot.set_colorbar_label("Enclosed Gas Mass ($M_{\odot}$)")
+
+        """
+        self._colorbar_label[field] = label
+        return self
+
+    def _get_axes_labels(self, field):
+        return(self._xlabel, self._ylabel, self._colorbar_label[field])

@@ -74,7 +74,7 @@ class ARTIndex(OctreeIndex):
         """
         # Overloaded
         ds = self.dataset
-        return (1.0/pf.domain_dimensions.astype('f8') /
+        return (1.0/ds.domain_dimensions.astype('f8') /
                 (2**self.max_level)).min()
 
     def _initialize_oct_handler(self):
@@ -102,7 +102,7 @@ class ARTIndex(OctreeIndex):
 
     def _detect_output_fields(self):
         self.particle_field_list = [f for f in particle_fields]
-        self.field_list = [("gas", f) for f in fluid_fields]
+        self.field_list = [("art", f) for f in fluid_fields]
         # now generate all of the possible particle fields
         if "wspecies" in self.dataset.parameters.keys():
             wspecies = self.dataset.parameters['wspecies']
@@ -175,6 +175,7 @@ class ARTDataset(Dataset):
                  limit_level=None, spread_age=True,
                  force_max_level=None, file_particle_header=None,
                  file_particle_data=None, file_particle_stars=None):
+        self.fluid_types += ("art", )
         if fields is None:
             fields = fluid_fields
         filename = os.path.abspath(filename)
@@ -240,60 +241,23 @@ class ARTDataset(Dataset):
         wmu = self.parameters["wmu"]
         Om0 = self.parameters['Om0']
         ng = self.parameters['ng']
-        wmu = self.parameters["wmu"]
         boxh = self.parameters['boxh']
         aexpn = self.parameters["aexpn"]
         hubble = self.parameters['hubble']
 
-        cf = defaultdict(lambda: 1.0)
         r0 = boxh/ng
-        P0 = 4.697e-16 * Om0**2.0 * r0**2.0 * hubble**2.0
-        T_0 = 3.03e5 * r0**2.0 * wmu * Om0  # [K]
-        S_0 = 52.077 * wmu**(5.0/3.0)
-        S_0 *= hubble**(-4.0/3.0)*Om0**(1.0/3.0)*r0**2.0
-        # v0 =  r0 * 50.0*1.0e5 * np.sqrt(self.omega_matter)  #cm/s
         v0 = 50.0*r0*np.sqrt(Om0)
-        t0 = r0/v0
-        rho1 = 1.8791e-29 * hubble**2.0 * self.omega_matter
         rho0 = 2.776e11 * hubble**2.0 * Om0
-        tr = 2./3. * (3.03e5*r0**2.0*wmu*self.omega_matter)*(1.0/(aexpn**2))
         aM0 = rho0 * (boxh/hubble)**3.0 / ng**3.0
-        cf['r0'] = r0
-        cf['P0'] = P0
-        cf['T_0'] = T_0
-        cf['S_0'] = S_0
-        cf['v0'] = v0
-        cf['t0'] = t0
-        cf['rho0'] = rho0
-        cf['rho1'] = rho1
-        cf['tr'] = tr
-        cf['aM0'] = aM0
+        velocity = v0/aexpn*1.0e5  # proper cm/s
+        mass = aM0 * 1.98892e33
 
-        # factors to multiply the native code units to CGS
-        cf['Pressure'] = P0  # already cgs
-        cf['Velocity'] = v0/aexpn*1.0e5  # proper cm/s
-        cf["Mass"] = aM0 * 1.98892e33
-        cf["Density"] = rho1*(aexpn**-3.0)
-        cf["GasEnergy"] = rho0*v0**2*(aexpn**-5.0)
-        cf["Potential"] = 1.0
-        cf["Entropy"] = S_0
-        cf["Temperature"] = tr
-        cf["Time"] = 1.0
-        cf["particle_mass"] = cf['Mass']
-        cf["particle_mass_initial"] = cf['Mass']
         self.cosmological_simulation = True
-
-        # I have left much of the old code above.for historical reference, but
-        # it is largely or completely vestigial.  The subsequent unit setting
-        # is from ARTIO, which I have been assured has identical units to
-        # NMSU-ART for hydrodynamic quantities..
-        #
-        # That being said, these are a bit uncertain to me.
-
-        self.mass_unit = self.quan(cf["Mass"], "g*%s" % ng**3)
+        self.mass_unit = self.quan(mass, "g*%s" % ng**3)
         self.length_unit = self.quan(box_proper, "Mpc")
-        self.velocity_unit = self.quan(cf["Velocity"], "cm/s")
+        self.velocity_unit = self.quan(velocity, "cm/s")
         self.time_unit = self.length_unit / self.velocity_unit
+
 
     def _parse_parameter_file(self):
         """
@@ -340,7 +304,6 @@ class ARTDataset(Dataset):
             self.iOctFree, self.nOct = fpu.read_vector(f, 'i', '>')
             self.child_grid_offset = f.tell()
             self.parameters.update(amr_header_vals)
-            self.parameters['ncell0'] = self.parameters['ng']**3
             # estimate the root level
             float_center, fl, iocts, nocts, root_level = _read_art_level_info(
                 f,
@@ -361,9 +324,10 @@ class ARTDataset(Dataset):
             self.parameters['wspecies'] = wspecies[:n]
             self.parameters['lspecies'] = lspecies[:n]
             ls_nonzero = np.diff(lspecies)[:n-1]
+            ls_nonzero = np.append(lspecies[0], ls_nonzero)
             self.star_type = len(ls_nonzero)
             mylog.info("Discovered %i species of particles", len(ls_nonzero))
-            mylog.info("Particle populations: "+'%1.1e '*len(ls_nonzero),
+            mylog.info("Particle populations: "+'%9i '*len(ls_nonzero),
                        *ls_nonzero)
             for k, v in particle_header_vals.items():
                 if k in self.parameters.keys():
@@ -374,6 +338,10 @@ class ARTDataset(Dataset):
                 else:
                     self.parameters[k] = v
             self.parameters_particles = particle_header_vals
+            self.parameters.update(particle_header_vals)
+            self.parameters['ng'] = self.parameters['Ngridc']
+            self.parameters['ncell0'] = self.parameters['ng']**3
+
 
         # setup standard simulation params yt expects to see
         self.current_redshift = self.parameters["aexpn"]**-1.0 - 1.0

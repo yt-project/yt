@@ -27,10 +27,13 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
      
 from .halo_object import \
      Halo
-from .operator_registry import \
-     callback_registry, \
-     filter_registry, \
-     finding_method_registry, \
+from .halo_callbacks import \
+     callback_registry
+from .halo_filters import \
+     filter_registry
+from .halo_finding_methods import \
+     finding_method_registry
+from .halo_quantities import \
      quantity_registry
 
 class HaloCatalog(ParallelAnalysisInterface):
@@ -103,7 +106,6 @@ class HaloCatalog(ParallelAnalysisInterface):
                  finder_kwargs=None,
                  output_dir="halo_catalogs/catalog"):
         ParallelAnalysisInterface.__init__(self)
-        halos_ds.index
         self.halos_ds = halos_ds
         self.data_ds = data_ds
         self.output_dir = ensure_dir(output_dir)
@@ -120,17 +122,18 @@ class HaloCatalog(ParallelAnalysisInterface):
 
         if data_source is None:
             if halos_ds is not None:
+                halos_ds.index
                 data_source = halos_ds.all_data()
             else:
                 data_source = data_ds.all_data()
         self.data_source = data_source
 
+        if finder_kwargs is None:
+            finder_kwargs = {}
         if finder_method is not None:
             finder_method = finding_method_registry.find(finder_method,
                         **finder_kwargs)
         self.finder_method = finder_method            
-        if finder_kwargs is None:
-            finder_kwargs = {}
         
         # all of the analysis actions to be performed: callbacks, filters, and quantities
         self.actions = []

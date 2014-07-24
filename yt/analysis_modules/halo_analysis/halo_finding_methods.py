@@ -21,10 +21,10 @@ from yt.frontends.halo_catalogs.halo_catalog.data_structures import \
     HaloCatalogDataset
 from yt.frontends.stream.data_structures import \
     load_particles
+from yt.utilities.operator_registry import \
+     OperatorRegistry
 
-from .operator_registry import \
-    finding_method_registry
-
+finding_method_registry = OperatorRegistry()
 
 def add_finding_method(name, function):
     finding_method_registry[name] = HaloFindingMethod(function)
