@@ -12,6 +12,5 @@ with each specific analysis module into python before using them.
    halo_analysis
    synthetic_observation
    exporting
-   two_point_functions
    clump_finding
    particle_trajectories
