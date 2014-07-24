@@ -20,7 +20,7 @@ prof = yt.create_profile(sp, 'radius', ('gas', 'velocity_magnitude'),
 
 # Plot the average velocity magnitude.
 plt.loglog(prof.x, prof['gas', 'velocity_magnitude'], label='Mean')
-# Plot the variance of the velocity madnitude.
+# Plot the variance of the velocity magnitude.
 plt.loglog(prof.x, prof.variance['gas', 'velocity_magnitude'],
            label='Standard Deviation')
 plt.xlabel('r [kpc]')
