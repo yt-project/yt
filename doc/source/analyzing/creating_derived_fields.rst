@@ -138,6 +138,9 @@ be called on any object that has fields:
 In this case, we already know what the *center* of the sphere is, so we do not set it. Also,
 note that *center* and *bulk_velocity* need to be :class:`YTArray` objects with units.
 
+Other examples for creating derived fields can be found in the cookbook recipes
+:ref:`cookbook-simple-derived-fields` and :ref:`cookbook-complex-derived-fields`.
+
 Field Options
 -------------
 
@@ -180,13 +183,12 @@ Units for Cosmological Datasets
 internally in cosmological simulations. Simulations that use comoving
 coordinates, all length units have three other counterparts correspoding to
 comoving units, scaled comoving units, and scaled proper units. In all cases
-'scaled' units refer to scaling by the reduced Hubble constant - i.e. the length
-unit is what it would be in a universe where Hubble's constant is 100 km/s/Mpc.  
+'scaled' units refer to scaling by the reduced Hubble parameter - i.e. the length
+unit is what it would be in a universe where Hubble's parameter is 100 km/s/Mpc.
 
-To access these different units, yt has a common naming system. Scaled units
-are denoted by appending ``h`` to the end of the unit name. Comoving units are
-denoted by appending ``cm`` to the end of the unit name. If both are used, the
-strings should be appended in that order: 'Mpchcm', *but not* 'Mpccmh'.
+To access these different units, yt has a common naming system. Scaled units are denoted by
+dividing by the scaled Hubble parameter ``h`` (which is in itself a unit). Comoving
+units are denoted by appending ``cm`` to the end of the unit name.
 
 Using the parsec as an example,
 
@@ -196,8 +198,10 @@ Using the parsec as an example,
 ``pccm``
     Comoving parsecs, :math:`\rm{pc}/(1+z)`.
 
-``pchcm``
+``pccm/h``
     Comoving parsecs normalized by the scaled hubble constant, :math:`\rm{pc}/h/(1+z)`.
 
-``pch``
+``pc/h``
     Proper parsecs, normalized by the scaled hubble constant, :math:`\rm{pc}/h`.
+
+Further examples of this functionality are shown in :ref:`comoving_units_and_code_units`.
