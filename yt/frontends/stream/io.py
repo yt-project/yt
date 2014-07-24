@@ -167,9 +167,11 @@ class StreamParticleIOHandler(BaseIOHandler):
         # self.fields[g.id][fname] is the pattern here
         morton = []
         for ptype in self.ds.particle_types_raw:
-            pos = np.column_stack(self.fields[data_file.filename][
-                                  (ptype, "particle_position_%s" % ax)]
-                                  for ax in 'xyz')
+            try:
+                pos = np.column_stack(self.fields[data_file.filename][
+                    (ptype, "particle_position_%s" % ax)] for ax in 'xyz')
+            except KeyError:
+                pos = self.fields[data_file.filename][ptype, "particle_position"]
             if np.any(pos.min(axis=0) < data_file.ds.domain_left_edge) or \
                np.any(pos.max(axis=0) > data_file.ds.domain_right_edge):
                 raise YTDomainOverflow(pos.min(axis=0), pos.max(axis=0),
@@ -186,7 +188,10 @@ class StreamParticleIOHandler(BaseIOHandler):
         pcount = {}
         for ptype in self.ds.particle_types_raw:
             d = self.fields[data_file.filename]
-            pcount[ptype] = d[ptype, "particle_position_x"].size
+            try:
+                pcount[ptype] = d[ptype, "particle_position_x"].size
+            except KeyError:
+                pcount[ptype] = d[ptype, "particle_position"].shape[0]
         return pcount
 
     def _identify_fields(self, data_file):

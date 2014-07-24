@@ -498,7 +498,7 @@ def unitify_data(data):
     for field in data:
         if isinstance(field, tuple): 
             new_field = field
-        elif len(data[field].shape) == 1:
+        elif len(data[field].shape) in (1, 2):
             new_field = ("io", field)
         elif len(data[field].shape) == 3:
             new_field = ("gas", field)
