@@ -7,7 +7,7 @@ import yt.visualization.volume_rendering.api as vr
 
 ds = load("maestro_subCh_plt00248")
 
-dd = ds.h.all_data()
+dd = ds.all_data()
 
 # field in the dataset we will visualize
 field = ('boxlib', 'radial_velocity')
