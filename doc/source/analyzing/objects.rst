@@ -133,7 +133,7 @@ Arbitrary Grids
 ---------------
 
 The covering grid and smoothed covering grid objects mandate that they be
-positioned with respect to integer grid positions of the mesh.  This is a
+exactly aligned with the mesh.  This is a
 holdover from the time when yt was used exclusively for data that came in
 regularly structured grid patches, and does not necessarily work as well for
 data that is composed of discrete objects like particles.  To augment this, the
