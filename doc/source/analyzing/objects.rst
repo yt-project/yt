@@ -127,6 +127,37 @@ object.  To access them, you would do something like this (as for a
 
 .. include:: _obj_docstrings.inc
 
+.. _arbitrary-grid:
+
+Arbitrary Grids
+---------------
+
+The covering grid and smoothed covering grid objects mandate that they be
+exactly aligned with the mesh.  This is a
+holdover from the time when yt was used exclusively for data that came in
+regularly structured grid patches, and does not necessarily work as well for
+data that is composed of discrete objects like particles.  To augment this, the
+:class:`~yt.data_objects.data_containers.YTArbitraryGridBase` object was
+created, which enables construction of meshes (onto which particles can be
+deposited or smoothed) in arbitrary regions.  This eliminates any assumptions
+on yt's part about how the data is organized, and will allow for more
+fine-grained control over visualizations.
+
+An example of creating an arbitrary grid would be to construct one, then query
+the deposited particle density, like so:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("snapshot_010.hdf5")
+
+   obj = ds.arbitrary_grid([0.0, 0.0, 0.0], [0.99, 0.99, 0.99],
+                          dims=[128, 128, 128])
+   print obj["deposit", "all_density"]
+
+While these cannot yet be used as input to projections or slices, slices and
+projections can be taken of the data in them and visualized by hand.
+
 .. _boolean_data_objects:
 
 Combining Objects: Boolean Data Objects
