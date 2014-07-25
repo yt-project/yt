@@ -1,3 +1,37 @@
+Annotate Triangle Facets Callback
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. function:: annotate_triangle_facets(triangle_vertices, plot_args=None)
+
+   (This is a proxy for
+   :class:`~yt.visualization.plot_modifications.TriangleFacetsCallback`.)
+
+   This add a line collection of a SlicePlot's plane-intersection 
+   with the triangles to the plot. This callback is ideal for a
+   dataset representing a geometric model of triangular facets.
+
+.. python-script::
+
+   import yt 
+   import h5py
+   
+   # Load data file
+   pf = yt.load("MoabTest/fng_usrbin22.h5m")
+
+   # Create the desired slice plot	
+   s = yt.SlicePlot(pf, 'z', ('moab','TALLY_TAG'))
+
+   #get triangle vertices from file (in this case hdf5)
+   f = h5py.File("mcnp_n_impr_fluka.h5m", "r")
+   coords = f["/tstt/nodes/coordinates"][:]
+   conn = f["/tstt/elements/Tri3/connectivity"][:]
+   points = coords[conn-1]
+
+   # Annotate slice-triangle intersection contours to the plot
+   s.annotate_triangle_facets(points, plot_args={"colors": 'black'})
+   s.save()
+
+
 Arrow callback
 ~~~~~~~~~~~~~~
 
