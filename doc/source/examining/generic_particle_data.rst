@@ -1,4 +1,4 @@
-.. _genertic-particle-data:
+.. _generic-particle-data:
 
 Loading Generic Particle Data
 -----------------------------
