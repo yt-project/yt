@@ -880,6 +880,7 @@ class YTLoadCmd(YTCommand):
             print "Could not load file."
             sys.exit()
         import yt.mods
+        import yt
 
         import IPython
         from distutils import version
@@ -890,6 +891,8 @@ class YTLoadCmd(YTCommand):
 
         local_ns = yt.mods.__dict__.copy()
         local_ns['ds'] = args.ds
+        local_ns['pf'] = args.ds
+        local_ns['yt'] = yt
 
         if api_version == '0.10':
             shell = IPython.Shell.IPShellEmbed()
