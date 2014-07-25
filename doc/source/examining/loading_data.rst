@@ -782,33 +782,25 @@ which we recommend you look at in the following order:
 * :ref:`radio_cubes`
 * :ref:`xray_fits`
 
-.. _loading-moab-data:
+.. _loading-pyne-moab-data:
 
-MOAB Data
----------
-
-.. _loading-pyne-data:
-
-PyNE Data
+PyNE-MOAB Data
 ---------
 
 `PyNE <http://pyne.io/>`_ Hex8 meshes are supported by yt and cared for by the PyNE development team
 (`pyne-dev@googlegroups.com <pyne-dev%40googlegroups.com>`_). 
-PyNE meshes are based on faceted geometries contained in hdf5 files (suffix ".h5m").
+
 
 To load a pyne mesh:
 
 .. code-block:: python
 
-  from pyne.mesh import Mesh
-  from pyne.dagmc import load
+  from pyne.mesh import Mesh, IMeshTag
 
   from yt.config import ytcfg; ytcfg["yt","suppressStreamLogging"] = "True"
   from yt.frontends.moab.api import PyneMoabHex8StaticOutput
   from yt.visualization.plot_window import SlicePlot
 
-  load("faceted_file.h5m")
-  
 Set up parameters for the mesh:
 
 .. code-block:: python
@@ -818,18 +810,20 @@ Set up parameters for the mesh:
   coords1 = linspace(0, 7, num_divisions)
   coords2 = linspace(-4, 4, num_divisions)
 
-Generate the Hex8 mesh and convert to a yt dataset using PyneHex8StaticOutput:
+Generate the Hex8 mesh, add data, and convert to a yt dataset using PyneHex8StaticOutput:
 
 .. code-block:: python 
 
   m = Mesh(structured=True, structured_coords=[coords0, coords1, coords2], structured_ordering='zyx')
+  m.neutron_flux = IMeshTag() # iMesh tags are equivalent to yt fields
+  m.neutron_flux[:] = neutron_flux_data # list or numpy array of size num_divisions^3
   pf = PyneMoabHex8StaticOutput(m)
 
 Any field (tag) data on the mesh can then be viewed just like any other yt dataset!
 
 .. code-block:: python 
 
-  s = SlicePlot(pf, 'z', 'density')
+  s = SlicePlot(pf, 'z', 'neutron_flux')
   s.display()
 
 
