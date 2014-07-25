@@ -145,6 +145,18 @@ quantities, styling them and saving out the resultant plot.
 
 .. _cookbook-camera_movement:
 
+Customized Profile Plot
+~~~~~~~~~~~~~~~~~~~~~~~
+
+This recipe demonstrates how to create a fully customized profile object using
+the :meth:`~yt.data_objects.profiles.create_profile` function and then create
+a :class:`~yt.visualization.profile_plotter.ProfilePlot` using the customized
+profile.  This illustrates how ``ProfilePlot`` inherits the properties of the
+profile it is created from.
+
+.. yt_cookbook:: customized_profile_plot.py
+
+
 Moving a Volume Rendering Camera
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
