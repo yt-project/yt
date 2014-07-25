@@ -785,7 +785,7 @@ which we recommend you look at in the following order:
 .. _loading-pyne-moab-data:
 
 PyNE-MOAB Data
----------
+--------------
 
 `PyNE <http://pyne.io/>`_ Hex8 meshes are supported by yt and cared for by the PyNE development team
 (`pyne-dev@googlegroups.com <pyne-dev%40googlegroups.com>`_). 
