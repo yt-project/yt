@@ -816,7 +816,7 @@ Any field data or material data on the mesh can then be viewed just like any oth
 
   import yt
   pf = yt.frontends.moab.api.PyneMoabHex8StaticOutput(m)
-  s = yt.visualization.plot_window.SlicePlot(pf, 'z', 'neutron_flux')
+  s = yt.SlicePlot(pf, 'z', 'neutron_flux')
   s.display()
 
 
