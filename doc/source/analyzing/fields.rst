@@ -52,7 +52,12 @@ types (described below) versus the gas fields:
    print ad["deposit", "dark_matter_density"] / ad["gas", "density"]
 
 The ``deposit`` field type is a mesh field, so it will have the same shape as
-the gas density.
+the gas density.  If we weren't using ``deposit``, and instead directly
+querying a particle field, this *wouldn't* work, as they are different shapes.
+This is the primary difference, in practice, between mesh and particle fields
+-- they will be different shapes and so cannot be directly compared without
+translating one to the other, typically through a "deposition" or "smoothing"
+step.
 
 How are fields implemented?
 +++++++++++++++++++++++++++
@@ -114,7 +119,12 @@ yt knows of a few different field types, by default.
  * ``io`` - if a data frontend does not have a set of particle types, this will
    be the default for particle types.
  * frontend-name - mesh or fluid fields that exist on-disk default to having
-   the name of the frontend as their type name.
+   the name of the frontend as their type name. (i.e., ``enzo``, ``flash``,
+   ``pyne`` and so on.)
+ * particle type - if the particle types in the file are affiliated with names
+   (rather than just ``io``) they will be available as field types.
+   Additionally, any particle unions or filters will be accessible as field
+   types.
 
 Field Plugins
 +++++++++++++
