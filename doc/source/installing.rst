@@ -284,4 +284,5 @@ If you get an error, follow the instructions it gives you to debug the problem.
 Do not hesitate to :ref:`contact us <asking-for-help>` so we can help you
 figure it out.
 
-If you like, this might be a good time :ref:`to run the test suite <testing>`.
+If you like, this might be a good time to run the test suite, see :ref:`testing`
+for more details.

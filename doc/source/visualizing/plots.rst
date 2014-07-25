@@ -497,7 +497,7 @@ matplotlib ``figure`` and ``axes`` objects.  We can access these matplotlib prim
    >>> axes = dens_plot.axes
    >>> colorbar_axes = dens_plot.cax
 
-These are the :matplotlib:class:`figure`, and :matplotlib:class:`axes` objects
+These are the :ref:`matplotlib:figure`, and :ref:`matplotlib:axes` objects
 that control the actual drawing of the plot.  Arbitrary plot customizations
 are possible by manipulating these objects.  See :ref:`matplotlib-primitives` for
 an example.

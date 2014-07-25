@@ -38,7 +38,7 @@ mass, and maximum radius. These are the only values that the next step requires.
 Halo Profiling
 --------------
 
-The halo profiler (:ref:`halo_profiling`) is a powerful tool that can analyze
+The halo profiler is a powerful tool that can analyze
 haloes in many ways. It is beneficial to read its documentation to become
 familiar with it before using it.
 For this exercise, only the virial mass of each
@@ -58,7 +58,7 @@ and find the virial mass for each halo, and save it to a text file.
 
 This script limits the output to virialized haloes with mass greater than or
 equal to 1e8 solar masses. If you run into problems, try pre-filtering problem
-haloes (:ref:`halo_profiler_pre_filters`).
+haloes.
 
 Halo Mass Function
 ------------------

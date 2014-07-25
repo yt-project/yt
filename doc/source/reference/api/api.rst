@@ -366,12 +366,12 @@ Loading Data
 .. autosummary::
    :toctree: generated/
 
-   yt.convenience.load
-   yt.convenience.simulation
-   yt.frontends.stream.data_structures.load_uniform_grid
-   yt.frontends.stream.data_structures.load_amr_grids
-   yt.frontends.stream.data_structures.load_particles
-   yt.frontends.stream.data_structures.load_hexahedral_mesh
+   ~yt.convenience.load
+   ~yt.convenience.simulation
+   ~yt.frontends.stream.data_structures.load_uniform_grid
+   ~yt.frontends.stream.data_structures.load_amr_grids
+   ~yt.frontends.stream.data_structures.load_particles
+   ~yt.frontends.stream.data_structures.load_hexahedral_mesh
 
 Derived Datatypes
 -----------------

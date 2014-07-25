@@ -156,7 +156,7 @@ Gadget Data
 yt has support for reading Gadget data in both raw binary and HDF5 formats.  It
 is able to access the particles as it would any other particle dataset, and it
 can apply smoothing kernels to the data to produce both quantitative analysis
-and visualization.  See also the section :ref:`loading-sph-data` 
+and visualization. See :ref:`loading-sph-data` for more details.
 
 Gadget data in HDF5 format can be loaded with the ``load`` command:
 
@@ -364,11 +364,12 @@ yt will utilize length, mass and time to set up all other units.
 Tipsy Data
 ----------
 
+See :ref:`tipsy-notebook` and :ref:`loading-sph-data` for more details.
+
 yt also supports loading Tipsy data.  Many of its characteristics are similar
 to how Gadget data is loaded; specifically, it shares its definition of
 indexing and mesh-identification with that described in
-:ref:`particle-indexing-criteria`.  Like with gadget, see 
-:ref:`loading-sph-data for more details`.  
+:ref:`particle-indexing-criteria`.
 
 .. code-block:: python
 
@@ -390,8 +391,6 @@ default units.  The parameters recognized are of this form:
                            'hubble_constant': 0.702}
 
 These will be used set the units, if they are specified.
-
-See :ref:`tipsy-notebook` for more details.
 
 .. _loading-artio-data:
 
@@ -985,7 +984,7 @@ The ``load_particles`` function also accepts the following keyword parameters:
      ``bbox``
        The bounding box for the particle positions.
 
-.. _loading_sph_data:
+.. _loading-sph-data:
 
 SPH Particle Data
 -----------------

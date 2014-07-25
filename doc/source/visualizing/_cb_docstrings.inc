@@ -43,8 +43,9 @@ Clump Finder Callback
    c_min = 10**np.floor(np.log10(data_source['density']).min()  )
    c_max = 10**np.floor(np.log10(data_source['density']).max()+1)
 
-   function = 'self.data[\'density\'].size > 20'
-   master_clump = Clump(data_source, None, 'density', function=function)
+   master_clump = Clump(data_source, 'density')
+   master_clump.add_validator("min_cells", 20)
+
    find_clumps(master_clump, c_min, c_max, 2.0)
    leaf_clumps = get_lowest_clumps(master_clump)
 

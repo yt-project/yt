@@ -141,6 +141,8 @@ note that *center* and *bulk_velocity* need to be :class:`YTArray` objects with 
 Other examples for creating derived fields can be found in the cookbook recipes
 :ref:`cookbook-simple-derived-fields` and :ref:`cookbook-complex-derived-fields`.
 
+.. _derived-field-options:
+
 Field Options
 -------------
 

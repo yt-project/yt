@@ -27,8 +27,7 @@ Requirements
 
 The TPF relies on the Fortran kD-tree that is used
 by the parallel HOP halo finder. The kD-tree is not built by default with yt
-so it must be built by hand. Please follow the instructions on how to build it,
-see :ref:`fkd_setup`.
+so it must be built by hand.
 
 Quick Example
 -------------
