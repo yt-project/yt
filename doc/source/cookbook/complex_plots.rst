@@ -156,7 +156,6 @@ profile it is created from.
 
 .. yt_cookbook:: customized_profile_plot.py
 
-
 Moving a Volume Rendering Camera
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
