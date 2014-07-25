@@ -781,48 +781,42 @@ which we recommend you look at in the following order:
 * :ref:`radio_cubes`
 * :ref:`xray_fits`
 
-.. _loading-pyne-moab-data:
+.. _loading-pyne-data:
 
-PyNE-MOAB Data
---------------
+PyNE Data
+---------
 
-`PyNE <http://pyne.io/>`_ Hex8 meshes are supported by yt and cared for by the PyNE development team
-(`pyne-dev@googlegroups.com <pyne-dev%40googlegroups.com>`_). 
+`PyNE <http://pyne.io/>`_ is an open source nuclear engineering toolkit maintained by the 
+PyNE developement team (`pyne-dev@googlegroups.com <pyne-dev%40googlegroups.com>`_). PyNE
+meshes utilize the Mesh-Oriented datABase `(MOAB) <http://trac.mcs.anl.gov/projects/ITAPS/wiki/MOAB/>`_ 
+and can be Cartesian or tetrahedral. In addition to field data, pyne meshes store pyne Material objects 
+which provide a rich set of capabilities for nuclear engineering tasks. PyNE Cartesian 
+(Hex8) meshes are supported by yt. 
 
-
-To load a pyne mesh:
-
-.. code-block:: python
-
-  from pyne.mesh import Mesh, IMeshTag
-
-  from yt.config import ytcfg; ytcfg["yt","suppressStreamLogging"] = "True"
-  from yt.frontends.moab.api import PyneMoabHex8StaticOutput
-  from yt.visualization.plot_window import SlicePlot
-
-Set up parameters for the mesh:
+To create a pyne mesh:
 
 .. code-block:: python
 
+  from pyne.mesh import Mesh
   num_divisions = 50
-  coords0 = linspace(-6, 6, num_divisions)
-  coords1 = linspace(0, 7, num_divisions)
-  coords2 = linspace(-4, 4, num_divisions)
+  coords = linspace(-1, 1, num_divisions)
+  m = Mesh(structured=True, structured_coords=[coords, coords, coords])
 
-Generate the Hex8 mesh, add data, and convert to a yt dataset using PyneHex8StaticOutput:
+Field data can then be added:
 
-.. code-block:: python 
+.. code-block:: python
 
-  m = Mesh(structured=True, structured_coords=[coords0, coords1, coords2], structured_ordering='zyx')
-  m.neutron_flux = IMeshTag() # iMesh tags are equivalent to yt fields
+  from pyne.mesh import iMeshTag
+  m.neutron_flux = IMeshTag()
   m.neutron_flux[:] = neutron_flux_data # list or numpy array of size num_divisions^3
-  pf = PyneMoabHex8StaticOutput(m)
 
-Any field (tag) data on the mesh can then be viewed just like any other yt dataset!
+Any field data or material data on the mesh can then be viewed just like any other yt dataset!
 
-.. code-block:: python 
+.. code-block:: python
 
-  s = SlicePlot(pf, 'z', 'neutron_flux')
+  import yt
+  pf = yt.frontends.moab.api.PyneMoabHex8StaticOutput(m)
+  s = yt.visualization.plot_window.SlicePlot(pf, 'z', 'neutron_flux')
   s.display()
 
 
