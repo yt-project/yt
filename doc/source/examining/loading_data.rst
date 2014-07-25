@@ -786,12 +786,13 @@ which we recommend you look at in the following order:
 PyNE Data
 ---------
 
-`PyNE <http://pyne.io/>`_ is an open source nuclear engineering toolkit maintained by the 
-PyNE developement team (`pyne-dev@googlegroups.com <pyne-dev%40googlegroups.com>`_). PyNE
-meshes utilize the Mesh-Oriented datABase `(MOAB) <http://trac.mcs.anl.gov/projects/ITAPS/wiki/MOAB/>`_ 
-and can be Cartesian or tetrahedral. In addition to field data, pyne meshes store pyne Material objects 
-which provide a rich set of capabilities for nuclear engineering tasks. PyNE Cartesian 
-(Hex8) meshes are supported by yt. 
+`PyNE <http://pyne.io/>`_ is an open source nuclear engineering toolkit
+maintained by the PyNE developement team (`pyne-dev@googlegroups.com
+<pyne-dev%40googlegroups.com>`_). PyNE meshes utilize the Mesh-Oriented datABase
+`(MOAB) <http://trac.mcs.anl.gov/projects/ITAPS/wiki/MOAB/>`_ and can be
+Cartesian or tetrahedral. In addition to field data, pyne meshes store pyne
+Material objects which provide a rich set of capabilities for nuclear
+engineering tasks. PyNE Cartesian (Hex8) meshes are supported by yt.
 
 To create a pyne mesh:
 
@@ -808,7 +809,8 @@ Field data can then be added:
 
   from pyne.mesh import iMeshTag
   m.neutron_flux = IMeshTag()
-  m.neutron_flux[:] = neutron_flux_data # list or numpy array of size num_divisions^3
+  # neutron_flux_data is a list or numpy array of size num_divisions^3
+  m.neutron_flux[:] = neutron_flux_data
 
 Any field data or material data on the mesh can then be viewed just like any other yt dataset!
 
