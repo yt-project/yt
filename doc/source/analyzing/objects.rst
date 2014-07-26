@@ -1,119 +1,143 @@
-.. _using-objects:
+XXX.. _using-objects:
 
-Using and Manipulating Objects and Fields
-=========================================
+Data Objects
+============
+
+What are Data Objects in yt?
+----------------------------
+
+Data objects (also called *Data Containers*) are used in yt as convenience 
+structures for grouping data in logical ways that make sense in the context 
+of the dataset as a whole.  Some of the data objects are geometrical groupings 
+of data (e.g. sphere, region--a 3D box, cylinder, etc.).  Others represent 
+data products derived from your dataset (e.g. slices, streamlines, surfaces).
+Still other data objects group multiple objects together or filter them
+(e.g. data dollection, cut region).  
 
 To generate standard plots, objects rarely need to be directly constructed.
 However, for detailed data inspection as well as hand-crafted derived data,
 objects can be exceptionally useful and even necessary.
 
-.. _types_of_fields:
+For geometric objects, if the shape intersectsXXX
 
-What Types of Fields are There?
--------------------------------
+How to Create an Object
+-----------------------
 
-``yt`` makes a distinction between two types of fields.
-
- * Fields it might expect to find on disk
- * Fields it has to generate in memory
-
-With the 2.3 release of ``yt``, the distinction between these has become more
-clear.  This enables much better specification of which fields are expected to
-exist, and to provide fallbacks for calculating them.  For instance you can now
-say, "temperature" might exist, but if it doesn't, here's how you calculate it.
-This also provides easier means of translating fields between different
-frontends.  For instance, FLASH may refer to the temperature field as "temp"
-while Enzo calls it "temperature".  Translator functions ensure that any
-derived field relying on "temp" or "temperature" works with both output types.
-
-When a field is requested, the dataset object first looks to see if that field
-exists on disk.  If it does not, it then queries the list of code-specific
-derived fields.  If it finds nothing there, it then defaults to examining the
-global set of derived fields.
-
-To add a derived field, which is not expected to necessarily exist on disk, use
-the standard construction:
+To create an object, you usually only need a loaded dataset, the name of 
+the object type, and the relevant parameters for your object.  Here is a common
+example for creating a ``Region`` object that covers all of your data volume.
 
 .. code-block:: python
 
-   add_field("specific_thermal_energy", function=_specific_thermal_energy,
-             units="ergs/g")
+   import yt
+   ds = yt.load("RedshiftOutput0005")
+   ad = ds.all_data()
 
-where ``_specific_thermal_energy`` is a python function that defines the field.
-
-.. _accessing-fields:
-
-Accessing Fields in Objects
----------------------------
-
-``yt`` utilizes load-on-demand objects to represent physical regions in space.
-(see :ref:`how-yt-thinks-about-data`.)  Data objects in ``yt`` all respect the following
-protocol for accessing data:
+Alternatively, we could create a sphere object of radius 1 kpc on location 
+[0.5, 0.5, 0.5] using the dataset quantity 1 kpc:
 
 .. code-block:: python
 
-   my_object["density"]
-
-where ``"density"`` can be any field name and ``"my_object"`` any one of
-the possible data containers listed at :ref:`available-objects`. For
-example, if we wanted to look at the temperature of cells within a
-spherical region of radius 10 kpc, centered at [0.5, 0.5, 0.5] in our
-simulation box, we would create a sphere object with:
-
-.. code-block:: python
-
-   sp = ds.sphere([0.5, 0.5, 0.5], 10.0/ds['kpc'])
-
-and then look at the temperature of its cells within it via:
-
-.. code-block:: python
-
-   print sp["temperature"]
-
-Information about how to create a new type of object can be found in
-:ref:`creating-objects`. The field is returned as a single, flattened
-array without spatial information.  The best mechanism for
-manipulating spatial data is the :class:`~yt.data_objects.data_containers.AMRCoveringGridBase` object.
-
-The full list of fields that are available can be found as a property of the
-Hierarchy or Static Output object that you wish to access.  This property is
-calculated every time the object is instantiated.  The full list of fields that
-have been identified in the output file, which need no processing (besides unit
-conversion) are in the property ``field_list`` and the full list of
-potentially-accessible derived fields is available in the property
-``derived_field_list``.  You can see these by examining the two properties:
-
-.. code-block:: python
-
-   ds = yt.load("my_data")
-   print ds.field_list
-   print ds.derived_field_list
-
-When a field is added, it is added to a container that hangs off of the
-dataset, as well.  All of the field creation options
-(:ref:`derived-field-options`) are accessible through this object:
-
-.. code-block:: python
-
-   ds = yt.load("my_data")
-   print ds.field_info["pressure"].get_units()
-
-This is a fast way to examine the units of a given field, and additionally you
-can use :meth:`yt.utilities.pydot.get_source` to get the source code:
-
-.. code-block:: python
-
-   field = ds.field_info["pressure"]
-   print field.get_source()
+   import yt
+   ds = yt.load("RedshiftOutput0005")
+   sp = ds.sphere([0.5, 0.5, 0.5], ds.quan(1, 'kpc'))
 
 .. _available-objects:
 
 Available Objects
 -----------------
 
-Objects are instantiated by direct access of a index.  Each of the objects
-that can be generated by a index are in fact fully-fledged data objects
-respecting the standard protocol for interaction.
+As noted above, there are numerous types of objects.  Here we group them
+into:
+
+* *Geometric Objects* - Data is selected based on spatial shapes in the dataset
+* *Filtering Objects* - Data is selected based on other field criteria
+* *Collection Objects* - Multiple objects grouped together
+* 
+
+Geometric Objects
+^^^^^^^^^^^^^^^^^
+
+0D
+""
+
+**Point** 
+    Aliased to :class:`~yt.data_objects.data_containers.YTPointBase`    
+    Usage: ``point(coords)``
+    A zero-dimensional point defined by a single cell at specified coordinates.
+
+1D
+""
+
+**Axis-Aligned Ray** (aliased to :class:`~yt.data_objects.data_containers.YTOrthoRayBase`)
+    | Usage: ``ortho_ray()``
+    | A one-dimensional line of data cells stretching through the full domain aligned with one of the x,y,z axes.
+
+**Arbitrary-Aligned Ray** (aliased to :class:`~yt.data_objects.data_containers.YTRayBase`)
+    | Usage: ``ray()``
+    | A one-dimensional line of data cells stretching through the full domain defined by arbitrary start and end coordinates.
+
+2D 
+""
+
+**Axis-Aligned Slice** (aliased to :class:`~yt.data_objects.data_containers.YTSliceBase`)
+    | Usage: ``slice()``
+
+**Arbitrary-Aligned Slice** (aliased to :class:`~yt.data_objects.data_containers.YTCuttingPlaneBase`)
+    | Usage: ``cutting()``
+
+3D
+""
+
+**Disk/Cylinder** (aliased to :class:`~yt.data_objects.data_containers.YTDiskBase`)
+    | Usage: ``disk()``
+
+**Box Region** (aliased to :class:`~yt.data_objects.data_containers.YTRegionBase`)
+    | Usage: ``region()``
+
+**Sphere** (aliased to :class:`~yt.data_objects.data_containers.YTSphereBase`)
+    | Usage: ``sphere()``
+
+**Ellipsoid** (aliased to :class:`~yt.data_objects.data_containers.YTEllipsoidBase`)
+    | Usage: ``ellipsoid()``
+
+**All Data** (aliased to :class:`~yt.data_objects.data_containers.YTRegionBase`)
+    | Usage: ``all_data()``
+
+Filtering and Grouping Objects
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+**Boolean Regions** (Note: not yet implemented in yt 3.0)
+    | Usage: ``boolean()``
+
+**Mesh Field Filter** (aliased to :class:`~yt.data_objects.data_containers.YTCutRegionBase`)
+    | Usage: ``cut_region()``
+
+**Collection of Data Objects** (aliased to :class:`~yt.data_objects.data_containers.YTDataCollectionBase`)
+    | Usage: ``data_collection()``
+
+Data Product Objects
+^^^^^^^^^^^^^^^^^^^^
+
+**Streamline** (aliased to :class:`~yt.data_objects.data_containers.YTStreamlineBase`)
+    | Usage: ``streamline()``
+
+**Projection** (aliased to :class:`~yt.data_objects.data_containers.YTQuadTreeProjBase`)
+    | Usage: ``proj()``
+
+**Fixed-Resolution Region** (aliased to :class:`~yt.data_objects.data_containers.YTCoveringGridBase`)
+    | Usage: ``covering_grid()``
+
+**Fixed-Resolution Region with Smoothing** (aliased to :class:`~yt.data_objects.data_containers.YTSmoothedCoveringGridBase`)
+    | Usage: ``smoothed_covering_grid()``
+
+**Fixed-Resolution Region for Particle Deposition** (aliased to :class:`~yt.data_objects.data_containers.YTArbitraryGridBase `)
+    | Usage: ``arbitrary_grid()``
+
+**Surface** (aliased to :class:`~yt.data_objects.data_containers.YTSurfaceBase`)
+    | Usage: ``surface()``
+
+
 
 The following objects are available, all of which hang off of the index
 object.  To access them, you would do something like this (as for a
@@ -125,7 +149,6 @@ object.  To access them, you would do something like this (as for a
    ds = yt.load("RedshiftOutput0005")
    reg = ds.region([0.5, 0.5, 0.5], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
 
-.. include:: _obj_docstrings.inc
 
 .. _boolean_data_objects:
 
@@ -412,4 +435,70 @@ sphere by name.
 
 This method works for clumps, as well, and the entire clump index will be
 stored and restored upon load.
+
+.. _accessing-fields:
+
+Accessing Fields in Objects
+---------------------------
+
+``yt`` utilizes load-on-demand objects to represent physical regions in space.
+(see :ref:`how-yt-thinks-about-data`.)  Data objects in ``yt`` all respect the following
+protocol for accessing data:
+
+.. code-block:: python
+
+   my_object["density"]
+
+where ``"density"`` can be any field name and ``"my_object"`` any one of
+the possible data containers listed at :ref:`available-objects`. For
+example, if we wanted to look at the temperature of cells within a
+spherical region of radius 10 kpc, centered at [0.5, 0.5, 0.5] in our
+simulation box, we would create a sphere object with:
+
+.. code-block:: python
+
+   sp = ds.sphere([0.5, 0.5, 0.5], 10.0/ds['kpc'])
+
+and then look at the temperature of its cells within it via:
+
+.. code-block:: python
+
+   print sp["temperature"]
+
+Information about how to create a new type of object can be found in
+:ref:`creating-objects`. The field is returned as a single, flattened
+array without spatial information.  The best mechanism for
+manipulating spatial data is the :class:`~yt.data_objects.data_containers.AMRCoveringGridBase` object.
+
+The full list of fields that are available can be found as a property of the
+Hierarchy or Static Output object that you wish to access.  This property is
+calculated every time the object is instantiated.  The full list of fields that
+have been identified in the output file, which need no processing (besides unit
+conversion) are in the property ``field_list`` and the full list of
+potentially-accessible derived fields is available in the property
+``derived_field_list``.  You can see these by examining the two properties:
+
+.. code-block:: python
+
+   ds = yt.load("my_data")
+   print ds.field_list
+   print ds.derived_field_list
+
+When a field is added, it is added to a container that hangs off of the
+dataset, as well.  All of the field creation options
+(:ref:`derived-field-options`) are accessible through this object:
+
+.. code-block:: python
+
+   ds = yt.load("my_data")
+   print ds.field_info["pressure"].get_units()
+
+This is a fast way to examine the units of a given field, and additionally you
+can use :meth:`yt.utilities.pydot.get_source` to get the source code:
+
+.. code-block:: python
+
+   field = ds.field_info["pressure"]
+   print field.get_source()
+
 
