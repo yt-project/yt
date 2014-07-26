@@ -279,6 +279,15 @@ Halo Catalogs
 .. autosummary::
    :toctree: generated/
 
+   ~yt.frontends.halo_catalogs.halo_catalog.data_structures.HaloCatalogHDF5File
+   ~yt.frontends.halo_catalogs.halo_catalog.data_structures.HaloCatalogDataset
+   ~yt.frontends.halo_catalogs.halo_catalog.fields.HaloCatalogFieldInfo
+   ~yt.frontends.halo_catalogs.halo_catalog.io.IOHandlerHaloCatalogHDF5
+   ~yt.frontends.halo_catalogs.owls_subfind.data_structures.OWLSSubfindParticleIndex
+   ~yt.frontends.halo_catalogs.owls_subfind.data_structures.OWLSSubfindHDF5File
+   ~yt.frontends.halo_catalogs.owls_subfind.data_structures.OWLSSubfindDataset
+   ~yt.frontends.halo_catalogs.owls_subfind.fields.OWLSSubfindFieldInfo
+   ~yt.frontends.halo_catalogs.owls_subfind.io.IOHandlerOWLSSubfindHDF5
    ~yt.frontends.halo_catalogs.rockstar.data_structures.RockstarBinaryFile
    ~yt.frontends.halo_catalogs.rockstar.data_structures.RockstarDataset
    ~yt.frontends.halo_catalogs.rockstar.fields.RockstarFieldInfo
@@ -394,20 +403,45 @@ to create these objects in a uniform manner.
    ~yt.data_objects.profiles.Profile3D
    ~yt.data_objects.profiles.create_profile
 
-Halo Finding and Particle Functions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Halo Analysis
+^^^^^^^^^^^^^
 
-Halo finding can be executed using these types.  Here we list the main halo
-finders as well as a few other supplemental objects.
+The ``HaloCatalog`` object is the primary means for performing custom analysis 
+on cosmological halos.  It is also the primary interface for halo finding.
 
-.. rubric:: Halo Finders
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog
+   ~yt.analysis_modules.halo_analysis.halo_finding_methods.HaloFindingMethod
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.HaloCallback
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.halo_sphere
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.sphere_field_max_recenter
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.sphere_bulk_velocity
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.profile
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.save_profiles
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.load_profiles
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.virial_quantities
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.phase_plot
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.delete_attribute
+   ~yt.analysis_modules.halo_analysis.halo_filters.HaloFilter
+   ~yt.analysis_modules.halo_analysis.halo_filters.quantity_value
+   ~yt.analysis_modules.halo_analysis.halo_filters.not_subhalo
+   ~yt.analysis_modules.halo_analysis.halo_quantities.HaloQuantity
+   ~yt.analysis_modules.halo_analysis.halo_quantities.center_of_mass
+   ~yt.analysis_modules.halo_analysis.halo_quantities.bulk_velocity
+
+Halo Finding
+^^^^^^^^^^^^
+
+These provide direct access to the halo finders.  However, it is strongly recommended 
+to use the ``HaloCatalog``.
 
 .. autosummary::
    :toctree: generated/
 
    ~yt.analysis_modules.halo_finding.halo_objects.FOFHaloFinder
    ~yt.analysis_modules.halo_finding.halo_objects.HOPHaloFinder
-   ~yt.analysis_modules.halo_finding.halo_objects.parallelHF
    ~yt.analysis_modules.halo_finding.rockstar.rockstar.RockstarHaloFinder
 
 Two Point Functions
