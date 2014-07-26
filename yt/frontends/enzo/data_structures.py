@@ -738,8 +738,6 @@ class EnzoDataset(Dataset):
         dictionaries.
         """
         # Let's read the file
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         with open(self.parameter_filename, "r") as f:
             line = f.readline().strip() 
             f.seek(0)
@@ -826,6 +824,13 @@ class EnzoDataset(Dataset):
         self.periodicity = ensure_tuple(
             self.parameters["LeftFaceBoundaryCondition"] == 3)
         self.dimensionality = self.parameters["TopGridRank"]
+        if "MetaDataDatasetUUID" in self.parameters:
+            self.unique_identifier = self.parameters["MetaDataDatasetUUID"]
+        elif "CurrentTimeIdentifier" in self.parameters:
+            self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
+        else:
+            self.unique_identifier = \
+                int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         if self.dimensionality > 1:
             self.domain_dimensions = self.parameters["TopGridDimensions"]
             if len(self.domain_dimensions) < 3:

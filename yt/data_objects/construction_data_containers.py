@@ -225,6 +225,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         self.weight_field = weight_field
         self._set_center(center)
         if data_source is None: data_source = self.ds.all_data()
+        for k, v in data_source.field_parameters.items():
+            if k not in self.field_parameters or \
+              self._is_default_field_parameter(k):
+                self.set_field_parameter(k, v)
         self.data_source = data_source
         self.weight_field = weight_field
         self.get_data(field)
@@ -332,12 +336,9 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
                                   registry=self.ds.unit_registry)
             if self.weight_field is None and not self._sum_only:
                 u_obj = Unit(units, registry=self.ds.unit_registry)
-                if u_obj.is_code_unit and input_units != units \
-                    or self.ds.no_cgs_equiv_length:
-                    if units is '':
-                        final_unit = "code_length"
-                    else:
-                        final_unit = "(%s) * code_length" % units
+                if (u_obj.is_code_unit and not u_obj.is_dimensionless) and \
+                  input_units != units or self.ds.no_cgs_equiv_length:
+                    final_unit = "(%s) * code_length" % units
                     self[field].convert_to_units(final_unit)
         for i in data.keys(): self[i] = data.pop(i)
         mylog.info("Projection completed")

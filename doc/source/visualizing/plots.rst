@@ -497,7 +497,7 @@ matplotlib ``figure`` and ``axes`` objects.  We can access these matplotlib prim
    >>> axes = dens_plot.axes
    >>> colorbar_axes = dens_plot.cax
 
-These are the :matplotlib:class:`figure`, and :matplotlib:class:`axes` objects
+These are the :ref:`matplotlib:figure`, and :ref:`matplotlib:axes` objects
 that control the actual drawing of the plot.  Arbitrary plot customizations
 are possible by manipulating these objects.  See :ref:`matplotlib-primitives` for
 an example.
@@ -736,6 +736,8 @@ change the property of a single line, give also the index of the profile.
 :class:`~yt.visualization.profile_plotter.PhasePlot` object.  Much like 1D
 profiles, 2D profiles (phase plots) are best thought of as plotting a
 distribution of points, either taking the average or the accumulation in a bin.
+The default behavior is to average, using the cell mass as the weighting,
+but this behavior can be controlled through the ``weight_field`` parameter.
 For example, to generate a 2D distribution of mass enclosed in density and
 temperature bins, you can do:
 
@@ -749,7 +751,8 @@ temperature bins, you can do:
    plot.save()
 
 If you would rather see the average value of a field as a function of two other
-fields, you can set the ``weight_field`` parameter to ``None``.  This would look
+fields, leave off the ``weight_field`` argument, and it will average by
+the cell mass.  This would look
 something like:
 
 .. python-script::
@@ -757,8 +760,7 @@ something like:
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    my_sphere = ds.sphere("c", (50, "kpc"))
-   plot = yt.PhasePlot(my_sphere, "density", "temperature", ["H_fraction"],
-                       weight_field=None)
+   plot = yt.PhasePlot(my_sphere, "density", "temperature", ["H_fraction"])
    plot.save()
 
 Customizing Phase Plots

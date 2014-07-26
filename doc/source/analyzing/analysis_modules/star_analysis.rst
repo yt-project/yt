@@ -5,6 +5,14 @@ Star Particle Analysis
 .. sectionauthor:: Stephen Skory <sskory@physics.ucsd.edu>
 .. versionadded:: 1.6
 
+.. note:: 
+
+    As of :code:`yt-3.0`, the star particle analysis module is not currently
+    functional.  This functionality is still available in :code:`yt-2.x`.  If
+    you would like to use these features in :code:`yt-3.x`, help is needed to
+    port them over.  Contact the yt-users mailing list if you are interested in
+    doing this.
+
 This document describes tools in yt for analyzing star particles.
 The Star Formation Rate tool bins stars by time to produce star formation
 statistics over several metrics.

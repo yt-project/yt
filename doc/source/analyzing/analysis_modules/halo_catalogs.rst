@@ -8,7 +8,7 @@ together into a single framework. This framework is substantially
 different from the limited framework included in yt-2.x and is only 
 backwards compatible in that output from old halo finders may be loaded.
 For a direct translation of various halo analysis tasks using yt-2.x
-to yt-3.0 please see :ref:`halo_transition`.
+to yt-3.0 please see :ref:`halo-transition`.
 
 A catalog of halos can be created from any initial dataset given to halo 
 catalog through data_ds. These halos can be found using friends-of-friends,

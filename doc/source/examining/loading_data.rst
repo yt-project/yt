@@ -156,7 +156,7 @@ Gadget Data
 yt has support for reading Gadget data in both raw binary and HDF5 formats.  It
 is able to access the particles as it would any other particle dataset, and it
 can apply smoothing kernels to the data to produce both quantitative analysis
-and visualization.  See also the section :ref:`loading-sph-data` 
+and visualization. See :ref:`loading-sph-data` for more details.
 
 Gadget data in HDF5 format can be loaded with the ``load`` command:
 
@@ -364,11 +364,12 @@ yt will utilize length, mass and time to set up all other units.
 Tipsy Data
 ----------
 
+See :ref:`tipsy-notebook` and :ref:`loading-sph-data` for more details.
+
 yt also supports loading Tipsy data.  Many of its characteristics are similar
 to how Gadget data is loaded; specifically, it shares its definition of
 indexing and mesh-identification with that described in
-:ref:`particle-indexing-criteria`.  Like with gadget, see 
-:ref:`loading-sph-data for more details`.  
+:ref:`particle-indexing-criteria`.
 
 .. code-block:: python
 
@@ -390,11 +391,6 @@ default units.  The parameters recognized are of this form:
                            'hubble_constant': 0.702}
 
 These will be used set the units, if they are specified.
-
-Using yt to view and analyze Tipsy outputs from Gasoline
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-.. notebook:: tipsy_and_yt.ipynb
 
 .. _loading-artio-data:
 
@@ -785,20 +781,52 @@ which we recommend you look at in the following order:
 * :ref:`radio_cubes`
 * :ref:`xray_fits`
 
-.. _loading-moab-data:
-
-MOAB Data
----------
-
 .. _loading-pyne-data:
 
 PyNE Data
 ---------
 
+`PyNE <http://pyne.io/>`_ is an open source nuclear engineering toolkit
+maintained by the PyNE developement team (`pyne-dev@googlegroups.com
+<pyne-dev%40googlegroups.com>`_). PyNE meshes utilize the Mesh-Oriented datABase
+`(MOAB) <http://trac.mcs.anl.gov/projects/ITAPS/wiki/MOAB/>`_ and can be
+Cartesian or tetrahedral. In addition to field data, pyne meshes store pyne
+Material objects which provide a rich set of capabilities for nuclear
+engineering tasks. PyNE Cartesian (Hex8) meshes are supported by yt.
+
+To create a pyne mesh:
+
+.. code-block:: python
+
+  from pyne.mesh import Mesh
+  num_divisions = 50
+  coords = linspace(-1, 1, num_divisions)
+  m = Mesh(structured=True, structured_coords=[coords, coords, coords])
+
+Field data can then be added:
+
+.. code-block:: python
+
+  from pyne.mesh import iMeshTag
+  m.neutron_flux = IMeshTag()
+  # neutron_flux_data is a list or numpy array of size num_divisions^3
+  m.neutron_flux[:] = neutron_flux_data
+
+Any field data or material data on the mesh can then be viewed just like any other yt dataset!
+
+.. code-block:: python
+
+  import yt
+  pf = yt.frontends.moab.data_structures.PyneMoabHex8Dataset(m)
+  s = yt.SlicePlot(pf, 'z', 'neutron_flux')
+  s.display()
+
+
 Generic Array Data
 ------------------
 
-See :ref:`loading-numpy-array` for more detail.
+See :ref:`loading-numpy-array` and
+:meth:`~yt.frontends.stream.data_structures.load_uniform_grid` for more detail.
 
 Even if your data is not strictly related to fields commonly used in
 astrophysical codes or your code is not supported yet, you can still feed it to
@@ -851,7 +879,8 @@ arrays. If no particle arrays are supplied then ``number_of_particles`` is assum
 Generic AMR Data
 ----------------
 
-See :ref:`loading-numpy-array` for more detail.
+See :ref:`loading-numpy-array` and
+:meth:`~yt.frontends.sph.data_structures.load_amr_grids` for more detail.
 
 It is possible to create native ``yt`` dataset from Python's dictionary
 that describes set of rectangular patches of data of possibly varying
@@ -903,21 +932,72 @@ setting the ``number_of_particles`` key to each ``grid``'s dict:
 Generic Particle Data
 ---------------------
 
-.. notebook:: Loading_Generic_Particle_Data.ipynb
+See :ref:`generic-particle-data` and
+:meth:`~yt.frontends.stream.data_structures.load_particles` for more detail.
 
-.. _loading_sph_data:
+You can also load generic particle data using the same ``stream`` functionality
+discussed above to load in-memory grid data.  For example, if your particle
+positions and masses are stored in ``positions`` and ``massess``, a
+vertically-stacked array of particle x,y, and z positions, and a 1D array of
+particle masses respectively, you would load them like this:
+
+.. code-block:: python
+
+    import yt
+
+    data = dict(particle_position=positions, particle_mass=masses)
+    ds = yt.load_particles(data)
+
+You can also load data using 1D x, y, and z position arrays:
+
+.. code-block:: python
+
+    import yt
+
+    data = dict(particle_position_x=posx,
+                particle_position_y=posy,
+                particle_position_z=posz,
+                particle_mass=masses)
+    ds = yt.load_particles(data)
+
+The ``load_particles`` function also accepts the following keyword parameters:
+
+    ``length_unit``
+      The units used for particle positions.
+
+     ``mass_unit``
+       The units of the particle masses.
+
+     ``time_unit``
+       The units used to represent times. This is optional and is only used if 
+       your data contains a ``creation_time`` field or a ``particle_velocity`` field.
+
+     ``velocity_unit``
+       The units used to represent velocities.  This is optional and is only used
+       if you supply a velocity field.  If this is not supplied, it is inferred from
+       the length and time units.
+
+     ``bbox``
+       The bounding box for the particle positions.
+
+.. _loading-sph-data:
 
 SPH Particle Data
 -----------------
-For all of the SPH frontends, yt uses a cython-based SPH to created deposit
-mesh fields from individual particle fields.  This uses a standard M4 smoothing
-kernel and the ``SmoothingLength`` field to calculate SPH sums, filling in the
-mesh fields.  This gives you the ability to both track individual particles
-(useful for tasks like following contiguous clouds of gas that would be require
-a clump finder in grid data) as well as doing standard grid-based analysis.
-The ``SmoothingLength`` variable is also useful for determining which particles
+
+For all of the SPH frontends, yt uses cython-based SPH smoothing onto an
+in-memory octree to create deposited mesh fields from individual SPH particle
+fields.
+
+This uses a standard M4 smoothing kernel and the ``smoothing_length``
+field to calculate SPH sums, filling in the mesh fields.  This gives you the
+ability to both track individual particles (useful for tasks like following
+contiguous clouds of gas that would be require a clump finder in grid data) as
+well as doing standard grid-based analysis (i.e. slices, projections, and profiles).
+
+The ``smoothing_length`` variable is also useful for determining which particles
 can interact with each other, since particles more distant than twice the
 smoothing length do not typically see each other in SPH simulations.  By
-changing the value of the ``SmoothingLength`` and then re-depositing particles
+changing the value of the ``smoothing_length`` and then re-depositing particles
 onto the grid, you can also effectively mimic what your data would look like at
 lower resolution.

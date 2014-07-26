@@ -5,6 +5,14 @@ Two Point Functions
 .. sectionauthor:: Stephen Skory <sskory@physics.ucsd.edu>
 .. versionadded:: 1.7
 
+.. note:: 
+
+    As of :code:`yt-3.0`, the two point function analysis module is not
+    currently functional.  This functionality is still available in
+    :code:`yt-2.x`.  If you would like to use these features in :code:`yt-3.x`,
+    help is needed to port them over.  Contact the yt-users mailing list if you
+    are interested in doing this.
+
 The Two Point Functions framework (TPF) is capable of running several
 multi-dimensional two point functions simultaneously on a dataset using
 memory and workload parallelism.
@@ -19,8 +27,7 @@ Requirements
 
 The TPF relies on the Fortran kD-tree that is used
 by the parallel HOP halo finder. The kD-tree is not built by default with yt
-so it must be built by hand. Please follow the instructions on how to build it,
-see :ref:`fkd_setup`.
+so it must be built by hand.
 
 Quick Example
 -------------

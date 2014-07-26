@@ -59,11 +59,13 @@ repository and invoking ``nosetests``:
    $ cd $YT_HG
    $ nosetests
 
+where ``$YT_HG`` is the path to the root of the yt mercurial repository.
+
 If you want to specify a specific unit test to run (and not run the entire
 suite), you can do so by specifying the path of the test relative to the
-``$YT_DEST/src/yt-hg/yt`` directory -- note that you strip off one ``yt`` more
-than you normally would!  For example, if you want to run the
-plot_window tests, you'd run:
+``$YT_HG/yt`` directory -- note that you strip off one ``yt`` more than you
+normally would!  For example, if you want to run the plot_window tests, you'd
+run:
 
 .. code-block:: bash
 
@@ -172,7 +174,7 @@ optionally invoke nose using the ``nosetests`` command line interface:
    $ nosetests --with-answer-testing
 
 In either case, the current gold standard results will be downloaded from the
-amazon cloud and compared to what is generated locally.  The results from a
+rackspace cloud and compared to what is generated locally.  The results from a
 nose testing session are pretty straightforward to understand, the results for
 each test are printed directly to STDOUT. If a test passes, nose prints a
 period, F if a test fails, and E if the test encounters an exception or errors

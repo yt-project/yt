@@ -35,6 +35,11 @@ The basic procedure is as follows:
 We'll demonstrate the functionality on a realistic dataset of a galaxy
 cluster to get you started.
 
+.. note::
+
+  Currently, the ``photon_simulator`` analysis module only works with grid-based
+  data.
+  
 Creating an X-ray observation of a dataset on disk
 ++++++++++++++++++++++++++++++++++++++++++++++++++
 

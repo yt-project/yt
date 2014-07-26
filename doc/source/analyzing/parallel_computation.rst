@@ -84,6 +84,7 @@ in the simulation and then makes a plot of the projected density:
 
    import yt
    yt.enable_parallelism()
+   
    ds = yt.load("RD0035/RedshiftOutput0035")
    v, c = ds.find_max("density")
    print v, c
@@ -125,6 +126,8 @@ so:
 .. code-block:: python
 
    import yt
+   yt.enable_parallelism()
+
    ds = yt.load("RD0035/RedshiftOutput0035")
    v, c = ds.find_max("density")
    p = yt.ProjectionPlot(ds, "x", "density")
@@ -143,6 +146,7 @@ how to use it:
 .. code-block:: python
 
    import yt
+   yt.enable_parallelism()
 
    def print_and_save_plot(v, c, plot, print=True):
        if print:
@@ -216,6 +220,7 @@ processors (or cores).  Please see this heavily-commented example:
    
    # As always...
    import yt
+   yt.enable_parallelism()
    
    import glob
    
@@ -314,6 +319,8 @@ whereas parallel=True will run with Nprocs workgroups.
 .. code-block:: python
 
    import yt
+   yt.enable_parallelism()
+
    ts = yt.DatasetSeries("DD*/output_*", parallel = 4)
    
    for ds in ts.piter():
@@ -477,6 +484,8 @@ Additional Tips
     
        import yt
        import time
+
+       yt.enable_parallelism()
 
        ds = yt.load("DD0152")
        t0 = time.time()

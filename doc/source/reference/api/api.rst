@@ -1,3 +1,5 @@
+.. _api-reference:
+
 API Reference
 =============
 
@@ -364,12 +366,12 @@ Loading Data
 .. autosummary::
    :toctree: generated/
 
-   yt.convenience.load
-   yt.convenience.simulation
-   yt.frontends.stream.data_structures.load_uniform_grid
-   yt.frontends.stream.data_structures.load_amr_grids
-   yt.frontends.stream.data_structures.load_particles
-   yt.frontends.stream.data_structures.load_hexahedral_mesh
+   ~yt.convenience.load
+   ~yt.convenience.simulation
+   ~yt.frontends.stream.data_structures.load_uniform_grid
+   ~yt.frontends.stream.data_structures.load_amr_grids
+   ~yt.frontends.stream.data_structures.load_particles
+   ~yt.frontends.stream.data_structures.load_hexahedral_mesh
 
 Derived Datatypes
 -----------------
@@ -407,44 +409,6 @@ finders as well as a few other supplemental objects.
    ~yt.analysis_modules.halo_finding.halo_objects.HOPHaloFinder
    ~yt.analysis_modules.halo_finding.halo_objects.parallelHF
    ~yt.analysis_modules.halo_finding.rockstar.rockstar.RockstarHaloFinder
-
-You can also operate on the Halo and HAloList objects themselves:
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.analysis_modules.halo_finding.halo_objects.Halo
-   ~yt.analysis_modules.halo_finding.halo_objects.HaloList
-   ~yt.analysis_modules.halo_finding.halo_objects.HOPHalo
-   ~yt.analysis_modules.halo_finding.halo_objects.RockstarHalo
-   ~yt.analysis_modules.halo_finding.halo_objects.parallelHOPHalo
-   ~yt.analysis_modules.halo_finding.halo_objects.FOFHalo
-   ~yt.analysis_modules.halo_finding.halo_objects.LoadedHalo
-   ~yt.analysis_modules.halo_finding.halo_objects.TextHalo
-   ~yt.analysis_modules.halo_finding.halo_objects.RockstarHaloList
-   ~yt.analysis_modules.halo_finding.halo_objects.HOPHaloList
-   ~yt.analysis_modules.halo_finding.halo_objects.FOFHaloList
-   ~yt.analysis_modules.halo_finding.halo_objects.LoadedHaloList
-   ~yt.analysis_modules.halo_finding.halo_objects.TextHaloList
-   ~yt.analysis_modules.halo_finding.halo_objects.parallelHOPHaloList
-
-There are also functions for loading halos from disk:
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.analysis_modules.halo_finding.halo_objects.LoadHaloes
-   ~yt.analysis_modules.halo_finding.halo_objects.LoadTextHaloes
-   ~yt.analysis_modules.halo_finding.halo_objects.LoadRockstarHalos
-
-You can use Halo catalogs generated externally as well:
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.analysis_modules.halo_merger_tree.enzofof_merger_tree.HaloCatalog
-   ~yt.analysis_modules.halo_merger_tree.enzofof_merger_tree.EnzoFOFMergerTree
-   ~yt.analysis_modules.halo_merger_tree.enzofof_merger_tree.plot_halo_evolution
 
 Two Point Functions
 ^^^^^^^^^^^^^^^^^^^

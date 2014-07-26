@@ -436,7 +436,7 @@ def assign_particle_data(ds, pdata) :
         pts = MatchPointsToGrids(grid_tree, len(x), x, y, z)
         particle_grid_inds = pts.find_points_in_tree()
         idxs = np.argsort(particle_grid_inds)
-        particle_grid_count = np.bincount(particle_grid_inds,
+        particle_grid_count = np.bincount(particle_grid_inds.astype("intp"),
                                           minlength=num_grids)
         particle_indices = np.zeros(num_grids + 1, dtype='int64')
         if num_grids > 1 :
@@ -498,7 +498,7 @@ def unitify_data(data):
     for field in data:
         if isinstance(field, tuple): 
             new_field = field
-        elif len(data[field].shape) == 1:
+        elif len(data[field].shape) in (1, 2):
             new_field = ("io", field)
         elif len(data[field].shape) == 3:
             new_field = ("gas", field)

@@ -372,7 +372,7 @@ Version 2.2
  * “mapserver” for in-browser, Google Maps-style slice and projection
    visualization (see :ref:`mapserver`)
  * Many bug fixes and performance improvements
- * Halo loader (see :ref:`load_haloes`)
+ * Halo loader
 
 Version 2.1
 -----------

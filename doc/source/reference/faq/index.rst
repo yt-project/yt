@@ -196,33 +196,10 @@ this automatically by running:
 
 .. code-block:: bash
 
-    cd $YT_DEST/src/yt-hg
+    cd $YT_HG
     python setup.py develop
 
-
-Unresolved Installation Problem on OSX 10.6
--------------------------------------------
-When installing on some instances of OSX 10.6, a few users have noted a failure
-when yt tries to build with OpenMP support:
-
-    Symbol not found: _GOMP_barrier
-        Referenced from: <YT_DEST>/src/yt-hg/yt/utilities/lib/grid_traversal.so
-
-        Expected in: dynamic lookup
-
-To resolve this, please make a symbolic link:
-
-.. code-block:: bash
-
-  $ ln -s /usr/local/lib/x86_64 <YT_DEST>/lib64
-
-where ``<YT_DEST>`` is replaced by the path to the root of the directory
-containing the yt install, which will usually be ``yt-<arch>``. After doing so, 
-you should be able to cd to <YT_DEST>/src/yt-hg and run:
-
-.. code-block:: bash
-
-  $ python setup.py install
+where ``$YT_HG`` is the path to the yt mercurial repository.
 
 .. _plugin-file:
 

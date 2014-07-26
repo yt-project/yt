@@ -17,7 +17,7 @@ General Overview
 In order to run this extension on a dataset, the haloes need to be located
 (using HOP, FOF or Parallel HOP, see :ref:`halo_finding`),
 and their virial masses determined using the
-HaloProfiler (see :ref:`halo_profiling`).
+HaloProfiler.
 Please see the step-by-step how-to which puts these steps together
 (:ref:`hmf_howto`).
 If an optional analytical fit is desired, the correct initial

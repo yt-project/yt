@@ -194,6 +194,15 @@ in different regions of the code.
 
 .. yt_cookbook:: rendering_with_box_and_grids.py
 
+Volume Rendering with Annotation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This recipe demonstrates how to write the simulation time, show an
+axis triad indicating the direction of the coordinate system, and show
+the transfer function on a volume rendering.
+
+.. yt_cookbook:: vol-annotated.py
+
 Plotting Streamlines
 ~~~~~~~~~~~~~~~~~~~~
 

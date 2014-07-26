@@ -58,6 +58,8 @@ serial the operation ``for pf in ts:`` would also have worked identically.
 
 .. yt_cookbook:: time_series.py
 
+.. _cookbook-simple-derived-fields:
+
 Simple Derived Fields
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -65,6 +67,8 @@ This recipe demonstrates how to create a simple derived field,
 thermal_energy_density, and then generate a projection from it.
 
 .. yt_cookbook:: derived_field.py
+
+.. _cookbook-complex-derived-fields:
 
 Complex Derived Fields
 ~~~~~~~~~~~~~~~~~~~~~~
