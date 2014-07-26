@@ -22,7 +22,10 @@ Annotate Triangle Facets Callback
    s = yt.SlicePlot(pf, 'z', ('moab','TALLY_TAG'))
 
    #get triangle vertices from file (in this case hdf5)
-   f = h5py.File("mcnp_n_impr_fluka.h5m", "r")
+
+   #setup file path for yt test directory
+   filename = os.path.join(ytcfg.get("yt", "test_data_dir"), "MoabTest/mcnp_n_impr_fluka.h5m")
+   f = h5py.File(filename, "r")
    coords = f["/tstt/nodes/coordinates"][:]
    conn = f["/tstt/elements/Tri3/connectivity"][:]
    points = coords[conn-1]
