@@ -67,7 +67,7 @@ Please refer to ``setuptools`` documentation for the additional options.
 If you will be modifying yt, you can also make the clone of the yt mercurial
 repository the "active" installed copy:
 
-..code-block:: bash
+.. code-block:: bash
 
   hg clone https://bitbucket.org/yt_analysis/yt
   cd yt
