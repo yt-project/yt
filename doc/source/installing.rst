@@ -230,8 +230,22 @@ the official repo:
   hg update yt
   python setup.py install --user
 
-This will install yt into ``$HOME/.local/lib64/python2.7/site-packages``.
-Please refer to ``setuptools`` documentation for the additional options.
+.. note::
+
+  If you maintain your own python installation separate from the OS-level python
+  installation, you can leave off ``--user --prefix=``, although you might need
+  ``sudo`` depending on where python is installed. See _`This StackOverflow
+  discussion
+  <http://stackoverflow.com/questions/4495120/combine-user-with-prefix-error-with-setup-py-install>`
+  if you are curious why ``--prefix=`` is neccessary on systems.
+
+This will install yt into a folder in your home directory
+(``$HOME/.local/lib64/python2.7/site-packages`` on Linux,
+``$HOME/Library/Python/2.7/lib/python/site-packages/`` on OSX) Please refer to
+the ``setuptools`` documentation for the additional options.
+
+If you choose this installation method, you do not need to run any activation
+script since this will install yt into your global python environment.
 
 If you will be modifying yt, you can also make the clone of the yt mercurial
 repository the "active" installed copy:
@@ -243,8 +257,9 @@ repository the "active" installed copy:
   hg update yt
   python setup.py develop --user
 
-If you choose this installation method, you do not need to run any activation
-script since this will install yt into your global python environment.
+As above, you can leave off ``--user`` if you want to install yt into the default
+package install path.  If you do not have write access for this location, you
+might need to use ``sudo``.
 
 Keeping yt Updated via Mercurial
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
