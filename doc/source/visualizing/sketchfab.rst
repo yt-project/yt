@@ -33,10 +33,10 @@ value.  For example:
 
 .. code-block:: python
 
-   from yt.mods import *
-   pf = load("/data/workshop2012/IsolatedGalaxy/galaxy0030/galaxy0030")
-   sphere = pf.sphere("max", (1.0, "mpc"))
-   surface = pf.surface(sphere, "density", 1e-27)
+   import yt
+   ds = yt.load("/data/workshop2012/IsolatedGalaxy/galaxy0030/galaxy0030")
+   sphere = ds.sphere("max", (1.0, "mpc"))
+   surface = ds.surface(sphere, "density", 1e-27)
 
 This object, ``surface``, can now be queried for values on the surface.  For
 instance:
@@ -92,15 +92,15 @@ Now you can run a script like this:
 
 .. code-block:: python
 
-   from yt.mods import *
-   pf = load("redshift0058")
-   dd = pf.sphere("max", (200, "kpc"))
+   import yt
+   ds = yt.load("redshift0058")
+   dd = ds.sphere("max", (200, "kpc"))
    rho = 5e-27
 
-   bounds = [(dd.center[i] - 100.0/pf['kpc'],
-              dd.center[i] + 100.0/pf['kpc']) for i in range(3)]
+   bounds = [(dd.center[i] - 100.0/ds['kpc'],
+              dd.center[i] + 100.0/ds['kpc']) for i in range(3)]
 
-   surf = pf.surface(dd, "density", rho)
+   surf = ds.surface(dd, "density", rho)
 
    upload_id = surf.export_sketchfab(
        title = "RD0058 - 5e-27",
@@ -144,16 +144,16 @@ galaxy simulation:
 
 .. code-block:: python
 
-   from yt.mods import *
+   import yt
 
-   pf = load("/data/workshop2012/IsolatedGalaxy/galaxy0030/galaxy0030")
+   ds = yt.load("/data/workshop2012/IsolatedGalaxy/galaxy0030/galaxy0030")
    rho = [2e-27, 1e-27]
    trans = [1.0, 0.5]
    filename = './surfaces'
 
-   sphere = pf.sphere("max", (1.0, "mpc"))
+   sphere = ds.sphere("max", (1.0, "mpc"))
    for i,r in enumerate(rho):
-       surf = pf.surface(sphere, 'density', r)
+       surf = ds.surface(sphere, 'density', r)
        surf.export_obj(filename, transparency = trans[i], color_field='temperature', plot_index = i)
 
 The calling sequence is fairly similar to the ``export_ply`` function
@@ -216,22 +216,22 @@ to output one more type of variable on your surfaces.  For example:
 
 .. code-block:: python
 
-   from yt.mods import *
+   import yt
 
-   pf = load("/data/workshop2012/IsolatedGalaxy/galaxy0030/galaxy0030")
+   ds = yt.load("/data/workshop2012/IsolatedGalaxy/galaxy0030/galaxy0030")
    rho = [2e-27, 1e-27]
    trans = [1.0, 0.5]
    filename = './surfaces'
 
-   def _Emissivity(field, data):
+   def emissivity(field, data):
        return (data['density']*data['density']*np.sqrt(data['temperature']))
-   add_field("Emissivity", function=_Emissivity, units=r"\rm{g K}/\rm{cm}^{6}")
+   add_field("emissivity", function=_Emissivity, units=r"g*K/cm**6")
 
-   sphere = pf.sphere("max", (1.0, "mpc"))
+   sphere = ds.sphere("max", (1.0, "mpc"))
    for i,r in enumerate(rho):
-       surf = pf.surface(sphere, 'density', r)
+       surf = ds.surface(sphere, 'density', r)
        surf.export_obj(filename, transparency = trans[i],
-                       color_field='temperature', emit_field = 'Emissivity',
+                       color_field='temperature', emit_field = 'emissivity',
 		       plot_index = i)
 
 will output the same OBJ and MTL as in our previous example, but it will scale

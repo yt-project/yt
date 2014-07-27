@@ -27,16 +27,18 @@ from nose.tools import assert_true
 from numpy.testing import \
     assert_array_equal, \
     assert_equal, assert_raises, \
-    assert_array_almost_equal_nulp
+    assert_array_almost_equal_nulp, \
+    assert_array_almost_equal
 from numpy import array
 from yt.units.yt_array import \
     YTArray, YTQuantity, \
     unary_operators, binary_operators
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUfuncUnitError
-from yt.testing import fake_random_pf, requires_module
+from yt.testing import fake_random_ds, requires_module
 from yt.funcs import fix_length
-
+from yt.units.unit_symbols import \
+    cm, m, g
 
 def operate_and_compare(a, b, op, answer):
     # Test generator for YTArrays tests
@@ -56,32 +58,46 @@ def test_addition():
     # Same units
     a1 = YTArray([1, 2, 3], 'cm')
     a2 = YTArray([4, 5, 6], 'cm')
+    a3 = [4*cm, 5*cm, 6*cm]
     answer = YTArray([5, 7, 9], 'cm')
 
     yield operate_and_compare, a1, a2, operator.add, answer
     yield operate_and_compare, a2, a1, operator.add, answer
-    yield operate_and_compare, a1, a2, np.add, answer
+    yield operate_and_compare, a1, a3, operator.add, answer
+    yield operate_and_compare, a3, a1, operator.add, answer
     yield operate_and_compare, a2, a1, np.add, answer
+    yield operate_and_compare, a1, a2, np.add, answer
+    yield operate_and_compare, a1, a3, np.add, answer
+    yield operate_and_compare, a3, a1, np.add, answer
 
     # different units
     a1 = YTArray([1, 2, 3], 'cm')
     a2 = YTArray([4, 5, 6], 'm')
+    a3 = [4*m, 5*m, 6*m]
     answer1 = YTArray([401, 502, 603], 'cm')
     answer2 = YTArray([4.01, 5.02, 6.03], 'm')
 
     yield operate_and_compare, a1, a2, operator.add, answer1
     yield operate_and_compare, a2, a1, operator.add, answer2
+    yield operate_and_compare, a1, a3, operator.add, answer1
+    yield operate_and_compare, a3, a1, operator.add, answer1
     yield assert_raises, YTUfuncUnitError, np.add, a1, a2
+    yield assert_raises, YTUfuncUnitError, np.add, a1, a3
 
     # Test dimensionless quantities
     a1 = YTArray([1, 2, 3])
     a2 = array([4, 5, 6])
+    a3 = [4, 5, 6]
     answer = YTArray([5, 7, 9])
 
     yield operate_and_compare, a1, a2, operator.add, answer
     yield operate_and_compare, a2, a1, operator.add, answer
+    yield operate_and_compare, a1, a3, operator.add, answer
+    yield operate_and_compare, a3, a1, operator.add, answer
     yield operate_and_compare, a1, a2, np.add, answer
     yield operate_and_compare, a2, a1, np.add, answer
+    yield operate_and_compare, a1, a3, np.add, answer
+    yield operate_and_compare, a3, a1, np.add, answer
 
     # Catch the different dimensions error
     a1 = YTArray([1, 2, 3], 'm')
@@ -100,34 +116,49 @@ def test_subtraction():
     # Same units
     a1 = YTArray([1, 2, 3], 'cm')
     a2 = YTArray([4, 5, 6], 'cm')
+    a3 = [4*cm, 5*cm, 6*cm]
     answer1 = YTArray([-3, -3, -3], 'cm')
     answer2 = YTArray([3, 3, 3], 'cm')
 
     yield operate_and_compare, a1, a2, operator.sub, answer1
     yield operate_and_compare, a2, a1, operator.sub, answer2
+    yield operate_and_compare, a1, a3, operator.sub, answer1
+    yield operate_and_compare, a3, a1, operator.sub, answer2
     yield operate_and_compare, a1, a2, np.subtract, answer1
     yield operate_and_compare, a2, a1, np.subtract, answer2
+    yield operate_and_compare, a1, a3, np.subtract, answer1
+    yield operate_and_compare, a3, a1, np.subtract, answer2
 
     # different units
     a1 = YTArray([1, 2, 3], 'cm')
     a2 = YTArray([4, 5, 6], 'm')
+    a3 = [4*m, 5*m, 6*m]
     answer1 = YTArray([-399, -498, -597], 'cm')
     answer2 = YTArray([3.99, 4.98, 5.97], 'm')
+    answer3 = YTArray([399, 498, 597], 'cm')
 
     yield operate_and_compare, a1, a2, operator.sub, answer1
     yield operate_and_compare, a2, a1, operator.sub, answer2
+    yield operate_and_compare, a1, a3, operator.sub, answer1
+    yield operate_and_compare, a3, a1, operator.sub, answer3
     yield assert_raises, YTUfuncUnitError, np.subtract, a1, a2
+    yield assert_raises, YTUfuncUnitError, np.subtract, a1, a3
 
     # Test dimensionless quantities
     a1 = YTArray([1, 2, 3])
     a2 = array([4, 5, 6])
+    a3 = [4, 5, 6]
     answer1 = YTArray([-3, -3, -3])
     answer2 = YTArray([3, 3, 3])
 
     yield operate_and_compare, a1, a2, operator.sub, answer1
     yield operate_and_compare, a2, a1, operator.sub, answer2
+    yield operate_and_compare, a1, a3, operator.sub, answer1
+    yield operate_and_compare, a3, a1, operator.sub, answer2
     yield operate_and_compare, a1, a2, np.subtract, answer1
     yield operate_and_compare, a2, a1, np.subtract, answer2
+    yield operate_and_compare, a1, a3, np.subtract, answer1
+    yield operate_and_compare, a3, a1, np.subtract, answer2
 
     # Catch the different dimensions error
     a1 = YTArray([1, 2, 3], 'm')
@@ -146,54 +177,79 @@ def test_multiplication():
     # Same units
     a1 = YTArray([1, 2, 3], 'cm')
     a2 = YTArray([4, 5, 6], 'cm')
+    a3 = [4*cm, 5*cm, 6*cm]
     answer = YTArray([4, 10, 18], 'cm**2')
 
     yield operate_and_compare, a1, a2, operator.mul, answer
     yield operate_and_compare, a2, a1, operator.mul, answer
+    yield operate_and_compare, a1, a3, operator.mul, answer
+    yield operate_and_compare, a3, a1, operator.mul, answer
     yield operate_and_compare, a1, a2, np.multiply, answer
     yield operate_and_compare, a2, a1, np.multiply, answer
+    yield operate_and_compare, a1, a3, np.multiply, answer
+    yield operate_and_compare, a3, a1, np.multiply, answer
 
     # different units, same dimension
     a1 = YTArray([1, 2, 3], 'cm')
     a2 = YTArray([4, 5, 6], 'm')
+    a3 = [4*m, 5*m, 6*m]
     answer1 = YTArray([400, 1000, 1800], 'cm**2')
     answer2 = YTArray([.04, .10, .18], 'm**2')
     answer3 = YTArray([4, 10, 18], 'cm*m')
 
     yield operate_and_compare, a1, a2, operator.mul, answer1
     yield operate_and_compare, a2, a1, operator.mul, answer2
+    yield operate_and_compare, a1, a3, operator.mul, answer1
+    yield operate_and_compare, a3, a1, operator.mul, answer2
     yield operate_and_compare, a1, a2, np.multiply, answer3
     yield operate_and_compare, a2, a1, np.multiply, answer3
+    yield operate_and_compare, a1, a3, np.multiply, answer3
+    yield operate_and_compare, a3, a1, np.multiply, answer3
 
     # different dimensions
     a1 = YTArray([1, 2, 3], 'cm')
     a2 = YTArray([4, 5, 6], 'g')
+    a3 = [4*g, 5*g, 6*g]
     answer = YTArray([4, 10, 18], 'cm*g')
 
     yield operate_and_compare, a1, a2, operator.mul, answer
     yield operate_and_compare, a2, a1, operator.mul, answer
+    yield operate_and_compare, a1, a3, operator.mul, answer
+    yield operate_and_compare, a3, a1, operator.mul, answer
     yield operate_and_compare, a1, a2, np.multiply, answer
     yield operate_and_compare, a2, a1, np.multiply, answer
+    yield operate_and_compare, a1, a3, np.multiply, answer
+    yield operate_and_compare, a3, a1, np.multiply, answer
 
     # One dimensionless, one unitful
     a1 = YTArray([1, 2, 3], 'cm')
     a2 = array([4, 5, 6])
+    a3 = [4, 5, 6]
     answer = YTArray([4, 10, 18], 'cm')
 
     yield operate_and_compare, a1, a2, operator.mul, answer
     yield operate_and_compare, a2, a1, operator.mul, answer
+    yield operate_and_compare, a1, a3, operator.mul, answer
+    yield operate_and_compare, a3, a1, operator.mul, answer
     yield operate_and_compare, a1, a2, np.multiply, answer
     yield operate_and_compare, a2, a1, np.multiply, answer
+    yield operate_and_compare, a1, a3, np.multiply, answer
+    yield operate_and_compare, a3, a1, np.multiply, answer
 
     # Both dimensionless quantities
     a1 = YTArray([1, 2, 3])
     a2 = array([4, 5, 6])
+    a3 = [4, 5, 6]
     answer = YTArray([4, 10, 18])
 
     yield operate_and_compare, a1, a2, operator.mul, answer
     yield operate_and_compare, a2, a1, operator.mul, answer
+    yield operate_and_compare, a1, a3, operator.mul, answer
+    yield operate_and_compare, a3, a1, operator.mul, answer
     yield operate_and_compare, a1, a2, np.multiply, answer
     yield operate_and_compare, a2, a1, np.multiply, answer
+    yield operate_and_compare, a1, a3, np.multiply, answer
+    yield operate_and_compare, a3, a1, np.multiply, answer
 
 
 def test_division():
@@ -205,17 +261,23 @@ def test_division():
     # Same units
     a1 = YTArray([1., 2., 3.], 'cm')
     a2 = YTArray([4., 5., 6.], 'cm')
+    a3 = [4*cm, 5*cm, 6*cm]
     answer1 = YTArray([0.25, 0.4, 0.5])
     answer2 = YTArray([4, 2.5, 2])
 
     yield operate_and_compare, a1, a2, operator.div, answer1
     yield operate_and_compare, a2, a1, operator.div, answer2
+    yield operate_and_compare, a1, a3, operator.div, answer1
+    yield operate_and_compare, a3, a1, operator.div, answer2
     yield operate_and_compare, a1, a2, np.divide, answer1
     yield operate_and_compare, a2, a1, np.divide, answer2
+    yield operate_and_compare, a1, a3, np.divide, answer1
+    yield operate_and_compare, a3, a1, np.divide, answer2
 
     # different units, same dimension
     a1 = YTArray([1., 2., 3.], 'cm')
     a2 = YTArray([4., 5., 6.], 'm')
+    a3 = [4*m, 5*m, 6*m]
     answer1 = YTArray([.0025, .004, .005])
     answer2 = YTArray([400, 250, 200])
     answer3 = YTArray([0.25, 0.4, 0.5], 'cm/m')
@@ -223,41 +285,60 @@ def test_division():
 
     yield operate_and_compare, a1, a2, operator.div, answer1
     yield operate_and_compare, a2, a1, operator.div, answer2
+    yield operate_and_compare, a1, a3, operator.div, answer1
+    yield operate_and_compare, a3, a1, operator.div, answer2
     yield operate_and_compare, a1, a2, np.divide, answer3
     yield operate_and_compare, a2, a1, np.divide, answer4
+    yield operate_and_compare, a1, a3, np.divide, answer3
+    yield operate_and_compare, a3, a1, np.divide, answer4
 
     # different dimensions
     a1 = YTArray([1., 2., 3.], 'cm')
     a2 = YTArray([4., 5., 6.], 'g')
+    a3 = [4*g, 5*g, 6*g]
     answer1 = YTArray([0.25, 0.4, 0.5], 'cm/g')
     answer2 = YTArray([4, 2.5, 2], 'g/cm')
 
     yield operate_and_compare, a1, a2, operator.div, answer1
     yield operate_and_compare, a2, a1, operator.div, answer2
+    yield operate_and_compare, a1, a3, operator.div, answer1
+    yield operate_and_compare, a3, a1, operator.div, answer2
     yield operate_and_compare, a1, a2, np.divide, answer1
     yield operate_and_compare, a2, a1, np.divide, answer2
+    yield operate_and_compare, a1, a3, np.divide, answer1
+    yield operate_and_compare, a3, a1, np.divide, answer2
 
     # One dimensionless, one unitful
     a1 = YTArray([1., 2., 3.], 'cm')
     a2 = array([4., 5., 6.])
+    a3 = [4, 5, 6]
     answer1 = YTArray([0.25, 0.4, 0.5], 'cm')
     answer2 = YTArray([4, 2.5, 2], '1/cm')
 
     yield operate_and_compare, a1, a2, operator.div, answer1
     yield operate_and_compare, a2, a1, operator.div, answer2
+    yield operate_and_compare, a1, a3, operator.div, answer1
+    yield operate_and_compare, a3, a1, operator.div, answer2
     yield operate_and_compare, a1, a2, np.divide, answer1
     yield operate_and_compare, a2, a1, np.divide, answer2
+    yield operate_and_compare, a1, a3, np.divide, answer1
+    yield operate_and_compare, a3, a1, np.divide, answer2
 
     # Both dimensionless quantities
     a1 = YTArray([1., 2., 3.])
     a2 = array([4., 5., 6.])
+    a3 = [4, 5, 6]
     answer1 = YTArray([0.25, 0.4, 0.5])
     answer2 = YTArray([4, 2.5, 2])
 
     yield operate_and_compare, a1, a2, operator.div, answer1
     yield operate_and_compare, a2, a1, operator.div, answer2
-    yield operate_and_compare, a1, a2, np.divide, answer1
-    yield operate_and_compare, a2, a1, np.divide, answer2
+    yield operate_and_compare, a1, a3, operator.div, answer1
+    yield operate_and_compare, a3, a1, operator.div, answer2
+    yield operate_and_compare, a1, a3, np.divide, answer1
+    yield operate_and_compare, a3, a1, np.divide, answer2
+    yield operate_and_compare, a1, a3, np.divide, answer1
+    yield operate_and_compare, a3, a1, np.divide, answer2
 
 
 def test_power():
@@ -338,7 +419,9 @@ def test_unit_conversions():
     yield assert_equal, km_in_cm.in_mks(), 1e3
     yield assert_equal, km_in_cm.units, cm_unit
 
+    km_view = km.ndarray_view()
     km.convert_to_units('cm')
+    assert_true(km_view.base is km.base)
 
     yield assert_equal, km, YTQuantity(1, 'km')
     yield assert_equal, km.in_cgs(), 1e5
@@ -346,6 +429,7 @@ def test_unit_conversions():
     yield assert_equal, km.units, cm_unit
 
     km.convert_to_units('kpc')
+    assert_true(km_view.base is km.base)
 
     yield assert_array_almost_equal_nulp, km, YTQuantity(1, 'km')
     yield assert_array_almost_equal_nulp, km.in_cgs(), YTQuantity(1e5, 'cm')
@@ -372,6 +456,49 @@ def test_unit_conversions():
     yield assert_equal, em3.in_mks(), 1e-7
     yield assert_equal, str(em3.in_mks().units), 'kg/(m*s**2)'
     yield assert_equal, str(em3.in_cgs().units), 'g/(cm*s**2)'
+
+def test_temperature_conversions():
+    """
+    Test conversions between various supported temperatue scales.
+
+    Also ensure we only allow compound units with temperature
+    scales that have a proper zero point.
+
+    """
+    from yt.units.unit_object import InvalidUnitOperation
+
+    km = YTQuantity(1, 'km')
+    balmy = YTQuantity(300, 'K')
+    balmy_F = YTQuantity(80.33, 'F')
+    balmy_C = YTQuantity(26.85, 'C')
+    balmy_R = YTQuantity(540, 'R')
+
+    assert_array_almost_equal(balmy.in_units('F'), balmy_F)
+    assert_array_almost_equal(balmy.in_units('C'), balmy_C)
+    assert_array_almost_equal(balmy.in_units('R'), balmy_R)
+
+    balmy_view = balmy.ndarray_view()
+
+    balmy.convert_to_units('F')
+    yield assert_true, balmy_view.base is balmy.base
+    yield assert_array_almost_equal, np.array(balmy), np.array(balmy_F)
+
+    balmy.convert_to_units('C')
+    yield assert_true, balmy_view.base is balmy.base
+    yield assert_array_almost_equal, np.array(balmy), np.array(balmy_C)
+
+    balmy.convert_to_units('R')
+    yield assert_true, balmy_view.base is balmy.base
+    yield assert_array_almost_equal, np.array(balmy), np.array(balmy_R)
+
+    balmy.convert_to_units('F')
+    yield assert_true, balmy_view.base is balmy.base
+    yield assert_array_almost_equal, np.array(balmy), np.array(balmy_F)
+
+    yield assert_raises, InvalidUnitOperation, np.multiply, balmy, km
+
+    # Does CGS convergion from F to K work?
+    yield assert_array_almost_equal, balmy.in_cgs(), YTQuantity(300, 'K')
 
 
 def test_yt_array_yt_quantity_ops():
@@ -425,16 +552,16 @@ def test_fix_length():
     """
     Test fixing the length of an array. Used in spheres and other data objects
     """
-    pf = fake_random_pf(64, nprocs=1, length_unit=10)
-    length = pf.quan(1.0, 'code_length')
-    new_length = fix_length(length, pf=pf)
+    ds = fake_random_ds(64, nprocs=1, length_unit=10)
+    length = ds.quan(1.0, 'code_length')
+    new_length = fix_length(length, ds=ds)
     yield assert_equal, YTQuantity(10, 'cm'), new_length
 
 
 def test_ytarray_pickle():
-    pf = fake_random_pf(64, nprocs=1)
-    test_data = [pf.quan(12.0, 'code_length'),
-                 pf.arr([1, 2, 3], 'code_length')]
+    ds = fake_random_ds(64, nprocs=1)
+    test_data = [ds.quan(12.0, 'code_length'),
+                 ds.arr([1, 2, 3], 'code_length')]
 
     for data in test_data:
         tempf = tempfile.NamedTemporaryFile(delete=False)
@@ -620,7 +747,7 @@ def test_convenience():
 
 
 def test_registry_association():
-    ds = fake_random_pf(64, nprocs=1, length_unit=10)
+    ds = fake_random_ds(64, nprocs=1, length_unit=10)
     a = ds.quan(3, 'cm')
     b = YTQuantity(4, 'm')
     c = ds.quan(6, '')
@@ -662,20 +789,19 @@ def test_astropy():
     yt_arr2 = YTArray.from_astropy(ap_arr)
 
     ap_quan = 10.*_astropy.units.Msun**0.5/(_astropy.units.kpc**3)
-    yt_quan = YTQuantity(10.,"sqrt(Msun)/kpc**3")
+    yt_quan = YTQuantity(10., "sqrt(Msun)/kpc**3")
     yt_quan2 = YTQuantity.from_astropy(ap_quan)
 
     yield assert_array_equal, ap_arr, yt_arr.to_astropy()
-    yield assert_array_equal, yt_arr, YTArray(ap_arr)
+    yield assert_array_equal, yt_arr, YTArray.from_astropy(ap_arr)
     yield assert_array_equal, yt_arr, yt_arr2
 
     yield assert_equal, ap_quan, yt_quan.to_astropy()
-    yield assert_equal, yt_quan, YTQuantity(ap_quan)
+    yield assert_equal, yt_quan, YTQuantity.from_astropy(ap_quan)
     yield assert_equal, yt_quan, yt_quan2
 
-    yield assert_array_equal, yt_arr, YTArray(yt_arr.to_astropy())
-    yield assert_equal, yt_quan, YTQuantity(yt_quan.to_astropy())
-
+    yield assert_array_equal, yt_arr, YTArray.from_astropy(yt_arr.to_astropy())
+    yield assert_equal, yt_quan, YTQuantity.from_astropy(yt_quan.to_astropy())
 
 def test_subclass():
 
@@ -687,6 +813,7 @@ def test_subclass():
     nu = YTASubclass([10, 11, 12], '')
     nda = np.array([3, 4, 5])
     yta = YTArray([6, 7, 8], 'mg')
+    loq = [YTQuantity(6, 'mg'), YTQuantity(7, 'mg'), YTQuantity(8, 'mg')]
     ytq = YTQuantity(4, 'cm')
     ndf = np.float64(3)
 
@@ -695,7 +822,7 @@ def test_subclass():
         assert_isinstance(op(inst2, inst1), compare_class)
 
     for op in (operator.mul, operator.div, operator.truediv):
-        for inst in (b, ytq, ndf, yta, nda):
+        for inst in (b, ytq, ndf, yta, nda, loq):
             yield op_comparison, op, a, inst, YTASubclass
 
         yield op_comparison, op, ytq, nda, YTArray
@@ -705,6 +832,7 @@ def test_subclass():
         yield op_comparison, op, nu, nda, YTASubclass
         yield op_comparison, op, a, b, YTASubclass
         yield op_comparison, op, a, yta, YTASubclass
+        yield op_comparison, op, a, loq, YTASubclass
 
     yield assert_isinstance, a[0], YTQuantity
     yield assert_isinstance, a[:], YTASubclass
@@ -715,7 +843,7 @@ def test_h5_io():
     curdir = os.getcwd()
     os.chdir(tmpdir)
 
-    ds = fake_random_pf(64, nprocs=1, length_unit=10)
+    ds = fake_random_ds(64, nprocs=1, length_unit=10)
 
     warr = ds.arr(np.random.random((256, 256)), 'code_length')
 

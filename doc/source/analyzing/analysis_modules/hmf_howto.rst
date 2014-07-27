@@ -27,8 +27,8 @@ step.
 .. code-block:: python
 
   from yt.mods import *
-  pf = load("data0001")
-  halo_list = HaloFinder(pf)
+  ds = load("data0001")
+  halo_list = HaloFinder(ds)
   halo_list.write_out("HopAnalysis.out")
 
 The only important columns of data in the text file ``HopAnalysis.out``
@@ -38,7 +38,7 @@ mass, and maximum radius. These are the only values that the next step requires.
 Halo Profiling
 --------------
 
-The halo profiler (:ref:`halo_profiling`) is a powerful tool that can analyze
+The halo profiler is a powerful tool that can analyze
 haloes in many ways. It is beneficial to read its documentation to become
 familiar with it before using it.
 For this exercise, only the virial mass of each
@@ -58,7 +58,7 @@ and find the virial mass for each halo, and save it to a text file.
 
 This script limits the output to virialized haloes with mass greater than or
 equal to 1e8 solar masses. If you run into problems, try pre-filtering problem
-haloes (:ref:`halo_profiler_pre_filters`).
+haloes.
 
 Halo Mass Function
 ------------------
@@ -79,8 +79,8 @@ the files.
 
   from yt.mods import *
   from yt.analysis_modules.halo_mass_function.api import *
-  pf = load("data0001")
-  hmf = HaloMassFcn(pf, halo_file="VirialHaloes.out", 
+  ds = load("data0001")
+  hmf = HaloMassFcn(ds, halo_file="VirialHaloes.out", 
   sigma8input=0.9, primordial_index=1., omega_baryon0=0.06,
   fitting_function=4, mass_column=5, num_sigma_bins=200)
   hmf.write_out(prefix='hmf')
@@ -107,9 +107,9 @@ below will run all steps at once.
   from yt.analysis_modules.halo_mass_function.api import *
   
   # If desired, start loop here.
-  pf = load("data0001")
+  ds = load("data0001")
   
-  halo_list = HaloFinder(pf)
+  halo_list = HaloFinder(ds)
   halo_list.write_out("HopAnalysis.out")
   
   hp = HP.HaloProfiler("data0001", halo_list_file='HopAnalysis.out')
@@ -120,7 +120,7 @@ below will run all steps at once.
                 virial_quantities=['TotalMassMsun','RadiusMpc'])
   hp.make_profiles(filename="VirialHaloes.out")
   
-  hmf = HaloMassFcn(pf, halo_file="VirialHaloes.out", 
+  hmf = HaloMassFcn(ds, halo_file="VirialHaloes.out", 
   sigma8input=0.9, primordial_index=1., omega_baryon0=0.06,
   fitting_function=4, mass_column=5, num_sigma_bins=200)
   hmf.write_out(prefix='hmf')

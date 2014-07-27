@@ -186,7 +186,6 @@ class HaloMassFcn(ParallelAnalysisInterface):
                 self.log_mass_min = 5
             if log_mass_max is None:
                 self.log_mass_max = 16
-
         # If we're making the analytic function...
         if self.make_analytic == True:
             # Try to set cosmological parameters from the simulation dataset

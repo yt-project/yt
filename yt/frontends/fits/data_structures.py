@@ -29,6 +29,8 @@ from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.data_objects.static_output import \
     Dataset
+from yt.utilities.file_handler import \
+    FITSFileHandler
 from yt.utilities.io_handler import \
     io_registry
 from .fields import FITSFieldInfo
@@ -44,10 +46,14 @@ from yt.utilities.on_demand_imports import _astropy
 
 lon_prefixes = ["X","RA","GLON"]
 lat_prefixes = ["Y","DEC","GLAT"]
-vel_prefixes = ["V","ENER","FREQ","WAV"]
 delimiters = ["*", "/", "-", "^"]
 delimiters += [str(i) for i in xrange(10)]
 regex_pattern = '|'.join(re.escape(_) for _ in delimiters)
+
+spec_names = {"V":"Velocity",
+              "F":"Frequency",
+              "E":"Energy",
+              "W":"Wavelength"}
 
 field_from_unit = {"Jy":"intensity",
                    "K":"temperature"}
@@ -68,16 +74,16 @@ class FITSHierarchy(GridIndex):
 
     grid = FITSGrid
 
-    def __init__(self,pf,dataset_type='fits'):
+    def __init__(self,ds,dataset_type='fits'):
         self.dataset_type = dataset_type
         self.field_indexes = {}
-        self.parameter_file = weakref.proxy(pf)
-        # for now, the index file is the parameter file!
-        self.index_filename = self.parameter_file.parameter_filename
+        self.dataset = weakref.proxy(ds)
+        # for now, the index file is the dataset!
+        self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
-        self._handle = pf._handle
+        self._handle = ds._handle
         self.float_type = np.float64
-        GridIndex.__init__(self,pf,dataset_type)
+        GridIndex.__init__(self,ds,dataset_type)
 
     def _initialize_data_storage(self):
         pass
@@ -108,7 +114,7 @@ class FITSHierarchy(GridIndex):
             return "dimensionless"
 
     def _ensure_same_dims(self, hdu):
-        ds = self.parameter_file
+        ds = self.dataset
         conditions = [hdu.header["naxis"] != ds.primary_header["naxis"]]
         for i in xrange(ds.naxis):
             nax = "naxis%d" % (i+1)
@@ -119,7 +125,7 @@ class FITSHierarchy(GridIndex):
             return True
 
     def _detect_output_fields(self):
-        ds = self.parameter_file
+        ds = self.dataset
         self.field_list = []
         if ds.events_data:
             for k,v in ds.events_info.items():
@@ -130,25 +136,26 @@ class FITSHierarchy(GridIndex):
                     unit = "code_length"
                 else:
                     unit = v
-                self.parameter_file.field_units[("io",fname)] = unit
+                self.dataset.field_units[("io",fname)] = unit
             return
         self._axis_map = {}
         self._file_map = {}
         self._ext_map = {}
         self._scale_map = {}
+        dup_field_index = {}
         # Since FITS header keywords are case-insensitive, we only pick a subset of
         # prefixes, ones that we expect to end up in headers.
-        known_units = dict([(unit.lower(),unit) for unit in self.pf.unit_registry.lut])
+        known_units = dict([(unit.lower(),unit) for unit in self.ds.unit_registry.lut])
         for unit in known_units.values():
             if unit in prefixable_units:
                 for p in ["n","u","m","c","k"]:
                     known_units[(p+unit).lower()] = p+unit
         # We create a field from each slice on the 4th axis
-        if self.parameter_file.naxis == 4:
-            naxis4 = self.parameter_file.primary_header["naxis4"]
+        if self.dataset.naxis == 4:
+            naxis4 = self.dataset.primary_header["naxis4"]
         else:
             naxis4 = 1
-        for i, fits_file in enumerate(self.parameter_file._fits_files):
+        for i, fits_file in enumerate(self.dataset._handle._fits_files):
             for j, hdu in enumerate(fits_file):
                 if self._ensure_same_dims(hdu):
                     units = self._determine_image_units(hdu.header, known_units)
@@ -160,15 +167,21 @@ class FITSHierarchy(GridIndex):
                         fname = self._guess_name_from_units(units)
                         # When all else fails
                         if fname is None: fname = "image_%d" % (j)
-                    if self.pf.num_files > 1 and fname.startswith("image"):
+                    if self.ds.num_files > 1 and fname.startswith("image"):
                         fname += "_file_%d" % (i)
+                    if ("fits", fname) in self.field_list:
+                        if fname in dup_field_index:
+                            dup_field_index[fname] += 1
+                        else:
+                            dup_field_index[fname] = 1
+                        mylog.warning("This field has the same name as a previously loaded " +
+                                      "field. Changing the name from %s to %s_%d. To avoid " %
+                                      (fname, fname, dup_field_index[fname]) +
+                                      " this, change one of the BTYPE header keywords.")
+                        fname += "_%d" % (dup_field_index[fname])
                     for k in xrange(naxis4):
                         if naxis4 > 1:
                             fname += "_%s_%d" % (hdu.header["CTYPE4"], k+1)
-                        if fname in self.field_list:
-                            mylog.error("You have two fields with the same name. Change one of " +
-                                        "the names in the BTYPE header keyword to distinguish " +
-                                        "them.")
                         self._axis_map[fname] = k
                         self._file_map[fname] = fits_file
                         self._ext_map[fname] = j
@@ -178,7 +191,7 @@ class FITSHierarchy(GridIndex):
                         if "bscale" in hdu.header:
                             self._scale_map[fname][1] = hdu.header["bscale"]
                         self.field_list.append(("fits", fname))
-                        self.parameter_file.field_units[fname] = units
+                        self.dataset.field_units[fname] = units
                         mylog.info("Adding field %s to the list of fields." % (fname))
                         if units == "dimensionless":
                             mylog.warning("Could not determine dimensions for field %s, " % (fname) +
@@ -190,7 +203,7 @@ class FITSHierarchy(GridIndex):
 
         # For line fields, we still read the primary field. Not sure how to extend this
         # For now, we pick off the first field from the field list.
-        line_db = self.parameter_file.line_database
+        line_db = self.dataset.line_database
         primary_fname = self.field_list[0][1]
         for k, v in line_db.iteritems():
             mylog.info("Adding line field: %s at frequency %g GHz" % (k, v))
@@ -198,54 +211,54 @@ class FITSHierarchy(GridIndex):
             self._ext_map[k] = self._ext_map[primary_fname]
             self._axis_map[k] = self._axis_map[primary_fname]
             self._file_map[k] = self._file_map[primary_fname]
-            self.parameter_file.field_units[k] = self.parameter_file.field_units[primary_fname]
+            self.dataset.field_units[k] = self.dataset.field_units[primary_fname]
 
     def _count_grids(self):
-        self.num_grids = self.pf.parameters["nprocs"]
+        self.num_grids = self.ds.parameters["nprocs"]
 
     def _parse_index(self):
         f = self._handle # shortcut
-        pf = self.parameter_file # shortcut
+        ds = self.dataset # shortcut
 
         # If nprocs > 1, decompose the domain into virtual grids
         if self.num_grids > 1:
-            if self.pf.z_axis_decomp:
-                dz = (pf.domain_width/pf.domain_dimensions)[2]
-                self.grid_dimensions[:,2] = np.around(float(pf.domain_dimensions[2])/
+            if self.ds.z_axis_decomp:
+                dz = ds.quan(1.0, "code_length")*ds.spectral_factor
+                self.grid_dimensions[:,2] = np.around(float(ds.domain_dimensions[2])/
                                                             self.num_grids).astype("int")
-                self.grid_dimensions[-1,2] += (pf.domain_dimensions[2] % self.num_grids)
-                self.grid_left_edge[0,2] = pf.domain_left_edge[2]
-                self.grid_left_edge[1:,2] = pf.domain_left_edge[2] + \
+                self.grid_dimensions[-1,2] += (ds.domain_dimensions[2] % self.num_grids)
+                self.grid_left_edge[0,2] = ds.domain_left_edge[2]
+                self.grid_left_edge[1:,2] = ds.domain_left_edge[2] + \
                                             np.cumsum(self.grid_dimensions[:-1,2])*dz
                 self.grid_right_edge[:,2] = self.grid_left_edge[:,2]+self.grid_dimensions[:,2]*dz
-                self.grid_left_edge[:,:2] = pf.domain_left_edge[:2]
-                self.grid_right_edge[:,:2] = pf.domain_right_edge[:2]
-                self.grid_dimensions[:,:2] = pf.domain_dimensions[:2]
+                self.grid_left_edge[:,:2] = ds.domain_left_edge[:2]
+                self.grid_right_edge[:,:2] = ds.domain_right_edge[:2]
+                self.grid_dimensions[:,:2] = ds.domain_dimensions[:2]
             else:
-                bbox = np.array([[le,re] for le, re in zip(pf.domain_left_edge,
-                                                           pf.domain_right_edge)])
-                dims = np.array(pf.domain_dimensions)
+                bbox = np.array([[le,re] for le, re in zip(ds.domain_left_edge,
+                                                           ds.domain_right_edge)])
+                dims = np.array(ds.domain_dimensions)
                 # If we are creating a dataset of lines, only decompose along the position axes
-                if len(pf.line_database) > 0:
-                    dims[pf.vel_axis] = 1
+                if len(ds.line_database) > 0:
+                    dims[ds.spec_axis] = 1
                 psize = get_psize(dims, self.num_grids)
                 gle, gre, shapes, slices = decompose_array(dims, psize, bbox)
-                self.grid_left_edge = self.pf.arr(gle, "code_length")
-                self.grid_right_edge = self.pf.arr(gre, "code_length")
+                self.grid_left_edge = self.ds.arr(gle, "code_length")
+                self.grid_right_edge = self.ds.arr(gre, "code_length")
                 self.grid_dimensions = np.array([shape for shape in shapes], dtype="int32")
                 # If we are creating a dataset of lines, only decompose along the position axes
-                if len(pf.line_database) > 0:
-                    self.grid_left_edge[:,pf.vel_axis] = pf.domain_left_edge[pf.vel_axis]
-                    self.grid_right_edge[:,pf.vel_axis] = pf.domain_right_edge[pf.vel_axis]
-                    self.grid_dimensions[:,pf.vel_axis] = pf.domain_dimensions[pf.vel_axis]
+                if len(ds.line_database) > 0:
+                    self.grid_left_edge[:,ds.spec_axis] = ds.domain_left_edge[ds.spec_axis]
+                    self.grid_right_edge[:,ds.spec_axis] = ds.domain_right_edge[ds.spec_axis]
+                    self.grid_dimensions[:,ds.spec_axis] = ds.domain_dimensions[ds.spec_axis]
         else:
-            self.grid_left_edge[0,:] = pf.domain_left_edge
-            self.grid_right_edge[0,:] = pf.domain_right_edge
-            self.grid_dimensions[0] = pf.domain_dimensions
+            self.grid_left_edge[0,:] = ds.domain_left_edge
+            self.grid_right_edge[0,:] = ds.domain_right_edge
+            self.grid_dimensions[0] = ds.domain_dimensions
 
-        if pf.events_data:
+        if ds.events_data:
             try:
-                self.grid_particle_count[:] = pf.primary_header["naxis2"]
+                self.grid_particle_count[:] = ds.primary_header["naxis2"]
             except KeyError:
                 self.grid_particle_count[:] = 0.0
             self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
@@ -264,20 +277,20 @@ class FITSHierarchy(GridIndex):
 
     def _setup_derived_fields(self):
         super(FITSHierarchy, self)._setup_derived_fields()
-        [self.parameter_file.conversion_factors[field]
+        [self.dataset.conversion_factors[field]
          for field in self.field_list]
         for field in self.field_list:
             if field not in self.derived_field_list:
                 self.derived_field_list.append(field)
 
         for field in self.derived_field_list:
-            f = self.parameter_file.field_info[field]
+            f = self.dataset.field_info[field]
             if f._function.func_name == "_TranslationFunc":
                 # Translating an already-converted field
-                self.parameter_file.conversion_factors[field] = 1.0
+                self.dataset.conversion_factors[field] = 1.0
 
     def _setup_data_io(self):
-        self.io = io_registry[self.dataset_type](self.parameter_file)
+        self.io = io_registry[self.dataset_type](self.dataset)
 
     def _chunk_io(self, dobj, cache = True, local_only = False):
         # local_only is only useful for inline datasets and requires
@@ -303,6 +316,7 @@ class FITSDataset(Dataset):
                  nprocs = None,
                  storage_filename = None,
                  nan_mask = None,
+                 spectral_factor = 1.0,
                  z_axis_decomp = False,
                  line_database = None,
                  line_width = None,
@@ -315,10 +329,13 @@ class FITSDataset(Dataset):
         self.specified_parameters = parameters
 
         self.z_axis_decomp = z_axis_decomp
+        self.spectral_factor = spectral_factor
 
         if line_width is not None:
             self.line_width = YTQuantity(line_width[0], line_width[1])
             self.line_units = line_width[1]
+            mylog.info("For line folding, spectral_factor = 1.0")
+            self.spectral_factor = 1.0
         else:
             self.line_width = None
 
@@ -340,15 +357,12 @@ class FITSDataset(Dataset):
         elif isinstance(nan_mask, dict):
             self.nan_mask = nan_mask
         if isinstance(self.filenames[0], _astropy.pyfits.PrimaryHDU):
-            self._handle = _astropy.pyfits.HDUList(self.filenames[0])
+            self._handle = FITSFileHandler(self.filenames[0])
             fn = "InMemoryFITSImage_%s" % (uuid.uuid4().hex)
         else:
-            self._handle = _astropy.pyfits.open(self.filenames[0],
-                                                memmap=True,
-                                                do_not_scale_image_data=True,
-                                                ignore_blank=True)
+            self._handle = FITSFileHandler(self.filenames[0])
             fn = self.filenames[0]
-        self._fits_files = [self._handle]
+        self._handle._fits_files = [self._handle]
         if self.num_files > 1:
             for fits_file in auxiliary_files:
                 if os.path.exists(fits_file):
@@ -356,9 +370,9 @@ class FITSDataset(Dataset):
                 else:
                     fn = os.path.join(ytcfg.get("yt","test_data_dir"),fits_file)
                 f = _astropy.pyfits.open(fn, memmap=True,
-                                   do_not_scale_image_data=True,
-                                   ignore_blank=True)
-                self._fits_files.append(f)
+                                         do_not_scale_image_data=True,
+                                         ignore_blank=True)
+                self._handle._fits_files.append(f)
 
         if len(self._handle) > 1 and self._handle[1].name == "EVENTS":
             self.events_data = True
@@ -399,12 +413,22 @@ class FITSDataset(Dataset):
             self.events_data = False
             self.first_image = 0
             self.primary_header = self._handle[self.first_image].header
-            self.wcs = _astropy.pywcs.WCS(header=self.primary_header)
             self.naxis = self.primary_header["naxis"]
             self.axis_names = [self.primary_header["ctype%d" % (i+1)]
                                for i in xrange(self.naxis)]
             self.dims = [self.primary_header["naxis%d" % (i+1)]
                          for i in xrange(self.naxis)]
+
+            wcs = _astropy.pywcs.WCS(header=self.primary_header)
+            if self.naxis == 4:
+                self.wcs = _astropy.pywcs.WCS(naxis=3)
+                self.wcs.wcs.crpix = wcs.wcs.crpix[:3]
+                self.wcs.wcs.cdelt = wcs.wcs.cdelt[:3]
+                self.wcs.wcs.crval = wcs.wcs.crval[:3]
+                self.wcs.wcs.cunit = [str(unit) for unit in wcs.wcs.cunit][:3]
+                self.wcs.wcs.ctype = [type for type in wcs.wcs.ctype][:3]
+            else:
+                self.wcs = wcs
 
         self.refine_by = 2
 
@@ -441,11 +465,12 @@ class FITSDataset(Dataset):
         self.time_unit = self.quan(1.0, "s")
         self.velocity_unit = self.quan(1.0, "cm/s")
         if "beam_size" in self.specified_parameters:
+            beam_size = self.specified_parameters["beam_size"]
             beam_size = self.quan(beam_size[0], beam_size[1]).in_cgs().value
         else:
             beam_size = 1.0
         self.unit_registry.add("beam",beam_size,dimensions=dimensions.solid_angle)
-        if self.ppv_data:
+        if self.spec_cube:
             units = self.wcs_2d.wcs.cunit[0]
             if units == "deg": units = "degree"
             if units == "rad": units = "radian"
@@ -520,17 +545,17 @@ class FITSDataset(Dataset):
         self.reversed = False
 
         # Check to see if this data is in some kind of (Lat,Lon,Vel) format
-        self.ppv_data = False
+        self.spec_cube = False
         x = 0
-        for p in lon_prefixes+lat_prefixes+vel_prefixes:
+        for p in lon_prefixes+lat_prefixes+spec_names.keys():
             y = np_char.startswith(self.axis_names[:self.dimensionality], p)
             x += y.sum()
-        if x == self.dimensionality: self._setup_ppv()
+        if x == self.dimensionality: self._setup_spec_cube()
 
-    def _setup_ppv(self):
+    def _setup_spec_cube(self):
 
-        self.ppv_data = True
-        self.geometry = "ppv"
+        self.spec_cube = True
+        self.geometry = "spectral_cube"
 
         end = min(self.dimensionality+1,4)
         if self.events_data:
@@ -556,11 +581,11 @@ class FITSDataset(Dataset):
 
         if self.wcs.naxis > 2:
 
-            self.vel_axis = np.zeros((end-1), dtype="bool")
-            for p in vel_prefixes:
-                self.vel_axis += np_char.startswith(ctypes, p)
-            self.vel_axis = np.where(self.vel_axis)[0][0]
-            self.vel_name = ctypes[self.vel_axis].split("-")[0].lower()
+            self.spec_axis = np.zeros((end-1), dtype="bool")
+            for p in spec_names.keys():
+                self.spec_axis += np_char.startswith(ctypes, p)
+            self.spec_axis = np.where(self.spec_axis)[0][0]
+            self.spec_name = spec_names[ctypes[self.spec_axis].split("-")[0][0]]
 
             self.wcs_2d = _astropy.pywcs.WCS(naxis=2)
             self.wcs_2d.wcs.crpix = self.wcs.wcs.crpix[[self.lon_axis, self.lat_axis]]
@@ -571,44 +596,56 @@ class FITSDataset(Dataset):
             self.wcs_2d.wcs.ctype = [self.wcs.wcs.ctype[self.lon_axis],
                                      self.wcs.wcs.ctype[self.lat_axis]]
 
-            x0 = self.wcs.wcs.crpix[self.vel_axis]
-            dz = self.wcs.wcs.cdelt[self.vel_axis]
-            z0 = self.wcs.wcs.crval[self.vel_axis]
-            self.vel_unit = str(self.wcs.wcs.cunit[self.vel_axis])
-
-            if dz < 0.0:
-                self.reversed = True
-                le = self.dims[self.vel_axis]+0.5
-                re = 0.5
-            else:
-                le = 0.5
-                re = self.dims[self.vel_axis]+0.5
-            self.domain_left_edge[self.vel_axis] = (le-x0)*dz + z0
-            self.domain_right_edge[self.vel_axis] = (re-x0)*dz + z0
-            if self.reversed: dz *= -1
+            self._p0 = self.wcs.wcs.crpix[self.spec_axis]
+            self._dz = self.wcs.wcs.cdelt[self.spec_axis]
+            self._z0 = self.wcs.wcs.crval[self.spec_axis]
+            self.spec_unit = str(self.wcs.wcs.cunit[self.spec_axis])
 
             if self.line_width is not None:
-                self.line_width = self.line_width.in_units(self.vel_unit)
-                self.freq_begin = self.domain_left_edge[self.vel_axis]
-                nz = np.rint(self.line_width.value/dz).astype("int")
-                self.line_width = dz*nz
-                self.domain_left_edge[self.vel_axis] = -self.line_width/2.
-                self.domain_right_edge[self.vel_axis] = self.line_width/2.
-                self.domain_dimensions[self.vel_axis] = nz
-
+                if self._dz < 0.0:
+                    self.reversed = True
+                    le = self.dims[self.spec_axis]+0.5
+                else:
+                    le = 0.5
+                self.line_width = self.line_width.in_units(self.spec_unit)
+                self.freq_begin = (le-self._p0)*self._dz + self._z0
+                # We now reset these so that they are consistent
+                # with the new setup
+                self._dz = np.abs(self._dz)
+                self._p0 = 0.0
+                self._z0 = 0.0
+                nz = np.rint(self.line_width.value/self._dz).astype("int")
+                self.line_width = self._dz*nz
+                self.domain_left_edge[self.spec_axis] = -0.5*float(nz)
+                self.domain_right_edge[self.spec_axis] = 0.5*float(nz)
+                self.domain_dimensions[self.spec_axis] = nz
+            else:
+                if self.spectral_factor == "auto":
+                    self.spectral_factor = float(max(self.domain_dimensions[[self.lon_axis,
+                                                                             self.lat_axis]]))
+                    self.spectral_factor /= self.domain_dimensions[self.spec_axis]
+                    mylog.info("Setting the spectral factor to %f" % (self.spectral_factor))
+                Dz = self.domain_right_edge[self.spec_axis]-self.domain_left_edge[self.spec_axis]
+                self.domain_right_edge[self.spec_axis] = self.domain_left_edge[self.spec_axis] + \
+                                                        self.spectral_factor*Dz
+                self._dz /= self.spectral_factor
+                self._p0 = (self._p0-0.5)*self.spectral_factor + 0.5
         else:
 
             self.wcs_2d = self.wcs
-            self.vel_axis = 2
-            self.vel_name = "z"
-            self.vel_unit = "code length"
+            self.spec_axis = 2
+            self.spec_name = "z"
+            self.spec_unit = "code length"
 
-    def __del__(self):
-        for file in self._fits_files:
-            file.close()
-            del file
-        self._handle.close()
-        del self._handle
+    def spec2pixel(self, spec_value):
+        sv = self.arr(spec_value).in_units(self.spec_unit)
+        return self.arr((sv.v-self._z0)/self._dz+self._p0,
+                        "code_length")
+
+    def pixel2spec(self, pixel_value):
+        pv = self.arr(pixel_value, "code_length")
+        return self.arr((pv.v-self._p0)*self._dz+self._z0,
+                        self.spec_unit)
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):

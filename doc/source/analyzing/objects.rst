@@ -26,40 +26,20 @@ frontends.  For instance, FLASH may refer to the temperature field as "temp"
 while Enzo calls it "temperature".  Translator functions ensure that any
 derived field relying on "temp" or "temperature" works with both output types.
 
-When a field is requested, the parameter file first looks to see if that field
+When a field is requested, the dataset object first looks to see if that field
 exists on disk.  If it does not, it then queries the list of code-specific
 derived fields.  If it finds nothing there, it then defaults to examining the
 global set of derived fields.
 
-To add a field to the list of fields that you know should exist in a particular
-frontend, call the function ``add_frontend_field`` where you replace
-``frontend`` with the name of the frontend.  Below is an example for adding
-``Cooling_Time`` to Enzo:
+To add a derived field, which is not expected to necessarily exist on disk, use
+the standard construction:
 
 .. code-block:: python
 
-   add_enzo_field("Cooling_Time", units=r"\rm{s}",
-                  function=NullFunc,
-                  validators=ValidateDataField("Cooling_Time"))
+   add_field("specific_thermal_energy", function=_specific_thermal_energy,
+             units="ergs/g")
 
-Note that we used the ``NullFunc`` function here.  To add a derived field,
-which is not expected to necessarily exist on disk, use the standard
-construction:
-
-.. code-block:: python
-
-   add_field("thermal_energy", function=_ThermalEnergy,
-             units=r"\rm{ergs}/\rm{g}")
-
-To add a translation from one field to another, use the ``TranslationFunc`` as
-the function for reading the field.  For instance, this code appears in the Nyx
-frontend:
-
-.. code-block:: python
-
-   add_field("density", function=TranslationFunc("density"), take_log=True,
-             units=r"\rm{g} / \rm{cm}^3",
-             projected_units =r"\rm{g} / \rm{cm}^2")
+where ``_specific_thermal_energy`` is a python function that defines the field.
 
 .. _accessing-fields:
 
@@ -82,7 +62,7 @@ simulation box, we would create a sphere object with:
 
 .. code-block:: python
 
-   sp = pf.sphere([0.5, 0.5, 0.5], 10.0/pf['kpc'])
+   sp = ds.sphere([0.5, 0.5, 0.5], 10.0/ds['kpc'])
 
 and then look at the temperature of its cells within it via:
 
@@ -105,25 +85,25 @@ potentially-accessible derived fields is available in the property
 
 .. code-block:: python
 
-   pf = load("my_data")
-   print pf.field_list
-   print pf.derived_field_list
+   ds = yt.load("my_data")
+   print ds.field_list
+   print ds.derived_field_list
 
 When a field is added, it is added to a container that hangs off of the
-parameter file, as well.  All of the field creation options
+dataset, as well.  All of the field creation options
 (:ref:`derived-field-options`) are accessible through this object:
 
 .. code-block:: python
 
-   pf = load("my_data")
-   print pf.field_info["pressure"].get_units()
+   ds = yt.load("my_data")
+   print ds.field_info["pressure"].get_units()
 
 This is a fast way to examine the units of a given field, and additionally you
 can use :meth:`yt.utilities.pydot.get_source` to get the source code:
 
 .. code-block:: python
 
-   field = pf.field_info["pressure"]
+   field = ds.field_info["pressure"]
    print field.get_source()
 
 .. _available-objects:
@@ -141,16 +121,52 @@ object.  To access them, you would do something like this (as for a
 
 .. code-block:: python
 
-   from yt.mods import *
-   pf = load("RedshiftOutput0005")
-   reg = pf.region([0.5, 0.5, 0.5], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
+   import yt
+   ds = yt.load("RedshiftOutput0005")
+   reg = ds.region([0.5, 0.5, 0.5], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0])
 
 .. include:: _obj_docstrings.inc
+
+.. _arbitrary-grid:
+
+Arbitrary Grids
+---------------
+
+The covering grid and smoothed covering grid objects mandate that they be
+exactly aligned with the mesh.  This is a
+holdover from the time when yt was used exclusively for data that came in
+regularly structured grid patches, and does not necessarily work as well for
+data that is composed of discrete objects like particles.  To augment this, the
+:class:`~yt.data_objects.data_containers.YTArbitraryGridBase` object was
+created, which enables construction of meshes (onto which particles can be
+deposited or smoothed) in arbitrary regions.  This eliminates any assumptions
+on yt's part about how the data is organized, and will allow for more
+fine-grained control over visualizations.
+
+An example of creating an arbitrary grid would be to construct one, then query
+the deposited particle density, like so:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("snapshot_010.hdf5")
+
+   obj = ds.arbitrary_grid([0.0, 0.0, 0.0], [0.99, 0.99, 0.99],
+                          dims=[128, 128, 128])
+   print obj["deposit", "all_density"]
+
+While these cannot yet be used as input to projections or slices, slices and
+projections can be taken of the data in them and visualized by hand.
 
 .. _boolean_data_objects:
 
 Combining Objects: Boolean Data Objects
 ---------------------------------------
+
+.. note:: Boolean Data Objects have not yet been ported to yt 3.0 from
+    yt 2.x.  If you are interested in aiding in this port, please contact
+    the yt-dev mailing list.  Until it is ported, this functionality below
+    will not work.
 
 A special type of data object is the *boolean* data object.
 It works only on three-dimensional objects.
@@ -192,9 +208,9 @@ These can be accessed via the ``quantities`` interface, like so:
 
 .. code-block:: python
 
-   pf = load("my_data")
-   dd = pf.h.all_data()
-   dd.quantities["AngularMomentumVector"]()
+   ds = load("my_data")
+   dd = ds.all_data()
+   dd.quantities.angular_momentum_vector()
 
 The following quantities are available via the ``quantities`` interface.
 
@@ -236,19 +252,19 @@ Cutting Objects by Field Values
 -------------------------------
 
 Data objects can be cut by their field values using the ``cut_region`` 
-method.  For example, this could be used to compute the total mass within 
+method.  For example, this could be used to compute the total gas mass within
 a certain temperature range, as in the following example.
 
 .. notebook-cell::
 
-   from yt.mods import *
-   ds = load("enzo_tiny_cosmology/DD0046/DD0046")
+   import yt
+   ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
    ad = ds.all_data()
-   total_mass = ad.quantities.total_mass()
+   total_mass = ad.quantities.total_quantity('cell_mass')
    # now select only gas with 1e5 K < T < 1e7 K.
    new_region = ad.cut_region(['obj["temperature"] > 1e5',
                                'obj["temperature"] < 1e7'])
-   cut_mass = new_region.quantities.total_mass()
+   cut_mass = new_region.quantities.total_quantity('cell_mass')
    print "The fraction of mass in this temperature range is %f." % \
      (cut_mass / total_mass)
 
@@ -263,12 +279,12 @@ it as a data_source to a projection.
 
 .. python-script::
 
-   from yt.mods import *
-   pf = load("enzo_tiny_cosmology/DD0046/DD0046")
-   ad = pf.h.all_data()
+   import yt
+   ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+   ad = ds.all_data()
    new_region = ad.cut_region(['obj["density"] > 1e-29'])
-   plot = ProjectionPlot(pf, "x", "density", weight_field="density",
-                         data_source=new_region)
+   plot = yt.ProjectionPlot(ds, "x", "density", weight_field="density",
+                            data_source=new_region)
    plot.save()
 
 .. _extracting-connected-sets:
@@ -291,7 +307,7 @@ whether or not to conduct it in log space.
 
 .. code-block:: python
 
-   sp = pf.sphere("max", (1.0, 'pc'))
+   sp = ds.sphere("max", (1.0, 'pc'))
    contour_values, connected_sets = sp.extract_connected_sets(
         "density", 3, 1e-30, 1e-20)
 
@@ -306,10 +322,6 @@ objects.  These can be queried just as any other data object.
 
 Extracting Isocontour Information
 ---------------------------------
-.. versionadded:: 2.3
-
-.. warning::
-   This is still beta!
 
 ``yt`` contains an implementation of the `Marching Cubes
 <http://en.wikipedia.org/wiki/Marching_cubes>`_ algorithm, which can operate on
@@ -355,12 +367,12 @@ projections.
 construction of the objects is the difficult part, rather than the generation
 of the data -- this means that you can save out an object as a description of
 how to recreate it in space, but not the actual data arrays affiliated with
-that object.  The information that is saved includes the parameter file off of
+that object.  The information that is saved includes the dataset off of
 which the object "hangs."  It is this piece of information that is the most
 difficult; the object, when reloaded, must be able to reconstruct a parameter
 file from whatever limited information it has in the save file.
 
-To do this, ``yt`` is able to identify parameter files based on a "hash"
+To do this, ``yt`` is able to identify datasets based on a "hash"
 generated from the base file name, the "CurrentTimeIdentifier", and the
 simulation time.  These three characteristics should never be changed outside
 of a simulation, they are independent of the file location on disk, and in
@@ -373,11 +385,11 @@ the index or as a standalone file.  For instance, using
 
 .. code-block:: python
 
-   from yt.mods import *
-   pf = load("my_data")
-   sp = pf.sphere([0.5, 0.5, 0.5], 10.0/pf['kpc'])
+   import yt
+   ds = yt.load("my_data")
+   sp = ds.sphere([0.5, 0.5, 0.5], 10.0/ds['kpc'])
 
-   pf.h.save_object(sp, "sphere_to_analyze_later")
+   ds.save_object(sp, "sphere_to_analyze_later")
 
 
 In a later session, we can load it using
@@ -385,20 +397,20 @@ In a later session, we can load it using
 
 .. code-block:: python
 
-   from yt.mods import *
+   import yt
 
-   pf = load("my_data")
-   sphere_to_analyze = pf.h.load_object("sphere_to_analyze_later")
+   ds = yt.load("my_data")
+   sphere_to_analyze = ds.load_object("sphere_to_analyze_later")
 
 Additionally, if we want to store the object independent of the ``.yt`` file,
 we can save the object directly:
 
 .. code-block:: python
 
-   from yt.mods import *
+   import yt
 
-   pf = load("my_data")
-   sp = pf.sphere([0.5, 0.5, 0.5], 10.0/pf['kpc'])
+   ds = yt.load("my_data")
+   sp = ds.sphere([0.5, 0.5, 0.5], 10.0/ds['kpc'])
 
    sp.save_object("my_sphere", "my_storage_file.cpkl")
 
@@ -411,13 +423,13 @@ To re-load an object saved this way, you can use the shelve module directly:
 
 .. code-block:: python
 
-   from yt.mods import *
+   import yt
    import shelve
 
-   pf = load("my_data") # not necessary if storeparameterfiles is on
+   ds = yt.load("my_data") # not necessary if storeparameterfiles is on
 
    obj_file = shelve.open("my_storage_file.cpkl")
-   pf, obj = obj_file["my_sphere"]
+   ds, obj = obj_file["my_sphere"]
 
 If you have turned on ``storeparameterfiles`` in your configuration,
 you won't need to load the parameterfile again, as the load process

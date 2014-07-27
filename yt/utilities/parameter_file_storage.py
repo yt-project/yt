@@ -1,5 +1,5 @@
 """
-A simple CSV database for grabbing and storing parameter files
+A simple CSV database for grabbing and storing datasets
 
 
 
@@ -42,9 +42,9 @@ class UnknownDatasetType(Exception):
 class ParameterFileStore(object):
     """
     This class is designed to be a semi-persistent storage for parameter
-    files.  By identifying each parameter file with a unique hash, objects
-    can be stored independently of parameter files -- when an object is
-    loaded, the parameter file is as well, based on the hash.  For
+    files.  By identifying each dataset with a unique hash, objects
+    can be stored independently of datasets -- when an object is
+    loaded, the dataset is as well, based on the hash.  For
     storage concerns, only a few hundred will be retained in cache.
 
     """
@@ -62,7 +62,7 @@ class ParameterFileStore(object):
 
     def __init__(self, in_memory=False):
         """
-        Create the parameter file database if yt is configured to store them.
+        Create the dataset database if yt is configured to store them.
         Otherwise, use read-only settings.
 
         """
@@ -97,68 +97,68 @@ class ParameterFileStore(object):
             return os.path.abspath(base_file_name)
         return os.path.expanduser("~/.yt/%s" % base_file_name)
 
-    def get_pf_hash(self, hash):
-        """ This returns a parameter file based on a hash. """
-        return self._convert_pf(self._records[hash])
+    def get_ds_hash(self, hash):
+        """ This returns a dataset based on a hash. """
+        return self._convert_ds(self._records[hash])
 
-    def get_pf_ctid(self, ctid):
-        """ This returns a parameter file based on a CurrentTimeIdentifier. """
+    def get_ds_ctid(self, ctid):
+        """ This returns a dataset based on a CurrentTimeIdentifier. """
         for h in self._records:
             if self._records[h]['ctid'] == ctid:
-                return self._convert_pf(self._records[h])
+                return self._convert_ds(self._records[h])
 
-    def _adapt_pf(self, pf):
-        """ This turns a parameter file into a CSV entry. """
-        return dict(bn=pf.basename,
-                    fp=pf.fullpath,
-                    tt=pf.current_time,
-                    ctid=pf.unique_identifier,
-                    class_name=pf.__class__.__name__,
-                    last_seen=pf._instantiated)
+    def _adapt_ds(self, ds):
+        """ This turns a dataset into a CSV entry. """
+        return dict(bn=ds.basename,
+                    fp=ds.fullpath,
+                    tt=ds.current_time,
+                    ctid=ds.unique_identifier,
+                    class_name=ds.__class__.__name__,
+                    last_seen=ds._instantiated)
 
-    def _convert_pf(self, pf_dict):
-        """ This turns a CSV entry into a parameter file. """
-        bn = pf_dict['bn']
-        fp = pf_dict['fp']
+    def _convert_ds(self, ds_dict):
+        """ This turns a CSV entry into a dataset. """
+        bn = ds_dict['bn']
+        fp = ds_dict['fp']
         fn = os.path.join(fp, bn)
-        class_name = pf_dict['class_name']
+        class_name = ds_dict['class_name']
         if class_name not in output_type_registry:
             raise UnknownDatasetType(class_name)
         mylog.info("Checking %s", fn)
         if os.path.exists(fn):
-            pf = output_type_registry[class_name](os.path.join(fp, bn))
+            ds = output_type_registry[class_name](os.path.join(fp, bn))
         else:
             raise IOError
         # This next one is to ensure that we manually update the last_seen
         # record *now*, for during write_out.
-        self._records[pf._hash()]['last_seen'] = pf._instantiated
-        return pf
+        self._records[ds._hash()]['last_seen'] = ds._instantiated
+        return ds
 
-    def check_pf(self, pf):
+    def check_ds(self, ds):
         """
-        This will ensure that the parameter file (*pf*) handed to it is
+        This will ensure that the dataset (*ds*) handed to it is
         recorded in the storage unit.  In doing so, it will update path
         and "last_seen" information.
         """
-        hash = pf._hash()
+        hash = ds._hash()
         if hash not in self._records:
-            self.insert_pf(pf)
+            self.insert_ds(ds)
             return
-        pf_dict = self._records[hash]
-        self._records[hash]['last_seen'] = pf._instantiated
-        if pf_dict['bn'] != pf.basename \
-          or pf_dict['fp'] != pf.fullpath:
+        ds_dict = self._records[hash]
+        self._records[hash]['last_seen'] = ds._instantiated
+        if ds_dict['bn'] != ds.basename \
+          or ds_dict['fp'] != ds.fullpath:
             self.wipe_hash(hash)
-            self.insert_pf(pf)
+            self.insert_ds(ds)
 
-    def insert_pf(self, pf):
-        """ This will insert a new *pf* and flush the database to disk. """
-        self._records[pf._hash()] = self._adapt_pf(pf)
+    def insert_ds(self, ds):
+        """ This will insert a new *ds* and flush the database to disk. """
+        self._records[ds._hash()] = self._adapt_ds(ds)
         self.flush_db()
 
     def wipe_hash(self, hash):
         """
-        This removes a *hash* corresponding to a parameter file from the
+        This removes a *hash* corresponding to a dataset from the
         storage.
         """
         if hash not in self._records: return
@@ -181,7 +181,7 @@ class ParameterFileStore(object):
         fn = self._get_db_name()
         f = open("%s.tmp" % fn, 'wb')
         w = csv.DictWriter(f, _field_names)
-        maxn = ytcfg.getint("yt","MaximumStoredPFs") # number written
+        maxn = ytcfg.getint("yt","maximumstoreddatasets") # number written
         for h,v in islice(sorted(self._records.items(),
                           key=lambda a: -a[1]['last_seen']), 0, maxn):
             v['hash'] = h
@@ -218,7 +218,7 @@ class EnzoRunDatabase(object):
 
     def find_uuid(self, u):
         cursor = self.conn.execute(
-            "select pf_path from enzo_outputs where dset_uuid = '%s'" % (
+            "select ds_path from enzo_outputs where dset_uuid = '%s'" % (
                 u))
         # It's a 'unique key'
         result = cursor.fetchone()

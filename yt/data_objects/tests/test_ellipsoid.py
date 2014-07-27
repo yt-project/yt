@@ -20,9 +20,9 @@ def test_ellipsoid():
           ]
     np.random.seed(int(0x4d3d3d3))
     for nprocs in [1, 2, 4, 8]:
-        pf = fake_random_pf(64, nprocs = nprocs)
-        DW = pf.domain_right_edge - pf.domain_left_edge
-        min_dx = 2.0/pf.domain_dimensions
+        ds = fake_random_ds(64, nprocs = nprocs)
+        DW = ds.domain_right_edge - ds.domain_left_edge
+        min_dx = 2.0/ds.domain_dimensions
         ABC = np.random.random((3, 12)) * 0.1
         e0s = np.random.random((3, 12))
         tilts = np.random.random(12)
@@ -35,7 +35,7 @@ def test_ellipsoid():
                 C = max(C, min_dx[2])
                 e0 = e0s[:,i]
                 tilt = tilts[i]
-                ell = pf.ellipsoid(c, A, B, C, e0, tilt)
+                ell = ds.ellipsoid(c, A, B, C, e0, tilt)
                 yield assert_array_less, ell["radius"], A
                 p = np.array([ell[ax] for ax in 'xyz'])
                 dot_evec = [np.zeros_like(ell["radius"]) for i in range(3)]

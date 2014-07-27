@@ -40,8 +40,8 @@ def _thermal_energy(field, data):
     return data["thermal_energy_density"] / data["density"]
 
 def _temperature(field,data):
-    mu = data.pf.parameters["mu"]
-    gamma = data.pf.parameters["gamma"]
+    mu = data.ds.parameters["mu"]
+    gamma = data.ds.parameters["gamma"]
     tr  = data["thermal_energy_density"] / data["density"]
     tr *= mu * amu_cgs / boltzmann_constant_cgs
     tr *= (gamma - 1.0)
@@ -114,9 +114,9 @@ class CastroFieldInfo(FieldInfoContainer):
 
     known_other_fields = (
         ("density", ("g/cm**3", ["density"], r"\rho")),
-        ("xmom", ("g*cm/s", ["momentum_x"], r"\rho u")),
-        ("ymom", ("g*cm/s", ["momentum_y"], r"\rho v")),
-        ("zmom", ("g*cm/s", ["momentum_z"], r"\rho w")),
+        ("xmom", ("g/(cm**2 * s)", ["momentum_x"], r"\rho u")),
+        ("ymom", ("g/(cm**2 * s)", ["momentum_y"], r"\rho v")),
+        ("zmom", ("g/(cm**2 * s)", ["momentum_z"], r"\rho w")),
         # velocity components are not always present
         ("x_velocity", ("cm/s", ["velocity_x"], r"u")),
         ("y_velocity", ("cm/s", ["velocity_y"], r"v")),
@@ -146,7 +146,7 @@ class CastroFieldInfo(FieldInfoContainer):
 
     def setup_fluid_fields(self):
         # add X's
-        for _, field in self.pf.field_list:
+        for _, field in self.ds.field_list:
             if field.startswith("X("):
                 # We have a fraction
                 nice_name = field[2:-1]
@@ -176,6 +176,7 @@ class MaestroFieldInfo(FieldInfoContainer):
         ("y_vel", ("cm/s", ["velocity_y"], r"\tilde{v}")),
         ("z_vel", ("cm/s", ["velocity_z"], r"\tilde{w}")),
         ("magvel", ("cm/s", ["velocity_magnitude"], r"|\tilde{U} + w_0 e_r|")),
+        ("radial_velocity", ("cm/s", [], r"U\cdot e_r")),
         ("tfromp", ("K", [], None)),
         ("tfromh", ("K", [], None)),
         ("Machnumber", ("", ["mach_number"], None)),
@@ -188,7 +189,7 @@ class MaestroFieldInfo(FieldInfoContainer):
         # Specific entropy
         ("entropy", ("erg/(g*K)", ["entropy"], None)),
         ("entropypert", ("", [], None)),
-        ("enucdot", ("ergs/(g*s)", [], None)),
+        ("enucdot", ("erg/(g*s)", [], None)),
         ("gpi_x", ("dyne/cm**3", [], None)), # Perturbational pressure grad
         ("gpi_y", ("dyne/cm**3", [], None)),
         ("gpi_z", ("dyne/cm**3", [], None)),
@@ -221,7 +222,7 @@ class MaestroFieldInfo(FieldInfoContainer):
 
     def setup_fluid_fields(self):
         # pick the correct temperature field
-        if self.pf.parameters["use_tfromp"]:
+        if self.ds.parameters["use_tfromp"]:
             self.alias(("gas", "temperature"), ("boxlib", "tfromp"),
                        units = "K")
         else:
@@ -229,7 +230,7 @@ class MaestroFieldInfo(FieldInfoContainer):
                        units = "K")
 
         # Add X's and omegadots, units of 1/s
-        for _, field in self.pf.field_list:
+        for _, field in self.ds.field_list:
             if field.startswith("X("):
                 # We have a fraction
                 nice_name = field[2:-1]

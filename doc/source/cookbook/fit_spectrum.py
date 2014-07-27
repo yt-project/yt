@@ -1,22 +1,18 @@
 import yt
 from yt.analysis_modules.cosmological_observation.light_ray.api import LightRay
-from yt.analysis_modules.api import AbsorptionSpectrum
+from yt.analysis_modules.absorption_spectrum.api import AbsorptionSpectrum
 from yt.analysis_modules.absorption_spectrum.api import generate_total_fit
 
 # Define and add a field to simulate OVI based on a constant relationship to HI
-def _OVI_NumberDensity(field, data):
-    return data['HI_NumberDensity']
+# Do *NOT* use this for science, because this is not how OVI actually behaves;
+# it is just an example.
+
+@yt.derived_field(name='O_p5_number_density', units='cm**-3')
+def _OVI_number_density(field, data):
+    return data['H_number_density']*2.0
 
 
-def _convertOVI(data):
-    return 4.9E-4*.2
-
-yt.add_field('my_OVI_NumberDensity',
-             function=_OVI_NumberDensity,
-             convert_function=_convertOVI)
-
-
-# Define species andi associated parameters to add to continuum
+# Define species and associated parameters to add to continuum
 # Parameters used for both adding the transition to the spectrum
 # and for fitting
 # Note that for single species that produce multiple lines
@@ -24,7 +20,7 @@ yt.add_field('my_OVI_NumberDensity',
 # of lines, and f,gamma, and wavelength will have multiple values.
 
 HI_parameters = {'name': 'HI',
-                 'field': 'HI_NumberDensity',
+                 'field': 'H_number_density',
                  'f': [.4164],
                  'Gamma': [6.265E8],
                  'wavelength': [1215.67],
@@ -37,7 +33,7 @@ HI_parameters = {'name': 'HI',
                  'init_N': 1E14}
 
 OVI_parameters = {'name': 'OVI',
-                  'field': 'my_OVI_NumberDensity',
+                  'field': 'O_p5_number_density',
                   'f': [.1325, .06580],
                   'Gamma': [4.148E8, 4.076E8],
                   'wavelength': [1031.9261, 1037.6167],
@@ -70,7 +66,6 @@ lr.make_light_ray(seed=123456780,
                   solution_filename='lightraysolution.txt',
                   data_filename='lightray.h5',
                   fields=fields,
-                  get_nearest_halo=False,
                   get_los_velocity=True,
                   njobs=-1)
 

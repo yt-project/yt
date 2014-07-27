@@ -6,6 +6,13 @@ Exporting to Sunrise
 .. sectionauthor:: Christopher Moody <cemoody@ucsc.edu>
 .. versionadded:: 1.8
 
+.. note:: 
+
+    As of :code:`yt-3.0`, the sunrise exporter is not currently functional.
+    This functionality is still available in :code:`yt-2.x`.  If you would like
+    to use these features in :code:`yt-3.x`, help is needed to port them over.
+    Contact the yt-users mailing list if you are interested in doing this.
+
 The yt-Sunrise exporter essentially takes grid cell data and translates it into a binary octree format, attaches star particles, and saves the output to a FITS file Sunrise can read. For every cell, the gas mass, metals mass (a fraction of which is later assumed to be in the form of dust), and the temperature are saved. Star particles are defined entirely by their mass, position, metallicity, and a 'radius.' This guide outlines the steps to exporting the data, troubleshoots common problems, and reviews recommended sanity checks. 
 
 Simple Export
@@ -18,15 +25,15 @@ The code outlined here is a barebones Sunrise export:
 	from yt.mods import *
 	import numpy as na
 
-	pf = ARTDataset(file_amr)
-	potential_value,center=pf.h.find_min('Potential_New')
-	root_cells = pf.domain_dimensions[0]
+	ds = ARTDataset(file_amr)
+	potential_value,center=ds.find_min('Potential_New')
+	root_cells = ds.domain_dimensions[0]
 	le = np.floor(root_cells*center) #left edge
 	re = np.ceil(root_cells*center) #right edge
 	bounds = [(le[0], re[0]-le[0]), (le[1], re[1]-le[1]), (le[2], re[2]-le[2])] 
 	#bounds are left edge plus a span
 	bounds = numpy.array(bounds,dtype='int')
-	amods.sunrise_export.export_to_sunrise(pf, out_fits_file,subregion_bounds = bounds)
+	amods.sunrise_export.export_to_sunrise(ds, out_fits_file,subregion_bounds = bounds)
 
 To ensure that the camera is centered on the galaxy, we find the center by finding the minimum of the gravitational potential. The above code takes that center, and casts it in terms of which root cells should be extracted. At the moment, Sunrise accepts a strict octree, and you can only extract a 2x2x2 domain on the root grid, and not an arbitrary volume. See the optimization section later for workarounds. On my reasonably recent machine, the export process takes about 30 minutes.
 
@@ -51,7 +58,7 @@ Some codes do not yet enjoy full yt support. As a result, export_to_sunrise() ca
 	col_list.append(pyfits.Column("L_bol", format="D",array=np.zeros(mass_current.size)))
 	cols = pyfits.ColDefs(col_list)
 
-	amods.sunrise_export.export_to_sunrise(pf, out_fits_file,write_particles=cols,
+	amods.sunrise_export.export_to_sunrise(ds, out_fits_file,write_particles=cols,
 	    subregion_bounds = bounds)
 
 This code snippet takes the stars in a region outlined by the ``bounds`` variable, organizes them into pyfits columns which are then passed to export_to_sunrise. Note that yt units are in CGS, and Sunrise accepts units in (physical) kpc, kelvin, solar masses, and years.  
@@ -68,8 +75,8 @@ The code snippet below finds the location of every star under 10 Myr and looks u
 .. code-block:: python
 
 	for x,a in enumerate(zip(pos,age)): #loop over stars
-	    center = x*pf['kpc']
-	    grid,idx = find_cell(pf.index.grids[0],center)
+	    center = x*ds['kpc']
+	    grid,idx = find_cell(ds.index.grids[0],center)
 	    pk[i] = grid['Pk'][idx]
 
 This code is how Sunrise calculates the pressure, so we can add our own derived field:
@@ -79,7 +86,7 @@ This code is how Sunrise calculates the pressure, so we can add our own derived 
 	def _Pk(field,data):
 	    #calculate pressure over Boltzmann's constant: P/k=(n/V)T
 	    #Local stellar ISM values are ~16500 Kcm^-3
-	    vol = data['cell_volume'].astype('float64')*data.pf['cm']**3.0 #volume in cm
+	    vol = data['cell_volume'].astype('float64')*data.ds['cm']**3.0 #volume in cm
 	    m_g = data["cell_mass"]*1.988435e33 #mass of H in g
 	    n_g = m_g*5.97e23 #number of H atoms
 	    teff = data["temperature"]

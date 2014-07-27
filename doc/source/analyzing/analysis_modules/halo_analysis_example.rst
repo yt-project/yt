@@ -1,3 +1,5 @@
+.. _halo-analysis-example:
+
 Using HaloCatalogs to do Analysis
 ---------------------------------
 

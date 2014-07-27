@@ -29,11 +29,11 @@ class CallbackWrapper(object):
         if len(self._axes.images) > 0:
             self.image = self._axes.images[0]
         if frb.axis < 3:
-            DD = frb.pf.domain_width
-            xax = frb.pf.coordinates.x_axis[frb.axis]
-            yax = frb.pf.coordinates.y_axis[frb.axis]
+            DD = frb.ds.domain_width
+            xax = frb.ds.coordinates.x_axis[frb.axis]
+            yax = frb.ds.coordinates.y_axis[frb.axis]
             self._period = (DD[xax], DD[yax])
-        self.pf = frb.pf
+        self.ds = frb.ds
         self.xlim = viewer.xlim
         self.ylim = viewer.ylim
         if 'OffAxisSlice' in viewer._plot_type:
@@ -62,8 +62,11 @@ class PlotMPL(object):
             self.axes = axes
         self.canvas = FigureCanvasAgg(self.figure)
 
-    def save(self, name, mpl_kwargs, canvas=None):
+    def save(self, name, mpl_kwargs=None, canvas=None):
         """Choose backend and save image to disk"""
+        if mpl_kwargs is None:
+            mpl_kwargs = {}
+
         suffix = get_image_suffix(name)
         if suffix == '':
             suffix = '.png'

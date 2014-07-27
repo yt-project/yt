@@ -37,8 +37,8 @@ if __name__ == "__main__":
     assert (cuda.Device.count() >= 1)
 
     print ("Extracting hierarchy.")
-    opf = load("/u/ki/mturk/ki05/MSM96-SIM3-restart-J64/DataDump0081.dir/DataDump0081")
-    pf = hs.ExtractedParameterFile(opf, 20)
+    ods = load("/u/ki/mturk/ki05/MSM96-SIM3-restart-J64/DataDump0081.dir/DataDump0081")
+    ds = hs.ExtractedParameterFile(ods, 20)
 
     cpu = {}
     gpu = {}
@@ -82,10 +82,9 @@ if __name__ == "__main__":
     c = np.array([0.47284317, 0.48062515, 0.58282089], dtype='float32')
 
     print ("Getting cutting plane.")
-    cp = pf.h.cutting(cpu['v_dir'], c)
-    cp = pf.cutting(cpu['v_dir'], c)
+    cp = ds.cutting(cpu['v_dir'], c)
 
-    W = 2000.0/pf['au']
+    W = 2000.0/ds['au']
     W = 0.25
     Nvec = 128
     back_c = c - cp._norm_vec * W

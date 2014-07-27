@@ -34,17 +34,17 @@ def _unknown_coord(field, data):
 
 def _get_coord_fields(axi, units = "code_length"):
     def _dds(field, data):
-        rv = data.pf.arr(data.fwidth[...,axi], units)
+        rv = data.ds.arr(data.fwidth[...,axi].copy(), units)
         return data._reshape_vals(rv)
     def _coords(field, data):
-        rv = data.pf.arr(data.fcoords[...,axi], units)
+        rv = data.ds.arr(data.fcoords[...,axi].copy(), units)
         return data._reshape_vals(rv)
     return _dds, _coords
 
 class CoordinateHandler(object):
     
-    def __init__(self, pf):
-        self.pf = weakref.proxy(pf)
+    def __init__(self, ds):
+        self.ds = weakref.proxy(ds)
 
     def setup_fields(self):
         # This should return field definitions for x, y, z, r, theta, phi

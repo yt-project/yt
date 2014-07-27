@@ -8,12 +8,13 @@ Halo Mass Function
 The Halo Mass Function extension is capable of outputting the halo mass function
 for a collection halos (input), and/or an analytical fit over a given mass range
 for a set of specified cosmological parameters.
-
 This extension is based on code generously provided by Brian O'Shea.
+
 
 General Overview
 ----------------
 
+<<<<<<< local
 A halo mass function can be created for the halos identified in a cosmological 
 simulation, as well as analytic fits using any arbitrary set of cosmological
 paramters. In order to create a mass function for simulated halos, they must

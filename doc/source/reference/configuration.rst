@@ -15,11 +15,11 @@ like:
     
    [yt]
    loglevel = 1
-   maximumstoredpfs = 10000
+   maximumstoreddatasets = 10000
 
 This configuration file would set the logging threshold much lower, enabling
 much more voluminous output from yt.  Additionally, it increases the number of
-parameter files tracked between instantiations of yt.
+datasets tracked between instantiations of yt.
 
 Configuration Options At Runtime
 --------------------------------
@@ -44,8 +44,8 @@ Here is an example script, where we adjust the logging at startup:
    ytcfg["yt", "loglevel"] = "1"
 
    from yt.mods import *
-   pf = load("my_data0001")
-   pf.h.print_stats()
+   ds = load("my_data0001")
+   ds.print_stats()
 
 This has the same effect as setting ``loglevel = 1`` in the configuration file.
 
@@ -93,5 +93,5 @@ used internally.
   uploading AMRSurface objects.
 * ``suppressStreamLogging`` (default: ``'False'``): If true, execution mode will be
   quiet.
-* ``stdoutStreamLogging`` (default: ``'False'``): If three, logging is directed
+* ``stdoutStreamLogging`` (default: ``'False'``): If true, logging is directed
   to stdout rather than stderr

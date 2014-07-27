@@ -21,21 +21,42 @@ Cheat Sheet
 
 Here's a quick reference for how to update your code to work with yt-3.0.
 
-  * Fields can be accessed by a name, but are named internally as ``(fluid_type,
-    fluid_name)``.
-  * Fields on-disk will be in code units, and will be named ``(code_name,
-    FieldName)``.
-  * Previously, yt would use "Enzo-isms" for field names.  We now very
+  * We have reworked yt's import system so that most commonly-used yt functions
+    and classes live in the top-level ``yt`` namespace. That means you can now
+    import yt with ``import yt``, load a dataset with ``ds = yt.load``
+    and create a plot with ``yt.SlicePlot``.  See :ref:`api-reference` for a full
+    API listing.
+  * Fields and metadata for data objects and datasets now have units.  The unit
+    system keeps you from making weird things like ``ergs`` + ``g`` and can
+    handle things like ``g`` + ``kg`` or ``kg*m/s**2 == Newton``.  See
+    :ref:`units` for more information.
+  * Previously, yt would use "Enzo-isms" for field names. We now very
     specifically define fields as lowercase with underscores.  For instance,
     what used to be ``VelocityMagnitude`` would now be ``velocity_magnitude``.
-  * Particles are either named by their type or default to the type ``io``.
-  * Axis names are now at the *end* of field names, not the beginning.
+    Axis names are now at the *end* of field names, not the beginning.
     ``x-velocity`` is now ``velocity_x``.
+  * Fields can be accessed by a name, but are named internally as ``(fluid_type,
+    fluid_name)``.
+  * Mesh fields on-disk will be in code units, and will be named ``(code_name,
+    FieldName)``.
+  * Particle fields on-disk will also be in code units, and will be named
+    ``(particle_type, FieldName)``.  If there is only one particle type in the
+    output file, the particle type for all particles will be ``io``.
+  * Previously, yt would capture command line arguments when being imported.
+    This no longer happens.  As a side effect, it is no longer necessary to
+    specify ``--parallel`` at the command line when running a parallel 
+    computation. Use ``yt.enable_parallelism()`` instead.  See 
+    :ref:`parallel-computation` for more detail.
   * Any derived quantities that *always* returned lists (like ``Extrema``,
     which would return a list even if you only ask for one field) now only
-    return a single tuple if you only ask for one field.
-  * Units can be tricky, and they try to keep you from making weird things like
-    ``ergs`` + ``g``.  See :ref:`units` for more information.
+    returns a single result if you only ask for one field.  Results for particle
+    and mesh fields will be returned separately.
+  * Derived quantities can now be accessed via a function that hangs off of the
+    ``quantities`` atribute of data objects. Instead of
+    ``dd.quantities['TotalMass']``, you can now use
+    ``dd.quantities.total_mass()`` to do the same thing. All derived quantities
+    can be accessed via a function that hangs off of the `quantities` attribute
+    of data objects.
 
 Cool New Things
 ---------------
@@ -84,9 +105,10 @@ representing all particle types in the simulation.
 Units
 +++++
 
-yt now has units.  This is one of the bigger features, and in essence it means
-that you can convert units between anything.  See :ref:`units` for more
-information.
+yt now has a unit system.  This is one of the bigger features, and in essence it means
+that you can convert units between anything.  In practice, it makes it much
+easier to define fields and convert data between different unit systems. See
+:ref:`units` for more information.
 
 Non-Cartesian Coordinates
 +++++++++++++++++++++++++
@@ -111,10 +133,11 @@ expressed through a two-key description.  For example::
 
    my_object["gas", "density"]
 
-will return the gas field density.  This extends to particle types as well.  By
-default you do *not* need to use the field "type" key, but in case of ambiguity
-it will utilize the default value in its place.  This should therefore be
-identical to::
+will return the gas field density.  In this example "gas" is the field type and
+"density" is the field name.  Field types are a bit like a namespace.  This
+system extends to particle types as well.  By default you do *not* need to use
+the field "type" key, but in case of ambiguity it will utilize the default value
+in its place.  This should therefore be identical to::
 
    my_object["density"]
 
@@ -125,26 +148,35 @@ Fields now are all subclasses of NumPy arrays, the ``YTArray``, which carries
 along with it units.  This means that if you want to manipulate fields, you
 have to modify them in a unitful way.
 
+Parameter Files are Now Datasets
+++++++++++++++++++++++++++++++++
+
+Wherever possible, we have attempted to replace the term "parameter file"
+(i.e., ``ds``) with the term "dataset."  Future revisions will change most of
+the ``ds`` atrributes of objects into ``ds`` or ``dataset`` attributes.
+
+Hierarchy is Now Index
+++++++++++++++++++++++
+
+The hierarchy object (``pf.h``) is now referred to as an index (``ds.index``).
+It is no longer necessary to directly refer to the ``index`` as often, since
+data objects are now attached to the to the ``dataset`` object.  Before, you
+would say ``ph.f.sphere()``, now you can say ``ds.sphere()``.
+
 Field Info
 ++++++++++
 
-In the past, the object ``ds`` (or ``pf``) had a ``field_info`` object which
-was a dictionary leading to derived field definitions.  At the present time,
-because of the field naming changes (i.e., access-by-tuple) it is better to
-utilize the function ``_get_field_info`` than to directly access the
-``field_info`` dictionary.  For example::
+In previous versions of yt, the ``dataset`` object (what we used to call a
+parameter file) had a ``field_info`` attribute which was a dictionary leading to
+derived field definitions.  At the present time, because of the field naming
+changes (i.e., access-by-tuple) it is better to utilize the function
+``_get_field_info`` than to directly access the ``field_info`` dictionary.  For
+example::
 
    finfo = ds._get_field_info("gas", "density")
 
 This function respects the special "field type" ``unknown`` and will search all
 field types for the field name.
-
-Parameter Files are Now Datasets
-++++++++++++++++++++++++++++++++
-
-Wherever possible, we have attempted to replace the term "parameter file"
-(i.e., ``pf``) with the term "dataset."  Future revisions will change most of
-the ``pf`` atrributes of objects into ``ds`` or ``dataset`` attributes.
 
 Projection Argument Order
 +++++++++++++++++++++++++
@@ -165,7 +197,8 @@ Object Renaming
 Nearly all internal objects have been renamed.  Typically this means either
 removing ``AMR`` from the prefix or replacing it with ``YT``.  All names of
 objects remain the same for the purposes of selecting data and creating them;
-i.e., you will not need to change ``ds.sphere`` to something else.
+i.e., ``sphere`` objects are still called ``sphere`` - you can access create one
+via ``ds.sphere``.
 
 Boolean Regions
 +++++++++++++++
