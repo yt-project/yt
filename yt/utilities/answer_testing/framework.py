@@ -578,12 +578,15 @@ class ParentageRelationshipsTest(AnswerTestingTest):
 
 class HaloMassFunctionTest(AnswerTestingTest):
     _type_name = "HaloMassFunction"
-    _attrs = ()
+    _attrs = ('halos_ds')
+    def __init__(self, halos_ds):
+        super(HaloMassFunctionTest, self).__init__(halos_ds)
+        self.halos_ds = halos_ds
 
     def run(self):
-        from yt.analysis_modules.halo_mass_function.api import *
         result = {}
-        hmf = HaloMassFunction(halos_ds=self.hc)
+        from yt.analysis_modules.halo_mass_function.api import HaloMassFcn
+        hmf = HaloMassFcn(halos_ds=self.halos_ds)
         result["masses_sim"] = hmf.masses_sim
         result["n_cumulative_sim"] = hmf.n_cumulative_sim
         result["masses_analytic"] = hmf.masses_analytic
@@ -593,15 +596,15 @@ class HaloMassFunctionTest(AnswerTestingTest):
 
     def compare(self, new_result, old_result):
         for newms, oldms in zip(new_result['masses_sim'], old_result['masses_sim']):
-            assert(newms, oldms)
+            assert(newms == oldms)
         for newncs, oldncs in zip(new_result['n_cumulative_sim'], old_result['n_cumulative_sim']):
-            assert(newncs, oldncs)
+            assert(newncs == oldncs)
         for newma, oldma in zip(new_result['masses_analytic'], old_result['masses_analytic']):
-            assert(newma, oldma)
+            assert(newma == oldma)
         for newnca, oldnca in zip(new_result['n_cumulative_analytic'], old_result['n_cumulative_analytic']):
-            assert(newnca, oldnca)
+            assert(newnca == oldnca)
         for newdndmdma, olddndmdma in zip(new_result['dndM_dM_analytic'], old_result['dndM_dM_analytic']):
-            assert(newdndmdma, olddndmdma)
+            assert(newdndmdma == olddndmdma)
 
 def compare_image_lists(new_result, old_result, decimals):
     fns = ['old.png', 'new.png']
