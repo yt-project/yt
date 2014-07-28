@@ -68,17 +68,6 @@ thermal_energy_density, and then generate a projection from it.
 
 .. yt_cookbook:: derived_field.py
 
-.. _cookbook-complex-derived-fields:
-
-Complex Derived Fields
-~~~~~~~~~~~~~~~~~~~~~~
-
-This recipe estimates the ratio of gravitational and pressure forces in a galaxy
-cluster simulation.  This shows how to create and work with vector derived 
-fields.
-
-.. yt_cookbook:: hse_field.py
-
 Using Particle Filters to Calculate Star Formation Rates
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -86,4 +75,3 @@ This recipe demonstrates how to use a particle filter to calculate the star
 formation rate in a galaxy evolution simulation.
 
 .. yt_cookbook:: particle_filter_sfr.py
-
