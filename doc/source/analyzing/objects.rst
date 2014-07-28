@@ -357,8 +357,8 @@ function into the collator.
 
 .. _arbitrary-grid:
 
-Arbitrary Grids for Particle Deposition
----------------------------------------
+Arbitrary Grids Objects for Particle Deposition
+-----------------------------------------------
 
 The covering grid and smoothed covering grid objects mandate that they be
 exactly aligned with the mesh.  This is a
@@ -456,8 +456,8 @@ objects.  These can be queried just as any other data object.
 
 .. _extracting-isocontour-information:
 
-Surfaces and Extracting Isocontour Information
-----------------------------------------------
+Surface Objects and Extracting Isocontour Information
+-----------------------------------------------------
 
 ``yt`` contains an implementation of the `Marching Cubes
 <http://en.wikipedia.org/wiki/Marching_cubes>`_ algorithm, which can operate on
