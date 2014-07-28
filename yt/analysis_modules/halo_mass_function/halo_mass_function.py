@@ -255,9 +255,9 @@ class HaloMassFcn(ParallelAnalysisInterface):
     def set_mass_from_halos(self, which_limit):
         data_source = self.halos_ds.all_data()
         if which_limit is "min_mass":
-            self.log_mass_min = int(np.log10(np.amin(data_source['ParticleMassMsun'])))
+            self.log_mass_min = int(np.log10(np.amin(data_source["halos", "particle_mass"].in_units("Msun"))))
         if which_limit is "max_mass":
-            self.log_mass_max = int(np.log10(np.amax(data_source['ParticleMassMsun'])))+1
+            self.log_mass_max = int(np.log10(np.amax(data_source["halos", "particle_mass"].in_units("Msun"))))+1
     
     """
     Here's where we create the halo mass functions from simulated halos
@@ -265,7 +265,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
     def create_sim_hmf(self):
         data_source = self.halos_ds.all_data()
         # We're going to use indices to count the number of halos above a given mass
-        masses_sim = np.sort(data_source['ParticleMassMsun'])
+        masses_sim = np.sort(data_source["halos", "particle_mass"].in_units("Msun"))
         # Determine the size of the simulation volume in comoving Mpc**3
         sim_volume = self.halos_ds.domain_width.in_units('Mpccm').prod()
         n_cumulative_sim = np.arange(len(masses_sim),0,-1)
