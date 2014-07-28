@@ -264,12 +264,12 @@ def construct_image(data_source, center=None):
         cunit = [str(ds.wcs.wcs.cunit[idx]) for idx in axis_wcs[axis]]
         ctype = [ds.wcs.wcs.ctype[idx] for idx in axis_wcs[axis]]
     else:
+        # This is some other kind of dataset
+        unit = ds.get_smallest_appropriate_unit(ds.domain_width.max())
         if center is None:
             crval = [0.0,0.0]
         else:
             crval = [(ds.domain_center-center)[idx].in_units(unit) for idx in axis_wcs[axis]]
-        # This is some other kind of dataset
-        unit = ds.get_smallest_appropriate_unit(ds.domain_width.max())
         dx = ds.index.get_smallest_dx()
         nx, ny = (ds.domain_width[axis_wcs[axis]]/dx).ndarray_view().astype("int")
         crpix = [0.5*(nx+1), 0.5*(ny+1)]
