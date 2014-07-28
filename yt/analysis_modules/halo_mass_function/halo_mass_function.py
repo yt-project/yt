@@ -1,5 +1,5 @@
 """
-halo_mass_function - Halo Mass Function and supporting functions.
+Halo Mass Function and supporting functions.
 
 
 
@@ -252,9 +252,11 @@ class HaloMassFcn():
     def set_mass_from_halos(self, which_limit):
         data_source = self.halos_ds.all_data()
         if which_limit is "min_mass":
-            self.log_mass_min = int(np.log10(np.amin(data_source["halos", "particle_mass"].in_units("Msun"))))
+            self.log_mass_min = \
+              int(np.log10(np.amin(data_source["halos", "particle_mass"].in_units("Msun"))))
         if which_limit is "max_mass":
-            self.log_mass_max = int(np.log10(np.amax(data_source["halos", "particle_mass"].in_units("Msun"))))+1
+            self.log_mass_max = \
+              int(np.log10(np.amax(data_source["halos", "particle_mass"].in_units("Msun"))))+1
     
     """
     Here's where we create the halo mass functions from simulated halos
@@ -284,11 +286,10 @@ class HaloMassFcn():
                 fitname = prefix + '-analytic.dat'
                 fp = open(fitname, "w")
                 line = \
-                """#Columns:
-#1. mass (M_solar)
-#2. cumulative number density of halos (comoving (Mpc/h)^3)
-#3. (dn/dM)*dM (differential number density of halos, per Mpc^3 (NOT h^3/Mpc^3)
-"""
+                "#Columns:\n" + \
+                "#1. mass (M_solar)\n" + \
+                "#2. cumulative number density of halos (comoving (Mpc/h)^3)\n" + \
+                "#3. (dn/dM)*dM (differential number density of halos, per Mpc^3 (NOT h^3/Mpc^3)\n"
                 fp.write(line)
                 for i in xrange(self.masses_analytic.size - 1):
                     line = "%e\t%e\t%e\n" % (self.masses_analytic[i],
@@ -298,19 +299,19 @@ class HaloMassFcn():
                 fp.close()
             # If the analytic halo mass function wasn't created, warn the user
             else:
-                mylog.warning("The analytic halo mass function was not created and cannot be written \
-out! Specify its creation with HaloMassFcn(make_analytic=True, other_args) \
-when creating the HaloMassFcn object.")
+                mylog.warning("The analytic halo mass function was not created and cannot be " +
+                              "written out! Specify its creation with " +
+                              "HaloMassFcn(make_analytic=True, other_args) when creating the " +
+                              "HaloMassFcn object.")
         # Write out the simulated mass fucntion if it exists and was requested
         if simulated:
             if self.make_simulated:
                 haloname = prefix + '-simulated.dat'
                 fp = open(haloname, "w")
                 line = \
-                """#Columns:
-#1. mass (M_solar)
-#2. cumulative number density of halos (comoving (Mpc/h)^3)
-"""
+                "#Columns:\n" + \
+                "#1. mass (M_solar)\n" + \
+                "#2. cumulative number density of halos (comoving (Mpc/h)^3)\n"
                 fp.write(line)
                 for i in xrange(self.masses_sim.size - 1):
                     line = "%e\t%e\n" % (self.masses_sim[i], 
@@ -319,10 +320,10 @@ when creating the HaloMassFcn object.")
                 fp.close()
             # If the simulated halo mass function wasn't created, warn the user
             else:
-                mylog.warning("The simulated halo mass function was not created and cannot be written \
-out! Specify its creation by providing a loaded halo dataset with \
-HaloMassFcn(ds_halos=loaded_halo_dataset, other_args) when creating \
-the HaloMassFcn object.")
+                mylog.warning("The simulated halo mass function was not created and cannot " +
+                              "be written out! Specify its creation by providing a loaded " +
+                              "halo dataset with HaloMassFcn(ds_halos=loaded_halo_dataset, " +
+                              "other_args) when creating the HaloMassFcn object.")
 
     def sigmaM(self):
         """
