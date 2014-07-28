@@ -1,40 +1,3 @@
-Annotate Triangle Facets Callback
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. function:: annotate_triangle_facets(triangle_vertices, plot_args=None)
-
-   (This is a proxy for
-   :class:`~yt.visualization.plot_modifications.TriangleFacetsCallback`.)
-
-   This add a line collection of a SlicePlot's plane-intersection 
-   with the triangles to the plot. This callback is ideal for a
-   dataset representing a geometric model of triangular facets.
-
-.. python-script::
-
-   import yt 
-   import h5py
-   
-   # Load data file
-   pf = yt.load("MoabTest/fng_usrbin22.h5m")
-
-   # Create the desired slice plot	
-   s = yt.SlicePlot(pf, 'z', ('moab','TALLY_TAG'))
-
-   #get triangle vertices from file (in this case hdf5)
-
-   #setup file path for yt test directory
-   filename = os.path.join(ytcfg.get("yt", "test_data_dir"), "MoabTest/mcnp_n_impr_fluka.h5m")
-   f = h5py.File(filename, "r")
-   coords = f["/tstt/nodes/coordinates"][:]
-   conn = f["/tstt/elements/Tri3/connectivity"][:]
-   points = coords[conn-1]
-
-   # Annotate slice-triangle intersection contours to the plot
-   s.annotate_triangle_facets(points, plot_args={"colors": 'black'})
-   s.save()
-
-
 Arrow callback
 ~~~~~~~~~~~~~~
 
@@ -481,3 +444,41 @@ Add a Timestamp Inset Box
    p = yt.SlicePlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
    p.annotate_timestamp(-9, -9)
    p.save()
+
+Annotate Triangle Facets Callback
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. function:: annotate_triangle_facets(triangle_vertices, plot_args=None)
+
+   (This is a proxy for
+   :class:`~yt.visualization.plot_modifications.TriangleFacetsCallback`.)
+
+   This add a line collection of a SlicePlot's plane-intersection 
+   with the triangles to the plot. This callback is ideal for a
+   dataset representing a geometric model of triangular facets.
+
+.. python-script::
+
+   import h5py
+   import os
+   import yt 
+   
+   # Load data file
+   pf = yt.load("MoabTest/fng_usrbin22.h5m")
+
+   # Create the desired slice plot	
+   s = yt.SlicePlot(pf, 'z', ('moab','TALLY_TAG'))
+
+   #get triangle vertices from file (in this case hdf5)
+
+   #setup file path for yt test directory
+   filename = os.path.join(yt.config.ytcfg.get("yt", "test_data_dir"),
+                           "MoabTest/mcnp_n_impr_fluka.h5m")
+   f = h5py.File(filename, "r")
+   coords = f["/tstt/nodes/coordinates"][:]
+   conn = f["/tstt/elements/Tri3/connectivity"][:]
+   points = coords[conn-1]
+
+   # Annotate slice-triangle intersection contours to the plot
+   s.annotate_triangle_facets(points, plot_args={"colors": 'black'})
+   s.save()
