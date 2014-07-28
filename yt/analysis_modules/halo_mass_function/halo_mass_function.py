@@ -288,8 +288,8 @@ class HaloMassFcn():
                 line = \
                 "#Columns:\n" + \
                 "#1. mass (M_solar)\n" + \
-                "#2. cumulative number density of halos (comoving (Mpc/h)^3)\n" + \
-                "#3. (dn/dM)*dM (differential number density of halos, per Mpc^3 (NOT h^3/Mpc^3)\n"
+                "#2. cumulative number density of halos [comoving Mpc^-3]\n" + \
+                "#3. (dn/dM)*dM (differential number density of halos) [comoving Mpc^-3]\n"
                 fp.write(line)
                 for i in xrange(self.masses_analytic.size - 1):
                     line = "%e\t%e\t%e\n" % (self.masses_analytic[i],
@@ -310,8 +310,8 @@ class HaloMassFcn():
                 fp = open(haloname, "w")
                 line = \
                 "#Columns:\n" + \
-                "#1. mass (M_solar)\n" + \
-                "#2. cumulative number density of halos (comoving (Mpc/h)^3)\n"
+                "#1. mass [Msun]\n" + \
+                "#2. cumulative number density of halos [comoving Mpc^-3]\n"
                 fp.write(line)
                 for i in xrange(self.masses_sim.size - 1):
                     line = "%e\t%e\n" % (self.masses_sim[i], 
