@@ -576,8 +576,8 @@ class ParentageRelationshipsTest(AnswerTestingTest):
         for newc, oldc in zip(new_result["children"], old_result["children"]):
             assert(newp == oldp)
 
-class SimHaloMassFunctionTest(AnswerTestingTest):
-    _type_name = "SimHaloMassFunction"
+class SimulatedHaloMassFunctionTest(AnswerTestingTest):
+    _type_name = "SimulatedHaloMassFunction"
     _attrs = ("finder")
 
     def __init__(self, ds_fn, finder):
@@ -599,6 +599,29 @@ class SimHaloMassFunctionTest(AnswerTestingTest):
     def compare(self, new_result, old_result):
         err_msg = ("Simulated halo mass functions not equation for " +
                    "%s halo finder.") % self.finder
+        assert_equal(new_result, old_result,
+                     err_msg=err_msg, verbose=True)
+
+class AnalyticHaloMassFunctionTest(AnswerTestingTest):
+    _type_name = "AnalyticHaloMassFunction"
+    _attrs = ("fitting_function")
+
+    def __init__(self, ds_fn, fitting_function):
+        super(HaloMassFunctionTest, self).__init__(ds_fn)
+        self.fitting_function = fitting_function
+    
+    def run(self):
+        from yt.analysis_modules.halo_mass_function.api import HaloMassFcn
+        hmf = HaloMassFcn(simulation_ds=self.ds,
+                          fitting_function=self.fitting_function)
+        result = np.empty((2, hmf.masses_analytic.size))
+        result[0] = hmf.masses_analytic.d
+        result[1] = hmf.n_cumulative_analytic.d
+        return result
+
+    def compare(self, new_result, old_result):
+        err_msg = ("Analytic halo mass functions not equation for " +
+                   "fitting function %d.") % self.fitting_function
         assert_equal(new_result, old_result,
                      err_msg=err_msg, verbose=True)
 
