@@ -139,7 +139,7 @@ class HaloMassFcn():
     the dataset.
 
     >>> ds = load("enzo_tiny_cosmology/DD0046/DD0046")
-    >>> hmf = HaloMassFcn(ds=ds)
+    >>> hmf = HaloMassFcn(simulation_ds=ds)
     >>> plt.loglog(hmf.masses_analytic, hmf.n_cumulative_analytic)
     >>> plt.savefig("mass_function.png")
     
