@@ -2,14 +2,11 @@
 
 Halo Mass Function
 ==================
-.. sectionauthor:: Stephen Skory <sskory@physics.ucsd.edu>
-.. versionadded:: 1.6
 
 The Halo Mass Function extension is capable of outputting the halo mass function
 for a collection halos (input), and/or an analytical fit over a given mass range
 for a set of specified cosmological parameters.
 This extension is based on code generously provided by Brian O'Shea.
-
 
 General Overview
 ----------------
@@ -17,8 +14,8 @@ General Overview
 A halo mass function can be created for the halos identified in a cosmological 
 simulation, as well as analytic fits using any arbitrary set of cosmological
 paramters. In order to create a mass function for simulated halos, they must
-first be identified (using HOP, FOF, Parallel HOP, or Rockstar, see 
-:ref:`halo_finding`) and loaded as a halo dataset object. The distribution of
+first be identified (using HOP, FOF, or Rockstar, see 
+:ref:`halo_catalog`) and loaded as a halo dataset object. The distribution of
 halo masses will then be found, and can be compared to the analytic prediction
 at the same redshift and using the same cosmological parameters as were used
 in the simulation. Care should be taken in this regard, as the analytic fit
@@ -60,7 +57,7 @@ Basic Halo Mass Function Creation
 The simplest way to create a halo mass function object is to simply pass it no
 arguments and let it use the default cosmological parameters.
 
-..code-block:: python
+.. code-block:: python
 
   from yt.analysis_modules.halo_mass_function.api import *
 
@@ -73,7 +70,7 @@ argument. This also creates the analytic mass function using all parameters that
 can be extracted from the halo dataset, at the same redshift, spanning a similar
 range of halo masses.
 
-..code-block:: python
+.. code-block:: python
 
   from yt.mods import *
   from yt.analysis_modules.halo_mass_function.api import *
@@ -84,7 +81,7 @@ range of halo masses.
 A simulation dataset can be passed along with additonal cosmological parameters 
 to create an analytic mass function.
 
-..code-block:: python
+.. code-block:: python
 
   from yt.mods import *
   from yt.analysis_modules.halo_mass_function.api import *
@@ -96,7 +93,7 @@ to create an analytic mass function.
 The analytic mass function can be created for a set of arbitrary cosmological 
 parameters without any dataset being passed as an argument.
 
-..code-block:: python
+.. code-block:: python
 
   from yt.mods import *
   from yt.analysis_modules.halo_mass_function.api import *
@@ -104,8 +101,6 @@ parameters without any dataset being passed as an argument.
   hmf = HaloMassFcn(omega_baryon0=0.05, omega_matter0=0.27, 
                     omega_lambda0=0.73, hubble0=0.7, this_redshift=10,
                     log_mass_min=5, log_mass_max=9, fitting_function=5)
-
-
 
 Keyword Arguments
 -----------------
@@ -205,6 +200,7 @@ A HaloMassFnc object has several arrays hanging off of it containing the
 After the mass function has been created for both simulated halos and the
 corresponding analytic fits, they can be plotted though something along the 
 lines of
+
 .. code-block:: python
 
   from yt.mods import *
@@ -224,11 +220,11 @@ halo mass function to a text file. (continued from above)
   hmf.write_out(prefix='hmf', analytic=True, simulated=True)
 
 This writes the files `hmf-analytic.dat' with columns 
-  * **mass** (M_solar)
-  * **(dn/dM)*dM** (differential number density of halos, per Mpc^3 (NOT h^3/Mpc^3)
-  * **cumulative number density of halos** (comoving (Mpc/h)^3)
+  * mass [Msun]
+  * cumulative number density of halos [comoving Mpc^-3]
+  * (dn/dM)*dM (differential number density of halos) [comoving Mpc^-3
 
 and the file `hmf-simulated.dat' with columns
-  * **mass** (M_solar)
-  * **log10 of mass** (M_solar)
-  * **cumulative number density of halos** (comoving (Mpc/h)^3)
+
+  * mass [Msun]
+  * cumulative number density of halos [comoving Mpc^-3]
