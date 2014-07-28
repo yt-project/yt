@@ -225,7 +225,11 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
                       "particle_position_z",
                       "particle_velocity_x", "particle_velocity_y",
                       "particle_velocity_z"]:
-            arr = chunk[rh.particle_type, field].astype("float64")
+            if "position" in field:
+                unit = "code_length"
+            else:
+                unit = "code_velocity"
+            arr = chunk[rh.particle_type, field].in_units(unit).astype("float64")
             for i in range(npart):
                 p[0][i+pi].pos[fi] = (arr[i]-left_edge[fi])*conv[fi]
             fi += 1
