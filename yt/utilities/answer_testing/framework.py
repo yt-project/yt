@@ -751,22 +751,8 @@ def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                         ds_fn, axis, field, weight_field,
                         dobj_name)
 
-def big_patch_amr(pf_fn, fields):
-    if not can_run_pf(pf_fn): return
-    dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
-    yield GridHierarchyTest(pf_fn)
-    yield ParentageRelationshipsTest(pf_fn)
-    for field in fields:
-        yield GridValuesTest(pf_fn, field)
-        for axis in [0, 1, 2]:
-            for ds in dso:
-                for weight_field in [None, "density"]:
-                    yield PixelizedProjectionValuesTest(
-                        pf_fn, axis, field, weight_field,
-                        ds)
-
 def hmf_sim_and_analytic(halos_ds):
-    if not can_run_pf(halos_ds): return
+    if not can_run_ds(halos_ds): return
     yield HaloMassFunctionTest(halos_ds)
 
 def create_obj(ds, obj_type):
