@@ -14,7 +14,6 @@ This extension is based on code generously provided by Brian O'Shea.
 General Overview
 ----------------
 
-<<<<<<< local
 A halo mass function can be created for the halos identified in a cosmological 
 simulation, as well as analytic fits using any arbitrary set of cosmological
 paramters. In order to create a mass function for simulated halos, they must
