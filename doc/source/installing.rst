@@ -250,7 +250,7 @@ script since this will install yt into your global python environment.
 If you will be modifying yt, you can also make the clone of the yt mercurial
 repository the "active" installed copy:
 
-..code-block:: bash
+.. code-block:: bash
 
   hg clone https://bitbucket.org/yt_analysis/yt
   cd yt
@@ -260,6 +260,36 @@ repository the "active" installed copy:
 As above, you can leave off ``--user`` if you want to install yt into the default
 package install path.  If you do not have write access for this location, you
 might need to use ``sudo``.
+
+Switching to yt 2.x
+^^^^^^^^^^^^^^^^^^^
+
+With the release of version 3.0 of yt, development of the legacy yt 2.x series
+has been relegated to bugfixes.  That said, we will continue supporting the 2.x
+series for the forseeable future.  This makes it easy to use scripts written
+for older versions of yt without substantially updating them to support the
+new field naming or unit systems in yt version 3.
+
+Currently, the yt-2.x codebase is contained in a named branch in the yt
+mercurial repository.  First, remove any extant installations of yt on your
+system:
+
+.. code-block:: bash
+
+  pip uninstall yt
+
+To switch to yt-2.x, you will need to clone the mercurial repository as
+described in :ref:`source-installation`.  Next, you will need to navigate to the
+mercurial repository, update to the `yt-2.x` branch, and recompile:
+
+.. code-block:: bash
+
+  cd yt
+  hg update yt-2.x
+  python setup.py develop --user
+
+You can check which version of yt you have installed by invoking ``yt version``
+at the command line.
 
 Keeping yt Updated via Mercurial
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

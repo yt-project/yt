@@ -141,7 +141,7 @@ these steps:
 
  * Identify which version of the code you’re using. 
 
-   * ``$ yt instinfo`` - provides version information, including changeset hash
+   * ``$ yt version`` - provides version information, including changeset hash
 
 It may be that through the mere process of doing this, you end up solving 
 the problem!
