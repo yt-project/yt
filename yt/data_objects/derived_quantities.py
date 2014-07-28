@@ -171,7 +171,8 @@ class TotalQuantity(DerivedQuantity):
 
 class TotalMass(TotalQuantity):
     r"""
-    Calculates the total mass in gas and particles.
+    Calculates the total mass in gas and particles. Returns a tuple where the
+    first part is total gas mass and the second part is total particle mass.
 
     Examples
     --------
