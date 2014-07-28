@@ -88,7 +88,7 @@ for the grid cell to be incorporated.
 0D Objects
 """"""""""
 
-* **Point** 
+**Point** 
     | Class :class:`~yt.data_objects.data_containers.YTPointBase`    
     | Usage: ``point(coord, ds=None, field_parameters=None)``
     | A point defined by a single cell at specified coordinates.
@@ -96,14 +96,14 @@ for the grid cell to be incorporated.
 1D Objects
 """"""""""
 
-* **Ray (Axis-Aligned)** 
+**Ray (Axis-Aligned)** 
     | Class :class:`~yt.data_objects.data_containers.YTOrthoRayBase`
     | Usage: ``ortho_ray(axis, coord, ds=None, field_parameters=None)``
     | A line (of data cells) stretching through the full domain 
       aligned with one of the x,y,z axes.  Defined by an axis and a point
       to be intersected.
 
-* **Ray (Arbitrarily-Aligned)** 
+**Ray (Arbitrarily-Aligned)** 
     | Class :class:`~yt.data_objects.data_containers.YTRayBase`
     | Usage: ``ray(start_coord, end_coord, ds=None, field_parameters=None)``
     | A line (of data cells) defined by arbitrary start and end coordinates. 
@@ -111,13 +111,13 @@ for the grid cell to be incorporated.
 2D Objects
 """"""""""
 
-* **Slice (Axis-Aligned)** 
+**Slice (Axis-Aligned)** 
     | Class :class:`~yt.data_objects.data_containers.YTSliceBase`
     | Usage: ``slice(axis, coord, center=None, ds=None, field_parameters=None)``
     | A plane normal to one of the axes and intersecting a particular 
       coordinate.
 
-* **Slice (Arbitrarily-Aligned)** 
+**Slice (Arbitrarily-Aligned)** 
     | Class :class:`~yt.data_objects.data_containers.YTCuttingPlaneBase`
     | Usage: ``cutting(normal, coord, north_vector=None, ds=None, field_parameters=None)``
     | A plane normal to a specified vector and intersecting a particular 
@@ -126,13 +126,13 @@ for the grid cell to be incorporated.
 3D Objects
 """"""""""
 
-* **All Data** 
+**All Data** 
     | Class :fun:`~yt.data_objects.static_output.Dataset.all_data`
     | Usage: ``all_data(find_max=False)``
     | ``all_data()`` is a wrapper on the Box Region class which defaults to 
       creating a Region covering the entire dataset domain.
 
-* **Box Region** 
+**Box Region** 
     | Class :class:`~yt.data_objects.data_containers.YTRegionBase`
     | Usage: ``region(center, left_edge, right_edge, fields=None, ds=None, field_parameters=None)``
     | Alternatively: ``box(left_edge, right_edge, fields=None, ds=None, field_parameters=None)``
@@ -143,14 +143,14 @@ for the grid cell to be incorporated.
       the left_edge and right_edge.  By using the ``box`` wrapper, the center
       is assumed to be the midpoint between the left and right edges.
 
-* **Disk/Cylinder** 
+**Disk/Cylinder** 
     | Class: :class:`~yt.data_objects.data_containers.YTDiskBase`
     | Usage: ``disk(center, normal, radius, height, fields=None, ds=None, field_parameters=None)``
     | A cylinder defined by point at the center of one of the circular bases,
       a normal vector to it defining the orientation of the length of the
       cylinder, and radius and height values for the cylinder's dimensions.
 
-* **Ellipsoid** 
+**Ellipsoid** 
     | Class :class:`~yt.data_objects.data_containers.YTEllipsoidBase`
     | Usage: ``ellipsoid(center, semi_major_axis_length, semi_medium_axis_length, semi_minor_axis_length, semi_major_vector, tilt, fields=None, ds=None, field_parameters=None)``
     | An ellipsoid with axis magnitudes set by semi_major_axis_length, 
@@ -158,7 +158,7 @@ for the grid cell to be incorporated.
      sets the direction of the semi_major_axis.  tilt defines the orientation 
      of the semi-medium and semi_minor axes.
 
-* **Sphere** 
+**Sphere** 
     | Class :class:`~yt.data_objects.data_containers.YTSphereBase`
     | Usage: ``sphere(center, radius, ds=None, field_parameters=None)``
     | A sphere defined by a central coordinate and a radius.
@@ -169,12 +169,12 @@ Filtering and Collection Objects
 
 See also the section on :ref:`filtering-data`.
 
-* **Boolean Regions** 
+**Boolean Regions** 
     | **Note: not yet implemented in yt 3.0**
     | Usage: ``boolean()``
     See :ref:`boolean-data-objects`.
 
-* **Mesh Field Filter** 
+**Mesh Field Filter** 
     | Class :class:`~yt.data_objects.data_containers.YTCutRegionBase`
     | Usage: ``cut_region(base_object, conditionals, ds=None, field_parameters=None)``
     | A ``cut_region`` is a filter which can be applied to any other data 
@@ -182,7 +182,7 @@ See also the section on :ref:`filtering-data`.
       work on mesh fields to apply cuts to the data in the object.  For more
       detailed information and examples, see :ref:`cut-regions`.
 
-* **Collection of Data Objects** 
+**Collection of Data Objects** 
     | Class :class:`~yt.data_objects.data_containers.YTDataCollectionBase`
     | Usage: ``data_collection(center, obj_list, ds=None, field_parameters=None)``
     | A ``data_collection`` is a list of data objects that can be 
@@ -191,20 +191,20 @@ See also the section on :ref:`filtering-data`.
 Construction Objects
 ^^^^^^^^^^^^^^^^^^^^
 
-* **Fixed-Resolution Region** 
+**Fixed-Resolution Region** 
     | Class :class:`~yt.data_objects.data_containers.YTCoveringGridBase`
     | Usage: ``covering_grid(level, left_edge, dimensions, fields=None, ds=None, num_ghost_zones=0, use_pbar=True, field_parameters=None)``
     | A 3D region with all data extracted to a single, specified resolution.
       See :ref:`examining-grid-data-in-a-fixed-resolution-array`.
 
-* **Fixed-Resolution Region with Smoothing** 
+**Fixed-Resolution Region with Smoothing** 
     | Class :class:`~yt.data_objects.data_containers.YTSmoothedCoveringGridBase`
     | Usage: ``smoothed_covering_grid(level, left_edge, dimensions, fields=None, ds=None, num_ghost_zones=0, use_pbar=True, field_parameters=None)``
     | A 3D region with all data extracted and interpolated to a single, 
       specified resolution.  Identical to covering_grid, except that it 
       interpolates.  See :ref:`examining-grid-data-in-a-fixed-resolution-array`.
 
-* **Fixed-Resolution Region for Particle Deposition** 
+**Fixed-Resolution Region for Particle Deposition** 
     | Class :class:`~yt.data_objects.data_containers.YTArbitraryGridBase`
     | Usage: ``arbitrary_grid(left_edge, right_edge, dimensions, ds=None, field_parameters=None)``
     | When particles are deposited on to mesh fields, they use the existing
@@ -214,7 +214,7 @@ Construction Objects
       structure for particle deposition.  See :ref:`arbitrary-grid` for more 
       information.
 
-* **Projection** 
+**Projection** 
     | Class :class:`~yt.data_objects.data_containers.YTQuadTreeProjBase`
     | Usage: ``proj(field, axis, weight_field=None, center=None, ds=None, data_source=None, style="integrate", field_parameters=None)``
     | A 2D projection of a 3D volume along one of the axis directions.  
@@ -224,14 +224,14 @@ Construction Objects
       a weight_field and different ``style`` values to change the nature
       of the projection outcome.  See :ref:`projection-types` for more information.
 
-* **Streamline** 
+**Streamline** 
     | Class :class:`~yt.data_objects.data_containers.YTStreamlineBase`
     | Usage: ``streamline(coord_list, length, fields=None, ds=None, field_parameters=None)``
     | A ``streamline`` can be traced out by identifying a starting coordinate (or 
       list of coordinates) and allowing it to trace a vector field, like gas
       velocity.  See :ref:`streamlines` for more information.
 
-* **Surface** 
+**Surface** 
     | Class :class:`~yt.data_objects.data_containers.YTSurfaceBase`
     | Usage: ``surface(data_source, field, field_value)``
     | The surface defined by all an isocontour in any mesh field.  An existing 
@@ -256,12 +256,77 @@ These can be accessed via the ``quantities`` interface, like so:
    dd = ds.all_data()
    dd.quantities.angular_momentum_vector()
 
-The following quantities are available via the ``quantities`` interface.
+Available Derived Quantities
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. include:: _dq_docstrings.inc
+**Angular Momentum Vector**
+    | Function :func:`~yt.data_objects.derived_quantities.AngularMomentumVector`
+    | Usage: ``angular_momentum_vector(use_gas=True, use_particles=True)``
+    | This function returns the mass-weighted average angular momentum vector.
+
+**Bulk Velocity**
+    | Function :func:`~yt.data_objects.derived_quantities.BulkVelocity`
+    | Usage: ``bulk_velocity(use_gas=True, use_particles=True)``
+    | This function returns the mass-weighted average velocity in the object.
+
+**Center of Mass**
+    | Function :func:`~yt.data_objects.derived_quantities.CenterOfMass`
+    | Usage: ``center_of_mass(use_cells=True, use_particles=False)``
+    | This function returns the location of the center
+      of mass. By default, it computes of the *non-particle* data in the object.
+
+**Extrema**
+    | Function :func:`~yt.data_objects.derived_quantities.Extrema`
+    | Usage: ``extrema(fields, non_zero=False)``
+    | This function returns the extrema of a field or list of fields.
+
+**Maximum Location**
+    | Function :func:`~yt.data_objects.derived_quantities.max_location`
+    | Usage: ``max_location(fields)``
+    | This function returns the maximum of a field or list of fields as well
+      as the x,y,z location of that maximum.
+
+**Minimum Location**
+    | Function :func:`~yt.data_objects.derived_quantities.min_location`
+    | Usage: ``min_location(fields)``
+    | This function returns the minimum of a field or list of fields as well
+      as the x,y,z location of that minimum.
+
+**Spin Parameter**
+    | Function :func:`~yt.data_objects.derived_quantities.SpinParameter`
+    | Usage: ``spin_parameter(use_gas=True, use_particles=True)``
+    | This function returns the spin parameter for the baryons, but it uses
+      the particles in calculating enclosed mass.
+
+**Total Mass**
+    | Function :func:`~yt.data_objects.derived_quantities.TotalMass`
+    | Usage: ``total_mass()``
+    | This function takes no arguments and returns a tuple containing the sum of 
+      mesh-cell masses and particle masses in the object.
+
+**Total of a Field**
+    | Function :func:`~yt.data_objects.derived_quantities.TotalQuantity`
+    | Usage: ``total_quantity(fields)``
+    | This function sums up a given field (or list of fields) over the entire 
+      region.
+
+**Weighted Average of a Field**
+    | Function :func:`~yt.data_objects.derived_quantities.WeightedAverageQuantity`
+    | Usage: ``weighted_average_quantity(fields, weight)``
+    | This function returns a weighted average of a field (or list of fields)
+      over an entire data object.  If you want an unweighted average, 
+      then set your weight to be the field: ``ones``.
+
+**Weighted Variance of a Field**
+    | Function :func:`~yt.data_objects.derived_quantities.WeightedVariance`
+    | Usage: ``weighted_variance(fields, weight)``
+    | This function returns weighted variance of a field (or list of fields)
+      over an entire data object and the weighted mean.  
+      If you want an unweighted variance, then 
+      set your weight to be the field: ``ones``.
 
 Creating Custom Derived Quantities
-++++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The basic idea is that you need to be able to operate both on a set of data,
 and a set of sets of data.  (If this is not possible, the quantity needs to be
