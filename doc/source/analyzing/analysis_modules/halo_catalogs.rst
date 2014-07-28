@@ -1,4 +1,4 @@
-.. _halo_catalog
+.. _halo_catalog:
 
 Creating Halo Catalogs
 ======================
