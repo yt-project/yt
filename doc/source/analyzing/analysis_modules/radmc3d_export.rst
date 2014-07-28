@@ -6,6 +6,14 @@ Exporting to RADMC-3D
 .. sectionauthor:: Andrew Myers <atmyers2@gmail.com>
 .. versionadded:: 2.6
 
+.. note:: 
+
+    As of :code:`yt-3.0`, the radial column density analysis module is not
+    currently functional.  This functionality is still available in
+    :code:`yt-2.x`.  If you would like to use these features in :code:`yt-3.x`,
+    help is needed to port them over.  Contact the yt-users mailing list if you
+    are interested in doing this.
+
 `RADMC-3D
 <http://www.ita.uni-heidelberg.de/~dullemond/software/radmc-3d/>`_ is a three-dimensional Monte-Carlo radiative transfer code
 that is capable of handling both line and continuum emission. The :class:`~yt.analysis_modules.radmc3d_export.RadMC3DInterface.RadMC3DWriter`
@@ -41,8 +49,8 @@ Now load up a dataset and call the
 
 .. code-block:: python
 
-    pf = load("galaxy0030/galaxy0030")
-    writer = RadMC3DWriter(pf)
+    ds = load("galaxy0030/galaxy0030")
+    writer = RadMC3DWriter(ds)
     
     writer.write_amr_grid()
     writer.write_dust_file("DustDensity", "dust_density.inp")
@@ -87,8 +95,8 @@ to include doppler broadening.
         return (x_co/mu_h)*data["density"]
     add_field("NumberDensityCO", function=_NumberDensityCO)
     
-    pf = load("galaxy0030/galaxy0030")
-    writer = RadMC3DWriter(pf)
+    ds = load("galaxy0030/galaxy0030")
+    writer = RadMC3DWriter(ds)
     
     writer.write_amr_grid()
     writer.write_line_file("NumberDensityCO", "numberdens_co.inp")

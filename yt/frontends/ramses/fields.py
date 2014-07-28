@@ -70,7 +70,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("x-velocity", (vel_units, ["velocity_x"], None)),
         ("y-velocity", (vel_units, ["velocity_y"], None)),
         ("z-velocity", (vel_units, ["velocity_z"], None)),
-        ("Pressure", ("code_mass / (code_length * code_time**2)", [], None)),
+        ("Pressure", ("code_mass / (code_length * code_time**2)", ["pressure"], None)),
         ("Metallicity", ("", ["metallicity"], None)),
     )
     known_particle_fields = (
@@ -96,17 +96,17 @@ class RAMSESFieldInfo(FieldInfoContainer):
                         units="K")
 
     def create_cooling_fields(self, filename):
-        num = os.path.basename(self.pf.parameter_filename).split("."
+        num = os.path.basename(self.ds.parameter_filename).split("."
                 )[0].split("_")[1]
         filename = "%s/cooling_%05i.out" % (
-            os.path.dirname(self.pf.parameter_filename), int(num))
+            os.path.dirname(self.ds.parameter_filename), int(num))
 
         if not os.path.exists(filename): return
         def _create_field(name, interp_object):
             def _func(field, data):
                 shape = data["Temperature"].shape
-                d = {'lognH': np.log10(_X*data["Density"]/mh).ravel(),
-                     'logT' : np.log10(data["Temperature"]).ravel()}
+                d = {'lognH': np.log10(_X*data["density"]/mh).ravel(),
+                     'logT' : np.log10(data["temperature"]).ravel()}
                 rv = 10**interp_object(d).reshape(shape)
                 return rv
             self.add_field(name = name, function=_func,

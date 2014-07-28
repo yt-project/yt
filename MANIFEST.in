@@ -7,4 +7,8 @@ include doc/README doc/activate doc/activate.csh doc/cheatsheet.tex
 include doc/extensions/README doc/Makefile
 prune doc/source/reference/api/generated
 prune doc/build/
-recursive-include yt/utilities/kdtree *.f90 *.v Makefile LICENSE
+recursive-include yt/analysis_modules/halo_finding/rockstar *.py *.pyx
+prune yt/frontends/_skeleton
+prune tests
+graft yt/gui/reason/html/resources
+exclude clean.sh .hgchurn

@@ -1,3 +1,5 @@
+.. _api-reference:
+
 API Reference
 =============
 
@@ -11,21 +13,32 @@ SlicePlot and ProjectionPlot
    :toctree: generated/
 
    ~yt.visualization.plot_window.SlicePlot
+   ~yt.visualization.plot_window.AxisAlignedSlicePlot
    ~yt.visualization.plot_window.OffAxisSlicePlot
    ~yt.visualization.plot_window.ProjectionPlot
    ~yt.visualization.plot_window.OffAxisProjectionPlot
+   ~yt.visualization.plot_window.WindowPlotMPL
 
-PlotCollection
-^^^^^^^^^^^^^^
+ProfilePlot and PhasePlot
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
    :toctree: generated/
 
-   ~yt.visualization.plot_collection.PlotCollection
-   ~yt.visualization.plot_collection.PlotCollectionInteractive
+   ~yt.visualization.profile_plotter.ProfilePlot
+   ~yt.visualization.profile_plotter.PhasePlot
+   ~yt.visualization.profile_plotter.PhasePlotMPL
+
+Fixed Resolution Pixelization
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+
    ~yt.visualization.fixed_resolution.FixedResolutionBuffer
+   ~yt.visualization.fixed_resolution.CylindricalFixedResolutionBuffer
    ~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer
-   ~yt.visualization.base_plot_types.get_multi_plot
+   ~yt.visualization.fixed_resolution.OffAxisProjectionFixedResolutionBuffer
 
 Data Sources
 ------------
@@ -103,6 +116,33 @@ datasets.
    ~yt.data_objects.time_series.TimeSeriesQuantitiesContainer
    ~yt.data_objects.time_series.AnalysisTaskProxy
 
+Geometry Handlers
+-----------------
+
+These objects generate an "index" into multiresolution data.
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.geometry.geometry_handler.Index
+   ~yt.geometry.grid_geometry_handler.GridIndex
+   ~yt.geometry.oct_geometry_handler.OctreeIndex
+   ~yt.geometry.particle_geometry_handler.ParticleIndex
+   ~yt.geometry.unstructured_mesh_handler.UnstructuredIndex
+
+Units
+-----
+
+These classes enable yt's symbolic unit handling system.
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.units.unit_object.Unit
+   ~yt.units.unit_registry.UnitRegistry
+   ~yt.units.yt_array.YTArray
+   ~yt.units.yt_array.YTQuantity
+
 Frontends
 ---------
 
@@ -157,6 +197,22 @@ Boxlib
    ~yt.frontends.boxlib.io.IOHandlerNyx
    ~yt.frontends.boxlib.io.IOHandlerOrion
 
+Chombo
+^^^^^^
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.frontends.chombo.data_structures.ChomboGrid
+   ~yt.frontends.chombo.data_structures.ChomboHierarchy
+   ~yt.frontends.chombo.data_structures.ChomboDataset
+   ~yt.frontends.chombo.data_structures.Orion2Hierarchy
+   ~yt.frontends.chombo.data_structures.Orion2Dataset
+   ~yt.frontends.chombo.io.IOHandlerChomboHDF5
+   ~yt.frontends.chombo.io.IOHandlerChombo2DHDF5
+   ~yt.frontends.chombo.io.IOHandlerChombo1DHDF5
+   ~yt.frontends.chombo.io.IOHandlerOrion2HDF5
+
 Enzo
 ^^^^
 
@@ -206,16 +262,27 @@ FLASH
    ~yt.frontends.flash.fields.FLASHFieldInfo
    ~yt.frontends.flash.io.IOHandlerFLASH
 
+GDF
+^^^
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.frontends.gdf.data_structures.GDFGrid
+   ~yt.frontends.gdf.data_structures.GDFHierarchy
+   ~yt.frontends.gdf.data_structures.GDFDataset
+   ~yt.frontends.gdf.io.IOHandlerGDFHDF5
+
 Halo Catalogs
 ^^^^^^^^^^^^^
 
 .. autosummary::
    :toctree: generated/
 
-   ~yt.frontends.halo_catalogs.data_structures.RockstarBinaryFile
-   ~yt.frontends.halo_catalogs.data_structures.RockstarDataset
-   ~yt.frontends.halo_catalogs.fields.RockstarFieldInfo
-   ~yt.frontends.halo_catalogs.io.IOHandlerRockstarBinary
+   ~yt.frontends.halo_catalogs.rockstar.data_structures.RockstarBinaryFile
+   ~yt.frontends.halo_catalogs.rockstar.data_structures.RockstarDataset
+   ~yt.frontends.halo_catalogs.rockstar.fields.RockstarFieldInfo
+   ~yt.frontends.halo_catalogs.rockstar.io.IOHandlerRockstarBinary
 
 MOAB
 ^^^^
@@ -293,6 +360,19 @@ Stream
    ~yt.frontends.stream.io.IOHandlerStreamOctree
    ~yt.frontends.stream.io.StreamParticleIOHandler
 
+Loading Data
+------------
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.convenience.load
+   ~yt.convenience.simulation
+   ~yt.frontends.stream.data_structures.load_uniform_grid
+   ~yt.frontends.stream.data_structures.load_amr_grids
+   ~yt.frontends.stream.data_structures.load_particles
+   ~yt.frontends.stream.data_structures.load_hexahedral_mesh
+
 Derived Datatypes
 -----------------
 
@@ -300,16 +380,19 @@ Profiles and Histograms
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 These types are used to sum data up and either return that sum or return an
-average.  Typically they are more easily used through the
-`yt.visualization.plot_collection` interface.
+average.  Typically they are more easily used through the ``ProfilePlot``
+``PhasePlot`` interface. We also provide the ``create_profile`` function
+to create these objects in a uniform manner.
 
 
 .. autosummary::
    :toctree: generated/
 
-   ~yt.data_objects.profiles.BinnedProfile1D
-   ~yt.data_objects.profiles.BinnedProfile2D
-   ~yt.data_objects.profiles.BinnedProfile3D
+   ~yt.data_objects.profiles.ProfileND
+   ~yt.data_objects.profiles.Profile1D
+   ~yt.data_objects.profiles.Profile2D
+   ~yt.data_objects.profiles.Profile3D
+   ~yt.data_objects.profiles.create_profile
 
 Halo Finding and Particle Functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -325,68 +408,7 @@ finders as well as a few other supplemental objects.
    ~yt.analysis_modules.halo_finding.halo_objects.FOFHaloFinder
    ~yt.analysis_modules.halo_finding.halo_objects.HOPHaloFinder
    ~yt.analysis_modules.halo_finding.halo_objects.parallelHF
-   ~yt.analysis_modules.halo_finding.rockstar.api.RockstarHaloFinder
-
-You can also operate on the Halo and HAloList objects themselves:
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.analysis_modules.halo_finding.halo_objects.Halo
-   ~yt.analysis_modules.halo_finding.halo_objects.HaloList
-   ~yt.analysis_modules.halo_finding.halo_objects.HOPHalo
-   ~yt.analysis_modules.halo_finding.halo_objects.RockstarHalo
-   ~yt.analysis_modules.halo_finding.halo_objects.parallelHOPHalo
-   ~yt.analysis_modules.halo_finding.halo_objects.FOFHalo
-   ~yt.analysis_modules.halo_finding.halo_objects.LoadedHalo
-   ~yt.analysis_modules.halo_finding.halo_objects.TextHalo
-   ~yt.analysis_modules.halo_finding.halo_objects.RockstarHaloList
-   ~yt.analysis_modules.halo_finding.halo_objects.HOPHaloList
-   ~yt.analysis_modules.halo_finding.halo_objects.FOFHaloList
-   ~yt.analysis_modules.halo_finding.halo_objects.LoadedHaloList
-   ~yt.analysis_modules.halo_finding.halo_objects.TextHaloList
-   ~yt.analysis_modules.halo_finding.halo_objects.parallelHOPHaloList
-
-There are also functions for loading halos from disk:
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.analysis_modules.halo_finding.halo_objects.LoadHaloes
-   ~yt.analysis_modules.halo_finding.halo_objects.LoadTextHaloes
-   ~yt.analysis_modules.halo_finding.halo_objects.LoadRockstarHalos
-
-We have several methods that work to create merger trees:
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.analysis_modules.halo_merger_tree.merger_tree.MergerTree
-   ~yt.analysis_modules.halo_merger_tree.merger_tree.MergerTreeConnect
-   ~yt.analysis_modules.halo_merger_tree.merger_tree.MergerTreeDotOutput
-   ~yt.analysis_modules.halo_merger_tree.merger_tree.MergerTreeTextOutput
-
-You can use Halo catalogs generatedl externally as well:
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.analysis_modules.halo_merger_tree.enzofof_merger_tree.HaloCatalog
-   ~yt.analysis_modules.halo_merger_tree.enzofof_merger_tree.EnzoFOFMergerTree
-   ~yt.analysis_modules.halo_merger_tree.enzofof_merger_tree.plot_halo_evolution
-
-Halo Profiling
-^^^^^^^^^^^^^^
-
-yt provides a comprehensive halo profiler that can filter, center, and analyze
-halos en masse.
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.analysis_modules.halo_profiler.multi_halo_profiler.HaloProfiler
-   ~yt.analysis_modules.halo_profiler.multi_halo_profiler.VirialFilter
-
+   ~yt.analysis_modules.halo_finding.rockstar.rockstar.RockstarHaloFinder
 
 Two Point Functions
 ^^^^^^^^^^^^^^^^^^^
@@ -427,21 +449,9 @@ writing to bitmaps.
    :toctree: generated/
 
    ~yt.data_objects.image_array.ImageArray
-   ~yt.data_objects.image_array.ImageArray.write_png
-   ~yt.data_objects.image_array.ImageArray.write_hdf5
 
 Extension Types
 ---------------
-
-Coordinate Transformations
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.analysis_modules.coordinate_transformation.transforms.arbitrary_regrid
-   ~yt.analysis_modules.coordinate_transformation.transforms.spherical_regrid
 
 Cosmology, Star Particle Analysis, and Simulated Observations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -473,8 +483,6 @@ Absorption and X-ray spectra and spectral lines:
    ~yt.analysis_modules.absorption_spectrum.absorption_spectrum.AbsorptionSpectrum
    ~yt.analysis_modules.spectral_integrator.spectral_frequency_integrator.EmissivityIntegrator
    ~yt.analysis_modules.spectral_integrator.spectral_frequency_integrator.add_xray_emissivity_field
-   ~yt.analysis_modules.spectral_integrator.spectral_frequency_integrator.add_xray_luminosity_field
-   ~yt.analysis_modules.spectral_integrator.spectral_frequency_integrator.add_xray_photon_emissivity_field
 
 Absorption spectra fitting:
 
@@ -498,17 +506,6 @@ RADMC-3D exporting:
 
    ~yt.analysis_modules.radmc3d_export.RadMC3DInterface.RadMC3DLayer
    ~yt.analysis_modules.radmc3d_export.RadMC3DInterface.RadMC3DWriter
-
-Radial Column Density
-^^^^^^^^^^^^^^^^^^^^^
-
-If you'd like to calculate the column density out to a given point, from a
-specified center, yt can provide that information.
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.analysis_modules.radial_column_density.radial_column_density.RadialColumnDensity
 
 Volume Rendering
 ^^^^^^^^^^^^^^^^
@@ -605,14 +602,17 @@ See :ref:`derived-quantities`.
    ~yt.data_objects.derived_quantities.DerivedQuantity
    ~yt.data_objects.derived_quantities.DerivedQuantityCollection
    ~yt.data_objects.derived_quantities.WeightedAverageQuantity
-   ~yt.data_objects.derived_quantities.TotalQuantity
-   ~yt.data_objects.derived_quantities.TotalMass
-   ~yt.data_objects.derived_quantities.CenterOfMass
-   ~yt.data_objects.derived_quantities.BulkVelocity
    ~yt.data_objects.derived_quantities.AngularMomentumVector
+   ~yt.data_objects.derived_quantities.BulkVelocity
+   ~yt.data_objects.derived_quantities.CenterOfMass
    ~yt.data_objects.derived_quantities.Extrema
    ~yt.data_objects.derived_quantities.MaxLocation
    ~yt.data_objects.derived_quantities.MinLocation
+   ~yt.data_objects.derived_quantities.SpinParameter
+   ~yt.data_objects.derived_quantities.TotalMass
+   ~yt.data_objects.derived_quantities.TotalQuantity
+   ~yt.data_objects.derived_quantities.WeightedAverageQuantity
+   ~yt.data_objects.derived_quantities.WeightedVariance
 
 .. _callback-api:
 
@@ -628,11 +628,8 @@ See also :ref:`callbacks`.
    ~yt.visualization.plot_modifications.ArrowCallback
    ~yt.visualization.plot_modifications.ClumpContourCallback
    ~yt.visualization.plot_modifications.ContourCallback
-   ~yt.visualization.plot_modifications.CoordAxesCallback
    ~yt.visualization.plot_modifications.CuttingQuiverCallback
    ~yt.visualization.plot_modifications.GridBoundaryCallback
-   ~yt.visualization.plot_modifications.HopCircleCallback
-   ~yt.visualization.plot_modifications.HopParticleCallback
    ~yt.visualization.plot_modifications.LabelCallback
    ~yt.visualization.plot_modifications.LinePlotCallback
    ~yt.visualization.plot_modifications.MarkerAnnotateCallback
@@ -642,7 +639,6 @@ See also :ref:`callbacks`.
    ~yt.visualization.plot_modifications.SphereCallback
    ~yt.visualization.plot_modifications.TextLabelCallback
    ~yt.visualization.plot_modifications.TitleCallback
-   ~yt.visualization.plot_modifications.UnitBoundaryCallback
    ~yt.visualization.plot_modifications.VelocityCallback
 
 Function List
@@ -669,10 +665,10 @@ Function List
    ~yt.funcs.time_execution
    ~yt.analysis_modules.level_sets.contour_finder.identify_contours
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_blocking_call
+   ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_objects
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_passthrough
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_root_only
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_simple_proxy
-   ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_splitter
 
 Math Utilities
 --------------
@@ -721,8 +717,6 @@ Miscellaneous Types
    ~yt.utilities.parallel_tools.parallel_analysis_interface.ObjectIterator
    ~yt.utilities.parallel_tools.parallel_analysis_interface.ParallelAnalysisInterface
    ~yt.utilities.parallel_tools.parallel_analysis_interface.ParallelObjectIterator
-   ~yt.analysis_modules.hierarchy_subset.hierarchy_subset.ConstructedRootGrid
-   ~yt.analysis_modules.hierarchy_subset.hierarchy_subset.ExtractedHierarchy
 
 
 Testing Infrastructure
@@ -751,5 +745,5 @@ These are yt-provided functions:
 
    ~yt.testing.assert_rel_equal
    ~yt.testing.amrspace
-   ~yt.testing.fake_random_pf
+   ~yt.testing.fake_random_ds
    ~yt.testing.expand_keywords

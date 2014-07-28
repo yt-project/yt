@@ -17,13 +17,16 @@ Polar fields
 import numpy as np
 from .coordinate_handler import \
     CoordinateHandler, \
-    _unknown_coord
+    _unknown_coord, \
+    _get_coord_fields
+from yt.utilities.lib.misc_utilities import \
+    pixelize_cylinder
 
 class PolarCoordinateHandler(CoordinateHandler):
 
-    def __init__(self, pf, ordering = 'rtz'):
+    def __init__(self, ds, ordering = 'rtz'):
         if ordering != 'rtz': raise NotImplementedError
-        super(PolarCoordinateHandler, self).__init__(pf)
+        super(PolarCoordinateHandler, self).__init__(ds)
 
     def setup_fields(self, registry):
         # return the fields for r, z, theta
@@ -32,31 +35,30 @@ class PolarCoordinateHandler(CoordinateHandler):
         registry.add_field("x", function=_unknown_coord)
         registry.add_field("y", function=_unknown_coord)
 
-        def _dr(field, data):
-            return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
-        registry.add_field('dr', function=_dr, display_field=False,
-                  validators=[ValidateSpatial(0)])
+        f1, f2 = _get_coord_fields(0)
+        registry.add_field(("index", "dr"), function = f1,
+                           display_field = False,
+                           units = "code_length")
+        registry.add_field(("index", "r"), function = f2,
+                           display_field = False,
+                           units = "code_length")
 
-        def _dtheta(field, data):
-            return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
-        registry.add_field('dtheta', function=_dtheta,
-                  display_field=False, validators=[ValidateSpatial(0)])
+        f1, f2 = _get_coord_fields(1, "")
+        registry.add_field(("index", "dtheta"), function = f1,
+                           display_field = False,
+                           units = "")
+        registry.add_field(("index", "theta"), function = f2,
+                           display_field = False,
+                           units = "")
 
-        def _coordR(field, data):
-            dim = data.ActiveDimensions[0]
-            return (np.ones(data.ActiveDimensions, dtype='float64')
-                           * np.arange(data.ActiveDimensions[0])[:,None,None]
-                    +0.5) * data['dr'] + data.LeftEdge[0]
-        registry.add_field('r', function=_coordR, display_field=False,
-                  validators=[ValidateSpatial(0)])
+        f1, f2 = _get_coord_fields(2) 
+        registry.add_field(("index", "dz"), function = f1,
+                           display_field = False,
+                           units = "code_length")
+        registry.add_field(("index", "z"), function = f2,
+                           display_field = False,
+                           units = "code_length")
 
-        def _coordTheta(field, data):
-            dim = data.ActiveDimensions[2]
-            return (np.ones(data.ActiveDimensions, dtype='float64')
-                           * np.arange(data.ActiveDimensions[1])[None,:,None]
-                    +0.5) * data['dtheta'] + data.LeftEdge[1]
-        registry.add_field('theta', function=_coordTheta, display_field=False,
-                  validators=[ValidateSpatial(0)])
 
         def _CylindricalVolume(field, data):
             return data["dtheta"] * data["r"] * data["dr"] * data["dz"]
@@ -68,7 +70,7 @@ class PolarCoordinateHandler(CoordinateHandler):
             return self._ortho_pixelize(data_source, field, bounds, size,
                                         antialias)
         elif ax_name == "z":
-            return self._cyl_pixelize(data_source, field, bounds, size,
+            return self._polar_pixelize(data_source, field, bounds, size,
                                         antialias)
         else:
             # Pixelizing along a cylindrical surface is a bit tricky
@@ -84,11 +86,13 @@ class PolarCoordinateHandler(CoordinateHandler):
         return buff
 
     def _polar_pixelize(self, data_source, field, bounds, size, antialias):
+        # Out bounds here will *always* be what plot window thinks are x0, x1,
+        # y0, y1, but which will actually be rmin, rmax, thetamin, thetamax.
         buff = pixelize_cylinder(data_source['r'],
-                                 data_source['dr']/2.0,
+                                 data_source['dr'],
                                  data_source['theta'],
-                                 data_source['dtheta']/2.0,
-                                 size[0], data_source[field], bounds[0])
+                                 data_source['dtheta'] / 2.0, # half-widths
+                                 size, data_source[field], bounds)
         return buff
 
     axis_name = { 0  : 'r',  1  : 'theta',  2  : 'z',

@@ -56,56 +56,58 @@ class WidgetStore(dict):
             multicast_session, multicast_token)
         mylog.info("Multicasting %s to %s", widget_id, multicast_session)
 
-    def create_slice(self, pf, center, axis, field, onmax):
+    def create_slice(self, ds, center, axis, field, onmax):
         if onmax: 
-            center = pf.h.find_max('Density')[1]
+            center = ds.h.find_max('Density')[1]
         else:
             center = np.array(center)
-        axis = inv_axis_names[axis.lower()]
+        axis = ds.coordinates.axis_id[axis.lower()]
         coord = center[axis]
-        sl = pf.slice(axis, coord, center = center)
-        xax, yax = x_dict[axis], y_dict[axis]
-        DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
+        sl = ds.slice(axis, coord, center = center)
+        xax = ds.coordinates.x_axis[axis]
+        yax = ds.coordinates.y_axis[axis]
+        DLE, DRE = ds.domain_left_edge, ds.domain_right_edge
         pw = PWViewerExtJS(sl, (DLE[xax], DRE[xax], DLE[yax], DRE[yax]), 
                            setup = False, plot_type='SlicePlot')
         pw.set_current_field(field)
-        field_list = list(set(pf.field_list + pf.derived_field_list))
+        field_list = list(set(ds.field_list + ds.derived_field_list))
         field_list = [dict(text = f) for f in sorted(field_list)]
         cb = pw._get_cbar_image()
         trans = pw._field_transform[pw._current_field].name
         widget_data = {'fields': field_list,
                          'initial_field': field,
-                         'title': "%s Slice" % (pf),
+                         'title': "%s Slice" % (ds),
                          'colorbar': cb,
                          'initial_transform' : trans}
         self._add_widget(pw, widget_data)
 
-    def create_proj(self, pf, axis, field, weight):
+    def create_proj(self, ds, axis, field, weight):
         if weight == "None": weight = None
-        axis = inv_axis_names[axis.lower()]
-        proj = pf.proj(field, axis, weight_field=weight)
-        xax, yax = x_dict[axis], y_dict[axis]
-        DLE, DRE = pf.domain_left_edge, pf.domain_right_edge
+        axis = ds.coordinates.axis_id[axis.lower()]
+        proj = ds.proj(field, axis, weight_field=weight)
+        xax = ds.coordinates.x_axis[axis]
+        yax = ds.coordinates.y_axis[axis]
+        DLE, DRE = ds.domain_left_edge, ds.domain_right_edge
         pw = PWViewerExtJS(proj, (DLE[xax], DRE[xax], DLE[yax], DRE[yax]),
                            setup = False, plot_type='ProjectionPlot')
         pw.set_current_field(field)
-        field_list = list(set(pf.field_list + pf.derived_field_list))
+        field_list = list(set(ds.field_list + ds.derived_field_list))
         field_list = [dict(text = f) for f in sorted(field_list)]
         cb = pw._get_cbar_image()
         widget_data = {'fields': field_list,
                        'initial_field': field,
-                       'title': "%s Projection" % (pf),
+                       'title': "%s Projection" % (ds),
                        'colorbar': cb}
         self._add_widget(pw, widget_data)
 
-    def create_grid_dataview(self, pf):
-        levels = pf.grid_levels
-        left_edge = pf.grid_left_edge
-        right_edge = pf.grid_right_edge
-        dimensions = pf.grid_dimensions
-        cell_counts = pf.grid_dimensions.prod(axis=1)
+    def create_grid_dataview(self, ds):
+        levels = ds.grid_levels
+        left_edge = ds.grid_left_edge
+        right_edge = ds.grid_right_edge
+        dimensions = ds.grid_dimensions
+        cell_counts = ds.grid_dimensions.prod(axis=1)
         # This is annoying, and not ... that happy for memory.
-        i = pf.index.grids[0]._id_offset
+        i = ds.index.grids[0]._id_offset
         vals = []
         for i, (L, LE, RE, dim, cell) in enumerate(zip(
             levels, left_edge, right_edge, dimensions, cell_counts)):
@@ -123,11 +125,11 @@ class WidgetStore(dict):
                    }
         self.payload_handler.add_payload(payload)
 
-    def create_pf_display(self, pf):
-        widget = ParameterFileWidget(pf)
+    def create_ds_display(self, ds):
+        widget = ParameterFileWidget(ds)
         widget_data = {'fields': widget._field_list(),
                        'level_stats': widget._level_stats(),
-                       'pf_info': widget._pf_info(),
+                       'ds_info': widget._ds_info(),
                       }
         self._add_widget(widget, widget_data)
 
@@ -152,13 +154,13 @@ class WidgetStore(dict):
                        'metadata_string': mds}
         self._add_widget(pp, widget_data)
 
-    def create_scene(self, pf):
+    def create_scene(self, ds):
         '''Creates 3D XTK-based scene'''
-        widget = SceneWidget(pf)
-        field_list = list(set(pf.field_list
-                            + pf.derived_field_list))
+        widget = SceneWidget(ds)
+        field_list = list(set(ds.field_list
+                            + ds.derived_field_list))
         field_list.sort()
-        widget_data = {'title':'Scene for %s' % pf,
+        widget_data = {'title':'Scene for %s' % ds,
                        'fields': field_list}
         self._add_widget(widget, widget_data)
 
@@ -167,21 +169,21 @@ class ParameterFileWidget(object):
     _ext_widget_id = None
     _widget_name = "parameterfile"
 
-    def __init__(self, pf):
-        self.pf = weakref.proxy(pf)
+    def __init__(self, ds):
+        self.ds = weakref.proxy(ds)
 
     def _field_list(self):
-        field_list = list(set(self.pf.field_list
-                            + self.pf.derived_field_list))
+        field_list = list(set(self.ds.field_list
+                            + self.ds.derived_field_list))
         field_list.sort()
         return [dict(text = field) for field in field_list]
 
     def _level_stats(self):
         level_data = []
-        level_stats = self.pf.h.level_stats
+        level_stats = self.ds.h.level_stats
         ngrids = float(level_stats['numgrids'].sum())
         ncells = float(level_stats['numcells'].sum())
-        for level in range(self.pf.h.max_level + 1):
+        for level in range(self.ds.h.max_level + 1):
             cell_count = level_stats['numcells'][level]
             grid_count = level_stats['numgrids'][level]
             level_data.append({'level' : level,
@@ -191,9 +193,9 @@ class ParameterFileWidget(object):
                                'grid_rel': int(100*grid_count/ngrids)})
         return level_data
 
-    def _pf_info(self):
+    def _ds_info(self):
         tr = {}
-        for k, v in self.pf._mrep._attrs.items():
+        for k, v in self.ds._mrep._attrs.items():
             if isinstance(v, np.ndarray):
                 tr[k] = v.tolist()
             else:
@@ -204,7 +206,7 @@ class ParameterFileWidget(object):
         ph = PayloadHandler()
         ph.widget_payload(self,
             {'ptype':'field_info',
-             'field_source': self.pf.field_info[field].get_source() })
+             'field_source': self.ds.field_info[field].get_source() })
         return
 
 class SceneWidget(object):
@@ -212,12 +214,12 @@ class SceneWidget(object):
     _widget_name = "scene"
     _rendering_scene = None
 
-    def __init__(self, pf):
-        self.pf = weakref.proxy(pf)
+    def __init__(self, ds):
+        self.ds = weakref.proxy(ds)
 
     def add_volume_rendering(self):
         return None
-        self._rendering_scene = RenderingScene(self.pf, None, None)
+        self._rendering_scene = RenderingScene(self.ds, None, None)
 
     def deliver_rendering(self, scene_config):
         ph = PayloadHandler()
@@ -227,7 +229,7 @@ class SceneWidget(object):
 
     def deliver_isocontour(self, field, value, rel_val = False):
         ph = PayloadHandler()
-        vert = get_isocontour(self.pf, field, value, rel_val)
+        vert = get_isocontour(self.ds, field, value, rel_val)
         normals = np.empty(vert.shape)
         for i in xrange(vert.shape[0]/3):
             n = np.cross(vert[i*3,:], vert[i*3+1,:])
@@ -239,12 +241,12 @@ class SceneWidget(object):
 
     def deliver_gridlines(self):
         ph = PayloadHandler()
-        corners, levels = get_corners(self.pf)
+        corners, levels = get_corners(self.ds)
         ph.widget_payload(self, {'ptype':'grid_lines',
                                  'binary': ['corners', 'levels'],
                                  'corners': corners,
                                  'levels': levels,
-                                 'max_level': int(self.pf.h.max_level)})
+                                 'max_level': int(self.ds.h.max_level)})
         return
 
     def render_path(self, views, times, N):
@@ -292,6 +294,6 @@ class SceneWidget(object):
 
 
     def deliver_streamlines(self):
-        pf = PayloadHandler()
+        ds = PayloadHandler()
         pass
 

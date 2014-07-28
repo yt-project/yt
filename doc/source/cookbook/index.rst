@@ -18,12 +18,8 @@ All of the data used in the cookbook is freely available
 `here <http://yt-project.org/data/>`_, where you will find links to download 
 individual datasets.
 
-If you want to take a look at more complex recipes, or submit your own,
-check out the `yt Hub <http://hub.yt-project.org>`_.
-
-.. note:: To contribute your own recipes, please 
-   `fork <http://bitbucket.org/yt_analysis/yt-doc/fork>`_
-   the documentation repository!
+.. note:: To contribute your own recipes, please follow the instructions 
+    on how to contribute documentation code: :ref:`writing_documentation`.
 
 Example Scripts
 ---------------
@@ -46,4 +42,6 @@ Example Notebooks
    embedded_javascript_animation
    embedded_webm_animation
    ../analyzing/analysis_modules/sunyaev_zeldovich
-   
+   fits_radio_cubes
+   fits_xray_images
+   tipsy_notebook

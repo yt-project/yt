@@ -59,7 +59,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'yt'
+project = u'The yt Project'
 copyright = u'2013, the yt Project'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -97,7 +97,7 @@ exclude_patterns = []
 
 # If true, sectionauthor and moduleauthor directives will be shown in the
 # output. They are ignored by default.
-show_authors = True
+show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'sphinx'
@@ -119,10 +119,15 @@ html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 # documentation.
 html_theme_options = dict(
     bootstrap_version = "3",
-    bootswatch_theme = "readable"
+    bootswatch_theme = "readable",
+    navbar_links = [
+        ("How to get help", "help/index"),
+        ("Bootcamp notebooks", "bootcamp/index"),
+        ("Cookbook", "cookbook/index"),
+        ],
+    navbar_sidebarrel = False,
+    globaltoc_depth = 2,
 )
-
-#html_style = "agogo_yt.css"
 
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = []

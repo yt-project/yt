@@ -12,9 +12,9 @@ Each subsection is a notebook.  To open these notebooks in a "live" IPython sess
 and execute the documentation interactively, you need to download the repository
 and start the IPython notebook.
 
-If you installed `yt` using the install script, you will need to navigate to
-:code:`$YT_DEST/src/yt-hg/doc/source/units`, then start an IPython notebook
-server:
+You will then need to navigate to :code:`$YT_HG/doc/source/units` (where $YT_HG
+is the location of a clone of the yt mercurial repository), and then start an
+IPython notebook server:
 
 .. code:: bash
   

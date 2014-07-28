@@ -1,14 +1,15 @@
 Halo Analysis
 =============
 
-Halo finding, mass functions, merger trees, and profiling.
+Using halo catalogs, understanding the different halo finding methods,
+and using the halo mass function.
 
 .. toctree::
    :maxdepth: 1
 
-   running_halofinder
+   halo_catalogs
+   halo_transition
+   halo_finding
    halo_mass_function
-   hmf_howto
-   merger_tree
-   halo_profiling
-   ellipsoid_analysis
+   halo_merger_tree
+   halo_analysis_example

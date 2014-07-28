@@ -66,14 +66,14 @@ class EnzoSimulation(SimulationTimeSeries):
     >>> from yt.mods import *
     >>> es = EnzoSimulation("my_simulation.par")
     >>> es.get_time_series()
-    >>> for pf in es:
-    ...     print pf.current_time
+    >>> for ds in es:
+    ...     print ds.current_time
 
     >>> from yt.mods import *
     >>> es = simulation("my_simulation.par", "Enzo")
     >>> es.get_time_series()
-    >>> for pf in es:
-    ...     print pf.current_time
+    >>> for ds in es:
+    ...     print ds.current_time
 
     """
 
@@ -95,6 +95,16 @@ class EnzoSimulation(SimulationTimeSeries):
                             unit_registry=self.unit_registry)
 
             self.time_unit = self.enzo_cosmology.time_unit.in_units("s")
+            self.unit_registry.modify("h", self.hubble_constant)
+            # Comoving lengths
+            for my_unit in ["m", "pc", "AU", "au"]:
+                new_unit = "%scm" % my_unit
+                # technically not true, but should be ok
+                self.unit_registry.add(new_unit, self.unit_registry.lut[my_unit][0],
+                                       dimensions.length, "\\rm{%s}/(1+z)" % my_unit)
+            self.length_unit = self.quan(self.box_size, "Mpccm / h",
+                                         registry=self.unit_registry)
+            self.box_size = self.length_unit
         else:
             self.time_unit = self.quan(self.parameters["TimeUnits"], "s")
         self.unit_registry.modify("code_time", self.time_unit)
@@ -181,8 +191,8 @@ class EnzoSimulation(SimulationTimeSeries):
             integer is supplied, the work will be divided into that
             number of jobs.
             Default: True.
-        setup_function : callable, accepts a pf
-            This function will be called whenever a parameter file is loaded.
+        setup_function : callable, accepts a ds
+            This function will be called whenever a dataset is loaded.
 
         Examples
         --------
@@ -200,17 +210,16 @@ class EnzoSimulation(SimulationTimeSeries):
         >>> es.get_time_series(find_outputs=True)
 
         >>> # after calling get_time_series
-        >>> for pf in es.piter():
-        ...     pc = PlotCollection(pf, 'c')
-        ...     pc.add_projection('Density', 0)
-        ...     pc.save()
+        >>> for ds in es.piter():
+        ...     p = ProjectionPlot(ds, 'x', "density")
+        ...     p.save()
 
         >>> # An example using the setup_function keyword
-        >>> def print_time(pf):
-        ...     print pf.current_time
+        >>> def print_time(ds):
+        ...     print ds.current_time
         >>> es.get_time_series(setup_function=print_time)
-        >>> for pf in es:
-        ...     SlicePlot(pf, "x", "Density").save()
+        >>> for ds in es:
+        ...     SlicePlot(ds, "x", "Density").save()
 
         """
 
@@ -531,7 +540,7 @@ class EnzoSimulation(SimulationTimeSeries):
     def _find_outputs(self):
         """
         Search for directories matching the data dump keywords.
-        If found, get dataset times py opening the pf.
+        If found, get dataset times py opening the ds.
         """
 
         # look for time outputs.
@@ -581,12 +590,12 @@ class EnzoSimulation(SimulationTimeSeries):
                                     "%s%s" % (output_key, index))
             if os.path.exists(filename):
                 try:
-                    pf = load(filename)
-                    if pf is not None:
+                    ds = load(filename)
+                    if ds is not None:
                         my_storage.result = {'filename': filename,
-                                             'time': pf.current_time.in_units("s")}
-                        if pf.cosmological_simulation:
-                            my_storage.result['redshift'] = pf.current_redshift
+                                             'time': ds.current_time.in_units("s")}
+                        if ds.cosmological_simulation:
+                            my_storage.result['redshift'] = ds.current_redshift
                 except YTOutputNotIdentified:
                     mylog.error('Failed to load %s', filename)
         my_outputs = [my_output for my_output in my_outputs.values() \

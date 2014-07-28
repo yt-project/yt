@@ -18,11 +18,11 @@ import stat
 import weakref
 import cStringIO
 
-from .definitions import yt_to_art, art_to_yt, ARTIOconstants
-from _artio_caller import \
+from .definitions import ARTIOconstants
+from ._artio_caller import \
     artio_is_valid, artio_fileset, ARTIOOctreeContainer, \
     ARTIORootMeshContainer, ARTIOSFCRangeHandler
-import _artio_caller
+from . import _artio_caller
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from .fields import \
@@ -48,22 +48,21 @@ from yt.fields.field_info_container import \
 class ARTIOOctreeSubset(OctreeSubset):
     _domain_offset = 0
     domain_id = -1
-    _con_args = ("base_region", "sfc_start", "sfc_end", "oct_handler", "pf")
+    _con_args = ("base_region", "sfc_start", "sfc_end", "oct_handler", "ds")
     _type_name = 'octree_subset'
     _num_zones = 2
 
-    def __init__(self, base_region, sfc_start, sfc_end, oct_handler, pf):
+    def __init__(self, base_region, sfc_start, sfc_end, oct_handler, ds):
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.sfc_start = sfc_start
         self.sfc_end = sfc_end
         self.oct_handler = oct_handler
-        self.pf = pf
-        self.index = self.pf.index
+        self.ds = ds
         self._last_mask = None
         self._last_selector_id = None
         self._current_particle_type = 'all'
-        self._current_fluid_type = self.pf.default_fluid_type
+        self._current_fluid_type = self.ds.default_fluid_type
         self.base_region = base_region
         self.base_selector = base_region.selector
 
@@ -94,31 +93,24 @@ class ARTIOOctreeSubset(OctreeSubset):
 
     def fill_particles(self, fields):
         if len(fields) == 0: return {}
-        art_fields = []
-        for s, f in fields:
-            fn = yt_to_art[f]
-            for i in self.pf.particle_type_map[s]:
-                if fn in self.pf.particle_variables[i]:
-                    art_fields.append((i, fn))
+        ptype_indices = self.ds.particle_types
+        art_fields = [(ptype_indices.index(ptype), fname) for
+                      ptype, fname in fields]
         species_data = self.oct_handler.fill_sfc_particles(art_fields)
         tr = defaultdict(dict)
         # Now we need to sum things up and then fill
         for s, f in fields:
             count = 0
-            fn = yt_to_art[f]
             dt = "float64" # default
-            for i in self.pf.particle_type_map[s]:
-                if (i, fn) not in species_data: continue
-                # No vector fields in ARTIO
-                count += species_data[i, fn].size
-                dt = species_data[i, fn].dtype
+            i = ptype_indices.index(s)
+            # No vector fields in ARTIO
+            count += species_data[i, f].size
+            dt = species_data[i, f].dtype
             tr[s][f] = np.zeros(count, dtype=dt)
             cp = 0
-            for i in self.pf.particle_type_map[s]:
-                if (i, fn) not in species_data: continue
-                v = species_data.pop((i, fn))
-                tr[s][f][cp:cp+v.size] = v
-                cp += v.size
+            v = species_data.pop((i, f))
+            tr[s][f][cp:cp+v.size] = v
+            cp += v.size
         return tr
 
 # We create something of a fake octree here.  This is primarily to enable us to
@@ -134,7 +126,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
     def fill(self, fields, selector):
         # We know how big these will be.
         if len(fields) == 0: return []
-        handle = self.pf._handle
+        handle = self.ds._handle
         field_indices = [handle.parameters["grid_variable_labels"].index(f)
                         for (ft, f) in fields]
         tr = self.oct_handler.fill_sfc(selector, field_indices)
@@ -163,20 +155,20 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
 
 class ARTIOIndex(Index):
 
-    def __init__(self, pf, dataset_type='artio'):
+    def __init__(self, ds, dataset_type='artio'):
         self.dataset_type = dataset_type
-        self.parameter_file = weakref.proxy(pf)
-        # for now, the index file is the parameter file!
-        self.index_filename = self.parameter_file.parameter_filename
+        self.dataset = weakref.proxy(ds)
+        # for now, the index file is the dataset!
+        self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
 
-        self.max_level = pf.max_level
+        self.max_level = ds.max_level
         self.float_type = np.float64
-        super(ARTIOIndex, self).__init__(pf, dataset_type)
+        super(ARTIOIndex, self).__init__(ds, dataset_type)
 
     @property
     def max_range(self):
-        return self.parameter_file.max_range
+        return self.dataset.max_range
 
     def _setup_geometry(self):
         mylog.debug("Initializing Geometry Handler empty for now.")
@@ -188,7 +180,7 @@ class ARTIOIndex(Index):
         return  1.0/(2**self.max_level)
 
     def convert(self, unit):
-        return self.parameter_file.conversion_factors[unit]
+        return self.dataset.conversion_factors[unit]
 
     def find_max(self, field, finest_levels=3):
         """
@@ -209,8 +201,8 @@ class ARTIOIndex(Index):
             source.quantities["MaxLocation"](field)
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
                    max_val, mx, my, mz)
-        self.pf.parameters["Max%sValue" % (field)] = max_val
-        self.pf.parameters["Max%sPos" % (field)] = "%s" % ((mx, my, mz),)
+        self.ds.parameters["Max%sValue" % (field)] = max_val
+        self.ds.parameters["Max%sPos" % (field)] = "%s" % ((mx, my, mz),)
         return max_val, np.array((mx, my, mz), dtype='float64')
 
     def _detect_output_fields(self):
@@ -221,24 +213,21 @@ class ARTIOIndex(Index):
 
     def _detect_fluid_fields(self):
         return [("artio", f) for f in
-                self.pf.artio_parameters["grid_variable_labels"]]
+                self.ds.artio_parameters["grid_variable_labels"]]
 
     def _detect_particle_fields(self):
         fields = set()
-        for ptype in self.pf.particle_types:
-            if ptype == "all": continue
-            for f in yt_to_art.values():
-                if all(f in self.pf.particle_variables[i]
-                       for i in range(self.pf.num_species)
-                       if art_to_yt[self.pf.particle_species[i]] == ptype):
-                    fields.add((ptype, art_to_yt[f]))
+        for i, ptype in enumerate(self.ds.particle_types):
+            if ptype == "all": break # This will always be after all intrinsic
+            for fname in self.ds.particle_variables[i]:
+                fields.add((ptype, fname))
         return list(fields)
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
             try:
-                all_data = all(dobj.left_edge == self.pf.domain_left_edge) and\
-                    all(dobj.right_edge == self.pf.domain_right_edge)
+                all_data = all(dobj.left_edge == self.ds.domain_left_edge) and\
+                    all(dobj.right_edge == self.ds.domain_right_edge)
             except:
                 all_data = False
             base_region = getattr(dobj, "base_region", dobj)
@@ -247,30 +236,30 @@ class ARTIOIndex(Index):
             nz = getattr(dobj, "_num_zones", 0)
             if all_data:
                 mylog.debug("Selecting entire artio domain")
-                list_sfc_ranges = self.pf._handle.root_sfc_ranges_all(
+                list_sfc_ranges = self.ds._handle.root_sfc_ranges_all(
                     max_range_size = self.max_range)
             elif sfc_start is not None and sfc_end is not None:
                 mylog.debug("Restricting to %s .. %s", sfc_start, sfc_end)
                 list_sfc_ranges = [(sfc_start, sfc_end)]
             else:
                 mylog.debug("Running selector on artio base grid")
-                list_sfc_ranges = self.pf._handle.root_sfc_ranges(
+                list_sfc_ranges = self.ds._handle.root_sfc_ranges(
                     dobj.selector, max_range_size = self.max_range)
             ci = []
             #v = np.array(list_sfc_ranges)
             #list_sfc_ranges = [ (v.min(), v.max()) ]
             for (start, end) in list_sfc_ranges:
                 range_handler = ARTIOSFCRangeHandler(
-                    self.pf.domain_dimensions,
-                    self.pf.domain_left_edge, self.pf.domain_right_edge,
-                    self.pf._handle, start, end)
+                    self.ds.domain_dimensions,
+                    self.ds.domain_left_edge, self.ds.domain_right_edge,
+                    self.ds._handle, start, end)
                 range_handler.construct_mesh()
                 if nz != 2:
                     ci.append(ARTIORootMeshSubset(base_region, start, end,
-                                range_handler.root_mesh_handler, self.pf))
+                                range_handler.root_mesh_handler, self.ds))
                 if nz != 1 and range_handler.total_octs > 0:
                     ci.append(ARTIOOctreeSubset(base_region, start, end,
-                      range_handler.octree_handler, self.pf))
+                      range_handler.octree_handler, self.ds))
             dobj._chunk_info = ci
             if len(list_sfc_ranges) > 1:
                 mylog.info("Created %d chunks for ARTIO" % len(list_sfc_ranges))
@@ -370,14 +359,9 @@ class ARTIODataset(Dataset):
             self.num_species = self.artio_parameters["num_particle_species"][0]
             self.particle_variables = [["PID", "SPECIES"]
                                    for i in range(self.num_species)]
-            self.particle_species = \
+            self.particle_types_raw = \
                 self.artio_parameters["particle_species_labels"]
-            self.particle_type_map = {}
-            for i, s in enumerate(self.particle_species):
-                f = art_to_yt[s]
-                if f not in self.particle_type_map:
-                    self.particle_type_map[f] = []
-                self.particle_type_map[f].append(i)
+            self.particle_types = tuple(self.particle_types_raw)
 
             for species in range(self.num_species):
                 # Mass would be best as a derived field,
@@ -397,10 +381,6 @@ class ARTIODataset(Dataset):
                             "species_%02d_secondary_variable_labels"
                             % (species, )])
 
-            self.particle_types_raw = tuple(
-                set(art_to_yt[s] for s in
-                    self.artio_parameters["particle_species_labels"]))
-            self.particle_types = tuple(self.particle_types)
         else:
             self.num_species = 0
             self.particle_variables = []
@@ -437,7 +417,7 @@ class ARTIODataset(Dataset):
             self.parameters['unit_t'] = self.artio_parameters["time_unit"][0]
             self.parameters['unit_m'] = self.artio_parameters["mass_unit"][0]
 
-        # hard coded assumption of 3D periodicity (add to parameter file)
+        # hard coded assumption of 3D periodicity (add to dataset)
         self.periodicity = (True, True, True)
 
     @classmethod

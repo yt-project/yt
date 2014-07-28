@@ -18,6 +18,7 @@ cimport cython
 cimport numpy as np
 import numpy as np
 from selection_routines cimport SelectorObject
+from libc.math cimport floor
 cimport selection_routines
 
 ORDER_MAX = 20
@@ -122,6 +123,8 @@ cdef class OctreeContainer:
         cdef int i, j, k, n
         data.global_index = -1
         data.level = 0
+        data.oref = 0
+        data.nz = 1
         assert(ref_mask.shape[0] / float(data.nz) ==
             <int>(ref_mask.shape[0]/float(data.nz)))
         obj.allocate_domains([ref_mask.shape[0] / data.nz])
@@ -264,24 +267,25 @@ cdef class OctreeContainer:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef Oct *get(self, np.float64_t ppos[3], OctInfo *oinfo = NULL,
-                  ):
+                  int max_level = 99):
         #Given a floating point position, retrieve the most
         #refined oct at that time
-        cdef int ind[3], level
+        cdef int ind32[3]
         cdef np.int64_t ipos[3]
         cdef np.float64_t dds[3], cp[3], pp[3]
         cdef Oct *cur, *next
         cdef int i
         cur = next = NULL
-        level = -1
+        cdef np.int64_t ind[3], level = -1
         for i in range(3):
             dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
-            ind[i] = <np.int64_t> ((ppos[i] - self.DLE[i])/dds[i])
+            ind[i] = <np.int64_t> (floor((ppos[i] - self.DLE[i])/dds[i]))
             cp[i] = (ind[i] + 0.5) * dds[i] + self.DLE[i]
             ipos[i] = 0
-        self.get_root(ind, &next)
+            ind32[i] = ind[i]
+        self.get_root(ind32, &next)
         # We want to stop recursing when there's nowhere else to go
-        while next != NULL:
+        while next != NULL and level <= max_level:
             level += 1
             for i in range(3):
                 ipos[i] = (ipos[i] << 1) + ind[i]
@@ -345,7 +349,8 @@ cdef class OctreeContainer:
         # grow a stack of parent Octs.
         # Note that in the first iteration, we will just find the up-to-27
         # neighbors, including the main oct.
-        cdef int i, j, k, n, level, ind[3], ii, nfound = 0
+        cdef np.int64_t i, j, k, n, level, ii, nfound = 0, dlevel
+        cdef int ind[3]
         cdef OctList *olist, *my_list
         my_list = olist = NULL
         cdef Oct *cand
@@ -355,6 +360,7 @@ cdef class OctreeContainer:
         # ndim is the oct dimensions of the level, not the cell dimensions.
         for i in range(3):
             ndim[i] = <np.int64_t> ((self.DRE[i] - self.DLE[i]) / oi.dds[i])
+            # Here we adjust for oi.dds meaning *cell* width.
             ndim[i] = (ndim[i] >> self.oref)
         my_list = olist = OctList_append(NULL, o)
         for i in range(3):
@@ -379,9 +385,10 @@ cdef class OctreeContainer:
                     # correctly, but we might.
                     if cand == NULL: continue
                     for level in range(1, oi.level+1):
+                        dlevel = oi.level - level
                         if cand.children == NULL: break
                         for n in range(3):
-                            ind[n] = (npos[n] >> (oi.level - (level))) & 1
+                            ind[n] = (npos[n] >> dlevel) & 1
                         ii = cind(ind[0],ind[1],ind[2])
                         if cand.children[ii] == NULL: break
                         cand = cand.children[ii]
@@ -492,7 +499,7 @@ cdef class OctreeContainer:
             coords[:,i] += self.DLE[i]
         return coords
 
-    def save_octree(self, always_descend = False):
+    def save_octree(self):
         # Get the header
         header = dict(dims = (self.nn[0], self.nn[1], self.nn[2]),
                       left_edge = (self.DLE[0], self.DLE[1], self.DLE[2]),
@@ -503,13 +510,12 @@ cdef class OctreeContainer:
         # domain_id = -1 here, because we want *every* oct
         cdef OctVisitorData data
         self.setup_data(&data, -1)
-        data.oref = 1
+        data.oref = 0
+        data.nz = 1
         cdef np.ndarray[np.uint8_t, ndim=1] ref_mask
         ref_mask = np.zeros(self.nocts * data.nz, dtype="uint8") - 1
-        cdef void *p[2]
-        cdef np.uint8_t ad = int(always_descend)
-        p[0] = <void *> &ad
-        p[1] = ref_mask.data
+        cdef void *p[1]
+        p[0] = ref_mask.data
         data.array = p
         # Enforce partial_coverage here
         self.visit_all_octs(selector, oct_visitors.store_octree, &data, 1)
@@ -908,6 +914,7 @@ cdef class ARTOctreeContainer(OctreeContainer):
                 domain_left_edge, domain_right_edge, partial_coverage,
                  over_refine)
         self.fill_func = oct_visitors.fill_file_indices_rind
+
 cdef OctList *OctList_subneighbor_find(OctList *olist, Oct *top,
                                        int i, int j, int k):
     if top.children == NULL: return olist
@@ -920,7 +927,7 @@ cdef OctList *OctList_subneighbor_find(OctList *olist, Oct *top,
     # For now, we assume we will not be doing this along all three zeros,
     # because that would be pretty tricky.
     if i == j == k == 0: return olist
-    cdef int n[3], ind[3], off[3][2], ii, ij, ik, ci
+    cdef np.int64_t n[3], ind[3], off[3][2], ii, ij, ik, ci
     ind[0] = 1 - i
     ind[1] = 1 - j
     ind[2] = 1 - k

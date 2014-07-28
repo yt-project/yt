@@ -13,7 +13,6 @@ Data structures for Pluto.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
 import re
 import os
 import weakref
@@ -21,9 +20,6 @@ import numpy as np
 
 from collections import \
      defaultdict
-from string import \
-     strip, \
-     rstrip
 from stat import \
      ST_CTIME
 
@@ -41,6 +37,8 @@ from yt.data_objects.static_output import \
      Dataset
 from yt.utilities.definitions import \
      mpc_conversion, sec_conversion
+from yt.utilities.file_handler import \
+    HDF5FileHandler
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      parallel_root_only
 from yt.utilities.io_handler import \
@@ -70,13 +68,13 @@ class PlutoGrid(AMRGridPatch):
         if self.start_index != None:
             return self.start_index
         if self.Parent == []:
-            iLE = self.LeftEdge - self.pf.domain_left_edge
+            iLE = self.LeftEdge - self.ds.domain_left_edge
             start_index = iLE / self.dds
             return np.rint(start_index).astype('int64').ravel()
         pdx = self.Parent[0].dds
         start_index = (self.Parent[0].get_global_startindex()) + \
             np.rint((self.LeftEdge - self.Parent[0].LeftEdge)/pdx)
-        self.start_index = (start_index*self.pf.refine_by).astype('int64').ravel()
+        self.start_index = (start_index*self.ds.refine_by).astype('int64').ravel()
         return self.start_index
 
     def _setup_dx(self):
@@ -88,21 +86,20 @@ class PlutoHierarchy(GridIndex):
 
     grid = PlutoGrid
 
-    def __init__(self,pf,dataset_type='pluto_hdf5'):
-        self.domain_left_edge = pf.domain_left_edge
-        self.domain_right_edge = pf.domain_right_edge
+    def __init__(self,ds,dataset_type='pluto_hdf5'):
+        self.domain_left_edge = ds.domain_left_edge
+        self.domain_right_edge = ds.domain_right_edge
         self.dataset_type = dataset_type
         self.field_indexes = {}
-        self.parameter_file = weakref.proxy(pf)
-        # for now, the index file is the parameter file!
+        self.dataset = weakref.proxy(ds)
         self.index_filename = os.path.abspath(
-            self.parameter_file.parameter_filename)
-        self.directory = pf.fullpath
-        self._handle = pf._handle
+            self.dataset.parameter_filename)
+        self.directory = ds.fullpath
+        self._handle = ds._handle
 
         self.float_type = self._handle['/level_0']['data:datatype=0'].dtype.name
         self._levels = self._handle.keys()[2:]
-        GridIndex.__init__(self,pf,dataset_type)
+        GridIndex.__init__(self,ds,dataset_type)
 
     def _detect_output_fields(self):
         ncomp = int(self._handle['/'].attrs['num_components'])
@@ -170,7 +167,7 @@ class PlutoDataset(Dataset):
 
     def __init__(self, filename, dataset_type='pluto_hdf5',
                  storage_filename = None, ini_filename = None):
-        self._handle = h5py.File(filename,'r')
+        self._handle = HDF5FileHandler(filename)
         self.current_time = self._handle.attrs['time']
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)
@@ -182,9 +179,6 @@ class PlutoDataset(Dataset):
         self.parameters["HydroMethod"] = 'chombo' # always PPM DE
         self.parameters["DualEnergyFormalism"] = 0 
         self.parameters["EOSType"] = -1 # default
-
-    def __del__(self):
-        self._handle.close()
 
     def _set_units(self):
         """
@@ -236,7 +230,8 @@ class PlutoDataset(Dataset):
         # read the file line by line, storing important parameters
         for lineI, line in enumerate(lines):
             try:
-                param, sep, vals = map(rstrip,line.partition(' '))
+                param, sep, vals = [v.rstrip() for v in line.partition(' ')]
+                #param, sep, vals = map(rstrip,line.partition(' '))
             except ValueError:
                 mylog.error("ValueError: '%s'", line)
             if pluto2enzoDict.has_key(param):

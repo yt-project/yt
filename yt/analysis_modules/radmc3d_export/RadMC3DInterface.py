@@ -69,8 +69,8 @@ class RadMC3DWriter:
     Parameters
     ----------
 
-    pf : `Dataset`
-        This is the parameter file object corresponding to the
+    ds : `Dataset`
+        This is the dataset object corresponding to the
         simulation output to be written out.
 
     max_level : int
@@ -98,8 +98,8 @@ class RadMC3DWriter:
     ...     return 10.0*data["Ones"]
     >>> add_field("DustTemperature", function=_DustTemperature)
     
-    >>> pf = load("galaxy0030/galaxy0030")
-    >>> writer = RadMC3DWriter(pf)
+    >>> ds = load("galaxy0030/galaxy0030")
+    >>> writer = RadMC3DWriter(ds)
     
     >>> writer.write_amr_grid()
     >>> writer.write_dust_file("DustDensity", "dust_density.inp")
@@ -119,8 +119,8 @@ class RadMC3DWriter:
     ...     return (x_co/mu_h)*data["Density"]
     >>> add_field("NumberDensityCO", function=_NumberDensityCO)
     
-    >>> pf = load("galaxy0030/galaxy0030")
-    >>> writer = RadMC3DWriter(pf)
+    >>> ds = load("galaxy0030/galaxy0030")
+    >>> writer = RadMC3DWriter(ds)
     
     >>> writer.write_amr_grid()
     >>> writer.write_line_file("NumberDensityCO", "numberdens_co.inp")
@@ -129,15 +129,15 @@ class RadMC3DWriter:
 
     '''
 
-    def __init__(self, pf, max_level=2):
+    def __init__(self, ds, max_level=2):
         self.max_level = max_level
         self.cell_count = 0 
         self.layers = []
-        self.domain_dimensions = pf.domain_dimensions
-        self.domain_left_edge  = pf.domain_left_edge
-        self.domain_right_edge = pf.domain_right_edge
+        self.domain_dimensions = ds.domain_dimensions
+        self.domain_left_edge  = ds.domain_left_edge
+        self.domain_right_edge = ds.domain_right_edge
         self.grid_filename = "amr_grid.inp"
-        self.pf = pf
+        self.ds = ds
 
         base_layer = RadMC3DLayer(0, None, 0, \
                                   self.domain_left_edge, \
@@ -145,9 +145,9 @@ class RadMC3DWriter:
                                   self.domain_dimensions)
 
         self.layers.append(base_layer)
-        self.cell_count += np.product(pf.domain_dimensions)
+        self.cell_count += np.product(ds.domain_dimensions)
 
-        sorted_grids = sorted(pf.index.grids, key=lambda x: x.Level)
+        sorted_grids = sorted(ds.index.grids, key=lambda x: x.Level)
         for grid in sorted_grids:
             if grid.Level <= self.max_level:
                 self._add_grid_to_layers(grid)
@@ -182,10 +182,14 @@ class RadMC3DWriter:
         LE   = self.domain_left_edge
         RE   = self.domain_right_edge
 
+        # Radmc3D wants the cell wall positions in cgs. Convert here:
+        LE_cgs = LE * self.ds.units['cm']
+        RE_cgs = RE * self.ds.units['cm']
+
         # calculate cell wall positions
-        xs = [str(x) for x in np.linspace(LE[0], RE[0], dims[0]+1)]
-        ys = [str(y) for y in np.linspace(LE[1], RE[1], dims[1]+1)]
-        zs = [str(z) for z in np.linspace(LE[2], RE[2], dims[2]+1)]
+        xs = [str(x) for x in np.linspace(LE_cgs[0], RE_cgs[0], dims[0]+1)]
+        ys = [str(y) for y in np.linspace(LE_cgs[1], RE_cgs[1], dims[1]+1)]
+        zs = [str(z) for z in np.linspace(LE_cgs[2], RE_cgs[2], dims[2]+1)]
 
         # writer file header
         grid_file = open(self.grid_filename, 'w')
@@ -238,7 +242,7 @@ class RadMC3DWriter:
         grid_file.close()
 
     def _write_layer_data_to_file(self, fhandle, field, level, LE, dim):
-        cg = self.pf.covering_grid(level, LE, dim, num_ghost_zones=1)
+        cg = self.ds.covering_grid(level, LE, dim, num_ghost_zones=1)
         if isinstance(field, list):
             data_x = cg[field[0]]
             data_y = cg[field[1]]

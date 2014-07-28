@@ -1,5 +1,5 @@
 """
-These are common particle deposition fields.
+These are common particle fields.
 
 
 
@@ -17,6 +17,7 @@ These are common particle deposition fields.
 import numpy as np
 
 from yt.funcs import *
+from yt.units.yt_array import YTArray
 from yt.fields.derived_field import \
     ValidateParameter, \
     ValidateSpatial
@@ -46,10 +47,10 @@ from .vector_operations import \
 def _field_concat(fname):
     def _AllFields(field, data):
         v = []
-        for ptype in data.pf.particle_types:
-            data.pf._last_freq = (ptype, None)
+        for ptype in data.ds.particle_types:
+            data.ds._last_freq = (ptype, None)
             if ptype == "all" or \
-                ptype in data.pf.known_filters:
+                ptype in data.ds.known_filters:
                   continue
             v.append(data[ptype, fname].copy())
         rv = uconcatenate(v, axis=0)
@@ -59,10 +60,10 @@ def _field_concat(fname):
 def _field_concat_slice(fname, axi):
     def _AllFields(field, data):
         v = []
-        for ptype in data.pf.particle_types:
-            data.pf._last_freq = (ptype, None)
+        for ptype in data.ds.particle_types:
+            data.ds._last_freq = (ptype, None)
             if ptype == "all" or \
-                ptype in data.pf.known_filters:
+                ptype in data.ds.known_filters:
                   continue
             v.append(data[ptype, fname][:,axi])
         rv = uconcatenate(v, axis=0)
@@ -71,26 +72,28 @@ def _field_concat_slice(fname, axi):
 
 def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     orig = set(registry.keys())
+    ptype_dn = ptype.replace("_","\/").title()
     def particle_count(field, data):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, method = "count")
-        d = data.pf.arr(d, input_units = "cm**-3")
+        d = data.ds.arr(d, input_units = "cm**-3")
         return data.apply_units(d, field.units)
 
     registry.add_field(("deposit", "%s_count" % ptype),
              function = particle_count,
              validators = [ValidateSpatial()],
-             display_name = "\\mathrm{%s Count}" % ptype)
+             display_name = "\\mathrm{%s Count}" % ptype_dn)
 
     def particle_mass(field, data):
         pos = data[ptype, coord_name]
-        d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
+        pmass = data[ptype, mass_name].in_units(field.units)
+        d = data.deposit(pos, [pmass], method = "sum")
         return data.apply_units(d, field.units)
 
     registry.add_field(("deposit", "%s_mass" % ptype),
              function = particle_mass,
              validators = [ValidateSpatial()],
-             display_name = "\\mathrm{%s Mass}" % ptype,
+             display_name = "\\mathrm{%s Mass}" % ptype_dn,
              units = "g")
              
     def particle_density(field, data):
@@ -99,14 +102,14 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         pos.convert_to_units("code_length")
         mass.convert_to_units("code_mass")
         d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
-        d = data.pf.arr(d, "code_mass")
+        d = data.ds.arr(d, "code_mass")
         d /= data["index", "cell_volume"]
         return d
 
     registry.add_field(("deposit", "%s_density" % ptype),
              function = particle_density,
              validators = [ValidateSpatial()],
-             display_name = "\\mathrm{%s Density}" % ptype,
+             display_name = "\\mathrm{%s Density}" % ptype_dn,
              units = "g/cm**3")
 
     def particle_cic(field, data):
@@ -119,7 +122,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     registry.add_field(("deposit", "%s_cic" % ptype),
              function = particle_cic,
              validators = [ValidateSpatial()],
-             display_name = "\\mathrm{%s CIC Density}" % ptype,
+             display_name = "\\mathrm{%s CIC Density}" % ptype_dn,
              units = "g/cm**3")
 
     # Now some translation functions.
@@ -132,12 +135,6 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
                        function = particle_ones,
                        particle_type = True,
                        units = "")
-
-    registry.alias((ptype, "ParticleMass"), (ptype, mass_name),
-                    units = "g")
-
-    registry.alias((ptype, "ParticleMassMsun"), (ptype, mass_name),
-                    units = "Msun")
 
     def particle_mesh_ids(field, data):
         pos = data[ptype, coord_name]
@@ -230,12 +227,12 @@ def standard_particle_fields(registry, ptype,
         yv = data[ptype, svel % 'y'] - bv[1]
         zv = data[ptype, svel % 'z'] - bv[2]
         center = data.get_field_parameter('center')
-        coords = np.array([data[ptype, spos % 'x'],
+        coords = YTArray([data[ptype, spos % 'x'],
                            data[ptype, spos % 'y'],
                            data[ptype, spos % 'z']], dtype=np.float64)
         new_shape = tuple([3] + [1]*(len(coords.shape)-1))
         r_vec = coords - np.reshape(center,new_shape)
-        v_vec = np.array([xv,yv,zv], dtype=np.float64)
+        v_vec = YTArray([xv,yv,zv], dtype=np.float64)
         return np.cross(r_vec, v_vec, axis=0)
 
     registry.add_field((ptype, "particle_specific_angular_momentum"),
@@ -345,7 +342,7 @@ def standard_particle_fields(registry, ptype,
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
         pos = spos
-        pos = np.array([data[ptype, pos % ax] for ax in "xyz"])
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
         theta = get_sph_theta(pos, center)
         phi = get_sph_phi(pos, center)
         pos = pos - np.reshape(center, (3, 1))
@@ -363,7 +360,7 @@ def standard_particle_fields(registry, ptype,
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
         pos = spos
-        pos = np.array([data[ptype, pos % ax] for ax in "xyz"])
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
         theta = get_sph_theta(pos, center)
         phi = get_sph_phi(pos, center)
         pos = pos - np.reshape(center, (3, 1))
@@ -381,12 +378,11 @@ def standard_particle_fields(registry, ptype,
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
         pos = spos
-        pos = np.array([data[ptype, pos % ax] for ax in "xyz"])
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
         theta = get_sph_theta(pos, center)
         phi = get_sph_phi(pos, center)
         pos = pos - np.reshape(center, (3, 1))
-        vel = vel - np.reshape(bv, (3, 1))
-        sphp = get_sph_phi_component(pos, theta, phi, normal)
+        sphp = get_sph_phi_component(pos, phi, normal)
         return sphp
 
     registry.add_field((ptype, "particle_phi_spherical"),
@@ -400,9 +396,9 @@ def standard_particle_fields(registry, ptype,
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
         pos = spos
-        pos = np.array([data[ptype, pos % ax] for ax in "xyz"])
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
         vel = svel
-        vel = np.array([data[ptype, vel % ax] for ax in "xyz"])
+        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
         theta = get_sph_theta(pos, center)
         phi = get_sph_phi(pos, center)
         pos = pos - np.reshape(center, (3, 1))
@@ -421,9 +417,9 @@ def standard_particle_fields(registry, ptype,
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
         pos = spos
-        pos = np.array([data[ptype, pos % ax] for ax in "xyz"])
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
         vel = svel
-        vel = np.array([data[ptype, vel % ax] for ax in "xyz"])
+        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
         theta = get_sph_theta(pos, center)
         phi = get_sph_phi(pos, center)
         pos = pos - np.reshape(center, (3, 1))
@@ -441,8 +437,8 @@ def standard_particle_fields(registry, ptype,
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
-        pos = np.array([data[ptype, spos % ax] for ax in "xyz"])
-        vel = np.array([data[ptype, svel % ax] for ax in "xyz"])
+        pos = YTArray([data[ptype, spos % ax] for ax in "xyz"])
+        vel = YTArray([data[ptype, svel % ax] for ax in "xyz"])
         theta = get_sph_theta(pos, center)
         phi = get_sph_phi(pos, center)
         pos = pos - np.reshape(center, (3, 1))
@@ -471,7 +467,7 @@ def standard_particle_fields(registry, ptype,
             top[bottom == 0] = 0.0
             bnz = bottom.nonzero()
             top[bnz] /= bottom[bnz]
-            d = data.pf.arr(top, input_units = units)
+            d = data.ds.arr(top, input_units = units)
             return top
 
     for ax in 'xyz':
@@ -512,7 +508,7 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         pos = data[ptype, coord_name].in_units("code_length")
         mass = data[ptype, mass_name].in_cgs()
         dens = data[ptype, density_name].in_cgs()
-        quan = data[ptype, smoothed_field]
+        quan = data[ptype, smoothed_field].in_units(field_units)
         if smoothing_length_name is None:
             hsml = np.zeros(quan.shape, dtype='float64') - 1
             hsml = data.apply_units(hsml, "code_length")

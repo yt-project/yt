@@ -9,36 +9,36 @@ from yt.frontends.stream.fields import \
 from yt.units.yt_array import YTArray
 
 def setup():
-    global base_pf
+    global base_ds
     # Make this super teeny tiny
     fields, units = [], []
 
     for fname, (code_units, aliases, dn) in StreamFieldInfo.known_other_fields:
         fields.append(("gas", fname))
         units.append(code_units)
-    base_pf = fake_random_pf(4, fields = fields, units = units)
-    base_pf.h
-    base_pf.cosmological_simulation = 1
-    base_pf.cosmology = Cosmology()
+    base_ds = fake_random_ds(4, fields = fields, units = units)
+    base_ds.index
+    base_ds.cosmological_simulation = 1
+    base_ds.cosmology = Cosmology()
     from yt.config import ytcfg
     ytcfg["yt","__withintesting"] = "True"
     np.seterr(all = 'ignore')
 
-def get_params(pf):
+def get_params(ds):
     return dict(
         axis = 0,
         center = YTArray((0.0, 0.0, 0.0), "cm",
-            registry = pf.unit_registry),
+            registry = ds.unit_registry),
         bulk_velocity = YTArray((0.0, 0.0, 0.0),
-            "cm/s", registry = pf.unit_registry),
+            "cm/s", registry = ds.unit_registry),
         normal = YTArray((0.0, 0.0, 1.0),
-            "", registry = pf.unit_registry),
+            "", registry = ds.unit_registry),
         cp_x_vec = YTArray((1.0, 0.0, 0.0),
-            "", registry = pf.unit_registry),
+            "", registry = ds.unit_registry),
         cp_y_vec = YTArray((0.0, 1.0, 0.0),
-            "", registry = pf.unit_registry),
+            "", registry = ds.unit_registry),
         cp_z_vec = YTArray((0.0, 0.0, 1.0),
-            "", registry = pf.unit_registry),
+            "", registry = ds.unit_registry),
         omega_baryon = 0.04,
         observer_redshift = 0.0,
         source_redshift = 3.0,
@@ -49,28 +49,28 @@ _base_fields = (("gas", "density"),
                 ("gas", "velocity_y"),
                 ("gas", "velocity_z"))
 
-def realistic_pf(fields, nprocs):
+def realistic_ds(fields, nprocs):
     np.random.seed(int(0x4d3d3d3))
-    units = [base_pf._get_field_info(*f).units for f in fields]
+    units = [base_ds._get_field_info(*f).units for f in fields]
     fields = [_strip_ftype(f) for f in fields]
-    pf = fake_random_pf(16, fields = fields, units = units,
+    ds = fake_random_ds(16, fields = fields, units = units,
                         nprocs = nprocs)
-    pf.parameters["HydroMethod"] = "streaming"
-    pf.parameters["EOSType"] = 1.0
-    pf.parameters["EOSSoundSpeed"] = 1.0
-    pf.conversion_factors["Time"] = 1.0
-    pf.conversion_factors.update( dict((f, 1.0) for f in fields) )
-    pf.gamma = 5.0/3.0
-    pf.current_redshift = 0.0001
-    pf.cosmological_simulation = 1
-    pf.hubble_constant = 0.7
-    pf.omega_matter = 0.27
-    pf.omega_lambda = 0.73
-    pf.cosmology = Cosmology(hubble_constant=pf.hubble_constant,
-                             omega_matter=pf.omega_matter,
-                             omega_lambda=pf.omega_lambda,
-                             unit_registry=pf.unit_registry)
-    return pf
+    ds.parameters["HydroMethod"] = "streaming"
+    ds.parameters["EOSType"] = 1.0
+    ds.parameters["EOSSoundSpeed"] = 1.0
+    ds.conversion_factors["Time"] = 1.0
+    ds.conversion_factors.update( dict((f, 1.0) for f in fields) )
+    ds.gamma = 5.0/3.0
+    ds.current_redshift = 0.0001
+    ds.cosmological_simulation = 1
+    ds.hubble_constant = 0.7
+    ds.omega_matter = 0.27
+    ds.omega_lambda = 0.73
+    ds.cosmology = Cosmology(hubble_constant=ds.hubble_constant,
+                             omega_matter=ds.omega_matter,
+                             omega_lambda=ds.omega_lambda,
+                             unit_registry=ds.unit_registry)
+    return ds
 
 def _strip_ftype(field):
     if not isinstance(field, tuple):
@@ -103,12 +103,12 @@ class TestFieldAccess(object):
         self.nproc = nproc
 
     def __call__(self):
-        if self.field_name in base_pf.field_list:
+        if self.field_name in base_ds.field_list:
             # Don't know how to test this.  We need some way of having fields
             # that are fallbacks be tested, but we don't have that now.
             return
-        field = base_pf._get_field_info(*self.field_name)
-        deps = field.get_dependencies(pf = base_pf)
+        field = base_ds._get_field_info(*self.field_name)
+        deps = field.get_dependencies(ds = base_ds)
         fields = deps.requested + list(_base_fields)
         skip_grids = False
         needs_spatial = False
@@ -119,11 +119,11 @@ class TestFieldAccess(object):
                 skip_grids = True
             if hasattr(v, "ghost_zones"):
                 needs_spatial = True
-        pf = realistic_pf(fields, self.nproc)
+        ds = realistic_ds(fields, self.nproc)
         # This gives unequal sized grids as well as subgrids
-        dd1 = pf.h.all_data()
-        dd2 = pf.h.all_data()
-        sp = get_params(pf)
+        dd1 = ds.all_data()
+        dd2 = ds.all_data()
+        sp = get_params(ds)
         dd1.field_parameters.update(sp)
         dd2.field_parameters.update(sp)
         v1 = dd1[self.field_name]
@@ -136,7 +136,7 @@ class TestFieldAccess(object):
                 res = dd2.apply_units(res, field.units)
             assert_array_almost_equal_nulp(v1, res, 4)
         if not skip_grids:
-            for g in pf.index.grids:
+            for g in ds.index.grids:
                 g.field_parameters.update(sp)
                 v1 = g[self.field_name]
                 g.clear_data()
@@ -152,10 +152,10 @@ class TestFieldAccess(object):
                 assert_array_almost_equal_nulp(v1, res, 4)
 
 def test_all_fields():
-    for field in sorted(base_pf.field_info):
+    for field in sorted(base_ds.field_info):
         if not isinstance(field, types.TupleType):
             field = ("unknown", field)
-        finfo = base_pf._get_field_info(*field)
+        finfo = base_ds._get_field_info(*field)
         if isinstance(field, types.TupleType):
             fname = field[0]
         else:

@@ -13,20 +13,15 @@ API for yt.visualization
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from color_maps import \
+from .color_maps import \
     add_cmap, \
     show_colormaps
 
-from plot_collection import \
-    PlotCollection, \
-    PlotCollectionInteractive, \
-    concatenate_pdfs
-
-from fixed_resolution import \
+from .fixed_resolution import \
     FixedResolutionBuffer, \
     ObliqueFixedResolutionBuffer
 
-from image_writer import \
+from .image_writer import \
     multi_image_composite, \
     write_bitmap, \
     write_image, \
@@ -36,27 +31,27 @@ from image_writer import \
     scale_image, \
     write_projection
 
-from plot_modifications import \
+from .plot_modifications import \
     PlotCallback, \
     callback_registry
 
-from easy_plots import \
+from .easy_plots import \
     plot_type_registry
 
-from streamlines import \
+from .streamlines import \
     Streamlines
 
-from plot_window import \
+from .plot_window import \
     SlicePlot, \
     AxisAlignedSlicePlot, \
     OffAxisSlicePlot, \
     ProjectionPlot, \
     OffAxisProjectionPlot
 
-from profile_plotter import \
+from .profile_plotter import \
      ProfilePlot, \
      PhasePlot
     
-from base_plot_types import \
+from .base_plot_types import \
     get_multi_plot
 

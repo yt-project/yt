@@ -37,15 +37,14 @@ class MoabHex8Mesh(SemiStructuredMesh):
 
 class MoabHex8Hierarchy(UnstructuredIndex):
 
-    def __init__(self, pf, dataset_type='h5m'):
-        self.parameter_file = weakref.proxy(pf)
+    def __init__(self, ds, dataset_type='h5m'):
+        self.dataset = weakref.proxy(ds)
         self.dataset_type = dataset_type
-        # for now, the index file is the parameter file!
-        self.index_filename = self.parameter_file.parameter_filename
+        self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
         self._fhandle = h5py.File(self.index_filename,'r')
 
-        UnstructuredIndex.__init__(self, pf, dataset_type)
+        UnstructuredIndex.__init__(self, ds, dataset_type)
 
         self._fhandle.close()
 
@@ -114,15 +113,14 @@ class PyneHex8Mesh(SemiStructuredMesh):
 
 class PyneMeshHex8Hierarchy(UnstructuredIndex):
 
-    def __init__(self, pf, dataset_type='moab_hex8_pyne'):
-        self.parameter_file = weakref.proxy(pf)
+    def __init__(self, ds, dataset_type='moab_hex8_pyne'):
+        self.dataset = weakref.proxy(ds)
         self.dataset_type = dataset_type
-        # for now, the index file is the parameter file!
-        self.index_filename = self.parameter_file.parameter_filename
+        self.index_filename = self.dataset.parameter_filename
         self.directory = os.getcwd()
-        self.pyne_mesh = pf.pyne_mesh
+        self.pyne_mesh = ds.pyne_mesh
 
-        super(PyneMeshHex8Hierarchy, self).__init__(pf, dataset_type)
+        super(PyneMeshHex8Hierarchy, self).__init__(ds, dataset_type)
 
     def _initialize_mesh(self):
         from itaps import iBase, iMesh

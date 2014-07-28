@@ -16,7 +16,7 @@ Tipsy tests using the OWLS HDF5-Gadget dataset
 
 from yt.testing import *
 from yt.utilities.answer_testing.framework import \
-    requires_pf, \
+    requires_ds, \
     small_patch_amr, \
     big_patch_amr, \
     data_dir_load, \
@@ -30,26 +30,26 @@ _fields = (("deposit", "all_density"), ("deposit", "all_count"),
            ("deposit", "PartType4_density"))
 
 os33 = "snapshot_033/snap_033.0.hdf5"
-@requires_pf(os33)
+@requires_ds(os33)
 def test_snapshot_033():
-    pf = data_dir_load(os33)
-    yield assert_equal, str(pf), "snap_033"
+    ds = data_dir_load(os33)
+    yield assert_equal, str(ds), "snap_033"
     dso = [ None, ("sphere", ("c", (0.1, 'unitary')))]
-    dd = pf.h.all_data()
-    yield assert_equal, dd["Coordinates"].shape[0], 2*(128*128*128)
-    yield assert_equal, dd["Coordinates"].shape[1], 3
-    tot = sum(dd[ptype,"Coordinates"].shape[0]
-              for ptype in pf.particle_types if ptype != "all")
+    dd = ds.all_data()
+    yield assert_equal, dd["particle_position"].shape[0], 2*(128*128*128)
+    yield assert_equal, dd["particle_position"].shape[1], 3
+    tot = sum(dd[ptype,"particle_position"].shape[0]
+              for ptype in ds.particle_types if ptype != "all")
     yield assert_equal, tot, (2*128*128*128)
-    for ds in dso:
+    for dobj_name in dso:
         for field in _fields:
             for axis in [0, 1, 2]:
-                for weight_field in [None, "Density"]:
+                for weight_field in [None, "density"]:
                     yield PixelizedProjectionValuesTest(
                         os33, axis, field, weight_field,
-                        ds)
-            yield FieldValuesTest(os33, field, ds)
-        dobj = create_obj(pf, ds)
-        s1 = dobj["Ones"].sum()
+                        dobj_name)
+            yield FieldValuesTest(os33, field, dobj_name)
+        dobj = create_obj(ds, dobj_name)
+        s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2

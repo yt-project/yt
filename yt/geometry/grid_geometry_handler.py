@@ -31,12 +31,13 @@ from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.physical_constants import sec_per_year
 from yt.utilities.io_handler import io_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface, parallel_splitter
+    ParallelAnalysisInterface
 from yt.utilities.lib.GridTree import GridTree, MatchPointsToGrids
 
 from yt.data_objects.data_containers import data_object_registry
 
 class GridIndex(Index):
+    """The index class for patch and block AMR datasets. """
     float_type = 'float64'
     _preload_implemented = False
     _index_properties = ("grid_left_edge", "grid_right_edge",
@@ -69,13 +70,13 @@ class GridIndex(Index):
 
     @property
     def parameters(self):
-        return self.parameter_file.parameters
+        return self.dataset.parameters
 
     def _detect_output_fields_backup(self):
         # grab fields from backup file as well, if present
         return
         try:
-            backup_filename = self.parameter_file.backup_filename
+            backup_filename = self.dataset.backup_filename
             f = h5py.File(backup_filename, 'r')
             g = f["data"]
             grid = self.grids[0] # simply check one of the grids
@@ -101,9 +102,9 @@ class GridIndex(Index):
     def _initialize_grid_arrays(self):
         mylog.debug("Allocating arrays for %s grids", self.num_grids)
         self.grid_dimensions = np.ones((self.num_grids,3), 'int32')
-        self.grid_left_edge = self.pf.arr(np.zeros((self.num_grids,3),
+        self.grid_left_edge = self.ds.arr(np.zeros((self.num_grids,3),
                                     self.float_type), 'code_length')
-        self.grid_right_edge = self.pf.arr(np.ones((self.num_grids,3),
+        self.grid_right_edge = self.ds.arr(np.ones((self.num_grids,3),
                                     self.float_type), 'code_length')
         self.grid_levels = np.zeros((self.num_grids,1), 'int32')
         self.grid_particle_count = np.zeros((self.num_grids,1), 'int32')
@@ -163,7 +164,7 @@ class GridIndex(Index):
         mylog.info("Locking grids to parents.")
         for i, g in enumerate(self.grids):
             si = g.get_global_startindex()
-            g.LeftEdge = self.pf.domain_left_edge + g.dds * si
+            g.LeftEdge = self.ds.domain_left_edge + g.dds * si
             g.RightEdge = g.LeftEdge + g.ActiveDimensions * g.dds
             self.grid_left_edge[i,:] = g.LeftEdge
             self.grid_right_edge[i,:] = g.RightEdge
@@ -182,7 +183,7 @@ class GridIndex(Index):
             print "% 3i\t% 6i\t% 14i\t% 14i" % \
                   (level, self.level_stats['numgrids'][level],
                    self.level_stats['numcells'][level],
-                   self.level_stats['numcells'][level]**(1./3))
+                   np.ceil(self.level_stats['numcells'][level]**(1./3)))
             dx = self.select_grids(level)[0].dds[0]
         print "-" * 46
         print "   \t% 6i\t% 14i" % (self.level_stats['numgrids'].sum(), self.level_stats['numcells'].sum())
@@ -192,40 +193,44 @@ class GridIndex(Index):
         except:
             pass
         print "t = %0.8e = %0.8e s = %0.8e years" % \
-            (self.pf.current_time.in_units("code_time"),
-             self.pf.current_time.in_units("s"),
-             self.pf.current_time.in_units("yr"))
+            (self.ds.current_time.in_units("code_time"),
+             self.ds.current_time.in_units("s"),
+             self.ds.current_time.in_units("yr"))
         print "\nSmallest Cell:"
         u=[]
         for item in ("Mpc", "pc", "AU", "cm"):
             print "\tWidth: %0.3e %s" % (dx.in_units(item), item)
 
-    def find_max(self, field, finest_levels = 3):
-        """
-        Returns (value, center) of location of maximum for a given field.
-        """
-        if (field, finest_levels) in self._max_locations:
-            return self._max_locations[(field, finest_levels)]
-        mv, pos = self.find_max_cell_location(field, finest_levels)
-        self._max_locations[(field, finest_levels)] = (mv, pos)
-        return mv, pos
+    def _find_field_values_at_points(self, fields, coords):
+        r"""Find the value of fields at a set of coordinates.
 
-    def find_max_cell_location(self, field, finest_levels = 3):
-        if finest_levels is not False:
-            gi = (self.grid_levels >= self.max_level - finest_levels).ravel()
-            source = self.data_collection([0.0]*3, self.grids[gi])
-        else:
-            source = self.all_data()
-        mylog.debug("Searching for maximum value of %s", field)
-        max_val, maxi, mx, my, mz = \
-            source.quantities["MaxLocation"](field)
-        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f", 
-              max_val, mx, my, mz)
-        self.parameters["Max%sValue" % (field)] = max_val
-        self.parameters["Max%sPos" % (field)] = "%s" % ((mx,my,mz),)
-        return max_val, np.array((mx,my,mz), dtype='float64')
+        Returns the values [field1, field2,...] of the fields at the given
+        (x, y, z) points. Returns a numpy array of field values cross coords
+        """
+        coords = YTArray(ensure_numpy_array(coords),'code_length', registry=self.ds.unit_registry)
+        grids = self._find_points(coords[:,0], coords[:,1], coords[:,2])[0]
+        fields = ensure_list(fields)
+        mark = np.zeros(3, dtype=np.int)
+        out = []
 
-    def find_points(self, x, y, z) :
+        # create point -> grid mapping
+        grid_index = {}
+        for coord_index, grid in enumerate(grids):
+            if not grid_index.has_key(grid):
+                grid_index[grid] = []
+            grid_index[grid].append(coord_index)
+
+        out = np.zeros((len(fields),len(coords)), dtype=np.float64)
+        for grid in grid_index:
+            cellwidth = (grid.RightEdge - grid.LeftEdge) / grid.ActiveDimensions
+            for field in fields:
+                for coord_index in grid_index[grid]:
+                    mark = ((coords[coord_index,:] - grid.LeftEdge) / cellwidth).astype('int')
+                    out[:,coord_index] = grid[field][mark[0],mark[1],mark[2]]
+        return out
+
+
+    def _find_points(self, x, y, z) :
         """
         Returns the (objects, indices) of leaf grids containing a number of (x,y,z) points
         """
@@ -235,16 +240,16 @@ class GridIndex(Index):
         if not len(x) == len(y) == len(z):
             raise AssertionError("Arrays of indices must be of the same size")
 
-        grid_tree = self.get_grid_tree()
+        grid_tree = self._get_grid_tree()
         pts = MatchPointsToGrids(grid_tree, len(x), x, y, z)
         ind = pts.find_points_in_tree()
         return self.grids[ind], ind
 
-    def get_grid_tree(self) :
+    def _get_grid_tree(self) :
 
-        left_edge = self.pf.arr(np.zeros((self.num_grids, 3)),
+        left_edge = self.ds.arr(np.zeros((self.num_grids, 3)),
                                'code_length')
-        right_edge = self.pf.arr(np.zeros((self.num_grids, 3)),
+        right_edge = self.ds.arr(np.zeros((self.num_grids, 3)),
                                 'code_length')
         level = np.zeros((self.num_grids), dtype='int64')
         parent_ind = np.zeros((self.num_grids), dtype='int64')
@@ -265,7 +270,7 @@ class GridIndex(Index):
                         level, num_children)
 
     def convert(self, unit):
-        return self.parameter_file.conversion_factors[unit]
+        return self.dataset.conversion_factors[unit]
 
     def _identify_base_chunk(self, dobj):
         if dobj._type_name == "grid":
@@ -317,6 +322,7 @@ class GridIndex(Index):
             # individual grids.
             yield YTDataChunk(dobj, "spatial", [g], size, cache = False)
 
+    _grid_chunksize = 1000
     def _chunk_io(self, dobj, cache = True, local_only = False):
         # local_only is only useful for inline datasets and requires
         # implementation by subclasses.
@@ -325,7 +331,14 @@ class GridIndex(Index):
         for g in gobjs:
             gfiles[g.filename].append(g)
         for fn in sorted(gfiles):
+            # We can apply a heuristic here to make sure we aren't loading too
+            # many grids all at once.
             gs = gfiles[fn]
-            yield YTDataChunk(dobj, "io", gs, self._count_selection(dobj, gs),
-                              cache = cache)
+            size = self._grid_chunksize
+            
+            for grids in (gs[pos:pos + size] for pos
+                          in xrange(0, len(gs), size)):
+                yield YTDataChunk(dobj, "io", grids,
+                        self._count_selection(dobj, grids),
+                        cache = cache)
 

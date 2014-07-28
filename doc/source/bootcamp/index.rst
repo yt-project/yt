@@ -12,19 +12,20 @@ non-interactively.  We recommend the interactive method, but if you're pressed
 on time, you can non-interactively go through the following pages and view the 
 worked examples.
 
-To execute the bootcamp interactively, you need to download the repository 
-and start the IPython notebook.  The easiest way to get the repository is to 
-use your already-installed mercurial program to grab it:
+To execute the bootcamp interactively, you need to download the repository and
+start the IPython notebook.  If you do not already have the yt repository, the
+easiest way to get the repository is to use your already-installed mercurial
+program to grab it:
 
 .. code-block:: bash
 
-   hg clone https://bitbucket.org/yt_analysis/yt-doc
+   hg clone https://bitbucket.org/yt_analysis/yt
 
 Now start the IPython notebook from within the repository:
 
 .. code-block:: bash
 
-   cd yt-doc/source/bootcamp
+   cd yt/doc/source/bootcamp
    yt notebook
 
 This command will give you information about the notebook server and how to

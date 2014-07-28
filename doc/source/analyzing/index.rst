@@ -8,8 +8,9 @@ Analyzing Data
 
    objects
    units/index
-   particles
+   fields
    creating_derived_fields
+   filtering
    generating_processed_data
    time_series_analysis
    external_analysis

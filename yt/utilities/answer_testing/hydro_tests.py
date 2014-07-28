@@ -27,12 +27,12 @@ class TestProjection(YTDatasetTest):
     def run(self):
         # First we get our flattened projection -- this is the
         # Density, px, py, pdx, and pdy
-        proj = self.pf.proj(self.field, self.axis, 
+        proj = self.ds.proj(self.field, self.axis, 
                               weight_field=self.weight_field)
         # Now let's stick it in a buffer
         pixelized_proj = self.pixelize(proj, self.field)
         # We just want the values, so this can be stored
-        # independently of the parameter file.
+        # independently of the dataset.
         # The .field_data attributes strip out everything other than the actual array
         # values.
         self.result = (proj.field_data, pixelized_proj.data)
@@ -51,7 +51,7 @@ class TestProjection(YTDatasetTest):
         pylab.clf()
         pylab.imshow(self.result[1][self.field],
             interpolation='nearest', origin='lower')
-        fn = "%s_%s_%s_projection.png" % (self.pf, self.field,
+        fn = "%s_%s_%s_projection.png" % (self.ds, self.field,
                                           self.weight_field)
         pylab.savefig(fn)
         return [fn]
@@ -63,9 +63,9 @@ class TestOffAxisProjection(YTDatasetTest):
 
     def run(self):
         # Here proj will just be the data array.
-        proj = off_axis_projection(self.pf, 
-                                   (0.5 * (self.pf.domain_left_edge + 
-                                           self.pf.domain_right_edge)),
+        proj = off_axis_projection(self.ds, 
+                                   (0.5 * (self.ds.domain_left_edge + 
+                                           self.ds.domain_right_edge)),
                                    [1., 1., 1.], 1., 400,
                                    self.field, weight=self.weight_field)
 
@@ -80,7 +80,7 @@ class TestOffAxisProjection(YTDatasetTest):
 
     def plot(self):
         fn = "%s_%s_%s_off-axis_projection.png" % \
-            (self.pf, self.field, self.weight_field)
+            (self.ds, self.field, self.weight_field)
         write_image(self.result, fn)
         return [fn]
 
@@ -90,15 +90,15 @@ class TestRay(YTDatasetTest):
 
     def run(self):
         np.random.seed(4333)
-        start_point = np.random.random(self.pf.dimensionality) * \
-            (self.pf.domain_right_edge - self.pf.domain_left_edge) + \
-            self.pf.domain_left_edge
-        end_point   = np.random.random(self.pf.dimensionality) * \
-            (self.pf.domain_right_edge - self.pf.domain_left_edge) + \
-            self.pf.domain_left_edge
+        start_point = np.random.random(self.ds.dimensionality) * \
+            (self.ds.domain_right_edge - self.ds.domain_left_edge) + \
+            self.ds.domain_left_edge
+        end_point   = np.random.random(self.ds.dimensionality) * \
+            (self.ds.domain_right_edge - self.ds.domain_left_edge) + \
+            self.ds.domain_left_edge
 
         # Here proj will just be the data array.
-        ray = self.pf.ray(start_point, end_point, field=self.field)
+        ray = self.ds.ray(start_point, end_point, field=self.field)
 
         # values.
         self.result = ray[self.field]
@@ -119,9 +119,9 @@ class TestSlice(YTDatasetTest):
 
     def run(self):
         # Here proj will just be the data array.
-        slice = self.pf.slice(self.axis, 
-                                (0.5 * (self.pf.domain_left_edge + 
-                                        self.pf.domain_right_edge))[self.axis],
+        slice = self.ds.slice(self.axis, 
+                                (0.5 * (self.ds.domain_left_edge + 
+                                        self.ds.domain_right_edge))[self.axis],
                                 fields=self.field)
         # values.
         self.result = slice.field_data
@@ -133,7 +133,7 @@ class TestSlice(YTDatasetTest):
         self.compare_data_arrays(slice, oslice)
 
     def plot(self):
-        fn = "%s_%s_slice.png" % (self.pf, self.field)
+        fn = "%s_%s_slice.png" % (self.ds, self.field)
         write_image(self.result[self.field], fn)
         return [fn]
 
@@ -141,21 +141,21 @@ class TestSlice(YTDatasetTest):
 # function, which is a relatively simple function that takes the base class,
 # a name, and any parameters that the test requires.
 for axis in range(3):
-    for field in ["Density", "Temperature"]:
+    for field in ["density", "temperature"]:
         create_test(TestProjection, "projection_test_%s_%s" % (axis, field),
                     field = field, axis = axis)
 
 class TestGasDistribution(YTDatasetTest):
     field_x = None
     field_y = None
-    weight = "CellMassMsun"
+    weight = "cell_mass"
     n_bins = 32
 
     def run(self):
         # We're NOT going to use the low-level profiling API here,
         # because we are avoiding the calculations of min/max,
         # as those should be tested in another test.
-        pc = PlotCollection(self.pf, center=self.sim_center)
+        pc = PlotCollection(self.ds, center=self.sim_center)
         p = pc.add_profile_object(self.entire_simulation,
             [self.field_x, self.field_y], x_bins = self.n_bins,
             weight=self.weight)
@@ -172,20 +172,20 @@ class TestGasDistribution(YTDatasetTest):
 
 # Now we create all our tests, but we're only going to check the binning
 # against Density for now.
-for field in ["Temperature", "velocity_x"]:
+for field in ["temperature", "velocity_x"]:
     create_test(TestGasDistribution, "profile_density_test_%s" % field,
-                field_x = "Density", field_y = field)
+                field_x = "density", field_y = field)
 
 class Test2DGasDistribution(TestGasDistribution):
     x_bins = 128
     y_bins = 128
-    field_z = "CellMassMsun"
+    field_z = "cell_mass"
     weight = None
     def run(self):
         # We're NOT going to use the low-level profiling API here,
         # because we are avoiding the calculations of min/max,
         # as those should be tested in another test.
-        pc = PlotCollection(self.pf, center=self.sim_center)
+        pc = PlotCollection(self.ds, center=self.sim_center)
         p = pc.add_phase_object(self.entire_simulation,
             [self.field_x, self.field_y, self.field_z], x_bins = self.x_bins, y_bins = self.y_bins,
             weight=self.weight)

@@ -30,11 +30,12 @@ from yt.data_objects.static_output import \
     Dataset
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
+from yt.utilities.file_handler import \
+    HDF5FileHandler
 from yt.utilities.io_handler import \
     io_registry
 from yt.utilities.physical_constants import cm_per_mpc
 from .fields import FLASHFieldInfo
-from yt.units.yt_array import YTQuantity
 
 class FLASHGrid(AMRGridPatch):
     _id_offset = 1
@@ -54,17 +55,17 @@ class FLASHHierarchy(GridIndex):
     grid = FLASHGrid
     _preload_implemented = True
     
-    def __init__(self,pf,dataset_type='flash_hdf5'):
+    def __init__(self,ds,dataset_type='flash_hdf5'):
         self.dataset_type = dataset_type
         self.field_indexes = {}
-        self.parameter_file = weakref.proxy(pf)
-        # for now, the index file is the parameter file!
-        self.index_filename = self.parameter_file.parameter_filename
+        self.dataset = weakref.proxy(ds)
+        # for now, the index file is the dataset!
+        self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
-        self._handle = pf._handle
-        self._particle_handle = pf._particle_handle
+        self._handle = ds._handle
+        self._particle_handle = ds._particle_handle
         self.float_type = np.float64
-        GridIndex.__init__(self,pf,dataset_type)
+        GridIndex.__init__(self,ds,dataset_type)
 
     def _initialize_data_storage(self):
         pass
@@ -78,20 +79,20 @@ class FLASHHierarchy(GridIndex):
     
     def _count_grids(self):
         try:
-            self.num_grids = self.parameter_file._find_parameter(
+            self.num_grids = self.dataset._find_parameter(
                 "integer", "globalnumblocks", True)
         except KeyError:
             self.num_grids = self._handle["/simulation parameters"][0][0]
         
     def _parse_index(self):
         f = self._handle # shortcut
-        pf = self.parameter_file # shortcut
+        ds = self.dataset # shortcut
         f_part = self._particle_handle # shortcut
         
         # Initialize to the domain left / domain right
-        ND = self.parameter_file.dimensionality
-        DLE = self.parameter_file.domain_left_edge
-        DRE = self.parameter_file.domain_right_edge
+        ND = self.dataset.dimensionality
+        DLE = self.dataset.domain_left_edge
+        DRE = self.dataset.domain_right_edge
         for i in range(3):
             self.grid_left_edge[:,i] = DLE[i]
             self.grid_right_edge[:,i] = DRE[i]
@@ -100,9 +101,9 @@ class FLASHHierarchy(GridIndex):
         self.grid_right_edge[:,:ND] = f["/bounding box"][:,:ND,1]
         # Move this to the parameter file
         try:
-            nxb = pf.parameters['nxb']
-            nyb = pf.parameters['nyb']
-            nzb = pf.parameters['nzb']
+            nxb = ds.parameters['nxb']
+            nyb = ds.parameters['nyb']
+            nzb = ds.parameters['nzb']
         except KeyError:
             nxb, nyb, nzb = [int(f["/simulation parameters"]['n%sb' % ax])
                               for ax in 'xyz']
@@ -127,12 +128,12 @@ class FLASHHierarchy(GridIndex):
         
 
         # This is a possibly slow and verbose fix, and should be re-examined!
-        rdx = (self.parameter_file.domain_width /
-                self.parameter_file.domain_dimensions)
+        rdx = (self.dataset.domain_width /
+                self.dataset.domain_dimensions)
         nlevels = self.grid_levels.max()
         dxs = np.ones((nlevels+1,3),dtype='float64')
         for i in range(nlevels+1):
-            dxs[i,:ND] = rdx[:ND]/self.parameter_file.refine_by**i
+            dxs[i,:ND] = rdx[:ND]/self.dataset.refine_by**i
        
         if ND < 3:
             dxs[:,ND:] = rdx[ND:]
@@ -140,18 +141,28 @@ class FLASHHierarchy(GridIndex):
         # Because we don't care about units, we're going to operate on views.
         gle = self.grid_left_edge.ndarray_view()
         gre = self.grid_right_edge.ndarray_view()
+        geom = self.dataset.geometry
+        if geom != 'cartesian' and ND < 3:
+            if geom == 'spherical' and ND < 2:
+                gle[:,1] = 0.0
+                gre[:,1] = np.pi
+            gle[:,2] = 0.0
+            gre[:,2] = 2.0 * np.pi
+            return
+
+        # Now, for cartesian data.
         for i in xrange(self.num_grids):
             dx = dxs[self.grid_levels[i],:]
             gle[i][:ND] = np.rint(gle[i][:ND]/dx[0][:ND])*dx[0][:ND]
             gre[i][:ND] = np.rint(gre[i][:ND]/dx[0][:ND])*dx[0][:ND]
-                        
+
     def _populate_grid_objects(self):
         # We only handle 3D data, so offset is 7 (nfaces+1)
         
         offset = 7
         ii = np.argsort(self.grid_levels.flat)
         gid = self._handle["/gid"][:]
-        first_ind = -(self.parameter_file.refine_by**self.parameter_file.dimensionality)
+        first_ind = -(self.dataset.refine_by**self.dataset.dimensionality)
         for g in self.grids[ii].flat:
             gi = g.id - g._id_offset
             # FLASH uses 1-indexed group info
@@ -160,14 +171,14 @@ class FLASHHierarchy(GridIndex):
                 g1.Parent = g
             g._prepare_grid()
             g._setup_dx()
-        if self.parameter_file.dimensionality < 3:
-            DD = (self.parameter_file.domain_right_edge[2] -
-                  self.parameter_file.domain_left_edge[2])
+        if self.dataset.dimensionality < 3:
+            DD = (self.dataset.domain_right_edge[2] -
+                  self.dataset.domain_left_edge[2])
             for g in self.grids:
                 g.dds[2] = DD
-        if self.parameter_file.dimensionality < 2:
-            DD = (self.parameter_file.domain_right_edge[1] -
-                  self.parameter_file.domain_left_edge[1])
+        if self.dataset.dimensionality < 2:
+            DD = (self.dataset.domain_right_edge[1] -
+                  self.dataset.domain_left_edge[1])
             for g in self.grids:
                 g.dds[1] = DD
         self.max_level = self.grid_levels.max()
@@ -184,7 +195,7 @@ class FLASHDataset(Dataset):
 
         self.fluid_types += ("flash",)
         if self._handle is not None: return
-        self._handle = h5py.File(filename, "r")
+        self._handle = HDF5FileHandler(filename)
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
         
@@ -193,15 +204,15 @@ class FLASHDataset(Dataset):
         if self.particle_filename is None :
             self._particle_handle = self._handle
         else :
-            try :
-                self._particle_handle = h5py.File(self.particle_filename, "r")
+            try:
+                self._particle_handle = HDF5FileHandler(self.particle_filename)
             except :
                 raise IOError(self.particle_filename)
         # These should be explicitly obtained from the file, but for now that
         # will wait until a reorganization of the source tree and better
         # generalization.
         self.refine_by = 2
-                                                                
+
         Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
@@ -209,36 +220,40 @@ class FLASHDataset(Dataset):
         self.parameters["Time"] = 1. # default unit is 1...
         
     def _set_code_unit_attributes(self):
-        if "cgs" in (self.parameters.get('pc_unitsbase', "").lower(),
-                     self.parameters.get('unitsystem', "").lower()):
-             b_factor = 1
-        elif self['unitsystem'].lower() == "si":
-             b_factor = np.sqrt(4*np.pi/1e7)
-        elif self['unitsystem'].lower() == "none":
-             b_factor = np.sqrt(4*np.pi)
+
+        if 'unitsystem' in self.parameters:
+            if self['unitsystem'].lower() == "cgs":
+                b_factor = 1.0
+            elif self['unitsystem'].lower() == "si":
+                b_factor = np.sqrt(4*np.pi/1e7)
+            elif self['unitsystem'].lower() == "none":
+                b_factor = np.sqrt(4*np.pi)
+            else:
+                raise RuntimeError("Runtime parameter unitsystem with "
+                                   "value %s is unrecognized" % self['unitsystem'])
         else:
-            raise RuntimeError("Runtime parameter unitsystem with "
-                               "value %s is unrecognized" % self['unitsystem'])
+            b_factor = 1.
         if self.cosmological_simulation == 1:
             length_factor = 1.0 / (1.0 + self.current_redshift)
             temperature_factor = 1.0 / (1.0 + self.current_redshift)**2
         else:
             length_factor = 1.0
             temperature_factor = 1.0
-        self.magnetic_unit = YTQuantity(b_factor, "gauss")
-        self.length_unit = YTQuantity(length_factor, "cm")
-        self.mass_unit = YTQuantity(1.0, "g")
-        self.time_unit = YTQuantity(1.0, "s")
-        self.velocity_unit = YTQuantity(1.0, "cm/s")
-        self.temperature_unit = YTQuantity(temperature_factor, "K")
+        self.magnetic_unit = self.quan(b_factor, "gauss")
+
+        self.length_unit = self.quan(length_factor, "cm")
+        self.mass_unit = self.quan(1.0, "g")
+        self.time_unit = self.quan(1.0, "s")
+        self.velocity_unit = self.quan(1.0, "cm/s")
+        self.temperature_unit = self.quan(temperature_factor, "K")
         # Still need to deal with:
         #self.conversion_factors['temp'] = (1.0 + self.current_redshift)**-2.0
-
+        self.unit_registry.modify("code_magnetic", self.magnetic_unit)
+        
     def set_code_units(self):
         super(FLASHDataset, self).set_code_units()
-        from yt.units.dimensions import dimensionless
         self.unit_registry.modify("code_temperature",
-            self.temperature_unit.value)
+                                  self.temperature_unit.value)
 
     def _find_parameter(self, ptype, pname, scalar = False):
         nn = "/%s %s" % (ptype,
@@ -247,9 +262,9 @@ class FLASHDataset(Dataset):
         for tpname, pval in zip(self._handle[nn][:,'name'],
                                 self._handle[nn][:,'value']):
             if tpname.strip() == pname:
-                if ptype == "string" :
+                if ptype == "string":
                     return pval.strip()
-                else :
+                else:
                     return pval
         raise KeyError(pname)
 
@@ -283,7 +298,8 @@ class FLASHDataset(Dataset):
                     else :
                         pval = val
                     if vn in self.parameters and self.parameters[vn] != pval:
-                        mylog.warning("{0} {1} overwrites a simulation scalar of the same name".format(hn[:-1],vn)) 
+                        mylog.info("{0} {1} overwrites a simulation "
+                                   "scalar of the same name".format(hn[:-1],vn))
                     self.parameters[vn] = pval
         if self._flash_version == 7:
             for hn in hns:
@@ -300,7 +316,8 @@ class FLASHDataset(Dataset):
                     else :
                         pval = val
                     if vn in self.parameters and self.parameters[vn] != pval:
-                        mylog.warning("{0} {1} overwrites a simulation scalar of the same name".format(hn[:-1],vn))
+                        mylog.info("{0} {1} overwrites a simulation "
+                                   "scalar of the same name".format(hn[:-1],vn))
                     self.parameters[vn] = pval
         
         # Determine block size
@@ -345,7 +362,7 @@ class FLASHDataset(Dataset):
         self.domain_right_edge = np.array(
             [self.parameters["%smax" % ax] for ax in 'xyz']).astype("float64")
         if self.dimensionality < 3:
-            for d in (dimensionality)+range(3-dimensionality):
+            for d in [dimensionality]+range(3-dimensionality):
                 if self.domain_left_edge[d] == self.domain_right_edge[d]:
                     mylog.warning('Identical domain left edge and right edges '
                                   'along dummy dimension (%i), attempting to read anyway' % d)
@@ -356,6 +373,9 @@ class FLASHDataset(Dataset):
         elif self.dimensionality < 3 and self.geometry == "polar":
             mylog.warning("Extending theta dimension to 2PI + left edge.")
             self.domain_right_edge[1] = self.domain_left_edge[1] + 2*np.pi
+        elif self.dimensionality < 3 and self.geometry == "spherical":
+            mylog.warning("Extending phi dimension to 2PI + left edge.")
+            self.domain_right_edge[2] = self.domain_left_edge[2] + 2*np.pi
         self.domain_dimensions = \
             np.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
 
@@ -363,7 +383,7 @@ class FLASHDataset(Dataset):
         try:
             self.gamma = self.parameters["gamma"]
         except:
-            mylog.warning("Cannot find Gamma")
+            mylog.info("Cannot find Gamma")
             pass
 
         # Get the simulation time
@@ -386,19 +406,12 @@ class FLASHDataset(Dataset):
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
 
-    def __del__(self):
-        if self._handle is not self._particle_handle:
-            self._particle_handle.close()
-        self._handle.close()
-
     @classmethod
     def _is_valid(self, *args, **kwargs):
         try:
-            fileh = h5py.File(args[0],'r')
+            fileh = HDF5FileHandler(args[0])
             if "bounding box" in fileh["/"].keys():
-                fileh.close()
                 return True
-            fileh.close()
         except:
             pass
         return False

@@ -43,8 +43,6 @@ pres_units = "code_mass/(code_length*code_time**2)"
 erg_units = "code_mass * (code_length/code_time)**2"
 rho_units = "code_mass / code_length**3"
 
-Na_code = Na.in_units("1/code_mass")
-
 class FLASHFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("velx", ("code_length/code_time", ["velocity_x"], None)),
@@ -108,9 +106,9 @@ class FLASHFieldInfo(FieldInfoContainer):
         # Add energy fields
         def ekin(data):
             ek = data["flash","velx"]**2
-            if data.pf.dimensionality >= 2:
+            if data.ds.dimensionality >= 2:
                 ek += data["flash","vely"]**2
-            if data.pf.dimensionality == 3:
+            if data.ds.dimensionality == 3:
                 ek += data["flash","velz"]**2
             return 0.5*ek
         if ("flash","ener") in self.field_list:
@@ -145,10 +143,12 @@ class FLASHFieldInfo(FieldInfoContainer):
                            units="erg/g")
         ## Derived FLASH Fields
         def _nele(field, data):
+            Na_code = data.ds.quan(Na, '1/code_mass')
             return data["flash","dens"]*data["flash","ye"]*Na_code
         self.add_field(('flash','nele'), function=_nele, units="code_length**-3")
         self.add_field(('flash','edens'), function=_nele, units="code_length**-3")
         def _nion(field, data):
+            Na_code = data.ds.quan(Na, '1/code_mass')
             return data["flash","dens"]*data["flash","sumy"]*Na_code
         self.add_field(('flash','nion'), function=_nion, units="code_length**-3")
         def _abar(field, data):

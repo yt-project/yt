@@ -11,24 +11,34 @@ FITSImageBuffer Class
 #-----------------------------------------------------------------------------
 
 import numpy as np
-from yt.funcs import mylog, iterable
+from yt.funcs import mylog, iterable, fix_axis, ensure_list
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
+from yt.visualization.plot_window import get_sanitized_center
 from yt.data_objects.construction_data_containers import YTCoveringGridBase
-from yt.frontends.fits.data_structures import ap
-pyfits = ap.pyfits
-pywcs = ap.pywcs
+from yt.utilities.on_demand_imports import _astropy
+from yt.units.yt_array import YTQuantity
 
-class FITSImageBuffer(pyfits.HDUList):
+pyfits = _astropy.pyfits
+pywcs = _astropy.pywcs
+
+if pyfits is None:
+    HDUList = object
+else:
+    HDUList = pyfits.HDUList
+
+class FITSImageBuffer(HDUList):
 
     def __init__(self, data, fields=None, units="cm",
                  center=None, scale=None, wcs=None):
         r""" Initialize a FITSImageBuffer object.
 
-        FITSImageBuffer contains a list of FITS ImageHDU instances, and optionally includes
-        WCS information. It inherits from HDUList, so operations such as `writeto` are
-        enabled. Images can be constructed from ImageArrays, NumPy arrays, dicts of such
-        arrays, FixedResolutionBuffers, and YTCoveringGrids. The latter
-        two are the most powerful because WCS information can be constructed from their coordinates.
+        FITSImageBuffer contains a list of FITS ImageHDU instances, and
+        optionally includes WCS information. It inherits from HDUList, so
+        operations such as `writeto` are enabled. Images can be constructed
+        from ImageArrays, NumPy arrays, dicts of such arrays,
+        FixedResolutionBuffers, and YTCoveringGrids. The latter two are the
+        most powerful because WCS information can be constructed from their
+        coordinates.
 
         Parameters
         ----------
@@ -36,9 +46,9 @@ class FITSImageBuffer(pyfits.HDUList):
             ImageArray, an numpy.ndarray, or dict of such arrays
             The data to be made into a FITS image or images.
         fields : single string or list of strings, optional
-            The field names for the data. If *fields* is none and *data* has keys,
-            it will use these for the fields. If *data* is just a single array one field name
-            must be specified.
+            The field names for the data. If *fields* is none and *data* has
+            keys, it will use these for the fields. If *data* is just a
+            single array one field name must be specified.
         units : string
             The units of the WCS coordinates, default "cm". 
         center : array_like, optional
@@ -66,7 +76,7 @@ class FITSImageBuffer(pyfits.HDUList):
         >>> f_deg.writeto("temp.fits")
         """
         
-        super(pyfits.HDUList, self).__init__()
+        super(FITSImageBuffer, self).__init__()
 
         if isinstance(fields, basestring): fields = [fields]
             
@@ -87,16 +97,20 @@ class FITSImageBuffer(pyfits.HDUList):
             mylog.error("Please specify one or more fields to write.")
             raise KeyError
 
-        first = False
-    
+        first = True
+
         for key in fields:
             if key not in exclude_fields:
                 mylog.info("Making a FITS image of field %s" % (key))
                 if first:
                     hdu = pyfits.PrimaryHDU(np.array(img_data[key]))
-                    hdu.name = key
+                    first = False
                 else:
-                    hdu = pyfits.ImageHDU(np.array(img_data[key]), name=key)
+                    hdu = pyfits.ImageHDU(np.array(img_data[key]))
+                hdu.name = key
+                hdu.header["btype"] = key
+                if hasattr(img_data[key], "units"):
+                    hdu.header["bunit"] = str(img_data[key].units)
                 self.append(hdu)
 
         self.dimensionality = len(self[0].data.shape)
@@ -118,16 +132,14 @@ class FITSImageBuffer(pyfits.HDUList):
                 center = [0.0]*self.dimensionality
 
         if scale is None:
-            if units == "deg" or not has_coords:
+            if units == "deg" or not has_coords and wcs is None:
                 mylog.error("Please specify scale=(dx,dy[,dz]) in %s." % (units))
                 raise ValueError
 
-        w = pywcs.WCS(header=self[0].header, naxis=self.dimensionality)
-        w.wcs.crpix = 0.5*(np.array(self.shape)+1)
-
-        proj_type = ["linear"]*self.dimensionality
-
         if wcs is None:
+            w = pywcs.WCS(header=self[0].header, naxis=self.dimensionality)
+            w.wcs.crpix = 0.5*(np.array(self.shape)+1)
+            proj_type = ["linear"]*self.dimensionality
             if isinstance(img_data, FixedResolutionBuffer) and units != "deg":
                 # FRBs are a special case where we have coordinate
                 # information, so we take advantage of this and
@@ -194,21 +206,9 @@ class FITSImageBuffer(pyfits.HDUList):
     def items(self):
         return [(k, self[k]) for k in self.keys()]
 
-    def __add__(self, other):
-        if len(set(self.keys()).intersection(set(other.keys()))) > 0:
-            mylog.error("There are duplicate extension names! Don't know which ones you want to keep!")
-            raise KeyError
-        new_buffer = {}
-        for im1 in self:
-            new_buffer[im1.name] = im1.data
-        for im2 in other:
-            new_buffer[im2.name] = im2.data
-        new_wcs = self.wcs
-        return FITSImageBuffer(new_buffer, wcs=new_wcs)
-
     def writeto(self, fileobj, **kwargs):
         pyfits.HDUList(self).writeto(fileobj, **kwargs)
-        
+
     @property
     def shape(self):
         if self.dimensionality == 2:
@@ -243,12 +243,100 @@ class FITSImageBuffer(pyfits.HDUList):
 
     def to_aplpy(self, **kwargs):
         """
-        Use APLpy (http://aplpy.github.io) for plotting. Returns an `aplpy.FITSFigure`
-        instance. All keyword arguments are passed to the
+        Use APLpy (http://aplpy.github.io) for plotting. Returns an
+        `aplpy.FITSFigure` instance. All keyword arguments are passed to the
         `aplpy.FITSFigure` constructor.
         """
         import aplpy
         return aplpy.FITSFigure(self, **kwargs)
+
+axis_wcs = [[1,2],[0,2],[0,1]]
+
+def construct_image(data_source):
+    ds = data_source.ds
+    axis = data_source.axis
+    if hasattr(ds, "wcs"):
+        # This is a FITS dataset
+        nx, ny = ds.domain_dimensions[axis_wcs[axis]]
+        crpix = [ds.wcs.wcs.crpix[idx] for idx in axis_wcs[axis]]
+        cdelt = [ds.wcs.wcs.cdelt[idx] for idx in axis_wcs[axis]]
+        crval = [ds.wcs.wcs.crval[idx] for idx in axis_wcs[axis]]
+        cunit = [str(ds.wcs.wcs.cunit[idx]) for idx in axis_wcs[axis]]
+        ctype = [ds.wcs.wcs.ctype[idx] for idx in axis_wcs[axis]]
+    else:
+        # This is some other kind of dataset
+        unit = ds.get_smallest_appropriate_unit(ds.domain_width.max())
+        dx = ds.index.get_smallest_dx()
+        nx, ny = (ds.domain_width[axis_wcs[axis]]/dx).ndarray_view().astype("int")
+        crpix = [0.5*(nx+1), 0.5*(ny+1)]
+        cdelt = [dx.in_units(unit)]*2
+        crval = [ds.domain_center[idx].in_units(unit) for idx in axis_wcs[axis]]
+        cunit = [unit]*2
+        ctype = ["LINEAR"]*2
+    frb = data_source.to_frb((1.0,"unitary"), (nx,ny))
+    w = pywcs.WCS(naxis=2)
+    w.wcs.crpix = crpix
+    w.wcs.cdelt = cdelt
+    w.wcs.crval = crval
+    w.wcs.cunit = cunit
+    w.wcs.ctype = ctype
+    return w, frb
+
+class FITSSlice(FITSImageBuffer):
+    r"""
+    Generate a FITSImageBuffer of an on-axis slice.
+
+    Parameters
+    ----------
+    ds : FITSDataset
+        The FITS dataset object.
+    axis : character or integer
+        The axis of the slice. One of "x","y","z", or 0,1,2.
+    fields : string or list of strings
+        The fields to slice
+    center : A sequence floats, a string, or a tuple.
+         The coordinate of the center of the image. If set to 'c', 'center' or
+         left blank, the plot is centered on the middle of the domain. If set to
+         'max' or 'm', the center will be located at the maximum of the
+         ('gas', 'density') field. Units can be specified by passing in center
+         as a tuple containing a coordinate and string unit name or by passing
+         in a YTArray.  If a list or unitless array is supplied, code units are
+         assumed.
+    """
+    def __init__(self, ds, axis, fields, center="c", **kwargs):
+        fields = ensure_list(fields)
+        axis = fix_axis(axis, ds)
+        center = get_sanitized_center(center, ds)
+        slc = ds.slice(axis, center[axis], **kwargs)
+        w, frb = construct_image(slc)
+        super(FITSSlice, self).__init__(frb, fields=fields, wcs=w)
+        for i, field in enumerate(fields):
+            self[i].header["bunit"] = str(frb[field].units)
+
+class FITSProjection(FITSImageBuffer):
+    r"""
+    Generate a FITSImageBuffer of an on-axis projection.
+
+    Parameters
+    ----------
+    ds : FITSDataset
+        The FITS dataset object.
+    axis : character or integer
+        The axis along which to project. One of "x","y","z", or 0,1,2.
+    fields : string or list of strings
+        The fields to project
+    weight_field : string
+        The field used to weight the projection.
+    """
+    def __init__(self, ds, axis, fields, weight_field=None, **kwargs):
+        fields = ensure_list(fields)
+        axis = fix_axis(axis, ds)
+        prj = ds.proj(fields[0], axis, weight_field=weight_field, **kwargs)
+        w, frb = construct_image(prj)
+        super(FITSProjection, self).__init__(frb, fields=fields, wcs=w)
+        for i, field in enumerate(fields):
+            self[i].header["bunit"] = str(frb[field].units)
+
 
 
         

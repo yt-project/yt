@@ -1,3 +1,17 @@
+"""
+A base class for "image" plots with colorbars.
+
+
+
+"""
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 import __builtin__
 import base64
 import numpy as np
@@ -7,6 +21,7 @@ import types
 from functools import wraps
 from matplotlib.font_manager import FontProperties
 
+from ._mpl_imports import FigureCanvasAgg
 from .tick_locators import LogLocator, LinearLocator
 from .color_maps import yt_colormaps, is_colormap
 from .plot_modifications import \
@@ -15,11 +30,10 @@ from .base_plot_types import CallbackWrapper
 
 from yt.funcs import \
     defaultdict, get_image_suffix, \
-    get_ipython_api_version
-from yt.utilities.definitions import axis_names
+    get_ipython_api_version, iterable, \
+    ensure_list
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
-from ._mpl_imports import FigureCanvasAgg
 
 def invalidate_data(f):
     @wraps(f)
@@ -88,18 +102,22 @@ class FieldTransform(object):
 log_transform = FieldTransform('log10', np.log10, LogLocator())
 linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
 
-class PlotDictionary(dict):
+class PlotDictionary(defaultdict):
     def __getitem__(self, item):
-        item = self.data_source._determine_fields(item)[0]
-        return dict.__getitem__(self, item)
+        return defaultdict.__getitem__(
+            self, self.data_source._determine_fields(item)[0])
+
+    def __setitem__(self, item, value):
+        return defaultdict.__setitem__(
+            self, self.data_source._determine_fields(item)[0], value)
 
     def __contains__(self, item):
-        item = self.data_source._determine_fields(item)[0]
-        return dict.__contains__(self, item)
+        return defaultdict.__contains__(
+            self, self.data_source._determine_fields(item)[0])
 
-    def __init__(self, data_source, *args):
+    def __init__(self, data_source, default_factory=None):
         self.data_source = data_source
-        return dict.__init__(self, args)
+        return defaultdict.__init__(self, default_factory)
 
 class ImagePlotContainer(object):
     """A countainer for plots with colorbars.
@@ -111,7 +129,10 @@ class ImagePlotContainer(object):
 
     def __init__(self, data_source, figure_size, fontsize):
         self.data_source = data_source
-        self.figure_size = float(figure_size)
+        if iterable(figure_size):
+            self.figure_size = float(figure_size[0]), float(figure_size[1])
+        else:
+            self.figure_size = float(figure_size)
         self.plots = PlotDictionary(data_source)
         self._callbacks = []
         self._field_transform = {}
@@ -119,6 +140,10 @@ class ImagePlotContainer(object):
         font_path = matplotlib.get_data_path() + '/fonts/ttf/STIXGeneral.ttf'
         self._font_properties = FontProperties(size=fontsize, fname=font_path)
         self._font_color = None
+        self._xlabel = None
+        self._ylabel = None
+        self._colorbar_label = PlotDictionary(
+            self.data_source, lambda: None)
 
     @invalidate_plot
     def set_log(self, field, log):
@@ -167,7 +192,7 @@ class ImagePlotContainer(object):
     @invalidate_plot
     def set_transform(self, field, name):
         field = self.data_source._determine_fields(field)[0]
-        if name not in field_transforms: 
+        if name not in field_transforms:
             raise KeyError(name)
         self._field_transform[field] = field_transforms[name]
         return self
@@ -224,7 +249,7 @@ class ImagePlotContainer(object):
         if field is 'all':
             fields = self.plots.keys()
         else:
-            fields = [field]
+            fields = ensure_list(field)
         for field in self.data_source._determine_fields(fields):
             myzmin = zmin
             myzmax = zmax
@@ -250,13 +275,19 @@ class ImagePlotContainer(object):
         # Left blank to be overriden in subclasses
         pass
 
-    def _switch_pf(self, new_pf):
-        ds = self.data_source
-        name = ds._type_name
-        kwargs = dict((n, getattr(ds, n)) for n in ds._con_args)
-        new_ds = getattr(new_pf, name)(**kwargs)
-        self.pf = new_pf
-        self.data_source = new_ds
+    def _switch_ds(self, new_ds, data_source=None):
+        old_object = self.data_source
+        name = old_object._type_name
+        kwargs = dict((n, getattr(old_object, n))
+                      for n in old_object._con_args)
+        if data_source is not None:
+            if name != "proj":
+                raise RuntimeError("The data_source keyword argument "
+                                   "is only defined for projections.")
+            kwargs['data_source'] = data_source
+        new_object = getattr(new_ds, name)(**kwargs)
+        self.ds = new_ds
+        self.data_source = new_object
         self._data_valid = self._plot_valid = False
         self._recreate_frb()
         self._setup_plots()
@@ -265,15 +296,15 @@ class ImagePlotContainer(object):
         return self.plots[item]
 
     def run_callbacks(self, f):
-        keys = self._frb.keys()
+        keys = self.frb.keys()
         for name, (args, kwargs) in self._callbacks:
-            cbw = CallbackWrapper(self, self.plots[f], self._frb, f)
+            cbw = CallbackWrapper(self, self.plots[f], self.frb, f)
             CallbackMaker = callback_registry[name]
             callback = CallbackMaker(*args[1:], **kwargs)
             callback(cbw)
-        for key in self._frb.keys():
+        for key in self.frb.keys():
             if key not in keys:
-                del self._frb[key]
+                del self.frb[key]
 
     @invalidate_plot
     @invalidate_figure
@@ -314,7 +345,7 @@ class ImagePlotContainer(object):
         This sets the font to be 24-pt, blue, sans-serif, italic, and
         bold-face.
 
-        >>> slc = SlicePlot(pf, 'x', 'Density')
+        >>> slc = SlicePlot(ds, 'x', 'Density')
         >>> slc.set_font({'family':'sans-serif', 'style':'italic',
                           'weight':'bold', 'size':24, 'color':'blue'})
 
@@ -407,18 +438,19 @@ class ImagePlotContainer(object):
         names = []
         if mpl_kwargs is None: mpl_kwargs = {}
         if name is None:
-            name = str(self.pf)
+            name = str(self.ds)
         name = os.path.expanduser(name)
         if name[-1] == os.sep and not os.path.isdir(name):
             os.mkdir(name)
-        if os.path.isdir(name) and name != str(self.pf):
-            name = name + (os.sep if name[-1] != os.sep else '') + str(self.pf)
+        if os.path.isdir(name) and name != str(self.ds):
+            name = name + (os.sep if name[-1] != os.sep else '') + str(self.ds)
         suffix = get_image_suffix(name)
         if suffix != '':
             for k, v in self.plots.iteritems():
                 names.append(v.save(name, mpl_kwargs))
             return names
-        axis = axis_names[self.data_source.axis]
+        axis = self.ds.coordinates.axis_name.get(
+            self.data_source.axis, '')
         weight = None
         type = self._plot_type
         if type in ['Projection', 'OffAxisProjection']:
@@ -475,7 +507,7 @@ class ImagePlotContainer(object):
         --------
 
         >>> from yt.mods import SlicePlot
-        >>> slc = SlicePlot(pf, "x", ["Density", "VelocityMagnitude"])
+        >>> slc = SlicePlot(ds, "x", ["Density", "VelocityMagnitude"])
         >>> slc.show()
 
         """
@@ -505,3 +537,59 @@ class ImagePlotContainer(object):
             img = base64.b64encode(self.plots[field]._repr_png_())
             ret += '<img src="data:image/png;base64,%s"><br>' % img
         return ret
+
+    @invalidate_plot
+    def set_xlabel(self, label):
+        r"""
+        Allow the user to modify the X-axis title
+        Defaults to the global value. Fontsize defaults
+        to 18.
+
+        Parameters
+        ----------
+        x_title: str
+              The new string for the x-axis.
+
+        >>>  plot.set_xtitle("H2I Number Density (cm$^{-3}$)")
+
+        """
+        self._xlabel = label
+        return self
+
+    @invalidate_plot
+    def set_ylabel(self, label):
+        r"""
+        Allow the user to modify the Y-axis title
+        Defaults to the global value.
+
+        Parameters
+        ----------
+        label: str
+          The new string for the y-axis.
+
+        >>>  plot.set_ytitle("Temperature (K)")
+
+        """
+        self._ylabel = label
+        return self
+
+    @invalidate_plot
+    def set_colorbar_label(self, field, label):
+        r"""
+        Sets the colorbar label.
+
+        Parameters
+        ----------
+        field: str or tuple
+          The name of the field to modify the label for.
+        label: str
+          The new label
+
+        >>>  plot.set_colorbar_label("Enclosed Gas Mass ($M_{\odot}$)")
+
+        """
+        self._colorbar_label[field] = label
+        return self
+
+    def _get_axes_labels(self, field):
+        return(self._xlabel, self._ylabel, self._colorbar_label[field])

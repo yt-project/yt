@@ -21,6 +21,7 @@ from numpy.testing import \
     assert_allclose, assert_raises
 from nose.tools import assert_true
 from sympy import Symbol
+from yt.testing import fake_random_ds
 
 # dimensions
 from yt.units.dimensions import \
@@ -30,7 +31,8 @@ from yt.units.unit_object import get_conversion_factor
 # classes
 from yt.units.unit_object import Unit, UnitParseError
 # objects
-from yt.units.unit_lookup_table import default_unit_symbol_lut, unit_prefixes
+from yt.units.unit_lookup_table import \
+    default_unit_symbol_lut, unit_prefixes, prefixable_units
 # unit definitions
 from yt.utilities.physical_constants import \
     cm_per_pc, sec_per_year, cm_per_km, cm_per_mpc, \
@@ -45,13 +47,17 @@ def test_no_conflicting_symbols():
 
     # go through all possible prefix combos
     for symbol in default_unit_symbol_lut.keys():
-        for prefix in unit_prefixes.keys():
+        if symbol in prefixable_units:
+            keys = unit_prefixes.keys()
+        else:
+            keys = [symbol]
+        for prefix in keys:
             new_symbol = "%s%s" % (prefix, symbol)
 
             # test if we have seen this symbol
             if new_symbol in full_set:
                 print "Duplicate symbol: %s" % new_symbol
-                yield assert_true, False
+                raise RuntimeError
 
             full_set.add(new_symbol)
     yield assert_true, True
@@ -416,15 +422,16 @@ def test_cgs_equivalent():
     yield assert_true, u2.dimensions == mass_density
     yield assert_true, u3.dimensions == mass_density
 
-    yield assert_allclose, get_conversion_factor(u1, u3), \
+    yield assert_allclose, get_conversion_factor(u1, u3)[0], \
         Msun_cgs / Mpc_cgs**3, 1e-12
 
 def test_is_code_unit():
-    u1 = Unit('code_mass')
-    u2 = Unit('code_mass/code_length')
-    u3 = Unit('code_velocity*code_mass**2')
-    u4 = Unit('code_time*code_mass**0.5')
-    u5 = Unit('code_mass*g')
+    ds = fake_random_ds(64, nprocs=1)
+    u1 = Unit('code_mass', registry=ds.unit_registry)
+    u2 = Unit('code_mass/code_length', registry=ds.unit_registry)
+    u3 = Unit('code_velocity*code_mass**2', registry=ds.unit_registry)
+    u4 = Unit('code_time*code_mass**0.5', registry=ds.unit_registry)
+    u5 = Unit('code_mass*g', registry=ds.unit_registry)
     u6 = Unit('g/cm**3')
 
     yield assert_true, u1.is_code_unit

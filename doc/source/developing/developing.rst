@@ -74,6 +74,8 @@ All contributed code must be BSD-compatible.  If you'd rather not license in
 this manner, but still want to contribute, please consider creating an external
 package, which we'll happily link to.
 
+.. _requirements-for-code-submission:
+
 Requirements for Code Submission
 ++++++++++++++++++++++++++++++++
 
@@ -88,28 +90,30 @@ detail.)
   * New Features
 
     * New unit tests (possibly new answer tests) (See :ref:`testing`)
-    * Docstrings for public API
-    * Addition of new feature to the narrative documentation
-    * Addition of cookbook recipe
+    * Docstrings in the source code for the public API
+    * Addition of new feature to the narrative documentation (See :ref:`writing_documentation`)
+    * Addition of cookbook recipe (See :ref:`writing_documentation`) 
     * Issue created on issue tracker, to ensure this is added to the changelog
 
   * Extension or Breakage of API in Existing Features
 
-    * Update existing narrative docs and docstrings
-    * Update existing cookbook recipes
+    * Update existing narrative docs and docstrings (See :ref:`writing_documentation`) 
+    * Update existing cookbook recipes (See :ref:`writing_documentation`) 
     * Modify of create new unit tests (See :ref:`testing`)
     * Issue created on issue tracker, to ensure this is added to the changelog
 
   * Bug fixes
 
     * Unit test is encouraged, to ensure breakage does not happen again in the
-      future.
+      future. (See :ref:`testing`)
     * Issue created on issue tracker, to ensure this is added to the changelog
 
 When submitting, you will be asked to make sure that your changes meet all of
 these requirements.  They are pretty easy to meet, and we're also happy to help
 out with them.  In :ref:`code-style-guide` there is a list of handy tips for
 how to structure and write your code.
+
+.. _mercurial-with-yt:
 
 How to Use Mercurial with yt
 ++++++++++++++++++++++++++++
@@ -135,6 +139,8 @@ for using mercurial with yt:
   * If you run into any troubles, stop by IRC (see :ref:`irc`) or the mailing
     list.
 
+.. _building-yt:
+
 Building yt
 +++++++++++
 
@@ -148,36 +154,60 @@ can rebuild these modules by executing:
 
 .. code-block:: bash
 
-   python2.7 setup.py develop
+  $ python2.7 setup.py develop
 
 If you have previously "installed" via ``setup.py install`` you have to
 re-install:
 
 .. code-block:: bash
 
-   python2.7 setup.py install
+  $ python2.7 setup.py install
 
-Only one of these two options is needed.  yt may require you to specify the
-location to libpng and hdf5.  This can be done through files named ``png.cfg``
-and ``hdf5.cfg``.  If you are using the installation script, these will already
-exist.
+Only one of these two options is needed.
+
+.. _windows-developing:
+
+Developing yt on Windows
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you plan to develop yt on Windows, we recommend using the `MinGW
+<http://www.mingw.org/>`_ gcc compiler that can be installed using the `Anaconda
+Python Distribution <https://store.continuum.io/cshop/anaconda/>`_. Also, the
+syntax for the setup command is slightly different; you must type:
+
+.. code-block:: bash
+
+  $ python2.7 setup.py build --compiler=mingw32 develop
+
+or
+
+.. code-block:: bash
+
+  $ python2.7 setup.py build --compiler=mingw32 install
+
+.. _sharing-changes:
 
 Making and Sharing Changes
 ++++++++++++++++++++++++++
 
-The simplest way to submit changes to yt is to commit changes in your
-``$YT_DEST/src/yt-hg`` directory, fork the repository on BitBucket,  push the
-changesets to your fork, and then issue a pull request.  If you will be
-developing much more in-depth features for yt, you will also
-likely want to edit the paths in your 
+The simplest way to submit changes to yt is to do the following:
+
+  * Build yt from the mercurial repository
+  * Navigate to the root of the yt repository 
+  * Make some changes and commit them
+  * Fork the `yt repository on BitBucket <https://bitbucket.org/yt_analysis/yt>`_
+  * Push the changesets to your fork
+  * Issue a pull request.
 
 Here's a more detailed flowchart of how to submit changes.
 
   #. If you have used the installation script, the source code for yt can be
-     found in ``$YT_DEST/src/yt-hg``.  (Below, in :ref:`reading-source`, 
-     we describe how to find items of interest.)  Edit the source file you are
-     interested in and test your changes.  (See :ref:`testing` for more
-     information.)
+     found in ``$YT_DEST/src/yt-hg``.  Alternatively see
+     :ref:`source-installation` for instructions on how to build yt from the
+     mercurial repository. (Below, in :ref:`reading-source`, we describe how to
+     find items of interest.)  
+  #. Edit the source file you are interested in and
+     test your changes.  (See :ref:`testing` for more information.)
   #. Fork yt on BitBucket.  (This step only has to be done once.)  You can do
      this at: https://bitbucket.org/yt_analysis/yt/fork .  Call this repository
      ``yt``.
@@ -189,7 +219,7 @@ Here's a more detailed flowchart of how to submit changes.
      these changes as well.
   #. Push your changes to your new fork using the command::
 
-        hg push https://bitbucket.org/YourUsername/yt/
+        hg push -r . https://bitbucket.org/YourUsername/yt/
  
      If you end up doing considerable development, you can set an alias in the
      file ``.hg/hgrc`` to point to this path.
@@ -208,19 +238,72 @@ straightforward.
 
         hg push https://bitbucket.org/YourUsername/yt/
 
-  #. Update your pull request by visiting
-     https://bitbucket.org/YourUsername/yt/pull-request/new
+  #. Your pull request will be automatically updated.
+
+.. _writing_documentation:
 
 How to Write Documentation
-++++++++++++++++++++++++++
+--------------------------
 
-The process for writing documentation is identical to the above, except that
-instead of ``yt_analysis/yt`` you should be forking and pushing to
-``yt_analysis/yt-doc``.  All the source for the documentation is written in
-`Sphinx <http://sphinx-doc.org/>`_, which uses ReST for markup.
+Writing documentation is one of the most important but often overlooked tasks
+for increasing yt's impact in the community.  It is the way in which the 
+world will understand how to use our code, so it needs to be done concisely
+and understandably.  Typically, when a developer submits some piece of code 
+with new functionality, she should also include documentation on how to use 
+that functionality (as per :ref:`requirements-for-code-submission`).  
+Depending on the nature of the code addition, this could be a new narrative 
+docs section describing how the new code works and how to use it, it could 
+include a recipe in the cookbook section, or it could simply be adding a note 
+in the relevant docs text somewhere.
 
-Cookbook recipes go in ``source/cookbook/`` and must be added to one of the
-``.rst`` files in that directory.
+The documentation exists in the main mercurial code repository for yt in the
+``doc`` directory (i.e. ``$YT_HG/doc/source`` where ``$YT_HG`` is the path of
+the yt mercurial repository).  It is organized hierarchically into the main
+categories of:
+
+ * Visualizing
+ * Analyzing
+ * Examining
+ * Cookbook
+ * Bootcamp
+ * Developing
+ * Reference
+ * Help
+
+You will have to figure out where your new/modified doc fits into this, but 
+browsing through the pre-built documentation is a good way to sort that out.
+
+All the source for the documentation is written in 
+`Sphinx <http://sphinx-doc.org/>`_, which uses ReST for markup.  ReST is very
+straightforward to markup in a text editor, and if you are new to it, we
+recommend just using other .rst files in the existing yt documentation as 
+templates or checking out the 
+`ReST reference documentation <http://sphinx-doc.org/rest.html>`_.
+
+New cookbook recipes (see :ref:`cookbook`) are very helpful for the community 
+as they provide simple annotated recipes on how to use specific functionality.  
+To add one, create a concise python script which demonstrates some 
+functionality and pare it down to its minimum.  Add some comment lines to 
+describe what it is that you're doing along the way.  Place this ``.py`` file 
+in the ``source/cookbook/`` directory, and then link to it explicitly in one 
+of the relevant ``.rst`` files in that directory (e.g. ``complex_plots.rst``, 
+``cosmological_analysis.rst``, etc.), and add some description of what the script 
+actually does.  We recommend that you use one of the 
+`sample data sets <http://yt-project.org/data>`_ in your recipe.  When the full
+docs are built, each of the cookbook recipes are executed dynamically on 
+a system which has access to all of the sample datasets.  Any output images 
+generated by your script will then be attached inline in the built documentation 
+directly following your script.
+
+After you have made your modifications to the docs, you will want to make sure
+that they render the way you expect them to render.  For more information on
+this, see the section on :ref:`docs_build`.  Unless you're contributing cookbook
+recipes or notebooks which require a dynamical build, you can probably get 
+away with just doing a 'quick' docs build.
+
+When you have completed your documentation additions, commit your changes 
+to your repository and make a pull request in the same way you would contribute 
+a change to the codebase, as described in the section on :ref:`sharing-changes`.
 
 How To Get The Source Code For Editing
 --------------------------------------
@@ -268,21 +351,11 @@ code (a previous changeset or version) by executing the command:
 
    $ hg up revision_specifier
 
-Lastly, if you want to use this new downloaded version of your yt repository
-as the *active* version of yt on your computer (i.e. the one which is executed
-when you run yt from the command line or ``from yt.mods import *``),
-then you must "activate" it using the following commands from within the
+Lastly, if you want to use this new downloaded version of your yt repository as
+the *active* version of yt on your computer (i.e. the one which is executed when
+you run yt from the command line or the one that is loaded when you do ``import
+yt``), then you must "activate" it using the following commands from within the
 repository directory.
-
-In order to do this for the first time with a new repository, you have to
-copy some config files over from your yt installation directory (where yt
-was initially installed from the install_script.sh).  Try this:
-
-.. code-block:: bash
-
-   $ cp $YT_DEST/src/yt-hg/*.cfg <REPOSITORY_NAME>
-
-and then every time you want to "activate" a different repository of yt.
 
 .. code-block:: bash
 
@@ -296,11 +369,16 @@ This will rebuild all C modules as well.
 How To Read The Source Code
 ---------------------------
 
-If you just want to *look* at the source code, you already have it on your
-computer.  Go to the directory where you ran the install_script.sh, then
-go to ``$YT_DEST/src/yt-hg`` .  In this directory are a number of
-subdirectories with different components of the code, although most of them
-are in the yt subdirectory.  Feel free to explore here.
+If you just want to *look* at the source code, you may already have it on your
+computer.  If you build yt using the install script, the source is available at
+``$YT_DEST/src/yt-hg``.  See :ref:`source-installation` for more details about
+to obtain the yt source code if you did not build yt using the install
+script. 
+
+The root directory of the yt mercurial repository contains a number of
+subdirectories with different components of the code.  Most of the yt source
+code is contained in the ``yt`` subdirectory.  This directory its self contains
+the following subdirectories:
 
    ``frontends``
       This is where interfaces to codes are created.  Within each subdirectory of
@@ -309,9 +387,18 @@ are in the yt subdirectory.  Feel free to explore here.
       * ``data_structures.py``, where subclasses of AMRGridPatch, Dataset
         and AMRHierarchy are defined.
       * ``io.py``, where a subclass of IOHandler is defined.
+      * ``fields.py``, where fields we expect to find in datasets are defined
       * ``misc.py``, where any miscellaneous functions or classes are defined.
       * ``definitions.py``, where any definitions specific to the frontend are
         defined.  (i.e., header formats, etc.)
+
+   ``fields``
+      This is where all of the derived fields that ship with yt are defined.
+
+   ``geometry`` 
+      This is where geometric helpler routines are defined. Handlers
+      for grid and oct data, as well as helpers for coordinate transformations
+      can be found here.
 
    ``visualization``
       This is where all visualization modules are stored.  This includes plot
@@ -337,6 +424,10 @@ are in the yt subdirectory.  Feel free to explore here.
    ``utilities``
       All broadly useful code that doesn't clearly fit in one of the other
       categories goes here.
+
+   ``extern`` 
+      Bundled external modules (i.e. code that was not written by one of
+      the yt authors but that yt depends on) lives here.
 
 
 If you're looking for a specific file or function in the yt source code, use
@@ -379,7 +470,7 @@ General Guidelines
    something_else``.  Python is more forgiving than C.
  * Avoid copying memory when possible. For example, don't do ``a =
    a.reshape(3,4)`` when ``a.shape = (3,4)`` will do, and ``a = a * 3`` should be
-   ``na.multiply(a, 3, a)``.
+   ``np.multiply(a, 3, a)``.
  * In general, avoid all double-underscore method names: ``__something`` is
    usually unnecessary.
  * Doc strings should describe input, output, behavior, and any state changes
@@ -418,7 +509,7 @@ Variable Names and Enzo-isms
    + Hard-coding parameter names that are the same as those in Enzo.  The
      following translation table should be of some help.  Note that the
      parameters are now properties on a Dataset subclass: you access them
-     like ``pf.refine_by`` .
+     like ``ds.refine_by`` .
 
      - ``RefineBy `` => `` refine_by``
      - ``TopGridRank `` => `` dimensionality``

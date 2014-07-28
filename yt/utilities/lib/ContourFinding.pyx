@@ -18,33 +18,35 @@ cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free, realloc
 from yt.geometry.selection_routines cimport \
-    SelectorObject, AlwaysSelector, OctreeSubsetSelector
+    SelectorObject, AlwaysSelector, OctreeSubsetSelector, \
+    anyfloat
 from yt.utilities.lib.fp_utils cimport imax
 from yt.geometry.oct_container cimport \
     OctreeContainer, OctInfo
 from yt.geometry.oct_visitors cimport \
     Oct
-from yt.geometry.particle_smooth cimport r2dist
 from .amr_kdtools cimport _find_node, Node
 from .grid_traversal cimport VolumeContainer, PartitionedGrid, \
     vc_index, vc_pos_index
+import sys
 
-cdef ContourID *contour_create(np.int64_t contour_id,
+cdef inline ContourID *contour_create(np.int64_t contour_id,
                                ContourID *prev = NULL):
     node = <ContourID *> malloc(sizeof(ContourID))
     #print "Creating contour with id", contour_id
     node.contour_id = contour_id
     node.next = node.parent = NULL
     node.prev = prev
+    node.count = 1
     if prev != NULL: prev.next = node
     return node
 
-cdef void contour_delete(ContourID *node):
+cdef inline void contour_delete(ContourID *node):
     if node.prev != NULL: node.prev.next = node.next
     if node.next != NULL: node.next.prev = node.prev
     free(node)
 
-cdef ContourID *contour_find(ContourID *node):
+cdef inline ContourID *contour_find(ContourID *node):
     cdef ContourID *temp, *root
     root = node
     # First we find the root
@@ -56,19 +58,38 @@ cdef ContourID *contour_find(ContourID *node):
     # root.
     while node.parent != NULL:
         temp = node.parent
+        root.count += node.count
+        node.count = 0
         node.parent = root
         node = temp
     return root
 
-cdef void contour_union(ContourID *node1, ContourID *node2):
+cdef inline void contour_union(ContourID *node1, ContourID *node2):
+    if node1 == node2:
+        return
     node1 = contour_find(node1)
     node2 = contour_find(node2)
-    if node1.contour_id < node2.contour_id:
-        node2.parent = node1
-    elif node2.contour_id < node1.contour_id:
-        node1.parent = node2
+    if node1 == node2:
+        return
+    cdef ContourID *pri, *sec
+    if node1.count > node2.count:
+        pri = node1
+        sec = node2
+    elif node2.count > node1.count:
+        pri = node2
+        sec = node1
+    # might be a tie
+    elif node1.contour_id < node2.contour_id:
+        pri = node1
+        sec = node2
+    else:
+        pri = node2
+        sec = node1
+    pri.count += sec.count
+    sec.count = 0
+    sec.parent = pri
 
-cdef int candidate_contains(CandidateContour *first,
+cdef inline int candidate_contains(CandidateContour *first,
                             np.int64_t contour_id,
                             np.int64_t join_id = -1):
     while first != NULL:
@@ -77,7 +98,7 @@ cdef int candidate_contains(CandidateContour *first,
         first = first.next
     return 0
 
-cdef CandidateContour *candidate_add(CandidateContour *first,
+cdef inline CandidateContour *candidate_add(CandidateContour *first,
                                      np.int64_t contour_id,
                                      np.int64_t join_id = -1):
     cdef CandidateContour *node
@@ -207,7 +228,7 @@ cdef class ContourTree:
         cdef int i, n, ins
         cdef np.int64_t cid1, cid2
         # Okay, this requires lots of iteration, unfortunately
-        cdef ContourID *cur, *root
+        cdef ContourID *cur, *c1, *c2
         n = join_tree.shape[0]
         #print "Counting"
         #print "Checking", self.count()
@@ -232,6 +253,7 @@ cdef class ContourTree:
                 print "  Inspected ", ins
                 raise RuntimeError
             else:
+                c1.count = c2.count = 0
                 contour_union(c1, c2)
 
     def count(self):
@@ -314,6 +336,7 @@ cdef class TileContourTree:
                                 c2 = container[offset]
                                 if c2 == NULL: continue
                                 c2 = contour_find(c2)
+                                cur.count = c2.count = 0
                                 contour_union(cur, c2)
                                 cur = contour_find(cur)
         for i in range(ni):
@@ -321,13 +344,13 @@ cdef class TileContourTree:
                 for k in range(nk):
                     c1 = container[i*nj*nk + j*nk + k]
                     if c1 == NULL: continue
-                    cur = c1
                     c1 = contour_find(c1)
                     contour_ids[i,j,k] = c1.contour_id
         
         for i in range(ni*nj*nk): 
             if container[i] != NULL: free(container[i])
         free(container)
+        return nc
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -362,6 +385,7 @@ cdef inline int spos_contained(VolumeContainer *vc, np.float64_t *spos):
         if spos[i] <= vc.left_edge[i] or spos[i] >= vc.right_edge[i]: return 0
     return 1
 
+@cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef void construct_boundary_relationships(Node trunk, ContourTree tree, 
@@ -370,226 +394,67 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
                 np.ndarray[np.int64_t, ndim=1] node_ids):
     # We only look at the boundary and find the nodes next to it.
     # Contours is a dict, keyed by the node.id.
-    cdef int i, j, nx, ny, nz, offset_i, offset_j, oi, oj, level
+    cdef int i, j, off_i, off_j, oi, oj, level, ax, ax0, ax1, n1, n2
     cdef np.int64_t c1, c2
     cdef Node adj_node
     cdef VolumeContainer *vc1, *vc0 = vcs[nid]
-    nx = vc0.dims[0]
-    ny = vc0.dims[1]
-    nz = vc0.dims[2]
-    cdef int s = (ny*nx + nx*nz + ny*nz) * 18
+    cdef int s = (vc0.dims[1]*vc0.dims[0]
+                + vc0.dims[0]*vc0.dims[2]
+                + vc0.dims[1]*vc0.dims[2]) * 18
     # We allocate an array of fixed (maximum) size
     cdef np.ndarray[np.int64_t, ndim=2] joins = np.zeros((s, 2), dtype="int64")
-    cdef int ti = 0
-    cdef int index
+    cdef int ti = 0, side
+    cdef int index, pos[3], my_pos[3]
     cdef np.float64_t spos[3]
 
-    # First the x-pass
-    for i in range(ny):
-        for j in range(nz):
-            for offset_i in range(3):
-                oi = offset_i - 1
-                for offset_j in range(3):
-                    oj = offset_j - 1
-                    # Adjust by -1 in x, then oi and oj in y and z
-                    get_spos(vc0, -1, i + oi, j + oj, 0, spos)
-                    adj_node = _find_node(trunk, spos)
-                    vc1 = vcs[adj_node.node_ind]
-                    if examined[adj_node.node_ind] == 0 and \
-                       spos_contained(vc1, spos):
-                        # This is outside our VC, as 0 is a boundary layer
-                        index = vc_index(vc0, 0, i, j)
-                        c1 = (<np.int64_t*>vc0.data[0])[index]
-                        index = vc_pos_index(vc1, spos)
-                        c2 = (<np.int64_t*>vc1.data[0])[index]
-                        if c1 > -1 and c2 > -1:
-                            joins[ti,0] = i64max(c1,c2)
-                            joins[ti,1] = i64min(c1,c2)
-                            ti += 1
-                    # This is outside our vc
-                    get_spos(vc0, nx, i + oi, j + oj, 0, spos)
-                    adj_node = _find_node(trunk, spos)
-                    vc1 = vcs[adj_node.node_ind]
-                    if examined[adj_node.node_ind] == 0 and \
-                       spos_contained(vc1, spos):
-                        # This is outside our VC, as 0 is a boundary layer
-                        index = vc_index(vc0, nx - 1, i, j)
-                        c1 = (<np.int64_t*>vc0.data[0])[index]
-                        index = vc_pos_index(vc1, spos)
-                        c2 = (<np.int64_t*>vc1.data[0])[index]
-                        if c1 > -1 and c2 > -1:
-                            joins[ti,0] = i64max(c1,c2)
-                            joins[ti,1] = i64min(c1,c2)
-                            ti += 1
-    # Now y-pass
-    for i in range(nx):
-        for j in range(nz):
-            for offset_i in range(3):
-                oi = offset_i - 1
-                if i == 0 and oi == -1: continue
-                if i == nx - 1 and oi == 1: continue
-                for offset_j in range(3):
-                    oj = offset_j - 1
-                    get_spos(vc0, i + oi, -1, j + oj, 1, spos)
-                    adj_node = _find_node(trunk, spos)
-                    vc1 = vcs[adj_node.node_ind]
-                    if examined[adj_node.node_ind] == 0 and \
-                       spos_contained(vc1, spos):
-                        # This is outside our VC, as 0 is a boundary layer
-                        index = vc_index(vc0, i, 0, j)
-                        c1 = (<np.int64_t*>vc0.data[0])[index]
-                        index = vc_pos_index(vc1, spos)
-                        c2 = (<np.int64_t*>vc1.data[0])[index]
-                        if c1 > -1 and c2 > -1:
-                            joins[ti,0] = i64max(c1,c2)
-                            joins[ti,1] = i64min(c1,c2)
-                            ti += 1
+    for ax in range(3):
+        ax0 = (ax + 1) % 3
+        ax1 = (ax + 2) % 3
+        n1 = vc0.dims[ax0]
+        n2 = vc0.dims[ax1]
+        for i in range(n1):
+            for j in range(n2):
+                for off_i in range(3):
+                    oi = off_i - 1
+                    if i == 0 and oi == -1: continue
+                    if i == n1 - 1 and oi == 1: continue
+                    for off_j in range(3):
+                        oj = off_j - 1
+                        if j == 0 and oj == -1: continue
+                        if j == n2 - 1 and oj == 1: continue
+                        pos[ax0] = i + oi
+                        pos[ax1] = j + oj
+                        my_pos[ax0] = i
+                        my_pos[ax1] = j
+                        for side in range(2):
+                            # We go off each end of the block.
+                            if side == 0:
+                                pos[ax] = -1
+                                my_pos[ax] = 0
+                            else:
+                                pos[ax] = vc0.dims[ax]
+                                my_pos[ax] = vc0.dims[ax]-1
+                            get_spos(vc0, pos[0], pos[1], pos[2], ax, spos)
+                            adj_node = _find_node(trunk, spos)
+                            vc1 = vcs[adj_node.node_ind]
+                            if spos_contained(vc1, spos):
+                                index = vc_index(vc0, my_pos[0], 
+                                                 my_pos[1], my_pos[2])
+                                c1 = (<np.int64_t*>vc0.data[0])[index]
+                                index = vc_pos_index(vc1, spos)
+                                c2 = (<np.int64_t*>vc1.data[0])[index]
+                                if c1 > -1 and c2 > -1:
+                                    if examined[adj_node.node_ind] == 0:
+                                        joins[ti,0] = i64max(c1,c2)
+                                        joins[ti,1] = i64min(c1,c2)
+                                    else:
+                                        joins[ti,0] = c1
+                                        joins[ti,1] = c2
+                                    ti += 1
 
-                    get_spos(vc0, i + oi, ny, j + oj, 1, spos)
-                    adj_node = _find_node(trunk, spos)
-                    vc1 = vcs[adj_node.node_ind]
-                    if examined[adj_node.node_ind] == 0 and \
-                       spos_contained(vc1, spos):
-                        # This is outside our VC, as 0 is a boundary layer
-                        index = vc_index(vc0, i, ny - 1, j)
-                        c1 = (<np.int64_t*>vc0.data[0])[index]
-                        index = vc_pos_index(vc1, spos)
-                        c2 = (<np.int64_t*>vc1.data[0])[index]
-                        if c1 > -1 and c2 > -1:
-                            joins[ti,0] = i64max(c1,c2)
-                            joins[ti,1] = i64min(c1,c2)
-                            ti += 1
-
-    # Now z-pass
-    for i in range(nx):
-        for j in range(ny):
-            for offset_i in range(3):
-                oi = offset_i - 1
-                for offset_j in range(3):
-                    oj = offset_j - 1
-                    get_spos(vc0, i + oi,  j + oj, -1, 2, spos)
-                    adj_node = _find_node(trunk, spos)
-                    vc1 = vcs[adj_node.node_ind]
-                    if examined[adj_node.node_ind] == 0 and \
-                       spos_contained(vc1, spos):
-                        # This is outside our VC, as 0 is a boundary layer
-                        index = vc_index(vc0, i, j, 0)
-                        c1 = (<np.int64_t*>vc0.data[0])[index]
-                        index = vc_pos_index(vc1, spos)
-                        c2 = (<np.int64_t*>vc1.data[0])[index]
-                        if c1 > -1 and c2 > -1:
-                            joins[ti,0] = i64max(c1,c2)
-                            joins[ti,1] = i64min(c1,c2)
-                            ti += 1
-
-                    get_spos(vc0, i + oi, j + oj, nz, 2, spos)
-                    adj_node = _find_node(trunk, spos)
-                    vc1 = vcs[adj_node.node_ind]
-                    if examined[adj_node.node_ind] == 0 and \
-                       spos_contained(vc1, spos):
-                        # This is outside our VC, as 0 is a boundary layer
-                        index = vc_index(vc0, i, j, nz - 1)
-                        c1 = (<np.int64_t*>vc0.data[0])[index]
-                        index = vc_pos_index(vc1, spos)
-                        c2 = (<np.int64_t*>vc1.data[0])[index]
-                        if c1 > -1 and c2 > -1:
-                            joins[ti,0] = i64max(c1,c2)
-                            joins[ti,1] = i64min(c1,c2)
-                            ti += 1
     if ti == 0: return
     new_joins = tree.cull_joins(joins[:ti,:])
     tree.add_joins(new_joins)
-
-cdef inline int are_neighbors(
-            np.float64_t x1, np.float64_t y1, np.float64_t z1,
-            np.float64_t dx1, np.float64_t dy1, np.float64_t dz1,
-            np.float64_t x2, np.float64_t y2, np.float64_t z2,
-            np.float64_t dx2, np.float64_t dy2, np.float64_t dz2,
-        ):
-    # We assume an epsilon of 1e-15
-    if fabs(x1-x2) > 0.5*(dx1+dx2): return 0
-    if fabs(y1-y2) > 0.5*(dy1+dy2): return 0
-    if fabs(z1-z2) > 0.5*(dz1+dz2): return 0
-    return 1
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def identify_field_neighbors(
-            np.ndarray[dtype=np.float64_t, ndim=1] field,
-            np.ndarray[dtype=np.float64_t, ndim=1] x,
-            np.ndarray[dtype=np.float64_t, ndim=1] y,
-            np.ndarray[dtype=np.float64_t, ndim=1] z,
-            np.ndarray[dtype=np.float64_t, ndim=1] dx,
-            np.ndarray[dtype=np.float64_t, ndim=1] dy,
-            np.ndarray[dtype=np.float64_t, ndim=1] dz,
-        ):
-    # We assume this field is pre-jittered; it has no identical values.
-    cdef int outer, inner, N, added
-    cdef np.float64_t x1, y1, z1, dx1, dy1, dz1
-    N = field.shape[0]
-    #cdef np.ndarray[dtype=np.object_t] joins
-    joins = [[] for outer in range(N)]
-    #joins = np.empty(N, dtype='object')
-    for outer in range(N):
-        if (outer % 10000) == 0: print outer, N
-        x1 = x[outer]
-        y1 = y[outer]
-        z1 = z[outer]
-        dx1 = dx[outer]
-        dy1 = dy[outer]
-        dz1 = dz[outer]
-        this_joins = joins[outer]
-        added = 0
-        # Go in reverse order
-        for inner in range(outer, 0, -1):
-            if not are_neighbors(x1, y1, z1, dx1, dy1, dz1,
-                                 x[inner], y[inner], z[inner],
-                                 dx[inner], dy[inner], dz[inner]):
-                continue
-            # Hot dog, we have a weiner!
-            this_joins.append(inner)
-            added += 1
-            if added == 26: break
-    return joins
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def extract_identified_contours(int max_ind, joins):
-    cdef int i
-    contours = []
-    for i in range(max_ind + 1): # +1 to get to the max_ind itself
-        contours.append(set([i]))
-        if len(joins[i]) == 0:
-            continue
-        proto_contour = [i]
-        for j in joins[i]:
-            proto_contour += contours[j]
-        proto_contour = set(proto_contour)
-        for j in proto_contour:
-            contours[j] = proto_contour
-    return contours
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def update_flat_joins(np.ndarray[np.int64_t, ndim=2] joins,
-                 np.ndarray[np.int64_t, ndim=1] contour_ids,
-                 np.ndarray[np.int64_t, ndim=1] final_joins):
-    cdef np.int64_t new, old
-    cdef int i, j, nj, nf, counter
-    cdef int ci, cj, ck
-    nj = joins.shape[0]
-    nf = final_joins.shape[0]
-    for ci in range(contour_ids.shape[0]):
-        if contour_ids[ci] == -1: continue
-        for j in range(nj):
-            if contour_ids[ci] == joins[j,0]:
-                contour_ids[ci] = joins[j,1]
-                break
-        for j in range(nf):
-            if contour_ids[ci] == final_joins[j]:
-                contour_ids[ci] = j + 1
-                break
-
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -614,24 +479,36 @@ def update_joins(np.ndarray[np.int64_t, ndim=2] joins,
                         contour_ids[ci,cj,ck] = j + 1
                         break
 
+cdef class FOFNode:
+    cdef np.int64_t tag, count
+    def __init__(self, np.int64_t tag):
+        self.tag = tag
+        self.count = 0
+
 cdef class ParticleContourTree(ContourTree):
     cdef np.float64_t linking_length, linking_length2
-    cdef np.float64_t DW[3]
+    cdef np.float64_t DW[3], DLE[3], DRE[3]
     cdef bint periodicity[3]
+    cdef int minimum_count
 
-    def __init__(self, linking_length):
+    def __init__(self, linking_length, periodicity = (True, True, True),
+                 int minimum_count = 8):
+        cdef int i
         self.linking_length = linking_length
         self.linking_length2 = linking_length * linking_length
         self.first = self.last = NULL
+        for i in range(3):
+            self.periodicity[i] = periodicity[i]
+        self.minimum_count = minimum_count
 
+    @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def identify_contours(self, OctreeContainer octree,
                                 np.ndarray[np.int64_t, ndim=1] dom_ind,
-                                np.ndarray[np.float64_t, ndim=2] positions,
+                                np.ndarray[anyfloat, ndim=2] positions,
                                 np.ndarray[np.int64_t, ndim=1] particle_ids,
-                                int domain_id = -1, int domain_offset = 0,
-                                periodicity = (True, True, True)):
+                                int domain_id, int domain_offset):
         cdef np.ndarray[np.int64_t, ndim=1] pdoms, pcount, pind, doff
         cdef np.float64_t pos[3]
         cdef Oct *oct = NULL, **neighbors = NULL
@@ -639,22 +516,27 @@ cdef class ParticleContourTree(ContourTree):
         cdef ContourID *c0, *c1
         cdef np.int64_t moff = octree.get_domain_offset(domain_id + domain_offset)
         cdef np.int64_t i, j, k, n, nneighbors, pind0, offset
+        cdef int counter = 0
+        cdef int verbose = 0
         pcount = np.zeros_like(dom_ind)
         doff = np.zeros_like(dom_ind) - 1
         # First, we find the oct for each particle.
-        pdoms = np.zeros(positions.shape[0], dtype="int64") - 1
+        pdoms = np.zeros(positions.shape[0], dtype="int64")
+        pdoms -= -1
         cdef np.int64_t *pdom = <np.int64_t*> pdoms.data
         # First we allocate our container
         cdef ContourID **container = <ContourID**> malloc(
             sizeof(ContourID*) * positions.shape[0])
         for i in range(3):
             self.DW[i] = (octree.DRE[i] - octree.DLE[i])
-            self.periodicity[i] = periodicity[i]
+            self.DLE[i] = octree.DLE[i]
+            self.DRE[i] = octree.DRE[i]
         for i in range(positions.shape[0]):
+            counter += 1
             container[i] = NULL
             for j in range(3):
                 pos[j] = positions[i, j]
-            oct = octree.get(pos)
+            oct = octree.get(pos, NULL)
             if oct == NULL or (domain_id > 0 and oct.domain != domain_id):
                 continue
             offset = oct.domain_ind - moff
@@ -662,20 +544,24 @@ cdef class ParticleContourTree(ContourTree):
             pdoms[i] = offset
         pind = np.argsort(pdoms)
         cdef np.int64_t *ipind = <np.int64_t*> pind.data
-        cdef np.float64_t *fpos = <np.float64_t*> positions.data
+        cdef anyfloat *fpos = <anyfloat*> positions.data
         # pind is now the pointer into the position and particle_ids array.
         for i in range(positions.shape[0]):
             offset = pdoms[pind[i]]
             if doff[offset] < 0:
                 doff[offset] = i
+        del pdoms
         cdef int nsize = 27
         cdef np.int64_t *nind = <np.int64_t *> malloc(sizeof(np.int64_t)*nsize)
-        cdef int counter = 0
+        counter = 0
+        cdef np.int64_t frac = <np.int64_t> (doff.shape[0] / 20.0)
+        cdef int inside, skip_early
+        if verbose == 1: print >> sys.stderr, "Will be outputting every", frac
         for i in range(doff.shape[0]):
-            counter += 1
-            if counter == 10000:
+            if verbose == 1 and counter >= frac:
                 counter = 0
-                #print "FOF-ing % 5.1f%% done" % ((100.0 * i)/doff.size)
+                print >> sys.stderr, "FOF-ing % 5.1f%% done" % ((100.0 * i)/doff.size)
+            counter += 1
             # Any particles found for this oct?
             if doff[i] < 0: continue
             offset = pind[doff[i]]
@@ -701,7 +587,8 @@ cdef class ParticleContourTree(ContourTree):
                     break
             # This is allocated by the neighbors function, so we deallocate it.
             free(neighbors)
-            # Now we look at each particle.
+            # We might know that all our internal particles are linked.
+            # Otherwise, we look at each particle.
             for j in range(pcount[i]):
                 # Note that this offset is the particle index
                 pind0 = pind[doff[i] + j]
@@ -719,29 +606,35 @@ cdef class ParticleContourTree(ContourTree):
                                         offset, pind0, 
                                         doff[i] + j)
         cdef np.ndarray[np.int64_t, ndim=1] contour_ids
-        contour_ids = -1 * np.ones(positions.shape[0], dtype="int64")
-        # Sort on our particle IDs.
-        for i in range(doff.shape[0]):
-            if doff[i] < 0: continue
-            for j in range(pcount[i]):
-                poffset = doff[i] + j
-                c1 = container[poffset]
-                c0 = contour_find(c1)
-                contour_ids[pind[poffset]] = c0.contour_id
+        contour_ids = np.ones(positions.shape[0], dtype="int64")
+        contour_ids *= -1
+        # Perform one last contour_find on each.  Note that we no longer need
+        # to look at any of the doff or internal offset stuff.
+        for i in range(positions.shape[0]):
+            if container[i] == NULL: continue
+            container[i] = contour_find(container[i])
+        for i in range(positions.shape[0]):
+            if container[i] == NULL: continue
+            c0 = container[i]
+            if c0.count < self.minimum_count: continue
+            contour_ids[i] = particle_ids[pind[c0.contour_id]]
         free(container)
+        del pind
         return contour_ids
 
+    @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void link_particles(self, ContourID **container, 
-                                   np.float64_t *positions,
+                                   anyfloat *positions,
                                    np.int64_t *pind,
                                    np.int64_t pcount, 
                                    np.int64_t noffset,
                                    np.int64_t pind0,
                                    np.int64_t poffset):
         # Now we look at each particle and evaluate it
-        cdef np.float64_t pos0[3], pos1[3], d
+        cdef np.float64_t pos0[3], pos1[3], edges[2][3]
+        cdef int link
         cdef ContourID *c0, *c1
         cdef np.int64_t pind1
         cdef int i, j, k
@@ -753,23 +646,63 @@ cdef class ParticleContourTree(ContourTree):
             self.last = c0
             if self.first == NULL:
                 self.first = c0
-        c0 = contour_find(c0)
-        container[pind0] = c0
+        c0 = container[pind0] = contour_find(c0)
         for i in range(3):
+            # We make a very conservative guess here about the edges.
             pos0[i] = positions[pind0*3 + i]
+            edges[0][i] = pos0[i] - self.linking_length*1.01
+            edges[1][i] = pos0[i] + self.linking_length*1.01
+            if edges[0][i] < self.DLE[i] or edges[0][i] > self.DRE[i]:
+                # We skip this one, since we're close to the boundary
+                edges[0][i] = -1e30
+                edges[1][i] = 1e30
+        # Lets set up some bounds for the particles.  Maybe we can get away
+        # with reducing our number of calls to r2dist_early.
         for i in range(pcount):
             pind1 = pind[noffset + i]
             if pind1 == pind0: continue
+            c1 = container[pind1]
+            if c1 != NULL and c1.contour_id == c0.contour_id:
+                # Already linked.
+                continue
             for j in range(3):
                 pos1[j] = positions[pind1*3 + j]
-            d = r2dist(pos0, pos1, self.DW, self.periodicity)
-            if d > self.linking_length2:
-                continue
-            c1 = container[pind1]
+            link = r2dist_early(pos0, pos1, self.DW, self.periodicity,
+                                self.linking_length2, edges)
+            if link == 0: continue
             if c1 == NULL:
-                container[pind1] = c1 = contour_create(
-                    noffset + i, self.last)
-            contour_union(c0, c1)
-            c0 = c1 = contour_find(c0)
-            container[pind1] = c0
-            container[pind0] = c0
+                c0.count += 1
+                container[pind1] = c0
+            elif c0.contour_id != c1.contour_id:
+                contour_union(c0, c1)
+                c0 = container[pind1] = container[pind0] = contour_find(c0)
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline int r2dist_early(np.float64_t ppos[3],
+                             np.float64_t cpos[3],
+                             np.float64_t DW[3],
+                             bint periodicity[3],
+                             np.float64_t max_r2,
+                             np.float64_t edges[2][3]):
+    cdef int i
+    cdef np.float64_t r2, DR
+    r2 = 0.0
+    cdef int inside = 0
+    for i in range(3):
+        if cpos[i] < edges[0][i]:
+            return 0
+        if cpos[i] > edges[1][i]:
+            return 0
+    for i in range(3):
+        DR = (ppos[i] - cpos[i])
+        if not periodicity[i]:
+            pass
+        elif (DR > DW[i]/2.0):
+            DR -= DW[i]
+        elif (DR < -DW[i]/2.0):
+            DR += DW[i]
+        r2 += DR * DR
+        if r2 > max_r2: return 0
+    return 1

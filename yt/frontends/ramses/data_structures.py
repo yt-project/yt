@@ -29,7 +29,6 @@ from yt.data_objects.static_output import \
 from yt.data_objects.octree_subset import \
     OctreeSubset
 
-from yt.units.yt_array import YTQuantity
 from .definitions import ramses_header, field_aliases
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
@@ -47,15 +46,15 @@ class RAMSESDomainFile(object):
     _last_mask = None
     _last_selector_id = None
 
-    def __init__(self, pf, domain_id):
-        self.pf = pf
+    def __init__(self, ds, domain_id):
+        self.ds = ds
         self.domain_id = domain_id
         self.nvar = 0 # Set this later!
-        num = os.path.basename(pf.parameter_filename).split("."
+        num = os.path.basename(ds.parameter_filename).split("."
                 )[0].split("_")[1]
         basename = "%s/%%s_%s.out%05i" % (
             os.path.abspath(
-              os.path.dirname(pf.parameter_filename)),
+              os.path.dirname(ds.parameter_filename)),
             num, domain_id)
         for t in ['grav', 'hydro', 'part', 'amr']:
             setattr(self, "%s_fn" % t, basename % t)
@@ -70,6 +69,12 @@ class RAMSESDomainFile(object):
     def __repr__(self):
         return "RAMSESDomainFile: %i" % self.domain_id
 
+    def _is_hydro(self):
+        '''
+        Does the output include hydro?
+        '''
+        return os.path.exists(self.hydro_fn)
+
     @property
     def level_count(self):
         if self._level_count is not None: return self._level_count
@@ -83,7 +88,7 @@ class RAMSESDomainFile(object):
         f = open(self.hydro_fn, "rb")
         fpu.skip(f, 6)
         # It goes: level, CPU, 8-variable
-        min_level = self.pf.min_level
+        min_level = self.ds.min_level
         n_levels = self.amr_header['nlevelmax'] - min_level
         hydro_offset = np.zeros(n_levels, dtype='int64')
         hydro_offset -= 1
@@ -113,6 +118,9 @@ class RAMSESDomainFile(object):
         return self._hydro_offset
 
     def _read_hydro_header(self):
+        # If no hydro file is found, return
+        if not self._is_hydro():
+            return
         if self.nvar > 0: return self.nvar
         # Read the number of hydro  variables
         f = open(self.hydro_fn, "rb")
@@ -187,8 +195,8 @@ class RAMSESDomainFile(object):
         # Now we iterate over each level and each CPU.
         self.amr_header = hvals
         self.amr_offset = f.tell()
-        self.local_oct_count = hvals['numbl'][self.pf.min_level:, self.domain_id - 1].sum()
-        self.total_oct_count = hvals['numbl'][self.pf.min_level:,:].sum(axis=0)
+        self.local_oct_count = hvals['numbl'][self.ds.min_level:, self.domain_id - 1].sum()
+        self.total_oct_count = hvals['numbl'][self.ds.min_level:,:].sum(axis=0)
 
     def _read_amr(self):
         """Open the oct file, read in octs level-by-level.
@@ -197,9 +205,9 @@ class RAMSESDomainFile(object):
            The most important is finding all the information to feed
            oct_handler.add
         """
-        self.oct_handler = RAMSESOctreeContainer(self.pf.domain_dimensions/2,
-                self.pf.domain_left_edge, self.pf.domain_right_edge)
-        root_nodes = self.amr_header['numbl'][self.pf.min_level,:].sum()
+        self.oct_handler = RAMSESOctreeContainer(self.ds.domain_dimensions/2,
+                self.ds.domain_left_edge, self.ds.domain_right_edge)
+        root_nodes = self.amr_header['numbl'][self.ds.min_level,:].sum()
         self.oct_handler.allocate_domains(self.total_oct_count, root_nodes)
         fb = open(self.amr_fn, "rb")
         fb.seek(self.amr_offset)
@@ -215,7 +223,7 @@ class RAMSESDomainFile(object):
                 ng = self.ngridbound[c - self.amr_header['ncpu'] +
                                 self.amr_header['nboundary']*l]
             return ng
-        min_level = self.pf.min_level
+        min_level = self.ds.min_level
         max_level = min_level
         nx, ny, nz = (((i-1.0)/2.0) for i in self.amr_header['nx'])
         for level in range(self.amr_header['nlevelmax']):
@@ -230,8 +238,8 @@ class RAMSESDomainFile(object):
                 pos[:,0] = fpu.read_vector(f, "d") - nx
                 pos[:,1] = fpu.read_vector(f, "d") - ny
                 pos[:,2] = fpu.read_vector(f, "d") - nz
-                #pos *= self.pf.domain_width
-                #pos += self.parameter_file.domain_left_edge
+                #pos *= self.ds.domain_width
+                #pos += self.dataset.domain_left_edge
                 fpu.skip(f, 31)
                 #parents = fpu.read_vector(f, "I")
                 #fpu.skip(f, 6)
@@ -272,9 +280,9 @@ class RAMSESDomainFile(object):
             print "  extent [%s]                     :  %s %s" % \
             (ax, pos[:,i].min(), pos[:,i].max())
         print "  domain left                    :  %s" % \
-            (self.pf.domain_left_edge,)
+            (self.ds.domain_left_edge,)
         print "  domain right                   :  %s" % \
-            (self.pf.domain_right_edge,)
+            (self.ds.domain_right_edge,)
         print "  offset applied                 :  %s %s %s" % \
             (nn[0], nn[1], nn[2])
         print "AMR Header:"
@@ -296,7 +304,7 @@ class RAMSESDomainSubset(OctreeSubset):
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.
         oct_handler = self.oct_handler
-        all_fields = self.domain.pf.index.fluid_field_list
+        all_fields = self.domain.ds.index.fluid_field_list
         fields = [f for ft, f in fields]
         tr = {}
         cell_count = selector.count_oct_cells(self.oct_handler, self.domain_id)
@@ -322,22 +330,21 @@ class RAMSESDomainSubset(OctreeSubset):
 
 class RAMSESIndex(OctreeIndex):
 
-    def __init__(self, pf, dataset_type='ramses'):
-        self._pf = pf # TODO: Figure out the class composition better!
-        self.fluid_field_list = pf._fields_in_file
+    def __init__(self, ds, dataset_type='ramses'):
+        self._ds = ds # TODO: Figure out the class composition better!
+        self.fluid_field_list = ds._fields_in_file
         self.dataset_type = dataset_type
-        self.parameter_file = weakref.proxy(pf)
-        # for now, the index file is the parameter file!
-        self.index_filename = self.parameter_file.parameter_filename
+        self.dataset = weakref.proxy(ds)
+        self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
         self.max_level = None
 
         self.float_type = np.float64
-        super(RAMSESIndex, self).__init__(pf, dataset_type)
+        super(RAMSESIndex, self).__init__(ds, dataset_type)
 
     def _initialize_oct_handler(self):
-        self.domains = [RAMSESDomainFile(self.parameter_file, i + 1)
-                        for i in range(self.parameter_file['ncpu'])]
+        self.domains = [RAMSESDomainFile(self.dataset, i + 1)
+                        for i in range(self.dataset['ncpu'])]
         total_octs = sum(dom.local_oct_count #+ dom.ngridbound.sum()
                          for dom in self.domains)
         self.max_level = max(dom.max_level for dom in self.domains)
@@ -345,13 +352,13 @@ class RAMSESIndex(OctreeIndex):
 
     def _detect_output_fields(self):
         # Do we want to attempt to figure out what the fields are in the file?
-        pfl = set([])
+        dsl = set([])
         if self.fluid_field_list is None or len(self.fluid_field_list) <= 0:
             self._setup_auto_fields()
         for domain in self.domains:
-            pfl.update(set(domain.particle_field_offsets.keys()))
-        self.particle_field_list = list(pfl)
-        self.field_list = [("gas", f) for f in self.fluid_field_list] \
+            dsl.update(set(domain.particle_field_offsets.keys()))
+        self.particle_field_list = list(dsl)
+        self.field_list = [("ramses", f) for f in self.fluid_field_list] \
                         + self.particle_field_list
 
     def _setup_auto_fields(self):
@@ -360,21 +367,33 @@ class RAMSESIndex(OctreeIndex):
         '''
         # TODO: SUPPORT RT - THIS REQUIRES IMPLEMENTING A NEW FILE READER!
         # Find nvar
+        
+
         # TODO: copy/pasted from DomainFile; needs refactoring!
-        num = os.path.basename(self._pf.parameter_filename).split("."
+        num = os.path.basename(self._ds.parameter_filename).split("."
                 )[0].split("_")[1]
         testdomain = 1 # Just pick the first domain file to read
         basename = "%s/%%s_%s.out%05i" % (
             os.path.abspath(
-              os.path.dirname(self._pf.parameter_filename)),
+              os.path.dirname(self._ds.parameter_filename)),
             num, testdomain)
         hydro_fn = basename % "hydro"
         # Do we have a hydro file?
-        if hydro_fn:
-            # Read the number of hydro  variables
-            f = open(hydro_fn, "rb")
-            fpu.skip(f, 1)
-            nvar = fpu.read_vector(f, "i")[0]
+        if not os.path.exists(hydro_fn):
+            self.fluid_field_list = []
+            return
+        # Read the number of hydro  variables
+        f = open(hydro_fn, "rb")
+        hydro_header = ( ('ncpu', 1, 'i'),
+                         ('nvar', 1, 'i'),
+                         ('ndim', 1, 'i'),
+                         ('nlevelmax', 1, 'i'),
+                         ('nboundary', 1, 'i'),
+                         ('gamma', 1, 'd')
+                         )
+        hvals = fpu.read_attrs(f, hydro_header)
+        self.ds.gamma = hvals['gamma']
+        nvar = hvals['nvar']
         # OK, we got NVAR, now set up the arrays depending on what NVAR is
         # Allow some wiggle room for users to add too many variables
         if nvar < 5:
@@ -414,7 +433,7 @@ class RAMSESIndex(OctreeIndex):
             base_region = getattr(dobj, "base_region", dobj)
             if len(domains) > 1:
                 mylog.debug("Identified %s intersecting domains", len(domains))
-            subsets = [RAMSESDomainSubset(base_region, domain, self.parameter_file)
+            subsets = [RAMSESDomainSubset(base_region, domain, self.dataset)
                        for domain in domains]
             dobj._chunk_info = subsets
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
@@ -440,6 +459,7 @@ class RAMSESIndex(OctreeIndex):
 class RAMSESDataset(Dataset):
     _index_class = RAMSESIndex
     _field_info_class = RAMSESFieldInfo
+    gamma = 1.4 # This will get replaced on hydro_fn open
     
     def __init__(self, filename, dataset_type='ramses',
                  fields = None, storage_filename = None):
@@ -450,6 +470,7 @@ class RAMSESDataset(Dataset):
         fields: An array of hydro variable fields in order of position in the hydro_XXXXX.outYYYYY file
                 If set to None, will try a default set of fields
         '''
+        self.fluid_types += ("ramses",)
         self._fields_in_file = fields
         Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
@@ -472,10 +493,10 @@ class RAMSESDataset(Dataset):
 
         magnetic_unit = np.sqrt(4*np.pi * mass_unit /
                                 (time_unit**2 * length_unit))
-        self.magnetic_unit = YTQuantity(magnetic_unit, "gauss")
-        self.length_unit = YTQuantity(length_unit, "cm")
-        self.mass_unit = YTQuantity(mass_unit, "g")
-        self.time_unit = YTQuantity(time_unit, "s")
+        self.magnetic_unit = self.quan(magnetic_unit, "gauss")
+        self.length_unit = self.quan(length_unit, "cm")
+        self.mass_unit = self.quan(mass_unit, "g")
+        self.time_unit = self.quan(time_unit, "s")
         self.velocity_unit = self.length_unit / self.time_unit
 
     def _parse_parameter_file(self):

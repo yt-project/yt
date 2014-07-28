@@ -1,33 +1,25 @@
-## Opaque Volume Rendering
+import yt
+import numpy as np
 
-# The new version of yt also features opaque rendering, using grey opacity.
-# For example, this makes blues opaque to red and green.  In this example we
-# will explore how the opacity model you choose changes the appearance of the
-# rendering.
-
-# Here we start by loading up a dataset, in this case galaxy0030.
-
-from yt.mods import *
-
-pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
 # We start by building a transfer function, and initializing a camera.
 
-tf = ColorTransferFunction((-30, -22))
-cam = pf.h.camera([0.5, 0.5, 0.5], [0.2, 0.3, 0.4], 0.10, 256, tf)
+tf = yt.ColorTransferFunction((-30, -22))
+cam = ds.camera([0.5, 0.5, 0.5], [0.2, 0.3, 0.4], 0.10, 256, tf)
 
 # Now let's add some isocontours, and take a snapshot.
 
 tf.add_layers(4, 0.01, col_bounds = [-27.5,-25.5], colormap = 'RdBu_r')
 cam.snapshot("v1.png", clip_ratio=6.0)
 
-# In this case, the default alphas used (na.logspace(-3,0,Nbins)) does not
+# In this case, the default alphas used (np.logspace(-3,0,Nbins)) does not
 # accentuate the outer regions of the galaxy. Let's start by bringing up the
 # alpha values for each contour to go between 0.1 and 1.0
 
 tf.clear()
 tf.add_layers(4, 0.01, col_bounds = [-27.5,-25.5],
-        alpha=na.logspace(0,0,4), colormap = 'RdBu_r')
+        alpha=np.logspace(0,0,4), colormap = 'RdBu_r')
 cam.snapshot("v2.png", clip_ratio=6.0)
 
 # Now let's set the grey_opacity to True.  This should make the inner portions
@@ -40,14 +32,14 @@ cam.snapshot("v3.png", clip_ratio=6.0)
 
 tf.clear()
 tf.add_layers(4, 0.01, col_bounds = [-27.5,-25.5],
-        alpha=10.0*na.ones(4,dtype='float64'), colormap = 'RdBu_r')
+        alpha=10.0*np.ones(4,dtype='float64'), colormap = 'RdBu_r')
 cam.snapshot("v4.png", clip_ratio=6.0)
 
 # Let's bump up again to see if we can obscure the inner contour.
 
 tf.clear()
 tf.add_layers(4, 0.01, col_bounds = [-27.5,-25.5],
-        alpha=30.0*na.ones(4,dtype='float64'), colormap = 'RdBu_r')
+        alpha=30.0*np.ones(4,dtype='float64'), colormap = 'RdBu_r')
 cam.snapshot("v5.png", clip_ratio=6.0)
 
 # Now we are losing sight of everything.  Let's see if we can obscure the next
@@ -55,7 +47,7 @@ cam.snapshot("v5.png", clip_ratio=6.0)
 
 tf.clear()
 tf.add_layers(4, 0.01, col_bounds = [-27.5,-25.5],
-        alpha=100.0*na.ones(4,dtype='float64'), colormap = 'RdBu_r')
+        alpha=100.0*np.ones(4,dtype='float64'), colormap = 'RdBu_r')
 cam.snapshot("v6.png", clip_ratio=6.0)
 
 # That is very opaque!  Now lets go back and see what it would look like with
@@ -66,5 +58,3 @@ cam.snapshot("v7.png", clip_ratio=6.0)
 
 # That looks pretty different, but the main thing is that you can see that the
 # inner contours are somewhat visible again.  
-
-

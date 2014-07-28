@@ -22,6 +22,7 @@ class UnitParseError(Exception):
     pass
 
 class UnitRegistry:
+    """A registry for unit symbols"""
     def __init__(self, add_default_symbols=True, lut=None):
         if lut:
             self.lut = lut
@@ -47,20 +48,18 @@ class UnitRegistry:
 
         # Validate
         if not isinstance(cgs_value, float):
-            raise UnitParseError("cgs_value must be a float, got a %s." \
+            raise UnitParseError("cgs_value must be a float, got a %s."
                                  % type(cgs_value))
-        
+
         validate_dimensions(dimensions)
 
         # Add to symbol lut
         if tex_repr is None:
-            latex_symbol_lut[symbol] = "\\rm{" + symbol + "}"
-        else:
-            latex_symbol_lut[symbol] = tex_repr
+            tex_repr = "\\rm{" + symbol + "}"
+        latex_symbol_lut.setdefault(symbol, tex_repr)
 
         # Add to lut
-        if tex_repr is None: tex_repr = symbol
-        self.lut.update( {symbol: (cgs_value, dimensions)} )
+        self.lut.update({symbol: (cgs_value, dimensions)})
 
     def remove(self, symbol):
         """
@@ -82,7 +81,7 @@ class UnitRegistry:
         """
         if symbol not in self.lut:
             raise SymbolNotFoundError(
-                "Tried to remove the symbol '%s', but it does not exist" \
+                "Tried to modify the symbol '%s', but it does not exist" \
                 "in this registry." % symbol)
 
         if hasattr(cgs_value, "in_cgs"):

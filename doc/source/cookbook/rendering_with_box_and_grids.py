@@ -1,18 +1,19 @@
-from yt.mods import *
+import yt
+import numpy as np
 
 # Load the dataset.
-pf = load("Enzo_64/DD0043/data0043")
+ds = yt.load("Enzo_64/DD0043/data0043")
 
 # Create a data container (like a sphere or region) that
 # represents the entire domain.
-dd = pf.h.all_data()
+ad = ds.all_data()
 
 # Get the minimum and maximum densities.
-mi, ma = dd.quantities["Extrema"]("density")[0]
+mi, ma = ad.quantities.extrema("density")
 
 # Create a transfer function to map field values to colors.
 # We bump up our minimum to cut out some of the background fluid
-tf = ColorTransferFunction((na.log10(mi)+2.0, na.log10(ma)))
+tf = yt.ColorTransferFunction((np.log10(mi)+2.0, np.log10(ma)))
 
 # Add three guassians, evenly spaced between the min and
 # max specified above with widths of 0.02 and using the
@@ -37,25 +38,24 @@ Npixels = 512
 # Create a camera object.
 # This object creates the images and
 # can be moved and rotated.
-cam = pf.h.camera(c, L, W, Npixels, tf)
+cam = ds.camera(c, L, W, Npixels, tf)
 
 # Create a snapshot.
 # The return value of this function could also be accepted, modified (or saved
 # for later manipulation) and then put written out using write_bitmap.
 # clip_ratio applies a maximum to the function, which is set to that value
 # times the .std() of the array.
-im = cam.snapshot("%s_volume_rendered.png" % pf, clip_ratio=8.0)
+im = cam.snapshot("%s_volume_rendered.png" % ds, clip_ratio=8.0)
 
 # Add the domain edges, with an alpha blending of 0.3:
 nim = cam.draw_domain(im, alpha=0.3)
-nim.write_png('%s_vr_domain.png' % pf)
+nim.write_png('%s_vr_domain.png' % ds)
 
 # Add the grids, colored by the grid level with the algae colormap
 nim = cam.draw_grids(im, alpha=0.3, cmap='algae')
-nim.write_png('%s_vr_grids.png' % pf)
+nim.write_png('%s_vr_grids.png' % ds)
 
 # Here we can draw the coordinate vectors on top of the image by processing
 # it through the camera. Then save it out.
 cam.draw_coordinate_vectors(nim)
-nim.write_png("%s_vr_vectors.png" % pf)
-
+nim.write_png("%s_vr_vectors.png" % ds)

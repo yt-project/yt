@@ -77,7 +77,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         units="g")
 
     def _sound_speed(field, data):
-        tr = data.pf.gamma * data[ftype, "pressure"] / data[ftype, "density"]
+        tr = data.ds.gamma * data[ftype, "pressure"] / data[ftype, "density"]
         return np.sqrt(tr)
     registry.add_field((ftype, "sound_speed"),
              function=_sound_speed,
@@ -122,7 +122,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
 
     def _pressure(field, data):
         """ M{(Gamma-1.0)*rho*E} """
-        tr = (data.pf.gamma - 1.0) \
+        tr = (data.ds.gamma - 1.0) \
            * (data[ftype, "density"] * data[ftype, "thermal_energy"])
         return tr
 
@@ -162,12 +162,22 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
     registry.add_field((ftype, "metal_mass"),
                        function=_metal_mass,
                        units="g")
+
+    def _number_density(field, data):
+        field_data = np.zeros_like(data["gas", "%s_number_density" % \
+                                        data.ds.field_info.species_names[0]])
+        for species in data.ds.field_info.species_names:
+            field_data += data["gas", "%s_number_density" % species]
+        return field_data
+    registry.add_field((ftype, "number_density"),
+                       function = _number_density,
+                       units="cm**-3")
     
     def _mean_molecular_weight(field, data):
         return (data[ftype, "density"] / (mh * data[ftype, "number_density"]))
     registry.add_field((ftype, "mean_molecular_weight"),
               function=_mean_molecular_weight,
-              units=r"")
+              units="")
 
     setup_gradient_fields(registry, (ftype, "pressure"), "dyne/cm**2",
                           slice_info)
@@ -199,7 +209,7 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
             ds = div_fac * data["index", "dx"]
             f  = data[grad_field][slice_3dr]/ds[slice_3d]
             f -= data[grad_field][slice_3dl]/ds[slice_3d]
-            new_field = data.pf.arr(np.zeros_like(data[grad_field], dtype=np.float64),
+            new_field = data.ds.arr(np.zeros_like(data[grad_field], dtype=np.float64),
                                     f.units)
             new_field[slice_3d] = f
             return new_field

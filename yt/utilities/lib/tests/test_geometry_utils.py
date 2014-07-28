@@ -4,10 +4,10 @@ from yt.utilities.lib.misc_utilities import obtain_rvec, obtain_rv_vec
 _fields = ("density", "velocity_x", "velocity_y", "velocity_z")
 
 def test_obtain_rvec():
-    pf = fake_random_pf(64, nprocs=8, fields=_fields, 
+    ds = fake_random_ds(64, nprocs=8, fields=_fields, 
            negative = [False, True, True, True])
     
-    dd = pf.sphere((0.5,0.5,0.5), 0.2)
+    dd = ds.sphere((0.5,0.5,0.5), 0.2)
 
     coords = obtain_rvec(dd)
 
@@ -18,10 +18,10 @@ def test_obtain_rvec():
     assert_array_less(0.0, r.min())
 
 def test_obtain_rv_vec():
-    pf = fake_random_pf(64, nprocs=8, fields=_fields, 
+    ds = fake_random_ds(64, nprocs=8, fields=_fields, 
            negative = [False, True, True, True])
 
-    dd = pf.h.all_data()
+    dd = ds.all_data()
 
     vels = obtain_rv_vec(dd)
 

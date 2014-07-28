@@ -78,11 +78,15 @@ class DerivedField(object):
        Used for baryon fields from the data that are not in all the grids
     display_name : str
        A name used in the plots
+    output_units : str
+       For fields that exist on disk, which we may want to convert to other
+       fields or that get aliased to themselves, we can specify a different
+       desired output unit than the unit found on disk.
     """
     def __init__(self, name, function, units=None,
                  take_log=True, validators=None,
                  particle_type=False, vector_field=False, display_field=True,
-                 not_in_all=False, display_name=None):
+                 not_in_all=False, display_name=None, output_units = None):
         self.name = name
         self.take_log = take_log
         self.display_name = display_name
@@ -90,6 +94,8 @@ class DerivedField(object):
         self.display_field = display_field
         self.particle_type = particle_type
         self.vector_field = vector_field
+        if output_units is None: output_units = units
+        self.output_units = output_units
 
         self._function = function
 
@@ -158,8 +164,8 @@ class DerivedField(object):
         old_registry = self._unit_registry
         if hasattr(data, 'unit_registry'):
             ur = data.unit_registry
-        elif hasattr(data, 'pf'):
-            ur = data.pf.unit_registry
+        elif hasattr(data, 'ds'):
+            ur = data.ds.unit_registry
         else:
             ur = None
         self._unit_registry = ur
@@ -172,7 +178,8 @@ class DerivedField(object):
         original_fields = data.keys() # Copy
         if self._function is NullFunc:
             raise RuntimeError(
-                "Something has gone terribly wrong, _function is NullFunc")
+                "Something has gone terribly wrong, _function is NullFunc " +
+                "for %s" % (self.name,))
         with self.unit_registry(data):
             dd = self._function(self, data)
         for field_name in data.keys():
@@ -190,7 +197,7 @@ class DerivedField(object):
         """
         Return a data label for the given field, inluding units.
         """
-        name = self.name
+        name = self.name[1]
         if self.display_name is not None:
             name = self.display_name
 
@@ -201,7 +208,7 @@ class DerivedField(object):
         if projected:
             raise NotImplementedError
         else:
-            units = self.units
+            units = Unit(self.units)
         # Add unit label
         if not units.is_dimensionless:
             data_label += r"\/\/ (%s)" % (units)
@@ -215,7 +222,7 @@ class FieldValidator(object):
 class ValidateParameter(FieldValidator):
     def __init__(self, parameters):
         """
-        This validator ensures that the parameter file has a given parameter.
+        This validator ensures that the dataset has a given parameter.
         """
         FieldValidator.__init__(self)
         self.parameters = ensure_list(parameters)

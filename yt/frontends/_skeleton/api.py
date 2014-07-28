@@ -20,7 +20,7 @@ from .data_structures import \
 
 from .fields import \
       SkeletonFieldInfo, \
-      add_flash_field
+      add_skeleton_field
 
 from .io import \
       IOHandlerSkeleton

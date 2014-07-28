@@ -18,10 +18,10 @@ them to apply radiative feedback, one could imagine calling it directly:
    from yt.mods import *
    import radtrans
 
-   pf = load("DD0010/DD0010")
+   ds = load("DD0010/DD0010")
    rt_grids = []
 
-   for grid in pf.index.grids:
+   for grid in ds.index.grids:
        rt_grid = radtrans.RegularBox(
             grid.LeftEdge, grid.RightEdge,
             grid["density"], grid["temperature"], grid["metallicity"])
@@ -39,8 +39,8 @@ this:
    from yt.mods import *
    import pop_synthesis
 
-   pf = load("DD0010/DD0010")
-   dd = pf.h.all_data()
+   ds = load("DD0010/DD0010")
+   dd = ds.all_data()
    star_masses = dd["StarMassMsun"]
    star_metals = dd["StarMetals"]
 

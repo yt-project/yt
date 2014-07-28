@@ -16,28 +16,28 @@ ART frontend tests using D9p a=0.500
 
 from yt.testing import *
 from yt.utilities.answer_testing.framework import \
-    requires_pf, \
+    requires_ds, \
     small_patch_amr, \
     big_patch_amr, \
     data_dir_load
 from yt.frontends.art.api import ARTDataset
 
-_fields = ("Temperature", "Density", "particle_mass", ("all", "particle_position_x"))
+_fields = ("density", "temperature", "particle_mass", ("all", "particle_position_x"))
 
 d9p = "D9p_500/10MpcBox_HartGal_csf_a0.500.d"
 
-@requires_pf(d9p, big_data=True)
+@requires_ds(d9p, big_data=True)
 def test_d9p():
-    pf = data_dir_load(d9p)
-    yield assert_equal, str(pf), "10MpcBox_HartGal_csf_a0.500.d"
+    ds = data_dir_load(d9p)
+    yield assert_equal, str(ds), "10MpcBox_HartGal_csf_a0.500.d"
     for test in big_patch_amr(d9p, _fields):
         test_d9p.__name__ = test.description
         yield test
     dso = [None, ("sphere", ("max", (0.1, 'unitary')))]
     for field in _fields:
         for axis in [0, 1, 2]:
-            for ds in dso:
-                for weight_field in [None, "Density"]:
+            for dobj_name in dso:
+                for weight_field in [None, "density"]:
                     yield PixelizedProjectionValuesTest(
                         d9p, axis, field, weight_field,
-                        ds)
+                        dobj_name)

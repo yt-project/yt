@@ -16,7 +16,7 @@ Tests of semi-structured meshes in MoabHex8 format.
 
 from yt.testing import *
 from yt.utilities.answer_testing.framework import \
-    requires_pf, \
+    requires_ds, \
     small_patch_amr, \
     big_patch_amr, \
     data_dir_load, \
@@ -24,31 +24,35 @@ from yt.utilities.answer_testing.framework import \
     FieldValuesTest
 from yt.frontends.moab.api import MoabHex8Dataset
 
-_fields = (("gas", "flux"),
+_fields = (("moab", "flux"),
           )
 
 c5 = "c5/c5.h5m"
-@requires_pf(c5)
+@requires_ds(c5)
 def test_cantor_5():
     np.random.seed(0x4d3d3d3)
-    pf = data_dir_load(c5)
-    yield assert_equal, str(pf), "c5"
+    ds = data_dir_load(c5)
+    yield assert_equal, str(ds), "c5"
     dso = [ None, ("sphere", ("c", (0.1, 'unitary'))),
                   ("sphere", ("c", (0.2, 'unitary')))]
-    dd = pf.h.all_data()
-    yield assert_almost_equal, pf.index.get_smallest_dx(), 0.00411522633744843, 10
+    dd = ds.all_data()
+    yield assert_almost_equal, ds.index.get_smallest_dx(), 0.00411522633744843, 10
     yield assert_equal, dd["x"].shape[0], 63*63*63
-    yield assert_almost_equal, dd["CellVolumeCode"].sum(dtype="float64"), 1.0, 10
+    yield assert_almost_equal, \
+        dd["cell_volume"].in_units("code_length**3").sum(dtype="float64").d, \
+        1.0, 10
     for offset_1 in [1e-9, 1e-4, 0.1]:
         for offset_2 in [1e-9, 1e-4, 0.1]:
-            ray = pf.ray(pf.domain_left_edge + offset_1,
-                           pf.domain_right_edge - offset_2)
+            DLE = ds.domain_left_edge
+            DRE = ds.domain_right_edge
+            ray = ds.ray(DLE + offset_1 * DLE.uq,
+                         DRE - offset_2 * DRE.uq)
             yield assert_almost_equal, ray["dts"].sum(dtype="float64"), 1.0, 8
     for i, p1 in enumerate(np.random.random((5, 3))):
         for j, p2 in enumerate(np.random.random((5, 3))):
-            ray = pf.ray(p1, p2)
+            ray = ds.ray(p1, p2)
             yield assert_almost_equal, ray["dts"].sum(dtype="float64"), 1.0, 8
     for field in _fields:
-        for ds in dso:
-            yield FieldValuesTest(c5, field, ds)
+        for dobj_name in dso:
+            yield FieldValuesTest(c5, field, dobj_name)
 

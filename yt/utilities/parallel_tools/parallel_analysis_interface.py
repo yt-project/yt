@@ -27,8 +27,6 @@ from yt.funcs import \
     ensure_list, iterable, traceback_writer_hook
 
 from yt.config import ytcfg
-from yt.utilities.definitions import \
-    x_dict, y_dict
 import yt.utilities.logger
 from yt.utilities.lib.QuadTree import \
     QuadTree, merge_quadtrees
@@ -179,14 +177,13 @@ def parallel_simple_proxy(func):
     used on objects that subclass
     :class:`~yt.utilities.parallel_tools.parallel_analysis_interface.ParallelAnalysisInterface`.
     """
-    if not parallel_capable: return func
     @wraps(func)
     def single_proc_results(self, *args, **kwargs):
         retval = None
         if hasattr(self, "dont_wrap"):
             if func.func_name in self.dont_wrap:
                 return func(self, *args, **kwargs)
-        if self._processing or not self._distributed:
+        if not parallel_capable or self._processing or not self._distributed:
             return func(self, *args, **kwargs)
         comm = _get_comm((self,))
         if self._owner == comm.rank:
@@ -243,6 +240,8 @@ def parallel_blocking_call(func):
     """
     @wraps(func)
     def barrierize(*args, **kwargs):
+        if not parallel_capable:
+            return func(*args, **kwargs)
         mylog.debug("Entering barrier before %s", func.func_name)
         comm = _get_comm(args)
         comm.barrier()
@@ -250,26 +249,7 @@ def parallel_blocking_call(func):
         mylog.debug("Entering barrier after %s", func.func_name)
         comm.barrier()
         return retval
-    if parallel_capable:
-        return barrierize
-    else:
-        return func
-
-def parallel_splitter(f1, f2):
-    """
-    This function returns either the function *f1* or *f2* depending on whether
-    or not we're the root processor.  Mainly used in class definitions.
-    """
-    @wraps(f1)
-    def in_order(*args, **kwargs):
-        comm = _get_comm(args)
-        if comm.rank == 0:
-            f1(*args, **kwargs)
-        comm.barrier()
-        if comm.rank != 0:
-            f2(*args, **kwargs)
-    if not parallel_capable: return f1
-    return in_order
+    return barrierize
 
 def parallel_root_only(func):
     """
@@ -278,6 +258,8 @@ def parallel_root_only(func):
     """
     @wraps(func)
     def root_only(*args, **kwargs):
+        if not parallel_capable:
+            return func(*args, **kwargs)
         comm = _get_comm(args)
         rv = None
         if comm.rank == 0:
@@ -292,8 +274,7 @@ def parallel_root_only(func):
         all_clear = comm.mpi_bcast(all_clear)
         if not all_clear: raise RuntimeError
         return rv
-    if parallel_capable: return root_only
-    return func
+    return root_only
 
 class Workgroup(object):
     def __init__(self, size, ranks, comm, name):
@@ -389,7 +370,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
 
     Calls to this function can be nested.
 
-    This should not be used to iterate over parameter files --
+    This should not be used to iterate over datasets --
     :class:`~yt.data_objects.time_series.DatasetSeries` provides a much nicer
     interface for that.
 
@@ -402,7 +383,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
         each available processor.
     storage : dict
         This is a dictionary, which will be filled with results during the
-        course of the iteration.  The keys will be the parameter file
+        course of the iteration.  The keys will be the dataset
         indices and the values will be whatever is assigned to the *result*
         attribute on the storage during iteration.
     barrier : bool
@@ -420,7 +401,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
     slice plots centered at each.
 
     >>> for c in parallel_objects(centers):
-    ...     SlicePlot(pf, "x", "Density", center = c).save()
+    ...     SlicePlot(ds, "x", "Density", center = c).save()
     ...
 
     Here's an example of calculating the angular momentum vector of a set of
@@ -429,7 +410,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
 
     >>> storage = {}
     >>> for sto, c in parallel_objects(centers, njobs=4, storage=storage):
-    ...     sp = pf.sphere(c, (100, "kpc"))
+    ...     sp = ds.sphere(c, (100, "kpc"))
     ...     sto.result = sp.quantities["AngularMomentumVector"]()
     ...
     >>> for sphere_id, L in sorted(storage.items()):
@@ -636,6 +617,9 @@ class Communicator(object):
     def __init__(self, comm=None):
         self.comm = comm
         self._distributed = comm is not None and self.comm.size > 1
+
+    def __del__(self):
+        self.comm.Free()
     """
     This is an interface specification providing several useful utility
     functions for analyzing something in parallel.
@@ -1061,11 +1045,11 @@ class ParallelAnalysisInterface(object):
 
     def get_dependencies(self, fields):
         deps = []
-        fi = self.pf.field_info
+        fi = self.ds.field_info
         for field in fields:
             if any(getattr(v,"ghost_zones", 0) > 0 for v in
                    fi[field].validators): continue
-            deps += ensure_list(fi[field].get_dependencies(pf=self.pf).requested)
+            deps += ensure_list(fi[field].get_dependencies(ds=self.ds).requested)
         return list(set(deps))
 
     def _initialize_parallel(self):
@@ -1080,14 +1064,15 @@ class ParallelAnalysisInterface(object):
            return False, self.index.grid_collection(self.center,
                                                         self.index.grids)
 
-        xax, yax = x_dict[axis], y_dict[axis]
+        xax = self.ds.coordinates.x_axis[axis]
+        yax = self.ds.coordinates.y_axis[axis]
         cc = MPI.Compute_dims(self.comm.size, 2)
         mi = self.comm.rank
         cx, cy = np.unravel_index(mi, cc)
         x = np.mgrid[0:1:(cc[0]+1)*1j][cx:cx+2]
         y = np.mgrid[0:1:(cc[1]+1)*1j][cy:cy+2]
 
-        DLE, DRE = self.pf.domain_left_edge.copy(), self.pf.domain_right_edge.copy()
+        DLE, DRE = self.ds.domain_left_edge.copy(), self.ds.domain_right_edge.copy()
         LE = np.ones(3, dtype='float64') * DLE
         RE = np.ones(3, dtype='float64') * DRE
         LE[xax] = x[0] * (DRE[xax]-DLE[xax]) + DLE[xax]
@@ -1096,15 +1081,15 @@ class ParallelAnalysisInterface(object):
         RE[yax] = y[1] * (DRE[yax]-DLE[yax]) + DLE[yax]
         mylog.debug("Dimensions: %s %s", LE, RE)
 
-        reg = self.index.region(self.center, LE, RE)
+        reg = self.ds.region(self.center, LE, RE)
         return True, reg
 
     def partition_index_3d(self, ds, padding=0.0, rank_ratio = 1):
         LE, RE = np.array(ds.left_edge), np.array(ds.right_edge)
         # We need to establish if we're looking at a subvolume, in which case
         # we *do* want to pad things.
-        if (LE == self.pf.domain_left_edge).all() and \
-                (RE == self.pf.domain_right_edge).all():
+        if (LE == self.ds.domain_left_edge).all() and \
+                (RE == self.ds.domain_right_edge).all():
             subvol = False
         else:
             subvol = True
@@ -1112,20 +1097,20 @@ class ParallelAnalysisInterface(object):
             return False, LE, RE, ds
         if not self._distributed and subvol:
             return True, LE, RE, \
-            self.index.region(self.center, LE-padding, RE+padding)
+            self.ds.region(self.center, LE-padding, RE+padding)
         elif ytcfg.getboolean("yt", "inline"):
             # At this point, we want to identify the root grid tile to which
             # this processor is assigned.
             # The only way I really know how to do this is to get the level-0
             # grid that belongs to this processor.
-            grids = self.pf.h.select_grids(0)
+            grids = self.ds.index.select_grids(0)
             root_grids = [g for g in grids
                           if g.proc_num == self.comm.rank]
             if len(root_grids) != 1: raise RuntimeError
             #raise KeyError
             LE = root_grids[0].LeftEdge
             RE = root_grids[0].RightEdge
-            return True, LE, RE, self.index.region(self.center, LE, RE)
+            return True, LE, RE, self.ds.region(self.center, LE, RE)
 
         cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
         mi = self.comm.rank % (self.comm.size / rank_ratio)
@@ -1139,10 +1124,10 @@ class ParallelAnalysisInterface(object):
 
         if padding > 0:
             return True, \
-                LE, RE, self.index.region(self.center,
+                LE, RE, self.ds.region(self.center,
                 LE-padding, RE+padding)
 
-        return False, LE, RE, self.index.region(self.center, LE, RE)
+        return False, LE, RE, self.ds.region(self.center, LE, RE)
 
     def partition_region_3d(self, left_edge, right_edge, padding=0.0,
             rank_ratio = 1):
@@ -1167,10 +1152,10 @@ class ParallelAnalysisInterface(object):
 
         if padding > 0:
             return True, \
-                LE, RE, self.index.region(self.center, LE-padding,
+                LE, RE, self.ds.region(self.center, LE-padding,
                     RE+padding)
 
-        return False, LE, RE, self.index.region(self.center, LE, RE)
+        return False, LE, RE, self.ds.region(self.center, LE, RE)
 
     def partition_index_3d_bisection_list(self):
         """

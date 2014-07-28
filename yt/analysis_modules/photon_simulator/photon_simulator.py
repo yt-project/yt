@@ -21,21 +21,19 @@ http://adsabs.harvard.edu/abs/2013MNRAS.428.1395B
 #-----------------------------------------------------------------------------
 
 import numpy as np
-from numpy.testing import assert_allclose
 from yt.funcs import *
-from yt.utilities.physical_constants import clight, \
-     cm_per_km, erg_per_keV
+from yt.utilities.physical_constants import clight
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.orientation import Orientation
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only, get_mpi_type, \
-     op_names, parallel_capable
+     parallel_capable
 from yt import units
 from yt.units.yt_array import YTQuantity
 import h5py
-from yt.frontends.fits.data_structures import ap
-pyfits = ap.pyfits
-pywcs = ap.pywcs
+from yt.utilities.on_demand_imports import _astropy
+pyfits = _astropy.pyfits
+pywcs = _astropy.pywcs
 
 comm = communication_system.communicators[-1]
 
@@ -174,7 +172,7 @@ class PhotonList(object):
             instead of it being determined from the *redshift* and given *cosmology*.
         cosmology : `yt.utilities.cosmology.Cosmology`, optional
             Cosmological information. If not supplied, we try to get
-            the cosmology from the parameter file. Otherwise, \LambdaCDM with
+            the cosmology from the dataset. Otherwise, \LambdaCDM with
             the default yt parameters is assumed.
 
         Examples
@@ -186,7 +184,7 @@ class PhotonList(object):
         >>> redshift = 0.05
         >>> area = 6000.0
         >>> time = 2.0e5
-        >>> sp = pf.sphere("c", (500., "kpc"))
+        >>> sp = ds.sphere("c", (500., "kpc"))
         >>> my_photons = PhotonList.from_user_model(sp, redshift, area,
         ...                                         time, thermal_model)
 
@@ -216,7 +214,7 @@ class PhotonList(object):
         >>> from scipy.stats import powerlaw
         >>> def line_func(source, parameters):
         ...
-        ...     pf = source.pf
+        ...     ds = source.ds
         ... 
         ...     num_photons = parameters["num_photons"]
         ...     E0  = parameters["line_energy"] # Energies are in keV
@@ -230,7 +228,7 @@ class PhotonList(object):
         ...     photons["vx"] = np.zeros((1))
         ...     photons["vy"] = np.zeros((1))
         ...     photons["vz"] = 100.*np.ones((1))
-        ...     photons["dx"] = source["dx"][0]*pf.units["kpc"]*np.ones((1)) 
+        ...     photons["dx"] = source["dx"][0]*ds.units["kpc"]*np.ones((1)) 
         ...     photons["NumberOfPhotons"] = num_photons*np.ones((1))
         ...     photons["Energy"] = np.array(energies)
         >>>
@@ -241,21 +239,21 @@ class PhotonList(object):
         ...               "line_sigma" : 0.1}
         >>> ddims = (128,128,128)
         >>> random_data = {"Density":np.random.random(ddims)}
-        >>> pf = load_uniform_grid(random_data, ddims)
-        >>> dd = pf.h.all_data
+        >>> ds = load_uniform_grid(random_data, ddims)
+        >>> dd = ds.all_data
         >>> my_photons = PhotonList.from_user_model(dd, redshift, area,
         ...                                         time, line_func)
 
         """
 
-        pf = data_source.pf
+        ds = data_source.ds
 
         if parameters is None:
              parameters = {}
         if cosmology is None:
-            hubble = getattr(pf, "hubble_constant", None)
-            omega_m = getattr(pf, "omega_matter", None)
-            omega_l = getattr(pf, "omega_lambda", None)
+            hubble = getattr(ds, "hubble_constant", None)
+            omega_m = getattr(ds, "omega_matter", None)
+            omega_l = getattr(ds, "omega_lambda", None)
             if hubble == 0: hubble = None
             if hubble is not None and \
                omega_m is not None and \
@@ -276,14 +274,14 @@ class PhotonList(object):
             redshift = 0.0
 
         if center == "c":
-            parameters["center"] = pf.domain_center
+            parameters["center"] = ds.domain_center
         elif center == "max":
-            parameters["center"] = pf.h.find_max("Density")[-1]
+            parameters["center"] = ds.find_max("density")[-1]
         elif iterable(center):
             if isinstance(center, YTArray):
                 parameters["center"] = center.in_units("code_length")
             else:
-                parameters["center"] = pf.arr(center, "code_length")
+                parameters["center"] = ds.arr(center, "code_length")
         elif center is None:
             parameters["center"] = data_source.get_field_parameter("center")
             
@@ -424,7 +422,8 @@ class PhotonList(object):
     def project_photons(self, L, area_new=None, exp_time_new=None, 
                         redshift_new=None, dist_new=None,
                         absorb_model=None, psf_sigma=None,
-                        sky_center=None, responses=None):
+                        sky_center=None, responses=None,
+                        convolve_energies=False):
         r"""
         Projects photons onto an image plane given a line of sight.
 
@@ -452,8 +451,10 @@ class PhotonList(object):
         sky_center : array_like, optional
             Center RA, Dec of the events in degrees.
         responses : list of strings, optional
-            The names of the ARF and RMF files to convolve the photons with.
-
+            The names of the ARF and/or RMF files to convolve the photons with.
+        convolve_energies : boolean, optional
+            If this is set, the photon energies will be convolved with the RMF.
+            
         Examples
         --------
         >>> L = np.array([0.1,-0.2,0.3])
@@ -467,7 +468,9 @@ class PhotonList(object):
                         "but not both!")
         
         if sky_center is None:
-             sky_center = YTArray([30.,45.], "degree")
+            sky_center = YTArray([30.,45.], "degree")
+        else:
+            sky_center = YTArray(sky_center, "degree")
 
         dx = self.photons["dx"].ndarray_view()
         nx = self.parameters["Dimension"]
@@ -495,8 +498,10 @@ class PhotonList(object):
         parameters = {}
         
         if responses is not None:
+            responses = ensure_list(responses)
             parameters["ARF"] = responses[0]
-            parameters["RMF"] = responses[1]
+            if len(responses) == 2:
+                parameters["RMF"] = responses[1]
             area_new = parameters["ARF"]
             
         if (exp_time_new is None and area_new is None and
@@ -518,8 +523,13 @@ class PhotonList(object):
                 elo = f["SPECRESP"].data.field("ENERG_LO")
                 ehi = f["SPECRESP"].data.field("ENERG_HI")
                 eff_area = np.nan_to_num(f["SPECRESP"].data.field("SPECRESP"))
-                weights = self._normalize_arf(parameters["RMF"])
-                eff_area *= weights
+                if "RMF" in parameters:
+                    weights = self._normalize_arf(parameters["RMF"])
+                    eff_area *= weights
+                else:
+                    mylog.warning("You specified an ARF but not an RMF. This is ok if the "+
+                                  "responses are normalized properly. If not, you may "+
+                                  "get inconsistent results.")
                 f.close()
                 Aratio = eff_area.max()/self.parameters["FiducialArea"]
             else:
@@ -618,7 +628,7 @@ class PhotonList(object):
             
         if comm.rank == 0: mylog.info("Total number of observed photons: %d" % (num_events))
 
-        if responses is not None:
+        if "RMF" in parameters and convolve_energies:
             events, info = self._convolve_with_rmf(parameters["RMF"], events)
             for k, v in info.items(): parameters[k] = v
                 
@@ -886,39 +896,42 @@ class EventList(object) :
         tbhdu = pyfits.new_table(coldefs)
         tbhdu.update_ext_name("EVENTS")
 
-        tbhdu.header.update("MTYPE1", "sky")
-        tbhdu.header.update("MFORM1", "x,y")        
-        tbhdu.header.update("MTYPE2", "EQPOS")
-        tbhdu.header.update("MFORM2", "RA,DEC")
-        tbhdu.header.update("TCTYP2", "RA---TAN")
-        tbhdu.header.update("TCTYP3", "DEC--TAN")
-        tbhdu.header.update("TCRVL2", float(self.parameters["sky_center"][0]))
-        tbhdu.header.update("TCRVL3", float(self.parameters["sky_center"][1]))
-        tbhdu.header.update("TCDLT2", -float(self.parameters["dtheta"]))
-        tbhdu.header.update("TCDLT3", float(self.parameters["dtheta"]))
-        tbhdu.header.update("TCRPX2", self.parameters["pix_center"][0])
-        tbhdu.header.update("TCRPX3", self.parameters["pix_center"][1])
-        tbhdu.header.update("TLMIN2", 0.5)
-        tbhdu.header.update("TLMIN3", 0.5)
-        tbhdu.header.update("TLMAX2", 2.*self.parameters["pix_center"][0]-0.5)
-        tbhdu.header.update("TLMAX3", 2.*self.parameters["pix_center"][1]-0.5)
-        tbhdu.header.update("EXPOSURE", float(self.parameters["ExposureTime"]))
-        tbhdu.header.update("AREA", float(self.parameters["Area"]))
-        tbhdu.header.update("D_A", float(self.parameters["AngularDiameterDistance"]))
-        tbhdu.header.update("REDSHIFT", self.parameters["Redshift"])
-        tbhdu.header.update("HDUVERS", "1.1.0")
-        tbhdu.header.update("RADECSYS", "FK5")
-        tbhdu.header.update("EQUINOX", 2000.0)
+        tbhdu.header["MTYPE1"] = "sky"
+        tbhdu.header["MFORM1"] = "x,y"
+        tbhdu.header["MTYPE2"] = "EQPOS"
+        tbhdu.header["MFORM2"] = "RA,DEC"
+        tbhdu.header["TCTYP2"] = "RA---TAN"
+        tbhdu.header["TCTYP3"] = "DEC--TAN"
+        tbhdu.header["TCRVL2"] = float(self.parameters["sky_center"][0])
+        tbhdu.header["TCRVL3"] = float(self.parameters["sky_center"][1])
+        tbhdu.header["TCDLT2"] = -float(self.parameters["dtheta"])
+        tbhdu.header["TCDLT3"] = float(self.parameters["dtheta"])
+        tbhdu.header["TCRPX2"] = self.parameters["pix_center"][0]
+        tbhdu.header["TCRPX3"] = self.parameters["pix_center"][1]
+        tbhdu.header["TLMIN2"] = 0.5
+        tbhdu.header["TLMIN3"] = 0.5
+        tbhdu.header["TLMAX2"] = 2.*self.parameters["pix_center"][0]-0.5
+        tbhdu.header["TLMAX3"] = 2.*self.parameters["pix_center"][1]-0.5
+        tbhdu.header["EXPOSURE"] = float(self.parameters["ExposureTime"])
+        if isinstance(self.parameters["Area"], basestring):
+            tbhdu.header["AREA"] = self.parameters["Area"]
+        else:
+            tbhdu.header["AREA"] = float(self.parameters["Area"])
+        tbhdu.header["D_A"] = float(self.parameters["AngularDiameterDistance"])
+        tbhdu.header["REDSHIFT"] = self.parameters["Redshift"]
+        tbhdu.header["HDUVERS"] = "1.1.0"
+        tbhdu.header["RADECSYS"] = "FK5"
+        tbhdu.header["EQUINOX"] = 2000.0
         if "RMF" in self.parameters:
-            tbhdu.header.update("RMF", self.parameters["RMF"])
+            tbhdu.header["RMF"] = self.parameters["RMF"]
         if "ARF" in self.parameters:
-            tbhdu.header.update("ARF", self.parameters["ARF"])
+            tbhdu.header["ARF"] = self.parameters["ARF"]
         if "ChannelType" in self.parameters:
-            tbhdu.header.update("CHANTYPE", self.parameters["ChannelType"])
+            tbhdu.header["CHANTYPE"] = self.parameters["ChannelType"]
         if "Telescope" in self.parameters:
-            tbhdu.header.update("TELESCOP", self.parameters["Telescope"])
+            tbhdu.header["TELESCOP"] = self.parameters["Telescope"]
         if "Instrument" in self.parameters:
-            tbhdu.header.update("INSTRUME", self.parameters["Instrument"])
+            tbhdu.header["INSTRUME"] = self.parameters["Instrument"]
             
         tbhdu.writeto(fitsfile, clobber=clobber)
 
@@ -943,7 +956,7 @@ class EventList(object) :
 
         if isinstance(self.parameters["Area"], basestring):
              mylog.error("Writing SIMPUT files is only supported if you didn't convolve with an ARF.")
-             raise TypeError
+             raise TypeError("Writing SIMPUT files is only supported if you didn't convolve with an ARF.")
         
         if emin is None:
             emin = self.events["eobs"].min().value*0.95
@@ -967,15 +980,15 @@ class EventList(object) :
         tbhdu = pyfits.new_table(coldefs)
         tbhdu.update_ext_name("PHLIST")
 
-        tbhdu.header.update("HDUCLASS", "HEASARC/SIMPUT")
-        tbhdu.header.update("HDUCLAS1", "PHOTONS")
-        tbhdu.header.update("HDUVERS", "1.1.0")
-        tbhdu.header.update("EXTVER", 1)
-        tbhdu.header.update("REFRA", 0.0)
-        tbhdu.header.update("REFDEC", 0.0)
-        tbhdu.header.update("TUNIT1", "keV")
-        tbhdu.header.update("TUNIT2", "deg")
-        tbhdu.header.update("TUNIT3", "deg")                
+        tbhdu.header["HDUCLASS"] = "HEASARC/SIMPUT"
+        tbhdu.header["HDUCLAS1"] = "PHOTONS"
+        tbhdu.header["HDUVERS"] = "1.1.0"
+        tbhdu.header["EXTVER"] = 1
+        tbhdu.header["REFRA"] = 0.0
+        tbhdu.header["REFDEC"] = 0.0
+        tbhdu.header["TUNIT1"] = "keV"
+        tbhdu.header["TUNIT2"] = "deg"
+        tbhdu.header["TUNIT3"] = "deg"
 
         phfile = prefix+"_phlist.fits"
 
@@ -995,17 +1008,17 @@ class EventList(object) :
         wrhdu = pyfits.new_table(coldefs)
         wrhdu.update_ext_name("SRC_CAT")
                                 
-        wrhdu.header.update("HDUCLASS", "HEASARC")
-        wrhdu.header.update("HDUCLAS1", "SIMPUT")
-        wrhdu.header.update("HDUCLAS2", "SRC_CAT")        
-        wrhdu.header.update("HDUVERS", "1.1.0")
-        wrhdu.header.update("RADECSYS", "FK5")
-        wrhdu.header.update("EQUINOX", 2000.0)
-        wrhdu.header.update("TUNIT2", "deg")
-        wrhdu.header.update("TUNIT3", "deg")
-        wrhdu.header.update("TUNIT4", "keV")
-        wrhdu.header.update("TUNIT5", "keV")
-        wrhdu.header.update("TUNIT6", "erg/s/cm**2")
+        wrhdu.header["HDUCLASS"] = "HEASARC"
+        wrhdu.header["HDUCLAS1"] = "SIMPUT"
+        wrhdu.header["HDUCLAS2"] = "SRC_CAT"
+        wrhdu.header["HDUVERS"] = "1.1.0"
+        wrhdu.header["RADECSYS"] = "FK5"
+        wrhdu.header["EQUINOX"] = 2000.0
+        wrhdu.header["TUNIT2"] = "deg"
+        wrhdu.header["TUNIT3"] = "deg"
+        wrhdu.header["TUNIT4"] = "keV"
+        wrhdu.header["TUNIT5"] = "keV"
+        wrhdu.header["TUNIT6"] = "erg/s/cm**2"
 
         simputfile = prefix+"_simput.fits"
                 
@@ -1019,7 +1032,10 @@ class EventList(object) :
         f = h5py.File(h5file, "w")
 
         f.create_dataset("/exp_time", data=float(self.parameters["ExposureTime"]))
-        f.create_dataset("/area", data=float(self.parameters["Area"]))
+        area = self.parameters["Area"]
+        if not isinstance(area, basestring):
+            area = float(area)
+        f.create_dataset("/area", data=area)
         f.create_dataset("/redshift", data=self.parameters["Redshift"])
         f.create_dataset("/d_a", data=float(self.parameters["AngularDiameterDistance"]))
         if "ARF" in self.parameters:
@@ -1089,19 +1105,19 @@ class EventList(object) :
         
         hdu = pyfits.PrimaryHDU(H.T)
         
-        hdu.header.update("MTYPE1", "EQPOS")
-        hdu.header.update("MFORM1", "RA,DEC")
-        hdu.header.update("CTYPE1", "RA---TAN")
-        hdu.header.update("CTYPE2", "DEC--TAN")
-        hdu.header.update("CRPIX1", 0.5*(nx+1))
-        hdu.header.update("CRPIX2", 0.5*(nx+1))                
-        hdu.header.update("CRVAL1", float(self.parameters["sky_center"][0]))
-        hdu.header.update("CRVAL2", float(self.parameters["sky_center"][1]))
-        hdu.header.update("CUNIT1", "deg")
-        hdu.header.update("CUNIT2", "deg")
-        hdu.header.update("CDELT1", -float(self.parameters["dtheta"]))
-        hdu.header.update("CDELT2", float(self.parameters["dtheta"]))
-        hdu.header.update("EXPOSURE", float(self.parameters["ExposureTime"]))
+        hdu.header["MTYPE1"] = "EQPOS"
+        hdu.header["MFORM1"] = "RA,DEC"
+        hdu.header["CTYPE1"] = "RA---TAN"
+        hdu.header["CTYPE2"] = "DEC--TAN"
+        hdu.header["CRPIX1"] = 0.5*(nx+1)
+        hdu.header["CRPIX2"] = 0.5*(nx+1)
+        hdu.header["CRVAL1"] = float(self.parameters["sky_center"][0])
+        hdu.header["CRVAL2"] = float(self.parameters["sky_center"][1])
+        hdu.header["CUNIT1"] = "deg"
+        hdu.header["CUNIT2"] = "deg"
+        hdu.header["CDELT1"] = -float(self.parameters["dtheta"])
+        hdu.header["CDELT2"] = float(self.parameters["dtheta"])
+        hdu.header["EXPOSURE"] = float(self.parameters["ExposureTime"])
         
         hdu.writeto(imagefile, clobber=clobber)
                                     
@@ -1172,41 +1188,41 @@ class EventList(object) :
         tbhdu.update_ext_name("SPECTRUM")
 
         if not energy_bins:
-            tbhdu.header.update("DETCHANS", spec.shape[0])
-            tbhdu.header.update("TOTCTS", spec.sum())
-            tbhdu.header.update("EXPOSURE", float(self.parameters["ExposureTime"]))
-            tbhdu.header.update("LIVETIME", float(self.parameters["ExposureTime"]))
-            tbhdu.header.update("CONTENT", spectype)
-            tbhdu.header.update("HDUCLASS", "OGIP")
-            tbhdu.header.update("HDUCLAS1", "SPECTRUM")
-            tbhdu.header.update("HDUCLAS2", "TOTAL")
-            tbhdu.header.update("HDUCLAS3", "TYPE:I")
-            tbhdu.header.update("HDUCLAS4", "COUNT")
-            tbhdu.header.update("HDUVERS", "1.1.0")
-            tbhdu.header.update("HDUVERS1", "1.1.0")
-            tbhdu.header.update("CHANTYPE", spectype)
-            tbhdu.header.update("BACKFILE", "none")
-            tbhdu.header.update("CORRFILE", "none")
-            tbhdu.header.update("POISSERR", True)
+            tbhdu.header["DETCHANS"] = spec.shape[0]
+            tbhdu.header["TOTCTS"] = spec.sum()
+            tbhdu.header["EXPOSURE"] = float(self.parameters["ExposureTime"])
+            tbhdu.header["LIVETIME"] = float(self.parameters["ExposureTime"])
+            tbhdu.header["CONTENT"] = spectype
+            tbhdu.header["HDUCLASS"] = "OGIP"
+            tbhdu.header["HDUCLAS1"] = "SPECTRUM"
+            tbhdu.header["HDUCLAS2"] = "TOTAL"
+            tbhdu.header["HDUCLAS3"] = "TYPE:I"
+            tbhdu.header["HDUCLAS4"] = "COUNT"
+            tbhdu.header["HDUVERS"] = "1.1.0"
+            tbhdu.header["HDUVERS1"] = "1.1.0"
+            tbhdu.header["CHANTYPE"] = spectype
+            tbhdu.header["BACKFILE"] = "none"
+            tbhdu.header["CORRFILE"] = "none"
+            tbhdu.header["POISSERR"] = True
             if self.parameters.has_key("RMF"):
-                 tbhdu.header.update("RESPFILE", self.parameters["RMF"])
+                 tbhdu.header["RESPFILE"] = self.parameters["RMF"]
             else:
-                 tbhdu.header.update("RESPFILE", "none")
+                 tbhdu.header["RESPFILE"] = "none"
             if self.parameters.has_key("ARF"):
-                tbhdu.header.update("ANCRFILE", self.parameters["ARF"])
+                tbhdu.header["ANCRFILE"] = self.parameters["ARF"]
             else:        
-                tbhdu.header.update("ANCRFILE", "none")
+                tbhdu.header["ANCRFILE"] = "none"
             if self.parameters.has_key("Telescope"):
-                tbhdu.header.update("TELESCOP", self.parameters["Telescope"])
+                tbhdu.header["TELESCOP"] = self.parameters["Telescope"]
             else:
-                tbhdu.header.update("TELESCOP", "none")
+                tbhdu.header["TELESCOP"] = "none"
             if self.parameters.has_key("Instrument"):
-                tbhdu.header.update("INSTRUME", self.parameters["Instrument"])
+                tbhdu.header["INSTRUME"] = self.parameters["Instrument"]
             else:
-                tbhdu.header.update("INSTRUME", "none")
-            tbhdu.header.update("AREASCAL", 1.0)
-            tbhdu.header.update("CORRSCAL", 0.0)
-            tbhdu.header.update("BACKSCAL", 1.0)
+                tbhdu.header["INSTRUME"] = "none"
+            tbhdu.header["AREASCAL"] = 1.0
+            tbhdu.header["CORRSCAL"] = 0.0
+            tbhdu.header["BACKSCAL"] = 1.0
                                 
         hdulist = pyfits.HDUList([pyfits.PrimaryHDU(), tbhdu])
         

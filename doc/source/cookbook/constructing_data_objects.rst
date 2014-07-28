@@ -4,6 +4,15 @@ Constructing Data Objects
 These recipes demonstrate a few uncommon methods of constructing data objects
 from a simulation.
 
+Creating Particle Filters
+-------------------------
+
+Create particle filters based on the age of star particles in an isolated
+disk galaxy simulation.  Determine the total mass of each stellar age bin
+in the simulation.  Generate projections for each of the stellar age bins.
+
+.. yt_cookbook:: particle_filter.py
+
 .. _cookbook-find_clumps:
 
 Identifying Clumps
@@ -16,15 +25,7 @@ found in `astro-ph/0806.1653`.
 
 .. yt_cookbook:: find_clumps.py
 
-Boolean Data Objects
-~~~~~~~~~~~~~~~~~~~~
-
-Below shows the creation of a number of boolean data objects, which are built
-upon previously-defined data objects. The boolean data objects can be used like
-any other, except for a few cases.  Please see :ref:`boolean_data_objects` for
-more information.
-
-.. yt_cookbook:: boolean_data_objects.py
+.. _extract_frb:
 
 Extracting Fixed Resolution Data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

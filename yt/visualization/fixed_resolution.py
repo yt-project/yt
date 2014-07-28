@@ -14,15 +14,12 @@ Fixed resolution buffer support, along with a primitive image analysis tool.
 #-----------------------------------------------------------------------------
 
 from yt.funcs import *
-from yt.utilities.definitions import \
-    x_dict, \
-    y_dict, \
-    axis_names
+from yt.units.unit_object import Unit
 from .volume_rendering.api import off_axis_projection
 from yt.data_objects.image_array import ImageArray
 from yt.utilities.lib.misc_utilities import \
     pixelize_cylinder
-import _MPL
+from . import _MPL
 import numpy as np
 import weakref
 import re
@@ -74,7 +71,7 @@ class FixedResolutionBuffer(object):
     To make a projection and then several images, you can generate a
     single FRB and then access multiple fields:
 
-    >>> proj = pf.proj(0, "Density")
+    >>> proj = ds.proj(0, "Density")
     >>> frb1 = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5),
                     (1024, 1024))
     >>> print frb1["Density"].max()
@@ -82,11 +79,12 @@ class FixedResolutionBuffer(object):
     >>> print frb1["Temperature"].max()
     104923.1
     """
-    _exclude_fields = ('pz','pdz','dx','x','y','z')
+    _exclude_fields = ('pz','pdz','dx','x','y','z',
+                       ('index','dx'),('index','x'),('index','y'),('index','z'))
     def __init__(self, data_source, bounds, buff_size, antialias = True,
                  periodic = False):
         self.data_source = data_source
-        self.pf = data_source.pf
+        self.ds = data_source.ds
         self.bounds = bounds
         self.buff_size = buff_size
         self.antialias = antialias
@@ -94,18 +92,18 @@ class FixedResolutionBuffer(object):
         self.axis = data_source.axis
         self.periodic = periodic
 
-        #h = getattr(data_source, "index", None)
-        #if h is not None:
-        #    h.plots.append(weakref.proxy(self))
+        ds = getattr(data_source, "ds", None)
+        if ds is not None:
+            ds.plots.append(weakref.proxy(self))
 
         # Handle periodicity, just in case
         if self.data_source.axis < 3:
-            DLE = self.pf.domain_left_edge
-            DRE = self.pf.domain_right_edge
+            DLE = self.ds.domain_left_edge
+            DRE = self.ds.domain_right_edge
             DD = float(self.periodic)*(DRE - DLE)
             axis = self.data_source.axis
-            xax = x_dict[axis]
-            yax = y_dict[axis]
+            xax = self.ds.coordinates.x_axis[axis]
+            yax = self.ds.coordinates.y_axis[axis]
             self._period = (DD[xax], DD[yax])
             self._edges = ( (DLE[xax], DRE[xax]), (DLE[yax], DRE[yax]) )
         
@@ -124,15 +122,11 @@ class FixedResolutionBuffer(object):
             if hasattr(b, "in_units"):
                 b = float(b.in_units("code_length"))
             bounds.append(b)
-        buff = _MPL.Pixelize(self.data_source['px'],
-                             self.data_source['py'],
-                             self.data_source['pdx'],
-                             self.data_source['pdy'],
-                             self.data_source[item],
-                             self.buff_size[0], self.buff_size[1],
-                             bounds, int(self.antialias),
-                             self._period, int(self.periodic),
-                             ).transpose()
+        buff = self.ds.coordinates.pixelize(self.data_source.axis,
+            self.data_source, item, bounds, self.buff_size,
+            int(self.antialias))
+        # Need to add _period and self.periodic
+        # self._period, int(self.periodic)
         ia = ImageArray(buff, input_units=self.data_source[item].units,
                         info=self._get_info(item))
         self.data[item] = ia
@@ -146,7 +140,7 @@ class FixedResolutionBuffer(object):
         fields = getattr(self.data_source, "fields", [])
         fields += getattr(self.data_source, "field_data", {}).keys()
         for f in fields:
-            if f not in exclude and f[0] not in self.data_source.pf.particle_types:
+            if f not in exclude and f[0] not in self.data_source.ds.particle_types:
                 self[f]
 
 
@@ -187,13 +181,13 @@ class FixedResolutionBuffer(object):
     def _get_info(self, item):
         info = {}
         ftype, fname = field = self.data_source._determine_fields(item)[0]
-        finfo = self.data_source.pf._get_field_info(*field)
+        finfo = self.data_source.ds._get_field_info(*field)
         info['data_source'] = self.data_source.__str__()  
         info['axis'] = self.data_source.axis
         info['field'] = str(item)
         info['xlim'] = self.bounds[:2]
         info['ylim'] = self.bounds[2:]
-        info['length_unit'] = self.data_source.pf.length_unit
+        info['length_unit'] = self.data_source.ds.length_unit
         info['length_to_cm'] = info['length_unit'].in_cgs().to_ndarray()
         info['center'] = self.data_source.center
         
@@ -338,28 +332,32 @@ class FixedResolutionBuffer(object):
     @property
     def limits(self):
         rv = dict(x = None, y = None, z = None)
-        xax = x_dict[self.axis]
-        yax = y_dict[self.axis]
-        xn = axis_names[xax]
-        yn = axis_names[yax]
+        xax = self.ds.coordinates.x_axis[self.axis]
+        yax = self.ds.coordinates.y_axis[self.axis]
+        xn = self.ds.coordinates.axis_name[xax]
+        yn = self.ds.coordinates.axis_name[yax]
         rv[xn] = (self.bounds[0], self.bounds[1])
         rv[yn] = (self.bounds[2], self.bounds[3])
         return rv
 
 class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
-
+    """
+    This object is a subclass of
+    :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
+    that supports non-aligned input data objects, primarily cutting planes.
+    """
     def __init__(self, data_source, radius, buff_size, antialias = True) :
 
         self.data_source = data_source
-        self.pf = data_source.pf
+        self.ds = data_source.ds
         self.radius = radius
         self.buff_size = buff_size
         self.antialias = antialias
         self.data = {}
         
-        h = getattr(data_source, "index", None)
-        if h is not None:
-            h.plots.append(weakref.proxy(self))
+        ds = getattr(data_source, "ds", None)
+        if ds is not None:
+            ds.plots.append(weakref.proxy(self))
 
     def __getitem__(self, item) :
         if item in self.data: return self.data[item]
@@ -372,7 +370,8 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
         
 class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
     """
-    This object is a subclass of :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
+    This object is a subclass of
+    :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
     that supports non-aligned input data objects, primarily cutting planes.
     """
     def __getitem__(self, item):
@@ -397,7 +396,12 @@ class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
 
 
 class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
-    def __init__(self, data_source, bounds, buff_size, antialias = True,                                                         
+    """
+    This object is a subclass of
+    :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
+    that supports off axis projections.  This calls the volume renderer.
+    """
+    def __init__(self, data_source, bounds, buff_size, antialias = True,
                  periodic = False):
         self.data = {}
         FixedResolutionBuffer.__init__(self, data_source, bounds, buff_size, antialias, periodic)
@@ -406,16 +410,19 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         if item in self.data: return self.data[item]
         mylog.info("Making a fixed resolutuion buffer of (%s) %d by %d" % \
             (item, self.buff_size[0], self.buff_size[1]))
-        ds = self.data_source
-        width = self.pf.arr((self.bounds[1] - self.bounds[0],
+        dd = self.data_source
+        width = self.ds.arr((self.bounds[1] - self.bounds[0],
                              self.bounds[3] - self.bounds[2],
                              self.bounds[5] - self.bounds[4]))
-        buff = off_axis_projection(ds.pf, ds.center, ds.normal_vector,
-                                   width, ds.resolution, item,
-                                   weight=ds.weight_field, volume=ds.volume,
-                                   no_ghost=ds.no_ghost, interpolated=ds.interpolated,
-                                   north_vector=ds.north_vector)
-        ia = ImageArray(buff.swapaxes(0,1), info=self._get_info(item))
+        buff = off_axis_projection(dd.ds, dd.center, dd.normal_vector,
+                                   width, dd.resolution, item,
+                                   weight=dd.weight_field, volume=dd.volume,
+                                   no_ghost=dd.no_ghost, interpolated=dd.interpolated,
+                                   north_vector=dd.north_vector)
+        units = Unit(dd.ds.field_info[item].units, registry=dd.ds.unit_registry)
+        if dd.weight_field is None:
+            units *= Unit('cm', registry=dd.ds.unit_registry)
+        ia = ImageArray(buff.swapaxes(0,1), input_units=units, info=self._get_info(item))
         self[item] = ia
         return ia 
 

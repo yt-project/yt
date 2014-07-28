@@ -34,7 +34,7 @@ class StarFormationRate(object):
     
     Parameters
     ----------
-    pf : EnzoDataset object
+    ds : EnzoDataset object
     data_source : AMRRegion object, optional
         The region from which stars are extracted for analysis. If this
         is not supplied, the next three must be, otherwise the next
@@ -44,20 +44,20 @@ class StarFormationRate(object):
     star_creation_time : Ordered array or list of floats
         The creation time for the stars in code units.
     volume : Float
-        The volume of the region for the specified list of stars.
+        The comoving volume of the region for the specified list of stars.
     bins : Integer
         The number of time bins used for binning the stars. Default = 300.
     
     Examples
     --------
     
-    >>> pf = load("RedshiftOutput0000")
-    >>> sp = pf.sphere([0.5,0.5,0.5], [.1])
-    >>> sfr = StarFormationRate(pf, sp)
+    >>> ds = load("RedshiftOutput0000")
+    >>> sp = ds.sphere([0.5,0.5,0.5], [.1])
+    >>> sfr = StarFormationRate(ds, sp)
     """
-    def __init__(self, pf, data_source=None, star_mass=None,
+    def __init__(self, ds, data_source=None, star_mass=None,
             star_creation_time=None, volume=None, bins=300):
-        self._pf = pf
+        self._ds = ds
         self._data_source = data_source
         self.star_mass = np.array(star_mass)
         self.star_creation_time = np.array(star_creation_time)
@@ -72,7 +72,7 @@ class StarFormationRate(object):
                 If data_source is not provided, all of these paramters need to be set:
                 star_mass (array, Msun),
                 star_creation_time (array, code units),
-                volume (float, Mpc**3).
+                volume (float, cMpc**3).
                 """)
                 return None
             self.mode = 'provided'
@@ -80,12 +80,12 @@ class StarFormationRate(object):
             self.mode = 'data_source'
         # Set up for time conversion.
         self.cosm = Cosmology(
-             hubble_constant = self._pf.hubble_constant,
-             omega_matter = self._pf.omega_matter,
-             omega_lambda = self._pf.omega_lambda)
+             hubble_constant = self._ds.hubble_constant,
+             omega_matter = self._ds.omega_matter,
+             omega_lambda = self._ds.omega_lambda)
         # Find the time right now.
         self.time_now = self.cosm.t_from_z(
-            self._pf.current_redshift) # seconds
+            self._ds.current_redshift) # seconds
         # Build the distribution.
         self.build_dist()
         # Attach some convenience arrays.
@@ -109,7 +109,7 @@ class StarFormationRate(object):
         # Find the oldest stars in units of code time.
         tmin= min(ct_stars)
         # Multiply the end to prevent numerical issues.
-        self.time_bins = np.linspace(tmin*1.01, self._pf.current_time,
+        self.time_bins = np.linspace(tmin*1.01, self._ds.current_time,
             num = self.bin_count + 1)
         # Figure out which bins the stars go into.
         inds = np.digitize(ct_stars, self.time_bins) - 1
@@ -130,15 +130,15 @@ class StarFormationRate(object):
         """
         if self.mode == 'data_source':
             try:
-                vol = self._data_source.volume('mpc')
+                vol = self._data_source.volume('mpccm')
             except AttributeError:
                 # If we're here, this is probably a HOPHalo object, and we
                 # can get the volume this way.
                 ds = self._data_source.get_sphere()
-                vol = ds.volume('mpc')
+                vol = ds.volume('mpccm')
         elif self.mode == 'provided':
-            vol = self.volume
-        tc = self._pf["Time"] #time to seconds?
+            vol = self.volume('mpccm')
+        tc = self._ds["Time"]
         self.time = []
         self.lookback_time = []
         self.redshift = []
@@ -153,6 +153,7 @@ class StarFormationRate(object):
             self.redshift.append(self.cosm.z_from_t(time * tc))
             self.Msol_yr.append(self.mass_bins[i] / \
                 (self.time_bins_dt[i] * tc / YEAR))
+            # changed vol from mpc to mpccm used in literature
             self.Msol_yr_vol.append(self.mass_bins[i] / \
                 (self.time_bins_dt[i] * tc / YEAR) / vol)
             self.Msol.append(self.mass_bins[i])
@@ -248,7 +249,7 @@ class SpectrumBuilder(object):
     
     Parameters
     ----------
-    pf : EnzoDataset object
+    ds : EnzoDataset object
     bcdir : String
         Path to directory containing Bruzual & Charlot h5 fit files.
     model : String
@@ -257,11 +258,11 @@ class SpectrumBuilder(object):
     
     Examples
     --------
-    >>> pf = load("RedshiftOutput0000")
-    >>> spec = SpectrumBuilder(pf, "/home/user/bc/", model="salpeter")
+    >>> ds = load("RedshiftOutput0000")
+    >>> spec = SpectrumBuilder(ds, "/home/user/bc/", model="salpeter")
     """
-    def __init__(self, pf, bcdir="", model="chabrier", time_now=None):
-        self._pf = pf
+    def __init__(self, ds, bcdir="", model="chabrier", time_now=None):
+        self._ds = ds
         self.bcdir = bcdir
         
         if model == "chabrier":
@@ -270,14 +271,14 @@ class SpectrumBuilder(object):
             self.model = SALPETER
         # Set up for time conversion.
         self.cosm = Cosmology(
-             hubble_constant = self._pf.hubble_constant,
-             omega_matter = self._pf.omega_matter,
-             omega_lambda = self._pf.omega_lambda)
+             hubble_constant = self._ds.hubble_constant,
+             omega_matter = self._ds.omega_matter,
+             omega_lambda = self._ds.omega_lambda)
         # Find the time right now.
         
         if time_now is None:
             self.time_now = self.cosm.t_from_z(
-                self._pf.current_redshift) # seconds
+                self._ds.current_redshift) # seconds
         else:
             self.time_now = time_now
         
@@ -330,7 +331,7 @@ class SpectrumBuilder(object):
         
         Examples
         --------
-        >>> sp = pf.sphere([0.5,0.5,0.5], [.1])
+        >>> sp = ds.sphere([0.5,0.5,0.5], [.1])
         >>> spec.calculate_spectrum(data_source=sp, min_age = 1.e6)
         """
         # Initialize values
@@ -383,7 +384,7 @@ class SpectrumBuilder(object):
         # Fix metallicity to units of Zsun.
         self.star_metal /= Zsun
         # Age of star in years.
-        dt = (self.time_now - self.star_creation_time * self._pf['Time']) / YEAR
+        dt = (self.time_now - self.star_creation_time * self._ds['Time']) / YEAR
         dt = np.maximum(dt, 0.0)
         # Remove young stars
         sub = dt >= self.min_age

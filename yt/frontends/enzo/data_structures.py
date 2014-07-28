@@ -44,6 +44,7 @@ from yt.utilities.physical_constants import \
     rho_crit_g_cm3_h2, cm_per_mpc
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.pyparselibconfig import libconfig
 
 from .fields import \
     EnzoFieldInfo
@@ -56,7 +57,6 @@ class EnzoGrid(AMRGridPatch):
     Class representing a single Enzo Grid instance.
     """
 
-    __slots__ = ["NumberOfActiveParticles"]
     def __init__(self, id, index):
         """
         Returns an instance of EnzoGrid with *id*, associated with
@@ -76,7 +76,7 @@ class EnzoGrid(AMRGridPatch):
         space-filling tiling of grids, possibly due to the finite accuracy in a
         standard Enzo index file.
         """
-        rf = self.pf.refine_by
+        rf = self.ds.refine_by
         my_ind = self.id - self._id_offset
         le = self.LeftEdge
         self.dds = self.Parent.dds/rf
@@ -139,7 +139,7 @@ class EnzoGridGZ(EnzoGrid):
 
     def retrieve_ghost_zones(self, n_zones, fields, all_levels=False,
                              smoothed=False):
-        NGZ = self.pf.parameters.get("NumberOfGhostZones", 3)
+        NGZ = self.ds.parameters.get("NumberOfGhostZones", 3)
         if n_zones > NGZ:
             return EnzoGrid.retrieve_ghost_zones(
                 self, n_zones, fields, all_levels, smoothed)
@@ -150,8 +150,8 @@ class EnzoGridGZ(EnzoGrid):
         # than the grid by nZones*dx in each direction
         nl = self.get_global_startindex() - n_zones
         nr = nl + self.ActiveDimensions + 2*n_zones
-        new_left_edge = nl * self.dds + self.pf.domain_left_edge
-        new_right_edge = nr * self.dds + self.pf.domain_left_edge
+        new_left_edge = nl * self.dds + self.ds.domain_left_edge
+        new_right_edge = nr * self.dds + self.ds.domain_left_edge
         # Something different needs to be done for the root grid, though
         level = self.Level
         args = (level, new_left_edge, new_right_edge)
@@ -181,9 +181,9 @@ class EnzoGridGZ(EnzoGrid):
         for field in ensure_list(fields):
             if field in self.field_list:
                 conv_factor = 1.0
-                if self.pf.field_info.has_key(field):
-                    conv_factor = self.pf.field_info[field]._convert_function(self)
-                if self.pf.field_info[field].particle_type: continue
+                if self.ds.field_info.has_key(field):
+                    conv_factor = self.ds.field_info[field]._convert_function(self)
+                if self.ds.field_info[field].particle_type: continue
                 temp = self.index.io._read_raw_data_set(self, field)
                 temp = temp.swapaxes(0, 2)
                 cube.field_data[field] = np.multiply(temp, conv_factor, temp)[sl]
@@ -195,29 +195,29 @@ class EnzoHierarchy(GridIndex):
     grid = EnzoGrid
     _preload_implemented = True
 
-    def __init__(self, pf, dataset_type):
-        
+    def __init__(self, ds, dataset_type):
+
         self.dataset_type = dataset_type
-        if pf.file_style != None:
-            self._bn = pf.file_style
+        if ds.file_style != None:
+            self._bn = ds.file_style
         else:
             self._bn = "%s.cpu%%04i"
         self.index_filename = os.path.abspath(
-            "%s.hierarchy" % (pf.parameter_filename))
+            "%s.hierarchy" % (ds.parameter_filename))
         if os.path.getsize(self.index_filename) == 0:
             raise IOError(-1,"File empty", self.index_filename)
         self.directory = os.path.dirname(self.index_filename)
 
         # For some reason, r8 seems to want Float64
-        if pf.has_key("CompilerPrecision") \
-            and pf["CompilerPrecision"] == "r4":
+        if ds.has_key("CompilerPrecision") \
+            and ds["CompilerPrecision"] == "r4":
             self.float_type = 'float32'
         else:
             self.float_type = 'float64'
 
-        GridIndex.__init__(self, pf, dataset_type)
+        GridIndex.__init__(self, ds, dataset_type)
         # sync it back
-        self.parameter_file.dataset_type = self.dataset_type
+        self.dataset.dataset_type = self.dataset_type
 
     def _count_grids(self):
         self.num_grids = None
@@ -236,7 +236,7 @@ class EnzoHierarchy(GridIndex):
                 test_grid_id = int(line.split("=")[-1])
                 if test_grid is not None:
                     break
-        self._guess_dataset_type(self.pf.dimensionality, test_grid, test_grid_id)
+        self._guess_dataset_type(self.ds.dimensionality, test_grid, test_grid_id)
 
     def _guess_dataset_type(self, rank, test_grid, test_grid_id):
         if test_grid[0] != os.path.sep:
@@ -272,13 +272,21 @@ class EnzoHierarchy(GridIndex):
         t1 = time.time()
         pattern = r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)\s+$"
         patt = re.compile(pattern)
-        f = open(self.index_filename, "rb")
+        f = open(self.index_filename, "rt")
         self.grids = [self.grid(1, self)]
         self.grids[0].Level = 0
         si, ei, LE, RE, fn, npart = [], [], [], [], [], []
         all = [si, ei, LE, RE, fn]
         pbar = get_pbar("Parsing Hierarchy ", self.num_grids)
-        if self.parameter_file.parameters["VersionNumber"] > 2.0:
+        version = self.dataset.parameters.get("VersionNumber", None)
+        params = self.dataset.parameters
+        if version is None and "Internal" in params:
+            version = float(params["Internal"]["Provenance"]["VersionNumber"])
+        if version >= 3.0:
+            active_particles = True
+            nap = dict((ap_type, []) for ap_type in 
+                params["Physics"]["ActiveParticles"]["ActiveParticlesEnabled"])
+        elif version > 2.0:
             active_particles = True
             nap = {}
             for type in self.parameters.get("AppendActiveParticleType", []):
@@ -392,10 +400,10 @@ class EnzoHierarchy(GridIndex):
         self.max_level = self.grid_levels.max()
 
     def _detect_active_particle_fields(self):
-        ap_list = self.parameter_file["AppendActiveParticleType"]
+        ap_list = self.dataset["AppendActiveParticleType"]
         _fields = dict((ap, []) for ap in ap_list)
         fields = []
-        for ptype in self.parameter_file["AppendActiveParticleType"]:
+        for ptype in self.dataset["AppendActiveParticleType"]:
             select_grids = self.grid_active_particle_count[ptype].flat
             if np.any(select_grids) == False:
                 continue
@@ -413,16 +421,16 @@ class EnzoHierarchy(GridIndex):
 
     def _setup_derived_fields(self):
         super(EnzoHierarchy, self)._setup_derived_fields()
-        aps = self.parameter_file.parameters.get(
+        aps = self.dataset.parameters.get(
             "AppendActiveParticleType", [])
-        for fname, field in self.pf.field_info.items():
+        for fname, field in self.ds.field_info.items():
             if not field.particle_type: continue
             if isinstance(fname, tuple): continue
             if field._function is NullFunc: continue
             for apt in aps:
                 dd = field._copy_def()
                 dd.pop("name")
-                self.pf.field_info.add_field((apt, fname), **dd)
+                self.ds.field_info.add_field((apt, fname), **dd)
 
     def _detect_output_fields(self):
         self.field_list = []
@@ -440,7 +448,7 @@ class EnzoHierarchy(GridIndex):
                     continue
                 mylog.debug("Grid %s has: %s", grid.id, gf)
                 field_list = field_list.union(gf)
-            if "AppendActiveParticleType" in self.parameter_file.parameters:
+            if "AppendActiveParticleType" in self.dataset.parameters:
                 ap_fields = self._detect_active_particle_fields()
                 field_list = list(set(field_list).union(ap_fields))
         else:
@@ -481,7 +489,7 @@ class EnzoHierarchy(GridIndex):
             additional_fields = ['metallicity_fraction', 'creation_time',
                                  'dynamical_time']
         pfields = [f for f in self.field_list if f.startswith('particle_')]
-        nattr = self.parameter_file['NumberOfParticleAttributes']
+        nattr = self.dataset['NumberOfParticleAttributes']
         if nattr > 0:
             pfields += additional_fields[:nattr]
         # Find where the particles reside and count them
@@ -530,13 +538,13 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
             self._enzo = enzo
         return self._enzo
 
-    def __init__(self, pf, dataset_type = None):
+    def __init__(self, ds, dataset_type = None):
         self.dataset_type = dataset_type
         self.float_type = 'float64'
-        self.parameter_file = weakref.proxy(pf) # for _obtain_enzo
+        self.dataset = weakref.proxy(ds) # for _obtain_enzo
         self.float_type = self.enzo.hierarchy_information["GridLeftEdge"].dtype
         self.directory = os.getcwd()
-        GridIndex.__init__(self, pf, dataset_type)
+        GridIndex.__init__(self, ds, dataset_type)
 
     def _initialize_data_storage(self):
         pass
@@ -730,12 +738,53 @@ class EnzoDataset(Dataset):
         dictionaries.
         """
         # Let's read the file
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        data_labels = {}
-        data_label_factors = {}
-        conversion_factors = {}
-        for line in (l.strip() for l in open(self.parameter_filename)):
+        with open(self.parameter_filename, "r") as f:
+            line = f.readline().strip() 
+            f.seek(0)
+            if line == "Internal:":
+                self._parse_enzo3_parameter_file(f)
+            else:
+                self._parse_enzo2_parameter_file(f)
+
+    def _parse_enzo3_parameter_file(self, f):
+        self.parameters = p = libconfig(f)
+        sim = p["SimulationControl"]
+        internal = p["Internal"]
+        phys = p["Physics"]
+        self.refine_by = sim["AMR"]["RefineBy"]
+        self.periodicity = tuple(a == 3 for a in
+                            sim["Domain"]["LeftFaceBoundaryCondition"])
+        self.dimensionality = sim["Domain"]["TopGridRank"]
+        self.domain_dimensions = np.array(sim["Domain"]["TopGridDimensions"],
+                                          dtype="int64")
+        self.domain_left_edge = np.array(sim["Domain"]["DomainLeftEdge"],
+                                         dtype="float64")
+        self.domain_right_edge = np.array(sim["Domain"]["DomainRightEdge"],
+                                          dtype="float64")
+        self.gamma = phys["Hydro"]["Gamma"]
+        self.unique_identifier = internal["Provenance"]["CurrentTimeIdentifier"]
+        self.current_time = internal["InitialTime"]
+        self.cosmological_simulation = phys["Cosmology"]["ComovingCoordinates"]
+        if self.cosmological_simulation == 1:
+            cosmo = phys["Cosmology"]
+            self.current_redshift = internal["CosmologyCurrentRedshift"]
+            self.omega_lambda = cosmo["OmegaLambdaNow"]
+            self.omega_matter = cosmo["OmegaMatterNow"]
+            self.hubble_constant = cosmo["HubbleConstantNow"]
+        else:
+            self.current_redshift = self.omega_lambda = self.omega_matter = \
+                self.hubble_constant = self.cosmological_simulation = 0.0
+        self.particle_types = ["DarkMatter"] + \
+            phys["ActiveParticles"]["ActiveParticlesEnabled"]
+        self.particle_types = tuple(self.particle_types)
+        self.particle_types_raw = self.particle_types
+        if self.dimensionality == 1:
+            self._setup_1d()
+        elif self.dimensionality == 2:
+            self._setup_2d()
+
+    def _parse_enzo2_parameter_file(self, f):
+        for line in (l.strip() for l in f):
             if len(line) < 2: continue
             param, vals = (i.strip() for i in line.split("=",1))
             # First we try to decipher what type of value it is.
@@ -775,6 +824,13 @@ class EnzoDataset(Dataset):
         self.periodicity = ensure_tuple(
             self.parameters["LeftFaceBoundaryCondition"] == 3)
         self.dimensionality = self.parameters["TopGridRank"]
+        if "MetaDataDatasetUUID" in self.parameters:
+            self.unique_identifier = self.parameters["MetaDataDatasetUUID"]
+        elif "CurrentTimeIdentifier" in self.parameters:
+            self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
+        else:
+            self.unique_identifier = \
+                int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         if self.dimensionality > 1:
             self.domain_dimensions = self.parameters["TopGridDimensions"]
             if len(self.domain_dimensions) < 3:
@@ -836,8 +892,11 @@ class EnzoDataset(Dataset):
         if self.cosmological_simulation:
             k = self.cosmology_get_units()
             # Now some CGS values
-            self.length_unit = \
-                self.quan(self.parameters["CosmologyComovingBoxSize"], "Mpccm/h")
+            box_size = self.parameters.get("CosmologyComovingBoxSize", None)
+            if box_size is None:
+                box_size = self.parameters["Physics"]["Cosmology"]\
+                    ["CosmologyComovingBoxSize"]
+            self.length_unit = self.quan(box_size, "Mpccm/h")
             self.mass_unit = \
                 self.quan(k['urho'], 'g/cm**3') * (self.length_unit.in_cgs())**3
             self.time_unit = self.quan(k['utim'], 's')
@@ -847,6 +906,11 @@ class EnzoDataset(Dataset):
                 length_unit = self.parameters["LengthUnits"]
                 mass_unit = self.parameters["DensityUnits"] * length_unit**3
                 time_unit = self.parameters["TimeUnits"]
+            elif "SimulationControl" in self.parameters:
+                units = self.parameters["SimulationControl"]["Units"]
+                length_unit = units["Length"]
+                mass_unit = units["Density"] * length_unit**3
+                time_unit = units["Time"]
             else:
                 mylog.warning("Setting 1.0 in code units to be 1.0 cm")
                 mylog.warning("Setting 1.0 in code units to be 1.0 s")
@@ -868,7 +932,8 @@ class EnzoDataset(Dataset):
         self.unit_registry.modify("code_time", self.time_unit)
         self.unit_registry.modify("code_velocity", self.velocity_unit)
         DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
-        self.unit_registry.modify("unitary", DW.max())
+        self.unit_registry.add("unitary", float(DW.max() * DW.units.cgs_value),
+                               DW.units.dimensions)
 
     def cosmology_get_units(self):
         """
@@ -984,15 +1049,15 @@ def rblocks(f, blocksize=4096):
     size = os.stat(f.name).st_size
     fullblocks, lastblock = divmod(size, blocksize)
 
-    # The first(end of file) block will be short, since this leaves 
-    # the rest aligned on a blocksize boundary.  This may be more 
+    # The first(end of file) block will be short, since this leaves
+    # the rest aligned on a blocksize boundary.  This may be more
     # efficient than having the last (first in file) block be short
     f.seek(-lastblock,2)
-    yield f.read(lastblock)
+    yield f.read(lastblock).decode('ascii')
 
     for i in range(fullblocks-1,-1, -1):
         f.seek(i * blocksize)
-        yield f.read(blocksize)
+        yield f.read(blocksize).decode('ascii')
 
 def rlines(f, keepends=False):
     """Iterate through the lines of a file in reverse order.

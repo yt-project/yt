@@ -17,7 +17,7 @@ General Overview
 In order to run this extension on a dataset, the haloes need to be located
 (using HOP, FOF or Parallel HOP, see :ref:`halo_finding`),
 and their virial masses determined using the
-HaloProfiler (see :ref:`halo_profiling`).
+HaloProfiler.
 Please see the step-by-step how-to which puts these steps together
 (:ref:`hmf_howto`).
 If an optional analytical fit is desired, the correct initial
@@ -60,8 +60,8 @@ corresponds to the sixth column of data in the file.
 
   from yt.mods import *
   from yt.analysis_modules.halo_mass_function.api import *
-  pf = load("data0030")
-  hmf = HaloMassFcn(pf, halo_file="FilteredQuantities.out", num_sigma_bins=200,
+  ds = load("data0030")
+  hmf = HaloMassFcn(ds, halo_file="FilteredQuantities.out", num_sigma_bins=200,
   mass_column=5)
 
 Attached to ``hmf`` is the convenience function ``write_out``, which saves
@@ -102,8 +102,8 @@ fits above.
 
   from yt.mods import *
   from yt.analysis_modules.halo_mass_function.api import *
-  pf = load("data0030")
-  hmf = HaloMassFcn(pf, halo_file="FilteredQuantities.out", 
+  ds = load("data0030")
+  hmf = HaloMassFcn(ds, halo_file="FilteredQuantities.out", 
   sigma8input=0.9, primordial_index=1., omega_baryon0=0.06,
   fitting_function=4)
   hmf.write_out(prefix='hmf')

@@ -15,13 +15,12 @@ This is a library of yt-defined exceptions
 
 
 # We don't need to import 'exceptions'
-#import exceptions
 import os.path
 
 class YTException(Exception):
-    def __init__(self, message = None, pf = None):
+    def __init__(self, message = None, ds = None):
         Exception.__init__(self, message)
-        self.pf = pf
+        self.ds = ds
 
 # Data access exceptions:
 
@@ -35,8 +34,8 @@ class YTOutputNotIdentified(YTException):
             self.args, self.kwargs)
 
 class YTSphereTooSmall(YTException):
-    def __init__(self, pf, radius, smallest_cell):
-        YTException.__init__(self, pf=pf)
+    def __init__(self, ds, radius, smallest_cell):
+        YTException.__init__(self, ds=ds)
         self.radius = radius
         self.smallest_cell = smallest_cell
 
@@ -61,16 +60,16 @@ class YTNoDataInObjectError(YTException):
         return s
 
 class YTFieldNotFound(YTException):
-    def __init__(self, fname, pf):
+    def __init__(self, fname, ds):
         self.fname = fname
-        self.pf = pf
+        self.ds = ds
 
     def __str__(self):
-        return "Could not find field '%s' in %s." % (self.fname, self.pf)
+        return "Could not find field '%s' in %s." % (self.fname, self.ds)
 
 class YTCouldNotGenerateField(YTFieldNotFound):
     def __str__(self):
-        return "Could field '%s' in %s could not be generated." % (self.fname, self.pf)
+        return "Could field '%s' in %s could not be generated." % (self.fname, self.ds)
 
 class YTFieldTypeNotFound(YTException):
     def __init__(self, fname):
@@ -119,21 +118,21 @@ class InvalidSimulationTimeSeries(YTException):
         return self.message
             
 class MissingParameter(YTException):
-    def __init__(self, pf, parameter):
-        YTException.__init__(self, pf=pf)
+    def __init__(self, ds, parameter):
+        YTException.__init__(self, ds=ds)
         self.parameter = parameter
 
     def __str__(self):
-        return "Parameter file %s is missing %s parameter." % \
-            (self.pf, self.parameter)
+        return "dataset %s is missing %s parameter." % \
+            (self.ds, self.parameter)
 
 class NoStoppingCondition(YTException):
-    def __init__(self, pf):
-        YTException.__init__(self, pf=pf)
+    def __init__(self, ds):
+        YTException.__init__(self, ds=ds)
 
     def __str__(self):
         return "Simulation %s has no stopping condition.  StopTime or StopCycle should be set." % \
-            self.pf
+            self.ds
 
 class YTNotInsideNotebook(YTException):
     def __str__(self):
@@ -155,7 +154,7 @@ class YTUnitNotRecognized(YTException):
         self.unit = unit
 
     def __str__(self):
-        return "This parameter file doesn't recognize %s" % self.unit
+        return "This dataset doesn't recognize %s" % self.unit
 
 class YTUnitOperationError(YTException, ValueError):
     def __init__(self, operation, unit1, unit2=None):
@@ -194,9 +193,18 @@ class YTUfuncUnitError(YTException):
 
     def __str__(self):
         err = "The NumPy %s operation is only allowed on objects with " \
-        "identical units. Convert one of the arrays to the other\'s " \
-        "units first. Received units (%s) and (%s)." % \
-        (self.ufunc, self.unit1, self.unit2)
+              "identical units. Convert one of the arrays to the other\'s " \
+              "units first. Received units (%s) and (%s)." % \
+              (self.ufunc, self.unit1, self.unit2)
+        return err
+
+class YTIterableUnitCoercionError(YTException):
+    def __init__(self, quantity_list):
+        self.quantity_list = quantity_list
+
+    def __str__(self):
+        err = "Received a list or tuple of quantities with nonuniform units: " \
+              "%s" % self.quantity_list
         return err
 
 class YTHubRegisterError(YTException):
@@ -229,8 +237,8 @@ class YTCloudError(YTException):
                str(self.path)
 
 class YTEllipsoidOrdering(YTException):
-    def __init__(self, pf, A, B, C):
-        YTException.__init__(self, pf=pf)
+    def __init__(self, ds, A, B, C):
+        YTException.__init__(self, ds=ds)
         self._A = A
         self._B = B
         self._C = C
@@ -267,8 +275,8 @@ class YTTooManyVertices(YTException):
         return s
 
 class YTInvalidWidthError(YTException):
-    def __init__(self, error):
-        self.error = error
+    def __init__(self, width):
+        self.error = "width (%s) is invalid" % str(width)
 
     def __str__(self):
         return str(self.error)
@@ -327,14 +335,14 @@ class YTIllDefinedBounds(YTException):
         return v
 
 class YTObjectNotImplemented(YTException):
-    def __init__(self, pf, obj_name):
-        self.pf = pf
+    def __init__(self, ds, obj_name):
+        self.ds = ds
         self.obj_name = obj_name
 
     def __str__(self):
-        v  = r"The object type '%s' is not implemented for the parameter file "
+        v  = r"The object type '%s' is not implemented for the dataset "
         v += r"'%s'."
-        return v % (self.obj_name, self.pf)
+        return v % (self.obj_name, self.ds)
 
 class YTRockstarMultiMassNotSupported(YTException):
     def __init__(self, mi, ma, ptype):
@@ -352,6 +360,10 @@ class YTRockstarMultiMassNotSupported(YTException):
 class YTEmptyProfileData(Exception):
     pass
 
+class YTTooParallel(YTException):
+    def __str__(self):
+        return "You've used too many processors for this dataset."
+
 class YTDuplicateFieldInProfile(Exception):
     def __init__(self, field, new_spec, old_spec):
         self.field = field
@@ -364,3 +376,43 @@ class YTDuplicateFieldInProfile(Exception):
                But being asked to add it with:
                %s""" % (self.field, self.old_spec, self.new_spec)
         return r
+
+class YTInvalidPositionArray(Exception):
+    def __init__(self, shape, dimensions):
+        self.shape = shape
+        self.dimensions = dimensions
+
+    def __str__(self):
+        r = """Position arrays must be length and shape (N,3).
+               But this one has %s and %s.""" % (self.dimensions, self.shape)
+        return r
+
+class YTIllDefinedCutRegion(Exception):
+    def __init__(self, conditions):
+        self.conditions = conditions
+
+    def __str__(self):
+        r = """Can't mix particle/discrete and fluid/mesh conditions or
+               quantities.  Conditions specified:
+            """
+        r += "\n".join([c for c in self.conditions])
+        return r
+
+class YTMixedCutRegion(Exception):
+    def __init__(self, conditions, field):
+        self.conditions = conditions
+        self.field = field
+
+    def __str__(self):
+        r = """Can't mix particle/discrete and fluid/mesh conditions or
+               quantities.  Field: %s and Conditions specified:
+            """ % (self.field,)
+        r += "\n".join([c for c in self.conditions])
+        return r
+
+class YTGDFAlreadyExists(Exception):
+    def __init__(self, filename):
+        self.filename = filename
+
+    def __str__(self):
+        return "A file already exists at %s and clobber=False." % self.filename

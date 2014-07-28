@@ -15,21 +15,14 @@ DualEPS: A class to combine bitmap compression and vector graphics
 import pyx
 import numpy as np
 from matplotlib import cm
+import matplotlib.pyplot as plt
 from _mpl_imports import FigureCanvasAgg
 
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.definitions import \
-    x_dict, x_names, \
-    y_dict, y_names, \
-    axis_names, \
-    axis_labels
-from .plot_types import \
-    VMPlot, \
-    ProfilePlot
-from .plot_collection import PlotCollection
 from .plot_window import PlotWindow
 from .profile_plotter import PhasePlot
 from .plot_modifications import get_smallest_appropriate_unit
+
 
 class DualEPS(object):
     def __init__(self, figsize=(12,12)):
@@ -289,19 +282,16 @@ class DualEPS(object):
             plot.refresh()
         else:
             plot._redraw_image()
-        if isinstance(plot, (VMPlot, PlotWindow)):
-            if isinstance(plot, PlotWindow):
-                data = plot._frb
-                width = plot.width[0]
-            else:
-                data = plot.data
-                width = plot.width
+        if isinstance(plot, PlotWindow):
+            data = plot._frb
+            width = plot.width[0]
             if units == None:
-                units = get_smallest_appropriate_unit(width, plot.pf)
-            _xrange = (0, width * plot.pf[units])
-            _yrange = (0, width * plot.pf[units])
+                units = get_smallest_appropriate_unit(width, plot.ds)
+            _xrange = (0, width * plot.ds[units])
+            _yrange = (0, width * plot.ds[units])
             _xlog = False
             _ylog = False
+            axis_names = plot.ds.coordinates.axis_name
             if bare_axes:
                 _xlabel = ""
                 _ylabel = ""
@@ -311,14 +301,16 @@ class DualEPS(object):
                     _xlabel = xlabel
                 else:
                     if data.axis != 4:
-                        _xlabel = '%s (%s)' % (x_names[data.axis], units)
+                        xax = plot.ds.coordinates.x_axis[data.axis]
+                        _xlabel = '%s (%s)' % (axis_names[xax], units)
                     else:
                         _xlabel = 'Image x (%s)' % (units)
                 if ylabel != None:
                     _ylabel = ylabel
                 else:
                     if data.axis != 4:
-                        _ylabel = '%s (%s)' % (y_names[data.axis], units)
+                        yax = plot.ds.coordinatesyx_axis[data.axis]
+                        _ylabel = '%s (%s)' % (axis_names[yax], units)
                     else:
                         _ylabel = 'Image y (%s)' % (units)
             if tickcolor == None:
@@ -341,6 +333,26 @@ class DualEPS(object):
                     _ylabel = ylabel
                 else:
                     _ylabel = plot[k].axes.get_ylabel()
+            if tickcolor == None:
+                _tickcolor = None
+        elif isinstance(plot, np.ndarray):
+            ax = plt.gca()
+            _xrange = ax.get_xlim()
+            _yrange = ax.get_ylim()
+            _xlog=False
+            _ylog=False
+            if bare_axes:
+                _xlabel = ""
+                _ylabel = ""
+            else:
+                if xlabel != None:
+                    _xlabel = xlabel
+                else:
+                    _xlabel = ax.get_xlabel()
+                if ylabel != None:
+                    _ylabel = ylabel
+                else:
+                    _ylabel = ax.get_ylabel()
             if tickcolor == None:
                 _tickcolor = None
         else:
@@ -455,11 +467,13 @@ class DualEPS(object):
             # hack to account for non-square display ratios (not sure why)
             if isinstance(plot, PlotWindow):
                 shift = 12.0 / 340
-        elif isinstance(plot, ProfilePlot):
-            plot._redraw_image()
-            # Remove colorbar
-            _p1 = plot._figure
-            _p1.delaxes(_p1.axes[1])
+        elif isinstance(plot, np.ndarray):
+            fig = plt.figure()
+            iplot = plt.figimage(plot)
+            _p1 =  iplot.figure
+            _p1.set_size_inches(self.figsize[0], self.figsize[1])
+            ax = plt.gca();
+            _p1.add_axes(ax)
         else:
             raise RuntimeError("Unknown plot type")
 
@@ -540,6 +554,12 @@ class DualEPS(object):
 
         # Scale the colorbar
         shift = (0.5*(1.0-shrink[0])*size[0], 0.5*(1.0-shrink[1])*size[1])
+        # To facilitate strething rather than shrinking
+        # If stretched in both directions (makes no sense?) then y dominates. 
+        if(shrink[0] > 1.0):
+            shift = (0.05*self.figsize[0], 0.5*(1.0-shrink[1])*size[1])
+        if(shrink[1] > 1.0):
+            shift = (0.5*(1.0-shrink[0])*size[0], 0.05*self.figsize[1])
         size = (size[0] * shrink[0], size[1] * shrink[1])
         origin = (origin[0] + shift[0], origin[1] + shift[1])
 
@@ -632,7 +652,7 @@ class DualEPS(object):
         if isinstance(plot, VMPlot):
             proj = "Proj" in plot._type_name and \
                 plot.data._weight is None
-            _zlabel = plot.pf.field_info[plot.axis_names["Z"]].get_label(proj)
+            _zlabel = plot.ds.field_info[plot.axis_names["Z"]].get_label(proj)
             _zlabel = _zlabel.replace("_","\;")
             _zlog = plot.log_field
             _zrange = (plot.norm.vmin, plot.norm.vmax)
@@ -640,9 +660,9 @@ class DualEPS(object):
             proj = plot._plot_type.endswith("Projection") and \
                 plot.data_source.weight_field == None
             if isinstance(plot, PlotWindow):
-                _zlabel = plot.pf.field_info[self.field].get_label(proj)
+                _zlabel = plot.ds.field_info[self.field].get_label(proj)
             else:
-                _zlabel = plot.data_source.pf.field_info[self.field].get_label(proj)
+                _zlabel = plot.data_source.ds.field_info[self.field].get_label(proj)
             _zlabel = _zlabel.replace("_","\;")
             _zlog = plot.get_log(self.field)[self.field]
             if plot.plots[self.field].zmin == None:
@@ -694,6 +714,59 @@ class DualEPS(object):
 
 #=============================================================================
 
+    def arrow(self, size=0.2, label="", loc=(0.05,0.08), labelloc="top",
+              color=pyx.color.cmyk.white,
+              linewidth=pyx.style.linewidth.normal):
+        r"""Draws an arrow in the current figure
+
+        Parameters
+        ----------
+        size : float
+            Length of arrow (base to tip) in units of the figure size.
+        label : string
+            Annotation label of the arrow.
+        loc : tuple of floats
+            Location of the left hand side of the arrow in units of
+            the figure size.
+        labelloc : string
+            Location of the label with respect to the line.  Can be
+            "top" or "bottom"
+        color : `pyx.color.*.*`
+            Color of the arrow.  Example: pyx.color.cymk.white
+        linewidth : `pyx.style.linewidth.*`
+            Width of the arrow.  Example: pyx.style.linewidth.normal
+
+        Examples
+        --------
+        >>> d = DualEPS()
+        >>> d.axis_box(xrange=(0,100), yrange=(1e-3,1), ylog=True)
+        >>> d.insert_image("arrow_image.jpg")
+        >>> d.arrow(size=0.2, label="Black Hole!", loc=(0.05, 0.1))
+        >>> d.save_fig()
+        """
+        line = pyx.path.line(self.figsize[0]*loc[0],
+                             self.figsize[1]*loc[1],
+                             self.figsize[0]*(loc[0]+size),
+                             self.figsize[1]*loc[1])
+        self.canvas.stroke(line, [linewidth, color, pyx.deco.earrow()])
+       
+
+        if labelloc == "bottom":
+            yoff = -0.1*size
+            valign = pyx.text.valign.top
+        else:
+            yoff = +0.1*size
+            valign = pyx.text.valign.bottom
+        if label != "":
+            self.canvas.text(self.figsize[0]*(loc[0]+0.5*size),
+                             self.figsize[1]*(loc[1]+yoff), label,
+                             [color, valign, pyx.text.halign.center])
+
+        
+
+
+#=============================================================================
+
     def scale_line(self, size=0.2, label="", loc=(0.05,0.08), labelloc="top",
                    color=pyx.color.cmyk.white,
                    linewidth=pyx.style.linewidth.normal):
@@ -724,6 +797,7 @@ class DualEPS(object):
         >>> d.scale_line(size=0.2, label="1 kpc", loc=(0.05, 0.1))
         >>> d.save_fig()
         """
+        
         line = pyx.path.line(self.figsize[0]*loc[0],
                              self.figsize[1]*loc[1],
                              self.figsize[0]*(loc[0]+size),
@@ -794,7 +868,7 @@ class DualEPS(object):
         
 #=============================================================================
 
-    def save_fig(self, filename="test", format="eps"):
+    def save_fig(self, filename="test", format="eps", resolution=250):
         r"""Saves current figure to a file.
 
         Parameters
@@ -814,6 +888,10 @@ class DualEPS(object):
             self.canvas.writeEPSfile(filename)
         elif format == "pdf":
             self.canvas.writePDFfile(filename)
+        elif format == "png":
+             self.canvas.writeGSfile(filename+".png", "png16m", resolution=resolution)
+        elif format == "jpg":
+             self.canvas.writeGSfile(filename+".jpeg", "jpeg", resolution=resolution)
         else:
             raise RuntimeError("format %s unknown." % (format))
             
@@ -937,7 +1015,8 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
     d = DualEPS(figsize=figsize)
     count = 0
     for j in range(nrow):
-        ypos = j*(figsize[1] + margins[1])
+        invj = nrow - j - 1
+        ypos = invj*(figsize[1] + margins[1])
         for i in range(ncol):
             xpos = i*(figsize[0] + margins[0])
             index = j*ncol + i
@@ -1003,7 +1082,8 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
             100.0 * d.canvas.bbox().bottom().t,
             100.0 * d.canvas.bbox().top().t - d.figsize[1])
     for j in range(nrow):
-        ypos0 = j*(figsize[1] + margins[1])
+        invj = nrow - j - 1
+        ypos0 = invj*(figsize[1] + margins[1])
         for i in range(ncol):
             xpos0 = i*(figsize[0] + margins[0])
             index = j*ncol + i
@@ -1089,7 +1169,7 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
 
     Examples
     --------
-    >>> pc = PlotCollection(pf)
+    >>> pc = PlotCollection(ds)
     >>> p = pc.add_slice('Density',0,use_colorbar=False)
     >>> p.set_width(0.1,'kpc')
     >>> p1 = pc.add_slice('Temperature',0,use_colorbar=False)
@@ -1201,8 +1281,8 @@ def return_cmap(cmap="algae", label="", range=(0,1), log=False):
 #=============================================================================
 
 #if __name__ == "__main__":
-#    pf = load('/Users/jwise/runs/16Jul09_Pop3/DD0019/output_0019')
-#    pc = PlotCollection(pf)
+#    ds = load('/Users/jwise/runs/16Jul09_Pop3/DD0019/output_0019')
+#    pc = PlotCollection(ds)
 #    p = pc.add_slice('Density',0,use_colorbar=False)
 #    p.set_width(0.1,'kpc')
 #    p1 = pc.add_slice('Temperature',0,use_colorbar=False)

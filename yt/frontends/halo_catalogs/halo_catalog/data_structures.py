@@ -38,12 +38,12 @@ from yt.units.yt_array import \
     YTQuantity
     
 class HaloCatalogHDF5File(ParticleFile):
-    def __init__(self, pf, io, filename, file_id):
+    def __init__(self, ds, io, filename, file_id):
         with h5py.File(filename, "r") as f:
             self.header = dict((field, f.attrs[field]) \
                                for field in f.attrs.keys())
 
-        super(HaloCatalogHDF5File, self).__init__(pf, io, filename, file_id)
+        super(HaloCatalogHDF5File, self).__init__(ds, io, filename, file_id)
     
 class HaloCatalogDataset(Dataset):
     _index_class = ParticleIndex

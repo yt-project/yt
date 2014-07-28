@@ -15,6 +15,7 @@ AMR index container class
 
 import numpy as np
 
+from yt.config import ytcfg
 from yt.funcs import *
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level, \
@@ -37,10 +38,12 @@ class ObjectFindingMixin(object) :
         # So if gRE > coord, we get a mask, if not, we get a zero
         #    if gLE > coord, we get a zero, if not, mask
         # Thus, if the coordinate is between the two edges, we win!
-        np.choose(np.greater(self.grid_right_edge[:,x_dict[axis]],coord[0]),(0,mask),mask)
-        np.choose(np.greater(self.grid_left_edge[:,x_dict[axis]],coord[0]),(mask,0),mask)
-        np.choose(np.greater(self.grid_right_edge[:,y_dict[axis]],coord[1]),(0,mask),mask)
-        np.choose(np.greater(self.grid_left_edge[:,y_dict[axis]],coord[1]),(mask,0),mask)
+        xax = self.ds.coordinates.x_axis[axis]
+        yax = self.ds.coordinates.y_axis[axis]
+        np.choose(np.greater(self.grid_right_edge[:,xax],coord[0]),(0,mask),mask)
+        np.choose(np.greater(self.grid_left_edge[:,xax],coord[0]),(mask,0),mask)
+        np.choose(np.greater(self.grid_right_edge[:,yax],coord[1]),(0,mask),mask)
+        np.choose(np.greater(self.grid_left_edge[:,yax],coord[1]),(mask,0),mask)
         ind = np.where(mask == 1)
         return self.grids[ind], ind
 
@@ -56,7 +59,19 @@ class ObjectFindingMixin(object) :
 
     def find_max_cell_location(self, field, finest_levels = 3):
         if finest_levels is not False:
-            gi = (self.grid_levels >= self.max_level - finest_levels).ravel()
+            # This prevents bad values for the case that the number of grids to
+            # search is smaller than the number of processors being applied to
+            # the task, by 
+            nproc = ytcfg.getint("yt", "__topcomm_parallel_size")
+            while 1:
+                gi = (self.grid_levels >= self.max_level - finest_levels).ravel()
+                if gi.sum() >= nproc:
+                    break
+                elif finest_levels >= self.max_level:
+                    raise YTTooParallel
+                else:
+                    finest_levels += 1
+                
             source = self.grid_collection([0.0]*3, self.grids[gi])
         else:
             source = self.all_data()
@@ -135,7 +150,7 @@ class ObjectFindingMixin(object) :
 
         Examples
         --------
-        >>> pf.h.find_field_value_at_point(['Density', 'Temperature'],
+        >>> ds.h.find_field_value_at_point(['Density', 'Temperature'],
             [0.4, 0.3, 0.8])
         [2.1489e-24, 1.23843e4]
         """
@@ -177,8 +192,8 @@ class ObjectFindingMixin(object) :
         centers = (self.grid_right_edge + self.grid_left_edge)/2.0
         long_axis = np.maximum.reduce(self.grid_right_edge - self.grid_left_edge, 1)
         t = np.abs(centers - center)
-        DW = self.parameter_file.domain_right_edge \
-           - self.parameter_file.domain_left_edge
+        DW = self.dataset.domain_right_edge \
+           - self.dataset.domain_left_edge
         np.minimum(t, np.abs(DW-t), t)
         dist = np.sqrt(np.sum((t**2.0), axis=1))
         gridI = np.where(dist < (radius + long_axis))
@@ -196,8 +211,8 @@ class ObjectFindingMixin(object) :
 
     def get_periodic_box_grids(self, left_edge, right_edge):
         mask = np.zeros(self.grids.shape, dtype='bool')
-        dl = self.parameter_file.domain_left_edge
-        dr = self.parameter_file.domain_right_edge
+        dl = self.dataset.domain_left_edge
+        dr = self.dataset.domain_right_edge
         left_edge = np.array(left_edge)
         right_edge = np.array(right_edge)
         dw = dr - dl
@@ -229,8 +244,8 @@ class ObjectFindingMixin(object) :
     def get_periodic_box_grids_below_level(self, left_edge, right_edge, level,
                                            min_level = 0):
         mask = np.zeros(self.grids.shape, dtype='bool')
-        dl = self.parameter_file.domain_left_edge
-        dr = self.parameter_file.domain_right_edge
+        dl = self.dataset.domain_left_edge
+        dr = self.dataset.domain_right_edge
         left_edge = np.array(left_edge)
         right_edge = np.array(right_edge)
         dw = dr - dl

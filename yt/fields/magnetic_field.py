@@ -77,7 +77,7 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
     def _magnetic_field_poloidal(field,data):
         normal = data.get_field_parameter("normal")
         d = data[ftype,'magnetic_field_x']
-        Bfields = data.pf.arr(
+        Bfields = data.ds.arr(
                     [data[ftype,'magnetic_field_x'],
                      data[ftype,'magnetic_field_y'],
                      data[ftype,'magnetic_field_z']],
@@ -96,7 +96,7 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
     def _magnetic_field_toroidal(field,data):
         normal = data.get_field_parameter("normal")
         d = data[ftype,'magnetic_field_x']
-        Bfields = data.pf.arr(
+        Bfields = data.ds.arr(
                     [data[ftype,'magnetic_field_x'],
                      data[ftype,'magnetic_field_y'],
                      data[ftype,'magnetic_field_z']],

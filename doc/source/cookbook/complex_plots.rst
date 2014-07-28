@@ -36,7 +36,7 @@ This illustrates how to create a multipanel plot of slices along the coordinate
 axes.  To focus on what's happening in the x-y plane, we make an additional
 Temperature slice for the bottom-right subpanel.
 
-.. yt-cookbook:: multiplot_2x2_coordaxes_slice.py
+.. yt_cookbook:: multiplot_2x2_coordaxes_slice.py
 
 Multi-Plot Slice and Projections
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -193,6 +193,15 @@ as well as overplotting grids representing the level of refinement achieved
 in different regions of the code.
 
 .. yt_cookbook:: rendering_with_box_and_grids.py
+
+Volume Rendering with Annotation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This recipe demonstrates how to write the simulation time, show an
+axis triad indicating the direction of the coordinate system, and show
+the transfer function on a volume rendering.
+
+.. yt_cookbook:: vol-annotated.py
 
 Plotting Streamlines
 ~~~~~~~~~~~~~~~~~~~~
