@@ -19,7 +19,7 @@ from yt.utilities.answer_testing.framework import \
     small_patch_amr, \
     big_patch_amr, \
     data_dir_load, \
-    hmf_sim_and_analytic
+    SimHaloMassFunctionTest
 from yt.frontends.enzo.api import EnzoDataset
 
 _fields = ("temperature", "density", "velocity_magnitude",
@@ -70,17 +70,12 @@ def test_galaxy0030():
         test_galaxy0030.__name__ = test.description
         yield test
 
-hds0 = "rockstar_halos/halos_0.0.bin"
-hds1 = "rockstar_halos/halos_0.1.bin"
-@requires_ds(hds0)
-@requires_ds(hds1)
-def test_halo_mass_function():
-    hds = data_dir_load(hds0)
-    yield assert_equal, str(hds), "halos_0.0.bin"
-    for test in hmf_sim_and_analytic(hds):
-    #    print "test.description: ", test.description
-    #    test_halo_mass_function.__name__ = test.description
-       yield test
+enzotiny = "enzo_tiny_cosmology/DD0046/DD0046"
+@requires_ds(enzotiny)
+def test_simulated_halo_mass_function():
+    ds = data_dir_load(enzotiny)
+    for finder in ["fof", "hop"]:
+        yield SimHaloMassFunctionTest(ds, finder)
 
 ecp = "enzo_cosmology_plus/DD0046/DD0046"
 @requires_ds(ecp, big_data=True)

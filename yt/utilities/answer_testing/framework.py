@@ -576,35 +576,31 @@ class ParentageRelationshipsTest(AnswerTestingTest):
         for newc, oldc in zip(new_result["children"], old_result["children"]):
             assert(newp == oldp)
 
-class HaloMassFunctionTest(AnswerTestingTest):
-    _type_name = "HaloMassFunction"
-    _attrs = ('halos_ds')
-    def __init__(self, halos_ds):
-        super(HaloMassFunctionTest, self).__init__(halos_ds)
-        self.halos_ds = halos_ds
+class SimHaloMassFunctionTest(AnswerTestingTest):
+    _type_name = "SimHaloMassFunction"
+    _attrs = ("finder")
 
+    def __init__(self, ds_fn, finder):
+        super(HaloMassFunctionTest, self).__init__(ds_fn)
+        self.finder = finder
+    
     def run(self):
-        result = {}
+        from yt.analysis_modules.halo_analysis.api import HaloCatalog
         from yt.analysis_modules.halo_mass_function.api import HaloMassFcn
-        hmf = HaloMassFcn(halos_ds=self.halos_ds)
-        result["masses_sim"] = hmf.masses_sim
-        result["n_cumulative_sim"] = hmf.n_cumulative_sim
-        result["masses_analytic"] = hmf.masses_analytic
-        result["n_cumulative_analytic"] = hmf.n_cumulative_analytic
-        result["dndM_dM_analytic"] = hmf.dndM_dM_analytic
+        hc = HaloCatalog(data_ds=self.ds, finder_method=self.finder)
+        hc.create()
+        
+        hmf = HaloMassFcn(halos_ds=hc.halos_ds)
+        result = np.empty((2, hmf.masses_sim.size))
+        result[0] = hmf.masses_sim.d
+        result[1] = hmf.n_cumulative_sim.d
         return result
 
     def compare(self, new_result, old_result):
-        for newms, oldms in zip(new_result['masses_sim'], old_result['masses_sim']):
-            assert(newms == oldms)
-        for newncs, oldncs in zip(new_result['n_cumulative_sim'], old_result['n_cumulative_sim']):
-            assert(newncs == oldncs)
-        for newma, oldma in zip(new_result['masses_analytic'], old_result['masses_analytic']):
-            assert(newma == oldma)
-        for newnca, oldnca in zip(new_result['n_cumulative_analytic'], old_result['n_cumulative_analytic']):
-            assert(newnca == oldnca)
-        for newdndmdma, olddndmdma in zip(new_result['dndM_dM_analytic'], old_result['dndM_dM_analytic']):
-            assert(newdndmdma == olddndmdma)
+        err_msg = ("Simulated halo mass functions not equation for " +
+                   "%s halo finder.") % self.finder
+        assert_equal(new_result, old_result,
+                     err_msg=err_msg, verbose=True)
 
 def compare_image_lists(new_result, old_result, decimals):
     fns = ['old.png', 'new.png']
@@ -707,7 +703,7 @@ class GenericImageTest(AnswerTestingTest):
         return comp_imgs
     def compare(self, new_result, old_result):
         compare_image_lists(new_result, old_result, self.decimals)
-        
+
 
 def requires_ds(ds_fn, big_data = False, file_check = False):
     def ffalse(func):
@@ -750,10 +746,6 @@ def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                     yield PixelizedProjectionValuesTest(
                         ds_fn, axis, field, weight_field,
                         dobj_name)
-
-def hmf_sim_and_analytic(halos_ds):
-    if not can_run_ds(halos_ds): return
-    yield HaloMassFunctionTest(halos_ds)
 
 def create_obj(ds, obj_type):
     # obj_type should be tuple of
