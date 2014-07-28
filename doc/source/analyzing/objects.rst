@@ -130,7 +130,8 @@ for the grid cell to be incorporated.
     | Class :fun:`~yt.data_objects.static_output.Dataset.all_data`
     | Usage: ``all_data(find_max=False)``
     | ``all_data()`` is a wrapper on the Box Region class which defaults to 
-      creating a Region covering the entire dataset domain.
+      creating a Region covering the entire dataset domain.  It is effectively 
+      ``ds.region(ds.domain_center, ds.domain_left_edge, ds.domain_right_edge)``.
 
 **Box Region** 
     | Class :class:`~yt.data_objects.data_containers.YTRegionBase`
@@ -146,7 +147,7 @@ for the grid cell to be incorporated.
 **Disk/Cylinder** 
     | Class: :class:`~yt.data_objects.data_containers.YTDiskBase`
     | Usage: ``disk(center, normal, radius, height, fields=None, ds=None, field_parameters=None)``
-    | A cylinder defined by point at the center of one of the circular bases,
+    | A cylinder defined by a point at the center of one of the circular bases,
       a normal vector to it defining the orientation of the length of the
       cylinder, and radius and height values for the cylinder's dimensions.
 
@@ -244,83 +245,84 @@ Construction Objects
 Processing Objects: Derived Quantities
 --------------------------------------
 
-Derived quantities are a way of operating on a collection of cells and
-returning a set of values that is fewer in number than the number of cells --
-yt already knows about several.  Every data object (see
-:ref:`data-objects`) provides a mechanism for access to derived quantities.
-These can be accessed via the ``quantities`` interface, like so:
+Derived quantities are a way of calculating some bulk quantities associated
+with all of the grid cells contained in a data object.  There are several 
+built-in to ``yt``, but you can create your own custome derived quantities 
+as well.  Derived quantities can be accessed via the ``quantities`` interface.
+Here is an example of how to get the angular momentum vector calculated from 
+all the cells contained in a sphere at the center of our dataset.
 
 .. code-block:: python
 
    ds = load("my_data")
-   dd = ds.all_data()
-   dd.quantities.angular_momentum_vector()
+   sp = ds.sphere('c', (10, 'kpc'))
+   print ad.quantities.angular_momentum_vector()
 
 Available Derived Quantities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **Angular Momentum Vector**
-    | Function :func:`~yt.data_objects.derived_quantities.AngularMomentumVector`
+    | Class :class:`~yt.data_objects.derived_quantities.AngularMomentumVector`
     | Usage: ``angular_momentum_vector(use_gas=True, use_particles=True)``
-    | This function returns the mass-weighted average angular momentum vector.
+    | The mass-weighted average angular momentum vector of the particles, gas, 
+      or both.
 
 **Bulk Velocity**
-    | Function :func:`~yt.data_objects.derived_quantities.BulkVelocity`
+    | Class :class:`~yt.data_objects.derived_quantities.BulkVelocity`
     | Usage: ``bulk_velocity(use_gas=True, use_particles=True)``
-    | This function returns the mass-weighted average velocity in the object.
+    | The mass-weighted average velocity of the particles, gas, or both.
 
 **Center of Mass**
-    | Function :func:`~yt.data_objects.derived_quantities.CenterOfMass`
+    | Class :class:`~yt.data_objects.derived_quantities.CenterOfMass`
     | Usage: ``center_of_mass(use_cells=True, use_particles=False)``
-    | This function returns the location of the center
-      of mass. By default, it computes of the *non-particle* data in the object.
+    | The location of the center of mass. By default, it computes of 
+      the *non-particle* data in the object, but it can be used on 
+      particles, gas, or both.
 
 **Extrema**
-    | Function :func:`~yt.data_objects.derived_quantities.Extrema`
+    | Class :class:`~yt.data_objects.derived_quantities.Extrema`
     | Usage: ``extrema(fields, non_zero=False)``
-    | This function returns the extrema of a field or list of fields.
+    | The extrema of a field or list of fields.
 
 **Maximum Location**
-    | Function :func:`~yt.data_objects.derived_quantities.max_location`
+    | Class :class:`~yt.data_objects.derived_quantities.max_location`
     | Usage: ``max_location(fields)``
-    | This function returns the maximum of a field or list of fields as well
+    | The maximum of a field or list of fields as well
       as the x,y,z location of that maximum.
 
 **Minimum Location**
-    | Function :func:`~yt.data_objects.derived_quantities.min_location`
+    | Class :class:`~yt.data_objects.derived_quantities.min_location`
     | Usage: ``min_location(fields)``
-    | This function returns the minimum of a field or list of fields as well
+    | The minimum of a field or list of fields as well
       as the x,y,z location of that minimum.
 
 **Spin Parameter**
-    | Function :func:`~yt.data_objects.derived_quantities.SpinParameter`
+    | Class :class:`~yt.data_objects.derived_quantities.SpinParameter`
     | Usage: ``spin_parameter(use_gas=True, use_particles=True)``
-    | This function returns the spin parameter for the baryons, but it uses
-      the particles in calculating enclosed mass.
+    | The spin parameter for the baryons using the particles, gas, or both.
 
 **Total Mass**
-    | Function :func:`~yt.data_objects.derived_quantities.TotalMass`
+    | Class :class:`~yt.data_objects.derived_quantities.TotalMass`
     | Usage: ``total_mass()``
-    | This function takes no arguments and returns a tuple containing the sum of 
-      mesh-cell masses and particle masses in the object.
+    | The total mass of the object as a tuple of (total gas, total particle)
+      mass.
 
 **Total of a Field**
-    | Function :func:`~yt.data_objects.derived_quantities.TotalQuantity`
+    | Class :class:`~yt.data_objects.derived_quantities.TotalQuantity`
     | Usage: ``total_quantity(fields)``
-    | This function sums up a given field (or list of fields) over the entire 
-      region.
+    | The sum of a given field (or list of fields) over the entire object.
 
 **Weighted Average of a Field**
-    | Function :func:`~yt.data_objects.derived_quantities.WeightedAverageQuantity`
+    | Class :class:`~yt.data_objects.derived_quantities.WeightedAverageQuantity`
     | Usage: ``weighted_average_quantity(fields, weight)``
-    | This function returns a weighted average of a field (or list of fields)
+    | The weighted average of a field (or list of fields)
       over an entire data object.  If you want an unweighted average, 
       then set your weight to be the field: ``ones``.
 
 **Weighted Variance of a Field**
-    | Function :func:`~yt.data_objects.derived_quantities.WeightedVariance`
+    | Class :class:`~yt.data_objects.derived_quantities.WeightedVariance`
     | Usage: ``weighted_variance(fields, weight)``
-    | This function returns weighted variance of a field (or list of fields)
+    | The weighted variance of a field (or list of fields)
       over an entire data object and the weighted mean.  
       If you want an unweighted variance, then 
       set your weight to be the field: ``ones``.
