@@ -110,7 +110,7 @@ The volume rendering in ``yt`` follows a relatively straightforward approach.
       the vertex-centered data.
    #. Each transfer function is evaluated at each sample point.  This gives us,
       for each channel, both emission (:math:`j`) and absorption
-      (:math:`alpha`) values.
+      (:math:`\alpha`) values.
    #. The value for the pixel corresponding to the current ray is updated with
       new values calculated by rectangular integration over the path length:
 
