@@ -208,7 +208,7 @@ class CenterOfMass(DerivedQuantity):
     use_particles : bool
         Flag to include particles in the calculation.  Particles are ignored 
         if not present.
-        Default: True
+        Default: False
 
     Examples
     --------
