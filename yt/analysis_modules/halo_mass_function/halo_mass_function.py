@@ -16,16 +16,14 @@ halo_mass_function - Halo Mass Function and supporting functions.
 import numpy as np
 import math, time
 
-from yt.funcs import *
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelDummy, \
-    ParallelAnalysisInterface, \
-    parallel_blocking_call
+from yt.funcs import mylog
+from yt.units.yt_array import \
+    YTArray, \
+    YTQuantity
 from yt.utilities.physical_ratios import \
     rho_crit_g_cm3_h2
-from yt.utilities.logger import ytLogger as mylog
 
-class HaloMassFcn(ParallelAnalysisInterface):
+class HaloMassFcn():
     r"""
     Initalize a HaloMassFcn object to analyze the distribution of halos as 
     a function of mass.  A mass function can be created for a set of 
@@ -158,7 +156,6 @@ class HaloMassFcn(ParallelAnalysisInterface):
     omega_matter0=0.2726, omega_lambda0=0.7274, omega_baryon0=0.0456, hubble0=0.704, 
     sigma8=0.86, primordial_index=1.0, this_redshift=0, log_mass_min=None, 
     log_mass_max=None, num_sigma_bins=360, fitting_function=4):
-        ParallelAnalysisInterface.__init__(self)
         self.simulation_ds = simulation_ds
         self.halos_ds = halos_ds
         self.omega_matter0 = omega_matter0
@@ -285,7 +282,7 @@ class HaloMassFcn(ParallelAnalysisInterface):
         if analytic:
             if self.make_analytic:
                 fitname = prefix + '-analytic.dat'
-                fp = self.comm.write_on_root(fitname)
+                fp = open(fitname, "w")
                 line = \
                 """#Columns:
 #1. mass (M_solar)
@@ -308,7 +305,7 @@ when creating the HaloMassFcn object.")
         if simulated:
             if self.make_simulated:
                 haloname = prefix + '-simulated.dat'
-                fp = self.comm.write_on_root(haloname)
+                fp = open(haloname, "w")
                 line = \
                 """#Columns:
 #1. mass (M_solar)
