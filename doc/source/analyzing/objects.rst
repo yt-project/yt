@@ -12,7 +12,7 @@ of the dataset as a whole.  Some of the data objects are geometrical groupings
 of data (e.g. sphere, region--a 3D box, cylinder, etc.).  Others represent 
 data products derived from your dataset (e.g. slices, streamlines, surfaces).
 Still other data objects group multiple objects together or filter them
-(e.g. data dollection, cut region).  
+(e.g. data collection, cut region).  
 
 To generate standard plots, objects rarely need to be directly constructed.
 However, for detailed data inspection as well as hand-crafted derived data,

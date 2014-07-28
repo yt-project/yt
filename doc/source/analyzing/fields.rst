@@ -183,19 +183,22 @@ two properties:
 
 When a field is added, it is added to a container that hangs off of the
 dataset, as well.  All of the field creation options
-(:ref:`derived-field-options`) are accessible through this object:
+(:ref:`derived-field-options`) are accessible through this object.  One
+can get the default units of a field by first indexing and then using the
+``get_units()`` function on the full field name (e.g. ("gas", "pressure")):
 
 .. code-block:: python
 
    ds = yt.load("my_data")
-   print ds.field_info["pressure"].get_units()
+   ds.index
+   print ds.field_info["gas", "pressure"].get_units()
 
 This is a fast way to examine the units of a given field, and additionally you
 can use :meth:`yt.utilities.pydot.get_source` to get the source code for a field:
 
 .. code-block:: python
 
-   field = ds.field_info["pressure"]
+   field = ds.field_info["gas", "pressure"]
    print field.get_source()
 
 Particle Fields
