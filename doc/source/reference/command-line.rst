@@ -64,7 +64,8 @@ This will print the list of available subcommands,
                         (http://hub.yt-project.org/), creating a BitBucket
                         repo in the process if necessary.
     instinfo            Get some information about the yt installation
-    version             Get some information about the yt installation
+    version             Get some information about the yt installation (this
+                        is an alias for instinfo).
     load                Load a single dataset into an IPython instance
     pastebin            Post a script to an anonymous pastebin
     pastebin_grab       Print an online pastebin to STDOUT for local use.
