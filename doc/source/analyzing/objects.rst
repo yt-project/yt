@@ -176,7 +176,7 @@ See also the section on :ref:`filtering-data`.
 **Boolean Regions** 
     | **Note: not yet implemented in yt 3.0**
     | Usage: ``boolean()``
-    See :ref:`boolean-data-objects`.
+    See :ref:`boolean_data_objects`.
 
 **Filter** 
     | Class :class:`~yt.data_objects.data_containers.YTCutRegionBase`

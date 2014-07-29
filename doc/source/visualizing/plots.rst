@@ -560,7 +560,7 @@ When created, they default to the average: in fact, they default to the average
 as weighted by the total cell mass.  However, this can be modified to take
 either the total value or the average with respect to a different quantity.
 
-Profiles operate on :ref:`data objects <using-objects>`; they will take the
+Profiles operate on :ref:`data objects <data-objects>`; they will take the
 entire data contained in a sphere, a prism, an extracted region and so on, and
 they will calculate and use that as input to their calculation.  To make a 1D
 profile plot, create a (:class:`~yt.visualization.profile_plotter.ProfilePlot`)
