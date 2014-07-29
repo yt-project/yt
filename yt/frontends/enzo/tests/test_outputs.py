@@ -18,7 +18,9 @@ from yt.utilities.answer_testing.framework import \
     requires_ds, \
     small_patch_amr, \
     big_patch_amr, \
-    data_dir_load
+    data_dir_load, \
+    AnalyticHaloMassFunctionTest, \
+    SimulatedHaloMassFunctionTest
 from yt.frontends.enzo.api import EnzoDataset
 
 _fields = ("temperature", "density", "velocity_magnitude",
@@ -68,6 +70,19 @@ def test_galaxy0030():
     for test in big_patch_amr(g30, _fields):
         test_galaxy0030.__name__ = test.description
         yield test
+
+enzotiny = "enzo_tiny_cosmology/DD0046/DD0046"
+@requires_ds(enzotiny)
+def test_simulated_halo_mass_function():
+    ds = data_dir_load(enzotiny)
+    for finder in ["fof", "hop"]:
+        yield SimulatedHaloMassFunctionTest(ds, finder)
+
+@requires_ds(enzotiny)
+def test_analytic_halo_mass_function():
+    ds = data_dir_load(enzotiny)
+    for fit in range(1, 6):
+        yield AnalyticHaloMassFunctionTest(ds, fit)
 
 ecp = "enzo_cosmology_plus/DD0046/DD0046"
 @requires_ds(ecp, big_data=True)

@@ -97,6 +97,8 @@ mass_neptun_grams = mass_sun_grams / 19412.24
 # flux
 jansky_cgs = 1.0e-23
 # Cosmological constants
+# Calculated with H = 100 km/s/Mpc, value given in units of h^2 g cm^-3
+# Multiply by h^2 to get the critical density in units of g cm^-3
 rho_crit_g_cm3_h2 = 1.8788e-29
 primordial_H_mass_fraction = 0.76
 

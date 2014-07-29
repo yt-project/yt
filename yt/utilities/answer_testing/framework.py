@@ -576,6 +576,55 @@ class ParentageRelationshipsTest(AnswerTestingTest):
         for newc, oldc in zip(new_result["children"], old_result["children"]):
             assert(newp == oldp)
 
+class SimulatedHaloMassFunctionTest(AnswerTestingTest):
+    _type_name = "SimulatedHaloMassFunction"
+    _attrs = ("finder",)
+
+    def __init__(self, ds_fn, finder):
+        super(SimulatedHaloMassFunctionTest, self).__init__(ds_fn)
+        self.finder = finder
+    
+    def run(self):
+        from yt.analysis_modules.halo_analysis.api import HaloCatalog
+        from yt.analysis_modules.halo_mass_function.api import HaloMassFcn
+        hc = HaloCatalog(data_ds=self.ds, finder_method=self.finder)
+        hc.create()
+        
+        hmf = HaloMassFcn(halos_ds=hc.halos_ds)
+        result = np.empty((2, hmf.masses_sim.size))
+        result[0] = hmf.masses_sim.d
+        result[1] = hmf.n_cumulative_sim.d
+        return result
+
+    def compare(self, new_result, old_result):
+        err_msg = ("Simulated halo mass functions not equation for " +
+                   "%s halo finder.") % self.finder
+        assert_equal(new_result, old_result,
+                     err_msg=err_msg, verbose=True)
+
+class AnalyticHaloMassFunctionTest(AnswerTestingTest):
+    _type_name = "AnalyticHaloMassFunction"
+    _attrs = ("fitting_function",)
+
+    def __init__(self, ds_fn, fitting_function):
+        super(AnalyticHaloMassFunctionTest, self).__init__(ds_fn)
+        self.fitting_function = fitting_function
+    
+    def run(self):
+        from yt.analysis_modules.halo_mass_function.api import HaloMassFcn
+        hmf = HaloMassFcn(simulation_ds=self.ds,
+                          fitting_function=self.fitting_function)
+        result = np.empty((2, hmf.masses_analytic.size))
+        result[0] = hmf.masses_analytic.d
+        result[1] = hmf.n_cumulative_analytic.d
+        return result
+
+    def compare(self, new_result, old_result):
+        err_msg = ("Analytic halo mass functions not equation for " +
+                   "fitting function %d.") % self.fitting_function
+        assert_equal(new_result, old_result,
+                     err_msg=err_msg, verbose=True)
+
 def compare_image_lists(new_result, old_result, decimals):
     fns = ['old.png', 'new.png']
     num_images = len(old_result)
@@ -677,7 +726,7 @@ class GenericImageTest(AnswerTestingTest):
         return comp_imgs
     def compare(self, new_result, old_result):
         compare_image_lists(new_result, old_result, self.decimals)
-        
+
 
 def requires_ds(ds_fn, big_data = False, file_check = False):
     def ffalse(func):
