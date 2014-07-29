@@ -172,7 +172,7 @@ cdef void rh_analyze_halo(halo *h, particle *hp):
 
 cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     global SCALE_NOW
-    cdef np.float64_t conv[6], left_edge[6]
+    cdef np.float64_t left_edge[6]
     cdef np.ndarray[np.int64_t, ndim=1] arri
     cdef np.ndarray[np.float64_t, ndim=1] arr
     cdef unsigned long long pi,fi,i
@@ -203,8 +203,6 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
 
     p[0] = <particle *> malloc(sizeof(particle) * local_parts)
 
-    conv[0] = conv[1] = conv[2] = ds.length_unit.in_units("Mpccm/h")
-    conv[3] = conv[4] = conv[5] = ds.velocity_unit.in_units("km/s")
     left_edge[0] = ds.domain_left_edge[0]
     left_edge[1] = ds.domain_left_edge[1]
     left_edge[2] = ds.domain_left_edge[2]
@@ -226,12 +224,12 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
                       "particle_velocity_x", "particle_velocity_y",
                       "particle_velocity_z"]:
             if "position" in field:
-                unit = "code_length"
+                unit = "Mpccm/h"
             else:
-                unit = "code_velocity"
+                unit = "km/s"
             arr = chunk[rh.particle_type, field].in_units(unit).astype("float64")
             for i in range(npart):
-                p[0][i+pi].pos[fi] = (arr[i]-left_edge[fi])*conv[fi]
+                p[0][i+pi].pos[fi] = (arr[i]-left_edge[fi])
             fi += 1
         pi += npart
     num_p[0] = local_parts
