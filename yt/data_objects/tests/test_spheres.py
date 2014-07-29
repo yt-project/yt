@@ -31,17 +31,22 @@ def test_domain_sphere():
                                sp1["radial_velocity"]), False
 
     # Radial profile without correction
+    # Note we set n_bins = 8 here.
 
     rp0 = create_profile(sp0, 'radius', 'radial_velocity',
                          units = {'radius': 'kpc'},
-                         logs = {'radius': False})
+                         logs = {'radius': False},
+                         n_bins = 8)
 
     # Radial profile with correction for bulk velocity
 
     rp1 = create_profile(sp1, 'radius', 'radial_velocity',
                          units = {'radius': 'kpc'},
-                         logs = {'radius': False})
+                         logs = {'radius': False},
+                         n_bins = 8)
 
     yield assert_equal, rp0.x_bins, rp1.x_bins
-    yield assert_equal, np.any(rp0["radial_velocity"] ==
-                               rp1["radial_velocity"]), False
+    yield assert_equal, rp0.used, rp1.used
+    yield assert_equal, np.any(rp0["radial_velocity"][rp0.used] ==
+                               rp1["radial_velocity"][rp1.used]), \
+                               False
