@@ -697,15 +697,21 @@ def obtain_rv_vec(data, field_names = ("velocity_x",
     cdef np.float64_t bv[3]
     cdef int i, j, k
     bulk_vector = data.get_field_parameter(bulk_vector)
-    if bulk_vector == None:
-        bulk_vector = np.zeros(3)
-    bv[0] = bulk_vector[0]; bv[1] = bulk_vector[1]; bv[2] = bulk_vector[2]
     if len(data[field_names[0]].shape) == 1:
         # One dimensional data
         vxf = data[field_names[0]].astype("float64")
         vyf = data[field_names[1]].astype("float64")
         vzf = data[field_names[2]].astype("float64")
+        vyf.convert_to_units(vxf.units)
+        vzf.convert_to_units(vxf.units)
         rvf = YTArray(np.empty((3, vxf.shape[0]), 'float64'), vxf.units)
+        if bulk_vector is None:
+            bv[0] = bv[1] = bv[2] = 0.0
+        else:
+            bulk_vector = bulk_vector.in_units(vxf.units)
+            bv[0] = bulk_vector[0]
+            bv[1] = bulk_vector[1]
+            bv[2] = bulk_vector[2]
         for i in range(vxf.shape[0]):
             rvf[0, i] = vxf[i] - bv[0]
             rvf[1, i] = vyf[i] - bv[1]
@@ -716,8 +722,17 @@ def obtain_rv_vec(data, field_names = ("velocity_x",
         vxg = data[field_names[0]].astype("float64")
         vyg = data[field_names[1]].astype("float64")
         vzg = data[field_names[2]].astype("float64")
+        vyg.convert_to_units(vxg.units)
+        vzg.convert_to_units(vxg.units)
         shape = (3, vxg.shape[0], vxg.shape[1], vxg.shape[2])
         rvg = YTArray(np.empty(shape, 'float64'), vxg.units)
+        if bulk_vector is None:
+            bv[0] = bv[1] = bv[2] = 0.0
+        else:
+            bulk_vector = bulk_vector.in_units(vxg.units)
+            bv[0] = bulk_vector[0]
+            bv[1] = bulk_vector[1]
+            bv[2] = bulk_vector[2]
         for i in range(vxg.shape[0]):
             for j in range(vxg.shape[1]):
                 for k in range(vxg.shape[2]):
