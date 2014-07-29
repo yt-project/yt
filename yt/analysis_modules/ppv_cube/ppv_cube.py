@@ -17,14 +17,6 @@ from yt.utilities.fits_image import FITSImageBuffer
 from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.funcs import get_pbar
 
-def create_intensity(vmin, vmax, ifield):
-    def _intensity(field, data):
-        idxs = (data["v_los"] >= vmin) & (data["v_los"] < vmax)
-        f = np.zeros(data[ifield].shape)
-        f[idxs] = data[ifield][idxs]
-        return f
-    return _intensity
-
 def create_vlos(z_hat):
     def _v_los(field, data):
         vz = data["velocity_x"]*z_hat[0] + \
@@ -90,9 +82,11 @@ class PPVCube(object):
             self.v_bnd = -vmax, vmax
         else:
             self.v_bnd = (ds.quan(velocity_bounds[0], velocity_bounds[2]),
-                     ds.quan(velocity_bounds[1], velocity_bounds[2]))
+                          ds.quan(velocity_bounds[1], velocity_bounds[2]))
 
-        vbins = np.linspace(self.v_bnd[0], self.v_bnd[1], num=self.nv+1)
+        self.vbins = np.linspace(self.v_bnd[0], self.v_bnd[1], num=self.nv+1)
+        self.vmid = 0.5*(self.vbins[1:]+self.vbins[:-1])
+        self.dv = (self.v_bnd[1]-self.v_bnd[0])/self.nv
 
         _vlos = create_vlos(orient.unit_vectors[2])
         ds.field_info.add_field(("gas","v_los"), function=_vlos, units="cm/s")
@@ -100,11 +94,8 @@ class PPVCube(object):
         self.data = ds.arr(np.zeros((self.nx,self.ny,self.nv)), self.field_units)
         pbar = get_pbar("Generating cube.", self.nv)
         for i in xrange(self.nv):
-            v1 = vbins[i]
-            v2 = vbins[i+1]
-            _intensity = create_intensity(v1, v2, field)
-            ds.field_info.add_field(("gas","intensity"),
-                                    function=_intensity, units=self.field_units)
+            _intensity = self._create_intensity(i)
+            ds.add_field(("gas","intensity"), function=_intensity, units=self.field_units)
             prj = off_axis_projection(ds, ds.domain_center, normal, width,
                                       (self.nx, self.ny), "intensity")
             self.data[:,:,i] = prj[:,:]
@@ -145,7 +136,7 @@ class PPVCube(object):
 
         dx = length_unit[0]/self.nx
         dy = length_unit[0]/self.ny
-        dv = (self.v_bnd[1]-self.v_bnd[0]).in_units("m/s").value/self.nv
+        dv = self.dv.in_units("m/s").value
 
         if length_unit[1] == "deg":
             dx *= -1.
@@ -162,3 +153,12 @@ class PPVCube(object):
         fib[0].header["btype"] = self.field
 
         fib.writeto(filename, clobber=clobber)
+
+    def _create_intensity(self, i):
+        def _intensity(field, data):
+            vlos = data["v_los"]
+            w = np.abs(vlos-self.vmid[i])/self.dv.in_units(vlos.units)
+            w = 1.-w
+            w[w < 0.0] = 0.0
+            return data[self.field]*w
+        return _intensity

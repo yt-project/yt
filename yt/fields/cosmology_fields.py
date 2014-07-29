@@ -61,12 +61,12 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
 
     # rho_total / rho_cr(z).
     def _overdensity(field, data):
-        if not hasattr(data.pf, "cosmological_simulation") or \
-          not data.pf.cosmological_simulation:
+        if not hasattr(data.ds, "cosmological_simulation") or \
+          not data.ds.cosmological_simulation:
             raise NeedsConfiguration("cosmological_simulation", 1)
-        co = data.pf.cosmology
+        co = data.ds.cosmology
         return data[ftype, "matter_density"] / \
-          co.critical_density(data.pf.current_redshift)
+          co.critical_density(data.ds.current_redshift)
     
     registry.add_field((ftype, "overdensity"),
                        function=_overdensity,
@@ -74,17 +74,17 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
 
     # rho_baryon / <rho_baryon>
     def _baryon_overdensity(field, data):
-        if not hasattr(data.pf, "cosmological_simulation") or \
-          not data.pf.cosmological_simulation:
+        if not hasattr(data.ds, "cosmological_simulation") or \
+          not data.ds.cosmological_simulation:
             raise NeedsConfiguration("cosmological_simulation", 1)
         omega_baryon = data.get_field_parameter("omega_baryon")
         if omega_baryon is None:
             raise NeedsParameter("omega_baryon")
-        co = data.pf.cosmology
+        co = data.ds.cosmology
         # critical_density(z) ~ omega_lambda + omega_matter * (1 + z)^3
         # mean density(z) ~ omega_matter * (1 + z)^3
         return data[ftype, "density"] / omega_baryon / co.critical_density(0.0) / \
-          (1.0 + data.pf.hubble_constant)**3
+          (1.0 + data.ds.hubble_constant)**3
 
     registry.add_field((ftype, "baryon_overdensity"),
                        function=_baryon_overdensity,
@@ -93,15 +93,15 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
 
     # rho_matter / <rho_matter>
     def _matter_overdensity(field, data):
-        if not hasattr(data.pf, "cosmological_simulation") or \
-          not data.pf.cosmological_simulation:
+        if not hasattr(data.ds, "cosmological_simulation") or \
+          not data.ds.cosmological_simulation:
             raise NeedsConfiguration("cosmological_simulation", 1)
-        co = data.pf.cosmology
+        co = data.ds.cosmology
         # critical_density(z) ~ omega_lambda + omega_matter * (1 + z)^3
         # mean density(z) ~ omega_matter * (1 + z)^3
-        return data[ftype, "density"] / data.pf.omega_matter / \
+        return data[ftype, "density"] / data.ds.omega_matter / \
           co.critical_density(0.0) / \
-          (1.0 + data.pf.hubble_constant)**3
+          (1.0 + data.ds.hubble_constant)**3
 
     registry.add_field((ftype, "matter_overdensity"),
                        function=_matter_overdensity,
@@ -111,19 +111,19 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
     # Eqn 4 of Metzler, White, & Loken (2001, ApJ, 547, 560).
     # This needs to be checked for accuracy.
     def _weak_lensing_convergence(field, data):
-        if not hasattr(data.pf, "cosmological_simulation") or \
-          not data.pf.cosmological_simulation:
+        if not hasattr(data.ds, "cosmological_simulation") or \
+          not data.ds.cosmological_simulation:
             raise NeedsConfiguration("cosmological_simulation", 1)
-        co = data.pf.cosmology
+        co = data.ds.cosmology
         observer_redshift = data.get_field_parameter('observer_redshift')
         source_redshift = data.get_field_parameter('source_redshift')
         
         # observer to lens
-        dl = co.angular_diameter_distance(observer_redshift, data.pf.current_redshift)
+        dl = co.angular_diameter_distance(observer_redshift, data.ds.current_redshift)
         # observer to source
         ds = co.angular_diameter_distance(observer_redshift, source_redshift)
         # lens to source
-        dls = co.angular_diameter_distance(data.pf.current_redshift, source_redshift)
+        dls = co.angular_diameter_distance(data.ds.current_redshift, source_redshift)
 
         # removed the factor of 1 / a to account for the fact that we are projecting 
         # with a proper distance.

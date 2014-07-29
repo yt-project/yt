@@ -21,6 +21,7 @@ and contributing code!
    testing
    debugdrive
    creating_datatypes
+   creating_derived_fields
    creating_derived_quantities
    creating_frontend
    building_the_docs

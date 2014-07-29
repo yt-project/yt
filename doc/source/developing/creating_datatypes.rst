@@ -1,6 +1,6 @@
 .. _creating-objects:
 
-Creating 3D Datatypes
+Creating Data Objects
 =====================
 
 The three-dimensional datatypes in yt follow a fairly simple protocol.  The

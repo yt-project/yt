@@ -1,20 +1,36 @@
-from yt.mods import *
+import yt
+yt.enable_parallelism()
+import collections
 
-# Instantiate a time series object for an Enzo simulation..
-my_sim = simulation('enzo_tiny_cosmology/32Mpc_32.enzo', 'Enzo')
+# Enable parallelism in the script (assuming it was called with 
+# `mpirun -np <n_procs>` )
+yt.enable_parallelism()
 
-# Get a time series for all data made by the simulation.
-my_sim.get_time_series()
+# By using wildcards such as ? and * with the load command, we can load up a 
+# Time Series containing all of these datasets simultaneously.
+ts = yt.load('enzo_tiny_cosmology/DD????/DD????')
 
-# Calculate and store extrema for all datasets.
-all_storage = {}
-for my_storage, pf in my_sim.piter(storage=all_storage):
-    all_data = pf.h.all_data()
-    my_extrema = all_data.quantities['Extrema']('density')
+# Calculate and store density extrema for all datasets along with redshift
+# in a data dictionary with entries as tuples
 
-    # Save to storage so we can get at it afterward.
-    my_storage.result = my_extrema
+# Create an empty dictionary
+data = {}
+
+# Iterate through each dataset in the Time Series (using piter allows it 
+# to happen in parallel automatically across available processors)
+for ds in ts.piter():
+    ad = ds.all_data()
+    extrema = ad.quantities.extrema('density')
+
+    # Fill the dictionary with extrema and redshift information for each dataset
+    data[ds.basename] = (extrema, ds.current_redshift)
+
+# Convert dictionary to ordered dictionary to get the right order
+od = collections.OrderedDict(sorted(data.items()))
 
 # Print out all the values we calculated.
-for my_result in all_storage.values():
-    print my_result
+print "Dataset      Redshift        Density Min      Density Max"
+print "---------------------------------------------------------"
+for key, val in od.iteritems(): 
+    print "%s       %05.3f          %5.3g g/cm^3   %5.3g g/cm^3" % \
+           (key, val[1], val[0][0], val[0][1])

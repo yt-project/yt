@@ -36,10 +36,6 @@ cdef extern from "math.h":
     long int lrint(double x) nogil
     double fabs(double x) nogil
 
-ctypedef fused anyfloat:
-    np.float32_t
-    np.float64_t
-
 # These routines are separated into a couple different categories:
 #
 #   * Routines for identifying intersections of an object with a bounding box
@@ -117,18 +113,18 @@ cdef class SelectorObject:
         self.overlap_cells = 0
 
         for i in range(3) :
-            pf = getattr(dobj, 'pf', None)
-            if pf is None:
+            ds = getattr(dobj, 'ds', None)
+            if ds is None:
                 for i in range(3):
                     # NOTE that this is not universal.
                     self.domain_width[i] = 1.0
                     self.periodicity[i] = False
             else:
-                DLE = _ensure_code(pf.domain_left_edge)
-                DRE = _ensure_code(pf.domain_right_edge)
+                DLE = _ensure_code(ds.domain_left_edge)
+                DRE = _ensure_code(ds.domain_right_edge)
                 for i in range(3):
                     self.domain_width[i] = DRE[i] - DLE[i]
-                    self.periodicity[i] = pf.periodicity[i]
+                    self.periodicity[i] = ds.periodicity[i]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -335,10 +331,10 @@ cdef class SelectorObject:
         # domain_width is already in code units, and we assume what is fed in
         # is too.
         cdef np.float64_t rel = x1 - x2
-        if self.periodicity[d] :
-            if rel > self.domain_width[d]/2.0 :
+        if self.periodicity[d]:
+            if rel > self.domain_width[d] * 0.5:
                 rel -= self.domain_width[d]
-            elif rel < -self.domain_width[d]/2.0 :
+            elif rel < -self.domain_width[d] * 0.5:
                 rel += self.domain_width[d]
         return rel
 
@@ -491,10 +487,11 @@ cdef class SelectorObject:
         cdef int i
         cdef np.float64_t pos[3]
         cdef np.ndarray[np.uint8_t, ndim=1] mask 
-        mask = np.zeros(x.shape[0], dtype='uint8')
+        mask = np.empty(x.shape[0], dtype='uint8')
         _ensure_code(x)
         _ensure_code(y)
         _ensure_code(z)
+
 
         # this is to allow selectors to optimize the point vs
         # 0-radius sphere case.  These two may have different 
@@ -517,7 +514,7 @@ cdef class SelectorObject:
                     mask[i] = self.select_sphere(pos, radius)
                     count += mask[i]
         if count == 0: return None
-        return mask.astype("bool")
+        return mask.view("bool")
 
     def __hash__(self):
         return hash(self._hash_vals() + self._base_hash())
@@ -534,16 +531,88 @@ cdef class SelectorObject:
                 self.domain_width[1],
                 self.domain_width[2])
 
+
+cdef class PointSelector(SelectorObject):
+    cdef np.float64_t p[3]
+
+    def __init__(self, dobj):
+        for i in range(3):
+            self.p[i] = _ensure_code(dobj.p[i])
+
+            # ensure the point lies in the domain
+            if self.periodicity[i]:
+                self.p[i] = np.fmod(self.p[i], self.domain_width[i])
+                if self.p[i] < 0.0:
+                    self.p[i] += self.domain_width[i]
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        if (pos[0] - 0.5*dds[0] <= self.p[0] < pos[0]+0.5*dds[0] and
+            pos[1] - 0.5*dds[1] <= self.p[1] < pos[1]+0.5*dds[1] and
+            pos[2] - 0.5*dds[2] <= self.p[2] < pos[2]+0.5*dds[2]):
+            return 1
+        else:
+            return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+        cdef int i
+        cdef np.float64_t dist, dist2 = 0
+        for i in range(3):
+            dist = self.difference(pos[i], self.p[i], i)
+            dist2 += dist*dist
+        if dist2 <= radius*radius: return 1
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        cdef int i
+        # point definitely can only be in one cell
+        if (left_edge[0] <= self.p[0] < right_edge[0] and
+            left_edge[1] <= self.p[1] < right_edge[1] and
+            left_edge[2] <= self.p[2] < right_edge[2]):
+            return 1
+        else:
+            return 0
+
+    def _hash_vals(self):
+        return (self.p[0], self.p[1], self.p[2])
+
+point_selector = PointSelector
+
+
 cdef class SphereSelector(SelectorObject):
     cdef np.float64_t radius
     cdef np.float64_t radius2
     cdef np.float64_t center[3]
+    cdef np.float64_t bbox[3][2]
+    cdef bint check_box[3]
 
     def __init__(self, dobj):
         for i in range(3):
-            self.center[i] = dobj.center[i]
+            self.center[i] = _ensure_code(dobj.center[i])
         self.radius = _ensure_code(dobj.radius)
         self.radius2 = self.radius * self.radius
+        center = _ensure_code(dobj.center)
+        cdef np.float64_t mi = np.finfo("float64").min
+        cdef np.float64_t ma = np.finfo("float64").max
+        for i in range(3):
+            self.center[i] = center[i]
+            self.bbox[i][0] = self.center[i] - self.radius
+            self.bbox[i][1] = self.center[i] + self.radius
+            if self.bbox[i][0] < dobj.ds.domain_left_edge[i]:
+                self.check_box[i] = False
+            elif self.bbox[i][1] > dobj.ds.domain_right_edge[i]:
+                self.check_box[i] = False
+            else:
+                self.check_box[i] = True
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -563,10 +632,15 @@ cdef class SphereSelector(SelectorObject):
         cdef int i
         cdef np.float64_t dist, dist2 = 0
         for i in range(3):
-            dist = self.difference(pos[i], self.center[i], i)
+            if self.check_box[i] and \
+              (pos[i] < self.bbox[i][0] or 
+               pos[i] > self.bbox[i][1]):
+                return 0
+            dist = _periodic_dist(pos[i], self.center[i], self.domain_width[i],
+                                  self.periodicity[i])
             dist2 += dist*dist
-        if dist2 <= self.radius2: return 1
-        return 0
+            if dist2 > self.radius2: return 0
+        return 1
    
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -592,16 +666,22 @@ cdef class SphereSelector(SelectorObject):
             left_edge[1] <= self.center[1] <= right_edge[1] and
             left_edge[2] <= self.center[2] <= right_edge[2]):
             return 1
+        for i in range(3):
+            if not self.check_box[i]: continue
+            if right_edge[i] < self.bbox[i][0] or \
+               left_edge[i] > self.bbox[i][1]:
+                return 0
         # http://www.gamedev.net/topic/335465-is-this-the-simplest-sphere-aabb-collision-test/
         dist = 0
         for i in range(3):
+            # Early terminate
             box_center = (right_edge[i] + left_edge[i])/2.0
             relcenter = self.difference(box_center, self.center[i], i)
             edge = right_edge[i] - left_edge[i]
             closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
             dist += closest*closest
-        if dist <= self.radius2: return 1
-        return 0
+            if dist > self.radius2: return 0
+        return 1
 
     def _hash_vals(self):
         return (self.radius, self.radius2,
@@ -620,36 +700,42 @@ cdef class RegionSelector(SelectorObject):
         # do an in-place conversion of those arrays.
         _ensure_code(dobj.right_edge)
         _ensure_code(dobj.left_edge)
-        DW = _ensure_code(dobj.pf.domain_width.copy())
+        DW = _ensure_code(dobj.ds.domain_width.copy())
 
         for i in range(3):
             region_width = dobj.right_edge[i] - dobj.left_edge[i]
             domain_width = DW[i]
 
             if region_width <= 0:
-                print "Error: region right edge < left edge", region_width
-                raise RuntimeError
+                raise RuntimeError(
+                    "Region right edge < left edge: width = %s" % region_width
+                    )
 
-            if dobj.pf.periodicity[i]:
+            if dobj.ds.periodicity[i]:
                 # shift so left_edge guaranteed in domain
-                if dobj.left_edge[i] < dobj.pf.domain_left_edge[i]:
+                if dobj.left_edge[i] < dobj.ds.domain_left_edge[i]:
                     dobj.left_edge[i] += domain_width
                     dobj.right_edge[i] += domain_width
-                elif dobj.left_edge[i] > dobj.pf.domain_right_edge[i]:
+                elif dobj.left_edge[i] > dobj.ds.domain_right_edge[i]:
                     dobj.left_edge[i] += domain_width
                     dobj.right_edge[i] += domain_width
             else:
-                if dobj.left_edge[i] < dobj.pf.domain_left_edge[i] or \
-                   dobj.right_edge[i] > dobj.pf.domain_right_edge[i]:
-                    print "Error: bad Region in non-periodic domain:", dobj.left_edge[i], \
-                        dobj.pf.domain_left_edge[i], dobj.right_edge[i], dobj.pf.domain_right_edge[i]
-                    raise RuntimeError
-                
+                if dobj.left_edge[i] < dobj.ds.domain_left_edge[i] or \
+                   dobj.right_edge[i] > dobj.ds.domain_right_edge[i]:
+                    raise RuntimeError(
+                        "Error: bad Region in non-periodic domain along dimension %s. "
+                        "Region left edge = %s, Region right edge = %s"
+                        "Dataset left edge = %s, Dataset right edge = %s" % \
+                        (i, dobj.left_edge[i], dobj.right_edge[i],
+                         dobj.ds.domain_left_edge[i], dobj.ds.domain_right_edge[i])
+                    )
             # Already ensured in code
             self.left_edge[i] = dobj.left_edge[i]
             self.right_edge[i] = dobj.right_edge[i]
             self.right_edge_shift[i] = \
                 (dobj.right_edge).to_ndarray()[i] - domain_width.to_ndarray()
+            if not self.periodicity[i]:
+                self.right_edge_shift[i] = -np.inf
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -698,7 +784,7 @@ cdef class DiskSelector(SelectorObject):
         cdef int i
         for i in range(3):
             self.norm_vec[i] = dobj._norm_vec[i]
-            self.center[i] = dobj.center[i]
+            self.center[i] = _ensure_code(dobj.center[i])
         self.radius = _ensure_code(dobj._radius)
         self.radius2 = self.radius * self.radius
         self.height = _ensure_code(dobj._height)
@@ -1518,6 +1604,9 @@ cdef class IndexedOctreeSubsetSelector(SelectorObject):
     cdef np.uint64_t min_ind
     cdef np.uint64_t max_ind
     cdef SelectorObject base_selector
+    cdef int filter_bbox
+    cdef np.float64_t DLE[3]
+    cdef np.float64_t DRE[3]
 
     def __init__(self, dobj):
         self.min_ind = dobj.min_ind
@@ -1525,6 +1614,12 @@ cdef class IndexedOctreeSubsetSelector(SelectorObject):
         self.base_selector = dobj.base_selector
         self.min_level = self.base_selector.min_level
         self.max_level = self.base_selector.max_level
+        self.filter_bbox = 0
+        if getattr(dobj.ds, "filter_bbox", False):
+            self.filter_bbox = 1
+        for i in range(3):
+            self.DLE[i] = dobj.ds.domain_left_edge[i]
+            self.DRE[i] = dobj.ds.domain_right_edge[i]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1551,6 +1646,12 @@ cdef class IndexedOctreeSubsetSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_point(self, np.float64_t pos[3]) nogil:
+        cdef int i
+        if self.filter_bbox == 0:
+            return 1
+        for i in range(3):
+            if pos[i] < self.DLE[i] or pos[i] > self.DRE[i]:
+                return 0
         return 1
 
     @cython.boundscheck(False)

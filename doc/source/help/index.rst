@@ -88,31 +88,40 @@ Look at the source code
 -----------------------
 
 We've done our best to make the source clean, and it is easily searchable from 
-your computer.  Go inside your yt install directory by going to the 
-``$YT_DEST/src/yt-hg/yt`` directory where all the code lives.  You can then search 
-for the class, function, or keyword which is giving you problems with 
-``grep -r *``, which will recursively search throughout the code base.  (For a 
-much faster and cleaner experience, we recommend ``grin`` instead of 
-``grep -r *``.  To install ``grin`` with python, just type ``pip install 
-grin``.)  
+your computer.
 
-So let's say that pesky ``SlicePlot`` is giving you problems still, and you 
-want to look at the source to figure out what is going on.
+If you have not done so already (see :ref:`source-installation`), clone a copy of the yt mercurial repository and make it the 'active' installation by doing
+
+.. code-block::bash
+
+  python setup.py develop
+
+in the root directory of the yt mercurial repository.
+
+.. note::
+
+  This has already been done for you if you installed using the bash install
+  script.  Building yt from source will not work if you do not have a C compiler
+  installed.
+
+Once inside the yt mercurial repository, you can then search for the class,
+function, or keyword which is giving you problems with ``grep -r *``, which will
+recursively search throughout the code base.  (For a much faster and cleaner
+experience, we recommend ``grin`` instead of ``grep -r *``.  To install ``grin``
+with python, just type ``pip install grin``.)
+
+So let's say that ``SlicePlot`` is giving you problems still, and you want to
+look at the source to figure out what is going on.
 
 .. code-block:: bash
 
-  $ cd $YT_DEST/src/yt-hg/yt
+  $ cd $YT-HG/yt
   $ grep -r SlicePlot *         (or $ grin SlicePlot)
-  
-   data_objects/analyzer_objects.py:class SlicePlotDataset(AnalysisTask):
-   data_objects/analyzer_objects.py:        from yt.visualization.api import SlicePlot
-   data_objects/analyzer_objects.py:        self.SlicePlot = SlicePlot
-   data_objects/analyzer_objects.py:        slc = self.SlicePlot(pf, self.axis, self.field, center = self.center)
-   ...
 
-You can now followup on this and open up the files that have references to 
-``SlicePlot`` (particularly the one that definese SlicePlot) and inspect their
-contents for problems or clarification.
+This will print a number of locations in the yt source tree where ``SlicePlot``
+is mentioned.  You can now followup on this and open up the files that have
+references to ``SlicePlot`` (particularly the one that defines SlicePlot) and
+inspect their contents for problems or clarification.
 
 .. _isolate_and_document:
 
@@ -128,12 +137,11 @@ these steps:
  * Put your script, errors, and outputs online:
 
    * ``$ yt pastebin script.py`` - pastes script.py online
-   * ``$ python script.py --paste`` - pastes errors online
    * ``$ yt upload_image image.png`` - pastes image online
 
  * Identify which version of the code you’re using. 
 
-   * ``$ yt instinfo`` - provides version information, including changeset hash
+   * ``$ yt version`` - provides version information, including changeset hash
 
 It may be that through the mere process of doing this, you end up solving 
 the problem!

@@ -51,32 +51,31 @@ class GDFGrid(AMRGridPatch):
         # that dx=dy=dz , at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
         if len(self.Parent) > 0:
-            self.dds = self.Parent[0].dds / self.pf.refine_by
+            self.dds = self.Parent[0].dds / self.ds.refine_by
         else:
             LE, RE = self.index.grid_left_edge[id, :], \
                 self.index.grid_right_edge[id, :]
             self.dds = np.array((RE - LE) / self.ActiveDimensions)
-        if self.pf.data_software != "piernik":
-            if self.pf.dimensionality < 2:
+        if self.ds.data_software != "piernik":
+            if self.ds.dimensionality < 2:
                 self.dds[1] = 1.0
-            if self.pf.dimensionality < 3:
+            if self.ds.dimensionality < 3:
                 self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = \
             self.dds
-
+        self.dds = self.ds.arr(self.dds, "code_length")
 
 class GDFHierarchy(GridIndex):
 
     grid = GDFGrid
 
-    def __init__(self, pf, dataset_type='grid_data_format'):
-        self.parameter_file = weakref.proxy(pf)
-        self.index_filename = self.parameter_file.parameter_filename
+    def __init__(self, ds, dataset_type='grid_data_format'):
+        self.dataset = weakref.proxy(ds)
+        self.index_filename = self.dataset.parameter_filename
         h5f = h5py.File(self.index_filename, 'r')
         self.dataset_type = dataset_type
-        GridIndex.__init__(self, pf, dataset_type)
+        GridIndex.__init__(self, ds, dataset_type)
         self.max_level = 10  # FIXME
-        # for now, the index file is the parameter file!
         self.directory = os.path.dirname(self.index_filename)
         h5f.close()
 
@@ -98,7 +97,7 @@ class GDFHierarchy(GridIndex):
         glis = (h5f['grid_left_index'][:]).copy()
         gdims = (h5f['grid_dimensions'][:]).copy()
         active_dims = ~((np.max(gdims, axis=0) == 1) &
-                        (self.parameter_file.domain_dimensions == 1))
+                        (self.dataset.domain_dimensions == 1))
 
         for i in range(levels.shape[0]):
             self.grids[i] = self.grid(i, self, levels[i],
@@ -106,13 +105,13 @@ class GDFHierarchy(GridIndex):
                                       gdims[i])
             self.grids[i]._level_id = levels[i]
 
-            dx = (self.parameter_file.domain_right_edge -
-                  self.parameter_file.domain_left_edge) / \
-                self.parameter_file.domain_dimensions
-            dx[active_dims] /= self.parameter_file.refine_by ** levels[i]
+            dx = (self.dataset.domain_right_edge -
+                  self.dataset.domain_left_edge) / \
+                self.dataset.domain_dimensions
+            dx[active_dims] /= self.dataset.refine_by ** levels[i]
             dxs.append(dx.in_units("code_length"))
-        dx = self.parameter_file.arr(dxs, input_units="code_length")
-        self.grid_left_edge = self.parameter_file.domain_left_edge + dx * glis
+        dx = self.dataset.arr(dxs, input_units="code_length")
+        self.grid_left_edge = self.dataset.domain_left_edge + dx * glis
         self.grid_dimensions = gdims.astype("int32")
         self.grid_right_edge = self.grid_left_edge + dx * self.grid_dimensions
         self.grid_particle_count = h5f['grid_particle_count'][:]
@@ -186,17 +185,26 @@ class GDFDataset(Dataset):
             elif 'field_units' in current_field.attrs:
                 field_units = current_field.attrs['field_units']
                 if isinstance(field_units, types.StringTypes):
-                    current_fields_unit = current_field.attrs['field_units']
+                    current_field_units = current_field.attrs['field_units']
                 else:
-                    current_fields_unit = \
+                    current_field_units = \
                         just_one(current_field.attrs['field_units'])
                 self.field_units[field_name] = current_field_units
             else:
-                current_fields_unit = ""
+                self.field_units[field_name] = ""
+
+        if "dataset_units" in h5f:
+            for unit_name in h5f["/dataset_units"]:
+                current_unit = h5f["/dataset_units/%s" % unit_name]
+                value = current_unit.value
+                unit = current_unit.attrs["unit"]
+                setattr(self, unit_name, self.quan(value,unit))
+        else:
+            self.length_unit = self.quan(1.0, "cm")
+            self.mass_unit = self.quan(1.0, "g")
+            self.time_unit = self.quan(1.0, "s")
+
         h5f.close()
-        self.length_unit = self.quan(1.0, "cm")
-        self.mass_unit = self.quan(1.0, "g")
-        self.time_unit = self.quan(1.0, "s")
 
     def _parse_parameter_file(self):
         self._handle = h5py.File(self.parameter_filename, "r")

@@ -56,7 +56,13 @@ How can I get some sample data for ``yt``?
 
 Many different sample datasets can be found at http://yt-project.org/data/ .
 These can be downloaded, unarchived, and they will each create their own
-directory.  If you set the option ``test_data_dir``, in the section ``[yt]``,
+directory.  It is generally straight forward to load these datasets, but if
+you have any questions about loading data from a code with which you are 
+unfamiliar, please visit :ref:`loading-data`.
+
+To make things easier to load these sample datasets, you can add the parent
+directory to your downloaded sample data to your *yt path*.
+If you set the option ``test_data_dir``, in the section ``[yt]``,
 in ``~/.yt/config``, ``yt`` will search this path for them.
 
 This means you can download these datasets to ``/big_drive/data_for_yt`` , add
@@ -83,18 +89,18 @@ How do I modify whether or not ``yt`` takes the log of a particular field?
 
 ``yt`` sets up defaults for many fields for whether or not a field is presented
 in log or linear space. To override this behavior, you can modify the
-``field_info`` dictionary.  For example, if you prefer that ``Density`` not be
+``field_info`` dictionary.  For example, if you prefer that ``density`` not be
 logged, you could type:
 
 .. code-block:: python
     
-    pf = load("my_data")
-    pf.h
-    pf.field_info['density'].take_log = False
+    ds = load("my_data")
+    ds.index
+    ds.field_info['density'].take_log = False
 
 From that point forward, data products such as slices, projections, etc., would
-be presented in linear space. Note that you have to instantiate pf.h before you
-can access pf.field info.
+be presented in linear space. Note that you have to instantiate ds.index before 
+you can access ds.field info.
 
 .. _faq-handling-log-vs-linear-space:
 
@@ -109,9 +115,9 @@ example, if you have created a field for the potential called
 
 .. code-block:: python
 
-   pf = load("my_data")
-   dd = pf.h.all_data()
-   potential_field = dd["PotentialField"]
+   ds = load("my_data")
+   ad = ds.all_data()
+   potential_field = ad["PotentialField"]
 
 The same applies to fields you might derive inside your ``yt`` script
 via :ref:`creating-derived-fields`. To check what fields are
@@ -119,8 +125,8 @@ available, look at the properties ``field_list`` and ``derived_field_list``:
 
 .. code-block:: python
 
-   print pf.field_list
-   print pf.derived_field_list
+   print ds.field_list
+   print ds.derived_field_list
 
 .. _faq-old-data:
 
@@ -196,33 +202,10 @@ this automatically by running:
 
 .. code-block:: bash
 
-    cd $YT_DEST/src/yt-hg
+    cd $YT_HG
     python setup.py develop
 
-
-Unresolved Installation Problem on OSX 10.6
--------------------------------------------
-When installing on some instances of OSX 10.6, a few users have noted a failure
-when yt tries to build with OpenMP support:
-
-    Symbol not found: _GOMP_barrier
-        Referenced from: <YT_DEST>/src/yt-hg/yt/utilities/lib/grid_traversal.so
-
-        Expected in: dynamic lookup
-
-To resolve this, please make a symbolic link:
-
-.. code-block:: bash
-
-  $ ln -s /usr/local/lib/x86_64 <YT_DEST>/lib64
-
-where ``<YT_DEST>`` is replaced by the path to the root of the directory
-containing the yt install, which will usually be ``yt-<arch>``. After doing so, 
-you should be able to cd to <YT_DEST>/src/yt-hg and run:
-
-.. code-block:: bash
-
-  $ python setup.py install
+where ``$YT_HG`` is the path to the yt mercurial repository.
 
 .. _plugin-file:
 

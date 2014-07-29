@@ -295,7 +295,7 @@ def visvis_plot(vp):
         print (ss)
         texes.append(vv.Aarray(dd, origin = origin, sampling = ss))
 
-    mtex = MultipleTexture(ax, texes, global_size=vp.pf.domain_dimensions)
+    mtex = MultipleTexture(ax, texes, global_size=vp.ds.domain_dimensions)
 
     ax.daspectAuto = False
     ax.SetLimits()

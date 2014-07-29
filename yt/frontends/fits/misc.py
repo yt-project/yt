@@ -11,10 +11,13 @@ Miscellaneous FITS routines
 #-----------------------------------------------------------------------------
 
 import numpy as np
+import base64
+from yt.extern.six.moves import StringIO
 from yt.fields.derived_field import ValidateSpatial
 from yt.utilities.on_demand_imports import _astropy
 from yt.funcs import mylog, get_image_suffix
 from yt.visualization._mpl_imports import FigureCanvasAgg
+
 import os
 
 def _make_counts(emin, emax):
@@ -33,7 +36,7 @@ def _make_counts(emin, emax):
         if sigma is not None and sigma > 0.0:
             kern = _astropy.conv.Gaussian2DKernel(stddev=sigma)
             img[:,:,0] = _astropy.conv.convolve(img[:,:,0], kern)
-        return data.pf.arr(img, "counts/pixel")
+        return data.ds.arr(img, "counts/pixel")
     return _counts
 
 def setup_counts_fields(ds, ebounds, ftype="gas"):
@@ -128,47 +131,38 @@ class PlotWindowWCS(object):
         from wcsaxes import WCSAxes
         if pw.oblique:
             raise NotImplementedError("WCS axes are not implemented for oblique plots.")
-        if not hasattr(pw.pf, "wcs_2d"):
+        if not hasattr(pw.ds, "wcs_2d"):
             raise NotImplementedError("WCS axes are not implemented for this dataset.")
-        if pw.data_source.axis != pw.pf.vel_axis:
+        if pw.data_source.axis != pw.ds.spec_axis:
             raise NotImplementedError("WCS axes are not implemented for this axis.")
-        self.pf = pw.pf
-        self.pw = pw
         self.plots = {}
-        self.wcs_axes = []
+        self.pw = pw
         for f in pw.plots:
             rect = pw.plots[f]._get_best_layout()[1]
             fig = pw.plots[f].figure
-            ax = WCSAxes(fig, rect, wcs=pw.pf.wcs_2d, frameon=False)
-            fig.add_axes(ax)
-            self.wcs_axes.append(ax)
-        self._setup_plots()
-
-    def _setup_plots(self):
-        pw = self.pw
-        for f, ax in zip(pw.plots, self.wcs_axes):
-            wcs = ax.wcs.wcs
-            pw.plots[f].axes.get_xaxis().set_visible(False)
-            pw.plots[f].axes.get_yaxis().set_visible(False)
-            xax = pw.pf.coordinates.x_axis[pw.data_source.axis]
-            yax = pw.pf.coordinates.y_axis[pw.data_source.axis]
+            ax = fig.axes[0]
+            wcs_ax = WCSAxes(fig, rect, wcs=pw.ds.wcs_2d, frameon=False)
+            fig.add_axes(wcs_ax)
+            wcs = pw.ds.wcs_2d.wcs
+            xax = pw.ds.coordinates.x_axis[pw.data_source.axis]
+            yax = pw.ds.coordinates.y_axis[pw.data_source.axis]
             xlabel = "%s (%s)" % (wcs.ctype[xax].split("-")[0],
                                   wcs.cunit[xax])
             ylabel = "%s (%s)" % (wcs.ctype[yax].split("-")[0],
                                   wcs.cunit[yax])
             fp = pw._font_properties
-            ax.coords[0].set_axislabel(xlabel, fontproperties=fp)
-            ax.coords[1].set_axislabel(ylabel, fontproperties=fp)
-            ax.set_xlim(pw.xlim[0].value, pw.xlim[1].value)
-            ax.set_ylim(pw.ylim[0].value, pw.ylim[1].value)
-            ax.coords[0].ticklabels.set_fontproperties(fp)
-            ax.coords[1].ticklabels.set_fontproperties(fp)
-            self.plots[f] = pw.plots[f]
-        self.pw = pw
-        self.pf = self.pw.pf
-
-    def refresh(self):
-        self._setup_plots(self)
+            wcs_ax.coords[0].set_axislabel(xlabel, fontproperties=fp)
+            wcs_ax.coords[1].set_axislabel(ylabel, fontproperties=fp)
+            wcs_ax.coords[0].ticklabels.set_fontproperties(fp)
+            wcs_ax.coords[1].ticklabels.set_fontproperties(fp)
+            ax.xaxis.set_visible(False)
+            ax.yaxis.set_visible(False)
+            wcs_ax.set_xlim(pw.xlim[0].value, pw.xlim[1].value)
+            wcs_ax.set_ylim(pw.ylim[0].value, pw.ylim[1].value)
+            wcs_ax.coords.frame._update_cache = []
+            ax.xaxis.set_visible(False)
+            ax.yaxis.set_visible(False)
+            self.plots[f] = fig
 
     def keys(self):
         return self.plots.keys()
@@ -185,13 +179,21 @@ class PlotWindowWCS(object):
                 return self.plots[k]
 
     def show(self):
-        from IPython.core.display import display
-        for k, v in sorted(self.plots.iteritems()):
-            canvas = FigureCanvasAgg(v.figure)
-            display(v.figure)
+        return self
 
     def save(self, name=None, mpl_kwargs=None):
         if mpl_kwargs is None:
             mpl_kwargs = {}
         mpl_kwargs["bbox_inches"] = "tight"
         self.pw.save(name=name, mpl_kwargs=mpl_kwargs)
+
+    def _repr_html_(self):
+        ret = ''
+        for k, v in self.plots.iteritems():
+            canvas = FigureCanvasAgg(v)
+            f = StringIO()
+            canvas.print_figure(f)
+            f.seek(0)
+            img = base64.b64encode(f.read())
+            ret += '<img src="data:image/png;base64,%s"><br>' % img
+        return ret

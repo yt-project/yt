@@ -10,17 +10,17 @@ import numpy as np
 import yt
 from yt.utilities.amr_kdtree.api import AMRKDTree
 
-# Load up a data and print out the maximum refinement level
+# Load up a dataset and define the kdtree
 ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-
 kd = AMRKDTree(ds)
-# Print out the total volume of all the bricks
-print kd.count_volume()
-# Print out the number of cells
-print kd.count_cells()
 
+# Print out specifics of KD Tree
+print "Total volume of all bricks = %i" % kd.count_volume()
+print "Total number of cells = %i" % kd.count_cells()
+
+# Define a camera and take an volume rendering.
 tf = yt.ColorTransferFunction((-30, -22))
-cam = ds.h.camera([0.5, 0.5, 0.5], [0.2, 0.3, 0.4], 0.10, 256,
+cam = ds.camera([0.5, 0.5, 0.5], [0.2, 0.3, 0.4], 0.10, 256,
                   tf, volume=kd)
 tf.add_layers(4, 0.01, col_bounds=[-27.5, -25.5], colormap='RdBu_r')
 cam.snapshot("v1.png", clip_ratio=6.0)
@@ -28,9 +28,9 @@ cam.snapshot("v1.png", clip_ratio=6.0)
 # This rendering is okay, but lets say I'd like to improve it, and I don't want
 # to spend the time rendering the high resolution data.  What we can do is
 # generate a low resolution version of the AMRKDTree and pass that in to the
-# camera.  We do this by specifying a maximum refinement level of 3.
+# camera.  We do this by specifying a maximum refinement level of 6.
 
-kd_low_res = AMRKDTree(ds, max_level=3)
+kd_low_res = AMRKDTree(ds, max_level=6)
 print kd_low_res.count_volume()
 print kd_low_res.count_cells()
 

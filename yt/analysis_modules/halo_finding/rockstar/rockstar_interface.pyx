@@ -167,31 +167,31 @@ cdef void rh_analyze_halo(halo *h, particle *hp):
     pslice = <particleflat[:h.num_p]> (<particleflat *>hp)
     parray = np.asarray(pslice)
     for cb in rh.callbacks:
-        cb(rh.pf, parray)
+        cb(rh.ds, parray)
     # This is where we call our functions
 
 cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     global SCALE_NOW
-    cdef np.float64_t conv[6], left_edge[6]
+    cdef np.float64_t left_edge[6]
     cdef np.ndarray[np.int64_t, ndim=1] arri
     cdef np.ndarray[np.float64_t, ndim=1] arr
     cdef unsigned long long pi,fi,i
     cdef np.int64_t local_parts = 0
-    pf = rh.pf = rh.tsl.next()
+    ds = rh.ds = rh.tsl.next()
     block = int(str(filename).rsplit(".")[-1])
     n = rh.block_ratio
 
-    SCALE_NOW = 1.0/(pf.current_redshift+1.0)
+    SCALE_NOW = 1.0/(ds.current_redshift+1.0)
     # Now we want to grab data from only a subset of the grids for each reader.
-    all_fields = set(pf.derived_field_list + pf.field_list)
+    all_fields = set(ds.derived_field_list + ds.field_list)
 
     # First we need to find out how many this reader is going to read in
     # if the number of readers > 1.
-    dd = pf.h.all_data()
+    dd = ds.all_data()
 
     # Add particle type filter if not defined
-    if rh.particle_type not in pf.particle_types and rh.particle_type != 'all':
-        pf.add_particle_filter(rh.particle_type)
+    if rh.particle_type not in ds.particle_types and rh.particle_type != 'all':
+        ds.add_particle_filter(rh.particle_type)
 
     if NUM_BLOCKS > 1:
         local_parts = 0
@@ -203,11 +203,9 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
 
     p[0] = <particle *> malloc(sizeof(particle) * local_parts)
 
-    conv[0] = conv[1] = conv[2] = pf.length_unit.in_units("Mpccm/h")
-    conv[3] = conv[4] = conv[5] = pf.velocity_unit.in_units("km/s")
-    left_edge[0] = pf.domain_left_edge[0]
-    left_edge[1] = pf.domain_left_edge[1]
-    left_edge[2] = pf.domain_left_edge[2]
+    left_edge[0] = ds.domain_left_edge[0]
+    left_edge[1] = ds.domain_left_edge[1]
+    left_edge[2] = ds.domain_left_edge[2]
     left_edge[3] = left_edge[4] = left_edge[5] = 0.0
     pi = 0
     fields = [ (rh.particle_type, f) for f in
@@ -225,21 +223,25 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
                       "particle_position_z",
                       "particle_velocity_x", "particle_velocity_y",
                       "particle_velocity_z"]:
-            arr = chunk[rh.particle_type, field].astype("float64")
+            if "position" in field:
+                unit = "Mpccm/h"
+            else:
+                unit = "km/s"
+            arr = chunk[rh.particle_type, field].in_units(unit).astype("float64")
             for i in range(npart):
-                p[0][i+pi].pos[fi] = (arr[i]-left_edge[fi])*conv[fi]
+                p[0][i+pi].pos[fi] = (arr[i]-left_edge[fi])
             fi += 1
         pi += npart
     num_p[0] = local_parts
-    del pf._instantiated_hierarchy
-    del pf
+    del ds._instantiated_hierarchy
+    del ds
 
 cdef class RockstarInterface:
 
     cdef public object data_source
     cdef public object ts
     cdef public object tsl
-    cdef public object pf
+    cdef public object ds
     cdef int rank
     cdef int size
     cdef public int block_ratio
@@ -294,11 +296,11 @@ cdef class RockstarInterface:
         self.block_ratio = block_ratio
         self.particle_type = particle_type
         
-        tpf = self.ts[0]
-        h0 = tpf.hubble_constant
-        Ol = tpf.omega_lambda
-        Om = tpf.omega_matter
-        SCALE_NOW = 1.0/(tpf.current_redshift+1.0)
+        tds = self.ts[0]
+        h0 = tds.hubble_constant
+        Ol = tds.omega_lambda
+        Om = tds.omega_matter
+        SCALE_NOW = 1.0/(tds.current_redshift+1.0)
         if callbacks is None: callbacks = []
         self.callbacks = callbacks
         if not outbase =='None'.decode('UTF-8'):
@@ -308,8 +310,8 @@ cdef class RockstarInterface:
 
         PARTICLE_MASS = particle_mass
         PERIODIC = periodic
-        BOX_SIZE = (tpf.domain_right_edge[0] -
-                    tpf.domain_left_edge[0]).in_units("Mpccm/h")
+        BOX_SIZE = (tds.domain_right_edge[0] -
+                    tds.domain_left_edge[0]).in_units("Mpccm/h")
         setup_config()
         rh = self
         cdef LPG func = rh_read_particles

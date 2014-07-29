@@ -36,7 +36,7 @@ This illustrates how to create a multipanel plot of slices along the coordinate
 axes.  To focus on what's happening in the x-y plane, we make an additional
 Temperature slice for the bottom-right subpanel.
 
-.. yt-cookbook:: multiplot_2x2_coordaxes_slice.py
+.. yt_cookbook:: multiplot_2x2_coordaxes_slice.py
 
 Multi-Plot Slice and Projections
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -145,6 +145,29 @@ quantities, styling them and saving out the resultant plot.
 
 .. _cookbook-camera_movement:
 
+Customized Profile Plot
+~~~~~~~~~~~~~~~~~~~~~~~
+
+This recipe demonstrates how to create a fully customized 1D profile object
+using the :meth:`~yt.data_objects.profiles.create_profile` function and then
+create a :class:`~yt.visualization.profile_plotter.ProfilePlot` using the
+customized profile.  This illustrates how a ``ProfilePlot`` created this way
+inherits the properties of the profile it is constructed from.
+
+.. yt_cookbook:: customized_profile_plot.py
+
+Customized Phase Plot
+~~~~~~~~~~~~~~~~~~~~~
+
+Similar to the recipe above, this demonstrates how to create a fully customized
+2D profile object using the :meth:`~yt.data_objects.profiles.create_profile`
+function and then create a :class:`~yt.visualization.profile_plotter.PhasePlot`
+using the customized profile object.  This illustrates how a ``PhasePlot``
+created this way inherits the properties of the profile object it is constructed
+from.
+
+.. yt_cookbook:: customized_phase_plot.py
+
 Moving a Volume Rendering Camera
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -193,6 +216,15 @@ as well as overplotting grids representing the level of refinement achieved
 in different regions of the code.
 
 .. yt_cookbook:: rendering_with_box_and_grids.py
+
+Volume Rendering with Annotation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This recipe demonstrates how to write the simulation time, show an
+axis triad indicating the direction of the coordinate system, and show
+the transfer function on a volume rendering.
+
+.. yt_cookbook:: vol-annotated.py
 
 Plotting Streamlines
 ~~~~~~~~~~~~~~~~~~~~

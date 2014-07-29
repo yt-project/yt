@@ -16,6 +16,7 @@ and featuring time and redshift conversion functions from Enzo..
 import functools
 import numpy as np
 
+from yt.units import dimensions
 from yt.units.unit_registry import \
      UnitRegistry
 from yt.units.yt_array import \
@@ -66,6 +67,12 @@ class Cosmology(object):
         self.omega_curvature = omega_curvature
         if unit_registry is None:
             unit_registry = UnitRegistry()
+            unit_registry.modify("h", hubble_constant)
+            for my_unit in ["m", "pc", "AU", "au"]:
+                new_unit = "%scm" % my_unit
+                # technically not true, but distances here are actually comoving
+                unit_registry.add(new_unit, unit_registry.lut[my_unit][0],
+                                  dimensions.length, "\\rm{%s}/(1+z)" % my_unit)
         self.unit_registry = unit_registry
         self.hubble_constant = self.quan(hubble_constant, "100*km/s/Mpc")
 
@@ -74,7 +81,7 @@ class Cosmology(object):
         The distance corresponding to c / h, where c is the speed of light 
         and h is the Hubble parameter in units of 1 / time.
         """
-        return (speed_of_light_cgs / self.hubble_constant).in_cgs()
+        return self.quan((speed_of_light_cgs / self.hubble_constant)).in_cgs()
 
     def comoving_radial_distance(self, z_i, z_f):
         r"""
@@ -92,7 +99,7 @@ class Cosmology(object):
         --------
 
         >>> co = Cosmology()
-        >>> print co.comoving_radial_distance(0., 1.).in_units("Mpc")
+        >>> print co.comoving_radial_distance(0., 1.).in_units("Mpccm")
         
         """
         return (self.hubble_distance() *
@@ -115,7 +122,7 @@ class Cosmology(object):
         --------
 
         >>> co = Cosmology()
-        >>> print co.comoving_transverse_distance(0., 1.).in_units("Mpc")
+        >>> print co.comoving_transverse_distance(0., 1.).in_units("Mpccm")
         
         """
         if (self.omega_curvature > 0):
@@ -149,7 +156,7 @@ class Cosmology(object):
         --------
 
         >>> co = Cosmology()
-        >>> print co.comoving_volume(0., 1.).in_units("Gpc**3")
+        >>> print co.comoving_volume(0., 1.).in_units("Gpccm**3")
 
         """
         if (self.omega_curvature > 0):
@@ -183,8 +190,8 @@ class Cosmology(object):
 
     def angular_diameter_distance(self, z_i, z_f):
         r"""
-        The proper transverse distance between two points at redshift z_f 
-        observed at redshift z_i to have an angular separation of one radian.
+        Following Hogg (1999), the angular diameter distance is 'the ratio of 
+        an object's physical transverse size to its angular size in radians.'
 
         Parameters
         ----------
@@ -203,6 +210,29 @@ class Cosmology(object):
         
         return (self.comoving_transverse_distance(0, z_f) / (1 + z_f) - 
                 self.comoving_transverse_distance(0, z_i) / (1 + z_i)).in_cgs()
+
+    def angular_scale(self, z_i, z_f):
+        r"""
+        The proper transverse distance between two points at redshift z_f 
+        observed at redshift z_i per unit of angular separation.
+
+        Parameters
+        ----------
+        z_i : float
+            The redshift of the observer.
+        z_f : float
+            The redshift of the observed object.
+
+        Examples
+        --------
+
+        >>> co = Cosmology()
+        >>> print co.angular_scale(0., 1.).in_units("kpc / arcsec")
+        
+        """
+
+        return self.angular_diameter_distance(z_i, z_f) / \
+          self.quan(1, "radian")
 
     def luminosity_distance(self, z_i, z_f):
         r"""

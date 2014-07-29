@@ -22,6 +22,7 @@ class UnitParseError(Exception):
     pass
 
 class UnitRegistry:
+    """A registry for unit symbols"""
     def __init__(self, add_default_symbols=True, lut=None):
         if lut:
             self.lut = lut

@@ -18,41 +18,42 @@ from yt.fields.field_info_container import \
 class FITSFieldInfo(FieldInfoContainer):
     known_other_fields = ()
 
-    def __init__(self, pf, field_list, slice_info=None):
-        super(FITSFieldInfo, self).__init__(pf, field_list, slice_info=slice_info)
-        for field in pf.field_list:
+    def __init__(self, ds, field_list, slice_info=None):
+        super(FITSFieldInfo, self).__init__(ds, field_list, slice_info=slice_info)
+        for field in ds.field_list:
             if field[0] == "fits": self[field].take_log = False
 
-    def _setup_ppv_fields(self):
+    def _setup_spec_cube_fields(self):
 
         def _get_2d_wcs(data, axis):
-            w_coords = data.pf.wcs_2d.wcs_pix2world(data["x"], data["y"], 1)
+            w_coords = data.ds.wcs_2d.wcs_pix2world(data["x"], data["y"], 1)
             return w_coords[axis]
 
         def world_f(axis, unit):
             def _world_f(field, data):
-                return data.pf.arr(_get_2d_wcs(data, axis), unit)
+                return data.ds.arr(_get_2d_wcs(data, axis), unit)
             return _world_f
 
-        for (i, axis), name in zip(enumerate([self.pf.lon_axis, self.pf.lat_axis]),
-                                             [self.pf.lon_name, self.pf.lat_name]):
-            unit = str(self.pf.wcs_2d.wcs.cunit[i])
+        for (i, axis), name in zip(enumerate([self.ds.lon_axis, self.ds.lat_axis]),
+                                             [self.ds.lon_name, self.ds.lat_name]):
+            unit = str(self.ds.wcs_2d.wcs.cunit[i])
             if unit.lower() == "deg": unit = "degree"
             if unit.lower() == "rad": unit = "radian"
             self.add_field(("fits",name), function=world_f(axis, unit), units=unit)
 
-        if self.pf.dimensionality == 3:
-            def _vel_los(field, data):
-                axis = "xyz"[data.pf.vel_axis]
-                return data.pf.arr(data[axis].ndarray_view(),data.pf.vel_unit)
-            self.add_field(("fits",self.pf.vel_name), function=_vel_los,
-                           units=self.pf.vel_unit)
+        if self.ds.dimensionality == 3:
+            def _spec(field, data):
+                axis = "xyz"[data.ds.spec_axis]
+                sp = (data[axis].ndarray_view()-self.ds._p0)*self.ds._dz + self.ds._z0
+                return data.ds.arr(sp, data.ds.spec_unit)
+            self.add_field(("fits","spectral"), function=_spec,
+                           units=self.ds.spec_unit, display_name=self.ds.spec_name)
 
     def setup_fluid_fields(self):
 
-        if self.pf.ppv_data:
+        if self.ds.spec_cube:
             def _pixel(field, data):
-                return data.pf.arr(data["ones"], "pixel")
+                return data.ds.arr(data["ones"], "pixel")
             self.add_field(("fits","pixel"), function=_pixel, units="pixel")
-            self._setup_ppv_fields()
+            self._setup_spec_cube_fields()
             return

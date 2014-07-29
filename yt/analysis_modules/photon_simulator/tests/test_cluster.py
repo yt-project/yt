@@ -13,7 +13,7 @@ Answer test the photon_simulator analysis module.
 from yt.testing import *
 from yt.config import ytcfg
 from yt.analysis_modules.photon_simulator.api import *
-from yt.utilities.answer_testing.framework import requires_pf, \
+from yt.utilities.answer_testing.framework import requires_ds, \
      GenericArrayTest, data_dir_load
 import numpy as np
 
@@ -29,7 +29,7 @@ TBABS = test_dir+"/xray_data/tbabs_table.h5"
 ARF = test_dir+"/xray_data/chandra_ACIS-S3_onaxis_arf.fits"
 RMF = test_dir+"/xray_data/chandra_ACIS-S3_onaxis_rmf.fits"
 
-@requires_pf(ETC)
+@requires_ds(ETC)
 @requires_file(APEC)
 @requires_file(TBABS)
 @requires_file(ARF)
@@ -38,7 +38,7 @@ def test_etc():
 
     np.random.seed(seed=0x4d3d3d3)
 
-    pf = data_dir_load(ETC)
+    ds = data_dir_load(ETC)
     A = 3000.
     exp_time = 1.0e5
     redshift = 0.1
@@ -46,7 +46,7 @@ def test_etc():
     apec_model = TableApecModel(APEC, 0.1, 20.0, 2000)
     tbabs_model = TableAbsorbModel(TBABS, 0.1)
 
-    sphere = pf.sphere("max", (0.5, "mpc"))
+    sphere = ds.sphere("max", (0.5, "mpc"))
 
     thermal_model = ThermalPhotonModel(apec_model, Zmet=0.3)
     photons = PhotonList.from_scratch(sphere, redshift, A, exp_time,
@@ -59,7 +59,7 @@ def test_etc():
     def photons_test(): return photons.photons
     def events_test(): return events.events
 
-    for test in [GenericArrayTest(pf, photons_test),
-                 GenericArrayTest(pf, events_test)]:
+    for test in [GenericArrayTest(ds, photons_test),
+                 GenericArrayTest(ds, events_test)]:
         test_etc.__name__ = test.description
         yield test

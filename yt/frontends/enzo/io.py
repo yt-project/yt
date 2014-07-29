@@ -38,7 +38,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         f = h5py.File(grid.filename, "r")
         group = f["/Grid%08i" % grid.id]
         fields = []
-        add_io = "io" in grid.pf.particle_types
+        add_io = "io" in grid.ds.particle_types
         for name, v in group.iteritems():
             # NOTE: This won't work with 1D datasets or references.
             if not hasattr(v, "shape") or v.dtype == "O":
@@ -170,12 +170,12 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         # Split into particles and non-particles
         fluid_fields, particle_fields = [], []
         for ftype, fname in fields:
-            if ftype in self.pf.particle_types:
+            if ftype in self.ds.particle_types:
                 particle_fields.append((ftype, fname))
             else:
                 fluid_fields.append((ftype, fname))
         if len(particle_fields) > 0:
-            selector = AlwaysSelector(self.pf)
+            selector = AlwaysSelector(self.ds)
             rv.update(self._read_particle_selection(
               [chunk], selector, particle_fields))
         if len(fluid_fields) == 0: return rv
@@ -208,7 +208,7 @@ class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
 
     def __init__(self, *args, **kwargs):
         super(IOHandlerPackgedHDF5GhostZones, self).__init__(*args, **kwargs)
-        NGZ = self.pf.parameters.get("NumberOfGhostZones", 3)
+        NGZ = self.ds.parameters.get("NumberOfGhostZones", 3)
         self._base = (slice(NGZ, -NGZ),
                       slice(NGZ, -NGZ),
                       slice(NGZ, -NGZ))
@@ -223,8 +223,8 @@ class IOHandlerInMemory(BaseIOHandler):
 
     _dataset_type = "enzo_inline"
 
-    def __init__(self, pf, ghost_zones=3):
-        self.pf = pf
+    def __init__(self, ds, ghost_zones=3):
+        self.ds = ds
         import enzo
         self.enzo = enzo
         self.grids_in_memory = enzo.grid_data
@@ -232,10 +232,21 @@ class IOHandlerInMemory(BaseIOHandler):
         self.my_slice = (slice(ghost_zones,-ghost_zones),
                       slice(ghost_zones,-ghost_zones),
                       slice(ghost_zones,-ghost_zones))
-        BaseIOHandler.__init__(self, pf)
+        BaseIOHandler.__init__(self, ds)
 
     def _read_field_names(self, grid):
-        return [("enzo", field) for field in self.grids_in_memory[grid.id].keys()]
+        fields = []
+        add_io = "io" in grid.ds.particle_types
+        for name, v in self.grids_in_memory[grid.id].items():
+
+            # NOTE: This won't work with 1D datasets or references.
+            if not hasattr(v, "shape") or v.dtype == "O":
+                continue
+            elif v.ndim == 1:
+                if add_io: fields.append( ("io", str(name)) )
+            else:
+                fields.append( ("enzo", str(name)) )
+        return fields
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         rv = {}
@@ -296,7 +307,7 @@ class IOHandlerInMemory(BaseIOHandler):
                     x, y, z = self.grids_in_memory[g.id]['particle_position_x'], \
                                         self.grids_in_memory[g.id]['particle_position_y'], \
                                         self.grids_in_memory[g.id]['particle_position_z']
-                    mask = selector.select_points(x, y, z)
+                    mask = selector.select_points(x, y, z, 0.0)
                     if mask is None: continue
                     for field in field_list:
                         data = self.grids_in_memory[g.id][field]

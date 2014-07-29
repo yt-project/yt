@@ -13,7 +13,7 @@ Enzo Data
 
 Enzo data is fully supported and cared for by Matthew Turk.  To load an Enzo
 dataset, you can use the ``load`` command provided by ``yt.mods`` and supply to
-it the parameter file name.  This would be the name of the output file, and it
+it the dataset name.  This would be the name of the output file, and it
 contains no extension.  For instance, if you have the following files:
 
 .. code-block:: none
@@ -31,8 +31,8 @@ mentioned.
 
 .. code-block:: python
 
-   from yt.mods import *
-   pf = load("DD0010/data0010")
+   import yt
+   ds = yt.load("DD0010/data0010")
 
 .. rubric:: Caveats
 
@@ -78,8 +78,8 @@ You would feed it the filename ``pltgmlcs5600``:
 
 .. code-block:: python
 
-   from yt.mods import *
-   pf = load("pltgmlcs5600")
+   import yt
+   ds = yt.load("pltgmlcs5600")
 
 .. _loading-flash-data:
 
@@ -101,8 +101,8 @@ You would feed it the filename ``cosmoSim_coolhdf5_chk_0026``:
 
 .. code-block:: python
 
-   from yt.mods import *
-   pf = load("cosmoSim_coolhdf5_chk_0026")
+   import yt
+   ds = yt.load("cosmoSim_coolhdf5_chk_0026")
 
 If you have a FLASH particle file that was created at the same time as
 a plotfile or checkpoint file (therefore having particle data
@@ -111,8 +111,8 @@ consistent with the grid structure of the latter), its data may be loaded with t
 
 .. code-block:: python
 
-    from yt.mods import *
-    pf = load("radio_halo_1kpc_hdf5_plt_cnt_0100", particle_filename="radio_halo_1kpc_hdf5_part_0100")
+    import yt
+    ds = yt.load("radio_halo_1kpc_hdf5_plt_cnt_0100", particle_filename="radio_halo_1kpc_hdf5_part_0100")
 
 .. rubric:: Caveats
 
@@ -142,8 +142,8 @@ You would feed it the filename ``output_00007/info_00007.txt``:
 
 .. code-block:: python
 
-   from yt.mods import *
-   pf = load("output_00007/info_00007.txt")
+   import yt
+   ds = yt.load("output_00007/info_00007.txt")
 
 yt will attempt to guess the fields in the file.  You may also specify a list
 of fields by supplying the ``fields`` keyword in your call to ``load``.
@@ -156,22 +156,22 @@ Gadget Data
 yt has support for reading Gadget data in both raw binary and HDF5 formats.  It
 is able to access the particles as it would any other particle dataset, and it
 can apply smoothing kernels to the data to produce both quantitative analysis
-and visualization.
+and visualization. See :ref:`loading-sph-data` for more details.
 
 Gadget data in HDF5 format can be loaded with the ``load`` command:
 
 .. code-block:: python
 
-   from yt.mods import *
-   pf = load("snapshot_061.hdf5")
+   import yt
+   ds = yt.load("snapshot_061.hdf5")
 
 However, yt cannot detect raw-binary Gadget data, and so you must specify the
 format as being Gadget:
 
 .. code-block:: python
 
-   from yt.mods import *
-   pf = GadgetDataset("snapshot_061")
+   import yt
+   ds = yt.GadgetDataset("snapshot_061")
 
 .. _particle-bbox:
 
@@ -194,7 +194,7 @@ particles.
 
 .. code-block:: python
 
-   pf = GadgetDataset("snap_004",
+   ds = GadgetDataset("snap_004",
            unit_base = {'length': ('kpc', 1.0)},
            bounding_box = [[-600.0, 600.0], [-600.0, 600.0], [-600.0, 600.0]])
 
@@ -318,7 +318,7 @@ default header specification (found in ``yt/frontends/sph/definitions.py``) is:
                    ('NallHW', 6, 'i'),
                    ('unused', 16, 'i'))
 
-These items will all be accessible inside the object ``pf.parameters``, which
+These items will all be accessible inside the object ``ds.parameters``, which
 is a dictionary.  You can add combinations of new items, specified in the same
 way, or alternately other types of headers.  The other string keys defined are
 ``pad32``, ``pad64``, ``pad128``, and ``pad256`` each of which corresponds to
@@ -348,7 +348,7 @@ Specifying Units
 
 If you are running a cosmology simulation, yt will be able to guess the units
 with some reliability.  However, if you are not and you do not specify a
-parameter file, yt will not be able to and will use the defaults of length
+dataset, yt will not be able to and will use the defaults of length
 being 1.0 Mpc/h (comoving), velocity being in cm/s, and mass being in 10^10
 Msun/h.  You can specify alternate units by supplying the ``unit_base`` keyword
 argument of this form:
@@ -364,10 +364,12 @@ yt will utilize length, mass and time to set up all other units.
 Tipsy Data
 ----------
 
+See :ref:`tipsy-notebook` and :ref:`loading-sph-data` for more details.
+
 yt also supports loading Tipsy data.  Many of its characteristics are similar
 to how Gadget data is loaded; specifically, it shares its definition of
 indexing and mesh-identification with that described in
-:ref:`particle-indexing-criteria`.  
+:ref:`particle-indexing-criteria`.
 
 .. code-block:: python
 
@@ -389,11 +391,6 @@ default units.  The parameters recognized are of this form:
                            'hubble_constant': 0.702}
 
 These will be used set the units, if they are specified.
-
-Using yt to view and analyze Tipsy outputs from Gasoline
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-.. notebook:: tipsy_and_yt.ipynb
 
 .. _loading-artio-data:
 
@@ -460,9 +457,9 @@ by specifying the window in seconds, ``spread=1.0e7*265*24*3600``.
 
 .. code-block:: python
     
-   from yt.mods import *
+   import yt
 
-   pf = load("/u/cmoody3/data/art_snapshots/SFG1/10MpcBox_csf512_a0.460.d")
+   ds = yt.load("SFG1/10MpcBox_csf512_a0.460.d")
 
 .. _loading_athena_data:
 
@@ -479,8 +476,8 @@ Athena tool ``join_vtk``, you can load the data like this:
 
 .. code-block:: python
 
-   from yt.mods import *
-   pf = load("kh.0010.vtk")
+   import yt
+   ds = yt.load("kh.0010.vtk")
 
 The filename corresponds to the file on SMR level 0, whereas if there
 are multiple levels the corresponding files will be picked up
@@ -494,8 +491,8 @@ data, call ``load`` with the base file in the ``id0`` directory:
 
 .. code-block:: python
 
-   from yt.mods import *
-   pf = load("id0/kh.0010.vtk")
+   import yt
+   ds = yt.load("id0/kh.0010.vtk")
 
 which will pick up all of the files in the different ``id*`` directories for
 the entire dataset.
@@ -506,11 +503,11 @@ cgs units, you may supply conversions for length, time, and mass to ``load``:
 
 .. code-block:: python
 
-   from yt.mods import *
-   pf = load("id0/cluster_merger.0250.vtk",
-             parameters={"length_unit":(1.0,"Mpc"),
-                         "time_unit"(1.0,"Myr"),
-                         "mass_unit":(1.0e14,"Msun")})
+   import yt
+   ds = yt.load("id0/cluster_merger.0250.vtk",
+                parameters={"length_unit":(1.0,"Mpc"),
+                            "time_unit"(1.0,"Myr"),
+                            "mass_unit":(1.0e14,"Msun")})
 
 This means that the yt fields, e.g. ``("gas","density")``, ``("gas","x-velocity")``,
 ``("gas","magnetic_field_x")``, will be in cgs units, but the Athena fields, e.g.,
@@ -556,8 +553,8 @@ upon being loaded into yt it is automatically decomposed into grids:
 
 .. code-block:: python
 
-   from yt.mods import *
-   ds = load("m33_hi.fits")
+   import yt
+   ds = yt.load("m33_hi.fits")
    ds.print_stats()
 
 .. parsed-literal::
@@ -676,8 +673,14 @@ which may be used to make deposited image fields from the event data for differe
 Additional Options
 ++++++++++++++++++
 
+The following are additional options that may be passed to the ``load`` command when analyzing
+FITS data:
+
+``nan_mask``
+~~~~~~~~~~~~
+
 FITS image data may include ``NaNs``. If you wish to mask this data out,
-you may supply a ``nan_mask`` parameter to ``load``, which may either be a
+you may supply a ``nan_mask`` parameter, which may either be a
 single floating-point number (applies to all fields) or a Python dictionary
 containing different mask values for different fields:
 
@@ -689,9 +692,29 @@ containing different mask values for different fields:
    # passing a dict
    ds = load("m33_hi.fits", nan_mask={"intensity":-1.0,"temperature":0.0})
 
+``suppress_astropy_warnings``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Generally, AstroPy may generate a lot of warnings about individual FITS
 files, many of which you may want to ignore. If you want to see these
-warnings, set ``suppress_astropy_warnings = False`` in the call to ``load``.
+warnings, set ``suppress_astropy_warnings = False``.
+
+``z_axis_decomp``
+~~~~~~~~~~~~~~~~~
+
+For some applications, decomposing 3D FITS data into grids that span the x-y plane with short
+strides along the z-axis may result in a significant improvement in I/O speed. To enable this feature, set ``z_axis_decomp=True``.
+
+``spectral_factor``
+~~~~~~~~~~~~~~~~~~~
+
+Often, the aspect ratio of 3D spectral cubes can be far from unity. Because yt
+sets the pixel scale as the ``code_length``, certain visualizations (such as
+volume renderings) may look extended or distended in ways that are
+undesirable. To adjust the width in ``code_length`` of the spectral axis, set
+``spectral_factor`` equal to a constant which gives the desired scaling, or set
+it to ``"auto"`` to make the width the same as the largest axis in the sky
+plane.
 
 Miscellaneous Tools for Use with FITS Data
 ++++++++++++++++++++++++++++++++++++++++++
@@ -702,7 +725,6 @@ analysis capabilities for this particular type of data. These are included in th
 .. code-block:: python
 
   from yt.frontends.fits.misc import setup_counts_fields, PlotWindowWCS, ds9_region
-
 
 ``setup_counts_fields``
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -759,20 +781,52 @@ which we recommend you look at in the following order:
 * :ref:`radio_cubes`
 * :ref:`xray_fits`
 
-.. _loading-moab-data:
-
-MOAB Data
----------
-
 .. _loading-pyne-data:
 
 PyNE Data
 ---------
 
-.. _loading-numpy-array:
+`PyNE <http://pyne.io/>`_ is an open source nuclear engineering toolkit
+maintained by the PyNE developement team (`pyne-dev@googlegroups.com
+<pyne-dev%40googlegroups.com>`_). PyNE meshes utilize the Mesh-Oriented datABase
+`(MOAB) <http://trac.mcs.anl.gov/projects/ITAPS/wiki/MOAB/>`_ and can be
+Cartesian or tetrahedral. In addition to field data, pyne meshes store pyne
+Material objects which provide a rich set of capabilities for nuclear
+engineering tasks. PyNE Cartesian (Hex8) meshes are supported by yt.
+
+To create a pyne mesh:
+
+.. code-block:: python
+
+  from pyne.mesh import Mesh
+  num_divisions = 50
+  coords = linspace(-1, 1, num_divisions)
+  m = Mesh(structured=True, structured_coords=[coords, coords, coords])
+
+Field data can then be added:
+
+.. code-block:: python
+
+  from pyne.mesh import iMeshTag
+  m.neutron_flux = IMeshTag()
+  # neutron_flux_data is a list or numpy array of size num_divisions^3
+  m.neutron_flux[:] = neutron_flux_data
+
+Any field data or material data on the mesh can then be viewed just like any other yt dataset!
+
+.. code-block:: python
+
+  import yt
+  pf = yt.frontends.moab.data_structures.PyneMoabHex8Dataset(m)
+  s = yt.SlicePlot(pf, 'z', 'neutron_flux')
+  s.display()
+
 
 Generic Array Data
 ------------------
+
+See :ref:`loading-numpy-array` and
+:meth:`~yt.frontends.stream.data_structures.load_uniform_grid` for more detail.
 
 Even if your data is not strictly related to fields commonly used in
 astrophysical codes or your code is not supported yet, you can still feed it to
@@ -783,13 +837,13 @@ the following code:
 
 .. code-block:: python
 
-   from yt.frontends.stream.api import load_uniform_grid
+   import yt
 
    data = dict(Density = arr)
    bbox = np.array([[-1.5, 1.5], [-1.5, 1.5], [1.5, 1.5]])
-   pf = load_uniform_grid(data, arr.shape, 3.08e24, bbox=bbox, nprocs=12)
+   ds = yt.load_uniform_grid(data, arr.shape, 3.08e24, bbox=bbox, nprocs=12)
 
-will create ``yt``-native parameter file ``pf`` that will treat your array as
+will create ``yt``-native dataset ``ds`` that will treat your array as
 density field in cubic domain of 3 Mpc edge size (3 * 3.08e24 cm) and
 simultaneously divide the domain into 12 chunks, so that you can take advantage
 of the underlying parallelism. 
@@ -801,7 +855,7 @@ a similar manner as the three-dimensional grid fields:
 
 .. code-block:: python
 
-   from yt.frontends.stream.api import load_uniform_grid
+   import yt
 
    data = dict(Density = dens, 
                number_of_particles = 1000000,
@@ -809,7 +863,7 @@ a similar manner as the three-dimensional grid fields:
 	       particle_position_y = posy_arr,
 	       particle_position_z = posz_arr)
    bbox = np.array([[-1.5, 1.5], [-1.5, 1.5], [1.5, 1.5]])
-   pf = load_uniform_grid(data, arr.shape, 3.08e24, bbox=bbox, nprocs=12)
+   ds = yt.load_uniform_grid(data, arr.shape, 3.08e24, bbox=bbox, nprocs=12)
 
 where in this exampe the particle position fields have been assigned. ``number_of_particles`` must be the same size as the particle
 arrays. If no particle arrays are supplied then ``number_of_particles`` is assumed to be zero. 
@@ -825,13 +879,16 @@ arrays. If no particle arrays are supplied then ``number_of_particles`` is assum
 Generic AMR Data
 ----------------
 
-It is possible to create native ``yt`` parameter file from Python's dictionary
+See :ref:`loading-numpy-array` and
+:meth:`~yt.frontends.sph.data_structures.load_amr_grids` for more detail.
+
+It is possible to create native ``yt`` dataset from Python's dictionary
 that describes set of rectangular patches of data of possibly varying
 resolution. 
 
 .. code-block:: python
 
-   from yt.frontends.stream.api import load_amr_grids
+   import yt
 
    grid_data = [
        dict(left_edge = [0.0, 0.0, 0.0],
@@ -849,7 +906,7 @@ resolution.
    for g in grid_data:
        g["density"] = np.random.random(g["dimensions"]) * 2**g["level"]
   
-   pf = load_amr_grids(grid_data, [32, 32, 32], 1.0)
+   ds = yt.load_amr_grids(grid_data, [32, 32, 32], 1.0)
 
 Particle fields are supported by adding 1-dimensional arrays and
 setting the ``number_of_particles`` key to each ``grid``'s dict:
@@ -875,3 +932,72 @@ setting the ``number_of_particles`` key to each ``grid``'s dict:
 Generic Particle Data
 ---------------------
 
+See :ref:`generic-particle-data` and
+:meth:`~yt.frontends.stream.data_structures.load_particles` for more detail.
+
+You can also load generic particle data using the same ``stream`` functionality
+discussed above to load in-memory grid data.  For example, if your particle
+positions and masses are stored in ``positions`` and ``massess``, a
+vertically-stacked array of particle x,y, and z positions, and a 1D array of
+particle masses respectively, you would load them like this:
+
+.. code-block:: python
+
+    import yt
+
+    data = dict(particle_position=positions, particle_mass=masses)
+    ds = yt.load_particles(data)
+
+You can also load data using 1D x, y, and z position arrays:
+
+.. code-block:: python
+
+    import yt
+
+    data = dict(particle_position_x=posx,
+                particle_position_y=posy,
+                particle_position_z=posz,
+                particle_mass=masses)
+    ds = yt.load_particles(data)
+
+The ``load_particles`` function also accepts the following keyword parameters:
+
+    ``length_unit``
+      The units used for particle positions.
+
+     ``mass_unit``
+       The units of the particle masses.
+
+     ``time_unit``
+       The units used to represent times. This is optional and is only used if 
+       your data contains a ``creation_time`` field or a ``particle_velocity`` field.
+
+     ``velocity_unit``
+       The units used to represent velocities.  This is optional and is only used
+       if you supply a velocity field.  If this is not supplied, it is inferred from
+       the length and time units.
+
+     ``bbox``
+       The bounding box for the particle positions.
+
+.. _loading-sph-data:
+
+SPH Particle Data
+-----------------
+
+For all of the SPH frontends, yt uses cython-based SPH smoothing onto an
+in-memory octree to create deposited mesh fields from individual SPH particle
+fields.
+
+This uses a standard M4 smoothing kernel and the ``smoothing_length``
+field to calculate SPH sums, filling in the mesh fields.  This gives you the
+ability to both track individual particles (useful for tasks like following
+contiguous clouds of gas that would be require a clump finder in grid data) as
+well as doing standard grid-based analysis (i.e. slices, projections, and profiles).
+
+The ``smoothing_length`` variable is also useful for determining which particles
+can interact with each other, since particles more distant than twice the
+smoothing length do not typically see each other in SPH simulations.  By
+changing the value of the ``smoothing_length`` and then re-depositing particles
+onto the grid, you can also effectively mimic what your data would look like at
+lower resolution.

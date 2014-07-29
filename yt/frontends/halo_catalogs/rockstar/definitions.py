@@ -30,7 +30,9 @@ header_dt = (
     ("box_size", 1, "f"),
     ("particle_mass", 1, "f"),
     ("particle_type", 1, "q"),
-    ("unused", BINARY_HEADER_SIZE - 4*12 - 8*6, "c")
+    ("format_revision", 1, "i"),
+    ("version", 12, "c"),
+    ("unused", BINARY_HEADER_SIZE - 4*12 - 4 - 8*6 - 12, "c")
 )
 
 halo_dt = np.dtype([
@@ -38,15 +40,15 @@ halo_dt = np.dtype([
     ('particle_position_x', np.float32),
     ('particle_position_y', np.float32),
     ('particle_position_z', np.float32),
-    ('particle_mposition_x', np.float32),
-    ('particle_mposition_y', np.float32),
-    ('particle_mposition_z', np.float32),
     ('particle_velocity_x', np.float32),
     ('particle_velocity_y', np.float32),
     ('particle_velocity_z', np.float32),
-    ('particle_bvelocity_x', np.float32),
-    ('particle_bvelocity_y', np.float32),
-    ('particle_bvelocity_z', np.float32),
+    ('particle_corevel_x', np.float32),
+    ('particle_corevel_y', np.float32),
+    ('particle_corevel_z', np.float32),
+    ('particle_bulkvel_x', np.float32),
+    ('particle_bulkvel_y', np.float32),
+    ('particle_bulkvel_z', np.float32),
     ('particle_mass', np.float32),
     ('virial_radius', np.float32),
     ('child_r', np.float32),
@@ -57,9 +59,9 @@ halo_dt = np.dtype([
     ('rs', np.float32),
     ('klypin_rs', np.float32),
     ('vrms', np.float32),
-    ('JX', np.float32),
-    ('JY', np.float32),
-    ('JZ', np.float32),
+    ('Jx', np.float32),
+    ('Jy', np.float32),
+    ('Jz', np.float32),
     ('energy', np.float32),
     ('spin', np.float32),
     ('alt_m1', np.float32),
@@ -73,8 +75,15 @@ halo_dt = np.dtype([
     ('Ax', np.float32),
     ('Ay', np.float32),
     ('Az', np.float32),
+    ('b_to_a2', np.float32),
+    ('c_to_a2', np.float32),
+    ('A2x', np.float32),
+    ('A2y', np.float32),
+    ('A2z', np.float32),
     ('bullock_spin', np.float32),
     ('kin_to_pot', np.float32),
+    ('m_pe_b', np.float32),
+    ('m_pe_d', np.float32),
     ('num_p', np.int64),
     ('num_child_particles', np.int64),
     ('p_start', np.int64),
@@ -84,8 +93,7 @@ halo_dt = np.dtype([
     ('min_pos_err', np.float32),
     ('min_vel_err', np.float32),
     ('min_bulkvel_err', np.float32),
-    ('padding2', np.float32),
-])
+], align=True)
 
 particle_dt = np.dtype([
     ('particle_identifier', np.int64),
