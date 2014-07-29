@@ -56,7 +56,13 @@ How can I get some sample data for ``yt``?
 
 Many different sample datasets can be found at http://yt-project.org/data/ .
 These can be downloaded, unarchived, and they will each create their own
-directory.  If you set the option ``test_data_dir``, in the section ``[yt]``,
+directory.  It is generally straight forward to load these datasets, but if
+you have any questions about loading data from a code with which you are 
+unfamiliar, please visit :ref:`loading-data`.
+
+To make things easier to load these sample datasets, you can add the parent
+directory to your downloaded sample data to your *yt path*.
+If you set the option ``test_data_dir``, in the section ``[yt]``,
 in ``~/.yt/config``, ``yt`` will search this path for them.
 
 This means you can download these datasets to ``/big_drive/data_for_yt`` , add
@@ -83,7 +89,7 @@ How do I modify whether or not ``yt`` takes the log of a particular field?
 
 ``yt`` sets up defaults for many fields for whether or not a field is presented
 in log or linear space. To override this behavior, you can modify the
-``field_info`` dictionary.  For example, if you prefer that ``Density`` not be
+``field_info`` dictionary.  For example, if you prefer that ``density`` not be
 logged, you could type:
 
 .. code-block:: python
@@ -110,8 +116,8 @@ example, if you have created a field for the potential called
 .. code-block:: python
 
    ds = load("my_data")
-   dd = ds.all_data()
-   potential_field = dd["PotentialField"]
+   ad = ds.all_data()
+   potential_field = ad["PotentialField"]
 
 The same applies to fields you might derive inside your ``yt`` script
 via :ref:`creating-derived-fields`. To check what fields are
