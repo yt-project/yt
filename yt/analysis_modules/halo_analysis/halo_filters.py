@@ -66,7 +66,7 @@ def quantity_value(halo, field, operator, value, units):
 
 add_filter("quantity_value", quantity_value)
 
-def _not_subhalo(halo, field_type="halos"):
+def not_subhalo(halo, field_type="halos"):
     """
     Only return true if this halo is not a subhalo.
     
@@ -76,11 +76,11 @@ def _not_subhalo(halo, field_type="halos"):
 
     if not hasattr(halo.halo_catalog, "parent_dict"):
         halo.halo_catalog.parent_dict = \
-          create_parent_dict(halo.halo_catalog.data_source, ptype=field_type)
+          _create_parent_dict(halo.halo_catalog.data_source, ptype=field_type)
     return halo.halo_catalog.parent_dict[int(halo.quantities["particle_identifier"])] == -1
-add_filter("not_subhalo", _not_subhalo)
+add_filter("not_subhalo", not_subhalo)
 
-def create_parent_dict(data_source, ptype="halos"):
+def _create_parent_dict(data_source, ptype="halos"):
     """
     Create a dictionary of halo parents to allow for filtering of subhalos.
 

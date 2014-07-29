@@ -137,10 +137,10 @@ class HaloCatalog(object):
 
         Examples
         --------
-        ds = load("DD0000/DD0000")
-        halo_list = FOFHaloFinder(ds)
-        halo_list.write_out("FOF/groups_00000.txt")
-        halos_COM = parse_halo_catalog_internal()
+        >>> ds = load("DD0000/DD0000")
+        >>> halo_list = FOFHaloFinder(ds)
+        >>> halo_list.write_out("FOF/groups_00000.txt")
+        >>> halos_COM = parse_halo_catalog_internal()
         """
         hp = []
         for line in open("%s/groups_%05i.txt" % \
@@ -268,10 +268,10 @@ class EnzoFOFMergerTree(object):
     
     Examples
     --------
-    mt = EnzoFOFMergerTree()    # by default it grabs every DD in FOF dir
-    mt.build_tree(0)  # Create tree for halo 0
-    mt.print_tree()
-    mt.write_dot()
+    >>> mt = EnzoFOFMergerTree()    # by default it grabs every DD in FOF dir
+    >>> mt.build_tree(0)  # Create tree for halo 0
+    >>> mt.print_tree()
+    >>> mt.write_dot()
 
     See Also
     --------
