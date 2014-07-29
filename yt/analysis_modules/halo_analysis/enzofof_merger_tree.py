@@ -268,10 +268,10 @@ class EnzoFOFMergerTree(object):
     
     Examples
     --------
-    mt = EnzoFOFMergerTree()    # by default it grabs every DD in FOF dir
-    mt.build_tree(0)  # Create tree for halo 0
-    mt.print_tree()
-    mt.write_dot()
+    >>> mt = EnzoFOFMergerTree()    # by default it grabs every DD in FOF dir
+    >>> mt.build_tree(0)  # Create tree for halo 0
+    >>> mt.print_tree()
+    >>> mt.write_dot()
 
     See Also
     --------
