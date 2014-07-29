@@ -137,10 +137,10 @@ class HaloCatalog(object):
 
         Examples
         --------
-        ds = load("DD0000/DD0000")
-        halo_list = FOFHaloFinder(ds)
-        halo_list.write_out("FOF/groups_00000.txt")
-        halos_COM = parse_halo_catalog_internal()
+        >>> ds = load("DD0000/DD0000")
+        >>> halo_list = FOFHaloFinder(ds)
+        >>> halo_list.write_out("FOF/groups_00000.txt")
+        >>> halos_COM = parse_halo_catalog_internal()
         """
         hp = []
         for line in open("%s/groups_%05i.txt" % \
