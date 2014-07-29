@@ -1,32 +1,52 @@
+.. _extracting-isocontour-information:
+.. _surfaces:
+
 3D Surfaces and Sketchfab
 =========================
 
 .. sectionauthor:: Jill Naiman and Matthew Turk
 
-Surfaces
---------
+Surface Objects and Extracting Isocontour Information
+-----------------------------------------------------
 
-For a while now, yt has had the ability to extract isosurfaces from volumetric
-data using a `marching cubes <http://en.wikipedia.org/wiki/Marching_cubes>`_
-algorithm.  The surfaces could be exported in `OBJ format
-<http://en.wikipedia.org/wiki/Wavefront_.obj_file>`_, values could be samples
-at the center of each face of the surface, and flux of a given field could be
-calculated over the surface.  This means you could, for instance, extract an
-isocontour in density and calculate the mass flux over that isocontour.  It
-also means you could export a surface from yt and view it in something like
-`Blender <http://www.blender.org/>`_, `MeshLab
-<http://meshlab.sourceforge.net/>`_, or even on your Android or iOS device in
-`MeshPad <http://www.meshpad.org/>`_ or `MeshLab Android
-<https://play.google.com/store/apps/details?id=it.isticnr.meshlab&hl=en>`_.
-One important caveat with marching cubes is that with adaptive mesh refinement
+``yt`` contains an implementation of the `Marching Cubes
+<http://en.wikipedia.org/wiki/Marching_cubes>`_ algorithm, which can operate on
+3D data objects.  This provides two things.  The first is to identify
+isocontours and return either the geometry of those isocontours or to return
+another field value sampled along that isocontour.  The second piece of
+functionality is to calculate the flux of a field over an isocontour.
+
+Note that these isocontours are not guaranteed to be topologically connected.
+In fact, inside a given data object, the marching cubes algorithm will return
+all isocontours, not just a single connected one.  This means if you encompass
+two clumps of a given density in your data object and extract an isocontour at
+that density, it will include both of the clumps.
+
+This means that with adaptive mesh refinement
 data, you *will* see cracks across refinement boundaries unless a
 "crack-fixing" step is applied to match up these boundaries.  yt does not
 perform such an operation, and so there will be seams visible in 3D views of
 your isosurfaces.
 
-The methods to do so were methods on data objects -- ``extract_isocontours``,
-``calculate_isocontour_flux`` -- which returned just numbers or values.
-However, recently, I've created a new object called ``AMRSurface`` that makes
+
+Surfaces can be exported in `OBJ format
+<http://en.wikipedia.org/wiki/Wavefront_.obj_file>`_, values can be samples
+at the center of each face of the surface, and flux of a given field could be
+calculated over the surface.  This means you can, for instance, extract an
+isocontour in density and calculate the mass flux over that isocontour.  It
+also means you can export a surface from yt and view it in something like
+`Blender <http://www.blender.org/>`_, `MeshLab
+<http://meshlab.sourceforge.net/>`_, or even on your Android or iOS device in
+`MeshPad <http://www.meshpad.org/>`_ or `MeshLab Android
+<https://play.google.com/store/apps/details?id=it.isticnr.meshlab&hl=en>`_.
+
+To extract geometry or sample a field, call
+:meth:`~yt.data_objects.data_containers.AMR3DData.extract_isocontours`.  To
+calculate a flux, call
+:meth:`~yt.data_objects.data_containers.AMR3DData.calculate_isocontour_flux`.
+both of these operations will run in parallel.
+
+Alternatively, you can make an object called ``YTSurfaceBase`` that makes
 this process much easier.  You can create one of these objects by specifying a
 source data object and a field over which to identify a surface at a given
 value.  For example:
@@ -38,7 +58,7 @@ value.  For example:
    sphere = ds.sphere("max", (1.0, "mpc"))
    surface = ds.surface(sphere, "density", 1e-27)
 
-This object, ``surface``, can now be queried for values on the surface.  For
+This object, ``surface``, can be queried for values on the surface.  For
 instance:
 
 .. code-block:: python
@@ -80,7 +100,7 @@ model in a website with other supplemental data, or you can use Sketchfab to
 discuss morphological properties of a dataset with collaborators.  It's also
 just plain cool.
 
-The ``AMRSurface`` object includes a method to upload directly to Sketchfab,
+The ``YTSurfaceBase`` object includes a method to upload directly to Sketchfab,
 but it requires that you get an API key first.  You can get this API key by
 creating an account and then going to your "dashboard," where it will be listed
 on the right hand side.  Once you've obtained it, put it into your

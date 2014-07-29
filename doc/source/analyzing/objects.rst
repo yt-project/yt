@@ -428,30 +428,6 @@ to ``contour_values``.  The inner dict returned is keyed by the contour ID.  It
 contains :class:`~yt.data_objects.data_containers.AMRExtractedRegionBase`
 objects.  These can be queried just as any other data object.
 
-.. _extracting-isocontour-information:
-
-Surface Objects and Extracting Isocontour Information
------------------------------------------------------
-
-``yt`` contains an implementation of the `Marching Cubes
-<http://en.wikipedia.org/wiki/Marching_cubes>`_ algorithm, which can operate on
-3D data objects.  This provides two things.  The first is to identify
-isocontours and return either the geometry of those isocontours or to return
-another field value sampled along that isocontour.  The second piece of
-functionality is to calculate the flux of a field over an isocontour.
-
-Note that these isocontours are not guaranteed to be topologically connected.
-In fact, inside a given data object, the marching cubes algorithm will return
-all isocontours, not just a single connected one.  This means if you encompass
-two clumps of a given density in your data object and extract an isocontour at
-that density, it will include both of the clumps.
-
-To extract geometry or sample a field, call
-:meth:`~yt.data_objects.data_containers.AMR3DData.extract_isocontours`.  To
-calculate a flux, call
-:meth:`~yt.data_objects.data_containers.AMR3DData.calculate_isocontour_flux`.
-both of these operations will run in parallel.
-
 .. _object-serialization:
 
 Storing and Loading Objects
