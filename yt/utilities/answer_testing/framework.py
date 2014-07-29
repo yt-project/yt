@@ -578,7 +578,7 @@ class ParentageRelationshipsTest(AnswerTestingTest):
 
 class SimulatedHaloMassFunctionTest(AnswerTestingTest):
     _type_name = "SimulatedHaloMassFunction"
-    _attrs = ("finder")
+    _attrs = ("finder",)
 
     def __init__(self, ds_fn, finder):
         super(SimulatedHaloMassFunctionTest, self).__init__(ds_fn)
@@ -604,7 +604,7 @@ class SimulatedHaloMassFunctionTest(AnswerTestingTest):
 
 class AnalyticHaloMassFunctionTest(AnswerTestingTest):
     _type_name = "AnalyticHaloMassFunction"
-    _attrs = ("fitting_function")
+    _attrs = ("fitting_function",)
 
     def __init__(self, ds_fn, fitting_function):
         super(AnalyticHaloMassFunctionTest, self).__init__(ds_fn)
