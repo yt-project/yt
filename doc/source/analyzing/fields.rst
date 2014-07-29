@@ -169,11 +169,10 @@ What fields are available?
 
 .. include reference here once it's done
 
-The full list of fields that are available for a dataset can be found as a 
+The full list of fields available for a dataset can be found as 
 the attribute ``field_list`` for native, on-disk fields and ``derived_field_list``
-which is a superset of ``field_list`` and includes all derived fields that can
-be calculated for a given dataset.  You can see these by examining the 
-two properties:
+for derived fields (``derived_field_list`` is a superset of ``field_list``).
+You can view these lists by examining a dataset like this:
 
 .. code-block:: python
 
@@ -181,25 +180,15 @@ two properties:
    print ds.field_list
    print ds.derived_field_list
 
-When a field is added, it is added to a container that hangs off of the
-dataset, as well.  All of the field creation options
-(:ref:`derived-field-options`) are accessible through this object.  One
-can get the default units of a field by first indexing and then using the
-``get_units()`` function on the full field name (e.g. ("gas", "pressure")):
+By using the ``field_info()`` class, one can access information about a given
+field, like its default units or the source code for it.  
 
 .. code-block:: python
 
    ds = yt.load("my_data")
    ds.index
    print ds.field_info["gas", "pressure"].get_units()
-
-This is a fast way to examine the units of a given field, and additionally you
-can use :meth:`yt.utilities.pydot.get_source` to get the source code for a field:
-
-.. code-block:: python
-
-   field = ds.field_info["gas", "pressure"]
-   print field.get_source()
+   print ds.field_info["gas", "pressure"].get_source()
 
 Particle Fields
 ---------------
