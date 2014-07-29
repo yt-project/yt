@@ -222,4 +222,3 @@ For gas particles from SPH simulations, each particle will typically carry
 a field for the smoothing length ``h``, which is roughly equivalent to 
 ``(m/\rho)^{1/3}``, where ``m`` and ``rho`` are the particle mass and density 
 respectively.  This can be useful for doing neighbour finding.
-
