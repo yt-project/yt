@@ -81,7 +81,7 @@ def test_simulated_halo_mass_function():
 @requires_ds(enzotiny)
 def test_analytic_halo_mass_function():
     ds = data_dir_load(enzotiny)
-    for fit in range(1, 5):
+    for fit in range(1, 6):
         yield AnalyticHaloMassFunctionTest(ds, fit)
 
 ecp = "enzo_cosmology_plus/DD0046/DD0046"
