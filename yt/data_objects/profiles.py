@@ -1248,7 +1248,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
         List of the binning fields for profiling.
     fields : list of strings
         The fields to be profiled.
-    n : int or list of ints
+    n_bins : int or list of ints
         The number of bins in each dimension.  If None, 64 bins for
         each bin are used for each bin field.
         Default: 64.
@@ -1263,7 +1263,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
         attribute of the field.
     units : dict of strings
         The units of the fields in the profiles, including the bin_fields.
-    weight_field : str
+    weight_field : str or tuple field identifier
         The weight field for computing weighted average for the profile
         values.  If None, the profile values are sums of the data in
         each bin.

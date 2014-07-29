@@ -68,4 +68,10 @@ thermal_energy_density, and then generate a projection from it.
 
 .. yt_cookbook:: derived_field.py
 
-.. _cookbook-complex-derived-fields:
+Using Particle Filters to Calculate Star Formation Rates
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This recipe demonstrates how to use a particle filter to calculate the star
+formation rate in a galaxy evolution simulation.
+
+.. yt_cookbook:: particle_filter_sfr.py
