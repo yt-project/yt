@@ -29,7 +29,7 @@ Here are the notebooks, which have been filled in for inspection:
    :maxdepth: 1
 
    symbolic_units
-   data_selection_and_fields
+   fields_and_unit_conversion:
    comoving_units_and_code_units
    comparing_units_from_different_datasets
    units_and_plotting
