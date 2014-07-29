@@ -71,11 +71,14 @@ Available Objects
 As noted above, there are numerous types of objects.  Here we group them
 into:
 
-* *Geometric Objects* - Data is selected based on spatial shapes in the dataset
-* *Filtering Objects* - Data is selected based on other field criteria
-* *Collection Objects* - Multiple objects grouped together
-* *Construction Objects* - Objects represent some sort of data product 
-constructed by additional analysis
+* *Geometric Objects*
+  Data is selected based on spatial shapes in the dataset
+* *Filtering Objects*
+  Data is selected based on other field criteria
+* *Collection Objects*
+  Multiple objects grouped together
+* *Construction Objects* 
+  Objects represent some sort of data product constructed by additional analysis
 
 If you want to create your own custom data object type, see 
 :ref:`creating-objects`.
@@ -130,7 +133,7 @@ for the grid cell to be incorporated.
 """"""""""
 
 **All Data** 
-    | Class :fun:`~yt.data_objects.static_output.Dataset.all_data`
+    | Class :func:`~yt.data_objects.static_output.Dataset.all_data`
     | Usage: ``all_data(find_max=False)``
     | ``all_data()`` is a wrapper on the Box Region class which defaults to 
       creating a Region covering the entire dataset domain.  It is effectively 
@@ -176,7 +179,7 @@ See also the section on :ref:`filtering-data`.
 **Boolean Regions** 
     | **Note: not yet implemented in yt 3.0**
     | Usage: ``boolean()``
-    See :ref:`boolean_data_objects`.
+    | See :ref:`boolean_data_objects`.
 
 **Filter** 
     | Class :class:`~yt.data_objects.data_containers.YTCutRegionBase`
