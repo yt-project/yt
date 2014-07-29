@@ -12,12 +12,23 @@ This script shows the simplest way to make a slice through a dataset.
 
 .. yt_cookbook:: simple_slice.py
 
-Simple Projections
-~~~~~~~~~~~~~~~~~~
+Simple Projections (Non-Weighted)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This is the simplest way to make a projection through a dataset.
+This is the simplest way to make a projection through a dataset.  There are
+several different :ref:`projection-types`, but non-weighted line integrals
+and weighted line integrals are the two most common.  Here we create 
+density projections (non-weighted line integral):
 
 .. yt_cookbook:: simple_projection.py
+
+Simple Projections (Weighted)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+And here we produce density-weighted temperature projections (weighted line 
+integral) for the same dataset as the non-weighted projections:
+
+.. yt_cookbook:: simple_projection_weighted.py
 
 Simple Phase Plots
 ~~~~~~~~~~~~~~~~~~
