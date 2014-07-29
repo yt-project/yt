@@ -138,7 +138,7 @@ associated with yt and update the codebase simultaneously, type this:
 
 .. _removing-yt:
 
-Removing yt and Its dependencies
+Removing yt and Its Dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Because yt and its dependencies are installed in an isolated directory when
