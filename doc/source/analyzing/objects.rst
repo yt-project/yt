@@ -77,6 +77,9 @@ into:
 * *Construction Objects* - Objects represent some sort of data product 
 constructed by additional analysis
 
+If you want to create your own custom data object type, see 
+:ref:`creating-objects`.
+
 Geometric Objects
 ^^^^^^^^^^^^^^^^^
 
