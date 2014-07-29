@@ -7,7 +7,6 @@ Analyzing Data
    :maxdepth: 2
 
    fields
-   creating_derived_fields
    objects
    units/index
    filtering
