@@ -2,7 +2,6 @@
 
 Streamlining
 ================
-.. versionadded:: 2.1
 
 Streamlines, as implemented in ``yt``, are defined as being parallel to a
 vector field at all points.  While commonly used to follow the

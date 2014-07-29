@@ -5,7 +5,7 @@ These recipes demonstrate a few uncommon methods of constructing data objects
 from a simulation.
 
 Creating Particle Filters
--------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Create particle filters based on the age of star particles in an isolated
 disk galaxy simulation.  Determine the total mass of each stellar age bin

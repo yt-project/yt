@@ -48,10 +48,17 @@ class YTPointBase(YTSelectionContainer0D):
         periodic its position will be corrected to lie inside
         the range [DLE,DRE) to ensure one and only one cell may
         match that point
+    ds: Dataset, optional
+        An optional dataset to use rather than self.ds
+    field_parameters : dictionary
+         A dictionary of field parameters than can be accessed by derived
+         fields.
 
     Examples
     --------
-    >>> ds = load("DD0010/moving7_0010")
+
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
     >>> c = [0.5,0.5,0.5]
     >>> point = ds.point(c)
     """
@@ -80,14 +87,17 @@ class YTOrthoRayBase(YTSelectionContainer1D):
         that this is in the plane coordinates: so if you are casting along
         x, this will be (y,z).  If you are casting along y, this will be
         (x,z).  If you are casting along z, this will be (x,y).
-    fields : list of strings, optional
-        If you want the object to pre-retrieve a set of fields, supply them
-        here.  This is not necessary.
+    ds: Dataset, optional
+        An optional dataset to use rather than self.ds
+    field_parameters : dictionary
+         A dictionary of field parameters than can be accessed by derived
+         fields.
 
     Examples
     --------
 
-    >>> ds = load("RedshiftOutput0005")
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
     >>> oray = ds.ortho_ray(0, (0.2, 0.74))
     >>> print oray["Density"]
     """
@@ -129,14 +139,17 @@ class YTRayBase(YTSelectionContainer1D):
         The place where the ray starts.
     end_point : array-like set of 3 floats
         The place where the ray ends.
-    fields : list of strings, optional
-        If you want the object to pre-retrieve a set of fields, supply them
-        here.  This is not necessary.
+    ds: Dataset, optional
+        An optional dataset to use rather than self.ds
+    field_parameters : dictionary
+         A dictionary of field parameters than can be accessed by derived
+         fields.
 
     Examples
     --------
 
-    >>> ds = load("RedshiftOutput0005")
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
     >>> ray = ds.ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
     >>> print ray["Density"], ray["t"], ray["dts"]
     """
@@ -170,7 +183,7 @@ class YTSliceBase(YTSelectionContainer2D):
     domain.
 
     This object is typically accessed through the `slice` object that hangs
-    off of index objects.  AMRSlice is an orthogonal slice through the
+    off of index objects.  Slice is an orthogonal slice through the
     data, taking all the points at the finest resolution available and then
     indexing them.  It is more appropriately thought of as a slice
     'operator' than an object, however, as its field and coordinate can
@@ -185,7 +198,7 @@ class YTSliceBase(YTSelectionContainer2D):
         "domain" coordinates.
     center : array_like, optional
         The 'center' supplied to fields that use it.  Note that this does
-        not have to have `coord` as one value.  Strictly optional.
+        not have to have `coord` as one value.  optional.
     ds: Dataset, optional
         An optional dataset to use rather than self.ds
     field_parameters : dictionary
@@ -195,7 +208,8 @@ class YTSliceBase(YTSelectionContainer2D):
     Examples
     --------
 
-    >>> ds = load("RedshiftOutput0005")
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
     >>> slice = ds.slice(0, 0.25)
     >>> print slice["Density"]
     """
@@ -250,9 +264,9 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     simulation domain.
 
     This object is typically accessed through the `cutting` object
-    that hangs off of index objects.  AMRCuttingPlane is an oblique
+    that hangs off of index objects.  A cutting plane is an oblique
     plane through the data, defined by a normal vector and a coordinate.
-    It attempts to guess an 'up' vector, which cannot be overridden, and
+    It attempts to guess an 'north' vector, which can be overridden, and
     then it pixelizes the appropriate data onto the plane without
     interpolation.
 
@@ -261,14 +275,16 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     normal : array_like
         The vector that defines the desired plane.  For instance, the
         angular momentum of a sphere.
-    center : array_like, optional
-        The center of the cutting plane.
-    fields : list of strings, optional
-        If you want the object to pre-retrieve a set of fields, supply them
-        here.  This is not necessary.
-    node_name: string, optional
-        The node in the .yt file to find or store this slice at.  Should
-        probably not be used.
+    center : array_like
+        The center of the cutting plane, where the normal vector is anchored.
+    north_vector: array_like, optional
+        An optional vector to describe the north-facing direction in the resulting
+        plane.
+    ds: Dataset, optional
+        An optional dataset to use rather than self.ds
+    field_parameters : dictionary
+         A dictionary of field parameters than can be accessed by derived
+         fields.
 
     Notes
     -----
@@ -281,7 +297,8 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     Examples
     --------
 
-    >>> ds = load("RedshiftOutput0005")
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
     >>> cp = ds.cutting([0.1, 0.2, -0.9], [0.5, 0.42, 0.6])
     >>> print cp["Density"]
     """
@@ -292,8 +309,8 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     _con_args = ('normal', 'center')
     _container_fields = ("px", "py", "pz", "pdx", "pdy", "pdz")
 
-    def __init__(self, normal, center, ds = None,
-                 north_vector = None, field_parameters = None):
+    def __init__(self, normal, center, north_vector = None, 
+                 ds = None, field_parameters = None):
         YTSelectionContainer2D.__init__(self, 4, ds, field_parameters)
         self._set_center(center)
         self.set_field_parameter('center',center)
@@ -325,9 +342,9 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         variable-resolution 2D object and transforms it into an NxM bitmap that
         can be plotted, examined or processed.  This is a convenience function
         to return an FRB directly from an existing 2D data object.  Unlike the
-        corresponding to_frb function for other AMR2DData objects, this does
-        not accept a 'center' parameter as it is assumed to be centered at the
-        center of the cutting plane.
+        corresponding to_frb function for other YTSelectionContainer2D objects, 
+        this does not accept a 'center' parameter as it is assumed to be 
+        centered at the center of the cutting plane.
 
         Parameters
         ----------
@@ -446,9 +463,9 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         variable-resolution 2D object and transforms it into an NxM bitmap that
         can be plotted, examined or processed.  This is a convenience function
         to return an FRB directly from an existing 2D data object.  Unlike the
-        corresponding to_frb function for other AMR2DData objects, this does
-        not accept a 'center' parameter as it is assumed to be centered at the
-        center of the cutting plane.
+        corresponding to_frb function for other YTSelectionContainer2D objects, 
+        this does not accept a 'center' parameter as it is assumed to be 
+        centered at the center of the cutting plane.
 
         Parameters
         ----------
@@ -496,6 +513,34 @@ class YTDiskBase(YTSelectionContainer3D):
     By providing a *center*, a *normal*, a *radius* and a *height* we
     can define a cylinder of any proportion.  Only cells whose centers are
     within the cylinder will be selected.
+
+    Parameters
+    ----------
+    center : array_like 
+        coordinate to which the normal, radius, and height all reference; in
+        the center of one of the bases of the cylinder
+    normal : array_like
+        the normal vector defining the direction of lengthwise part of the 
+        cylinder
+    radius : float
+        the radius of the cylinder
+    height : float
+        the height of the lengthwise part of the cylinder
+    fields : array of fields, optional
+        any fields to be pre-loaded in the cylinder object
+    ds: Dataset, optional
+        An optional dataset to use rather than self.ds
+    field_parameters : dictionary
+         A dictionary of field parameters than can be accessed by derived
+         fields.
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
+    >>> c = [0.5,0.5,0.5]
+    >>> disk = ds.disk(c, [1,0,0], (1, 'kpc'), (10, 'kpc'))
     """
     _type_name = "disk"
     _con_args = ('center', '_norm_vec', '_radius', '_height')
@@ -507,7 +552,6 @@ class YTDiskBase(YTSelectionContainer3D):
         self._height = fix_length(height, self.ds)
         self._radius = fix_length(radius, self.ds)
         self._d = -1.0 * np.dot(self._norm_vec, self.center)
-
 
 class YTRegionBase(YTSelectionContainer3D):
     """A 3D region of data with an arbitrary center.
@@ -567,7 +611,9 @@ class YTSphereBase(YTSelectionContainer3D):
 
     Examples
     --------
-    >>> ds = load("DD0010/moving7_0010")
+
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
     >>> c = [0.5,0.5,0.5]
     >>> sphere = ds.sphere(c,1.*ds['kpc'])
     """
@@ -594,11 +640,11 @@ class YTEllipsoidBase(YTSelectionContainer3D):
     center : array_like
         The center of the ellipsoid.
     A : float
-        The magnitude of the largest semi-major axis of the ellipsoid.
+        The magnitude of the largest axis (semi-major) of the ellipsoid.
     B : float
-        The magnitude of the medium semi-major axis of the ellipsoid.
+        The magnitude of the medium axis (semi-medium) of the ellipsoid.
     C : float
-        The magnitude of the smallest semi-major axis of the ellipsoid.
+        The magnitude of the smallest axis (semi-minor) of the ellipsoid.
     e0 : array_like (automatically normalized)
         the direction of the largest semi-major axis of the ellipsoid
     tilt : float
@@ -609,7 +655,9 @@ class YTEllipsoidBase(YTSelectionContainer3D):
         the z-axis.
     Examples
     --------
-    >>> ds = load("DD####/DD####")
+
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
     >>> c = [0.5,0.5,0.5]
     >>> ell = ds.ellipsoid(c, 0.1, 0.1, 0.1, np.array([0.1, 0.1, 0.1]), 0.2)
     """
@@ -663,7 +711,7 @@ class YTEllipsoidBase(YTSelectionContainer3D):
 class YTCutRegionBase(YTSelectionContainer3D):
     """
     This is a data object designed to allow individuals to apply logical
-    operations to fields or particles and filter as a result of those cuts.
+    operations to fields and filter as a result of those cuts.
 
     Parameters
     ----------
@@ -678,7 +726,8 @@ class YTCutRegionBase(YTSelectionContainer3D):
     Examples
     --------
 
-    >>> ds = load("DD0010/moving7_0010")
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
     >>> sp = ds.sphere("max", (1.0, 'mpc'))
     >>> cr = ds.cut_region(sp, ["obj['temperature'] < 1e3"])
     """

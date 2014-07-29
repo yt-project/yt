@@ -169,6 +169,27 @@ What fields are available?
 
 .. include reference here once it's done
 
+The full list of fields available for a dataset can be found as 
+the attribute ``field_list`` for native, on-disk fields and ``derived_field_list``
+for derived fields (``derived_field_list`` is a superset of ``field_list``).
+You can view these lists by examining a dataset like this:
+
+.. code-block:: python
+
+   ds = yt.load("my_data")
+   print ds.field_list
+   print ds.derived_field_list
+
+By using the ``field_info()`` class, one can access information about a given
+field, like its default units or the source code for it.  
+
+.. code-block:: python
+
+   ds = yt.load("my_data")
+   ds.index
+   print ds.field_info["gas", "pressure"].get_units()
+   print ds.field_info["gas", "pressure"].get_source()
+
 Particle Fields
 ---------------
 
@@ -190,4 +211,3 @@ For gas particles from SPH simulations, each particle will typically carry
 a field for the smoothing length ``h``, which is roughly equivalent to 
 ``(m/\rho)^{1/3}``, where ``m`` and ``rho`` are the particle mass and density 
 respectively.  This can be useful for doing neighbour finding.
-

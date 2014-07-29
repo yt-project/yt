@@ -25,11 +25,10 @@ this approach.
        return (data.ds.gamma - 1.0) * \
               data["density"] * data["thermal_energy"]
 
-Note that we do a couple different things here.  We access the "gamma"
-parameter from the dataset, we access the "density" field and we access
-the "thermal_energy" field.  "thermal_energy" is, in fact, another derived field!
-("thermal_energy" deals with the distinction in storage of energy between dual
-energy formalism and non-DEF.)  We don't do any loops, we don't do any
+Note that we do a couple different things here.  We access the ``gamma``
+parameter from the dataset, we access the ``density`` field and we access
+the ``thermal_energy`` field.  ``thermal_energy`` is, in fact, another derived 
+field!  We don't do any loops, we don't do any
 type-checking, we can simply multiply the three items together.
 
 Once we've defined our function, we need to notify ``yt`` that the field is
@@ -138,8 +137,8 @@ be called on any object that has fields:
 In this case, we already know what the *center* of the sphere is, so we do not set it. Also,
 note that *center* and *bulk_velocity* need to be :class:`YTArray` objects with units.
 
-Other examples for creating derived fields can be found in the cookbook recipes
-:ref:`cookbook-simple-derived-fields` and :ref:`cookbook-complex-derived-fields`.
+Other examples for creating derived fields can be found in the cookbook recipe
+:ref:`cookbook-simple-derived-fields`.
 
 .. _derived-field-options:
 
@@ -150,30 +149,30 @@ The arguments to :func:`add_field` are passed on to the constructor of :class:`D
 There are a number of options available, but the only mandatory ones are ``name``,
 ``units``, and ``function``.
 
-   ``name``
+``name``
      This is the name of the field -- how you refer to it.  For instance,
      ``pressure`` or ``magnetic_field_strength``.
-   ``function``
+``function``
      This is a function handle that defines the field
-   ``units``
+``units``
      This is a string that describes the units. Powers must be in
      Python syntax (``**`` instead of ``^``).
-   ``display_name``
+``display_name``
      This is a name used in the plots, for instance ``"Divergence of
      Velocity"``.  If not supplied, the ``name`` value is used.
-   ``take_log``
+``take_log``
      This is *True* or *False* and describes whether the field should be logged
      when plotted.
-   ``particle_type``
+``particle_type``
      Is this field a *particle* field?
-   ``validators``
+``validators``
      (*Advanced*) This is a list of :class:`FieldValidator` objects, for instance to mandate
      spatial data.
-   ``display_field``
+``display_field``
      (*Advanced*) Should this field appear in the dropdown box in Reason?
-   ``not_in_all``
+``not_in_all``
      (*Advanced*) If this is *True*, the field may not be in all the grids.
-   ``output_units``
+``output_units``
      (*Advanced*) For fields that exist on disk, which we may want to convert to other
      fields or that get aliased to themselves, we can specify a different
      desired output unit than the unit found on disk.

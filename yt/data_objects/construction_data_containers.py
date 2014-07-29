@@ -389,12 +389,14 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
 
 class YTCoveringGridBase(YTSelectionContainer3D):
     """A 3D region with all data extracted to a single, specified
-    resolution.
+    resolution.  Left edge should align with a cell boundary, but 
+    defaults to the closest cell boundary.
     
     Parameters
     ----------
     level : int
-        The resolution level data is uniformly gridded at
+        The resolution level data to which data will be gridded. Level
+        0 is the root grid dx for that dataset.
     left_edge : array_like
         The left edge of the region to be extracted
     dims : array_like
