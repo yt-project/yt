@@ -36,7 +36,7 @@ will work best for you depends on your precise situation:
 
 .. _install-script:
 
-All-in-one installation script
+All-in-One Installation Script
 ++++++++++++++++++++++++++++++
 
 Because installation of all of the interlocking parts necessary to install yt
@@ -55,7 +55,7 @@ having yt on your system, you can just delete the directory and yt and all of
 its dependencies will be removed from your system (no scattered files remaining
 throughout your system).
 
-Running the install script
+Running the Install Script
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 To get the installation script, download it from:
@@ -118,7 +118,7 @@ will also need to set ``LD_LIBRARY_PATH`` and ``PYTHONPATH`` to contain
 
 .. _updating-yt:
 
-Updating yt and its dependencies
+Updating yt and Its Dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 With many active developers, code development sometimes occurs at a furious
@@ -138,7 +138,7 @@ associated with yt and update the codebase simultaneously, type this:
 
 .. _removing-yt:
 
-Removing yt and its dependencies
+Removing yt and Its dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Because yt and its dependencies are installed in an isolated directory when
@@ -228,15 +228,15 @@ the official repo:
   hg clone https://bitbucket.org/yt_analysis/yt
   cd yt
   hg update yt
-  python setup.py install --user
+  python setup.py install --user --prefix=
 
 .. note::
 
-  If you maintain your own python installation separate from the OS-level python
+  If you maintain your own user-level python installation separate from the OS-level python
   installation, you can leave off ``--user --prefix=``, although you might need
-  ``sudo`` depending on where python is installed. See _`This StackOverflow
+  ``sudo`` depending on where python is installed. See `This StackOverflow
   discussion
-  <http://stackoverflow.com/questions/4495120/combine-user-with-prefix-error-with-setup-py-install>`
+  <http://stackoverflow.com/questions/4495120/combine-user-with-prefix-error-with-setup-py-install>`_
   if you are curious why ``--prefix=`` is neccessary on systems.
 
 This will install yt into a folder in your home directory
@@ -255,9 +255,9 @@ repository the "active" installed copy:
   hg clone https://bitbucket.org/yt_analysis/yt
   cd yt
   hg update yt
-  python setup.py develop --user
+  python setup.py develop --user --prefix=
 
-As above, you can leave off ``--user`` if you want to install yt into the default
+As above, you can leave off ``--user --prefix=`` if you want to install yt into the default
 package install path.  If you do not have write access for this location, you
 might need to use ``sudo``.
 
@@ -286,7 +286,7 @@ mercurial repository, update to the `yt-2.x` branch, and recompile:
 
   cd yt
   hg update yt-2.x
-  python setup.py develop --user
+  python setup.py develop --user --prefix=
 
 You can check which version of yt you have installed by invoking ``yt version``
 at the command line.
