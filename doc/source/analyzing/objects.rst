@@ -178,13 +178,14 @@ See also the section on :ref:`filtering-data`.
     | Usage: ``boolean()``
     See :ref:`boolean-data-objects`.
 
-**Mesh Field Filter** 
+**Filter** 
     | Class :class:`~yt.data_objects.data_containers.YTCutRegionBase`
     | Usage: ``cut_region(base_object, conditionals, ds=None, field_parameters=None)``
     | A ``cut_region`` is a filter which can be applied to any other data 
-      object.  The filter is defined by the conditionals present, which only
-      work on mesh fields to apply cuts to the data in the object.  For more
-      detailed information and examples, see :ref:`cut-regions`.
+      object.  The filter is defined by the conditionals present, which 
+      apply cuts to the data in the object.  A ``cut_region`` will work
+      for either particle fields or mesh fields, but not on both simulaneously.
+      For more detailed information and examples, see :ref:`cut-regions`.
 
 **Collection of Data Objects** 
     | Class :class:`~yt.data_objects.data_containers.YTDataCollectionBase`
@@ -206,7 +207,8 @@ Construction Objects
     | Usage: ``smoothed_covering_grid(level, left_edge, dimensions, fields=None, ds=None, num_ghost_zones=0, use_pbar=True, field_parameters=None)``
     | A 3D region with all data extracted and interpolated to a single, 
       specified resolution.  Identical to covering_grid, except that it 
-      interpolates.  See :ref:`examining-grid-data-in-a-fixed-resolution-array`.
+      interpolates as necessary from coarse regions to fine.  See 
+      :ref:`examining-grid-data-in-a-fixed-resolution-array`.
 
 **Fixed-Resolution Region for Particle Deposition** 
     | Class :class:`~yt.data_objects.data_containers.YTArbitraryGridBase`
