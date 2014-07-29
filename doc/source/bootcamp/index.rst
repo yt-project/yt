@@ -29,7 +29,8 @@ Now start the IPython notebook from within the repository:
    yt notebook
 
 This command will give you information about the notebook server and how to
-access it.  You will basically just redirect your web browser to point to it.
+access it.  You will basically just pick a password (for security reasons) and then 
+redirect your web browser to point to the notebook server.
 Once you have done so, choose "Introduction" from the list of
 notebooks, which includes an introduction and information about how to download
 the sample data.
