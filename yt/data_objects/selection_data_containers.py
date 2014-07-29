@@ -342,9 +342,9 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         variable-resolution 2D object and transforms it into an NxM bitmap that
         can be plotted, examined or processed.  This is a convenience function
         to return an FRB directly from an existing 2D data object.  Unlike the
-        corresponding to_frb function for other 2DData objects, this does
-        not accept a 'center' parameter as it is assumed to be centered at the
-        center of the cutting plane.
+        corresponding to_frb function for other YTSelectionContainer2D objects, 
+        this does not accept a 'center' parameter as it is assumed to be 
+        centered at the center of the cutting plane.
 
         Parameters
         ----------
@@ -463,9 +463,9 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         variable-resolution 2D object and transforms it into an NxM bitmap that
         can be plotted, examined or processed.  This is a convenience function
         to return an FRB directly from an existing 2D data object.  Unlike the
-        corresponding to_frb function for other 2DData objects, this does
-        not accept a 'center' parameter as it is assumed to be centered at the
-        center of the cutting plane.
+        corresponding to_frb function for other YTSelectionContainer2D objects, 
+        this does not accept a 'center' parameter as it is assumed to be 
+        centered at the center of the cutting plane.
 
         Parameters
         ----------
