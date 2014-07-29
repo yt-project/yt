@@ -581,7 +581,7 @@ class SimulatedHaloMassFunctionTest(AnswerTestingTest):
     _attrs = ("finder")
 
     def __init__(self, ds_fn, finder):
-        super(HaloMassFunctionTest, self).__init__(ds_fn)
+        super(SimulatedHaloMassFunctionTest, self).__init__(ds_fn)
         self.finder = finder
     
     def run(self):
@@ -607,7 +607,7 @@ class AnalyticHaloMassFunctionTest(AnswerTestingTest):
     _attrs = ("fitting_function")
 
     def __init__(self, ds_fn, fitting_function):
-        super(HaloMassFunctionTest, self).__init__(ds_fn)
+        super(AnalyticHaloMassFunctionTest, self).__init__(ds_fn)
         self.fitting_function = fitting_function
     
     def run(self):
