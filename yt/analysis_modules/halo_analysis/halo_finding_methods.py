@@ -21,6 +21,7 @@ from yt.frontends.halo_catalogs.halo_catalog.data_structures import \
     HaloCatalogDataset
 from yt.frontends.stream.data_structures import \
     load_particles
+from yt.units.dimensions import length
 from yt.utilities.operator_registry import \
      OperatorRegistry
 
@@ -136,5 +137,13 @@ def _parse_old_halo_list(data_ds, halo_list):
         attr_val = getattr(data_ds, attr)
         setattr(particle_ds, attr, attr_val)
     particle_ds.current_time = particle_ds.current_time.in_cgs()
+
+    particle_ds.unit_registry.modify("h", particle_ds.hubble_constant)
+    # Comoving lengths
+    for my_unit in ["m", "pc", "AU", "au"]:
+        new_unit = "%scm" % my_unit
+        particle_ds.unit_registry.add(new_unit, particle_ds.unit_registry.lut[my_unit][0] /
+                                      (1 + particle_ds.current_redshift),
+                                      length, "\\rm{%s}/(1+z)" % my_unit)
     
     return particle_ds
