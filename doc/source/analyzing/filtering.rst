@@ -86,6 +86,9 @@ other data object to generate images, examine its values, etc.
 
 .. notebook:: mesh_filter.ipynb
 
+Cut regions can also operator on particle fields, but a single cut region object
+cannot operate on both particle fields and mesh fields at the same time.
+
 .. _filtering-particles:
 
 Filtering Particle Fields
@@ -146,7 +149,8 @@ a field based on spatial location.  The most commonly used of these are
 spheres, regions (3D prisms), ellipsoids, disks, and rays.  The `all_data`
 object which gets used throughout this documentation section is an example of 
 a geometric object, but it defaults to including all the data in the dataset
-volume.
+volume.  To see all of the geometric objects available, see 
+:ref:`available-objects`.
 
 Consult the object documentation section for all of the different objects
 one can use, but here is a simple example using a sphere object to filter

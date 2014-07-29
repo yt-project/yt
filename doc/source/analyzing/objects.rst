@@ -9,7 +9,7 @@ What are Data Objects in yt?
 Data objects (also called *Data Containers*) are used in yt as convenience 
 structures for grouping data in logical ways that make sense in the context 
 of the dataset as a whole.  Some of the data objects are geometrical groupings 
-of data (e.g. sphere, region--a 3D box, cylinder, etc.).  Others represent 
+of data (e.g. sphere, box, cylinder, etc.).  Others represent 
 data products derived from your dataset (e.g. slices, streamlines, surfaces).
 Still other data objects group multiple objects together or filter them
 (e.g. data collection, cut region).  
