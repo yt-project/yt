@@ -923,8 +923,8 @@ from a PlotWindow.  For example,
     import yt
     import yt.visualization.eps_writer as eps
    
-    slc = yt.SlicePlot(ds, 'z', ['density', 'temperature', 'Pressure',
-                          'VelocityMagnitude'])
+    slc = yt.SlicePlot(ds, 'z', ['density', 'temperature', 'pressure',
+                       'velocity_magnitude'])
     slc.set_width(25, 'kpc')
     eps_fig = eps.multiplot_yt(2, 2, slc, bare_axes=True)
     eps_fig.scale_line(0.2, '5 kpc')
