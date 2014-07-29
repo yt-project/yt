@@ -22,10 +22,13 @@ def test_domain_sphere():
     bulk_vel = sp0.quantities.bulk_velocity()
 
     # Get the second sphere
-    sp1 = ds.sphere(ds.domain_center, (0.25, "kpc"))
+    sp1 = ds.sphere(ds.domain_center, 0.25)
 
     # Set the bulk velocity field parameter
     sp1.set_field_parameter("bulk_velocity", bulk_vel)
+
+    yield assert_equal, np.any(sp0["radial_velocity"] ==
+                               sp1["radial_velocity"]), False
 
     # Radial profile without correction
 
