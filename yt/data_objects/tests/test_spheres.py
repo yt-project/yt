@@ -47,6 +47,7 @@ def test_domain_sphere():
 
     yield assert_equal, rp0.x_bins, rp1.x_bins
     yield assert_equal, rp0.used, rp1.used
+    yield assert_equal, rp0.used.sum() > rp0.used.size/2.0, True
     yield assert_equal, np.any(rp0["radial_velocity"][rp0.used] ==
                                rp1["radial_velocity"][rp1.used]), \
                                False
