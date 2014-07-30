@@ -49,8 +49,12 @@ of any data two-dimensional data object:
    P.imshow(np.array(frb['density']))
    P.savefig('my_perfect_figure.png')
    
+Note that in the above example the axes tick marks indicate pixel indices.  If you
+want to represent physical distances on your plot axes, you will need to use the
+``extent`` keyword of the ``imshow`` function.
+
 The FRB is a very small object that can be deleted and recreated quickly (in
-fact, this is how the reason GUI works when you pan and scan). Furthermore, you
+fact, this is how ``PlotWindow`` plots work behind the scenes). Furthermore, you
 can add new fields in the same "window", and each of them can be plotted with
 their own zlimit. This is quite useful for creating a mosaic of the same region
 in space with Density, Temperature, and x-velocity, for example. Each of these
@@ -58,7 +62,7 @@ quantities requires a substantially different set of limits.
 
 A more complex example, showing a few ``yt`` helper functions that can make
 setting up multiple axes with colorbars easier than it would be using only
-matplotlib can be found in the cookbook.
+matplotlib can be found in the :ref:`advanced-multi-panel` cookbook recipe.
 
 .. _manual-line-plots:
 
