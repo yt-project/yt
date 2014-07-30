@@ -10,6 +10,12 @@ Simple Slices
 
 This script shows the simplest way to make a slice through a dataset.
 
+Note that, by default,
+:class:`~yt.visualization.plot_window.SlicePlot` shifts the
+coordinates on the axes such that the origin is at the center of the
+slice.  To instead use the coordinates as defined in the dataset, use
+the optional argument: ``origin="native"``
+
 .. yt_cookbook:: simple_slice.py
 
 Simple Projections (Non-Weighted)
@@ -23,10 +29,10 @@ density projections (non-weighted line integral):
 .. yt_cookbook:: simple_projection.py
 
 Simple Projections (Weighted)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 And here we produce density-weighted temperature projections (weighted line 
-integral) for the same dataset as the non-weighted projections:
+integral) for the same dataset as the non-weighted projections above:
 
 .. yt_cookbook:: simple_projection_weighted.py
 

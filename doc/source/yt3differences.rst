@@ -152,8 +152,8 @@ Parameter Files are Now Datasets
 ++++++++++++++++++++++++++++++++
 
 Wherever possible, we have attempted to replace the term "parameter file"
-(i.e., ``ds``) with the term "dataset."  Future revisions will change most of
-the ``ds`` atrributes of objects into ``ds`` or ``dataset`` attributes.
+(i.e., ``pf``) with the term "dataset."  In yt-3.0, all of the 
+the ``pf`` atrributes of objects are now ``ds`` or ``dataset`` attributes.
 
 Hierarchy is Now Index
 ++++++++++++++++++++++
