@@ -57,6 +57,9 @@ Here's a quick reference for how to update your code to work with yt-3.0.
     ``dd.quantities.total_mass()`` to do the same thing. All derived quantities
     can be accessed via a function that hangs off of the `quantities` attribute
     of data objects.
+  * You can't get the ``grids`` attribute of data objects.  To get this
+    information, you have to use spatial chunking and then access them.  (An
+    example is below.)
 
 Cool New Things
 ---------------
@@ -141,6 +144,16 @@ in its place.  This should therefore be identical to::
 
    my_object["density"]
 
+To enable a compatibility layer, on the dataset you simply need to call the
+method ``setup_deprecated_fields`` like so:
+
+.. code-block:: python
+
+   ds = yt.load("MyData")
+   ds.setup_deprecated_fields()
+
+This sets up aliases from the old names to the new.
+
 Units of Fields
 +++++++++++++++
 
@@ -204,3 +217,21 @@ Boolean Regions
 +++++++++++++++
 
 Boolean regions are not yet implemented in yt 3.0.
+
+Grids
++++++
+
+It used to be that one could get access to the grids that belonged to a data
+object.  Because we no longer have just grid-based data in yt, this attribute
+does not make sense.  If you need to determine which grids contribute to a
+given object, you can either query the ``grid_indices`` field, or mandate
+spatial chunking like so:
+
+.. code-block:: python
+
+   for chunk in obj.chunks([], "spatial"):
+       for grid in chunk._current_chunk.objs:
+           print grid
+
+This will "spatially" chunk the ``obj`` object and print out all the grids
+included.
