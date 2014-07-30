@@ -144,6 +144,16 @@ in its place.  This should therefore be identical to::
 
    my_object["density"]
 
+To enable a compatibility layer, on the dataset you simply need to call the
+method ``setup_deprecated_fields`` like so:
+
+.. code-block:: python
+
+   ds = yt.load("MyData")
+   ds.setup_deprecated_fields()
+
+This sets up aliases from the old names to the new.
+
 Units of Fields
 +++++++++++++++
 
