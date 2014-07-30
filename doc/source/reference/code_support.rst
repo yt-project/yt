@@ -9,7 +9,8 @@ Levels of Support for Various Codes
 
 yt provides frontends to support several different simulation code formats 
 as inputs.  Below is a list showing what level of support is provided for
-each code.
+each code. See :ref:`loading-data` for examples of loading a dataset from 
+each supported output format using yt.
 
 |
 
@@ -17,9 +18,9 @@ each code.
 | Capability ►          |   Fluid    | Particles | Parameters | Units | Read on | Load Raw |  Part of   | Level of | 
 | Code/Format ▼         | Quantities |           |            |       | Demand  |   Data   | test suite | Support  |
 +=======================+============+===========+============+=======+=========+==========+============+==========+
-| ART                   |            |           |            |       |         |          |            |          |
+| ART                   |     Y      |     Y     |      Y     |   Y   | Y [#f2] |    Y     |     N      |   Full   |
 +-----------------------+------------+-----------+------------+-------+---------+----------+------------+----------+ 
-| ARTIO                 |            |           |            |       |         |          |            |          |
+| ARTIO                 |     Y      |     Y     |      Y     |   Y   | Y [#f2] |    Y     |     Y      |   Full   |
 +-----------------------+------------+-----------+------------+-------+---------+----------+------------+----------+ 
 | Athena                |     Y      |     N     |      Y     |   Y   |    Y    |    Y     |     N      |   Full   |
 +-----------------------+------------+-----------+------------+-------+---------+----------+------------+----------+ 
@@ -31,52 +32,40 @@ each code.
 +-----------------------+------------+-----------+------------+-------+---------+----------+------------+----------+ 
 | FLASH                 |     Y      |     Y     |      Y     |   Y   |    Y    |    Y     |     Y      |   Full   |
 +-----------------------+------------+-----------+------------+-------+---------+----------+------------+----------+ 
-| FITS                  |            |           |            |       |         |          |            |          |
+| FITS                  |     Y      |    N/A    |      Y     |   Y   |    Y    |    Y     |     Y      |   Full   |
 +-----------------------+------------+-----------+------------+-------+---------+----------+------------+----------+ 
-| Gadget                |            |           |            |       |         |          |            |          |
+| Gadget                |     Y      |     Y     |      Y     |   Y   | Y [#f2] |    Y     |     Y      |   Full   |
 +-----------------------+------------+-----------+------------+-------+---------+----------+------------+----------+ 
-| Gasoline              |            |           |            |       |         |          |            |          |
+| Gasoline              |     Y      |     Y     |      Y     |   Y   | Y [#f2] |    Y     |     Y      |   Full   |
 +-----------------------+------------+-----------+------------+-------+---------+----------+------------+----------+ 
-| GDF                   |            |           |            |       |         |          |            |          |
+| Grid Data Format (GDF)|     Y      |    N/A    |      Y     |   Y   |    Y    |    Y     |     N      |   Full   |
 +-----------------------+------------+-----------+------------+-------+---------+----------+------------+----------+ 
 | Maestro               |   Y [#f1_] |     N     |      Y     |   Y   |    Y    |    Y     |     N      | Partial  |
 +-----------------------+------------+-----------+------------+-------+---------+----------+------------+----------+ 
-| MOAB                  |            |           |            |       |         |          |            |          |
+| MOAB                  |     Y      |    N/A    |      Y     |   Y   |    Y    |    Y     |     Y      |   Full   |
 +-----------------------+------------+-----------+------------+-------+---------+----------+------------+----------+ 
 | Nyx                   |     Y      |     Y     |      Y     |   Y   |    Y    |    Y     |     Y      |   Full   |
 +-----------------------+------------+-----------+------------+-------+---------+----------+------------+----------+ 
 | Orion                 |     Y      |     Y     |      Y     |   Y   |    Y    |    Y     |     Y      |   Full   |
 +-----------------------+------------+-----------+------------+-------+---------+----------+------------+----------+ 
-| OWLS                  |            |           |            |       |         |          |            |          |
+| OWLS/EAGLE            |     Y      |     Y     |      Y     |   Y   | Y [#f2] |    Y     |     Y      |   Full   |
 +-----------------------+------------+-----------+------------+-------+---------+----------+------------+----------+ 
 | Piernik               |     Y      |    N/A    |      Y     |   Y   |    Y    |    Y     |     N      |   Full   |
 +-----------------------+------------+-----------+------------+-------+---------+----------+------------+----------+ 
 | Pluto                 |     Y      |     N     |      Y     |   Y   |    Y    |    Y     |     N      | Partial  |
 +-----------------------+------------+-----------+------------+-------+---------+----------+------------+----------+ 
-| RAMSES                |            |           |            |       |         |          |            |          |
+| RAMSES                |     Y      |     Y     |      Y     |   Y   | Y [#f2] |    Y     |     Y      |   Full   |
 +-----------------------+------------+-----------+------------+-------+---------+----------+------------+----------+ 
-| Tipsy                 |            |           |            |       |         |          |            |          |
+| Tipsy                 |     Y      |     Y     |      Y     |   Y   | Y [#f2] |    Y     |     Y      |   Full   |
 +-----------------------+------------+-----------+------------+-------+---------+----------+------------+----------+ 
 
 .. [#f1] one-dimensional base-state not read in currently.
+.. [#f2] Octrees are currently not decomposed in parallel. Datasets larger than approximtely 1024^3 will not scale well.
 
 |
 
 
-If you have a dataset from a code not yet supported, you can either 
-input your data following :ref:`loading-numpy-array`, or help us by 
-:ref:`creating_frontend` for this new format.
-
-
-Future Codes to Support
------------------------
-
-A major overhaul of the code was required in order to cleanly support 
-additional codes.  Development in the yt 3.x branch has begun and provides 
-support for codes like: 
-`RAMSES <http://irfu.cea.fr/Phocea/Vie_des_labos/Ast/ast_sstechnique.php?id_ast=904>`_, 
-`ART (NMSU) <http://adsabs.harvard.edu/abs/1997ApJS..111...73K>`_, and 
-`Gadget <http://www.mpa-garching.mpg.de/gadget/>`_.  Please switch to that 
-version of yt for the most up-to-date support for those codes.
-
-Additionally, in yt 3.0 the Boxlib formats have been unified and streamlined.
+If you have a dataset that uses an output format not yet supported by yt, you
+can either input your data following :ref:`loading-numpy-array` or
+:ref:`generic-particle-data`, or help us by :ref:`creating_frontend` for this
+new format.
