@@ -68,7 +68,7 @@ Line Plots
 This is perhaps the simplest thing to do. ``yt`` provides a number of one
 dimensional objects, and these return a 1-D numpy array of their contents with
 direct dictionary access. As a simple example, take a
-:class:`~yt.data_objects.data_containers.AMROrthoRayBase` object, which can be
+:class:`~yt.data_objects.selection_data_containers.YTOrthoRayBase` object, which can be
 created from a index by calling ``pf.ortho_ray(axis, center)``.
 
 .. python-script::

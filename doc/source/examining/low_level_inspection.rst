@@ -23,7 +23,7 @@ Examining Grid Hierarchies
 yt organizes grids in a hierarchical fashion; a coarser grid that contains (or
 overlaps with) a finer grid is referred to as its parent.  yt organizes these
 only a single level of refinement at a time.  To access grids, the ``grids``
-attribute on a :class:`~yt.data_objects.index.AMRHierarchy` object.  (For
+attribute on a :class:`~yt.geometry.grid_geometry_handler.GridIndex` object.  (For
 fast operations, a number of additional arrays prefixed with ``grid`` are also
 available, such as ``grid_left_edges`` and so on.)  This returns an instance of
 :class:`~yt.data_objects.grid_patch.AMRGridPatch`, which can be queried for

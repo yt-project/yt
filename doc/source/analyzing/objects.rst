@@ -415,7 +415,7 @@ of the intervals of values found, and extracted regions that contain only those
 cells that are connected.
 
 To use this, call
-:meth:`~yt.data_objects.data_containers.AMR3DData.extract_connected_sets` on
+:meth:`~yt.data_objects.data_containers.YTSelectionContainer3D.extract_connected_sets` on
 any 3D data object.  This requests a field, the number of levels of levels sets to
 extract, the min and the max value between which sets will be identified, and
 whether or not to conduct it in log space.
@@ -430,7 +430,7 @@ The first item, ``contour_values``, will be an array of the min value for each
 set of level sets.  The second (``connected_sets``) will be a dict of dicts.
 The key for the first (outer) dict is the level of the contour, corresponding
 to ``contour_values``.  The inner dict returned is keyed by the contour ID.  It
-contains :class:`~yt.data_objects.data_containers.AMRExtractedRegionBase`
+contains :class:`~yt.data_objects.selection_data_containers.YTCutRegionBase`
 objects.  These can be queried just as any other data object.
 
 .. _object-serialization:

@@ -171,7 +171,7 @@ Off Axis Slices
 
 Off axis slice plots can be generated in much the same way as
 grid-aligned slices.  Off axis slices use
-:class:`~yt.data_objects.data_containers.AMRCuttingPlaneBase` to slice
+:class:`~yt.data_objects.selection_data_containers.YTCuttingPlaneBase` to slice
 through simulation domains at an arbitrary oblique angle.  A
 :class:`~yt.visualization.plot_window.OffAxisSlicePlot` can be
 instantiated by specifying a dataset, the normal to the cutting
@@ -576,7 +576,7 @@ to be profiled.
    plot = yt.ProfilePlot(my_galaxy, "density", ["temperature"])
    plot.save()
 
-This will create a :class:`yt.data_objects.data_containers.AMRCylinderBase`
+This will create a :class:`yt.data_objects.selection_data_containers.YTDiskBase`
 centered at [0.5, 0.5, 0.5], with a normal vector of [0.0, 0.0, 1.0], radius of
 10 kiloparsecs and height of 3 kiloparsecs and will then make a plot of the
 mass-weighted average temperature as a function of density for all of the gas
