@@ -290,6 +290,8 @@ Caveats:
     limiting the number of MPI tasks you can use.  This is also being addressed
     in current development by using image plane decomposition.
 
+For more information about enabling parallelism, see :ref:`parallel-computation`.
+
 OpenMP Parallelization
 ----------------------
 
@@ -328,6 +330,8 @@ nodes, each with cores_per_node cores per node.
 #.  For many cases when rendering using your laptop/desktop, OpenMP will
     provide a good enough speedup by default that it is preferable to launching
     the MPI tasks.
+
+For more information about enabling parallelism, see :ref:`parallel-computation`.
 
 Opacity
 -------

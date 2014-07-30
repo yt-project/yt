@@ -111,4 +111,5 @@ splitting the streamlines up between the processors.  Upon completion,
 each processor has access to all of the streamlines through the use of
 a reduction operation.
 
-Parallel usage is specified using the standard ``--parallel`` flag.
+For more information on enabling parallelism in ``yt``, see 
+:ref:`parallel-computation`.
