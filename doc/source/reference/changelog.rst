@@ -393,7 +393,7 @@ Version 2.1
  * Contour finder has been sped up by a factor of a few
  * Constrained two-point functions are now possible, for LOS power spectra
  * Time series analysis (:ref:`time-series-analysis`) now much easier
- * Stream Lines now a supported 1D data type (:class:`AMRStreamlineBase`)
+ * Stream Lines now a supported 1D data type
  * Stream Lines now able to be calculated and plotted (:ref:`streamlines`)
  * In situ Enzo visualization now much faster
  * "gui" source directory reorganized and cleaned up

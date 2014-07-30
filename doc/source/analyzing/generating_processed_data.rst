@@ -15,7 +15,7 @@ program.
 ---------------
 
 When making a slice, a projection or an oblique slice in yt, the resultant
-:class:`~yt.data_objects.data_containers.AMR2DData` object is created and
+:class:`~yt.data_objects.data_containers.YTSelectionContainer2D` object is created and
 contains flattened arrays of the finest available data.  This means a set of
 arrays for the x, y, (possibly z), dx, dy, (possibly dz) and data values, for
 every point that constitutes the object.
@@ -28,14 +28,14 @@ of pixelization, which ``yt`` handles transparently internally.  You can access
 this functionality by constructing a
 :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer` (or 
 :class:`~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`) and
-supplying to it your :class:`~yt.data_objects.data_containers.AMR2DData`
+supplying to it your :class:`~yt.data_objects.data_containers.YTSelectionContainer2D`
 object, as well as some information about how you want the final image to look.
 You can specify both the bounds of the image (in the appropriate x-y plane) and
 the resolution of the output image.  You can then have ``yt`` pixelize any
 field you like.
 
-To create :class:`~yt.data_objects.data_containers.AMR2DData` objects, you can
-access them as described in :ref:`using-objects`, specifically the section
+To create :class:`~yt.data_objects.data_containers.YTSelectionContainer2D` objects, you can
+access them as described in :ref:`data-objects`, specifically the section
 :ref:`available-objects`.  Here is an example of how to window into a slice 
 of resolution(512, 512) with bounds of (0.3, 0.5) and (0.6, 0.8).  The next
 step is to generate the actual 2D image array, which is accomplished by
@@ -65,7 +65,7 @@ objects they handle and create can be handled manually, as well, for more
 control and access.  The :func:`~yt.data_objects.profiles.create_profile` function 
 can be used to generate 1, 2, and 3D profiles.  
 
-Profile objects can be created from any data object (see :ref:`using-objects`,
+Profile objects can be created from any data object (see :ref:`data-objects`,
 specifically the section :ref:`available-objects` for more information) and are
 best thought of as distribution calculations.  They can either sum up or
 average one quantity with respect to one or more other quantities, and they do
@@ -153,8 +153,8 @@ Line Queries and Planar Integrals
 ---------------------------------
 
 To calculate the values along a line connecting two points in a simulation, you
-can use the object :class:`~yt.data_objects.data_containers.AMRRayBase`,
-accessible as the ``ray`` property on a index.  (See :ref:`using-objects`
+can use the object :class:`~yt.data_objects.selection_data_containers.YTRayBase`,
+accessible as the ``ray`` property on a index.  (See :ref:`data-objects`
 for more information on this.)  To do so, you can supply two points and access
 fields within the returned object.  For instance, this code will generate a ray
 between the points (0.3, 0.5, 0.9) and (0.1, 0.8, 0.5) and examine the density

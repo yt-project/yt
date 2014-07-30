@@ -8,4 +8,5 @@ How to examine datasets.
 
    loading_data
    generic_array_data
+   generic_particle_data
    low_level_inspection

@@ -74,6 +74,7 @@ geometric.
 .. autosummary::
    :toctree: generated/
 
+   ~yt.data_objects.selection_data_containers.YTPointBase
    ~yt.data_objects.selection_data_containers.YTOrthoRayBase
    ~yt.data_objects.selection_data_containers.YTRayBase
    ~yt.data_objects.selection_data_containers.YTSliceBase

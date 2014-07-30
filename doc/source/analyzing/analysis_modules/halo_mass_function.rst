@@ -219,12 +219,13 @@ halo mass function to a text file. (continued from above)
 
   hmf.write_out(prefix='hmf', analytic=True, simulated=True)
 
-This writes the files `hmf-analytic.dat' with columns 
+This writes the files ``hmf-analytic.dat`` with columns:
+
   * mass [Msun]
   * cumulative number density of halos [comoving Mpc^-3]
-  * (dn/dM)*dM (differential number density of halos) [comoving Mpc^-3
+  * (dn/dM)*dM (differential number density of halos) [comoving Mpc^-3]
 
-and the file `hmf-simulated.dat' with columns
+and the file ``hmf-simulated.dat`` with columns:
 
   * mass [Msun]
   * cumulative number density of halos [comoving Mpc^-3]

@@ -71,11 +71,14 @@ Available Objects
 As noted above, there are numerous types of objects.  Here we group them
 into:
 
-* *Geometric Objects* - Data is selected based on spatial shapes in the dataset
-* *Filtering Objects* - Data is selected based on other field criteria
-* *Collection Objects* - Multiple objects grouped together
-* *Construction Objects* - Objects represent some sort of data product 
-constructed by additional analysis
+* *Geometric Objects*
+  Data is selected based on spatial shapes in the dataset
+* *Filtering Objects*
+  Data is selected based on other field criteria
+* *Collection Objects*
+  Multiple objects grouped together
+* *Construction Objects* 
+  Objects represent some sort of data product constructed by additional analysis
 
 If you want to create your own custom data object type, see 
 :ref:`creating-objects`.
@@ -92,7 +95,7 @@ for the grid cell to be incorporated.
 """"""""""
 
 **Point** 
-    | Class :class:`~yt.data_objects.data_containers.YTPointBase`    
+    | Class :class:`~yt.data_objects.selection_data_containers.YTPointBase`    
     | Usage: ``point(coord, ds=None, field_parameters=None)``
     | A point defined by a single cell at specified coordinates.
 
@@ -100,14 +103,14 @@ for the grid cell to be incorporated.
 """"""""""
 
 **Ray (Axis-Aligned)** 
-    | Class :class:`~yt.data_objects.data_containers.YTOrthoRayBase`
+    | Class :class:`~yt.data_objects.selection_data_containers.YTOrthoRayBase`
     | Usage: ``ortho_ray(axis, coord, ds=None, field_parameters=None)``
     | A line (of data cells) stretching through the full domain 
       aligned with one of the x,y,z axes.  Defined by an axis and a point
       to be intersected.
 
 **Ray (Arbitrarily-Aligned)** 
-    | Class :class:`~yt.data_objects.data_containers.YTRayBase`
+    | Class :class:`~yt.data_objects.selection_data_containers.YTRayBase`
     | Usage: ``ray(start_coord, end_coord, ds=None, field_parameters=None)``
     | A line (of data cells) defined by arbitrary start and end coordinates. 
 
@@ -115,13 +118,13 @@ for the grid cell to be incorporated.
 """"""""""
 
 **Slice (Axis-Aligned)** 
-    | Class :class:`~yt.data_objects.data_containers.YTSliceBase`
+    | Class :class:`~yt.data_objects.selection_data_containers.YTSliceBase`
     | Usage: ``slice(axis, coord, center=None, ds=None, field_parameters=None)``
     | A plane normal to one of the axes and intersecting a particular 
       coordinate.
 
 **Slice (Arbitrarily-Aligned)** 
-    | Class :class:`~yt.data_objects.data_containers.YTCuttingPlaneBase`
+    | Class :class:`~yt.data_objects.selection_data_containers.YTCuttingPlaneBase`
     | Usage: ``cutting(normal, coord, north_vector=None, ds=None, field_parameters=None)``
     | A plane normal to a specified vector and intersecting a particular 
       coordinate.
@@ -130,14 +133,14 @@ for the grid cell to be incorporated.
 """"""""""
 
 **All Data** 
-    | Class :fun:`~yt.data_objects.static_output.Dataset.all_data`
+    | Class :func:`~yt.data_objects.static_output.Dataset.all_data`
     | Usage: ``all_data(find_max=False)``
     | ``all_data()`` is a wrapper on the Box Region class which defaults to 
       creating a Region covering the entire dataset domain.  It is effectively 
       ``ds.region(ds.domain_center, ds.domain_left_edge, ds.domain_right_edge)``.
 
 **Box Region** 
-    | Class :class:`~yt.data_objects.data_containers.YTRegionBase`
+    | Class :class:`~yt.data_objects.selection_data_containers.YTRegionBase`
     | Usage: ``region(center, left_edge, right_edge, fields=None, ds=None, field_parameters=None)``
     | Alternatively: ``box(left_edge, right_edge, fields=None, ds=None, field_parameters=None)``
     | A box-like region aligned with the grid axis orientation.  It is 
@@ -148,14 +151,14 @@ for the grid cell to be incorporated.
       is assumed to be the midpoint between the left and right edges.
 
 **Disk/Cylinder** 
-    | Class: :class:`~yt.data_objects.data_containers.YTDiskBase`
+    | Class: :class:`~yt.data_objects.selection_data_containers.YTDiskBase`
     | Usage: ``disk(center, normal, radius, height, fields=None, ds=None, field_parameters=None)``
     | A cylinder defined by a point at the center of one of the circular bases,
       a normal vector to it defining the orientation of the length of the
       cylinder, and radius and height values for the cylinder's dimensions.
 
 **Ellipsoid** 
-    | Class :class:`~yt.data_objects.data_containers.YTEllipsoidBase`
+    | Class :class:`~yt.data_objects.selection_data_containers.YTEllipsoidBase`
     | Usage: ``ellipsoid(center, semi_major_axis_length, semi_medium_axis_length, semi_minor_axis_length, semi_major_vector, tilt, fields=None, ds=None, field_parameters=None)``
     | An ellipsoid with axis magnitudes set by semi_major_axis_length, 
      semi_medium_axis_length, and semi_minor_axis_length.  semi_major_vector 
@@ -163,7 +166,7 @@ for the grid cell to be incorporated.
      of the semi-medium and semi_minor axes.
 
 **Sphere** 
-    | Class :class:`~yt.data_objects.data_containers.YTSphereBase`
+    | Class :class:`~yt.data_objects.selection_data_containers.YTSphereBase`
     | Usage: ``sphere(center, radius, ds=None, field_parameters=None)``
     | A sphere defined by a central coordinate and a radius.
 
@@ -176,10 +179,10 @@ See also the section on :ref:`filtering-data`.
 **Boolean Regions** 
     | **Note: not yet implemented in yt 3.0**
     | Usage: ``boolean()``
-    See :ref:`boolean-data-objects`.
+    | See :ref:`boolean_data_objects`.
 
 **Filter** 
-    | Class :class:`~yt.data_objects.data_containers.YTCutRegionBase`
+    | Class :class:`~yt.data_objects.selection_data_containers.YTCutRegionBase`
     | Usage: ``cut_region(base_object, conditionals, ds=None, field_parameters=None)``
     | A ``cut_region`` is a filter which can be applied to any other data 
       object.  The filter is defined by the conditionals present, which 
@@ -188,7 +191,7 @@ See also the section on :ref:`filtering-data`.
       For more detailed information and examples, see :ref:`cut-regions`.
 
 **Collection of Data Objects** 
-    | Class :class:`~yt.data_objects.data_containers.YTDataCollectionBase`
+    | Class :class:`~yt.data_objects.selection_data_containers.YTDataCollectionBase`
     | Usage: ``data_collection(center, obj_list, ds=None, field_parameters=None)``
     | A ``data_collection`` is a list of data objects that can be 
       sampled and processed as a whole in a single data object.
@@ -197,13 +200,13 @@ Construction Objects
 ^^^^^^^^^^^^^^^^^^^^
 
 **Fixed-Resolution Region** 
-    | Class :class:`~yt.data_objects.data_containers.YTCoveringGridBase`
+    | Class :class:`~yt.data_objects.construction_data_containers.YTCoveringGridBase`
     | Usage: ``covering_grid(level, left_edge, dimensions, fields=None, ds=None, num_ghost_zones=0, use_pbar=True, field_parameters=None)``
     | A 3D region with all data extracted to a single, specified resolution.
       See :ref:`examining-grid-data-in-a-fixed-resolution-array`.
 
 **Fixed-Resolution Region with Smoothing** 
-    | Class :class:`~yt.data_objects.data_containers.YTSmoothedCoveringGridBase`
+    | Class :class:`~yt.data_objects.construction_data_containers.YTSmoothedCoveringGridBase`
     | Usage: ``smoothed_covering_grid(level, left_edge, dimensions, fields=None, ds=None, num_ghost_zones=0, use_pbar=True, field_parameters=None)``
     | A 3D region with all data extracted and interpolated to a single, 
       specified resolution.  Identical to covering_grid, except that it 
@@ -211,7 +214,7 @@ Construction Objects
       :ref:`examining-grid-data-in-a-fixed-resolution-array`.
 
 **Fixed-Resolution Region for Particle Deposition** 
-    | Class :class:`~yt.data_objects.data_containers.YTArbitraryGridBase`
+    | Class :class:`~yt.data_objects.construction_data_containers.YTArbitraryGridBase`
     | Usage: ``arbitrary_grid(left_edge, right_edge, dimensions, ds=None, field_parameters=None)``
     | When particles are deposited on to mesh fields, they use the existing
       mesh structure, but this may have too much or too little resolution
@@ -221,7 +224,7 @@ Construction Objects
       information.
 
 **Projection** 
-    | Class :class:`~yt.data_objects.data_containers.YTQuadTreeProjBase`
+    | Class :class:`~yt.data_objects.construction_data_containers.YTQuadTreeProjBase`
     | Usage: ``proj(field, axis, weight_field=None, center=None, ds=None, data_source=None, style="integrate", field_parameters=None)``
     | A 2D projection of a 3D volume along one of the axis directions.  
       By default, this is a line integral through the entire simulation volume 
@@ -231,14 +234,14 @@ Construction Objects
       of the projection outcome.  See :ref:`projection-types` for more information.
 
 **Streamline** 
-    | Class :class:`~yt.data_objects.data_containers.YTStreamlineBase`
+    | Class :class:`~yt.data_objects.construction_data_containers.YTStreamlineBase`
     | Usage: ``streamline(coord_list, length, fields=None, ds=None, field_parameters=None)``
     | A ``streamline`` can be traced out by identifying a starting coordinate (or 
       list of coordinates) and allowing it to trace a vector field, like gas
       velocity.  See :ref:`streamlines` for more information.
 
 **Surface** 
-    | Class :class:`~yt.data_objects.data_containers.YTSurfaceBase`
+    | Class :class:`~yt.data_objects.construction_data_containers.YTSurfaceBase`
     | Usage: ``surface(data_source, field, field_value)``
     | The surface defined by all an isocontour in any mesh field.  An existing 
       data object must be provided as the source, as well as a mesh field
@@ -289,13 +292,13 @@ Available Derived Quantities
     | The extrema of a field or list of fields.
 
 **Maximum Location**
-    | Class :class:`~yt.data_objects.derived_quantities.max_location`
+    | Class :class:`~yt.data_objects.derived_quantities.MaxLocation`
     | Usage: ``max_location(fields)``
     | The maximum of a field or list of fields as well
       as the x,y,z location of that maximum.
 
 **Minimum Location**
-    | Class :class:`~yt.data_objects.derived_quantities.min_location`
+    | Class :class:`~yt.data_objects.derived_quantities.MinLocation`
     | Usage: ``min_location(fields)``
     | The minimum of a field or list of fields as well
       as the x,y,z location of that minimum.
@@ -412,7 +415,7 @@ of the intervals of values found, and extracted regions that contain only those
 cells that are connected.
 
 To use this, call
-:meth:`~yt.data_objects.data_containers.AMR3DData.extract_connected_sets` on
+:meth:`~yt.data_objects.data_containers.YTSelectionContainer3D.extract_connected_sets` on
 any 3D data object.  This requests a field, the number of levels of levels sets to
 extract, the min and the max value between which sets will be identified, and
 whether or not to conduct it in log space.
@@ -427,7 +430,7 @@ The first item, ``contour_values``, will be an array of the min value for each
 set of level sets.  The second (``connected_sets``) will be a dict of dicts.
 The key for the first (outer) dict is the level of the contour, corresponding
 to ``contour_values``.  The inner dict returned is keyed by the contour ID.  It
-contains :class:`~yt.data_objects.data_containers.AMRExtractedRegionBase`
+contains :class:`~yt.data_objects.selection_data_containers.YTCutRegionBase`
 objects.  These can be queried just as any other data object.
 
 .. _object-serialization:
