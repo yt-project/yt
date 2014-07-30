@@ -440,14 +440,8 @@ Storing and Loading Objects
 
 Often, when operating interactively or via the scripting interface, it is
 convenient to save an object or multiple objects out to disk and then restart
-the calculation later.  Personally, I found this most useful when dealing with
-identification of clumps and contours (see :ref:`cookbook` for a recipe on how
-to find clumps and the API documentation for both 
-:mod:`~yt.analysis_modules.level_sets.contour_finder.identify_contours`
-and :mod:`~yt.analysis_modules.level_sets.clump_handling.Clump`) where 
-the identification step can be quite time-consuming, but the analysis 
-may be relatively fast.
-
+the calculation later.  For example, this is useful after clump finding 
+(:ref:`clump_finding`), which can be very time consuming.  
 Typically, the save and load operations are used on 3D data objects.  ``yt``
 has a separate set of serialization operations for 2D objects such as
 projections.
@@ -460,13 +454,6 @@ that object.  The information that is saved includes the dataset off of
 which the object "hangs."  It is this piece of information that is the most
 difficult; the object, when reloaded, must be able to reconstruct a dataset
 from whatever limited information it has in the save file.
-
-To do this, ``yt`` is able to identify datasets based on a "hash"
-generated from the base file name, the "CurrentTimeIdentifier", and the
-simulation time.  These three characteristics should never be changed outside
-of a simulation, they are independent of the file location on disk, and in
-conjunction they should be uniquely identifying.  (This process is all done in
-:mod:`~yt.utilities.ParameterFileStorage` via :class:`~yt.utilities.ParameterFileStorage.ParameterFileStore`.)
 
 You can save objects to an output file using the function 
 :meth:`~yt.data_objects.index.save_object`: 
