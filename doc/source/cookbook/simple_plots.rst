@@ -8,13 +8,8 @@ extend these plots to be ready for publication.
 Simple Slices
 ~~~~~~~~~~~~~
 
-This script shows the simplest way to make a slice through a dataset.
-
-Note that, by default,
-:class:`~yt.visualization.plot_window.SlicePlot` shifts the
-coordinates on the axes such that the origin is at the center of the
-slice.  To instead use the coordinates as defined in the dataset, use
-the optional argument: ``origin="native"``
+This script shows the simplest way to make a slice through a dataset.  See
+:ref:`slice-plots` for more information.
 
 .. yt_cookbook:: simple_slice.py
 
@@ -24,7 +19,8 @@ Simple Projections (Non-Weighted)
 This is the simplest way to make a projection through a dataset.  There are
 several different :ref:`projection-types`, but non-weighted line integrals
 and weighted line integrals are the two most common.  Here we create 
-density projections (non-weighted line integral):
+density projections (non-weighted line integral).  
+See :ref:`projection-plots` for more information.
 
 .. yt_cookbook:: simple_projection.py
 
@@ -32,7 +28,8 @@ Simple Projections (Weighted)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 And here we produce density-weighted temperature projections (weighted line 
-integral) for the same dataset as the non-weighted projections above:
+integral) for the same dataset as the non-weighted projections above.
+See :ref:`projection-plots` for more information.
 
 .. yt_cookbook:: simple_projection_weighted.py
 
@@ -42,6 +39,7 @@ Simple Phase Plots
 This demonstrates how to make a phase plot.  Phase plots can be thought of as
 two-dimensional histograms, where the value is either the weighted-average or
 the total accumulation in a cell.
+See :ref:`how-to-make-2d-profiles` for more information.
 
 .. yt_cookbook:: simple_phase.py
 
@@ -51,6 +49,7 @@ Simple Probability Distribution Functions
 Often, one wants to examine the distribution of one variable as a function of
 another.  This shows how to see the distribution of mass in a simulation, with
 respect to the total mass in the simulation.
+See :ref:`how-to-make-2d-profiles` for more information.
 
 .. yt_cookbook:: simple_pdf.py
 
@@ -60,6 +59,7 @@ Simple 1D Histograms (Profiles)
 This is a "profile," which is a 1D histogram.  This can be thought of as either
 the total accumulation (when weight_field is set to ``None``) or the average 
 (when a weight_field is supplied.)
+See :ref:`how-to-make-1d-profiles` for more information.
 
 .. yt_cookbook:: simple_profile.py
 
@@ -67,6 +67,7 @@ Simple Radial Profiles
 ~~~~~~~~~~~~~~~~~~~~~~
 
 This shows how to make a profile of a quantity with respect to the radius.
+See :ref:`how-to-make-1d-profiles` for more information.
 
 .. yt_cookbook:: simple_radial_profile.py
 
@@ -75,6 +76,7 @@ This shows how to make a profile of a quantity with respect to the radius.
 
 This is a simple example of overplotting multiple 1D profiles from a number 
 of datasets to show how they evolve over time.
+See :ref:`how-to-make-1d-profiles` for more information.
 
 .. yt_cookbook:: time_series_profiles.py
 
@@ -86,6 +88,7 @@ Profiles with Variance Values
 This shows how to plot the variance for a 1D profile.  In this example, we 
 manually create a 1D profile object, which gives us access to the variance 
 data.
+See :ref:`how-to-make-1d-profiles` for more information.
 
 .. yt_cookbook:: profile_with_variance.py
 
@@ -97,6 +100,7 @@ By adding multiple fields to a single
 :class:`~yt.visualization.plot_window.ProjectionPlot` some of the overhead of
 creating the data object can be reduced, and better performance squeezed out.
 This recipe shows how to add multiple fields to a single plot.
+See :ref:`slice-plots` and :ref:`projection-plots` for more information.
 
 .. yt_cookbook:: simple_slice_with_multiple_fields.py 
 
@@ -105,6 +109,7 @@ Off-Axis Slicing
 
 One can create slices from any arbitrary angle, not just those aligned with
 the x,y,z axes.
+See :ref:`off-axis-slices` for more information.
 
 .. yt_cookbook:: simple_off_axis_slice.py
 
@@ -115,14 +120,18 @@ Off-Axis Projection
 
 Like off-axis slices, off-axis projections can be created from any arbitrary 
 viewing angle.
+See :ref:`off-axis-projections` for more information.
 
 .. yt_cookbook:: simple_off_axis_projection.py
+
+.. _cookbook-simple_volume_rendering:
 
 Simple Volume Rendering
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Volume renderings are 3D projections rendering isocontours in any arbitrary
 field (e.g. density, temperature, pressure, etc.)
+See :ref:`volume_rendering` for more information.
 
 .. yt_cookbook:: simple_volume_rendering.py
 
@@ -144,10 +153,9 @@ While often the Plot Window, and its affiliated :ref:`callbacks` can
 cover normal use cases, sometimes more direct access to the underlying
 Matplotlib engine is necessary.  This recipe shows how to modify the plot
 window :class:`matplotlib.axes.Axes` object directly.
+See :ref:`matplotlib-customization` for more information.
 
 .. yt_cookbook:: simple_slice_matplotlib_example.py 
-
-.. _cookbook-simple_volume_rendering:
 
 Image Background Colors
 ~~~~~~~~~~~~~~~~~~~~~~~
