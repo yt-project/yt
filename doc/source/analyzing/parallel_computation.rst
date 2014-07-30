@@ -226,14 +226,14 @@ a different processor:
     for dataset in dataset_series.piter():
         <process>
 
-However, because things are being done in parallel, you cannot share other
-data structures in the processing loop to store the outputs of your *<processing>*
-step.  But ``piter()`` provides functionality for this.  You may define an
-empty dictionary and include it as the keyword argument ``storage`` to 
-``piter()`` and it will be able to store processed data from within the
-``piter`` loop as the ``sto`` object for use afterwards.  After the loop is 
-finished, the dictionary is re-aggragated from all of the processors, and you 
-can use the contents:
+In order to store information from the parallel processing step to 
+a data structure that exists on all of the processors operating in parallel
+we offer the ``storage`` keyword in the ``piter`` function.
+You may define an empty dictionary and include it as the keyword argument 
+``storage`` to ``piter()``.  Then, during the processing step, you can access
+this dictionary as the ``sto`` object.  After the 
+loop is finished, the dictionary is re-aggragated from all of the processors, 
+and you can access the contents:
 
 .. code-block:: python
 
