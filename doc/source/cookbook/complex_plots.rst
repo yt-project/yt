@@ -57,6 +57,8 @@ See :ref:`slice-plots` and :ref:`projection-plots` for more information.
 
 .. yt_cookbook:: multi_plot_slice_and_proj.py 
 
+.. _advanced-multi-panel:
+
 Advanced Multi-Plot Multi-Panel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

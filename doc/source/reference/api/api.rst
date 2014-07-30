@@ -18,6 +18,7 @@ SlicePlot and ProjectionPlot
    ~yt.visualization.plot_window.ProjectionPlot
    ~yt.visualization.plot_window.OffAxisProjectionPlot
    ~yt.visualization.plot_window.WindowPlotMPL
+   ~yt.visualization.plot_window.PlotWindow
 
 ProfilePlot and PhasePlot
 ^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -914,17 +914,16 @@ a shared user machine no one else can pretend to be you!) and then spawn an
 IPython notebook you can connect to.
 
 If you want to see yt plots inline inside your notebook, you need only create a
-plot and then call ``.show()``:
+plot and then call ``.show()`` and the image will appear inline:
 
 .. notebook-cell::
 
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   p = yt.ProjectionPlot(ds, "x", "density", center='m', width=(10,'kpc'),
+   p = yt.ProjectionPlot(ds, "z", "density", center='m', width=(10,'kpc'),
                       weight_field='density')
+   p.set_figure_size(5)
    p.show()
-
-The image will appear inline.
 
 .. _eps-writer:
 

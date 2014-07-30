@@ -44,12 +44,23 @@ known_species_names = {
     'DI'      : 'D',
     'DII'     : 'D_p1',
     'HDI'     : 'HD',
-    'Electron': 'El'
+    'Electron': 'El',
+    'OI'      : 'O',
+    'OII'     : 'O_p1',
+    'OIII'    : 'O_p2',
+    'OIV'     : 'O_p3',
+    'OV'      : 'O_p4',
+    'OVI'     : 'O_p5',
+    'OVII'    : 'O_p6',
+    'OVIII'   : 'O_p7',
+    'OIX'     : 'O_p8',
 }
 
 class EnzoFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("Cooling_Time", ("s", ["cooling_time"], None)),
+        ("Dengo_Cooling_Rate", ("erg/g/s", [], None)),
+        ("Grackle_Cooling_Rate", ("erg/s/cm**3", [], None)),
         ("HI_kph", ("1/code_time", [], None)),
         ("HeI_kph", ("1/code_time", [], None)),
         ("HeII_kph", ("1/code_time", [], None)),
@@ -147,9 +158,10 @@ class EnzoFieldInfo(FieldInfoContainer):
         # Now we conditionally load a few other things.
         params = self.ds.parameters
         multi_species = params.get("MultiSpecies", None)
+        dengo = params.get("DengoChemistryModel", 0)
         if multi_species is None:
             multi_species = params["Physics"]["AtomicPhysics"]["MultiSpecies"]
-        if multi_species > 0:
+        if multi_species > 0 or dengo == 1:
             self.setup_species_fields()
         self.setup_energy_field()
 

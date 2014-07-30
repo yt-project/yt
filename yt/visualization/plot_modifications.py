@@ -1000,8 +1000,7 @@ class HaloCatalogCallback(PlotCallback):
 class ParticleCallback(PlotCallback):
     """
     annotate_particles(width, p_size=1.0, col='k', marker='o', stride=1.0,
-                       ptype=None, stars_only=False, dm_only=False,
-                       minimum_mass=None, alpha=1.0)
+                       ptype=None, minimum_mass=None, alpha=1.0)
 
     Adds particle positions, based on a thick slab along *axis* with a
     *width* along the line of sight.  *p_size* controls the number of
