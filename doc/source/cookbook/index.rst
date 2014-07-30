@@ -45,3 +45,4 @@ Example Notebooks
    fits_radio_cubes
    fits_xray_images
    tipsy_notebook
+   halo_analysis_example

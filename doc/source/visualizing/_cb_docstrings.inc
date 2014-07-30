@@ -53,6 +53,8 @@ Clump Finder Callback
    prj.annotate_clumps(leaf_clumps)
    prj.save('clumps')
 
+.. _annotate-contours:
+
 Overplot Contours
 ~~~~~~~~~~~~~~~~~
 
@@ -121,6 +123,8 @@ Off-axis Data Sources
    s.zoom(1.5)
    s.save()
 
+.. _annotate-grids:
+
 Overplot grids
 ~~~~~~~~~~~~~~
 
@@ -141,6 +145,8 @@ Overplot grids
    slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'), center='max')
    slc.annotate_grids()
    slc.save()
+
+.. _annotate-halos:
 
 Overplot Halo Annotations
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -260,6 +266,8 @@ Annotate a Point With a Marker
    s = yt.SlicePlot(ds, 'z', 'density', center='c', width=(10, 'kpc'))
    s.annotate_marker([0.5, 0.5, 0.5], plot_args={'s':10000})
    s.save()
+
+.._annotate-particles:
 
 Overplotting Particle Positions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -390,6 +398,8 @@ Add a title to the plot
    p = yt.ProjectionPlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
    p.annotate_title('Density Plot')
    p.save()
+
+.. _annotate-velocity:
 
 Overplot quivers for the velocity field
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

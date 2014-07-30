@@ -230,6 +230,10 @@ described in :ref:`callbacks`.  See
 :class:`~yt.visualization.plot_window.ProjectionPlot` for the full
 class description.
 
+If you want to project through a subset of the full dataset volume,
+you can use the ``data_source`` keyword with a :ref:`data object data-objects`.
+The :ref:`thin-slice-projections` recipes demonstrates this functionality.
+
 .. _projection-types:
 
 Types of Projections
