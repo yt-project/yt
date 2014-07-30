@@ -16,7 +16,7 @@ each code.
 +-----------------------+------------+-----------+------------+-------+---------+----------+------------+----------+ 
 | Code ▼ \ Capability ► |   Fluid    | Particles | Parameters | Units | Read on | Load Raw |  Part of   | Level of | 
 |                       | Quantities |           |            |       | Demand  |   Data   | test suite | Support  |
-+-----------------------+------------+-----------+------------+-------+---------+----------+------------+----------+ 
++=======================+============+===========+============+=======+=========+==========+============+==========+
 | Athena                |     Y      |     N     |      Y     |   Y   |    Y    |    Y     |     N      |   Full   |
 +-----------------------+------------+-----------+------------+-------+---------+----------+------------+----------+ 
 | Castro                |     Y      |     Y     |   Partial  |   Y   |    Y    |    Y     |     N      |   Full   |
@@ -47,13 +47,6 @@ If you have a dataset from a code not yet supported, you can either
 input your data following :ref:`loading-numpy-array`, or help us by 
 :ref:`creating_frontend` for this new format.
 
-.. note::
-   
-   Support for additional codes, including particle codes (Gadget, Gasoline),
-   octree AMR codes (ART, RAMSES), and additional patch AMR codes (Castro,
-   Maestro, and other Boxlib codes) will be available in yt 3.0.  Currently yt
-   3.0 is under active development, please stop by the mailing list if you want
-   to get involved.
 
 Future Codes to Support
 -----------------------
