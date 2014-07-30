@@ -118,7 +118,13 @@ and the width of the plot:
     yt.SlicePlot(ds, 'z', 'density', center=[0.2, 0.3, 0.8],
                  width = (10,'kpc')).save()
 
-The plot center is relative to the simulation coordinate system.  If supplied
+Note that, by default,
+:class:`~yt.visualization.plot_window.SlicePlot` shifts the
+coordinates on the axes such that the origin is at the center of the
+slice.  To instead use the coordinates as defined in the dataset, use
+the optional argument: ``origin="native"``
+
+If supplied
 without units, the center is assumed by in code units.  Optionally, you can
 supply 'c' or 'm' for the center.  These two choices will center the plot on the
 center of the simulation box and the coordinate of the maximum density cell,
@@ -520,6 +526,8 @@ To change the resolution of the image, call the
    slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
    slc.set_buff_size(1600)
    slc.save()
+
+.. _matplotlib-customization:
 
 Further customization via matplotlib
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
