@@ -19,7 +19,7 @@ partitioning, transfer functions, display, etc., may be useful in the future
 for transitioning the rendering to the GPU.  In addition, this allows users to create
 volume renderings on traditional supercomputing platforms that may not have access to GPUs.
 
-As of yt 2.4, this code is threaded using OpenMP.  Many of the commands
+The volume renderer is also threaded using OpenMP.  Many of the commands
 (including `snapshot`) will accept a `num_threads` option.
 
 Tutorial
@@ -34,7 +34,7 @@ homogenization; a transfer function, and a camera object.
    direction
 #. Take a snapshot and save the image.
 
-Here is a working example for the IsolatedGalaxy dataset from the 2012 yt workshop.
+Here is a working example for the IsolatedGalaxy dataset.
 
 .. python-script::
 
@@ -83,7 +83,7 @@ Method
 ------
 
 Direct ray casting through a volume enables the generation of new types of
-visualizations and images describing a simulation.  ``yt`` now has the facility
+visualizations and images describing a simulation.  ``yt`` has the facility
 to generate volume renderings by a direct ray casting method.  However, the
 ability to create volume renderings informed by analysis by other mechanisms --
 for instance, halo location, angular momentum, spectral energy distributions --
@@ -96,7 +96,7 @@ The volume rendering in ``yt`` follows a relatively straightforward approach.
    These can be functions of any field variable, weighted by independent
    fields, and even weighted by other evaluated transfer functions.  (See
    `transfer_functions`.)
-#. Partition all grids into non-overlapping, fully domain-tiling "bricks."
+#. Partition all chunks into non-overlapping, fully domain-tiling "bricks."
    Each of these "bricks" contains the finest available data at any location.
 #. Generate vertex-centered data for all grids in the volume rendered domain.
 #. Order the bricks from back-to-front.

@@ -197,4 +197,3 @@ distributed throughout the dataset.
 
     # Mark the center with a big X
     prj.annotate_marker(center, 'x', plot_args={'s':100})
-    prj.save()
