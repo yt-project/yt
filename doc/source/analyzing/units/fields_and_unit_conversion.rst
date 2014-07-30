@@ -1,7 +1,7 @@
 .. _data_selection_and_fields:
 
-Data selection and fields
-=========================
+Fields and Unit Conversion
+==========================
 
 .. notebook:: 2)_Fields_and_unit_conversion.ipynb
 

@@ -13,8 +13,8 @@ clumps.  Individual clumps can be kept or removed from the hierarchy based on
 the result of user-specified functions, such as checking for gravitational 
 boundedness.  A sample recipe can be found in :ref:`cookbook-find_clumps`.
 
-The clump finder requires a data container and a field over which the 
-contouring is to be performed.
+The clump finder requires a data object (see :ref:`data-objects`) and a field 
+over which the contouring is to be performed.
 
 .. code:: python
 

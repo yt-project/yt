@@ -13,5 +13,5 @@ Analyzing Data
    generating_processed_data
    time_series_analysis
    parallel_computation
-   external_analysis
    analysis_modules/index
+   external_analysis
