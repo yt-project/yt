@@ -244,7 +244,7 @@ following:
 
 .. math::
 
-    g(\textbf{X}) = {\Big\int\ {f(\textbf{r})\textbf{\hat{n}}\cdot{\mathrm{d\textbf{x}}}}}
+    g(\textbf{X}) = {\int\ {f(\textbf{r})\textbf{\hat{n}}\cdot{\mathrm{d\textbf{x}}}}}
 
 ``integrate`` (weighted)
     When using the ``integrate``  style, a ``weight_field`` argument may also 
@@ -255,7 +255,7 @@ following:
 
 .. math::
 
-    g(\textbf{X}) = \frac{\Big\int\ {f(\textbf{x})w(\textbf{x})\textbf{\hat{n}}\cdot{\mathrm{d\textbf{x}}}}}{\Big\int\ {w(\textbf{x})\textbf{\hat{n}}\cdot{\mathrm{d\textbf{x}}}}}
+    g(\textbf{X}) = \frac{\int\ {f(\textbf{x})w(\textbf{x})\textbf{\hat{n}}\cdot{\mathrm{d\textbf{x}}}}}{\int\ {w(\textbf{x})\textbf{\hat{n}}\cdot{\mathrm{d\textbf{x}}}}}
 
 ``mip`` 
     This style picks out the maximum value of a field along the line of 
