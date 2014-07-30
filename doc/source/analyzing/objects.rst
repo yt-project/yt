@@ -431,7 +431,11 @@ set of level sets.  The second (``connected_sets``) will be a dict of dicts.
 The key for the first (outer) dict is the level of the contour, corresponding
 to ``contour_values``.  The inner dict returned is keyed by the contour ID.  It
 contains :class:`~yt.data_objects.selection_data_containers.YTCutRegionBase`
-objects.  These can be queried just as any other data object.
+objects.  These can be queried just as any other data object.  The clump finder 
+(:ref:`clump_finding`) differs from the above method in that the contour 
+identification is performed recursively within each individual structure, and 
+structures can be kept or remerged later based on additional criteria, such as 
+gravitational boundedness.
 
 .. _object-serialization:
 
