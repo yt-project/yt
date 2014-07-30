@@ -237,25 +237,26 @@ following:
 ``integrate`` (unweighted)
     This is the default projection style. It simply integrates the 
     requested field  :math:`f(x)` along a line of sight  :math:`\hat{n}` , 
-    given by the axis parameter.  The units of the projected field  
+    given by the axis parameter (e.g. :math:`\hat{i},\hat{j},` or 
+    :math:`\hat{k}`).  The units of the projected field  
     :math:`g(X)` will be the units of the unprojected field  :math:`f(x)` 
     multiplied by the appropriate length unit, e.g., density in  
     :math:`\mathrm{g\ cm^{-3}}` will be projected to  :math:`\mathrm{g\ cm^{-2}}`. 
 
 .. math::
 
-    g(\textbf{X}) = {\int\ {f(\textbf{r})\textbf{\hat{n}}\cdot{\mathrm{d\textbf{x}}}}}
+    g(X) = {\int\ {f(x)\hat{n}\cdot{dx}}}
 
 ``integrate`` (weighted)
     When using the ``integrate``  style, a ``weight_field`` argument may also 
-    be specified, which will produce a weighted projection.  :math:`w(\textbf{x})` 
+    be specified, which will produce a weighted projection.  :math:`w(x)` 
     is the field used as a weight. One common example would 
     be to weight the "temperature" field by the "density" field. In this case, 
     the units of the projected field are the same as the unprojected field.
 
 .. math::
 
-    g(\textbf{X}) = \frac{\int\ {f(\textbf{x})w(\textbf{x})\textbf{\hat{n}}\cdot{\mathrm{d\textbf{x}}}}}{\int\ {w(\textbf{x})\textbf{\hat{n}}\cdot{\mathrm{d\textbf{x}}}}}
+    g(X) = \frac{\int\ {f(x)w(x)\hat{n}\cdot{dx}}}{\int\ {w(x)\hat{n}\cdot{dx}}}
 
 ``mip`` 
     This style picks out the maximum value of a field along the line of 
