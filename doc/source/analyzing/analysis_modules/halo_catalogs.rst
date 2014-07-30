@@ -1,7 +1,10 @@
 .. _halo_catalog:
 
+Halo Catalogs
+=============
+
 Creating Halo Catalogs
-======================
+----------------------
 
 In yt 3.0, operations relating to the analysis of halos (halo finding,
 merger tree creation, and individual halo analysis) are all brought 
@@ -20,9 +23,10 @@ details on the relative differences between these halo finders see
 
 .. code-block:: python
 
-   from yt.mods import *
+   import yt
    from yt.analysis_modules.halo_analysis.api import HaloCatalog
-   data_ds = load('Enzo_64/RD0006/RedshiftOutput0006')
+
+   data_ds = yt.load('Enzo_64/RD0006/RedshiftOutput0006')
    hc = HaloCatalog(data_ds=data_ds, finder_method='hop')
 
 A halo catalog may also be created from already run rockstar outputs. 
@@ -34,7 +38,7 @@ argument for supplying a rockstar output is `halos_ds`, not `data_ds`.
 
 .. code-block:: python
 
-   halos_ds = load(path+'rockstar_halos/halos_0.0.bin')
+   halos_ds = yt.load(path+'rockstar_halos/halos_0.0.bin')
    hc = HaloCatalog(halos_ds=halos_ds)
 
 Although supplying only the binary output of the rockstar halo finder 
@@ -45,8 +49,8 @@ halos_ds and data_ds.
 
 .. code-block:: python
 
-   halos_ds = load(path+'rockstar_halos/halos_0.0.bin')
-   data_ds = load('Enzo_64/RD0006/RedshiftOutput0006')
+   halos_ds = yt.load(path+'rockstar_halos/halos_0.0.bin')
+   data_ds = yt.load('Enzo_64/RD0006/RedshiftOutput0006')
    hc = HaloCatalog(data_ds=data_ds, halos_ds=halos_ds)
 
 A data container can also be supplied via keyword data_source, 
@@ -54,7 +58,7 @@ associated with either dataset, to control the spatial region in
 which halo analysis will be performed.
 
 Analysis Using Halo Catalogs
-============================
+----------------------------
 
 Analysis is done by adding actions to the HaloCatalog. Each action is 
 represented by a callback function that will be run on each halo. 
@@ -68,7 +72,7 @@ All interaction with this analysis can be performed by importing from
 halo_analysis.
 
 Filters
--------
+^^^^^^^
 
 A filter is a function that returns True or False. If the return value 
 is True, any further queued analysis will proceed and the halo in 
@@ -108,7 +112,7 @@ An example of defining your own filter:
    hc.add_filter("my_filter")
 
 Quantities
-----------
+^^^^^^^^^^
 
 A quantity is a call back that returns a value or values. The return values 
 are stored within the halo object in a dictionary called “quantities.” At 
@@ -147,7 +151,7 @@ An example of defining your own quantity:
    hc.add_quantity("my_quantity") 
 
 Callbacks
----------
+^^^^^^^^^
 
 A callback is actually the super class for quantities and filters and 
 is a general purpose function that does something, anything, to a Halo 
@@ -185,7 +189,7 @@ An example of defining your own callback:
    hc.add_callback("my_callback")
 
 Running Analysis
-================
+----------------
 
 After all callbacks, quantities, and filters have been added, the 
 analysis begins with a call to HaloCatalog.create.
@@ -210,7 +214,7 @@ the user to add filters at multiple stages to skip remaining analysis if it
 is not warranted.
 
 Saving and Reloading Halo Catalogs
-==================================
+----------------------------------
 
 A HaloCatalog saved to disk can be reloaded as yt dataset with the 
 standard call to load. Any side data, such as profiles, can be reloaded 
@@ -225,8 +229,8 @@ with a load_profiles callback and a call to HaloCatalog.load.
                    filename="virial_profiles")
    hc.load()
 
-Summary
-=======
+Worked Example of Halo Catalog in Action
+----------------------------------------
 
 For a full example of how to use these methods together see 
-:doc:`halo_analysis_example`.
+:ref:`halo_analysis_example`.

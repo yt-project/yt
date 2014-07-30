@@ -1,3 +1,5 @@
+.. _halo-analysis:
+
 Halo Analysis
 =============
 
@@ -7,8 +9,8 @@ and using the halo mass function.
 .. toctree::
    :maxdepth: 1
 
-   halo_catalogs
    halo_transition
+   halo_catalogs
+   halo_finders
    halo_mass_function
    halo_merger_tree
-   halo_analysis_example

@@ -183,7 +183,7 @@ halo finder at a few paddings to find the right amount, especially
 if you're analyzing many similar datasets.
 
 Rockstar Installation
-=====================
+---------------------
 
 The Rockstar is slightly patched and modified to run as a library inside of 
 yt. By default it will be built with yt using the ``install_script.sh``.
