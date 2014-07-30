@@ -3,8 +3,8 @@
 Halo Finding
 ============
 
-There are four methods of finding particle haloes in yt. The 
-recommended and default method is called HOP, a method described 
+There are three methods of finding particle haloes in yt. The 
+default method is called HOP, a method described 
 in `Eisenstein and Hut (1998) 
 <http://adsabs.harvard.edu/abs/1998ApJ...498..137E>`_. A basic 
 friends-of-friends (e.g. `Efstathiou et al. (1985) 
@@ -14,6 +14,8 @@ finder is also implemented. Finally Rockstar (`Behroozi et a.
 a 6D-phase space halo finder developed by Peter Behroozi that 
 excels in finding subhalos and substrcture, but does not allow 
 multiple particle masses.
+
+.. _hop:
 
 HOP
 ---
@@ -25,24 +27,36 @@ for 64-bit floats and integers has been added, as well as
 parallel analysis through spatial decomposition. HOP builds 
 groups in this fashion:
 
-  1. Estimates the local density at each particle using a 
-       smoothing kernel.
-  2. Builds chains of linked particles by 'hopping' from one 
-       particle to its densest neighbor. A particle which is 
-       its own densest neighbor is the end of the chain.
-  3. All chains that share the same densest particle are 
-       grouped together.
-  4. Groups are included, linked together, or discarded 
-       depending on the user-supplied over density
-       threshold parameter. The default is 160.0.
+#. Estimates the local density at each particle using a 
+   smoothing kernel.
+
+#. Builds chains of linked particles by 'hopping' from one 
+   particle to its densest neighbor. A particle which is 
+   its own densest neighbor is the end of the chain.
+
+#. All chains that share the same densest particle are 
+   grouped together.
+
+#. Groups are included, linked together, or discarded 
+   depending on the user-supplied over density
+   threshold parameter. The default is 160.0.
 
 Please see the `HOP method paper 
 <http://adsabs.harvard.edu/abs/1998ApJ...498..137E>`_ for 
-full details.
+full details and the 
+:class:`~yt.analysis_modules.halo_finding.halo_objects.HOPHalo` and
+:class:`~yt.analysis_modules.halo_finding.halo_objects.Halo` classes.
 
-.. warning:: The FoF halo finder in yt is not thoroughly tested! 
-    It is probably fine to use, but you are strongly encouraged 
-    to check your results against the data for errors.
+.. _fof:
+
+FOF
+---
+
+A basic friends-of-friends halo finder is included.  See the
+:class:`~yt.analysis_modules.halo_finding.halo_objects.FOFHalo` and
+:class:`~yt.analysis_modules.halo_finding.halo_objects.Halo` classes.
+
+.. _rockstar:
 
 Rockstar Halo Finding
 ---------------------
@@ -84,34 +98,34 @@ content.
 The RockstarHaloFinder class has these options that can be supplied to the 
 halo catalog through the ``finder_kwargs`` argument:
 
-  * ``dm_type``, the index of the dark matter particle. Default is 1. 
-  * ``outbase``, This is where the out*list files that Rockstar makes should be
-    placed. Default is 'rockstar_halos'.
-  * ``num_readers``, the number of reader tasks (which are idle most of the 
-    time.) Default is 1.
-  * ``num_writers``, the number of writer tasks (which are fed particles and
-    do most of the analysis). Default is MPI_TASKS-num_readers-1. 
-    If left undefined, the above options are automatically 
-    configured from the number of available MPI tasks.
-  * ``force_res``, the resolution that Rockstar uses for various calculations
-    and smoothing lengths. This is in units of Mpc/h.
-    If no value is provided, this parameter is automatically set to
-    the width of the smallest grid element in the simulation from the
-    last data snapshot (i.e. the one where time has evolved the
-    longest) in the time series:
-    ``ds_last.index.get_smallest_dx() * ds_last['mpch']``.
-  * ``total_particles``, if supplied, this is a pre-calculated
-    total number of dark matter
-    particles present in the simulation. For example, this is useful
-    when analyzing a series of snapshots where the number of dark
-    matter particles should not change and this will save some disk
-    access time. If left unspecified, it will
-    be calculated automatically. Default: ``None``.
-  * ``dm_only``, if set to ``True``, it will be assumed that there are
-    only dark matter particles present in the simulation.
-    This option does not modify the halos found by Rockstar, however
-    this option can save disk access time if there are no star particles
-    (or other non-dark matter particles) in the simulation. Default: ``False``.
+* ``dm_type``, the index of the dark matter particle. Default is 1. 
+* ``outbase``, This is where the out*list files that Rockstar makes should be
+  placed. Default is 'rockstar_halos'.
+* ``num_readers``, the number of reader tasks (which are idle most of the 
+  time.) Default is 1.
+* ``num_writers``, the number of writer tasks (which are fed particles and
+  do most of the analysis). Default is MPI_TASKS-num_readers-1. 
+  If left undefined, the above options are automatically 
+  configured from the number of available MPI tasks.
+* ``force_res``, the resolution that Rockstar uses for various calculations
+  and smoothing lengths. This is in units of Mpc/h.
+  If no value is provided, this parameter is automatically set to
+  the width of the smallest grid element in the simulation from the
+  last data snapshot (i.e. the one where time has evolved the
+  longest) in the time series:
+  ``ds_last.index.get_smallest_dx() * ds_last['mpch']``.
+* ``total_particles``, if supplied, this is a pre-calculated
+  total number of dark matter
+  particles present in the simulation. For example, this is useful
+  when analyzing a series of snapshots where the number of dark
+  matter particles should not change and this will save some disk
+  access time. If left unspecified, it will
+  be calculated automatically. Default: ``None``.
+* ``dm_only``, if set to ``True``, it will be assumed that there are
+  only dark matter particles present in the simulation.
+  This option does not modify the halos found by Rockstar, however
+  this option can save disk access time if there are no star particles
+  (or other non-dark matter particles) in the simulation. Default: ``False``.
 
 Rockstar dumps halo information in a series of text (halo*list and 
 out*list) and binary (halo*bin) files inside the ``outbase`` directory. 
@@ -119,6 +133,12 @@ We use the halo list classes to recover the information.
 
 Inside the ``outbase`` directory there is a text file named ``datasets.txt``
 that records the connection between ds names and the Rockstar file names.
+
+For more information, see the 
+:class:`~yt.analysis_modules.halo_finding.halo_objects.RockstarHalo` and
+:class:`~yt.analysis_modules.halo_finding.halo_objects.Halo` classes.
+
+.. _parallel-hop-and-fof:
 
 Parallel HOP and FOF
 --------------------
@@ -166,15 +186,13 @@ is no way of knowing before the halo finder is run.
 
 .. code-block:: python
 
-  from yt.mods import *
+  import yt
   from yt.analysis_modules.halo_analysis.api import *
-  ds = load("data0001")
-  hc= HaloCatalog(data_ds =ds,finder_method='hop'
-    finder_kwargs={'padding':0.02})
-  # --or--
-  hc= HaloCatalog(data_ds =ds,finder_method='fof'
-    finder_kwargs={'padding':0.02})
+  ds = yt.load("data0001")
 
+  hc = HaloCatalog(data_ds = ds, finder_method = 'hop', finder_kwargs={'padding':0.02})
+  # --or--
+  hc = HaloCatalog(data_ds = ds, finder_method = 'fof', finder_kwargs={'padding':0.02})
 
 In general, a little bit of padding goes a long way, and too much 
 just slows down the analysis and doesn't improve the answer (but 

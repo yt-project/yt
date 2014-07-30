@@ -17,9 +17,12 @@ to yt-3.0 please see :ref:`halo-transition`.
 A catalog of halos can be created from any initial dataset given to halo 
 catalog through data_ds. These halos can be found using friends-of-friends,
 HOP, and Rockstar. The finder_method keyword dictates which halo finder to
-use. The available arguments are 'fof', 'hop', and'rockstar'. For more
-details on the relative differences between these halo finders see 
+use. The available arguments are :ref:`fof`, :ref:`hop`, and :ref:`rockstar`. 
+For more details on the relative differences between these halo finders see 
 :ref:`halo_finding`.
+
+The class which holds all of the halo information is the 
+:class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog`.
 
 .. code-block:: python
 
@@ -53,20 +56,21 @@ halos_ds and data_ds.
    data_ds = yt.load('Enzo_64/RD0006/RedshiftOutput0006')
    hc = HaloCatalog(data_ds=data_ds, halos_ds=halos_ds)
 
-A data container can also be supplied via keyword data_source, 
+A data object can also be supplied via the keyword ``data_source``, 
 associated with either dataset, to control the spatial region in 
 which halo analysis will be performed.
 
 Analysis Using Halo Catalogs
 ----------------------------
 
-Analysis is done by adding actions to the HaloCatalog. Each action is 
-represented by a callback function that will be run on each halo. 
+Analysis is done by adding actions to the 
+:class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog`.
+Each action is represented by a callback function that will be run on each halo. 
 There are three types of actions:
 
-    - Filters
-    - Quantities
-    - Callbacks
+* Filters
+* Quantities
+* Callbacks
 
 All interaction with this analysis can be performed by importing from 
 halo_analysis.
@@ -90,7 +94,7 @@ Currently quantity_value is the only available filter, but more can be
 added by the user by defining a function that accepts a halo object as 
 the first argument and then adding it as an available filter. If you 
 think that your filter may be of use to the general community, you can 
-add it to yt/analysis_modules/halo_analysis/halo_filters.py and issue a 
+add it to ``yt/analysis_modules/halo_analysis/halo_filters.py`` and issue a 
 pull request.
 
 An example of defining your own filter:
@@ -117,15 +121,15 @@ Quantities
 A quantity is a call back that returns a value or values. The return values 
 are stored within the halo object in a dictionary called “quantities.” At 
 the end of the analysis, all of these quantities will be written to disk as 
-the final form of the generated “halo catalog.”
+the final form of the generated halo catalog.
 
 Quantities may be available in the initial fields found in the halo catalog, 
 or calculated from a function after supplying a definition. An example 
 definition of center of mass is shown below. Currently available quantities 
 are center_of_mass and bulk_velocity. Their definitions are available in 
-yt/analysis_modules/halo_analysis/halo_quantities.py . If you think that 
+``yt/analysis_modules/halo_analysis/halo_quantities.py``. If you think that 
 your quantity may be of use to the general community, add it to 
-halo_quantities.py and issue a pull request.
+``halo_quantities.py`` and issue a pull request.
 
 An example of adding a quantity:
 
@@ -160,14 +164,14 @@ performing analysis and writing to disk, etc. A callback does not return
 anything.
 
 An example of using a pre-defined callback where we create a sphere for 
-each halo with a radius that is twice the saved “radius”.
+each halo with a radius that is twice the saved ``radius``.
 
 .. code-block:: python
 
    hc.add_callback("sphere", factor=2.0)
     
 Currently available callbacks are located in 
-yt/analysis_modules/halo_analysis/halo_callbacks.py. New callbacks may 
+``yt/analysis_modules/halo_analysis/halo_callbacks.py``. New callbacks may 
 be added by using the syntax shown below. If you think that your 
 callback may be of use to the general community, add it to 
 halo_callbacks.py and issue a pull request
@@ -203,10 +207,12 @@ are saved after analysis on them has completed or whether just the
 contents of their quantities dicts will be retained for creating the 
 final catalog. The looping over halos uses a call to parallel_objects 
 allowing the user to control how many processors work on each halo. 
-The final catalog is written to disk int the output directory given 
-when the HaloCatalog object was created.
+The final catalog is written to disk in the output directory given 
+when the 
+:class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog` 
+object was created.
 
-All callbacks, quantities, and filters are stored in an “actions” list, 
+All callbacks, quantities, and filters are stored in an actions list, 
 meaning that they are executed in the same order in which they were added. 
 This enables the use of simple, reusable, single action callbacks that 
 depend on each other. This also prevents unecessary computation by allowing 
@@ -216,13 +222,15 @@ is not warranted.
 Saving and Reloading Halo Catalogs
 ----------------------------------
 
-A HaloCatalog saved to disk can be reloaded as yt dataset with the 
+A :class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog` 
+saved to disk can be reloaded as a yt dataset with the 
 standard call to load. Any side data, such as profiles, can be reloaded 
-with a load_profiles callback and a call to HaloCatalog.load.
+with a ``load_profiles`` callback and a call to 
+:func:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog.load`.
 
 .. code-block:: python
 
-   hds = load(path+"halo_catalogs/catalog_0046/catalog_0046.0.h5")
+   hds = yt.load(path+"halo_catalogs/catalog_0046/catalog_0046.0.h5")
    hc = HaloCatalog(halos_ds=hds,
                     output_dir="halo_catalogs/catalog_0046")
    hc.add_callback("load_profiles", output_dir="profiles",
