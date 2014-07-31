@@ -18,7 +18,7 @@ import numpy as np
 from yt.testing import *
 
 from .framework import \
-    AnswerTestingTest
+    AnswerTestingTest, requires_ds, data_dir_load
 
 class ExtractConnectedSetsTest(AnswerTestingTest):
     _type_name = "ExtractConnectedSets"
