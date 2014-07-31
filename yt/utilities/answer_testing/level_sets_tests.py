@@ -15,6 +15,8 @@ Answer Testing for level sets
 
 import numpy as np
 
+from yt.testing import *
+
 from .framework import \
     AnswerTestingTest
 
