@@ -33,3 +33,8 @@ dd {
         padding-bottom: 10px;
     }
 }
+
+p code {
+    color:  #d14;    
+    white-space: nowrap;
+}
