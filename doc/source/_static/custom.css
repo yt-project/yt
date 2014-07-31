@@ -42,3 +42,11 @@ p code {
 tbody td.label {
     color: #000000;
 }
+
+*[id]:before { 
+  display: block; 
+  content: " "; 
+  margin-top: -45px; 
+  height: 45px; 
+  visibility: hidden; 
+}
