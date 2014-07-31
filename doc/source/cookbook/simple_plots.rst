@@ -157,6 +157,16 @@ See :ref:`matplotlib-customization` for more information.
 
 .. yt_cookbook:: simple_slice_matplotlib_example.py 
 
+Changing the Colormap used in a Plot
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+yt has sensible defaults for colormaps, but there are over a hundred available
+for customizing your plots.  Here we generate a projection and then change
+its colormap.  See :ref:`colormaps` for a list and for images of all the 
+available colormaps.
+
+.. yt_cookbook:: colormaps.py
+
 Image Background Colors
 ~~~~~~~~~~~~~~~~~~~~~~~
 
