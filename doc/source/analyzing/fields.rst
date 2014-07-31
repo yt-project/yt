@@ -206,6 +206,41 @@ Every particle will contain both a ``particle_position`` and ``particle_velocity
 that tracks the position and velocity (respectively) in code units.
 
 
+.. _deposited-particle-fields:
+
+Deposited Particle Fields
++++++++++++++++++++++++++
+
+In order to turn particle (discrete) fields into fields that are deposited in
+some regular, space-filling way (even if that space is empty, it is defined
+everywhere.)  These are in the special field-type space ``deposit``, and are
+typically of the form ``("deposit", "particletype_depositiontype")`` where
+``depositiontype`` is the mechanism by which the field is deposited, and
+``particletype`` is the particle type of the particles being deposited.  If you
+are attempting to examine the cloud-in-cell (``cic``) deposition of the ``all``
+particle type, you would access the field ``("deposit", "all_cic")``.
+
+yt defines a few particular types of deposition internally, and creating new
+ones can be done by modifying the files ``yt/geometry/particle_deposit.pyx``
+and ``yt/fields/particle_fields.py``, although that is an advanced topic
+somewhat outside the scope of this section.
+
+ * ``count`` - this field counts the total number of particles of a given type
+   in a given mesh zone.  Note that because, in general, the mesh for particle
+   datasets is defined by the number of particles in a region, this may not be
+   the most useful metric.
+ * ``density`` - this field takes the total sum of ``particle_mass`` in a given
+   mesh field and divides by the volume.
+ * ``mass`` - this field takes the total sum of ``particle_mass`` in each mesh
+   zone.
+ * ``cic`` - this field performs cloud-in-cell interpolation (see `Section 2.2
+   <http://ta.twi.tudelft.nl/dv/users/Lemmens/MThesis.TTH/chapter4.html>`_ for more
+   information) of the density of particles in a given mesh zone.
+ * ``smoothed`` - this is a special deposition type.  See discussion below for
+   more information, in :ref:`sph-fields`.
+
+.. _sph-fields:
+
 SPH Fields
 ++++++++++
 
@@ -213,3 +248,31 @@ For gas particles from SPH simulations, each particle will typically carry
 a field for the smoothing length ``h``, which is roughly equivalent to 
 ``(m/\rho)^{1/3}``, where ``m`` and ``rho`` are the particle mass and density 
 respectively.  This can be useful for doing neighbour finding.
+
+As a note, SPH fields are special cases of the "deposited" particle fields.
+They contain an additional piece of information about what is being examined,
+and any fields that are recognized as being identical to intrinsic yt fields
+will be aliased.  For example, in a Gadget dataset, the smoothed density of
+``Gas`` particles will be aliased to the mesh field ``("gas", "density")`` so
+that operations conducted on the mesh field ``density`` (which are frequent
+occurrences) will operate on the smoothed gas density from the SPH particles.
+
+The special deposition types based on smoothing (``smoothed``) are defined in
+the file ``yt/geometry/particle_smooth.pyx``, and they require non-local
+operations defined on a variable number of neighbors.  The default smoothing
+type utilizes a cubic spline kernel and uses 64 nearest neighbors, providing a
+volume-normalized smoothing.  Other types are possible, and yt provides
+functionality for many different types of non-local correlation between
+particles.  (For instance, a friends-of-friends grouper has been built on this
+same infrastructure.)
+
+Every particle field on a smoothed particle type is the source for a smoothed
+field; this is not always useful, but it errs on the side of extra fields,
+rather than too few fields.  (For instance, it may be unlikely that the
+smoothed angular momentum field will be useful.)  The naming scheme is an
+extension of the scheme described in :ref:`deposited-particle-fields`, and is
+defined as such: ``("deposit", "particletype_smoothed_fieldname")``, where 
+``fieldname`` is the name of the field being smoothed.  For example, smoothed
+``Temperature`` of the ``Gas`` particle type would be ``("deposit",
+"Gas_smoothed_Temperature")``, which in most cases would be aliased to the
+field ``("gas", "temperature")`` for convenience.
