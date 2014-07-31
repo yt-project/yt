@@ -1,7 +1,7 @@
 .. _streamlines:
 
-Streamlining
-================
+Streamlines
+===========
 
 Streamlines, as implemented in ``yt``, are defined as being parallel to a
 vector field at all points.  While commonly used to follow the
@@ -11,7 +11,7 @@ total length of the streamline are specified, the streamline is
 uniquely defined.    
 
 Method
-----------------
+------
 
 Streamlining through a volume is useful for a variety of analysis
 tasks.  By specifying a set of starting positions, the user is
@@ -45,7 +45,7 @@ The implementation of streamlining  in ``yt`` is described below.
             intermediate position.
 
 #. The set set of streamline positions are stored in the
-   :obj:`~yt.visualization.streamlines.Streamlines.streamlines` object.
+   :class:`~yt.visualization.streamlines.Streamlines` object.
 
 Example Script
 ++++++++++++++
