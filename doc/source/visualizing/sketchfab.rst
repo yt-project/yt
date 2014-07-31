@@ -41,9 +41,9 @@ also means you can export a surface from yt and view it in something like
 <https://play.google.com/store/apps/details?id=it.isticnr.meshlab&hl=en>`_.
 
 To extract geometry or sample a field, call
-:func:`~yt.data_objects.data_containers.YTSelectionContainer3D.extract_isocontours`.  To
+:meth:`~yt.data_objects.data_containers.YTSelectionContainer3D.extract_isocontours`.  To
 calculate a flux, call
-:func:`~yt.data_objects.data_containers.YTSelectionContainer3D.calculate_isocontour_flux`.
+:meth:`~yt.data_objects.data_containers.YTSelectionContainer3D.calculate_isocontour_flux`.
 both of these operations will run in parallel.  For more information on enabling
 parallelism in yt, see :ref:`parallel-computation`.
 

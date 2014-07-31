@@ -67,7 +67,7 @@ is returned for iteration:
        print ds.current_time
 
 This can also operate in parallel, using
-:func:`~yt.data_objects.time_series.DatasetSeries.piter`.  For more examples,
+:meth:`~yt.data_objects.time_series.DatasetSeries.piter`.  For more examples,
 see:
 
  * :ref:`parallel-time-series-analysis`
@@ -97,7 +97,7 @@ To instantiate, give the parameter file and the simulation type.
                          find_outputs=False)
 
 Then, create a ``DatasetSeries`` object with the 
-:func:`frontends.enzo.simulation_handling.EnzoSimulation.get_time_series` 
+:meth:`frontends.enzo.simulation_handling.EnzoSimulation.get_time_series` 
 function.  With no additional keywords, the time series will include every 
 dataset.  If the ``find_outputs`` keyword is set to ``True``, a search of the 
 simulation directory will be performed looking for potential datasets.  These 
@@ -119,7 +119,7 @@ After this, time series analysis can be done normally.
       print all_data.quantities.extrema('density')
  
 Additional keywords can be given to 
-:func:`frontends.enzo.simulation_handling.EnzoSimulation.get_time_series` 
+:meth:`frontends.enzo.simulation_handling.EnzoSimulation.get_time_series` 
 to select a subset of the total data:
 
 * ``time_data`` (*bool*): Whether or not to include time outputs when 

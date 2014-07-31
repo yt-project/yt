@@ -165,7 +165,7 @@ For an example, see the cookbook :ref:`cookbook-simple_volume_rendering`.
 
 The :class:`~yt.visualization.volume_rendering.camera.StereoPairCamera` object
 has a single primary method,
-:func:`~yt.visualization.volume_rendering.camera.StereoPairCamera.split`, that
+:meth:`~yt.visualization.volume_rendering.camera.StereoPairCamera.split`, that
 will return two cameras, a left and a right.
 
 .. _camera_movement:
@@ -203,23 +203,23 @@ and
 :class:`~yt.visualization.volume_rendering.transfer_functions.PlanckTransferFunction`.
 
 Color Transfer Functions
-++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 These transfer functions are the standard way to apply colors to specific
 values in the field being rendered.  For instance, applying isocontours at
 specific densities.  They have several different mechanisms that can be used.
 The easiest mechanism is to use
-:func:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.add_layers`,
+:meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.add_layers`,
 which will add evenly spaced isocontours between the bounds of the transfer
 function.  However, you can also use
-:func:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.sample_colormap`,
+:meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.sample_colormap`,
 which will sample a colormap at a given value.  Additionally, you can directly
 call
-:func:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.add_gaussian`,
+:meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.add_gaussian`,
 which will allow you to specify the colors directly.
 
 An alternate method for modifying the colormap is done using
-`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.map_to_colormap`,
+:meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.map_to_colormap`,
 where you can map a segment of the transfer function space to an entire
 colormap at a single alpha value.  This is sometimes useful for very opaque
 renderings.
@@ -227,7 +227,7 @@ renderings.
 See :ref:`cookbook-simple_volume_rendering` for an example usage.
 
 Projection Transfer Function
-++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This is designed to allow you to very easily project off-axis through a region.
 See :ref:`cookbook-offaxis_projection` for a simple example.  Note that the
@@ -236,7 +236,7 @@ apply a colorbar, you will have to multiply by the integration width (specified
 when you initialize the volume renderer) in whatever units are appropriate.
 
 Planck Transfer Function
-++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 This transfer function is designed to apply a semi-realistic color field based
 on temperature, emission weighted by density, and approximate scattering based
@@ -244,7 +244,7 @@ on the density.  This class is currently under-documented, and it may be best
 to examine the source code to use it.
 
 More Complicated Transfer Functions
-+++++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 For more complicated transfer functions, you can use the
 :class:`~yt.visualization.volume_rendering.transfer_functions.MultiVariateTransferFunction`
@@ -305,7 +305,7 @@ By default, the volume renderer will use the total number of cores available on
 the symmetric multiprocessing (SMP) compute platform.  For example, if you have
 a shiny new laptop with 8 cores, you'll by default launch 8 OpenMP threads.
 The number of threads can be controlled with the num_threads keyword in
-:func:`~yt.visualization.volume_rendering.camera.Camera.snapshot`.  You may also restrict the number of OpenMP threads used
+:meth:`~yt.visualization.volume_rendering.camera.Camera.snapshot`.  You may also restrict the number of OpenMP threads used
 by default by modifying the environment variable OMP_NUM_THREADS. 
 
 Running in Hybrid MPI + OpenMP

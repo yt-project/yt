@@ -54,7 +54,7 @@ the following attributes:
   with.  Likely only defined for Octree-based codes.
 
 In addition, the method
-:func:`~yt.data_objects.grid_patch.AMRGridPatch.get_global_startindex` can be
+:meth:`~yt.data_objects.grid_patch.AMRGridPatch.get_global_startindex` can be
 used to get the integer coordinates of the upper left edge.  These integer
 coordinates are defined with respect to the current level; this means that they
 are the offset of the left edge, with respect to the left edge of the domain,
@@ -107,12 +107,12 @@ One of the most common questions asked of data is, what is the value *at this
 specific point*.  While there are several ways to find out the answer to this
 question, a few helper routines are provided as well.  To identify the
 finest-resolution (i.e., most canonical) data at a given point, use
-:func:`~yt.data_objects.index.AMRHierarchy.find_field_value_at_point`.
+:meth:`~yt.data_objects.index.AMRHierarchy.find_field_value_at_point`.
 This accepts a position (in coordinates of the domain) and returns the field
 values for one or multiple fields.
 
 To identify all the grids that intersect a given point, the function 
-:func:`~yt.data_objects.index.AMRHierarchy.find_point` will return indices
+:meth:`~yt.data_objects.index.AMRHierarchy.find_point` will return indices
 and objects that correspond to it.  For instance:
 
 .. code-block:: python

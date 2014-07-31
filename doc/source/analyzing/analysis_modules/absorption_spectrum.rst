@@ -13,7 +13,7 @@ on the temperature field.  The lines are then shifted according to the redshift
 recorded by the light ray tool and (optionally) the line of sight peculiar velocity.  
 Inclusion of the peculiar velocity requires setting ``get_los_velocity`` to True in 
 the call to 
-:func:`~yt.analysis_modules.cosmological_observation.light_ray.light_ray.LightRay.make_light_ray`.
+:meth:`~yt.analysis_modules.cosmological_observation.light_ray.light_ray.LightRay.make_light_ray`.
 
 The spectrum generator will output a file containing the wavelength and normalized flux.  
 It will also output a text file listing all important lines.
@@ -318,7 +318,7 @@ The complex is considered successfully fit when the sum of the squares of
 the difference between the flux generated from the fit and the desired flux
 profile is less than ``errBound``. ``errBound`` is related to the optional
 parameter to 
-:func:`~yt.analysis_modules.cosmological_observation.light_ray.light_ray.LightRay.generate_total_fit`,
+:meth:`~yt.analysis_modules.cosmological_observation.light_ray.light_ray.LightRay.generate_total_fit`,
 ``maxAvgError`` by the number of array elements in the region such that 
 ``errBound`` = number of elements * ``maxAvgError``.
 
