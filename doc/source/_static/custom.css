@@ -33,3 +33,20 @@ dd {
         padding-bottom: 10px;
     }
 }
+
+p code {
+    color:  #d14;    
+    white-space: nowrap;
+}
+
+tbody td.label {
+    color: #000000;
+}
+
+*[id]:before { 
+  display: block; 
+  content: " "; 
+  margin-top: -45px; 
+  height: 45px; 
+  visibility: hidden; 
+}
