@@ -38,3 +38,7 @@ p code {
     color:  #d14;    
     white-space: nowrap;
 }
+
+tbody td.label {
+    color: #000000;
+}

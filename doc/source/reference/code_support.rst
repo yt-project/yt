@@ -12,11 +12,9 @@ as inputs.  Below is a list showing what level of support is provided for
 each code. See :ref:`loading-data` for examples of loading a dataset from 
 each supported output format using yt.
 
-|
-
 +-----------------------+------------+-----------+------------+-------+----------+----------+------------+----------+ 
-| Capability ►          |   Fluid    | Particles | Parameters | Units | Read on  | Load Raw |  Part of   | Level of | 
-| Code/Format ▼         | Quantities |           |            |       | Demand   |   Data   | test suite | Support  |
+| Capability ►          | Fluid      | Particles | Parameters | Units | Read on  | Load Raw | Part of    | Level of | 
+| Code/Format ▼         | Quantities |           |            |       | Demand   | Data     | test suite | Support  |
 +=======================+============+===========+============+=======+==========+==========+============+==========+
 | ART                   |     Y      |     Y     |      Y     |   Y   | Y [#f2]_ |    Y     |     N      |   Full   |
 +-----------------------+------------+-----------+------------+-------+----------+----------+------------+----------+ 
@@ -62,8 +60,6 @@ each supported output format using yt.
 .. [#f1] one-dimensional base-state not read in currently.
 .. [#f2] These handle mesh fields using an in-memory octree that has not been parallelized. 
          Datasets larger than approximately 1024^3 will not scale well.
-
-|
 
 
 If you have a dataset that uses an output format not yet supported by yt, you
