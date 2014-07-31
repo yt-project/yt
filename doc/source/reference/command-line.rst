@@ -67,6 +67,7 @@ This will print the list of available subcommands,
     version             Get some information about the yt installation (this
                         is an alias for instinfo).
     load                Load a single dataset into an IPython instance
+    mapserver           Serve a plot in a GMaps-style interface
     pastebin            Post a script to an anonymous pastebin
     pastebin_grab       Print an online pastebin to STDOUT for local use.
     upload_notebook     Upload an IPython notebook to hub.yt-project.org.
@@ -191,6 +192,13 @@ load
 
 This will start the iyt interactive environment with your specified 
 dataset already loaded.  See :ref:`interactive-prompt` for more details.
+
+mapserver
++++++++++
+
+Ever wanted to interact with your data using the 
+`google maps <http://maps.google.com/>`_ interface?  Now you can by using the
+yt mapserver.  See :ref:`mapserver` for more details.
 
 pastebin and pastebin_grab
 ++++++++++++++++++++++++++
