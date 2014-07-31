@@ -34,7 +34,7 @@ class ExtractConnectedSetsTest(AnswerTestingTest):
     
     def run(self):
         n, all_sets = self.data_source.extract_connected_sets(
-            self.field, self.num_levels, self.min_value, self.max_value)
+            self.field, self.num_levels, self.min_val, self.max_val)
         result = []
         for level in all_sets:
             for set_id in all_sets[level]:
