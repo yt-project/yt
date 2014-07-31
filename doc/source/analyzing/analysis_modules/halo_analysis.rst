@@ -7,7 +7,7 @@ Using halo catalogs, understanding the different halo finding methods,
 and using the halo mass function.
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    halo_transition
    halo_catalogs
