@@ -112,8 +112,11 @@ example, the radius field has to be defined based on some point of reference
 and the radial velocity field needs to know the bulk velocity of the data object 
 so that it can be subtracted.  This information is passed into a field function 
 by setting field parameters, which are user-specified data that can be associated 
-with a data object.  The :meth:`~yt.data_objects.data_containers.set_field_parameter` 
-and :meth:`~yt.data_objects.data_containers.get_field_parameter` functions are 
+with a data object.  The 
+:meth:`~yt.data_objects.data_containers.YTDataContainer.set_field_parameter` 
+and 
+:meth:`~yt.data_objects.data_containers.YTDataContainer.get_field_parameter` 
+functions are 
 used to set and retrieve field parameter values for a given data object.  In the 
 cases above, the field parameters are ``center`` and ``bulk_velocity`` respectively -- 
 the two most commonly used field parameters.
