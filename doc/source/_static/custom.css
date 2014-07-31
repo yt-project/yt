@@ -7,6 +7,13 @@ dd {
     margin-left: 30px;
 }
 
+/*
+
+Collapse the navbar when its width is less than 1200 pixels.  This may need to
+be adjusted if the navbar menu changes.
+
+*/
+
 @media (max-width: 1200px) {
     .navbar-header {
         float: none;
@@ -34,14 +41,46 @@ dd {
     }
 }
 
+/* 
+
+Sphinx code literals conflict with the notebook code tag, so we special-case
+literals that are inside text.
+
+*/
+
 p code {
     color:  #d14;    
     white-space: nowrap;
 }
 
-tbody td.label {
-    color: #000000;
+/*
+
+Nicer, controllable formatting for tables that have multi-line headers.
+
+*/
+
+th.head {
+    white-space: pre;
 }
+
+/*
+
+labels have a crappy default color that is almost invisible in our doc theme so
+we use a darker color.
+
+*/
+
+.label {
+    color: #333333;
+}
+
+/*
+
+Hack to prevent internal link targets being positioned behind the navbar.
+
+See: https://github.com/twbs/bootstrap/issues/1768
+
+*/
 
 *[id]:before { 
   display: block; 
