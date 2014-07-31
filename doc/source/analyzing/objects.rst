@@ -446,11 +446,11 @@ Often, when operating interactively or via the scripting interface, it is
 convenient to save an object or multiple objects out to disk and then restart
 the calculation later.  For example, this is useful after clump finding 
 (:ref:`clump_finding`), which can be very time consuming.  
-Typically, the save and load operations are used on 3D data objects.  ``yt``
+Typically, the save and load operations are used on 3D data objects.  yt
 has a separate set of serialization operations for 2D objects such as
 projections.
 
-``yt`` will save out objects to disk under the presupposition that the
+yt will save out objects to disk under the presupposition that the
 construction of the objects is the difficult part, rather than the generation
 of the data -- this means that you can save out an object as a description of
 how to recreate it in space, but not the actual data arrays affiliated with

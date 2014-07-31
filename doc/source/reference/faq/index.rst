@@ -4,7 +4,7 @@
 Frequently Asked Questions
 ==========================
 
-A few problems that people encounter when installing or running ``yt``
+A few problems that people encounter when installing or running yt
 come up regularly. Here are the solutions to some of the most common
 problems.
 
@@ -15,12 +15,12 @@ problems.
 
 .. _determining-version:
 
-How can I tell what version of ``yt`` I'm using?
-------------------------------------------------
+How can I tell what version of yt I'm using?
+--------------------------------------------
 
-If you run into problems with ``yt`` and you're writing to the mailing list
+If you run into problems with yt and you're writing to the mailing list
 or contacting developers on IRC, they will likely want to know what version of
-``yt`` you're using.  Oftentimes, you'll want to know both the yt version, 
+yt you're using.  Oftentimes, you'll want to know both the yt version, 
 as well as the last changeset that was committed to the branch you're using.  
 To reveal this, go to a command line and type:
 
@@ -51,8 +51,8 @@ modifications to the code since the last changeset.
 
 .. _getting-sample-data:
 
-How can I get some sample data for ``yt``?
-------------------------------------------
+How can I get some sample data for yt?
+--------------------------------------
 
 Many different sample datasets can be found at http://yt-project.org/data/ .
 These can be downloaded, unarchived, and they will each create their own
@@ -63,11 +63,11 @@ unfamiliar, please visit :ref:`loading-data`.
 To make things easier to load these sample datasets, you can add the parent
 directory to your downloaded sample data to your *yt path*.
 If you set the option ``test_data_dir``, in the section ``[yt]``,
-in ``~/.yt/config``, ``yt`` will search this path for them.
+in ``~/.yt/config``, yt will search this path for them.
 
 This means you can download these datasets to ``/big_drive/data_for_yt`` , add
 the appropriate item to ``~/.yt/config``, and no matter which directory you are
-in when running ``yt``, it will also check in *that* directory.
+in when running yt, it will also check in *that* directory.
 
 .. _faq-scroll-up:
 
@@ -84,10 +84,10 @@ environment can use readline, run the following command:
 
 .. _faq-new-field:
 
-How do I modify whether or not ``yt`` takes the log of a particular field?
---------------------------------------------------------------------------
+How do I modify whether or not yt takes the log of a particular field?
+----------------------------------------------------------------------
 
-``yt`` sets up defaults for many fields for whether or not a field is presented
+yt sets up defaults for many fields for whether or not a field is presented
 in log or linear space. To override this behavior, you can modify the
 ``field_info`` dictionary.  For example, if you prefer that ``density`` not be
 logged, you could type:
@@ -104,10 +104,10 @@ you can access ds.field info.
 
 .. _faq-handling-log-vs-linear-space:
 
-I added a new field to my simulation data, can ``yt`` see it?
+I added a new field to my simulation data, can yt see it?
 -------------------------------------------------------------
 
-Yes! ``yt`` identifies all the fields in the simulation's output file
+Yes! yt identifies all the fields in the simulation's output file
 and will add them to its ``field_list`` even if they aren't listed in
 :ref:`field-list`. These can then be accessed in the usual manner. For
 example, if you have created a field for the potential called
@@ -119,7 +119,7 @@ example, if you have created a field for the potential called
    ad = ds.all_data()
    potential_field = ad["PotentialField"]
 
-The same applies to fields you might derive inside your ``yt`` script
+The same applies to fields you might derive inside your yt script
 via :ref:`creating-derived-fields`. To check what fields are
 available, look at the properties ``field_list`` and ``derived_field_list``:
 
@@ -130,12 +130,12 @@ available, look at the properties ``field_list`` and ``derived_field_list``:
 
 .. _faq-old-data:
 
-``yt`` seems to be plotting from old data
-------------------------------------------
+yt seems to be plotting from old data
+--------------------------------------
 
-``yt`` does check the time stamp of the simulation so that if you
+yt does check the time stamp of the simulation so that if you
 overwrite your data outputs, the new set will be read in fresh by
-``yt``. However, if you have problems or the ``yt`` output seems to be
+yt. However, if you have problems or the yt output seems to be
 in someway corrupted, try deleting the ``.yt`` and
 ``.harray`` files from inside your data directory. If this proves to
 be a persistent problem add the line:
@@ -144,14 +144,14 @@ be a persistent problem add the line:
 
    from yt.config import ytcfg; ytcfg["yt","serialize"] = "False"
 
-to the very top of your ``yt`` script. 
+to the very top of your yt script. 
 
 .. _faq-mpi4py:
 
-``yt`` complains that it needs the mpi4py module
-------------------------------------------------
+yt complains that it needs the mpi4py module
+--------------------------------------------
 
-For ``yt`` to be able to incorporate parallelism on any of its analysis, 
+For yt to be able to incorporate parallelism on any of its analysis, 
 it needs to be able to use MPI libraries.  This requires the ``mpi4py``
 module to be installed in your version of python.  Unfortunately, 
 installation of ``mpi4py`` is *just* tricky enough to elude the yt
@@ -194,8 +194,8 @@ And voila!  It installs!  If this *still* fails for you, then you can
 build and install from source and specify the mpi-enabled c and c++ 
 compilers in the mpi.cfg file.  See the `mpi4py installation page <http://mpi4py.scipy.org/docs/usrman/install.html>`_ for details.
 
-``yt`` fails saying that it cannot import yt modules
-----------------------------------------------------
+yt fails saying that it cannot import yt modules
+------------------------------------------------
 
 This is likely because you need to rebuild the source.  You can do 
 this automatically by running:

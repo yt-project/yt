@@ -3,7 +3,7 @@
 Streamlines
 ===========
 
-Streamlines, as implemented in ``yt``, are defined as being parallel to a
+Streamlines, as implemented in yt, are defined as being parallel to a
 vector field at all points.  While commonly used to follow the
 velocity flow or magnetic field lines, they can be defined to follow
 any three-dimensional vector field.  Once an initial condition and
@@ -21,7 +21,7 @@ can be converted into
 :class:`~yt.data_objects.construction_data_containers.YTStreamlineBase` objects,
 and queried for all the available fields along the streamline.
 
-The implementation of streamlining  in ``yt`` is described below.
+The implementation of streamlining  in yt is described below.
 
 #. Decompose the volume into a set of non-overlapping, fully domain
    tiling bricks, using the
@@ -111,5 +111,5 @@ splitting the streamlines up between the processors.  Upon completion,
 each processor has access to all of the streamlines through the use of
 a reduction operation.
 
-For more information on enabling parallelism in ``yt``, see 
+For more information on enabling parallelism in yt, see 
 :ref:`parallel-computation`.

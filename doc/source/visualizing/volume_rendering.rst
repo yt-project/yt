@@ -7,7 +7,7 @@ Volume rendering, as implemented in yt, is a mechanism by which rays are cast
 through a domain, converting field values to emission and absorption, and producing a final image.
 This provides the ability to create off-axis projections, isocontour images,
 volume emission, and absorption from intervening material.  The primary goal 
-of the volume rendering in ``yt`` is to provide the ability to make
+of the volume rendering in yt is to provide the ability to make
 *scientifically-informed* visualizations of simulations.  
 
 The volume renderer is implemented in a hybrid of Python and Cython, which is
@@ -83,13 +83,13 @@ Method
 ------
 
 Direct ray casting through a volume enables the generation of new types of
-visualizations and images describing a simulation.  ``yt`` has the facility
+visualizations and images describing a simulation.  yt has the facility
 to generate volume renderings by a direct ray casting method.  However, the
 ability to create volume renderings informed by analysis by other mechanisms --
 for instance, halo location, angular momentum, spectral energy distributions --
 is useful.
 
-The volume rendering in ``yt`` follows a relatively straightforward approach.
+The volume rendering in yt follows a relatively straightforward approach.
 
 #. Create a set of transfer functions governing the emission and absorption as
    a function of one or more variables. (:math:`f(v) \rightarrow (r,g,b,a)`)
@@ -145,7 +145,7 @@ one itself.  This can also be specified if you wish to save bricks between
 repeated calls, thus saving considerable amounts of time.
 
 The camera interface allows the user to move the camera about the domain, as
-well as providing interfaces for zooming in and out.  Furthermore, ``yt`` now
+well as providing interfaces for zooming in and out.  Furthermore, yt now
 includes a stereoscopic camera
 (:class:`~yt.visualization.volume_rendering.camera.StereoPairCamera`).
 
@@ -196,7 +196,7 @@ the underlying machinery.
    you're curious about how to construct your own, or why you get the values
    you do, you should read the source!
 
-There are three ready-to-go transfer functions implemented in ``yt``.
+There are three ready-to-go transfer functions implemented in yt.
 :class:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction`,
 :class:`~yt.visualization.volume_rendering.transfer_functions.ProjectionTransferFunction`,
 and

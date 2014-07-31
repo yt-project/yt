@@ -15,7 +15,7 @@ Cheat Sheet
 Here's a quick reference for how to update your code to work with yt-3.0.
 
 * We have reworked yt's import system so that most commonly-used yt functions
-  and classes live in the top-level ``yt`` namespace. That means you can now
+  and classes live in the top-level yt namespace. That means you can now
   import yt with ``import yt``, load a dataset with ``ds = yt.load``
   and create a plot with ``yt.SlicePlot``.  See :ref:`api-reference` for a full
   API listing.

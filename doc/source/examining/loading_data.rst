@@ -3,7 +3,7 @@
 Loading Data
 ============
 
-This section contains information on how to load data into ``yt``, as well as
+This section contains information on how to load data into yt, as well as
 some important caveats about different data formats.
 
 .. _loading-enzo-data:
@@ -833,7 +833,7 @@ See :ref:`loading-numpy-array` and
 
 Even if your data is not strictly related to fields commonly used in
 astrophysical codes or your code is not supported yet, you can still feed it to
-``yt`` to use its advanced visualization and analysis facilities. The only
+yt to use its advanced visualization and analysis facilities. The only
 requirement is that your data can be represented as one or more uniform, three
 dimensional numpy arrays. Assuming that you have your data in ``arr``,
 the following code:
@@ -846,7 +846,7 @@ the following code:
    bbox = np.array([[-1.5, 1.5], [-1.5, 1.5], [1.5, 1.5]])
    ds = yt.load_uniform_grid(data, arr.shape, 3.08e24, bbox=bbox, nprocs=12)
 
-will create ``yt``-native dataset ``ds`` that will treat your array as
+will create yt-native dataset ``ds`` that will treat your array as
 density field in cubic domain of 3 Mpc edge size (3 * 3.08e24 cm) and
 simultaneously divide the domain into 12 chunks, so that you can take advantage
 of the underlying parallelism. 
@@ -885,7 +885,7 @@ Generic AMR Data
 See :ref:`loading-numpy-array` and
 :meth:`~yt.frontends.sph.data_structures.load_amr_grids` for more detail.
 
-It is possible to create native ``yt`` dataset from Python's dictionary
+It is possible to create native yt dataset from Python's dictionary
 that describes set of rectangular patches of data of possibly varying
 resolution. 
 

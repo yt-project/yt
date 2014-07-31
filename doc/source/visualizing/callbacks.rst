@@ -6,7 +6,7 @@ Plot Modification Mechanisms
 Adding callbacks to plots
 -------------------------
 
-Because the plots in ``yt`` are considered to be "volatile" -- existing
+Because the plots in yt are considered to be "volatile" -- existing
 independent of the canvas on which they are plotted -- before they are saved,
 you can have a set of "callbacks" run that modify them before saving to disk.
 By adding a callback, you are telling the plot that whatever it does it itself,

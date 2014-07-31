@@ -63,7 +63,7 @@ where ``$YT_HG`` is the path to the root of the yt mercurial repository.
 
 If you want to specify a specific unit test to run (and not run the entire
 suite), you can do so by specifying the path of the test relative to the
-``$YT_HG/yt`` directory -- note that you strip off one ``yt`` more than you
+``$YT_HG/yt`` directory -- note that you strip off one yt more than you
 normally would!  For example, if you want to run the plot_window tests, you'd
 run:
 

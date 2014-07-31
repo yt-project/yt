@@ -210,7 +210,7 @@ Here's a more detailed flowchart of how to submit changes.
      test your changes.  (See :ref:`testing` for more information.)
   #. Fork yt on BitBucket.  (This step only has to be done once.)  You can do
      this at: https://bitbucket.org/yt_analysis/yt/fork .  Call this repository
-     ``yt``.
+     yt.
   #. Commit these changes, using ``hg commit``.  This can take an argument
      which is a series of filenames, if you have some changes you do not want
      to commit.
@@ -377,7 +377,7 @@ script.
 
 The root directory of the yt mercurial repository contains a number of
 subdirectories with different components of the code.  Most of the yt source
-code is contained in the ``yt`` subdirectory.  This directory its self contains
+code is contained in the yt subdirectory.  This directory its self contains
 the following subdirectories:
 
    ``frontends``

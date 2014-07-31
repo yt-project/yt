@@ -1,9 +1,9 @@
 .. _parallel-computation:
 
-Parallel Computation With ``yt``
-================================
+Parallel Computation With yt
+============================
 
-``yt`` has been instrumented with the ability to compute many -- most, even --
+yt has been instrumented with the ability to compute many -- most, even --
 quantities in parallel.  This utilizes the package 
 `mpi4py <http://code.google.com/p/mpi4py>`_ to parallelize using the Message
 Passing Interface, typically installed on clusters.  
@@ -13,7 +13,7 @@ Passing Interface, typically installed on clusters.
 Capabilities
 ------------
 
-Currently, ``yt`` is able to perform the following actions in parallel:
+Currently, yt is able to perform the following actions in parallel:
 
 * Projections (:ref:`projection-plots`)
 * Slices (:ref:`slice-plots`)
@@ -25,12 +25,12 @@ Currently, ``yt`` is able to perform the following actions in parallel:
 * Volume rendering (:ref:`volume_rendering`)
 * Isocontours & flux calculations (:ref:`extracting-isocontour-information`)
 
-This list covers just about every action ``yt`` can take!  Additionally, almost all
+This list covers just about every action yt can take!  Additionally, almost all
 scripts will benefit from parallelization with minimal modification.  The goal
-of Parallel-``yt`` has been to retain API compatibility and abstract all
+of Parallel-yt has been to retain API compatibility and abstract all
 parallelism.
 
-Setting Up Parallel ``yt``
+Setting Up Parallel yt
 --------------------------
 
 To run scripts in parallel, you must first install `mpi4py
@@ -43,7 +43,7 @@ mpi4py website, but you may have luck by just running:
     $ pip install mpi4py
 
 Once that has been installed, you're all done!  You just need to launch your
-scripts with ``mpirun`` (or equivalent) and signal to ``yt`` that you want to
+scripts with ``mpirun`` (or equivalent) and signal to yt that you want to
 run them in parallel by invoking the ``yt.enable_parallelism()`` function in
 your script.  In general, that's all it takes to get a speed benefit on a
 multi-core machine.  Here is an example on an 8-core desktop:
@@ -52,14 +52,14 @@ multi-core machine.  Here is an example on an 8-core desktop:
 
     $ mpirun -np 8 python script.py
 
-Throughout its normal operation, ``yt`` keeps you aware of what is happening with
+Throughout its normal operation, yt keeps you aware of what is happening with
 regular messages to the stderr usually prefaced with: 
 
 .. code-block:: bash
 
     yt : [INFO   ] YYY-MM-DD HH:MM:SS
 
-However, when operating in parallel mode, ``yt`` outputs information from each
+However, when operating in parallel mode, yt outputs information from each
 of your processors to this log mode, as in:
 
 .. code-block:: bash
@@ -73,10 +73,10 @@ It's important to note that all of the processes listed in :ref:`capabilities`
 work in parallel -- and no additional work is necessary to parallelize those
 processes.
 
-Running a ``yt`` Script in Parallel
------------------------------------
+Running a yt Script in Parallel
+-------------------------------
 
-Many basic ``yt`` operations will run in parallel if ``yt``'s parallelism is enabled at
+Many basic yt operations will run in parallel if yt's parallelism is enabled at
 startup.  For example, the following script finds the maximum density location
 in the simulation and then makes a plot of the projected density:
 
@@ -108,7 +108,7 @@ processes using the following Bash command:
 Creating Parallel and Serial Sections in a Script
 +++++++++++++++++++++++++++++++++++++++++++++++++
 
-Many ``yt`` operations will automatically run in parallel (see the next section for
+Many yt operations will automatically run in parallel (see the next section for
 a full enumeration), however some operations, particularly ones that print
 output or save data to the filesystem, will be run by all processors in a
 parallel script.  For example, in the script above the lines ``print v,c`` and
@@ -116,7 +116,7 @@ parallel script.  For example, in the script above the lines ``print v,c`` and
 output will contain 16 repetitions of the output of the print statement and the
 plot will be saved to disk 16 times (overwritten each time).
 
-``yt`` provides two convenience functions that make it easier to run most of a
+yt provides two convenience functions that make it easier to run most of a
 script in parallel but run some subset of the script on only one processor.  The
 first, :func:`~yt.funcs.is_root`, returns ``True`` if run on the 'root'
 processor (the processor with MPI rank 0) and ``False`` otherwise.  One could
@@ -161,8 +161,8 @@ how to use it:
 Types of Parallelism
 --------------------
 
-In order to divide up the work, ``yt`` will attempt to send different tasks to
-different processors.  However, to minimize inter-process communication, ``yt``
+In order to divide up the work, yt will attempt to send different tasks to
+different processors.  However, to minimize inter-process communication, yt
 will decompose the information in different ways based on the task.
 
 Spatial Decomposition
@@ -183,7 +183,7 @@ Grid Decomposition
 
 The alternative to spatial decomposition is a simple round-robin of data chunks,
 which could be grids, octs, or whatever chunking mechanism is used by the code
-frontend begin used.  This process allows ``yt`` to pool data access to a given
+frontend begin used.  This process allows yt to pool data access to a given
 data file, which ultimately results in faster read times and better parallelism.
 
 The following operations use chunk decomposition:
@@ -201,7 +201,7 @@ Parallelization over Multiple Objects and Datasets
 If you have a set of computational steps that need to apply identically and 
 independently to several different objects or datasets, a so-called 
 `embarrassingly parallel <http://en.wikipedia.org/wiki/Embarrassingly_parallel>`_
-task, ``yt`` can do that easily.  See the sections below on 
+task, yt can do that easily.  See the sections below on 
 :ref:`parallelizing-your-analysis` and :ref:`parallel-time-series-analysis`.
 
 Use of ``piter()``
@@ -251,7 +251,7 @@ and you can access the contents:
 Parallelizing over Multiple Objects
 -----------------------------------
 
-It is easy within ``yt`` to parallelize a list of tasks, as long as those tasks
+It is easy within yt to parallelize a list of tasks, as long as those tasks
 are independent of one another. Using object-based parallelism, the function
 :func:`~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_objects`
 will automatically split up a list of tasks over the specified number of
@@ -386,7 +386,7 @@ outputs.
 Parallel Performance, Resources, and Tuning
 -------------------------------------------
 
-Optimizing parallel jobs in ``yt`` is difficult; there are many parameters that
+Optimizing parallel jobs in yt is difficult; there are many parameters that
 affect how well and quickly the job runs.  In many cases, the only way to find
 out what the minimum (or optimal) number of processors is, or amount of memory
 needed, is through trial and error.  However, this section will attempt to
@@ -517,14 +517,14 @@ Additional Tips
   on each object, you may find that setting ``num_procs`` equal to the 
   number of processors per compute node can lead to significant speedups.
   By default, most mpi implementations will assign tasks to processors on a
-  'by-slot' basis, so this setting will tell ``yt`` to do computations on a single
+  'by-slot' basis, so this setting will tell yt to do computations on a single
   object using only the processors on a single compute node.  A nice application
   for this type of parallelism is calculating a list of derived quantities for 
   a large number of simulation outputs.
 
 * It is impossible to tune a parallel operation without understanding what's
   going on. Read the documentation, look at the underlying code, or talk to
-  other ``yt`` users. Get informed!
+  other yt users. Get informed!
     
 * Sometimes it is difficult to know if a job is cpu, memory, or disk
   intensive, especially if the parallel job utilizes several of the kinds of
@@ -553,7 +553,7 @@ Additional Tips
        print "BigStuff took %.5e sec, TinyStuff took %.5e sec" % (t1 - t0, t2 - t1)
   
 * Remember that if the script handles disk IO explicitly, and does not use
-  a built-in ``yt`` function to write data to disk,
+  a built-in yt function to write data to disk,
   care must be taken to
   avoid `race-conditions <http://en.wikipedia.org/wiki/Race_conditions>`_.
   Be explicit about which MPI task writes to disk using a construction

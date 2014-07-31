@@ -4,7 +4,7 @@ Halo Ellipsoid Analysis
 =======================
 .. sectionauthor:: Geoffrey So <gso@physics.ucsd.edu>
 
-.. warning:: This is my first attempt at modifying the ``yt`` source code,
+.. warning:: This is my first attempt at modifying the yt source code,
    so the program may be bug ridden.  Please send yt-dev an email and
    address to Geoffrey So if you discover something wrong with this
    portion of the code.
@@ -12,7 +12,7 @@ Halo Ellipsoid Analysis
 Purpose
 -------
 
-The purpose of creating this feature in ``yt`` is to analyze field
+The purpose of creating this feature in yt is to analyze field
 properties that surround dark matter haloes.  Originally, this was
 usually done with the sphere 3D container, but since many halo
 particles are linked together in a more elongated shape, I thought it
@@ -55,10 +55,10 @@ Halo Finding
 ~~~~~~~~~~~~
 .. code-block:: python
 
-  from yt.mods import *
+  import yt
   from yt.analysis_modules.halo_finding.api import *
 
-  ds=load('Enzo_64/RD0006/RedshiftOutput0006')
+  ds = yt.load('Enzo_64/RD0006/RedshiftOutput0006')
   halo_list = parallelHF(ds)
   halo_list.dump('MyHaloList')
 
@@ -66,10 +66,10 @@ Ellipsoid Parameters
 ~~~~~~~~~~~~~~~~~~~~
 .. code-block:: python
 
-  from yt.mods import *
+  import yt
   from yt.analysis_modules.halo_finding.api import *
 
-  ds=load('Enzo_64/RD0006/RedshiftOutput0006')
+  ds = yt.load('Enzo_64/RD0006/RedshiftOutput0006')
   haloes = LoadHaloes(ds, 'MyHaloList')
 
 Once the halo information is saved you can load it into the data
@@ -81,12 +81,12 @@ object "haloes", you can get loop over the list of haloes and do
 
 This will return 6 items
 
-  #. The center of mass as an array.
-  #. A as a float.  (Must have A>=B)
-  #. B as a float.  (Must have B>=C)
-  #. C as a float.  (Must have C > cell size)
-  #. e0 vector as an array.  (now normalized automatically in the code)
-  #. tilt as a float.
+#. The center of mass as an array.
+#. A as a float.  (Must have A>=B)
+#. B as a float.  (Must have B>=C)
+#. C as a float.  (Must have C > cell size)
+#. e0 vector as an array.  (now normalized automatically in the code)
+#. tilt as a float.
 
 The center of mass would be the same one as returned by the halo
 finder.  The A, B, C are the largest to smallest magnitude of the
@@ -155,12 +155,3 @@ cut.  Many things listed here will be amended when I have time.
   unigrid simulations, I can take "dens" from the example and divide
   it by the total number of cells to get the average density, in AMR
   one would need to do an volume weighted average instead.
-
-Thanks
-------
-
-Big thanks to the yt-user and yt-dev community that have been so
-supportive.  Special thanks to Stephen Skory for help in coding some
-functions that I'm not familiar with, Britton Smith's advice to shave
-off redundant data, Matt Turk for encouraging me to even start on
-this trek, and Dave Collins for getting ideas straight in my head.

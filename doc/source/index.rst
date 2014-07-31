@@ -7,11 +7,11 @@ but it can be applied to many different types of data including seismology,
 radio telescope data, weather simulations, and nuclear engineering simulations.
 yt is developed in Python under the open-source model. 
 
-We provide sample data for *many* of the different codes supported by ``yt``.
+We provide sample data for *many* of the different codes supported by yt.
 See :ref:`getting-sample-data` for more information, or just stop by our `data
 page <http://yt-project.org/data/>`_.
 
-If you're coming to ``yt`` 3.0 from previous versions of ``yt``, be sure to
+If you're coming to yt 3.0 from previous versions of yt, be sure to
 check out :ref:`yt3differences`.
 
 Table of Contents

@@ -4,11 +4,11 @@
 How to Make Plots
 =================
 
-In this section we explain how to use ``yt`` to create visualizations
-of simulation data, derived fields, and the data produced by ``yt``
+In this section we explain how to use yt to create visualizations
+of simulation data, derived fields, and the data produced by yt
 analysis objects.  For details about the data extraction and
 algorithms used to produce the image and analysis data, please see the
-``yt`` `method paper
+yt `method paper
 <http://adsabs.harvard.edu/abs/2011ApJS..192....9T>`_.  There are also
 many example scripts in :ref:`cookbook`.
 
@@ -22,7 +22,7 @@ which are described below.
 Visual Inspection
 -----------------
 
-If you need to take a quick look at a single simulation output, ``yt``
+If you need to take a quick look at a single simulation output, yt
 provides the ``PlotWindow`` interface for generating annotated 2D
 visualizations of simulation data.  You can create a ``PlotWindow`` plot by
 supplying a dataset, a list of fields to plot, and a plot center to
@@ -30,7 +30,7 @@ create a :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot`,
 :class:`~yt.visualization.plot_window.ProjectionPlot`, or
 :class:`~yt.visualization.plot_window.OffAxisProjectionPlot`.
 
-Plot objects use ``yt`` data objects to extract the maximum resolution
+Plot objects use yt data objects to extract the maximum resolution
 data available to render a 2D image of a field. Whenever a
 two-dimensional image is created, the plotting object first obtains
 the necessary data at the *highest resolution*.  Every time an image
@@ -205,7 +205,7 @@ of the image plane.
 Projection Plots
 ~~~~~~~~~~~~~~~~
 
-Using a fast adaptive projection, ``yt`` is able to quickly project
+Using a fast adaptive projection, yt is able to quickly project
 simulation data along the coordinate axes.
 
 Projection plots are created by instantiating a

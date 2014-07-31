@@ -3,7 +3,7 @@
 Creating Derived Fields
 =======================
 
-One of the more powerful means of extending ``yt`` is through the usage of derived
+One of the more powerful means of extending yt is through the usage of derived
 fields.  These are fields that describe a value at each cell in a simulation.
 
 Defining a New Field
@@ -31,7 +31,7 @@ the ``thermal_energy`` field.  ``thermal_energy`` is, in fact, another derived
 field!  We don't do any loops, we don't do any
 type-checking, we can simply multiply the three items together.
 
-Once we've defined our function, we need to notify ``yt`` that the field is
+Once we've defined our function, we need to notify yt that the field is
 available.  The :func:`add_field` function is the means of doing this; it has a
 number of fairly specific parameters that can be passed in, but here we'll only
 look at the most basic ones needed for a simple scalar baryon field.
@@ -41,7 +41,7 @@ look at the most basic ones needed for a simple scalar baryon field.
    yt.add_field("pressure", function=_pressure, units="dyne/cm**2")
 
 We feed it the name of the field, the name of the function, and the
-units.  Note that the units parameter is a "raw" string, in the format that ``yt`` uses
+units.  Note that the units parameter is a "raw" string, in the format that yt uses
 in its `symbolic units implementation <units>`_ (e.g., employing only unit names, numbers,
 and mathematical operators in the string, and using ``"**"`` for exponentiation). We suggest
 that you name the function that creates a derived field with the intended field name prefixed
@@ -85,7 +85,7 @@ But what if we want to do something a bit more fancy?  Here's an example of gett
 parameters from the data object and using those to define the field;
 specifically, here we obtain the ``center`` and ``bulk_velocity`` parameters
 and use those to define a field for radial velocity (there is already a ``"radial_velocity"``
-field in ``yt``, but we create this one here just as a transparent and simple example).
+field in yt, but we create this one here just as a transparent and simple example).
 
 .. code-block:: python
 
@@ -180,7 +180,7 @@ There are a number of options available, but the only mandatory ones are ``name`
 Units for Cosmological Datasets
 -------------------------------
 
-``yt`` has additional capabilities to handle the comoving coordinate system used
+yt has additional capabilities to handle the comoving coordinate system used
 internally in cosmological simulations. Simulations that use comoving
 coordinates, all length units have three other counterparts correspoding to
 comoving units, scaled comoving units, and scaled proper units. In all cases

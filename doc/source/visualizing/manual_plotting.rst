@@ -8,7 +8,7 @@ Sometimes you need a lot of flexibility in creating plots. While the
 use object that can create nice looking, publication quality plots with a
 minimum of effort, there are often times when its ease of use conflicts with
 your need to change the font only on the x-axis, or whatever your
-need/desire/annoying coauthor requires. To that end, ``yt`` provides a number of
+need/desire/annoying coauthor requires. To that end, yt provides a number of
 ways of getting the raw data that goes into a plot to you in the form of a one
 or two dimensional dataset that you can plot using any plotting method you like.
 matplotlib or another python library are easiest, but these methods allow you to
@@ -23,7 +23,7 @@ list of plots you've made in ``ds.plots``.
 Slice, Projections, and other Images: The Fixed Resolution Buffer
 -----------------------------------------------------------------
 
-For slices and projects, ``yt`` provides a manual plotting interface based on
+For slices and projects, yt provides a manual plotting interface based on
 the :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer` (hereafter
 referred to as FRB) object. Despite its somewhat unwieldy name, at its heart, an
 FRB is a very simple object: it's essentially a window into your data: you give
@@ -60,7 +60,7 @@ their own zlimit. This is quite useful for creating a mosaic of the same region
 in space with Density, Temperature, and x-velocity, for example. Each of these
 quantities requires a substantially different set of limits.
 
-A more complex example, showing a few ``yt`` helper functions that can make
+A more complex example, showing a few yt helper functions that can make
 setting up multiple axes with colorbars easier than it would be using only
 matplotlib can be found in the :ref:`advanced-multi-panel` cookbook recipe.
 
@@ -69,7 +69,7 @@ matplotlib can be found in the :ref:`advanced-multi-panel` cookbook recipe.
 Line Plots
 ----------
 
-This is perhaps the simplest thing to do. ``yt`` provides a number of one
+This is perhaps the simplest thing to do. yt provides a number of one
 dimensional objects, and these return a 1-D numpy array of their contents with
 direct dictionary access. As a simple example, take a
 :class:`~yt.data_objects.selection_data_containers.YTOrthoRayBase` object, which can be

@@ -3,7 +3,7 @@
 Generating Processed Data
 =========================
 
-Although ``yt`` provides a number of built-in visualization methods that can
+Although yt provides a number of built-in visualization methods that can
 process data and construct from that plots, it is often useful to generate the
 data by hand and construct plots which can then be combined with other plots,
 modified in some way, or even (gasp) created and modified in some other tool or
@@ -24,14 +24,14 @@ every point that constitutes the object.
 This presents something of a challenge for visualization, as it will require
 the transformation of a variable mesh of points consisting of positions and
 sizes into a fixed-size array that appears like an image.  This process is that
-of pixelization, which ``yt`` handles transparently internally.  You can access
+of pixelization, which yt handles transparently internally.  You can access
 this functionality by constructing a
 :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer` (or 
 :class:`~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`) and
 supplying to it your :class:`~yt.data_objects.data_containers.YTSelectionContainer2D`
 object, as well as some information about how you want the final image to look.
 You can specify both the bounds of the image (in the appropriate x-y plane) and
-the resolution of the output image.  You can then have ``yt`` pixelize any
+the resolution of the output image.  You can then have yt pixelize any
 field you like.
 
 To create :class:`~yt.data_objects.data_containers.YTSelectionContainer2D` objects, you can

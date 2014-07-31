@@ -4,7 +4,7 @@
 Field List
 ==========
 
-This is a list of all fields available in ``yt``.  It has been organized by the
+This is a list of all fields available in yt.  It has been organized by the
 type of code that each field is supported by.  "Universal" fields are available
 everywhere, "Enzo" fields in Enzo datasets, "Orion" fields in Orion datasets,
 and so on.

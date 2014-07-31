@@ -3,7 +3,7 @@
 What to do if you run into problems
 ===================================
 
-If you run into problems with ``yt``, there are a number of steps to follow
+If you run into problems with yt, there are a number of steps to follow
 to come to a solution.  The first handful of options are things you can do 
 on your own, but if those don't yield results, we have provided a number of 
 ways to connect with our community of users and developers to solve the 
@@ -204,12 +204,12 @@ If you are having installation issues and nothing from the
 *definitely* email the ``yt-users`` email list.  You should provide information 
 about the host, the version of the code you are using, and the output of 
 ``yt_install.log`` from your installation.  We are very interested in making 
-sure that ``yt`` installs everywhere!
+sure that yt installs everywhere!
 
 Customization and Scripting Issues
 ----------------------------------
 
-If you have customized ``yt`` in some way, or created your own plugins file (as
+If you have customized yt in some way, or created your own plugins file (as
 described in :ref:`plugin-file`) then it may be necessary to supply both your
 patches to the source, the plugin file, and perhaps even the datafile on which
 you're running.
