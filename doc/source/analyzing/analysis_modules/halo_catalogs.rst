@@ -9,8 +9,8 @@ Creating Halo Catalogs
 In yt 3.0, operations relating to the analysis of halos (halo finding,
 merger tree creation, and individual halo analysis) are all brought 
 together into a single framework. This framework is substantially
-different from the limited framework included in yt-2.x and is only 
-backwards compatible in that output from old halo finders may be loaded.
+different from the halo analysis machinery available in yt-2.x and is 
+entirely backward incompatible.  
 For a direct translation of various halo analysis tasks using yt-2.x
 to yt-3.0 please see :ref:`halo-transition`.
 
