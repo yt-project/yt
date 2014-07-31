@@ -666,15 +666,21 @@ See also :ref:`callbacks`.
    ~yt.visualization.plot_modifications.ContourCallback
    ~yt.visualization.plot_modifications.CuttingQuiverCallback
    ~yt.visualization.plot_modifications.GridBoundaryCallback
+   ~yt.visualization.plot_modifications.HaloCatalogCallback
+   ~yt.visualization.plot_modifications.ImageLineCallback
    ~yt.visualization.plot_modifications.LabelCallback
    ~yt.visualization.plot_modifications.LinePlotCallback
+   ~yt.visualization.plot_modifications.MagFieldCallback
    ~yt.visualization.plot_modifications.MarkerAnnotateCallback
    ~yt.visualization.plot_modifications.ParticleCallback
    ~yt.visualization.plot_modifications.PointAnnotateCallback
    ~yt.visualization.plot_modifications.QuiverCallback
    ~yt.visualization.plot_modifications.SphereCallback
+   ~yt.visualization.plot_modifications.StreamlineCallback
    ~yt.visualization.plot_modifications.TextLabelCallback
+   ~yt.visualization.plot_modifications.TimestampCallback
    ~yt.visualization.plot_modifications.TitleCallback
+   ~yt.visualization.plot_modifications.TriangleFacetsCallback
    ~yt.visualization.plot_modifications.VelocityCallback
 
 Function List
@@ -685,6 +691,7 @@ Function List
    :toctree: generated/
 
    ~yt.convenience.load
+   ~yt.data_objects.static_output.Dataset.all_data
    ~yt.funcs.deprecate
    ~yt.funcs.ensure_list
    ~yt.funcs.get_pbar

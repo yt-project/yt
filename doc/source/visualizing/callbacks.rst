@@ -16,7 +16,7 @@ Callbacks can be applied to plots created with
 :class:`~yt.visualization.plot_window.SlicePlot`,
 :class:`~yt.visualization.plot_window.ProjectionPlot`,
 :class:`~yt.visualization.plot_window.OffAxisSlicePlot`, or
-:class:`~yt.visualization.plot_windiw.OffAxisProjectionPlot` by calling
+:class:`~yt.visualization.plot_window.OffAxisProjectionPlot` by calling
 one of the ``annotate_`` methods that hang off of the plot object.
 The ``annotate_`` methods are dynamically generated based on the list
 of available callbacks.  For example:
@@ -26,9 +26,9 @@ of available callbacks.  For example:
    slc = SlicePlot(ds,0,'density')
    slc.annotate_title('This is a Density plot')
 
-would add the :func:`title` callback to the plot object.  All of the
-callbacks listed below are available via similar ``annotate_``
-functions.
+would add the :func:`~yt.visualization.plot_modifications.TitleCallback` to 
+the plot object.  All of the callbacks listed below are available via 
+similar ``annotate_`` functions.
 
 Available Callbacks
 -------------------

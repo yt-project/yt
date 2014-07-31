@@ -183,7 +183,7 @@ through simulation domains at an arbitrary oblique angle.  A
 instantiated by specifying a dataset, the normal to the cutting
 plane, and the name of the fields to plot.  Just like an
 :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot`, an
-``OffAxisSlicePlot`` can be created via the
+:class:`~yt.visualization.plot_window.OffAxisSlicePlot` can be created via the
 :class:`~yt.visualization.plot_window.SlicePlot` function. For example:
 
 .. python-script::
@@ -197,7 +197,7 @@ plane, and the name of the fields to plot.  Just like an
    cut.save()
 
 In this case, a normal vector for the cutting plane is supplied in the second
-argument. Optionally, a `north_vector` can be specified to fix the orientation
+argument. Optionally, a ``north_vector`` can be specified to fix the orientation
 of the image plane.
 
 .. _projection-plots:
@@ -295,7 +295,7 @@ creating the final image buffer.
 .. _off-axis-projection-function:
 
 To avoid manually creating a camera and setting the transfer
-function, yt provides the :func:`~yt.visualization.volume_rendering.camera.off-axis-projection`
+function, yt provides the :meth:`~yt.visualization.volume_rendering.camera.off_axis_projection`
 function, which wraps the camera interface to create an off axis
 projection image buffer.  These images can be saved to disk or
 used in custom plots.  This snippet creates an off axis
@@ -589,7 +589,7 @@ to be profiled.
    plot = yt.ProfilePlot(my_galaxy, "density", ["temperature"])
    plot.save()
 
-This will create a :class:`yt.data_objects.selection_data_containers.YTDiskBase`
+This will create a :class:`~yt.data_objects.selection_data_containers.YTDiskBase`
 centered at [0.5, 0.5, 0.5], with a normal vector of [0.0, 0.0, 1.0], radius of
 10 kiloparsecs and height of 3 kiloparsecs and will then make a plot of the
 mass-weighted average temperature as a function of density for all of the gas
@@ -654,7 +654,7 @@ Overplotting Multiple 1D Profiles
 
 It is often desirable to overplot multiple 1D profile to show evolution 
 with time.  This is supported with the ``from_profiles`` class method.  
-1D profiles are created with the :func:`yt.data_objects.profiles.create_profile` 
+1D profiles are created with the :meth:`~yt.data_objects.profiles.create_profile` 
 method and then given to the ProfilePlot object.
 
 .. python-script::
@@ -696,7 +696,8 @@ By default the x and y limits for ``ProfilePlot`` are determined using the
 want to create a plot with custom axis limits, you have two options.
 
 First, you can create a custom profile object using
-:func:`~yt.data_objects.profiles.create_profile`.  This function accepts a dictionary of ``(max, min)`` tuples keyed to field names.
+:meth:`~yt.data_objects.profiles.create_profile`.  
+This function accepts a dictionary of ``(max, min)`` tuples keyed to field names.
 
 .. python-script::
 
@@ -712,14 +713,14 @@ First, you can create a custom profile object using
     plot.save()
 
 You can also make use of the
-:meth:`yt.visualization.profile_plotter.ProfilePlot.set_xlim` and
-:meth:`yt.visualization.profile_plotter.ProfilePlot.set_ylim` functions to
+:meth:`~yt.visualization.profile_plotter.ProfilePlot.set_xlim` and
+:meth:`~yt.visualization.profile_plotter.ProfilePlot.set_ylim` functions to
 customize the axes limits of a plot that has already been created.  Note that
 calling ``set_xlim`` is much slower than calling ``set_ylim``.  This is because
-```set_xlim`` must recreate the profile object using the specified extrema.
-Creating a profile directly via ``create_profile`` might be significant faster.
-If you find that this operation is slow, consider creating your profile via
-``create_profile``.  Note that since there is only one bin field, ``set_xlim``
+``set_xlim`` must recreate the profile object using the specified extrema.
+Creating a profile directly via :meth:`~yt.data_objects.profiles.create_profile` 
+might be significantly faster.
+Note that since there is only one bin field, ``set_xlim``
 does not accept a field name as the first argument.
 
 .. python-script::
@@ -783,8 +784,8 @@ Altering Line Properties
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 Line properties for any and all of the profiles can be changed with the 
-``set_line_property`` function.  The two arguments given are the line 
-property and desired value.
+:meth:`~yt.visualization.profile_plotter.set_line_property` function.  
+The two arguments given are the line property and desired value.
 
 .. code-block:: python
 
@@ -837,7 +838,8 @@ something like:
 Customizing Phase Plots
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Similarly to 1D profile plots, ``PhasePlot`` can be customized via ``set_unit``,
+Similarly to 1D profile plots, :class:`~yt.visualization.profile_plotter.PhasePlot` 
+can be customized via ``set_unit``,
 ``set_xlim``, ``set_ylim``, and ``set_zlim``.  The following example illustrates
 how to manipulate these functions.
 
@@ -858,7 +860,8 @@ how to manipulate these functions.
    plot.save()
 
 It is also possible to construct a custom 2D profile object and then use the
-``from_profile`` method to create a ``PhasePlot`` using the profile object.
+:meth:`~yt.visualization.profile_plotter.PhasePlot.from_profile` function to 
+create a ``PhasePlot`` using the profile object.
 This will sometimes be faster, especially if you need custom x and y axes
 limits.  The following example illustrates this workflow:
 
@@ -902,7 +905,7 @@ Interactive Plotting
 
 The best way to interactively plot data is through the IPython notebook.  Many
 detailed tutorials on using the IPython notebook can be found at
-http://ipython.org/presentation.html , but the simplest way to use it is to
+`http://ipython.org/presentation.html`_ , but the simplest way to use it is to
 type:
 
 .. code-block:: bash

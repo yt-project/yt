@@ -133,7 +133,7 @@ for the grid cell to be incorporated.
 """"""""""
 
 **All Data** 
-    | Class :func:`~yt.data_objects.static_output.Dataset.all_data`
+    | Function :meth:`~yt.data_objects.static_output.Dataset.all_data`
     | Usage: ``all_data(find_max=False)``
     | ``all_data()`` is a wrapper on the Box Region class which defaults to 
       creating a Region covering the entire dataset domain.  It is effectively 
@@ -344,8 +344,8 @@ exactly aligned with the mesh.  This is a
 holdover from the time when yt was used exclusively for data that came in
 regularly structured grid patches, and does not necessarily work as well for
 data that is composed of discrete objects like particles.  To augment this, the
-:class:`~yt.data_objects.data_containers.YTArbitraryGridBase` object was
-created, which enables construction of meshes (onto which particles can be
+:class:`~yt.data_objects.construction_data_containers.YTArbitraryGridBase` object 
+was created, which enables construction of meshes (onto which particles can be
 deposited or smoothed) in arbitrary regions.  This eliminates any assumptions
 on yt's part about how the data is organized, and will allow for more
 fine-grained control over visualizations.

@@ -157,7 +157,8 @@ Overplot Halo Annotations
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.HaloCatalogCallback`.)
 
-   Accepts a :class:`yt.HaloCatalog` and plots a circle at the location of each
+   Accepts a :class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog` 
+   and plots a circle at the location of each
    halo with the radius of the circle corresponding to the virial radius of the
    halo.  If ``width`` is set to None (default) all halos are plotted.
    Otherwise, only halos that fall within a slab with width ``width`` centered

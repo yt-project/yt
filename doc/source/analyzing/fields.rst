@@ -1,3 +1,5 @@
+.. _fields:
+
 Fields in yt
 ============
 
