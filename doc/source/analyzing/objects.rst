@@ -133,7 +133,7 @@ for the grid cell to be incorporated.
 """"""""""
 
 **All Data** 
-    | Function :meth:`~yt.data_objects.static_output.Dataset.all_data`
+    | Function :func:`~yt.data_objects.static_output.Dataset.all_data`
     | Usage: ``all_data(find_max=False)``
     | ``all_data()`` is a wrapper on the Box Region class which defaults to 
       creating a Region covering the entire dataset domain.  It is effectively 
@@ -415,7 +415,7 @@ of the intervals of values found, and extracted regions that contain only those
 cells that are connected.
 
 To use this, call
-:meth:`~yt.data_objects.data_containers.YTSelectionContainer3D.extract_connected_sets` on
+:func:`~yt.data_objects.data_containers.YTSelectionContainer3D.extract_connected_sets` on
 any 3D data object.  This requests a field, the number of levels of levels sets to
 extract, the min and the max value between which sets will be identified, and
 whether or not to conduct it in log space.
@@ -460,7 +460,7 @@ difficult; the object, when reloaded, must be able to reconstruct a dataset
 from whatever limited information it has in the save file.
 
 You can save objects to an output file using the function 
-:meth:`~yt.data_objects.index.save_object`: 
+:func:`~yt.data_objects.index.save_object`: 
 
 .. code-block:: python
 

@@ -44,7 +44,8 @@ pattern to the ``yt.load`` function.
 This will create a new time series, populated with all datasets that match the
 pattern "DD" followed by four digits.  This object, here called ``ts``, can now
 be analyzed in bulk.  Alternately, you can specify an already formatted list of
-filenames directly to the `DatasetSeries` initializer:
+filenames directly to the :class:`~yt.data_objects.time_series.DatasetSeries` 
+initializer:
 
 .. code-block:: python
 
@@ -66,7 +67,7 @@ is returned for iteration:
        print ds.current_time
 
 This can also operate in parallel, using
-:meth:`~yt.data_objects.time_series.DatasetSeries.piter`.  For more examples,
+:func:`~yt.data_objects.time_series.DatasetSeries.piter`.  For more examples,
 see:
 
  * :ref:`parallel-time-series-analysis`
@@ -78,13 +79,14 @@ see:
 Analyzing an Entire Simulation
 ------------------------------
 
+.. note:: Currently only implemented for Enzo.  Other simulation types coming 
+   soon.  Until then, rely on the above prescription for creating 
+   ``DatasetSeries`` objects.
+
 The parameter file used to run a simulation contains all the information 
 necessary to know what datasets should be available.  The ``simulation`` 
 convenience function allows one to create a ``DatasetSeries`` object of all 
 or a subset of all data created by a single simulation.
-
-.. note:: Currently only implemented for Enzo.  Other simulation types coming 
-   soon.
 
 To instantiate, give the parameter file and the simulation type.
 
@@ -94,9 +96,10 @@ To instantiate, give the parameter file and the simulation type.
   my_sim = yt.simulation('enzo_tiny_cosmology/32Mpc_32.enzo', 'Enzo',
                          find_outputs=False)
 
-Then, create a ``DatasetSeries`` object with the :meth:`get_time_series` 
+Then, create a ``DatasetSeries`` object with the 
+:func:`frontends.enzo.simulation_handling.EnzoSimulation.get_time_series` 
 function.  With no additional keywords, the time series will include every 
-dataset.  If the **find_outputs** keyword is set to True, a search of the 
+dataset.  If the ``find_outputs`` keyword is set to ``True``, a search of the 
 simulation directory will be performed looking for potential datasets.  These 
 datasets will be temporarily loaded in order to figure out the time and 
 redshift associated with them.  This can be used when simulation data was 
@@ -115,56 +118,57 @@ After this, time series analysis can be done normally.
       all_data = ds.all_data()
       print all_data.quantities.extrema('density')
  
-Additional keywords can be given to :meth:`get_time_series` to select a subset
-of the total data:
+Additional keywords can be given to 
+:func:`frontends.enzo.simulation_handling.EnzoSimulation.get_time_series` 
+to select a subset of the total data:
 
- * **time_data** (*bool*): Whether or not to include time outputs when 
-   gathering datasets for time series.  Default: True.
+* ``time_data`` (*bool*): Whether or not to include time outputs when 
+  gathering datasets for time series.  Default: True.
 
- * **redshift_data** (*bool*): Whether or not to include redshift outputs 
-   when gathering datasets for time series.  Default: True.
+* ``redshift_data`` (*bool*): Whether or not to include redshift outputs 
+  when gathering datasets for time series.  Default: True.
 
- * **initial_time** (*float*): The earliest time for outputs to be included.  
-   If None, the initial time of the simulation is used.  This can be used in 
-   combination with either final_time or final_redshift.  Default: None.
+* ``initial_time`` (*float*): The earliest time for outputs to be included.  
+  If None, the initial time of the simulation is used.  This can be used in 
+  combination with either ``final_time`` or ``final_redshift``.  Default: None.
 
- * **final_time** (*float*): The latest time for outputs to be included.  If 
-   None, the final time of the simulation is used.  This can be used in 
-   combination with either initial_time or initial_redshift.  Default: None.
+* ``final_time`` (*float*): The latest time for outputs to be included.  If 
+  None, the final time of the simulation is used.  This can be used in 
+  combination with either ``initial_time`` or ``initial_redshift``.  Default: None.
 
- * **times** (*list*): A list of times for which outputs will be found.
-   Default: None.
+* ``times`` (*list*): A list of times for which outputs will be found.
+  Default: None.
 
- * **time_units** (*str*): The time units used for requesting outputs by time.
-   Default: '1' (code units).
+* ``time_units`` (*str*): The time units used for requesting outputs by time.
+  Default: '1' (code units).
 
- * **initial_redshift** (*float*): The earliest redshift for outputs to be 
-   included.  If None, the initial redshift of the simulation is used.  This
-   can be used in combination with either final_time or final_redshift.
-   Default: None.
+* ``initial_redshift`` (*float*): The earliest redshift for outputs to be 
+  included.  If None, the initial redshift of the simulation is used.  This
+  can be used in combination with either ``final_time`` or ``final_redshift``.
+  Default: None.
 
- * **final_time** (*float*): The latest redshift for outputs to be included.  
-   If None, the final redshift of the simulation is used.  This can be used 
-   in combination with either initial_time or initial_redshift.  
-   Default: None.
+* ``final_time`` (*float*): The latest redshift for outputs to be included.  
+  If None, the final redshift of the simulation is used.  This can be used 
+  in combination with either ``initial_time`` or ``initial_redshift``.  
+  Default: None.
 
- * **redshifts** (*list*): A list of redshifts for which outputs will be found.
-   Default: None.
+* ``redshifts`` (*list*): A list of redshifts for which outputs will be found.
+  Default: None.
 
- * **initial_cycle** (*float*): The earliest cycle for outputs to be 
-   included.  If None, the initial cycle of the simulation is used.  This can
-   only be used with final_cycle.  Default: None.
+* ``initial_cycle`` (*float*): The earliest cycle for outputs to be 
+  included.  If None, the initial cycle of the simulation is used.  This can
+  only be used with final_cycle.  Default: None.
 
- * **final_cycle** (*float*): The latest cycle for outputs to be included.  
-   If None, the final cycle of the simulation is used.  This can only be used 
-   in combination with initial_cycle.  Default: None.
+* ``final_cycle`` (*float*): The latest cycle for outputs to be included.  
+  If None, the final cycle of the simulation is used.  This can only be used 
+  in combination with initial_cycle.  Default: None.
 
- * **tolerance** (*float*):  Used in combination with "times" or "redshifts" 
-   keywords, this is the tolerance within which outputs are accepted given 
-   the requested times or redshifts.  If None, the nearest output is always 
-   taken.  Default: None.
+* ``tolerance`` (*float*):  Used in combination with ``times`` or ``redshifts`` 
+  keywords, this is the tolerance within which outputs are accepted given 
+  the requested times or redshifts.  If None, the nearest output is always 
+  taken.  Default: None.
 
- * **parallel** (*bool*/*int*): If True, the generated DatasetSeries will 
-   divide the work such that a single processor works on each dataset.  If an
-   integer is supplied, the work will be divided into that number of jobs.
-   Default: True.
+* ``parallel`` (*bool*/*int*): If True, the generated ``DatasetSeries`` will 
+  divide the work such that a single processor works on each dataset.  If an
+  integer is supplied, the work will be divided into that number of jobs.
+  Default: True.
