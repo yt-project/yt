@@ -32,12 +32,16 @@ See :ref:`how-to-make-2d-profiles` for more information.
 
 .. yt_cookbook:: global_phase_plots.py
 
+.. _cookbook-radial-velocity:
+
 Radial Velocity Profile
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 This recipe demonstrates how to subtract off a bulk velocity on a sphere before
 calculating the radial velocity within that sphere.
-See :ref:`how-to-make-1d-profiles` for more information.
+See :ref:`how-to-make-1d-profiles` for more information on creating profiles and 
+:ref:`field_parameters` for an explanation of how the bulk velocity is provided 
+to the radial velocity field function.
 
 .. yt_cookbook:: rad_velocity.py 
 
