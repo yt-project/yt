@@ -11,7 +11,6 @@ from simulation data.
    light_ray_generator
    planning_cosmology_simulations
    absorption_spectrum
-   quick_start_fitting
    fitting_procedure
    star_analysis
    xray_emission_fields
