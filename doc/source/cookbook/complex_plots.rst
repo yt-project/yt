@@ -169,7 +169,7 @@ Customized Profile Plot
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 This recipe demonstrates how to create a fully customized 1D profile object
-using the :meth:`~yt.data_objects.profiles.create_profile` function and then
+using the :func:`~yt.data_objects.profiles.create_profile` function and then
 create a :class:`~yt.visualization.profile_plotter.ProfilePlot` using the
 customized profile.  This illustrates how a ``ProfilePlot`` created this way
 inherits the properties of the profile it is constructed from.
@@ -181,7 +181,7 @@ Customized Phase Plot
 ~~~~~~~~~~~~~~~~~~~~~
 
 Similar to the recipe above, this demonstrates how to create a fully customized
-2D profile object using the :meth:`~yt.data_objects.profiles.create_profile`
+2D profile object using the :func:`~yt.data_objects.profiles.create_profile`
 function and then create a :class:`~yt.visualization.profile_plotter.PhasePlot`
 using the customized profile object.  This illustrates how a ``PhasePlot``
 created this way inherits the properties of the profile object from which it 

@@ -654,7 +654,7 @@ Overplotting Multiple 1D Profiles
 
 It is often desirable to overplot multiple 1D profile to show evolution 
 with time.  This is supported with the ``from_profiles`` class method.  
-1D profiles are created with the :meth:`~yt.data_objects.profiles.create_profile` 
+1D profiles are created with the :func:`~yt.data_objects.profiles.create_profile` 
 method and then given to the ProfilePlot object.
 
 .. python-script::
@@ -696,7 +696,7 @@ By default the x and y limits for ``ProfilePlot`` are determined using the
 want to create a plot with custom axis limits, you have two options.
 
 First, you can create a custom profile object using
-:meth:`~yt.data_objects.profiles.create_profile`.  
+:func:`~yt.data_objects.profiles.create_profile`.  
 This function accepts a dictionary of ``(max, min)`` tuples keyed to field names.
 
 .. python-script::
@@ -713,12 +713,12 @@ This function accepts a dictionary of ``(max, min)`` tuples keyed to field names
     plot.save()
 
 You can also make use of the
-:meth:`~yt.visualization.profile_plotter.ProfilePlot.set_xlim` and
-:meth:`~yt.visualization.profile_plotter.ProfilePlot.set_ylim` functions to
+:func:`~yt.visualization.profile_plotter.ProfilePlot.set_xlim` and
+:func:`~yt.visualization.profile_plotter.ProfilePlot.set_ylim` functions to
 customize the axes limits of a plot that has already been created.  Note that
 calling ``set_xlim`` is much slower than calling ``set_ylim``.  This is because
 ``set_xlim`` must recreate the profile object using the specified extrema.
-Creating a profile directly via :meth:`~yt.data_objects.profiles.create_profile` 
+Creating a profile directly via :func:`~yt.data_objects.profiles.create_profile` 
 might be significantly faster.
 Note that since there is only one bin field, ``set_xlim``
 does not accept a field name as the first argument.
@@ -739,7 +739,7 @@ Customizing Units
 ~~~~~~~~~~~~~~~~~
 
 Units for both the x and y axis can be controlled via the
-:meth:`~yt.visualization.profile_plotter.ProfilePlot.set_unit` method.
+:func:`~yt.visualization.profile_plotter.ProfilePlot.set_unit` method.
 Adjusting the plot units does not require recreating the histogram, so adjusting
 units will always be inexpensive, requiring only an in-place unit conversion.
 
@@ -761,7 +761,7 @@ Linear and Logarithmic Scaling
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The axis scaling can be manipulated via the
-:meth:`~yt.visualization.profile_plotter.ProfilePlot.set_log` function.  This
+:func:`~yt.visualization.profile_plotter.ProfilePlot.set_log` function.  This
 function accepts a field name and a boolean.  If the boolean is ``True``, the
 field is plotted in log scale.  If ``False``, the field is plotted in linear
 scale.
@@ -784,7 +784,7 @@ Altering Line Properties
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 Line properties for any and all of the profiles can be changed with the 
-:meth:`~yt.visualization.profile_plotter.set_line_property` function.  
+:func:`~yt.visualization.profile_plotter.set_line_property` function.  
 The two arguments given are the line property and desired value.
 
 .. code-block:: python
@@ -860,7 +860,7 @@ how to manipulate these functions.
    plot.save()
 
 It is also possible to construct a custom 2D profile object and then use the
-:meth:`~yt.visualization.profile_plotter.PhasePlot.from_profile` function to 
+:func:`~yt.visualization.profile_plotter.PhasePlot.from_profile` function to 
 create a ``PhasePlot`` using the profile object.
 This will sometimes be faster, especially if you need custom x and y axes
 limits.  The following example illustrates this workflow:

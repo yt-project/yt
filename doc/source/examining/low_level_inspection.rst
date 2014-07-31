@@ -32,29 +32,29 @@ either data or index information.
 The :class:`~yt.data_objects.grid_patch.AMRGridPatch` object itself provides
 the following attributes:
 
- * ``Children``: a list of grids contained within this one, of one higher level
-   of refinement
- * ``Parent``: a single object or a list of objects this grid is contained
-   within, one level of refinement coarser
- * ``child_mask``: a mask of 0's and 1's, representing where no finer data is
-   available in refined grids (1) or where this grid is covered by finer regions
-   (0).  Note that to get back the final data contained within a grid, one can
-   multiple a field by this attribute.
- * ``child_indices``: a mask of booleans, where False indicates no finer data
-   is available.  This is essentially the inverse of ``child_mask``.
- * ``child_index_mask``: a mask of indices into the ``ds.index.grids`` array of the
-   child grids.
- * ``LeftEdge``: the left edge, in native code coordinates, of this grid
- * ``RightEdge``: the right edge, in native code coordinates, of this grid
- * ``dds``: the width of a cell in this grid
- * ``id``: the id (not necessarily the index) of this grid.  Defined such that
-   subtracting the property ``_id_offset`` gives the index into ``ds.index.grids``.
- * ``NumberOfParticles``: the number of particles in this grid
- * ``OverlappingSiblings``: a list of sibling grids that this grid overlaps
-   with.  Likely only defined for Octree-based codes.
+* ``Children``: a list of grids contained within this one, of one higher level
+  of refinement
+* ``Parent``: a single object or a list of objects this grid is contained
+  within, one level of refinement coarser
+* ``child_mask``: a mask of 0's and 1's, representing where no finer data is
+  available in refined grids (1) or where this grid is covered by finer regions
+  (0).  Note that to get back the final data contained within a grid, one can
+  multiple a field by this attribute.
+* ``child_indices``: a mask of booleans, where False indicates no finer data
+  is available.  This is essentially the inverse of ``child_mask``.
+* ``child_index_mask``: a mask of indices into the ``ds.index.grids`` array of the
+  child grids.
+* ``LeftEdge``: the left edge, in native code coordinates, of this grid
+* ``RightEdge``: the right edge, in native code coordinates, of this grid
+* ``dds``: the width of a cell in this grid
+* ``id``: the id (not necessarily the index) of this grid.  Defined such that
+  subtracting the property ``_id_offset`` gives the index into ``ds.index.grids``.
+* ``NumberOfParticles``: the number of particles in this grid
+* ``OverlappingSiblings``: a list of sibling grids that this grid overlaps
+  with.  Likely only defined for Octree-based codes.
 
 In addition, the method
-:meth:`~yt.data_objects.grid_patch.AMRGridPatch.get_global_startindex` can be
+:func:`~yt.data_objects.grid_patch.AMRGridPatch.get_global_startindex` can be
 used to get the integer coordinates of the upper left edge.  These integer
 coordinates are defined with respect to the current level; this means that they
 are the offset of the left edge, with respect to the left edge of the domain,
@@ -107,12 +107,12 @@ One of the most common questions asked of data is, what is the value *at this
 specific point*.  While there are several ways to find out the answer to this
 question, a few helper routines are provided as well.  To identify the
 finest-resolution (i.e., most canonical) data at a given point, use
-:meth:`~yt.data_objects.index.AMRHierarchy.find_field_value_at_point`.
+:func:`~yt.data_objects.index.AMRHierarchy.find_field_value_at_point`.
 This accepts a position (in coordinates of the domain) and returns the field
 values for one or multiple fields.
 
 To identify all the grids that intersect a given point, the function 
-:meth:`~yt.data_objects.index.AMRHierarchy.find_point` will return indices
+:func:`~yt.data_objects.index.AMRHierarchy.find_point` will return indices
 and objects that correspond to it.  For instance:
 
 .. code-block:: python

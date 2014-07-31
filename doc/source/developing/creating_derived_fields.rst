@@ -67,8 +67,8 @@ a new field.
 Defining derived fields in the above fashion must be done before a dataset is loaded,
 in order for the dataset to recognize it. If you want to set up a derived field after you
 have loaded a dataset, or if you only want to set up a derived field for a particular
-dataset, there is an :meth:`add_field` method that hangs off dataset objects. The calling
-syntax is the same:
+dataset, there is an :func:`~yt.data_objects.static_output.Dataset.add_field` 
+method that hangs off dataset objects. The calling syntax is the same:
 
 .. code-block:: python
 
@@ -84,8 +84,9 @@ A More Complicated Example
 But what if we want to do something a bit more fancy?  Here's an example of getting
 parameters from the data object and using those to define the field;
 specifically, here we obtain the ``center`` and ``bulk_velocity`` parameters
-and use those to define a field for radial velocity (there is already a ``"radial_velocity"``
-field in yt, but we create this one here just as a transparent and simple example).
+and use those to define a field for radial velocity (there is already 
+a ``radial_velocity`` field in yt, but we create this one here just as a 
+transparent and simple example).
 
 .. code-block:: python
 
@@ -121,11 +122,11 @@ that we do not wish to display this field as logged, that we require both
 ``bulk_velocity`` and ``center`` to be present in a given data object we wish
 to calculate this for, and we say that it should not be displayed in a
 drop-down box of fields to display. This is done through the parameter
-*validators*, which accepts a list of :class:`FieldValidator` objects. These
-objects define the way in which the field is generated, and when it is able to
-be created. In this case, we mandate that parameters *center* and
-*bulk_velocity* are set before creating the field. These are set via
-:meth:`~yt.data_objects.data_containers.set_field_parameter`, which can 
+*validators*, which accepts a list of :class:`~yt.fields.derived_field.FieldValidator` 
+objects. These objects define the way in which the field is generated, and 
+when it is able to be created. In this case, we mandate that parameters 
+``center`` and ``bulk_velocity`` are set before creating the field. These are 
+set via :meth:`~yt.data_objects.data_containers.set_field_parameter`, which can 
 be called on any object that has fields:
 
 .. code-block:: python
@@ -134,8 +135,9 @@ be called on any object that has fields:
    sp = ds.sphere("max", (200.,"kpc"))
    sp.set_field_parameter("bulk_velocity", yt.YTArray([-100.,200.,300.], "km/s"))
 
-In this case, we already know what the *center* of the sphere is, so we do not set it. Also,
-note that *center* and *bulk_velocity* need to be :class:`YTArray` objects with units.
+In this case, we already know what the ``center`` of the sphere is, so we do 
+not set it. Also, note that ``center`` and ``bulk_velocity`` need to be 
+:class:`~yt.units.yt_array.YTArray` objects with units.
 
 Other examples for creating derived fields can be found in the cookbook recipe
 :ref:`cookbook-simple-derived-fields`.

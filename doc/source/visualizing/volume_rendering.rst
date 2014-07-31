@@ -165,7 +165,7 @@ For an example, see the cookbook :ref:`cookbook-simple_volume_rendering`.
 
 The :class:`~yt.visualization.volume_rendering.camera.StereoPairCamera` object
 has a single primary method,
-:meth:`~yt.visualization.volume_rendering.camera.StereoPairCamera.split`, that
+:func:`~yt.visualization.volume_rendering.camera.StereoPairCamera.split`, that
 will return two cameras, a left and a right.
 
 .. _camera_movement:
@@ -209,13 +209,13 @@ These transfer functions are the standard way to apply colors to specific
 values in the field being rendered.  For instance, applying isocontours at
 specific densities.  They have several different mechanisms that can be used.
 The easiest mechanism is to use
-:meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.add_layers`,
+:func:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.add_layers`,
 which will add evenly spaced isocontours between the bounds of the transfer
 function.  However, you can also use
-:meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.sample_colormap`,
+:func:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.sample_colormap`,
 which will sample a colormap at a given value.  Additionally, you can directly
 call
-:meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.add_gaussian`,
+:func:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.add_gaussian`,
 which will allow you to specify the colors directly.
 
 An alternate method for modifying the colormap is done using
@@ -305,7 +305,7 @@ By default, the volume renderer will use the total number of cores available on
 the symmetric multiprocessing (SMP) compute platform.  For example, if you have
 a shiny new laptop with 8 cores, you'll by default launch 8 OpenMP threads.
 The number of threads can be controlled with the num_threads keyword in
-:meth:`~yt.visualization.volume_rendering.camera.Camera.snapshot`.  You may also restrict the number of OpenMP threads used
+:func:`~yt.visualization.volume_rendering.camera.Camera.snapshot`.  You may also restrict the number of OpenMP threads used
 by default by modifying the environment variable OMP_NUM_THREADS. 
 
 Running in Hybrid MPI + OpenMP

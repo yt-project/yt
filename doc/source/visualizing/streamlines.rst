@@ -81,7 +81,7 @@ Data Access Along the Streamline
 Once the streamlines are found, a
 :class:`~yt.data_objects.construction_data_containers.YTStreamlineBase` object can
 be created using the
-:meth:`~yt.visualization.streamlines.Streamlines.path` function, which
+:func:`~yt.visualization.streamlines.Streamlines.path` function, which
 takes as input the index of the streamline requested. This conversion
 is done by creating a mask that defines where the streamline is, and
 creating 't' and 'dts' fields that define the dimensionless streamline

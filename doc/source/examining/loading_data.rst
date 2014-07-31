@@ -829,7 +829,7 @@ Generic Array Data
 ------------------
 
 See :ref:`loading-numpy-array` and
-:meth:`~yt.frontends.stream.data_structures.load_uniform_grid` for more detail.
+:func:`~yt.frontends.stream.data_structures.load_uniform_grid` for more detail.
 
 Even if your data is not strictly related to fields commonly used in
 astrophysical codes or your code is not supported yet, you can still feed it to
@@ -883,7 +883,7 @@ Generic AMR Data
 ----------------
 
 See :ref:`loading-numpy-array` and
-:meth:`~yt.frontends.sph.data_structures.load_amr_grids` for more detail.
+:func:`~yt.frontends.sph.data_structures.load_amr_grids` for more detail.
 
 It is possible to create native yt dataset from Python's dictionary
 that describes set of rectangular patches of data of possibly varying
@@ -936,7 +936,7 @@ Generic Particle Data
 ---------------------
 
 See :ref:`generic-particle-data` and
-:meth:`~yt.frontends.stream.data_structures.load_particles` for more detail.
+:func:`~yt.frontends.stream.data_structures.load_particles` for more detail.
 
 You can also load generic particle data using the same ``stream`` functionality
 discussed above to load in-memory grid data.  For example, if your particle
