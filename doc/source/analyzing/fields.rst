@@ -213,22 +213,25 @@ Deposited Particle Fields
 
 In order to turn particle (discrete) fields into fields that are deposited in
 some regular, space-filling way (even if that space is empty, it is defined
-everywhere.)  These are in the special field-type space ``deposit``, and are
-typically of the form ``("deposit", "particletype_depositiontype")`` where
-``depositiontype`` is the mechanism by which the field is deposited, and
-``particletype`` is the particle type of the particles being deposited.  If you
-are attempting to examine the cloud-in-cell (``cic``) deposition of the ``all``
-particle type, you would access the field ``("deposit", "all_cic")``.
+everywhere) yt provides mechanisms for depositing particles onto a mesh.  These
+are in the special field-type space ``deposit``, and are typically of the form
+``("deposit", "particletype_depositiontype")`` where ``depositiontype`` is the
+mechanism by which the field is deposited, and ``particletype`` is the particle
+type of the particles being deposited.  If you are attempting to examine the
+cloud-in-cell (``cic``) deposition of the ``all`` particle type, you would
+access the field ``("deposit", "all_cic")``.
 
 yt defines a few particular types of deposition internally, and creating new
 ones can be done by modifying the files ``yt/geometry/particle_deposit.pyx``
 and ``yt/fields/particle_fields.py``, although that is an advanced topic
-somewhat outside the scope of this section.
+somewhat outside the scope of this section.  The default deposition types
+available are:
 
  * ``count`` - this field counts the total number of particles of a given type
    in a given mesh zone.  Note that because, in general, the mesh for particle
    datasets is defined by the number of particles in a region, this may not be
-   the most useful metric.
+   the most useful metric.  This may be made more useful by depositing particle
+   data onto an :ref:`arbitrary-grid`.
  * ``density`` - this field takes the total sum of ``particle_mass`` in a given
    mesh field and divides by the volume.
  * ``mass`` - this field takes the total sum of ``particle_mass`` in each mesh
