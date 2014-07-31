@@ -51,6 +51,9 @@ literals that are inside text.
 p code {
     color:  #d14;    
     white-space: nowrap;
+    font-size: 90%;
+    background-color: #f9f2f4;
+    font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
 /*
