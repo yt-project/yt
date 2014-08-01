@@ -92,17 +92,19 @@ elsewhere for further transformations.
 For more information, see :ref:`creating-derived-fields`.
 
 There is a third, borderline class of field in yt, as well.  This is the
-"alias" type, where a field on disk (for example, ``Density``) is aliased into
-an internal yt-name (for example, ``density``).  The aliasing process allows
-universally-defined derived fields to take advantage of internal names, and it
-also provides an easy way to address what units something should be returned
-in.  If an aliased field is requested (and aliased fields will always be
-lowercase, with underscores separating words) it will be returned in CGS units
-(future versions will enable global defaults to be set for MKS and other unit
-systems), whereas if the underlying field is requested, it will not undergo any
-unit conversions from its natural units.  (This rule is occasionally violated
-for fields which are mesh-dependent, specifically particle masses in some
-cosmology codes.)
+"alias" type, where a field on disk (for example, (frontend, ``Density``)) is 
+aliased into an internal yt-name (for example, (``gas``, ``density``)).  The 
+aliasing process allows universally-defined derived fields to take advantage of 
+internal names, and it also provides an easy way to address what units something 
+should be returned in.  If an aliased field is requested (and aliased fields 
+will always be lowercase, with underscores separating words) it will be returned 
+in CGS units (future versions will enable global defaults to be set for MKS and 
+other unit systems), whereas if the underlying field is requested, it will not 
+undergo any unit conversions from its natural units.  (This rule is occasionally 
+violated for fields which are mesh-dependent, specifically particle masses in 
+some cosmology codes.)
+
+.. _known_field_types:
 
 Field types known to yt
 -----------------------
