@@ -649,7 +649,7 @@ class Camera(ParallelAnalysisInterface):
             del nz
         else:
             nim = im
-        ax = self._pylab.imshow(nim[:,:,:3]/nim[:,:,:3].max(), origin='lower')
+        ax = self._pylab.imshow(nim[:,:,:3]/nim[:,:,:3].max(), origin='upper')
         return ax
 
     def draw(self):
@@ -747,6 +747,9 @@ class Camera(ParallelAnalysisInterface):
         image = ImageArray(self._render(double_check, num_threads, 
                                         image, sampler),
                            info=self.get_information())
+
+        # flip it up/down to handle how the png orientation is donetest.png
+        image = image[:,::-1,:]
         self.save_image(image, fn=fn, clip_ratio=clip_ratio, 
                        transparent=transparent)
         return image
