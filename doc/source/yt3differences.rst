@@ -21,8 +21,9 @@ command:
 
     $ yt update --all
 
-This will update yt to the most recent version as well as download the latest
-dependencies and rebuild the source base.  This may take a few minutes.  To test
+This will update yt to the most recent version and rebuild the source base.  
+If you installed using the installer script, it will assure you have all of the
+latest dependencies as well.  This step may take a few minutes.  To test
 to make sure yt is running, try:
 
 .. code-block:: bash

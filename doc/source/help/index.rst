@@ -68,7 +68,7 @@ execute these commands:
 
 .. code-block:: bash
 
-  $ python setup.py install --user --prefix=
+  $ python setup.py develop
 
 Now try running yt again with:
 
