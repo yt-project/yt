@@ -9,7 +9,7 @@ from yt.utilities.definitions import \
 from yt.frontends.stream.fields import \
     StreamFieldInfo
 from yt.fields.derived_field import NullFunc
-from yt.units.yt_array import YTArray
+from yt.units.yt_array import YTArray, Unit
 
 fields, units = [], []
 
@@ -88,7 +88,8 @@ def print_all_fields(fl):
         print "+" * len(s)
         print
         if len(df.units) > 0:
-            print "   * Units: :math:`%s`" % (df.units)
+            u = Unit(df.units, registry = ds.unit_registry)
+            print "   * Units: :math:`%s`" % (u.latex_representation())
         print "   * Particle Type: %s" % (df.particle_type)
         print
         print "**Field Source**"

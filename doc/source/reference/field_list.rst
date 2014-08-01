@@ -43,7 +43,7 @@ to display the native fields in alphabetical order:
 ('all', 'particle_angular_momentum_magnitude')
 ++++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`g*cm**2/s`
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -60,7 +60,7 @@ to display the native fields in alphabetical order:
 ('all', 'particle_angular_momentum_x')
 ++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`g*cm**2/s`
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -75,7 +75,7 @@ to display the native fields in alphabetical order:
 ('all', 'particle_angular_momentum_y')
 ++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`g*cm**2/s`
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -90,7 +90,7 @@ to display the native fields in alphabetical order:
 ('all', 'particle_angular_momentum_z')
 ++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`g*cm**2/s`
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -119,7 +119,7 @@ to display the native fields in alphabetical order:
 ('all', 'particle_phi_spherical')
 +++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm/s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -142,7 +142,7 @@ to display the native fields in alphabetical order:
 ('all', 'particle_phi_velocity')
 ++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm/s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -166,7 +166,7 @@ to display the native fields in alphabetical order:
 ('all', 'particle_position')
 ++++++++++++++++++++++++++++
 
-   * Units: :math:`code_length`
+   * Units: :math:`\rm{code}\/\rm{length}`
    * Particle Type: True
 
 **Field Source**
@@ -183,7 +183,7 @@ to display the native fields in alphabetical order:
 ('all', 'particle_radial_velocity')
 +++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm/s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -209,7 +209,7 @@ to display the native fields in alphabetical order:
 ('all', 'particle_radius')
 ++++++++++++++++++++++++++
 
-   * Units: :math:`cm`
+   * Units: :math:`\rm{cm}`
    * Particle Type: True
 
 **Field Source**
@@ -223,7 +223,7 @@ to display the native fields in alphabetical order:
 ('all', 'particle_radius_spherical')
 ++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm/s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -246,7 +246,7 @@ to display the native fields in alphabetical order:
 ('all', 'particle_specific_angular_momentum')
 +++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm**2/s`
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -277,7 +277,7 @@ to display the native fields in alphabetical order:
 ('all', 'particle_specific_angular_momentum_magnitude')
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm**2/s`
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -294,7 +294,7 @@ to display the native fields in alphabetical order:
 ('all', 'particle_specific_angular_momentum_x')
 +++++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm**2/s`
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -316,7 +316,7 @@ to display the native fields in alphabetical order:
 ('all', 'particle_specific_angular_momentum_y')
 +++++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm**2/s`
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -338,7 +338,7 @@ to display the native fields in alphabetical order:
 ('all', 'particle_specific_angular_momentum_z')
 +++++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm**2/s`
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -360,7 +360,7 @@ to display the native fields in alphabetical order:
 ('all', 'particle_theta_spherical')
 +++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm/s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -383,7 +383,7 @@ to display the native fields in alphabetical order:
 ('all', 'particle_theta_velocity')
 ++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm/s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -409,7 +409,7 @@ to display the native fields in alphabetical order:
 ('all', 'particle_velocity')
 ++++++++++++++++++++++++++++
 
-   * Units: :math:`cm / s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -426,7 +426,7 @@ to display the native fields in alphabetical order:
 ('all', 'particle_velocity_magnitude')
 ++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm/s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -446,7 +446,7 @@ to display the native fields in alphabetical order:
 ('deposit', 'all_cic')
 ++++++++++++++++++++++
 
-   * Units: :math:`g/cm**3`
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -480,7 +480,7 @@ to display the native fields in alphabetical order:
 ('deposit', 'all_density')
 ++++++++++++++++++++++++++
 
-   * Units: :math:`g/cm**3`
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -501,7 +501,7 @@ to display the native fields in alphabetical order:
 ('deposit', 'all_mass')
 +++++++++++++++++++++++
 
-   * Units: :math:`g`
+   * Units: :math:`\rm{g}`
    * Particle Type: False
 
 **Field Source**
@@ -518,7 +518,7 @@ to display the native fields in alphabetical order:
 ('deposit', 'io_cic')
 +++++++++++++++++++++
 
-   * Units: :math:`g/cm**3`
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -552,7 +552,7 @@ to display the native fields in alphabetical order:
 ('deposit', 'io_density')
 +++++++++++++++++++++++++
 
-   * Units: :math:`g/cm**3`
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -573,7 +573,7 @@ to display the native fields in alphabetical order:
 ('deposit', 'io_mass')
 ++++++++++++++++++++++
 
-   * Units: :math:`g`
+   * Units: :math:`\rm{g}`
    * Particle Type: False
 
 **Field Source**
@@ -590,7 +590,7 @@ to display the native fields in alphabetical order:
 ('gas', 'angular_momentum_magnitude')
 +++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`g * cm**2 / s`
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -607,7 +607,7 @@ to display the native fields in alphabetical order:
 ('gas', 'angular_momentum_x')
 +++++++++++++++++++++++++++++
 
-   * Units: :math:`g * cm**2 / s`
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -622,7 +622,7 @@ to display the native fields in alphabetical order:
 ('gas', 'angular_momentum_y')
 +++++++++++++++++++++++++++++
 
-   * Units: :math:`g * cm**2 / s`
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -637,7 +637,7 @@ to display the native fields in alphabetical order:
 ('gas', 'angular_momentum_z')
 +++++++++++++++++++++++++++++
 
-   * Units: :math:`g * cm**2 / s`
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -652,7 +652,7 @@ to display the native fields in alphabetical order:
 ('gas', 'averaged_density')
 +++++++++++++++++++++++++++
 
-   * Units: :math:`g/cm**3`
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -684,7 +684,7 @@ to display the native fields in alphabetical order:
 ('gas', 'baroclinic_vorticity_magnitude')
 +++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`s**(-2)`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -701,7 +701,7 @@ to display the native fields in alphabetical order:
 ('gas', 'baroclinic_vorticity_x')
 +++++++++++++++++++++++++++++++++
 
-   * Units: :math:`s**(-2)`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -719,7 +719,7 @@ to display the native fields in alphabetical order:
 ('gas', 'baroclinic_vorticity_y')
 +++++++++++++++++++++++++++++++++
 
-   * Units: :math:`s**(-2)`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -737,7 +737,7 @@ to display the native fields in alphabetical order:
 ('gas', 'baroclinic_vorticity_z')
 +++++++++++++++++++++++++++++++++
 
-   * Units: :math:`s**(-2)`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -778,7 +778,7 @@ to display the native fields in alphabetical order:
 ('gas', 'cell_mass')
 ++++++++++++++++++++
 
-   * Units: :math:`g`
+   * Units: :math:`\rm{g}`
    * Particle Type: False
 
 **Field Source**
@@ -821,7 +821,7 @@ to display the native fields in alphabetical order:
 ('gas', 'courant_time_step')
 ++++++++++++++++++++++++++++
 
-   * Units: :math:`s`
+   * Units: :math:`\rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -842,7 +842,7 @@ to display the native fields in alphabetical order:
 ('gas', 'cutting_plane_velocity_x')
 +++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm / s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -862,7 +862,7 @@ to display the native fields in alphabetical order:
 ('gas', 'cutting_plane_velocity_y')
 +++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm / s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -882,7 +882,7 @@ to display the native fields in alphabetical order:
 ('gas', 'cutting_plane_velocity_z')
 +++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm / s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -902,7 +902,7 @@ to display the native fields in alphabetical order:
 ('gas', 'cylindrical_radial_velocity')
 ++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm / s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -920,7 +920,7 @@ to display the native fields in alphabetical order:
 ('gas', 'cylindrical_radial_velocity_absolute')
 +++++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm / s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -934,7 +934,7 @@ to display the native fields in alphabetical order:
 ('gas', 'cylindrical_tangential_velocity')
 ++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm / s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -953,7 +953,7 @@ to display the native fields in alphabetical order:
 ('gas', 'cylindrical_tangential_velocity_absolute')
 +++++++++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm / s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -967,7 +967,7 @@ to display the native fields in alphabetical order:
 ('gas', 'dark_matter_density')
 ++++++++++++++++++++++++++++++
 
-   * Units: :math:`code_mass/code_length**3`
+   * Units: :math:`\frac{\rm{code}\/\rm{mass}}{\rm{code}\/\rm{length}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -977,7 +977,7 @@ No source available.
 ('gas', 'density')
 ++++++++++++++++++
 
-   * Units: :math:`code_mass/code_length**3`
+   * Units: :math:`\frac{\rm{code}\/\rm{mass}}{\rm{code}\/\rm{length}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -987,7 +987,7 @@ No source available.
 ('gas', 'density_gradient_magnitude')
 +++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`(g / cm**3) / cm`
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{4}}`
    * Particle Type: False
 
 **Field Source**
@@ -1004,7 +1004,7 @@ No source available.
 ('gas', 'density_gradient_x')
 +++++++++++++++++++++++++++++
 
-   * Units: :math:`(g / cm**3) / cm`
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{4}}`
    * Particle Type: False
 
 **Field Source**
@@ -1024,7 +1024,7 @@ No source available.
 ('gas', 'density_gradient_y')
 +++++++++++++++++++++++++++++
 
-   * Units: :math:`(g / cm**3) / cm`
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{4}}`
    * Particle Type: False
 
 **Field Source**
@@ -1044,7 +1044,7 @@ No source available.
 ('gas', 'density_gradient_z')
 +++++++++++++++++++++++++++++
 
-   * Units: :math:`(g / cm**3) / cm`
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{4}}`
    * Particle Type: False
 
 **Field Source**
@@ -1064,7 +1064,7 @@ No source available.
 ('gas', 'di_density')
 +++++++++++++++++++++
 
-   * Units: :math:`code_mass/code_length**3`
+   * Units: :math:`\frac{\rm{code}\/\rm{mass}}{\rm{code}\/\rm{length}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -1074,7 +1074,7 @@ No source available.
 ('gas', 'dii_density')
 ++++++++++++++++++++++
 
-   * Units: :math:`code_mass/code_length**3`
+   * Units: :math:`\frac{\rm{code}\/\rm{mass}}{\rm{code}\/\rm{length}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -1084,7 +1084,7 @@ No source available.
 ('gas', 'dynamical_time')
 +++++++++++++++++++++++++
 
-   * Units: :math:`s`
+   * Units: :math:`\rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -1101,7 +1101,7 @@ No source available.
 ('gas', 'entropy')
 ++++++++++++++++++
 
-   * Units: :math:`keV*cm**2`
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{keV}`
    * Particle Type: False
 
 **Field Source**
@@ -1121,7 +1121,7 @@ No source available.
 ('gas', 'h2i_density')
 ++++++++++++++++++++++
 
-   * Units: :math:`code_mass/code_length**3`
+   * Units: :math:`\frac{\rm{code}\/\rm{mass}}{\rm{code}\/\rm{length}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -1131,7 +1131,7 @@ No source available.
 ('gas', 'h2ii_density')
 +++++++++++++++++++++++
 
-   * Units: :math:`code_mass/code_length**3`
+   * Units: :math:`\frac{\rm{code}\/\rm{mass}}{\rm{code}\/\rm{length}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -1141,7 +1141,7 @@ No source available.
 ('gas', 'h2m_density')
 ++++++++++++++++++++++
 
-   * Units: :math:`code_mass/code_length**3`
+   * Units: :math:`\frac{\rm{code}\/\rm{mass}}{\rm{code}\/\rm{length}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -1151,7 +1151,7 @@ No source available.
 ('gas', 'hdi_density')
 ++++++++++++++++++++++
 
-   * Units: :math:`code_mass/code_length**3`
+   * Units: :math:`\frac{\rm{code}\/\rm{mass}}{\rm{code}\/\rm{length}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -1161,7 +1161,7 @@ No source available.
 ('gas', 'hei_density')
 ++++++++++++++++++++++
 
-   * Units: :math:`code_mass/code_length**3`
+   * Units: :math:`\frac{\rm{code}\/\rm{mass}}{\rm{code}\/\rm{length}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -1171,7 +1171,7 @@ No source available.
 ('gas', 'heii_density')
 +++++++++++++++++++++++
 
-   * Units: :math:`code_mass/code_length**3`
+   * Units: :math:`\frac{\rm{code}\/\rm{mass}}{\rm{code}\/\rm{length}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -1181,7 +1181,7 @@ No source available.
 ('gas', 'heiii_density')
 ++++++++++++++++++++++++
 
-   * Units: :math:`code_mass/code_length**3`
+   * Units: :math:`\frac{\rm{code}\/\rm{mass}}{\rm{code}\/\rm{length}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -1191,7 +1191,7 @@ No source available.
 ('gas', 'hi_density')
 +++++++++++++++++++++
 
-   * Units: :math:`code_mass/code_length**3`
+   * Units: :math:`\frac{\rm{code}\/\rm{mass}}{\rm{code}\/\rm{length}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -1201,7 +1201,7 @@ No source available.
 ('gas', 'hii_density')
 ++++++++++++++++++++++
 
-   * Units: :math:`code_mass/code_length**3`
+   * Units: :math:`\frac{\rm{code}\/\rm{mass}}{\rm{code}\/\rm{length}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -1211,7 +1211,7 @@ No source available.
 ('gas', 'jeans_mass')
 +++++++++++++++++++++
 
-   * Units: :math:`g`
+   * Units: :math:`\rm{g}`
    * Particle Type: False
 
 **Field Source**
@@ -1231,7 +1231,7 @@ No source available.
 ('gas', 'kT')
 +++++++++++++
 
-   * Units: :math:`keV`
+   * Units: :math:`\rm{keV}`
    * Particle Type: False
 
 **Field Source**
@@ -1245,7 +1245,7 @@ No source available.
 ('gas', 'kinetic_energy')
 +++++++++++++++++++++++++
 
-   * Units: :math:`erg / cm**3`
+   * Units: :math:`\frac{\rm{erg}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -1275,7 +1275,7 @@ No source available.
 ('gas', 'magnetic_energy')
 ++++++++++++++++++++++++++
 
-   * Units: :math:`erg / cm**3`
+   * Units: :math:`\frac{\rm{erg}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -1295,7 +1295,7 @@ No source available.
 ('gas', 'magnetic_field_poloidal')
 ++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`gauss`
+   * Units: :math:`\rm{gauss}`
    * Particle Type: False
 
 **Field Source**
@@ -1320,7 +1320,7 @@ No source available.
 ('gas', 'magnetic_field_strength')
 ++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`gauss`
+   * Units: :math:`\rm{gauss}`
    * Particle Type: False
 
 **Field Source**
@@ -1334,7 +1334,7 @@ No source available.
 ('gas', 'magnetic_field_toroidal')
 ++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`gauss`
+   * Units: :math:`\rm{gauss}`
    * Particle Type: False
 
 **Field Source**
@@ -1357,7 +1357,7 @@ No source available.
 ('gas', 'magnetic_field_x')
 +++++++++++++++++++++++++++
 
-   * Units: :math:`gauss`
+   * Units: :math:`\rm{gauss}`
    * Particle Type: False
 
 **Field Source**
@@ -1367,7 +1367,7 @@ No source available.
 ('gas', 'magnetic_field_y')
 +++++++++++++++++++++++++++
 
-   * Units: :math:`gauss`
+   * Units: :math:`\rm{gauss}`
    * Particle Type: False
 
 **Field Source**
@@ -1377,7 +1377,7 @@ No source available.
 ('gas', 'magnetic_field_z')
 +++++++++++++++++++++++++++
 
-   * Units: :math:`gauss`
+   * Units: :math:`\rm{gauss}`
    * Particle Type: False
 
 **Field Source**
@@ -1387,7 +1387,7 @@ No source available.
 ('gas', 'magnetic_pressure')
 ++++++++++++++++++++++++++++
 
-   * Units: :math:`erg / cm**3`
+   * Units: :math:`\frac{\rm{erg}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -1401,7 +1401,7 @@ No source available.
 ('gas', 'matter_density')
 +++++++++++++++++++++++++
 
-   * Units: :math:`g/cm**3`
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -1416,7 +1416,7 @@ No source available.
 ('gas', 'matter_mass')
 ++++++++++++++++++++++
 
-   * Units: :math:`g`
+   * Units: :math:`\rm{g}`
    * Particle Type: False
 
 **Field Source**
@@ -1464,7 +1464,7 @@ No source available.
 ('gas', 'metal_density')
 ++++++++++++++++++++++++
 
-   * Units: :math:`code_mass/code_length**3`
+   * Units: :math:`\frac{\rm{code}\/\rm{mass}}{\rm{code}\/\rm{length}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -1474,7 +1474,7 @@ No source available.
 ('gas', 'metal_mass')
 +++++++++++++++++++++
 
-   * Units: :math:`g`
+   * Units: :math:`\rm{g}`
    * Particle Type: False
 
 **Field Source**
@@ -1488,7 +1488,7 @@ No source available.
 ('gas', 'metallicity')
 ++++++++++++++++++++++
 
-   * Units: :math:`Zsun`
+   * Units: :math:`\rm{Z}_\odot`
    * Particle Type: False
 
 **Field Source**
@@ -1504,7 +1504,7 @@ No source available.
 ('gas', 'number_density')
 +++++++++++++++++++++++++
 
-   * Units: :math:`1/code_length**3`
+   * Units: :math:`\frac{1}{\rm{code}\/\rm{length}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -1549,7 +1549,7 @@ No source available.
 ('gas', 'pressure')
 +++++++++++++++++++
 
-   * Units: :math:`dyne/code_length**2`
+   * Units: :math:`\frac{\rm{dyne}}{\rm{code}\/\rm{length}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -1559,7 +1559,7 @@ No source available.
 ('gas', 'pressure_gradient_magnitude')
 ++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`(dyne/cm**2) / cm`
+   * Units: :math:`\frac{\rm{dyne}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -1576,7 +1576,7 @@ No source available.
 ('gas', 'pressure_gradient_x')
 ++++++++++++++++++++++++++++++
 
-   * Units: :math:`(dyne/cm**2) / cm`
+   * Units: :math:`\frac{\rm{dyne}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -1596,7 +1596,7 @@ No source available.
 ('gas', 'pressure_gradient_y')
 ++++++++++++++++++++++++++++++
 
-   * Units: :math:`(dyne/cm**2) / cm`
+   * Units: :math:`\frac{\rm{dyne}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -1616,7 +1616,7 @@ No source available.
 ('gas', 'pressure_gradient_z')
 ++++++++++++++++++++++++++++++
 
-   * Units: :math:`(dyne/cm**2) / cm`
+   * Units: :math:`\frac{\rm{dyne}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
@@ -1651,7 +1651,7 @@ No source available.
 ('gas', 'radial_velocity')
 ++++++++++++++++++++++++++
 
-   * Units: :math:`cm / s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -1670,7 +1670,7 @@ No source available.
 ('gas', 'radial_velocity_absolute')
 +++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm / s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -1689,7 +1689,7 @@ No source available.
 ('gas', 'radiation_acceleration_x')
 +++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`code_length/code_time**2`
+   * Units: :math:`\frac{\rm{code}\/\rm{length}}{\rm{code}\/\rm{time}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -1699,7 +1699,7 @@ No source available.
 ('gas', 'radiation_acceleration_y')
 +++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`code_length/code_time**2`
+   * Units: :math:`\frac{\rm{code}\/\rm{length}}{\rm{code}\/\rm{time}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -1709,7 +1709,7 @@ No source available.
 ('gas', 'radiation_acceleration_z')
 +++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`code_length/code_time**2`
+   * Units: :math:`\frac{\rm{code}\/\rm{length}}{\rm{code}\/\rm{time}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -1719,7 +1719,7 @@ No source available.
 ('gas', 'shear')
 ++++++++++++++++
 
-   * Units: :math:`1/s`
+   * Units: :math:`1 / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -1771,7 +1771,7 @@ No source available.
 ('gas', 'shear_criterion')
 ++++++++++++++++++++++++++
 
-   * Units: :math:`1/cm`
+   * Units: :math:`1 / \rm{cm}`
    * Particle Type: False
 
 **Field Source**
@@ -1848,7 +1848,7 @@ No source available.
 ('gas', 'sound_speed')
 ++++++++++++++++++++++
 
-   * Units: :math:`cm/s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -1863,7 +1863,7 @@ No source available.
 ('gas', 'specific_angular_momentum_magnitude')
 ++++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm**2 / s`
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -1880,7 +1880,7 @@ No source available.
 ('gas', 'specific_angular_momentum_x')
 ++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm**2/s`
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -1898,7 +1898,7 @@ No source available.
 ('gas', 'specific_angular_momentum_y')
 ++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm**2/s`
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -1916,7 +1916,7 @@ No source available.
 ('gas', 'specific_angular_momentum_z')
 ++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm**2/s`
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -1934,7 +1934,7 @@ No source available.
 ('gas', 'sz_kinetic')
 +++++++++++++++++++++
 
-   * Units: :math:`1/cm`
+   * Units: :math:`1 / \rm{cm}`
    * Particle Type: False
 
 **Field Source**
@@ -1953,7 +1953,7 @@ No source available.
 ('gas', 'szy')
 ++++++++++++++
 
-   * Units: :math:`1/cm`
+   * Units: :math:`1 / \rm{cm}`
    * Particle Type: False
 
 **Field Source**
@@ -1983,7 +1983,7 @@ No source available.
 ('gas', 'tangential_velocity')
 ++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm / s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -1998,7 +1998,7 @@ No source available.
 ('gas', 'temperature')
 ++++++++++++++++++++++
 
-   * Units: :math:`K`
+   * Units: :math:`\rm{K}`
    * Particle Type: False
 
 **Field Source**
@@ -2008,7 +2008,7 @@ No source available.
 ('gas', 'thermal_energy')
 +++++++++++++++++++++++++
 
-   * Units: :math:`erg / g`
+   * Units: :math:`\rm{erg} / \rm{g}`
    * Particle Type: False
 
 **Field Source**
@@ -2018,7 +2018,7 @@ No source available.
 ('gas', 'velocity_divergence')
 ++++++++++++++++++++++++++++++
 
-   * Units: :math:`1/s`
+   * Units: :math:`1 / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -2044,7 +2044,7 @@ No source available.
 ('gas', 'velocity_divergence_absolute')
 +++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`1/s`
+   * Units: :math:`1 / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -2058,7 +2058,7 @@ No source available.
 ('gas', 'velocity_magnitude')
 +++++++++++++++++++++++++++++
 
-   * Units: :math:`cm / s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -2075,7 +2075,7 @@ No source available.
 ('gas', 'velocity_x')
 +++++++++++++++++++++
 
-   * Units: :math:`code_length/code_time`
+   * Units: :math:`\rm{code}\/\rm{length} / \rm{code}\/\rm{time}`
    * Particle Type: False
 
 **Field Source**
@@ -2085,7 +2085,7 @@ No source available.
 ('gas', 'velocity_y')
 +++++++++++++++++++++
 
-   * Units: :math:`code_length/code_time`
+   * Units: :math:`\rm{code}\/\rm{length} / \rm{code}\/\rm{time}`
    * Particle Type: False
 
 **Field Source**
@@ -2095,7 +2095,7 @@ No source available.
 ('gas', 'velocity_z')
 +++++++++++++++++++++
 
-   * Units: :math:`code_length/code_time`
+   * Units: :math:`\rm{code}\/\rm{length} / \rm{code}\/\rm{time}`
    * Particle Type: False
 
 **Field Source**
@@ -2105,7 +2105,7 @@ No source available.
 ('gas', 'vorticity_growth_magnitude')
 +++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`s**(-2)`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -2127,7 +2127,7 @@ No source available.
 ('gas', 'vorticity_growth_magnitude_absolute')
 ++++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`s**(-2)`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -2143,7 +2143,7 @@ No source available.
 ('gas', 'vorticity_growth_timescale')
 +++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`s`
+   * Units: :math:`\rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -2160,7 +2160,7 @@ No source available.
 ('gas', 'vorticity_growth_x')
 +++++++++++++++++++++++++++++
 
-   * Units: :math:`s**(-2)`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -2175,7 +2175,7 @@ No source available.
 ('gas', 'vorticity_growth_y')
 +++++++++++++++++++++++++++++
 
-   * Units: :math:`s**(-2)`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -2190,7 +2190,7 @@ No source available.
 ('gas', 'vorticity_growth_z')
 +++++++++++++++++++++++++++++
 
-   * Units: :math:`s**(-2)`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -2205,7 +2205,7 @@ No source available.
 ('gas', 'vorticity_magnitude')
 ++++++++++++++++++++++++++++++
 
-   * Units: :math:`1/s`
+   * Units: :math:`1 / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -2222,7 +2222,7 @@ No source available.
 ('gas', 'vorticity_radiation_pressure_growth_magnitude')
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`s**(-2)`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -2244,7 +2244,7 @@ No source available.
 ('gas', 'vorticity_radiation_pressure_growth_magnitude_absolute')
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`s**(-2)`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -2260,7 +2260,7 @@ No source available.
 ('gas', 'vorticity_radiation_pressure_growth_timescale')
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`s`
+   * Units: :math:`\rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -2280,7 +2280,7 @@ No source available.
 ('gas', 'vorticity_radiation_pressure_growth_x')
 ++++++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`s**(-2)`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -2296,7 +2296,7 @@ No source available.
 ('gas', 'vorticity_radiation_pressure_growth_y')
 ++++++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`s**(-2)`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -2312,7 +2312,7 @@ No source available.
 ('gas', 'vorticity_radiation_pressure_growth_z')
 ++++++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`s**(-2)`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -2328,7 +2328,7 @@ No source available.
 ('gas', 'vorticity_radiation_pressure_magnitude')
 +++++++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`s**(-2)`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -2345,7 +2345,7 @@ No source available.
 ('gas', 'vorticity_radiation_pressure_x')
 +++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`s**(-2)`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -2363,7 +2363,7 @@ No source available.
 ('gas', 'vorticity_radiation_pressure_y')
 +++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`s**(-2)`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -2381,7 +2381,7 @@ No source available.
 ('gas', 'vorticity_radiation_pressure_z')
 +++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`s**(-2)`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -2399,7 +2399,7 @@ No source available.
 ('gas', 'vorticity_squared')
 ++++++++++++++++++++++++++++
 
-   * Units: :math:`1/s**2`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -2416,7 +2416,7 @@ No source available.
 ('gas', 'vorticity_stretching_magnitude')
 +++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`s**(-2)`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -2433,7 +2433,7 @@ No source available.
 ('gas', 'vorticity_stretching_x')
 +++++++++++++++++++++++++++++++++
 
-   * Units: :math:`s**(-2)`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -2447,7 +2447,7 @@ No source available.
 ('gas', 'vorticity_stretching_y')
 +++++++++++++++++++++++++++++++++
 
-   * Units: :math:`s**(-2)`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -2461,7 +2461,7 @@ No source available.
 ('gas', 'vorticity_stretching_z')
 +++++++++++++++++++++++++++++++++
 
-   * Units: :math:`s**(-2)`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
@@ -2475,7 +2475,7 @@ No source available.
 ('gas', 'vorticity_x')
 ++++++++++++++++++++++
 
-   * Units: :math:`1/s`
+   * Units: :math:`1 / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -2499,7 +2499,7 @@ No source available.
 ('gas', 'vorticity_y')
 ++++++++++++++++++++++
 
-   * Units: :math:`1/s`
+   * Units: :math:`1 / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -2523,7 +2523,7 @@ No source available.
 ('gas', 'vorticity_z')
 ++++++++++++++++++++++
 
-   * Units: :math:`1/s`
+   * Units: :math:`1 / \rm{s}`
    * Particle Type: False
 
 **Field Source**
@@ -2547,7 +2547,7 @@ No source available.
 ('gas', 'weak_lensing_convergence')
 +++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`1/cm`
+   * Units: :math:`1 / \rm{cm}`
    * Particle Type: False
 
 **Field Source**
@@ -2594,7 +2594,7 @@ No source available.
 ('index', 'cell_volume')
 ++++++++++++++++++++++++
 
-   * Units: :math:`code_length**3`
+   * Units: :math:`\rm{code}\/\rm{length}^{3}`
    * Particle Type: False
 
 **Field Source**
@@ -2611,7 +2611,7 @@ No source available.
 ('index', 'cylindrical_r')
 ++++++++++++++++++++++++++
 
-   * Units: :math:`cm`
+   * Units: :math:`\rm{cm}`
    * Particle Type: False
 
 **Field Source**
@@ -2650,7 +2650,7 @@ No source available.
 ('index', 'cylindrical_z')
 ++++++++++++++++++++++++++
 
-   * Units: :math:`cm`
+   * Units: :math:`\rm{cm}`
    * Particle Type: False
 
 **Field Source**
@@ -2683,7 +2683,7 @@ No source available.
 ('index', 'dx')
 +++++++++++++++
 
-   * Units: :math:`code_length`
+   * Units: :math:`\rm{code}\/\rm{length}`
    * Particle Type: False
 
 **Field Source**
@@ -2698,7 +2698,7 @@ No source available.
 ('index', 'dy')
 +++++++++++++++
 
-   * Units: :math:`code_length`
+   * Units: :math:`\rm{code}\/\rm{length}`
    * Particle Type: False
 
 **Field Source**
@@ -2713,7 +2713,7 @@ No source available.
 ('index', 'dz')
 +++++++++++++++
 
-   * Units: :math:`code_length`
+   * Units: :math:`\rm{code}\/\rm{length}`
    * Particle Type: False
 
 **Field Source**
@@ -2754,7 +2754,7 @@ No source available.
 ('index', 'height')
 +++++++++++++++++++
 
-   * Units: :math:`cm`
+   * Units: :math:`\rm{cm}`
    * Particle Type: False
 
 **Field Source**
@@ -2784,7 +2784,7 @@ No source available.
 ('index', 'ones_over_dx')
 +++++++++++++++++++++++++
 
-   * Units: :math:`1 / cm`
+   * Units: :math:`1 / \rm{cm}`
    * Particle Type: False
 
 **Field Source**
@@ -2799,7 +2799,7 @@ No source available.
 ('index', 'radius')
 +++++++++++++++++++
 
-   * Units: :math:`cm`
+   * Units: :math:`\rm{cm}`
    * Particle Type: False
 
 **Field Source**
@@ -2832,7 +2832,7 @@ No source available.
 ('index', 'spherical_r')
 ++++++++++++++++++++++++
 
-   * Units: :math:`cm`
+   * Units: :math:`\rm{cm}`
    * Particle Type: False
 
 **Field Source**
@@ -2870,7 +2870,7 @@ No source available.
 ('index', 'x')
 ++++++++++++++
 
-   * Units: :math:`code_length`
+   * Units: :math:`\rm{code}\/\rm{length}`
    * Particle Type: False
 
 **Field Source**
@@ -2885,7 +2885,7 @@ No source available.
 ('index', 'y')
 ++++++++++++++
 
-   * Units: :math:`code_length`
+   * Units: :math:`\rm{code}\/\rm{length}`
    * Particle Type: False
 
 **Field Source**
@@ -2900,7 +2900,7 @@ No source available.
 ('index', 'z')
 ++++++++++++++
 
-   * Units: :math:`code_length`
+   * Units: :math:`\rm{code}\/\rm{length}`
    * Particle Type: False
 
 **Field Source**
@@ -2948,7 +2948,7 @@ No source available.
 ('io', 'particle_angular_momentum_magnitude')
 +++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`g*cm**2/s`
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -2965,7 +2965,7 @@ No source available.
 ('io', 'particle_angular_momentum_x')
 +++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`g*cm**2/s`
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -2980,7 +2980,7 @@ No source available.
 ('io', 'particle_angular_momentum_y')
 +++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`g*cm**2/s`
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -2995,7 +2995,7 @@ No source available.
 ('io', 'particle_angular_momentum_z')
 +++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`g*cm**2/s`
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -3024,7 +3024,7 @@ No source available.
 ('io', 'particle_phi_spherical')
 ++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm/s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -3047,7 +3047,7 @@ No source available.
 ('io', 'particle_phi_velocity')
 +++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm/s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -3071,7 +3071,7 @@ No source available.
 ('io', 'particle_position')
 +++++++++++++++++++++++++++
 
-   * Units: :math:`code_length`
+   * Units: :math:`\rm{code}\/\rm{length}`
    * Particle Type: True
 
 **Field Source**
@@ -3088,7 +3088,7 @@ No source available.
 ('io', 'particle_radial_velocity')
 ++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm/s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -3114,7 +3114,7 @@ No source available.
 ('io', 'particle_radius')
 +++++++++++++++++++++++++
 
-   * Units: :math:`cm`
+   * Units: :math:`\rm{cm}`
    * Particle Type: True
 
 **Field Source**
@@ -3128,7 +3128,7 @@ No source available.
 ('io', 'particle_radius_spherical')
 +++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm/s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -3151,7 +3151,7 @@ No source available.
 ('io', 'particle_specific_angular_momentum')
 ++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm**2/s`
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -3182,7 +3182,7 @@ No source available.
 ('io', 'particle_specific_angular_momentum_magnitude')
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm**2/s`
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -3199,7 +3199,7 @@ No source available.
 ('io', 'particle_specific_angular_momentum_x')
 ++++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm**2/s`
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -3221,7 +3221,7 @@ No source available.
 ('io', 'particle_specific_angular_momentum_y')
 ++++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm**2/s`
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -3243,7 +3243,7 @@ No source available.
 ('io', 'particle_specific_angular_momentum_z')
 ++++++++++++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm**2/s`
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -3265,7 +3265,7 @@ No source available.
 ('io', 'particle_theta_spherical')
 ++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm/s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -3288,7 +3288,7 @@ No source available.
 ('io', 'particle_theta_velocity')
 +++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm/s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -3314,7 +3314,7 @@ No source available.
 ('io', 'particle_velocity')
 +++++++++++++++++++++++++++
 
-   * Units: :math:`cm / s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
@@ -3331,7 +3331,7 @@ No source available.
 ('io', 'particle_velocity_magnitude')
 +++++++++++++++++++++++++++++++++++++
 
-   * Units: :math:`cm/s`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
