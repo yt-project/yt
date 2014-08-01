@@ -1133,7 +1133,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
             for cid in sorted(unique_contours):
                 if cid == -1: continue
                 contours[level][cid] = base_object.cut_region(
-                    ["obj['contours_%s'] == %s" % (contour_key, cid + 1)],
+                    ["obj['contours_%s'] == %s" % (contour_key, cid)],
                     {'contour_slices_%s' % contour_key: cids})
         return cons, contours
 
