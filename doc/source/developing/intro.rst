@@ -42,6 +42,9 @@ participation, we encourage it.
 Share Your Scripts
 ------------------
 
+.. warning:: The yt Hub is currently offline due to some hosting problems.  We
+             hope to have it back up online soon.
+
 The next easiest way to get involved with yt is to participate in the `yt Hub
 <http://hub.yt-project.org/>`_.  This is a place where scripts, paper
 repositories, documents and so on can be submitted to share with the broader
