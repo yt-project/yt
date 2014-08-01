@@ -3,6 +3,8 @@
 Fields in yt
 ============
 
+Fields are spatially-dependent quantities associated with a parent dataset.
+Examples of fields are gas density, gas temperature, particle mass, etc.
 The fundamental way to query data in yt is to access a field, either in its raw
 form (by examining a data container) or a processed form (derived quantities,
 projections, and so on).  "Field" is something of a loaded word, as it can
@@ -62,7 +64,7 @@ translating one to the other, typically through a "deposition" or "smoothing"
 step.
 
 How are fields implemented?
-+++++++++++++++++++++++++++
+---------------------------
 
 There are two classes of fields in yt.  The first are those fields that exist
 external to yt, which are immutable and can be queried -- most commonly, these
@@ -102,10 +104,123 @@ unit conversions from its natural units.  (This rule is occasionally violated
 for fields which are mesh-dependent, specifically particle masses in some
 cosmology codes.)
 
+Field types known to yt
+-----------------------
+
+yt knows of a few different field types:
+
+* frontend-name -- Mesh or fluid fields that exist on-disk default to having
+  the name of the frontend as their type name (e.g., ``enzo``, ``flash``,
+  ``pyne`` and so on).  The units of these types are whatever units are
+  designated by the source frontend when it writes the data.
+* ``index`` -- This field type refers to characteristics of the mesh, whether
+  that mesh is defined by the simulation or internally by an octree indexing
+  of particle data.  A few handy fields are ``x``, ``y``, ``z``, ``theta``,
+  ``phi``, ``radius``, ``dx``, ``dy``, ``dz`` and so on.  Default units
+  are in CGS.
+* ``gas`` -- This is the usual default for simulation frontends for fluid
+  types.  These fields are typically aliased to the frontend-specific mesh
+  fields for grid-based codes or to the deposit fields for particle-based
+  codes.  Default units are in CGS.
+* particle type -- These are particle fields that exist on-disk as written 
+  by individual frontends.  If the frontend designates names for these particles
+  (i.e. particle type) those names are the field types. 
+  Additionally, any particle unions or filters will be accessible as field
+  types.  Examples of particle types are ``Stars``, ``DM``, ``io``, etc.  
+  Like the front-end specific mesh or fluid fields, the units of these fields
+  are whatever was designated by the source frontend when written to disk.
+* ``io`` -- If a data frontend does not have a set of multiple particle types, 
+  this is the default for all particles.
+* ``all`` -- This is a special particle field type that represents a
+  concatenation of all particle field types using :ref:`particle-unions`.
+* ``deposit`` -- This field type refers to the deposition of particles
+  (discrete data) onto a mesh, typically to compute smoothing kernels, local
+  density estimates, counts, and the like.  See :ref:`deposited-particle-fields` 
+  for more information.
+
+Field Plugins
+-------------
+
+Derived fields are organized via plugins.  Inside yt are a number of field
+plugins, which take information about fields in a dataset and then construct
+derived fields on top of them.  This allows them to take into account
+variations in naming system, units, data representations, and most importantly,
+allows only the fields that are relevant to be added.  This system will be
+expanded in future versions to enable much deeper semantic awareness of the
+data types being analyzed by yt.
+
+The field plugin system works in this order:
+
+ * Available, inherent fields are identified by yt
+ * The list of enabled field plugins is iterated over.  Each is called, and new
+   derived fields are added as relevant.
+ * Any fields which are not available, or which throw errors, are discarded.
+ * Remaining fields are added to the list of derived fields available for a
+   dataset
+ * Dependencies for every derived field are identified, to enable data
+   preloading
+
+Field plugins can be loaded dynamically, although at present this is not
+particularly useful.  Plans for extending field plugins to dynamically load, to
+enable simple definition of common types (gradient, divergence, etc), and to
+more verbosely describe available fields, have been put in place for future
+versions.
+
+The field plugins currently available include:
+
+ * Angular momentum fields for particles and fluids
+ * Astrophysical fields, such as those related to cosmology
+ * Vector fields for fluid fields, such as gradients and divergences
+ * Particle vector fields
+ * Magnetic field-related fields
+ * Species fields, such as for chemistry species (yt can recognize the entire
+   periodic table in field names and construct ionization fields as need be)
+
+What fields are available?
+--------------------------
+
+We provide a full list of fields that yt recognizes by default at 
+:ref:`field-list`.  If you want to create additional custom derived fields, 
+see :ref:`creating-derived-fields`.
+
+The full list of fields available for a dataset can be found as 
+the attribute ``field_list`` for native, on-disk fields and ``derived_field_list``
+for derived fields (``derived_field_list`` is a superset of ``field_list``).
+You can view these lists by examining a dataset like this:
+
+.. code-block:: python
+
+   ds = yt.load("my_data")
+   print ds.field_list
+   print ds.derived_field_list
+
+By using the ``field_info()`` class, one can access information about a given
+field, like its default units or the source code for it.  
+
+.. code-block:: python
+
+   ds = yt.load("my_data")
+   ds.index
+   print ds.field_info["gas", "pressure"].get_units()
+   print ds.field_info["gas", "pressure"].get_source()
+
+Particle Fields
+---------------
+
+Naturally, particle fields contain properties of particles rather than
+grid cells.  By examining the particle field in detail, you can see that 
+each element of the field array represents a single particle, whereas in mesh 
+fields each element represents a single mesh cell.  This means that for the
+most part, operations cannot operate on both particle fields and mesh fields
+simultaneously in the same way, like filters (see :ref:`filtering-data`).
+However, many of the particle fields have corresponding mesh fields that
+can be populated by "depositing" the particle values onto a yt grid as 
+described below.
+
 .. _field_parameters:
 
 Field Parameters
-++++++++++++++++
+----------------
 
 Certain fields require external information in order to be calculated.  For 
 example, the radius field has to be defined based on some point of reference 
@@ -144,114 +259,16 @@ Within a field function, these can then be retrieved and used in the same way.
 
 For a practical application of this, see :ref:`cookbook-radial-velocity`.
 
-Field types known to yt
-+++++++++++++++++++++++
-
-yt knows of a few different field types, by default.
-
- * ``index`` - this field type refers to characteristics of the mesh, whether
-   that mesh is defined by the simulation or internally by an octree indexing
-   of particle data.  A few handy fields are ``x``, ``y``, ``z``, ``theta``,
-   ``phi``, ``radius``, ``dx``, ``dy``, ``dz`` and so on.
- * ``gas`` - this is the usual default for simulation frontends for fluid
-   types.
- * ``all`` - this is a special particle field type that represents a
-   concatenation of all particle field types.
- * ``deposit`` - this field type refers to the deposition of particles
-   (discrete data) onto a mesh, typically to compute smoothing kernels, local
-   density estimates, counts, and the like.
- * ``io`` - if a data frontend does not have a set of particle types, this will
-   be the default for particle types.
- * frontend-name - mesh or fluid fields that exist on-disk default to having
-   the name of the frontend as their type name. (i.e., ``enzo``, ``flash``,
-   ``pyne`` and so on.)
- * particle type - if the particle types in the file are affiliated with names
-   (rather than just ``io``) they will be available as field types.
-   Additionally, any particle unions or filters will be accessible as field
-   types.
-
-Field Plugins
-+++++++++++++
-
-Derived fields are organized via plugins.  Inside yt are a number of field
-plugins, which take information about fields in a dataset and then construct
-derived fields on top of them.  This allows them to take into account
-variations in naming system, units, data representations, and most importantly,
-allows only the fields that are relevant to be added.  This system will be
-expanded in future versions to enable much deeper semantic awareness of the
-data types being analyzed by yt.
-
-The field plugin system works in this order:
-
- * Available, inherent fields are identified by yt
- * The list of enabled field plugins is iterated over.  Each is called, and new
-   derived fields are added as relevant.
- * Any fields which are not available, or which throw errors, are discarded.
- * Remaining fields are added to the list of derived fields available for a
-   dataset
- * Dependencies for every derived field are identified, to enable data
-   preloading
-
-Field plugins can be loaded dynamically, although at present this is not
-particularly useful.  Plans for extending field plugins to dynamically load, to
-enable simple definition of common types (gradient, divergence, etc), and to
-more verbosely describe available fields, have been put in place for future
-versions.
-
-The field plugins currently available include:
-
- * Angular momentum fields for particles and fluids
- * Astrophysical fields, such as those related to cosmology
- * Vector fields for fluid fields, such as gradients and divergences
- * Particle vector fields
- * Magnetic field-related fields
- * Species fields, such as for chemistry species (yt can recognize the entire
-   periodic table in field names and construct ionization fields as need be)
-
-What fields are available?
-++++++++++++++++++++++++++
-
-.. include reference here once it's done
-
-The full list of fields available for a dataset can be found as 
-the attribute ``field_list`` for native, on-disk fields and ``derived_field_list``
-for derived fields (``derived_field_list`` is a superset of ``field_list``).
-You can view these lists by examining a dataset like this:
-
-.. code-block:: python
-
-   ds = yt.load("my_data")
-   print ds.field_list
-   print ds.derived_field_list
-
-By using the ``field_info()`` class, one can access information about a given
-field, like its default units or the source code for it.  
-
-.. code-block:: python
-
-   ds = yt.load("my_data")
-   ds.index
-   print ds.field_info["gas", "pressure"].get_units()
-   print ds.field_info["gas", "pressure"].get_source()
-
-Particle Fields
----------------
-
-Naturally, particle fields contain properties of particles rather than
-grid cells.  Many of these fields have corresponding grid fields that
-can be populated by "depositing" the particle values onto a yt grid.
-
 General Particle Fields
-+++++++++++++++++++++++
+-----------------------
 
 Every particle will contain both a ``particle_position`` and ``particle_velocity``
 that tracks the position and velocity (respectively) in code units.
 
-
 .. _deposited-particle-fields:
 
 Deposited Particle Fields
-+++++++++++++++++++++++++
+-------------------------
 
 In order to turn particle (discrete) fields into fields that are deposited in
 some regular, space-filling way (even if that space is empty, it is defined
@@ -269,25 +286,25 @@ and ``yt/fields/particle_fields.py``, although that is an advanced topic
 somewhat outside the scope of this section.  The default deposition types
 available are:
 
- * ``count`` - this field counts the total number of particles of a given type
-   in a given mesh zone.  Note that because, in general, the mesh for particle
-   datasets is defined by the number of particles in a region, this may not be
-   the most useful metric.  This may be made more useful by depositing particle
-   data onto an :ref:`arbitrary-grid`.
- * ``density`` - this field takes the total sum of ``particle_mass`` in a given
-   mesh field and divides by the volume.
- * ``mass`` - this field takes the total sum of ``particle_mass`` in each mesh
-   zone.
- * ``cic`` - this field performs cloud-in-cell interpolation (see `Section 2.2
-   <http://ta.twi.tudelft.nl/dv/users/Lemmens/MThesis.TTH/chapter4.html>`_ for more
-   information) of the density of particles in a given mesh zone.
- * ``smoothed`` - this is a special deposition type.  See discussion below for
-   more information, in :ref:`sph-fields`.
+* ``count`` - this field counts the total number of particles of a given type
+  in a given mesh zone.  Note that because, in general, the mesh for particle
+  datasets is defined by the number of particles in a region, this may not be
+  the most useful metric.  This may be made more useful by depositing particle
+  data onto an :ref:`arbitrary-grid`.
+* ``density`` - this field takes the total sum of ``particle_mass`` in a given
+  mesh field and divides by the volume.
+* ``mass`` - this field takes the total sum of ``particle_mass`` in each mesh
+  zone.
+* ``cic`` - this field performs cloud-in-cell interpolation (see `Section 2.2
+  <http://ta.twi.tudelft.nl/dv/users/Lemmens/MThesis.TTH/chapter4.html>`_ for more
+  information) of the density of particles in a given mesh zone.
+* ``smoothed`` - this is a special deposition type.  See discussion below for
+  more information, in :ref:`sph-fields`.
 
 .. _sph-fields:
 
 SPH Fields
-++++++++++
+----------
 
 For gas particles from SPH simulations, each particle will typically carry
 a field for the smoothing length ``h``, which is roughly equivalent to 
