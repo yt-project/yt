@@ -12,11 +12,11 @@ Creating a new data object requires modifications to two different files, one
 of which is in Python and the other in Cython.  First, a subclass of
 :class:`~yt.data_objects.data_containers.YTDataContainer` must be defined;
 typically you actually want to subclass one of:
-:class:`~yt.data_objects.data_containers.YTDataContainer0D`
-:class:`~yt.data_objects.data_containers.YTDataContainer1D`
-:class:`~yt.data_objects.data_containers.YTDataContainer2D`
-:class:`~yt.data_objects.data_containers.YTDataContainer3D`.  The following
-attributes must be defined:
+:class:`~yt.data_objects.data_containers.YTSelectionDataContainer0D`
+:class:`~yt.data_objects.data_containers.YTSelectionDataContainer1D`
+:class:`~yt.data_objects.data_containers.YTSelectionDataContainer2D`
+:class:`~yt.data_objects.data_containers.YTSelectionDataContainer3D`.  
+The following attributes must be defined:
 
  * ``_type_name`` - this is the short name by which the object type will be
    known as.  Remember this for later, as we will have to use it when defining
