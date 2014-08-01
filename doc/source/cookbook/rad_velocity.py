@@ -33,8 +33,8 @@ rp1 = yt.create_profile(sp1, 'radius', 'radial_velocity',
 fig = plt.figure()
 ax = fig.add_subplot(111)
 
-ax.plot(rp0.x, rp0["radial_velocity"].in_units("km/s"),
-        rp1.x, rp1["radial_velocity"].in_units("km/s"))
+ax.plot(rp0.x.value, rp0["radial_velocity"].in_units("km/s").value,
+        rp1.x.value, rp1["radial_velocity"].in_units("km/s").value)
 
 ax.set_xlabel(r"$\mathrm{r\ (kpc)}$")
 ax.set_ylabel(r"$\mathrm{v_r\ (km/s)}$")
