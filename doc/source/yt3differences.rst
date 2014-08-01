@@ -154,7 +154,7 @@ Non-Cartesian Coordinates
 Preliminary support for non-cartesian coordinates has been added.  We expect
 this to be considerably solidified and expanded in yt 3.1.
 
-Reworked import system
+Reworked Import System
 ^^^^^^^^^^^^^^^^^^^^^^
 
 It's now possible to import all yt functionality using ``import yt``. Rather
@@ -201,15 +201,15 @@ method ``setup_deprecated_fields`` like so:
    ds = yt.load("MyData")
    ds.setup_deprecated_fields()
 
-This sets up aliases from the old names to the new.  See :ref:`fields` for
-more information.
+This sets up aliases from the old names to the new.  See :ref:`fields` and
+:ref:`field-list` for more information.
 
 Units of Fields
 ^^^^^^^^^^^^^^^
 
 Fields now are all subclasses of NumPy arrays, the ``YTArray``, which carries
 along with it units.  This means that if you want to manipulate fields, you
-have to modify them in a unitful way.
+have to modify them in a unitful way.  See :ref:`units`.
 
 Parameter Files are Now Datasets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -269,7 +269,8 @@ Field Parameters
 ^^^^^^^^^^^^^^^^
 
 All data objects now accept an explicit list of ``field_parameters`` rather
-than accepting ``kwargs`` and supplying them to field parameters.
+than accepting ``kwargs`` and supplying them to field parameters.  See 
+:ref:`field-parameters`.
 
 Object Renaming
 ^^^^^^^^^^^^^^^
@@ -278,7 +279,8 @@ Nearly all internal objects have been renamed.  Typically this means either
 removing ``AMR`` from the prefix or replacing it with ``YT``.  All names of
 objects remain the same for the purposes of selecting data and creating them;
 i.e., ``sphere`` objects are still called ``sphere`` - you can access create one
-via ``ds.sphere``.  For a detailed description and index see :ref:`available-objects`.
+via ``ds.sphere``.  For a detailed description and index see 
+:ref:`available-objects`.
 
 Boolean Regions
 ^^^^^^^^^^^^^^^
@@ -304,3 +306,9 @@ spatial chunking like so:
 
 This will "spatially" chunk the ``obj`` object and print out all the grids
 included.
+
+Halo Catalogs
+^^^^^^^^^^^^^
+
+The ``Halo Profiler`` infrastructure has been fundamentally rewritten and now
+exists using the ``Halo Catalog`` framework.  See :ref:`halo-analysis`.
