@@ -18,6 +18,35 @@ multiple yt processes through ``mpirun`` and interact with all of them from a
 single, unified interactive prompt.  This enables and facilitates parallel
 analysis without sacrificing interactivity and flexibility.
 
+.. _pastebin:
+
+Pastebin
+--------
+
+A pastebin is a website where you can easily copy source code and error
+messages to share with yt developers or your collaborators. At
+http://paste.yt-project.org/ a pastebin is available for placing scripts.  With
+yt the script ``yt_lodgeit.py`` is distributed and wrapped with 
+the ``pastebin`` and ``pastebin_grab`` commands, which allow for commandline 
+uploading and downloading of pasted snippets.  To upload a script you
+would supply it to the command:
+
+.. code-block:: bash
+
+   $ yt pastebin some_script.py
+
+The URL will be returned.  If you'd like it to be marked 'private' and not show
+up in the list of pasted snippets, supply the argument ``--private``.  All
+snippets are given either numbers or hashes.  To download a pasted snippet, you
+would use the ``pastebin_grab`` option:
+
+.. code-block:: bash
+
+   $ yt pastebin_grab 1768
+
+The snippet will be output to the window, so output redirection can be used to
+store it in a file.
+
 Use the Python Debugger
 -----------------------
 

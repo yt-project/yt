@@ -216,7 +216,7 @@ text file, you send the contents of that file to an anonymous pastebin;
 By running the ``pastebin_grab`` subcommand with a pastebin number 
 (e.g. 1768), it will grab the contents of that pastebin 
 (e.g. the website http://paste.yt-project.org/show/1768 ) and send it to 
-STDOUT for local use.  
+STDOUT for local use.  See :ref:`pastebin` for more information.
 
 .. code-block:: bash
 
