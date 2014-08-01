@@ -230,6 +230,5 @@ also access the raw image data that is returned from various yt functions
 directly as a fixed resolution array.  This provides a means for bypassing the 
 yt method for generating plots, and allows the user the freedom to use 
 whatever interface they wish for displaying and saving their image data.  
-The object for doing this is the aptly titled Fixed Resolution Buffer, and 
-there is a full explanation for how to use it 
-:ref:`here <fixed-resolution-buffers>`.
+You can use the :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`
+to accomplish this as described in :ref:`fixed-resolution-buffers`.
