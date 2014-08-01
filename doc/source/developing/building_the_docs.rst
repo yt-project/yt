@@ -1,4 +1,4 @@
-.. _documentation
+.. _documentation:
 
 Documentation
 =============

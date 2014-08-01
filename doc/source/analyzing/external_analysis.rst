@@ -15,10 +15,10 @@ them to apply radiative feedback, one could imagine calling it directly:
 
 .. code-block:: python
 
-   from yt.mods import *
+   import yt
    import radtrans
 
-   ds = load("DD0010/DD0010")
+   ds = yt.load("DD0010/DD0010")
    rt_grids = []
 
    for grid in ds.index.grids:
@@ -36,13 +36,13 @@ this:
 
 .. code-block:: python
 
-   from yt.mods import *
+   import yt
    import pop_synthesis
 
-   ds = load("DD0010/DD0010")
-   dd = ds.all_data()
-   star_masses = dd["StarMassMsun"]
-   star_metals = dd["StarMetals"]
+   ds = yt.load("DD0010/DD0010")
+   ad = ds.all_data()
+   star_masses = ad["StarMassMsun"]
+   star_metals = ad["StarMetals"]
 
    pop_synthesis.CalculateSED(star_masses, star_metals)
 
@@ -94,11 +94,11 @@ Here is the ``axes.h`` file in our imaginary code, which we will then wrap:
 There are several components to this analysis routine which we will have to
 wrap.
 
-   #. We have to wrap the creation of an instance of ``ParticleCollection``.
-   #. We have to transform a set of NumPy arrays into pointers to doubles.
-   #. We have to create a set of doubles into which ``calculate_axes`` will be
-      placing the values of the axes it calculates.
-   #. We have to turn the return values back into Python objects.
+#. We have to wrap the creation of an instance of ``ParticleCollection``.
+#. We have to transform a set of NumPy arrays into pointers to doubles.
+#. We have to create a set of doubles into which ``calculate_axes`` will be
+   placing the values of the axes it calculates.
+#. We have to turn the return values back into Python objects.
 
 Each of these steps can be handled in turn, and we'll be doing it using Cython
 as our interface code.
