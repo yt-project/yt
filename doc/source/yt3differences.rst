@@ -16,9 +16,10 @@ Here's a quick reference for how to update your code to work with yt-3.0.
 
 * We have reworked yt's import system so that most commonly-used yt functions
   and classes live in the top-level yt namespace. That means you can now
-  import yt with ``import yt``, load a dataset with ``ds = yt.load``
+  import yt with ``import yt``, load a dataset with ``ds = yt.load(filename)``
   and create a plot with ``yt.SlicePlot``.  See :ref:`api-reference` for a full
-  API listing.
+  API listing.  You can still import using ``from yt.mods import *`` to get a
+  pylab-like experience.
 * Fields and metadata for data objects and datasets now have units.  The unit
   system keeps you from making weird things like ``ergs`` + ``g`` and can
   handle things like ``g`` + ``kg`` or ``kg*m/s**2 == Newton``.  See
@@ -29,33 +30,36 @@ Here's a quick reference for how to update your code to work with yt-3.0.
   Axis names are now at the *end* of field names, not the beginning.
   ``x-velocity`` is now ``velocity_x``.  For a full list of all of the fields, 
   see :ref:`field-list`.
-* Fields can be accessed by a name, but are named internally as ``(fluid_type,
-  fluid_name)``.  See :ref:`fields`.
-* Mesh fields on-disk will be in code units, and will be named ``(code_name,
-  FieldName)``. See :ref:`fields`.
+* Fields can be accessed by a name, but are named internally as ``(field_type,
+  field_name)``.  See :ref:`fields`.
+* Mesh fields that exist on-disk in an output file can be read in using whatever
+  name is used by the output file.  On-disk fields are always returned in code
+  units.  The full field name will be will be ``(code_name, field_name)``. See
+  :ref:`fields`.
 * Particle fields on-disk will also be in code units, and will be named
   ``(particle_type, FieldName)``.  If there is only one particle type in the
-  output file, the particle type for all particles will be ``io``. See 
+  output file, all particles will use ``io`` as the particle type. See 
   :ref:`fields`.
-* Previously, yt would capture command line arguments when being imported.
-  This no longer happens.  As a side effect, it is no longer necessary to
-  specify ``--parallel`` at the command line when running a parallel 
-  computation. Use ``yt.enable_parallelism()`` instead.  See 
+* The objects we used to refer to as "parameter files" we now refer to as a
+  dataset.  Instead of ``pf``, we now suggest you use ``ds`` to refer to an
+  object returned by ``yt.load``.
+* You can now create data objects without referring to hierarchy: instead of
+  ``pf.h.all_data()``, you can now say ``ds.all_data()``.
+* The hierarchy is still there, but it is now called the index: ``ds.index``.
+* Command line arguments are only parsed when yt is imported using ``from
+  yt.mods import *``. Since command line arguments are not parsed when using
+  ``import yt``, it is no longer necessary to specify ``--parallel`` at the
+  command line when running a parallel computation. Use
+  ``yt.enable_parallelism()`` in your script instead.  See
   :ref:`parallel-computation` for more details.
-* Any derived quantities that *always* returned lists (like ``Extrema``,
-  which would return a list even if you only ask for one field) now only
-  returns a single result if you only ask for one field.  Results for particle
-  and mesh fields will be returned separately.  See :ref:`derived-quantities`
-  for more information.
-* Derived quantities can now be accessed via a function that hangs off of the
-  ``quantities`` atribute of data objects. Instead of
-  ``dd.quantities['TotalMass']``, you can now use
-  ``dd.quantities.total_mass()`` to do the same thing. All derived quantities
-  can be accessed via a function that hangs off of the `quantities` attribute
-  of data objects. See :ref:`derived-quantities`.
-* You can't get the ``grids`` attribute of data objects.  To get this
+* Derived quantities have been reworked.  You can now do
+  ``dd.quantities.total_mass()`` instead of ``dd.quantities['TotalMass']()``.
+* The ``grids`` attribute of data objects no longer exists.  To get this
   information, you have to use spatial chunking and then access them.  See
-  :ref:`here grid-chunking` for an example.
+  :ref:`here grid-chunking` for an example.  For datasets that use grid
+  hierarchies, you can also access the grids for the entire dataset via
+  `ds.index.grids`.  This attribute is not defined for particle or octree
+  datasets.
 
 Cool New Things
 ---------------
@@ -125,6 +129,20 @@ Non-Cartesian Coordinates
 Preliminary support for non-cartesian coordinates has been added.  We expect
 this to be considerably solidified and expanded in yt 3.1.
 
+Reworked import system
+^^^^^^^^^^^^^^^^^^^^^^
+
+It's now possible to import all yt functionality using ``import yt``. Rather
+than using ``from yt.mods import *``, we suggest using ``import yt`` in new
+scripts.  Most commonly used yt functionality is attached to the ``yt`` module.
+Load a dataset with ``yt.load()``, create a phase plot using ``yt.PhasePlot,
+and much more, see :ref:`the api docs api-reference` to learn more about what's
+in the ``yt`` namespace, or just use tab completion in IPython: ``yt.<tab>``.
+
+It's still possible to use ``from yt.mods import *`` to create an interactive
+pylab-like experience.  Importing yt this way has several side effects, most
+notably the command line arguments parsing and other startup tasks will run.
+
 API Changes
 -----------
 
@@ -182,6 +200,22 @@ The hierarchy object (``pf.h``) is now referred to as an index (``ds.index``).
 It is no longer necessary to directly refer to the ``index`` as often, since
 data objects are now attached to the to the ``dataset`` object.  Before, you
 would say ``ph.f.sphere()``, now you can say ``ds.sphere()``.
+
+New derived quantities interface
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Derived quantities can now be accessed via a function that hangs off of the
+``quantities`` atribute of data objects. Instead of
+``dd.quantities['TotalMass']()``, you can now use ``dd.quantities.total_mass()``
+to do the same thing. All derived quantities can be accessed via a function that
+hangs off of the `quantities` attribute of data objects.
+
+Any derived quantities that *always* returned lists (like ``Extrema``, which
+would return a list even if you only ask for one field) now only returns a
+single result if you only ask for one field.  Results for particle and mesh
+fields will also be returned separately.  See :ref:`derived-quantities` for more
+information.
+
 
 Field Info
 ^^^^^^^^^^
