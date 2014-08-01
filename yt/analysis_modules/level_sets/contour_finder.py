@@ -33,14 +33,20 @@ def identify_contours(data_source, field, min_val, max_val,
     empty_mask = np.ones((1,1,1), dtype="uint8")
     node_ids = []
     DLE = data_source.ds.domain_left_edge
+    total_vol = None
     for (g, node, (sl, dims, gi)) in data_source.tiles.slice_traverse():
+        if total_vol is None:
+            total_vol = g["cell_volume"][sl].sum()
+        else:
+            total_vol += g["cell_volume"][sl].sum()
         node.node_ind = len(node_ids)
         nid = node.node_id
         node_ids.append(nid)
         values = g[field][sl].astype("float64")
         contour_ids = np.zeros(dims, "int64") - 1
+        mask = data_source.selector.fill_mask(g)[sl]
         total_contours += gct.identify_contours(values, contour_ids,
-                                                total_contours)
+                                                mask.astype("uint8"), total_contours)
         new_contours = tree.cull_candidates(contour_ids)
         tree.add_contours(new_contours)
         # Now we can create a partitioned grid with the contours.
@@ -50,6 +56,7 @@ def identify_contours(data_source, field, min_val, max_val,
             [contour_ids.view("float64")], empty_mask,
             LE, RE, dims.astype("int64"))
         contours[nid] = (g.Level, node.node_ind, pg, sl)
+    print total_vol, data_source["cell_volume"].sum()
     node_ids = np.array(node_ids)
     if node_ids.size == 0:
         return 0, {}

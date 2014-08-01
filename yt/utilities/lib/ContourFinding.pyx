@@ -296,6 +296,7 @@ cdef class TileContourTree:
     @cython.wraparound(False)
     def identify_contours(self, np.ndarray[np.float64_t, ndim=3] values,
                                 np.ndarray[np.int64_t, ndim=3] contour_ids,
+                                np.ndarray[np.uint8_t, ndim=3] mask,
                                 np.int64_t start):
         # This just looks at neighbor values and tries to identify which zones
         # are touching by face within a given brick.
@@ -317,6 +318,7 @@ cdef class TileContourTree:
                 for k in range(nk):
                     v = values[i,j,k]
                     if v < self.min_val or v > self.max_val: continue
+                    if mask[i,j,k] == 0: continue
                     nc += 1
                     c1 = contour_create(nc + start)
                     cur = container[i*nj*nk + j*nk + k] = c1
@@ -403,7 +405,7 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
                 + vc0.dims[1]*vc0.dims[2]) * 18
     # We allocate an array of fixed (maximum) size
     cdef np.ndarray[np.int64_t, ndim=2] joins = np.zeros((s, 2), dtype="int64")
-    cdef int ti = 0, side
+    cdef int ti = 0, side, m
     cdef int index, pos[3], my_pos[3]
     cdef np.float64_t spos[3]
 
@@ -440,10 +442,12 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
                             if spos_contained(vc1, spos):
                                 index = vc_index(vc0, my_pos[0], 
                                                  my_pos[1], my_pos[2])
+                                m = vc0.mask[index]
                                 c1 = (<np.int64_t*>vc0.data[0])[index]
                                 index = vc_pos_index(vc1, spos)
+                                m *= vc1.mask[index]
                                 c2 = (<np.int64_t*>vc1.data[0])[index]
-                                if c1 > -1 and c2 > -1:
+                                if m == 1 and c1 > -1 and c2 > -1:
                                     if examined[adj_node.node_ind] == 0:
                                         joins[ti,0] = i64max(c1,c2)
                                         joins[ti,1] = i64min(c1,c2)
