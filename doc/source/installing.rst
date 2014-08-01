@@ -13,9 +13,9 @@ will work best for you depends on your precise situation:
 
 * If you do not have root access on your computer, are not comfortable managing
   python packages, or are working on a supercomputer or cluster computer, you
-  will probably want to use the bash installation script.  This builds python,
-  numpy, matplotlib, and yt from source to set up an isolated scientific python
-  environment inside of a single folder in your home directory. See
+  will probably want to use the bash all-in-one installation script.  This builds 
+  python, numpy, matplotlib, and yt from source to set up an isolated scientific 
+  python environment inside of a single folder in your home directory. See
   :ref:`install-script` for more details.
 
 * If you use the `Anaconda <https://store.continuum.io/cshop/anaconda/>`_ python
@@ -261,36 +261,6 @@ As above, you can leave off ``--user --prefix=`` if you want to install yt into 
 package install path.  If you do not have write access for this location, you
 might need to use ``sudo``.
 
-Switching to yt 2.x
-^^^^^^^^^^^^^^^^^^^
-
-With the release of version 3.0 of yt, development of the legacy yt 2.x series
-has been relegated to bugfixes.  That said, we will continue supporting the 2.x
-series for the forseeable future.  This makes it easy to use scripts written
-for older versions of yt without substantially updating them to support the
-new field naming or unit systems in yt version 3.
-
-Currently, the yt-2.x codebase is contained in a named branch in the yt
-mercurial repository.  First, remove any extant installations of yt on your
-system:
-
-.. code-block:: bash
-
-  pip uninstall yt
-
-To switch to yt-2.x, you will need to clone the mercurial repository as
-described in :ref:`source-installation`.  Next, you will need to navigate to the
-mercurial repository, update to the `yt-2.x` branch, and recompile:
-
-.. code-block:: bash
-
-  cd yt
-  hg update yt-2.x
-  python setup.py develop --user --prefix=
-
-You can check which version of yt you have installed by invoking ``yt version``
-at the command line.
-
 Keeping yt Updated via Mercurial
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -331,3 +301,49 @@ figure it out.
 
 If you like, this might be a good time to run the test suite, see :ref:`testing`
 for more details.
+
+.. _switching-between-yt-versions:
+
+Switching between yt-2.x and yt-3.x
+-----------------------------------
+
+With the release of version 3.0 of yt, development of the legacy yt 2.x series
+has been relegated to bugfixes.  That said, we will continue supporting the 2.x
+series for the forseeable future.  This makes it easy to use scripts written
+for older versions of yt without substantially updating them to support the
+new field naming or unit systems in yt version 3.
+
+Currently, the yt-2.x codebase is contained in a named branch in the yt
+mercurial repository.  If you have installed python via ``pip``, remove 
+any extant installations of yt on your system and clone the source mercurial 
+repository of yt as described in :ref:`source-installation`.
+If you installed using the all-in-one installation script, then you can skip 
+the uninstall and cloning because you already have the source repository.
+
+.. code-block:: bash
+
+  pip uninstall yt
+
+Now, to switch between versions, you need to navigate to the root of
+the mercurial yt repository (if you used the all-in-one installation script, 
+that is the directory named ``yt-machine/src/yt-hg``).  Use mercurial to
+update the the appropriate version and recompile.  For switching to yt-2.x,
+you would do this:
+
+.. code-block:: bash
+
+  cd <yt-repo-root-dir>
+  hg update yt-2.x
+  python setup.py develop --user --prefix=
+
+For updating to yt-3.0 you would do this (the ``yt`` branch is the current
+stable version of the code):
+
+.. code-block:: bash
+
+  cd <yt-repo-root-dir>
+  hg update yt
+  python setup.py develop --user --prefix=
+
+You can check which version of yt you have installed by invoking ``yt version``
+at the command line.

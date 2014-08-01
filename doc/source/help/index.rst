@@ -53,6 +53,32 @@ or you could update yt's source as well as any software dependencies by running:
 
   $ yt update --all
 
+.. _update_errors:
+
+Update Errors
+^^^^^^^^^^^^^
+
+If for some reason the ``update`` command fails with errors, or any attempt at 
+loading yt either from the command line or from within python also fails, it 
+may simply mean you need to rebuild the yt source (some of the c-code in yt 
+needs to be rebuilt after major changes).  You can do this by navigating to
+the root of the yt mercurial repository.  If you installed with the all-in-one
+installer script, this is the ``yt-<machine>/src/yt-hg`` directory.  Then 
+execute these commands:
+
+.. code-block:: bash
+
+  $ python setup.py install --user --prefix=
+
+Now try running yt again with:
+
+.. code-block:: bash
+
+  $ yt --help
+
+If you continue to see errors, you should try contacting us via IRC or email
+but you may have to reinstall yt (see :ref:`getting-and-installing`).
+
 .. _search-the-documentation:
 
 Search the Documentation and Mailing Lists
@@ -194,7 +220,6 @@ or you can use the command line ``yt bugreport`` to interactively create one.
 Alternatively, email the ``yt-users`` mailing list and we will construct a new
 ticket in your stead.  Remember to include the information
 about your problem you identified in :ref:`this step <isolate_and_document>`.
-
 
 Installation Issues
 -------------------

@@ -9,6 +9,30 @@ than what you are used to.  We have tried to build compatibility layers to
 minimize disruption to existing scripts, but necessarily things will be
 different in some ways.
 
+Updating to yt 3.0 from Old Versions
+------------------------------------
+
+First off, you need to update your version of yt to yt 3.0.  If you're
+installing yt for the first time, please visit :ref:`getting-and-installing-yt`.
+If you already have a version of yt installed, you should just need one
+command:
+
+.. code-block:: bash
+
+    $ yt update --all
+
+This will update yt to the most recent version as well as download the latest
+dependencies and rebuild the source base.  This may take a few minutes.  To test
+to make sure yt is running, try:
+
+.. code-block:: bash
+
+    $ yt --help
+
+If you receive no errors, then you are ready to go.  If you have
+an error, then consult :ref:`update-errors` for solutions.  We also
+provide instructions for :ref:`switching-between-yt-versions`.
+
 Cheat Sheet
 -----------
 
