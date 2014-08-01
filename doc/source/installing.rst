@@ -338,7 +338,7 @@ Valid versions to jump to are:
 * ``yt-2.x`` -- The latest stable release of yt-2.x
     
 You can check which version of yt you have installed by invoking ``yt version``
-at the command line.  If encounter problems, see :ref:`update-errors`.
+at the command line.  If you encounter problems, see :ref:`update-errors`.
 
 If You Installed yt Using from Source or Using pip
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -350,6 +350,7 @@ repository of yt as described in :ref:`source-installation`.
 .. code-block:: bash
 
   pip uninstall yt
+  hg clone https://bitbucket.org/yt_analysis/yt
 
 Now, to switch between versions, you need to navigate to the root of
 the mercurial yt repository. Use mercurial to
@@ -357,7 +358,7 @@ update to the appropriate version and recompile.
 
 .. code-block:: bash
 
-  cd <yt-repo-root-dir>
+  cd yt
   hg update <desired-version>
   python setup.py install --user --prefix=
 
@@ -368,4 +369,4 @@ Valid versions to jump to are:
 * ``yt-2.x`` -- The latest stable release of yt-2.x
     
 You can check which version of yt you have installed by invoking ``yt version``
-at the command line.  If encounter problems, see :ref:`update-errors`.
+at the command line.  If you encounter problems, see :ref:`update-errors`.
