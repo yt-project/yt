@@ -113,9 +113,9 @@ class TipsyFieldInfo(SPHFieldInfo):
     
     def __init__(self, ds, field_list, slice_info = None):
         for field in field_list:
-            if field[1] in aux_particle_fields.keys() and \
-                aux_particle_fields[field[1]] not in self.known_particle_fields:
-                self.known_particle_fields += (aux_particle_fields[field[1]],)
+            if field[1] in self.aux_particle_fields.keys() and \
+                self.aux_particle_fields[field[1]] not in self.known_particle_fields:
+                self.known_particle_fields += (self.aux_particle_fields[field[1]],)
         super(TipsyFieldInfo,self).__init__(ds, field_list, slice_info)
 
 
