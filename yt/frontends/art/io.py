@@ -177,17 +177,6 @@ class IOHandlerART(BaseIOHandler):
         else:
             return tr[field]
 
-    def _read_particle_selection(self, chunks, selector, fields):
-        chunk = chunks.next()
-        self.pf = chunk.objs[0].domain.pf
-        data = {f:np.array([]) for f in fields}
-        for f in fields:
-            ftype, fname = f
-            mask = self._get_mask(selector, ftype)
-            arr = self._get_field(f)[mask].astype('f8')
-            data[f] = np.concatenate((arr, data[f]))
-        return data
-
 def _determine_field_size(pf, field, lspecies, ptmax):
     pbool = np.zeros(len(lspecies), dtype="bool")
     idxas = np.concatenate(([0, ], lspecies[:-1]))
