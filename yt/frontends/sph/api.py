@@ -25,4 +25,5 @@ from .io import \
       IOHandlerGadgetBinary
 
 from .fields import \
-      SPHFieldInfo
+      SPHFieldInfo, \
+      TipsyFieldInfo

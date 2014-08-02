@@ -12,6 +12,7 @@ from yt.frontends.api import _frontends
 from yt.fields.derived_field import NullFunc
 import yt.frontends as frontends_module
 from yt.units.yt_array import YTArray, Unit
+from yt.units import dimensions
 
 fields, units = [], []
 
@@ -22,6 +23,7 @@ base_ds = fake_random_ds(4, fields = fields, units = units)
 base_ds.index
 base_ds.cosmological_simulation = 1
 base_ds.cosmology = Cosmology()
+
 from yt.config import ytcfg
 ytcfg["yt","__withintesting"] = "True"
 np.seterr(all = 'ignore')
@@ -52,6 +54,12 @@ ds.cosmology = Cosmology(hubble_constant=ds.hubble_constant,
                          omega_matter=ds.omega_matter,
                          omega_lambda=ds.omega_lambda,
                          unit_registry=ds.unit_registry)
+for my_unit in ["m", "pc", "AU", "au"]:
+    new_unit = "%scm" % my_unit
+    ds.unit_registry.add(new_unit, base_ds.unit_registry.lut[my_unit][0],
+                         dimensions.length, "\\rm{%s}/(1+z)" % my_unit)
+
+
 
 header = r"""
 .. _field-list:
@@ -76,8 +84,8 @@ to display the native fields in alphabetical order:
 
 .. notebook-cell::
 
-  from yt.mods import *
-  ds = load("Enzo_64/DD0043/data0043")
+  import yt
+  ds = yt.load("Enzo_64/DD0043/data0043")
   for i in sorted(ds.field_list):
     print i
 
@@ -93,11 +101,9 @@ print header
 seen = []
 
 def fix_units(units):
-    units = units.replace("**", "^")
-    for u in ["length","mass","time","velocity","magnetic",
-              "temperature","metallicity"]:
-        units = units.replace("code_%s" % u, "code\_%s" % u)
-    return units
+    unit_object = Unit(units, registry=ds.unit_registry)
+    latex = unit_object.latex_representation()
+    return latex.replace('\/','~')
 
 def print_all_fields(fl):
     for fn in sorted(fl):
@@ -108,7 +114,7 @@ def print_all_fields(fl):
         print "-" * len(s)
         print
         if len(df.units) > 0:
-            print "   * Units: :math:`\mathrm{%s}`" % fix_units(df.units)
+            print "   * Units: :math:`%s`" % fix_units(df.units)
         print "   * Particle Type: %s" % (df.particle_type)
         print
         print "**Field Source**"
@@ -131,7 +137,9 @@ def print_frontend_field(ftype, field, ptype):
     name = field[0]
     units = field[1][0]
     aliases = ["``%s``" % f for f in field[1][1]]
-    s = "(%s, %s)" % (ftype, name)
+    if ftype is not "particle_type":
+        ftype = "'"+ftype+"'"
+    s = "(%s, '%s')" % (ftype, name)
     print s
     print "-" * len(s)
     print
@@ -140,14 +148,17 @@ def print_frontend_field(ftype, field, ptype):
     if len(aliases) > 0:
         print "   * Aliased to: %s" % " ".join(aliases)
     print "   * Particle Type: %s" % (ptype)
+    print
 
-current_frontends = [f for f in _frontends if f not in ["stream", "sph", "halo_catalogs", "sdf"]]
+current_frontends = [f for f in _frontends if f not in ["stream"]]
 
 for frontend in current_frontends:
     this_f = getattr(frontends_module, frontend)
     field_info_names = [fi for fi in dir(this_f) if "FieldInfo" in fi]
     dataset_names = [dset for dset in dir(this_f) if "Dataset" in dset]
-    #if frontend == "sph": field_info_names.remove("SPHFieldInfo")
+    if frontend == "sph":
+        field_info_names = \
+          ['TipsyFieldInfo' if 'Tipsy' in d else 'SPHFieldInfo' for d in dataset_names]
     for dset_name, fi_name in zip(dataset_names, field_info_names):
         fi = getattr(this_f, fi_name)
         nfields = 0
@@ -158,15 +169,20 @@ for frontend in current_frontends:
             known_other_fields = []
         if hasattr(fi, "known_particle_fields"):
             known_particle_fields = fi.known_particle_fields
+            if 'Tipsy' in fi_name:
+                known_particle_fields += tuple(fi.aux_particle_fields.values())
             nfields += len(known_particle_fields)
         else:
             known_particle_fields = []
         if nfields > 0:
-            print ".. _%s_specific_fields:\n" % frontend
-            h = "%s-Specific Fields" % fi_name.replace("FieldInfo", "")
+            print ".. _%s_specific_fields:\n" % dset_name.replace("Dataset", "")
+            h = "%s-Specific Fields" % dset_name.replace("Dataset", "")
             print h
             print "+" * len(h) + "\n"
             for field in known_other_fields:
                 print_frontend_field(frontend, field, False)
             for field in known_particle_fields:
-                print_frontend_field("io", field, True)
+                if frontend in ["sph", "halo_catalogs", "sdf"]:
+                    print_frontend_field("particle_type", field, True)
+                else:
+                    print_frontend_field("io", field, True)
