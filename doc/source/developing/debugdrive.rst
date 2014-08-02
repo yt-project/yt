@@ -1,9 +1,9 @@
 .. _debug-drive:
 
-Debugging and Driving YT
-========================
+Debugging yt
+============
 
-There are several different convenience functions that allow you to control YT
+There are several different convenience functions that allow you to control yt
 in perhaps unexpected and unorthodox manners.  These will allow you to conduct
 in-depth debugging of processes that may be running in parallel on multiple
 processors, as well as providing a mechanism of signalling to yt that you need
@@ -20,8 +20,8 @@ analysis without sacrificing interactivity and flexibility.
 
 .. _pastebin:
 
-The Pastebin
-------------
+Pastebin
+--------
 
 A pastebin is a website where you can easily copy source code and error
 messages to share with yt developers or your collaborators. At
@@ -47,24 +47,12 @@ would use the ``pastebin_grab`` option:
 The snippet will be output to the window, so output redirection can be used to
 store it in a file.
 
-.. _error-reporting:
+Use the Python Debugger
+-----------------------
 
-Error Reporting with the Pastebin
-+++++++++++++++++++++++++++++++++
-
-If you are having troubles with yt, you can have it paste the error report
-to the pastebin by running your problematic script with the ``--paste`` option:
-
-.. code-block:: bash
-
-   $ python2.7 some_problematic_script.py --paste
-
-The ``--paste`` option has to come after the name of the script.  When the
-script dies and prints its error, it will also submit that error to the
-pastebin and return a URL for the error.  When reporting your bug, include this
-URL and then the problem can be debugged more easily.
-
-For more information on asking for help, see `asking-for-help`.
+yt is almost entirely composed of python code, so it makes sense to use
+the python debugger as your first stop in trying to debug it:
+`https://docs.python.org/2/library/pdb.html`_
 
 Signaling yt to Do Something
 ----------------------------

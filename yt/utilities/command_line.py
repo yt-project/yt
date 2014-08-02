@@ -388,7 +388,7 @@ def get_yt_version():
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
     if not os.path.isdir(os.path.join(path, ".hg")): return None
-    version = _get_hg_version(path)[:12]
+    version = _get_hg_version(path)
     return version
 
 # This code snippet is modified from Georg Brandl

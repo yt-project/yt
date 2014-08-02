@@ -57,10 +57,11 @@ header = r"""
 Field List
 ==========
 
-This is a list of many of the fields available in ``yt``.  We have attempted to
+This is a list of many of the fields available in yt.  We have attempted to
 include most of the fields that are accessible through the plugin system,
 however it is possible to generate many more permutations, particularly through
-vector operations.
+vector operations.  For more information about the fields framework,
+see :ref:`fields`.
 
 Try using the ``ds.field_list`` and ``ds.derived_field_list`` to view the
 native and derived fields available for your dataset respectively. For example
@@ -73,6 +74,8 @@ to display the native fields in alphabetical order:
   for i in sorted(ds.field_list):
     print i
 
+To figure out out what all of the field types here mean, see 
+:ref:`known-field-types`.
 """
 
 print header
