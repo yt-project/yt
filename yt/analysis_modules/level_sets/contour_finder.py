@@ -30,24 +30,27 @@ def identify_contours(data_source, field, min_val, max_val,
     gct = TileContourTree(min_val, max_val)
     total_contours = 0
     contours = {}
-    empty_mask = np.ones((1,1,1), dtype="uint8")
     node_ids = []
     DLE = data_source.ds.domain_left_edge
+    total_vol = None
+    selector = getattr(data_source, "base_object", data_source).selector
+    masks = dict((g.id, m) for g, m in data_source.blocks)
     for (g, node, (sl, dims, gi)) in data_source.tiles.slice_traverse():
         node.node_ind = len(node_ids)
         nid = node.node_id
         node_ids.append(nid)
         values = g[field][sl].astype("float64")
         contour_ids = np.zeros(dims, "int64") - 1
+        mask = masks[g.id][sl].astype("uint8")
         total_contours += gct.identify_contours(values, contour_ids,
-                                                total_contours)
+                                                mask, total_contours)
         new_contours = tree.cull_candidates(contour_ids)
         tree.add_contours(new_contours)
         # Now we can create a partitioned grid with the contours.
         LE = (DLE + g.dds * gi).in_units("code_length").ndarray_view()
         RE = LE + (dims * g.dds).in_units("code_length").ndarray_view()
         pg = PartitionedGrid(g.id,
-            [contour_ids.view("float64")], empty_mask,
+            [contour_ids.view("float64")], mask,
             LE, RE, dims.astype("int64"))
         contours[nid] = (g.Level, node.node_ind, pg, sl)
     node_ids = np.array(node_ids)

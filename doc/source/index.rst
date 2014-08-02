@@ -28,7 +28,7 @@ Table of Contents
          </p>
        </td>
        <td width="75%">
-         <p class="linkdescr">Getting and Installing yt</p>
+         <p class="linkdescr">Getting, Installing, and Updating yt</p>
        </td>
      </tr>
      <tr valign="top">
@@ -78,7 +78,7 @@ Table of Contents
          </p>
        </td>
        <td width="75%">
-         <p class="linkdescr">Use analysis tools to extract results from your data</p>
+         <p class="linkdescr">Use analysis  tools to extract results from your data</p>
        </td>
      </tr>
      <tr valign="top">

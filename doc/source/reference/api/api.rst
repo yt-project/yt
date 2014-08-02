@@ -87,6 +87,7 @@ geometric.
    ~yt.data_objects.selection_data_containers.YTSphereBase
    ~yt.data_objects.selection_data_containers.YTEllipsoidBase
    ~yt.data_objects.selection_data_containers.YTCutRegionBase
+   ~yt.data_objects.grid_patch.AMRGridPatch
 
 Construction Objects
 ++++++++++++++++++++

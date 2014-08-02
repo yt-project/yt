@@ -70,7 +70,8 @@ Field List
 This is a list of many of the fields available in ``yt``.  We have attempted to
 include most of the fields that are accessible through the plugin system, as well as
 the fields that are known by the frontends, however it is possible to generate many more
-permutations, particularly through vector operations.
+permutations, particularly through vector operations. For more information about the fields
+framework, see :ref:`fields`.
 
 Some fields are recognized by specific frontends only. These are typically fields like density
 and temperature that have their own names and units in the different frontend datasets. Often,
@@ -88,6 +89,9 @@ to display the native fields in alphabetical order:
   ds = yt.load("Enzo_64/DD0043/data0043")
   for i in sorted(ds.field_list):
     print i
+
+To figure out out what all of the field types here mean, see
+:ref:`known-field-types`.
 
 .. _yt_fields:
 

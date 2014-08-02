@@ -241,4 +241,4 @@ Worked Example of Halo Catalog in Action
 ----------------------------------------
 
 For a full example of how to use these methods together see 
-:ref:`halo_analysis_example`.
+:ref:`halo-analysis-example`.

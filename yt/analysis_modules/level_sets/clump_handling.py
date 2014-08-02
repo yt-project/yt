@@ -138,7 +138,7 @@ class Clump(object):
                 unique_contours.update(np.unique(ff))
         contour_key = uuid.uuid4().hex
         base_object = getattr(self.data, 'base_object', self.data)
-        add_contour_field(base_object.pf, contour_key)
+        add_contour_field(base_object.ds, contour_key)
         for cid in sorted(unique_contours):
             if cid == -1: continue
             new_clump = base_object.cut_region(
