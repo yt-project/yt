@@ -83,6 +83,17 @@ class CoordinateHandler(object):
         raise NotImplementedError
 
     @property
+    def image_axis_name(self):
+        # Default
+        rv = {}
+        for i in range(3):
+            rv[i] = (self.axis_name[self.x_axis[i]],
+                     self.axis_name[self.y_axis[i]])
+            rv[self.axis_name[i]] = rv[i]
+            rv[self.axis_name[i].upper()] = rv[i]
+        return rv
+
+    @property
     def axis_id(self):
         raise NotImplementedError
 
