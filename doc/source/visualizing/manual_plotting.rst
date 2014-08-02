@@ -34,7 +34,9 @@ of any data two-dimensional data object:
 
 .. python-script::
    
-   import pylab as P
+   import matplotlib
+   matplotlib.use('Agg')
+   from matplotlib import pyplot as plt
    import numpy as np
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
@@ -46,8 +48,8 @@ of any data two-dimensional data object:
    res = [1000, 1000] # create an image with 1000x1000 pixels
    frb = proj.to_frb(width, res, center=c)
 
-   P.imshow(np.array(frb['density']))
-   P.savefig('my_perfect_figure.png')
+   plt.imshow(np.array(frb['density']))
+   plt.savefig('my_perfect_figure.png')
    
 Note that in the above example the axes tick marks indicate pixel indices.  If you
 want to represent physical distances on your plot axes, you will need to use the
@@ -79,7 +81,11 @@ created from a index by calling ``pf.ortho_ray(axis, center)``.
 
    import yt
    import numpy as np
-   import pylab as P
+   import matplotlib
+   from matplotlib import pyplot as plt
+
+   matplotlib.use('Agg')
+
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    c = ds.find_max("density")[1]
    ax = 0 # take a line cut along the x axis
@@ -91,15 +97,15 @@ created from a index by calling ``pf.ortho_ray(axis, center)``.
    # in the line plot
    srt = np.argsort(ray['x'])
 
-   P.subplot(211)
-   P.semilogy(np.array(ray['x'][srt]), np.array(ray['density'][srt]))
-   P.ylabel('density')
-   P.subplot(212)
-   P.semilogy(np.array(ray['x'][srt]), np.array(ray['temperature'][srt]))
-   P.xlabel('x')
-   P.ylabel('temperature')
+   plt.subplot(211)
+   plt.semilogy(np.array(ray['x'][srt]), np.array(ray['density'][srt]))
+   plt.ylabel('density')
+   plt.subplot(212)
+   plt.semilogy(np.array(ray['x'][srt]), np.array(ray['temperature'][srt]))
+   plt.xlabel('x')
+   plt.ylabel('temperature')
 
-   P.savefig("den_temp_xsweep.png")
+   plt.savefig("den_temp_xsweep.png")
 
 Of course, you'll likely want to do something more sophisticated than using the
 matplotlib defaults, but this gives the general idea.

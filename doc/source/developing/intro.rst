@@ -17,7 +17,7 @@ There are four main communication channels for yt:
 
  * We have an IRC channel, on ``irc.freenode.net`` in ``#yt``.
    You can connect through our web
-   gateway without any special client, at `http://yt-project.org/irc.html`_.
+   gateway without any special client, at http://yt-project.org/irc.html .
    *IRC is the first stop for conversation!*
  * `yt-users <http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org>`_
    is a relatively high-traffic mailing list where people are encouraged to ask

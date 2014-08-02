@@ -174,7 +174,7 @@ Here we see how to take an image and save it using different background colors.
 
 In this case we use the :ref:`cookbook-simple_volume_rendering`
 recipe to generate the image, but it works for any NxNx4 image array 
-(3 colors and 1 opacity channel).  See :ref:`volume-rendering` for more
+(3 colors and 1 opacity channel).  See :ref:`volume_rendering` for more
 information.
 
 .. yt_cookbook:: image_background_colors.py

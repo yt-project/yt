@@ -142,7 +142,7 @@ you want to test.  Currently, we test:
 * ``RadAdvect/plt00000``
 * ``RadTube/plt00500``
 
-These datasets are available at `http://yt-project.org/data/`_.
+These datasets are available at http://yt-project.org/data/.
 
 Next, modify the file ``~/.yt/config`` to include a section ``[yt]``
 with the parameter ``test_data_dir``.  Set this to point to the
