@@ -79,12 +79,12 @@ created from a index by calling ``pf.ortho_ray(axis, center)``.
 
 .. python-script::
 
-   import yt
-   import numpy as np
    import matplotlib
+   matplotlib.use('Agg')
    from matplotlib import pyplot as plt
 
-   matplotlib.use('Agg')
+   import yt
+   import numpy as np
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    c = ds.find_max("density")[1]
