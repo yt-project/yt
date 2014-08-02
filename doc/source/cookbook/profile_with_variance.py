@@ -18,11 +18,15 @@ prof = yt.create_profile(sp, 'radius', ('gas', 'velocity_magnitude'),
                          extrema = {'radius': ((0.1, 'kpc'), (1000.0, 'kpc'))},
                          weight_field='cell_mass')
 
+# Create arrays to plot.
+radius = prof.x.value
+mean = prof['gas', 'velocity_magnitude'].value
+variance = prof.variance['gas', 'velocity_magnitude'].value
+
 # Plot the average velocity magnitude.
-plt.loglog(prof.x, prof['gas', 'velocity_magnitude'], label='Mean')
+plt.loglog(radius, mean, label='Mean')
 # Plot the variance of the velocity magnitude.
-plt.loglog(prof.x, prof.variance['gas', 'velocity_magnitude'],
-           label='Standard Deviation')
+plt.loglog(radius, variance, label='Standard Deviation')
 plt.xlabel('r [kpc]')
 plt.ylabel('v [cm/s]')
 plt.legend()

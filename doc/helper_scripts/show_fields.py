@@ -10,8 +10,8 @@ from yt.frontends.stream.fields import \
     StreamFieldInfo
 from yt.frontends.api import _frontends
 from yt.fields.derived_field import NullFunc
-from yt.units.yt_array import YTArray
 import yt.frontends as frontends_module
+from yt.units.yt_array import YTArray, Unit
 
 fields, units = [], []
 

@@ -62,6 +62,7 @@ These will almost never need to be instantiated on their own.
    :toctree: generated/
 
    ~yt.data_objects.data_containers.YTSelectionContainer
+   ~yt.data_objects.data_containers.YTSelectionContainer0D
    ~yt.data_objects.data_containers.YTSelectionContainer1D
    ~yt.data_objects.data_containers.YTSelectionContainer2D
    ~yt.data_objects.data_containers.YTSelectionContainer3D
