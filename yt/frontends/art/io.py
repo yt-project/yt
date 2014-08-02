@@ -39,6 +39,11 @@ class IOHandlerART(BaseIOHandler):
         self.cache = {}
         self.masks = {}
         super(IOHandlerART, self).__init__(*args, **kwargs)
+        self.ws = self.pf.parameters["wspecies"]
+        self.ls = self.pf.parameters["lspecies"]
+        self.file_particle = self.pf._file_particle_data
+        self.file_stars = self.pf._file_particle_stars
+        self.Nrow = self.pf.parameters["Nrow"]
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         # Chunks in this case will have affiliated domain subset objects
@@ -70,8 +75,6 @@ class IOHandlerART(BaseIOHandler):
         if key in self.masks.keys() and self.caching:
             return self.masks[key]
         pf = self.pf
-        ptmax = self.ws[-1]
-        pbool, idxa, idxb = _determine_field_size(pf, ftype, self.ls, ptmax)
         pstr = 'particle_position_%s'
         x,y,z = [self._get_field((ftype, pstr % ax)) for ax in 'xyz']
         mask = selector.select_points(x, y, z, 0.0)
@@ -80,6 +83,26 @@ class IOHandlerART(BaseIOHandler):
             return self.masks[key]
         else:
             return mask
+
+    def _read_particle_coords(self, chunks, ptf):
+        for chunk in chunks:
+            for ptype, field_list in sorted(ptf.items()):
+                x = self._get_field((ptype, "particle_position_x"))
+                y = self._get_field((ptype, "particle_position_y"))
+                z = self._get_field((ptype, "particle_position_z"))
+                yield ptype, (x, y, z)
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        for chunk in chunks:
+            for ptype, field_list in sorted(ptf.items()):
+                x = self._get_field((ptype, "particle_position_x"))
+                y = self._get_field((ptype, "particle_position_y"))
+                z = self._get_field((ptype, "particle_position_z"))
+                mask = selector.select_points(x, y, z, 0.0)
+                if mask is None: continue
+                for field in field_list:
+                    data = self._get_field((ptype, field))
+                    yield (ptype, field), data[mask]
 
     def _get_field(self,  field):
         if field in self.cache.keys() and self.caching:
@@ -157,11 +180,6 @@ class IOHandlerART(BaseIOHandler):
     def _read_particle_selection(self, chunks, selector, fields):
         chunk = chunks.next()
         self.pf = chunk.objs[0].domain.pf
-        self.ws = self.pf.parameters["wspecies"]
-        self.ls = self.pf.parameters["lspecies"]
-        self.file_particle = self.pf._file_particle_data
-        self.file_stars = self.pf._file_particle_stars
-        self.Nrow = self.pf.parameters["Nrow"]
         data = {f:np.array([]) for f in fields}
         for f in fields:
             ftype, fname = f
