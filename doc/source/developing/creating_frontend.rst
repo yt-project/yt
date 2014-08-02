@@ -10,7 +10,7 @@ Creating A New Code Frontend
    message to the mailing list so you can find out the latest about frontends in
    yt 3.0.
 
-``yt`` is designed to support analysis and visualization of data from multiple
+yt is designed to support analysis and visualization of data from multiple
 different simulation codes, although it has so far been most successfully
 applied to Adaptive Mesh Refinement (AMR) data. For a list of codes and the
 level of support they enjoy, see :ref:`code-support`.

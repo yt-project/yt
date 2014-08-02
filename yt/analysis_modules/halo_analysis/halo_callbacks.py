@@ -27,14 +27,15 @@ from yt.funcs import \
      ensure_list, is_root
 from yt.utilities.exceptions import YTUnitConversionError
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.operator_registry import \
+     OperatorRegistry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 from yt.visualization.profile_plotter import \
      PhasePlot
-     
-from .operator_registry import \
-    callback_registry
 
+callback_registry = OperatorRegistry()
+    
 def add_callback(name, function):
     callback_registry[name] =  HaloCallback(function)
 
@@ -78,16 +79,16 @@ def halo_sphere(halo, radius_field="virial_radius", factor=1.0,
         
     """
 
-    dpf = halo.halo_catalog.data_pf
-    hpf = halo.halo_catalog.halos_pf
-    center = dpf.arr([halo.quantities["particle_position_%s" % axis] \
+    dds = halo.halo_catalog.data_ds
+    hds = halo.halo_catalog.halos_ds
+    center = dds.arr([halo.quantities["particle_position_%s" % axis] \
                       for axis in "xyz"])
     radius = factor * halo.quantities[radius_field]
     if radius <= 0.0:
         halo.data_object = None
         return
     try:
-        sphere = dpf.sphere(center, radius)
+        sphere = dds.sphere(center, radius)
     except YTSphereTooSmall:
         halo.data_object = None
         return
@@ -116,11 +117,11 @@ def sphere_field_max_recenter(halo, field):
     """
 
     if halo.data_object is None: return
-    s_pf = halo.data_object.pf
+    s_ds = halo.data_object.ds
     old_sphere = halo.data_object
     max_vals = old_sphere.quantities.max_location(field)
-    new_center = s_pf.arr(max_vals[2:])
-    new_sphere = s_pf.sphere(new_center.in_units("code_length"),
+    new_center = s_ds.arr(max_vals[2:])
+    new_sphere = s_ds.sphere(new_center.in_units("code_length"),
                                old_sphere.radius.in_units("code_length"))
     mylog.info("Moving sphere center from %s to %s." % (old_sphere.center,
                                                         new_sphere.center))
@@ -192,10 +193,10 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
     mylog.info("Calculating 1D profile for halo %d." % 
                halo.quantities["particle_identifier"])
 
-    dpf = halo.halo_catalog.data_pf
+    dds = halo.halo_catalog.data_ds
 
-    if dpf is None:
-        raise RuntimeError("Profile callback requires a data pf.")
+    if dds is None:
+        raise RuntimeError("Profile callback requires a data ds.")
 
     if not hasattr(halo, "data_object"):
         raise RuntimeError("Profile callback requires a data container.")
@@ -219,8 +220,8 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
 
     # temporary fix since profiles do not have units at the moment
     for field in my_profile.field_data:
-        my_profile.field_data[field] = dpf.arr(my_profile[field],
-                                               dpf.field_info[field].units)
+        my_profile.field_data[field] = dds.arr(my_profile[field],
+                                               dds.field_info[field].units)
 
     # accumulate, if necessary
     if accumulation:
@@ -350,7 +351,7 @@ def load_profiles(halo, storage="profiles", fields=None,
         if "units" in out_file[field].attrs:
             units = out_file[field].attrs["units"]
         if units == "dimensionless": units = ""
-        my_profile[field] = halo.halo_catalog.halos_pf.arr(out_file[field].value, units)
+        my_profile[field] = halo.halo_catalog.halos_ds.arr(out_file[field].value, units)
     out_file.close()
     setattr(halo, storage, my_profile)
 
@@ -383,7 +384,7 @@ def virial_quantities(halo, fields, critical_overdensity=200,
 
     fields = ensure_list(fields)
     
-    dpf = halo.halo_catalog.data_pf
+    dds = halo.halo_catalog.data_ds
     profile_data = getattr(halo, profile_storage)
 
     if ("gas", "overdensity") not in profile_data:
@@ -403,7 +404,7 @@ def virial_quantities(halo, fields, critical_overdensity=200,
         if v_field not in halo.halo_catalog.quantities:
             halo.halo_catalog.quantities.append(v_field)
     vquantities = dict([("%s_%d" % (v_fields[field], critical_overdensity),
-                         dpf.quan(0, profile_data[field].units)) \
+                         dds.quan(0, profile_data[field].units)) \
                         for field in fields])
 
     if dfilter.sum() < 2:
@@ -438,7 +439,7 @@ def virial_quantities(halo, fields, critical_overdensity=200,
         v_prof = profile_data[field][dfilter].to_ndarray()
         slope = np.log(v_prof[index + 1] / v_prof[index]) / \
           np.log(vod[index + 1] / vod[index])
-        value = dpf.quan(np.exp(slope * np.log(critical_overdensity / 
+        value = dds.quan(np.exp(slope * np.log(critical_overdensity / 
                                                vod[index])) * v_prof[index],
                          profile_data[field].units).in_cgs()
         vquantities["%s_%d" % (v_fields[field], critical_overdensity)] = value

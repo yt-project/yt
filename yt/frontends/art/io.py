@@ -39,11 +39,11 @@ class IOHandlerART(BaseIOHandler):
         self.cache = {}
         self.masks = {}
         super(IOHandlerART, self).__init__(*args, **kwargs)
-        self.ws = self.pf.parameters["wspecies"]
-        self.ls = self.pf.parameters["lspecies"]
-        self.file_particle = self.pf._file_particle_data
-        self.file_stars = self.pf._file_particle_stars
-        self.Nrow = self.pf.parameters["Nrow"]
+        self.ws = self.ds.parameters["wspecies"]
+        self.ls = self.ds.parameters["lspecies"]
+        self.file_particle = self.ds._file_particle_data
+        self.file_stars = self.ds._file_particle_stars
+        self.Nrow = self.ds.parameters["Nrow"]
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         # Chunks in this case will have affiliated domain subset objects
@@ -54,7 +54,7 @@ class IOHandlerART(BaseIOHandler):
         for chunk in chunks:
             for subset in chunk.objs:
                 # Now we read the entire thing
-                f = open(subset.domain.pf._file_amr, "rb")
+                f = open(subset.domain.ds._file_amr, "rb")
                 # This contains the boundary information, so we skim through
                 # and pick off the right vectors
                 rv = subset.fill(f, fields, selector)
@@ -74,7 +74,7 @@ class IOHandlerART(BaseIOHandler):
         key = (selector, ftype)
         if key in self.masks.keys() and self.caching:
             return self.masks[key]
-        pf = self.pf
+        ds = self.ds
         pstr = 'particle_position_%s'
         x,y,z = [self._get_field((ftype, pstr % ax)) for ax in 'xyz']
         mask = selector.select_points(x, y, z, 0.0)
@@ -112,7 +112,7 @@ class IOHandlerART(BaseIOHandler):
         tr = {}
         ftype, fname = field
         ptmax = self.ws[-1]
-        pbool, idxa, idxb = _determine_field_size(self.pf, ftype, 
+        pbool, idxa, idxb = _determine_field_size(self.ds, ftype, 
                                                   self.ls, ptmax)
         npa = idxb - idxa
         sizes = np.diff(np.concatenate(([0], self.ls)))
@@ -121,7 +121,7 @@ class IOHandlerART(BaseIOHandler):
             idxb=idxb, fields=ax)
         for i, ax in enumerate('xyz'):
             if fname.startswith("particle_position_%s" % ax):
-                dd = self.pf.domain_dimensions[0]
+                dd = self.ds.domain_dimensions[0]
                 off = 1.0/dd
                 tr[field] = rp([ax])[0]/dd - off
             if fname.startswith("particle_velocity_%s" % ax):
@@ -157,7 +157,7 @@ class IOHandlerART(BaseIOHandler):
                 self.file_stars,
                 self.tb,
                 self.ages,
-                self.pf.current_time)
+                self.ds.current_time)
             temp = tr.get(field, np.zeros(npa, 'f8'))
             temp[-nstars:] = data
             tr[field] = temp
@@ -168,7 +168,7 @@ class IOHandlerART(BaseIOHandler):
             # this means that even when requested in *code units*, we are
             # giving them as modified by the ng value.  This only works for
             # dark_matter -- stars are regular matter.
-            tr[field] /= self.pf.domain_dimensions.prod()
+            tr[field] /= self.ds.domain_dimensions.prod()
         if tr == {}:
             tr = dict((f, np.array([])) for f in fields)
         if self.caching:

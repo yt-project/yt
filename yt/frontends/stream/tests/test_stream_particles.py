@@ -41,7 +41,7 @@ def test_stream_particles() :
                     dimensions = grid.ActiveDimensions,
                     number_of_particles = grid.NumberOfParticles)
     
-        for field in amr0.h.field_list :
+        for field in amr0.field_list :
             
             data[field] = grid[field]
             
@@ -90,8 +90,8 @@ def test_stream_particles() :
     # Now refine this
 
     amr1 = refine_amr(ug1, rc, fo, 3)
-    for field in sorted(ug1.h.field_list):
-        yield assert_equal, (field in amr1.h.field_list), True
+    for field in sorted(ug1.field_list):
+        yield assert_equal, (field in amr1.field_list), True
     
     grid_data = []
     
@@ -103,7 +103,7 @@ def test_stream_particles() :
                     dimensions = grid.ActiveDimensions,
                     number_of_particles = grid.NumberOfParticles)
 
-        for field in amr1.h.field_list :
+        for field in amr1.field_list :
 
             data[field] = grid[field]
             

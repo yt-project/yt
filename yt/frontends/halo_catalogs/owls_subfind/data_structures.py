@@ -45,8 +45,8 @@ from yt.units.yt_array import \
     YTQuantity
 
 class OWLSSubfindParticleIndex(ParticleIndex):
-    def __init__(self, pf, dataset_type):
-        super(OWLSSubfindParticleIndex, self).__init__(pf, dataset_type)
+    def __init__(self, ds, dataset_type):
+        super(OWLSSubfindParticleIndex, self).__init__(ds, dataset_type)
 
     def _calculate_particle_index_starts(self):
         # Halo indices are not saved in the file, so we must count by hand.
@@ -78,21 +78,21 @@ class OWLSSubfindParticleIndex(ParticleIndex):
 
     def _detect_output_fields(self):
         # TODO: Add additional fields
-        pfl = []
+        dsl = []
         units = {}
         for dom in self.data_files[:1]:
             fl, _units = self.io._identify_fields(dom)
             units.update(_units)
             dom._calculate_offsets(fl)
             for f in fl:
-                if f not in pfl: pfl.append(f)
-        self.field_list = pfl
-        pf = self.parameter_file
-        pf.particle_types = tuple(set(pt for pt, pf in pfl))
+                if f not in dsl: dsl.append(f)
+        self.field_list = dsl
+        ds = self.dataset
+        ds.particle_types = tuple(set(pt for pt, ds in dsl))
         # This is an attribute that means these particle types *actually*
         # exist.  As in, they are real, in the dataset.
-        pf.field_units.update(units)
-        pf.particle_types_raw = pf.particle_types
+        ds.field_units.update(units)
+        ds.particle_types_raw = ds.particle_types
             
     def _setup_geometry(self):
         super(OWLSSubfindParticleIndex, self)._setup_geometry()
@@ -100,8 +100,8 @@ class OWLSSubfindParticleIndex(ParticleIndex):
         self._calculate_file_offset_map()
     
 class OWLSSubfindHDF5File(ParticleFile):
-    def __init__(self, pf, io, filename, file_id):
-        super(OWLSSubfindHDF5File, self).__init__(pf, io, filename, file_id)
+    def __init__(self, ds, io, filename, file_id):
+        super(OWLSSubfindHDF5File, self).__init__(ds, io, filename, file_id)
         with h5py.File(filename, "r") as f:
             self.header = dict((field, f.attrs[field]) \
                                for field in f.attrs.keys())
@@ -151,7 +151,7 @@ class OWLSSubfindDataset(Dataset):
         self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
         self.file_count = len(glob.glob(prefix + "*" + self._suffix))
         if self.file_count == 0:
-            raise YTException(message="No data files found.", pf=self)
+            raise YTException(message="No data files found.", ds=self)
         self.particle_types = ("FOF", "SUBFIND")
         self.particle_types_raw = ("FOF", "SUBFIND")
         

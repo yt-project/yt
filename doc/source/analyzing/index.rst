@@ -6,12 +6,12 @@ Analyzing Data
 .. toctree::
    :maxdepth: 2
 
+   fields
    objects
    units/index
-   particles
-   creating_derived_fields
+   filtering
    generating_processed_data
    time_series_analysis
-   external_analysis
    parallel_computation
    analysis_modules/index
+   external_analysis

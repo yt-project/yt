@@ -2,12 +2,15 @@ Cosmological Analysis
 ---------------------
 
 These scripts demonstrate some basic and more advanced analysis that can be 
-performed on cosmological simulations.
+performed on cosmological simulation datasets.  Most of the following 
+recipes are derived from functionality in yt's :ref:`analysis-modules`.
 
 Plotting Halos
 ~~~~~~~~~~~~~~
+
 This is a mechanism for plotting circles representing identified particle halos
 on an image.
+See :ref:`halo-analysis` and :ref:`annotate-halos` for more information.
 
 .. yt_cookbook:: halo_plotting.py
 
@@ -15,27 +18,22 @@ on an image.
 
 Halo Profiling and Custom Analysis
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-This script demonstrates the three primary uses of the halo profiler: 
-1) radial profiles and filtering; 2) projections; and 3) custom halo 
-analysis.
+
+This script demonstrates the use of the halo catalog to create radial
+profiles for each halo in a cosmological dataset.
+See :ref:`halo_catalog` for more information.
 
 .. yt_cookbook:: halo_profiler.py
-
-Halo Tracking Across Timesteps
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-This script demonstrates tracking a halo across multiple timesteps
-in a TimeSeries object, as well as some handy functions for looking
-at the properties of that halo over time.
-
-.. yt_cookbook:: halo_merger_tree.py
 
 .. _cookbook-light_cone:
 
 Light Cone Projection
 ~~~~~~~~~~~~~~~~~~~~~
+
 This script creates a light cone projection, a synthetic observation 
 that stacks together projections from multiple datasets to extend over 
 a given redshift interval.
+See :ref:`light-cone-generator` for more information.
 
 .. yt_cookbook:: light_cone_projection.py
 
@@ -43,16 +41,20 @@ a given redshift interval.
 
 Light Ray
 ~~~~~~~~~
+
 This script demonstrates how to make a synthetic quasar sight line that 
 extends over multiple datasets and can be used to generate a synthetic 
 absorption spectrum.
+See :ref:`light-ray-generator` and :ref:`absorption_spectrum` for more information.
 
 .. yt_cookbook:: light_ray.py 
 
 Creating and Fitting Absorption Spectra
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 This script demonstrates how to use light rays to create corresponding
 absorption spectra and then fit the spectra to find absorbing
 structures.
+See :ref:`light-ray-generator` and :ref:`absorption_spectrum` for more information.
 
 .. yt_cookbook:: fit_spectrum.py

@@ -7,9 +7,9 @@ def setup():
     from yt.config import ytcfg
     ytcfg["yt","__withintesting"] = "True"
     def _ID(field, data):
-        width = data.pf.domain_right_edge - data.pf.domain_left_edge
+        width = data.ds.domain_right_edge - data.ds.domain_left_edge
         min_dx = YTArray(1.0/8192, input_units='code_length',
-                         registry=data.pf.unit_registry)
+                         registry=data.ds.unit_registry)
         delta = width / min_dx
         x = data['x'] - min_dx / 2.
         y = data['y'] - min_dx / 2.
@@ -32,10 +32,10 @@ def test_boolean_spheres_no_overlap():
     """
     return
     for n in [1, 2, 4, 8]:
-        pf = fake_random_pf(64, nprocs=n)
-        pf.h
-        sp1 = pf.sphere([0.25, 0.25, 0.25], 0.15)
-        sp2 = pf.sphere([0.75, 0.75, 0.75], 0.15)
+        ds = fake_random_ds(64, nprocs=n)
+        ds.index
+        sp1 = ds.sphere([0.25, 0.25, 0.25], 0.15)
+        sp2 = ds.sphere([0.75, 0.75, 0.75], 0.15)
         # Store the original indices
         i1 = sp1['ID']
         i1.sort()
@@ -44,9 +44,9 @@ def test_boolean_spheres_no_overlap():
         ii = np.concatenate((i1, i2))
         ii.sort()
         # Make some booleans
-        bo1 = pf.boolean([sp1, "AND", sp2]) # empty
-        bo2 = pf.boolean([sp1, "NOT", sp2]) # only sp1
-        bo3 = pf.boolean([sp1, "OR", sp2]) # combination
+        bo1 = ds.boolean([sp1, "AND", sp2]) # empty
+        bo2 = ds.boolean([sp1, "NOT", sp2]) # only sp1
+        bo3 = ds.boolean([sp1, "OR", sp2]) # combination
         # This makes sure the original containers didn't change.
         new_i1 = sp1['ID']
         new_i1.sort()
@@ -72,17 +72,17 @@ def test_boolean_spheres_overlap():
     """
     return
     for n in [1, 2, 4, 8]:
-        pf = fake_random_pf(64, nprocs=n)
-        pf.h
-        sp1 = pf.sphere([0.45, 0.45, 0.45], 0.15)
-        sp2 = pf.sphere([0.55, 0.55, 0.55], 0.15)
+        ds = fake_random_ds(64, nprocs=n)
+        ds.index
+        sp1 = ds.sphere([0.45, 0.45, 0.45], 0.15)
+        sp2 = ds.sphere([0.55, 0.55, 0.55], 0.15)
         # Get indices of both.
         i1 = sp1['ID']
         i2 = sp2['ID']
         # Make some booleans
-        bo1 = pf.boolean([sp1, "AND", sp2]) # overlap (a lens)
-        bo2 = pf.boolean([sp1, "NOT", sp2]) # sp1 - sp2 (sphere with bite)
-        bo3 = pf.boolean([sp1, "OR", sp2]) # combination (H2)
+        bo1 = ds.boolean([sp1, "AND", sp2]) # overlap (a lens)
+        bo2 = ds.boolean([sp1, "NOT", sp2]) # sp1 - sp2 (sphere with bite)
+        bo3 = ds.boolean([sp1, "OR", sp2]) # combination (H2)
         # Now make sure the indices also behave as we expect.
         lens = np.intersect1d(i1, i2)
         apple = np.setdiff1d(i1, i2)
@@ -106,10 +106,10 @@ def test_boolean_regions_no_overlap():
     """
     return
     for n in [1, 2, 4, 8]:
-        pf = fake_random_pf(64, nprocs=n)
-        pf.h
-        re1 = pf.region([0.25]*3, [0.2]*3, [0.3]*3)
-        re2 = pf.region([0.65]*3, [0.6]*3, [0.7]*3)
+        ds = fake_random_ds(64, nprocs=n)
+        ds.index
+        re1 = ds.region([0.25]*3, [0.2]*3, [0.3]*3)
+        re2 = ds.region([0.65]*3, [0.6]*3, [0.7]*3)
         # Store the original indices
         i1 = re1['ID']
         i1.sort()
@@ -118,9 +118,9 @@ def test_boolean_regions_no_overlap():
         ii = np.concatenate((i1, i2))
         ii.sort()
         # Make some booleans
-        bo1 = pf.boolean([re1, "AND", re2]) # empty
-        bo2 = pf.boolean([re1, "NOT", re2]) # only re1
-        bo3 = pf.boolean([re1, "OR", re2]) # combination
+        bo1 = ds.boolean([re1, "AND", re2]) # empty
+        bo2 = ds.boolean([re1, "NOT", re2]) # only re1
+        bo3 = ds.boolean([re1, "OR", re2]) # combination
         # This makes sure the original containers didn't change.
         new_i1 = re1['ID']
         new_i1.sort()
@@ -146,17 +146,17 @@ def test_boolean_regions_overlap():
     """
     return
     for n in [1, 2, 4, 8]:
-        pf = fake_random_pf(64, nprocs=n)
-        pf.h
-        re1 = pf.region([0.55]*3, [0.5]*3, [0.6]*3)
-        re2 = pf.region([0.6]*3, [0.55]*3, [0.65]*3)
+        ds = fake_random_ds(64, nprocs=n)
+        ds.index
+        re1 = ds.region([0.55]*3, [0.5]*3, [0.6]*3)
+        re2 = ds.region([0.6]*3, [0.55]*3, [0.65]*3)
         # Get indices of both.
         i1 = re1['ID']
         i2 = re2['ID']
         # Make some booleans
-        bo1 = pf.boolean([re1, "AND", re2]) # overlap (small cube)
-        bo2 = pf.boolean([re1, "NOT", re2]) # sp1 - sp2 (large cube with bite)
-        bo3 = pf.boolean([re1, "OR", re2]) # combination (merged large cubes)
+        bo1 = ds.boolean([re1, "AND", re2]) # overlap (small cube)
+        bo2 = ds.boolean([re1, "NOT", re2]) # sp1 - sp2 (large cube with bite)
+        bo3 = ds.boolean([re1, "OR", re2]) # combination (merged large cubes)
         # Now make sure the indices also behave as we expect.
         cube = np.intersect1d(i1, i2)
         bite_cube = np.setdiff1d(i1, i2)
@@ -180,10 +180,10 @@ def test_boolean_cylinders_no_overlap():
     """
     return
     for n in [1, 2, 4, 8]:
-        pf = fake_random_pf(64, nprocs=n)
-        pf.h
-        cyl1 = pf.disk([0.25]*3, [1, 0, 0], 0.1, 0.1)
-        cyl2 = pf.disk([0.75]*3, [1, 0, 0], 0.1, 0.1)
+        ds = fake_random_ds(64, nprocs=n)
+        ds.index
+        cyl1 = ds.disk([0.25]*3, [1, 0, 0], 0.1, 0.1)
+        cyl2 = ds.disk([0.75]*3, [1, 0, 0], 0.1, 0.1)
         # Store the original indices
         i1 = cyl1['ID']
         i1.sort()
@@ -192,9 +192,9 @@ def test_boolean_cylinders_no_overlap():
         ii = np.concatenate((i1, i2))
         ii.sort()
         # Make some booleans
-        bo1 = pf.boolean([cyl1, "AND", cyl2]) # empty
-        bo2 = pf.boolean([cyl1, "NOT", cyl2]) # only cyl1
-        bo3 = pf.boolean([cyl1, "OR", cyl2]) # combination
+        bo1 = ds.boolean([cyl1, "AND", cyl2]) # empty
+        bo2 = ds.boolean([cyl1, "NOT", cyl2]) # only cyl1
+        bo3 = ds.boolean([cyl1, "OR", cyl2]) # combination
         # This makes sure the original containers didn't change.
         new_i1 = cyl1['ID']
         new_i1.sort()
@@ -220,17 +220,17 @@ def test_boolean_cylinders_overlap():
     """
     return
     for n in [1, 2, 4, 8]:
-        pf = fake_random_pf(64, nprocs=n)
-        pf.h
-        cyl1 = pf.disk([0.45]*3, [1, 0, 0], 0.2, 0.2)
-        cyl2 = pf.disk([0.55]*3, [1, 0, 0], 0.2, 0.2)
+        ds = fake_random_ds(64, nprocs=n)
+        ds.index
+        cyl1 = ds.disk([0.45]*3, [1, 0, 0], 0.2, 0.2)
+        cyl2 = ds.disk([0.55]*3, [1, 0, 0], 0.2, 0.2)
         # Get indices of both.
         i1 = cyl1['ID']
         i2 = cyl2['ID']
         # Make some booleans
-        bo1 = pf.boolean([cyl1, "AND", cyl2]) # overlap (vertically extened lens)
-        bo2 = pf.boolean([cyl1, "NOT", cyl2]) # sp1 - sp2 (disk minus a bite)
-        bo3 = pf.boolean([cyl1, "OR", cyl2]) # combination (merged disks)
+        bo1 = ds.boolean([cyl1, "AND", cyl2]) # overlap (vertically extened lens)
+        bo2 = ds.boolean([cyl1, "NOT", cyl2]) # sp1 - sp2 (disk minus a bite)
+        bo3 = ds.boolean([cyl1, "OR", cyl2]) # combination (merged disks)
         # Now make sure the indices also behave as we expect.
         vlens = np.intersect1d(i1, i2)
         bite_disk = np.setdiff1d(i1, i2)
@@ -254,12 +254,10 @@ def test_boolean_ellipsoids_no_overlap():
     """
     return
     for n in [1, 2, 4, 8]:
-        pf = fake_random_pf(64, nprocs=n)
-        pf.h
-        ell1 = pf.ellipsoid([0.25]*3, 0.05, 0.05, 0.05, np.array([0.1]*3),
-            np.array([0.1]*3))
-        ell2 = pf.ellipsoid([0.75]*3, 0.05, 0.05, 0.05, np.array([0.1]*3),
-            np.array([0.1]*3))
+        ds = fake_random_ds(64, nprocs=n)
+        ds.index
+        ell1 = ds.ellipsoid([0.25]*3, 0.05, 0.05, 0.05, np.array([0.1]*3), 0.1)
+        ell2 = ds.ellipsoid([0.75]*3, 0.05, 0.05, 0.05, np.array([0.1]*3), 0.1)
         # Store the original indices
         i1 = ell1['ID']
         i1.sort()
@@ -268,9 +266,9 @@ def test_boolean_ellipsoids_no_overlap():
         ii = np.concatenate((i1, i2))
         ii.sort()
         # Make some booleans
-        bo1 = pf.boolean([ell1, "AND", ell2]) # empty
-        bo2 = pf.boolean([ell1, "NOT", ell2]) # only cyl1
-        bo3 = pf.boolean([ell1, "OR", ell2]) # combination
+        bo1 = ds.boolean([ell1, "AND", ell2]) # empty
+        bo2 = ds.boolean([ell1, "NOT", ell2]) # only cyl1
+        bo3 = ds.boolean([ell1, "OR", ell2]) # combination
         # This makes sure the original containers didn't change.
         new_i1 = ell1['ID']
         new_i1.sort()
@@ -296,19 +294,17 @@ def test_boolean_ellipsoids_overlap():
     """
     return
     for n in [1, 2, 4, 8]:
-        pf = fake_random_pf(64, nprocs=n)
-        pf.h
-        ell1 = pf.ellipsoid([0.45]*3, 0.05, 0.05, 0.05, np.array([0.1]*3),
-            np.array([0.1]*3))
-        ell2 = pf.ellipsoid([0.55]*3, 0.05, 0.05, 0.05, np.array([0.1]*3),
-            np.array([0.1]*3))
+        ds = fake_random_ds(64, nprocs=n)
+        ds.index
+        ell1 = ds.ellipsoid([0.45]*3, 0.05, 0.05, 0.05, np.array([0.1]*3), 0.1)
+        ell2 = ds.ellipsoid([0.55]*3, 0.05, 0.05, 0.05, np.array([0.1]*3), 0.1)
         # Get indices of both.
         i1 = ell1['ID']
         i2 = ell2['ID']
         # Make some booleans
-        bo1 = pf.boolean([ell1, "AND", ell2]) # overlap
-        bo2 = pf.boolean([ell1, "NOT", ell2]) # ell1 - ell2
-        bo3 = pf.boolean([ell1, "OR", ell2]) # combination
+        bo1 = ds.boolean([ell1, "AND", ell2]) # overlap
+        bo2 = ds.boolean([ell1, "NOT", ell2]) # ell1 - ell2
+        bo3 = ds.boolean([ell1, "OR", ell2]) # combination
         # Now make sure the indices also behave as we expect.
         overlap = np.intersect1d(i1, i2)
         diff = np.setdiff1d(i1, i2)
@@ -330,22 +326,22 @@ def test_boolean_mix_periodicity():
     """
     return
     for n in [1, 2, 4, 8]:
-        pf = fake_random_pf(64, nprocs=n)
-        pf.h
-        re = pf.region([0.5]*3, [0.0]*3, [1]*3) # whole thing
-        sp = pf.sphere([0.95]*3, 0.3) # wraps around
-        cyl = pf.disk([0.05]*3, [1,1,1], 0.1, 0.4) # wraps around
+        ds = fake_random_ds(64, nprocs=n)
+        ds.index
+        re = ds.region([0.5]*3, [0.0]*3, [1]*3) # whole thing
+        sp = ds.sphere([0.95]*3, 0.3) # wraps around
+        cyl = ds.disk([0.05]*3, [1,1,1], 0.1, 0.4) # wraps around
         # Get original indices
         rei = re['ID']
         spi = sp['ID']
         cyli = cyl['ID']
         # Make some booleans
         # whole box minux spherical bites at corners
-        bo1 = pf.boolean([re, "NOT", sp])
+        bo1 = ds.boolean([re, "NOT", sp])
         # sphere plus cylinder
-        bo2 = pf.boolean([sp, "OR", cyl])
+        bo2 = ds.boolean([sp, "OR", cyl])
         # a jumble, the region minus the sp+cyl
-        bo3 = pf.boolean([re, "NOT", "(", sp, "OR", cyl, ")"])
+        bo3 = ds.boolean([re, "NOT", "(", sp, "OR", cyl, ")"])
         # Now make sure the indices also behave as we expect.
         expect = np.setdiff1d(rei, spi)
         ii = bo1['ID']

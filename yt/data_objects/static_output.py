@@ -62,12 +62,12 @@ from yt.geometry.spec_cube_coordinates import \
 # When such a thing comes to pass, I'll move all the stuff that is contant up
 # to here, and then have it instantiate EnzoDatasets as appropriate.
 
-_cached_pfs = weakref.WeakValueDictionary()
-_pf_store = ParameterFileStore()
+_cached_datasets = weakref.WeakValueDictionary()
+_ds_store = ParameterFileStore()
 
-def _unsupported_object(pf, obj_name):
+def _unsupported_object(ds, obj_name):
     def _raise_unsupp(*args, **kwargs):
-        raise YTObjectNotImplemented(pf, obj_name)
+        raise YTObjectNotImplemented(ds, obj_name)
     return _raise_unsupp
 
 class RegisteredDataset(type):
@@ -139,12 +139,12 @@ class Dataset(object):
             return obj
         apath = os.path.abspath(filename)
         #if not os.path.exists(apath): raise IOError(filename)
-        if apath not in _cached_pfs:
+        if apath not in _cached_datasets:
             obj = object.__new__(cls)
             if obj._skip_cache is False:
-                _cached_pfs[apath] = obj
+                _cached_datasets[apath] = obj
         else:
-            obj = _cached_pfs[apath]
+            obj = _cached_datasets[apath]
         return obj
 
     def __init__(self, filename, dataset_type=None, file_style=None):
@@ -186,11 +186,11 @@ class Dataset(object):
         self.set_units()
         self._setup_coordinate_handler()
 
-        # Because we need an instantiated class to check the pf's existence in
+        # Because we need an instantiated class to check the ds's existence in
         # the cache, we move that check to here from __new__.  This avoids
         # double-instantiation.
         try:
-            _pf_store.check_pf(self)
+            _ds_store.check_ds(self)
         except NoParameterShelf:
             pass
         self.print_key_parameters()
@@ -215,7 +215,7 @@ class Dataset(object):
 
     def __reduce__(self):
         args = (self._hash(),)
-        return (_reconstruct_pf, args)
+        return (_reconstruct_ds, args)
 
     def __repr__(self):
         return self.basename
@@ -431,12 +431,14 @@ class Dataset(object):
         if available:
             self.particle_types += (filter.name,)
             self.filtered_particle_types.append(filter.name)
-            self._setup_particle_types([filter.name])
+            new_fields = self._setup_particle_types([filter.name])
+            deps, _ = self.field_info.check_derived_fields(new_fields)
+            self.field_dependencies.update(deps)
         return available
 
     def _setup_particle_types(self, ptypes = None):
         df = []
-        if ptypes is None: ptypes = self.pf.particle_types_raw
+        if ptypes is None: ptypes = self.ds.particle_types_raw
         for ptype in set(ptypes):
             df += self._setup_particle_type(ptype)
         return df
@@ -498,7 +500,7 @@ class Dataset(object):
                 continue
             cname = cls.__name__
             if cname.endswith("Base"): cname = cname[:-4]
-            self._add_object_class(name, cname, cls, {'pf':weakref.proxy(self)})
+            self._add_object_class(name, cname, cls, {'ds':weakref.proxy(self)})
         if self.refine_by != 2 and hasattr(self, 'proj') and \
             hasattr(self, 'overlap_proj'):
             mylog.warning("Refine by something other than two: reverting to"
@@ -541,7 +543,7 @@ class Dataset(object):
               min_val, mx, my, mz)
         return min_val, self.arr([mx, my, mz], 'code_length', dtype="float64")
 
-    def find_field_values_at_point(self, fields, coord):
+    def find_field_values_at_point(self, fields, coords):
         """
         Returns the values [field1, field2,...] of the fields at the given
         coordinates. Returns a list of field values in the same order as 
@@ -571,10 +573,25 @@ class Dataset(object):
 
     # Now all the object related stuff
     def all_data(self, find_max=False):
+        """
+        all_data is a wrapper to the Region object for creating a region
+        which covers the entire simulation domain.
+        """
         if find_max: c = self.find_max("density")[1]
         else: c = (self.domain_right_edge + self.domain_left_edge)/2.0
         return self.region(c,
             self.domain_left_edge, self.domain_right_edge)
+
+    def box(self, left_edge, right_edge, **kwargs):
+        """
+        box is a wrapper to the Region object for creating a region
+        without having to specify a *center* value.  It assumes the center
+        is the midpoint between the left_edge and right_edge.
+        """
+        left_edge = np.array(left_edge)
+        right_edge = np.array(right_edge)
+        c = (left_edge + right_edge)/2.0
+        return self.region(c, left_edge, right_edge, **kwargs)
 
     def _setup_particle_type(self, ptype):
         orig = set(self.field_info.items())
@@ -724,14 +741,14 @@ class Dataset(object):
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
 
-def _reconstruct_pf(*args, **kwargs):
-    pfs = ParameterFileStore()
-    pf = pfs.get_pf_hash(*args)
-    return pf
+def _reconstruct_ds(*args, **kwargs):
+    datasets = ParameterFileStore()
+    ds = datasets.get_ds_hash(*args)
+    return ds
 
 class ParticleFile(object):
-    def __init__(self, pf, io, filename, file_id):
-        self.pf = pf
+    def __init__(self, ds, io, filename, file_id):
+        self.ds = ds
         self.io = weakref.proxy(io)
         self.filename = filename
         self.file_id = file_id

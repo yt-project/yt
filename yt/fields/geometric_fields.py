@@ -93,7 +93,7 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
     ### spherical coordinates: r (radius)
     def _spherical_r(field, data):
         center = data.get_field_parameter("center")
-        coords = data.pf.arr(obtain_rvec(data), "code_length")
+        coords = data.ds.arr(obtain_rvec(data), "code_length")
         coords[0,...] -= center[0]
         coords[1,...] -= center[1]
         coords[2,...] -= center[2]
@@ -142,7 +142,7 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
         coords[0,...] -= center[0]
         coords[1,...] -= center[1]
         coords[2,...] -= center[2]
-        return data.pf.arr(get_cyl_r(coords, normal), "code_length").in_cgs()
+        return data.ds.arr(get_cyl_r(coords, normal), "code_length").in_cgs()
 
     registry.add_field(("index", "cylindrical_r"),
              function=_cylindrical_r,
@@ -154,7 +154,7 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
     def _cylindrical_z(field, data):
         center = data.get_field_parameter("center")
         normal = data.get_field_parameter("normal")
-        coords = data.pf.arr(obtain_rvec(data), "code_length")
+        coords = data.ds.arr(obtain_rvec(data), "code_length")
         coords[0,...] -= center[0]
         coords[1,...] -= center[1]
         coords[2,...] -= center[2]
@@ -206,19 +206,4 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
                          ValidateParameter("normal")],
              units="cm",
              display_field=False)
-
-    def _contours(field, data):
-        fd = data.get_field_parameter("contour_slices")
-        vals = data["index", "ones"] * -1
-        if fd is None or fd == 0.0:
-            return vals
-        for sl, v in fd.get(data.id, []):
-            vals[sl] = v
-        return vals
-    
-    registry.add_field(("index", "contours"),
-                       function=_contours,
-                       validators=[ValidateSpatial(0)],
-                       take_log=False,
-                       display_field=False)
 

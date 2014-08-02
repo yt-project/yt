@@ -6,5 +6,5 @@ def setup():
     ytcfg["yt","__withintesting"] = "True"
 
 def test_domain_point():
-    pf = fake_random_pf(16, fields = ("density"))
-    p = pf.point(pf.domain_center)
+    ds = fake_random_ds(16, fields = ("density"))
+    p = ds.point(ds.domain_center)

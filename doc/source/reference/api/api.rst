@@ -1,3 +1,5 @@
+.. _api-reference:
+
 API Reference
 =============
 
@@ -16,6 +18,7 @@ SlicePlot and ProjectionPlot
    ~yt.visualization.plot_window.ProjectionPlot
    ~yt.visualization.plot_window.OffAxisProjectionPlot
    ~yt.visualization.plot_window.WindowPlotMPL
+   ~yt.visualization.plot_window.PlotWindow
 
 ProfilePlot and PhasePlot
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -59,6 +62,7 @@ These will almost never need to be instantiated on their own.
    :toctree: generated/
 
    ~yt.data_objects.data_containers.YTSelectionContainer
+   ~yt.data_objects.data_containers.YTSelectionContainer0D
    ~yt.data_objects.data_containers.YTSelectionContainer1D
    ~yt.data_objects.data_containers.YTSelectionContainer2D
    ~yt.data_objects.data_containers.YTSelectionContainer3D
@@ -72,6 +76,7 @@ geometric.
 .. autosummary::
    :toctree: generated/
 
+   ~yt.data_objects.selection_data_containers.YTPointBase
    ~yt.data_objects.selection_data_containers.YTOrthoRayBase
    ~yt.data_objects.selection_data_containers.YTRayBase
    ~yt.data_objects.selection_data_containers.YTSliceBase
@@ -82,6 +87,7 @@ geometric.
    ~yt.data_objects.selection_data_containers.YTSphereBase
    ~yt.data_objects.selection_data_containers.YTEllipsoidBase
    ~yt.data_objects.selection_data_containers.YTCutRegionBase
+   ~yt.data_objects.grid_patch.AMRGridPatch
 
 Construction Objects
 ++++++++++++++++++++
@@ -277,6 +283,15 @@ Halo Catalogs
 .. autosummary::
    :toctree: generated/
 
+   ~yt.frontends.halo_catalogs.halo_catalog.data_structures.HaloCatalogHDF5File
+   ~yt.frontends.halo_catalogs.halo_catalog.data_structures.HaloCatalogDataset
+   ~yt.frontends.halo_catalogs.halo_catalog.fields.HaloCatalogFieldInfo
+   ~yt.frontends.halo_catalogs.halo_catalog.io.IOHandlerHaloCatalogHDF5
+   ~yt.frontends.halo_catalogs.owls_subfind.data_structures.OWLSSubfindParticleIndex
+   ~yt.frontends.halo_catalogs.owls_subfind.data_structures.OWLSSubfindHDF5File
+   ~yt.frontends.halo_catalogs.owls_subfind.data_structures.OWLSSubfindDataset
+   ~yt.frontends.halo_catalogs.owls_subfind.fields.OWLSSubfindFieldInfo
+   ~yt.frontends.halo_catalogs.owls_subfind.io.IOHandlerOWLSSubfindHDF5
    ~yt.frontends.halo_catalogs.rockstar.data_structures.RockstarBinaryFile
    ~yt.frontends.halo_catalogs.rockstar.data_structures.RockstarDataset
    ~yt.frontends.halo_catalogs.rockstar.fields.RockstarFieldInfo
@@ -364,12 +379,12 @@ Loading Data
 .. autosummary::
    :toctree: generated/
 
-   yt.convenience.load
-   yt.convenience.simulation
-   yt.frontends.stream.data_structures.load_uniform_grid
-   yt.frontends.stream.data_structures.load_amr_grids
-   yt.frontends.stream.data_structures.load_particles
-   yt.frontends.stream.data_structures.load_hexahedral_mesh
+   ~yt.convenience.load
+   ~yt.convenience.simulation
+   ~yt.frontends.stream.data_structures.load_uniform_grid
+   ~yt.frontends.stream.data_structures.load_amr_grids
+   ~yt.frontends.stream.data_structures.load_particles
+   ~yt.frontends.stream.data_structures.load_hexahedral_mesh
 
 Derived Datatypes
 -----------------
@@ -392,82 +407,46 @@ to create these objects in a uniform manner.
    ~yt.data_objects.profiles.Profile3D
    ~yt.data_objects.profiles.create_profile
 
-Halo Finding and Particle Functions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Halo Analysis
+^^^^^^^^^^^^^
 
-Halo finding can be executed using these types.  Here we list the main halo
-finders as well as a few other supplemental objects.
+The ``HaloCatalog`` object is the primary means for performing custom analysis 
+on cosmological halos.  It is also the primary interface for halo finding.
 
-.. rubric:: Halo Finders
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog
+   ~yt.analysis_modules.halo_analysis.halo_finding_methods.HaloFindingMethod
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.HaloCallback
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.halo_sphere
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.sphere_field_max_recenter
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.sphere_bulk_velocity
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.profile
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.save_profiles
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.load_profiles
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.virial_quantities
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.phase_plot
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.delete_attribute
+   ~yt.analysis_modules.halo_analysis.halo_filters.HaloFilter
+   ~yt.analysis_modules.halo_analysis.halo_filters.quantity_value
+   ~yt.analysis_modules.halo_analysis.halo_filters.not_subhalo
+   ~yt.analysis_modules.halo_analysis.halo_quantities.HaloQuantity
+   ~yt.analysis_modules.halo_analysis.halo_quantities.center_of_mass
+   ~yt.analysis_modules.halo_analysis.halo_quantities.bulk_velocity
+
+Halo Finding
+^^^^^^^^^^^^
+
+These provide direct access to the halo finders.  However, it is strongly recommended 
+to use the ``HaloCatalog``.
 
 .. autosummary::
    :toctree: generated/
 
    ~yt.analysis_modules.halo_finding.halo_objects.FOFHaloFinder
    ~yt.analysis_modules.halo_finding.halo_objects.HOPHaloFinder
-   ~yt.analysis_modules.halo_finding.halo_objects.parallelHF
    ~yt.analysis_modules.halo_finding.rockstar.rockstar.RockstarHaloFinder
-
-You can also operate on the Halo and HAloList objects themselves:
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.analysis_modules.halo_finding.halo_objects.Halo
-   ~yt.analysis_modules.halo_finding.halo_objects.HaloList
-   ~yt.analysis_modules.halo_finding.halo_objects.HOPHalo
-   ~yt.analysis_modules.halo_finding.halo_objects.RockstarHalo
-   ~yt.analysis_modules.halo_finding.halo_objects.parallelHOPHalo
-   ~yt.analysis_modules.halo_finding.halo_objects.FOFHalo
-   ~yt.analysis_modules.halo_finding.halo_objects.LoadedHalo
-   ~yt.analysis_modules.halo_finding.halo_objects.TextHalo
-   ~yt.analysis_modules.halo_finding.halo_objects.RockstarHaloList
-   ~yt.analysis_modules.halo_finding.halo_objects.HOPHaloList
-   ~yt.analysis_modules.halo_finding.halo_objects.FOFHaloList
-   ~yt.analysis_modules.halo_finding.halo_objects.LoadedHaloList
-   ~yt.analysis_modules.halo_finding.halo_objects.TextHaloList
-   ~yt.analysis_modules.halo_finding.halo_objects.parallelHOPHaloList
-
-There are also functions for loading halos from disk:
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.analysis_modules.halo_finding.halo_objects.LoadHaloes
-   ~yt.analysis_modules.halo_finding.halo_objects.LoadTextHaloes
-   ~yt.analysis_modules.halo_finding.halo_objects.LoadRockstarHalos
-
-We have several methods that work to create merger trees:
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.analysis_modules.halo_merger_tree.merger_tree.MergerTree
-   ~yt.analysis_modules.halo_merger_tree.merger_tree.MergerTreeConnect
-   ~yt.analysis_modules.halo_merger_tree.merger_tree.MergerTreeDotOutput
-   ~yt.analysis_modules.halo_merger_tree.merger_tree.MergerTreeTextOutput
-
-You can use Halo catalogs generatedl externally as well:
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.analysis_modules.halo_merger_tree.enzofof_merger_tree.HaloCatalog
-   ~yt.analysis_modules.halo_merger_tree.enzofof_merger_tree.EnzoFOFMergerTree
-   ~yt.analysis_modules.halo_merger_tree.enzofof_merger_tree.plot_halo_evolution
-
-Halo Profiling
-^^^^^^^^^^^^^^
-
-yt provides a comprehensive halo profiler that can filter, center, and analyze
-halos en masse.
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.analysis_modules.halo_profiler.multi_halo_profiler.HaloProfiler
-   ~yt.analysis_modules.halo_profiler.multi_halo_profiler.VirialFilter
-
 
 Two Point Functions
 ^^^^^^^^^^^^^^^^^^^
@@ -511,16 +490,6 @@ writing to bitmaps.
 
 Extension Types
 ---------------
-
-Coordinate Transformations
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.analysis_modules.coordinate_transformation.transforms.arbitrary_regrid
-   ~yt.analysis_modules.coordinate_transformation.transforms.spherical_regrid
 
 Cosmology, Star Particle Analysis, and Simulated Observations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -575,17 +544,6 @@ RADMC-3D exporting:
 
    ~yt.analysis_modules.radmc3d_export.RadMC3DInterface.RadMC3DLayer
    ~yt.analysis_modules.radmc3d_export.RadMC3DInterface.RadMC3DWriter
-
-Radial Column Density
-^^^^^^^^^^^^^^^^^^^^^
-
-If you'd like to calculate the column density out to a given point, from a
-specified center, yt can provide that information.
-
-.. autosummary::
-   :toctree: generated/
-
-   ~yt.analysis_modules.radial_column_density.radial_column_density.RadialColumnDensity
 
 Volume Rendering
 ^^^^^^^^^^^^^^^^
@@ -682,14 +640,17 @@ See :ref:`derived-quantities`.
    ~yt.data_objects.derived_quantities.DerivedQuantity
    ~yt.data_objects.derived_quantities.DerivedQuantityCollection
    ~yt.data_objects.derived_quantities.WeightedAverageQuantity
-   ~yt.data_objects.derived_quantities.TotalQuantity
-   ~yt.data_objects.derived_quantities.TotalMass
-   ~yt.data_objects.derived_quantities.CenterOfMass
-   ~yt.data_objects.derived_quantities.BulkVelocity
    ~yt.data_objects.derived_quantities.AngularMomentumVector
+   ~yt.data_objects.derived_quantities.BulkVelocity
+   ~yt.data_objects.derived_quantities.CenterOfMass
    ~yt.data_objects.derived_quantities.Extrema
    ~yt.data_objects.derived_quantities.MaxLocation
    ~yt.data_objects.derived_quantities.MinLocation
+   ~yt.data_objects.derived_quantities.SpinParameter
+   ~yt.data_objects.derived_quantities.TotalMass
+   ~yt.data_objects.derived_quantities.TotalQuantity
+   ~yt.data_objects.derived_quantities.WeightedAverageQuantity
+   ~yt.data_objects.derived_quantities.WeightedVariance
 
 .. _callback-api:
 
@@ -707,15 +668,21 @@ See also :ref:`callbacks`.
    ~yt.visualization.plot_modifications.ContourCallback
    ~yt.visualization.plot_modifications.CuttingQuiverCallback
    ~yt.visualization.plot_modifications.GridBoundaryCallback
+   ~yt.visualization.plot_modifications.HaloCatalogCallback
+   ~yt.visualization.plot_modifications.ImageLineCallback
    ~yt.visualization.plot_modifications.LabelCallback
    ~yt.visualization.plot_modifications.LinePlotCallback
+   ~yt.visualization.plot_modifications.MagFieldCallback
    ~yt.visualization.plot_modifications.MarkerAnnotateCallback
    ~yt.visualization.plot_modifications.ParticleCallback
    ~yt.visualization.plot_modifications.PointAnnotateCallback
    ~yt.visualization.plot_modifications.QuiverCallback
    ~yt.visualization.plot_modifications.SphereCallback
+   ~yt.visualization.plot_modifications.StreamlineCallback
    ~yt.visualization.plot_modifications.TextLabelCallback
+   ~yt.visualization.plot_modifications.TimestampCallback
    ~yt.visualization.plot_modifications.TitleCallback
+   ~yt.visualization.plot_modifications.TriangleFacetsCallback
    ~yt.visualization.plot_modifications.VelocityCallback
 
 Function List
@@ -726,6 +693,7 @@ Function List
    :toctree: generated/
 
    ~yt.convenience.load
+   ~yt.data_objects.static_output.Dataset.all_data
    ~yt.funcs.deprecate
    ~yt.funcs.ensure_list
    ~yt.funcs.get_pbar
@@ -742,6 +710,7 @@ Function List
    ~yt.funcs.time_execution
    ~yt.analysis_modules.level_sets.contour_finder.identify_contours
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_blocking_call
+   ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_objects
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_passthrough
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_root_only
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_simple_proxy
@@ -821,5 +790,5 @@ These are yt-provided functions:
 
    ~yt.testing.assert_rel_equal
    ~yt.testing.amrspace
-   ~yt.testing.fake_random_pf
+   ~yt.testing.fake_random_ds
    ~yt.testing.expand_keywords

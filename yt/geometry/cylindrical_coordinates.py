@@ -29,9 +29,9 @@ from yt.utilities.lib.misc_utilities import \
 
 class CylindricalCoordinateHandler(CoordinateHandler):
 
-    def __init__(self, pf, ordering = 'rzt'):
+    def __init__(self, ds, ordering = 'rzt'):
         if ordering != 'rzt': raise NotImplementedError
-        super(CylindricalCoordinateHandler, self).__init__(pf)
+        super(CylindricalCoordinateHandler, self).__init__(ds)
 
     def setup_fields(self, registry):
         # return the fields for r, z, theta

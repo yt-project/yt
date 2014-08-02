@@ -8,7 +8,6 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("cosmological_observation")
     config.add_subpackage("halo_finding")
     config.add_subpackage("halo_mass_function")
-    config.add_subpackage("halo_merger_tree")
     config.add_subpackage("level_sets")
     config.add_subpackage("particle_trajectories")
     config.add_subpackage("photon_simulator")

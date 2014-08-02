@@ -23,7 +23,7 @@ Examining Grid Hierarchies
 yt organizes grids in a hierarchical fashion; a coarser grid that contains (or
 overlaps with) a finer grid is referred to as its parent.  yt organizes these
 only a single level of refinement at a time.  To access grids, the ``grids``
-attribute on a :class:`~yt.data_objects.index.AMRHierarchy` object.  (For
+attribute on a :class:`~yt.geometry.grid_geometry_handler.GridIndex` object.  (For
 fast operations, a number of additional arrays prefixed with ``grid`` are also
 available, such as ``grid_left_edges`` and so on.)  This returns an instance of
 :class:`~yt.data_objects.grid_patch.AMRGridPatch`, which can be queried for
@@ -32,26 +32,26 @@ either data or index information.
 The :class:`~yt.data_objects.grid_patch.AMRGridPatch` object itself provides
 the following attributes:
 
- * ``Children``: a list of grids contained within this one, of one higher level
-   of refinement
- * ``Parent``: a single object or a list of objects this grid is contained
-   within, one level of refinement coarser
- * ``child_mask``: a mask of 0's and 1's, representing where no finer data is
-   available in refined grids (1) or where this grid is covered by finer regions
-   (0).  Note that to get back the final data contained within a grid, one can
-   multiple a field by this attribute.
- * ``child_indices``: a mask of booleans, where False indicates no finer data
-   is available.  This is essentially the inverse of ``child_mask``.
- * ``child_index_mask``: a mask of indices into the ``pf.index.grids`` array of the
-   child grids.
- * ``LeftEdge``: the left edge, in native code coordinates, of this grid
- * ``RightEdge``: the right edge, in native code coordinates, of this grid
- * ``dds``: the width of a cell in this grid
- * ``id``: the id (not necessarily the index) of this grid.  Defined such that
-   subtracting the property ``_id_offset`` gives the index into ``pf.index.grids``.
- * ``NumberOfParticles``: the number of particles in this grid
- * ``OverlappingSiblings``: a list of sibling grids that this grid overlaps
-   with.  Likely only defined for Octree-based codes.
+* ``Children``: a list of grids contained within this one, of one higher level
+  of refinement
+* ``Parent``: a single object or a list of objects this grid is contained
+  within, one level of refinement coarser
+* ``child_mask``: a mask of 0's and 1's, representing where no finer data is
+  available in refined grids (1) or where this grid is covered by finer regions
+  (0).  Note that to get back the final data contained within a grid, one can
+  multiple a field by this attribute.
+* ``child_indices``: a mask of booleans, where False indicates no finer data
+  is available.  This is essentially the inverse of ``child_mask``.
+* ``child_index_mask``: a mask of indices into the ``ds.index.grids`` array of the
+  child grids.
+* ``LeftEdge``: the left edge, in native code coordinates, of this grid
+* ``RightEdge``: the right edge, in native code coordinates, of this grid
+* ``dds``: the width of a cell in this grid
+* ``id``: the id (not necessarily the index) of this grid.  Defined such that
+  subtracting the property ``_id_offset`` gives the index into ``ds.index.grids``.
+* ``NumberOfParticles``: the number of particles in this grid
+* ``OverlappingSiblings``: a list of sibling grids that this grid overlaps
+  with.  Likely only defined for Octree-based codes.
 
 In addition, the method
 :meth:`~yt.data_objects.grid_patch.AMRGridPatch.get_global_startindex` can be
@@ -64,7 +64,7 @@ To traverse a series of grids, this type of construction can be used:
 
 .. code-block:: python
 
-   g = pf.index.grids[1043]
+   g = ds.index.grids[1043]
    g2 = g.Children[1].Children[0]
    print g2.LeftEdge
 
@@ -84,7 +84,7 @@ normal, you can access the grid as you would a normal object:
 
 .. code-block:: python
 
-   g = pf.index.grids[1043]
+   g = ds.index.grids[1043]
    print g["density"]
    print g["density"].min()
 
@@ -93,8 +93,8 @@ instead.  This is somewhat more low-level.
 
 .. code-block:: python
 
-   g = pf.index.grids[1043]
-   rho = pf.h.io.pop(g, "density")
+   g = ds.index.grids[1043]
+   rho = ds.index.io.pop(g, "density")
 
 This field will be the raw data found in the file.
 
@@ -117,7 +117,7 @@ and objects that correspond to it.  For instance:
 
 .. code-block:: python
 
-   gs, gi = pf.h.find_point((0.5, 0.6, 0.9))
+   gs, gi = ds.find_point((0.5, 0.6, 0.9))
    for g in gs:
        print g.Level, g.LeftEdge, g.RightEdge
 
@@ -142,9 +142,9 @@ lowest level data, we run:
 
 .. code-block:: python
 
-   from yt.mods import *
-   pf = load('Enzo_64/DD0043/data0043')
-   all_data_level_0 = pf.covering_grid(level=0, left_edge=[0,0.0,0.0], 
+   import yt
+   ds = yt.load('Enzo_64/DD0043/data0043')
+   all_data_level_0 = ds.covering_grid(level=0, left_edge=[0,0.0,0.0], 
                                          dims=[64, 64, 64])
 
 Note that we can also get the same result and rely on the dataset to know 
@@ -152,8 +152,8 @@ its own underlying dimensions:
 
 .. code-block:: python
 
-   all_data_level_0 = pf.covering_grid(level=0, left_edge=[0,0.0,0.0], 
-                                         dims=pf.domain_dimensions)
+   all_data_level_0 = ds.covering_grid(level=0, left_edge=[0,0.0,0.0], 
+                                         dims=ds.domain_dimensions)
 
 We can now access our underlying data at the lowest level by specifying what
 :ref:`field <field-list>` we want to examine:
@@ -184,8 +184,8 @@ larger dataset:
 
 .. code-block:: python
 
-   all_data_level_2 = pf.covering_grid(level=2, left_edge=[0,0.0,0.0], 
-                                         dims=pf.domain_dimensions * 2**2)
+   all_data_level_2 = ds.covering_grid(level=2, left_edge=[0,0.0,0.0], 
+                                         dims=ds.domain_dimensions * 2**2)
 
 And let's see what's the density in the central location:
 
@@ -209,8 +209,8 @@ to reduce edge effects, it is a nearly identical process:
 
 .. code-block:: python
 
-   all_data_level_2_s = pf.smoothed_covering_grid(2, [0.0, 0.0, 0.0], 
-                                                    pf.domain_dimensions * 2**2)
+   all_data_level_2_s = ds.smoothed_covering_grid(2, [0.0, 0.0, 0.0], 
+                                                    ds.domain_dimensions * 2**2)
 
    print all_data_level_2_s['density'].shape
    (256, 256, 256)
@@ -230,6 +230,5 @@ also access the raw image data that is returned from various yt functions
 directly as a fixed resolution array.  This provides a means for bypassing the 
 yt method for generating plots, and allows the user the freedom to use 
 whatever interface they wish for displaying and saving their image data.  
-The object for doing this is the aptly titled Fixed Resolution Buffer, and 
-there is a full explanation for how to use it 
-:ref:`here <fixed-resolution-buffers>`.
+You can use the :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`
+to accomplish this as described in :ref:`fixed-resolution-buffers`.

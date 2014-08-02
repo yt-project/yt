@@ -4,7 +4,7 @@ from yt.visualization.api import get_multi_plot
 import matplotlib.colorbar as cb
 from matplotlib.colors import LogNorm
 
-fn = "Enzo_64/RD0006/RedshiftOutput0006" # parameter file to load
+fn = "Enzo_64/RD0006/RedshiftOutput0006" # dataset to load
 
 # load data and get center value and center location as maximum density location
 ds = yt.load(fn) 

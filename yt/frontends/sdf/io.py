@@ -33,7 +33,7 @@ class IOHandlerSDF(BaseIOHandler):
 
     @property
     def _handle(self):
-        return self.pf.sdf_container
+        return self.ds.sdf_container
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
@@ -73,7 +73,7 @@ class IOHandlerSDF(BaseIOHandler):
                 for field in field_list:
                     if field == "mass":
                         data = np.ones(mask.sum(), dtype="float64")
-                        data *= self.pf.parameters["particle_mass"]
+                        data *= self.ds.parameters["particle_mass"]
                     else:
                         data = self._handle[field][mask]
                     yield (ptype, field), data
@@ -93,8 +93,8 @@ class IOHandlerSDF(BaseIOHandler):
             regions.add_data_file(pos, data_file.file_id)
             morton[ind:ind+npart] = compute_morton(
                 pos[:,0], pos[:,1], pos[:,2],
-                data_file.pf.domain_left_edge,
-                data_file.pf.domain_right_edge)
+                data_file.ds.domain_left_edge,
+                data_file.ds.domain_right_edge)
             ind += CHUNKSIZE
         return morton
 
@@ -148,15 +148,15 @@ class IOHandlerHTTPSDF(IOHandlerSDF):
                 if mask is None: continue
                 for field in field_list:
                     if field == "mass":
-                        if self.pf.field_info._mass_field is None:
+                        if self.ds.field_info._mass_field is None:
                             pm = 1.0
-                            if 'particle_mass' in self.pf.parameters:
-                                pm = self.pf.parameters['particle_mass']
+                            if 'particle_mass' in self.ds.parameters:
+                                pm = self.ds.parameters['particle_mass']
                             else:
                                 raise RuntimeError
                             data = pm * np.ones(mask.sum(), dtype="float64")
                         else:
-                            data = self._handle[self.pf.field_info._mass_field][mask]
+                            data = self._handle[self.ds.field_info._mass_field][mask]
                     else:
                         data = self._handle[field][mask]
                     yield (ptype, field), data
@@ -170,24 +170,24 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
 
 
     def _read_particle_coords(self, chunks, ptf):
-        dle = self.pf.domain_left_edge.in_units("code_length").d
-        dre = self.pf.domain_right_edge.in_units("code_length").d
-        for dd in self.pf.midx.iter_bbox_data(
+        dle = self.ds.domain_left_edge.in_units("code_length").d
+        dre = self.ds.domain_right_edge.in_units("code_length").d
+        for dd in self.ds.midx.iter_bbox_data(
             dle, dre,
             ['x','y','z']):
             yield "dark_matter", (
                 dd['x'], dd['y'], dd['z'])
 
     def _read_particle_fields(self, chunks, ptf, selector):
-        dle = self.pf.domain_left_edge.in_units("code_length").d
-        dre = self.pf.domain_right_edge.in_units("code_length").d
+        dle = self.ds.domain_left_edge.in_units("code_length").d
+        dre = self.ds.domain_right_edge.in_units("code_length").d
         required_fields = []
         for ptype, field_list in sorted(ptf.items()):
             for field in field_list:
                 if field == "mass": continue
                 required_fields.append(field)
 
-        for dd in self.pf.midx.iter_bbox_data(
+        for dd in self.ds.midx.iter_bbox_data(
             dle, dre,
             required_fields):
 
@@ -201,16 +201,16 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
                 for field in field_list:
                     if field == "mass":
                         data = np.ones(mask.sum(), dtype="float64")
-                        data *= self.pf.parameters["particle_mass"]
+                        data *= self.ds.parameters["particle_mass"]
                     else:
                         data = dd[field][mask]
                     yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):
-        dle = self.pf.domain_left_edge.in_units("code_length").d
-        dre = self.pf.domain_right_edge.in_units("code_length").d
+        dle = self.ds.domain_left_edge.in_units("code_length").d
+        dre = self.ds.domain_right_edge.in_units("code_length").d
         pcount = 0
-        for dd in self.pf.midx.iter_bbox_data(
+        for dd in self.ds.midx.iter_bbox_data(
             dle, dre,
             ['x']):
             pcount += dd['x'].size
@@ -219,7 +219,7 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
         ind = 0
 
         chunk_id = 0
-        for dd in self.pf.midx.iter_bbox_data(
+        for dd in self.ds.midx.iter_bbox_data(
             dle, dre,
             ['x','y','z']):
             npart = dd['x'].size
@@ -227,30 +227,30 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
             pos[:,0] = dd['x']
             pos[:,1] = dd['y']
             pos[:,2] = dd['z']
-            if np.any(pos.min(axis=0) < self.pf.domain_left_edge) or \
-               np.any(pos.max(axis=0) > self.pf.domain_right_edge):
+            if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or \
+               np.any(pos.max(axis=0) > self.ds.domain_right_edge):
                 raise YTDomainOverflow(pos.min(axis=0),
                                        pos.max(axis=0),
-                                       self.pf.domain_left_edge,
-                                       self.pf.domain_right_edge)
+                                       self.ds.domain_left_edge,
+                                       self.ds.domain_right_edge)
             regions.add_data_file(pos, chunk_id)
             morton[ind:ind+npart] = compute_morton(
                 pos[:,0], pos[:,1], pos[:,2],
-                data_file.pf.domain_left_edge,
-                data_file.pf.domain_right_edge)
+                data_file.ds.domain_left_edge,
+                data_file.ds.domain_right_edge)
             ind += npart
         return morton
 
     def _count_particles(self, data_file):
-        dle = self.pf.domain_left_edge.in_units("code_length").d
-        dre = self.pf.domain_right_edge.in_units("code_length").d
-        pcount_estimate = self.pf.midx.get_nparticles_bbox(dle, dre)
+        dle = self.ds.domain_left_edge.in_units("code_length").d
+        dre = self.ds.domain_right_edge.in_units("code_length").d
+        pcount_estimate = self.ds.midx.get_nparticles_bbox(dle, dre)
         if pcount_estimate > 1e9:
             mylog.warning("Filtering %i particles to find total."
                           % pcount_estimate + \
                           " You may want to reconsider your bounding box.")
         pcount = 0
-        for dd in self.pf.midx.iter_bbox_data(
+        for dd in self.ds.midx.iter_bbox_data(
             dle, dre,
             ['x']):
             pcount += dd['x'].size

@@ -58,6 +58,7 @@ class StreamFieldInfo(FieldInfoContainer):
         ("particle_position_x", ("code_length", [], None)),
         ("particle_position_y", ("code_length", [], None)),
         ("particle_position_z", ("code_length", [], None)),
+        ("particle_velocity", ("code_length/code_time", [], None)),
         ("particle_velocity_x", ("code_length/code_time", [], None)),
         ("particle_velocity_y", ("code_length/code_time", [], None)),
         ("particle_velocity_z", ("code_length/code_time", [], None)),
@@ -65,11 +66,17 @@ class StreamFieldInfo(FieldInfoContainer):
         ("particle_gas_density", ("code_mass/code_length**3", [], None)),
         ("particle_gas_temperature", ("K", [], None)),
         ("particle_mass", ("code_mass", [], None)),
+        ("smoothing_length", ("code_length", [], None)),
+        ("density", ("code_mass/code_length**3", [], None)),
+        ("creation_time", ("code_time", [], None)),
     )
-        
+
     def setup_fluid_fields(self):
-        for field in self.pf.stream_handler.field_units:
-            units = self.pf.stream_handler.field_units[field]
+        for field in self.ds.stream_handler.field_units:
+            units = self.ds.stream_handler.field_units[field]
             if units != '': self.add_output_field(field, units=units)
 
-        
+    def add_output_field(self, name, **kwargs):
+        if name in self.ds.stream_handler.field_units:
+            kwargs['units'] = self.ds.stream_handler.field_units[name]
+        super(StreamFieldInfo, self).add_output_field(name, **kwargs)

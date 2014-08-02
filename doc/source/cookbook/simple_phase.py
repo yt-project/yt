@@ -11,7 +11,7 @@ my_sphere = ds.sphere("c", (100.0, "kpc"))
 # Setting weight to a field will calculate an average
 # weighted by that field.
 plot = yt.PhasePlot(my_sphere, "density", "temperature", "cell_mass",
-                 weight_field=None)
+                    weight_field=None)
 
 # Set the units of mass to be in solar masses (not the default in cgs)
 plot.set_unit('cell_mass', 'Msun')

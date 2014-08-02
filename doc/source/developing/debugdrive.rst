@@ -1,32 +1,32 @@
 .. _debug-drive:
 
-Debugging and Driving YT
-========================
+Debugging yt
+============
 
-There are several different convenience functions that allow you to control YT
+There are several different convenience functions that allow you to control yt
 in perhaps unexpected and unorthodox manners.  These will allow you to conduct
 in-depth debugging of processes that may be running in parallel on multiple
-processors, as well as providing a mechanism of signalling to ``yt`` that you need
-more information about a running process.  Additionally, ``yt`` has a built-in
+processors, as well as providing a mechanism of signalling to yt that you need
+more information about a running process.  Additionally, yt has a built-in
 mechanism for optional reporting of errors to a central server.  All of these
 allow for more rapid development and debugging of any problems you might
 encounter.
 
-Additionally, ``yt`` is able to leverage existing developments in the IPython
+Additionally, yt is able to leverage existing developments in the IPython
 community for parallel, interactive analysis.  This allows you to initialize
-multiple ``yt`` processes through ``mpirun`` and interact with all of them from a
+multiple yt processes through ``mpirun`` and interact with all of them from a
 single, unified interactive prompt.  This enables and facilitates parallel
 analysis without sacrificing interactivity and flexibility.
 
 .. _pastebin:
 
-The Pastebin
-------------
+Pastebin
+--------
 
 A pastebin is a website where you can easily copy source code and error
 messages to share with yt developers or your collaborators. At
 http://paste.yt-project.org/ a pastebin is available for placing scripts.  With
-``yt`` the script ``yt_lodgeit.py`` is distributed and wrapped with 
+yt the script ``yt_lodgeit.py`` is distributed and wrapped with 
 the ``pastebin`` and ``pastebin_grab`` commands, which allow for commandline 
 uploading and downloading of pasted snippets.  To upload a script you
 would supply it to the command:
@@ -47,29 +47,17 @@ would use the ``pastebin_grab`` option:
 The snippet will be output to the window, so output redirection can be used to
 store it in a file.
 
-.. _error-reporting:
+Use the Python Debugger
+-----------------------
 
-Error Reporting with the Pastebin
-+++++++++++++++++++++++++++++++++
+yt is almost entirely composed of python code, so it makes sense to use
+the python debugger as your first stop in trying to debug it:
+`https://docs.python.org/2/library/pdb.html`_
 
-If you are having troubles with ``yt``, you can have it paste the error report
-to the pastebin by running your problematic script with the ``--paste`` option:
+Signaling yt to Do Something
+----------------------------
 
-.. code-block:: bash
-
-   $ python2.7 some_problematic_script.py --paste
-
-The ``--paste`` option has to come after the name of the script.  When the
-script dies and prints its error, it will also submit that error to the
-pastebin and return a URL for the error.  When reporting your bug, include this
-URL and then the problem can be debugged more easily.
-
-For more information on asking for help, see `asking-for-help`.
-
-Signaling ``yt`` to Do Something
---------------------------------
-
-During startup, ``yt`` inserts handlers for two operating system-level signals.
+During startup, yt inserts handlers for two operating system-level signals.
 These provide two diagnostic methods for interacting with a running process.
 Signalling the python process that is running your script with these signals
 will induce the requested behavior.  
@@ -82,7 +70,7 @@ will induce the requested behavior.
      currently is, with all local variables in the local namespace.  It should
      allow you to change the state variables.
 
-If your ``yt``-running process has PID 5829, you can signal it to print a
+If your yt-running process has PID 5829, you can signal it to print a
 traceback with:
 
 .. code-block:: bash
@@ -99,14 +87,14 @@ Remote and Disconnected Debugging
 ---------------------------------
 
 If you are running a parallel job that fails, often it can be difficult to do a
-post-mortem analysis to determine what went wrong.  To facilitate this, ``yt``
+post-mortem analysis to determine what went wrong.  To facilitate this, yt
 has implemented an `XML-RPC <http://en.wikipedia.org/wiki/XML-RPC>`_ interface
 to the Python debugger (``pdb``) event loop.  
 
 Running with the ``--rpdb`` command will cause any uncaught exception during
 execution to spawn this interface, which will sit and wait for commands,
 exposing the full Python debugger.  Additionally, a frontend to this is
-provided through the ``yt`` command.  So if you run the command:
+provided through the yt command.  So if you run the command:
 
 .. code-block:: bash
 

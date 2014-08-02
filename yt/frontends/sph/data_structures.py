@@ -58,14 +58,14 @@ def _fix_unit_ordering(unit):
     return unit
 
 class GadgetBinaryFile(ParticleFile):
-    def __init__(self, pf, io, filename, file_id):
+    def __init__(self, ds, io, filename, file_id):
         with open(filename, "rb") as f:
-            self.header = read_record(f, pf._header_spec)
+            self.header = read_record(f, ds._header_spec)
             self._position_offset = f.tell()
             f.seek(0, os.SEEK_END)
             self._file_size = f.tell()
 
-        super(GadgetBinaryFile, self).__init__(pf, io, filename, file_id)
+        super(GadgetBinaryFile, self).__init__(ds, io, filename, file_id)
 
     def _calculate_offsets(self, field_list):
         self.field_offsets = self.io._calculate_field_offsets(
@@ -359,11 +359,11 @@ class TipsyFile(ParticleFile):
     def _calculate_offsets(self, field_list):
         self.field_offsets = self.io._calculate_particle_offsets(self)
 
-    def __init__(self, pf, io, filename, file_id):
+    def __init__(self, ds, io, filename, file_id):
         # To go above 1 domain, we need to include an indexing step in the
         # IOHandler, rather than simply reading from a single file.
         assert file_id == 0
-        super(TipsyFile, self).__init__(pf, io, filename, file_id)
+        super(TipsyFile, self).__init__(ds, io, filename, file_id)
         io._create_dtypes(self)
         io._update_domain(self)#Check automatically what the domain size is
 
@@ -552,10 +552,10 @@ class TipsyDataset(ParticleDataset):
             f.seek(0, os.SEEK_END)
             fs = f.tell()
             f.seek(0, os.SEEK_SET)
+            #Read in the header
+            t, n, ndim, ng, nd, ns = struct.unpack("<diiiii", f.read(28))
         except IOError:
             return False, 1
-        #Read in the header
-        t, n, ndim, ng, nd, ns = struct.unpack("<diiiii", f.read(28))
         endianswap = "<"
         #Check Endianness
         if (ndim < 1 or ndim > 3):

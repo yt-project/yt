@@ -172,12 +172,12 @@ class ProfilePlot(object):
     >>> profiles = []
     >>> labels = []
     >>> plot_specs = []
-    >>> for pf in es[-4:]:
-    ...     ad = pf.h.all_data()
+    >>> for ds in es[-4:]:
+    ...     ad = ds.all_data()
     ...     profiles.append(create_profile(ad, ["density"],
     ...                                    fields=["temperature",
     ...                                            "velocity_x"]))
-    ...     labels.append(pf.current_redshift)
+    ...     labels.append(ds.current_redshift)
     ...     plot_specs.append(dict(linestyle="--", alpha=0.7))
     >>>
     >>> plot = ProfilePlot.from_profiles(profiles, labels=labels,
@@ -232,7 +232,7 @@ class ProfilePlot(object):
             iters = self.figures.iteritems()
         if name is None:
             if len(self.profiles) == 1:
-                prefix = self.profiles[0].pf
+                prefix = self.profiles[0].ds
             else:
                 prefix = "Multi-data"
             name = "%s.png" % prefix
@@ -367,12 +367,12 @@ class ProfilePlot(object):
         >>> profiles = []
         >>> labels = []
         >>> plot_specs = []
-        >>> for pf in es[-4:]:
-        ...     ad = pf.h.all_data()
+        >>> for ds in es[-4:]:
+        ...     ad = ds.all_data()
         ...     profiles.append(create_profile(ad, ["Density"],
         ...                                    fields=["Temperature",
         ...                                            "x-velocity"]))
-        ...     labels.append(pf.current_redshift)
+        ...     labels.append(ds.current_redshift)
         ...     plot_specs.append(dict(linestyle="--", alpha=0.7))
         >>>
         >>> plot = ProfilePlot.from_profiles(profiles, labels=labels,
@@ -559,9 +559,9 @@ class ProfilePlot(object):
         return self
 
     def _get_field_log(self, field_y, profile):
-        pf = profile.data_source.pf
+        ds = profile.data_source.ds
         yf, = profile.data_source._determine_fields([field_y])
-        yfi = pf._get_field_info(*yf)
+        yfi = ds._get_field_info(*yf)
         if self.x_log is None:
             x_log = profile.x_log
         else:
@@ -592,12 +592,12 @@ class ProfilePlot(object):
         return label
 
     def _get_field_title(self, field_y, profile):
-        pf = profile.data_source.pf
+        ds = profile.data_source.ds
         field_x = profile.x_field
         xf, yf = profile.data_source._determine_fields(
             [field_x, field_y])
-        xfi = pf._get_field_info(*xf)
-        yfi = pf._get_field_info(*yf)
+        xfi = ds._get_field_info(*xf)
+        yfi = ds._get_field_info(*yf)
         x_unit = profile.x.units
         y_unit = profile.field_units[field_y]
         fractional = profile.fractional
@@ -665,8 +665,8 @@ class PhasePlot(ImagePlotContainer):
     --------
 
     >>> import yt
-    >>> pf = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
-    >>> ad = pf.h.all_data()
+    >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+    >>> ad = ds.all_data()
     >>> plot = PhasePlot(ad, "density", "temperature", ["cell_mass"],
     ...                  weight_field=None)
     >>> plot.save()
@@ -679,12 +679,10 @@ class PhasePlot(ImagePlotContainer):
     """
     x_log = None
     y_log = None
-    x_title = None
-    y_title = None
-    z_title = None
     plot_title = None
     _plot_valid = False
     _plot_type = 'Phase'
+
 
     def __init__(self, data_source, x_field, y_field, z_fields,
                  weight_field="cell_mass", x_bins=128, y_bins=128,
@@ -700,16 +698,22 @@ class PhasePlot(ImagePlotContainer):
             accumulation=accumulation,
             fractional=fractional)
 
-        type(self)._initialize_instance(self, data_source, profile, fontsize, figure_size)
+        type(self)._initialize_instance(self, data_source, profile, fontsize,
+                                        figure_size)
 
     @classmethod
-    def _initialize_instance(cls, obj, data_source, profile, fontsize, figure_size):
+    def _initialize_instance(cls, obj, data_source, profile, fontsize,
+                             figure_size):
         obj.plot_title = {}
         obj.z_log = {}
         obj.z_title = {}
         obj._initfinished = False
         obj.x_log = None
         obj.y_log = None
+        obj._plot_text = {}
+        obj._text_xpos = {}
+        obj._text_ypos = {}
+        obj._text_kwargs = {}
         obj.profile = profile
         super(PhasePlot, obj).__init__(data_source, figure_size, fontsize)
         obj._setup_plots()
@@ -717,22 +721,23 @@ class PhasePlot(ImagePlotContainer):
         return obj
 
     def _get_field_title(self, field_z, profile):
-        pf = profile.data_source.pf
+        ds = profile.data_source.ds
         field_x = profile.x_field
         field_y = profile.y_field
         xf, yf, zf = profile.data_source._determine_fields(
             [field_x, field_y, field_z])
-        xfi = pf._get_field_info(*xf)
-        yfi = pf._get_field_info(*yf)
-        zfi = pf._get_field_info(*zf)
+        xfi = ds._get_field_info(*xf)
+        yfi = ds._get_field_info(*yf)
+        zfi = ds._get_field_info(*zf)
         x_unit = profile.x.units
         y_unit = profile.y.units
         z_unit = profile.field_units[field_z]
         fractional = profile.fractional
-        x_title = self.x_title or self._get_field_label(field_x, xfi, x_unit)
-        y_title = self.y_title or self._get_field_label(field_y, yfi, y_unit)
-        z_title = self.z_title.get(field_z, None) or \
-            self._get_field_label(field_z, zfi, z_unit, fractional)
+        x_label, y_label, z_label = self._get_axes_labels(field_z)
+        x_title = x_label or self._get_field_label(field_x, xfi, x_unit)
+        y_title = y_label or self._get_field_label(field_y, yfi, y_unit)
+        z_title = z_label or self._get_field_label(field_z, zfi, z_unit,
+                                                   fractional)
         return (x_title, y_title, z_title)
 
     def _get_field_label(self, field, field_info, field_unit, fractional=False):
@@ -754,9 +759,9 @@ class PhasePlot(ImagePlotContainer):
         return label
         
     def _get_field_log(self, field_z, profile):
-        pf = profile.data_source.pf
+        ds = profile.data_source.ds
         zf, = profile.data_source._determine_fields([field_z])
-        zfi = pf._get_field_info(*zf)
+        zfi = ds._get_field_info(*zf)
         if self.x_log is None:
             x_log = profile.x_log
         else:
@@ -797,18 +802,19 @@ class PhasePlot(ImagePlotContainer):
                     positive_values = data[data > 0.0]
                     if len(positive_values) == 0:
                         mylog.warning("Profiled field %s has no positive "
-                                      "values.  Max = %d." % (f, data.max()))
+                                      "values.  Max = %f." %
+                                      (f, np.nanmax(data)))
                         mylog.warning("Switching to linear colorbar scaling.")
-                        zmin = data.min()
+                        zmin = np.nanmin(data)
                         z_scale = 'linear'
                         self._field_transform[f] = linear_transform
                     else:
                         zmin = positive_values.min()
                         self._field_transform[f] = log_transform
                 else:
-                    zmin = data.min()
+                    zmin = np.nanmin(data)
                     self._field_transform[f] = linear_transform
-                zlim = [zmin, data.max()]
+                zlim = [zmin, np.nanmax(data)]
 
             fp = self._font_properties
             f = self.profile.data_source._determine_fields(f)[0]
@@ -825,6 +831,12 @@ class PhasePlot(ImagePlotContainer):
             self.plots[f].axes.xaxis.set_label_text(x_title, fontproperties=fp)
             self.plots[f].axes.yaxis.set_label_text(y_title, fontproperties=fp)
             self.plots[f].cax.yaxis.set_label_text(z_title, fontproperties=fp)
+
+            if f in self._plot_text:
+                self.plots[f].axes.text(self._text_xpos[f], self._text_ypos[f],
+                                        self._plot_text[f],
+                                        fontproperties=self._font_properties,
+                                        **self._text_kwargs[f])
 
             if f in self.plot_title:
                 self.plots[f].axes.set_title(self.plot_title[f])
@@ -876,6 +888,41 @@ class PhasePlot(ImagePlotContainer):
         return cls._initialize_instance(obj, data_source, profile, fontsize,
                                         figure_size)
 
+
+    def annotate_text(self, xpos=0.0, ypos=0.0, text=None, **text_kwargs):
+        r"""
+        Allow the user to insert text onto the plot
+        The x-position and y-position must be given as well as the text string. 
+        Add *text* tp plot at location *xpos*, *ypos* in plot coordinates
+        (see example below).
+                
+        Parameters
+        ----------
+        field: str or tuple
+          The name of the field to add text to. 
+        xpos: float
+          Position on plot in x-coordinates.
+        ypos: float
+          Position on plot in y-coordinates.
+        text: str
+          The text to insert onto the plot.
+        text_kwargs: dict
+          Dictionary of text keyword arguments to be passed to matplotlib
+
+        >>>  plot.annotate_text(1e-15, 5e4, "Hello YT")
+
+        """
+        for f in self.data_source._determine_fields(self.plots.keys()):
+            if self.plots[f].figure is not None and text is not None:
+                self.plots[f].axes.text(xpos, ypos, text,
+                                        fontproperties=self._font_properties,
+                                        **text_kwargs)
+            self._plot_text[f] = text
+            self._text_xpos[f] = xpos
+            self._text_ypos[f] = ypos
+            self._text_kwargs[f] = text_kwargs
+        return self
+
     def save(self, name=None, mpl_kwargs=None):
         r"""
         Saves a 2d profile plot.
@@ -896,7 +943,7 @@ class PhasePlot(ImagePlotContainer):
         if mpl_kwargs is None:
             mpl_kwargs = {}
         if name is None:
-            name = str(self.profile.pf)
+            name = str(self.profile.ds)
         name = os.path.expanduser(name)
         xfn = self.profile.x_field
         yfn = self.profile.y_field
@@ -912,9 +959,9 @@ class PhasePlot(ImagePlotContainer):
             splitname = os.path.split(name)
             if splitname[0] != '' and not os.path.isdir(splitname[0]):
                 os.makedirs(splitname[0])
-            if os.path.isdir(name) and name != str(self.profile.pf):
+            if os.path.isdir(name) and name != str(self.profile.ds):
                 prefix = name + (os.sep if name[-1] != os.sep else '')
-                prefix += str(self.profile.pf)
+                prefix += str(self.profile.ds)
             else:
                 prefix = name
             suffix = get_image_suffix(name)

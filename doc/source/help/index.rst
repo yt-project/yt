@@ -1,9 +1,9 @@
 .. _asking-for-help:
 
-What to do if you run into problems
+What to Do If You Run into Problems
 ===================================
 
-If you run into problems with ``yt``, there are a number of steps to follow
+If you run into problems with yt, there are a number of steps to follow
 to come to a solution.  The first handful of options are things you can do 
 on your own, but if those don't yield results, we have provided a number of 
 ways to connect with our community of users and developers to solve the 
@@ -11,18 +11,18 @@ problem together.
 
 To summarize, here are the steps in order:
 
- #. Don’t panic and don’t give up
- #. Update to the latest version
- #. Search the yt documentation and mailing list archives
- #. Look at the yt source
- #. Isolate & document your problem 
- #. Go on IRC and ask a question
- #. Ask the mailing list
- #. Submit a bug report
+#. Don’t panic and don’t give up
+#. Update to the latest version
+#. Search the yt documentation and mailing list archives
+#. Look at the yt source
+#. Isolate & document your problem 
+#. Go on IRC and ask a question
+#. Ask the mailing list
+#. Submit a bug report
 
 .. _dont-panic:
 
-Don't panic and don't give up
+Don't Panic and Don't Give up
 -----------------------------
 
 This may seem silly, but it's effective.  While yt is a robust code with
@@ -34,7 +34,7 @@ to help you succeed!
 
 .. _update-the-code:
 
-Try updating yt
+Try Updating yt
 ---------------
 
 Sometimes the pace of development is pretty fast on yt, particularly in the
@@ -53,9 +53,35 @@ or you could update yt's source as well as any software dependencies by running:
 
   $ yt update --all
 
+.. _update_errors:
+
+Update Errors
+^^^^^^^^^^^^^
+
+If for some reason the ``update`` command fails with errors, or any attempt at 
+loading yt either from the command line or from within python also fails, it 
+may simply mean you need to rebuild the yt source (some of the c-code in yt 
+needs to be rebuilt after major changes).  You can do this by navigating to
+the root of the yt mercurial repository.  If you installed with the all-in-one
+installer script, this is the ``yt-<machine>/src/yt-hg`` directory.  Then 
+execute these commands:
+
+.. code-block:: bash
+
+  $ python setup.py develop
+
+Now try running yt again with:
+
+.. code-block:: bash
+
+  $ yt --help
+
+If you continue to see errors, you should try contacting us via IRC or email
+but you may have to reinstall yt (see :ref:`getting-and-installing`).
+
 .. _search-the-documentation:
 
-Search the documentation and mailing lists
+Search the Documentation and Mailing Lists
 ------------------------------------------
 
 The documentation has a lot of the answers to everyday problems.  This doesn't 
@@ -84,39 +110,48 @@ use the search field below).
 
 .. _look-at-the-source:
 
-Look at the source code
+Look at the Source Code
 -----------------------
 
 We've done our best to make the source clean, and it is easily searchable from 
-your computer.  Go inside your yt install directory by going to the 
-``$YT_DEST/src/yt-hg/yt`` directory where all the code lives.  You can then search 
-for the class, function, or keyword which is giving you problems with 
-``grep -r *``, which will recursively search throughout the code base.  (For a 
-much faster and cleaner experience, we recommend ``grin`` instead of 
-``grep -r *``.  To install ``grin`` with python, just type ``pip install 
-grin``.)  
+your computer.
 
-So let's say that pesky ``SlicePlot`` is giving you problems still, and you 
-want to look at the source to figure out what is going on.
+If you have not done so already (see :ref:`source-installation`), clone a copy of the yt mercurial repository and make it the 'active' installation by doing
+
+.. code-block::bash
+
+  python setup.py develop
+
+in the root directory of the yt mercurial repository.
+
+.. note::
+
+  This has already been done for you if you installed using the bash install
+  script.  Building yt from source will not work if you do not have a C compiler
+  installed.
+
+Once inside the yt mercurial repository, you can then search for the class,
+function, or keyword which is giving you problems with ``grep -r *``, which will
+recursively search throughout the code base.  (For a much faster and cleaner
+experience, we recommend ``grin`` instead of ``grep -r *``.  To install ``grin``
+with python, just type ``pip install grin``.)
+
+So let's say that ``SlicePlot`` is giving you problems still, and you want to
+look at the source to figure out what is going on.
 
 .. code-block:: bash
 
-  $ cd $YT_DEST/src/yt-hg/yt
+  $ cd $YT-HG/yt
   $ grep -r SlicePlot *         (or $ grin SlicePlot)
-  
-   data_objects/analyzer_objects.py:class SlicePlotDataset(AnalysisTask):
-   data_objects/analyzer_objects.py:        from yt.visualization.api import SlicePlot
-   data_objects/analyzer_objects.py:        self.SlicePlot = SlicePlot
-   data_objects/analyzer_objects.py:        slc = self.SlicePlot(pf, self.axis, self.field, center = self.center)
-   ...
 
-You can now followup on this and open up the files that have references to 
-``SlicePlot`` (particularly the one that definese SlicePlot) and inspect their
-contents for problems or clarification.
+This will print a number of locations in the yt source tree where ``SlicePlot``
+is mentioned.  You can now followup on this and open up the files that have
+references to ``SlicePlot`` (particularly the one that defines SlicePlot) and
+inspect their contents for problems or clarification.
 
 .. _isolate_and_document:
 
-Isolate and document your problem
+Isolate and Document Your Problem
 ---------------------------------
 
 As you gear up to take your question to the rest of the community, try to distill
@@ -124,16 +159,15 @@ your problem down to the fewest number of steps needed to produce it in a
 script.  This can help you (and us) to identify the basic problem.  Follow
 these steps:
 
- * Identify what it is that went wrong, and how you knew it went wrong.
- * Put your script, errors, and outputs online:
+* Identify what it is that went wrong, and how you knew it went wrong.
+* Put your script, errors, and outputs online:
 
-   * ``$ yt pastebin script.py`` - pastes script.py online
-   * ``$ python script.py --paste`` - pastes errors online
-   * ``$ yt upload_image image.png`` - pastes image online
+  * ``$ yt pastebin script.py`` - pastes script.py online
+  * ``$ yt upload_image image.png`` - pastes image online
 
- * Identify which version of the code you’re using. 
+* Identify which version of the code you’re using. 
 
-   * ``$ yt instinfo`` - provides version information, including changeset hash
+  * ``$ yt version`` - provides version information, including changeset hash
 
 It may be that through the mere process of doing this, you end up solving 
 the problem!
@@ -154,7 +188,7 @@ your answers quickly.  Remember to bring the information from the
 
 .. _mailing-list:
 
-Ask the mailing list
+Ask the Mailing List
 --------------------
 
 If you still haven't yet found a solution, feel free to 
@@ -175,7 +209,7 @@ difficult to help out!
 
 .. _reporting-a-bug:
 
-How To report A bug
+How to Report a Bug
 -------------------
 
 If you have gone through all of the above steps, and you're still encountering 
@@ -187,7 +221,6 @@ Alternatively, email the ``yt-users`` mailing list and we will construct a new
 ticket in your stead.  Remember to include the information
 about your problem you identified in :ref:`this step <isolate_and_document>`.
 
-
 Installation Issues
 -------------------
 
@@ -196,12 +229,12 @@ If you are having installation issues and nothing from the
 *definitely* email the ``yt-users`` email list.  You should provide information 
 about the host, the version of the code you are using, and the output of 
 ``yt_install.log`` from your installation.  We are very interested in making 
-sure that ``yt`` installs everywhere!
+sure that yt installs everywhere!
 
 Customization and Scripting Issues
 ----------------------------------
 
-If you have customized ``yt`` in some way, or created your own plugins file (as
+If you have customized yt in some way, or created your own plugins file (as
 described in :ref:`plugin-file`) then it may be necessary to supply both your
 patches to the source, the plugin file, and perhaps even the datafile on which
 you're running.

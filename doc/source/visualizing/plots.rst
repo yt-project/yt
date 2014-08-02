@@ -4,11 +4,11 @@
 How to Make Plots
 =================
 
-In this section we explain how to use ``yt`` to create visualizations
-of simulation data, derived fields, and the data produced by ``yt``
+In this section we explain how to use yt to create visualizations
+of simulation data, derived fields, and the data produced by yt
 analysis objects.  For details about the data extraction and
 algorithms used to produce the image and analysis data, please see the
-``yt`` `method paper
+yt `method paper
 <http://adsabs.harvard.edu/abs/2011ApJS..192....9T>`_.  There are also
 many example scripts in :ref:`cookbook`.
 
@@ -22,7 +22,7 @@ which are described below.
 Visual Inspection
 -----------------
 
-If you need to take a quick look at a single simulation output, ``yt``
+If you need to take a quick look at a single simulation output, yt
 provides the ``PlotWindow`` interface for generating annotated 2D
 visualizations of simulation data.  You can create a ``PlotWindow`` plot by
 supplying a dataset, a list of fields to plot, and a plot center to
@@ -30,7 +30,7 @@ create a :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot`,
 :class:`~yt.visualization.plot_window.ProjectionPlot`, or
 :class:`~yt.visualization.plot_window.OffAxisProjectionPlot`.
 
-Plot objects use ``yt`` data objects to extract the maximum resolution
+Plot objects use yt data objects to extract the maximum resolution
 data available to render a 2D image of a field. Whenever a
 two-dimensional image is created, the plotting object first obtains
 the necessary data at the *highest resolution*.  Every time an image
@@ -59,8 +59,8 @@ opened and stored in ``ds``:
 
 .. code-block:: python
 
-   >>> slc = yt.SlicePlot(ds, 'z', 'density')
-   >>> slc.save()
+    slc = yt.SlicePlot(ds, 'z', 'density')
+    slc.save()
 
 These two commands will create a slice object and store it in a variable we've
 called ``slc``.  Since this plot is aligned with the simulation coordinate
@@ -72,7 +72,7 @@ stick around, you can accomplish the same thing in one line:
 
 .. code-block:: python
    
-   >>> yt.SlicePlot(ds, 'z', 'density').save()
+    yt.SlicePlot(ds, 'z', 'density').save()
 
 It's nice to keep the slice object around if you want to modify the plot.  By
 default, the plot width will be set to the size of the simulation box.  To zoom
@@ -81,9 +81,9 @@ object:
 
 .. code-block:: python
 
-   >>> slc = yt.SlicePlot(ds, 'z', 'density')
-   >>> slc.zoom(10)
-   >>> slc.save('zoom')
+    slc = yt.SlicePlot(ds, 'z', 'density')
+    slc.zoom(10)
+    slc.save('zoom')
 
 This will save a new plot to disk with a different filename - prepended with
 'zoom' instead of the name of the dataset. If you want to set the width
@@ -93,10 +93,10 @@ save it to disk.
 
 .. code-block:: python
 
-   >>> from yt.units import kpc
-   >>> slc = yt.SlicePlot(ds, 'z', 'density')
-   >>> slc.set_width(10*kpc)
-   >>> slc.save('10kpc')
+    from yt.units import kpc
+    slc = yt.SlicePlot(ds, 'z', 'density')
+    slc.set_width(10*kpc)
+    slc.save('10kpc')
 
 The plot width can be specified independently along the x and y direction by
 passing a tuple of widths.  An individual width can also be represented using a
@@ -105,20 +105,26 @@ set the width of the plot to 200 kiloparsecs in the ``x`` and ``y`` direction.
 
 .. code-block:: python
 
-   >>> from yt.units import kpc
-   >>> slc.set_width(200*kpc)
-   >>> slc.set_width((200, 'kpc'))
-   >>> slc.set_width((200*kpc, 200*kpc))
+    from yt.units import kpc
+    slc.set_width(200*kpc)
+    slc.set_width((200, 'kpc'))
+    slc.set_width((200*kpc, 200*kpc))
 
 The ``SlicePlot`` also optionally accepts the coordinate to center the plot on
 and the width of the plot:
 
 .. code-block:: python
 
-   >>> yt.SlicePlot(ds, 'z', 'density', center=[0.2, 0.3, 0.8],
-   ...              width = (10,'kpc')).save()
+    yt.SlicePlot(ds, 'z', 'density', center=[0.2, 0.3, 0.8],
+                 width = (10,'kpc')).save()
 
-The plot center is relative to the simulation coordinate system.  If supplied
+Note that, by default,
+:class:`~yt.visualization.plot_window.SlicePlot` shifts the
+coordinates on the axes such that the origin is at the center of the
+slice.  To instead use the coordinates as defined in the dataset, use
+the optional argument: ``origin="native"``
+
+If supplied
 without units, the center is assumed by in code units.  Optionally, you can
 supply 'c' or 'm' for the center.  These two choices will center the plot on the
 center of the simulation box and the coordinate of the maximum density cell,
@@ -171,14 +177,14 @@ Off Axis Slices
 
 Off axis slice plots can be generated in much the same way as
 grid-aligned slices.  Off axis slices use
-:class:`~yt.data_objects.data_containers.AMRCuttingPlaneBase` to slice
+:class:`~yt.data_objects.selection_data_containers.YTCuttingPlaneBase` to slice
 through simulation domains at an arbitrary oblique angle.  A
 :class:`~yt.visualization.plot_window.OffAxisSlicePlot` can be
 instantiated by specifying a dataset, the normal to the cutting
 plane, and the name of the fields to plot.  Just like an
 :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot`, an
-``OffAxisSlicePlot`` can be created via the
-:class:`~yt.visualization.plot_window.SlicePlot` function. For example:
+:class:`~yt.visualization.plot_window.OffAxisSlicePlot` can be created via the
+:class:`~yt.visualization.plot_window.SlicePlot` class. For example:
 
 .. python-script::
 
@@ -191,7 +197,7 @@ plane, and the name of the fields to plot.  Just like an
    cut.save()
 
 In this case, a normal vector for the cutting plane is supplied in the second
-argument. Optionally, a `north_vector` can be specified to fix the orientation
+argument. Optionally, a ``north_vector`` can be specified to fix the orientation
 of the image plane.
 
 .. _projection-plots:
@@ -199,7 +205,7 @@ of the image plane.
 Projection Plots
 ~~~~~~~~~~~~~~~~
 
-Using a fast adaptive projection, ``yt`` is able to quickly project
+Using a fast adaptive projection, yt is able to quickly project
 simulation data along the coordinate axes.
 
 Projection plots are created by instantiating a
@@ -224,22 +230,72 @@ described in :ref:`callbacks`.  See
 :class:`~yt.visualization.plot_window.ProjectionPlot` for the full
 class description.
 
+If you want to project through a subset of the full dataset volume,
+you can use the ``data_source`` keyword with a :ref:`data object data-objects`.
+The :ref:`thin-slice-projections` recipes demonstrates this functionality.
+
+.. _projection-types:
+
+Types of Projections
+""""""""""""""""""""
+
+There are several different styles of projections that can be made either 
+when creating a projection with ds.proj() or when making a ProjectionPlot.  
+In either construction method, set the ``style`` keyword to be one of the 
+following:
+
+``integrate`` (unweighted)
+    This is the default projection style. It simply integrates the 
+    requested field  :math:`f(x)` along a line of sight  :math:`\hat{n}` , 
+    given by the axis parameter (e.g. :math:`\hat{i},\hat{j},` or 
+    :math:`\hat{k}`).  The units of the projected field  
+    :math:`g(X)` will be the units of the unprojected field  :math:`f(x)` 
+    multiplied by the appropriate length unit, e.g., density in  
+    :math:`\mathrm{g\ cm^{-3}}` will be projected to  :math:`\mathrm{g\ cm^{-2}}`. 
+
+.. math::
+
+    g(X) = {\int\ {f(x)\hat{n}\cdot{dx}}}
+
+``integrate`` (weighted)
+    When using the ``integrate``  style, a ``weight_field`` argument may also 
+    be specified, which will produce a weighted projection.  :math:`w(x)` 
+    is the field used as a weight. One common example would 
+    be to weight the "temperature" field by the "density" field. In this case, 
+    the units of the projected field are the same as the unprojected field.
+
+.. math::
+
+    g(X) = \frac{\int\ {f(x)w(x)\hat{n}\cdot{dx}}}{\int\ {w(x)\hat{n}\cdot{dx}}}
+
+``mip`` 
+    This style picks out the maximum value of a field along the line of 
+    sight given by the axis parameter.
+
+``sum``
+    This style is the same as ``integrate``, except that it does not 
+    multiply by a path length when performing the integration, and is just a 
+    straight summation of the field along the given axis. The units of the 
+    projected field will be the same as those of the unprojected field. This 
+    style is typically only useful for datasets such as 3D FITS cubes where 
+    the third axis of the dataset is something like velocity or frequency.
+
 .. _off-axis-projections:
 
 Off Axis Projection Plots
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Off axis projection plots .  Internally, off axis projections are
-created using :ref:`the-camera-interface` by applying the
+Internally, off axis projections are created using :ref:`the-camera-interface`
+by applying the
 :class:`~yt.visualization.volume_rendering.transfer_functions.ProjectionTransferFunction`.
-In this use case, the volume renderer casts a set of plane
-parallel rays, one for each pixel in the image.  The data values
-along each ray are summed, creating the final image buffer.
+In this use case, the volume renderer casts a set of plane parallel rays, one
+for each pixel in the image.  The data values along each ray are summed,
+creating the final image buffer.
 
 .. _off-axis-projection-function:
 
 To avoid manually creating a camera and setting the transfer
-function, yt provides the :func:`~yt.visualization.volume_rendering.camera.off-axis-projection`
+function, yt provides the :func:`~yt.visualization.volume_rendering.camera.off_axis_projection`
 function, which wraps the camera interface to create an off axis
 projection image buffer.  These images can be saved to disk or
 used in custom plots.  This snippet creates an off axis
@@ -301,7 +357,7 @@ Panning and zooming
 
 There are three methods to dynamically pan around the data.  
 
-:class:`~yt.visualization.plot_window.AxisAlignedSlicePlot.pan` accepts x and y
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.pan` accepts x and y
 deltas.
 
 .. python-script::
@@ -313,7 +369,7 @@ deltas.
    slc.pan((2*kpc, 2*kpc))
    slc.save()
 
-:class:`~yt.visualization.plot_window.AxisAlignedSlicePlot.pan_rel` accepts deltas 
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.pan_rel` accepts deltas 
 in units relative to the field of view of the plot.
 
 .. python-script::
@@ -324,7 +380,7 @@ in units relative to the field of view of the plot.
    slc.pan_rel((0.1, -0.1))
    slc.save()
 
-:class:`~yt.visualization.plot_window.AxisAlignedSlicePlot.zoom` accepts a factor to zoom in by.
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.zoom` accepts a factor to zoom in by.
 
 .. python-script::
 
@@ -337,7 +393,7 @@ in units relative to the field of view of the plot.
 Set axes units
 ~~~~~~~~~~~~~~
 
-:class:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_axes_unit` allows the customization of
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_axes_unit` allows the customization of
 the axes unit labels.
 
 .. python-script::
@@ -354,7 +410,7 @@ to ``(.01, 'Mpc')``.
 Set the plot center
 ~~~~~~~~~~~~~~~~~~~
 
-The :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_center`
+The :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_center`
 function accepts a new center for the plot, in code units.  New centers must be
 two element tuples.
 
@@ -369,7 +425,7 @@ two element tuples.
 Fonts
 ~~~~~
 
-:class:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_font` allows font
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_font` allows font
 costomization.
 
 .. python-script::
@@ -389,7 +445,7 @@ is a field name.  This makes it possible to use different custom colormaps for
 different fields tracked by the plot object.
 
 To change the colormap for the plot, call the
-:class:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_cmap` function.
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_cmap` function.
 Use any of the colormaps listed in the :ref:`colormaps` section.
 
 .. python-script::
@@ -400,7 +456,7 @@ Use any of the colormaps listed in the :ref:`colormaps` section.
    slc.set_cmap('density', 'RdBu_r')
    slc.save()
 
-The :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_log` function
+The :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_log` function
 accepts a field name and a boolean.  If the boolean is ``True``, the colormap
 for the field will be log scaled.  If it is ``False`` the colormap will be
 linear.
@@ -413,7 +469,7 @@ linear.
    slc.set_log('density', False)
    slc.save()
 
-Lastly, the :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_zlim`
+Lastly, the :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_zlim`
 function makes it possible to set a custom colormap range.
 
 .. python-script::
@@ -443,7 +499,8 @@ For example:
 will plot the density field in a 10 kiloparsec slice through the
 z-axis centered on the highest density point in the simulation domain.
 Before saving the plot, the script annotates it with the grid
-boundaries, which are drawn as thick black lines by default.
+boundaries, which are drawn as lines in the plot, with colors going
+from black to white depending on the AMR level of the grid.
 
 Annotations are described in :ref:`callbacks`.
 
@@ -451,7 +508,7 @@ Set the size of the plot
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 To set the size of the plot, use the
-:class:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_figure_size` function.  The argument
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_figure_size` function.  The argument
 is the size of the longest edge of the plot in inches.  View the full resolution
 image to see the difference more clearly.
 
@@ -464,7 +521,7 @@ image to see the difference more clearly.
    slc.save()
 
 To change the resolution of the image, call the
-:class:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_buff_size` function.
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_buff_size` function.
 
 .. python-script::
 
@@ -473,6 +530,8 @@ To change the resolution of the image, call the
    slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
    slc.set_buff_size(1600)
    slc.save()
+
+.. _matplotlib-customization:
 
 Further customization via matplotlib
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -484,8 +543,8 @@ attached to each ``PlotWindow`` object:
 
 .. code-block:: python
 
-   >>> slc = SlicePlot(ds, 2, ['density', 'temperature']
-   >>> dens_plot = slc.plots['density']
+    slc = SlicePlot(ds, 2, ['density', 'temperature']
+    dens_plot = slc.plots['density']
 
 In this example ``dens_plot`` is an instance of
 :class:`~yt.visualization.plot_window.WindowPlotMPL`, an object that wraps the
@@ -493,11 +552,11 @@ matplotlib ``figure`` and ``axes`` objects.  We can access these matplotlib prim
 
 .. code-block:: python
 
-   >>> figure = dens_plot.figure
-   >>> axes = dens_plot.axes
-   >>> colorbar_axes = dens_plot.cax
+    figure = dens_plot.figure
+    axes = dens_plot.axes
+    colorbar_axes = dens_plot.cax
 
-These are the :matplotlib:class:`figure`, and :matplotlib:class:`axes` objects
+These are the :ref:`matplotlib:figure`, and :ref:`matplotlib:axes` objects
 that control the actual drawing of the plot.  Arbitrary plot customizations
 are possible by manipulating these objects.  See :ref:`matplotlib-primitives` for
 an example.
@@ -514,7 +573,7 @@ When created, they default to the average: in fact, they default to the average
 as weighted by the total cell mass.  However, this can be modified to take
 either the total value or the average with respect to a different quantity.
 
-Profiles operate on :ref:`data objects <using-objects>`; they will take the
+Profiles operate on :ref:`data objects <data-objects>`; they will take the
 entire data contained in a sphere, a prism, an extracted region and so on, and
 they will calculate and use that as input to their calculation.  To make a 1D
 profile plot, create a (:class:`~yt.visualization.profile_plotter.ProfilePlot`)
@@ -530,7 +589,7 @@ to be profiled.
    plot = yt.ProfilePlot(my_galaxy, "density", ["temperature"])
    plot.save()
 
-This will create a :class:`yt.data_objects.data_containers.AMRCylinderBase`
+This will create a :class:`~yt.data_objects.selection_data_containers.YTDiskBase`
 centered at [0.5, 0.5, 0.5], with a normal vector of [0.0, 0.0, 1.0], radius of
 10 kiloparsecs and height of 3 kiloparsecs and will then make a plot of the
 mass-weighted average temperature as a function of density for all of the gas
@@ -548,14 +607,26 @@ For instance:
                          weight_field=None)
    plot.save()
 
-Note that because we have specified the weighting field to be none, it operates
-the profile plot will display the accumulated cell mass as a function of
-temperature rather than the average.  We can also accumulate along the x-axis by
-setting the **accumulation** keyword argument to True, which is useful for plots
-of enclosed mass.
+Note that because we have specified the weighting field to be ``None``, the
+profile plot will display the accumulated cell mass as a function of temperature
+rather than the average. Also note the use of a ``(value, unit)`` tuple. These
+can be used interchangably with units explicitly imported from ``yt.units`` when
+creating yt plots.
 
-Also note the use of a ``(value, unit)`` tuple. These can be used interchangably
-with units explicitly imported from ``yt.units``.
+We can also accumulate along the bin field of a ``ProfilePlot`` (the bin field
+is the x-axis in a ``ProfilePlot``, in the last example the bin field is
+``Temperature``) by setting the ``accumulation`` keyword argument to ``True``.
+The following example uses ``weight_field = None`` and ``accumulation = True`` to
+generate a plot of the enclosed mass in a sphere:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   my_sphere = ds.sphere([0.5, 0.5, 0.5], (100, "kpc"))
+   plot = yt.ProfilePlot(my_sphere, "radius", ["cell_mass"],
+                         weight_field=None, accumulation=True)
+   plot.save()
 
 You can also access the data generated by profiles directly, which can be
 useful for overplotting average quantities on top of phase plots, or for
@@ -570,9 +641,9 @@ The profiled fields can be accessed from the dictionary ``field_data``.
                       weight_field=None)
    profile = plot.profiles[0]
    # print the bin field, in this case temperature
-   print plot.profiles[-1].x
+   print profile.x
    # print the profiled cell_mass field
-   print plot.profiles[-1]["cell_mass"]
+   print profile['cell_mass']
 
 Other options, such as the number of bins, are also configurable. See the
 documentation for :class:`~yt.visualization.profile_plotter.ProfilePlot` for
@@ -583,7 +654,7 @@ Overplotting Multiple 1D Profiles
 
 It is often desirable to overplot multiple 1D profile to show evolution 
 with time.  This is supported with the ``from_profiles`` class method.  
-1D profiles are created with the :func:`yt.data_objects.profiles.create_profile` 
+1D profiles are created with the :func:`~yt.data_objects.profiles.create_profile` 
 method and then given to the ProfilePlot object.
 
 .. python-script::
@@ -625,7 +696,8 @@ By default the x and y limits for ``ProfilePlot`` are determined using the
 want to create a plot with custom axis limits, you have two options.
 
 First, you can create a custom profile object using
-:func:`~yt.data_objects.profiles.create_profile`.  This function accepts a dictionary of ``(max, min)`` tuples keyed to field names.
+:func:`~yt.data_objects.profiles.create_profile`.  
+This function accepts a dictionary of ``(max, min)`` tuples keyed to field names.
 
 .. python-script::
 
@@ -641,14 +713,14 @@ First, you can create a custom profile object using
     plot.save()
 
 You can also make use of the
-:meth:`yt.visualization.profile_plotter.ProfilePlot.set_xlim` and
-:meth:`yt.visualization.profile_plotter.ProfilePlot.set_ylim` functions to
+:meth:`~yt.visualization.profile_plotter.ProfilePlot.set_xlim` and
+:meth:`~yt.visualization.profile_plotter.ProfilePlot.set_ylim` functions to
 customize the axes limits of a plot that has already been created.  Note that
 calling ``set_xlim`` is much slower than calling ``set_ylim``.  This is because
-```set_xlim`` must recreate the profile object using the specified extrema.
-Creating a profile directly via ``create_profile`` might be significant faster.
-If you find that this operation is slow, consider creating your profile via
-``create_profile``.  Note that since there is only one bin field, ``set_xlim``
+``set_xlim`` must recreate the profile object using the specified extrema.
+Creating a profile directly via :func:`~yt.data_objects.profiles.create_profile` 
+might be significantly faster.
+Note that since there is only one bin field, ``set_xlim``
 does not accept a field name as the first argument.
 
 .. python-script::
@@ -712,20 +784,20 @@ Altering Line Properties
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 Line properties for any and all of the profiles can be changed with the 
-``set_line_property`` function.  The two arguments given are the line 
-property and desired value.
+:func:`~yt.visualization.profile_plotter.set_line_property` function.  
+The two arguments given are the line property and desired value.
 
 .. code-block:: python
 
-   >>> plot.set_line_property("linestyle", "--")
+    plot.set_line_property("linestyle", "--")
 
 With no additional arguments, all of the lines plotted will be altered.  To 
 change the property of a single line, give also the index of the profile.
 
 .. code-block:: python
 
-   >>> # change only the first line
-   >>> plot.set_line_property("linestyle", "--", 0)
+    # change only the first line
+    plot.set_line_property("linestyle", "--", 0)
 
 .. _how-to-make-2d-profiles:
 
@@ -736,6 +808,8 @@ change the property of a single line, give also the index of the profile.
 :class:`~yt.visualization.profile_plotter.PhasePlot` object.  Much like 1D
 profiles, 2D profiles (phase plots) are best thought of as plotting a
 distribution of points, either taking the average or the accumulation in a bin.
+The default behavior is to average, using the cell mass as the weighting,
+but this behavior can be controlled through the ``weight_field`` parameter.
 For example, to generate a 2D distribution of mass enclosed in density and
 temperature bins, you can do:
 
@@ -749,7 +823,8 @@ temperature bins, you can do:
    plot.save()
 
 If you would rather see the average value of a field as a function of two other
-fields, you can set the ``weight_field`` parameter to ``None``.  This would look
+fields, leave off the ``weight_field`` argument, and it will average by
+the cell mass.  This would look
 something like:
 
 .. python-script::
@@ -757,14 +832,14 @@ something like:
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    my_sphere = ds.sphere("c", (50, "kpc"))
-   plot = yt.PhasePlot(my_sphere, "density", "temperature", ["H_fraction"],
-                       weight_field=None)
+   plot = yt.PhasePlot(my_sphere, "density", "temperature", ["H_fraction"])
    plot.save()
 
 Customizing Phase Plots
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Similarly to 1D profile plots, ``PhasePlot`` can be customized via ``set_unit``,
+Similarly to 1D profile plots, :class:`~yt.visualization.profile_plotter.PhasePlot` 
+can be customized via ``set_unit``,
 ``set_xlim``, ``set_ylim``, and ``set_zlim``.  The following example illustrates
 how to manipulate these functions.
 
@@ -785,7 +860,8 @@ how to manipulate these functions.
    plot.save()
 
 It is also possible to construct a custom 2D profile object and then use the
-``from_profile`` method to create a ``PhasePlot`` using the profile object.
+:meth:`~yt.visualization.profile_plotter.PhasePlot.from_profile` function to 
+create a ``PhasePlot`` using the profile object.
 This will sometimes be faster, especially if you need custom x and y axes
 limits.  The following example illustrates this workflow:
 
@@ -829,7 +905,7 @@ Interactive Plotting
 
 The best way to interactively plot data is through the IPython notebook.  Many
 detailed tutorials on using the IPython notebook can be found at
-http://ipython.org/presentation.html , but the simplest way to use it is to
+`http://ipython.org/presentation.html`_ , but the simplest way to use it is to
 type:
 
 .. code-block:: bash
@@ -841,17 +917,16 @@ a shared user machine no one else can pretend to be you!) and then spawn an
 IPython notebook you can connect to.
 
 If you want to see yt plots inline inside your notebook, you need only create a
-plot and then call ``.show()``:
+plot and then call ``.show()`` and the image will appear inline:
 
 .. notebook-cell::
 
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   p = ProjectionPlot(ds, "x", "density", center='m', width=(10,'kpc'),
+   p = yt.ProjectionPlot(ds, "z", "density", center='m', width=(10,'kpc'),
                       weight_field='density')
+   p.set_figure_size(5)
    p.show()
-
-The image will appear inline.
 
 .. _eps-writer:
 
@@ -880,12 +955,12 @@ EPS or PDF figure.  For example,
 
 .. code-block:: python
 
-   >>> import yt.visualization.eps_writer as eps
-   >>> slc = yt.SlicePlot(ds, 'z', 'density')
-   >>> slc.set_width(25, 'kpc')
-   >>> eps_fig = eps.single_plot(slc)
-   >>> eps_fig.save_fig('zoom', format='eps')
-   >>> eps_fig.save_fig('zoom-pdf', format='pdf')
+    import yt.visualization.eps_writer as eps
+    slc = yt.SlicePlot(ds, 'z', 'density')
+    slc.set_width(25, 'kpc')
+    eps_fig = eps.single_plot(slc)
+    eps_fig.save_fig('zoom', format='eps')
+    eps_fig.save_fig('zoom-pdf', format='pdf')
 
 The ``eps_fig`` object exposes all of the low-level functionality of
 ``PyX`` for further customization (see the `PyX documentation
@@ -894,26 +969,26 @@ convenience routines in ``eps_writer``, such as drawing a circle,
 
 .. code-block:: python
 
-   >>> eps_fig.circle(radius=0.2, loc=(0.5,0.5))
-   >>> eps_fig.sav_fig('zoom-circle', format='eps')
+    eps_fig.circle(radius=0.2, loc=(0.5,0.5))
+    eps_fig.sav_fig('zoom-circle', format='eps')
 
 with a radius of 0.2 at a center of (0.5, 0.5), both of which are in
 units of the figure's field of view.  The
-:class:`~yt.visualization.eps_writer.multiplot_yt` routine also
+:func:`~yt.visualization.eps_writer.multiplot_yt` routine also
 provides a convenient method to produce multi-panel figures
 from a PlotWindow.  For example,
 
 .. code-block:: python
 
-   >>> import yt
-   >>> import yt.visualization.eps_writer as eps
-   >>>
-   >>> slc = yt.SlicePlot(ds, 'z', ['density', 'temperature', 'Pressure',
-                          'VelocityMagnitude'])
-   >>> slc.set_width(25, 'kpc')
-   >>> eps_fig = eps.multiplot_yt(2, 2, slc, bare_axes=True)
-   >>> eps_fig.scale_line(0.2, '5 kpc')
-   >>> eps_fig.save_fig('multi', format='eps')
+    import yt
+    import yt.visualization.eps_writer as eps
+   
+    slc = yt.SlicePlot(ds, 'z', ['density', 'temperature', 'pressure',
+                       'velocity_magnitude'])
+    slc.set_width(25, 'kpc')
+    eps_fig = eps.multiplot_yt(2, 2, slc, bare_axes=True)
+    eps_fig.scale_line(0.2, '5 kpc')
+    eps_fig.save_fig('multi', format='eps')
 
 will produce a 2x2 panel figure with a scale bar indicating 5 kpc.
 The routine will try its best to place the colorbars in the optimal

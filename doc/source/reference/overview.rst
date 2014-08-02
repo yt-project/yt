@@ -95,21 +95,21 @@ The Goals and Design of yt
 --------------------------
 
 There are many tools available for analysis and visualization of AMR
-data; there are many just for ``enzo``. So why ``yt``? Along the road
+data; there are many just for ``enzo``. So why yt? Along the road
 to answering that question, we shall take a somewhat philosophical
 scenic route. For the more pragmatically minded, the answer is simple:
-what ``yt`` does not yet do, you can make it do so. This is not as
+what yt does not yet do, you can make it do so. This is not as
 glib as it may seem: it is in fact the main philosophical tennant that
-underlies ``yt``. In this section, it is not our goal to show you just
-how much ``yt`` already does. Instead, we will discuss how it is that
-``yt`` does anything at all. In doing so, we hope to give you a sense
-of whether or not ``yt`` will align with your science goals.
+underlies yt. In this section, it is not our goal to show you just
+how much yt already does. Instead, we will discuss how it is that
+yt does anything at all. In doing so, we hope to give you a sense
+of whether or not yt will align with your science goals.
 
-At its core, ``yt`` is not a set of scripts to visualize AMR data, nor
+At its core, yt is not a set of scripts to visualize AMR data, nor
 is it a set of low-level routines that return a homo- or even
 heterogeneous set of gridded data to your favorite scientific
-programming language--though ``yt`` incorporates both of these things,
-if your favorite scientific language is python. Instead, ``yt``
+programming language--though yt incorporates both of these things,
+if your favorite scientific language is python. Instead, yt
 provides a series of objects, some common AMR code structures (such as
 hierarchies and levels in a nested mesh) and some physical (a
 cylinder, cube, or sphere somewhere in the problem domain), that allow
@@ -117,24 +117,24 @@ you to process AMR data in order to get at the fundamental underlying
 physics. 
 
 
-``yt`` evolved naturally out of three design goals, though when Matt
+yt evolved naturally out of three design goals, though when Matt
 was busy writing it, he never really thought about them.  Over
 time, it became clear that they are real and furthermore that they
-are important to understanding how to use ``yt``.  These three goals
+are important to understanding how to use yt.  These three goals
 are directed analysis, repeatability, and data exploration. 
 
 Directed Analysis: Answering a Question
 +++++++++++++++++++++++++++++++++++++++
 
-One of the main motivators for ``yt`` is to make it possible to sit
+One of the main motivators for yt is to make it possible to sit
 down with a definite question about an AMR dataset and code up a
 script that will provide an answer to that question. Indeed much of its
 object-oriented nature can be viewed as a way perform operations on a
 data object. Given that AMR simulations are usually used to track some
 kind of structure formation, be it shocks, stars, or galaxies, the
 data object may not be the entire domain, but some region within it
-that is interesting. This data object in hand, ``yt`` makes it easy
-(if possible: some tasks ``yt`` can merely make *possible*) to
+that is interesting. This data object in hand, yt makes it easy
+(if possible: some tasks yt can merely make *possible*) to
 manipulate that data in such a way to answer a question related to
 your research.
 
@@ -143,13 +143,13 @@ Repeatability
 
 In any scientific analysis, being able to repeat the set of steps that
 prepared an answer or physical quantity is essential.  To that end,
-much of the usage of ``yt`` is focused around running scripts,
+much of the usage of yt is focused around running scripts,
 describing actions and plots programmatically.  Being able to write a
 script or conducting a set of commands that will reproduce identical
-results is fundamentally important, and ``yt`` will attempt to make
+results is fundamentally important, and yt will attempt to make
 that easy.  It's for this reason that the interactive features of
-``yt`` are not always as advanced as they might otherwise be. We are
-actively working on integrating the SAGE notebook system into ``yt``,
+yt are not always as advanced as they might otherwise be. We are
+actively working on integrating the SAGE notebook system into yt,
 which our preliminary tests suggest is a nice compromise between
 interactivity and repeatability. 
 
@@ -166,7 +166,7 @@ Quite often, the best way forward is to explore the simulation data as
 freely as possible.  Without the ability for spot-examination,
 serendipitous discovery or general wandering, the code would be simply
 a pipeline, rather than a general tool. The flexible extensibility of
-``yt``, that is, the ability to create new derived quantities easily,
+yt, that is, the ability to create new derived quantities easily,
 as well as the ability to extract and display data regions in a
 variety of ways allows for this exploration.
 
@@ -175,18 +175,18 @@ variety of ways allows for this exploration.
 Object Methodology
 ------------------
 
-``yt`` follows a strong object-oriented methodology.  There is no real
-global state of ``yt``; all state is contained within objects that
+yt follows a strong object-oriented methodology.  There is no real
+global state of yt; all state is contained within objects that
 encapsulate an AMR code object or physical region.
 
 Physical Objects vs Code Objects
 ++++++++++++++++++++++++++++++++
 
-The best way to think about doing things with ``yt`` is to think first
-of objects. The AMR code puts a number of objects on disk, and ``yt``
+The best way to think about doing things with yt is to think first
+of objects. The AMR code puts a number of objects on disk, and yt
 has a matching set of objects to mimic these closely as possible. Your
 code runs (hopefully) a simulacrum of the physical universe, and thus
-in order to make sense of the output data, ``yt`` provides a set of
+in order to make sense of the output data, yt provides a set of
 objects meant to mimic the kinds of physical regions and processes you
 are interested in. For example, in a simulation of star formation out
 of some larger structure (the cosmic dark matter web, a turbulent
@@ -195,14 +195,14 @@ radius around the point of maximum density. In a simulation of an
 accretion disk, you might want a cylindrical region of 1000 AU in
 radius and 10 AU in height with its axial vector aligned with the net
 angular momentum vector, which may be arbitrary with respect to the
-simulation cardinal axes. These are physical objects, and ``yt`` has a
+simulation cardinal axes. These are physical objects, and yt has a
 set of these too. Finally, you may wish to reduce the data to produce
 some essential data that represent a specific process. These
-reductions are also objects, and they are included in ``yt`` as well.
+reductions are also objects, and they are included in yt as well.
 
 Somewhat separate from this, but in the same spirit, are plots. In
-``yt``, plots are also objects that one can create, manipulate, and
-save. In the case of plots, however, you tell ``yt`` what you want to
+yt, plots are also objects that one can create, manipulate, and
+save. In the case of plots, however, you tell yt what you want to
 see, and it can fetch data from the appropriate source. 
 
 In list form,
@@ -241,15 +241,15 @@ compare with these observations, *projections* are an extremely useful
 data reduction for simulations. It is often useful to project to a
 given resolution, which may be as high as the highest subdomain in the
 AMR data set. However, projecting in a given direction through the
-full AMR data set can be quite costly in computing time. ``yt``'s
+full AMR data set can be quite costly in computing time. yt's
 project tool saves an *adaptive* projection when it completes this
 costly step, allowing you to make 2D images at whatever resolution you
 like with very modest computational resources. This idea, that of
 saving as much information as you need (and no more) to make the data
-reduction flexible for reuse is another core idea behind ``yt``. You
+reduction flexible for reuse is another core idea behind yt. You
 should not have to spend computational resources and precious time to
 replot a projection from a 1000x1000 image to a 2000x2000 image. As a
-side note, in this specific case, because the 2D data product ``yt``
+side note, in this specific case, because the 2D data product yt
 produces is "smart", it never needs to use an array in memory as large
 as the full effective AMR resolution (which could be very large, and
 nearly devoid of unique information).
@@ -258,11 +258,11 @@ nearly devoid of unique information).
 Derived Fields and Derived Quantities
 -------------------------------------
 
-While the primary attraction of ``yt`` is the large set of basic code,
+While the primary attraction of yt is the large set of basic code,
 physical, reduced, and plot objects already developed, at its core is the fact
 that any of the objects can be used as starting points for creating fields and
 quantities of your own devices. Derived quantities and derived fields are the
-physical objects ``yt`` creates from the "primitive" variables the simulation
+physical objects yt creates from the "primitive" variables the simulation
 code stores. These may or may not be the so-called primitive variables of fluid
 dynamics (density, velocity, energy): they are whatever your simulation code
 writes to disk. 
@@ -271,10 +271,10 @@ Derived quantities are those data products derived from these variables such
 that the total amount of returned data is *less* than the number of cells.
 Derived fields, on the other hand, return a field with *equal* numbers of cells
 and the same geometry as the primitive variables from which it was derived. For
-example, ``yt`` could compute the gravitational potential at every point in
+example, yt could compute the gravitational potential at every point in
 space reconstructed from the density field.
 
-``yt`` already includes a large number of both :ref:`derived fields <field-list>` 
+yt already includes a large number of both :ref:`derived fields <field-list>` 
 and :ref:`derived quantities <derived-quantities>`, but its real power is 
 that it is easy to create your own. See :ref:`creating-derived-fields` for 
 detailed instructions on creating derived fields. 
