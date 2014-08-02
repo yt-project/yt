@@ -15,6 +15,7 @@ Various non-grid data containers.
 
 import itertools
 import types
+import uuid
 
 data_object_registry = {}
 
@@ -1118,11 +1119,22 @@ class YTSelectionContainer3D(YTSelectionContainer):
             else:
                 mv = cons[level+1]
             from yt.analysis_modules.level_sets.api import identify_contours
+            from yt.analysis_modules.level_sets.clump_handling import \
+                add_contour_field
             nj, cids = identify_contours(self, field, cons[level], mv)
-            for cid in range(nj):
-                contours[level][cid] = self.cut_region(
-                    ["obj['contours'] == %s" % (cid + 1)],
-                    {'contour_slices': cids})
+            unique_contours = set([])
+            for sl_list in cids.values():
+                for sl, ff in sl_list:
+                    unique_contours.update(np.unique(ff))
+            contour_key = uuid.uuid4().hex
+            # In case we're a cut region already...
+            base_object = getattr(self, 'base_object', self)
+            add_contour_field(base_object.ds, contour_key)
+            for cid in sorted(unique_contours):
+                if cid == -1: continue
+                contours[level][cid] = base_object.cut_region(
+                    ["obj['contours_%s'] == %s" % (contour_key, cid)],
+                    {'contour_slices_%s' % contour_key: cids})
         return cons, contours
 
     def paint_grids(self, field, value, default_value=None):
