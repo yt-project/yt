@@ -23,9 +23,9 @@ Please feel free to hack around, commit changes, and send them upstream.  If
 you're new to Mercurial, these three resources are pretty great for learning
 the ins and outs:
 
-* `http://hginit.com/`_
-* `http://hgbook.red-bean.com/read/`_
-* `http://mercurial.selenic.com/`_
+* http://hginit.com/
+* http://hgbook.red-bean.com/read/
+* http://mercurial.selenic.com/
 
 The commands that are essential for using mercurial include:
 
@@ -209,7 +209,7 @@ Here's a more detailed flowchart of how to submit changes.
 #. Edit the source file you are interested in and
    test your changes.  (See :ref:`testing` for more information.)
 #. Fork yt on BitBucket.  (This step only has to be done once.)  You can do
-   this at: https://bitbucket.org/yt_analysis/yt/fork .  Call this repository
+   this at: https://bitbucket.org/yt_analysis/yt/fork.  Call this repository
    yt.
 #. Commit these changes, using ``hg commit``.  This can take an argument
    which is a series of filenames, if you have some changes you do not want
@@ -244,7 +244,7 @@ How To Get The Source Code For Editing
 --------------------------------------
 
 yt is hosted on BitBucket, and you can see all of the yt repositories at
-`http://hg.yt-project.org/`_ .  With the yt installation script you should have a
+http://hg.yt-project.org/.  With the yt installation script you should have a
 copy of Mercurial for checking out pieces of code.  Make sure you have followed
 the steps above for bootstrapping your development (to assure you have a
 bitbucket account, etc.)
@@ -253,7 +253,7 @@ In order to modify the source code for yt, we ask that you make a "fork" of the
 main yt repository on bitbucket.  A fork is simply an exact copy of the main
 repository (along with its history) that you will now own and can make
 modifications as you please.  You can create a personal fork by visiting the yt
-bitbucket webpage at `https://bitbucket.org/yt_analysis/yt/`_ .  After logging in,
+bitbucket webpage at https://bitbucket.org/yt_analysis/yt/ .  After logging in,
 you should see an option near the top right labeled "fork".  Click this option,
 and then click the fork repository button on the subsequent page.  You now have
 a forked copy of the yt repository for your own personal modification.

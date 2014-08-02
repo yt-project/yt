@@ -267,7 +267,7 @@ Annotate a Point With a Marker
    s.annotate_marker([0.5, 0.5, 0.5], plot_args={'s':10000})
    s.save()
 
-.._annotate-particles:
+.. _annotate-particles:
 
 Overplotting Particle Positions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

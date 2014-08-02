@@ -81,7 +81,7 @@ Here's a quick reference for how to update your code to work with yt-3.0.
   ``dd.quantities.total_mass()`` instead of ``dd.quantities['TotalMass']()``.
 * The ``grids`` attribute of data objects no longer exists.  To get this
   information, you have to use spatial chunking and then access them.  See
-  :ref:`here grid-chunking` for an example.  For datasets that use grid
+  :ref:`here <grid-chunking>` for an example.  For datasets that use grid
   hierarchies, you can also access the grids for the entire dataset via
   `ds.index.grids`.  This attribute is not defined for particle or octree
   datasets.
@@ -270,7 +270,7 @@ Field Parameters
 
 All data objects now accept an explicit list of ``field_parameters`` rather
 than accepting ``kwargs`` and supplying them to field parameters.  See 
-:ref:`field-parameters`.
+:ref:`field_parameters`.
 
 Object Renaming
 ^^^^^^^^^^^^^^^

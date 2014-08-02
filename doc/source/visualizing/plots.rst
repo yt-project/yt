@@ -231,7 +231,7 @@ described in :ref:`callbacks`.  See
 class description.
 
 If you want to project through a subset of the full dataset volume,
-you can use the ``data_source`` keyword with a :ref:`data object data-objects`.
+you can use the ``data_source`` keyword with a :ref:`data object <data-objects>`.
 The :ref:`thin-slice-projections` recipes demonstrates this functionality.
 
 .. _projection-types:
@@ -556,7 +556,7 @@ matplotlib ``figure`` and ``axes`` objects.  We can access these matplotlib prim
     axes = dens_plot.axes
     colorbar_axes = dens_plot.cax
 
-These are the :ref:`matplotlib:figure`, and :ref:`matplotlib:axes` objects
+These are the ``figure``, and ``axes`` objects
 that control the actual drawing of the plot.  Arbitrary plot customizations
 are possible by manipulating these objects.  See :ref:`matplotlib-primitives` for
 an example.
@@ -905,7 +905,7 @@ Interactive Plotting
 
 The best way to interactively plot data is through the IPython notebook.  Many
 detailed tutorials on using the IPython notebook can be found at
-`http://ipython.org/presentation.html`_ , but the simplest way to use it is to
+:ref:`notebook-tutorial`. The simplest way to launch the notebook it is to
 type:
 
 .. code-block:: bash

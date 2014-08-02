@@ -53,7 +53,7 @@ or you could update yt's source as well as any software dependencies by running:
 
   $ yt update --all
 
-.. _update_errors:
+.. _update-errors:
 
 Update Errors
 ^^^^^^^^^^^^^
@@ -77,7 +77,7 @@ Now try running yt again with:
   $ yt --help
 
 If you continue to see errors, you should try contacting us via IRC or email
-but you may have to reinstall yt (see :ref:`getting-and-installing`).
+but you may have to reinstall yt (see :ref:`getting-and-installing-yt`).
 
 .. _search-the-documentation:
 

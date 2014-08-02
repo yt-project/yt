@@ -344,6 +344,7 @@ class SZProjection(object):
         >>> szprj.write_png("SZsloshing")
         """
         import matplotlib
+        matplotlib.use('Agg')
         import matplotlib.pyplot as plt
         if log_fields is None: log_fields = {}
         ticks_font = matplotlib.font_manager.FontProperties(family='serif',size=16)

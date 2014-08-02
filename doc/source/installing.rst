@@ -318,7 +318,7 @@ mercurial repository.  Thus, depending on the method you used to install
 yt, there are different instructions for switching versions.
 
 If You Installed yt Using the Installer Script
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+++++++++++++++++++++++++++++++++++++++++++++++
 
 You already have the mercurial repository, so you simply need to switch
 which version you're using.  Navigate to the root of the yt mercurial

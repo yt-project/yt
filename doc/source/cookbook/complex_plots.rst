@@ -196,7 +196,7 @@ Moving a Volume Rendering Camera
 
 In this recipe, we move a camera through a domain and take multiple volume
 rendering snapshots.
-See :ref:`volume-rendering` for more information.
+See :ref:`volume_rendering` for more information.
 
 .. yt_cookbook:: camera_movement.py
 
@@ -220,7 +220,7 @@ Opaque Volume Rendering
 This recipe demonstrates how to make semi-opaque volume renderings, but also
 how to step through and try different things to identify the type of volume
 rendering you want.
-See :ref:`volume-rendering` for more information.
+See :ref:`volume_rendering` for more information.
 
 .. yt_cookbook:: opaque_rendering.py
 
@@ -231,7 +231,7 @@ Downsampling Data for Volume Rendering
 
 This recipe demonstrates how to downsample data in a simulation to speed up
 volume rendering.
-See :ref:`volume-rendering` for more information.
+See :ref:`volume_rendering` for more information.
 
 .. yt_cookbook:: amrkdtree_downsampling.py
 
@@ -241,7 +241,7 @@ Volume Rendering with Bounding Box and Overlaid Grids
 This recipe demonstrates how to overplot a bounding box on a volume rendering
 as well as overplotting grids representing the level of refinement achieved
 in different regions of the code.
-See :ref:`volume-rendering` for more information.
+See :ref:`volume_rendering` for more information.
 
 .. yt_cookbook:: rendering_with_box_and_grids.py
 
@@ -251,7 +251,7 @@ Volume Rendering with Annotation
 This recipe demonstrates how to write the simulation time, show an
 axis triad indicating the direction of the coordinate system, and show
 the transfer function on a volume rendering.
-See :ref:`volume-rendering` for more information.
+See :ref:`volume_rendering` for more information.
 
 .. yt_cookbook:: vol-annotated.py
 
