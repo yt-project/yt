@@ -60,7 +60,7 @@ Here is a working example for the IsolatedGalaxy dataset.
    # Set up the camera parameters: center, looking direction, width, resolution
    c = (ds.domain_right_edge + ds.domain_left_edge)/2.0
    L = np.array([1.0, 1.0, 1.0])
-   W = ds.quan(0.3, 'unitary)
+   W = ds.quan(0.3, 'unitary')
    N = 256 
 
    # Create a camera object

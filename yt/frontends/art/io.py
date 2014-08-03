@@ -39,6 +39,11 @@ class IOHandlerART(BaseIOHandler):
         self.cache = {}
         self.masks = {}
         super(IOHandlerART, self).__init__(*args, **kwargs)
+        self.ws = self.ds.parameters["wspecies"]
+        self.ls = self.ds.parameters["lspecies"]
+        self.file_particle = self.ds._file_particle_data
+        self.file_stars = self.ds._file_particle_stars
+        self.Nrow = self.ds.parameters["Nrow"]
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         # Chunks in this case will have affiliated domain subset objects
@@ -70,8 +75,6 @@ class IOHandlerART(BaseIOHandler):
         if key in self.masks.keys() and self.caching:
             return self.masks[key]
         ds = self.ds
-        ptmax = self.ws[-1]
-        pbool, idxa, idxb = _determine_field_size(ds, ftype, self.ls, ptmax)
         pstr = 'particle_position_%s'
         x,y,z = [self._get_field((ftype, pstr % ax)) for ax in 'xyz']
         mask = selector.select_points(x, y, z, 0.0)
@@ -80,6 +83,26 @@ class IOHandlerART(BaseIOHandler):
             return self.masks[key]
         else:
             return mask
+
+    def _read_particle_coords(self, chunks, ptf):
+        for chunk in chunks:
+            for ptype, field_list in sorted(ptf.items()):
+                x = self._get_field((ptype, "particle_position_x"))
+                y = self._get_field((ptype, "particle_position_y"))
+                z = self._get_field((ptype, "particle_position_z"))
+                yield ptype, (x, y, z)
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        for chunk in chunks:
+            for ptype, field_list in sorted(ptf.items()):
+                x = self._get_field((ptype, "particle_position_x"))
+                y = self._get_field((ptype, "particle_position_y"))
+                z = self._get_field((ptype, "particle_position_z"))
+                mask = selector.select_points(x, y, z, 0.0)
+                if mask is None: continue
+                for field in field_list:
+                    data = self._get_field((ptype, field))
+                    yield (ptype, field), data[mask]
 
     def _get_field(self,  field):
         if field in self.cache.keys() and self.caching:
@@ -139,6 +162,13 @@ class IOHandlerART(BaseIOHandler):
             temp[-nstars:] = data
             tr[field] = temp
             del data
+        # We check again, after it's been filled
+        if fname == "particle_mass":
+            # We now divide by NGrid in order to make this match up.  Note that
+            # this means that even when requested in *code units*, we are
+            # giving them as modified by the ng value.  This only works for
+            # dark_matter -- stars are regular matter.
+            tr[field] /= self.ds.domain_dimensions.prod()
         if tr == {}:
             tr = dict((f, np.array([])) for f in fields)
         if self.caching:
@@ -147,35 +177,15 @@ class IOHandlerART(BaseIOHandler):
         else:
             return tr[field]
 
-    def _read_particle_selection(self, chunks, selector, fields):
-        chunk = chunks.next()
-        self.ds = chunk.objs[0].domain.ds
-        self.ws = self.ds.parameters["wspecies"]
-        self.ls = self.ds.parameters["lspecies"]
-        self.file_particle = self.ds._file_particle_data
-        self.file_stars = self.ds._file_particle_stars
-        self.Nrow = self.ds.parameters["Nrow"]
-        data = {f:np.array([]) for f in fields}
-        for f in fields:
-            ftype, fname = f
-            mask = self._get_mask(selector, ftype)
-            arr = self._get_field(f)[mask].astype('f8')
-            data[f] = np.concatenate((arr, data[f]))
-        return data
-
-def _determine_field_size(ds, field, lspecies, ptmax):
+def _determine_field_size(pf, field, lspecies, ptmax):
     pbool = np.zeros(len(lspecies), dtype="bool")
     idxas = np.concatenate(([0, ], lspecies[:-1]))
     idxbs = lspecies
     if "specie" in field:
         index = int(field.replace("specie", ""))
         pbool[index] = True
-    elif field == "stars":
-        pbool[-1] = True
-    elif field == "darkmatter":
-        pbool[0:-1] = True
     else:
-        pbool[:] = True
+        raise RuntimeError
     idxa, idxb = idxas[pbool][0], idxbs[pbool][-1]
     return pbool, idxa, idxb
 
