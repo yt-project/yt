@@ -85,7 +85,7 @@ See: https://github.com/twbs/bootstrap/issues/1768
 
 */
 
-*[id]:before { 
+*[id]:before :not(p) {
   display: block; 
   content: " "; 
   margin-top: -45px; 
