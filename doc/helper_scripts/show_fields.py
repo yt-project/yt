@@ -96,17 +96,20 @@ to display the native fields in alphabetical order:
 To figure out out what all of the field types here mean, see
 :ref:`known-field-types`.
 
-.. rubric:: Table of Contents
-
-.. contents::
-   :depth: 2
+.. contents:: Table of Contents
+   :depth: 1
    :local:
    :backlinks: none
 
-.. _yt_fields:
+.. _yt-fields:
 
 Universal Fields
 ----------------
+
+.. contents:: 
+   :depth: 1
+   :local:
+   :backlinks: none
 """
 
 print header
@@ -201,6 +204,10 @@ for frontend in current_frontends:
             h = "%s-Specific Fields" % dset_name.replace("Dataset", "")
             print h
             print "-" * len(h) + "\n"
+            print ".. contents:: "
+            print "   :depth: 1"
+            print "   :local:"
+            print "   :backlinks: none"
             for field in known_other_fields:
                 print_frontend_field(frontend, field, False)
             for field in known_particle_fields:
