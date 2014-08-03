@@ -341,7 +341,7 @@ You can check which version of yt you have installed by invoking ``yt version``
 at the command line.  If you encounter problems, see :ref:`update-errors`.
 
 If You Installed yt Using from Source or Using pip
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+++++++++++++++++++++++++++++++++++++++++++++++++++
 
 If you have installed python via ``pip``, remove 
 any extant installations of yt on your system and clone the source mercurial 
