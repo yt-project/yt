@@ -486,6 +486,7 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
     cdef np.float64_t x, y, dx, dy, r0, theta0
     cdef np.float64_t rmax, x0, y0, x1, y1
     cdef np.float64_t r_i, theta_i, dr_i, dtheta_i, dthetamin
+    cdef np.float64_t costheta, sintheta
     cdef int i, pi, pj
     
     imax = radius.argmax()
@@ -501,7 +502,6 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
     dy = (y1 - y0) / img.shape[1]
       
     dthetamin = dx / rmax
-      
     for i in range(radius.shape[0]):
 
         r0 = radius[i]
@@ -512,12 +512,14 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
         theta_i = theta0 - dtheta_i
         while theta_i < theta0 + dtheta_i:
             r_i = r0 - dr_i
+            costheta = math.cos(theta_i)
+            sintheta = math.sin(theta_i)
             while r_i < r0 + dr_i:
                 if rmax <= r_i:
                     r_i += 0.5*dx 
                     continue
-                x = r_i * math.cos(theta_i)
-                y = r_i * math.sin(theta_i)
+                x = r_i * costheta
+                y = r_i * sintheta
                 pi = <int>((x - x0)/dx)
                 pj = <int>((y - y0)/dy)
                 if pi >= 0 and pi < img.shape[0] and \
