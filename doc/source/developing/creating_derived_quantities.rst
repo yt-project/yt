@@ -3,6 +3,10 @@
 Creating Derived Quantities
 ---------------------------
 
+.. warning:: This section is not yet updated to work with yt 3.0.  If you
+             have a question about making a custom derived quantity, please
+             contact the mailing list.
+
 The basic idea is that you need to be able to operate both on a set of data,
 and a set of sets of data.  (If this is not possible, the quantity needs to be
 added with the ``force_unlazy`` option.)
