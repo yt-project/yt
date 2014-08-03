@@ -880,25 +880,26 @@ class PWViewerMPL(PlotWindow):
                 labels = [r'$\rm{Image\/x'+axes_unit_labels[0]+'}$',
                           r'$\rm{Image\/y'+axes_unit_labels[1]+'}$']
             else:
-                axis_names = self.ds.coordinates.axis_name
-                xax = self.ds.coordinates.x_axis[axis_index]
-                yax = self.ds.coordinates.y_axis[axis_index]
+                coordinates = self.ds.coordinates
+                axis_names = coordinates.image_axis_name[axis_index]
+                xax = coordinates.x_axis[axis_index]
+                yax = coordinates.y_axis[axis_index]
 
-                if hasattr(self.ds.coordinates, "axis_default_unit_label"):
+                if hasattr(coordinates, "axis_default_unit_label"):
                     axes_unit_labels = \
-                    [self.ds.coordinates.axis_default_unit_name[xax],
-                     self.ds.coordinates.axis_default_unit_name[yax]]
+                    [coordinates.axis_default_unit_name[xax],
+                     coordinates.axis_default_unit_name[yax]]
                 labels = [r'$\rm{'+axis_names[xax]+axes_unit_labels[0] + r'}$',
                           r'$\rm{'+axis_names[yax]+axes_unit_labels[1] + r'}$']
 
-                if hasattr(self.ds.coordinates, "axis_field"):
-                    if xax in self.ds.coordinates.axis_field:
-                        xmin, xmax = self.ds.coordinates.axis_field[xax](
+                if hasattr(coordinates, "axis_field"):
+                    if xax in coordinates.axis_field:
+                        xmin, xmax = coordinates.axis_field[xax](
                             0, self.xlim, self.ylim)
                     else:
                         xmin, xmax = [float(x) for x in extentx]
-                    if yax in self.ds.coordinates.axis_field:
-                        ymin, ymax = self.ds.coordinates.axis_field[yax](
+                    if yax in coordinates.axis_field:
+                        ymin, ymax = coordinates.axis_field[yax](
                             1, self.xlim, self.ylim)
                     else:
                         ymin, ymax = [float(y) for y in extenty]

@@ -121,6 +121,24 @@ class CylindricalCoordinateHandler(CoordinateHandler):
     y_axis = { 'r' : 2, 'z' : 2, 'theta' : 1,
                 0  : 2,  1  : 2,  2  : 1}
 
+    _image_axis_name = None
+
+    @property
+    def image_axis_name(self):    
+        if self._image_axis_name is not None:
+            return self._image_axis_name
+        # This is the x and y axes labels that get displayed.  For
+        # non-Cartesian coordinates, we usually want to override these for
+        # Cartesian coordinates, since we transform them.
+        rv = {0: ('z', 'theta'),
+              1: ('x', 'y'),
+              2: ('r', 'z')}
+        for i in rv.keys():
+            rv[self.axis_name[i]] = rv[i]
+            rv[self.axis_name[i].upper()] = rv[i]
+        self._image_axis_name = rv
+        return rv
+
     def convert_from_cartesian(self, coord):
         return cartesian_to_cylindrical(coord)
 
