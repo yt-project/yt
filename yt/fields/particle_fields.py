@@ -339,7 +339,7 @@ def standard_particle_fields(registry, ptype,
 
     def _particle_spherical_position_radius(field, data):
         """
-        Particles' radial positions in spherical coordinates based 
+        Radial component of the particles' position vectors in spherical coords
         on the provided field parameters for 'normal', 'center', and 
         'bulk_velocity', 
         """
@@ -362,7 +362,7 @@ def standard_particle_fields(registry, ptype,
 
     def _particle_spherical_position_theta(field, data):
         """
-        Particles' theta positions in spherical coordinates based 
+        Theta component of the particles' position vectors in spherical coords
         on the provided field parameters for 'normal', 'center', and 
         'bulk_velocity', 
         """
@@ -385,7 +385,7 @@ def standard_particle_fields(registry, ptype,
 
     def _particle_spherical_position_phi(field, data):
         """
-        Particles' phi positions in spherical coordinates based 
+        Phi component of the particles' position vectors in spherical coords
         on the provided field parameters for 'normal', 'center', and 
         'bulk_velocity', 
         """
@@ -408,7 +408,7 @@ def standard_particle_fields(registry, ptype,
 
     def _particle_spherical_velocity_radius(field, data):
         """
-        Particles' radial-velocity components in spherical coordinates 
+        Radial component of the particles' velocity vectors in spherical coords
         based on the provided field parameters for 'normal', 'center', and 
         'bulk_velocity', 
         """
@@ -442,7 +442,7 @@ def standard_particle_fields(registry, ptype,
 
     def _particle_spherical_velocity_theta(field, data):
         """
-        Particles' theta-velocity components in spherical coordinates 
+        Theta component of the particles' velocity vectors in spherical coords
         based on the provided field parameters for 'normal', 'center', and 
         'bulk_velocity', 
         """
@@ -468,7 +468,7 @@ def standard_particle_fields(registry, ptype,
 
     def _particle_spherical_velocity_phi(field, data):
         """
-        Particles' phi-velocity components in spherical coordinates 
+        Phi component of the particles' velocity vectors in spherical coords
         based on the provided field parameters for 'normal', 'center', and 
         'bulk_velocity', 
         """
