@@ -500,7 +500,23 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
     x0, x1, y0, y1 = extents
     dx = (x1 - x0) / img.shape[0]
     dy = (y1 - y0) / img.shape[1]
-      
+    cdef np.float64_t rbounds[2]
+    cdef np.float64_t corners[8]
+    # Find our min and max r
+    corners[0] = x0*x0+y0*y0
+    corners[1] = x1*x1+y0*y0
+    corners[2] = x0*x0+y1*y1
+    corners[3] = x1*x1+y1*y1
+    corners[4] = x0*x0
+    corners[5] = x1*x1
+    corners[6] = y0*y0
+    corners[7] = y1*y1
+    rbounds[0] = rbounds[1] = corners[0]
+    for i in range(8):
+        rbounds[0] = fmin(rbounds[0], corners[i])
+        rbounds[1] = fmax(rbounds[1], corners[i])
+    rbounds[0] = rbounds[0]**0.5
+    rbounds[1] = rbounds[1]**0.5
     dthetamin = dx / rmax
     for i in range(radius.shape[0]):
 
@@ -508,8 +524,12 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
         theta0 = theta[i]
         dr_i = dradius[i]
         dtheta_i = dtheta[i]
-
+        # Skip out early if we're offsides, for zoomed in plots
+        if r0 + dr_i < rbounds[0] or r0 - dr_i > rbounds[1]:
+            continue
         theta_i = theta0 - dtheta_i
+        # Buffer of 0.5 here
+        dthetamin = 0.5*dx/(r0 + dr_i)
         while theta_i < theta0 + dtheta_i:
             r_i = r0 - dr_i
             costheta = math.cos(theta_i)
