@@ -39,6 +39,8 @@ from yt.utilities.io_handler import \
     io_registry
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
+from yt.data_objects.particle_unions import \
+    ParticleUnion
 
 from yt.frontends.art.definitions import *
 import yt.utilities.fortran_utils as fpu
@@ -104,17 +106,7 @@ class ARTIndex(OctreeIndex):
         self.particle_field_list = [f for f in particle_fields]
         self.field_list = [("art", f) for f in fluid_fields]
         # now generate all of the possible particle fields
-        if "wspecies" in self.dataset.parameters.keys():
-            wspecies = self.dataset.parameters['wspecies']
-            nspecies = len(wspecies)
-            self.dataset.particle_types = ["darkmatter", "stars"]
-            for specie in range(nspecies):
-                self.dataset.particle_types.append("specie%i" % specie)
-            self.dataset.particle_types_raw = tuple(
-                self.dataset.particle_types)
-        else:
-            self.dataset.particle_types = []
-        for ptype in self.dataset.particle_types:
+        for ptype in self.dataset.particle_types_raw:
             for pfield in self.particle_field_list:
                 pfn = (ptype, pfield)
                 self.field_list.append(pfn)
@@ -313,6 +305,8 @@ class ARTDataset(Dataset):
             self.root_level = root_level
             mylog.info("Using root level of %02i", self.root_level)
         # read the particle header
+        self.particle_types = []
+        self.particle_types_raw = ()
         if not self.skip_particles and self._file_particle_header:
             with open(self._file_particle_header, "rb") as fh:
                 particle_header_vals = fpu.read_attrs(
@@ -323,6 +317,10 @@ class ARTDataset(Dataset):
                 lspecies = np.fromfile(fh, dtype='>i', count=10)
             self.parameters['wspecies'] = wspecies[:n]
             self.parameters['lspecies'] = lspecies[:n]
+            for specie in range(n):
+                self.particle_types.append("specie%i" % specie)
+            self.particle_types_raw = tuple(
+                self.particle_types)
             ls_nonzero = np.diff(lspecies)[:n-1]
             ls_nonzero = np.append(lspecies[0], ls_nonzero)
             self.star_type = len(ls_nonzero)
@@ -359,6 +357,16 @@ class ARTDataset(Dataset):
         self.current_time = b2t(self.parameters['t']) * sec_per_Gyr
         self.gamma = self.parameters["gamma"]
         mylog.info("Max level is %02i", self.max_level)
+
+    def create_field_info(self):
+        super(ARTDataset, self).create_field_info()
+        if "wspecies" in self.parameters:
+            # We create dark_matter and stars unions.
+            ptr = self.particle_types_raw
+            pu = ParticleUnion("darkmatter", list(ptr[:-1]))
+            self.add_particle_union(pu)
+            pu = ParticleUnion("stars", list(ptr[-1:]))
+            self.add_particle_union(pu)
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
