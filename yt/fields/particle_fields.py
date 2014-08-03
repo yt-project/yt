@@ -351,7 +351,7 @@ def standard_particle_fields(registry, ptype,
 
     registry.add_field((ptype, "particle_radius_spherical"),
               function=_particle_radius_spherical,
-              particle_type=True, units="cm/s",
+              particle_type=True, units="cm",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
@@ -369,7 +369,7 @@ def standard_particle_fields(registry, ptype,
 
     registry.add_field((ptype, "particle_theta_spherical"),
               function=_particle_theta_spherical,
-              particle_type=True, units="cm/s",
+              particle_type=True, units="cm",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
@@ -387,7 +387,7 @@ def standard_particle_fields(registry, ptype,
 
     registry.add_field((ptype, "particle_phi_spherical"),
               function=_particle_phi_spherical,
-              particle_type=True, units="cm/s",
+              particle_type=True, units="cm",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
