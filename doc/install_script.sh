@@ -16,7 +16,7 @@
 
 DEST_SUFFIX="yt-`uname -m`"
 DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
-BRANCH="stable" # This is the branch to which we will forcibly update.
+BRANCH="yt-2.x" # This is the branch to which we will forcibly update.
 
 if [ ${REINST_YT} ] && [ ${REINST_YT} -eq 1 ] && [ -n ${YT_DEST} ]
 then
