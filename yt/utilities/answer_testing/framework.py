@@ -31,7 +31,7 @@ from nose.plugins import Plugin
 from yt.testing import *
 from yt.convenience import load, simulation
 from yt.config import ytcfg
-from yt.data_objects.static_output import StaticOutput
+from yt.data_objects.static_output import Dataset
 from yt.utilities.logger import disable_stream_logging
 from yt.utilities.command_line import get_yt_version
 
@@ -45,7 +45,7 @@ run_big_data = False
 # Set the latest gold and local standard filenames
 _latest = ytcfg.get("yt", "gold_standard_filename")
 _latest_local = ytcfg.get("yt", "local_standard_filename")
-_url_path = "http://yt-answer-tests.s3-website-us-east-1.amazonaws.com/%s_%s"
+_url_path = ytcfg.get("yt", "answer_tests_url")
 
 class AnswerTesting(Plugin):
     name = "answer-testing"
@@ -161,14 +161,14 @@ class AnswerTestStorage(object):
         self.cache = {}
     def dump(self, result_storage, result):
         raise NotImplementedError
-    def get(self, pf_name, default=None):
+    def get(self, ds_name, default=None):
         raise NotImplementedError
 
 class AnswerTestCloudStorage(AnswerTestStorage):
-    def get(self, pf_name, default = None):
+    def get(self, ds_name, default = None):
         if self.reference_name is None: return default
-        if pf_name in self.cache: return self.cache[pf_name]
-        url = _url_path % (self.reference_name, pf_name)
+        if ds_name in self.cache: return self.cache[ds_name]
+        url = _url_path % (self.reference_name, ds_name)
         try:
             resp = urllib2.urlopen(url)
         except urllib2.HTTPError as ex:
@@ -187,7 +187,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
                 raise YTCloudError(url)
             # This is dangerous, but we have a controlled S3 environment
             rv = cPickle.loads(data)
-        self.cache[pf_name] = rv
+        self.cache[ds_name] = rv
         return rv
 
     def progress_callback(self, current, total):
@@ -197,47 +197,37 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         if self.answer_name is None: return
         # This is where we dump our result storage up to Amazon, if we are able
         # to.
-        import boto
-        from boto.s3.key import Key
-        c = boto.connect_s3()
-        bucket = c.get_bucket("yt-answer-tests")
-        for pf_name in result_storage:
-            rs = cPickle.dumps(result_storage[pf_name])
-            tk = bucket.get_key("%s_%s" % (self.answer_name, pf_name))
-            if tk is not None: tk.delete()
-            k = Key(bucket)
-            k.key = "%s_%s" % (self.answer_name, pf_name)
-
-            pb_widgets = [
-                unicode(k.key, errors='ignore').encode('utf-8'), ' ',
-                progressbar.FileTransferSpeed(),' <<<', progressbar.Bar(),
-                '>>> ', progressbar.Percentage(), ' ', progressbar.ETA()
-                ]
-            self.pbar = progressbar.ProgressBar(widgets=pb_widgets,
-                                                maxval=sys.getsizeof(rs))
-
-            self.pbar.start()
-            k.set_contents_from_string(rs, cb=self.progress_callback,
-                                       num_cb=100000)
-            k.set_acl("public-read")
-            self.pbar.finish()
+        import pyrax
+        pyrax.set_credential_file(os.path.expanduser("~/.yt/rackspace"))
+        cf = pyrax.cloudfiles
+        c = cf.get_container("yt-answer-tests")
+        pb = get_pbar("Storing results ", len(result_storage))
+        for i, ds_name in enumerate(result_storage):
+            pb.update(i)
+            rs = cPickle.dumps(result_storage[ds_name])
+            object_name = "%s_%s" % (self.answer_name, ds_name)
+            if object_name in c.get_object_names():
+                obj = c.get_object(object_name)
+                c.delete_object(obj)
+            c.store_object(object_name, rs)
+        pb.finish()
 
 class AnswerTestLocalStorage(AnswerTestStorage):
     def dump(self, result_storage):
         if self.answer_name is None: return
         # Store data using shelve
         ds = shelve.open(self.answer_name, protocol=-1)
-        for pf_name in result_storage:
-            answer_name = "%s" % pf_name
+        for ds_name in result_storage:
+            answer_name = "%s" % ds_name
             if answer_name in ds:
                 mylog.info("Overwriting %s", answer_name)
-            ds[answer_name] = result_storage[pf_name]
+            ds[answer_name] = result_storage[ds_name]
         ds.close()
 
-    def get(self, pf_name, default=None):
+    def get(self, ds_name, default=None):
         if self.reference_name is None: return default
         # Read data using shelve
-        answer_name = "%s" % pf_name
+        answer_name = "%s" % ds_name
         ds = shelve.open(self.reference_name, protocol=-1)
         try:
             result = ds[answer_name]
@@ -253,28 +243,36 @@ def temp_cwd(cwd):
     yield
     os.chdir(oldcwd)
 
-def can_run_pf(pf_fn):
-    if isinstance(pf_fn, StaticOutput):
+def can_run_ds(ds_fn, file_check = False):
+    if isinstance(ds_fn, Dataset):
         return AnswerTestingTest.result_storage is not None
     path = ytcfg.get("yt", "test_data_dir")
     if not os.path.isdir(path):
         return False
     with temp_cwd(path):
+        if file_check:
+            return os.path.isfile(ds_fn) and \
+                AnswerTestingTest.result_storage is not None
         try:
-            load(pf_fn)
+            load(ds_fn)
         except YTOutputNotIdentified:
             return False
     return AnswerTestingTest.result_storage is not None
 
-def data_dir_load(pf_fn):
+def data_dir_load(ds_fn, cls = None, args = None, kwargs = None):
     path = ytcfg.get("yt", "test_data_dir")
-    if isinstance(pf_fn, StaticOutput): return pf_fn
+    if isinstance(ds_fn, Dataset): return ds_fn
     if not os.path.isdir(path):
         return False
     with temp_cwd(path):
-        pf = load(pf_fn)
-        pf.h
-        return pf
+        if cls is None:
+            ds = load(ds_fn)
+        else:
+            args = args or ()
+            kwargs = kwargs or {}
+            ds = cls(ds_fn, *args, **kwargs)
+        ds.index
+        return ds
 
 def sim_dir_load(sim_fn, path = None, sim_type = "Enzo",
                  find_outputs=False):
@@ -290,8 +288,8 @@ class AnswerTestingTest(object):
     reference_storage = None
     result_storage = None
     prefix = ""
-    def __init__(self, pf_fn):
-        self.pf = data_dir_load(pf_fn)
+    def __init__(self, ds_fn):
+        self.ds = data_dir_load(ds_fn)
 
     def __call__(self):
         nv = self.run()
@@ -308,29 +306,20 @@ class AnswerTestingTest(object):
     @property
     def storage_name(self):
         if self.prefix != "":
-            return "%s_%s" % (self.prefix, self.pf)
-        return str(self.pf)
+            return "%s_%s" % (self.prefix, self.ds)
+        return str(self.ds)
 
     def compare(self, new_result, old_result):
         raise RuntimeError
 
-    def create_obj(self, pf, obj_type):
-        # obj_type should be tuple of
-        #  ( obj_name, ( args ) )
-        if obj_type is None:
-            return pf.h.all_data()
-        cls = getattr(pf.h, obj_type[0])
-        obj = cls(*obj_type[1])
-        return obj
-
-    def create_plot(self, pf, plot_type, plot_field, plot_axis, plot_kwargs = None):
+    def create_plot(self, ds, plot_type, plot_field, plot_axis, plot_kwargs = None):
         # plot_type should be a string
         # plot_args should be a tuple
         # plot_kwargs should be a dict
         if plot_type is None:
             raise RuntimeError('Must explicitly request a plot type')
         cls = getattr(pw, plot_type)
-        plot = cls(*(pf, plot_axis, plot_field), **plot_kwargs)
+        plot = cls(*(ds, plot_axis, plot_field), **plot_kwargs)
         return plot
 
     @property
@@ -338,7 +327,7 @@ class AnswerTestingTest(object):
         """
         This returns the center of the domain.
         """
-        return 0.5*(self.pf.domain_right_edge + self.pf.domain_left_edge)
+        return 0.5*(self.ds.domain_right_edge + self.ds.domain_left_edge)
 
     @property
     def max_dens_location(self):
@@ -346,14 +335,14 @@ class AnswerTestingTest(object):
         This is a helper function to return the location of the most dense
         point.
         """
-        return self.pf.h.find_max("Density")[1]
+        return self.ds.find_max("density")[1]
 
     @property
     def entire_simulation(self):
         """
         Return an unsorted array of values that cover the entire domain.
         """
-        return self.pf.h.all_data()
+        return self.ds.all_data()
 
     @property
     def description(self):
@@ -362,7 +351,7 @@ class AnswerTestingTest(object):
             oname = "all"
         else:
             oname = "_".join((str(s) for s in obj_type))
-        args = [self._type_name, str(self.pf), oname]
+        args = [self._type_name, str(self.ds), oname]
         args += [str(getattr(self, an)) for an in self._attrs]
         return "_".join(args)
 
@@ -370,22 +359,22 @@ class FieldValuesTest(AnswerTestingTest):
     _type_name = "FieldValues"
     _attrs = ("field", )
 
-    def __init__(self, pf_fn, field, obj_type = None,
-                 decimals = None):
-        super(FieldValuesTest, self).__init__(pf_fn)
+    def __init__(self, ds_fn, field, obj_type = None,
+                 decimals = 10):
+        super(FieldValuesTest, self).__init__(ds_fn)
         self.obj_type = obj_type
         self.field = field
         self.decimals = decimals
 
     def run(self):
-        obj = self.create_obj(self.pf, self.obj_type)
-        avg = obj.quantities["WeightedAverageQuantity"](self.field,
-                             weight="Ones")
-        (mi, ma), = obj.quantities["Extrema"](self.field)
+        obj = create_obj(self.ds, self.obj_type)
+        avg = obj.quantities.weighted_average_quantity(
+            self.field, weight="ones")
+        mi, ma = obj.quantities.extrema(self.field)
         return np.array([avg, mi, ma])
 
     def compare(self, new_result, old_result):
-        err_msg = "Field values for %s not equal." % self.field
+        err_msg = "Field values for %s not equal." % (self.field,)
         if self.decimals is None:
             assert_equal(new_result, old_result,
                          err_msg=err_msg, verbose=True)
@@ -397,15 +386,15 @@ class AllFieldValuesTest(AnswerTestingTest):
     _type_name = "AllFieldValues"
     _attrs = ("field", )
 
-    def __init__(self, pf_fn, field, obj_type = None,
+    def __init__(self, ds_fn, field, obj_type = None,
                  decimals = None):
-        super(AllFieldValuesTest, self).__init__(pf_fn)
+        super(AllFieldValuesTest, self).__init__(ds_fn)
         self.obj_type = obj_type
         self.field = field
         self.decimals = decimals
 
     def run(self):
-        obj = self.create_obj(self.pf, self.obj_type)
+        obj = create_obj(self.ds, self.obj_type)
         return obj[self.field]
 
     def compare(self, new_result, old_result):
@@ -421,9 +410,9 @@ class ProjectionValuesTest(AnswerTestingTest):
     _type_name = "ProjectionValues"
     _attrs = ("field", "axis", "weight_field")
 
-    def __init__(self, pf_fn, axis, field, weight_field = None,
+    def __init__(self, ds_fn, axis, field, weight_field = None,
                  obj_type = None, decimals = None):
-        super(ProjectionValuesTest, self).__init__(pf_fn)
+        super(ProjectionValuesTest, self).__init__(ds_fn)
         self.axis = axis
         self.field = field
         self.weight_field = weight_field
@@ -432,11 +421,11 @@ class ProjectionValuesTest(AnswerTestingTest):
 
     def run(self):
         if self.obj_type is not None:
-            obj = self.create_obj(self.pf, self.obj_type)
+            obj = create_obj(self.ds, self.obj_type)
         else:
             obj = None
-        if self.pf.domain_dimensions[self.axis] == 1: return None
-        proj = self.pf.h.proj(self.axis, self.field,
+        if self.ds.domain_dimensions[self.axis] == 1: return None
+        proj = self.ds.proj(self.field, self.axis,
                               weight_field=self.weight_field,
                               data_source = obj)
         return proj.field_data
@@ -445,27 +434,36 @@ class ProjectionValuesTest(AnswerTestingTest):
         if new_result is None:
             return
         assert(len(new_result) == len(old_result))
+        nind, oind = None, None
         for k in new_result:
             assert (k in old_result)
+            if oind is None:
+                oind = np.array(np.isnan(old_result[k]))
+            np.logical_or(oind, np.isnan(old_result[k]), oind)
+            if nind is None:
+                nind = np.array(np.isnan(new_result[k]))
+            np.logical_or(nind, np.isnan(new_result[k]), nind)
+        oind = ~oind
+        nind = ~nind
         for k in new_result:
             err_msg = "%s values of %s (%s weighted) projection (axis %s) not equal." % \
               (k, self.field, self.weight_field, self.axis)
             if k == 'weight_field' and self.weight_field is None:
                 continue
+            nres, ores = new_result[k][nind], old_result[k][oind]
             if self.decimals is None:
-                assert_equal(new_result[k], old_result[k],
-                             err_msg=err_msg)
+                assert_equal(nres, ores, err_msg=err_msg)
             else:
-                assert_allclose(new_result[k], old_result[k],
-                                 10.**-(self.decimals), err_msg=err_msg)
+                assert_allclose(nres, ores, 10.**-(self.decimals),
+                                err_msg=err_msg)
 
 class PixelizedProjectionValuesTest(AnswerTestingTest):
     _type_name = "PixelizedProjectionValues"
     _attrs = ("field", "axis", "weight_field")
 
-    def __init__(self, pf_fn, axis, field, weight_field = None,
+    def __init__(self, ds_fn, axis, field, weight_field = None,
                  obj_type = None):
-        super(PixelizedProjectionValuesTest, self).__init__(pf_fn)
+        super(PixelizedProjectionValuesTest, self).__init__(ds_fn)
         self.axis = axis
         self.field = field
         self.weight_field = field
@@ -473,18 +471,19 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
 
     def run(self):
         if self.obj_type is not None:
-            obj = self.create_obj(self.pf, self.obj_type)
+            obj = create_obj(self.ds, self.obj_type)
         else:
             obj = None
-        proj = self.pf.h.proj(self.axis, self.field,
+        proj = self.ds.proj(self.field, self.axis,
                               weight_field=self.weight_field,
                               data_source = obj)
         frb = proj.to_frb((1.0, 'unitary'), 256)
         frb[self.field]
         frb[self.weight_field]
         d = frb.data
-        d.update( dict( (("%s_sum" % f, proj[f].sum(dtype="float64"))
-                         for f in proj.field_data.keys()) ) )
+        for f in proj.field_data:
+            # Sometimes f will be a tuple.
+            d["%s_sum" % (f,)] = proj.field_data[f].sum(dtype="float64")
         return d
 
     def compare(self, new_result, old_result):
@@ -498,13 +497,13 @@ class GridValuesTest(AnswerTestingTest):
     _type_name = "GridValues"
     _attrs = ("field",)
 
-    def __init__(self, pf_fn, field):
-        super(GridValuesTest, self).__init__(pf_fn)
+    def __init__(self, ds_fn, field):
+        super(GridValuesTest, self).__init__(ds_fn)
         self.field = field
 
     def run(self):
         hashes = {}
-        for g in self.pf.h.grids:
+        for g in self.ds.index.grids:
             hashes[g.id] = hashlib.md5(g[self.field].tostring()).hexdigest()
             g.clear_data()
         return hashes
@@ -521,10 +520,10 @@ class VerifySimulationSameTest(AnswerTestingTest):
     _attrs = ()
 
     def __init__(self, simulation_obj):
-        self.pf = simulation_obj
+        self.ds = simulation_obj
 
     def run(self):
-        result = [ds.current_time for ds in self.pf]
+        result = [ds.current_time for ds in self.ds]
         return result
 
     def compare(self, new_result, old_result):
@@ -542,11 +541,11 @@ class GridHierarchyTest(AnswerTestingTest):
 
     def run(self):
         result = {}
-        result["grid_dimensions"] = self.pf.h.grid_dimensions
-        result["grid_left_edges"] = self.pf.h.grid_left_edge
-        result["grid_right_edges"] = self.pf.h.grid_right_edge
-        result["grid_levels"] = self.pf.h.grid_levels
-        result["grid_particle_count"] = self.pf.h.grid_particle_count
+        result["grid_dimensions"] = self.ds.index.grid_dimensions
+        result["grid_left_edges"] = self.ds.index.grid_left_edge
+        result["grid_right_edges"] = self.ds.index.grid_right_edge
+        result["grid_levels"] = self.ds.index.grid_levels
+        result["grid_particle_count"] = self.ds.index.grid_particle_count
         return result
 
     def compare(self, new_result, old_result):
@@ -560,7 +559,7 @@ class ParentageRelationshipsTest(AnswerTestingTest):
         result = {}
         result["parents"] = []
         result["children"] = []
-        for g in self.pf.h.grids:
+        for g in self.ds.index.grids:
             p = g.Parent
             if p is None:
                 result["parents"].append(None)
@@ -577,6 +576,55 @@ class ParentageRelationshipsTest(AnswerTestingTest):
         for newc, oldc in zip(new_result["children"], old_result["children"]):
             assert(newp == oldp)
 
+class SimulatedHaloMassFunctionTest(AnswerTestingTest):
+    _type_name = "SimulatedHaloMassFunction"
+    _attrs = ("finder",)
+
+    def __init__(self, ds_fn, finder):
+        super(SimulatedHaloMassFunctionTest, self).__init__(ds_fn)
+        self.finder = finder
+    
+    def run(self):
+        from yt.analysis_modules.halo_analysis.api import HaloCatalog
+        from yt.analysis_modules.halo_mass_function.api import HaloMassFcn
+        hc = HaloCatalog(data_ds=self.ds, finder_method=self.finder)
+        hc.create()
+        
+        hmf = HaloMassFcn(halos_ds=hc.halos_ds)
+        result = np.empty((2, hmf.masses_sim.size))
+        result[0] = hmf.masses_sim.d
+        result[1] = hmf.n_cumulative_sim.d
+        return result
+
+    def compare(self, new_result, old_result):
+        err_msg = ("Simulated halo mass functions not equation for " +
+                   "%s halo finder.") % self.finder
+        assert_equal(new_result, old_result,
+                     err_msg=err_msg, verbose=True)
+
+class AnalyticHaloMassFunctionTest(AnswerTestingTest):
+    _type_name = "AnalyticHaloMassFunction"
+    _attrs = ("fitting_function",)
+
+    def __init__(self, ds_fn, fitting_function):
+        super(AnalyticHaloMassFunctionTest, self).__init__(ds_fn)
+        self.fitting_function = fitting_function
+    
+    def run(self):
+        from yt.analysis_modules.halo_mass_function.api import HaloMassFcn
+        hmf = HaloMassFcn(simulation_ds=self.ds,
+                          fitting_function=self.fitting_function)
+        result = np.empty((2, hmf.masses_analytic.size))
+        result[0] = hmf.masses_analytic.d
+        result[1] = hmf.n_cumulative_analytic.d
+        return result
+
+    def compare(self, new_result, old_result):
+        err_msg = ("Analytic halo mass functions not equation for " +
+                   "fitting function %d.") % self.fitting_function
+        assert_equal(new_result, old_result,
+                     err_msg=err_msg, verbose=True)
+
 def compare_image_lists(new_result, old_result, decimals):
     fns = ['old.png', 'new.png']
     num_images = len(old_result)
@@ -590,9 +638,9 @@ def compare_image_lists(new_result, old_result, decimals):
 class PlotWindowAttributeTest(AnswerTestingTest):
     _type_name = "PlotWindowAttribute"
     _attrs = ('plot_type', 'plot_field', 'plot_axis', 'attr_name', 'attr_args')
-    def __init__(self, pf_fn, plot_field, plot_axis, attr_name, attr_args,
+    def __init__(self, ds_fn, plot_field, plot_axis, attr_name, attr_args,
                  decimals, plot_type = 'SlicePlot'):
-        super(PlotWindowAttributeTest, self).__init__(pf_fn)
+        super(PlotWindowAttributeTest, self).__init__(ds_fn)
         self.plot_type = plot_type
         self.plot_field = plot_field
         self.plot_axis = plot_axis
@@ -602,7 +650,7 @@ class PlotWindowAttributeTest(AnswerTestingTest):
         self.decimals = decimals
 
     def run(self):
-        plot = self.create_plot(self.pf, self.plot_type, self.plot_field,
+        plot = self.create_plot(self.ds, self.plot_type, self.plot_field,
                                 self.plot_axis, self.plot_kwargs)
         attr = getattr(plot, self.attr_name)
         attr(*self.attr_args[0], **self.attr_args[1])
@@ -615,12 +663,12 @@ class PlotWindowAttributeTest(AnswerTestingTest):
 
     def compare(self, new_result, old_result):
         compare_image_lists(new_result, old_result, self.decimals)
-        
+
 class GenericArrayTest(AnswerTestingTest):
     _type_name = "GenericArray"
     _attrs = ('array_func_name','args','kwargs')
-    def __init__(self, pf_fn, array_func, args=None, kwargs=None, decimals=None):
-        super(GenericArrayTest, self).__init__(pf_fn)
+    def __init__(self, ds_fn, array_func, args=None, kwargs=None, decimals=None):
+        super(GenericArrayTest, self).__init__(ds_fn)
         self.array_func = array_func
         self.array_func_name = array_func.func_name
         self.args = args
@@ -649,8 +697,8 @@ class GenericArrayTest(AnswerTestingTest):
 class GenericImageTest(AnswerTestingTest):
     _type_name = "GenericImage"
     _attrs = ('image_func_name','args','kwargs')
-    def __init__(self, pf_fn, image_func, decimals, args=None, kwargs=None):
-        super(GenericImageTest, self).__init__(pf_fn)
+    def __init__(self, ds_fn, image_func, decimals, args=None, kwargs=None):
+        super(GenericImageTest, self).__init__(ds_fn)
         self.image_func = image_func
         self.image_func_name = image_func.func_name
         self.args = args
@@ -678,48 +726,58 @@ class GenericImageTest(AnswerTestingTest):
         return comp_imgs
     def compare(self, new_result, old_result):
         compare_image_lists(new_result, old_result, self.decimals)
-        
-def requires_pf(pf_fn, big_data = False):
+
+
+def requires_ds(ds_fn, big_data = False, file_check = False):
     def ffalse(func):
         return lambda: None
     def ftrue(func):
         return func
     if run_big_data == False and big_data == True:
         return ffalse
-    elif not can_run_pf(pf_fn):
+    elif not can_run_ds(ds_fn, file_check):
         return ffalse
     else:
         return ftrue
 
-def small_patch_amr(pf_fn, fields):
-    if not can_run_pf(pf_fn): return
-    dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
-    yield GridHierarchyTest(pf_fn)
-    yield ParentageRelationshipsTest(pf_fn)
+def small_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
+    if not can_run_ds(ds_fn): return
+    dso = [ None, ("sphere", (input_center, (0.1, 'unitary')))]
+    yield GridHierarchyTest(ds_fn)
+    yield ParentageRelationshipsTest(ds_fn)
     for field in fields:
-        yield GridValuesTest(pf_fn, field)
+        yield GridValuesTest(ds_fn, field)
         for axis in [0, 1, 2]:
-            for ds in dso:
-                for weight_field in [None, "Density"]:
+            for dobj_name in dso:
+                for weight_field in [None, input_weight]:
                     yield ProjectionValuesTest(
-                        pf_fn, axis, field, weight_field,
-                        ds)
+                        ds_fn, axis, field, weight_field,
+                        dobj_name)
                 yield FieldValuesTest(
-                        pf_fn, field, ds)
+                        ds_fn, field, dobj_name)
 
-def big_patch_amr(pf_fn, fields):
-    if not can_run_pf(pf_fn): return
+def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
+    if not can_run_ds(ds_fn): return
     dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
-    yield GridHierarchyTest(pf_fn)
-    yield ParentageRelationshipsTest(pf_fn)
+    yield GridHierarchyTest(ds_fn)
+    yield ParentageRelationshipsTest(ds_fn)
     for field in fields:
-        yield GridValuesTest(pf_fn, field)
+        yield GridValuesTest(ds_fn, field)
         for axis in [0, 1, 2]:
-            for ds in dso:
-                for weight_field in [None, "Density"]:
+            for dobj_name in dso:
+                for weight_field in [None, input_weight]:
                     yield PixelizedProjectionValuesTest(
-                        pf_fn, axis, field, weight_field,
-                        ds)
+                        ds_fn, axis, field, weight_field,
+                        dobj_name)
+
+def create_obj(ds, obj_type):
+    # obj_type should be tuple of
+    #  ( obj_name, ( args ) )
+    if obj_type is None:
+        return ds.all_data()
+    cls = getattr(ds, obj_type[0])
+    obj = cls(*obj_type[1])
+    return obj
 
 class AssertWrapper(object):
     """

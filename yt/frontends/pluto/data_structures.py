@@ -13,7 +13,6 @@ Data structures for Pluto.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
 import re
 import os
 import weakref
@@ -21,9 +20,6 @@ import numpy as np
 
 from collections import \
      defaultdict
-from string import \
-     strip, \
-     rstrip
 from stat import \
      ST_CTIME
 
@@ -35,27 +31,29 @@ from .definitions import \
 from yt.funcs import *
 from yt.data_objects.grid_patch import \
      AMRGridPatch
-from yt.data_objects.hierarchy import \
-     AMRHierarchy
+from yt.geometry.grid_geometry_handler import \
+     GridIndex
 from yt.data_objects.static_output import \
-     StaticOutput
+     Dataset
 from yt.utilities.definitions import \
      mpc_conversion, sec_conversion
+from yt.utilities.file_handler import \
+    HDF5FileHandler
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      parallel_root_only
 from yt.utilities.io_handler import \
     io_registry
 
-from yt.data_objects.field_info_container import \
+from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
 from .fields import PlutoFieldInfo, KnownPlutoFields
 
 class PlutoGrid(AMRGridPatch):
     _id_offset = 0
     __slots__ = ["_level_id", "stop_index"]
-    def __init__(self, id, hierarchy, level, start, stop):
-        AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
-                              hierarchy = hierarchy)
+    def __init__(self, id, index, level, start, stop):
+        AMRGridPatch.__init__(self, id, filename = index.index_filename,
+                              index = index)
         self.Parent = []
         self.Children = []
         self.Level = level
@@ -70,55 +68,49 @@ class PlutoGrid(AMRGridPatch):
         if self.start_index != None:
             return self.start_index
         if self.Parent == []:
-            iLE = self.LeftEdge - self.pf.domain_left_edge
+            iLE = self.LeftEdge - self.ds.domain_left_edge
             start_index = iLE / self.dds
             return np.rint(start_index).astype('int64').ravel()
         pdx = self.Parent[0].dds
         start_index = (self.Parent[0].get_global_startindex()) + \
             np.rint((self.LeftEdge - self.Parent[0].LeftEdge)/pdx)
-        self.start_index = (start_index*self.pf.refine_by).astype('int64').ravel()
+        self.start_index = (start_index*self.ds.refine_by).astype('int64').ravel()
         return self.start_index
 
     def _setup_dx(self):
-        # has already been read in and stored in hierarchy
-        self.dds = self.hierarchy.dds_list[self.Level]
+        # has already been read in and stored in index
+        self.dds = self.index.dds_list[self.Level]
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
 
-class PlutoHierarchy(AMRHierarchy):
+class PlutoHierarchy(GridIndex):
 
     grid = PlutoGrid
 
-    def __init__(self,pf,data_style='pluto_hdf5'):
-        self.domain_left_edge = pf.domain_left_edge
-        self.domain_right_edge = pf.domain_right_edge
-        self.data_style = data_style
+    def __init__(self,ds,dataset_type='pluto_hdf5'):
+        self.domain_left_edge = ds.domain_left_edge
+        self.domain_right_edge = ds.domain_right_edge
+        self.dataset_type = dataset_type
         self.field_indexes = {}
-        self.parameter_file = weakref.proxy(pf)
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = os.path.abspath(
-            self.parameter_file.parameter_filename)
-        self.directory = pf.fullpath
-        self._handle = pf._handle
+        self.dataset = weakref.proxy(ds)
+        self.index_filename = os.path.abspath(
+            self.dataset.parameter_filename)
+        self.directory = ds.fullpath
+        self._handle = ds._handle
 
         self.float_type = self._handle['/level_0']['data:datatype=0'].dtype.name
         self._levels = self._handle.keys()[2:]
-        AMRHierarchy.__init__(self,pf,data_style)
+        GridIndex.__init__(self,ds,dataset_type)
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         ncomp = int(self._handle['/'].attrs['num_components'])
         self.field_list = [c[1] for c in self._handle['/'].attrs.items()[-ncomp:]]
           
-    def _setup_classes(self):
-        dd = self._get_data_reader_dict()
-        AMRHierarchy._setup_classes(self, dd)
-        self.object_types.sort()
-
     def _count_grids(self):
         self.num_grids = 0
         for lev in self._levels:
             self.num_grids += self._handle[lev]['Processors'].len()
 
-    def _parse_hierarchy(self):
+    def _parse_index(self):
         f = self._handle # shortcut
 
         # this relies on the first Group in the H5 file being
@@ -168,21 +160,18 @@ class PlutoHierarchy(AMRHierarchy):
         mask[grid_ind] = True
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
 
-    def _setup_data_io(self):
-        self.io = io_registry[self.data_style](self.parameter_file)
-
-class PlutoStaticOutput(StaticOutput):
-    _hierarchy_class = PlutoHierarchy
+class PlutoDataset(Dataset):
+    _index_class = PlutoHierarchy
     _fieldinfo_fallback = PlutoFieldInfo
     _fieldinfo_known = KnownPlutoFields
 
-    def __init__(self, filename, data_style='pluto_hdf5',
+    def __init__(self, filename, dataset_type='pluto_hdf5',
                  storage_filename = None, ini_filename = None):
-        self._handle = h5py.File(filename,'r')
+        self._handle = HDF5FileHandler(filename)
         self.current_time = self._handle.attrs['time']
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)
-        StaticOutput.__init__(self,filename,data_style)
+        Dataset.__init__(self,filename,dataset_type)
         self.storage_filename = storage_filename
         self.cosmological_simulation = False
 
@@ -190,9 +179,6 @@ class PlutoStaticOutput(StaticOutput):
         self.parameters["HydroMethod"] = 'chombo' # always PPM DE
         self.parameters["DualEnergyFormalism"] = 0 
         self.parameters["EOSType"] = -1 # default
-
-    def __del__(self):
-        self._handle.close()
 
     def _set_units(self):
         """
@@ -244,7 +230,8 @@ class PlutoStaticOutput(StaticOutput):
         # read the file line by line, storing important parameters
         for lineI, line in enumerate(lines):
             try:
-                param, sep, vals = map(rstrip,line.partition(' '))
+                param, sep, vals = [v.rstrip() for v in line.partition(' ')]
+                #param, sep, vals = map(rstrip,line.partition(' '))
             except ValueError:
                 mylog.error("ValueError: '%s'", line)
             if pluto2enzoDict.has_key(param):

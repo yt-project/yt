@@ -25,24 +25,10 @@ cdef extern from "stdlib.h":
 
 DEF Nch = 4
 
-cdef struct Split:
-    int dim
-    np.float64_t pos
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef class Node:
-
-    cdef public Node left
-    cdef public Node right
-    cdef public Node parent
-    cdef public int grid
-    cdef public np.int64_t node_id
-    cdef np.float64_t left_edge[3]
-    cdef np.float64_t right_edge[3]
-    cdef public data
-    cdef Split * split
 
     def __cinit__(self, 
                   Node parent, 
@@ -152,11 +138,11 @@ cdef int should_i_build(Node node, int rank, int size):
 def kd_traverse(Node trunk, viewpoint=None):
     if viewpoint is None:
         for node in depth_traverse(trunk):
-            if kd_is_leaf(node) and node.grid != -1:
+            if _kd_is_leaf(node) == 1 and node.grid != -1:
                 yield node
     else:
         for node in viewpoint_traverse(trunk, viewpoint):
-            if kd_is_leaf(node) and node.grid != -1:
+            if _kd_is_leaf(node) == 1 and node.grid != -1:
                 yield node
 
 @cython.boundscheck(False)
@@ -172,7 +158,7 @@ cdef add_grid(Node node,
     if not should_i_build(node, rank, size):
         return
 
-    if kd_is_leaf(node):
+    if _kd_is_leaf(node) == 1:
         insert_grid(node, gle, gre, gid, rank, size)
     else:
         less_id = gle[node.split.dim] < node.split.pos
@@ -197,14 +183,16 @@ def add_pygrid(Node node,
     The entire purpose of this function is to move everything from ndarrays
     to internal C pointers. 
     """
-    pgles = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
-    pgres = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
+    pgles = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+    pgres = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
     cdef int j
     for j in range(3):
         pgles[j] = gle[j]
         pgres[j] = gre[j]
 
     add_grid(node, pgles, pgres, gid, rank, size)
+    free(pgles)
+    free(pgres)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -256,18 +244,25 @@ def add_pygrids(Node node,
     The entire purpose of this function is to move everything from ndarrays
     to internal C pointers. 
     """
-    pgles = <np.float64_t **> alloca(ngrids * sizeof(np.float64_t*))
-    pgres = <np.float64_t **> alloca(ngrids * sizeof(np.float64_t*))
-    pgids = <np.int64_t *> alloca(ngrids * sizeof(np.int64_t))
+    pgles = <np.float64_t **> malloc(ngrids * sizeof(np.float64_t*))
+    pgres = <np.float64_t **> malloc(ngrids * sizeof(np.float64_t*))
+    pgids = <np.int64_t *> malloc(ngrids * sizeof(np.int64_t))
     for i in range(ngrids):
-        pgles[i] = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
-        pgres[i] = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
+        pgles[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+        pgres[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
         pgids[i] = gids[i]
         for j in range(3):
             pgles[i][j] = gles[i, j]
             pgres[i][j] = gres[i, j]
 
     add_grids(node, ngrids, pgles, pgres, pgids, rank, size)
+
+    for i in range(ngrids):
+        free(pgles[i])
+        free(pgres[i])
+    free(pgles)
+    free(pgres)
+    free(pgids)
 
 
  
@@ -286,7 +281,7 @@ cdef add_grids(Node node,
     if not should_i_build(node, rank, size):
         return
 
-    if kd_is_leaf(node):
+    if _kd_is_leaf(node) == 1:
         insert_grids(node, ngrids, gles, gres, gids, rank, size)
         return
 
@@ -347,17 +342,17 @@ cdef add_grids(Node node,
     for i in range(nless):
         free(less_gles[i])
         free(less_gres[i])
-    free(l_ids)
-    free(less_ids)
     free(less_gles)
     free(less_gres)
+    free(less_ids)
+    free(l_ids)
     for i in range(ngreater):
         free(greater_gles[i])
         free(greater_gres[i])
-    free(g_ids)
-    free(greater_ids)
     free(greater_gles)
     free(greater_gres)
+    free(greater_ids)
+    free(g_ids)
 
     return
 
@@ -475,10 +470,10 @@ cdef kdtree_get_choices(int n_grids,
                        ):
     cdef int i, j, k, dim, n_unique, best_dim, n_best, addit, my_split
     cdef np.float64_t **uniquedims, *uniques, split
-    uniquedims = <np.float64_t **> alloca(3 * sizeof(np.float64_t*))
+    uniquedims = <np.float64_t **> malloc(3 * sizeof(np.float64_t*))
     for i in range(3):
         uniquedims[i] = <np.float64_t *> \
-                alloca(2*n_grids * sizeof(np.float64_t))
+                malloc(2*n_grids * sizeof(np.float64_t))
     my_max = 0
     my_split = 0
     best_dim = -1
@@ -526,6 +521,11 @@ cdef kdtree_get_choices(int n_grids,
             ngreater += 1
         else:
             greater_ids[i] = 0
+
+    for i in range(3):
+        free(uniquedims[i])
+    free(uniquedims)
+
     # Return out unique values
     return best_dim, split, nless, ngreater
 
@@ -542,22 +542,23 @@ cdef int split_grids(Node node,
     # Find a Split
     cdef int i, j, k
 
-    data = <np.float64_t ***> alloca(ngrids * sizeof(np.float64_t**))
+    data = <np.float64_t ***> malloc(ngrids * sizeof(np.float64_t**))
     for i in range(ngrids):
-        data[i] = <np.float64_t **> alloca(2 * sizeof(np.float64_t*))
+        data[i] = <np.float64_t **> malloc(2 * sizeof(np.float64_t*))
         for j in range(2):
-            data[i][j] = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
+            data[i][j] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
         for j in range(3):
             data[i][0][j] = gles[i][j]
             data[i][1][j] = gres[i][j]
 
-    less_ids = <np.uint8_t *> alloca(ngrids * sizeof(np.uint8_t))
-    greater_ids = <np.uint8_t *> alloca(ngrids * sizeof(np.uint8_t))
+    less_ids = <np.uint8_t *> malloc(ngrids * sizeof(np.uint8_t))
+    greater_ids = <np.uint8_t *> malloc(ngrids * sizeof(np.uint8_t))
 
     best_dim, split_pos, nless, ngreater = \
         kdtree_get_choices(ngrids, data, node.left_edge, node.right_edge,
                           less_ids, greater_ids)
  
+
     # If best_dim is -1, then we have found a place where there are no choices.
     # Exit out and set the node to None.
     if best_dim == -1:
@@ -567,8 +568,6 @@ cdef int split_grids(Node node,
     split = <Split *> malloc(sizeof(Split))
     split.dim = best_dim
     split.pos = split_pos
-
-    #del data
 
     # Create a Split
     divide(node, split)
@@ -631,18 +630,25 @@ cdef int split_grids(Node node,
     for i in range(nless):
         free(less_gles[i])
         free(less_gres[i])
-    free(l_ids)
-    free(less_index)
     free(less_gles)
     free(less_gres)
+    free(less_ids)
+    free(less_index)
+    free(l_ids)
     for i in range(ngreater):
         free(greater_gles[i])
         free(greater_gres[i])
-    free(g_ids)
-    free(greater_index)
     free(greater_gles)
     free(greater_gres)
+    free(greater_ids)
+    free(greater_index)
+    free(g_ids)
 
+    for i in range(ngrids):
+        for j in range(2):
+            free(data[i][j])
+        free(data[i])
+    free(data)
 
     return 0
 
@@ -746,11 +752,16 @@ def kd_is_leaf(Node node):
     assert has_l_child == has_r_child
     return has_l_child
 
+cdef int _kd_is_leaf(Node node):
+    if node.left is None or node.right is None:
+        return 1
+    return 0
+
 def step_depth(Node current, Node previous):
     '''
     Takes a single step in the depth-first traversal
     '''
-    if kd_is_leaf(current): # At a leaf, move back up
+    if _kd_is_leaf(current) == 1: # At a leaf, move back up
         previous = current
         current = current.parent
 
@@ -842,7 +853,7 @@ def step_viewpoint(Node current,
     Takes a single step in the viewpoint based traversal.  Always
     goes to the node furthest away from viewpoint first.
     '''
-    if kd_is_leaf(current): # At a leaf, move back up
+    if _kd_is_leaf(current) == 1: # At a leaf, move back up
         previous = current
         current = current.parent
     elif current.split.dim is None: # This is a dead node
@@ -893,6 +904,13 @@ cdef int point_in_node(Node node,
         inside *= node.right_edge[i] > point[i]
     return inside
 
+cdef Node _find_node(Node node, np.float64_t *point):
+    while _kd_is_leaf(node) == 0:
+        if point[node.split.dim] < node.split.pos:
+            node = node.left
+        else:
+            node = node.right
+    return node
 
 def find_node(Node node,
               np.ndarray[np.float64_t, ndim=1] point):
@@ -900,12 +918,5 @@ def find_node(Node node,
     Find the AMRKDTree node enclosing a position
     """
     assert(point_in_node(node, point))
-    while not kd_is_leaf(node):
-        if point[node.split.dim] < node.split.pos:
-            node = node.left
-        else:
-            node = node.right
-    return node
-
-
+    return _find_node(node, <np.float64_t *> point.data)
 

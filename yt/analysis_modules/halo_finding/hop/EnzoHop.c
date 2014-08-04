@@ -23,6 +23,10 @@
 
 #include "numpy/ndarrayobject.h"
 
+#ifndef Py_TYPE
+    #define Py_TYPE(ob) (((PyObject*)(ob))->ob_type)
+#endif
+
 void initgrouplist(Grouplist *g);
 void hop_main(KD kd, HC *my_comm, float densthres);
 void regroup_main(float dens_outer, HC *my_comm);
@@ -294,7 +298,7 @@ kDTreeType_dealloc(kDTreeType *self)
    Py_XDECREF(self->zpos);
    Py_XDECREF(self->mass);
 
-   self->ob_type->tp_free((PyObject*)self);
+   Py_TYPE(self)->tp_free((PyObject*)self);
 }
 
 static PyObject *
@@ -335,7 +339,7 @@ kDTreeType_median_jst(kDTreeType *self, PyObject *args) {
 
     int median = kdMedianJst(self->kd, d, l, u);
 
-    PyObject *omedian = PyInt_FromLong((long)median);
+    PyObject *omedian = PyLong_FromLong((long)median);
     return omedian;
 }
 
@@ -368,8 +372,8 @@ kDTreeType_methods[] = {
 
 static PyTypeObject
 kDTreeTypeDict = {
-   PyObject_HEAD_INIT(NULL)
-   0,                         /* ob_size */
+   PyVarObject_HEAD_INIT(NULL, 0)
+                            /* ob_size */
    "kDTree",               /* tp_name */
    sizeof(kDTreeType),         /* tp_basicsize */
    0,                         /* tp_itemsize */
@@ -409,10 +413,32 @@ kDTreeTypeDict = {
    0,                         /* tp_new */
 };
 
-void initEnzoHop(void)
+PyMODINIT_FUNC
+#if PY_MAJOR_VERSION >= 3
+#define _RETVAL m
+PyInit_EnzoHop(void)
+#else
+#define _RETVAL 
+initEnzoHop(void)
+#endif
 {
     PyObject *m, *d;
+#if PY_MAJOR_VERSION >= 3
+    static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "EnzoHop",           /* m_name */
+        "EnzoHop Module",    /* m_doc */
+        -1,                  /* m_size */
+        _HOPMethods,          /* m_methods */
+        NULL,                /* m_reload */
+        NULL,                /* m_traverse */
+        NULL,                /* m_clear */
+        NULL,                /* m_free */
+    };
+    m = PyModule_Create(&moduledef); 
+#else
     m = Py_InitModule("EnzoHop", _HOPMethods);
+#endif
     d = PyModule_GetDict(m);
     _HOPerror = PyErr_NewException("EnzoHop.HOPerror", NULL, NULL);
     PyDict_SetItemString(d, "error", _HOPerror);
@@ -426,6 +452,7 @@ void initEnzoHop(void)
    PyModule_AddObject(m, "kDTree", (PyObject*)&kDTreeTypeDict);
 
    import_array();
+   return _RETVAL;
 }
 
 /*

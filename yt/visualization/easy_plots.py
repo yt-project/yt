@@ -13,7 +13,7 @@ Easy plotting.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from _mpl_imports import *
+from ._mpl_imports import *
 from yt.data_objects.profiles import BinnedProfile1D
 
 plot_type_registry = {}
@@ -45,10 +45,9 @@ class EasyPDFPlot(EasyPlot):
         self.data_source = data_source
         # Now we just make the plot
         x_min, x_max = self.data_source.quantities["Extrema"](
-                x_field, non_zero = x_log, lazy_reader = True)[0]
+                x_field, non_zero = x_log)[0]
         self.profile = BinnedProfile1D(self.data_source,
-            n_bins, self.x_field, x_min, x_max, x_log,
-            lazy_reader = True)
+            n_bins, self.x_field, x_min, x_max, x_log)
         self.profile.add_fields(["CellMassMsun"], weight=None)
         self.profile["CellMassMsun"] /= self.profile["CellMassMsun"].sum()
         self.figure = matplotlib.figure.Figure(**figure_args)
@@ -59,4 +58,4 @@ class EasyPDFPlot(EasyPlot):
         else: f = self.axes.plot
         self.plot = f(self.profile[x_field], self.profile["CellMassMsun"],
                       **plot_args)
-        self.axes.set_xlabel(data_source.pf.field_info[x_field].get_label())
+        self.axes.set_xlabel(data_source.ds.field_info[x_field].get_label())

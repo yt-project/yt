@@ -14,16 +14,16 @@ Fixed resolution buffer support, along with a primitive image analysis tool.
 #-----------------------------------------------------------------------------
 
 from yt.funcs import *
-from yt.utilities.definitions import \
-    x_dict, \
-    y_dict, \
-    axis_names
+from yt.units.unit_object import Unit
 from .volume_rendering.api import off_axis_projection
-from image_writer import write_fits
 from yt.data_objects.image_array import ImageArray
-import _MPL
+from yt.utilities.lib.misc_utilities import \
+    pixelize_cylinder
+from . import _MPL
 import numpy as np
 import weakref
+import re
+import string
 
 class FixedResolutionBuffer(object):
     r"""
@@ -71,7 +71,7 @@ class FixedResolutionBuffer(object):
     To make a projection and then several images, you can generate a
     single FRB and then access multiple fields:
 
-    >>> proj = pf.h.proj(0, "Density")
+    >>> proj = ds.proj(0, "Density")
     >>> frb1 = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5),
                     (1024, 1024))
     >>> print frb1["Density"].max()
@@ -79,11 +79,12 @@ class FixedResolutionBuffer(object):
     >>> print frb1["Temperature"].max()
     104923.1
     """
-    _exclude_fields = ('pz','pdz','dx','x','y','z')
+    _exclude_fields = ('pz','pdz','dx','x','y','z',
+                       ('index','dx'),('index','x'),('index','y'),('index','z'))
     def __init__(self, data_source, bounds, buff_size, antialias = True,
                  periodic = False):
         self.data_source = data_source
-        self.pf = data_source.pf
+        self.ds = data_source.ds
         self.bounds = bounds
         self.buff_size = buff_size
         self.antialias = antialias
@@ -91,18 +92,18 @@ class FixedResolutionBuffer(object):
         self.axis = data_source.axis
         self.periodic = periodic
 
-        h = getattr(data_source, "hierarchy", None)
-        if h is not None:
-            h.plots.append(weakref.proxy(self))
+        ds = getattr(data_source, "ds", None)
+        if ds is not None:
+            ds.plots.append(weakref.proxy(self))
 
         # Handle periodicity, just in case
         if self.data_source.axis < 3:
-            DLE = self.pf.domain_left_edge
-            DRE = self.pf.domain_right_edge
+            DLE = self.ds.domain_left_edge
+            DRE = self.ds.domain_right_edge
             DD = float(self.periodic)*(DRE - DLE)
             axis = self.data_source.axis
-            xax = x_dict[axis]
-            yax = y_dict[axis]
+            xax = self.ds.coordinates.x_axis[axis]
+            yax = self.ds.coordinates.y_axis[axis]
             self._period = (DD[xax], DD[yax])
             self._edges = ( (DLE[xax], DRE[xax]), (DLE[yax], DRE[yax]) )
         
@@ -116,39 +117,78 @@ class FixedResolutionBuffer(object):
         if item in self.data: return self.data[item]
         mylog.info("Making a fixed resolution buffer of (%s) %d by %d" % \
             (item, self.buff_size[0], self.buff_size[1]))
-        buff = _MPL.Pixelize(self.data_source['px'],
-                             self.data_source['py'],
-                             self.data_source['pdx'],
-                             self.data_source['pdy'],
-                             self.data_source[item],
-                             self.buff_size[0], self.buff_size[1],
-                             self.bounds, int(self.antialias),
-                             self._period, int(self.periodic),
-                             ).transpose()
-        ia = ImageArray(buff, info=self._get_info(item))
-        self[item] = ia
-        return ia 
+        bounds = []
+        for b in self.bounds:
+            if hasattr(b, "in_units"):
+                b = float(b.in_units("code_length"))
+            bounds.append(b)
+        buff = self.ds.coordinates.pixelize(self.data_source.axis,
+            self.data_source, item, bounds, self.buff_size,
+            int(self.antialias))
+        # Need to add _period and self.periodic
+        # self._period, int(self.periodic)
+        ia = ImageArray(buff, input_units=self.data_source[item].units,
+                        info=self._get_info(item))
+        self.data[item] = ia
+        return self.data[item]
 
     def __setitem__(self, item, val):
         self.data[item] = val
 
     def _get_data_source_fields(self):
         exclude = self.data_source._key_fields + list(self._exclude_fields)
-        for f in self.data_source.fields:
-            if f not in exclude:
+        fields = getattr(self.data_source, "fields", [])
+        fields += getattr(self.data_source, "field_data", {}).keys()
+        for f in fields:
+            if f not in exclude and f[0] not in self.data_source.ds.particle_types:
                 self[f]
+
+
+    def _is_ion( self, fname ):
+        p = re.compile("_p[0-9]+_")
+        result = False
+        if p.search( fname ) != None:
+            result = True
+        return result
+
+    def _ion_to_label( self, fname ):
+        pnum2rom = {
+            "0":"I", "1":"II", "2":"III", "3":"IV", "4":"V",
+            "5":"VI", "6":"VII", "7":"VIII", "8":"IX", "9":"X",
+            "10":"XI", "11":"XII", "12":"XIII", "13":"XIV", "14":"XV",
+            "15":"XVI", "16":"XVII", "17":"XVIII", "18":"XIX", "19":"XX"}
+
+        p = re.compile("_p[0-9]+_")
+        m = p.search( fname )
+        if m != None:
+            pstr = m.string[m.start()+1:m.end()-1]
+            segments = fname.split("_")
+            for i,s in enumerate(segments):
+                segments[i] = string.capitalize(s)
+                if s == pstr:
+                    ipstr = i
+            element = segments[ipstr-1]
+            roman = pnum2rom[pstr[1:]] 
+            label = element + '\/' + roman + '\/' + \
+                string.join( segments[ipstr+1:], '\/' ) 
+        else:
+            label = fname
+        return label
+
+
+
 
     def _get_info(self, item):
         info = {}
+        ftype, fname = field = self.data_source._determine_fields(item)[0]
+        finfo = self.data_source.ds._get_field_info(*field)
         info['data_source'] = self.data_source.__str__()  
         info['axis'] = self.data_source.axis
         info['field'] = str(item)
-        info['units'] = self.data_source.pf.field_info[item].get_units()
         info['xlim'] = self.bounds[:2]
         info['ylim'] = self.bounds[2:]
-        info['length_to_cm'] = self.data_source.pf['cm']
-        info['projected_units'] = \
-                self.data_source.pf.field_info[item].get_projected_units()
+        info['length_unit'] = self.data_source.ds.length_unit
+        info['length_to_cm'] = info['length_unit'].in_cgs().to_ndarray()
         info['center'] = self.data_source.center
         
         try:
@@ -161,30 +201,19 @@ class FixedResolutionBuffer(object):
         except AttributeError:
             pass
         
-        info['label'] = self.data_source.pf.field_info[item].display_name
+        info['label'] = finfo.display_name
         if info['label'] is None:
-            info['label'] = r'$\rm{'+item.replace('_','\/').title()+r'}$'
+            if self._is_ion( fname ):
+                fname = self._ion_to_label( fname )
+                info['label'] = r'$\rm{'+fname+r'}$'
+                info['label'] = r'$\rm{'+fname.replace('_','\/')+r'}$'
+            else:    
+                info['label'] = r'$\rm{'+fname+r'}$'
+                info['label'] = r'$\rm{'+fname.replace('_','\/').title()+r'}$'
         elif info['label'].find('$') == -1:
             info['label'] = info['label'].replace(' ','\/')
             info['label'] = r'$\rm{'+info['label']+r'}$'
         
-        # Try to determine the units of the data
-        units = None
-        if self.data_source._type_name in ("slice", "cutting"):
-            units = info['units']
-        elif self.data_source._type_name in ("proj", "overlap_proj"):
-            if (self.data_source.weight_field is not None or
-                self.data_source.proj_style == "mip"):
-                units = info['units']
-            else:
-                units = info['projected_units']
-        
-        if units is None or units == '':
-            pass
-        else:
-            info['label'] += r'$\/\/('+units+r')$'
-        
-
         return info
 
     def convert_to_pixel(self, coords):
@@ -265,7 +294,7 @@ class FixedResolutionBuffer(object):
         output.close()
 
     def export_fits(self, filename, fields=None, clobber=False,
-                    other_keys=None, units="cm", sky_center=(0.0,0.0), D_A=None):
+                    other_keys=None, units="cm"):
         r"""Export a set of pixelized fields to a FITS file.
 
         This will export a set of FITS images of either the fields specified
@@ -285,124 +314,94 @@ class FixedResolutionBuffer(object):
             the length units that the coordinates are written in, default 'cm'
             If units are set to "deg" then assume that sky coordinates are
             requested.
-        sky_center : array_like, optional
-            Center of the image in (ra,dec) in degrees if sky coordinates
-            (units="deg") are requested.
-        D_A : float or tuple, optional
-            Angular diameter distance, given in code units as a float or
-            a tuple containing the value and the length unit. Required if
-            using sky coordinates.
         """
 
-        try:
-            import astropy.io.fits as pyfits
-        except:
-            mylog.error("You don't have AstroPy installed!")
-            raise ImportError
-        
-        if units == "deg" and D_A is None:
-            mylog.error("Sky coordinates require an angular diameter distance. Please specify D_A.")    
-            raise ValueError
-    
-        if iterable(D_A):
-            dist = D_A[0]/self.pf.units[D_A[1]]
-        else:
-            dist = D_A
-
-        if other_keys is None:
-            hdu_keys = {}
-        else:
-            hdu_keys = other_keys
+        from yt.utilities.fits_image import FITSImageBuffer
 
         extra_fields = ['x','y','z','px','py','pz','pdx','pdy','pdz','weight_field']
         if fields is None: 
-            fields = [field for field in self.data_source.fields 
+            fields = [field[-1] for field in self.data_source.field_data
                       if field not in extra_fields]
 
-        coords = {}
-        nx, ny = self.buff_size
-        dx = (self.bounds[1]-self.bounds[0])/nx
-        dy = (self.bounds[3]-self.bounds[2])/ny
-        if units == "deg":  
-            coords["dx"] = -np.rad2deg(dx/dist)
-            coords["dy"] = np.rad2deg(dy/dist)
-            coords["xctr"] = sky_center[0]
-            coords["yctr"] = sky_center[1]
-            hdu_keys["MTYPE1"] = "EQPOS"
-            hdu_keys["MFORM1"] = "RA,DEC"
-            hdu_keys["CTYPE1"] = "RA---TAN"
-            hdu_keys["CTYPE2"] = "DEC--TAN"
-        else:
-            coords["dx"] = dx*self.pf.units[units]
-            coords["dy"] = dy*self.pf.units[units]
-            coords["xctr"] = 0.5*(self.bounds[0]+self.bounds[1])*self.pf.units[units]
-            coords["yctr"] = 0.5*(self.bounds[2]+self.bounds[3])*self.pf.units[units]
-        coords["units"] = units
+        fib = FITSImageBuffer(self, fields=fields, units=units)
+        if other_keys is not None:
+            for k,v in other_keys.items():
+                fib.update_all_headers(k,v)
+        fib.writeto(filename, clobber=clobber)
         
-        hdu_keys["Time"] = self.pf.current_time
-
-        data = dict([(field,self[field]) for field in fields])
-        write_fits(data, filename, clobber=clobber, coords=coords,
-                   other_keys=hdu_keys)
-
-    def open_in_ds9(self, field, take_log=True):
-        """
-        This will open a given field in the DS9 viewer.
-
-        Displaying fields can often be much easier in an interactive viewer,
-        particularly one as versatile as DS9.  This function will pixelize a
-        field and export it to an interactive DS9 package.  This requires the
-        *numdisplay* package, which is a simple download from STSci.
-        Furthermore, it presupposed that it can connect to DS9 -- that is, that
-        DS9 is already open.
-
-        Parameters
-        ----------
-        field : strings
-            This field will be pixelized and displayed.
-        take_log : boolean
-            DS9 seems to have issues with logging fields in-memory.  This will
-            pre-log the field before sending it to DS9.
-        """
-        import numdisplay
-        numdisplay.open()
-        if take_log: data=np.log10(self[field])
-        else: data=self[field]
-        numdisplay.display(data)    
-
     @property
     def limits(self):
         rv = dict(x = None, y = None, z = None)
-        xax = x_dict[self.axis]
-        yax = y_dict[self.axis]
-        xn = axis_names[xax]
-        yn = axis_names[yax]
+        xax = self.ds.coordinates.x_axis[self.axis]
+        yax = self.ds.coordinates.y_axis[self.axis]
+        xn = self.ds.coordinates.axis_name[xax]
+        yn = self.ds.coordinates.axis_name[yax]
         rv[xn] = (self.bounds[0], self.bounds[1])
         rv[yn] = (self.bounds[2], self.bounds[3])
         return rv
 
+class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
+    """
+    This object is a subclass of
+    :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
+    that supports non-aligned input data objects, primarily cutting planes.
+    """
+    def __init__(self, data_source, radius, buff_size, antialias = True) :
+
+        self.data_source = data_source
+        self.ds = data_source.ds
+        self.radius = radius
+        self.buff_size = buff_size
+        self.antialias = antialias
+        self.data = {}
+        
+        ds = getattr(data_source, "ds", None)
+        if ds is not None:
+            ds.plots.append(weakref.proxy(self))
+
+    def __getitem__(self, item) :
+        if item in self.data: return self.data[item]
+        buff = pixelize_cylinder(self.data_source["r"], self.data_source["dr"],
+                                 self.data_source["theta"], self.data_source["dtheta"],
+                                 self.buff_size, self.data_source[item].astype("float64"),
+                                 self.radius)
+        self[item] = buff
+        return buff
+        
 class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
     """
-    This object is a subclass of :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
+    This object is a subclass of
+    :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
     that supports non-aligned input data objects, primarily cutting planes.
     """
     def __getitem__(self, item):
         if item in self.data: return self.data[item]
         indices = np.argsort(self.data_source['dx'])[::-1]
+        bounds = []
+        for b in self.bounds:
+            if hasattr(b, "in_units"):
+                b = float(b.in_units("code_length"))
+            bounds.append(b)
         buff = _MPL.CPixelize( self.data_source['x'],   self.data_source['y'],   self.data_source['z'],
                                self.data_source['px'],  self.data_source['py'],
                                self.data_source['pdx'], self.data_source['pdy'], self.data_source['pdz'],
                                self.data_source.center, self.data_source._inv_mat, indices,
                                self.data_source[item],
                                self.buff_size[0], self.buff_size[1],
-                               self.bounds).transpose()
-        ia = ImageArray(buff, info=self._get_info(item))
+                               bounds).transpose()
+        ia = ImageArray(buff, input_units=self.data_source[item].units,
+                        info=self._get_info(item))
         self[item] = ia
         return ia 
 
 
 class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
-    def __init__(self, data_source, bounds, buff_size, antialias = True,                                                         
+    """
+    This object is a subclass of
+    :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
+    that supports off axis projections.  This calls the volume renderer.
+    """
+    def __init__(self, data_source, bounds, buff_size, antialias = True,
                  periodic = False):
         self.data = {}
         FixedResolutionBuffer.__init__(self, data_source, bounds, buff_size, antialias, periodic)
@@ -411,16 +410,19 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         if item in self.data: return self.data[item]
         mylog.info("Making a fixed resolutuion buffer of (%s) %d by %d" % \
             (item, self.buff_size[0], self.buff_size[1]))
-        ds = self.data_source
-        width = (self.bounds[1] - self.bounds[0],
-                 self.bounds[3] - self.bounds[2],
-                 self.bounds[5] - self.bounds[4])
-        buff = off_axis_projection(ds.pf, ds.center, ds.normal_vector,
-                                   width, ds.resolution, item,
-                                   weight=ds.weight_field, volume=ds.volume,
-                                   no_ghost=ds.no_ghost, interpolated=ds.interpolated,
-                                   north_vector=ds.north_vector)
-        ia = ImageArray(buff.swapaxes(0,1), info=self._get_info(item))
+        dd = self.data_source
+        width = self.ds.arr((self.bounds[1] - self.bounds[0],
+                             self.bounds[3] - self.bounds[2],
+                             self.bounds[5] - self.bounds[4]))
+        buff = off_axis_projection(dd.ds, dd.center, dd.normal_vector,
+                                   width, dd.resolution, item,
+                                   weight=dd.weight_field, volume=dd.volume,
+                                   no_ghost=dd.no_ghost, interpolated=dd.interpolated,
+                                   north_vector=dd.north_vector)
+        units = Unit(dd.ds.field_info[item].units, registry=dd.ds.unit_registry)
+        if dd.weight_field is None:
+            units *= Unit('cm', registry=dd.ds.unit_registry)
+        ia = ImageArray(buff.swapaxes(0,1), input_units=units, info=self._get_info(item))
         self[item] = ia
         return ia 
 

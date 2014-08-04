@@ -11,11 +11,12 @@
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 import numpy as np
+from itertools import izip
 
 import matplotlib
 import matplotlib.colors as cc
 import matplotlib.cm as mcm
-import _colormap_data as _cm
+from . import _colormap_data as _cm
 
 def is_colormap(cmap):
     return isinstance(cmap,cc.Colormap)
@@ -98,6 +99,32 @@ cdict = {'red':   ((0.0, 0.0, 0.0),
 
 add_cmap('black_green', cdict)
 
+# This one is a variant of a colormap commonly
+# used for X-ray observations by Maxim Markevitch
+
+cdict = {'red': ((0.0, 0.0, 0.0),
+                 (0.3, 0.0, 0.0),
+                 (0.352, 0.245, 0.245),
+                 (0.42, 0.5, 0.5),
+                 (0.51, 0.706, 0.706),
+                 (0.613, 0.882, 0.882),
+                 (0.742, 1.0, 1.0),
+                 (1.0, 1.0, 1.0)),
+         'green': ((0.0, 0.0, 0.0),
+                   (0.585, 0.0, 0.0),
+                   (0.613, 0.196, 0.196),
+                   (0.693, 0.48, 0.48),
+                   (0.785, 0.696, 0.696),
+                   (0.885, 0.882, 0.882),
+                   (1.0, 1.0, 1.0)),
+         'blue': ((0.0, 0.0, 0.0),
+                  (0.136, 0.0, 0.0),
+                  (0.136, 0.373, 0.373),
+                  (0.391, 1.0, 1.0),
+                  (1.0, 1.0, 1.0))}
+
+add_cmap("purple_mm", cdict)
+
 # This one comes from
 # http://permalink.gmane.org/gmane.comp.python.matplotlib.devel/10518
 # and is an implementation of http://arxiv.org/abs/1108.5083
@@ -118,7 +145,7 @@ _cubehelix_data = {
 add_cmap("cubehelix", _cubehelix_data)
 
 # Add colormaps in _colormap_data.py that weren't defined here
-_vs = np.linspace(0,1,255)
+_vs = np.linspace(0,1,256)
 for k,v in _cm.color_map_luts.iteritems():
     if k not in yt_colormaps and k not in mcm.cmap_d:
         cdict = { 'red': zip(_vs,v[0],v[0]),
@@ -140,7 +167,7 @@ def show_colormaps(subset = "all", filename=None):
     Displays the colormaps available to yt.  Note, most functions can use
     both the matplotlib and the native yt colormaps; however, there are 
     some special functions existing within image_writer.py (e.g. write_image()
-    write_fits(), write_bitmap(), etc.), which cannot access the matplotlib
+    write_bitmap(), etc.), which cannot access the matplotlib
     colormaps.
 
     In addition to the colormaps listed, one can access the reverse of each 

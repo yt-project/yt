@@ -16,16 +16,18 @@ API for yt.frontends.stream
 from .data_structures import \
       StreamGrid, \
       StreamHierarchy, \
-      StreamStaticOutput, \
+      StreamDataset, \
       StreamHandler, \
       load_uniform_grid, \
       load_amr_grids, \
+      load_particles, \
+      load_hexahedral_mesh, \
+      hexahedral_connectivity, \
+      load_octree, \
       refine_amr
 
 from .fields import \
-      KnownStreamFields, \
-      StreamFieldInfo, \
-      add_stream_field
+      StreamFieldInfo
 
 from .io import \
       IOHandlerStream

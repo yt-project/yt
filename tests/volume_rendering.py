@@ -2,7 +2,7 @@ from yt.mods import *
 import numpy as na
 
 from yt.utilities.answer_testing.output_tests import \
-    YTStaticOutputTest, RegressionTestException
+    YTDatasetTest, RegressionTestException
 from yt.funcs import ensure_list
 
 
@@ -10,18 +10,18 @@ class VolumeRenderingInconsistent(RegressionTestException):
     pass
 
 
-class VolumeRenderingConsistency(YTStaticOutputTest):
+class VolumeRenderingConsistency(YTDatasetTest):
     name = "volume_rendering_consistency"
 
     def run(self):
-        c = (self.pf.domain_right_edge + self.pf.domain_left_edge) / 2.
-        W = na.sqrt(3.) * (self.pf.domain_right_edge - \
-            self.pf.domain_left_edge)
+        c = (self.ds.domain_right_edge + self.ds.domain_left_edge) / 2.
+        W = na.sqrt(3.) * (self.ds.domain_right_edge - \
+            self.ds.domain_left_edge)
         N = 512
         n_contours = 5
         cmap = 'algae'
         field = 'Density'
-        mi, ma = self.pf.h.all_data().quantities['Extrema'](field)[0]
+        mi, ma = self.ds.all_data().quantities['Extrema'](field)[0]
         mi, ma = na.log10(mi), na.log10(ma)
         contour_width = (ma - mi) / 100.
         L = na.array([1.] * 3)
@@ -29,7 +29,7 @@ class VolumeRenderingConsistency(YTStaticOutputTest):
         tf.add_layers(n_contours, w=contour_width,
                       col_bounds=(mi * 1.001, ma * 0.999),
                       colormap=cmap, alpha=na.logspace(-1, 0, n_contours))
-        cam = self.pf.h.camera(c, L, W, (N, N), transfer_function=tf,
+        cam = self.ds.camera(c, L, W, (N, N), transfer_function=tf,
             no_ghost=True)
         image = cam.snapshot()
         # image = cam.snapshot('test_rendering_%s.png'%field)

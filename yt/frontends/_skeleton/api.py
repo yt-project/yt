@@ -16,11 +16,11 @@ API for yt.frontends._skeleton
 from .data_structures import \
       SkeletonGrid, \
       SkeletonHierarchy, \
-      SkeletonStaticOutput
+      SkeletonDataset
 
 from .fields import \
       SkeletonFieldInfo, \
-      add_flash_field
+      add_skeleton_field
 
 from .io import \
       IOHandlerSkeleton

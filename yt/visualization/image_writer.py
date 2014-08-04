@@ -18,9 +18,11 @@ import numpy as np
 
 from yt.funcs import *
 from yt.utilities.exceptions import YTNotInsideNotebook
+from color_maps import mcm
 import _colormap_data as cmd
-import yt.utilities.lib as au
-import __builtin__
+import yt.utilities.lib.image_utilities as au
+import yt.utilities.png_writer as pw
+from yt.extern.six.moves import builtins
 
 def scale_image(image, mi=None, ma=None):
     r"""Scale an image ([NxNxM] where M = 1-4) to be uint8 and values scaled 
@@ -107,7 +109,7 @@ def multi_image_composite(fn, red_channel, blue_channel,
         alpha_channel = scale_image(alpha_channel) 
     image = np.array([red_channel, green_channel, blue_channel, alpha_channel])
     image = image.transpose().copy() # Have to make sure it's contiguous 
-    au.write_png(image, fn)
+    pw.write_png(image, fn)
 
 def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
     r"""Write out a bitmapped image directly to a PNG file.
@@ -135,6 +137,10 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
     max_val : float, optional
         The upper limit to clip values to in the output, if converting to uint8.
         If `bitmap_array` is already uint8, this will be ignore.
+    transpose : boolean, optional
+        If transpose is False, we assume that the incoming bitmap_array is such
+        that the first element resides in the upper-left corner.  If True, the
+        first element will be placed in the lower-left corner.
     """
     if len(bitmap_array.shape) != 3 or bitmap_array.shape[-1] not in (3,4):
         raise RuntimeError
@@ -152,9 +158,9 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
     if transpose:
         bitmap_array = bitmap_array.swapaxes(0,1)
     if filename is not None:
-        au.write_png(bitmap_array.copy(), filename)
+        pw.write_png(bitmap_array, filename)
     else:
-        return au.write_png_to_string(bitmap_array.copy())
+        return pw.write_png_to_string(bitmap_array.copy())
     return bitmap_array
 
 def write_image(image, filename, color_bounds = None, cmap_name = "algae", func = lambda x: x):
@@ -187,7 +193,7 @@ def write_image(image, filename, color_bounds = None, cmap_name = "algae", func 
     Examples
     --------
 
-    >>> sl = pf.h.slice(0, 0.5, "Density")
+    >>> sl = ds.slice(0, 0.5, "Density")
     >>> frb1 = FixedResolutionBuffer(sl, (0.2, 0.3, 0.4, 0.5),
                     (1024, 1024))
     >>> write_image(frb1["Density"], "saved.png")
@@ -196,7 +202,7 @@ def write_image(image, filename, color_bounds = None, cmap_name = "algae", func 
         mylog.info("Using only channel 1 of supplied image")
         image = image[:,:,0]
     to_plot = apply_colormap(image, color_bounds = color_bounds, cmap_name = cmap_name)
-    au.write_png(to_plot, filename)
+    pw.write_png(to_plot, filename)
     return to_plot
 
 def apply_colormap(image, color_bounds = None, cmap_name = 'algae', func=lambda x: x):
@@ -224,74 +230,32 @@ def apply_colormap(image, color_bounds = None, cmap_name = 'algae', func=lambda 
     to_plot : uint8 image with colorbar applied.
 
     """
-    image = func(image)
+    from yt.data_objects.image_array import ImageArray
+    image = ImageArray(func(image))
     if color_bounds is None:
-        mi = np.nanmin(image[~np.isinf(image)])
-        ma = np.nanmax(image[~np.isinf(image)])
+        mi = np.nanmin(image[~np.isinf(image)])*image.uq
+        ma = np.nanmax(image[~np.isinf(image)])*image.uq
         color_bounds = mi, ma
     else:
-        color_bounds = [func(c) for c in color_bounds]
+        color_bounds = [YTQuantity(func(c), image.units) for c in color_bounds]
     image = (image - color_bounds[0])/(color_bounds[1] - color_bounds[0])
     to_plot = map_to_colors(image, cmap_name)
     to_plot = np.clip(to_plot, 0, 255)
     return to_plot
 
-def annotate_image(image, text, xpos, ypos, font_name = "Vera",
-                   font_size = 24, dpi = 100):
-    r"""Add text on to an existing uint8 bitmap array.
-
-    This function accepts an image array and then directly calls freetype to
-    add text on top of that array.  No array is returned.
-
-    Parameters
-    ----------
-    image : array_like
-        This is a (scaled) array of UINT8 values, shape (N,N,[3,4]) to
-        overplot text on.
-    text : string
-        Text to place
-    xpos : int
-        The starting point, in pixels, of the text along the x axis.
-    ypos : int
-        The starting point, in pixels, of the text along the y axis.  Note that
-        0 will be the top of the image, not the bottom.
-    font_name : string (optional)
-        The font to load.
-    font_size : int (optional)
-        Font size in points of the overlaid text.
-    dpi : int (optional)
-        Dots per inch for calculating the font size in pixels.
-        
-    Returns
-    -------
-    Nothing
-
-    Examples
-    --------
-
-    >>> sl = pf.h.slice(0, 0.5, "Density")
-    >>> frb1 = FixedResolutionBuffer(sl, (0.2, 0.3, 0.4, 0.5),
-                    (1024, 1024))
-    >>> bitmap = write_image(frb1["Density"], "saved.png")
-    >>> annotate_image(bitmap, "Hello!", 0, 100)
-    >>> write_bitmap(bitmap, "saved.png")
-    """
-    if len(image.shape) != 3 or image.dtype != np.uint8:
-        raise RuntimeError("This routine requires a UINT8 bitmapped image.")
-    font_path = os.path.join(imp.find_module("matplotlib")[1],
-                             "mpl-data/fonts/ttf/",
-                             "%s.ttf" % font_name)
-    if not os.path.isfile(font_path):
-        mylog.error("Could not locate %s", font_path)
-        raise IOError(font_path)
-    # The hard-coded 0 is the font face index.
-    au.simple_writing(font_path, 0, dpi, font_size, text, image, xpos, ypos)
-
 def map_to_colors(buff, cmap_name):
-    if cmap_name not in cmd.color_map_luts:
-        print "Your color map was not found in the extracted colormap file."
-        raise KeyError(cmap_name)
-    lut = cmd.color_map_luts[cmap_name]
+    try:
+        lut = cmd.color_map_luts[cmap_name]
+    except KeyError:
+        try:
+            cmap = mcm.get_cmap(cmap_name)
+            dummy = cmap(0.0)
+            lut = cmap._lut.T
+        except ValueError:
+            print "Your color map was not found in either the extracted" +\
+                " colormap file or matplotlib colormaps"
+            raise KeyError(cmap_name)
+
     x = np.mgrid[0.0:1.0:lut[0].shape[0]*1j]
     shape = buff.shape
     mapped = np.dstack(
@@ -373,7 +337,7 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     Examples
     --------
 
-    >>> image = off_axis_projection(pf, c, L, W, N, "Density", no_ghost=False)
+    >>> image = off_axis_projection(ds, c, L, W, N, "Density", no_ghost=False)
     >>> write_projection(image, 'test.png', 
                          colorbar_label="Column Density (cm$^{-2}$)", 
                          title="Offaxis Projection", limits=(1e-5,1e-3), 
@@ -395,7 +359,7 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     fig = matplotlib.figure.Figure(figsize=figsize)
     ax = fig.add_subplot(111)
     
-    cax = ax.imshow(data, vmin=limits[0], vmax=limits[1], norm=norm,
+    cax = ax.imshow(data.to_ndarray(), vmin=limits[0], vmax=limits[1], norm=norm,
                     extent=extent, cmap=cmap_name)
     
     if title:
@@ -438,76 +402,6 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     canvas.print_figure(filename, dpi=dpi)
     return filename
 
-
-def write_fits(image, filename, clobber=True, coords=None,
-               other_keys=None):
-    r"""Write out floating point arrays directly to a FITS file, optionally
-    adding coordinates and header keywords.
-        
-    Parameters
-    ----------
-    image : array_like, or dict of array_like objects
-        This is either an (unscaled) array of floating point values, or a dict of
-        such arrays, shape (N,N,) to save in a FITS file. 
-    filename : string
-        This name of the FITS file to be written.
-    clobber : boolean
-        If the file exists, this governs whether we will overwrite.
-    coords : dictionary, optional
-        A set of header keys and values to write to the FITS header to set up
-        a coordinate system, which is assumed to be linear unless specified otherwise
-        in *other_keys*
-        "units": the length units
-        "xctr","yctr": the center of the image
-        "dx","dy": the pixel width in each direction                                                
-    other_keys : dictionary, optional
-        A set of header keys and values to write into the FITS header.    
-    """
-
-    try:
-        import astropy.io.fits as pyfits
-    except:
-        mylog.error("You don't have AstroPy installed!")
-        raise ImportError
-    
-    try:
-        image.keys()
-        image_dict = image
-    except:
-        image_dict = dict(yt_data=image)
-
-    hdulist = [pyfits.PrimaryHDU()]
-
-    for key in image_dict.keys():
-
-        mylog.info("Writing image block \"%s\"" % (key))
-        hdu = pyfits.ImageHDU(image_dict[key])
-        hdu.update_ext_name(key)
-        
-        if coords is not None:
-            nx, ny = image_dict[key].shape
-            hdu.header.update('CUNIT1', coords["units"])
-            hdu.header.update('CUNIT2', coords["units"])
-            hdu.header.update('CRPIX1', 0.5*(nx+1))
-            hdu.header.update('CRPIX2', 0.5*(ny+1))
-            hdu.header.update('CRVAL1', coords["xctr"])
-            hdu.header.update('CRVAL2', coords["yctr"])
-            hdu.header.update('CDELT1', coords["dx"])
-            hdu.header.update('CDELT2', coords["dy"])
-            # These are the defaults, but will get overwritten if
-            # the caller has specified them
-            hdu.header.update('CTYPE1', "LINEAR")
-            hdu.header.update('CTYPE2', "LINEAR")
-                                    
-        if other_keys is not None:
-            for k,v in other_keys.items():
-                hdu.header.update(k,v)
-
-        hdulist.append(hdu)
-
-    hdulist = pyfits.HDUList(hdulist)
-    hdulist.writeto(filename, clobber=clobber)                    
-
 def display_in_notebook(image, max_val=None):
     """
     A helper function to display images in an IPython notebook
@@ -526,12 +420,12 @@ def display_in_notebook(image, max_val=None):
         three channels.
     """
  
-    if "__IPYTHON__" in dir(__builtin__):
+    if "__IPYTHON__" in dir(builtins):
         from IPython.core.displaypub import publish_display_data
         data = write_bitmap(image, None, max_val=max_val)
         publish_display_data(
-            'yt.visualization.image_writer.display_in_notebook',
-            {'image/png' : data}
+            data={'image/png': data},
+            source='yt.visualization.image_writer.display_in_notebook',
         )
     else:
         raise YTNotInsideNotebook

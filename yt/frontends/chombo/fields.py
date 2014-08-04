@@ -13,171 +13,78 @@ Chombo-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.data_objects.field_info_container import \
-    FieldInfoContainer, \
-    FieldInfo, \
-    NullFunc, \
-    ValidateParameter, \
-    ValidateDataField, \
-    ValidateProperty, \
-    ValidateSpatial, \
-    ValidateGridType
-import yt.data_objects.universal_fields
 import numpy as np
+from yt.fields.field_info_container import \
+    FieldInfoContainer
+from yt.frontends.boxlib.fields import \
+    rho_units, \
+    mom_units, \
+    eden_units, \
+    _thermal_energy_density, \
+    _thermal_energy, \
+    _temperature
 
-KnownChomboFields = FieldInfoContainer()
-add_chombo_field = KnownChomboFields.add_field
+rho_units = "code_mass / code_length**3"
+mom_units = "code_mass / (code_time * code_length**2)"
+eden_units = "code_mass / (code_time**2 * code_length)" # erg / cm^3
 
-ChomboFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
-add_field = ChomboFieldInfo.add_field
+# Chombo does not have any known fields by itself.
+class ChomboFieldInfo(FieldInfoContainer):
+    known_other_fields = ()
+    known_particle_fields = ()
 
-add_chombo_field("density", function=NullFunc, take_log=True,
-                 validators = [ValidateDataField("density")],
-                 units=r"\rm{g}/\rm{cm}^3")
+# Orion 2 Fields
+# We duplicate everything here from Boxlib, because we want to be able to
+# subclass it and that can be somewhat tricky.
+class Orion2FieldInfo(ChomboFieldInfo):
+    known_other_fields = (
+        ("density", (rho_units, ["density"], None)),
+        ("energy-density", (eden_units, ["energy_density"], None)),
+        ("radiation-energy-density", (eden_units, ["radiation_energy_density"], None)),
+        ("X-momentum", (mom_units, ["momentum_x"], None)),
+        ("Y-momentum", (mom_units, ["momentum_y"], None)),
+        ("Z-momentum", (mom_units, ["momentum_z"], None)),
+        ("temperature", ("K", ["temperature"], None)),
+        ("X-magnfield", ("gauss", ["magnetic_field_x"], None)),
+        ("Y-magnfield", ("gauss", ["magnetic_field_y"], None)),
+        ("Z-magnfield", ("gauss", ["magnetic_field_z"], None)),
+    )
 
-KnownChomboFields["density"]._projected_units =r"\rm{g}/\rm{cm}^2"
+    known_particle_fields = (
+        ("particle_mass", ("code_mass", [], None)),
+        ("particle_position_x", ("code_length", [], None)),
+        ("particle_position_y", ("code_length", [], None)),
+        ("particle_position_z", ("code_length", [], None)),
+        ("particle_momentum_x", (mom_units, [], None)),
+        ("particle_momentum_y", (mom_units, [], None)),
+        ("particle_momentum_z", (mom_units, [], None)),
+        # Note that these are *internal* agmomen
+        ("particle_angmomen_x", ("code_length**2/code_time", [], None)),
+        ("particle_angmomen_y", ("code_length**2/code_time", [], None)),
+        ("particle_angmomen_z", ("code_length**2/code_time", [], None)),
+        ("particle_mlast", ("code_mass", [], None)),
+        ("particle_r", ("code_length", [], None)),
+        ("particle_mdeut", ("code_mass", [], None)),
+        ("particle_n", ("", [], None)),
+        ("particle_mdot", ("code_mass/code_time", [], None)),
+        ("particle_burnstate", ("", [], None)),
+        ("particle_luminosity", ("", [], None)),
+        ("particle_id", ("", ["particle_index"], None)),
+    )
 
-add_chombo_field("X-momentum", function=NullFunc, take_log=False,
-                 validators = [ValidateDataField("X-Momentum")],
-                 units=r"",display_name=r"M_x")
-KnownChomboFields["X-momentum"]._projected_units=r""
-
-add_chombo_field("Y-momentum", function=NullFunc, take_log=False,
-                 validators = [ValidateDataField("Y-Momentum")],
-                 units=r"",display_name=r"M_y")
-KnownChomboFields["Y-momentum"]._projected_units=r""
-
-add_chombo_field("Z-momentum", function=NullFunc, take_log=False,
-                 validators = [ValidateDataField("Z-Momentum")],
-                 units=r"",display_name=r"M_z")
-KnownChomboFields["Z-momentum"]._projected_units=r""
-
-add_chombo_field("X-magnfield", function=NullFunc, take_log=False,
-                 validators = [ValidateDataField("X-Magnfield")],
-                 units=r"",display_name=r"B_x")
-KnownChomboFields["X-magnfield"]._projected_units=r""
-
-add_chombo_field("Y-magnfield", function=NullFunc, take_log=False,
-                 validators = [ValidateDataField("Y-Magnfield")],
-                 units=r"",display_name=r"B_y")
-KnownChomboFields["Y-magnfield"]._projected_units=r""
-
-add_chombo_field("Z-magnfield", function=NullFunc, take_log=False,
-                  validators = [ValidateDataField("Z-Magnfield")],
-                  units=r"",display_name=r"B_z")
-KnownChomboFields["Z-magnfield"]._projected_units=r""
-
-add_chombo_field("energy-density", function=NullFunc, take_log=True,
-                 validators = [ValidateDataField("energy-density")],
-                 units=r"\rm{erg}/\rm{cm}^3")
-KnownChomboFields["energy-density"]._projected_units =r""
-
-add_chombo_field("radiation-energy-density", function=NullFunc, take_log=True,
-                 validators = [ValidateDataField("radiation-energy-density")],
-                 units=r"\rm{erg}/\rm{cm}^3")
-KnownChomboFields["radiation-energy-density"]._projected_units =r""
-
-def _Density(field,data):
-    """A duplicate of the density field. This is needed because when you try 
-    to instantiate a PlotCollection without passing in a center, the code
-    will try to generate one for you using the "Density" field, which gives an error 
-    if it isn't defined.
-
-    """
-    return data["density"]
-add_field("Density",function=_Density, take_log=True,
-          units=r'\rm{g}/\rm{cm^3}')
-
-def _Bx(field,data):
-    return data["X-magnfield"]
-add_field("Bx", function=_Bx, take_log=False,
-          units=r"\rm{Gauss}", display_name=r"B_x")
-
-def _By(field,data):
-    return data["Y-magnfield"]
-add_field("By", function=_By, take_log=False,
-          units=r"\rm{Gauss}", display_name=r"B_y")
-
-def _Bz(field,data):
-    return data["Z-magnfield"]
-add_field("Bz", function=_Bz, take_log=False,
-          units=r"\rm{Gauss}", display_name=r"B_z")
-
-def _MagneticEnergy(field,data):
-    return (data["X-magnfield"]**2 +
-            data["Y-magnfield"]**2 +
-            data["Z-magnfield"]**2)/2.
-add_field("MagneticEnergy", function=_MagneticEnergy, take_log=True,
-          units=r"", display_name=r"B^2 / 8 \pi")
-ChomboFieldInfo["MagneticEnergy"]._projected_units=r""
-
-def _xVelocity(field, data):
-    """ Generate x-velocity from x-momentum and density. """
-    return data["X-momentum"]/data["density"]
-add_field("x-velocity",function=_xVelocity, take_log=False,
-          units=r'\rm{cm}/\rm{s}')
-
-def _yVelocity(field,data):
-    """ Generate y-velocity from y-momentum and density. """
-    #try:
-    #    return data["xvel"]
-    #except KeyError:
-    return data["Y-momentum"]/data["density"]
-add_field("y-velocity",function=_yVelocity, take_log=False,
-          units=r'\rm{cm}/\rm{s}')
-
-def _zVelocity(field,data):
-    """ Generate z-velocity from z-momentum and density. """
-    return data["Z-momentum"]/data["density"]
-add_field("z-velocity",function=_zVelocity, take_log=False,
-          units=r'\rm{cm}/\rm{s}')
-
-def particle_func(p_field, dtype='float64'):
-    def _Particles(field, data):
-        io = data.hierarchy.io
-        if not data.NumberOfParticles > 0:
-            return np.array([], dtype=dtype)
-        else:
-            return io._read_particles(data, p_field).astype(dtype)
-        
-    return _Particles
-
-_particle_field_list = ["mass",
-                        "position_x",
-                        "position_y",
-                        "position_z",
-                        "momentum_x",
-                        "momentum_y",
-                        "momentum_z",
-                        "angmomen_x",
-                        "angmomen_y",
-                        "angmomen_z",
-                        "mlast",
-                        "r",
-                        "mdeut",
-                        "n",
-                        "mdot",
-                        "burnstate",
-                        "luminosity",
-                        "id"]
-
-for pf in _particle_field_list:
-    pfunc = particle_func("particle_%s" % (pf))
-    add_field("particle_%s" % pf, function=pfunc,
-              validators = [ValidateSpatial(0)],
-              particle_type=True)
-
-def _ParticleMass(field, data):
-    particles = data["particle_mass"].astype('float64')
-    return particles
-
-def _ParticleMassMsun(field, data):
-    particles = data["particle_mass"].astype('float64')
-    return particles/1.989e33
-
-add_field("ParticleMass",
-          function=_ParticleMass, validators=[ValidateSpatial(0)],
-          particle_type=True)
-add_field("ParticleMassMsun",
-          function=_ParticleMassMsun, validators=[ValidateSpatial(0)],
-          particle_type=True)
+    def setup_fluid_fields(self):
+        def _get_vel(axis):
+            def velocity(field, data):
+                return data["momentum_%s" % ax]/data["density"]
+            return velocity
+        for ax in 'xyz':
+            self.add_field("velocity_%s" % ax, function = _get_vel(ax),
+                           units = "cm/s")
+        self.add_field("thermal_energy",
+                       function = _thermal_energy,
+                       units = "erg/g")
+        self.add_field("thermal_energy_density",
+                       function = _thermal_energy_density,
+                       units = "erg/cm**3")
+        self.add_field("temperature", function=_temperature,
+                       units="K")

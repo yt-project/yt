@@ -13,19 +13,21 @@ Useful functions.  If non-original, see function for citation.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import __builtin__
-import time, types, signal, inspect, traceback, sys, pdb, os
+import time, types, signal, inspect, traceback, sys, pdb, os, re
+import time, types, signal, inspect, traceback, sys, pdb, os, re
 import contextlib
 import warnings, struct, subprocess
 import numpy as np
 from distutils.version import LooseVersion
 from math import floor, ceil
+from numbers import Number as numeric_type
 
+from yt.extern.six.moves import builtins
 from yt.utilities.exceptions import *
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.definitions import inv_axis_names, axis_names, x_dict, y_dict
 import yt.extern.progressbar as pb
 import yt.utilities.rpdb as rpdb
+from yt.units.yt_array import YTArray, YTQuantity
 from collections import defaultdict
 from functools import wraps
 
@@ -58,7 +60,10 @@ def ensure_numpy_array(obj):
     convert scalar, list or tuple argument passed to functions using Cython.
     """
     if isinstance(obj, np.ndarray):
-        return obj
+        if obj.shape == ():
+            return np.array([obj])
+        # We cast to ndarray to catch ndarray subclasses
+        return np.array(obj)
     elif isinstance(obj, (types.ListType, types.TupleType)):
         return np.asarray(obj)
     else:
@@ -87,6 +92,8 @@ def read_struct(f, fmt):
 def just_one(obj):
     # If we have an iterable, sometimes we only want one item
     if hasattr(obj,'flat'):
+        if isinstance(obj, YTArray):
+            return YTQuantity(obj.flat[0], obj.units, registry=obj.units.registry)
         return obj.flat[0]
     elif iterable(obj):
         return obj[0]
@@ -113,7 +120,7 @@ try:
 except ImportError:
     pass
 
-def get_memory_usage():
+def get_memory_usage(subtract_share = False):
     """
     Returning resident size in megabytes
     """
@@ -127,6 +134,7 @@ def get_memory_usage():
         return -1024
     line = open(status_file).read()
     size, resident, share, text, library, data, dt = [int(i) for i in line.split()]
+    if subtract_share: resident -= share
     return resident * pagesize / (1024 * 1024) # return in megs
 
 def time_execution(func):
@@ -337,7 +345,7 @@ def get_pbar(title, maxval):
     maxval = max(maxval, 1)
     from yt.config import ytcfg
     if ytcfg.getboolean("yt", "suppressStreamLogging") or \
-       "__IPYTHON__" in dir(__builtin__) or \
+       "__IPYTHON__" in dir(builtins) or \
        ytcfg.getboolean("yt", "__withintesting"):
         return DummyProgressBar()
     elif ytcfg.getboolean("yt", "__withinreason"):
@@ -402,11 +410,12 @@ def paste_traceback(exc_type, exc, tb):
     Should only be used in sys.excepthook.
     """
     sys.__excepthook__(exc_type, exc, tb)
-    import xmlrpclib, cStringIO
+    from yt.extern.six.moves import StringIO
+    import xmlrpclib
     p = xmlrpclib.ServerProxy(
             "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
-    s = cStringIO.StringIO()
+    s = StringIO()
     traceback.print_exception(exc_type, exc, tb, file=s)
     s = s.getvalue()
     ret = p.pastes.newPaste('pytb', s, None, '', '', True)
@@ -419,8 +428,9 @@ def paste_traceback_detailed(exc_type, exc, tb):
     This is a traceback handler that knows how to paste to the pastebin.
     Should only be used in sys.excepthook.
     """
-    import xmlrpclib, cStringIO, cgitb
-    s = cStringIO.StringIO()
+    import xmlrpclib, cgitb
+    from yt.extern.six.moves import StringIO
+    s = StringIO()
     handler = cgitb.Hook(format="text", file = s)
     handler(exc_type, exc, tb)
     s = s.getvalue()
@@ -594,14 +604,43 @@ def get_yt_supp():
     # Now we think we have our supplemental repository.
     return supp_path
 
-def fix_length(length, pf):
-    if isinstance(length, (list, tuple)) and len(length) == 2 and \
-       isinstance(length[1], types.StringTypes):
-       length = length[0]/pf[length[1]]
-    return length
+def fix_length(length, ds=None):
+    assert ds is not None
+    if ds is not None:
+        registry = ds.unit_registry
+    else:
+        registry = None
+    if isinstance(length, YTArray):
+        if registry is not None:
+            length.units.registry = registry
+        return length.in_units("code_length")
+    if isinstance(length, numeric_type):
+        return YTArray(length, 'code_length', registry=registry)
+    length_valid_tuple = isinstance(length, (list, tuple)) and len(length) == 2
+    unit_is_string = isinstance(length[1], types.StringTypes)
+    if length_valid_tuple and unit_is_string:
+        return YTArray(*length, registry=registry)
+    else:
+        raise RuntimeError("Length %s is invalid" % str(length))
 
 @contextlib.contextmanager
 def parallel_profile(prefix):
+    r"""A context manager for profiling parallel code execution using cProfile
+
+    This is a simple context manager that automatically profiles the execution
+    of a snippet of code.
+
+    Parameters
+    ----------
+    prefix : string
+        A string name to prefix outputs with.
+
+    Examples
+    --------
+
+    >>> with parallel_profile('my_profile'):
+    ...     yt.PhasePlot(ds.all_data(), 'density', 'temperature', 'cell_mass')
+    """
     import cProfile
     from yt.config import ytcfg
     fn = "%s_%04i_%04i.cprof" % (prefix,
@@ -620,13 +659,12 @@ def get_num_threads():
         return os.environ.get("OMP_NUM_THREADS", 0)
     return nt
 
-def fix_axis(axis):
-    return inv_axis_names.get(axis, axis)
+def fix_axis(axis, ds):
+    return ds.coordinates.axis_id.get(axis, axis)
 
 def get_image_suffix(name):
     suffix = os.path.splitext(name)[1]
     return suffix if suffix in ['.png', '.eps', '.ps', '.pdf'] else ''
-
 
 def ensure_dir_exists(path):
     r"""Create all directories in path recursively in a parallel safe manner"""
@@ -636,8 +674,34 @@ def ensure_dir_exists(path):
     if not os.path.exists(my_dir):
         only_on_root(os.makedirs, my_dir)
 
+def ensure_dir(path):
+    r"""Parallel safe directory maker."""
+    if not os.path.exists(path):
+        only_on_root(os.makedirs, path)
+    return path
+
+def validate_width_tuple(width):
+    if not iterable(width) or len(width) != 2:
+        raise YTInvalidWidthError("width (%s) is not a two element tuple" % width)
+    if not isinstance(width[0], numeric_type) and isinstance(width[1], basestring):
+        msg = "width (%s) is invalid. " % str(width)
+        msg += "Valid widths look like this: (12, 'au')"
+        raise YTInvalidWidthError(msg)
+
+def camelcase_to_underscore(name):
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+def set_intersection(some_list):
+    if len(some_list) == 0: return set([])
+    # This accepts a list of iterables, which we get the intersection of.
+    s = set(some_list[0])
+    for l in some_list[1:]:
+        s.intersection_update(l)
+    return s
+
 @contextlib.contextmanager
-def memory_checker(interval = 15):
+def memory_checker(interval = 15, dest = None):
     r"""This is a context manager that monitors memory usage.
 
     Parameters
@@ -655,6 +719,8 @@ def memory_checker(interval = 15):
     ...     del arr
     """
     import threading
+    if dest is None:
+        dest = sys.stdout
     class MemoryChecker(threading.Thread):
         def __init__(self, event, interval):
             self.event = event
@@ -663,10 +729,33 @@ def memory_checker(interval = 15):
 
         def run(self):
             while not self.event.wait(self.interval):
-                print "MEMORY: %0.3e gb" % (get_memory_usage()/1024.)
+                print >> dest, "MEMORY: %0.3e gb" % (get_memory_usage()/1024.)
 
     e = threading.Event()
     mem_check = MemoryChecker(e, interval)
     mem_check.start()
     yield
     e.set()
+
+def deprecated_class(cls):
+    @wraps(cls)
+    def _func(*args, **kwargs):
+        # Note we use SyntaxWarning because by default, DeprecationWarning is
+        # not shown.
+        warnings.warn(
+            "This usage is deprecated.  Please use %s instead." % cls.__name__,
+            SyntaxWarning, stacklevel=2)
+        return cls(*args, **kwargs)
+    return _func
+    
+def enable_plugins():
+    from yt.config import ytcfg
+    my_plugin_name = ytcfg.get("yt","pluginfilename")
+    # We assume that it is with respect to the $HOME/.yt directory
+    if os.path.isfile(my_plugin_name):
+        _fn = my_plugin_name
+    else:
+        _fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
+    if os.path.isfile(_fn):
+        mylog.info("Loading plugins from %s", _fn)
+        execfile(_fn)

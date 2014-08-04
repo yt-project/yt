@@ -20,6 +20,7 @@ import urllib2
 from tempfile import TemporaryFile
 from yt.config import ytcfg
 from yt.funcs import *
+from yt.extern.six import add_metaclass
 from yt.utilities.exceptions import *
 
 from .poster.streaminghttp import register_openers
@@ -41,15 +42,15 @@ class UploaderBar(object):
 class ContainerClass(object):
     pass
 
+@add_metaclass(abc.ABCMeta)
 class MinimalRepresentation(object):
-    __metaclass__ = abc.ABCMeta
 
     def _update_attrs(self, obj, attr_list):
         for attr in attr_list:
             setattr(self, attr, getattr(obj, attr, None))
-        if hasattr(obj, "pf"):
-            self.output_hash = obj.pf._hash()
-            self._pf_mrep = obj.pf._mrep
+        if hasattr(obj, "ds"):
+            self.output_hash = obj.ds._hash()
+            self._ds_mrep = obj.ds._mrep
 
     def __init__(self, obj):
         self._update_attrs(obj, self._attr_list)
@@ -86,8 +87,8 @@ class MinimalRepresentation(object):
         url = ytcfg.get("yt","hub_url")
         if api_key == '': raise YTHubRegisterError
         metadata, (final_name, chunks) = self._generate_post()
-        if hasattr(self, "_pf_mrep"):
-            self._pf_mrep.upload()
+        if hasattr(self, "_ds_mrep"):
+            self._ds_mrep.upload()
         for i in metadata:
             if isinstance(metadata[i], np.ndarray):
                 metadata[i] = metadata[i].tolist()
@@ -138,7 +139,7 @@ class FilteredRepresentation(MinimalRepresentation):
     def _generate_post(self):
         raise RuntimeError
 
-class MinimalStaticOutput(MinimalRepresentation):
+class MinimalDataset(MinimalRepresentation):
     _attr_list = ("dimensionality", "refine_by", "domain_dimensions",
                   "current_time", "domain_left_edge", "domain_right_edge",
                   "unique_identifier", "current_redshift", "output_hash",
@@ -147,7 +148,7 @@ class MinimalStaticOutput(MinimalRepresentation):
     type = 'simulation_output'
 
     def __init__(self, obj):
-        super(MinimalStaticOutput, self).__init__(obj)
+        super(MinimalDataset, self).__init__(obj)
         self.output_hash = obj._hash()
         self.name = str(obj)
 
@@ -227,3 +228,15 @@ class MinimalNotebook(MinimalRepresentation):
         metadata = self._attrs
         chunks = [ ("notebook", self.data) ]
         return (metadata, ("chunks", chunks))
+
+class ImageCollection(object):
+    def __init__(self, ds, name):
+        self.ds = ds
+        self.name = name
+        self.images = []
+        self.image_metadata = []
+
+    def add_image(self, fn, descr):
+        self.image_metadata.append(descr)
+        self.images.append((os.path.basename(fn), np.fromfile(fn, dtype='c')))
+

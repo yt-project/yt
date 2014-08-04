@@ -18,7 +18,7 @@ frontends
 This is where interfaces to codes are created.  Within each subdirectory of
 yt/frontends/ there must exist the following files, even if empty:
 
-* data_structures.py, where subclasses of AMRGridPatch, StaticOutput and
+* data_structures.py, where subclasses of AMRGridPatch, Dataset and
   AMRHierarchy are defined.
 * io.py, where a subclass of IOHandler is defined.
 * misc.py, where any miscellaneous functions or classes are defined.
@@ -72,27 +72,93 @@ categories goes here.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-__version__ = "2.7-dev"
+__version__ = "3.0-dev"
 
-def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False):
-    import nose, os, sys
-    from yt.config import ytcfg
-    nose_argv = sys.argv
-    nose_argv += ['--exclude=answer_testing','--detailed-errors']
-    if verbose:
-        nose_argv.append('-v')
-    if run_answer_tests:
-        nose_argv.append('--with-answer-testing')
-    if answer_big_data:
-        nose_argv.append('--answer-big-data')
-    log_suppress = ytcfg.getboolean("yt","suppressStreamLogging")
-    ytcfg.set("yt","suppressStreamLogging", 'True')
-    initial_dir = os.getcwd()
-    yt_file = os.path.abspath(__file__)
-    yt_dir = os.path.dirname(yt_file)
-    os.chdir(yt_dir)
-    try:
-        nose.run(argv=nose_argv)
-    finally:
-        os.chdir(initial_dir)
-        ytcfg.set("yt","suppressStreamLogging", str(log_suppress))
+# First module imports
+import numpy as np # For modern purposes
+import numpy # In case anyone wishes to use it by name
+
+from yt.funcs import \
+    iterable, \
+    get_memory_usage, \
+    print_tb, \
+    rootonly, \
+    insert_ipython, \
+    get_pbar, \
+    only_on_root, \
+    is_root, \
+    get_version_stack, \
+    get_yt_supp, \
+    get_yt_version, \
+    parallel_profile, \
+    enable_plugins, \
+    memory_checker, \
+    deprecated_class
+from yt.utilities.logger import ytLogger as mylog
+
+import yt.utilities.physical_constants as physical_constants
+import yt.units as units
+from yt.units.yt_array import YTArray, YTQuantity
+
+from yt.fields.api import \
+    field_plugins, \
+    DerivedField, \
+    FieldDetector, \
+    FieldInfoContainer, \
+    ValidateParameter, \
+    ValidateDataField, \
+    ValidateProperty, \
+    ValidateSpatial, \
+    ValidateGridType, \
+    add_field, \
+    derived_field
+
+from yt.data_objects.api import \
+    BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
+    DatasetSeries, \
+    ImageArray, particle_filter, create_profile, \
+    Profile1D, Profile2D, Profile3D
+
+# For backwards compatibility
+TimeSeriesData = deprecated_class(DatasetSeries)
+
+from yt.frontends.api import _frontend_container
+frontends = _frontend_container()
+
+from yt.frontends.stream.api import \
+    load_uniform_grid, load_amr_grids, \
+    load_particles, load_hexahedral_mesh, load_octree, \
+    hexahedral_connectivity
+
+# For backwards compatibility
+GadgetDataset = frontends.sph.GadgetDataset
+GadgetStaticOutput = deprecated_class(GadgetDataset)
+TipsyDataset = frontends.sph.TipsyDataset
+TipsyStaticOutput = deprecated_class(TipsyDataset)
+
+# Now individual component imports from the visualization API
+from yt.visualization.api import \
+    FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
+    write_bitmap, write_image, \
+    apply_colormap, scale_image, write_projection, \
+    SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, \
+    ProjectionPlot, OffAxisProjectionPlot, \
+    show_colormaps, ProfilePlot, PhasePlot
+
+from yt.visualization.volume_rendering.api import \
+    off_axis_projection, ColorTransferFunction, \
+    TransferFunctionHelper
+
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_objects, enable_parallelism
+
+from yt.convenience import \
+    load, simulation
+
+from yt.testing import \
+    run_nose
+
+# Import some helpful math utilities
+from yt.utilities.math_utils import \
+    ortho_find, quartiles, periodic_position
+

@@ -1,5 +1,8 @@
-"""
+""" 
 API for yt.data_objects
+
+
+
 """
 
 #-----------------------------------------------------------------------------
@@ -10,63 +13,45 @@ API for yt.data_objects
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from grid_patch import \
+from .grid_patch import \
     AMRGridPatch
 
-from hierarchy import \
-    AMRHierarchy
+from .octree_subset import \
+    OctreeSubset
 
-from static_output import \
-    StaticOutput
+from .static_output import \
+    Dataset
 
-from object_finding_mixin import \
-    ObjectFindingMixin
-
-from particle_io import \
+from .particle_io import \
     ParticleIOHandler, \
     particle_handler_registry
 
-from profiles import \
+from .profiles import \
     YTEmptyProfileData, \
     BinnedProfile, \
     BinnedProfile1D, \
     BinnedProfile2D, \
     BinnedProfile3D, \
-    create_profile
+    create_profile, \
+    Profile1D, \
+    Profile2D, \
+    Profile3D
 
-from time_series import \
-    TimeSeriesData, \
-    TimeSeriesDataObject
+from .time_series import \
+    DatasetSeries, \
+    DatasetSeriesObject
 
-from analyzer_objects import \
+from .analyzer_objects import \
     AnalysisTask, analysis_task
 
-from data_containers import \
+from .data_containers import \
     data_object_registry
 
-from derived_quantities import \
-    quantity_info, \
-    add_quantity
+from . import construction_data_containers as __cdc
+from . import selection_data_containers as __sdc
 
-from image_array import \
+from .image_array import \
     ImageArray
 
-from field_info_container import \
-    FieldInfoContainer, \
-    FieldInfo, \
-    NeedsGridType, \
-    NeedsOriginalGrid, \
-    NeedsDataField, \
-    NeedsProperty, \
-    NeedsParameter, \
-    FieldDetector, \
-    DerivedField, \
-    ValidateParameter, \
-    ValidateDataField, \
-    ValidateProperty, \
-    ValidateSpatial, \
-    ValidateGridType, \
-    add_field, \
-    add_grad, \
-    derived_field
-
+from .particle_filters import \
+    particle_filter

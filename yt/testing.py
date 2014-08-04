@@ -1,5 +1,5 @@
 """
-
+Utilities to aid testing.
 
 
 """
@@ -12,6 +12,8 @@
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import hashlib
+import cPickle
 import itertools as it
 import numpy as np
 import importlib
@@ -22,6 +24,8 @@ from numpy.testing import assert_array_equal, assert_almost_equal, \
     assert_approx_equal, assert_array_almost_equal, assert_equal, \
     assert_array_less, assert_string_equal, assert_array_almost_equal_nulp,\
     assert_allclose, assert_raises
+from yt.units.yt_array import uconcatenate
+import yt.fields.api as field_api
 
 def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):
     # We have nan checks in here because occasionally we have fields that get
@@ -137,8 +141,12 @@ def amrspace(extent, levels=7, cells=8):
 
     return left, right, level
 
-def fake_random_pf(ndims, peak_value = 1.0, fields = ("Density",),
-                   negative = False, nprocs = 1):
+def fake_random_ds(
+        ndims, peak_value = 1.0,
+        fields = ("density", "velocity_x", "velocity_y", "velocity_z"),
+        units = ('g/cm**3', 'cm/s', 'cm/s', 'cm/s'),
+        negative = False, nprocs = 1, particles = 0, length_unit=1.0):
+    from yt.data_objects.api import data_object_registry
     from yt.frontends.stream.api import load_uniform_grid
     if not iterable(ndims):
         ndims = [ndims, ndims, ndims]
@@ -153,10 +161,36 @@ def fake_random_pf(ndims, peak_value = 1.0, fields = ("Density",),
             offsets.append(0.5)
         else:
             offsets.append(0.0)
-    data = dict((field, (np.random.random(ndims) - offset) * peak_value)
-                 for field,offset in zip(fields,offsets))
-    ug = load_uniform_grid(data, ndims, 1.0, nprocs = nprocs)
+    data = {}
+    for field, offset, u in zip(fields, offsets, units):
+        v = (np.random.random(ndims) - offset) * peak_value
+        if field[0] == "all":
+            data['number_of_particles'] = v.size
+            v = v.ravel()
+        data[field] = (v, u)
+    if particles:
+        for f in ('particle_position_%s' % ax for ax in 'xyz'):
+            data[f] = (np.random.uniform(size = particles), 'code_length')
+        for f in ('particle_velocity_%s' % ax for ax in 'xyz'):
+            data[f] = (np.random.random(size = particles) - 0.5, 'cm/s')
+        data['particle_mass'] = (np.random.random(particles), 'g')
+        data['number_of_particles'] = particles
+    ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs)
     return ug
+
+def fake_amr_ds(fields = ("Density",)):
+    from yt.frontends.stream.api import load_amr_grids
+    data = []
+    for gspec in _amr_grid_index:
+        level, left_edge, right_edge, dims = gspec
+        gdata = dict(level = level,
+                     left_edge = left_edge,
+                     right_edge = right_edge,
+                     dimensions = dims)
+        for f in fields:
+            gdata[f] = np.random.random(dims)
+        data.append(gdata)
+    return load_amr_grids(data, [32, 32, 32], 1.0)
 
 def expand_keywords(keywords, full=False):
     """
@@ -288,3 +322,327 @@ def requires_file(req_file):
         else:
             return ffalse
                                         
+# This is an export of the 40 grids in IsolatedGalaxy that are of level 4 or
+# lower.  It's just designed to give a sample AMR index to deal with.
+_amr_grid_index = [
+ [ 0,
+  [0.0,0.0,0.0],
+  [1.0,1.0,1.0],
+  [32,32,32],
+ ],
+ [ 1,
+  [0.25,0.21875,0.25],
+  [0.5,0.5,0.5],
+  [16,18,16],
+ ],
+ [ 1,
+  [0.5,0.21875,0.25],
+  [0.75,0.5,0.5],
+  [16,18,16],
+ ],
+ [ 1,
+  [0.21875,0.5,0.25],
+  [0.5,0.75,0.5],
+  [18,16,16],
+ ],
+ [ 1,
+  [0.5,0.5,0.25],
+  [0.75,0.75,0.5],
+  [16,16,16],
+ ],
+ [ 1,
+  [0.25,0.25,0.5],
+  [0.5,0.5,0.75],
+  [16,16,16],
+ ],
+ [ 1,
+  [0.5,0.25,0.5],
+  [0.75,0.5,0.75],
+  [16,16,16],
+ ],
+ [ 1,
+  [0.25,0.5,0.5],
+  [0.5,0.75,0.75],
+  [16,16,16],
+ ],
+ [ 1,
+  [0.5,0.5,0.5],
+  [0.75,0.75,0.75],
+  [16,16,16],
+ ],
+ [ 2,
+  [0.5,0.5,0.5],
+  [0.71875,0.71875,0.71875],
+  [28,28,28],
+ ],
+ [ 3,
+  [0.5,0.5,0.5],
+  [0.6640625,0.65625,0.6796875],
+  [42,40,46],
+ ],
+ [ 4,
+  [0.5,0.5,0.5],
+  [0.59765625,0.6015625,0.6015625],
+  [50,52,52],
+ ],
+ [ 2,
+  [0.28125,0.5,0.5],
+  [0.5,0.734375,0.71875],
+  [28,30,28],
+ ],
+ [ 3,
+  [0.3359375,0.5,0.5],
+  [0.5,0.671875,0.6640625],
+  [42,44,42],
+ ],
+ [ 4,
+  [0.40625,0.5,0.5],
+  [0.5,0.59765625,0.59765625],
+  [48,50,50],
+ ],
+ [ 2,
+  [0.5,0.28125,0.5],
+  [0.71875,0.5,0.71875],
+  [28,28,28],
+ ],
+ [ 3,
+  [0.5,0.3359375,0.5],
+  [0.671875,0.5,0.6640625],
+  [44,42,42],
+ ],
+ [ 4,
+  [0.5,0.40625,0.5],
+  [0.6015625,0.5,0.59765625],
+  [52,48,50],
+ ],
+ [ 2,
+  [0.28125,0.28125,0.5],
+  [0.5,0.5,0.71875],
+  [28,28,28],
+ ],
+ [ 3,
+  [0.3359375,0.3359375,0.5],
+  [0.5,0.5,0.671875],
+  [42,42,44],
+ ],
+ [ 4,
+  [0.46484375,0.37890625,0.50390625],
+  [0.4765625,0.390625,0.515625],
+  [6,6,6],
+ ],
+ [ 4,
+  [0.40625,0.40625,0.5],
+  [0.5,0.5,0.59765625],
+  [48,48,50],
+ ],
+ [ 2,
+  [0.5,0.5,0.28125],
+  [0.71875,0.71875,0.5],
+  [28,28,28],
+ ],
+ [ 3,
+  [0.5,0.5,0.3359375],
+  [0.6796875,0.6953125,0.5],
+  [46,50,42],
+ ],
+ [ 4,
+  [0.5,0.5,0.40234375],
+  [0.59375,0.6015625,0.5],
+  [48,52,50],
+ ],
+ [ 2,
+  [0.265625,0.5,0.28125],
+  [0.5,0.71875,0.5],
+  [30,28,28],
+ ],
+ [ 3,
+  [0.3359375,0.5,0.328125],
+  [0.5,0.65625,0.5],
+  [42,40,44],
+ ],
+ [ 4,
+  [0.40234375,0.5,0.40625],
+  [0.5,0.60546875,0.5],
+  [50,54,48],
+ ],
+ [ 2,
+  [0.5,0.265625,0.28125],
+  [0.71875,0.5,0.5],
+  [28,30,28],
+ ],
+ [ 3,
+  [0.5,0.3203125,0.328125],
+  [0.6640625,0.5,0.5],
+  [42,46,44],
+ ],
+ [ 4,
+  [0.5,0.3984375,0.40625],
+  [0.546875,0.5,0.5],
+  [24,52,48],
+ ],
+ [ 4,
+  [0.546875,0.41796875,0.4453125],
+  [0.5625,0.4375,0.5],
+  [8,10,28],
+ ],
+ [ 4,
+  [0.546875,0.453125,0.41796875],
+  [0.5546875,0.48046875,0.4375],
+  [4,14,10],
+ ],
+ [ 4,
+  [0.546875,0.4375,0.4375],
+  [0.609375,0.5,0.5],
+  [32,32,32],
+ ],
+ [ 4,
+  [0.546875,0.4921875,0.41796875],
+  [0.56640625,0.5,0.4375],
+  [10,4,10],
+ ],
+ [ 4,
+  [0.546875,0.48046875,0.41796875],
+  [0.5703125,0.4921875,0.4375],
+  [12,6,10],
+ ],
+ [ 4,
+  [0.55859375,0.46875,0.43359375],
+  [0.5703125,0.48046875,0.4375],
+  [6,6,2],
+ ],
+ [ 2,
+  [0.265625,0.28125,0.28125],
+  [0.5,0.5,0.5],
+  [30,28,28],
+ ],
+ [ 3,
+  [0.328125,0.3359375,0.328125],
+  [0.5,0.5,0.5],
+  [44,42,44],
+ ],
+ [ 4,
+  [0.4140625,0.40625,0.40625],
+  [0.5,0.5,0.5],
+  [44,48,48],
+ ],
+]
+
+def check_results(func):
+    r"""This is a decorator for a function to verify that the (numpy ndarray)
+    result of a function is what it should be.
+
+    This function is designed to be used for very light answer testing.
+    Essentially, it wraps around a larger function that returns a numpy array,
+    and that has results that should not change.  It is not necessarily used
+    inside the testing scripts themselves, but inside testing scripts written
+    by developers during the testing of pull requests and new functionality.
+    If a hash is specified, it "wins" and the others are ignored.  Otherwise,
+    tolerance is 1e-8 (just above single precision.)
+
+    The correct results will be stored if the command line contains
+    --answer-reference , and otherwise it will compare against the results on
+    disk.  The filename will be func_results_ref_FUNCNAME.cpkl where FUNCNAME
+    is the name of the function being tested.
+
+    If you would like more control over the name of the pickle file the results
+    are stored in, you can pass the result_basename keyword argument to the
+    function you are testing.  The check_results decorator will use the value
+    of the keyword to construct the filename of the results data file.  If
+    result_basename is not specified, the name of the testing function is used.
+
+    This will raise an exception if the results are not correct.
+
+    Examples
+    --------
+
+    @check_results
+    def my_func(ds):
+        return ds.domain_width
+
+    my_func(ds)
+
+    @check_results
+    def field_checker(dd, field_name):
+        return dd[field_name]
+
+    field_cheker(ds.all_data(), 'density', result_basename='density')
+
+    """
+    def compute_results(func):
+        def _func(*args, **kwargs):
+            name = kwargs.pop("result_basename", func.func_name)
+            rv = func(*args, **kwargs)
+            if hasattr(rv, "convert_to_cgs"):
+                rv.convert_to_cgs()
+                _rv = rv.ndarray_view()
+            else:
+                _rv = rv
+            mi = _rv.min()
+            ma = _rv.max()
+            st = _rv.std(dtype="float64")
+            su = _rv.sum(dtype="float64")
+            si = _rv.size
+            ha = hashlib.md5(_rv.tostring()).hexdigest()
+            fn = "func_results_ref_%s.cpkl" % (name)
+            with open(fn, "wb") as f:
+                cPickle.dump( (mi, ma, st, su, si, ha), f)
+            return rv
+        return _func
+    from yt.mods import unparsed_args
+    if "--answer-reference" in unparsed_args:
+        return compute_results(func)
+    
+    def compare_results(func):
+        def _func(*args, **kwargs):
+            name = kwargs.pop("result_basename", func.func_name)
+            rv = func(*args, **kwargs)
+            if hasattr(rv, "convert_to_cgs"):
+                rv.convert_to_cgs()
+                _rv = rv.ndarray_view()
+            else:
+                _rv = rv
+            vals = (_rv.min(),
+                    _rv.max(),
+                    _rv.std(dtype="float64"),
+                    _rv.sum(dtype="float64"),
+                    _rv.size,
+                    hashlib.md5(_rv.tostring()).hexdigest() )
+            fn = "func_results_ref_%s.cpkl" % (name)
+            if not os.path.exists(fn):
+                print "Answers need to be created with --answer-reference ."
+                return False
+            with open(fn, "rb") as f:
+                ref = cPickle.load(f)
+            print "Sizes: %s (%s, %s)" % (vals[4] == ref[4], vals[4], ref[4])
+            assert_allclose(vals[0], ref[0], 1e-8, err_msg="min")
+            assert_allclose(vals[1], ref[1], 1e-8, err_msg="max")
+            assert_allclose(vals[2], ref[2], 1e-8, err_msg="std")
+            assert_allclose(vals[3], ref[3], 1e-8, err_msg="sum")
+            assert_equal(vals[4], ref[4])
+            print "Hashes equal: %s" % (vals[-1] == ref[-1])
+            return rv
+        return _func
+    return compare_results(func)
+
+def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False):
+    import nose, os, sys, yt
+    from yt.funcs import mylog
+    orig_level = mylog.getEffectiveLevel()
+    mylog.setLevel(50)
+    nose_argv = sys.argv
+    nose_argv += ['--exclude=answer_testing','--detailed-errors']
+    if verbose:
+        nose_argv.append('-v')
+    if run_answer_tests:
+        nose_argv.append('--with-answer-testing')
+    if answer_big_data:
+        nose_argv.append('--answer-big-data')
+    initial_dir = os.getcwd()
+    yt_file = os.path.abspath(yt.__file__)
+    yt_dir = os.path.dirname(yt_file)
+    os.chdir(yt_dir)
+    try:
+        nose.run(argv=nose_argv)
+    finally:
+        os.chdir(initial_dir)
+        mylog.setLevel(orig_level)

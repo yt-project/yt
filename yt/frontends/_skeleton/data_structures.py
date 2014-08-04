@@ -13,36 +13,30 @@ Skeleton data structures
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
-import stat
 import numpy as np
-import weakref
 
-from yt.funcs import *
 from yt.data_objects.grid_patch import \
     AMRGridPatch
-from yt.data_objects.hierarchy import \
-    AMRHierarchy
+from yt.data_objects.grid_patch import \
+    AMRGridPatch
+from yt.geometry.grid_geometry_handler import \
+    GridIndex
 from yt.data_objects.static_output import \
-    StaticOutput
-from yt.utilities.definitions import \
-    mpc_conversion, sec_conversion
-from yt.utilities.io_handler import \
-    io_registry
-from yt.utilities.physical_constants import cm_per_mpc
-from .fields import SkeletonFieldInfo, add_flash_field, KnownSkeletonFields
-from yt.data_objects.field_info_container import \
-    FieldInfoContainer, NullFunc, ValidateDataField, TranslationFunc
+    Dataset
+from yt.utilities.lib.misc_utilities import \
+    get_box_grids_level
 
 class SkeletonGrid(AMRGridPatch):
     _id_offset = 0
-    #__slots__ = ["_level_id", "stop_index"]
-    def __init__(self, id, hierarchy, level):
-        AMRGridPatch.__init__(self, id, filename = hierarchy.hierarchy_filename,
-                              hierarchy = hierarchy)
-        self.Parent = None
+    def __init__(self, id, index, level, start, dimensions):
+        AMRGridPatch.__init__(self, id, filename=index.index_filename,
+                              index=index)
+        self.Parent = []
         self.Children = []
         self.Level = level
+        self.start_index = start.copy()
+        self.stop_index = self.start_index + dimensions
+        self.ActiveDimensions = dimensions.copy()
 
     def __repr__(self):
         return "SkeletonGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
@@ -50,29 +44,32 @@ class SkeletonGrid(AMRGridPatch):
 class SkeletonHierarchy(AMRHierarchy):
 
     grid = SkeletonGrid
-    float_type = np.float64
     
-    def __init__(self, pf, data_style='skeleton'):
-        self.data_style = data_style
-        self.parameter_file = weakref.proxy(pf)
-        # for now, the hierarchy file is the parameter file!
-        self.hierarchy_filename = self.parameter_file.parameter_filename
-        self.directory = os.path.dirname(self.hierarchy_filename)
-        AMRHierarchy.__init__(self, pf, data_style)
+    def __init__(self, ds, dataset_type='skeleton'):
+        self.dataset_type = dataset_type
+        self.dataset = weakref.proxy(ds)
+        # for now, the index file is the dataset!
+        self.index_filename = self.dataset.parameter_filename
+        self.directory = os.path.dirname(self.index_filename)
+        AMRHierarchy.__init__(self, ds, dataset_type)
 
     def _initialize_data_storage(self):
         pass
 
-    def _detect_fields(self):
+    def _detect_output_fields(self):
         # This needs to set a self.field_list that contains all the available,
         # on-disk fields.
+        # NOTE: Each should be a tuple, where the first element is the on-disk
+        # fluid type or particle type.  Convention suggests that the on-disk
+        # fluid type is usually the dataset_type and the on-disk particle type
+        # (for a single population of particles) is "io".
         pass
     
     def _count_grids(self):
         # This needs to set self.num_grids
         pass
         
-    def _parse_hierarchy(self):
+    def _parse_index(self):
         # This needs to fill the following arrays, where N is self.num_grids:
         #   self.grid_left_edge         (N, 3) <= float64
         #   self.grid_right_edge        (N, 3) <= float64
@@ -94,32 +91,36 @@ class SkeletonHierarchy(AMRHierarchy):
         # identified.
         pass
 
-class SkeletonStaticOutput(StaticOutput):
-    _hierarchy_class = SkeletonHierarchy
-    _fieldinfo_fallback = SkeletonFieldInfo
-    _fieldinfo_known = KnownSkeletonFields
-    _handle = None
+class SkeletonDataset(Dataset):
+    _index_class = SkeletonHierarchy
+    _field_info_class = SkeletonFieldInfo
     
-    def __init__(self, filename, data_style='skeleton',
-                 storage_filename = None,
-                 conversion_override = None):
-
-        if conversion_override is None: conversion_override = {}
-        self._conversion_override = conversion_override
-
-        StaticOutput.__init__(self, filename, data_style)
+    def __init__(self, filename, dataset_type='skeleton'):
+        self.fluid_types += ('skeleton',)
+        Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
-    def _set_units(self):
-        # This needs to set up the dictionaries that convert from code units to
-        # CGS.  The needed items are listed in the second entry:
-        #   self.time_units         <= sec_conversion
-        #   self.conversion_factors <= mpc_conversion
-        #   self.units              <= On-disk fields
+    def _set_code_unit_attributes(self):
+        # This is where quantities are created that represent the various
+        # on-disk units.  These are the currently available quantities which
+        # should be set, along with examples of how to set them to standard
+        # values.
+        #
+        # self.length_unit = self.quan(1.0, "cm")
+        # self.mass_unit = self.quan(1.0, "g")
+        # self.time_unit = self.quan(1.0, "s")
+        # self.time_unit = self.quan(1.0, "s")
+        #
+        # These can also be set:
+        # self.velocity_unit = self.quan(1.0, "cm/s")
+        # self.magnetic_unit = self.quan(1.0, "gauss")
         pass
 
     def _parse_parameter_file(self):
-        # This needs to set up the following items:
+        # This needs to set up the following items.  Note that these are all
+        # assumed to be in code units; domain_left_edge and domain_right_edge
+        # will be updated to be in code units at a later time.  This includes
+        # the cosmological parameters.
         #
         #   self.unique_identifier
         #   self.parameters             <= full of code-specific items of use

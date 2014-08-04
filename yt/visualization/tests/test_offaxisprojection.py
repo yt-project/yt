@@ -17,7 +17,7 @@ import os.path
 import tempfile
 import shutil
 from yt.testing import \
-    fake_random_pf, assert_equal, expand_keywords
+    fake_random_ds, assert_equal, expand_keywords
 from yt.mods import \
     off_axis_projection, write_projection
 
@@ -36,17 +36,17 @@ def test_write_projection():
     os.chdir(tmpdir)
 
     # args for off_axis_projection
-    test_pf = fake_random_pf(64)
+    test_ds = fake_random_ds(64)
     c = [0.5, 0.5, 0.5]
     norm = [0.5, 0.5, 0.5]
     W = [0.5,0.5,1.0]
     N = 64
-    field = "Density"
-    oap_args = [test_pf, c, norm, W, N, field]
+    field = "density"
+    oap_args = [test_ds, c, norm, W, N, field]
 
     # kwargs for off_axis_projection
     oap_kwargs = {}
-    oap_kwargs['weight'] = (None, 'CellMassMsun')
+    oap_kwargs['weight'] = (None, 'cell_mass')
     oap_kwargs['no_ghost'] = (True, False)
     oap_kwargs['interpolated'] = (True, False)
     oap_kwargs['north_vector'] = ((1,0,0), (0,0.5,1.0))

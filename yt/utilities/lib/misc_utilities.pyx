@@ -14,8 +14,11 @@ Simple utilities that don't fit anywhere else
 #-----------------------------------------------------------------------------
 
 import numpy as np
+from yt.units.yt_array import YTArray
 cimport numpy as np
 cimport cython
+cimport libc.math as math
+from fp_utils cimport fmin, fmax
 
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
@@ -24,7 +27,7 @@ cdef extern from "stdlib.h":
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def new_bin_profile1d(np.ndarray[np.int64_t, ndim=1] bins_x,
+def new_bin_profile1d(np.ndarray[np.intp_t, ndim=1] bins_x,
                   np.ndarray[np.float64_t, ndim=1] wsource,
                   np.ndarray[np.float64_t, ndim=2] bsource,
                   np.ndarray[np.float64_t, ndim=1] wresult,
@@ -55,8 +58,8 @@ def new_bin_profile1d(np.ndarray[np.int64_t, ndim=1] bins_x,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def new_bin_profile2d(np.ndarray[np.int64_t, ndim=1] bins_x,
-                  np.ndarray[np.int64_t, ndim=1] bins_y,
+def new_bin_profile2d(np.ndarray[np.intp_t, ndim=1] bins_x,
+                  np.ndarray[np.intp_t, ndim=1] bins_y,
                   np.ndarray[np.float64_t, ndim=1] wsource,
                   np.ndarray[np.float64_t, ndim=2] bsource,
                   np.ndarray[np.float64_t, ndim=2] wresult,
@@ -88,9 +91,9 @@ def new_bin_profile2d(np.ndarray[np.int64_t, ndim=1] bins_x,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def new_bin_profile3d(np.ndarray[np.int64_t, ndim=1] bins_x,
-                  np.ndarray[np.int64_t, ndim=1] bins_y,
-                  np.ndarray[np.int64_t, ndim=1] bins_z,
+def new_bin_profile3d(np.ndarray[np.intp_t, ndim=1] bins_x,
+                  np.ndarray[np.intp_t, ndim=1] bins_y,
+                  np.ndarray[np.intp_t, ndim=1] bins_z,
                   np.ndarray[np.float64_t, ndim=1] wsource,
                   np.ndarray[np.float64_t, ndim=2] bsource,
                   np.ndarray[np.float64_t, ndim=3] wresult,
@@ -320,6 +323,67 @@ def get_color_bounds(np.ndarray[np.float64_t, ndim=1] px,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
+                       np.ndarray[np.float64_t, ndim=1] l_corner,
+                       np.ndarray[np.float64_t, ndim=1] r_corner):
+    cdef int i, j, k, dim, n_unique, best_dim, n_best, n_grids, addit, my_split
+    n_grids = data.shape[0]
+    cdef np.float64_t **uniquedims, *uniques, split
+    uniquedims = <np.float64_t **> alloca(3 * sizeof(np.float64_t*))
+    for i in range(3):
+        uniquedims[i] = <np.float64_t *> \
+                alloca(2*n_grids * sizeof(np.float64_t))
+    my_max = 0
+    best_dim = -1
+    for dim in range(3):
+        n_unique = 0
+        uniques = uniquedims[dim]
+        for i in range(n_grids):
+            # Check for disqualification
+            for j in range(2):
+                #print "Checking against", i,j,dim,data[i,j,dim]
+                if not (l_corner[dim] < data[i, j, dim] and
+                        data[i, j, dim] < r_corner[dim]):
+                    #print "Skipping ", data[i,j,dim]
+                    continue
+                skipit = 0
+                # Add our left ...
+                for k in range(n_unique):
+                    if uniques[k] == data[i, j, dim]:
+                        skipit = 1
+                        #print "Identified", uniques[k], data[i,j,dim], n_unique
+                        break
+                if skipit == 0:
+                    uniques[n_unique] = data[i, j, dim]
+                    n_unique += 1
+        if n_unique > my_max:
+            best_dim = dim
+            my_max = n_unique
+            my_split = (n_unique-1)/2
+    # I recognize how lame this is.
+    cdef np.ndarray[np.float64_t, ndim=1] tarr = np.empty(my_max, dtype='float64')
+    for i in range(my_max):
+        #print "Setting tarr: ", i, uniquedims[best_dim][i]
+        tarr[i] = uniquedims[best_dim][i]
+    tarr.sort()
+    split = tarr[my_split]
+    cdef np.ndarray[np.uint8_t, ndim=1] less_ids = np.empty(n_grids, dtype='uint8')
+    cdef np.ndarray[np.uint8_t, ndim=1] greater_ids = np.empty(n_grids, dtype='uint8')
+    for i in range(n_grids):
+        if data[i, 0, best_dim] < split:
+            less_ids[i] = 1
+        else:
+            less_ids[i] = 0
+        if data[i, 1, best_dim] > split:
+            greater_ids[i] = 1
+        else:
+            greater_ids[i] = 0
+    # Return out unique values
+    return best_dim, split, less_ids.view("bool"), greater_ids.view("bool")
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def get_box_grids_level(np.ndarray[np.float64_t, ndim=1] left_edge,
                         np.ndarray[np.float64_t, ndim=1] right_edge,
                         int level,
@@ -407,67 +471,275 @@ def find_values_at_point(np.ndarray[np.float64_t, ndim=1] point,
         return rv
     raise KeyError
 
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
+                      np.ndarray[np.float64_t, ndim=1] dradius,
+                      np.ndarray[np.float64_t, ndim=1] theta,
+                      np.ndarray[np.float64_t, ndim=1] dtheta,
+                      buff_size,
+                      np.ndarray[np.float64_t, ndim=1] field,
+                      extents, input_img = None):
+
+    cdef np.ndarray[np.float64_t, ndim=2] img
+    cdef np.float64_t x, y, dx, dy, r0, theta0
+    cdef np.float64_t rmax, x0, y0, x1, y1
+    cdef np.float64_t r_i, theta_i, dr_i, dtheta_i, dthetamin
+    cdef int i, pi, pj
+    
+    imax = radius.argmax()
+    rmax = radius[imax] + dradius[imax]
+          
+    if input_img is None:
+        img = np.zeros((buff_size[0], buff_size[1]))
+        img[:] = np.nan
+    else:
+        img = input_img
+    x0, x1, y0, y1 = extents
+    dx = (x1 - x0) / img.shape[0]
+    dy = (y1 - y0) / img.shape[1]
+      
+    dthetamin = dx / rmax
+      
+    for i in range(radius.shape[0]):
+
+        r0 = radius[i]
+        theta0 = theta[i]
+        dr_i = dradius[i]
+        dtheta_i = dtheta[i]
+
+        theta_i = theta0 - dtheta_i
+        while theta_i < theta0 + dtheta_i:
+            r_i = r0 - dr_i
+            while r_i < r0 + dr_i:
+                if rmax <= r_i:
+                    r_i += 0.5*dx 
+                    continue
+                x = r_i * math.cos(theta_i)
+                y = r_i * math.sin(theta_i)
+                pi = <int>((x - x0)/dx)
+                pj = <int>((y - y0)/dy)
+                if pi >= 0 and pi < img.shape[0] and \
+                   pj >= 0 and pj < img.shape[1]:
+                    if img[pi, pj] != img[pi, pj]:
+                        img[pi, pj] = 0.0
+                    img[pi, pj] = field[i]
+                r_i += 0.5*dx 
+            theta_i += dthetamin
+
+    return img
+
+cdef void aitoff_thetaphi_to_xy(np.float64_t theta, np.float64_t phi,
+                                np.float64_t *x, np.float64_t *y):
+    cdef np.float64_t z = math.sqrt(1 + math.cos(phi) * math.cos(theta / 2.0))
+    x[0] = math.cos(phi) * math.sin(theta / 2.0) / z
+    y[0] = math.sin(phi) / z
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def pixelize_aitoff(np.ndarray[np.float64_t, ndim=1] theta,
+                    np.ndarray[np.float64_t, ndim=1] dtheta,
+                    np.ndarray[np.float64_t, ndim=1] phi,
+                    np.ndarray[np.float64_t, ndim=1] dphi,
+                    buff_size,
+                    np.ndarray[np.float64_t, ndim=1] field,
+                    extents, input_img = None):
+    # http://paulbourke.net/geometry/transformationprojection/
+    # longitude is -pi to pi
+    # latitude is -pi/2 to pi/2
+    # z^2 = 1 + cos(latitude) cos(longitude/2)
+    # x = cos(latitude) sin(longitude/2) / z
+    # y = sin(latitude) / z
+    cdef np.ndarray[np.float64_t, ndim=2] img
+    cdef int i, j, nf, fi
+    cdef np.float64_t x, y, z, zb
+    cdef np.float64_t dx, dy, inside
+    cdef np.float64_t theta1, dtheta1, phi1, dphi1
+    cdef np.float64_t theta0, phi0, theta_p, dtheta_p, phi_p, dphi_p
+    cdef np.float64_t PI = np.pi
+    cdef np.float64_t s2 = math.sqrt(2.0)
+    cdef np.float64_t xmax, ymax, xmin, ymin
+    nf = field.shape[0]
+    
+    if input_img is None:
+        img = np.zeros((buff_size[0], buff_size[1]))
+        img[:] = np.nan
+    else:
+        img = input_img
+    # Okay, here's our strategy.  We compute the bounds in x and y, which will
+    # be a rectangle, and then for each x, y position we check to see if it's
+    # within our theta.  This will cost *more* computations of the
+    # (x,y)->(theta,phi) calculation, but because we no longer have to search
+    # through the theta, phi arrays, it should be faster.
+    dx = 2.0 / (img.shape[0] - 1)
+    dy = 2.0 / (img.shape[1] - 1)
+    for fi in range(nf):
+        theta_p = theta[fi] - PI
+        dtheta_p = dtheta[fi]
+        phi_p = phi[fi] - PI/2.0
+        dphi_p = dphi[fi]
+        # Four transformations
+        aitoff_thetaphi_to_xy(theta_p - dtheta_p, phi_p - dphi_p, &x, &y)
+        xmin = x
+        xmax = x
+        ymin = y
+        ymax = y
+        aitoff_thetaphi_to_xy(theta_p - dtheta_p, phi_p + dphi_p, &x, &y)
+        xmin = fmin(xmin, x)
+        xmax = fmax(xmax, x)
+        ymin = fmin(ymin, y)
+        ymax = fmax(ymax, y)
+        aitoff_thetaphi_to_xy(theta_p + dtheta_p, phi_p - dphi_p, &x, &y)
+        xmin = fmin(xmin, x)
+        xmax = fmax(xmax, x)
+        ymin = fmin(ymin, y)
+        ymax = fmax(ymax, y)
+        aitoff_thetaphi_to_xy(theta_p + dtheta_p, phi_p + dphi_p, &x, &y)
+        xmin = fmin(xmin, x)
+        xmax = fmax(xmax, x)
+        ymin = fmin(ymin, y)
+        ymax = fmax(ymax, y)
+        # Now we have the (projected rectangular) bounds.
+        xmin = (xmin + 1) # Get this into normalized image coords
+        xmax = (xmax + 1) # Get this into normalized image coords
+        ymin = (ymin + 1) # Get this into normalized image coords
+        ymax = (ymax + 1) # Get this into normalized image coords
+        x0 = <int> (xmin / dx)
+        x1 = <int> (xmax / dx) + 1
+        y0 = <int> (ymin / dy)
+        y1 = <int> (ymax / dy) + 1
+        for i in range(x0, x1):
+            x = (-1.0 + i*dx)*s2*2.0
+            for j in range(y0, y1):
+                y = (-1.0 + j * dy)*s2
+                zb = (x*x/8.0 + y*y/2.0 - 1.0)
+                if zb > 0: continue
+                z = (1.0 - (x/4.0)**2.0 - (y/2.0)**2.0)
+                z = z**0.5
+                # Longitude
+                theta0 = 2.0*math.atan(z*x/(2.0 * (2.0*z*z-1.0)))
+                # Latitude
+                # We shift it into co-latitude
+                phi0 = math.asin(z*y)
+                # Now we just need to figure out which pixel contributes.
+                # We do not have a fast search.
+                if not (theta_p - dtheta_p <= theta0 <= theta_p + dtheta_p):
+                    continue
+                if not (phi_p - dphi_p <= phi0 <= phi_p + dphi_p):
+                    continue
+                img[i, j] = field[fi]
+    return img
+
+#@cython.cdivision(True)
+#@cython.boundscheck(False)
+#@cython.wraparound(False)
+def obtain_rvec(data):
+    # This is just to let the pointers exist and whatnot.  We can't cdef them
+    # inside conditionals.
+    cdef np.ndarray[np.float64_t, ndim=1] xf
+    cdef np.ndarray[np.float64_t, ndim=1] yf
+    cdef np.ndarray[np.float64_t, ndim=1] zf
+    cdef np.ndarray[np.float64_t, ndim=2] rf
+    cdef np.ndarray[np.float64_t, ndim=3] xg
+    cdef np.ndarray[np.float64_t, ndim=3] yg
+    cdef np.ndarray[np.float64_t, ndim=3] zg
+    cdef np.ndarray[np.float64_t, ndim=4] rg
+    cdef np.float64_t c[3]
+    cdef int i, j, k
+    center = data.get_field_parameter("center")
+    c[0] = center[0]; c[1] = center[1]; c[2] = center[2]
+    if len(data['x'].shape) == 1:
+        # One dimensional data
+        xf = data['x']
+        yf = data['y']
+        zf = data['z']
+        rf = YTArray(np.empty((3, xf.shape[0]), 'float64'), xf.units)
+        for i in range(xf.shape[0]):
+            rf[0, i] = xf[i] - c[0]
+            rf[1, i] = yf[i] - c[1]
+            rf[2, i] = zf[i] - c[2]
+        return rf
+    else:
+        # Three dimensional data
+        xg = data['x']
+        yg = data['y']
+        zg = data['z']
+        shape = (3, xg.shape[0], xg.shape[1], xg.shape[2])
+        rg = YTArray(np.empty(shape, 'float64'), xg.units)
+        #rg = YTArray(rg, xg.units)
+        for i in range(xg.shape[0]):
+            for j in range(xg.shape[1]):
+                for k in range(xg.shape[2]):
+                    rg[0,i,j,k] = xg[i,j,k] - c[0]
+                    rg[1,i,j,k] = yg[i,j,k] - c[1]
+                    rg[2,i,j,k] = zg[i,j,k] - c[2]
+        return rg
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
-                       np.ndarray[np.float64_t, ndim=1] l_corner,
-                       np.ndarray[np.float64_t, ndim=1] r_corner):
-    cdef int i, j, k, dim, n_unique, best_dim, n_best, n_grids, addit, my_split
-    n_grids = data.shape[0]
-    cdef np.float64_t **uniquedims, *uniques, split
-    uniquedims = <np.float64_t **> alloca(3 * sizeof(np.float64_t*))
-    for i in range(3):
-        uniquedims[i] = <np.float64_t *> \
-                alloca(2*n_grids * sizeof(np.float64_t))
-    my_max = 0
-    best_dim = -1
-    for dim in range(3):
-        n_unique = 0
-        uniques = uniquedims[dim]
-        for i in range(n_grids):
-            # Check for disqualification
-            for j in range(2):
-                #print "Checking against", i,j,dim,data[i,j,dim]
-                if not (l_corner[dim] < data[i, j, dim] and
-                        data[i, j, dim] < r_corner[dim]):
-                    #print "Skipping ", data[i,j,dim]
-                    continue
-                skipit = 0
-                # Add our left ...
-                for k in range(n_unique):
-                    if uniques[k] == data[i, j, dim]:
-                        skipit = 1
-                        #print "Identified", uniques[k], data[i,j,dim], n_unique
-                        break
-                if skipit == 0:
-                    uniques[n_unique] = data[i, j, dim]
-                    n_unique += 1
-        if n_unique > my_max:
-            best_dim = dim
-            my_max = n_unique
-            my_split = (n_unique-1)/2
-    # I recognize how lame this is.
-    cdef np.ndarray[np.float64_t, ndim=1] tarr = np.empty(my_max, dtype='float64')
-    for i in range(my_max):
-        #print "Setting tarr: ", i, uniquedims[best_dim][i]
-        tarr[i] = uniquedims[best_dim][i]
-    tarr.sort()
-    split = tarr[my_split]
-    cdef np.ndarray[np.uint8_t, ndim=1] less_ids = np.empty(n_grids, dtype='uint8')
-    cdef np.ndarray[np.uint8_t, ndim=1] greater_ids = np.empty(n_grids, dtype='uint8')
-    for i in range(n_grids):
-        if data[i, 0, best_dim] < split:
-            less_ids[i] = 1
+def obtain_rv_vec(data, field_names = ("velocity_x",
+                                       "velocity_y",
+                                       "velocity_z"),
+                  bulk_vector = "bulk_velocity"):
+    # This is just to let the pointers exist and whatnot.  We can't cdef them
+    # inside conditionals.
+    cdef np.ndarray[np.float64_t, ndim=1] vxf
+    cdef np.ndarray[np.float64_t, ndim=1] vyf
+    cdef np.ndarray[np.float64_t, ndim=1] vzf
+    cdef np.ndarray[np.float64_t, ndim=2] rvf
+    cdef np.ndarray[np.float64_t, ndim=3] vxg
+    cdef np.ndarray[np.float64_t, ndim=3] vyg
+    cdef np.ndarray[np.float64_t, ndim=3] vzg
+    cdef np.ndarray[np.float64_t, ndim=4] rvg
+    cdef np.float64_t bv[3]
+    cdef int i, j, k
+    bulk_vector = data.get_field_parameter(bulk_vector)
+    if len(data[field_names[0]].shape) == 1:
+        # One dimensional data
+        vxf = data[field_names[0]].astype("float64")
+        vyf = data[field_names[1]].astype("float64")
+        vzf = data[field_names[2]].astype("float64")
+        vyf.convert_to_units(vxf.units)
+        vzf.convert_to_units(vxf.units)
+        rvf = YTArray(np.empty((3, vxf.shape[0]), 'float64'), vxf.units)
+        if bulk_vector is None:
+            bv[0] = bv[1] = bv[2] = 0.0
         else:
-            less_ids[i] = 0
-        if data[i, 1, best_dim] > split:
-            greater_ids[i] = 1
+            bulk_vector = bulk_vector.in_units(vxf.units)
+            bv[0] = bulk_vector[0]
+            bv[1] = bulk_vector[1]
+            bv[2] = bulk_vector[2]
+        for i in range(vxf.shape[0]):
+            rvf[0, i] = vxf[i] - bv[0]
+            rvf[1, i] = vyf[i] - bv[1]
+            rvf[2, i] = vzf[i] - bv[2]
+        return rvf
+    else:
+        # Three dimensional data
+        vxg = data[field_names[0]].astype("float64")
+        vyg = data[field_names[1]].astype("float64")
+        vzg = data[field_names[2]].astype("float64")
+        vyg.convert_to_units(vxg.units)
+        vzg.convert_to_units(vxg.units)
+        shape = (3, vxg.shape[0], vxg.shape[1], vxg.shape[2])
+        rvg = YTArray(np.empty(shape, 'float64'), vxg.units)
+        if bulk_vector is None:
+            bv[0] = bv[1] = bv[2] = 0.0
         else:
-            greater_ids[i] = 0
-    # Return out unique values
-    return best_dim, split, less_ids.view("bool"), greater_ids.view("bool")
-
+            bulk_vector = bulk_vector.in_units(vxg.units)
+            bv[0] = bulk_vector[0]
+            bv[1] = bulk_vector[1]
+            bv[2] = bulk_vector[2]
+        for i in range(vxg.shape[0]):
+            for j in range(vxg.shape[1]):
+                for k in range(vxg.shape[2]):
+                    rvg[0,i,j,k] = vxg[i,j,k] - bv[0]
+                    rvg[1,i,j,k] = vyg[i,j,k] - bv[1]
+                    rvg[2,i,j,k] = vzg[i,j,k] - bv[2]
+        return rvg
 
 def grow_flagging_field(oofield):
     cdef np.ndarray[np.uint8_t, ndim=3] ofield = oofield.astype("uint8")
@@ -490,3 +762,69 @@ def grow_flagging_field(oofield):
                             if ofield[i, j, k] == 1:
                                 nfield[ni, nj, nk] = 1
     return nfield.astype("bool")
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def fill_region(input_fields, output_fields,
+                np.int32_t output_level,
+                np.ndarray[np.int64_t, ndim=1] left_index,
+                np.ndarray[np.int64_t, ndim=2] ipos,
+                np.ndarray[np.int64_t, ndim=1] ires,
+                np.ndarray[np.int64_t, ndim=1] level_dims,
+                np.int64_t refine_by = 2
+                ):
+    cdef int i, n
+    cdef np.int64_t tot
+    cdef np.int64_t iind[3], oind[3], dim[3], oi, oj, ok, rf
+    cdef np.ndarray[np.float64_t, ndim=3] ofield
+    cdef np.ndarray[np.float64_t, ndim=1] ifield
+    nf = len(input_fields)
+    # The variable offsets governs for each dimension and each possible
+    # wrapping if we do it.  Then the wi, wj, wk indices check into each
+    # [dim][wrap] inside the loops.
+    cdef int offsets[3][3], wi, wj, wk
+    cdef np.int64_t off
+    for i in range(3):
+        dim[i] = output_fields[0].shape[i]
+        offsets[i][0] = offsets[i][2] = 0
+        offsets[i][1] = 1
+        if left_index[i] < 0:
+            offsets[i][2] = 1
+        if left_index[i] + dim[i] >= level_dims[i]:
+            offsets[i][0] = 1
+    for n in range(nf):
+        tot = 0
+        ofield = output_fields[n]
+        ifield = input_fields[n]
+        for i in range(ipos.shape[0]):
+            rf = refine_by**(output_level - ires[i]) 
+            for wi in range(3):
+                if offsets[0][wi] == 0: continue
+                off = (left_index[0] + level_dims[0]*(wi-1))
+                iind[0] = ipos[i, 0] * rf - off
+                for oi in range(rf):
+                    # Now we need to apply our offset
+                    oind[0] = oi + iind[0]
+                    if oind[0] < 0 or oind[0] >= dim[0]:
+                        continue
+                    for wj in range(3):
+                        if offsets[1][wj] == 0: continue
+                        off = (left_index[1] + level_dims[1]*(wj-1))
+                        iind[1] = ipos[i, 1] * rf - off
+                        for oj in range(rf):
+                            oind[1] = oj + iind[1]
+                            if oind[1] < 0 or oind[1] >= dim[1]:
+                                continue
+                            for wk in range(3):
+                                if offsets[2][wk] == 0: continue
+                                off = (left_index[2] + level_dims[2]*(wk-1))
+                                iind[2] = ipos[i, 2] * rf - off
+                                for ok in range(rf):
+                                    oind[2] = ok + iind[2]
+                                    if oind[2] < 0 or oind[2] >= dim[2]:
+                                        continue
+                                    ofield[oind[0], oind[1], oind[2]] = \
+                                        ifield[i]
+                                    tot += 1
+    return tot

@@ -24,10 +24,10 @@ http://adsabs.harvard.edu/abs/2013MNRAS.428.1395B
 
 import numpy as np
 from yt.funcs import *
-from yt.utilities.physical_constants import \
-     mp, cm_per_km, K_per_keV, cm_per_mpc
+from yt.utilities.physical_constants import mp, kboltz
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system
+from yt import units
 
 N_TBIN = 10000
 TMIN = 8.08e-2
@@ -67,40 +67,40 @@ class ThermalPhotonModel(PhotonModel):
 
     def __call__(self, data_source, parameters):
         
-        pf = data_source.pf
+        ds = data_source.ds
 
         exp_time = parameters["FiducialExposureTime"]
         area = parameters["FiducialArea"]
         redshift = parameters["FiducialRedshift"]
-        D_A = parameters["FiducialAngularDiameterDistance"]*cm_per_mpc
-        dist_fac = 1.0/(4.*np.pi*D_A*D_A*(1.+redshift)**3)
+        D_A = parameters["FiducialAngularDiameterDistance"].in_cgs()
+        dist_fac = 1.0/(4.*np.pi*D_A.value*D_A.value*(1.+redshift)**3)
                 
-        vol_scale = pf.units["cm"]**(-3)/np.prod(pf.domain_width)
-        
-        num_cells = data_source["Temperature"].shape[0]
+        vol_scale = 1.0/np.prod(ds.domain_width.in_cgs().to_ndarray())
+
+        num_cells = data_source["temperature"].shape[0]
         start_c = comm.rank*num_cells/comm.size
         end_c = (comm.rank+1)*num_cells/comm.size
         
-        kT = data_source["Temperature"][start_c:end_c].copy()/K_per_keV
-        vol = data_source["CellVolume"][start_c:end_c].copy()
-        dx = data_source["dx"][start_c:end_c].copy()
-        EM = (data_source["Density"][start_c:end_c].copy()/mp)**2
+        kT = (kboltz*data_source["temperature"][start_c:end_c]).in_units("keV").to_ndarray()
+        vol = data_source["cell_volume"][start_c:end_c].in_cgs().to_ndarray()
+        EM = (data_source["density"][start_c:end_c]/mp).to_ndarray()**2
         EM *= 0.5*(1.+self.X_H)*self.X_H*vol
-    
+
         data_source.clear_data()
     
         x = data_source["x"][start_c:end_c].copy()
         y = data_source["y"][start_c:end_c].copy()
         z = data_source["z"][start_c:end_c].copy()
-    
+        dx = data_source["dx"][start_c:end_c].copy()
+
         data_source.clear_data()
         
-        vx = data_source["x-velocity"][start_c:end_c].copy()
-        vy = data_source["y-velocity"][start_c:end_c].copy()
-        vz = data_source["z-velocity"][start_c:end_c].copy()
+        vx = data_source["velocity_x"][start_c:end_c].copy()
+        vy = data_source["velocity_y"][start_c:end_c].copy()
+        vz = data_source["velocity_z"][start_c:end_c].copy()
     
         if isinstance(self.Zmet, basestring):
-            metalZ = data_source[self.Zmet][start_c:end_c].copy()
+            metalZ = data_source[self.Zmet][start_c:end_c].to_ndarray()
         else:
             metalZ = self.Zmet*np.ones(EM.shape)
         
@@ -146,21 +146,21 @@ class ThermalPhotonModel(PhotonModel):
         
             em_sum_c = cell_em[ibegin:iend].sum()
             em_sum_m = (metalZ[ibegin:iend]*cell_em[ibegin:iend]).sum()
-            
+
             cspec, mspec = self.spectral_model.get_spectrum(kT)
             cspec *= dist_fac*em_sum_c/vol_scale
             mspec *= dist_fac*em_sum_m/vol_scale
-        
-            cumspec_c = np.cumsum(cspec)
+
+            cumspec_c = np.cumsum(cspec.ndarray_view())
             counts_c = cumspec_c[:]/cumspec_c[-1]
             counts_c = np.insert(counts_c, 0, 0.0)
-            tot_ph_c = cumspec_c[-1]*area*exp_time
+            tot_ph_c = cumspec_c[-1]*area.value*exp_time.value
 
-            cumspec_m = np.cumsum(mspec)
+            cumspec_m = np.cumsum(mspec.ndarray_view())
             counts_m = cumspec_m[:]/cumspec_m[-1]
             counts_m = np.insert(counts_m, 0, 0.0)
-            tot_ph_m = cumspec_m[-1]*area*exp_time
-        
+            tot_ph_m = cumspec_m[-1]*area.value*exp_time.value
+
             for icell in xrange(ibegin, iend):
             
                 cell_norm_c = tot_ph_c*cell_em[icell]/em_sum_c
@@ -192,14 +192,14 @@ class ThermalPhotonModel(PhotonModel):
 
         src_ctr = parameters["center"]
         
-        photons["x"] = (x[idxs]-src_ctr[0])*pf.units["kpc"]
-        photons["y"] = (y[idxs]-src_ctr[1])*pf.units["kpc"]
-        photons["z"] = (z[idxs]-src_ctr[2])*pf.units["kpc"]
-        photons["vx"] = vx[idxs]/cm_per_km
-        photons["vy"] = vy[idxs]/cm_per_km
-        photons["vz"] = vz[idxs]/cm_per_km
-        photons["dx"] = dx[idxs]*pf.units["kpc"]
+        photons["x"] = (x[idxs]-src_ctr[0]).in_units("kpc")
+        photons["y"] = (y[idxs]-src_ctr[1]).in_units("kpc")
+        photons["z"] = (z[idxs]-src_ctr[2]).in_units("kpc")
+        photons["vx"] = vx[idxs].in_units("km/s")
+        photons["vy"] = vy[idxs].in_units("km/s")
+        photons["vz"] = vz[idxs].in_units("km/s")
+        photons["dx"] = dx[idxs].in_units("kpc")
         photons["NumberOfPhotons"] = number_of_photons[active_cells]
-        photons["Energy"] = np.concatenate(energies)
+        photons["Energy"] = np.concatenate(energies)*units.keV
     
         return photons
