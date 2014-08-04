@@ -517,6 +517,12 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
         rbounds[1] = fmax(rbounds[1], corners[i])
     rbounds[0] = rbounds[0]**0.5
     rbounds[1] = rbounds[1]**0.5
+    # If we include the origin in either direction, we need to have radius of
+    # zero as our lower bound.
+    if x0 < 0 and x1 > 0:
+        rbounds[0] = 0.0
+    if y0 < 0 and y1 > 0:
+        rbounds[0] = 0.0
     dthetamin = dx / rmax
     for i in range(radius.shape[0]):
 
