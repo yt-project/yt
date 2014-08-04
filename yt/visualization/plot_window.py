@@ -889,8 +889,8 @@ class PWViewerMPL(PlotWindow):
                     axes_unit_labels = \
                     [coordinates.axis_default_unit_name[xax],
                      coordinates.axis_default_unit_name[yax]]
-                labels = [r'$\rm{'+axis_names[xax]+axes_unit_labels[0] + r'}$',
-                          r'$\rm{'+axis_names[yax]+axes_unit_labels[1] + r'}$']
+                labels = [r'$\rm{'+axis_names[0]+axes_unit_labels[0] + r'}$',
+                          r'$\rm{'+axis_names[1]+axes_unit_labels[1] + r'}$']
 
                 if hasattr(coordinates, "axis_field"):
                     if xax in coordinates.axis_field:
