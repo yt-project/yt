@@ -16,9 +16,10 @@ Simple integrators for the radiative transfer equation
 import numpy as np
 cimport numpy as np
 cimport cython
-cimport kdtree_utils
 #cimport healpix_interface
 from libc.stdlib cimport malloc, free, abs
+from libc.math cimport exp, floor, log2, \
+    lrint, fabs, atan, asin, cos, sin, sqrt
 from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
 from field_interpolation_tables cimport \
     FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
@@ -28,34 +29,6 @@ from fixed_interpolator cimport *
 from cython.parallel import prange, parallel, threadid
 
 DEF Nch = 4
-
-cdef extern from "math.h":
-    double exp(double x) nogil
-    float expf(float x) nogil
-    long double expl(long double x) nogil
-    double floor(double x) nogil
-    double ceil(double x) nogil
-    double fmod(double x, double y) nogil
-    double log2(double x) nogil
-    long int lrint(double x) nogil
-    double nearbyint(double x) nogil
-    double fabs(double x) nogil
-    double atan(double x) nogil
-    double atan2(double y, double x) nogil
-    double acos(double x) nogil
-    double asin(double x) nogil
-    double cos(double x) nogil
-    double sin(double x) nogil
-    double sqrt(double x) nogil
-
-cdef struct VolumeContainer:
-    int n_fields
-    np.float64_t **data
-    np.float64_t left_edge[3]
-    np.float64_t right_edge[3]
-    np.float64_t dds[3]
-    np.float64_t idds[3]
-    int dims[3]
 
 ctypedef void sampler_function(
                 VolumeContainer *vc,
@@ -67,27 +40,20 @@ ctypedef void sampler_function(
                 void *data) nogil
 
 cdef class PartitionedGrid:
-    cdef public object my_data
-    cdef public object LeftEdge
-    cdef public object RightEdge
-    cdef public int parent_grid_id
-    cdef VolumeContainer *container
-    cdef kdtree_utils.kdtree *star_list
-    cdef np.float64_t star_er
-    cdef np.float64_t star_sigma_num
-    cdef np.float64_t star_coeff
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     def __cinit__(self,
                   int parent_grid_id, data,
+                  mask,
                   np.ndarray[np.float64_t, ndim=1] left_edge,
                   np.ndarray[np.float64_t, ndim=1] right_edge,
                   np.ndarray[np.int64_t, ndim=1] dims,
 		  star_kdtree_container star_tree = None):
         # The data is likely brought in via a slice, so we copy it
         cdef np.ndarray[np.float64_t, ndim=3] tdata
+        cdef np.ndarray[np.uint8_t, ndim=3] mask_data
         self.container = NULL
         self.parent_grid_id = parent_grid_id
         self.LeftEdge = left_edge
@@ -104,10 +70,13 @@ cdef class PartitionedGrid:
             c.dds[i] = (c.right_edge[i] - c.left_edge[i])/dims[i]
             c.idds[i] = 1.0/c.dds[i]
         self.my_data = data
+        self.source_mask = mask
+        mask_data = mask
         c.data = <np.float64_t **> malloc(sizeof(np.float64_t*) * n_fields)
         for i in range(n_fields):
             tdata = data[i]
             c.data[i] = <np.float64_t *> tdata.data
+        c.mask = <np.uint8_t *> mask_data.data
         if star_tree is None:
             self.star_list = NULL
         else:
@@ -511,6 +480,10 @@ cdef void volume_render_sampler(
     # we assume this has vertex-centered data.
     cdef int offset = index[0] * (vc.dims[1] + 1) * (vc.dims[2] + 1) \
                     + index[1] * (vc.dims[2] + 1) + index[2]
+    cdef int cell_offset = index[0] * (vc.dims[1]) * (vc.dims[2]) \
+                    + index[1] * (vc.dims[2]) + index[2]
+    if vc.mask[cell_offset] != 1:
+        return
     cdef np.float64_t slopes[6], dp[3], ds[3]
     cdef np.float64_t dt = (exit_t - enter_t) / vri.n_samples
     cdef np.float64_t dvs[6]
@@ -797,121 +770,6 @@ cdef class LightSourceRenderSampler(ImageSampler):
         #free(self.light_dir)
         #free(self.light_rgba)
 
-
-cdef class GridFace:
-    cdef int direction
-    cdef public np.float64_t coord
-    cdef np.float64_t left_edge[3]
-    cdef np.float64_t right_edge[3]
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    def __init__(self, grid, int direction, int left):
-        self.direction = direction
-        if left == 1:
-            self.coord = grid.LeftEdge[direction]
-        else:
-            self.coord = grid.RightEdge[direction]
-        cdef int i
-        for i in range(3):
-            self.left_edge[i] = grid.LeftEdge[i]
-            self.right_edge[i] = grid.RightEdge[i]
-        self.left_edge[direction] = self.right_edge[direction] = self.coord
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef int proj_overlap(self, np.float64_t *left_edge, np.float64_t *right_edge):
-        cdef int xax, yax
-        xax = (self.direction + 1) % 3
-        yax = (self.direction + 2) % 3
-        if left_edge[xax] >= self.right_edge[xax]: return 0
-        if right_edge[xax] <= self.left_edge[xax]: return 0
-        if left_edge[yax] >= self.right_edge[yax]: return 0
-        if right_edge[yax] <= self.left_edge[yax]: return 0
-        return 1
-
-cdef class ProtoPrism:
-    cdef np.float64_t left_edge[3]
-    cdef np.float64_t right_edge[3]
-    cdef public object LeftEdge
-    cdef public object RightEdge
-    cdef public object subgrid_faces
-    cdef public int parent_grid_id
-    def __cinit__(self, int parent_grid_id,
-                  np.ndarray[np.float64_t, ndim=1] left_edge,
-                  np.ndarray[np.float64_t, ndim=1] right_edge,
-                  subgrid_faces):
-        self.parent_grid_id = parent_grid_id
-        cdef int i
-        self.LeftEdge = left_edge
-        self.RightEdge = right_edge
-        for i in range(3):
-            self.left_edge[i] = left_edge[i]
-            self.right_edge[i] = right_edge[i]
-        self.subgrid_faces = subgrid_faces
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    def sweep(self, int direction = 0, int stack = 0):
-        cdef int i
-        cdef GridFace face
-        cdef np.float64_t proto_split[3]
-        for i in range(3): proto_split[i] = self.right_edge[i]
-        for face in self.subgrid_faces[direction]:
-            proto_split[direction] = face.coord
-            if proto_split[direction] <= self.left_edge[direction]:
-                continue
-            if proto_split[direction] == self.right_edge[direction]:
-                if stack == 2: return [self]
-                return self.sweep((direction + 1) % 3, stack + 1)
-            if face.proj_overlap(self.left_edge, proto_split) == 1:
-                left, right = self.split(proto_split, direction)
-                LC = left.sweep((direction + 1) % 3)
-                RC = right.sweep(direction)
-                return LC + RC
-        raise RuntimeError
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef object split(self, np.float64_t *sp, int direction):
-        cdef int i
-        cdef np.ndarray split_left = self.LeftEdge.copy()
-        cdef np.ndarray split_right = self.RightEdge.copy()
-
-        for i in range(3): split_left[i] = self.right_edge[i]
-        split_left[direction] = sp[direction]
-        left = ProtoPrism(self.parent_grid_id, self.LeftEdge, split_left,
-                          self.subgrid_faces)
-
-        for i in range(3): split_right[i] = self.left_edge[i]
-        split_right[direction] = sp[direction]
-        right = ProtoPrism(self.parent_grid_id, split_right, self.RightEdge,
-                           self.subgrid_faces)
-
-        return (left, right)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    def get_brick(self, np.ndarray[np.float64_t, ndim=1] grid_left_edge,
-                        np.ndarray[np.float64_t, ndim=1] grid_dds,
-                        child_mask):
-        # We get passed in the left edge, the dds (which gives dimensions) and
-        # the data, which is already vertex-centered.
-        cdef PartitionedGrid PG
-        cdef int li[3], ri[3], idims[3], i
-        for i in range(3):
-            li[i] = lrint((self.left_edge[i] - grid_left_edge[i])/grid_dds[i])
-            ri[i] = lrint((self.right_edge[i] - grid_left_edge[i])/grid_dds[i])
-            idims[i] = ri[i] - li[i]
-        if child_mask[li[0], li[1], li[2]] == 0: return []
-        cdef np.ndarray[np.int64_t, ndim=1] dims = np.empty(3, dtype='int64')
-        for i in range(3):
-            dims[i] = idims[i]
-        #cdef np.ndarray[np.float64_t, ndim=3] new_data
-        #new_data = data[li[0]:ri[0]+1,li[1]:ri[1]+1,li[2]:ri[2]+1].copy()
-        #PG = PartitionedGrid(self.parent_grid_id, new_data,
-        #                     self.LeftEdge, self.RightEdge, dims)
-        return ((li[0], ri[0]), (li[1], ri[1]), (li[2], ri[2]), dims)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

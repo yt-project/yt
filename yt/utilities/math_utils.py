@@ -15,8 +15,45 @@ Commonly used mathematical functions.
 
 import numpy as np
 import math
+from yt.units.yt_array import \
+    YTArray
 
-def periodic_position(pos, pf):
+prec_accum = {
+    np.int:                 np.int64,
+    np.int8:                np.int64,
+    np.int16:               np.int64,
+    np.int32:               np.int64,
+    np.int64:               np.int64,
+    np.uint8:               np.uint64,
+    np.uint16:              np.uint64,
+    np.uint32:              np.uint64,
+    np.uint64:              np.uint64,
+    np.float:               np.float64,
+    np.float16:             np.float64,
+    np.float32:             np.float64,
+    np.float64:             np.float64,
+    np.complex:             np.complex128,
+    np.complex64:           np.complex128,
+    np.complex128:          np.complex128,
+    np.dtype('int'):        np.int64,
+    np.dtype('int8'):       np.int64,
+    np.dtype('int16'):      np.int64,
+    np.dtype('int32'):      np.int64,
+    np.dtype('int64'):      np.int64,
+    np.dtype('uint8'):      np.uint64,
+    np.dtype('uint16'):     np.uint64,
+    np.dtype('uint32'):     np.uint64,
+    np.dtype('uint64'):     np.uint64,
+    np.dtype('float'):      np.float64,
+    np.dtype('float16'):    np.float64,
+    np.dtype('float32'):    np.float64,
+    np.dtype('float64'):    np.float64,
+    np.dtype('complex'):    np.complex128,
+    np.dtype('complex64'):  np.complex128,
+    np.dtype('complex128'): np.complex128,
+}
+
+def periodic_position(pos, ds):
     r"""Assuming periodicity, find the periodic position within the domain.
 
     Parameters
@@ -24,21 +61,21 @@ def periodic_position(pos, pf):
     pos : array
         An array of floats.
 
-    pf : StaticOutput
+    ds : Dataset
         A simulation static output.
     
     Examples
     --------
     >>> a = np.array([1.1, 0.5, 0.5])
     >>> data = {'Density':np.ones([32,32,32])}
-    >>> pf = load_uniform_grid(data, [32,32,32], 1.0)
-    >>> ppos = periodic_position(a, pf)
+    >>> ds = load_uniform_grid(data, [32,32,32], 1.0)
+    >>> ppos = periodic_position(a, ds)
     >>> ppos
     array([ 0.1,  0.5,  0.5])
     """
  
-    off = (pos - pf.domain_left_edge) % pf.domain_width
-    return pf.domain_left_edge + off
+    off = (pos - ds.domain_left_edge) % ds.domain_width
+    return ds.domain_left_edge + off
 
 def periodic_dist(a, b, period, periodicity=(True, True, True)):
     r"""Find the Euclidean periodic distance between two sets of points.
@@ -895,9 +932,10 @@ def get_sph_r_component(vectors, theta, phi, normal):
     res_zprime = resize_vector(zprime, vectors)
 
     tile_shape = [1] + list(vectors.shape)[1:]
-    Jx = np.tile(res_xprime,tile_shape)
-    Jy = np.tile(res_yprime,tile_shape)
-    Jz = np.tile(res_zprime,tile_shape)
+
+    Jx, Jy, Jz = (
+        YTArray(np.tile(rprime, tile_shape), "")
+        for rprime in (res_xprime, res_yprime, res_zprime))
 
     rhat = Jx*np.sin(theta)*np.cos(phi) + \
            Jy*np.sin(theta)*np.sin(phi) + \
@@ -914,8 +952,8 @@ def get_sph_phi_component(vectors, phi, normal):
     res_yprime = resize_vector(yprime, vectors)
 
     tile_shape = [1] + list(vectors.shape)[1:]
-    Jx = np.tile(res_xprime,tile_shape)
-    Jy = np.tile(res_yprime,tile_shape)
+    Jx = YTArray(np.tile(res_xprime,tile_shape), "")
+    Jy = YTArray(np.tile(res_yprime,tile_shape), "")
 
     phihat = -Jx*np.sin(phi) + Jy*np.cos(phi)
 
@@ -931,9 +969,10 @@ def get_sph_theta_component(vectors, theta, phi, normal):
     res_zprime = resize_vector(zprime, vectors)
 
     tile_shape = [1] + list(vectors.shape)[1:]
-    Jx = np.tile(res_xprime,tile_shape)
-    Jy = np.tile(res_yprime,tile_shape)
-    Jz = np.tile(res_zprime,tile_shape)
+    Jx, Jy, Jz = (
+        YTArray(np.tile(rprime, tile_shape), "")
+        for rprime in (res_xprime, res_yprime, res_zprime))
+
     
     thetahat = Jx*np.cos(theta)*np.cos(phi) + \
                Jy*np.cos(theta)*np.sin(phi) - \

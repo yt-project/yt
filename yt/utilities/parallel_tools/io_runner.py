@@ -14,7 +14,10 @@ A simple IO staging mechanism
 #-----------------------------------------------------------------------------
 
 import os
-from .parallel_analysis_interface import ProcessorPool
+import np
+from yt.utilities.logger import ytLogger as mylog
+from .parallel_analysis_interface import \
+    ProcessorPool, parallel_objects
 from yt.utilities.io_handler import BaseIOHandler
 from contextlib import contextmanager
 import time
@@ -27,22 +30,22 @@ except ImportError:
 YT_TAG_MESSAGE = 317 # Cell 317 knows where to go
 
 class IOCommunicator(BaseIOHandler):
-    def __init__(self, pf, wg, pool):
+    def __init__(self, ds, wg, pool):
         mylog.info("Initializing IOCommunicator")
-        self.pf = pf
+        self.ds = ds
         self.wg = wg # We don't need to use this!
         self.pool = pool
         self.comm = pool.comm
         # We read our grids here
         self.grids = []
         storage = {}
-        grids = pf.h.grids.tolist()
+        grids = ds.index.grids.tolist()
         grids.sort(key=lambda a:a.filename)
         for sto, g in parallel_objects(grids, storage = storage):
             sto.result = self.comm.rank
             sto.result_id = g.id
             self.grids.append(g)
-        self._id_offset = pf.h.grids[0]._id_offset
+        self._id_offset = ds.index.grids[0]._id_offset
         mylog.info("Reading from disk ...")
         self.initialize_data()
         mylog.info("Broadcasting ...")
@@ -51,15 +54,15 @@ class IOCommunicator(BaseIOHandler):
         self.hooks = []
 
     def initialize_data(self):
-        pf = self.pf
-        fields = [f for f in pf.h.field_list
-                  if not pf.field_info[f].particle_type]
-        pfields = [f for f in pf.h.field_list
-                   if pf.field_info[f].particle_type]
+        ds = self.ds
+        fields = [f for f in ds.field_list
+                  if not ds.field_info[f].particle_type]
+        dsields = [f for f in ds.field_list
+                   if ds.field_info[f].particle_type]
         # Preload is only defined for Enzo ...
-        if pf.h.io._data_style == "enzo_packed_3d":
-            self.queue = pf.h.io.queue
-            pf.h.io.preload(self.grids, fields)
+        if ds.index.io._dataset_type == "enzo_packed_3d":
+            self.queue = ds.index.io.queue
+            ds.index.io.preload(self.grids, fields)
             for g in self.grids:
                 for f in fields:
                     if f not in self.queue[g.id]:
@@ -71,16 +74,16 @@ class IOCommunicator(BaseIOHandler):
             self.queue = {}
             for g in self.grids:
                 for f in fields + pfields:
-                    self.queue[g.id][f] = pf.h.io._read(g, f)
+                    self.queue[g.id][f] = ds.index.io._read(g, f)
 
     def _read(self, g, f):
-        fi = self.pf.field_info[f]
+        fi = self.ds.field_info[f]
         if fi.particle_type and g.NumberOfParticles == 0:
             # because this gets upcast to float
             return np.array([],dtype='float64')
         try:
-            temp = self.pf.h.io._read_data_set(g, f)
-        except:# self.pf.hierarchy.io._read_exception as exc:
+            temp = self.ds.index.io._read_data_set(g, f)
+        except:# self.ds.index.io._read_exception as exc:
             if fi.not_in_all:
                 temp = np.zeros(g.ActiveDimensions, dtype='float64')
             else:
@@ -111,10 +114,10 @@ class IOCommunicator(BaseIOHandler):
         self.hooks.append(self.comm.comm.Isend([ts, MPI.DOUBLE], dest = dest))
 
 class IOHandlerRemote(BaseIOHandler):
-    _data_style = "remote"
+    _dataset_type = "remote"
 
-    def __init__(self, pf, wg, pool):
-        self.pf = pf
+    def __init__(self, ds, wg, pool):
+        self.ds = ds
         self.wg = wg # probably won't need
         self.pool = pool
         self.comm = pool.comm
@@ -126,7 +129,7 @@ class IOHandlerRemote(BaseIOHandler):
         dest = self.proc_map[grid.id]
         msg = dict(grid_id = grid.id, field = field, op="read")
         mylog.debug("Requesting %s for %s from %s", field, grid, dest)
-        if self.pf.field_info[field].particle_type:
+        if self.ds.field_info[field].particle_type:
             data = np.empty(grid.NumberOfParticles, 'float64')
         else:
             data = np.empty(grid.ActiveDimensions, 'float64')
@@ -150,23 +153,24 @@ class IOHandlerRemote(BaseIOHandler):
                 self.comm.comm.send(msg, dest=rank, tag=YT_TAG_MESSAGE)
 
 @contextmanager
-def remote_io(pf, wg, pool):
-    original_io = pf.h.io
-    pf.h.io = IOHandlerRemote(pf, wg, pool)
+def remote_io(ds, wg, pool):
+    original_io = ds.index.io
+    ds.index.io = IOHandlerRemote(ds, wg, pool)
     yield
-    pf.h.io.terminate()
-    pf.h.io = original_io
+    ds.index.io.terminate()
+    ds.index.io = original_io
 
 def io_nodes(fn, n_io, n_work, func, *args, **kwargs):
+    from yt.mods import load
     pool, wg = ProcessorPool.from_sizes([(n_io, "io"), (n_work, "work")])
     rv = None
     if wg.name == "work":
-        pf = load(fn)
-        with remote_io(pf, wg, pool):
-            rv = func(pf, *args, **kwargs)
+        ds = load(fn)
+        with remote_io(ds, wg, pool):
+            rv = func(ds, *args, **kwargs)
     elif wg.name == "io":
-        pf = load(fn)
-        io = IOCommunicator(pf, wg, pool)
+        ds = load(fn)
+        io = IOCommunicator(ds, wg, pool)
         io.wait()
     # We should broadcast the result
     rv = pool.comm.mpi_bcast(rv, root=pool['work'].ranks[0])
@@ -176,8 +180,8 @@ def io_nodes(fn, n_io, n_work, func, *args, **kwargs):
 
 # Here is an example of how to use this functionality.
 if __name__ == "__main__":
-    def gq(pf):
-        dd = pf.h.all_data()
+    def gq(ds):
+        dd = ds.all_data()
         return dd.quantities["TotalQuantity"]("CellMassMsun")
     q = io_nodes("DD0087/DD0087", 8, 24, gq)
     mylog.info(q)

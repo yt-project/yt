@@ -13,7 +13,11 @@ the input and output routines. */
 #include <stdlib.h>
 #include <math.h>
 #include <sys/time.h>
+#if defined(WIN32) || defined(WIN64) 
+#include <windows.h> 
+#else
 #include <sys/resource.h>
+#endif
 #include <assert.h>
 #include "kd.h"
 #include "hop_numpy.h"
@@ -26,6 +30,28 @@ the input and output routines. */
  
 void kdTime(KD kd,int *puSecond,int *puMicro)
 {
+
+#if defined(WIN32) || defined(WIN64)
+        int secs, usecs;
+        HANDLE hProcess = GetCurrentProcess();
+	FILETIME ftCreation, ftExit, ftKernel, ftUser;
+	SYSTEMTIME stUser;
+	GetProcessTimes(hProcess, &ftCreation, &ftExit, 
+			&ftKernel, &ftUser);
+	FileTimeToSystemTime(&ftUser, &stUser);
+	secs = (int)((double)stUser.wHour*3600.0 +
+			  (double)stUser.wMinute*60.0 +
+			  (double)stUser.wSecond);
+	usecs = (int)((double)stUser.wMilliseconds/1000.0);
+	*puMicro = usecs;
+	*puSecond = secs;
+	if (*puMicro < 0) {
+	  *puMicro += 1000000;
+	  *puSecond -= 1;
+	}
+	kd->uSecond = secs;
+	kd->uMicro = usecs;
+#else
 	struct rusage ru;
  
 	getrusage(0,&ru);
@@ -37,9 +63,9 @@ void kdTime(KD kd,int *puSecond,int *puMicro)
 		}
 	kd->uSecond = ru.ru_utime.tv_sec;
 	kd->uMicro = ru.ru_utime.tv_usec;
-	}
- 
- 
+#endif
+}
+
 int kdInit(KD *pkd,int nBucket)
 {
 	KD kd;

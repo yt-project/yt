@@ -15,7 +15,7 @@ from yt.funcs import get_pbar, mylog
 from yt.utilities.physical_constants import cm_per_kpc, K_per_keV, \
      mh, cm_per_km, kboltz, Tcmb, hcgs, clight, sigma_thompson
 from yt.testing import *
-from yt.utilities.answer_testing.framework import requires_pf, \
+from yt.utilities.answer_testing.framework import requires_ds, \
      GenericArrayTest, data_dir_load, GenericImageTest
 try:
     from yt.analysis_modules.sunyaev_zeldovich.projection import SZProjection, I0
@@ -35,14 +35,14 @@ def setup():
     from yt.config import ytcfg
     ytcfg["yt", "__withintesting"] = "True"
 
-def full_szpack3d(pf, xo):
-    data = pf.h.grids[0]
-    dz = pf.h.get_smallest_dx()*pf.units["cm"]
-    nx,ny,nz = data["Density"].shape
+def full_szpack3d(ds, xo):
+    data = ds.index.grids[0]
+    dz = ds.index.get_smallest_dx().in_units("cm")
+    nx,ny,nz = data["density"].shape
     dn = np.zeros((nx,ny,nz))
-    Dtau = sigma_thompson*data["Density"]/(mh*mue)*dz
-    Te = data["Temperature"]/K_per_keV
-    betac = data["z-velocity"]/clight
+    Dtau = np.array(sigma_thompson*data["density"]/(mh*mue)*dz)
+    Te = data["kT"].ndarray_view()
+    betac = np.array(data["velocity_z"]/clight)
     pbar = get_pbar("Computing 3-D cell-by-cell S-Z signal for comparison.", nx)
     for i in xrange(nx):
         pbar.update(i)
@@ -52,7 +52,7 @@ def full_szpack3d(pf, xo):
                                               Te[i,j,k], betac[i,j,k],
                                               1.0, 0.0, 0.0, 1.0e-5)
     pbar.finish()
-    return I0*xo**3*np.sum(dn, axis=2)
+    return np.array(I0*xo**3*np.sum(dn, axis=2))
 
 def setup_cluster():
 
@@ -80,60 +80,61 @@ def setup_cluster():
     velz = v0*temp/(T0*K_per_keV)
 
     data = {}
-    data["Density"] = dens
-    data["Temperature"] = temp
-    data["x-velocity"] = np.zeros(ddims)
-    data["y-velocity"] = np.zeros(ddims)
-    data["z-velocity"] = velz
+    data["density"] = (dens, "g/cm**3")
+    data["temperature"] = (temp, "K")
+    data["velocity_x"] = (np.zeros(ddims), "cm/s")
+    data["velocity_y"] = (np.zeros(ddims), "cm/s")
+    data["velocity_z"] = (velz, "cm/s")
 
-    bbox = np.array([[-0.5,0.5],[-0.5,0.5],[-0.5,0.5]])
+    L = 2 * R * cm_per_kpc
+    bbox = np.array([[-0.5,0.5],[-0.5,0.5],[-0.5,0.5]]) * L
 
-    L = 2*R*cm_per_kpc
     dl = L/nz
 
-    pf = load_uniform_grid(data, ddims, L, bbox=bbox)
+    ds = load_uniform_grid(data, ddims, length_unit='cm', bbox=bbox)
+    ds.index
 
-    return pf
+    return ds
 
 @requires_module("SZpack")
 def test_projection():
-    pf = setup_cluster()
-    nx,ny,nz = pf.domain_dimensions
-    xinit = 1.0e9*hcgs*freqs/(kboltz*Tcmb)
-    szprj = SZProjection(pf, freqs, mue=mue, high_order=True)
+    ds = setup_cluster()
+    nx,ny,nz = ds.domain_dimensions
+    xinit = np.array(1.0e9*hcgs*freqs/(kboltz*Tcmb))
+    szprj = SZProjection(ds, freqs, mue=mue, high_order=True)
     szprj.on_axis(2, nx=nx)
     deltaI = np.zeros((3,nx,ny))
     for i in xrange(3):
-        deltaI[i,:,:] = full_szpack3d(pf, xinit[i])
-        yield assert_almost_equal, deltaI[i,:,:], szprj["%d_GHz" % int(freqs[i])], 6
+        deltaI[i,:,:] = full_szpack3d(ds, xinit[i])
+        yield assert_almost_equal, deltaI[i,:,:], np.array(szprj["%d_GHz" % int(freqs[i])]), 6
 
 M7 = "DD0010/moving7_0010"
 @requires_module("SZpack")
-@requires_pf(M7)
+@requires_ds(M7)
 def test_M7_onaxis():
-    pf = data_dir_load(M7)
-    szprj = SZProjection(pf, freqs)
+    ds = data_dir_load(M7)
+    szprj = SZProjection(ds, freqs)
     szprj.on_axis(2, nx=100)
     def onaxis_array_func():
         return szprj.data
     def onaxis_image_func(filename_prefix):
         szprj.write_png(filename_prefix)
-    for test in [GenericArrayTest(pf, onaxis_array_func),
-                 GenericImageTest(pf, onaxis_image_func, 3)]:
+    for test in [GenericArrayTest(ds, onaxis_array_func),
+                 GenericImageTest(ds, onaxis_image_func, 3)]:
         test_M7_onaxis.__name__ = test.description
         yield test
 
 @requires_module("SZpack")
-@requires_pf(M7)
+@requires_ds(M7)
 def test_M7_offaxis():
-    pf = data_dir_load(M7)
-    szprj = SZProjection(pf, freqs)
+    ds = data_dir_load(M7)
+    szprj = SZProjection(ds, freqs)
     szprj.off_axis(np.array([0.1,-0.2,0.4]), nx=100)
     def offaxis_array_func():
         return szprj.data
     def offaxis_image_func(filename_prefix):
         szprj.write_png(filename_prefix)
-    for test in [GenericArrayTest(pf, offaxis_array_func),
-                 GenericImageTest(pf, offaxis_image_func, 3)]:
+    for test in [GenericArrayTest(ds, offaxis_array_func),
+                 GenericImageTest(ds, offaxis_image_func, 3)]:
         test_M7_offaxis.__name__ = test.description
         yield test

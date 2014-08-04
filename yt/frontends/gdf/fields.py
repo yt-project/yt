@@ -13,69 +13,26 @@ GDF-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.data_objects.field_info_container import \
-    FieldInfoContainer, \
-    FieldInfo, \
-    ValidateParameter, \
-    ValidateDataField, \
-    ValidateProperty, \
-    ValidateSpatial, \
-    ValidateGridType, \
-    NullFunc, \
-    TranslationFunc
-import yt.data_objects.universal_fields
+import numpy as np
 
-log_translation_dict = {"Density": "density",
-                        "Pressure": "pressure"}
+from yt.funcs import mylog
+from yt.fields.field_info_container import \
+    FieldInfoContainer
 
-translation_dict = {"x-velocity": "velocity_x",
-                    "y-velocity": "velocity_y",
-                    "z-velocity": "velocity_z"}
-                    
-# translation_dict = {"mag_field_x": "cell_centered_B_x ",
-#                     "mag_field_y": "cell_centered_B_y ",
-#                     "mag_field_z": "cell_centered_B_z "}
+# The nice thing about GDF is that for the most part, everything is in CGS,
+# with potentially a scalar modification.
 
-GDFFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
-add_field = GDFFieldInfo.add_field
-
-KnownGDFFields = FieldInfoContainer()
-add_gdf_field = KnownGDFFields.add_field
-
-add_gdf_field("density", function=NullFunc, take_log=True,
-          units=r"\rm{g}/\rm{cm}^3",
-          projected_units =r"\rm{g}/\rm{cm}^2")
-
-add_gdf_field("specific_energy", function=NullFunc, take_log=True,
-          units=r"\rm{erg}/\rm{g}")
-
-add_gdf_field("pressure", function=NullFunc, take_log=True,
-          units=r"\rm{erg}/\rm{g}")
-
-add_gdf_field("velocity_x", function=NullFunc, take_log=False,
-          units=r"\rm{cm}/\rm{s}")
-
-add_gdf_field("velocity_y", function=NullFunc, take_log=False,
-          units=r"\rm{cm}/\rm{s}")
-
-add_gdf_field("velocity_z", function=NullFunc, take_log=False,
-          units=r"\rm{cm}/\rm{s}")
-
-add_gdf_field("mag_field_x", function=NullFunc, take_log=False,
-          units=r"\rm{cm}/\rm{s}")
-
-add_gdf_field("mag_field_y", function=NullFunc, take_log=False,
-          units=r"\rm{cm}/\rm{s}")
-
-add_gdf_field("mag_field_z", function=NullFunc, take_log=False,
-          units=r"\rm{cm}/\rm{s}")
-
-for f,v in log_translation_dict.items():
-    add_field(f, TranslationFunc(v), take_log=True,
-              units=KnownGDFFields[v].get_units(),
-              projected_units=KnownGDFFields[v].get_projected_units())
-
-for f,v in translation_dict.items():
-    add_field(f, TranslationFunc(v), take_log=False,
-              units=KnownGDFFields[v].get_units(),
-              projected_units=KnownGDFFields[v].get_projected_units())
+class GDFFieldInfo(FieldInfoContainer):
+    known_other_fields = (
+        ("density", ("g/cm**3", ["density"], None)),
+        ("specific_energy", ("erg/g", ["thermal_energy"], None)),
+        ("pressure", ("erg/cm**3", ["pressure"], None)),
+        ("temperature", ("K", ["temperature"], None)),
+        ("velocity_x", ("cm/s", ["velocity_x"], None)),
+        ("velocity_y", ("cm/s", ["velocity_y"], None)),
+        ("velocity_z", ("cm/s", ["velocity_z"], None)),
+        ("mag_field_x", ("gauss", ["magnetic_field_x"], None)),
+        ("mag_field_y", ("gauss", ["magnetic_field_y"], None)),
+        ("mag_field_z", ("gauss", ["magnetic_field_z"], None)),
+    )
+    known_particle_fields = ()

@@ -1,7 +1,7 @@
 import numpy as na
 
 from yt.utilities.answer_testing.output_tests import \
-    YTStaticOutputTest, RegressionTestException
+    YTDatasetTest, RegressionTestException
 from yt.funcs import ensure_list
 
 
@@ -9,27 +9,27 @@ class HierarchyInconsistent(RegressionTestException):
     pass
 
 
-class HierarchyConsistency(YTStaticOutputTest):
-    name = "hierarchy_consistency"
+class HierarchyConsistency(YTDatasetTest):
+    name = "index_consistency"
 
     def run(self):
         self.result = \
-            all(g in ensure_list(c.Parent) for g in self.pf.h.grids
+            all(g in ensure_list(c.Parent) for g in self.ds.index.grids
                                             for c in g.Children)
 
     def compare(self, old_result):
         if not(old_result and self.result): raise HierarchyInconsistent()
 
 
-class GridLocationsProperties(YTStaticOutputTest):
+class GridLocationsProperties(YTDatasetTest):
     name = "level_consistency"
 
     def run(self):
-        self.result = dict(grid_left_edge=self.pf.h.grid_left_edge,
-                           grid_right_edge=self.pf.h.grid_right_edge,
-                           grid_levels=self.pf.h.grid_levels,
-                           grid_particle_count=self.pf.h.grid_particle_count,
-                           grid_dimensions=self.pf.h.grid_dimensions)
+        self.result = dict(grid_left_edge=self.ds.grid_left_edge,
+                           grid_right_edge=self.ds.grid_right_edge,
+                           grid_levels=self.ds.grid_levels,
+                           grid_particle_count=self.ds.grid_particle_count,
+                           grid_dimensions=self.ds.grid_dimensions)
 
     def compare(self, old_result):
         # We allow now difference between these values
@@ -40,14 +40,14 @@ class GridRelationshipsChanged(RegressionTestException):
     pass
 
 
-class GridRelationships(YTStaticOutputTest):
+class GridRelationships(YTDatasetTest):
 
     name = "grid_relationships"
 
     def run(self):
         self.result = [[p.id for p in ensure_list(g.Parent) \
             if g.Parent is not None]
-            for g in self.pf.h.grids]
+            for g in self.ds.index.grids]
 
     def compare(self, old_result):
         if len(old_result) != len(self.result):
@@ -58,12 +58,12 @@ class GridRelationships(YTStaticOutputTest):
                 raise GridRelationshipsChanged()
 
 
-class GridGlobalIndices(YTStaticOutputTest):
+class GridGlobalIndices(YTDatasetTest):
     name = "global_startindex"
 
     def run(self):
         self.result = na.array([g.get_global_startindex()
-                                for g in self.pf.h.grids])
+                                for g in self.ds.index.grids])
 
     def compare(self, old_result):
         self.compare_array_delta(old_result, self.result, 0.0)

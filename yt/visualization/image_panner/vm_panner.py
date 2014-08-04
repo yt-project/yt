@@ -13,12 +13,12 @@
 
 import numpy as np
 import types, os
+from yt.data_objects.construction_data_containers import YTOverlapProjBase
+from yt.data_objects.selection_data_containers import YTSliceBase
 from yt.visualization.fixed_resolution import \
     FixedResolutionBuffer, ObliqueFixedResolutionBuffer
 from yt.data_objects.data_containers import \
-    data_object_registry, AMRProjBase, AMRSliceBase
-from yt.utilities.definitions import \
-    x_dict, y_dict
+    data_object_registry
 from yt.funcs import *
 
 class VariableMeshPanner(object):
@@ -37,7 +37,7 @@ class VariableMeshPanner(object):
         and *viewport_callback* is called with the new *xlim* and *ylim* values
         each time the viewport changes.
         """
-        #if not isinstance(source, (AMRProjBase, AMRSliceBase)):
+        #if not isinstance(source, (YTOverlapProjBase, YTSliceBase)):
         #    raise RuntimeError
         if callback is None:
             callback = lambda a: None
@@ -57,10 +57,11 @@ class VariableMeshPanner(object):
 
     @property
     def bounds(self):
-        if not hasattr(self, 'pf'): self.pf = self.source.pf
-        DLE, DRE = self.pf.domain_left_edge, self.pf.domain_right_edge
+        if not hasattr(self, 'ds'): self.ds = self.source.ds
+        DLE, DRE = self.ds.domain_left_edge, self.ds.domain_right_edge
         ax = self.source.axis
-        xax, yax = x_dict[ax], y_dict[ax]
+        xax = self.ds.coordinates.x_axis[ax]
+        yax = self.ds.coordinates.y_axis[ax]
         xbounds = DLE[xax], DRE[xax]
         ybounds = DLE[yax], DRE[yax]
         return (xbounds, ybounds)
@@ -181,8 +182,10 @@ class VariableMeshPanner(object):
         if len(center) == 2:
             centerx, centery = center
         elif len(center) == 3:
-            centerx = center[x_dict[self.source.axis]]
-            centery = center[y_dict[self.source.axis]]
+            xax = self.ds.coordinates.x_axis[self.source.axis]
+            yax = self.ds.coordinates.y_axis[self.source.axis]
+            centerx = center[xax]
+            centery = center[yax]
         else:
             raise RuntimeError
         Wx, Wy = self.width
@@ -285,7 +288,7 @@ class TransportAppender(object):
         self.transport = transport
 
     def __call__(self, val):
-        from yt.utilities.lib import write_png_to_string
+        from yt.utilities.png_writer import write_png_to_string
         from yt.visualization.image_writer import map_to_colors
         image = np.log10(val)
         mi = np.nanmin(image[~np.isinf(image)])

@@ -167,24 +167,24 @@ def create_test(base, new_name, **attrs):
     attrs['name'] = new_name
     return type(new_name, (base,), attrs)
 
-class YTStaticOutputTest(SingleOutputTest):
+class YTDatasetTest(SingleOutputTest):
 
     def setup(self):
-        self.pf = load(self.filename)
+        self.ds = load(self.filename)
 
     def pixelize(self, data, field, edges = None, dims = (512, 512)):
         """
         This is a helper function that returns a 2D array of the specified
         source, in the specified field, at the specified spatial extent.
         """
-        xax = x_dict[self.axis]
-        yax = y_dict[self.axis]
+        xax = self.ds.coordinates.x_axis[self.axis]
+        yax = self.ds.coordinates.y_axis[self.axis]
         
         if edges is None:
-            edges = (self.pf.domain_left_edge[xax],
-                     self.pf.domain_right_edge[xax],
-                     self.pf.domain_left_edge[yax],
-                     self.pf.domain_right_edge[yax])
+            edges = (self.ds.domain_left_edge[xax],
+                     self.ds.domain_right_edge[xax],
+                     self.ds.domain_left_edge[yax],
+                     self.ds.domain_right_edge[yax])
         frb = FixedResolutionBuffer( data, edges, dims)
         frb[field] # To make the pixelization
         return frb
@@ -204,7 +204,7 @@ class YTStaticOutputTest(SingleOutputTest):
         """
         This returns the center of the domain.
         """
-        return 0.5*(self.pf.domain_right_edge + self.pf.domain_left_edge)
+        return 0.5*(self.ds.domain_right_edge + self.ds.domain_left_edge)
 
     @property
     def max_dens_location(self):
@@ -212,13 +212,13 @@ class YTStaticOutputTest(SingleOutputTest):
         This is a helper function to return the location of the most dense
         point.
         """
-        return self.pf.h.find_max("Density")[1]
+        return self.ds.find_max("density")[1]
 
     @property
     def entire_simulation(self):
         """
         Return an unsorted array of values that cover the entire domain.
         """
-        return self.pf.h.all_data()
+        return self.ds.all_data()
         
 

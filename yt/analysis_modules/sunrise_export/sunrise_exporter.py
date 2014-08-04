@@ -21,16 +21,18 @@ except ImportError:
 import time
 import numpy as np
 from yt.funcs import *
-import yt.utilities.lib as amr_utils
-from yt.data_objects.universal_fields import add_field
+import yt.utilities.lib.api as amr_utils
+from yt.utilities.physical_constants import \
+    kpc_per_cm, \
+    sec_per_year
 from yt.mods import *
 
-def export_to_sunrise(pf, fn, star_particle_type, fc, fwidth, ncells_wide=None,
+def export_to_sunrise(ds, fn, star_particle_type, fc, fwidth, ncells_wide=None,
         debug=False,dd=None,**kwargs):
     r"""Convert the contents of a dataset to a FITS file format that Sunrise
     understands.
 
-    This function will accept a parameter file, and from that parameter file
+    This function will accept a dataset, and from that dataset
     construct a depth-first octree containing all of the data in the parameter
     file.  This octree will be written to a FITS file.  It will probably be
     quite big, so use this function with caution!  Sunrise is a tool for
@@ -39,8 +41,8 @@ def export_to_sunrise(pf, fn, star_particle_type, fc, fwidth, ncells_wide=None,
 
     Parameters
     ----------
-    pf : `StaticOutput`
-       The parameter file to convert.
+    ds : `Dataset`
+       The dataset to convert.
     fn : string
        The filename of the output FITS file.
     fc : array
@@ -64,19 +66,19 @@ def export_to_sunrise(pf, fn, star_particle_type, fc, fwidth, ncells_wide=None,
     
     #we must round the dle,dre to the nearest root grid cells
     ile,ire,super_level,ncells_wide= \
-            round_ncells_wide(pf.domain_dimensions,fc-fwidth,fc+fwidth,nwide=ncells_wide)
+            round_ncells_wide(ds.domain_dimensions,fc-fwidth,fc+fwidth,nwide=ncells_wide)
 
     assert np.all((ile-ire)==(ile-ire)[0])
     mylog.info("rounding specified region:")
     mylog.info("from [%1.5f %1.5f %1.5f]-[%1.5f %1.5f %1.5f]"%(tuple(fc-fwidth)+tuple(fc+fwidth)))
     mylog.info("to   [%07i %07i %07i]-[%07i %07i %07i]"%(tuple(ile)+tuple(ire)))
-    fle,fre = ile*1.0/pf.domain_dimensions, ire*1.0/pf.domain_dimensions
+    fle,fre = ile*1.0/ds.domain_dimensions, ire*1.0/ds.domain_dimensions
     mylog.info("to   [%1.5f %1.5f %1.5f]-[%1.5f %1.5f %1.5f]"%(tuple(fle)+tuple(fre)))
 
     #Create a list of the star particle properties in PARTICLE_DATA
     #Include ID, parent-ID, position, velocity, creation_mass, 
     #formation_time, mass, age_m, age_l, metallicity, L_bol
-    particle_data,nstars = prepare_star_particles(pf,star_particle_type,fle=fle,fre=fre,
+    particle_data,nstars = prepare_star_particles(ds,star_particle_type,fle=fle,fre=fre,
                                            dd=dd,**kwargs)
 
     #Create the refinement hilbert octree in GRIDSTRUCTURE
@@ -85,14 +87,14 @@ def export_to_sunrise(pf, fn, star_particle_type, fc, fwidth, ncells_wide=None,
     #since the octree always starts with one cell, an our 0-level mesh
     #may have many cells, we must create the octree region sitting 
     #ontop of the first mesh by providing a negative level
-    output, refinement,dd,nleaf = prepare_octree(pf,ile,start_level=super_level,
+    output, refinement,dd,nleaf = prepare_octree(ds,ile,start_level=super_level,
             debug=debug,dd=dd,center=fc)
 
-    create_fits_file(pf,fn, refinement,output,particle_data,fle,fre)
+    create_fits_file(ds,fn, refinement,output,particle_data,fle,fre)
 
     return fle,fre,ile,ire,dd,nleaf,nstars
 
-def export_to_sunrise_from_halolist(pf,fni,star_particle_type,
+def export_to_sunrise_from_halolist(ds,fni,star_particle_type,
                                         halo_list,domains_list=None,**kwargs):
     """
     Using the center of mass and the virial radius
@@ -104,8 +106,8 @@ def export_to_sunrise_from_halolist(pf,fni,star_particle_type,
 
     Parameters
     ----------
-    pf : `StaticOutput`
-        The parameter file to convert. We use the root grid to specify the domain.
+    ds : `Dataset`
+        The dataset to convert. We use the root grid to specify the domain.
     fni : string
         The filename of the output FITS file, but depends on the domain. The
         dle and dre are appended to the name.
@@ -120,9 +122,9 @@ def export_to_sunrise_from_halolist(pf,fni,star_particle_type,
         Organize halos into a dict of domains. Keys are DLE/DRE tuple
         values are a list of halos
     """
-    dn = pf.domain_dimensions
+    dn = ds.domain_dimensions
     if domains_list is None:
-        domains_list = domains_from_halos(pf,halo_list,**kwargs)
+        domains_list = domains_from_halos(ds,halo_list,**kwargs)
     if fni.endswith('.fits'):
         fni = fni.replace('.fits','')
 
@@ -145,18 +147,18 @@ def export_to_sunrise_from_halolist(pf,fni,star_particle_type,
         fh = open(fnt,'w')
         for halo in halos:
             fh.write("%i "%halo.ID)
-            fh.write("%6.6e "%(halo.CoM[0]*pf['kpc']))
-            fh.write("%6.6e "%(halo.CoM[1]*pf['kpc']))
-            fh.write("%6.6e "%(halo.CoM[2]*pf['kpc']))
+            fh.write("%6.6e "%(halo.CoM[0]*ds['kpc']))
+            fh.write("%6.6e "%(halo.CoM[1]*ds['kpc']))
+            fh.write("%6.6e "%(halo.CoM[2]*ds['kpc']))
             fh.write("%6.6e "%(halo.Mvir))
-            fh.write("%6.6e \n"%(halo.Rvir*pf['kpc']))
+            fh.write("%6.6e \n"%(halo.Rvir*ds['kpc']))
         fh.close()
-        export_to_sunrise(pf, fnf, star_particle_type, dle*1.0/dn, dre*1.0/dn)
+        export_to_sunrise(ds, fnf, star_particle_type, dle*1.0/dn, dre*1.0/dn)
         ndomains_finished +=1
 
-def domains_from_halos(pf,halo_list,frvir=0.15):
+def domains_from_halos(ds,halo_list,frvir=0.15):
     domains = {}
-    dn = pf.domain_dimensions
+    dn = ds.domain_dimensions
     for halo in halo_list:
         fle, fre = halo.CoM-frvir*halo.Rvir,halo.CoM+frvir*halo.Rvir
         dle,dre = np.floor(fle*dn), np.ceil(fre*dn)
@@ -174,10 +176,10 @@ def domains_from_halos(pf,halo_list,frvir=0.15):
     domains_halos  = [d[2] for d in domains_list]
     return domains_list
 
-def prepare_octree(pf,ile,start_level=0,debug=True,dd=None,center=None):
+def prepare_octree(ds,ile,start_level=0,debug=True,dd=None,center=None):
     if dd is None:
         #we keep passing dd around to not regenerate the data all the time
-        dd = pf.h.all_data()
+        dd = ds.all_data()
     try:
         dd['MetalMass']
     except KeyError:
@@ -198,15 +200,15 @@ def prepare_octree(pf,ile,start_level=0,debug=True,dd=None,center=None):
     del field_data
 
     #first we cast every cell as an oct
-    #ngrids = np.max([g.id for g in pf._grids])
+    #ngrids = np.max([g.id for g in ds._grids])
     grids = {}
     levels_all = {} 
     levels_finest = {}
     for l in range(100): 
         levels_finest[l]=0
         levels_all[l]=0
-    pbar = get_pbar("Initializing octs ",len(pf.h.grids))
-    for gi,g in enumerate(pf.h.grids):
+    pbar = get_pbar("Initializing octs ",len(ds.index.grids))
+    for gi,g in enumerate(ds.index.grids):
         ff = np.array([g[f] for f in fields])
         og = amr_utils.OctreeGrid(
                 g.child_index_mask.astype('int32'),
@@ -244,9 +246,9 @@ def prepare_octree(pf,ile,start_level=0,debug=True,dd=None,center=None):
     start_time = time.time()
     if debug:
         if center is not None: 
-            c = center*pf['kpc']
+            c = center*ds['kpc']
         else:
-            c = ile*1.0/pf.domain_dimensions*pf['kpc']
+            c = ile*1.0/ds.domain_dimensions*ds['kpc']
         printing = lambda x: print_oct(x)
     else:
         printing = None
@@ -349,7 +351,7 @@ def RecurseOctreeDepthFirstHilbert(cell_index, #integer (rep as a float) on the 
 
 
 
-def create_fits_file(pf,fn, refined,output,particle_data,fle,fre):
+def create_fits_file(ds,fn, refined,output,particle_data,fle,fre):
     #first create the grid structure
     structure = pyfits.Column("structure", format="B", array=refined.astype("bool"))
     cols = pyfits.ColDefs([structure])
@@ -358,8 +360,8 @@ def create_fits_file(pf,fn, refined,output,particle_data,fle,fre):
     st_table.header.update("hierarch lengthunit", "kpc", comment="Length unit for grid")
     fdx = fre-fle
     for i,a in enumerate('xyz'):
-        st_table.header.update("min%s" % a, fle[i] * pf['kpc'])
-        st_table.header.update("max%s" % a, fre[i] * pf['kpc'])
+        st_table.header.update("min%s" % a, fle[i] * ds['kpc'])
+        st_table.header.update("max%s" % a, fre[i] * ds['kpc'])
         st_table.header.update("n%s" % a, fdx[i])
         st_table.header.update("subdiv%s" % a, 2)
     st_table.header.update("subdivtp", "OCTREE", "Type of grid subdivision")
@@ -397,7 +399,7 @@ def create_fits_file(pf,fn, refined,output,particle_data,fle,fre):
     col_list.append(pyfits.Column("gas_teff_m", format='D',
                     array=fd['TemperatureTimesCellMassMsun'], unit="K*Msun"))
     col_list.append(pyfits.Column("cell_volume", format='D',
-                    array=fd['CellVolumeCode'].astype('float64')*pf['kpc']**3.0,
+                    array=fd['CellVolumeCode'].astype('float64')*ds['kpc']**3.0,
                     unit="kpc^3"))
     col_list.append(pyfits.Column("SFR", format='D',
                     array=np.zeros(size, dtype='D')))
@@ -412,7 +414,7 @@ def create_fits_file(pf,fn, refined,output,particle_data,fle,fre):
     col_list = [pyfits.Column("dummy", format="F", array=np.zeros(1, dtype='float32'))]
     cols = pyfits.ColDefs(col_list)
     md_table = pyfits.new_table(cols)
-    md_table.header.update("snaptime", pf.current_time*pf['years'])
+    md_table.header.update("snaptime", ds.current_time*ds['years'])
     md_table.name = "YT"
 
     phdu = pyfits.PrimaryHDU()
@@ -473,8 +475,8 @@ def round_ncells_wide(dds,fle,fre,nwide=None):
     assert abs(np.log2(nwide)-np.rint(np.log2(nwide)))<1e-5 #nwide should be a power of 2
     return ile,ire,maxlevel,nwide
 
-def round_nearest_edge(pf,fle,fre):
-    dds = pf.domain_dimensions
+def round_nearest_edge(ds,fle,fre):
+    dds = ds.domain_dimensions
     ile = np.floor(fle*dds).astype('int')
     ire = np.ceil(fre*dds).astype('int') 
     
@@ -486,14 +488,14 @@ def round_nearest_edge(pf,fle,fre):
     maxlevel = -np.rint(np.log2(width)).astype('int')
     return ile,ire,maxlevel
 
-def prepare_star_particles(pf,star_type,pos=None,vel=None, age=None,
+def prepare_star_particles(ds,star_type,pos=None,vel=None, age=None,
                           creation_time=None,initial_mass=None,
                           current_mass=None,metallicity=None,
                           radius = None,
                           fle=[0.,0.,0.],fre=[1.,1.,1.],
                           dd=None):
     if dd is None:
-        dd = pf.h.all_data()
+        dd = ds.all_data()
     idxst = dd["particle_type"] == star_type
 
     #make sure we select more than a single particle
@@ -503,28 +505,28 @@ def prepare_star_particles(pf,star_type,pos=None,vel=None, age=None,
                         for ax in 'xyz']).transpose()
     idx = idxst & np.all(pos>fle,axis=1) & np.all(pos<fre,axis=1)
     assert np.sum(idx)>0
-    pos = pos[idx]*pf['kpc'] #unitary units -> kpc
+    pos = pos[idx]*ds['kpc'] #unitary units -> kpc
     if age is None:
-        age = dd["particle_age"][idx]*pf['years'] # seconds->years
+        age = dd["particle_age"][idx]*ds['years'] # seconds->years
     if vel is None:
         vel = np.array([dd["particle_velocity_%s" % ax][idx]
                         for ax in 'xyz']).transpose()
         # Velocity is cm/s, we want it to be kpc/yr
-        #vel *= (pf["kpc"]/pf["cm"]) / (365*24*3600.)
-        vel *= 1.02268944e-14 
+        #vel *= (ds["kpc"]/ds["cm"]) / (365*24*3600.)
+        vel *= kpc_per_cm * sec_per_year
     if initial_mass is None:
         #in solar masses
-        initial_mass = dd["particle_mass_initial"][idx]*pf['Msun']
+        initial_mass = dd["particle_mass_initial"][idx]*ds['Msun']
     if current_mass is None:
         #in solar masses
-        current_mass = dd["particle_mass"][idx]*pf['Msun']
+        current_mass = dd["particle_mass"][idx]*ds['Msun']
     if metallicity is None:
         #this should be in dimensionless units, metals mass / particle mass
         metallicity = dd["particle_metallicity"][idx]
         assert np.all(metallicity>0.0)
     if radius is None:
         radius = initial_mass*0.0+10.0/1000.0 #10pc radius
-    formation_time = pf.current_time*pf['years']-age
+    formation_time = ds.current_time*ds['years']-age
     #create every column
     col_list = []
     col_list.append(pyfits.Column("ID", format="J", array=np.arange(current_mass.size).astype('int32')))
@@ -563,12 +565,12 @@ def add_fields():
     def _initial_mass_cen_ostriker(field, data):
         # SFR in a cell. This assumes stars were created by the Cen & Ostriker algorithm
         # Check Grid_AddToDiskProfile.C and star_maker7.src
-        star_mass_ejection_fraction = data.pf.get_parameter("StarMassEjectionFraction",float)
+        star_mass_ejection_fraction = data.ds.get_parameter("StarMassEjectionFraction",float)
         star_maker_minimum_dynamical_time = 3e6 # years, which will get divided out
-        dtForSFR = star_maker_minimum_dynamical_time / data.pf["years"]
-        xv1 = ((data.pf["InitialTime"] - data["creation_time"])
+        dtForSFR = star_maker_minimum_dynamical_time / data.ds["years"]
+        xv1 = ((data.ds["InitialTime"] - data["creation_time"])
                 / data["dynamical_time"])
-        xv2 = ((data.pf["InitialTime"] + dtForSFR - data["creation_time"])
+        xv2 = ((data.ds["InitialTime"] + dtForSFR - data["creation_time"])
                 / data["dynamical_time"])
         denom = (1.0 - star_mass_ejection_fraction * (1.0 - (1.0 + xv1)*np.exp(-xv1)))
         minitial = data["ParticleMassMsun"] / denom

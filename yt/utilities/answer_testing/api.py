@@ -20,7 +20,7 @@ from .runner import \
     registry_entries
 
 from .output_tests import \
-    YTStaticOutputTest, \
+    YTDatasetTest, \
     create_test
 
 from .default_tests import \
@@ -42,3 +42,8 @@ from .boolean_region_tests import \
     TestBooleanANDParticleQuantity, \
     TestBooleanORParticleQuantity, \
     TestBooleanNOTParticleQuantity
+
+try:
+    from .framework import AnswerTesting
+except ImportError:
+    raise

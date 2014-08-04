@@ -2,6 +2,7 @@
 # Released under the scipy license
 import sys
 import numpy as np
+import scipy
 from heapq import heappush, heappop
 
 def minkowski_distance_p(x,y,p=2):

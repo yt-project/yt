@@ -1,5 +1,5 @@
 """
-API for lightcone
+API for light_cone
 
 
 
@@ -15,7 +15,3 @@ API for lightcone
 
 from .light_cone import \
     LightCone
-
-from .unique_solution import \
-    project_unique_light_cones, \
-    find_unique_solutions

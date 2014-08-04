@@ -47,29 +47,29 @@ def deliver_image(im):
     ph.add_payload(payload)
 
 def get_list_of_datasets():
-    # Note that this instantiates the hierarchy.  This can be a costly
+    # Note that this instantiates the index.  This can be a costly
     # event.  However, we're going to assume that it's okay, if you have
-    # decided to load up the parameter file.
-    from yt.data_objects.static_output import _cached_pfs
+    # decided to load up the dataset.
+    from yt.data_objects.static_output import _cached_datasets
     rv = []
-    for fn, pf in sorted(_cached_pfs.items()):
+    for fn, ds in sorted(_cached_datasets.items()):
         objs = []
-        pf_varname = "_cached_pfs['%s']" % (fn)
+        ds_varname = "_cached_datasets['%s']" % (fn)
         field_list = []
-        if pf._instantiated_hierarchy is not None: 
-            field_list = list(set(pf.h.field_list + pf.h.derived_field_list))
+        if ds._instantiated_index is not None: 
+            field_list = list(set(ds.field_list + ds.derived_field_list))
             field_list = [dict(text = f) for f in sorted(field_list)]
-            for i,obj in enumerate(pf.h.objects):
+            for i,obj in enumerate(ds.h.objects):
                 try:
                     name = str(obj)
                 except ReferenceError:
                     continue
                 objs.append(dict(name=name, type=obj._type_name,
                                  filename = '', field_list = [],
-                                 varname = "%s.h.objects[%s]" % (pf_varname, i)))
-        rv.append( dict(name = str(pf), children = objs, filename=fn,
-                        type = "parameter_file",
-                        varname = pf_varname, field_list = field_list) )
+                                 varname = "%s.h.objects[%s]" % (ds_varname, i)))
+        rv.append( dict(name = str(ds), children = objs, filename=fn,
+                        type = "dataset",
+                        varname = ds_varname, field_list = field_list) )
     return rv
 
 def get_reasonjs_path():

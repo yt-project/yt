@@ -24,29 +24,18 @@ from yt.funcs import *
 exe_name = os.path.basename(sys.executable)
 # At import time, we determined whether or not we're being run in parallel.
 def turn_on_parallelism():
+    parallel_capable = False
     try:
         from mpi4py import MPI
     except ImportError as e:
         mylog.error("Warning: Attempting to turn on parallelism, " +
                     "but mpi4py import failed. Try pip install mpi4py.")
         raise e
-    parallel_capable = (MPI.COMM_WORLD.size > 1)
-    if parallel_capable:
-        mylog.info("Global parallel computation enabled: %s / %s",
-                   MPI.COMM_WORLD.rank, MPI.COMM_WORLD.size)
-        ytcfg["yt","__global_parallel_rank"] = str(MPI.COMM_WORLD.rank)
-        ytcfg["yt","__global_parallel_size"] = str(MPI.COMM_WORLD.size)
-        ytcfg["yt","__parallel"] = "True"
-        if exe_name == "embed_enzo" or \
-            ("_parallel" in dir(sys) and sys._parallel == True):
-            ytcfg["yt","inline"] = "True"
-        # I believe we do not need to turn this off manually
-        #ytcfg["yt","StoreParameterFiles"] = "False"
-        # Now let's make sure we have the right options set.
-        if MPI.COMM_WORLD.rank > 0:
-            if ytcfg.getboolean("yt","LogFile"):
-                ytcfg["yt","LogFile"] = "False"
-                yt.utilities.logger.disable_file_logging()
+        # Now we have to turn on the parallelism from the perspective of the
+        # parallel_analysis_interface
+    from yt.utilities.parallel_tools.parallel_analysis_interface import \
+        enable_parallelism
+    parallel_capable = enable_parallelism()
     return parallel_capable
 
 # This fallback is for Paraview:
@@ -60,7 +49,7 @@ try:
     mylog.debug("SIGUSR1 registered for traceback printing")
     signal.signal(signal.SIGUSR2, signal_ipython)
     mylog.debug("SIGUSR2 registered for IPython Insertion")
-except ValueError:  # Not in main thread
+except (ValueError, RuntimeError, AttributeError) as e:  # Not in main thread
     pass
 
 class SetExceptionHandling(argparse.Action):

@@ -19,6 +19,7 @@ cimport numpy as np
 # Double up here for def'd functions
 cimport numpy as cnp
 cimport cython
+from fp_utils cimport fmax
 
 from libc.stdlib cimport malloc, free, abs
 from cython.operator cimport dereference as deref, preincrement as inc
@@ -120,7 +121,7 @@ cdef class QuadTree:
         cdef int i, j
         cdef QuadTreeNode *node
         cdef np.int64_t pos[2]
-        cdef np.float64_t *vals = <np.float64_t *> alloca(
+        cdef np.float64_t *vals = <np.float64_t *> malloc(
                 sizeof(np.float64_t)*nvals)
         cdef np.float64_t weight_val = 0.0
         self.nvals = nvals
@@ -149,6 +150,7 @@ cdef class QuadTree:
                 self.root_nodes[i][j] = QTN_initialize(
                     pos, nvals, vals, weight_val)
         self.num_cells = self.top_grid_dims[0] * self.top_grid_dims[1]
+        free(vals)
 
     cdef int count_total_cells(self, QuadTreeNode *root):
         cdef int total = 0
@@ -273,10 +275,10 @@ cdef class QuadTree:
         j = <np.int64_t> (pos[1] / self.po2[level])
         return self.root_nodes[i][j]
         
+    
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def add_array_to_tree(self, int level,
-            np.ndarray[np.int64_t, ndim=1] pxs,
+    def add_array_to_tree(self, int level, np.ndarray[np.int64_t, ndim=1] pxs,
             np.ndarray[np.int64_t, ndim=1] pys,
             np.ndarray[np.float64_t, ndim=2] pvals,
             np.ndarray[np.float64_t, ndim=1] pweight_vals,
@@ -295,77 +297,109 @@ cdef class QuadTree:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def initialize_grid(self, int level,
-                        cnp.ndarray[np.int64_t, ndim=1] start_index, 
-                        cnp.ndarray[np.int64_t, ndim=1] dims):
-        # We assume that start_index is indices 0 and 1 of ourself
-        cdef int i, j
+    def add_chunk_to_tree(self, 
+            np.ndarray[np.int64_t, ndim=1] pxs,
+            np.ndarray[np.int64_t, ndim=1] pys,
+            np.ndarray[np.int64_t, ndim=1] level,
+            np.ndarray[np.float64_t, ndim=2] pvals,
+            np.ndarray[np.float64_t, ndim=1] pweight_vals):
+        cdef int ps = pxs.shape[0]
+        cdef int p
+        cdef cnp.float64_t *vals
+        cdef cnp.float64_t *data = <cnp.float64_t *> pvals.data
         cdef cnp.int64_t pos[2]
-        for i in range(dims[0]):
-            pos[0] = i + start_index[0]
-            for j in range(dims[1]):
-                pos[1] = j + start_index[1]
-                self.add_to_position(level, pos, NULL, 0.0, 1)
+        for p in range(ps):
+            vals = data + self.nvals*p
+            pos[0] = pxs[p]
+            pos[1] = pys[p]
+            self.add_to_position(level[p], pos, vals, pweight_vals[p])
+        return
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def get_all_from_level(self, int level, int count_only = 0):
+    def initialize_chunk(self, 
+            np.ndarray[np.int64_t, ndim=1] pxs,
+            np.ndarray[np.int64_t, ndim=1] pys,
+            np.ndarray[np.int64_t, ndim=1] level):
+        cdef int num = pxs.shape[0]
+        cdef int p
+        cdef cnp.float64_t *vals
+        cdef cnp.int64_t pos[2]
+        for p in range(num):
+            pos[0] = pxs[p]
+            pos[1] = pys[p]
+            self.add_to_position(level[p], pos, NULL, 0.0, 1)
+        return
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def get_all(self, int count_only = 0, int style = 1):
         cdef int i, j, vi
         cdef int total = 0
         vals = []
+        self.merged = style
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
-                total += self.count_at_level(self.root_nodes[i][j], level, 0)
+                total += self.count(self.root_nodes[i][j])
         if count_only: return total
         # Allocate our array
-        cdef np.ndarray[np.int64_t, ndim=2] npos
+        cdef np.ndarray[np.float64_t, ndim=1] opx
+        cdef np.ndarray[np.float64_t, ndim=1] opy
+        cdef np.ndarray[np.float64_t, ndim=1] opdx
+        cdef np.ndarray[np.float64_t, ndim=1] opdy
         cdef np.ndarray[np.float64_t, ndim=2] nvals
         cdef np.ndarray[np.float64_t, ndim=1] nwvals
-        npos = np.zeros( (total, 2), dtype='int64')
+        opx = np.zeros(total, dtype='float64')
+        opy = np.zeros(total, dtype='float64')
+        opdx = np.zeros(total, dtype='float64')
+        opdy = np.zeros(total, dtype='float64')
         nvals = np.zeros( (total, self.nvals), dtype='float64')
         nwvals = np.zeros( total, dtype='float64')
         cdef np.int64_t curpos = 0
-        cdef np.int64_t *pdata = <np.int64_t *> npos.data
+        cdef np.float64_t *px = <np.float64_t *> opx.data
+        cdef np.float64_t *py = <np.float64_t *> opy.data
+        cdef np.float64_t *pdx = <np.float64_t *> opdx.data
+        cdef np.float64_t *pdy = <np.float64_t *> opdy.data
         cdef np.float64_t *vdata = <np.float64_t *> nvals.data
         cdef np.float64_t *wdata = <np.float64_t *> nwvals.data
         cdef np.float64_t wtoadd
-        cdef np.float64_t *vtoadd = <np.float64_t *> alloca(
+        cdef np.float64_t *vtoadd = <np.float64_t *> malloc(
                 sizeof(np.float64_t)*self.nvals)
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
                 for vi in range(self.nvals): vtoadd[vi] = 0.0
                 wtoadd = 0.0
-                curpos += self.fill_from_level(self.root_nodes[i][j],
-                    level, curpos, pdata, vdata, wdata, vtoadd, wtoadd, 0)
-        return npos, nvals, nwvals
+                curpos += self.fill(self.root_nodes[i][j],
+                    curpos, px, py, pdx, pdy, vdata, wdata, vtoadd, wtoadd, 0)
+        free(vtoadd)
+        return opx, opy, opdx, opdy, nvals, nwvals
 
-    cdef int count_at_level(self, QuadTreeNode *node, int level, int cur_level):
+    cdef int count(self, QuadTreeNode *node):
         cdef int i, j
-        # We only really return a non-zero, calculated value if we are at the
-        # level in question.
-        if cur_level == level:
-            # We return 1 if there are no finer points at this level and zero
-            # if there are
-            return (node.children[0][0] == NULL)
-        if node.children[0][0] == NULL: return 0
         cdef int count = 0
+        if node.children[0][0] == NULL: return 1
         for i in range(2):
             for j in range(2):
-                count += self.count_at_level(node.children[i][j], level,
-                                             cur_level + 1)
+                count += self.count(node.children[i][j])
         return count
 
-    cdef int fill_from_level(self, QuadTreeNode *node, int level,
-                              np.int64_t curpos,
-                              np.int64_t *pdata,
-                              np.float64_t *vdata,
-                              np.float64_t *wdata,
-                              np.float64_t *vtoadd,
-                              np.float64_t wtoadd,
-                              int cur_level):
+    @cython.cdivision(True)
+    cdef int fill(self, QuadTreeNode *node, 
+                        np.int64_t curpos,
+                        np.float64_t *px,
+                        np.float64_t *py,
+                        np.float64_t *pdx,
+                        np.float64_t *pdy,
+                        np.float64_t *vdata,
+                        np.float64_t *wdata,
+                        np.float64_t *vtoadd,
+                        np.float64_t wtoadd,
+                        np.int64_t level):
         cdef int i, j, n
-        if cur_level == level:
-            if node.children[0][0] != NULL: return 0
+        cdef np.float64_t *vorig
+        vorig = <np.float64_t *> malloc(sizeof(np.float64_t) * self.nvals)
+        if node.children[0][0] == NULL:
             if self.merged == -1:
                 for i in range(self.nvals):
                     vdata[self.nvals * curpos + i] = fmax(node.val[i], vtoadd[i])
@@ -374,13 +408,17 @@ cdef class QuadTree:
                 for i in range(self.nvals):
                     vdata[self.nvals * curpos + i] = node.val[i] + vtoadd[i]
                 wdata[curpos] = node.weight_val + wtoadd
-            pdata[curpos * 2] = node.pos[0]
-            pdata[curpos * 2 + 1] = node.pos[1]
+            pdx[curpos] = 1.0 / (self.top_grid_dims[0]*2**level)
+            pdy[curpos] = 1.0 / (self.top_grid_dims[1]*2**level)
+            px[curpos] = (0.5 + node.pos[0]) * pdx[curpos]
+            py[curpos] = (0.5 + node.pos[1]) * pdy[curpos]
+            pdx[curpos] /= 2.0
+            pdy[curpos] /= 2.0
             return 1
-        if node.children[0][0] == NULL: return 0
         cdef np.int64_t added = 0
         if self.merged == 1:
             for i in range(self.nvals):
+                vorig[i] = vtoadd[i]
                 vtoadd[i] += node.val[i]
             wtoadd += node.weight_val
         elif self.merged == -1:
@@ -391,13 +429,14 @@ cdef class QuadTree:
                 if self.merged == -1:
                     for n in range(self.nvals):
                         vtoadd[n] = node.val[n]
-                added += self.fill_from_level(node.children[i][j],
-                        level, curpos + added, pdata, vdata, wdata,
-                        vtoadd, wtoadd, cur_level + 1)
+                added += self.fill(node.children[i][j],
+                        curpos + added, px, py, pdx, pdy, vdata, wdata,
+                        vtoadd, wtoadd, level + 1)
         if self.merged == 1:
             for i in range(self.nvals):
-                vtoadd[i] -= node.val[i]
+                vtoadd[i] = vorig[i]
             wtoadd -= node.weight_val
+        free(vorig)
         return added
 
     @cython.boundscheck(False)

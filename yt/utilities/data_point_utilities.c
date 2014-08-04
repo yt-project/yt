@@ -24,6 +24,14 @@
 #define max(A,B) ((A) > (B) ? (A) : (B))
 #define min(A,B) ((A) < (B) ? (A) : (B))
 
+#if PY_MAJOR_VERSION >= 3
+#define PYINTCONV_AS   PyLong_AsLong
+#define PYINTCONV_FROM PyLong_FromLong
+#else
+#define PYINTCONV_AS   PyInt_AsLong
+#define PYINTCONV_FROM PyInt_FromLong
+#endif
+
 static PyObject *_combineGridsError;
 
 static PyObject *
@@ -236,7 +244,7 @@ Py_CombineGrids(PyObject *obj, PyObject *args)
     free(src_vals);
     free(dst_vals);
 
-    PyObject *onum_found = PyInt_FromLong((long)num_found);
+    PyObject *onum_found = PYINTCONV_FROM((long)num_found);
     return onum_found;
 
 _fail:
@@ -548,7 +556,7 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
     free(g_data);
     free(c_data);
 
-    PyObject *status = PyInt_FromLong(total);
+    PyObject *status = PYINTCONV_FROM(total);
     return status;
     
 _fail:
@@ -798,7 +806,7 @@ static PyObject *Py_FillRegion(PyObject *obj, PyObject *args)
     }
     free(g_data);
     free(c_data);
-    PyObject *status = PyInt_FromLong(total);
+    PyObject *status = PYINTCONV_FROM(total);
     return status;
 
 _fail:
@@ -1012,7 +1020,7 @@ static PyObject *Py_FillBuffer(PyObject *obj, PyObject *args)
     if(dls!=NULL)free(dls);
     if(g_data!=NULL)free(g_data);
     if(c_data!=NULL)free(c_data);
-    PyObject *status = PyInt_FromLong(total);
+    PyObject *status = PYINTCONV_FROM(total);
     return status;
 
 _fail:
@@ -1099,7 +1107,7 @@ Py_FindContours(PyObject *obj, PyObject *args)
     Py_DECREF(yi);
     Py_DECREF(zi);
 
-    PyObject *retval = PyInt_FromLong(status);
+    PyObject *retval = PYINTCONV_FROM(status);
     return retval;
 
     _fail:
@@ -1436,10 +1444,33 @@ static PyMethodDef _combineMethods[] = {
 __declspec(dllexport)
 #endif
 
-void initdata_point_utilities(void)
+PyMODINIT_FUNC
+#if PY_MAJOR_VERSION >= 3
+#define _RETVAL m
+PyInit_data_point_utilities(void)
+#else
+#define _RETVAL 
+initdata_point_utilities(void)
+#endif
 {
     PyObject *m, *d;
+#if PY_MAJOR_VERSION >= 3
+    static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "data_point_utilities",           /* m_name */
+        "Utilities for data combination.\n",
+                             /* m_doc */
+        -1,                  /* m_size */
+        _combineMethods,     /* m_methods */
+        NULL,                /* m_reload */
+        NULL,                /* m_traverse */
+        NULL,                /* m_clear */
+        NULL,                /* m_free */
+    };
+    m = PyModule_Create(&moduledef); 
+#else
     m = Py_InitModule("data_point_utilities", _combineMethods);
+#endif
     d = PyModule_GetDict(m);
     _combineGridsError = PyErr_NewException("data_point_utilities.CombineGridsError", NULL, NULL);
     PyDict_SetItemString(d, "error", _combineGridsError);
@@ -1452,6 +1483,7 @@ void initdata_point_utilities(void)
     _outputFloatsToFileError = PyErr_NewException("data_point_utilities.OutputFloatsToFileError", NULL, NULL);
     PyDict_SetItemString(d, "error", _outputFloatsToFileError);
     import_array();
+    return _RETVAL;
 }
 
 /*

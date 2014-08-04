@@ -20,696 +20,629 @@ import numpy as np
 from yt.funcs import *
 
 from yt.config import ytcfg
-from yt.data_objects.field_info_container import \
-    FieldDetector
-from yt.utilities.data_point_utilities import FindBindingEnergy
+from yt.units.yt_array import YTArray, uconcatenate, array_like_field
+from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface
-from yt.utilities.lib import Octree
+    ParallelAnalysisInterface, parallel_objects
+from yt.utilities.lib.Octree import Octree
+from yt.utilities.physical_constants import \
+    gravitational_constant_cgs, \
+    HUGE
+from yt.utilities.math_utils import prec_accum
 
-__CUDA_BLOCK_SIZE = 256
-
-quantity_info = {}
-
-class GridChildMaskWrapper:
-    def __init__(self, grid, data_source):
-        self.grid = grid
-        self.data_source = data_source
-        # We have a local cache so that *within* a call to the DerivedQuantity
-        # function, we only read each field once.  Otherwise, when preloading
-        # the field will be popped and removed and lost if the underlying data
-        # source's _get_data_from_grid method is wrapped by restore_state.
-        # This is common.  So, if data[something] is accessed multiple times by
-        # a single quantity, the second time will re-read the data the slow
-        # way.
-        self.local_cache = {}
-    def __getattr__(self, attr):
-        return getattr(self.grid, attr)
-    def __getitem__(self, item):
-        if item not in self.local_cache:
-            data = self.data_source._get_data_from_grid(self.grid, item)
-            self.local_cache[item] = data
-        return self.local_cache[item]
+derived_quantity_registry = {}
 
 class DerivedQuantity(ParallelAnalysisInterface):
-    def __init__(self, collection, name, function,
-                 combine_function, units = "",
-                 n_ret = 0, force_unlazy=False):
-        # We wrap the function with our object
-        ParallelAnalysisInterface.__init__(self)
-        self.__doc__ = function.__doc__
-        self.__name__ = name
-        self.collection = collection
-        self._data_source = collection.data_source
-        self.func = function
-        self.c_func = combine_function
-        self.n_ret = n_ret
-        self.force_unlazy = force_unlazy
+    num_vals = -1
 
-    def __call__(self, *args, **kwargs):
-        lazy_reader = kwargs.pop('lazy_reader', True)
-        preload = kwargs.pop('preload', ytcfg.getboolean("yt","__parallel"))
-        if preload:
-            if not lazy_reader: mylog.debug("Turning on lazy_reader because of preload")
-            lazy_reader = True
-            e = FieldDetector(flat = True)
-            e.NumberOfParticles = 1
-            self.func(e, *args, **kwargs)
-            mylog.debug("Preloading %s", e.requested)
-            self.comm.preload([g for g in self._get_grid_objs()], e.requested,
-                          self._data_source.pf.h.io)
-        if lazy_reader and not self.force_unlazy:
-            return self._call_func_lazy(args, kwargs)
-        else:
-            return self._call_func_unlazy(args, kwargs)
+    class __metaclass__(type):
+        def __init__(cls, name, b, d):
+            type.__init__(cls, name, b, d)
+            if name != "DerivedQuantity":
+                derived_quantity_registry[name] = cls
 
-    def _call_func_lazy(self, args, kwargs):
-        self.retvals = [ [] for i in range(self.n_ret)]
-        for gi,g in enumerate(self._get_grids()):
-            rv = self.func(GridChildMaskWrapper(g, self._data_source), *args, **kwargs)
-            if not iterable(rv): rv = (rv,)
-            for i in range(self.n_ret): self.retvals[i].append(rv[i])
-            g.clear_data()
-        self.retvals = [np.array(self.retvals[i]) for i in range(self.n_ret)]
-        return self.c_func(self._data_source, *self.retvals)
-
-    def _finalize_parallel(self):
-        # Note that we do some fancy footwork here.
-        # _par_combine_object and its affiliated alltoall function
-        # assume that the *long* axis is the last one.  However,
-        # our long axis is the first one!
-        rv = []
-        for my_list in self.retvals:
-            data = np.array(my_list).transpose()
-            rv.append(self.comm.par_combine_object(data,
-                        datatype="array", op="cat").transpose())
-        self.retvals = rv
-        
-    def _call_func_unlazy(self, args, kwargs):
-        retval = self.func(self._data_source, *args, **kwargs)
-        return self.c_func(self._data_source, *retval)
-
-def add_quantity(name, **kwargs):
-    if 'function' not in kwargs or 'combine_function' not in kwargs:
-        mylog.error("Not adding field %s because both function and combine_function must be provided" % name)
-        return
-    f = kwargs.pop('function')
-    c = kwargs.pop('combine_function')
-    quantity_info[name] = (name, f, c, kwargs)
-
-class DerivedQuantityCollection(object):
-    functions = quantity_info
     def __init__(self, data_source):
         self.data_source = data_source
 
+    def count_values(self, *args, **kwargs):
+        return
+
+    def __call__(self, *args, **kwargs):
+        """Calculate results for the derived quantity"""
+        self.count_values(*args, **kwargs)
+        chunks = self.data_source.chunks([], chunking_style="io")
+        storage = {}
+        for sto, ds in parallel_objects(chunks, -1, storage = storage):
+            sto.result = self.process_chunk(ds, *args, **kwargs)
+        # Now storage will have everything, and will be done via pickling, so
+        # the units will be preserved.  (Credit to Nathan for this
+        # idea/implementation.)
+        values = [ [] for i in range(self.num_vals) ]
+        for key in sorted(storage):
+            for i in range(self.num_vals):
+                values[i].append(storage[key][i])
+        # These will be YTArrays
+        values = [self.data_source.ds.arr(values[i]) for i in range(self.num_vals)]
+        values = self.reduce_intermediate(values)
+        return values
+
+    def process_chunk(self, data, *args, **kwargs):
+        raise NotImplementedError
+
+    def reduce_intermediate(self, values):
+        raise NotImplementedError
+
+class DerivedQuantityCollection(object):
+    def __new__(cls, data_source, *args, **kwargs):
+        inst = object.__new__(cls)
+        inst.data_source = data_source
+        for f in inst.keys():
+            setattr(inst, camelcase_to_underscore(f), inst[f])
+        return inst
+
     def __getitem__(self, key):
-        if key not in self.functions:
-            raise KeyError(key)
-        args = self.functions[key][:3]
-        kwargs = self.functions[key][3]
+        dq = derived_quantity_registry[key]
         # Instantiate here, so we can pass it the data object
         # Note that this means we instantiate every time we run help, etc
         # I have made my peace with this.
-        return DerivedQuantity(self, *args, **kwargs)
+        return dq(self.data_source)
 
     def keys(self):
-        return self.functions.keys()
+        return derived_quantity_registry.keys()
 
-def _TotalMass(data):
-    """
-    This function takes no arguments and returns the sum of cell masses and
-    particle masses in the object.
-    """
-    baryon_mass = data["CellMassMsun"].sum()
-    try:
-        particle_mass = data["ParticleMassMsun"].sum()
-        total_mass = baryon_mass + particle_mass
-    except KeyError:
-        total_mass = baryon_mass
-    return [total_mass]
-def _combTotalMass(data, total_mass):
-    return total_mass.sum()
-add_quantity("TotalMass", function=_TotalMass,
-             combine_function=_combTotalMass, n_ret=1)
-
-def _CenterOfMass(data, use_cells=True, use_particles=False):
-    """
-    This function returns the location of the center
-    of mass. By default, it computes of the *non-particle* data in the object. 
-
-    Parameters
-    ----------
-
-    use_cells : bool
-        If True, will include the cell mass (default: True)
-    use_particles : bool
-        if True, will include the particles in the object (default: False)
-    """
-    x = y = z = den = 0
-    if use_cells: 
-        x += (data["x"] * data["CellMassMsun"]).sum()
-        y += (data["y"] * data["CellMassMsun"]).sum()
-        z += (data["z"] * data["CellMassMsun"]).sum()
-        den += data["CellMassMsun"].sum()
-    if use_particles:
-        x += (data["particle_position_x"] * data["ParticleMassMsun"]).sum()
-        y += (data["particle_position_y"] * data["ParticleMassMsun"]).sum()
-        z += (data["particle_position_z"] * data["ParticleMassMsun"]).sum()
-        den += data["ParticleMassMsun"].sum()
-
-    return x,y,z, den
-def _combCenterOfMass(data, x,y,z, den):
-    return np.array([x.sum(), y.sum(), z.sum()])/den.sum()
-add_quantity("CenterOfMass", function=_CenterOfMass,
-             combine_function=_combCenterOfMass, n_ret = 4)
-
-def _WeightedAverageQuantity(data, field, weight):
-    """
-    This function returns an averaged quantity.
-
-    :param field: The field to average
-    :param weight: The field to weight by
-    """
-    num = (data[field] * data[weight]).sum()
-    den = data[weight].sum()
-    return num, den
-def _combWeightedAverageQuantity(data, field, weight):
-    return field.sum()/weight.sum()
-add_quantity("WeightedAverageQuantity", function=_WeightedAverageQuantity,
-             combine_function=_combWeightedAverageQuantity, n_ret = 2)
-
-def _WeightedVariance(data, field, weight):
-    """
-    This function returns the variance of a field.
-
-    :param field: The target field
-    :param weight: The field to weight by
-
-    Returns the weighted variance and the weighted mean.
-    """
-    my_weight = data[weight].sum()
-    if my_weight == 0:
-        return 0.0, 0.0, 0.0
-    my_mean = (data[field] * data[weight]).sum() / my_weight
-    my_var2 = (data[weight] * (data[field] - my_mean)**2).sum() / my_weight
-    return my_weight, my_mean, my_var2
-def _combWeightedVariance(data, my_weight, my_mean, my_var2):
-    all_weight = my_weight.sum()
-    all_mean = (my_weight * my_mean).sum() / all_weight
-    return [np.sqrt((my_weight * (my_var2 + (my_mean - all_mean)**2)).sum() / 
-                    all_weight), all_mean]
-add_quantity("WeightedVariance", function=_WeightedVariance,
-             combine_function=_combWeightedVariance, n_ret=3)
-
-def _BulkVelocity(data):
-    """
-    This function returns the mass-weighted average velocity in the object.
-    """
-    xv = (data["x-velocity"] * data["CellMassMsun"]).sum()
-    yv = (data["y-velocity"] * data["CellMassMsun"]).sum()
-    zv = (data["z-velocity"] * data["CellMassMsun"]).sum()
-    w = data["CellMassMsun"].sum()
-    return xv, yv, zv, w
-def _combBulkVelocity(data, xv, yv, zv, w):
-    w = w.sum()
-    xv = xv.sum()/w
-    yv = yv.sum()/w
-    zv = zv.sum()/w
-    return np.array([xv, yv, zv])
-add_quantity("BulkVelocity", function=_BulkVelocity,
-             combine_function=_combBulkVelocity, n_ret=4)
-
-def _AngularMomentumVector(data):
-    """
-    This function returns the mass-weighted average angular momentum vector.
-    """
-    amx = data["SpecificAngularMomentumX"]*data["CellMassMsun"]
-    amy = data["SpecificAngularMomentumY"]*data["CellMassMsun"]
-    amz = data["SpecificAngularMomentumZ"]*data["CellMassMsun"]
-    j_mag = [amx.sum(), amy.sum(), amz.sum()]
-    return [j_mag]
-
-def _StarAngularMomentumVector(data):
-    """
-    This function returns the mass-weighted average angular momentum vector 
-    for stars.
-    """
-    is_star = data["creation_time"] > 0
-    star_mass = data["ParticleMassMsun"][is_star]
-    sLx = data["ParticleSpecificAngularMomentumX"][is_star]
-    sLy = data["ParticleSpecificAngularMomentumY"][is_star]
-    sLz = data["ParticleSpecificAngularMomentumZ"][is_star]
-    amx = sLx * star_mass
-    amy = sLy * star_mass
-    amz = sLz * star_mass
-    j_mag = [amx.sum(), amy.sum(), amz.sum()]
-    return [j_mag]
-
-def _combAngularMomentumVector(data, j_mag):
-    if len(j_mag.shape) < 2: j_mag = np.expand_dims(j_mag, 0)
-    L_vec = j_mag.sum(axis=0)
-    L_vec_norm = L_vec / np.sqrt((L_vec**2.0).sum())
-    return L_vec_norm
-add_quantity("AngularMomentumVector", function=_AngularMomentumVector,
-             combine_function=_combAngularMomentumVector, n_ret=1)
-
-add_quantity("StarAngularMomentumVector", function=_StarAngularMomentumVector,
-             combine_function=_combAngularMomentumVector, n_ret=1)
-
-def _BaryonSpinParameter(data):
-    """
-    This function returns the spin parameter for the baryons, but it uses
-    the particles in calculating enclosed mass.
-    """
-    m_enc = data["CellMassMsun"].sum() + data["ParticleMassMsun"].sum()
-    amx = data["SpecificAngularMomentumX"]*data["CellMassMsun"]
-    amy = data["SpecificAngularMomentumY"]*data["CellMassMsun"]
-    amz = data["SpecificAngularMomentumZ"]*data["CellMassMsun"]
-    j_mag = np.array([amx.sum(), amy.sum(), amz.sum()])
-    e_term_pre = np.sum(data["CellMassMsun"]*data["VelocityMagnitude"]**2.0)
-    weight=data["CellMassMsun"].sum()
-    return j_mag, m_enc, e_term_pre, weight
-def _combBaryonSpinParameter(data, j_mag, m_enc, e_term_pre, weight):
-    # Because it's a vector field, we have to ensure we have enough dimensions
-    if len(j_mag.shape) < 2: j_mag = np.expand_dims(j_mag, 0)
-    W = weight.sum()
-    M = m_enc.sum()
-    J = np.sqrt(((j_mag.sum(axis=0))**2.0).sum())/W
-    E = np.sqrt(e_term_pre.sum()/W)
-    G = 6.67e-8 # cm^3 g^-1 s^-2
-    spin = J * E / (M*1.989e33*G)
-    return spin
-add_quantity("BaryonSpinParameter", function=_BaryonSpinParameter,
-             combine_function=_combBaryonSpinParameter, n_ret=4)
-
-def _ParticleSpinParameter(data):
-    """
-    This function returns the spin parameter for the baryons, but it uses
-    the particles in calculating enclosed mass.
-    """
-    m_enc = data["CellMassMsun"].sum() + data["ParticleMassMsun"].sum()
-    amx = data["ParticleSpecificAngularMomentumX"]*data["ParticleMassMsun"]
-    if amx.size == 0: return (np.zeros((3,), dtype='float64'), m_enc, 0, 0)
-    amy = data["ParticleSpecificAngularMomentumY"]*data["ParticleMassMsun"]
-    amz = data["ParticleSpecificAngularMomentumZ"]*data["ParticleMassMsun"]
-    j_mag = np.array([amx.sum(), amy.sum(), amz.sum()])
-    e_term_pre = np.sum(data["ParticleMassMsun"]
-                       *data["ParticleVelocityMagnitude"]**2.0)
-    weight=data["ParticleMassMsun"].sum()
-    return j_mag, m_enc, e_term_pre, weight
-add_quantity("ParticleSpinParameter", function=_ParticleSpinParameter,
-             combine_function=_combBaryonSpinParameter, n_ret=4)
-    
-def _IsBound(data, truncate = True, include_thermal_energy = False,
-    treecode = True, opening_angle = 1.0, periodic_test = False, include_particles = True):
+class WeightedAverageQuantity(DerivedQuantity):
     r"""
-    This returns whether or not the object is gravitationally bound. If this
-    returns a value greater than one, it is bound, and otherwise not.
-    
+    Calculates the weight average of a field or fields.
+
+    Where f is the field and w is the weight, the weighted average is 
+    Sum_i(f_i * w_i) / Sum_i(w_i).
+
     Parameters
     ----------
-    truncate : Bool
-        Should the calculation stop once the ratio of
-        gravitational:kinetic is 1.0?
-    include_thermal_energy : Bool
-        Should we add the energy from ThermalEnergy
-        on to the kinetic energy to calculate 
-        binding energy?
-    treecode : Bool
-        Whether or not to use the treecode.
-    opening_angle : Float 
-        The maximal angle a remote node may subtend in order
-        for the treecode method of mass conglomeration may be
-        used to calculate the potential between masses.
-    periodic_test : Bool 
-        Used for testing the periodic adjustment machinery
-        of this derived quantity.
-    include_particles : Bool
-	Should we add the mass contribution of particles
-	to calculate binding energy?
+    fields : field or list of fields
+        The field or fields of which the average value is to be calculated.
+    weight : field
+        The weight field.
 
     Examples
     --------
-    >>> sp.quantities["IsBound"](truncate=False,
-    ... include_thermal_energy=True, treecode=False, opening_angle=2.0)
-    0.32493
-    """
-    # Kinetic energy
-    bv_x,bv_y,bv_z = data.quantities["BulkVelocity"]()
-    # One-cell objects are NOT BOUND.
-    if data["CellMass"].size == 1: return [0.0]
 
-    kinetic = 0.5 * (data["CellMass"] * 
-                     ((data["x-velocity"] - bv_x)**2 + 
-                      (data["y-velocity"] - bv_y)**2 +
-                      (data["z-velocity"] - bv_z)**2)).sum()
-
-    if (include_particles):
-	mass_to_use = data["TotalMass"]
-        kinetic += 0.5 * (data["Dark_Matter_Mass"] *
-                          ((data["cic_particle_velocity_x"] - bv_x)**2 +
-                           (data["cic_particle_velocity_y"] - bv_y)**2 +
-                           (data["cic_particle_velocity_z"] - bv_z)**2)).sum()
-    else:
-	mass_to_use = data["CellMass"]
-    # Add thermal energy to kinetic energy
-    if (include_thermal_energy):
-        thermal = (data["ThermalEnergy"] * mass_to_use).sum()
-        kinetic += thermal
-    if periodic_test:
-        kinetic = np.ones_like(kinetic)
-    # Gravitational potential energy
-    # We only divide once here because we have velocity in cgs, but radius is
-    # in code.
-    G = 6.67e-8 / data.convert("cm") # cm^3 g^-1 s^-2
-    # Check for periodicity of the clump.
-    two_root = 2. * np.array(data.pf.domain_width) / np.array(data.pf.domain_dimensions)
-    domain_period = data.pf.domain_right_edge - data.pf.domain_left_edge
-    periodic = np.array([0., 0., 0.])
-    for i,dim in enumerate(["x", "y", "z"]):
-        sorted = data[dim][data[dim].argsort()]
-        # If two adjacent values are different by (more than) two root grid
-        # cells, I think it's reasonable to assume that the clump wraps around.
-        diff = sorted[1:] - sorted[0:-1]
-        if (diff >= two_root[i]).any():
-            mylog.info("Adjusting clump for periodic boundaries in dim %s" % dim)
-            # We will record the distance of the larger of the two values that
-            # define the gap from the right boundary, which we'll use for the
-            # periodic adjustment later.
-            sel = (diff >= two_root[i])
-            index = np.min(np.nonzero(sel))
-            # The last addition term below ensures that the data makes a full
-            # wrap-around.
-            periodic[i] = data.pf.domain_right_edge[i] - sorted[index + 1] + \
-                two_root[i] / 2.
-    # This dict won't make a copy of the data, but it will make a copy to 
-    # change if needed in the periodic section immediately below.
-    local_data = {}
-    for label in ["x", "y", "z"]: # Separating CellMass from the for loop
-        local_data[label] = data[label]
-    local_data["CellMass"] = mass_to_use # Adding CellMass separately
-					 # NOTE: if include_particles = True, local_data["CellMass"]
-					 #       is not the same as data["CellMass"]!!!
-    if periodic.any():
-        # Adjust local_data to re-center the clump to remove the periodicity
-        # by the gap calculated above.
-        for i,dim in enumerate(["x", "y", "z"]):
-            if not periodic[i]: continue
-            local_data[dim] = data[dim].copy()
-            local_data[dim] += periodic[i]
-            local_data[dim] %= domain_period[i]
-    if periodic_test:
-        local_data["CellMass"] = np.ones_like(local_data["CellMass"])
-    import time
-    t1 = time.time()
-    if treecode:
-        # Calculate the binding energy using the treecode method.
-        # Faster but less accurate.
-        # The octree doesn't like uneven root grids, so we will make it cubical.
-        root_dx = (data.pf.domain_width/np.array(data.pf.domain_dimensions)).astype('float64')
-        left = min([np.amin(local_data['x']), np.amin(local_data['y']),
-            np.amin(local_data['z'])])
-        right = max([np.amax(local_data['x']), np.amax(local_data['y']),
-            np.amax(local_data['z'])])
-        cover_min = np.array([left, left, left])
-        cover_max = np.array([right, right, right])
-        # Fix the coverage to match to root grid cell left 
-        # edges for making indexes.
-        cover_min = cover_min - cover_min % root_dx
-        cover_max = cover_max - cover_max % root_dx
-        cover_imin = (cover_min / root_dx).astype('int64')
-        cover_imax = (cover_max / root_dx + 1).astype('int64')
-        cover_ActiveDimensions = cover_imax - cover_imin
-        # Create the octree with these dimensions.
-        # One value (mass) with incremental=True.
-        octree = Octree(cover_ActiveDimensions, 1, True)
-        #print 'here', cover_ActiveDimensions
-        # Now discover what levels this data comes from, not assuming
-        # symmetry.
-        dxes = np.unique(data['dx']) # unique returns a sorted array,
-        dyes = np.unique(data['dy']) # so these will all have the same
-        dzes = np.unique(data['dz']) # order.
-        # We only need one dim to figure out levels, we'll use x.
-        dx = data.pf.domain_width[0]/data.pf.domain_dimensions[0]
-        levels = (np.log(dx / dxes) / np.log(data.pf.refine_by)).astype('int')
-        lsort = levels.argsort()
-        levels = levels[lsort]
-        dxes = dxes[lsort]
-        dyes = dyes[lsort]
-        dzes = dzes[lsort]
-        # Now we add actual data to the octree.
-        for L, dx, dy, dz in zip(levels, dxes, dyes, dzes):
-            mylog.info("Adding data to Octree for level %d" % L)
-            sel = (data["dx"] == dx)
-            thisx = (local_data["x"][sel] / dx).astype('int64') - cover_imin[0] * 2**L
-            thisy = (local_data["y"][sel] / dy).astype('int64') - cover_imin[1] * 2**L
-            thisz = (local_data["z"][sel] / dz).astype('int64') - cover_imin[2] * 2**L
-	    vals = np.array([local_data["CellMass"][sel]], order='F')
-            octree.add_array_to_tree(L, thisx, thisy, thisz, vals,
-               np.ones_like(thisx).astype('float64'), treecode = 1)
-        # Now we calculate the binding energy using a treecode.
-        octree.finalize(treecode = 1)
-        mylog.info("Using a treecode to find gravitational energy for %d cells." % local_data['x'].size)
-        pot = G*octree.find_binding_energy(truncate, kinetic/G, root_dx,
-            opening_angle)
-        #octree.print_all_nodes()
-    else:
-        try:
-            pot = G*_cudaIsBound(local_data, truncate, kinetic/G)
-        except (ImportError, AssertionError):
-            pot = G*FindBindingEnergy(local_data["CellMass"],
-                                local_data['x'],local_data['y'],local_data['z'],
-                                truncate, kinetic/G)
-    mylog.info("Boundedness check took %0.3e seconds", time.time()-t1)
-    del local_data
-    return [(pot / kinetic)]
-def _combIsBound(data, bound):
-    return bound
-add_quantity("IsBound",function=_IsBound,combine_function=_combIsBound,n_ret=1,
-             force_unlazy=True)
-
-def _cudaIsBound(data, truncate, ratio):
-    bsize = __CUDA_BLOCK_SIZE
-    import pycuda.driver as cuda
-    import pycuda.autoinit
-    import pycuda.gpuarray as gpuarray
-    my_stream = cuda.Stream()
-    cuda.init()
-    assert cuda.Device.count() >= 1
-
-    mass_scale_factor = 1.0/(data['CellMass'].max())
-    m = (data['CellMass'] * mass_scale_factor).astype('float32')
-    assert(m.size > bsize)
-
-    gsize=int(np.ceil(float(m.size)/bsize))
-    assert(gsize > 16)
-
-    # Now the tedious process of rescaling our values...
-    length_scale_factor = data['dx'].max()/data['dx'].min()
-    x = ((data['x'] - data['x'].min()) * length_scale_factor).astype('float32')
-    y = ((data['y'] - data['y'].min()) * length_scale_factor).astype('float32')
-    z = ((data['z'] - data['z'].min()) * length_scale_factor).astype('float32')
-    p = np.zeros(z.shape, dtype='float32')
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
+    >>> print ad.quantities.weighted_average_quantity([("gas", "density"),
+    ...                                                ("gas", "temperature")],
+    ...                                               ("gas", "cell_mass"))
     
-    x_gpu = cuda.mem_alloc(x.size * x.dtype.itemsize)
-    y_gpu = cuda.mem_alloc(y.size * y.dtype.itemsize)
-    z_gpu = cuda.mem_alloc(z.size * z.dtype.itemsize)
-    m_gpu = cuda.mem_alloc(m.size * m.dtype.itemsize)
-    p_gpu = cuda.mem_alloc(p.size * p.dtype.itemsize)
-    for ag, a in [(x_gpu, x), (y_gpu, y), (z_gpu, z), (m_gpu, m), (p_gpu, p)]:
-        cuda.memcpy_htod(ag, a)
-    source = """
-
-      extern __shared__ float array[];
-
-      __global__ void isbound(float *x, float *y, float *z, float *m,
-                              float *p, int *nelem)
-      {
-
-        /* My index in the array */
-        int idx1 = blockIdx.x * blockDim.x + threadIdx.x;
-        /* Note we are setting a start index */
-        int idx2 = blockIdx.y * blockDim.x;
-        int offset = threadIdx.x;
-
-        /* Here we're just setting up convenience pointers to our
-           shared array */
-
-        float* x_data1 = (float*) array;
-        float* y_data1 = (float*) &x_data1[blockDim.x];
-        float* z_data1 = (float*) &y_data1[blockDim.x];
-        float* m_data1 = (float*) &z_data1[blockDim.x];
-
-        float* x_data2 = (float*) &m_data1[blockDim.x];
-        float* y_data2 = (float*) &x_data2[blockDim.x];
-        float* z_data2 = (float*) &y_data2[blockDim.x];
-        float* m_data2 = (float*) &z_data2[blockDim.x];
-
-        x_data1[offset] = x[idx1];
-        y_data1[offset] = y[idx1];
-        z_data1[offset] = z[idx1];
-        m_data1[offset] = m[idx1];
-
-        x_data2[offset] = x[idx2 + offset];
-        y_data2[offset] = y[idx2 + offset];
-        z_data2[offset] = z[idx2 + offset];
-        m_data2[offset] = m[idx2 + offset];
-
-        __syncthreads();
-
-        float tx, ty, tz;
-
-        float my_p = 0.0;
-
-        if(idx1 < %(p)s) {
-            for (int i = 0; i < blockDim.x; i++){
-                if(i + idx2 < idx1 + 1) continue;
-                tx = (x_data1[offset]-x_data2[i]);
-                ty = (y_data1[offset]-y_data2[i]);
-                tz = (z_data1[offset]-z_data2[i]);
-                my_p += m_data1[offset]*m_data2[i] /
-                    sqrt(tx*tx+ty*ty+tz*tz);
-            }
-        }
-        p[idx1] += my_p;
-        __syncthreads();
-      }
     """
-    mod = cuda.SourceModule(source % dict(p=m.size))
-    func = mod.get_function('isbound')
-    mylog.info("Running CUDA functions.  May take a while.  (%0.5e, %s)",
-               x.size, gsize)
-    import pycuda.tools as ct
-    t1 = time.time()
-    ret = func(x_gpu, y_gpu, z_gpu, m_gpu, p_gpu,
-               shared=8*bsize*m.dtype.itemsize,
-         block=(bsize,1,1), grid=(gsize, gsize), time_kernel=True)
-    cuda.memcpy_dtoh(p, p_gpu)
-    p1 = p.sum()
-    if np.any(np.isnan(p)): raise ValueError
-    return p1 * (length_scale_factor / (mass_scale_factor**2.0))
+    def count_values(self, fields, weight):
+        # This is a list now
+        self.num_vals = len(fields) + 1
 
-def _Extrema(data, fields, non_zero = False, filter=None):
-    """
-    This function returns the extrema of a set of fields
+    def __call__(self, fields, weight):
+        fields = ensure_list(fields)
+        rv = super(WeightedAverageQuantity, self).__call__(fields, weight)
+        if len(rv) == 1: rv = rv[0]
+        return rv
+
+    def process_chunk(self, data, fields, weight):
+        vals = [(data[field] * data[weight]).sum(dtype=np.float64)
+                for field in fields]
+        wv = data[weight].sum(dtype=np.float64)
+        return vals + [wv]
+
+    def reduce_intermediate(self, values):
+        w = values.pop(-1).sum(dtype=np.float64)
+        return [v.sum(dtype=np.float64)/w for v in values]
+
+class TotalQuantity(DerivedQuantity):
+    r"""
+    Calculates the sum of the field or fields.
+
+    Parameters
+    ----------
+    fields : field or list of fields
+        The field to be summed.
+
+    Examples
+    --------
+
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
+    >>> print ad.quantities.total_quantity([("gas", "cell_mass")])
     
-    :param fields: A field name, or a list of field names
-    :param filter: a string to be evaled to serve as a data filter.
     """
-    # There is a heck of a lot of logic in this.  I really wish it were more
-    # elegant.
-    fields = ensure_list(fields)
-    if filter is not None: this_filter = eval(filter)
-    mins, maxs = [], []
-    for field in fields:
-        if data[field].size < 1:
-            mins.append(1e90)
-            maxs.append(-1e90)
-            continue
-        if filter is None:
-            if non_zero:
-                nz_filter = data[field]>0.0
-                if not nz_filter.any():
-                    mins.append(1e90)
-                    maxs.append(-1e90)
-                    continue
+    def count_values(self, fields):
+        # This is a list now
+        self.num_vals = len(fields)
+
+    def __call__(self, fields):
+        fields = ensure_list(fields)
+        rv = super(TotalQuantity, self).__call__(fields)
+        if len(rv) == 1: rv = rv[0]
+        return rv
+
+    def process_chunk(self, data, fields):
+        vals = [data[field].sum(dtype=np.float64)
+                for field in fields]
+        return vals
+
+    def reduce_intermediate(self, values):
+        return [v.sum(dtype=np.float64) for v in values]
+
+class TotalMass(TotalQuantity):
+    r"""
+    Calculates the total mass in gas and particles. Returns a tuple where the
+    first part is total gas mass and the second part is total particle mass.
+
+    Examples
+    --------
+
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
+    >>> print ad.quantities.total_mass()
+    
+    """
+    def __call__(self):
+        self.data_source.ds.index
+        fi = self.data_source.ds.field_info
+        fields = []
+        if ("gas", "cell_mass") in fi:
+            fields.append(("gas", "cell_mass"))
+        if ("all", "particle_mass") in fi:
+            fields.append(("all", "particle_mass"))
+        rv = super(TotalMass, self).__call__(fields)
+        return rv
+
+class CenterOfMass(DerivedQuantity):
+    r"""
+    Calculates the center of mass, using gas and/or particles.
+
+    The center of mass is the mass-weighted mean position.
+
+    Parameters
+    ----------
+    use_gas : bool
+        Flag to include gas in the calculation.  Gas is ignored if not 
+        present.
+        Default: True
+    use_particles : bool
+        Flag to include particles in the calculation.  Particles are ignored 
+        if not present.
+        Default: False
+
+    Examples
+    --------
+
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
+    >>> print ad.quantities.center_of_mass()
+    
+    """
+    def count_values(self, use_gas = True, use_particles = False):
+        use_gas &= \
+          (("gas", "cell_mass") in self.data_source.ds.field_info)
+        use_particles &= \
+          (("all", "particle_mass") in self.data_source.ds.field_info)
+        self.num_vals = 0
+        if use_gas:
+            self.num_vals += 4
+        if use_particles:
+            self.num_vals += 4
+
+    def process_chunk(self, data, use_gas = True, use_particles = False):
+        use_gas &= \
+          (("gas", "cell_mass") in self.data_source.ds.field_info)
+        use_particles &= \
+          (("all", "particle_mass") in self.data_source.ds.field_info)
+        vals = []
+        if use_gas:
+            vals += [(data[ax] * data["gas", "cell_mass"]).sum(dtype=np.float64)
+                     for ax in 'xyz']
+            vals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
+        if use_particles:
+            vals += [(data["all", "particle_position_%s" % ax] *
+                      data["all", "particle_mass"]).sum(dtype=np.float64)
+                     for ax in 'xyz']
+            vals.append(data["all", "particle_mass"].sum(dtype=np.float64))
+        return vals
+
+    def reduce_intermediate(self, values):
+        if len(values) not in (4, 8):
+            raise RuntimeError
+        x = values.pop(0).sum(dtype=np.float64)
+        y = values.pop(0).sum(dtype=np.float64)
+        z = values.pop(0).sum(dtype=np.float64)
+        w = values.pop(0).sum(dtype=np.float64)
+        if len(values) > 0:
+            # Note that this could be shorter if we pre-initialized our x,y,z,w
+            # values as YTQuantity objects.
+            x += values.pop(0).sum(dtype=np.float64)
+            y += values.pop(0).sum(dtype=np.float64)
+            z += values.pop(0).sum(dtype=np.float64)
+            w += values.pop(0).sum(dtype=np.float64)
+        return self.data_source.ds.arr([v/w for v in [x, y, z]])
+
+class BulkVelocity(DerivedQuantity):
+    r"""
+    Calculates the bulk velocity, using gas and/or particles.
+
+    The bulk velocity is the mass-weighted mean velocity.
+
+    Parameters
+    ----------
+    use_gas : bool
+        Flag to include gas in the calculation.  Gas is ignored if not 
+        present.
+        Default: True
+    use_particles : bool
+        Flag to include particles in the calculation.  Particles are ignored 
+        if not present.
+        Default: True
+
+    Examples
+    --------
+
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
+    >>> print ad.quantities.bulk_velocity()
+    
+    """
+    def count_values(self, use_gas = True, use_particles = False):
+        # This is a list now
+        self.num_vals = 0
+        if use_gas:
+            self.num_vals += 4
+        if use_particles:
+            self.num_vals += 4
+
+    def process_chunk(self, data, use_gas = True, use_particles = False):
+        vals = []
+        if use_gas:
+            vals += [(data["gas", "velocity_%s" % ax] * 
+                      data["gas", "cell_mass"]).sum(dtype=np.float64)
+                     for ax in 'xyz']
+            vals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
+        if use_particles:
+            vals += [(data["all", "particle_velocity_%s" % ax] *
+                      data["all", "particle_mass"]).sum(dtype=np.float64)
+                     for ax in 'xyz']
+            vals.append(data["all", "particle_mass"].sum(dtype=np.float64))
+        return vals
+
+    def reduce_intermediate(self, values):
+        if len(values) not in (4, 8):
+            raise RuntimeError
+        x = values.pop(0).sum(dtype=np.float64)
+        y = values.pop(0).sum(dtype=np.float64)
+        z = values.pop(0).sum(dtype=np.float64)
+        w = values.pop(0).sum(dtype=np.float64)
+        if len(values) > 0:
+            # Note that this could be shorter if we pre-initialized our x,y,z,w
+            # values as YTQuantity objects.
+            x += values.pop(0).sum(dtype=np.float64)
+            y += values.pop(0).sum(dtype=np.float64)
+            z += values.pop(0).sum(dtype=np.float64)
+            w += values.pop(0).sum(dtype=np.float64)
+        return self.data_source.ds.arr([v/w for v in [x, y, z]])
+
+class WeightedVariance(DerivedQuantity):
+    r"""
+    Calculates the weighted variance and weighted mean for a field 
+    or list of fields.
+
+    Where f is the field, w is the weight, and <f_w> is the weighted mean, 
+    the weighted variance is 
+    Sum_i( (f_i - <f_w>)^2 * w_i ) / Sum_i(w_i).
+
+    Parameters
+    ----------
+    fields : field or list of fields
+        The field or fields of which the variance and mean values are 
+        to be calculated.
+    weight : field
+        The weight field.
+
+    Examples
+    --------
+
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
+    >>> print ad.quantities.weighted_variance([("gas", "density"),
+    ...                                        ("gas", "temperature")],
+    ...                                       ("gas", "cell_mass"))
+    
+    """
+    def count_values(self, fields, weight):
+        # This is a list now
+        self.num_vals = 2 * len(fields) + 1
+
+    def __call__(self, fields, weight):
+        fields = ensure_list(fields)
+        rv = super(WeightedVariance, self).__call__(fields, weight)
+        if len(rv) == 1: rv = rv[0]
+        return rv
+
+    def process_chunk(self, data, fields, weight):
+        my_weight = data[weight].sum(dtype=np.float64)
+        if my_weight == 0:
+            return [0.0 for field in fields] + \
+              [0.0 for field in fields] + [0.0]
+        my_means = [(data[field] *  data[weight]).sum(dtype=np.float64) / my_weight
+                    for field in fields]
+        my_var2s = [(data[weight] * (data[field] -
+                                     my_mean)**2).sum(dtype=np.float64) / my_weight
+                   for field, my_mean in zip(fields, my_means)]
+        return my_means + my_var2s + [my_weight]
+
+    def reduce_intermediate(self, values):
+        my_weight = values.pop(-1)
+        all_weight = my_weight.sum(dtype=np.float64)
+        rvals = []
+        for i in range(len(values) / 2):
+            my_mean = values[i]
+            my_var2 = values[i + len(values) / 2]
+            all_mean = (my_weight * my_mean).sum(dtype=np.float64) / all_weight
+            rvals.append(np.sqrt((my_weight * (my_var2 + 
+                                               (my_mean - all_mean)**2)).sum(dtype=np.float64) / 
+                                               all_weight))
+            rvals.append(all_mean)
+        return rvals
+    
+class AngularMomentumVector(DerivedQuantity):
+    r"""
+    Calculates the angular momentum vector, using gas and/or particles.
+
+    The angular momentum vector is the mass-weighted mean specific angular momentum.
+
+    Parameters
+    ----------
+    use_gas : bool
+        Flag to include gas in the calculation.  Gas is ignored if not 
+        present.
+        Default: True
+    use_particles : bool
+        Flag to include particles in the calculation.  Particles are ignored 
+        if not present.
+        Default: True
+
+    Examples
+    --------
+
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
+    >>> print ad.quantities.angular_momentum_vector()
+    
+    """
+    def count_values(self, use_gas=True, use_particles=True):
+        use_gas &= \
+          (("gas", "cell_mass") in self.data_source.ds.field_info)
+        use_particles &= \
+          (("all", "particle_mass") in self.data_source.ds.field_info)
+        num_vals = 0
+        if use_gas: num_vals += 4
+        if use_particles: num_vals += 4
+        self.num_vals = num_vals
+
+    def process_chunk(self, data, use_gas=True, use_particles=True):
+        use_gas &= \
+          (("gas", "cell_mass") in self.data_source.ds.field_info)
+        use_particles &= \
+          (("all", "particle_mass") in self.data_source.ds.field_info)
+        rvals = []
+        if use_gas:
+            rvals.extend([(data["gas", "specific_angular_momentum_%s" % axis] *
+                           data["gas", "cell_mass"]).sum(dtype=np.float64) \
+                          for axis in "xyz"])
+            rvals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
+        if use_particles:
+            rvals.extend([(data["all", "particle_specific_angular_momentum_%s" % axis] *
+                           data["all", "particle_mass"]).sum(dtype=np.float64) \
+                          for axis in "xyz"])
+            rvals.append(data["all", "particle_mass"].sum(dtype=np.float64))
+        return rvals
+
+    def reduce_intermediate(self, values):
+        jx = values.pop(0).sum(dtype=np.float64)
+        jy = values.pop(0).sum(dtype=np.float64)
+        jz = values.pop(0).sum(dtype=np.float64)
+        m  = values.pop(0).sum(dtype=np.float64)
+        if values:
+            jx += values.pop(0).sum(dtype=np.float64)
+            jy += values.pop(0).sum(dtype=np.float64)
+            jz += values.pop(0).sum(dtype=np.float64)            
+            m  += values.pop(0).sum(dtype=np.float64)
+        return (jx / m, jy / m, jz / m)
+
+class Extrema(DerivedQuantity):
+    r"""
+    Calculates the min and max value of a field or list of fields.
+
+    Parameters
+    ----------
+    fields : field or list of fields
+        The field over which the extrema are to be calculated.
+    non_zero : bool
+        If True, only positive values are considered in the calculation.
+        Default: False
+
+    Examples
+    --------
+
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
+    >>> print ad.quantities.extrema([("gas", "density"),
+    ...                              ("gas", "temperature")])
+    
+    """
+    def count_values(self, fields, non_zero):
+        self.num_vals = len(fields) * 2
+
+    def __call__(self, fields, non_zero = False):
+        fields = ensure_list(fields)
+        rv = super(Extrema, self).__call__(fields, non_zero)
+        if len(rv) == 1: rv = rv[0]
+        return rv
+
+    def process_chunk(self, data, fields, non_zero):
+        vals = []
+        for field in fields:
+            field = data._determine_fields(field)[0]
+            fd = data[field]
+            if non_zero: fd = fd[fd > 0.0]
+            if fd.size > 0:
+                vals += [fd.min(), fd.max()]
             else:
-                nz_filter = None
-            mins.append(np.nanmin(data[field][nz_filter]))
-            maxs.append(np.nanmax(data[field][nz_filter]))
-        else:
-            if this_filter.any():
-                if non_zero:
-                    nz_filter = ((this_filter) &
-                                 (data[field][this_filter] > 0.0))
-                else: nz_filter = this_filter
-                mins.append(np.nanmin(data[field][nz_filter]))
-                maxs.append(np.nanmax(data[field][nz_filter]))
-            else:
-                mins.append(1e90)
-                maxs.append(-1e90)
-    return len(fields), mins, maxs
-def _combExtrema(data, n_fields, mins, maxs):
-    mins, maxs = np.atleast_2d(mins, maxs)
-    n_fields = mins.shape[1]
-    return [(np.min(mins[:,i]), np.max(maxs[:,i])) for i in range(n_fields)]
-add_quantity("Extrema", function=_Extrema, combine_function=_combExtrema,
-             n_ret=3)
+                vals += [array_like_field(data, HUGE, field),
+                         array_like_field(data, -HUGE, field)]
+        return vals
 
-def _Action(data, action, combine_action, filter=None):
-    """
-    This function evals the string given by the action arg and uses 
-    the function thrown with the combine_action to combine the values.  
-    A filter can be thrown to be evaled to short-circuit the calculation 
-    if some criterion is not met.
-    :param action: a string containing the desired action to be evaled.
-    :param combine_action: the function used to combine the answers when done lazily.
-    :param filter: a string to be evaled to serve as a data filter.
-    """
-    if filter is not None:
-        if not eval(filter).any(): return 0, False, combine_action
-    value = eval(action)
-    return value, True, combine_action
-def _combAction(data, value, valid, combine_action):
-    return combine_action[0](value[valid])
-add_quantity("Action", function=_Action, combine_function=_combAction, n_ret=3)
+    def reduce_intermediate(self, values):
+        # The values get turned into arrays here.
+        return [(mis.min(), mas.max() )
+                for mis, mas in zip(values[::2], values[1::2])]
 
-def _MaxLocation(data, field):
-    """
-    This function returns the location of the maximum of a set
-    of fields.
-    """
-    ma, maxi, mx, my, mz, mg = -1e90, -1, -1, -1, -1, -1
-    if data[field].size > 0:
-        maxi = np.argmax(data[field])
-        ma = data[field][maxi]
-        mx, my, mz = [data[ax][maxi] for ax in 'xyz']
-        mg = data["GridIndices"][maxi]
-    return (ma, maxi, mx, my, mz, mg)
-def _combMaxLocation(data, *args):
-    args = [np.atleast_1d(arg) for arg in args]
-    i = np.argmax(args[0]) # ma is arg[0]
-    return [arg[i] for arg in args]
-add_quantity("MaxLocation", function=_MaxLocation,
-             combine_function=_combMaxLocation, n_ret = 6)
+class MaxLocation(DerivedQuantity):
+    r"""
+    Calculates the maximum value plus the index, x, y, and z position 
+    of the maximum.
 
-def _MinLocation(data, field):
-    """
-    This function returns the location of the minimum of a set
-    of fields.
-    """
-    ma, mini, mx, my, mz, mg = 1e90, -1, -1, -1, -1, -1
-    if data[field].size > 0:
-        mini = np.argmin(data[field])
-        ma = data[field][mini]
-        mx, my, mz = [data[ax][mini] for ax in 'xyz']
-        mg = data["GridIndices"][mini]
-    return (ma, mini, mx, my, mz, mg)
-def _combMinLocation(data, *args):
-    args = [np.atleast_1d(arg) for arg in args]
-    i = np.argmin(args[0]) # ma is arg[0]
-    return [arg[i] for arg in args]
-add_quantity("MinLocation", function=_MinLocation,
-             combine_function=_combMinLocation, n_ret = 6)
+    Parameters
+    ----------
+    field : field
+        The field over which the extrema are to be calculated.
 
+    Examples
+    --------
 
-def _TotalQuantity(data, fields):
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
+    >>> print ad.quantities.max_location(("gas", "density"))
+    
     """
-    This function sums up a given field over the entire region
+    def count_values(self, *args, **kwargs):
+        self.num_vals = 5
 
-    :param fields: The fields to sum up
+    def __call__(self, field):
+        rv = super(MaxLocation, self).__call__(field)
+        if len(rv) == 1: rv = rv[0]
+        return rv
+
+    def process_chunk(self, data, field):
+        field = data._determine_fields(field)[0]
+        ma = array_like_field(data, -HUGE, field)
+        mx = array_like_field(data, -1, "x")
+        my = array_like_field(data, -1, "y")
+        mz = array_like_field(data, -1, "z")
+        maxi = -1
+        if data[field].size > 0:
+            maxi = np.argmax(data[field])
+            ma = data[field][maxi]
+            mx, my, mz = [data[ax][maxi] for ax in 'xyz']
+        return (ma, maxi, mx, my, mz)
+
+    def reduce_intermediate(self, values):
+        i = np.argmax(values[0]) # ma is values[0]
+        return [val[i] for val in values]
+
+class MinLocation(DerivedQuantity):
+    r"""
+    Calculates the minimum value plus the index, x, y, and z position 
+    of the minimum.
+
+    Parameters
+    ----------
+    field : field
+        The field over which the extrema are to be calculated.
+
+    Examples
+    --------
+
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
+    >>> print ad.quantities.min_location(("gas", "density"))
+    
     """
-    fields = ensure_list(fields)
-    totals = []
-    for field in fields:
-        if data[field].size < 1:
-            totals.append(0.0)
-            continue
-        totals.append(data[field].sum())
-    return len(fields), totals
-def _combTotalQuantity(data, n_fields, totals):
-    totals = np.atleast_2d(totals)
-    n_fields = totals.shape[1]
-    return [np.sum(totals[:,i]) for i in range(n_fields)]
-add_quantity("TotalQuantity", function=_TotalQuantity,
-                combine_function=_combTotalQuantity, n_ret=2)
+    def count_values(self, *args, **kwargs):
+        self.num_vals = 5
+
+    def __call__(self, field):
+        rv = super(MinLocation, self).__call__(field)
+        if len(rv) == 1: rv = rv[0]
+        return rv
+
+    def process_chunk(self, data, field):
+        field = data._determine_fields(field)[0]
+        ma = array_like_field(data, HUGE, field)
+        mx = array_like_field(data, -1, "x")
+        my = array_like_field(data, -1, "y")
+        mz = array_like_field(data, -1, "z")
+        mini = -1
+        if data[field].size > 0:
+            mini = np.argmin(data[field])
+            ma = data[field][mini]
+            mx, my, mz = [data[ax][mini] for ax in 'xyz']
+        return (ma, mini, mx, my, mz)
+
+    def reduce_intermediate(self, values):
+        i = np.argmin(values[0]) # ma is values[0]
+        return [val[i] for val in values]
+
+class SpinParameter(DerivedQuantity):
+    r"""
+    Calculates the dimensionless spin parameter.
+
+    Given by Equation 3 of Peebles (1971, A&A, 11, 377), the spin parameter 
+    is defined as
+    
+    lambda = (L * |E|^(1/2)) / (G * M^5/2),
+    
+    where L is the total angular momentum, E is the total energy (kinetic and 
+    potential), G is the gravitational constant, and M is the total mass.
+
+    Parameters
+    ----------
+    use_gas : bool
+        Flag to include gas in the calculation.  Gas is ignored if not 
+        present.
+        Default: True
+    use_particles : bool
+        Flag to include particles in the calculation.  Particles are ignored 
+        if not present.
+        Default: True
+
+    Examples
+    --------
+
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
+    >>> print ad.quantities.center_of_mass()
+    
+    """
+    def count_values(self, **kwargs):
+        self.num_vals = 3
+
+    def process_chunk(self, data, use_gas=True, use_particles=True):
+        use_gas &= \
+          (("gas", "cell_mass") in self.data_source.ds.field_info)
+        use_particles &= \
+          (("all", "particle_mass") in self.data_source.ds.field_info)
+        e = data.ds.quan(0., "erg")
+        j = data.ds.quan(0., "g*cm**2/s")
+        m = data.ds.quan(0., "g")
+        if use_gas:
+            e += (data["gas", "kinetic_energy"] *
+                  data["index", "cell_volume"]).sum(dtype=np.float64)
+            j += data["gas", "angular_momentum_magnitude"].sum(dtype=np.float64)
+            m += data["gas", "cell_mass"].sum(dtype=np.float64)
+        if use_particles:
+            e += (data["all", "particle_velocity_magnitude"]**2 *
+                  data["all", "particle_mass"]).sum(dtype=np.float64)
+            j += data["all", "particle_angular_momentum_magnitude"].sum(dtype=np.float64)
+            m += data["all", "particle_mass"].sum(dtype=np.float64)
+        return (e, j, m)
+
+    def reduce_intermediate(self, values):
+        e = values.pop(0).sum(dtype=np.float64)
+        j = values.pop(0).sum(dtype=np.float64)
+        m = values.pop(0).sum(dtype=np.float64)
+        return j * np.sqrt(np.abs(e)) / m**2.5 / gravitational_constant_cgs

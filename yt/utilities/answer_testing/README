@@ -82,7 +82,7 @@ Currently, a few exist:
         This is a test case designed to handle a single test.
 
         Additional Attributes:
-          * filename => The parameter file to test
+          * filename => The dataset to test
 
         Additional Methods:
           * None
@@ -99,7 +99,7 @@ Currently, a few exist:
                      ...
                 to have it return all the filenames in the IO log.
         
-    YTStaticOutputTest
+    YTDatasetTest
         This test case is designed to work with YT, and provides a couple
         additional things that YT can provide.
 
@@ -130,14 +130,14 @@ Sample Tests
 There are some example tests in the distribution.  But, a simple test case
 would also work well.  This is a test case using yt to find the maximum density
 in the simulation.  Note that we don't have to provide a setup function, as
-that's taken care of in the base class (YTStaticOutputTest.)
+that's taken care of in the base class (YTDatasetTest.)
 
-    class TestMaximumDensity(YTStaticOutputTest):
+    class TestMaximumDensity(YTDatasetTest):
         name = "maximum_density"
 
         def run(self):
-            # self.pf already exists
-            value, center = self.pf.h.find_max("Density")
+            # self.ds already exists
+            value, center = self.ds.find_max("density")
             self.result = (value, center)
 
         def compare(self, old_result):
@@ -217,13 +217,13 @@ Going back to our example of the maximum density location function, we could
 rewrite it slightly to make it work with the create_test function.  We remove
 the name and we make our parameter, field, known, but we don't set it.
 
-    class TestMaximumValue(YTStaticOutputTest):
+    class TestMaximumValue(YTDatasetTest):
 
         field = None
 
         def run(self):
-            # self.pf already exists
-            value, center = self.pf.h.find_max(self.field)
+            # self.ds already exists
+            value, center = self.ds.find_max(self.field)
             self.result = (value, center)
 
         def compare(self, old_result):

@@ -18,7 +18,7 @@ nar = np.array
 
 counter = 0
 def recursive_all_clumps(clump,list,level,parentnumber):
-    """A recursive function to flatten the hierarchy in *clump*.
+    """A recursive function to flatten the index in *clump*.
     Not to be called directly: please call return_all_clumps, below."""
     global counter
     counter += 1
@@ -33,9 +33,9 @@ def recursive_all_clumps(clump,list,level,parentnumber):
     return list
 
 def return_all_clumps(clump):
-    """Flatten the hierarchy defined by *clump*.
+    """Flatten the index defined by *clump*.
     Additionally adds three variables to the clump:
-    level        = depth of hierarchy
+    level        = depth of index
     number       = index of clump in the final array
     parentnumber = index of this clumps parent
 
@@ -50,7 +50,7 @@ def return_all_clumps(clump):
     return list
 
 def return_bottom_clumps(clump,dbg=0):
-    """Recursively return clumps at the bottom of the hierarchy.
+    """Recursively return clumps at the bottom of the index.
     This gives a list of clumps similar to what one would get from a CLUMPFIND routine"""
     global counter
     counter = 0

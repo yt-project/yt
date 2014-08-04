@@ -16,16 +16,19 @@ Analyzer objects for time series datasets
 import inspect
 
 from yt.funcs import *
+from yt.extern.six import add_metaclass
 
 analysis_task_registry = {}
 
+class RegisteredTask(type):
+    def __init__(cls, name, b, d):
+        type.__init__(cls, name, b, d)
+        if hasattr(cls, "skip") and cls.skip == False:
+            return
+        analysis_task_registry[cls.__name__] = cls
+
+@add_metaclass(RegisteredTask)
 class AnalysisTask(object):
-    class __metaclass__(type):
-        def __init__(cls, name, b, d):
-            type.__init__(cls, name, b, d)
-            if hasattr(cls, "skip") and cls.skip == False:
-                return
-            analysis_task_registry[cls.__name__] = cls
 
     def __init__(self, *args, **kwargs):
         # This should only get called if the subclassed object
@@ -36,7 +39,7 @@ class AnalysisTask(object):
         self.__dict__.update(kwargs)
 
     def __repr__(self):
-        # Stolen from AMRData.__repr__
+        # Stolen from YTDataContainer.__repr__
         s = "%s: " % (self.__class__.__name__)
         s += ", ".join(["%s=%s" % (i, getattr(self,i))
                        for i in self._params])
@@ -53,12 +56,12 @@ def analysis_task(params = None):
 @analysis_task(('field',))
 def MaximumValue(params, data_object):
     v = data_object.quantities["MaxLocation"](
-            params.field, lazy_reader=True)[0]
+            params.field)[0]
     return v
 
 @analysis_task()
-def CurrentTimeYears(params, pf):
-    return pf.current_time * pf["years"]
+def CurrentTimeYears(params, ds):
+    return ds.current_time * ds["years"]
 
 class SlicePlotDataset(AnalysisTask):
     _params = ['field', 'axis', 'center']
@@ -68,16 +71,16 @@ class SlicePlotDataset(AnalysisTask):
         self.SlicePlot = SlicePlot
         AnalysisTask.__init__(self, *args, **kwargs)
 
-    def eval(self, pf):
-        slc = self.SlicePlot(pf, self.axis, self.field, center = self.center)
-        return pc.save()
+    def eval(self, ds):
+        slc = self.SlicePlot(ds, self.axis, self.field, center = self.center)
+        return slc.save()
 
 class QuantityProxy(AnalysisTask):
     _params = None
     quantity_name = None
 
     def __repr__(self):
-        # Stolen from AMRData.__repr__
+        # Stolen from YTDataContainer.__repr__
         s = "%s: " % (self.__class__.__name__)
         s += ", ".join(["%s" % [arg for arg in self.args]])
         s += ", ".join(["%s=%s" % (k,v) for k, v in self.kwargs.items()])
@@ -101,8 +104,8 @@ class ParameterValue(AnalysisTask):
             cast = lambda a: a
         self.cast = cast
 
-    def eval(self, pf):
-        return self.cast(pf.get_parameter(self.parameter))
+    def eval(self, ds):
+        return self.cast(ds.get_parameter(self.parameter))
 
 def create_quantity_proxy(quantity_object):
     args, varargs, kwargs, defaults = inspect.getargspec(quantity_object[1])

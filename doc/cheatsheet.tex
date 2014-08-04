@@ -1,0 +1,347 @@
+\documentclass[10pt,landscape]{article}
+\usepackage{multicol}
+\usepackage{calc}
+\usepackage{ifthen}
+\usepackage[landscape]{geometry}
+\usepackage[hyphens]{url}
+
+% To make this come out properly in landscape mode, do one of the following
+% 1.
+%  pdflatex latexsheet.tex
+%
+% 2.
+%  latex latexsheet.tex
+%  dvips -P pdf  -t landscape latexsheet.dvi
+%  ps2pdf latexsheet.ps
+
+
+% If you're reading this, be prepared for confusion.  Making this was
+% a learning experience for me, and it shows.  Much of the placement
+% was hacked in; if you make it better, let me know...
+
+
+% 2008-04
+% Changed page margin code to use the geometry package. Also added code for
+% conditional page margins, depending on paper size. Thanks to Uwe Ziegenhagen
+% for the suggestions.
+
+% 2006-08
+% Made changes based on suggestions from Gene Cooperman. <gene at ccs.neu.edu>
+
+% 2012-11 - Stephen Skory
+% Converted the latex cheat sheet to a yt cheat sheet, taken from
+% http://www.stdout.org/~winston/latex/
+
+
+% This sets page margins to .5 inch if using letter paper, and to 1cm
+% if using A4 paper. (This probably isn't strictly necessary.)
+% If using another size paper, use default 1cm margins.
+\ifthenelse{\lengthtest { \paperwidth = 11in}}
+	{ \geometry{top=.5in,left=.5in,right=.5in,bottom=0.85in} }
+	{\ifthenelse{ \lengthtest{ \paperwidth = 297mm}}
+		{\geometry{top=1cm,left=1cm,right=1cm,bottom=1cm} }
+		{\geometry{top=1cm,left=1cm,right=1cm,bottom=1cm} }
+	}
+
+% Turn off header and footer
+\pagestyle{empty}
+ 
+
+% Redefine section commands to use less space
+\makeatletter
+\renewcommand{\section}{\@startsection{section}{1}{0mm}%
+                                {-1ex plus -.5ex minus -.2ex}%
+                                {0.5ex plus .2ex}%x
+                                {\normalfont\large\bfseries}}
+\renewcommand{\subsection}{\@startsection{subsection}{2}{0mm}%
+                                {-1explus -.5ex minus -.2ex}%
+                                {0.5ex plus .2ex}%
+                                {\normalfont\normalsize\bfseries}}
+\renewcommand{\subsubsection}{\@startsection{subsubsection}{3}{0mm}%
+                                {-1ex plus -.5ex minus -.2ex}%
+                                {1ex plus .2ex}%
+                                {\normalfont\small\bfseries}}
+\makeatother
+
+% Define BibTeX command
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+% Don't print section numbers
+\setcounter{secnumdepth}{0}
+
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt plus 0.5ex}
+
+
+% -----------------------------------------------------------------------
+
+\begin{document}
+
+\raggedright
+\fontsize{3mm}{3mm}\selectfont
+\begin{multicols}{3}
+
+
+% multicol parameters
+% These lengths are set only within the two main columns
+%\setlength{\columnseprule}{0.25pt}
+\setlength{\premulticols}{1pt}
+\setlength{\postmulticols}{1pt}
+\setlength{\multicolsep}{1pt}
+\setlength{\columnsep}{2pt}
+
+\begin{center}
+     \Large{\textbf{yt Cheat Sheet}} \\
+\end{center}
+
+\subsection{General Info}
+For everything yt please see \url{http://yt-project.org}.
+Documentation \url{http://yt-project.org/doc/index.html}.
+Need help? Start here \url{http://yt-project.org/doc/help/} and then
+try the IRC chat room \url{http://yt-project.org/irc.html},
+or the mailing list \url{http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org}. \\
+
+\subsection{Installing yt} The easiest way to install yt is to use the
+installation script found on the yt homepage or the docs linked above.  If you
+already have python set up with \texttt{numpy}, \texttt{scipy},
+\texttt{matplotlib}, \texttt{h5py}, and \texttt{cython}, you can also use
+\texttt{pip install yt}
+
+\subsection{Command Line yt}
+yt, and its convenience functions, are launched from a command line prompt.
+Many commands have flags to control behavior.
+Commands can be followed by
+{\bf {-}{-}help} (e.g. {\bf yt render {-}{-}help}) for detailed help for that command
+including a list of the available flags.
+
+\texttt{iyt}\textemdash\ Load yt and IPython. \\
+\texttt{yt load} {\it dataset}   \textemdash\ Load a single dataset.  \\
+\texttt{yt help} \textemdash\ Print yt help information. \\
+\texttt{yt stats} {\it dataset} \textemdash\ Print stats of a dataset. \\
+\texttt{yt update} \textemdash\ Update yt to most recent version.\\
+\texttt{yt update --all} \textemdash\ Update yt and dependencies to most recent version. \\
+\texttt{yt version} \textemdash\ yt installation information. \\
+\texttt{yt notebook} \textemdash\ Run the IPython notebook server. \\
+\texttt{yt upload\_image} {\it image.png} \textemdash\ Upload PNG image to imgur.com. \\
+\texttt{yt upload\_notebook} {\it notebook.nb} \textemdash\ Upload IPython notebook to hub.yt-project.org.\\
+\texttt{yt plot} {\it dataset} \textemdash\ Create a set of images.\\
+\texttt{yt render} {\it dataset} \textemdash\ Create a simple
+ volume rendering. \\
+\texttt{yt mapserver} {\it dataset} \textemdash\ View a plot/projection in a Gmaps-like
+ interface. \\
+\texttt{yt pastebin} {\it text.out} \textemdash\ Post text to the pastebin at
+ paste.yt-project.org. \\ 
+\texttt{yt pastebin\_grab} {\it identifier} \textemdash\ Print content of pastebin to
+ STDOUT. \\
+\texttt{yt bugreport} \textemdash\ Report a yt bug. \\
+\texttt{yt hop} {\it dataset} \textemdash\  Run hop on a dataset. \\
+
+\subsection{yt Imports}
+In order to use yt, Python must load the relevant yt modules into memory.
+The import commands are entered in the Python/IPython shell or
+used as part of a script.
+\newlength{\MyLen}
+\settowidth{\MyLen}{\texttt{letterpaper}/\texttt{a4paper} \ }
+\texttt{import yt}  \textemdash\ 
+Load yt. \\
+\texttt{from yt.config import ytcfg}  \textemdash\ 
+Used to set yt configuration options.
+If used, must be called before importing any other module.\\
+\texttt{from yt.analysis\_modules.\emph{halo\_finding}.api import \textasteriskcentered}  \textemdash\ 
+Load halo finding modules. Other modules
+are loaded in a similar way by swapping the 
+{\em emphasized} text.
+See the \textbf{Analysis Modules} section for a listing and short descriptions of each.
+
+\subsection{YTArray}
+Simulation data in yt is returned as a YTArray.  YTArray is a numpy array that
+has unit data attached to it and can automatically handle unit conversions and
+detect unit errors. Just like a numpy array, YTArray provides a wealth of
+built-in functions to calculate properties of the data in the array. Here is a
+very brief list of some useful ones.
+\settowidth{\MyLen}{\texttt{multicol} }\\
+\texttt{v = a.in\_cgs()} \textemdash\ Return the array in CGS units \\
+\texttt{v = a.in\_units('Msun/pc**3')} \textemdash\ Return the array in solar masses per cubic parsec \\ 
+\texttt{v = a.max(), a.min()} \textemdash\ Return maximum, minimum of \texttt{a}. \\
+\texttt{index = a.argmax(), a.argmin()} \textemdash\ Return index of max,
+min value of \texttt{a}.\\
+\texttt{v = a[}{\it index}\texttt{]} \textemdash\ Select a single value from \texttt{a} at location {\it index}.\\
+\texttt{b = a[}{\it i:j}\texttt{]} \textemdash\ Select the slice of values from
+\texttt{a} between
+locations {\it i} to {\it j-1} saved to a new Numpy array \texttt{b} with length {\it j-i}. \\
+\texttt{sel = (a > const)} \textemdash\ Create a new boolean Numpy array
+\texttt{sel}, of the same shape as \texttt{a},
+that marks which values of \texttt{a > const}. Other operators (e.g. \textless, !=, \%) work as well.\\
+\texttt{b = a[sel]} \textemdash\ Create a new Numpy array \texttt{b} made up of
+elements from \texttt{a} that correspond to elements of \texttt{sel}
+that are {\it True}. In the above example \texttt{b} would be all elements of \texttt{a} that are greater than \texttt{const}.\\
+\texttt{a.write\_hdf5({\it filename.h5})} \textemdash\ Save \texttt{a} to the hdf5 file {\it filename.h5}.\\
+
+\subsection{IPython Tips}
+\settowidth{\MyLen}{\texttt{multicol} }
+These tips work if IPython has been loaded, typically either by invoking
+\texttt{iyt} or \texttt{yt load} on the command line, or using the IPython notebook (\texttt{yt notebook}).
+\texttt{Tab complete} \textemdash\ IPython will attempt to auto-complete a
+variable or function name when the \texttt{Tab} key is pressed, e.g. {\it HaloFi}\textendash\texttt{Tab} would auto-complete
+to {\it HaloFinder}. This also works with imports, e.g. {\it from numpy.random.}\textendash\texttt{Tab}
+would give you a list of random functions (note the trailing period before hitting \texttt{Tab}).\\
+\texttt{?, ??} \textemdash\ Appending one or two question marks at the end of any object gives you
+detailed information about it, e.g. {\it variable\_name}?.\\
+Below a few IPython ``magics'' are listed, which are IPython-specific shortcut commands.\\
+\texttt{\%paste} \textemdash\ Paste content from the system clipboard into the IPython shell.\\
+\texttt{\%hist} \textemdash\ Print recent command history.\\
+\texttt{\%quickref} \textemdash\ Print IPython quick reference.\\
+\texttt{\%pdb} \textemdash\ Automatically enter the Python debugger at an exception.\\
+\texttt{\%debug} \textemdash\ Drop into a debugger at the location of the last unhandled exception. \\
+\texttt{\%time, \%timeit} \textemdash\ Find running time of expressions for benchmarking.\\
+\texttt{\%lsmagic} \textemdash\ List all available IPython magics. Hint: \texttt{?} works with magics.\\
+
+
+Please see \url{http://ipython.org/documentation.html} for the full
+IPython documentation.
+
+\subsection{Load and Access Data}
+The first step in using yt is to reference a simulation snapshot.
+After that, simulation data is generally accessed in yt using {\it Data Containers} which are Python objects
+that define a region of simulation space from which data should be selected.
+\settowidth{\MyLen}{\texttt{multicol} }
+\texttt{ds = yt.load(}{\it dataset}\texttt{)} \textemdash\   Reference a single snapshot.\\
+\texttt{dd = ds.all\_data()} \textemdash\ Select the entire volume.\\
+\texttt{a = dd[}{\it field\_name}\texttt{]} \textemdash\ Copies the contents of {\it field} into the
+YTArray \texttt{a}. Similarly for other data containers.\\
+\texttt{ds.field\_list} \textemdash\ A list of available fields in the snapshot. \\
+\texttt{ds.derived\_field\_list} \textemdash\ A list of available derived fields
+in the snapshot. \\
+\texttt{val, loc = ds.find\_max("Density")} \textemdash\ Find the \texttt{val}ue of
+the maximum of the field \texttt{Density} and its \texttt{loc}ation. \\
+\texttt{sp = ds.sphere(}{\it cen}\texttt{,}{\it radius}\texttt{)} \textemdash\   Create a spherical data 
+container. {\it cen} may be a coordinate, or ``max'' which 
+centers on the max density point. {\it radius} may be a float in 
+code units or a tuple of ({\it length, unit}).\\
+
+\texttt{re = ds.region({\it cen}, {\it left edge}, {\it right edge})} \textemdash\ Create a
+rectilinear data container. {\it cen} is required but not used.
+{\it left} and {\it right edge} are coordinate values that define the region.
+
+\texttt{di = ds.disk({\it cen}, {\it normal}, {\it radius}, {\it height})} \textemdash\ 
+Create a cylindrical data container centered at {\it cen} along the 
+direction set by {\it normal},with total length
+ 2$\times${\it height} and with radius {\it radius}. \\
+ 
+\texttt{ds.save\_object(sp, {\it ``sp\_for\_later''})} \textemdash\ Save an object (\texttt{sp}) for later use.\\
+\texttt{sp = ds.load\_object({\it ``sp\_for\_later''})} \textemdash\ Recover a saved object.\\
+
+
+\subsection{Defining New Fields}
+\texttt{yt} expects on-disk fields, fields generated on-demand and in-memory. 
+Field can either be created before a dataset is loaded using \texttt{add\_field}:
+\texttt{def \_metal\_mass({\it field},{\it data})}\\
+\texttt{\hspace{4 mm} return data["metallicity"]*data["cell\_mass"]}\\
+\texttt{add\_field("metal\_mass", units='g', function=\_metal\_mass)}\\
+Or added to an existing dataset using \texttt{ds.add\_field}:
+\texttt{ds.add\_field("metal\_mass", units='g', function=\_metal\_mass)}\\
+
+\subsection{Slices and Projections}
+\settowidth{\MyLen}{\texttt{multicol} }
+\texttt{slc = yt.SlicePlot(ds, {\it axis or normal vector}, {\it field}, {\it center=}, {\it width=}, {\it weight\_field=}, {\it additional parameters})} \textemdash\ Make a slice plot
+perpendicular to {\it axis} (specified via 'x', 'y', or 'z') or a normal vector for an off-axis slice of {\it field} weighted by {\it weight\_field} at (code-units) {\it center} with 
+{\it width} in code units or a (value, unit) tuple. Hint: try {\it yt.SlicePlot?} in IPython to see additional parameters.\\
+\texttt{slc.save({\it file\_prefix})} \textemdash\ Save the slice to a png with name prefix {\it file\_prefix}.
+\texttt{.save()} works similarly for the commands below.\\
+
+\texttt{prj = yt.ProjectionPlot(ds, {\it axis}, {\it field}, {\it addit. params})} \textemdash\ Make a projection. \\
+\texttt{prj = yt.OffAxisProjectionPlot(ds, {\it normal}, {\it fields}, {\it center=}, {\it width=}, {\it depth=},{\it north\_vector=},{\it weight\_field=})} \textemdash Make an off axis projection. Note this takes an array of fields. \\
+
+\subsection{Plot Annotations}
+\settowidth{\MyLen}{\texttt{multicol} }
+Plot callbacks are functions itemized in a registry that is attached to every plot object. They can be accessed and then called like \texttt{ prj.annotate\_velocity(factor=16, normalize=False)}. Most callbacks also accept a {\it plot\_args} dict that is fed to matplotlib annotator. \\
+\texttt{velocity({\it factor=},{\it scale=},{\it scale\_units=}, {\it normalize=})} \textemdash\ Uses field "x-velocity" to draw quivers\\
+\texttt{magnetic\_field({\it factor=},{\it scale=},{\it scale\_units=}, {\it normalize=})} \textemdash\ Uses field "Bx" to draw quivers\\
+\texttt{quiver({\it field\_x},{\it field\_y},{\it factor=},{\it scale=},{\it scale\_units=}, {\it normalize=})} \\
+\texttt{contour({\it field=},{\it ncont=},{\it factor=},{\it clim=},{\it take\_log=}, {\it additional parameters})} \textemdash Plots a number of contours {\it ncont} to interpolate {\it field} optionally using {\it take\_log}, upper and lower {\it c}ontour{\it lim}its and {\it factor} number of points in the interpolation.\\
+\texttt{grids({\it alpha=}, {\it draw\_ids=}, {\it periodic=}, {\it min\_level=}, {\it max\_level=})} \textemdash Add grid boundaries. \\
+\texttt{streamlines({\it field\_x},{\it field\_y},{\it factor=},{\it density=})}\\
+\texttt{clumps({\it clumplist})} \textemdash\ Generate {\it clumplist} using the clump finder and plot. \\
+\texttt{arrow({\it pos}, {\it code\_size})} Add an arrow at a {\it pos}ition. \\
+\texttt{point({\it pos}, {\it text})} \textemdash\ Add text at a {\it pos}ition. \\
+\texttt{marker({\it pos}, {\it marker=})} \textemdash\ Add a matplotlib-defined marker at a {\it pos}ition. \\
+\texttt{sphere({\it center}, {\it radius}, {\it text=})} \textemdash\ Draw a circle and append {\it text}.\\
+\texttt{hop\_circles({\it hop\_output}, {\it max\_number=}, {\it annotate=}, {\it min\_size=}, {\it max\_size=}, {\it font\_size=}, {\it print\_halo\_size=}, {\it fixed\_radius=}, {\it min\_mass=}, {\it print\_halo\_mass=}, {\it width=})} \textemdash\ Draw a halo, printing it's ID, mass, clipping halos depending on number of particles ({\it size}) and optionally fixing the drawn circle radius to be constant for all halos.\\
+\texttt{hop\_particles({\it hop\_output},{\it max\_number=},{\it p\_size=},\\
+{\it min\_size},{\it alpha=})} \textemdash\ Draw particle positions for member halos with a certain number of pixels per particle.\\
+\texttt{particles({\it width},{\it p\_size=},{\it col=}, {\it marker=}, {\it stride=}, {\it ptype=}, {\it stars\_only=}, {\it dm\_only=}, {\it minimum\_mass=}, {\it alpha=})}  \textemdash\  Draw particles of {\it p\_size} pixels in a slab of {\it width} with {\it col}or using a matplotlib {\it marker} plotting only every {\it stride} number of particles.\\
+\texttt{title({\it text})}\\
+
+\subsection{The $\sim$/.yt/ Directory}
+\settowidth{\MyLen}{\texttt{multicol} }
+yt will automatically check for configuration files in a special directory (\texttt{\$HOME/.yt/}) in the user's home directory.
+
+The \texttt{config} file \textemdash\ Settings that control runtime behavior. \\
+The \texttt{my\_plugins.py} file \textemdash\ Add functions, derived fields, constants, or other commonly-used Python code to yt.
+
+
+\subsection{Analysis Modules}
+\settowidth{\MyLen}{\texttt{multicol}}
+The import name for each module is listed at the end of each description (see \textbf{yt Imports}).
+
+\texttt{Absorption Spectrum} \textemdash\ (\texttt{absorption\_spectrum}). \\
+\texttt{Clump Finder} \textemdash\ Find clumps defined by density thresholds (\texttt{level\_sets}). \\
+\texttt{Halo Finding} \textemdash\ Locate halos of dark matter particles (\texttt{halo\_finding}). \\
+\texttt{Light Cone Generator} \textemdash\ Stitch datasets together to perform analysis over cosmological volumes. \\
+\texttt{Light Ray Generator} \textemdash\ Analyze the path of light rays.\\
+\texttt{Rockstar Halo Finding} \textemdash\ Locate halos of dark matter using the Rockstar halo finder (\texttt{halo\_finding.rockstar}). \\
+\texttt{Star Particle Analysis} \textemdash\ Analyze star formation history and assemble spectra (\texttt{star\_analysis}). \\
+\texttt{Sunrise Exporter} \textemdash\ Export data to the sunrise visualization format (\texttt{sunrise\_export}). \\
+
+
+\subsection{Parallel Analysis}
+\settowidth{\MyLen}{\texttt{multicol}} 
+Nearly all of yt is parallelized using
+MPI.  The {\it mpi4py} package must be installed for parallelism in yt.  To
+install {\it pip install mpi4py} on the command line usually works.
+Execute python in parallel similar to this:\\
+{\it mpirun -n 12 python script.py}\\
+The file \texttt{script.py} must call the \texttt{yt.enable\_parallelism()} to
+turn on yt's parallelism.  If this doesn't happen, all cores will execute the
+same serial yt script.  This command may differ for each system on which you use
+yt; please consult the system documentation for details on how to run parallel
+applications.
+
+\texttt{parallel\_objects()} \textemdash\ A way to parallelize analysis over objects
+(such as halos or clumps).\\
+
+
+\subsection{Mercurial}
+\settowidth{\MyLen}{\texttt{multicol}}
+Please see \url{http://mercurial.selenic.com/} for the full Mercurial documentation.
+
+\texttt{hg clone https://bitbucket.org/yt\_analysis/yt} \textemdash\ Clone a copy of yt. \\
+\texttt{hg status} \textemdash\ Files changed in working directory.\\
+\texttt{hg diff} \textemdash\ Print diff of all changed files in working directory. \\
+\texttt{hg diff -r{\it RevX} -r{\it RevY}} \textemdash\ Print diff of all changes between revision {\it RevX} and {\it RevY}.\\
+\texttt{hg log} \textemdash\ History of changes.\\
+\texttt{hg cat -r{\it RevX file}} \textemdash\ Print the contents of {\it file} from revision {\it RevX}.\\
+\texttt{hg heads} \textemdash\ Print all the current heads. \\
+\texttt{hg revert -r{\it RevX file}} \textemdash\ Revert {\it file} to revision {\it RevX}. On-disk changed version is
+moved to {\it file.orig}. \\
+\texttt{hg commit} \textemdash\ Commit changes to repository. \\
+\texttt{hg push} \textemdash\ Push changes to default remote repository. \\
+\texttt{hg pull} \textemdash\ Pull changes from default remote repository. \\
+\texttt{hg serve} \textemdash\ Launch a webserver on the local machine to examine the repository in a web browser. \\
+
+\subsection{FAQ}
+\settowidth{\MyLen}{\texttt{multicol}}
+
+\texttt{slc.set\_log('field', False)} \textemdash\ When plotting \texttt{field}, use linear scaling instead of log scaling.
+
+
+%\rule{0.3\linewidth}{0.25pt}
+%\scriptsize
+
+% Can put some final stuff here like copyright etc...
+
+\end{multicols}
+
+\end{document}
