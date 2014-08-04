@@ -107,6 +107,9 @@ class SphericalCoordinateHandler(CoordinateHandler):
                                      data_source['phi'],
                                      data_source['dphi'] / 2.0, # half-widths
                                      size, data_source[field], bounds)
+            # Trying to preserve a nice-looking system, with x on the x and y
+            # on the y.
+            buff = buff.transpose()
         elif dimension == 2:
             buff = pixelize_cylinder(data_source['r'],
                                      data_source['dr'] / 2.0,
@@ -152,7 +155,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
         # Cartesian coordinates, since we transform them.
         rv = {0: ('theta', 'phi'),
               1: ('x', 'y'),
-              2: ('x', 'z')}
+              2: ('r', 'z')}
         for i in rv.keys():
             rv[self.axis_name[i]] = rv[i]
             rv[self.axis_name[i].upper()] = rv[i]
