@@ -20,7 +20,8 @@ and which often varied between different code frontends.  yt 3.0 allows
 for datasets containing multiple different types of fluid fields, mesh fields,
 particles (with overlapping or disjoint lists of fields).  To enable accessing
 these fields in a meaningful, simple way, the mechanism for accessing them has
-changed to take an optional *field type* in addition to the *field name*.
+changed to take an optional *field type* in addition to the *field name* of
+the form ('*field type*', '*field name*').
 
 As an example, we may be in a situation where have multiple types of particles
 which possess the ``particle_position`` field.  In the case where a data
@@ -99,17 +100,18 @@ internal names, and it also provides an easy way to address what units something
 should be returned in.  If an aliased field is requested (and aliased fields 
 will always be lowercase, with underscores separating words) it will be returned 
 in CGS units (future versions will enable global defaults to be set for MKS and 
-other unit systems), whereas if the underlying field is requested, it will not 
-undergo any unit conversions from its natural units.  (This rule is occasionally 
-violated for fields which are mesh-dependent, specifically particle masses in 
-some cosmology codes.)
+other unit systems), whereas if the frontend-specific field is requested, it 
+will not undergo any unit conversions from its natural units.  (This rule is 
+occasionally violated for fields which are mesh-dependent, specifically particle 
+masses in some cosmology codes.)
 
-.. _known_field_types:
+.. _known-field-types:
 
 Field types known to yt
 -----------------------
 
-yt knows of a few different field types:
+Recall that fields are formally accessed in two parts: ('*field type*', 
+'*field name*').  Here we describe the different field types you will encounter:
 
 * frontend-name -- Mesh or fluid fields that exist on-disk default to having
   the name of the frontend as their type name (e.g., ``enzo``, ``flash``,
@@ -139,6 +141,14 @@ yt knows of a few different field types:
   (discrete data) onto a mesh, typically to compute smoothing kernels, local
   density estimates, counts, and the like.  See :ref:`deposited-particle-fields` 
   for more information.
+
+While it is best to be explicit access fields by their full names 
+(i.e. ('*field type*', '*field name*')), yt provides an abbreviated 
+interface for accessing common fields (i.e. '*field name*').  In the abbreviated
+case, yt will assume you want the last *field type* accessed.  If you
+haven't previously accessed a *field type*, it will default to *field type* = 
+``'all'`` in the case of particle fields and *field type* = ``'gas'`` in the 
+case of mesh fields.
 
 Field Plugins
 -------------

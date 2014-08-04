@@ -28,7 +28,7 @@ Table of Contents
          </p>
        </td>
        <td width="75%">
-         <p class="linkdescr">Getting, Installing, and Updating yt</p>
+         <p class="linkdescr">Getting, installing, and updating yt</p>
        </td>
      </tr>
      <tr valign="top">
