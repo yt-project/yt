@@ -43,11 +43,6 @@ To figure out out what all of the field types here mean, see
 Universal Fields
 ----------------
 
-.. contents:: 
-   :depth: 1
-   :local:
-   :backlinks: none
-
 ('all', 'mesh_id')
 ^^^^^^^^^^^^^^^^^^
 
@@ -3380,10 +3375,6 @@ No source available.
 ART-Specific Fields
 -------------------
 
-.. contents:: 
-   :depth: 1
-   :local:
-   :backlinks: none
 ('art', 'Density')
 ^^^^^^^^^^^^^^^^^^
 
@@ -3544,10 +3535,6 @@ ART-Specific Fields
 ARTIO-Specific Fields
 ---------------------
 
-.. contents:: 
-   :depth: 1
-   :local:
-   :backlinks: none
 ('artio', 'HVAR_GAS_DENSITY')
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -3720,10 +3707,6 @@ ARTIO-Specific Fields
 Athena-Specific Fields
 ----------------------
 
-.. contents:: 
-   :depth: 1
-   :local:
-   :backlinks: none
 ('athena', 'density')
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -3757,10 +3740,6 @@ Athena-Specific Fields
 Boxlib-Specific Fields
 ----------------------
 
-.. contents:: 
-   :depth: 1
-   :local:
-   :backlinks: none
 ('boxlib', 'density')
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -3929,10 +3908,6 @@ Boxlib-Specific Fields
 Enzo-Specific Fields
 --------------------
 
-.. contents:: 
-   :depth: 1
-   :local:
-   :backlinks: none
 ('enzo', 'Cooling_Time')
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -4206,10 +4181,6 @@ Enzo-Specific Fields
 FLASH-Specific Fields
 ---------------------
 
-.. contents:: 
-   :depth: 1
-   :local:
-   :backlinks: none
 ('flash', 'velx')
 ^^^^^^^^^^^^^^^^^
 
@@ -4504,10 +4475,6 @@ FLASH-Specific Fields
 GDF-Specific Fields
 -------------------
 
-.. contents:: 
-   :depth: 1
-   :local:
-   :backlinks: none
 ('gdf', 'density')
 ^^^^^^^^^^^^^^^^^^
 
@@ -4583,10 +4550,6 @@ GDF-Specific Fields
 HaloCatalog-Specific Fields
 ---------------------------
 
-.. contents:: 
-   :depth: 1
-   :local:
-   :backlinks: none
 (particle_type, 'particle_identifier')
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -4645,10 +4608,6 @@ HaloCatalog-Specific Fields
 OWLSSubfind-Specific Fields
 ---------------------------
 
-.. contents:: 
-   :depth: 1
-   :local:
-   :backlinks: none
 (particle_type, 'CenterOfMass_0')
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -4813,10 +4772,6 @@ OWLSSubfind-Specific Fields
 Rockstar-Specific Fields
 ------------------------
 
-.. contents:: 
-   :depth: 1
-   :local:
-   :backlinks: none
 (particle_type, 'particle_identifier')
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -5132,10 +5087,6 @@ Rockstar-Specific Fields
 RAMSES-Specific Fields
 ----------------------
 
-.. contents:: 
-   :depth: 1
-   :local:
-   :backlinks: none
 ('ramses', 'Density')
 ^^^^^^^^^^^^^^^^^^^^^
 
@@ -5246,10 +5197,6 @@ RAMSES-Specific Fields
 Gadget-Specific Fields
 ----------------------
 
-.. contents:: 
-   :depth: 1
-   :local:
-   :backlinks: none
 (particle_type, 'Mass')
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -5428,10 +5375,6 @@ Gadget-Specific Fields
 GadgetHDF5-Specific Fields
 --------------------------
 
-.. contents:: 
-   :depth: 1
-   :local:
-   :backlinks: none
 (particle_type, 'Mass')
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -5610,10 +5553,6 @@ GadgetHDF5-Specific Fields
 OWLS-Specific Fields
 --------------------
 
-.. contents:: 
-   :depth: 1
-   :local:
-   :backlinks: none
 (particle_type, 'Mass')
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -5792,10 +5731,6 @@ OWLS-Specific Fields
 Tipsy-Specific Fields
 ---------------------
 
-.. contents:: 
-   :depth: 1
-   :local:
-   :backlinks: none
 (particle_type, 'Mass')
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -6094,4 +6029,14 @@ Tipsy-Specific Fields
    * Units: :math:`\mathrm{}`
    * Aliased to: ``HeI``
    * Particle Type: True
+
+
+
+Index of Fields
+---------------
+
+.. contents:: 
+   :depth: 3
+   :backlinks: none
+
 
