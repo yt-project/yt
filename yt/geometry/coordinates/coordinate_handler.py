@@ -171,7 +171,7 @@ class CoordinateHandler(object):
             return width + depth
         return width
 
-    def sanitize_center(self, center):
+    def sanitize_center(self, center, axis):
         if isinstance(center, basestring):
             if center.lower() == "m" or center.lower() == "max":
                 v, center = self.ds.find_max(("gas", "density"))
@@ -181,7 +181,7 @@ class CoordinateHandler(object):
             else:
                 raise RuntimeError('center keyword \"%s\" not recognized' % center)
         elif isinstance(center, YTArray):
-            return self.ds.arr(center)
+            return self.ds.arr(center), self.convert_to_cartesian(center)
         elif iterable(center):
             if iterable(center[0]) and isinstance(center[1], basestring):
                 center = self.ds.arr(center[0], center[1])

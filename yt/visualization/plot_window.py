@@ -77,24 +77,13 @@ except ImportError:
     from pyparsing import ParseFatalException
 
 def get_window_parameters(axis, center, width, ds):
-    display_center, center = ds.coordinates.sanitize_center(center)
-    width = ds.coordinates.sanitize_width(axis, width, None)
-    if ds.geometry == "cartesian" or ds.geometry == "spectral_cube":
+    if ds.geometry in ("cartesian", "spectral_cube", "spherical"):
         width = ds.coordinates.sanitize_width(axis, width, None)
-        center = ds.coordinates.sanitize_center(center)
+        center, display_center = ds.coordinates.sanitize_center(center, axis)
     elif ds.geometry in ("polar", "cylindrical"):
         # Set our default width to be the full domain
         width = [ds.domain_right_edge[0]*2.0, ds.domain_right_edge[0]*2.0]
         center = ds.arr([0.0, 0.0, 0.0], "code_length")
-    elif ds.geometry == "spherical":
-        if axis == 0:
-            width = ds.domain_width[1], ds.domain_width[2]
-            center = 0.5*(ds.domain_left_edge + ds.domain_right_edge)
-            center.convert_to_units("code_length")
-        else:
-            # Our default width here is the full domain
-            width = [ds.domain_right_edge[0]*2.0, ds.domain_right_edge[0]*2.0]
-            center = ds.arr([0.0, 0.0, 0.0], "code_length")
     elif ds.geometry == "geographic":
         c_r = ((ds.domain_right_edge + ds.domain_left_edge)/2.0)[2]
         center = ds.arr([0.0, 0.0, c_r], "code_length")
@@ -116,7 +105,7 @@ def get_window_parameters(axis, center, width, ds):
     return (bounds, center, display_center)
 
 def get_oblique_window_parameters(normal, center, width, ds, depth=None):
-    display_center, center = ds.coordinates.sanitize_center(center)
+    display_center, center = ds.coordinates.sanitize_center(center, axis)
     width = ds.coordinates.sanitize_width(normal, width, depth)
 
     if len(width) == 2:

@@ -107,15 +107,13 @@ class SphericalCoordinateHandler(CoordinateHandler):
                                      data_source['phi'],
                                      data_source['dphi'] / 2.0, # half-widths
                                      size, data_source[field], bounds)
-            # Trying to preserve a nice-looking system, with x on the x and y
-            # on the y.
-            buff = buff.transpose()
         elif dimension == 2:
             buff = pixelize_cylinder(data_source['r'],
                                      data_source['dr'] / 2.0,
                                      data_source['theta'],
                                      data_source['dtheta'] / 2.0, # half-widths
                                      size, data_source[field], bounds)
+            buff = buff.transpose()
         else:
             raise RuntimeError
         return buff
@@ -190,11 +188,34 @@ class SphericalCoordinateHandler(CoordinateHandler):
     def period(self):
         return self.ds.domain_width
 
-    def sanitize_width(self, axis, width, depth):
+    def sanitize_center(self, center, axis):
+        center, display_center = super(
+            SphericalCoordinateHandler, self).sanitize_center(center, axis)
         if axis == 0:
-            # This is a slice along r
-            width = self.ds.domain_width[1], self.ds.domain_width[2]
-        else:
+            display_center = center
+        elif axis == 1:
+            display_center = (0.0 * display_center[0],
+                              0.0 * display_center[1],
+                              0.0 * display_center[2])
+        elif axis ==2:
+            display_center = (self.ds.domain_width[0]/2.0,
+                              0.0 * display_center[1],
+                              0.0 * display_center[2])
+        return center, display_center
+
+    def sanitize_width(self, axis, width, depth):
+        if width is not None:
             width = super(SphericalCoordinateHandler, self).sanitize_width(
               axis, width, depth)
+        elif axis == 0:
+            width = [self.ds.domain_width[self.x_axis[0]],
+                     self.ds.domain_width[self.y_axis[0]]]
+        elif axis == 1:
+            # Remember, in spherical coordinates when we cut in theta,
+            # we create a conic section
+            width = [2.0*self.ds.domain_width[0],
+                     2.0*self.ds.domain_width[0]]
+        elif axis == 2:
+            width = [self.ds.domain_width[0],
+                     2.0*self.ds.domain_width[0]]
         return width

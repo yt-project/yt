@@ -305,7 +305,7 @@ class FITSSlice(FITSImageBuffer):
     def __init__(self, ds, axis, fields, center="c", **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis, ds)
-        center = ds.coordinates.sanitize_center(center)
+        center = ds.coordinates.sanitize_center(center, axis)
         slc = ds.slice(axis, center[axis], **kwargs)
         w, frb = construct_image(slc)
         super(FITSSlice, self).__init__(frb, fields=fields, wcs=w)
