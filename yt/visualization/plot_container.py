@@ -280,6 +280,7 @@ class ImagePlotContainer(object):
         name = old_object._type_name
         kwargs = dict((n, getattr(old_object, n))
                       for n in old_object._con_args)
+        kwargs['center'] = getattr(old_object, 'center', None)
         if data_source is not None:
             if name != "proj":
                 raise RuntimeError("The data_source keyword argument "
