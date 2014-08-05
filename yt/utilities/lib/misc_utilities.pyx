@@ -544,8 +544,8 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
                 if rmax <= r_i:
                     r_i += 0.5*dx 
                     continue
-                x = r_i * costheta
-                y = r_i * sintheta
+                y = r_i * costheta
+                x = r_i * sintheta
                 pi = <int>((x - x0)/dx)
                 pj = <int>((y - y0)/dy)
                 if pi >= 0 and pi < img.shape[0] and \
