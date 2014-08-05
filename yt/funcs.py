@@ -759,3 +759,9 @@ def enable_plugins():
     if os.path.isfile(_fn):
         mylog.info("Loading plugins from %s", _fn)
         execfile(_fn)
+
+def fix_unitary(u):
+    if u == '1':
+        return 'unitary'
+    else:
+        return u

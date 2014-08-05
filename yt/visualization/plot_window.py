@@ -42,7 +42,8 @@ from yt.extern.six.moves import \
     StringIO
 from yt.funcs import \
     mylog, iterable, ensure_list, \
-    fix_axis, validate_width_tuple
+    fix_axis, validate_width_tuple, \
+    fix_unitary
 from yt.units.unit_object import \
     Unit
 from yt.units.unit_registry import \
@@ -75,95 +76,10 @@ try:
 except ImportError:
     from pyparsing import ParseFatalException
 
-def fix_unitary(u):
-    if u == '1':
-        return 'unitary'
-    else:
-        return u
-
-def validate_iterable_width(width, ds, unit=None):
-    if isinstance(width[0], tuple) and isinstance(width[1], tuple):
-        validate_width_tuple(width[0])
-        validate_width_tuple(width[1])
-        return (ds.quan(width[0][0], fix_unitary(width[0][1])),
-                ds.quan(width[1][0], fix_unitary(width[1][1])))
-    elif isinstance(width[0], Number) and isinstance(width[1], Number):
-        return (ds.quan(width[0], 'code_length'),
-                ds.quan(width[1], 'code_length'))
-    elif isinstance(width[0], YTQuantity) and isinstance(width[1], YTQuantity):
-        return (ds.quan(width[0]), ds.quan(width[1]))
-    else:
-        validate_width_tuple(width)
-        # If width and unit are both valid width tuples, we
-        # assume width controls x and unit controls y
-        try:
-            validate_width_tuple(unit)
-            return (ds.quan(width[0], fix_unitary(width[1])),
-                    ds.quan(unit[0], fix_unitary(unit[1])))
-        except YTInvalidWidthError:
-            return (ds.quan(width[0], fix_unitary(width[1])),
-                    ds.quan(width[0], fix_unitary(width[1])))
-
-def get_sanitized_width(axis, width, depth, ds):
-    if width is None:
-        # Default to code units
-        if not iterable(axis):
-            xax = ds.coordinates.x_axis[axis]
-            yax = ds.coordinates.y_axis[axis]
-            w = ds.domain_width[[xax, yax]]
-        else:
-            # axis is actually the normal vector
-            # for an off-axis data object.
-            mi = np.argmin(ds.domain_width)
-            w = ds.domain_width[[mi,mi]]
-        width = (w[0], w[1])
-    elif iterable(width):
-        width = validate_iterable_width(width, ds)
-    elif isinstance(width, YTQuantity):
-        width = (width, width)
-    elif isinstance(width, Number):
-        width = (ds.quan(width, 'code_length'),
-                 ds.quan(width, 'code_length'))
-    else:
-        raise YTInvalidWidthError(width)
-    if depth is not None:
-        if iterable(depth):
-            validate_width_tuple(depth)
-            depth = (ds.quan(depth[0], fix_unitary(depth[1])), )
-        elif isinstance(depth, Number):
-            depth = (ds.quan(depth, 'code_length',
-                     registry = ds.unit_registry), )
-        elif isinstance(depth, YTQuantity):
-            depth = (depth, )
-        else:
-            raise YTInvalidWidthError(depth)
-        return width + depth
-    return width
-
-def get_sanitized_center(center, ds):
-    if isinstance(center, basestring):
-        if center.lower() == "m" or center.lower() == "max":
-            v, center = ds.find_max(("gas", "density"))
-            center = ds.arr(center, 'code_length')
-        elif center.lower() == "c" or center.lower() == "center":
-            center = (ds.domain_left_edge + ds.domain_right_edge) / 2
-        else:
-            raise RuntimeError('center keyword \"%s\" not recognized' % center)
-    elif isinstance(center, YTArray):
-        return ds.arr(center)
-    elif iterable(center):
-        if iterable(center[0]) and isinstance(center[1], basestring):
-            center = ds.arr(center[0], center[1])
-        else:
-            center = ds.arr(center, 'code_length')
-    else:
-        raise RuntimeError("center keyword \"%s\" not recognized" % center)
-    return center
-
 def get_window_parameters(axis, center, width, ds):
     if ds.geometry == "cartesian" or ds.geometry == "spectral_cube":
-        width = get_sanitized_width(axis, width, None, ds)
-        center = get_sanitized_center(center, ds)
+        width = ds.coordinates.sanitize_width(axis, width, None)
+        center = ds.coordinates.sanitize_center(center)
     elif ds.geometry in ("polar", "cylindrical"):
         # Set our default width to be the full domain
         width = [ds.domain_right_edge[0]*2.0, ds.domain_right_edge[0]*2.0]
@@ -198,8 +114,8 @@ def get_window_parameters(axis, center, width, ds):
     return (bounds, center)
 
 def get_oblique_window_parameters(normal, center, width, ds, depth=None):
-    width = get_sanitized_width(normal, width, depth, ds)
-    center = get_sanitized_center(center, ds)
+    width = ds.coordinates.sanitize_width(normal, width, depth)
+    center = ds.coordinates.sanitize_center(center)
 
     if len(width) == 2:
         # Transforming to the cutting plane coordinate system
@@ -557,7 +473,8 @@ class PlotWindow(ImagePlotContainer):
 
         axes_unit = get_axes_unit(width, self.ds)
 
-        width = get_sanitized_width(self.frb.axis, width, None, self.ds)
+        width = self.ds.coordinates.sanitize_width(
+            self.frb.axis, width, None)
 
         centerx = (self.xlim[1] + self.xlim[0])/2.
         centery = (self.ylim[1] + self.ylim[0])/2.

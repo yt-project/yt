@@ -17,6 +17,7 @@ Coordinate handler base class.
 import numpy as np
 import abc
 import weakref
+from numbers import Number
 
 from yt.funcs import *
 from yt.fields.field_info_container import \
@@ -28,6 +29,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.utilities.lib.misc_utilities import \
     pixelize_cylinder
 import yt.visualization._MPL as _MPL
+from yt.units.yt_array import \
+    YTArray, YTQuantity
 
 def _unknown_coord(field, data):
     raise YTCoordinateNotImplemented
@@ -40,6 +43,29 @@ def _get_coord_fields(axi, units = "code_length"):
         rv = data.ds.arr(data.fcoords[...,axi].copy(), units)
         return data._reshape_vals(rv)
     return _dds, _coords
+
+def validate_iterable_width(width, ds, unit=None):
+    if isinstance(width[0], tuple) and isinstance(width[1], tuple):
+        validate_width_tuple(width[0])
+        validate_width_tuple(width[1])
+        return (ds.quan(width[0][0], fix_unitary(width[0][1])),
+                ds.quan(width[1][0], fix_unitary(width[1][1])))
+    elif isinstance(width[0], Number) and isinstance(width[1], Number):
+        return (ds.quan(width[0], 'code_length'),
+                ds.quan(width[1], 'code_length'))
+    elif isinstance(width[0], YTQuantity) and isinstance(width[1], YTQuantity):
+        return (ds.quan(width[0]), ds.quan(width[1]))
+    else:
+        validate_width_tuple(width)
+        # If width and unit are both valid width tuples, we
+        # assume width controls x and unit controls y
+        try:
+            validate_width_tuple(unit)
+            return (ds.quan(width[0], fix_unitary(width[1])),
+                    ds.quan(unit[0], fix_unitary(unit[1])))
+        except YTInvalidWidthError:
+            return (ds.quan(width[0], fix_unitary(width[1])),
+                    ds.quan(width[0], fix_unitary(width[1])))
 
 class CoordinateHandler(object):
     
@@ -108,6 +134,63 @@ class CoordinateHandler(object):
     @property
     def period(self):
         raise NotImplementedError
+
+    def sanitize_width(self, axis, width, depth):
+        if width is None:
+            # Default to code units
+            if not iterable(axis):
+                xax = self.x_axis[axis]
+                yax = self.y_axis[axis]
+                w = self.ds.domain_width[[xax, yax]]
+            else:
+                # axis is actually the normal vector
+                # for an off-axis data object.
+                mi = np.argmin(self.ds.domain_width)
+                w = self.ds.domain_width[[mi,mi]]
+            width = (w[0], w[1])
+        elif iterable(width):
+            width = validate_iterable_width(width, self.ds)
+        elif isinstance(width, YTQuantity):
+            width = (width, width)
+        elif isinstance(width, Number):
+            width = (self.ds.quan(width, 'code_length'),
+                     self.ds.quan(width, 'code_length'))
+        else:
+            raise YTInvalidWidthError(width)
+        if depth is not None:
+            if iterable(depth):
+                validate_width_tuple(depth)
+                depth = (self.ds.quan(depth[0], fix_unitary(depth[1])), )
+            elif isinstance(depth, Number):
+                depth = (self.ds.quan(depth, 'code_length',
+                         registry = self.ds.unit_registry), )
+            elif isinstance(depth, YTQuantity):
+                depth = (depth, )
+            else:
+                raise YTInvalidWidthError(depth)
+            return width + depth
+        return width
+
+    def sanitize_center(self, center):
+        if isinstance(center, basestring):
+            if center.lower() == "m" or center.lower() == "max":
+                v, center = self.ds.find_max(("gas", "density"))
+                center = self.ds.arr(center, 'code_length')
+            elif center.lower() == "c" or center.lower() == "center":
+                center = (self.ds.domain_left_edge + self.ds.domain_right_edge) / 2
+            else:
+                raise RuntimeError('center keyword \"%s\" not recognized' % center)
+        elif isinstance(center, YTArray):
+            return self.ds.arr(center)
+        elif iterable(center):
+            if iterable(center[0]) and isinstance(center[1], basestring):
+                center = self.ds.arr(center[0], center[1])
+            else:
+                center = self.ds.arr(center, 'code_length')
+        else:
+            raise RuntimeError("center keyword \"%s\" not recognized" % center)
+        return center
+
 
 def cartesian_to_cylindrical(coord, center = (0,0,0)):
     c2 = np.zeros_like(coord)
