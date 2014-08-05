@@ -290,6 +290,12 @@ class ImagePlotContainer(object):
         self.ds = new_ds
         self.data_source = new_object
         self._data_valid = self._plot_valid = False
+        for d in 'xyz':
+            lim_name = d+'lim'
+            if hasattr(self, lim_name):
+                lim = getattr(self, lim_name)
+                lim = tuple(new_ds.quan(l.value, str(l.units)) for l in lim)
+                setattr(self, lim_name, lim)
         self._recreate_frb()
         self._setup_plots()
 
