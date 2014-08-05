@@ -77,6 +77,8 @@ except ImportError:
     from pyparsing import ParseFatalException
 
 def get_window_parameters(axis, center, width, ds):
+    display_center, center = ds.coordinates.sanitize_center(center)
+    width = ds.coordinates.sanitize_width(axis, width, None)
     if ds.geometry == "cartesian" or ds.geometry == "spectral_cube":
         width = ds.coordinates.sanitize_width(axis, width, None)
         center = ds.coordinates.sanitize_center(center)
@@ -107,15 +109,15 @@ def get_window_parameters(axis, center, width, ds):
         raise NotImplementedError
     xax = ds.coordinates.x_axis[axis]
     yax = ds.coordinates.y_axis[axis]
-    bounds = (center[xax]-width[0] / 2,
-              center[xax]+width[0] / 2,
-              center[yax]-width[1] / 2,
-              center[yax]+width[1] / 2)
-    return (bounds, center)
+    bounds = (display_center[xax]-width[0] / 2,
+              display_center[xax]+width[0] / 2,
+              display_center[yax]-width[1] / 2,
+              display_center[yax]+width[1] / 2)
+    return (bounds, center, display_center)
 
 def get_oblique_window_parameters(normal, center, width, ds, depth=None):
+    display_center, center = ds.coordinates.sanitize_center(center)
     width = ds.coordinates.sanitize_width(normal, width, depth)
-    center = ds.coordinates.sanitize_center(center)
 
     if len(width) == 2:
         # Transforming to the cutting plane coordinate system
@@ -1013,7 +1015,8 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         self.ts = ts
         ds = self.ds = ts[0]
         axis = fix_axis(axis, ds)
-        (bounds, center) = get_window_parameters(axis, center, width, ds)
+        (bounds, center, display_center) = \
+                get_window_parameters(axis, center, width, ds)
         if field_parameters is None: field_parameters = {}
         slc = ds.slice(axis, center[axis],
             field_parameters = field_parameters, center=center)
@@ -1144,7 +1147,8 @@ class ProjectionPlot(PWViewerMPL):
         # If a non-weighted integral projection, assure field-label reflects that
         if weight_field is None and proj_style == "integrate":
             self.projected = True
-        (bounds, center) = get_window_parameters(axis, center, width, ds)
+        (bounds, center, display_center) = \
+                get_window_parameters(axis, center, width, ds)
         if field_parameters is None: field_parameters = {}
         proj = ds.proj(fields, axis, weight_field=weight_field,
                        center=center, data_source=data_source,

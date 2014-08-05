@@ -160,4 +160,3 @@ class CylindricalCoordinateHandler(CoordinateHandler):
     @property
     def period(self):
         return np.array([0.0, 0.0, 2.0*np.pi])
-

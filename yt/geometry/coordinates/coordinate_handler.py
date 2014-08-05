@@ -189,7 +189,9 @@ class CoordinateHandler(object):
                 center = self.ds.arr(center, 'code_length')
         else:
             raise RuntimeError("center keyword \"%s\" not recognized" % center)
-        return center
+        # This has to return both a center and a display_center
+        display_center = self.convert_to_cartesian(center)
+        return center, display_center
 
 
 def cartesian_to_cylindrical(coord, center = (0,0,0)):

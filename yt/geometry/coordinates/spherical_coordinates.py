@@ -125,7 +125,21 @@ class SphericalCoordinateHandler(CoordinateHandler):
         raise NotImplementedError
 
     def convert_to_cartesian(self, coord):
-        raise NotImplementedError
+        if isinstance(coord, np.ndarray) and len(coord.shape) > 1:
+            r = coord[:,0]
+            theta = coord[:,1]
+            phi = coord[:,2]
+            nc = np.zeros_like(coord)
+            # r, theta, phi
+            nc[:,0] = np.cos(phi) * np.sin(theta)*r
+            nc[:,1] = np.sin(phi) * np.sin(theta)*r
+            nc[:,2] = np.cos(theta) * r
+        else:
+            r, theta, phi = coord
+            nc = (np.cos(phi) * np.sin(theta)*r,
+                  np.sin(phi) * np.sin(theta)*r,
+                  np.cos(theta) * r)
+        return nc
 
     def convert_to_cylindrical(self, coord):
         raise NotImplementedError
@@ -176,3 +190,11 @@ class SphericalCoordinateHandler(CoordinateHandler):
     def period(self):
         return self.ds.domain_width
 
+    def sanitize_width(self, axis, width, depth):
+        if axis == 0:
+            # This is a slice along r
+            width = self.ds.domain_width[1], self.ds.domain_width[2]
+        else:
+            width = super(SphericalCoordinateHandler, self).sanitize_width(
+              axis, width, depth)
+        return width
