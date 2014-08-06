@@ -467,8 +467,9 @@ class Orion2Dataset(ChomboDataset):
         if not pluto_ini_file_exists:
             try:
                 fileh = h5py.File(args[0],'r')
-                valid = "Chombo_global" in fileh["/"]
                 valid = 'CeilVA_mass' in fileh.attrs.keys()
+                valid = "Chombo_global" in fileh["/"] and "Charm_global" not in fileh["/"]
+                valid = valid and 'CeilVA_mass' in fileh.attrs.keys()
                 fileh.close()
                 return valid
             except:
