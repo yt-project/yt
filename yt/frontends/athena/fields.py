@@ -41,18 +41,18 @@ class AthenaFieldInfo(FieldInfoContainer):
     def setup_fluid_fields(self):
         # Add velocity fields
         for comp in "xyz":
-            vel_field = ("athena", "velocity_%s" % (comp))
-            mom_field = ("athena", "momentum_%s" % (comp))
+            vel_field = ("athena", "velocity_%s" % comp)
+            mom_field = ("athena", "momentum_%s" % comp)
             if vel_field in self.field_list:
                 self.add_output_field(vel_field, units="code_length/code_time")
-                self.alias(("gas","velocity_%s" % (comp)), vel_field,
+                self.alias(("gas","velocity_%s" % comp), vel_field,
                            units="cm/s")
             elif mom_field in self.field_list:
                 self.add_output_field(mom_field,
                                       units="code_mass*code_length/code_time")
-                f = lambda data: data["athena","momentum_%s" % (comp)] / \
+                f = lambda data: data["athena","momentum_%s" % comp] / \
                                  data["athena","density"]
-                self.add_field(("gas","velocity_%s" % (comp)),
+                self.add_field(("gas","velocity_%s" % comp),
                                function=f, units = "cm/s")
         # Add pressure, energy, and temperature fields
         def ekin1(data):

@@ -107,7 +107,7 @@ class AthenaHierarchy(GridIndex):
         self.directory = os.path.dirname(self.dataset.filename)
         self.dataset_type = dataset_type
         # for now, the index file is the dataset!
-        self.index_filename = self.dataset.filename
+        self.index_filename = os.path.join(os.getcwd(), self.dataset.filename)
         #self.directory = os.path.dirname(self.index_filename)
         self._fhandle = file(self.index_filename,'rb')
         GridIndex.__init__(self, ds, dataset_type)

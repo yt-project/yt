@@ -34,7 +34,7 @@ _fields_sloshing = ("temperature", "density", "magnetic_energy")
 sloshing = "MHDSloshing/id0/virgo_cluster.0055.vtk"
 @requires_ds(sloshing, big_data=True)
 def test_sloshing():
-    ds = data_dir_load(sloshing, parameters=parameters_sloshing)
+    ds = data_dir_load(sloshing, kwargs={"parameters":parameters_sloshing})
     yield assert_equal, str(ds), "virgo_cluster.0055"
     for test in small_patch_amr(sloshing, _fields_sloshing):
         test_sloshing.__name__ = test.description
@@ -53,10 +53,10 @@ def test_blast():
 
 _fields_stripping = ("temperature", "density", "specific_scalar[0]")
 
-stripping = "RamPressureStripping/id0/rps.0062.vtk"
-@requires_ds(stripping)
+stripping = "RamPressureStripping/id0/rps.0063.vtk"
+@requires_ds(stripping, big_data=True)
 def test_stripping():
-    ds = data_dir_load(stripping, parameters=parameters_stripping)
+    ds = data_dir_load(stripping, kwargs={"parameters":parameters_stripping})
     yield assert_equal, str(ds), "rps.0062"
     for test in small_patch_amr(stripping, _fields_stripping):
         test_stripping.__name__ = test.description
