@@ -140,27 +140,7 @@ class ParticlePlot(object):
     ...                    plot_spec=dict(color='red', linestyle="--"))
     >>> plot.save()
 
-    This creates profiles from a time series object.
-
-    >>> es = yt.simulation("AMRCosmology.enzo", "Enzo")
-    >>> es.get_time_series()
-
-    >>> profiles = []
-    >>> labels = []
-    >>> plot_specs = []
-    >>> for ds in es[-4:]:
-    ...     ad = ds.all_data()
-    ...     profiles.append(create_profile(ad, ["density"],
-    ...                                    fields=["temperature",
-    ...                                            "velocity_x"]))
-    ...     labels.append(ds.current_redshift)
-    ...     plot_specs.append(dict(linestyle="--", alpha=0.7))
-    >>>
-    >>> plot = ProfilePlot.from_profiles(profiles, labels=labels,
-    ...                                  plot_specs=plot_specs)
-    >>> plot.save()
-
-    Use plot_line_property to change line properties of one or all profiles.
+    Use set_line_property to change line properties of one or all profiles.
     
     """
     x_log = None

@@ -184,7 +184,7 @@ class ProfilePlot(object):
     ...                                  plot_specs=plot_specs)
     >>> plot.save()
 
-    Use plot_line_property to change line properties of one or all profiles.
+    Use set_line_property to change line properties of one or all profiles.
     
     """
     x_log = None
