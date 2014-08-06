@@ -124,20 +124,16 @@ class ParticlePlot(object):
         The field to plot on the y-axis.
     plot_spec : dict or list of dicts
         A dictionary or list of dictionaries containing plot keyword 
-        arguments.  For example, dict(color="blue", linestyle=".").
-        Default: None.
+        arguments.  For example, dict('c'='r', marker='.').
+        Default: dict('c'='b', 'marker'='.', 'linestyle'='None', 'markersize'=8)
 
     Examples
     --------
 
-    This creates profiles of a single dataset.
-
     >>> import yt
-    >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>> ad = ds.all_data()
-    >>> plot = ProfilePlot(ad, "density", ["temperature", "velocity_x"],
-    ...                    weight_field="cell_mass",
-    ...                    plot_spec=dict(color='red', linestyle="--"))
+    >>> plot = yt.ParticlePlot(ds.all_data(), 'particle_position_x', 'particle_velocity_x')
     >>> plot.save()
 
     Use set_line_property to change line properties of one or all profiles.
