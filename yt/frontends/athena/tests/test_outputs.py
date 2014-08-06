@@ -24,39 +24,40 @@ from yt.frontends.athena.api import AthenaDataset
 parameters_sloshing = {"time_unit":(1.0,"Myr"),
                        "length_unit":(1.0,"Mpc"),
                        "mass_unit":(1.0e14,"Msun")}
+
 parameters_stripping = {"time_unit":3.086e14,
                         "length_unit":8.0236e22,
                         "mass_unit":9.999e-30*8.0236e22**3}
 
-_fields_sloshing = ("temperature", "density", "velocity_magnitude")
+_fields_sloshing = ("temperature", "density", "magnetic_energy")
 
-sloshing = "MHDSloshing/sloshing_low_res_hdf5_plt_cnt_0300"
+sloshing = "MHDSloshing/id0/virgo_cluster.0055.vtk"
 @requires_ds(sloshing, big_data=True)
 def test_sloshing():
     ds = data_dir_load(sloshing, parameters=parameters_sloshing)
-    yield assert_equal, str(ds), "sloshing_low_res_hdf5_plt_cnt_0300"
+    yield assert_equal, str(ds), "virgo_cluster.0055"
     for test in small_patch_amr(sloshing, _fields_sloshing):
         test_sloshing.__name__ = test.description
         yield test
 
-_fields_blast = ("temperature", "density")
+_fields_blast = ("temperature", "density", "velocity_magnitude")
 
-blast = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
+blast = "MHDBlast/Blast.0100.vtk"
 @requires_ds(blast)
 def test_blast():
     ds = data_dir_load(blast)
-    yield assert_equal, str(ds), "windtunnel_4lev_hdf5_plt_cnt_0030"
+    yield assert_equal, str(ds), "Blast.0100"
     for test in small_patch_amr(blast, _fields_blast):
         test_blast.__name__ = test.description
         yield test
 
-_fields_stripping = ("temperature", "density")
+_fields_stripping = ("temperature", "density", "specific_scalar[0]")
 
-stripping = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
+stripping = "RamPressureStripping/id0/rps.0062.vtk"
 @requires_ds(stripping)
 def test_stripping():
     ds = data_dir_load(stripping, parameters=parameters_stripping)
-    yield assert_equal, str(ds), "windtunnel_4lev_hdf5_plt_cnt_0030"
+    yield assert_equal, str(ds), "rps.0062"
     for test in small_patch_amr(stripping, _fields_stripping):
         test_stripping.__name__ = test.description
         yield test
