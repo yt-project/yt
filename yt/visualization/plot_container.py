@@ -120,7 +120,7 @@ class PlotDictionary(defaultdict):
         return defaultdict.__init__(self, default_factory)
 
 class ImagePlotContainer(object):
-    """A countainer for plots with colorbars.
+    """A container for plots with colorbars.
 
     """
     _plot_type = None
