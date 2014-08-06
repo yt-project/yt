@@ -166,8 +166,8 @@ class SphericalCoordinateHandler(CoordinateHandler):
         # non-Cartesian coordinates, we usually want to override these for
         # Cartesian coordinates, since we transform them.
         rv = {0: ('theta', 'phi'),
-              1: ('x', 'y'),
-              2: ('r', 'z')}
+              1: ('x / \\sin(\\theta)', 'y / \\sin(\\theta)'),
+              2: ('R', 'z')}
         for i in rv.keys():
             rv[self.axis_name[i]] = rv[i]
             rv[self.axis_name[i].upper()] = rv[i]
