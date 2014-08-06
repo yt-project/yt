@@ -25,6 +25,11 @@ pres_units = "code_mass/(code_length*code_time**2)"
 erg_units = "code_mass * (code_length/code_time)**2"
 rho_units = "code_mass / code_length**3"
 
+def velocity_field(comp):
+    def _velocity(field, data):
+        return data["athena", "momentum_%s" % comp]/data["athena","density"]
+    return _velocity
+
 class AthenaFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("density", ("code_mass/code_length**3", ["density"], None)),
@@ -50,10 +55,8 @@ class AthenaFieldInfo(FieldInfoContainer):
             elif mom_field in self.field_list:
                 self.add_output_field(mom_field,
                                       units="code_mass/code_time/code_length**2")
-                def _velocity(field, data):
-                    return data[mom_field]/data["athena","density"]
                 self.add_field(("gas","velocity_%s" % comp),
-                               function=_velocity, units = "cm/s")
+                               function=velocity_field(comp), units = "cm/s")
         # Add pressure, energy, and temperature fields
         def ekin1(data):
             return 0.5*(data["athena","momentum_x"]**2 +

@@ -53,7 +53,7 @@ def test_blast():
 
 _fields_stripping = ("temperature", "density", "specific_scalar[0]")
 
-stripping = "RamPressureStripping/id0/rps.0063.vtk"
+stripping = "RamPressureStripping/id0/rps.0062.vtk"
 @requires_ds(stripping, big_data=True)
 def test_stripping():
     ds = data_dir_load(stripping, kwargs={"parameters":parameters_stripping})
