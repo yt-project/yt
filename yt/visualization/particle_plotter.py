@@ -202,34 +202,25 @@ class ParticlePlot(object):
          """
         if not self._plot_valid:
             self._setup_plots()
-        unique = set(self.figures.values())
-        if len(unique) < len(self.figures):
-            iters = izip(xrange(len(unique)), sorted(unique))
-        else:
-            iters = self.figures.iteritems()
         if name is None:
-            if len(self.profiles) == 1:
-                prefix = self.profiles[0].ds
-            else:
-                prefix = "Multi-data"
+            prefix = self.data_source.ds
             name = "%s.png" % prefix
         suffix = get_image_suffix(name)
         prefix = name[:name.rfind(suffix)]
-        xfn = self.profiles[0].x_field
+        xfn = self.x_field
         if isinstance(xfn, types.TupleType):
             xfn = xfn[1]
+        yfn = self.y_field
+        if isinstance(yfn, types.TupleType):
+            yfn = yfn[1]
         if not suffix:
             suffix = ".png"
         canvas_cls = get_canvas(name)
-        fns = []
-        for uid, fig in iters:
-            if isinstance(uid, types.TupleType):
-                uid = uid[1]
-            canvas = canvas_cls(fig)
-            fns.append("%s_1d-Profile_%s_%s%s" % (prefix, xfn, uid, suffix))
-            mylog.info("Saving %s", fns[-1])
-            canvas.print_figure(fns[-1])
-        return fns
+        canvas = canvas_cls(self.figure)
+        fn = "%s_ScatterPlot_%s_%s%s" % (prefix, xfn, yfn, suffix)
+        mylog.info("Saving %s", fn)
+        canvas.print_figure(fn)
+        return fn
 
     def show(self):
         r"""This will send any existing plots to the IPython notebook.
