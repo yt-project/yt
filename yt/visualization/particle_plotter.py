@@ -168,6 +168,8 @@ class ParticlePlot(object):
     z_log = None
     x_title = None
     y_title = None
+    x_lim = (None, None)
+    y_lim = (None, None)
     _plot_valid = False
 
     def __init__(self, data_source, x_field, y_field,
@@ -287,6 +289,9 @@ class ParticlePlot(object):
         self.axis.set_xlabel(xtitle)
         self.axis.set_ylabel(ytitle)
 
+        self.axis.set_xlim(*self.x_lim)
+        self.axis.set_ylim(*self.y_lim)
+
         self._plot_valid = True
 
     @invalidate_plot
@@ -371,7 +376,7 @@ class ParticlePlot(object):
 
     @invalidate_plot
     def set_xlim(self, xmin=None, xmax=None):
-        """Sets the limits of the bin field
+        """Sets the limits of the x field
 
         Parameters
         ----------
@@ -389,45 +394,21 @@ class ParticlePlot(object):
 
         >>> import yt
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> pp = yt.ProfilePlot(ds.all_data(), 'density', 'temperature')
-        >>> pp.set_xlim(1e-29, 1e-24)
+        >>> pp = yt.ParticlePlot(ds.all_data(), 'particle_position_x', 'particle_velocity_x')
+        >>> pp.set_xlim(0.1, 0.9)
         >>> pp.save()
 
         """
-        for i, p in enumerate(self.profiles):
-            if xmin is None:
-                xmi = p.x_bins.min()
-            else:
-                xmi = xmin
-            if xmax is None:
-                xma = p.x_bins.max()
-            else:
-                xma = xmax
-            extrema = {p.x_field: ((xmi, str(p.x.units)), (xma, str(p.x.units)))}
-            units = {p.x_field: str(p.x.units)}
-            for field in p.field_map.values():
-                units[field] = str(p.field_data[field].units)
-            self.profiles[i] = \
-                create_profile(p.data_source, p.x_field,
-                               n_bins=len(p.x_bins)-2,
-                               fields=p.field_map.values(),
-                               weight_field=p.weight_field,
-                               accumulation=p.accumulation,
-                               fractional=p.fractional,
-                               extrema=extrema, units=units)
+        self.x_lim = (xmin, xmax)
         return self
 
     @invalidate_plot
-    def set_ylim(self, field, ymin=None, ymax=None):
-        """Sets the plot limits for the specified field we are binning.
+    def set_ylim(self, ymin=None, ymax=None):
+        """Sets the limits for the y-axis of the plot.
 
         Parameters
         ----------
 
-        field : string or field tuple
-
-        The field that we want to adjust the plot limits for.
-        
         ymin : float or None
           The new y minimum.  Defaults to None, which leaves the ymin
           unchanged.
@@ -441,23 +422,12 @@ class ParticlePlot(object):
 
         >>> import yt
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> pp = yt.ProfilePlot(ds.all_data(), 'density', ['temperature', 'x-velocity'])
-        >>> pp.set_ylim('temperature', 1e4, 1e6)
+        >>> pp = yt.ParticlePlot(ds.all_data(), 'particle_position_x', 'particle_velocity_x')
+        >>> pp.set_ylim(1e1, 1e8)
         >>> pp.save()
 
         """
-        for i, p in enumerate(self.profiles):
-            if field is 'all':
-                fields = self.axes.keys()
-            else:
-                fields = ensure_list(field)
-            for profile in self.profiles:
-                for field in profile.data_source._determine_fields(fields):
-                    if field in profile.field_map:
-                        field = profile.field_map[field]
-                    self.axes.ylim[field] = (ymin, ymax)
-                    # Continue on to the next profile.
-                    break
+        self.y_lim = (ymin, ymax)
         return self
 
     def _get_field_log(self, field):
@@ -468,7 +438,7 @@ class ParticlePlot(object):
         scales = {True: 'log', False: 'linear'}
         return scales[do_log]
 
-    def _get_field_label(self, field, field_info, field_unit, fractional=False):
+    def _get_field_label(self, field, field_info, field_unit):
         field_unit = field_unit.latex_representation()
         field_name = field_info.display_name
         if isinstance(field, tuple): field = field[1]
@@ -478,12 +448,9 @@ class ParticlePlot(object):
         elif field_name.find('$') == -1:
             field_name = field_name.replace(' ','\/')
             field_name = r'$\rm{'+field_name+r'}$'
-        if fractional:
-            label = field_name + r'$\rm{\/Probability\/Density}$'
-        elif field_unit is None or field_unit == '' or field_unit == '1':
+        if field_unit is None or field_unit == '' or field_unit == '1':
             label = field_name
         else:
-            field_unit = field_unit.latex_representation()
             label = field_name+r'$\/\/('+field_unit+r')$'
         return label
 
