@@ -265,6 +265,7 @@ class ParticlePlot(object):
         return ret
 
     def _setup_plots(self):
+        self.axis.cla()
         self.axis.plot(np.array(self.x_data), np.array(self.y_data),
                        **self.plot_spec)
 
@@ -286,7 +287,7 @@ class ParticlePlot(object):
         self._plot_valid = True
 
     @invalidate_plot
-    def set_line_property(self, property, value, index=None):
+    def set_line_property(self, property, value):
         r"""
         Set properties for one or all lines to be plotted.
 
@@ -296,10 +297,6 @@ class ParticlePlot(object):
             The line property to be set.
         value : str, int, float
             The value to set for the line property.
-        index : int
-            The index of the profile in the list of profiles to be 
-            changed.  If None, change all plotted lines.
-            Default : None.
 
         Examples
         --------
@@ -311,12 +308,8 @@ class ParticlePlot(object):
         plot.set_line_property("linewidth", 4, index=0)
         
         """
-        if index is None:
-            specs = self.plot_spec
-        else:
-            specs = [self.plot_spec[index]]
-        for spec in specs:
-            spec[property] = value
+        specs = self.plot_spec
+        specs[property] = value
         return self
 
     @invalidate_plot
