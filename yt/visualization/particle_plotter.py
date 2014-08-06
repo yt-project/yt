@@ -245,8 +245,7 @@ class ParticlePlot(object):
         self.axis.plot(np.array(self.x_data), np.array(self.y_data),
                        **self.plot_spec)
 
-        xscale = self._get_field_log(self.x_field)
-        yscale = self._get_field_log(self.y_field)
+        xscale, yscale = self._get_axis_log()
 
         xtitle = self._get_field_title(self.x_field)
         ytitle = self._get_field_title(self.y_field)
@@ -289,8 +288,8 @@ class ParticlePlot(object):
         return self
 
     @invalidate_plot
-    def set_log(self, field, log):
-        """set a field to log or linear.
+    def set_xlog(self, log):
+        """set the x-axis to log or linear.
 
         Parameters
         ----------
@@ -299,19 +298,23 @@ class ParticlePlot(object):
         log : boolean
             Log on/off.
         """
-        if field == "all":
-            self.x_log = log
-            for field in self.profiles[0].field_data.keys():
-                self.y_log[field] = log
-        else:
-            field, = self.profiles[0].data_source._determine_fields([field])
-            if field == self.profiles[0].x_field:
-                self.x_log = log
-            elif field in self.profiles[0].field_data:
-                self.y_log[field] = log
-            else:
-                raise KeyError("Field %s not in profile plot!" % (field))
+        self.x_log = log
         return self
+
+    @invalidate_plot
+    def set_ylog(self, log):
+        """set the y-axis to log or linear.
+
+        Parameters
+        ----------
+        field : string
+            the field to set a transform
+        log : boolean
+            Log on/off.
+        """
+        self.y_log = log
+        return self
+    
 
     @invalidate_plot
     def set_unit(self, field, unit):
@@ -325,13 +328,12 @@ class ParticlePlot(object):
         new_unit : string or Unit object
            The name of the new unit.
         """
-        for profile in self.profiles:
-            if field == profile.x_field[1]:
-                profile.set_x_unit(unit)
-            elif field in self.profiles[0].field_map:
-                profile.set_field_unit(field, unit)
-            else:
-                raise KeyError("Field %s not in profile plot!" % (field))
+        if field == self.x_field:
+            profile.set_x_unit(unit)
+        elif field == self.y_field:
+            profile.set_field_unit(field, unit)
+        else:
+            raise KeyError("Field %s not in profile plot!" % (field))
         return self
 
     @invalidate_plot
@@ -390,13 +392,24 @@ class ParticlePlot(object):
         self.y_lim = (ymin, ymax)
         return self
 
-    def _get_field_log(self, field):
-        ds = self.data_source.ds
-        f, = self.data_source._determine_fields([field])
-        fi = ds._get_field_info(*f)
-        do_log = fi.take_log
+    def _get_axis_log(self):
+
+        xf, = self.data_source._determine_fields([self.x_field])
+        xfi = self.data_source.ds._get_field_info(*xf)
+        if self.x_log is None:
+            x_log = xfi.take_log
+        else:
+            x_log = self.x_log
+
+        yf, = self.data_source._determine_fields([self.y_field])
+        yfi = self.data_source.ds._get_field_info(*yf)
+        if self.y_log is None:
+            y_log = yfi.take_log
+        else:
+            y_log = self.y_log
+        
         scales = {True: 'log', False: 'linear'}
-        return scales[do_log]
+        return scales[x_log], scales[y_log]
 
     def _get_field_label(self, field, field_info, field_unit):
         field_unit = field_unit.latex_representation()
