@@ -96,6 +96,8 @@ class AthenaFieldInfo(FieldInfoContainer):
                            function=_total_energy,
                            units="erg/g")
         elif ("athena","total_energy") in self.field_list:
+            self.add_output_field(("athena","total_energy"),
+                                  units=pres_units)
             def _pressure(field, data):
                 return eint_from_etot(data)*(data.ds.gamma-1.0)
             self.add_field(("gas","pressure"), function=_pressure,
