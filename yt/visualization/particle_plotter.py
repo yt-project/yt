@@ -246,9 +246,7 @@ class ParticlePlot(object):
                        **self.plot_spec)
 
         xscale, yscale = self._get_axis_log()
-
-        xtitle = self._get_field_title(self.x_field)
-        ytitle = self._get_field_title(self.y_field)
+        xtitle, ytitle = self._get_axis_titles()
 
         self.axis.set_xscale(xscale)
         self.axis.set_yscale(yscale)
@@ -329,9 +327,9 @@ class ParticlePlot(object):
            The name of the new unit.
         """
         if field == self.x_field:
-            profile.set_x_unit(unit)
+            self.x_data.convert_to_units(unit)
         elif field == self.y_field:
-            profile.set_field_unit(field, unit)
+            self.y_data.convert_to_units(unit)
         else:
             raise KeyError("Field %s not in profile plot!" % (field))
         return self
@@ -427,10 +425,14 @@ class ParticlePlot(object):
             label = field_name+r'$\/\/('+field_unit+r')$'
         return label
 
-    def _get_field_title(self, field):
-        ds = self.data_source.ds
-        f, = self.data_source._determine_fields([field])
-        fi = ds._get_field_info(*f)
-        field_unit = Unit(fi.units, registry=self.data_source.ds.unit_registry)
-        title = self._get_field_label(field, fi, field_unit)
-        return title
+    def _get_axis_titles(self):
+
+        xfi = self.data_source.ds._get_field_info(self.x_field)
+        x_unit = Unit(self.x_data.units, registry=self.data_source.ds.unit_registry)
+        x_title = self._get_field_label(self.x_field, xfi, x_unit)
+
+        yfi = self.data_source.ds._get_field_info(self.y_field)
+        y_unit = Unit(self.y_data.units, registry=self.data_source.ds.unit_registry)
+        y_title = self._get_field_label(self.y_field, yfi, y_unit)
+
+        return (x_title, y_title)
