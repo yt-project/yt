@@ -57,6 +57,13 @@ cdef class ParticleSmoothOperation:
                                np.int64_t *nind, np.int64_t *doffs,
                                np.int64_t *pinds, np.int64_t *pcounts,
                                np.int64_t offset, np.float64_t **index_fields)
+    cdef void neighbor_process_particle(self, np.float64_t cpos[3],
+                               np.float64_t *ppos,
+                               np.float64_t **fields, np.int64_t nneighbors,
+                               np.int64_t *nind, np.int64_t *doffs,
+                               np.int64_t *pinds, np.int64_t *pcounts,
+                               np.int64_t offset,
+                               np.float64_t **index_fields)
     cdef void neighbor_eval(self, np.int64_t pn, np.float64_t ppos[3],
                             np.float64_t cpos[3])
     cdef void neighbor_reset(self)

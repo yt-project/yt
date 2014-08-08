@@ -208,6 +208,46 @@ class OctreeSubset(YTSelectionContainer):
             vals = np.asfortranarray(vals)
         return vals
 
+    def particle_operation(self, positions, fields = None,
+            index_fields = None, method = None, nneighbors = 64):
+        # Here we perform our particle deposition.
+        positions.convert_to_units("code_length")
+        morton = compute_morton(
+            positions[:,0], positions[:,1], positions[:,2],
+            self.ds.domain_left_edge,
+            self.ds.domain_right_edge)
+        morton.sort()
+        particle_octree = ParticleOctreeContainer([1, 1, 1],
+            self.ds.domain_left_edge,
+            self.ds.domain_right_edge,
+            over_refine = self._oref)
+        particle_octree.n_ref = nneighbors / 2
+        particle_octree.add(morton)
+        particle_octree.finalize()
+        pdom_ind = particle_octree.domain_ind(self.selector)
+        if fields is None: fields = []
+        if index_fields is None: index_fields = []
+        cls = getattr(particle_smooth, "%s_smooth" % method, None)
+        if cls is None:
+            raise YTParticleDepositionNotImplemented(method)
+        nz = self.nz
+        mdom_ind = self.domain_ind
+        nvals = (nz, nz, nz, (mdom_ind >= 0).sum())
+        op = cls(nvals, len(fields), nneighbors)
+        op.initialize()
+        mylog.debug("Smoothing %s particles into %s Octs",
+            positions.shape[0], nvals[-1])
+        op.process_particles(particle_octree, pdom_ind, positions, 
+            fields, self.domain_id, self._domain_offset, self.ds.periodicity,
+            index_fields, self.ds.geometry)
+        vals = op.finalize()
+        if vals is None: return
+        if isinstance(vals, list):
+            vals = [np.asfortranarray(v) for v in vals]
+        else:
+            vals = np.asfortranarray(vals)
+        return vals
+
     @cell_count_cache
     def select_icoords(self, dobj):
         return self.oct_handler.icoords(dobj.selector, domain_id = self.domain_id,

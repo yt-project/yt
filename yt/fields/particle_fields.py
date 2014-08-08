@@ -567,3 +567,19 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
                        units = field_units)
     return [field_name]
 
+def add_nearest_neighbor_field(ptype, coord_name, registry, nneighbors = 64):
+    field_name = (ptype, "nearest_neighbor_%s" % (nneighbors))
+    def _nth_neighbor(field, data):
+        pos = data[ptype, coord_name].in_units("code_length")
+        distances = 0.0 * pos[:,0]
+        data.particle_operation(pos, [distances],
+                         method="nth_neighbor",
+                         nneighbors = nneighbors)
+        # Now some quick unit conversions.
+        return distances
+    registry.add_field(field_name, function = _nth_neighbor,
+                       validators = [ValidateSpatial(0)],
+                       particle_type = True,
+                       units = "code_length")
+    return [field_name]
+
