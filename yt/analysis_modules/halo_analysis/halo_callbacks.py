@@ -225,13 +225,13 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
 
     # accumulate, if necessary
     if accumulation:
-        used = my_profile.used        
+        used = my_profile.used
         for field in my_profile.field_data:
             if weight_field is None:
                 my_profile.field_data[field][used] = \
                     np.cumsum(my_profile.field_data[field][used])
             else:
-                my_weight = my_profile.weight[:, 0]
+                my_weight = my_profile.weight
                 my_profile.field_data[field][used] = \
                   np.cumsum(my_profile.field_data[field][used] * my_weight[used]) / \
                   np.cumsum(my_weight[used])

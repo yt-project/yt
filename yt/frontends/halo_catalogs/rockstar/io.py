@@ -24,13 +24,17 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 
 import yt.utilities.fortran_utils as fpu
-from .definitions import halo_dt
+from .definitions import halo_dts
 from yt.utilities.lib.geometry_utils import compute_morton
 
 from yt.geometry.oct_container import _ORDER_MAX
 
 class IOHandlerRockstarBinary(BaseIOHandler):
     _dataset_type = "rockstar_binary"
+
+    def __init__(self, *args, **kwargs):
+        super(IOHandlerRockstarBinary, self).__init__(*args, **kwargs)
+        self._halo_dt = halo_dts[self.ds.parameters['format_revision']]
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
@@ -45,11 +49,12 @@ class IOHandlerRockstarBinary(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
+        
         for data_file in sorted(data_files):
             pcount = data_file.header['num_halos']
             with open(data_file.filename, "rb") as f:
                 f.seek(data_file._position_offset, os.SEEK_SET)
-                halos = np.fromfile(f, dtype=halo_dt, count = pcount)
+                halos = np.fromfile(f, dtype=self._halo_dt, count = pcount)
                 x = halos['particle_position_x'].astype("float64")
                 y = halos['particle_position_y'].astype("float64")
                 z = halos['particle_position_z'].astype("float64")
@@ -70,7 +75,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
             with open(data_file.filename, "rb") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     f.seek(data_file._position_offset, os.SEEK_SET)
-                    halos = np.fromfile(f, dtype=halo_dt, count = pcount)
+                    halos = np.fromfile(f, dtype=self._halo_dt, count = pcount)
                     x = halos['particle_position_x'].astype("float64")
                     y = halos['particle_position_y'].astype("float64")
                     z = halos['particle_position_z'].astype("float64")
@@ -89,7 +94,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
         ind = 0
         with open(data_file.filename, "rb") as f:
             f.seek(data_file._position_offset, os.SEEK_SET)
-            halos = np.fromfile(f, dtype=halo_dt, count = pcount)
+            halos = np.fromfile(f, dtype=self._halo_dt, count = pcount)
             pos = np.empty((halos.size, 3), dtype="float64")
             # These positions are in Mpc, *not* "code" units
             pos = data_file.ds.arr(pos, "code_length")
@@ -121,6 +126,6 @@ class IOHandlerRockstarBinary(BaseIOHandler):
         return {'halos': data_file.header['num_halos']}
 
     def _identify_fields(self, data_file):
-        fields = [("halos", f) for f in halo_dt.fields if
+        fields = [("halos", f) for f in self._halo_dt.fields if
                   "padding" not in f]
         return fields, {}
