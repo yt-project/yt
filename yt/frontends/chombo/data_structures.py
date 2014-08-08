@@ -255,12 +255,17 @@ class ChomboDataset(Dataset):
         if D == 3:
             self.dataset_type = 'chombo_hdf5'
 
-        # some datasets will not be time-dependent, make
+        # some datasets will not be time-dependent, and to make
+        # make matters worse the simulation time is not always
+        # stored in the same place in the hdf file! Make
         # sure we handle that here.
         try:
             self.current_time = self._handle.attrs['time']
         except KeyError:
-            self.current_time = 0.0
+            try: 
+                self.current_time = self._handle['level_0'].attrs['time']
+            except KeyError:
+                self.current_time = 0.0
 
         self.geometry = "cartesian"
         self.ini_filename = ini_filename
