@@ -114,15 +114,14 @@ transparent and simple example).
                 function=_my_radial_velocity,
                 units="cm/s",
                 take_log=False,
-                display_field=False,
                 validators=[ValidateParameter('center'),
                             ValidateParameter('bulk_velocity')])
 
 Note that we have added a few parameters below the main function; we specify
-that we do not wish to display this field as logged, that the field should not be displayed in a
-drop-down box of fields to display within Reason, and that we require both
-``bulk_velocity`` and ``center`` to be present in a given data object for which we wish
-to calculate this field. This is done through the parameter
+that we do not wish to display this field as logged, that we require both
+``bulk_velocity`` and ``center`` to be present in a given data object we wish
+to calculate this for, and we say that it should not be displayed in a
+drop-down box of fields to display. This is done through the parameter
 *validators*, which accepts a list of :class:`~yt.fields.derived_field.FieldValidator` 
 objects. These objects define the way in which the field is generated, and 
 when it is able to be created. In this case, we mandate that parameters 
