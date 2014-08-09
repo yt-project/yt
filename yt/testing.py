@@ -192,6 +192,37 @@ def fake_amr_ds(fields = ("Density",)):
         data.append(gdata)
     return load_amr_grids(data, [32, 32, 32], 1.0)
 
+def fake_particle_ds(
+        fields = ("particle_position_x",
+                  "particle_position_y",
+                  "particle_position_z",
+                  "particle_mass", 
+                  "particle_velocity_x",
+                  "particle_velocity_y",
+                  "particle_velocity_z"),
+        units = ('cm', 'cm', 'cm', 'g', 'cm/s', 'cm/s', 'cm/s'),
+        negative = (False, False, False, False, True, True, True),
+        npart = 16**3, length_unit=1.0):
+    from yt.frontends.stream.api import load_particles
+    if not iterable(negative):
+        negative = [negative for f in fields]
+    assert(len(fields) == len(negative))
+    offsets = []
+    for n in negative:
+        if n:
+            offsets.append(0.5)
+        else:
+            offsets.append(0.0)
+    data = {}
+    for field, offset, u in zip(fields, offsets, units):
+        v = (np.random.random(npart) - offset)
+        data[field] = (v, u)
+    bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]])
+    ds = load_particles(data, 1.0, bbox=bbox)
+    return ds
+
+
+
 def expand_keywords(keywords, full=False):
     """
     expand_keywords is a means for testing all possible keyword
