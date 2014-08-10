@@ -177,7 +177,8 @@ class OctreeSubset(YTSelectionContainer):
                 self.ds.domain_left_edge,
                 self.ds.domain_right_edge,
                 over_refine = self._oref)
-            particle_octree.n_ref = nneighbors / 2
+            # This should ensure we get everything within on neighbor of home.
+            particle_octree.n_ref = nneighbors * 2
             particle_octree.add(morton)
             particle_octree.finalize()
             pdom_ind = particle_octree.domain_ind(self.selector)
@@ -220,8 +221,8 @@ class OctreeSubset(YTSelectionContainer):
         particle_octree = ParticleOctreeContainer([1, 1, 1],
             self.ds.domain_left_edge,
             self.ds.domain_right_edge,
-            over_refine = self._oref)
-        particle_octree.n_ref = nneighbors / 2
+            over_refine = 1)
+        particle_octree.n_ref = nneighbors * 2
         particle_octree.add(morton)
         particle_octree.finalize()
         pdom_ind = particle_octree.domain_ind(self.selector)

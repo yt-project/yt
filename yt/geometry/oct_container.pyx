@@ -340,7 +340,8 @@ cdef class OctreeContainer:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef Oct** neighbors(self, OctInfo *oi, np.int64_t *nneighbors, Oct *o):
+    cdef Oct** neighbors(self, OctInfo *oi, np.int64_t *nneighbors, Oct *o,
+                         bint periodicity[3]):
         cdef Oct* candidate
         nn = 0
         # We are going to do a brute-force search here.
@@ -365,14 +366,23 @@ cdef class OctreeContainer:
         my_list = olist = OctList_append(NULL, o)
         for i in range(3):
             npos[0] = (oi.ipos[0] + (1 - i))
-            if npos[0] < 0: npos[0] += ndim[0]
-            if npos[0] >= ndim[0]: npos[0] -= ndim[0]
+            if not periodicity[0] and not \
+               (0 <= npos[0] < ndim[0]):
+                continue
+            elif npos[0] < 0: npos[0] += ndim[0]
+            elif npos[0] >= ndim[0]: npos[0] -= ndim[0]
             for j in range(3):
                 npos[1] = (oi.ipos[1] + (1 - j))
-                if npos[1] < 0: npos[1] += ndim[1]
-                if npos[1] >= ndim[1]: npos[1] -= ndim[1]
+                if not periodicity[1] and not \
+                   (0 <= npos[1] < ndim[1]):
+                    continue
+                elif npos[1] < 0: npos[1] += ndim[1]
+                elif npos[1] >= ndim[1]: npos[1] -= ndim[1]
                 for k in range(3):
                     npos[2] = (oi.ipos[2] + (1 - k))
+                    if not periodicity[2] and not \
+                       (0 <= npos[2] < ndim[2]):
+                        continue
                     if npos[2] < 0: npos[2] += ndim[2]
                     if npos[2] >= ndim[2]: npos[2] -= ndim[2]
                     # Now we have our npos, which we just need to find.
