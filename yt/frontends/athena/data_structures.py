@@ -107,7 +107,7 @@ class AthenaHierarchy(GridIndex):
         self.directory = os.path.dirname(self.dataset.filename)
         self.dataset_type = dataset_type
         # for now, the index file is the dataset!
-        self.index_filename = self.dataset.filename
+        self.index_filename = os.path.join(os.getcwd(), self.dataset.filename)
         #self.directory = os.path.dirname(self.index_filename)
         self._fhandle = file(self.index_filename,'rb')
         GridIndex.__init__(self, ds, dataset_type)
@@ -366,7 +366,7 @@ class AthenaDataset(Dataset):
         # Unfortunately we now have to mandate that the index gets 
         # instantiated so that we can make sure we have the correct left 
         # and right domain edges.
-        self.h
+        self.index
 
     def _set_code_unit_attributes(self):
         """
@@ -458,13 +458,12 @@ class AthenaDataset(Dataset):
             self.hubble_constant = self.cosmological_simulation = 0.0
         self.parameters['Time'] = self.current_time # Hardcode time conversion for now.
         self.parameters["HydroMethod"] = 0 # Hardcode for now until field staggering is supported.
-        if self.specified_parameters.has_key("gamma") :
+        if self.specified_parameters.has_key("gamma"):
             self.parameters["Gamma"] = self.specified_parameters["gamma"]
-        else :
+        else:
             self.parameters["Gamma"] = 5./3. 
         self.geometry = self.specified_parameters.get("geometry", "cartesian")
         self._handle.close()
-
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

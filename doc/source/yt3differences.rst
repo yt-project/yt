@@ -62,7 +62,7 @@ Here's a quick reference for how to update your code to work with yt-3.0.
   units.  The full field name will be will be ``(code_name, field_name)``. See
   :ref:`fields`.
 * Particle fields on-disk will also be in code units, and will be named
-  ``(particle_type, FieldName)``.  If there is only one particle type in the
+  ``(particle_type, field_name)``.  If there is only one particle type in the
   output file, all particles will use ``io`` as the particle type. See 
   :ref:`fields`.
 * The objects we used to refer to as "parameter files" we now refer to as a
@@ -160,7 +160,7 @@ Reworked Import System
 It's now possible to import all yt functionality using ``import yt``. Rather
 than using ``from yt.mods import *``, we suggest using ``import yt`` in new
 scripts.  Most commonly used yt functionality is attached to the ``yt`` module.
-Load a dataset with ``yt.load()``, create a phase plot using ``yt.PhasePlot,
+Load a dataset with ``yt.load()``, create a phase plot using ``yt.PhasePlot``,
 and much more, see :ref:`the api docs api-reference` to learn more about what's
 in the ``yt`` namespace, or just use tab completion in IPython: ``yt.<tab>``.
 
@@ -224,7 +224,7 @@ Hierarchy is Now Index
 The hierarchy object (``pf.h``) is now referred to as an index (``ds.index``).
 It is no longer necessary to directly refer to the ``index`` as often, since
 data objects are now attached to the to the ``dataset`` object.  Before, you
-would say ``ph.f.sphere()``, now you can say ``ds.sphere()``.
+would say ``pf.h.sphere()``, now you can say ``ds.sphere()``.
 
 New derived quantities interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -278,7 +278,7 @@ Object Renaming
 Nearly all internal objects have been renamed.  Typically this means either
 removing ``AMR`` from the prefix or replacing it with ``YT``.  All names of
 objects remain the same for the purposes of selecting data and creating them;
-i.e., ``sphere`` objects are still called ``sphere`` - you can access create one
+i.e., ``sphere`` objects are still called ``sphere`` - you can access or create one
 via ``ds.sphere``.  For a detailed description and index see 
 :ref:`available-objects`.
 
