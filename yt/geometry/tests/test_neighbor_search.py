@@ -34,6 +34,5 @@ def test_neighbor_search():
         min_in[i] = np.argmin(np.abs(radius - nearest_neighbors[i]))
         #if i == 34: raise RuntimeError
         #dd.field_data.pop(("all", "particle_radius"))
-    assert_equal((min_in == 63).sum(), min_in.size)
     yield assert_equal, (min_in == 63).sum(), min_in.size
     yield assert_array_almost_equal, nearest_neighbors, all_neighbors
