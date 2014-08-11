@@ -141,6 +141,31 @@ class OctreeSubset(YTSelectionContainer):
         return self._domain_ind
 
     def deposit(self, positions, fields = None, method = None):
+        r"""Operate on the mesh, in a particle-against-mesh fashion, with
+        exclusively local input.
+
+        This uses the octree indexing system to call a "deposition" operation
+        (defined in yt/geometry/particle_deposit.pyx) that can take input from
+        several particles (local to the mesh) and construct some value on the
+        mesh.  The canonical example is to sum the total mass in a mesh cell
+        and then divide by its volume.
+
+        Parameters
+        ----------
+        positions : array_like (Nx3)
+            The positions of all of the particles to be examined.  A new
+            indexed octree will be constructed on these particles.
+        fields : list of arrays
+            All the necessary fields for computing the particle operation.  For
+            instance, this might include mass, velocity, etc.  
+        method : string
+            This is the "method name" which will be looked up in the
+            `particle_deposit` namespace as `methodname_deposit`.
+
+        Returns
+        -------
+        List of fortran-ordered, mesh-like arrays.
+        """
         # Here we perform our particle deposition.
         if fields is None: fields = []
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
@@ -165,6 +190,41 @@ class OctreeSubset(YTSelectionContainer):
 
     def smooth(self, positions, fields = None, index_fields = None,
                method = None, create_octree = False, nneighbors = 64):
+        r"""Operate on the mesh, in a particle-against-mesh fashion, with
+        non-local input.
+
+        This uses the octree indexing system to call a "smoothing" operation
+        (defined in yt/geometry/particle_smooth.pyx) that can take input from
+        several (non-local) particles and construct some value on the mesh.
+        The canonical example is to conduct a smoothing kernel operation on the
+        mesh.
+
+        Parameters
+        ----------
+        positions : array_like (Nx3)
+            The positions of all of the particles to be examined.  A new
+            indexed octree will be constructed on these particles.
+        fields : list of arrays
+            All the necessary fields for computing the particle operation.  For
+            instance, this might include mass, velocity, etc.  
+        index_fields : list of arrays
+            All of the fields defined on the mesh that may be used as input to
+            the operation.
+        method : string
+            This is the "method name" which will be looked up in the
+            `particle_smooth` namespace as `methodname_smooth`.
+        create_octree : bool
+            Should we construct a new octree for indexing the particles?  In
+            cases where we are applying an operation on a subset of the
+            particles used to construct the mesh octree, this will ensure that
+            we are able to find and identify all relevant particles.
+        nneighbors : int, default 64
+            The number of neighbors to examine during the process.
+
+        Returns
+        -------
+        List of fortran-ordered, mesh-like arrays.
+        """
         # Here we perform our particle deposition.
         positions.convert_to_units("code_length")
         if create_octree:
@@ -177,7 +237,7 @@ class OctreeSubset(YTSelectionContainer):
                 self.ds.domain_left_edge,
                 self.ds.domain_right_edge,
                 over_refine = self._oref)
-            # This should ensure we get everything within on neighbor of home.
+            # This should ensure we get everything within one neighbor of home.
             particle_octree.n_ref = nneighbors * 2
             particle_octree.add(morton)
             particle_octree.finalize()
@@ -210,7 +270,39 @@ class OctreeSubset(YTSelectionContainer):
         return vals
 
     def particle_operation(self, positions, fields = None,
-            index_fields = None, method = None, nneighbors = 64):
+            method = None, nneighbors = 64):
+        r"""Operate on particles, in a particle-against-particle fashion.
+
+        This uses the octree indexing system to call a "smoothing" operation
+        (defined in yt/geometry/particle_smooth.pyx) that expects to be called
+        in a particle-by-particle fashion.  For instance, the canonical example
+        of this would be to compute the Nth nearest neighbor, or to compute the
+        density for a given particle based on some kernel operation.
+
+        Many of the arguments to this are identical to those used in the smooth
+        and deposit functions.  Note that the `fields` argument must not be
+        empty, as these fields will be modified in place.
+
+        Parameters
+        ----------
+        positions : array_like (Nx3)
+            The positions of all of the particles to be examined.  A new
+            indexed octree will be constructed on these particles.
+        fields : list of arrays
+            All the necessary fields for computing the particle operation.  For
+            instance, this might include mass, velocity, etc.  One of these
+            will likely be modified in place.
+        method : string
+            This is the "method name" which will be looked up in the
+            `particle_smooth` namespace as `methodname_smooth`.
+        nneighbors : int, default 64
+            The number of neighbors to examine during the process.
+
+        Returns
+        -------
+        Nothing.
+
+        """
         # Here we perform our particle deposition.
         positions.convert_to_units("code_length")
         morton = compute_morton(
@@ -227,7 +319,6 @@ class OctreeSubset(YTSelectionContainer):
         particle_octree.finalize()
         pdom_ind = particle_octree.domain_ind(self.selector)
         if fields is None: fields = []
-        if index_fields is None: index_fields = []
         cls = getattr(particle_smooth, "%s_smooth" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
@@ -240,7 +331,7 @@ class OctreeSubset(YTSelectionContainer):
             positions.shape[0], nvals[-1])
         op.process_particles(particle_octree, pdom_ind, positions, 
             fields, self.domain_id, self._domain_offset, self.ds.periodicity,
-            index_fields, self.ds.geometry)
+            self.ds.geometry)
         vals = op.finalize()
         if vals is None: return
         if isinstance(vals, list):

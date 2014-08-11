@@ -284,7 +284,6 @@ cdef class ParticleSmoothOperation:
                      fields = None, int domain_id = -1,
                      int domain_offset = 0,
                      periodicity = (True, True, True),
-                     index_fields = None,
                      geometry = "cartesian"):
         cdef int nf, i, j, k, dims[3], n
         cdef np.float64_t **field_pointers, *field_vals, pos[3], *ppos, dds[3]
@@ -298,7 +297,6 @@ cdef class ParticleSmoothOperation:
         cdef np.int64_t *doffs, *pinds, *pcounts, poff
         cdef np.ndarray[np.int64_t, ndim=1] pind, doff, pdoms, pcount
         cdef np.ndarray[np.float64_t, ndim=1] tarr
-        cdef np.ndarray[np.float64_t, ndim=4] iarr
         cdef np.ndarray[np.float64_t, ndim=2] cart_positions
         if geometry == "cartesian":
             self.pos_setup = cart_coord_setup
@@ -330,13 +328,6 @@ cdef class ParticleSmoothOperation:
         for i in range(nf):
             tarr = fields[i]
             field_pointers[i] = <np.float64_t *> tarr.data
-        if index_fields is None:
-            index_fields = []
-        nf = len(index_fields)
-        index_field_pointers = <np.float64_t**> alloca(sizeof(np.float64_t *) * nf)
-        for i in range(nf):
-            iarr = index_fields[i]
-            index_field_pointers[i] = <np.float64_t *> iarr.data
         for i in range(3):
             self.DW[i] = (particle_octree.DRE[i] - particle_octree.DLE[i])
             self.periodicity[i] = periodicity[i]
@@ -417,7 +408,7 @@ cdef class ParticleSmoothOperation:
                     pos[k] = positions[pind0, k]
                 self.neighbor_process_particle(pos, cart_pos, field_pointers,
                             nneighbors, nind, doffs, pinds, pcounts, pind0,
-                            index_field_pointers)
+                            NULL)
         #print "VISITED", visited.sum(), visited.size,
         #print 100.0*float(visited.sum())/visited.size
         if nind != NULL:
