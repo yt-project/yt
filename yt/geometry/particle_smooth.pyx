@@ -732,15 +732,18 @@ cdef class SmoothedDensityEstimate(ParticleSmoothOperation):
     cdef void process(self, np.int64_t offset, int i, int j, int k,
                       int dim[3], np.float64_t cpos[3], np.float64_t **fields,
                       np.float64_t **index_fields):
-        cdef np.float64_t r2, hsml, dens, mass
+        cdef np.float64_t r2, hsml, dens, mass, weight, lw
         cdef int pn
         # We assume "offset" here is the particle index.
         hsml = sqrt(self.neighbors[self.curn-1].r2)
         dens = 0.0
+        weight = 0.0
         for pn in range(self.curn):
             mass = fields[0][self.neighbors[pn].pn]
             r2 = self.neighbors[pn].r2
-            dens += mass * sph_kernel(sqrt(r2) / hsml)
-        fields[1][offset] = dens
+            lw = sph_kernel(sqrt(r2) / hsml)
+            dens += mass * lw
+        weight = (4.0/3.0) * 3.1415926 * hsml**3
+        fields[1][offset] = dens/weight
 
 density_smooth = SmoothedDensityEstimate
