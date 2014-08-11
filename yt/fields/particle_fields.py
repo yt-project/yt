@@ -583,3 +583,24 @@ def add_nearest_neighbor_field(ptype, coord_name, registry, nneighbors = 64):
                        units = "code_length")
     return [field_name]
 
+def add_density_kernel(ptype, coord_name, mass_name, registry, nneighbors = 64):
+    field_name = (ptype, "smoothed_density")
+    field_units = registry[ptype, mass_name].units
+    def _nth_neighbor(field, data):
+        pos = data[ptype, coord_name].in_units("code_length")
+        mass = data[ptype, mass_name].in_units(field_units)
+        densities = mass * 0.0
+        data.particle_operation(pos, [mass, densities],
+                         method="s",
+                         nneighbors = nneighbors)
+        ones = pos.prod(axis=1) # Get us in code_length**3
+        ones[:] = 1.0
+        densities /= ones
+        # Now some quick unit conversions.
+        return densities
+    registry.add_field(field_name, function = _nth_neighbor,
+                       validators = [ValidateSpatial(0)],
+                       particle_type = True,
+                       units = "code_length")
+    return [field_name]
+

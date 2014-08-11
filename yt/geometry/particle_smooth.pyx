@@ -718,3 +718,29 @@ cdef class NthNeighborDistanceSmooth(ParticleSmoothOperation):
         fields[0][offset] = max_r
 
 nth_neighbor_smooth = NthNeighborDistanceSmooth
+
+cdef class SmoothedDensityEstimate(ParticleSmoothOperation):
+    def initialize(self):
+        return
+
+    def finalize(self):
+        return
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef void process(self, np.int64_t offset, int i, int j, int k,
+                      int dim[3], np.float64_t cpos[3], np.float64_t **fields,
+                      np.float64_t **index_fields):
+        cdef np.float64_t r2, hsml, dens, mass
+        cdef int pn
+        # We assume "offset" here is the particle index.
+        hsml = sqrt(self.neighbors[self.curn-1].r2)
+        dens = 0.0
+        for pn in range(self.curn):
+            mass = fields[0][self.neighbors[pn].pn]
+            r2 = self.neighbors[pn].r2
+            dens += mass * sph_kernel(sqrt(r2) / hsml)
+        fields[1][offset] = dens
+
+density_smooth = SmoothedDensityEstimate
