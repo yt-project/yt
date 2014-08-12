@@ -129,6 +129,15 @@ class YTDataContainer(object):
         self._index = self.ds.index
         return self._index
 
+    def _debug(self):
+        """
+        When called from within a derived field, this will run pdb.  However,
+        during field detection, it will not.  This allows you to more easily
+        debug fields that are being called on actual objects.
+        """
+        import pdb
+        pdb.set_trace()
+
     def _set_default_field_parameters(self):
         self.field_parameters = {}
         for k,v in self._default_field_parameters.items():
