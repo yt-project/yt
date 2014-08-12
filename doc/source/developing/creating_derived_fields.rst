@@ -179,6 +179,18 @@ There are a number of options available, but the only mandatory ones are ``name`
      fields or that get aliased to themselves, we can specify a different
      desired output unit than the unit found on disk.
 
+Debugging a Derived Field
+-------------------------
+
+If your derived field is not behaving as you would like, you can insert a call
+to ``data._debug()`` to spawn an interactive interpreter whenever that line is
+reached.  Note that this is slightly different from calling
+``pdb.set_trace()``, as it will *only* trigger when the derived field is being
+called on an actual data object, rather than during the field detection phase.
+The starting position will be one function lower in the stack than you are
+likely interested in, but you can either step through back to the derived field
+function, or simply type ``u`` to go up a level in the stack.
+
 Units for Cosmological Datasets
 -------------------------------
 
