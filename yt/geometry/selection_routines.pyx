@@ -836,6 +836,8 @@ cdef class DiskSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
+        # Until we can get our OBB/OBB intersection correct, disable this.
+        return 1
         cdef np.float64_t *arr[2]
         cdef np.float64_t pos[3], H, D, R2, temp
         cdef int i, j, k, n
