@@ -191,6 +191,26 @@ The starting position will be one function lower in the stack than you are
 likely interested in, but you can either step through back to the derived field
 function, or simply type ``u`` to go up a level in the stack.
 
+For instance, if you had defined this derived field:
+
+.. code-block:: python
+
+   @yt.derived_field(name = "funthings")
+   def funthings(field, data):
+       return data["sillythings"] + data["humorousthings"]**2.0
+
+And you wanted to debug it, you could do:
+
+.. code-block:: python
+
+   @yt.derived_field(name = "funthings")
+   def funthings(field, data):
+       data._debug()
+       return data["sillythings"] + data["humorousthings"]**2.0
+
+And now, when that derived field is actually used, you will be placed into a
+debugger.
+
 Units for Cosmological Datasets
 -------------------------------
 
