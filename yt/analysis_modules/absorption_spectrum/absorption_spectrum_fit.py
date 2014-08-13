@@ -1,4 +1,4 @@
-import numpy as na
+import numpy as np
 import h5py
 from yt.analysis_modules.absorption_spectrum.absorption_line \
         import voigt
