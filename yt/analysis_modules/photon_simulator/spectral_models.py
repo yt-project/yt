@@ -212,11 +212,14 @@ class TableApecModel(SpectralModel):
         try:
             self.line_handle = pyfits.open(self.linefile)
         except IOError:
-            mylog.error("LINE file %s does not exist" % (self.linefile))
+            mylog.error("LINE file %s does not exist" % self.linefile)
+            raise IOError("LINE file %s does not exist" % self.linefile)
         try:
             self.coco_handle = pyfits.open(self.cocofile)
         except IOError:
-            mylog.error("COCO file %s does not exist" % (self.cocofile))
+            mylog.error("COCO file %s does not exist" % self.cocofile)
+            raise IOError("COCO file %s does not exist" % self.cocofile)
+
         self.Tvals = self.line_handle[1].data.field("kT")
         self.dTvals = np.diff(self.Tvals)
         self.minlam = self.wvbins.min()
