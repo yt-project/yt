@@ -619,7 +619,7 @@ class YTSphereBase(YTSelectionContainer3D):
     >>> sphere = ds.sphere(c,1.*ds['kpc'])
     """
     _type_name = "sphere"
-    _con_args = ('center', 'radius')
+    _con_args = ('_center', '_radius')
     def __init__(self, center, radius, ds = None, field_parameters = None):
         super(YTSphereBase, self).__init__(center, ds, field_parameters)
         # Unpack the radius, if necessary
@@ -627,7 +627,8 @@ class YTSphereBase(YTSelectionContainer3D):
         if radius < self.index.get_smallest_dx():
             raise YTSphereTooSmall(ds, radius.in_units("code_length"),
                                    self.index.get_smallest_dx().in_units("code_length"))
-        self.set_field_parameter('radius',radius)
+        self.set_field_parameter('_radius',radius)
+        self.set_field_parameter("_center", self.center)
         self.radius = radius
 
 class YTEllipsoidBase(YTSelectionContainer3D):

@@ -93,12 +93,8 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
 
     ### spherical coordinates: r (radius)
     def _spherical_r(field, data):
-        center = data.get_field_parameter("center")
-        coords = data.ds.arr(obtain_rvec(data), "code_length")
-        coords[0,...] -= center[0]
-        coords[1,...] -= center[1]
-        coords[2,...] -= center[2]
-        return get_sph_r(coords).in_cgs()
+        coords = get_periodic_rvec(data)
+        return data.ds.arr(get_sph_r(coords), "code_length").in_cgs()
 
     registry.add_field(("index", "spherical_r"),
              function=_spherical_r,
