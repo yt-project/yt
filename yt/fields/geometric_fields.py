@@ -40,9 +40,6 @@ from yt.utilities.math_utils import \
     get_sph_theta, get_sph_phi, \
     periodic_dist, euclidean_dist
 
-from yt.utilities.lib.geometry_utils import \
-    obtain_rvec
-
 @register_field_plugin
 def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
 
@@ -98,37 +95,29 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
 
     registry.add_field(("index", "spherical_r"),
              function=_spherical_r,
-             validators=[ValidateParameter("center")],
+             validators=[ValidateParameter("_center")],
              units="cm")
 
     ### spherical coordinates: theta (angle with respect to normal)
     def _spherical_theta(field, data):
-        center = data.get_field_parameter("center")
         normal = data.get_field_parameter("normal")
-        coords = obtain_rvec(data)
-        coords[0,...] -= center[0]
-        coords[1,...] -= center[1]
-        coords[2,...] -= center[2]
+        coords = get_periodic_rvec(data)
         return get_sph_theta(coords, normal)
 
     registry.add_field(("index", "spherical_theta"),
              function=_spherical_theta,
-             validators=[ValidateParameter("center"),
-             ValidateParameter("normal")])
+             validators=[ValidateParameter("_center"),
+                         ValidateParameter("normal")])
 
     ### spherical coordinates: phi (angle in the plane perpendicular to the normal)
     def _spherical_phi(field, data):
-        center = data.get_field_parameter("center")
         normal = data.get_field_parameter("normal")
-        coords = obtain_rvec(data)
-        coords[0,...] -= center[0]
-        coords[1,...] -= center[1]
-        coords[2,...] -= center[2]
+        coords = get_periodic_rvec(data)
         return get_sph_phi(coords, normal)
 
     registry.add_field(("index", "spherical_phi"),
              function=_spherical_phi,
-             validators=[ValidateParameter("center"),
+             validators=[ValidateParameter("_center"),
              ValidateParameter("normal")])
 
     ### cylindrical coordinates: R (radius in the cylinder's plane)
@@ -140,7 +129,7 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
     registry.add_field(("index", "cylindrical_r"),
              function=_cylindrical_r,
              validators=[ValidateParameter("_center"),
-                        ValidateParameter("normal")],
+                         ValidateParameter("normal")],
              units="cm")
 
     ### cylindrical coordinates: z (height above the cylinder's plane)
@@ -157,17 +146,13 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
 
     ### cylindrical coordinates: theta (angle in the cylinder's plane)
     def _cylindrical_theta(field, data):
-        center = data.get_field_parameter("center")
         normal = data.get_field_parameter("normal")
-        coords = obtain_rvec(data)
-        coords[0,...] -= center[0]
-        coords[1,...] -= center[1]
-        coords[2,...] -= center[2]
+        coords = get_periodic_rvec(data)
         return get_cyl_theta(coords, normal)
 
     registry.add_field(("index", "cylindrical_theta"),
              function=_cylindrical_theta,
-             validators=[ValidateParameter("center"),
+             validators=[ValidateParameter("_center"),
                          ValidateParameter("normal")],
              units = "")
 
