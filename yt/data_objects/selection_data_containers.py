@@ -517,15 +517,15 @@ class YTDiskBase(YTSelectionContainer3D):
     Parameters
     ----------
     center : array_like 
-        coordinate to which the normal, radius, and height all reference; in
-        the center of one of the bases of the cylinder
+        coordinate to which the normal, radius, and height all reference
     normal : array_like
         the normal vector defining the direction of lengthwise part of the 
         cylinder
     radius : float
         the radius of the cylinder
     height : float
-        the height of the lengthwise part of the cylinder
+        the distance from the midplane of the cylinder to the top and 
+        bottom planes
     fields : array of fields, optional
         any fields to be pre-loaded in the cylinder object
     ds: Dataset, optional
@@ -616,7 +616,7 @@ class YTSphereBase(YTSelectionContainer3D):
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
     >>> c = [0.5,0.5,0.5]
-    >>> sphere = ds.sphere(c,1.*ds['kpc'])
+    >>> sphere = ds.sphere(c, (1., "kpc"))
     """
     _type_name = "sphere"
     _con_args = ('_center', '_radius')
