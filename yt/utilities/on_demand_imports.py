@@ -23,6 +23,7 @@ class NotAModule(object):
                           % self.pkg_name)
 
 class astropy_imports:
+    _name = "astropy"
     _pyfits = None
     @property
     def pyfits(self):
@@ -31,7 +32,7 @@ class astropy_imports:
                 import astropy.io.fits as pyfits
                 self.log
             except ImportError:
-                pyfits = NotAModule("astropy")
+                pyfits = NotAModule(self._name)
             self._pyfits = pyfits
         return self._pyfits
 
@@ -43,7 +44,7 @@ class astropy_imports:
                 import astropy.wcs as pywcs
                 self.log
             except ImportError:
-                pywcs = NotAModule("astropy")
+                pywcs = NotAModule(self._name)
             self._pywcs = pywcs
         return self._pywcs
 
@@ -56,7 +57,7 @@ class astropy_imports:
                 if log.exception_logging_enabled():
                     log.disable_exception_logging()
             except ImportError:
-                log = NotAModule("astropy")
+                log = NotAModule(self._name)
             self._log = log
         return self._log
 
@@ -67,7 +68,7 @@ class astropy_imports:
             try:
                 from astropy import units
             except ImportError:
-                units = None
+                units = NotAModule(self._name)
             self._units = units
         return self._units
 
@@ -79,8 +80,46 @@ class astropy_imports:
                 import astropy.convolution as conv
                 self.log
             except ImportError:
-                conv = None
+                conv = NotAModule(self._name)
             self._conv = conv
         return self._conv
 
 _astropy = astropy_imports()
+
+class scipy_imports:
+    _name = "scipy"
+    _integrate = None
+    @property
+    def integrate(self):
+        if self._integrate is None:
+            try:
+                import scipy.integrate as integrate
+            except ImportError:
+                integrate = NotAModule(self._name)
+            self._integrate = integrate
+        return self._integrate
+
+    _stats = None
+    @property
+    def stats(self):
+        if self._stats is None:
+            try:
+                import scipy.stats as stats
+            except ImportError:
+                stats = NotAModule(self._name)
+            self._stats = stats
+        return self._stats
+
+    _optimize = None
+    @property
+    def optimize(self):
+        if self._optimize is None:
+            try:
+                import scipy.optimize as optimize
+            except ImportError:
+                optimize = NotAModule(self._name)
+            self._optimize = optimize
+        return self._optimize
+
+
+_scipy = scipy_imports()

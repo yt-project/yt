@@ -1,8 +1,10 @@
-from scipy import optimize
 import numpy as na
 import h5py
 from yt.analysis_modules.absorption_spectrum.absorption_line \
         import voigt
+from yt.utilities.on_demand_imports import _scipy
+
+optimize = _scipy.optimize
 
 def generate_total_fit(x, fluxData, orderFits, speciesDicts, 
         minError=1E-4, complexLim=.995,
@@ -83,7 +85,7 @@ def generate_total_fit(x, fluxData, orderFits, speciesDicts,
     x0,xRes=x[0],x[1]-x[0]
 
     #Empty fit without any lines
-    yFit = na.ones(len(fluxData))
+    yFit = np.ones(len(fluxData))
 
     #Force the first and last flux pixel to be 1 to prevent OOB
     fluxData[0]=1
@@ -98,10 +100,10 @@ def generate_total_fit(x, fluxData, orderFits, speciesDicts,
     #Fit all species one at a time in given order from low to high wavelength
     for species in orderFits:
         speciesDict = speciesDicts[species]
-        speciesLines = {'N':na.array([]),
-                        'b':na.array([]),
-                        'z':na.array([]),
-                        'group#':na.array([])}
+        speciesLines = {'N':np.array([]),
+                        'b':np.array([]),
+                        'z':np.array([]),
+                        'group#':np.array([])}
 
         #Set up wavelengths for species
         initWl = speciesDict['wavelength'][0]
@@ -131,7 +133,7 @@ def generate_total_fit(x, fluxData, orderFits, speciesDicts,
                         yFitBounded,z,speciesDict,
                         minSize,minError)
 
-            if na.size(newLinesP)> 0:
+            if np.size(newLinesP)> 0:
 
                 #Check for EXPLOOOOSIIONNNSSS
                 newLinesP = _check_numerical_instability(x, newLinesP, speciesDict,b)
@@ -150,12 +152,12 @@ def generate_total_fit(x, fluxData, orderFits, speciesDicts,
 
 
             #Add new group to all fitted lines
-            if na.size(newLinesP)>0:
-                speciesLines['N']=na.append(speciesLines['N'],newLinesP[:,0])
-                speciesLines['b']=na.append(speciesLines['b'],newLinesP[:,1])
-                speciesLines['z']=na.append(speciesLines['z'],newLinesP[:,2])
-                groupNums = b_i*na.ones(na.size(newLinesP[:,0]))
-                speciesLines['group#']=na.append(speciesLines['group#'],groupNums)
+            if np.size(newLinesP)>0:
+                speciesLines['N']=np.append(speciesLines['N'],newLinesP[:,0])
+                speciesLines['b']=np.append(speciesLines['b'],newLinesP[:,1])
+                speciesLines['z']=np.append(speciesLines['z'],newLinesP[:,2])
+                groupNums = b_i*np.ones(np.size(newLinesP[:,0]))
+                speciesLines['group#']=np.append(speciesLines['group#'],groupNums)
 
         allSpeciesLines[species]=speciesLines
 
@@ -226,7 +228,7 @@ def _complex_fit(x, yDat, yFit, initz, minSize, errBound, speciesDict,
             initP[0] = speciesDict['init_N']
         initP[1] = speciesDict['init_b']
         initP[2]=initz
-        initP=na.array([initP])
+        initP=np.array([initP])
 
     linesP = initP
 
@@ -259,7 +261,7 @@ def _complex_fit(x, yDat, yFit, initz, minSize, errBound, speciesDict,
 
 
         #Set results of optimization
-        linesP = na.reshape(fitP,(-1,3))
+        linesP = np.reshape(fitP,(-1,3))
 
         #Generate difference between current best fit and data
         yNewFit=_gen_flux_lines(x,linesP,speciesDict)
@@ -288,7 +290,7 @@ def _complex_fit(x, yDat, yFit, initz, minSize, errBound, speciesDict,
                 break
 
         #If too many lines 
-        if na.shape(linesP)[0]>8 or na.size(linesP)+3>=len(x):
+        if np.shape(linesP)[0]>8 or np.size(linesP)+3>=len(x):
             #If its fitable by flag tools and still bad, use flag tools
             if errSq >1E2*errBound and speciesDict['name']=='HI lya':
                 return [],True
@@ -315,17 +317,17 @@ def _complex_fit(x, yDat, yFit, initz, minSize, errBound, speciesDict,
             newP[0] = speciesDict['init_N']
         newP[1] = speciesDict['init_b']
         newP[2]=(x[dif.argmax()]-wl0)/wl0
-        linesP=na.append(linesP,[newP],axis=0)
+        linesP=np.append(linesP,[newP],axis=0)
 
 
     #Check the parameters of all lines to see if they fall in an
     #   acceptable range, as given in dict ref
     remove=[]
     for i,p in enumerate(linesP):
-        check=_check_params(na.array([p]),speciesDict,x)
+        check=_check_params(np.array([p]),speciesDict,x)
         if check: 
             remove.append(i)
-    linesP = na.delete(linesP,remove,axis=0)
+    linesP = np.delete(linesP,remove,axis=0)
 
     return linesP,flag
 
@@ -377,7 +379,7 @@ def _large_flag_fit(x, yDat, yFit, initz, speciesDict, minSize, errBound):
     #Iterate through test line guesses
     for initLines in lineTests:
         if initLines[1,0]==0:
-            initLines = na.delete(initLines,1,axis=0)
+            initLines = np.delete(initLines,1,axis=0)
 
         #Do fitting with initLines as first guess
         linesP,flag=_complex_fit(x,yDat,yFit,initz,
@@ -421,7 +423,7 @@ def _get_test_lines(initz):
     """
 
     #Set up a bunch of empty lines
-    testP = na.zeros((10,2,3))
+    testP = np.zeros((10,2,3))
 
     testP[0,0,:]=[1E18,20,initz]
     testP[1,0,:]=[1E18,40,initz]
@@ -542,7 +544,7 @@ def _remove_unaccepted_partners(linesP, x, y, b, errBound,
                 errBound = 10*errBound*len(yb)
 
             #Generate a fit and find the difference to data
-            yFitb=_gen_flux_lines(xb,na.array([p]),speciesDict)
+            yFitb=_gen_flux_lines(xb,np.array([p]),speciesDict)
             dif =yb-yFitb
 
 
@@ -557,7 +559,7 @@ def _remove_unaccepted_partners(linesP, x, y, b, errBound,
                 break
 
     #Remove all bad line fits
-    linesP = na.delete(linesP,removeLines,axis=0)
+    linesP = np.delete(linesP,removeLines,axis=0)
 
     return linesP 
 
@@ -755,7 +757,7 @@ def _gen_flux_lines(x, linesP, speciesDict,firstLine=False):
             if firstLine: 
                 break
 
-    flux = na.exp(-y)
+    flux = np.exp(-y)
     return flux
 
 def _gen_tau(t, p, f, Gamma, lambda_unshifted):
@@ -768,7 +770,7 @@ def _gen_tau(t, p, f, Gamma, lambda_unshifted):
     a=7.95774715459E-15*Gamma*lambda_unshifted/b
     x=299792.458/b*(lambda_unshifted*(1+z)/t-1)
     
-    H = na.zeros(len(x))
+    H = np.zeros(len(x))
     H = voigt(a,x)
     
     tau = tau_o*H
@@ -910,9 +912,9 @@ def _check_optimization_init(p,speciesDict,initz,xb,yDat,yFit,minSize,errorBound
 
             # Make the final line parameters. Its annoying because
             # one or both regions may have fit to nothing
-            if na.size(p1)> 0 and na.size(p2)>0:
-                p = na.r_[p1,p2]
-            elif na.size(p1) > 0:
+            if np.size(p1)> 0 and np.size(p2)>0:
+                p = np.r_[p1,p2]
+            elif np.size(p1) > 0:
                 p = p1
             else:
                 p = p2
@@ -952,7 +954,7 @@ def _check_numerical_instability(x, p, speciesDict,b):
             # max and min to prevent boundary errors
 
             flux = _gen_flux_lines(x,[line],speciesDict,firstLine=True)
-            flux = na.r_[flux[:max(b[1]-10,0)], flux[min(b[2]+10,len(x)):]]
+            flux = np.r_[flux[:max(b[1]-10,0)], flux[min(b[2]+10,len(x)):]]
 
             #Find regions that are absorbing outside the region we fit
             flux_dif = 1 - flux
@@ -971,7 +973,7 @@ def _check_numerical_instability(x, p, speciesDict,b):
                 remove_lines.append(i)
     
     if remove_lines:
-        p = na.delete(p, remove_lines, axis=0)
+        p = np.delete(p, remove_lines, axis=0)
 
     return p
 
