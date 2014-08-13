@@ -10,6 +10,18 @@ A set of convenient on-demand imports
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+class NotAModule(object):
+    """
+    A class to implement an informative error message that will be outputted if
+    someone tries to use an on-demand import without having the requisite package installed.
+    """
+    def __init__(self, pkg_name):
+        self.pkg_name = pkg_name
+
+    def __getattr__(self, item):
+        raise ImportError("This functionality requires the %s package to be installed."
+                          % self.pkg_name)
+
 class astropy_imports:
     _pyfits = None
     @property
@@ -19,7 +31,7 @@ class astropy_imports:
                 import astropy.io.fits as pyfits
                 self.log
             except ImportError:
-                pyfits = None
+                pyfits = NotAModule("astropy")
             self._pyfits = pyfits
         return self._pyfits
 
@@ -31,7 +43,7 @@ class astropy_imports:
                 import astropy.wcs as pywcs
                 self.log
             except ImportError:
-                pywcs = None
+                pywcs = NotAModule("astropy")
             self._pywcs = pywcs
         return self._pywcs
 
@@ -44,7 +56,7 @@ class astropy_imports:
                 if log.exception_logging_enabled():
                     log.disable_exception_logging()
             except ImportError:
-                log = None
+                log = NotAModule("astropy")
             self._log = log
         return self._log
 
