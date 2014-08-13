@@ -149,13 +149,9 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
 
     ### cylindrical coordinates: z (height above the cylinder's plane)
     def _cylindrical_z(field, data):
-        center = data.get_field_parameter("center")
         normal = data.get_field_parameter("normal")
-        coords = data.ds.arr(obtain_rvec(data), "code_length")
-        coords[0,...] -= center[0]
-        coords[1,...] -= center[1]
-        coords[2,...] -= center[2]
-        return get_cyl_z(coords, normal).in_cgs()
+        coords = get_periodic_rvec(data)
+        return data.ds.arr(get_cyl_z(coords, normal), "code_length").in_cgs()
 
     registry.add_field(("index", "cylindrical_z"),
              function=_cylindrical_z,
