@@ -85,7 +85,7 @@ def obtain_rvec(data):
     cdef np.ndarray[np.float64_t, ndim=4] rg
     cdef np.float64_t c[3]
     cdef int i, j, k
-    center = data.get_field_parameter("center")
+    center = data.get_field_parameter("_center")
     c[0] = center[0]; c[1] = center[1]; c[2] = center[2]
     if len(data['x'].shape) == 1:
         # One dimensional data

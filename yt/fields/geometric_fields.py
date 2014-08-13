@@ -22,6 +22,7 @@ from .derived_field import \
     ValidateSpatial
 
 from .field_functions import \
+     get_periodic_rvec, \
      get_radius
 
 from .field_plugin_registry import \
@@ -136,17 +137,13 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
 
     ### cylindrical coordinates: R (radius in the cylinder's plane)
     def _cylindrical_r(field, data):
-        center = data.get_field_parameter("center")
         normal = data.get_field_parameter("normal")
-        coords = obtain_rvec(data)
-        coords[0,...] -= center[0]
-        coords[1,...] -= center[1]
-        coords[2,...] -= center[2]
+        coords = get_periodic_rvec(data)
         return data.ds.arr(get_cyl_r(coords, normal), "code_length").in_cgs()
 
     registry.add_field(("index", "cylindrical_r"),
              function=_cylindrical_r,
-             validators=[ValidateParameter("center"),
+             validators=[ValidateParameter("_center"),
                         ValidateParameter("normal")],
              units="cm")
 
