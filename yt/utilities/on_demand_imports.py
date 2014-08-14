@@ -121,5 +121,15 @@ class scipy_imports:
             self._optimize = optimize
         return self._optimize
 
+    _interpolate = None
+    @property
+    def interpolate(self):
+        if self._interpolate is None:
+            try:
+                import scipy.interpolate as interpolate
+            except ImportError:
+                interpolate = NotAModule(self._name)
+            self._interpolate = interpolate
+        return self._interpolate
 
 _scipy = scipy_imports()
