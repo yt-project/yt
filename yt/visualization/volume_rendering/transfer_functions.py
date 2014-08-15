@@ -48,6 +48,8 @@ class TransferFunction(object):
     def __init__(self, x_bounds, nbins=256):
         self.pass_through = 0
         self.nbins = nbins
+        # Strip units off of x_bounds, if any
+        x_bounds = [np.float64(xb) for xb in x_bounds]
         self.x_bounds = x_bounds
         self.x = np.linspace(x_bounds[0], x_bounds[1], nbins).astype('float64')
         self.y = np.zeros(nbins, dtype='float64')
@@ -353,6 +355,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
     """
     def __init__(self, x_bounds, nbins=256, grey_opacity = False):
         MultiVariateTransferFunction.__init__(self)
+        # Strip units off of x_bounds, if any
+        x_bounds = [np.float64(xb) for xb in x_bounds]
         self.x_bounds = x_bounds
         self.nbins = nbins
         # This is all compatibility and convenience.
@@ -800,6 +804,8 @@ class ProjectionTransferFunction(MultiVariateTransferFunction):
         if n_fields > 3:
             raise NotImplementedError
         MultiVariateTransferFunction.__init__(self)
+        # Strip units off of x_bounds, if any
+        x_bounds = [np.float64(xb) for xb in x_bounds]
         self.x_bounds = x_bounds
         self.nbins = 2
         self.linear_mapping = TransferFunction(x_bounds, 2)
