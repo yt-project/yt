@@ -637,6 +637,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> tf = ColorTransferFunction( (-10.0, -5.0) )
         >>> tf.sample_colormap(-7.0, 0.01, colormap='algae')
         """
+        v = np.float64(v)
         if col_bounds is None:
             rel = (v - self.x_bounds[0])/(self.x_bounds[1] - self.x_bounds[0])
         else:
@@ -684,7 +685,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> tf.map_to_colormap(-6.0, -5.0, scale=10.0, colormap='algae',
         ...                    scale_func = linramp)
         """
-
+        mi = np.float64(mi)
+        ma = np.float64(ma)
         rel0 = int(self.nbins*(mi - self.x_bounds[0])/(self.x_bounds[1] -
                                                        self.x_bounds[0]))
         rel1 = int(self.nbins*(ma - self.x_bounds[0])/(self.x_bounds[1] -
