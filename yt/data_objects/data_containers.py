@@ -447,10 +447,7 @@ class YTDataContainer(object):
 
     @contextmanager
     def _field_parameter_state(self, field_parameters):
-        old_field_parameters = self.field_parameters
-        self.field_parameters = field_parameters
         yield
-        self.field_parameters = old_field_parameters
 
     @contextmanager
     def _field_type_state(self, ftype, finfo, obj = None):
