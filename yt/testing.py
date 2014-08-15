@@ -624,6 +624,22 @@ def check_results(func):
         return _func
     return compare_results(func)
 
+def periodicity_cases(ds):
+    # These are the fields we're going to look at, and we're going to move the
+    # object around the domain at regular cell intervals to verify size and
+    # values.  We'll do just inside from each of the eight corners as well as
+    # the domain center as a reference implementation.  So what this function
+    # does is yield each of the nine cases, and the routine calling it is
+    # required to implement how to use that information.
+    yield (ds.domain_left_edge + ds.domain_right_edge)/2.0
+    dx = ds.domain_width / ds.domain_dimensions
+    # We'll do 2 dx
+    for i in (1, ds.domain_dimensions[0] - 2):
+        for j in (1, ds.domain_dimensions[1] - 2):
+            for k in (1, ds.domain_dimensions[2] - 2):
+                center = dx * np.array([i,j,k]) + ds.domain_left_edge
+                yield center
+
 def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False):
     import nose, os, sys, yt
     from yt.funcs import mylog
