@@ -625,12 +625,8 @@ def check_results(func):
     return compare_results(func)
 
 def periodicity_cases(ds):
-    # These are the fields we're going to look at, and we're going to move the
-    # object around the domain at regular cell intervals to verify size and
-    # values.  We'll do just inside from each of the eight corners as well as
-    # the domain center as a reference implementation.  So what this function
-    # does is yield each of the nine cases, and the routine calling it is
-    # required to implement how to use that information.
+    # This is a generator that yields things near the corners.  It's good for
+    # getting different places to check periodicity.
     yield (ds.domain_left_edge + ds.domain_right_edge)/2.0
     dx = ds.domain_width / ds.domain_dimensions
     # We'll do 2 dx
