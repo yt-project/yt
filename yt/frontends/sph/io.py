@@ -344,21 +344,26 @@ class IOHandlerGadgetBinary(BaseIOHandler):
                         for ptype in self._ptypes):
                 continue
             pos += 4
+            any_ptypes = False
             for ptype in self._ptypes:
                 if field == "Mass" and ptype not in self.var_mass:
                     continue
                 if (ptype, field) not in field_list:
                     continue
                 offsets[(ptype, field)] = pos
+                any_ptypes = True
                 if field in self._vector_fields:
                     pos += 3 * pcount[ptype] * fs
                 else:
                     pos += pcount[ptype] * fs
             pos += 4
+            if not any_ptypes: pos -= 8
         if file_size is not None:
             if file_size != pos:
                 mylog.warning("Your Gadget-2 file may have extra " +
-                              "columns or different precision!")
+                              "columns or different precision!" +
+                              " (%s file vs %s computed)",
+                              file_size, pos)
         return offsets
 
     def _identify_fields(self, domain):
