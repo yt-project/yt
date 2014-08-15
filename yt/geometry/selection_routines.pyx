@@ -785,9 +785,9 @@ cdef class DiskSelector(SelectorObject):
         for i in range(3):
             self.norm_vec[i] = dobj._norm_vec[i]
             self.center[i] = _ensure_code(dobj.center[i])
-        self.radius = _ensure_code(dobj._radius)
+        self.radius = _ensure_code(dobj.radius)
         self.radius2 = self.radius * self.radius
-        self.height = _ensure_code(dobj._height)
+        self.height = _ensure_code(dobj.height)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

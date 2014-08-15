@@ -543,15 +543,15 @@ class YTDiskBase(YTSelectionContainer3D):
     >>> disk = ds.disk(c, [1,0,0], (1, 'kpc'), (10, 'kpc'))
     """
     _type_name = "disk"
-    _con_args = ('_center', '_norm_vec', '_radius', '_height')
+    _con_args = ('center', '_norm_vec', 'radius', 'height')
     def __init__(self, center, normal, radius, height, fields=None,
                  ds=None, **kwargs):
         YTSelectionContainer3D.__init__(self, center, fields, ds, **kwargs)
         self._norm_vec = np.array(normal)/np.sqrt(np.dot(normal,normal))
         self.set_field_parameter("normal", self._norm_vec)
-        self.set_field_parameter("_center", self.center)
-        self._height = fix_length(height, self.ds)
-        self._radius = fix_length(radius, self.ds)
+        self.set_field_parameter("center", self.center)
+        self.height = fix_length(height, self.ds)
+        self.radius = fix_length(radius, self.ds)
         self._d = -1.0 * np.dot(self._norm_vec, self.center)
 
 class YTRegionBase(YTSelectionContainer3D):
@@ -619,7 +619,7 @@ class YTSphereBase(YTSelectionContainer3D):
     >>> sphere = ds.sphere(c, (1., "kpc"))
     """
     _type_name = "sphere"
-    _con_args = ('_center', '_radius')
+    _con_args = ('center', 'radius')
     def __init__(self, center, radius, ds = None, field_parameters = None):
         super(YTSphereBase, self).__init__(center, ds, field_parameters)
         # Unpack the radius, if necessary
@@ -627,8 +627,8 @@ class YTSphereBase(YTSelectionContainer3D):
         if radius < self.index.get_smallest_dx():
             raise YTSphereTooSmall(ds, radius.in_units("code_length"),
                                    self.index.get_smallest_dx().in_units("code_length"))
-        self.set_field_parameter('_radius',radius)
-        self.set_field_parameter("_center", self.center)
+        self.set_field_parameter('radius',radius)
+        self.set_field_parameter("center", self.center)
         self.radius = radius
 
 class YTEllipsoidBase(YTSelectionContainer3D):

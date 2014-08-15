@@ -95,7 +95,7 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
 
     registry.add_field(("index", "spherical_r"),
              function=_spherical_r,
-             validators=[ValidateParameter("_center")],
+             validators=[ValidateParameter("center")],
              units="cm")
 
     ### spherical coordinates: theta (angle with respect to normal)
@@ -106,7 +106,7 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
 
     registry.add_field(("index", "spherical_theta"),
              function=_spherical_theta,
-             validators=[ValidateParameter("_center"),
+             validators=[ValidateParameter("center"),
                          ValidateParameter("normal")])
 
     ### spherical coordinates: phi (angle in the plane perpendicular to the normal)
@@ -117,7 +117,7 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
 
     registry.add_field(("index", "spherical_phi"),
              function=_spherical_phi,
-             validators=[ValidateParameter("_center"),
+             validators=[ValidateParameter("center"),
              ValidateParameter("normal")])
 
     ### cylindrical coordinates: R (radius in the cylinder's plane)
@@ -128,7 +128,7 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
 
     registry.add_field(("index", "cylindrical_r"),
              function=_cylindrical_r,
-             validators=[ValidateParameter("_center"),
+             validators=[ValidateParameter("center"),
                          ValidateParameter("normal")],
              units="cm")
 
@@ -152,7 +152,7 @@ def setup_geometric_fields(registry, ftype = "gas", slice_info = None):
 
     registry.add_field(("index", "cylindrical_theta"),
              function=_cylindrical_theta,
-             validators=[ValidateParameter("_center"),
+             validators=[ValidateParameter("center"),
                          ValidateParameter("normal")],
              units = "")
 
