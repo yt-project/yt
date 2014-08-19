@@ -782,7 +782,7 @@ class MaestroDataset(BoxlibDataset):
                 line = f.next()
             # get the runtime parameters
             for line in f:
-                p, v = (_.strip() for _ in line[4:].split("="))
+                p, v = (_.strip() for _ in line[4:].split("=",1))
                 if len(v) == 0:
                     self.parameters[p] = ""
                 else:
