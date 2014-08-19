@@ -566,7 +566,9 @@ class BoxlibDataset(Dataset):
         # Skip timesteps per level
         header_file.readline()
         self._header_mesh_start = header_file.tell()
-        header_file.next()
+        # Skip the cell size information per level - we'll get this later
+        for i in range(self._max_level): header_file.next()
+        # Get the geometry
         next_line = header_file.next()
         if len(next_line.split()) == 1:
             coordinate_type = int(next_line)
