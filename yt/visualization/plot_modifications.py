@@ -447,9 +447,8 @@ class GridBoundaryCallback(PlotCallback):
                 edgecolors = colorConverter.to_rgba(self.edgecolors, alpha=self.alpha)
             else:  # use colormap if not explicity overridden by edgecolors
                 if self.cmap is not None:
-                    sample_levels = levels[(levels <= max_level) & (levels >= min_level)]
                     color_bounds = [0,plot.data.ds.index.max_level]
-                    edgecolors = apply_colormap(sample_levels*1.0, color_bounds=color_bounds,
+                    edgecolors = apply_colormap(levels[visible]*1.0, color_bounds=color_bounds,
                                                 cmap_name=self.cmap)[0,:,:]*1.0/255.
                     edgecolors[:,3] = self.alpha
                 else:
@@ -461,7 +460,7 @@ class GridBoundaryCallback(PlotCallback):
                  (left_edge_y, right_edge_y, right_edge_y, left_edge_y)])
             verts=verts.transpose()[visible,:,:]
             grid_collection = matplotlib.collections.PolyCollection(
-                verts, facecolors="none", edgecolors=edgecolors[visible],
+                verts, facecolors="none", edgecolors=edgecolors,
                 linewidth=self.linewidth)
             plot._axes.hold(True)
             plot._axes.add_collection(grid_collection)
