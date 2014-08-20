@@ -240,7 +240,7 @@ class SDFRead(dict):
     _eof = 'SDF-EO'
     _data_struct = DataStruct
 
-    def __init__(self, filename, header=None):
+    def __init__(self, filename = None, header=None):
         r""" Read an SDF file, loading parameters and variables.
 
         Given an SDF file (see http://bitbucket.org/JohnSalmon/sdf), parse the
@@ -283,13 +283,13 @@ class SDFRead(dict):
         self.parameters = {}
         self.structs = []
         self.comments = []
-        self.parse_header()
-        self.set_offsets()
-        self.load_memmaps()
+        if filename is not None:
+            self.parse_header()
+            self.set_offsets()
+            self.load_memmaps()
 
     def write(self, filename):
         f = file(filename, 'w')
-        to_write = []
         f.write("# SDF 1.0\n")
         f.write("parameter byteorder = %s;\n" % (self.parameters['byteorder']))
         for c in self.comments:
@@ -307,15 +307,19 @@ class SDFRead(dict):
             else:
                 f.write("%s %s = %s;\n" % (t, k, v))
 
+        struct_order = []
         for s in self.structs:
             f.write("struct {\n")
-            for var in s.handle.dtype.descr:
+            to_write = []
+            for var in s.dtype.descr:
                 k, v = var[0], _rev_types[var[1]]
                 to_write.append(k)
                 f.write("\t%s %s;\n" % (v, k))
             f.write("}[%i];\n" % s.size)
+            struct_order.append(to_write)
         f.write("#\x0c\n")
-        f.write("# SDF-EOH")
+        f.write("# SDF-EOH\n")
+        return struct_order, f
 
     def __repr__(self):
         disp = "<SDFRead Object> file: %s\n" % self.filename
@@ -368,6 +372,9 @@ class SDFRead(dict):
         try:
             vval = eval("np."+vtype+"(%s)" % vval)
         except AttributeError:
+            if vtype not in _types:
+                mylog.warning("Skipping parameter %s", vname)
+                return
             vval = eval("np."+_types[vtype]+"(%s)" % vval)
 
         self.parameters[vname] = vval
