@@ -448,7 +448,7 @@ class GridBoundaryCallback(PlotCallback):
             else:  # use colormap if not explicity overridden by edgecolors
                 if self.cmap is not None:
                     sample_levels = levels[(levels <= max_level) & (levels >= min_level)]
-                    color_bounds = [0,plot.data.pf.h.max_level]
+                    color_bounds = [0,plot.data.ds.index.max_level]
                     edgecolors = apply_colormap(sample_levels*1.0, color_bounds=color_bounds,
                                                 cmap_name=self.cmap)[0,:,:]*1.0/255.
                     edgecolors[:,3] = self.alpha
