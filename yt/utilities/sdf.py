@@ -21,6 +21,15 @@ _types = {
     'char': 'B',
 }
 
+_rev_types = {}
+for v, t in _types.iteritems():
+    _rev_types[t] = v
+_rev_types['<f8'] = 'double'
+_rev_types['<f4'] = 'float'
+_rev_types['<i4'] = 'int32_t'
+_rev_types['<i8'] = 'int64_t'
+_rev_types['<u4'] = 'uint32_t'
+_rev_types['|u1'] = 'char'
 
 def _get_type(vtype, tlen=None):
     try:
@@ -104,6 +113,23 @@ def _ensure_xyz_fields(fields):
         if f not in fields:
             fields.append(f)
 
+
+def spread_bitsv(ival, level):
+    res = np.zeros_like(ival, dtype='int64')
+    for i in range(level):
+        ares = np.bitwise_and(ival, 1<<i) << (i*2)
+        np.bitwise_or(res, ares, res)
+    return res
+
+
+def get_keyv(iarr, level):
+    i1, i2, i3 = (v.astype("int64") for v in iarr)
+    i1 = spread_bitsv(i1, level)
+    i2 = spread_bitsv(i2, level) << 1
+    i3 = spread_bitsv(i3, level) << 2
+    np.bitwise_or(i1, i2, i1)
+    np.bitwise_or(i1, i3, i1)
+    return i1
 
 class DataStruct(object):
     """docstring for DataStruct"""
@@ -260,6 +286,36 @@ class SDFRead(dict):
         self.parse_header()
         self.set_offsets()
         self.load_memmaps()
+
+    def write(self, filename):
+        f = file(filename, 'w')
+        to_write = []
+        f.write("# SDF 1.0\n")
+        f.write("parameter byteorder = %s;\n" % (self.parameters['byteorder']))
+        for c in self.comments:
+            if "\x0c" in c: continue
+            if "SDF 1.0" in c: continue
+            f.write("%s" % c)
+        for k, v in sorted(self.parameters.iteritems()):
+            if k == 'byteorder': continue
+            try:
+                t = _rev_types[v.dtype.name]
+            except:
+                t = type(v).__name__
+            if t == str.__name__:
+                f.write("parameter %s = \"%s\";\n" % (k, v))
+            else:
+                f.write("%s %s = %s;\n" % (t, k, v))
+
+        for s in self.structs:
+            f.write("struct {\n")
+            for var in s.handle.dtype.descr:
+                k, v = var[0], _rev_types[var[1]]
+                to_write.append(k)
+                f.write("\t%s %s;\n" % (v, k))
+            f.write("}[%i];\n" % s.size)
+        f.write("#\x0c\n")
+        f.write("# SDF-EOH")
 
     def __repr__(self):
         disp = "<SDFRead Object> file: %s\n" % self.filename
@@ -604,22 +660,12 @@ class SDFIndex(object):
     def spread_bitsv(self, ival, level=None):
         if level is None:
             level = self.level
-        res = np.zeros_like(ival, dtype='int64')
-        for i in range(level):
-            ares = np.bitwise_and(ival, 1<<i) << (i*2)
-            np.bitwise_or(res, ares, res)
-        return res
+        return spread_bitsv(ival, level)
 
     def get_keyv(self, iarr, level=None):
         if level is None:
             level = self.level
-        i1, i2, i3 = (v.astype("int64") for v in iarr)
-        i1 = self.spread_bitsv(i1, level)
-        i2 = self.spread_bitsv(i2, level) << 1
-        i3 = self.spread_bitsv(i3, level) << 2
-        np.bitwise_or(i1, i2, i1)
-        np.bitwise_or(i1, i3, i1)
-        return i1
+        return get_keyv(iarr, level)
 
     def get_key_slow(self, iarr, level=None):
         if level is None:
@@ -748,6 +794,8 @@ class SDFIndex(object):
         """
         ileft = np.floor((left - self.rmin) / self.domain_width *  self.domain_dims)
         iright = np.floor((right - self.rmin) / self.domain_width * self.domain_dims)
+        if np.any(iright-ileft) > self.domain_dims:
+            mylog.warn("Attempting to get data from bounding box larger than the domain. You may want to check your units.")
         #iright[iright <= ileft+1] += 1
 
         return self.get_ibbox(ileft, iright)
@@ -1189,7 +1237,7 @@ class SDFIndex(object):
         filter_right = bbox[:, 1] + pad
 
         data = []
-        for dd in self.iter_padded_bbox_data(self, level, cell_iarr, pad, fields):
+        for dd in self.iter_padded_bbox_data(level, cell_iarr, pad, fields):
             data.append(dd)
         return data
 
