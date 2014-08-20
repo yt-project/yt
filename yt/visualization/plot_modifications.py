@@ -461,7 +461,8 @@ class GridBoundaryCallback(PlotCallback):
                  (left_edge_y, right_edge_y, right_edge_y, left_edge_y)])
             verts=verts.transpose()[visible,:,:]
             grid_collection = matplotlib.collections.PolyCollection(
-                verts, facecolors="none", edgecolors=edgecolors, linewidth=self.linewidth)
+                verts, facecolors="none", edgecolors=edgecolors[visible],
+                linewidth=self.linewidth)
             plot._axes.hold(True)
             plot._axes.add_collection(grid_collection)
 
