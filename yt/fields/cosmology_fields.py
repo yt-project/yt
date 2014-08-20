@@ -101,7 +101,7 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
         # mean density(z) ~ omega_matter * (1 + z)^3
         return data[ftype, "density"] / data.ds.omega_matter / \
           co.critical_density(0.0) / \
-          (1.0 + data.ds.hubble_constant)**3
+          (1.0 + data.ds.current_redshift)**3
 
     registry.add_field((ftype, "matter_overdensity"),
                        function=_matter_overdensity,
