@@ -44,7 +44,10 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             if not hasattr(v, "shape") or v.dtype == "O":
                 continue
             elif len(v.dims) == 1:
-                if add_io: fields.append( ("io", str(name)) )
+                if grid.ds.dimensionality == 1:
+                    fields.append( ("enzo", str(name)) )
+                elif add_io:
+                    fields.append( ("io", str(name)) )
             else:
                 fields.append( ("enzo", str(name)) )
         f.close()
@@ -238,12 +241,14 @@ class IOHandlerInMemory(BaseIOHandler):
         fields = []
         add_io = "io" in grid.ds.particle_types
         for name, v in self.grids_in_memory[grid.id].items():
-
             # NOTE: This won't work with 1D datasets or references.
             if not hasattr(v, "shape") or v.dtype == "O":
                 continue
             elif v.ndim == 1:
-                if add_io: fields.append( ("io", str(name)) )
+                if grid.ds.dimensionality == 1:
+                    fields.append( ("enzo", str(name)) )
+                elif add_io:
+                    fields.append( ("io", str(name)) )
             else:
                 fields.append( ("enzo", str(name)) )
         return fields
