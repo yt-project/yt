@@ -82,9 +82,9 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
             raise NeedsParameter("omega_baryon")
         co = data.ds.cosmology
         # critical_density(z) ~ omega_lambda + omega_matter * (1 + z)^3
-        # mean density(z) ~ omega_matter * (1 + z)^3
+        # mean matter density(z) ~ omega_matter * (1 + z)^3
         return data[ftype, "density"] / omega_baryon / co.critical_density(0.0) / \
-          (1.0 + data.ds.hubble_constant)**3
+          (1.0 + data.ds.current_redshift)**3
 
     registry.add_field((ftype, "baryon_overdensity"),
                        function=_baryon_overdensity,
