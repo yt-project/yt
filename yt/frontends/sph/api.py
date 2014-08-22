@@ -18,12 +18,15 @@ from .data_structures import \
       OWLSDataset, \
       GadgetDataset, \
       GadgetHDF5Dataset, \
-      TipsyDataset
+      TipsyDataset,\
+      EagleDataset
 
 from .io import \
       IOHandlerOWLS, \
-      IOHandlerGadgetBinary
+      IOHandlerGadgetBinary,\
+      IOHandlerEagle
 
 from .fields import \
       SPHFieldInfo, \
-      TipsyFieldInfo
+      TipsyFieldInfo,\
+      EagleFieldInfo
