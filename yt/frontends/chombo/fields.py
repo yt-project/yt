@@ -14,8 +14,13 @@ Chombo-specific fields
 #-----------------------------------------------------------------------------
 
 import numpy as np
+from yt.units.unit_object import Unit
 from yt.fields.field_info_container import \
-    FieldInfoContainer
+    FieldInfoContainer, \
+    particle_deposition_functions, \
+    particle_vector_functions, \
+    standard_particle_fields
+
 from yt.frontends.boxlib.fields import \
     rho_units, \
     mom_units, \
@@ -107,6 +112,62 @@ class ChomboPICFieldInfo3D(FieldInfoContainer):
         ("particle_velocity_z", ("code_length / code_time", [], None)),
     )
 
+    def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64 ):
+        skip_output_units = ("code_length",)
+        for f, (units, aliases, dn) in sorted(self.known_particle_fields):
+            units = self.ds.field_units.get((ptype, f), units)
+            if (f in aliases or ptype not in self.ds.particle_types_raw) and \
+                units not in skip_output_units:
+                u = Unit(units, registry = self.ds.unit_registry)
+                output_units = str(u.get_cgs_equivalent())
+            else:
+                output_units = units
+            if (ptype, f) not in self.field_list:
+                continue
+            self.add_output_field((ptype, f),
+                units = units, particle_type = True,
+                display_name = dn, output_units = output_units, take_log=False)
+            for alias in aliases:
+                self.alias((ptype, alias), (ptype, f), units = output_units)
+
+        # We'll either have particle_position or particle_position_[xyz]
+        if (ptype, "particle_position") in self.field_list or \
+           (ptype, "particle_position") in self.field_aliases:
+            particle_scalar_functions(ptype,
+                   "particle_position", "particle_velocity",
+                   self)
+        else:
+            # We need to check to make sure that there's a "known field" that
+            # overlaps with one of the vector fields.  For instance, if we are
+            # in the Stream frontend, and we have a set of scalar position
+            # fields, they will overlap with -- and be overridden by -- the
+            # "known" vector field that the frontend creates.  So the easiest
+            # thing to do is to simply remove the on-disk field (which doesn't
+            # exist) and replace it with a derived field.
+            if (ptype, "particle_position") in self and \
+                 self[ptype, "particle_position"]._function == NullFunc:
+                self.pop((ptype, "particle_position"))
+            particle_vector_functions(ptype,
+                    ["particle_position_%s" % ax for ax in 'xyz'],
+                    ["particle_velocity_%s" % ax for ax in 'xyz'],
+                    self)
+        particle_deposition_functions(ptype, "particle_position",
+            "particle_mass", self)
+        standard_particle_fields(self, ptype)
+        # Now we check for any leftover particle fields
+        for field in sorted(self.field_list):
+            if field in self: continue
+            if not isinstance(field, tuple):
+                raise RuntimeError
+            if field[0] not in self.ds.particle_types:
+                continue
+            self.add_output_field(field, 
+                                  units = self.ds.field_units.get(field, ""),
+                                  particle_type = True)
+        self.setup_smoothed_fields(ptype, 
+                                   num_neighbors=num_neighbors,
+                                   ftype=ftype)
+
 def _dummy_position(field, data):
     return 0.5*np.ones_like(data['particle_position_x'])
 
@@ -119,7 +180,7 @@ def _dummy_field(field, data):
 fluid_field_types = ['chombo', 'gas']
 particle_field_types = ['io', 'all']
 
-class ChomboPICFieldInfo2D(FieldInfoContainer):
+class ChomboPICFieldInfo2D(ChomboPICFieldInfo3D):
     known_other_fields = (
         ("density", (rho_units, ["density", "Density"], None)),
         ("potential", ("code_length**2 / code_time**2", ["potential", "Potential"], None)),
@@ -150,7 +211,7 @@ class ChomboPICFieldInfo2D(FieldInfoContainer):
                            particle_type = True,
                            units = "code_length / code_time")
 
-class ChomboPICFieldInfo1D(FieldInfoContainer):
+class ChomboPICFieldInfo1D(ChomboPICFieldInfo3D):
     known_other_fields = (
         ("density", (rho_units, ["density", "Density"], None)),
         ("potential", ("code_length**2 / code_time**2", ["potential", "Potential"], None)),
