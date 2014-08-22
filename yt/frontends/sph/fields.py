@@ -191,12 +191,16 @@ class OWLSFieldInfo(SPHFieldInfo):
             ftype='gas'
         elif ptype == 'PartType1':
             ftype='dm'
+        elif ptype == 'PartType2':
+            ftype='PartType2'
+        elif ptype == 'PartType3':
+            ftype='PartType3'
         elif ptype == 'PartType4':
             ftype='star'
+        elif ptype == 'PartType5':
+            ftype='BH'
         elif ptype == 'all':
             ftype='all'
-        else:
-            ftype='?'
         
         super(OWLSFieldInfo,self).setup_particle_fields(
             ptype, num_neighbors=self._num_neighbors, ftype=ftype)
