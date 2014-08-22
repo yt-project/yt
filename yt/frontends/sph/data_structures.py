@@ -346,7 +346,7 @@ class EagleDataset(GadgetHDF5Dataset):
             if "Constants" in fileh["/"].keys() and \
                "Header" in fileh["/"].keys() and \
                "SUBFIND" not in fileh["/"].keys() and \
-               fileh["Config"].attrs['Config_option_019']=='EAGLE ':
+               "EAGLE " in fileh["Config"].attrs.values():
                 fileh.close()
                 return True
             fileh.close()
@@ -409,7 +409,8 @@ class OWLSDataset(GadgetHDF5Dataset):
             fileh = h5py.File(args[0], mode='r')
             if "Constants" in fileh["/"].keys() and \
                "Header" in fileh["/"].keys() and \
-               "SUBFIND" not in fileh["/"].keys() and False:
+               "SUBFIND" not in fileh["/"].keys() and \
+               "EAGLE " not in fileh["Config"].attrs.values():
                 fileh.close()
                 return True
             fileh.close()

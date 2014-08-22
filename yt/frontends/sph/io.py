@@ -209,7 +209,6 @@ class IOHandlerOWLS(BaseIOHandler):
 
 class IOHandlerEagle(IOHandlerOWLS):
     _dataset_type = "eagle"
-    _vector_fields = ("Coordinates", "Velocity", "Velocities")
 
 class IOHandlerGadgetHDF5(IOHandlerOWLS):
     _dataset_type = "gadget_hdf5"
