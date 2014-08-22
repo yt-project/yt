@@ -311,6 +311,9 @@ class ChomboDataset(Dataset):
             self.domain_dimensions = np.concatenate((self.domain_dimensions, [1]))
         
         self.refine_by = self._handle['/level_0'].attrs['ref_ratio']
+        self._determine_periodic()
+
+    def _determine_periodic(self):
         self.periodicity = (True, True, True)
 
     def _calc_left_edge(self):
@@ -434,7 +437,7 @@ class Orion2Dataset(ChomboDataset):
         self.domain_right_edge = self._calc_right_edge()
         self.domain_dimensions = self._calc_domain_dimensions()
         self.refine_by = self._handle['/level_0'].attrs['ref_ratio']
-        self.periodicity = (True, True, True)
+        self._determine_periodic()
 
     def _parse_inputs_file(self, ini_filename):
         self.fullplotdir = os.path.abspath(self.parameter_filename)
@@ -502,6 +505,15 @@ class ChomboPICDataset(ChomboDataset):
 
         if self.dimensionality == 2:
             self._field_info_class = ChomboPICFieldInfo2D
+
+    def _determine_periodic(self):
+        is_periodic = np.array([True, True, True])
+        for dir in [0, 1, 2]:
+            try:
+                is_periodic[dir] = self._handle['/level_0'].attrs['is_periodic_%d' % dir]
+            except KeyError:
+                is_periodic[dir] = True
+        self.periodicity = tuple(is_periodic)
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
