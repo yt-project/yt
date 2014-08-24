@@ -442,7 +442,7 @@ cdef class SelectorObject:
                         if child_mask[i, j, k] == 1 or this_level == 1:
                             mask[i, j, k] = self.select_cell(pos, dds)
                             total += mask[i, j, k]
-                        pos[2] += dds[1]
+                        pos[2] += dds[2]
                     pos[1] += dds[1]
                 pos[0] += dds[0]
         if total == 0: return None
@@ -785,9 +785,9 @@ cdef class DiskSelector(SelectorObject):
         for i in range(3):
             self.norm_vec[i] = dobj._norm_vec[i]
             self.center[i] = _ensure_code(dobj.center[i])
-        self.radius = _ensure_code(dobj._radius)
+        self.radius = _ensure_code(dobj.radius)
         self.radius2 = self.radius * self.radius
-        self.height = _ensure_code(dobj._height)
+        self.height = _ensure_code(dobj.height)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -799,12 +799,17 @@ cdef class DiskSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_point(self, np.float64_t pos[3]) nogil:
-        cdef np.float64_t h, d, r2, temp
-        cdef int i
+        cdef np.float64_t h, d, r2, temp, spos
+        cdef int i, j, k
         h = d = 0
-        for i in range(3):
-            temp = self.difference(pos[i], self.center[i], i)
-            h += temp * self.norm_vec[i]
+        for ax in range(3):
+            temp = 1e30
+            for i in range(3):
+                if self.periodicity[ax] == 0 and i != 1: continue
+                spos = pos[ax] + (i-1)*self.domain_width[ax]
+                if fabs(spos - self.center[ax]) < fabs(temp):
+                    temp = spos - self.center[ax]
+            h += temp * self.norm_vec[ax]
             d += temp*temp
         r2 = (d - h*h)
         if fabs(h) <= self.height and r2 <= self.radius2: return 1
@@ -831,6 +836,8 @@ cdef class DiskSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
+        # Until we can get our OBB/OBB intersection correct, disable this.
+        return 1
         cdef np.float64_t *arr[2]
         cdef np.float64_t pos[3], H, D, R2, temp
         cdef int i, j, k, n

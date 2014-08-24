@@ -447,8 +447,14 @@ class YTDataContainer(object):
 
     @contextmanager
     def _field_parameter_state(self, field_parameters):
+        # What we're doing here is making a copy of the incoming field
+        # parameters, and then updating it with our own.  This means that we'll
+        # be using our own center, if set, rather than the supplied one.  But
+        # it also means that any additionally set values can override it.
         old_field_parameters = self.field_parameters
-        self.field_parameters = field_parameters
+        new_field_parameters = field_parameters.copy()
+        new_field_parameters.update(old_field_parameters)
+        self.field_parameters = new_field_parameters
         yield
         self.field_parameters = old_field_parameters
 
