@@ -280,10 +280,13 @@ class ChomboDataset(Dataset):
         self.parameters["EOSType"] = -1 # default
 
     def _set_code_unit_attributes(self):
-        self.length_unit = YTQuantity(1.0, "cm")
-        self.mass_unit = YTQuantity(1.0, "g")
-        self.time_unit = YTQuantity(1.0, "s")
-        self.velocity_unit = YTQuantity(1.0, "cm/s")
+        mylog.warning("Setting code length to be 1.0 cm")
+        mylog.warning("Setting code mass to be 1.0 g")
+        mylog.warning("Setting code time to be 1.0 s")
+        self.length_unit = self.quan(1.0, "cm")
+        self.mass_unit = self.quan(1.0, "g")
+        self.time_unit = self.quan(1.0, "s")
+        self.velocity_unit = self.length_unit / self.time_unit
 
     def _localize(self, f, default):
         if f is None:
