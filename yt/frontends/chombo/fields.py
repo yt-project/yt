@@ -113,7 +113,7 @@ class ChomboPICFieldInfo3D(FieldInfoContainer):
     )
 
     def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64 ):
-        skip_output_units = ("code_length",)
+        skip_output_units = () #("code_length",)
         for f, (units, aliases, dn) in sorted(self.known_particle_fields):
             units = self.ds.field_units.get((ptype, f), units)
             if (f in aliases or ptype not in self.ds.particle_types_raw) and \
