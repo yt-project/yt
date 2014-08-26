@@ -442,7 +442,7 @@ cdef class SelectorObject:
                         if child_mask[i, j, k] == 1 or this_level == 1:
                             mask[i, j, k] = self.select_cell(pos, dds)
                             total += mask[i, j, k]
-                        pos[2] += dds[1]
+                        pos[2] += dds[2]
                     pos[1] += dds[1]
                 pos[0] += dds[0]
         if total == 0: return None
