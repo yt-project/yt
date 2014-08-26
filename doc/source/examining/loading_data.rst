@@ -178,6 +178,14 @@ You would feed it the filename ``pltgmlcs5600``:
 For Maestro and Castro, you would not need the ``inputs`` file, and you 
 would have a ``job_info`` file in the plotfile directory.
 
+.. rubric:: Caveats
+
+* yt does not read the Maestro base state (although you can have Maestro
+  map it to a full Cartesian state variable before writing the plotfile
+  to get around this).
+* yt does not know about particles in Maestro.
+
+
 .. _loading-enzo-data:
 
 Enzo Data
