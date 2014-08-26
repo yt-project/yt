@@ -191,7 +191,14 @@ for frontend in current_frontends:
         field_info_names = \
           ['TipsyFieldInfo' if 'Tipsy' in d else 'SPHFieldInfo' for d in dataset_names]
     elif frontend == "boxlib":
-        field_info_names = len(dataset_names)*["BoxlibFieldInfo"]
+        field_info_names = []
+        for d in dataset_names:
+            if "Maestro" in d:  
+                field_info_names.append("MaestroFieldInfo")
+            elif "Castro" in d: 
+                field_info_names.append("CastroFieldInfo")
+            else: 
+                field_info_names.append("BoxlibFieldInfo")
 
     for dset_name, fi_name in zip(dataset_names, field_info_names):
         fi = getattr(this_f, fi_name)
