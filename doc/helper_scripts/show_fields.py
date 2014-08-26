@@ -186,9 +186,13 @@ for frontend in current_frontends:
     this_f = getattr(frontends_module, frontend)
     field_info_names = [fi for fi in dir(this_f) if "FieldInfo" in fi]
     dataset_names = [dset for dset in dir(this_f) if "Dataset" in dset]
+
     if frontend == "sph":
         field_info_names = \
           ['TipsyFieldInfo' if 'Tipsy' in d else 'SPHFieldInfo' for d in dataset_names]
+    elif frontend == "boxlib":
+        field_info_names = len(dataset_names)*["BoxlibFieldInfo"]
+
     for dset_name, fi_name in zip(dataset_names, field_info_names):
         fi = getattr(this_f, fi_name)
         nfields = 0
