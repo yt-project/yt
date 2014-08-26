@@ -187,7 +187,7 @@ would have a ``job_info`` file in the plotfile directory.
 * For Maestro, yt aliases either "tfromp" or "tfromh to" ``temperature``
   depending on the value of the ``use_tfromp`` runtime parameter.
 * For Maestro, some velocity fields like ``velocity_magnitude`` or 
-  ``mach_number`` will always the on-disk value, and not have yt 
+  ``mach_number`` will always use the on-disk value, and not have yt 
   derive it, due to the complex interplay of the base state velocity.
 
 .. _loading-enzo-data:
