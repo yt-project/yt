@@ -99,7 +99,7 @@ class ParticlePlot(object):
         
         self.figure = mpl.matplotlib.figure.Figure((10, 8))
         self.axis = self.figure.add_subplot(111)
-        self._setup_plot()
+        self._setup_plots()
 
     def save(self, name=None):
         r"""
@@ -112,7 +112,7 @@ class ParticlePlot(object):
 
          """
         if not self._plot_valid:
-            self._setup_plot()
+            self._setup_plots()
         if name is None:
             prefix = self.data_source.ds
             name = "%s.png" % prefix
@@ -174,7 +174,7 @@ class ParticlePlot(object):
         ret += '<img src="data:image/png;base64,%s"><br>' % img
         return ret
 
-    def _setup_plot(self):
+    def _setup_plots(self):
         self.axis.cla()
         self.axis.plot(np.array(self.x_data), np.array(self.y_data),
                        label=self.label, **self.plot_spec)
