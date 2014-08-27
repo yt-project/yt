@@ -137,7 +137,7 @@ class ParticlePlot(object):
         r"""This will send any the plot to the IPython notebook.
 
         If yt is being run from within an IPython session, and it is able to
-        determine this, this function will send any existing plots to the
+        determine this, this function will send the plot to the
         notebook for display.
 
         If yt can't determine if it's inside an IPython session, it will raise
@@ -148,7 +148,7 @@ class ParticlePlot(object):
 
         >>> import yt
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> pp = ProfilePlot(ds.all_data(), 'density', 'temperature')
+        >>> pp = ParticlePlot(ds.all_data(), 'particle_position_x', 'particle_position_y')
         >>> pp.show()
 
         """
@@ -199,7 +199,7 @@ class ParticlePlot(object):
     @invalidate_plot
     def set_line_property(self, property, value):
         r"""
-        Set properties for one or all lines to be plotted.
+        Set properties for the line on the plot.
 
         Parameters
         ----------
@@ -211,11 +211,8 @@ class ParticlePlot(object):
         Examples
         --------
 
-        Change all the lines in a plot
-        plot.set_line_property("linestyle", "-")
+        plot.set_line_property("marker", "+")
 
-        Change a single line.
-        plot.set_line_property("linewidth", 4, index=0)
         
         """
         specs = self.plot_spec
@@ -228,8 +225,7 @@ class ParticlePlot(object):
 
         Parameters
         ----------
-        field : string
-            the field to set a transform
+
         log : boolean
             Log on/off.
         """
@@ -242,8 +238,7 @@ class ParticlePlot(object):
 
         Parameters
         ----------
-        field : string
-            the field to set a transform
+
         log : boolean
             Log on/off.
         """
@@ -268,7 +263,7 @@ class ParticlePlot(object):
         elif field == self.y_field:
             self.y_data.convert_to_units(unit)
         else:
-            raise KeyError("Field %s not in profile plot!" % (field))
+            raise KeyError("Field %s not in the plot!" % (field))
         return self
 
     @invalidate_plot
