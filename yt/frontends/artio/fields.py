@@ -114,30 +114,23 @@ class ARTIOFieldInfo(FieldInfoContainer):
                        take_log=True)
 
     def setup_particle_fields(self, ptype):
-        def _creation_time(field,data):
-            if isinstance(data,FieldDetector):
-                print "_creation_time is being probed", data
-                return data["BIRTH_TIME"]
-            return YTArray(data.ds._handle.tphys_from_tcode_array(data["BIRTH_TIME"]),"yr")
-        
+        if ptype == "STAR":
+            def _creation_time(field,data):
+                return YTArray(data.ds._handle.tphys_from_tcode_array(data["STAR","BIRTH_TIME"]),"yr")
 
-        def _creation_redshift(field,data):
-            if isinstance(data,FieldDetector):
-                return data["BIRTH_TIME"]
-            return 1.0/data.ds._handle.auni_from_tcode_array(data["BIRTH_TIME"]) - 1.0
+            def _age(field, data):
+                return data.ds.current_time - data["STAR","creation_time"]
 
-        def _age(field, data):
-            if isinstance(data,FieldDetector):
-                return data["BIRTH_TIME"]
-            return data.ds.current_time - data["creation_time"]
+            self.add_field((ptype, "creation_time"), function=_creation_time, units="yr",
+                        particle_type=True)
+            self.add_field((ptype, "age"), function=_age, units="yr",
+                        particle_type=True)
 
-        self.add_field((ptype, "creation_time"), function=_creation_time, units="yr",
-                    particle_type=True)
-        self.add_field((ptype, "age"), function=_age, units="yr",
-                    particle_type=True)
+            if self.ds.cosmological_simulation:
+                def _creation_redshift(field,data):
+                    return 1.0/data.ds._handle.auni_from_tcode_array(data["STAR","BIRTH_TIME"]) - 1.0
 
-        if self.ds.cosmological_simulation:
-            self.add_field((ptype, "creation_redshift"), function=_creation_redshift,
-                    particle_type=True)
+                self.add_field((ptype, "creation_redshift"), function=_creation_redshift,
+                        particle_type=True)
 
         super(ARTIOFieldInfo, self).setup_particle_fields(ptype)
