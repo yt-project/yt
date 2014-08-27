@@ -116,17 +116,14 @@ class ARTIOFieldInfo(FieldInfoContainer):
     def setup_particle_fields(self, ptype):
         def _creation_time(field,data):
             if isinstance(data,FieldDetector):
+                print "_creation_time is being probed", data
                 return data["BIRTH_TIME"]
-            if any(data["BIRTH_TIME"] > 0.0):
-                raise ValueError("Invalid value for BIRTH_TIME found in ARTIO frontend")
             return YTArray(data.ds._handle.tphys_from_tcode_array(data["BIRTH_TIME"]),"yr")
         
 
         def _creation_redshift(field,data):
             if isinstance(data,FieldDetector):
                 return data["BIRTH_TIME"]
-            if any(data["BIRTH_TIME"] > 0.0):
-                raise ValueError("Invalid value for BIRTH_TIME found in ARTIO frontend")
             return 1.0/data.ds._handle.auni_from_tcode_array(data["BIRTH_TIME"]) - 1.0
 
         def _age(field, data):
@@ -136,9 +133,11 @@ class ARTIOFieldInfo(FieldInfoContainer):
 
         self.add_field((ptype, "creation_time"), function=_creation_time, units="yr",
                     particle_type=True)
-        self.add_field((ptype, "creation_redshift"), function=_creation_redshift,
-                    particle_type=True)
         self.add_field((ptype, "age"), function=_age, units="yr",
+                    particle_type=True)
+
+        if self.ds.cosmological_simulation:
+            self.add_field((ptype, "creation_redshift"), function=_creation_redshift,
                     particle_type=True)
 
         super(ARTIOFieldInfo, self).setup_particle_fields(ptype)
