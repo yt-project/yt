@@ -572,7 +572,7 @@ class Dataset(object):
         return out
 
     # Now all the object related stuff
-    def all_data(self, find_max=False):
+    def all_data(self, find_max=False, **kwargs):
         """
         all_data is a wrapper to the Region object for creating a region
         which covers the entire simulation domain.
@@ -580,7 +580,7 @@ class Dataset(object):
         if find_max: c = self.find_max("density")[1]
         else: c = (self.domain_right_edge + self.domain_left_edge)/2.0
         return self.region(c,
-            self.domain_left_edge, self.domain_right_edge)
+            self.domain_left_edge, self.domain_right_edge, **kwargs)
 
     def box(self, left_edge, right_edge, **kwargs):
         """

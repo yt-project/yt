@@ -23,7 +23,9 @@ from .data_structures import \
       MaestroDataset
 
 from .fields import \
-      BoxlibFieldInfo
+      BoxlibFieldInfo, \
+      MaestroFieldInfo, \
+      CastroFieldInfo
 
 from .io import \
       IOHandlerBoxlib

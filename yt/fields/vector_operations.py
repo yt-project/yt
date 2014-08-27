@@ -116,7 +116,11 @@ def create_vector_fields(registry, basename, field_units,
                                 "bulk_%s" % basename)
         theta = data['index', 'spherical_theta']
         phi   = data['index', 'spherical_phi']
-        return get_sph_r_component(vectors, theta, phi, normal)
+        rv = get_sph_r_component(vectors, theta, phi, normal)
+        # Now, anywhere that radius is in fact zero, we want to zero out our
+        # return values.
+        rv[np.isnan(theta)] = 0.0
+        return rv
     def _radial_absolute(field, data):
         return np.abs(data[ftype, "radial_%s" % basename])
 
