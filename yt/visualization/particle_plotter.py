@@ -57,8 +57,8 @@ class ParticlePlot(object):
         The field to plot on the y-axis.
     plot_spec : dict or list of dicts
         A dictionary or list of dictionaries containing plot keyword 
-        arguments.  This will be passed For example, dict('c'='r', 'marker'='.').
-        Default: dict('c'='b', 'marker'='.', 'linestyle'='None', 'markersize'=8)
+        arguments.  This will be passed For example, dict(c='r', marker='.').
+        Default: dict(c='b', marker='.', linestyle='None', markersize=8)
 
     Examples
     --------
