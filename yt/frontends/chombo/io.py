@@ -83,16 +83,8 @@ class IOHandlerChomboHDF5(BaseIOHandler):
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
             grid = chunks[0].objs[0]
-            lstring = 'level_%i' % grid.Level
-            lev = self._handle[lstring]
-            grid_offset = lev[self._offset_string][grid._level_id]
-            boxsize = grid.ActiveDimensions.prod()
             for ftype, fname in fields:
-                start = grid_offset+self.field_dict[fname]*boxsize
-                stop = start + boxsize
-                data = lev[self._data_string][start:stop]
-                rv[ftype, fname] = data.reshape(grid.ActiveDimensions,
-                                        order='F')
+                rv[ftype, fname] = self._read_data(grid, fname)
             return rv
         if size is None:
             size = sum((g.count(selector) for chunk in chunks
@@ -108,16 +100,10 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         ind = 0
         for chunk in chunks:
             for g in chunk.objs:
-                lstring = 'level_%i' % g.Level
-                lev = self._handle[lstring]
-                grid_offset = lev[self._offset_string][g._level_id]
-                boxsize = g.ActiveDimensions.prod()
                 nd = 0
                 for field in fields:
-                    start = grid_offset+self.field_dict[fname]*boxsize
-                    stop = start + boxsize
-                    data = lev[self._data_string][start:stop]
-                    data = data.reshape(g.ActiveDimensions, order='F')
+                    ftype, fname = field
+                    data = self._read_data(g, fname)
                     nd = g.select(selector, data, rv[field], ind) # caches
                 ind += nd
         return rv

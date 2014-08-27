@@ -219,6 +219,7 @@ class EnzoFieldInfo(FieldInfoContainer):
             self.add_output_field(
                 ("enzo", te_name),
                 units = "code_velocity**2")
+            self.alias(("gas", "total_energy"), ("enzo", te_name))
             def _tot_minus_kin(field, data):
                 return data[te_name] - 0.5*(
                     data["x-velocity"]**2.0
@@ -226,6 +227,7 @@ class EnzoFieldInfo(FieldInfoContainer):
                     + data["z-velocity"]**2.0 )
             self.add_field(
                 ("gas", "thermal_energy"),
+                function = _tot_minus_kin,
                 units = "erg/g")
 
     def setup_particle_fields(self, ptype):
