@@ -511,6 +511,9 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         fill, gen = self.index._split_fields(fields_to_get)
         particles = []
         for field in gen:
+            if field[0] == 'deposit':
+                fill.append(field)
+                continue
             finfo = self.ds._get_field_info(*field)
             try:
                 finfo.check_available(self)
