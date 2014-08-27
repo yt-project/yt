@@ -10,10 +10,13 @@ except ImportError:
 from yt.funcs import mylog
 
 _types = {
+    'int16_t': 'int16',
+    'uint16_t': 'uint16',
     'int': 'int32',
     'int32_t': 'int32',
     'uint32_t': 'uint32',
     'int64_t': 'int64',
+    'uint64_t': 'uint64',
     'float': 'float32',
     'double': 'float64',
     'unsigned int': 'I',
