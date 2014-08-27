@@ -82,7 +82,7 @@ class ParticlePlot(object):
     _plot_valid = False
 
     def __init__(self, data_source, x_field, y_field,
-                 plot_spec=None):
+                 label=None, plot_spec=None):
 
         if plot_spec is None:
             plot_spec = {'c':'b', 'marker':'.', 'linestyle':'None', 'markersize':8}
@@ -90,6 +90,7 @@ class ParticlePlot(object):
         self.data_source = data_source
         self.x_field = x_field
         self.y_field = y_field
+        self.label = sanitize_label(label, 1)
         self.plot_spec = plot_spec
 
         self.x_data = self.data_source[x_field]
@@ -176,7 +177,7 @@ class ParticlePlot(object):
     def _setup_plots(self):
         self.axis.cla()
         self.axis.plot(np.array(self.x_data), np.array(self.y_data),
-                       **self.plot_spec)
+                       label=self.label, **self.plot_spec)
 
         xscale, yscale = self._get_axis_log()
         xtitle, ytitle = self._get_axis_titles()
@@ -189,6 +190,9 @@ class ParticlePlot(object):
 
         self.axis.set_xlim(*self.x_lim)
         self.axis.set_ylim(*self.y_lim)
+
+        if any(self.label):
+            self.axis.legend(loc="best")
 
         self._plot_valid = True
 
