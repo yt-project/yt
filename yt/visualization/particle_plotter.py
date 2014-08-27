@@ -16,7 +16,6 @@ This is a simple mechanism for interfacing with Particle plots
 
 import __builtin__
 import base64
-import os
 import types
 
 from functools import wraps
@@ -25,12 +24,6 @@ import matplotlib
 import numpy as np
 import cStringIO
 
-from .base_plot_types import ImagePlotMPL
-from .plot_container import \
-    ImagePlotContainer, \
-    log_transform, linear_transform
-from yt.data_objects.profiles import \
-    create_profile
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
@@ -40,78 +33,18 @@ from yt.funcs import \
     get_image_suffix, \
     get_ipython_api_version
 from yt.units.unit_object import Unit
-
-def get_canvas(name):
-    suffix = get_image_suffix(name)
-    
-    if suffix == '':
-        suffix = '.png'
-    if suffix == ".png":
-        canvas_cls = mpl.FigureCanvasAgg
-    elif suffix == ".pdf":
-        canvas_cls = mpl.FigureCanvasPdf
-    elif suffix in (".eps", ".ps"):
-        canvas_cls = mpl.FigureCanvasPS
-    else:
-        mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
-        canvas_cls = mpl.FigureCanvasAgg
-    return canvas_cls
-
-def invalidate_plot(f):
-    @wraps(f)
-    def newfunc(*args, **kwargs):
-        rv = f(*args, **kwargs)
-        args[0]._plot_valid = False
-        args[0]._setup_plots()
-        return rv
-    return newfunc
-
-class FigureContainer(dict):
-    def __init__(self):
-        super(FigureContainer, self).__init__()
-
-    def __missing__(self, key):
-        figure = mpl.matplotlib.figure.Figure((10, 8))
-        self[key] = figure
-        return self[key]
-
-class AxesContainer(dict):
-    def __init__(self, fig_container):
-        self.fig_container = fig_container
-        self.ylim = {}
-        super(AxesContainer, self).__init__()
-
-    def __missing__(self, key):
-        figure = self.fig_container[key]
-        self[key] = figure.add_subplot(111)
-        return self[key]
-
-    def __setitem__(self, key, value):
-        super(AxesContainer, self).__setitem__(key, value)
-        self.ylim[key] = (None, None)
-
-def sanitize_label(label, nprofiles):
-    label = ensure_list(label)
-    
-    if len(label) == 1:
-        label = label * nprofiles
-    
-    if len(label) != nprofiles:
-        raise RuntimeError("Number of labels must match number of profiles")
-
-    for l in label:
-        if l is not None and not isinstance(l, basestring):
-            raise RuntimeError("All labels must be None or a string")
-
-    return label
+from .profile_plotter import \
+    get_canvas, \
+    invalidate_plot, \
+    sanitize_label
 
 class ParticlePlot(object):
     r"""
     Create a particle scatter plot from a data source.
 
     Given a data object (all_data, region, sphere, etc.), an x field, 
-    and a y field (or fields), this will a scatter plot with one marker
-    for each particle.
+    and a y field (both of particle type), this will create a scatter
+    plot with one marker for each particle.
 
     Parameters
     ----------
@@ -124,7 +57,7 @@ class ParticlePlot(object):
         The field to plot on the y-axis.
     plot_spec : dict or list of dicts
         A dictionary or list of dictionaries containing plot keyword 
-        arguments.  For example, dict('c'='r', marker='.').
+        arguments.  This will be passed For example, dict('c'='r', 'marker'='.').
         Default: dict('c'='b', 'marker'='.', 'linestyle'='None', 'markersize'=8)
 
     Examples
@@ -133,10 +66,10 @@ class ParticlePlot(object):
     >>> import yt
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>> ad = ds.all_data()
-    >>> plot = yt.ParticlePlot(ds.all_data(), 'particle_position_x', 'particle_velocity_x')
+    >>> plot = yt.ParticlePlot(ad, 'particle_position_x', 'particle_velocity_x')
     >>> plot.save()
 
-    Use set_line_property to change line properties of one or all profiles.
+    Use set_line_property to change line properties.
     
     """
     x_log = None
