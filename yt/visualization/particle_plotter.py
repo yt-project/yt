@@ -57,7 +57,8 @@ class ParticlePlot(object):
         The field to plot on the y-axis.
     plot_spec : dict or list of dicts
         A dictionary or list of dictionaries containing plot keyword 
-        arguments.  This will be passed For example, dict(c='r', marker='.').
+        arguments.  This will be passed to pyplot.plot. 
+        For example, dict(c='r', marker='.').
         Default: dict(c='b', marker='.', linestyle='None', markersize=8)
 
     Examples
@@ -98,7 +99,7 @@ class ParticlePlot(object):
         
         self.figure = mpl.matplotlib.figure.Figure((10, 8))
         self.axis = self.figure.add_subplot(111)
-        self._setup_plots()
+        self._setup_plot()
 
     def save(self, name=None):
         r"""
@@ -111,7 +112,7 @@ class ParticlePlot(object):
 
          """
         if not self._plot_valid:
-            self._setup_plots()
+            self._setup_plot()
         if name is None:
             prefix = self.data_source.ds
             name = "%s.png" % prefix
@@ -133,8 +134,7 @@ class ParticlePlot(object):
         return fn
 
     def show(self):
-        r"""This will send any existing plots to the IPython notebook.
-        function name.
+        r"""This will send any the plot to the IPython notebook.
 
         If yt is being run from within an IPython session, and it is able to
         determine this, this function will send any existing plots to the
@@ -174,7 +174,7 @@ class ParticlePlot(object):
         ret += '<img src="data:image/png;base64,%s"><br>' % img
         return ret
 
-    def _setup_plots(self):
+    def _setup_plot(self):
         self.axis.cla()
         self.axis.plot(np.array(self.x_data), np.array(self.y_data),
                        label=self.label, **self.plot_spec)

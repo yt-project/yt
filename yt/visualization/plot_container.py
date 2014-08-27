@@ -501,7 +501,6 @@ class ImagePlotContainer(object):
 
     def show(self):
         r"""This will send any existing plots to the IPython notebook.
-        function name.
 
         If yt is being run from within an IPython session, and it is able to
         determine this, this function will send any existing plots to the
