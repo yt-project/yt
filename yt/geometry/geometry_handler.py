@@ -214,8 +214,10 @@ class Index(ParallelAnalysisInterface):
         for ftype, fname in fields:
             if fname in self.field_list or (ftype, fname) in self.field_list:
                 fields_to_read.append((ftype, fname))
-            else:
+            elif fname in self.ds.derived_field_list or (ftype, fname) in self.ds.derived_field_list:
                 fields_to_generate.append((ftype, fname))
+            else:
+                raise RuntimeError("Invalid field encountered in _split_fields: (%s, %s)" % (ftype,fname))
         return fields_to_read, fields_to_generate
 
     def _read_particle_fields(self, fields, dobj, chunk = None):
