@@ -621,7 +621,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 fields_to_generate.append(field)
                 continue
             fields_to_get.append(field)
-        if len(fields_to_get) == 0 and fields_to_generate == 0:
+        if len(fields_to_get) == 0 and len(fields_to_generate) == 0:
             return
         elif self._locked == True:
             raise GenerationInProgress(fields)
