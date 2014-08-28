@@ -432,6 +432,12 @@ class GridBoundaryCallback(PlotCallback):
         min_level = self.min_level or 0
         max_level = self.max_level or levels.max()
 
+        # sorts the three arrays in order of ascending level - this makes images look nicer
+        new_indices = np.argsort(levels)
+        levels = levels[new_indices]
+        GLE = GLE[new_indices]
+        GRE = GRE[new_indices]
+        
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
             pxo = px_off * DW[px_index]
             pyo = py_off * DW[py_index]
