@@ -316,7 +316,7 @@ class YTArray(np.ndarray):
             dtype = getattr(input_array, 'dtype', np.float64)
         if input_array is NotImplemented:
             return input_array
-        if registry is None and isinstance(input_units, basestring):
+        if registry is None and isinstance(input_units, (str, bytes)):
             if input_units.startswith('code_'):
                 raise UnitParseError(
                     "Code units used without referring to a dataset. \n"

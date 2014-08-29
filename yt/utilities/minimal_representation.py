@@ -16,7 +16,7 @@ Skeleton objects that represent a few fundamental yt data types.
 import numpy as np
 import abc
 import json
-import urllib2
+from yt.extern.six.moves import urllib
 from tempfile import TemporaryFile
 from yt.config import ytcfg
 from yt.funcs import *
@@ -106,11 +106,11 @@ class MinimalRepresentation(object):
         datagen, headers = multipart_encode({'metadata' : metadata,
                                              'chunk_info' : chunk_info,
                                              'api_key' : api_key})
-        request = urllib2.Request(url, datagen, headers)
+        request = urllib.request.Request(url, datagen, headers)
         # Actually do the request, and get the response
         try:
-            rv = urllib2.urlopen(request).read()
-        except urllib2.HTTPError as ex:
+            rv = urllib.request.urlopen(request).read()
+        except urllib.error.HTTPError as ex:
             if ex.code == 401:
                 mylog.error("You must create an API key before uploading.")
                 mylog.error("https://data.yt-project.org/getting_started.html")
@@ -126,12 +126,12 @@ class MinimalRepresentation(object):
             f.seek(0)
             pbar = UploaderBar("%s, % 2i/% 2i" % (self.type, i+1, len(chunks)))
             datagen, headers = multipart_encode({'chunk_data' : f}, cb = pbar)
-            request = urllib2.Request(new_url, datagen, headers)
-            rv = urllib2.urlopen(request).read()
+            request = urllib.request.Request(new_url, datagen, headers)
+            rv = urllib.request.urlopen(request).read()
 
         datagen, headers = multipart_encode({'status' : 'FINAL'})
-        request = urllib2.Request(new_url, datagen, headers)
-        rv = json.loads(urllib2.urlopen(request).read())
+        request = urllib.request.Request(new_url, datagen, headers)
+        rv = json.loads(urllib.request.urlopen(request).read())
         mylog.info("Upload succeeded!  View here: %s", rv['url'])
         return rv
 
