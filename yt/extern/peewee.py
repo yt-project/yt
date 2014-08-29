@@ -1163,7 +1163,7 @@ class ForeignRelatedObject(object):
         if not getattr(instance, self.cache_name, None):
             id = getattr(instance, self.field_name, 0)
             qr = self.to.select().where(**{self.to._meta.pk_name: id}).execute()
-            setattr(instance, self.cache_name, qr.next())
+            setattr(instance, self.cache_name, next(qr))
         return getattr(instance, self.cache_name)
     
     def __set__(self, instance, obj):
@@ -1402,7 +1402,7 @@ class Model(object):
     def get(cls, *args, **kwargs):
         query = cls.select().where(*args, **kwargs).paginate(1, 1)
         try:
-            return query.execute().next()
+            return next(query.execute())
         except StopIteration:
             raise cls.DoesNotExist('instance matching query does not exist:\nSQL: %s\nPARAMS: %s' % (
                 query.sql()

@@ -4,6 +4,7 @@ DualEPS: A class to combine bitmap compression and vector graphics
 
 
 """
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -16,7 +17,7 @@ import pyx
 import numpy as np
 from matplotlib import cm
 import matplotlib.pyplot as plt
-from _mpl_imports import FigureCanvasAgg
+from ._mpl_imports import FigureCanvasAgg
 
 from yt.utilities.logger import ytLogger as mylog
 from .plot_window import PlotWindow

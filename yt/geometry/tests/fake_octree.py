@@ -1,3 +1,4 @@
+from __future__ import print_function
 from yt.geometry.fake_octree import create_fake_octree
 from yt.geometry.oct_container import RAMSESOctreeContainer, ParticleOctreeContainer
 import numpy as np
@@ -22,12 +23,12 @@ leavesb = oct_handler.count_leaves(mask)
 assert leaves == leavesb
 
 #Now take the fcoords, call them particles and recreate the same octree
-print "particle-based recreate"
+print("particle-based recreate")
 oct_handler2 = ParticleOctreeContainer(dd,dle,dre)
 oct_handler2.allocate_domains([nocts])
 oct_handler2.n_ref = 1 #specifically make a maximum of 1 particle per oct
 oct_handler2.add(fc, 1)
-print "added particles"
+print("added particles")
 cell_count2 = nocts*8
 oct_counts2 = oct_handler.count_levels(max_level, 1, mask)
 level_counts2 = np.concatenate(([0,],np.cumsum(oct_counts)))
@@ -35,4 +36,4 @@ fc2 = oct_handler.fcoords(domain,mask,cell_count, level_counts.copy())
 leaves2 = oct_handler2.count_leaves(mask)
 assert leaves == leaves2
 
-print "success"
+print("success")

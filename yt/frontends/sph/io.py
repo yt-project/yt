@@ -5,6 +5,7 @@ Gadget-specific data-file handling function
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -40,11 +41,11 @@ def _get_h5_handle(fn):
     try:
         f = h5py.File(fn, "r")
     except IOError as e:
-        print "ERROR OPENING %s" % (fn)
+        print("ERROR OPENING %s" % (fn))
         if os.path.exists(fn):
-            print "FILENAME EXISTS"
+            print("FILENAME EXISTS")
         else:
-            print "FILENAME DOES NOT EXIST"
+            print("FILENAME DOES NOT EXIST")
         raise
     return f
 
@@ -338,7 +339,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         fs = self._field_size
         offsets = {}
         for field in self._fields:
-            if not isinstance(field, types.StringTypes):
+            if not isinstance(field, str):
                 field = field[0]
             if not any( (ptype, field) in field_list
                         for ptype in self._ptypes):
@@ -375,7 +376,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             if count == 0: continue
             m = domain.header["Massarr"][i]
             for field in self._fields:
-                if isinstance(field, types.TupleType):
+                if isinstance(field, tuple):
                     field, req = field
                     if req is ZeroMass:
                         if m > 0.0 : continue
@@ -439,13 +440,13 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         try:#ASCII
             auxdata = np.genfromtxt(filename, skip_header=1)
             if auxdata.size != np.sum(data_file.total_particles.values()):
-                print "Error reading auxiliary tipsy file"
+                print("Error reading auxiliary tipsy file")
                 raise RuntimeError 
         except ValueError:#binary/xdr
             f = open(filename, 'rb')
             l = struct.unpack(data_file.ds.endian+"i", f.read(4))[0]
             if l != np.sum(data_file.total_particles.values()):
-                print "Error reading auxiliary tipsy file"
+                print("Error reading auxiliary tipsy file")
                 raise RuntimeError
             dtype = 'd'
             if field in ('iord', 'igasorder', 'grp'):#These fields are integers
@@ -458,7 +459,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 try:
                     auxdata = np.array(struct.unpack(data_file.ds.endian+(l*dtype), f.read()))
                 except struct.error: # None of the binary attempts to read succeeded
-                    print "Error reading auxiliary tipsy file"
+                    print("Error reading auxiliary tipsy file")
                     raise RuntimeError
             
         # Use the mask to slice out the appropriate particle type data

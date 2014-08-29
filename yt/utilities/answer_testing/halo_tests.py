@@ -1,7 +1,8 @@
+from __future__ import absolute_import
 from yt.mods import *
 import matplotlib
 import pylab
-from output_tests import SingleOutputTest, YTDatasetTest, create_test
+from .output_tests import SingleOutputTest, YTDatasetTest, create_test
 from yt.analysis_modules.halo_finding.api import *
 import hashlib
 import numpy as np

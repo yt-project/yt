@@ -6,6 +6,7 @@ Everything will be returned in a global config dictionary: ytcfg
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -67,9 +68,9 @@ __fn = os.path.expanduser("~/.yt/config")
 if os.path.exists(__fn):
     f = open(__fn).read()
     if any(header in f for header in ["[lagos]","[raven]","[fido]","[enki]"]):
-        print "***********************************************************"
-        print "* Upgrading configuration file to new format; saving old. *"
-        print "***********************************************************"
+        print("***********************************************************")
+        print("* Upgrading configuration file to new format; saving old. *")
+        print("***********************************************************")
         # This is of the old format
         cp = ConfigParser.ConfigParser()
         cp.read(__fn)
@@ -82,7 +83,7 @@ if os.path.exists(__fn):
                 # We changed them all to lowercase
                 if option.lower() in ytcfg_defaults:
                     new_cp.set("yt", option, cp.get(section, option))
-                    print "Setting %s to %s" % (option, cp.get(section, option))
+                    print("Setting %s to %s" % (option, cp.get(section, option)))
         open(__fn + ".old", "w").write(f)
         new_cp.write(open(__fn, "w"))
 # Pathological check for Kraken

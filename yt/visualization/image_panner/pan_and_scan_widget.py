@@ -2,6 +2,8 @@
 
 
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -12,7 +14,7 @@
 #-----------------------------------------------------------------------------
 
 # Major library imports
-from vm_panner import VariableMeshPanner
+from .vm_panner import VariableMeshPanner
 from numpy import linspace, meshgrid, pi, sin, mgrid, zeros
 
 # Enthought library imports

@@ -4,6 +4,8 @@ AbsorptionSpectrum class and member functions.
 
 
 """
+from __future__ import print_function
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -16,7 +18,7 @@ AbsorptionSpectrum class and member functions.
 import h5py
 import numpy as np
 
-from absorption_line import tau_profile
+from .absorption_line import tau_profile
 
 from yt.funcs import get_pbar
 from yt.utilities.physical_constants import \
@@ -265,7 +267,7 @@ class AbsorptionSpectrum(object):
         """
         Write out list of spectral lines.
         """
-        print "Writing spectral line list: %s." % filename
+        print("Writing spectral line list: %s." % filename)
         self.spectrum_line_list.sort(key=lambda obj: obj['wavelength'])
         f = open(filename, 'w')
         f.write('#%-14s %-14s %-12s %-12s %-12s %-12s\n' %
@@ -280,7 +282,7 @@ class AbsorptionSpectrum(object):
         """
         Write spectrum to an ascii file.
         """
-        print "Writing spectrum to ascii file: %s." % filename
+        print("Writing spectrum to ascii file: %s." % filename)
         f = open(filename, 'w')
         f.write("# wavelength[A] tau flux\n")
         for i in xrange(self.lambda_bins.size):
@@ -295,10 +297,10 @@ class AbsorptionSpectrum(object):
         try:
             import pyfits
         except:
-            print "Could not import the pyfits module.  Please install pyfits."
+            print("Could not import the pyfits module.  Please install pyfits.")
             return
 
-        print "Writing spectrum to fits file: %s." % filename
+        print("Writing spectrum to fits file: %s." % filename)
         col1 = pyfits.Column(name='wavelength', format='E', array=self.lambda_bins)
         col2 = pyfits.Column(name='flux', format='E', array=self.flux_field)
         cols = pyfits.ColDefs([col1, col2])
@@ -310,7 +312,7 @@ class AbsorptionSpectrum(object):
         Write spectrum to an hdf5 file.
 
         """
-        print "Writing spectrum to hdf5 file: %s." % filename
+        print("Writing spectrum to hdf5 file: %s." % filename)
         output = h5py.File(filename, 'w')
         output.create_dataset('wavelength', data=self.lambda_bins)
         output.create_dataset('tau', data=self.tau_field)

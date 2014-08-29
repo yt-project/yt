@@ -4,6 +4,7 @@ Utilities for reading Fortran files.
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -282,7 +283,7 @@ def read_record(f, rspec, endian='='):
     vvv = vals[:]
     s1, s2 = vals.pop(0), vals.pop(-1)
     if s1 != s2:
-        print "S1 = %s ; S2 = %s ; SIZE = %s"
+        print("S1 = %s ; S2 = %s ; SIZE = %s")
         raise RuntimeError
     pos = 0
     for a, n, t in rspec:

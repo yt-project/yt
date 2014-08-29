@@ -738,7 +738,7 @@ class FcnSet(TwoPointFunctions):
         input = [bin_type, bin_number, bin_range]
         lists = 0
         for thing in input:
-            if type(thing) == types.ListType:
+            if type(thing) == list:
                 lists += 1
         if lists > 1 and lists < 3:
             mylog.error("Either all the inputs need to be lists, or only one.")

@@ -159,9 +159,9 @@ class LightCone(CosmologySplice):
         box_fraction_used = 0.0
 
         for q in range(len(self.light_cone_solution)):
-            if self.light_cone_solution[q].has_key("previous"):
+            if "previous" in self.light_cone_solution[q]:
                 del self.light_cone_solution[q]["previous"]
-            if self.light_cone_solution[q].has_key("next"):
+            if "next" in self.light_cone_solution[q]:
                 del self.light_cone_solution[q]["next"]
             if q == len(self.light_cone_solution) - 1:
                 z_next = self.near_redshift
@@ -300,7 +300,7 @@ class LightCone(CosmologySplice):
         # Clear projection stack.
         projection_stack = []
         projection_weight_stack = []
-        if self.light_cone_solution[-1].has_key("object"):
+        if "object" in self.light_cone_solution[-1]:
             del self.light_cone_solution[-1]["object"]
 
         # for q, output in enumerate(self.light_cone_solution):

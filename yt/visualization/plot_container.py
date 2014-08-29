@@ -404,7 +404,7 @@ class ImagePlotContainer(object):
         for field in self.data_source._determine_fields(fields):
             self._colorbar_valid = False
             self._colormaps[field] = cmap
-            if isinstance(cmap, types.StringTypes):
+            if isinstance(cmap, str):
                 if str(cmap) in yt_colormaps:
                     cmap = yt_colormaps[str(cmap)]
                 elif hasattr(matplotlib.cm, cmap):
@@ -467,7 +467,7 @@ class ImagePlotContainer(object):
         if 'Cutting' in self.data_source.__class__.__name__:
             type = 'OffAxisSlice'
         for k, v in self.plots.iteritems():
-            if isinstance(k, types.TupleType):
+            if isinstance(k, tuple):
                 k = k[1]
             if axis:
                 n = "%s_%s_%s_%s" % (name, type, axis, k.replace(' ', '_'))

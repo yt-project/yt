@@ -175,7 +175,7 @@ class BoxlibHierarchy(GridIndex):
             if self.dimensionality < 3:
                 dx[i].append(DRE[2] - DLE[1])
         self.level_dds = np.array(dx, dtype="float64")
-        header_file.next()
+        next(header_file)
         if self.ds.geometry == "cartesian":
             default_ybounds = (0.0, 1.0)
             default_zbounds = (0.0, 1.0)
@@ -187,7 +187,7 @@ class BoxlibHierarchy(GridIndex):
             default_zbounds = (0.0, 2*np.pi)
         else:
             raise RuntimeError("yt only supports cartesian and cylindrical coordinates.")
-        if int(header_file.next()) != 0:
+        if int(next(header_file)) != 0:
             raise RuntimeError("INTERNAL ERROR! This should be a zero.")
 
         # each level is one group with ngrids on it. 
@@ -198,7 +198,7 @@ class BoxlibHierarchy(GridIndex):
             vals = header_file.next().split()
             lev, ngrids, cur_time = int(vals[0]),int(vals[1]),float(vals[2])
             assert(lev == level)
-            nsteps = int(header_file.next())
+            nsteps = int(next(header_file))
             for gi in range(ngrids):
                 xlo, xhi = [float(v) for v in header_file.next().split()]
                 if self.dimensionality > 1:
@@ -218,12 +218,12 @@ class BoxlibHierarchy(GridIndex):
             level_dir = os.path.dirname(fn)
             # We skip the first two lines, which contain BoxLib header file
             # version and 'how' the data was written
-            level_header_file.next()
-            level_header_file.next()
+            next(level_header_file)
+            next(level_header_file)
             # Now we get the number of components
-            ncomp_this_file = int(level_header_file.next())
+            ncomp_this_file = int(next(level_header_file))
             # Skip the next line, which contains the number of ghost zones
-            level_header_file.next()
+            next(level_header_file)
             # To decipher this next line, we expect something like:
             # (8 0
             # where the first is the number of FABs in this level.
@@ -231,7 +231,7 @@ class BoxlibHierarchy(GridIndex):
             # Now we can iterate over each and get the indices.
             for gi in range(ngrids):
                 # components within it
-                start, stop = _our_dim_finder.match(level_header_file.next()).groups()
+                start, stop = _our_dim_finder.match(next(level_header_file)).groups()
                 # fix for non-3d data 
                 # note we append '0' to both ends b/c of the '+1' in dims below
                 start += ',0'*(3-self.dimensionality)
@@ -243,9 +243,9 @@ class BoxlibHierarchy(GridIndex):
                 self.grid_start_index[grid_counter + gi,:] = start
             # Now we read two more lines.  The first of these is a close
             # parenthesis.
-            level_header_file.next()
+            next(level_header_file)
             # The next is again the number of grids
-            level_header_file.next()
+            next(level_header_file)
             # Now we iterate over grids to find their offsets in each file.
             for gi in range(ngrids):
                 # Now we get the data file, at which point we're ready to
@@ -322,7 +322,7 @@ class BoxlibHierarchy(GridIndex):
         header_file = open(self.header_filename, 'r')
         header_file.seek(self.dataset._header_mesh_start)
         # Skip over the level dxs, geometry and the zero:
-        [header_file.next() for i in range(self.dataset._max_level + 3)]
+        [next(header_file) for i in range(self.dataset._max_level + 3)]
         # Now we need to be very careful, as we've seeked, and now we iterate.
         # Does this work?  We are going to count the number of places that we
         # have a three-item line.  The three items would be level, number of
@@ -779,7 +779,7 @@ class MaestroDataset(BoxlibDataset):
                     # line format: codename git hash:  the-hash
                     fields = line.split(":")
                     self.parameters[fields[0]] = fields[1].strip()
-                line = f.next()
+                line = next(f)
             # get the runtime parameters
             for line in f:
                 p, v = (_.strip() for _ in line[4:].split("=",1))

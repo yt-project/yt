@@ -150,10 +150,10 @@ class MultipleOutputTest(RegressionTest):
         self.io_log = io_log
 
     def __iter__(self):
-        if isinstance(self.io_log, types.StringTypes):
+        if isinstance(self.io_log, str):
             for line in open(self.io_log):
                 yield line[len(self.io_log_header):].split()[0].strip()
-        elif isinstance(self.io_log, types.ListType):
+        elif isinstance(self.io_log, list):
             for line in self.io_log: yield line
 
 def create_test(base, new_name, **attrs):

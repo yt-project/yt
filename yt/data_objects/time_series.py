@@ -156,7 +156,7 @@ class DatasetSeries(object):
     def __iter__(self):
         # We can make this fancier, but this works
         for o in self._pre_outputs:
-            if isinstance(o, types.StringTypes):
+            if isinstance(o, str):
                 ds = load(o, **self.kwargs)
                 self._setup_function(ds)
                 yield ds
@@ -164,13 +164,13 @@ class DatasetSeries(object):
                 yield o
 
     def __getitem__(self, key):
-        if isinstance(key, types.SliceType):
-            if isinstance(key.start, types.FloatType):
+        if isinstance(key, slice):
+            if isinstance(key.start, float):
                 return self.get_range(key.start, key.stop)
             # This will return a sliced up object!
             return DatasetSeries(self._pre_outputs[key], self.parallel)
         o = self._pre_outputs[key]
-        if isinstance(o, types.StringTypes):
+        if isinstance(o, str):
             o = load(o, **self.kwargs)
             self._setup_function(o)
         return o
@@ -323,7 +323,7 @@ class DatasetSeries(object):
 
         """
         
-        if isinstance(filenames, types.StringTypes):
+        if isinstance(filenames, str):
             filenames = get_filenames_from_glob_pattern(filenames)
         obj = cls(filenames[:], parallel = parallel,
                   setup_function = setup_function, **kwargs)

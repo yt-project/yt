@@ -1,1 +1,2 @@
-from libconfig import libconfig
+from __future__ import absolute_import
+from .libconfig import libconfig

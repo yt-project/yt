@@ -5,6 +5,7 @@ Test symbolic unit handling.
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -56,7 +57,7 @@ def test_no_conflicting_symbols():
 
             # test if we have seen this symbol
             if new_symbol in full_set:
-                print "Duplicate symbol: %s" % new_symbol
+                print("Duplicate symbol: %s" % new_symbol)
                 raise RuntimeError
 
             full_set.add(new_symbol)

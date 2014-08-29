@@ -3,6 +3,7 @@ Writing yt data to a GDF file.
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -125,7 +126,7 @@ def _write_field_to_gdf(ds, fhandle, field_name, particle_type_name,
     try:
         sg = g.create_group(field_name)
     except ValueError:
-        print "Error - File already contains field called " + field_name
+        print("Error - File already contains field called " + field_name)
         sys.exit(1)
 
     # grab the display name and units from the field info container.

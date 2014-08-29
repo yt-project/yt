@@ -4,6 +4,7 @@ Some simple localhost-only remote pdb hacks
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -32,7 +33,7 @@ class PdbXMLRPCServer(SimpleXMLRPCServer):
         signal.signal(signum, self.signal_handler)
 
     def signal_handler(self, signum, frame):
-        print "Caught signal", signum
+        print("Caught signal", signum)
         self.shutdown()
 
     def shutdown(self):
@@ -41,14 +42,14 @@ class PdbXMLRPCServer(SimpleXMLRPCServer):
 
     def serve_forever(self):
         while not self.finished: self.handle_request()
-        print "DONE SERVING"
+        print("DONE SERVING")
 
 def rpdb_excepthook(exc_type, exc, tb):
     traceback.print_exception(exc_type, exc, tb)
     task = ytcfg.getint("yt", "__global_parallel_rank")
     size = ytcfg.getint("yt", "__global_parallel_size")
-    print "Starting RPDB server on task %s ; connect with 'yt rpdb -t %s'" \
-            % (task,task)
+    print("Starting RPDB server on task %s ; connect with 'yt rpdb -t %s'" \
+            % (task,task))
     handler = pdb_handler(tb)
     server = PdbXMLRPCServer(("localhost", 8010+task))
     server.register_introspection_functions()
@@ -85,17 +86,17 @@ class rpdb_cmd(cmd.Cmd):
     def __init__(self, proxy):
         self.proxy = proxy
         cmd.Cmd.__init__(self)
-        print self.proxy.execute("bt")
+        print(self.proxy.execute("bt"))
 
     def default(self, line):
-        print self.proxy.execute(line)
+        print(self.proxy.execute(line))
 
     def do_shutdown(self, args):
-        print self.proxy.shutdown()
+        print(self.proxy.shutdown())
         return True
 
     def do_help(self, line):
-        print self.proxy.execute("help %s" % line)
+        print(self.proxy.execute("help %s" % line))
 
     def postcmd(self, stop, line):
         return stop
@@ -124,6 +125,6 @@ def run_rpdb(task = None):
     try:
         pp = rpdb_cmd(sp)
     except socket.error:
-        print "Connection refused.  Is the server running?"
+        print("Connection refused.  Is the server running?")
         sys.exit(1)
     pp.cmdloop(__header % dict(task = port-8010))

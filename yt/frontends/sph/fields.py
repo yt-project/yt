@@ -5,6 +5,7 @@ OWLS-specific fields
 
 
 """
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -16,7 +17,7 @@ OWLS-specific fields
 
 import os
 import numpy as np
-import owls_ion_tables as oit
+from . import owls_ion_tables as oit
 
 from yt.funcs import *
 
@@ -405,6 +406,6 @@ class OWLSFieldInfo(SPHFieldInfo):
 
 
         if not os.path.exists(owls_ion_path):
-            raise RuntimeError, "Failed to download owls ion data."
+            raise RuntimeError("Failed to download owls ion data.")
 
         return owls_ion_path

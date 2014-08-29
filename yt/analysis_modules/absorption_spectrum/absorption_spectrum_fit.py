@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import h5py
 from yt.analysis_modules.absorption_spectrum.absorption_line \
@@ -1006,6 +1007,6 @@ def _output_fit(lineDic, file_name = 'spectrum_fit.h5'):
         f.create_dataset("{0}/b".format(ion),data=params['b'])
         f.create_dataset("{0}/z".format(ion),data=params['z'])
         f.create_dataset("{0}/complex".format(ion),data=params['group#'])
-    print 'Writing spectrum fit to {0}'.format(file_name)
+    print('Writing spectrum fit to {0}'.format(file_name))
     f.close()
 

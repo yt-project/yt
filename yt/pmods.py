@@ -191,6 +191,7 @@ class mpi(object):
  treat it as if it were -1 (try relative and absolute imports). For
  more information about the level parameter, run 'help(__import__)'.
 """
+from __future__ import print_function
 
 import sys, imp, types
 from yt.extern.six.moves import builtins
@@ -288,10 +289,10 @@ def __import_module__(partname, fqname, parent):
 # The remaining functions are taken unmodified (except for the names)
 # from knee.py.
 def __determine_parent__(globals, level):
-    if not globals or  not globals.has_key("__name__"):
+    if not globals or  "__name__" not in globals:
         return None
     pname = globals['__name__']
-    if globals.has_key("__path__"):
+    if "__path__" in globals:
         parent = sys.modules[pname]
         assert globals is parent.__dict__
         return parent
@@ -328,7 +329,7 @@ def __find_head_package__(parent, name):
         parent = None
         q = __import_module__(head, qname, parent)
         if q: return q, tail
-    raise ImportError, "No module named " + qname
+    raise ImportError("No module named " + qname)
 
 def __load_tail__(q, tail):
     m = q
@@ -339,7 +340,7 @@ def __load_tail__(q, tail):
         mname = "%s.%s" % (m.__name__, head)
         m = __import_module__(head, mname, m)
         if not m:
-            raise ImportError, "No module named " + mname
+            raise ImportError("No module named " + mname)
     return m
 
 def __ensure_fromlist__(m, fromlist, recursive=0):
@@ -357,10 +358,10 @@ def __ensure_fromlist__(m, fromlist, recursive=0):
             subname = "%s.%s" % (m.__name__, sub)
             submod = __import_module__(sub, subname, m)
             if not submod:
-                raise ImportError, "No module named " + subname
+                raise ImportError("No module named " + subname)
 
 # Now we import all the yt.mods items.
 with mpi_import():
-    if MPI.COMM_WORLD.rank == 0: print "Beginning parallel import block."
+    if MPI.COMM_WORLD.rank == 0: print("Beginning parallel import block.")
     from yt.mods import *
-    if MPI.COMM_WORLD.rank == 0: print "Ending parallel import block."
+    if MPI.COMM_WORLD.rank == 0: print("Ending parallel import block.")

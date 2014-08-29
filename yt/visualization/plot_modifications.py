@@ -5,6 +5,7 @@ Callbacks to add additional functionality on to plots.
 
 
 """
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -24,7 +25,7 @@ from matplotlib.colors import colorConverter
 
 from yt.funcs import *
 from yt.extern.six import add_metaclass
-from _mpl_imports import *
+from ._mpl_imports import *
 from yt.utilities.physical_constants import \
     sec_per_Gyr, sec_per_Myr, \
     sec_per_kyr, sec_per_year, \

@@ -48,7 +48,7 @@ class AnalysisTask(object):
 def analysis_task(params = None):
     if params is None: params = tuple()
     def create_new_class(func):
-        cls = type(func.func_name, (AnalysisTask,),
+        cls = type(func.__name__, (AnalysisTask,),
                    dict(eval = func, _params = params))
         return cls
     return create_new_class

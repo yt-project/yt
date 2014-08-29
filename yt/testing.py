@@ -3,6 +3,7 @@ Utilities to aid testing.
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -570,7 +571,7 @@ def check_results(func):
     """
     def compute_results(func):
         def _func(*args, **kwargs):
-            name = kwargs.pop("result_basename", func.func_name)
+            name = kwargs.pop("result_basename", func.__name__)
             rv = func(*args, **kwargs)
             if hasattr(rv, "convert_to_cgs"):
                 rv.convert_to_cgs()
@@ -594,7 +595,7 @@ def check_results(func):
     
     def compare_results(func):
         def _func(*args, **kwargs):
-            name = kwargs.pop("result_basename", func.func_name)
+            name = kwargs.pop("result_basename", func.__name__)
             rv = func(*args, **kwargs)
             if hasattr(rv, "convert_to_cgs"):
                 rv.convert_to_cgs()
@@ -609,17 +610,17 @@ def check_results(func):
                     hashlib.md5(_rv.tostring()).hexdigest() )
             fn = "func_results_ref_%s.cpkl" % (name)
             if not os.path.exists(fn):
-                print "Answers need to be created with --answer-reference ."
+                print("Answers need to be created with --answer-reference .")
                 return False
             with open(fn, "rb") as f:
                 ref = cPickle.load(f)
-            print "Sizes: %s (%s, %s)" % (vals[4] == ref[4], vals[4], ref[4])
+            print("Sizes: %s (%s, %s)" % (vals[4] == ref[4], vals[4], ref[4]))
             assert_allclose(vals[0], ref[0], 1e-8, err_msg="min")
             assert_allclose(vals[1], ref[1], 1e-8, err_msg="max")
             assert_allclose(vals[2], ref[2], 1e-8, err_msg="std")
             assert_allclose(vals[3], ref[3], 1e-8, err_msg="sum")
             assert_equal(vals[4], ref[4])
-            print "Hashes equal: %s" % (vals[-1] == ref[-1])
+            print("Hashes equal: %s" % (vals[-1] == ref[-1]))
             return rv
         return _func
     return compare_results(func)

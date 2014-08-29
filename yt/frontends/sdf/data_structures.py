@@ -196,7 +196,7 @@ class SDFDataset(Dataset):
             hreq = requests.get(sdf_header, stream=True)
             if hreq.status_code != 200: return False
             # Grab a whole 4k page.
-            line = hreq.iter_content(4096).next()
+            line = next(hreq.iter_content(4096))
         elif os.path.isfile(sdf_header):
             with open(sdf_header, "r") as f:
                 line = f.read(10).strip()

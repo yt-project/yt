@@ -4,6 +4,7 @@ Parallel data mapping techniques for yt
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -181,7 +182,7 @@ def parallel_simple_proxy(func):
     def single_proc_results(self, *args, **kwargs):
         retval = None
         if hasattr(self, "dont_wrap"):
-            if func.func_name in self.dont_wrap:
+            if func.__name__ in self.dont_wrap:
                 return func(self, *args, **kwargs)
         if not parallel_capable or self._processing or not self._distributed:
             return func(self, *args, **kwargs)
@@ -242,11 +243,11 @@ def parallel_blocking_call(func):
     def barrierize(*args, **kwargs):
         if not parallel_capable:
             return func(*args, **kwargs)
-        mylog.debug("Entering barrier before %s", func.func_name)
+        mylog.debug("Entering barrier before %s", func.__name__)
         comm = _get_comm(args)
         comm.barrier()
         retval = func(*args, **kwargs)
-        mylog.debug("Entering barrier after %s", func.func_name)
+        mylog.debug("Entering barrier after %s", func.__name__)
         comm.barrier()
         return retval
     return barrierize
@@ -653,11 +654,11 @@ class Communicator(object):
         #   data field dict
         if datatype is not None:
             pass
-        elif isinstance(data, types.DictType):
+        elif isinstance(data, dict):
             datatype == "dict"
         elif isinstance(data, np.ndarray):
             datatype == "array"
-        elif isinstance(data, types.ListType):
+        elif isinstance(data, list):
             datatype == "list"
         # Now we have our datatype, and we conduct our operation
         if datatype == "dict" and op == "join":
@@ -903,7 +904,7 @@ class Communicator(object):
         mask = 1
 
         buf = qt.tobuffer()
-        print "PROC", rank, buf[0].shape, buf[1].shape, buf[2].shape
+        print("PROC", rank, buf[0].shape, buf[1].shape, buf[2].shape)
         sys.exit()
 
         args = qt.get_args() # Will always be the same

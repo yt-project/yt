@@ -4,6 +4,7 @@ Create a Catmull-Rom spline.
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.

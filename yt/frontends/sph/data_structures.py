@@ -5,6 +5,7 @@ Data structures for a generic SPH/Gadget frontend.
 
 
 """
+from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -53,7 +54,7 @@ except ImportError:
     requests = None
 
 def _fix_unit_ordering(unit):
-    if isinstance(unit[0], types.StringTypes):
+    if isinstance(unit[0], str):
         unit = unit[1], unit[0]
     return unit
 
@@ -122,7 +123,7 @@ class GadgetDataset(ParticleDataset):
         super(GadgetDataset, self).__init__(filename, dataset_type)
 
     def _setup_binary_spec(self, spec, spec_dict):
-        if isinstance(spec, types.StringTypes):
+        if isinstance(spec, str):
             _hs = ()
             for hs in spec.split("+"):
                 _hs += spec_dict[hs]
@@ -394,15 +395,15 @@ class TipsyDataset(ParticleDataset):
             field_dtypes = {}
         success, self.endian = self._validate_header(filename)
         if not success:
-            print "SOMETHING HAS GONE WRONG.  NBODIES != SUM PARTICLES."
-            print "%s != (%s == %s + %s + %s)" % (
+            print("SOMETHING HAS GONE WRONG.  NBODIES != SUM PARTICLES.")
+            print("%s != (%s == %s + %s + %s)" % (
                 self.parameters['nbodies'],
                 tot,
                 self.parameters['nsph'],
                 self.parameters['ndark'],
-                self.parameters['nstar'])
-            print "Often this can be fixed by changing the 'endian' parameter."
-            print "This defaults to '>' but may in fact be '<'."
+                self.parameters['nstar']))
+            print("Often this can be fixed by changing the 'endian' parameter.")
+            print("This defaults to '>' but may in fact be '<'.")
             raise RuntimeError
         self.storage_filename = None
 

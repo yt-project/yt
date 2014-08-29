@@ -1,2 +1,3 @@
-from api import libconfig
+from __future__ import absolute_import
+from .api import libconfig
 

@@ -1561,7 +1561,7 @@ def is_valid_dm(D, tol=0.0, throw=False, name="D", warning=False):
                     raise ValueError(('Distance matrix \'%s\' diagonal must be'
                                       ' close to zero within tolerance %5.5f.')
                                      % tol)
-    except Exception, e:
+    except Exception as e:
         if throw:
             raise
         if warning:
@@ -1631,7 +1631,7 @@ def is_valid_y(y, warning=False, throw=False, name=None):
                 raise ValueError('Length n of condensed distance matrix must '
                                  'be a binomial coefficient, i.e. there must '
                                  'be a k such that (k \choose 2)=n)!')
-    except Exception, e:
+    except Exception as e:
         if throw:
             raise
         if warning:

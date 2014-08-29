@@ -164,7 +164,7 @@ class PeriodicTable:
     def __getitem__(self, key):
         if isinstance(key, (np.number, numbers.Number)):
             d = self.elements_by_number
-        elif isinstance(key, types.StringTypes):
+        elif isinstance(key, str):
             if len(key) <= 2:
                 d = self.elements_by_symbol
             elif len(key) == 3 and key[0] == "U":

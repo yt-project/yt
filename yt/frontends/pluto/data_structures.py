@@ -202,7 +202,7 @@ class PlutoDataset(Dataset):
     def _setup_nounits_units(self):
         z = 0
         mylog.warning("Setting 1.0 in code units to be 1.0 cm")
-        if not self.has_key("TimeUnits"):
+        if "TimeUnits" not in self:
             mylog.warning("No time units.  Setting 1.0 = 1 second.")
             self.conversion_factors["Time"] = 1.0
         for unit in mpc_conversion.keys():
@@ -234,7 +234,7 @@ class PlutoDataset(Dataset):
                 #param, sep, vals = map(rstrip,line.partition(' '))
             except ValueError:
                 mylog.error("ValueError: '%s'", line)
-            if pluto2enzoDict.has_key(param):
+            if param in pluto2enzoDict:
                 paramName = pluto2enzoDict[param]
                 t = map(parameterDict[paramName], vals.split())
                 if len(t) == 1:

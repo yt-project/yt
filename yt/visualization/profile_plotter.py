@@ -4,6 +4,7 @@ This is a simple mechanism for interfacing with Profile and Phase plots
 
 
 """
+from __future__ import absolute_import
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -35,7 +36,7 @@ from yt.data_objects.profiles import \
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
-import _mpl_imports as mpl
+from . import _mpl_imports as mpl
 from yt.funcs import \
     ensure_list, \
     get_image_suffix, \
@@ -239,14 +240,14 @@ class ProfilePlot(object):
         suffix = get_image_suffix(name)
         prefix = name[:name.rfind(suffix)]
         xfn = self.profiles[0].x_field
-        if isinstance(xfn, types.TupleType):
+        if isinstance(xfn, tuple):
             xfn = xfn[1]
         if not suffix:
             suffix = ".png"
         canvas_cls = get_canvas(name)
         fns = []
         for uid, fig in iters:
-            if isinstance(uid, types.TupleType):
+            if isinstance(uid, tuple):
                 uid = uid[1]
             canvas = canvas_cls(fig)
             fns.append("%s_1d-Profile_%s_%s%s" % (prefix, xfn, uid, suffix))
@@ -947,13 +948,13 @@ class PhasePlot(ImagePlotContainer):
         name = os.path.expanduser(name)
         xfn = self.profile.x_field
         yfn = self.profile.y_field
-        if isinstance(xfn, types.TupleType):
+        if isinstance(xfn, tuple):
             xfn = xfn[1]
-        if isinstance(yfn, types.TupleType):
+        if isinstance(yfn, tuple):
             yfn = yfn[1]
         for f in self.profile.field_data:
             _f = f
-            if isinstance(f, types.TupleType):
+            if isinstance(f, tuple):
                 _f = _f[1]
             middle = "2d-Profile_%s_%s_%s" % (xfn, yfn, _f)
             splitname = os.path.split(name)
