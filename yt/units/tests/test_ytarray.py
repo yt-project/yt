@@ -15,7 +15,7 @@ Test ndarray subclass that handles symbolic units.
 # ----------------------------------------------------------------------------
 
 import copy
-import cPickle as pickle
+from yt.extern.six.moves import cPickle as pickle
 import itertools
 import numpy as np
 import operator

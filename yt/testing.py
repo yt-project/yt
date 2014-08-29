@@ -14,7 +14,7 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 import hashlib
-import cPickle
+from yt.extern.six.moves import cPickle
 import itertools as it
 import numpy as np
 import importlib

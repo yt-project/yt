@@ -37,7 +37,7 @@ import numpy as np
 import h5py
 import time
 import pdb
-import cPickle
+from yt.extern.six.moves import cPickle
 import glob
 
 from yt.funcs import *

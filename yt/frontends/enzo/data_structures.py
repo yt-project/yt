@@ -22,7 +22,6 @@ import string
 import re
 
 from threading import Thread
-import Queue
 
 from itertools import izip
 

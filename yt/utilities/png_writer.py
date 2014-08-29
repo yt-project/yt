@@ -11,7 +11,7 @@ Writing PNGs
 #-----------------------------------------------------------------------------
 
 import matplotlib._png as _png
-import cStringIO
+from yt.extern.six.moves import cStringIO
 
 def write_png(buffer, filename, dpi=100):
     width = buffer.shape[1]

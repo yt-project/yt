@@ -16,7 +16,7 @@ ARTIO-specific data structures
 import numpy as np
 import stat
 import weakref
-import cStringIO
+from yt.extern.six.moves import cStringIO
 
 from .definitions import ARTIOconstants
 from ._artio_caller import \

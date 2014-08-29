@@ -36,10 +36,11 @@ def load(*args ,**kwargs):
     """
     if len(args) == 0:
         try:
-            import Tkinter, tkFileDialog
+            from yt.extern.six.moves import tkinter
+            import tkinter, tkFileDialog
         except ImportError:
             raise YTOutputNotIdentified(args, kwargs)
-        root = Tkinter.Tk()
+        root = tkinter.Tk()
         filename = tkFileDialog.askopenfilename(parent=root,title='Choose a file')
         if filename != None:
             return load(filename)

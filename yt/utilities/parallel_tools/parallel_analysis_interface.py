@@ -14,7 +14,7 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import cStringIO
+from yt.extern.six.moves import cStringIO
 import itertools
 import logging
 import numpy as np

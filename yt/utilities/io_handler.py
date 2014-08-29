@@ -16,7 +16,7 @@ The data-file handling functions
 from collections import defaultdict
 
 from yt.funcs import mylog
-import cPickle
+from yt.extern.six.moves import cPickle
 import os
 import h5py
 import numpy as np

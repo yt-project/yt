@@ -18,7 +18,7 @@ import os
 import numpy as np
 import stat
 import weakref
-import cStringIO
+from yt.extern.six.moves import cStringIO
 
 from yt.funcs import *
 from yt.geometry.oct_geometry_handler import \

@@ -16,7 +16,8 @@ from __future__ import absolute_import
 #-----------------------------------------------------------------------------
 
 import matplotlib
-import os, shelve, cPickle, sys, imp, tempfile
+import os, shelve, sys, imp, tempfile
+from yt.extern.six.moves import cPickle
 
 from yt.config import ytcfg; ytcfg["yt","serialize"] = "False"
 from yt.funcs import *

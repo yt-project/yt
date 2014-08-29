@@ -20,7 +20,7 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
 import yt.utilities.fortran_utils as fpu
-import cStringIO
+from yt.extern.six.moves import cStringIO
 
 class IOHandlerRAMSES(BaseIOHandler):
     _dataset_type = "ramses"

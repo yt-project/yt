@@ -14,11 +14,12 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import cmd, pdb, xmlrpclib, socket, sys
+import cmd, pdb, socket, sys
 from yt.extern.six.moves import StringIO
 import traceback
 import signal
-from SimpleXMLRPCServer import SimpleXMLRPCServer
+from yt.extern.six.moves.xmlrpc_server import SimpleXMLRPCServer
+from yt.extern.six.moves.xmlrpc_client import ServerProxy
 from yt.config import ytcfg
 
 class PdbXMLRPCServer(SimpleXMLRPCServer):
@@ -121,7 +122,7 @@ def run_rpdb(task = None):
             task + int(sys.argv[-1])
         except: pass
     port += task
-    sp = xmlrpclib.ServerProxy("http://localhost:%s/" % port)
+    sp = ServerProxy("http://localhost:%s/" % port)
     try:
         pp = rpdb_cmd(sp)
     except socket.error:

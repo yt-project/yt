@@ -411,9 +411,8 @@ def paste_traceback(exc_type, exc, tb):
     Should only be used in sys.excepthook.
     """
     sys.__excepthook__(exc_type, exc, tb)
-    from yt.extern.six.moves import StringIO
-    import xmlrpclib
-    p = xmlrpclib.ServerProxy(
+    from yt.extern.six.moves import StringIO, xmlrpc_client
+    p = xmlrpc_client.ServerProxy(
             "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
     s = StringIO()
@@ -429,14 +428,14 @@ def paste_traceback_detailed(exc_type, exc, tb):
     This is a traceback handler that knows how to paste to the pastebin.
     Should only be used in sys.excepthook.
     """
-    import xmlrpclib, cgitb
-    from yt.extern.six.moves import StringIO
+    import cgitb
+    from yt.extern.six.moves import StringIO, xmlrpc_client
     s = StringIO()
     handler = cgitb.Hook(format="text", file = s)
     handler(exc_type, exc, tb)
     s = s.getvalue()
     print(s)
-    p = xmlrpclib.ServerProxy(
+    p = xmlrpc_client.ServerProxy(
             "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
     ret = p.pastes.newPaste('text', s, None, '', '', True)

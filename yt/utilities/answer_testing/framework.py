@@ -19,9 +19,8 @@ import os
 import hashlib
 import contextlib
 import urllib2
-import cPickle
 import sys
-import cPickle
+from yt.extern.six.moves import cPickle
 import shelve
 import zlib
 import tempfile

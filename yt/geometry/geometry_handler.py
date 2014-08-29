@@ -15,7 +15,7 @@ Geometry container base class.
 #-----------------------------------------------------------------------------
 
 import os
-import cPickle
+from yt.extern.six.moves import cPickle
 import weakref
 import h5py
 import numpy as np

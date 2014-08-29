@@ -24,7 +24,7 @@ from functools import wraps
 from itertools import izip
 import matplotlib
 import numpy as np
-import cStringIO
+from yt.extern.six.moves import cStringIO
 
 
 from .base_plot_types import ImagePlotMPL

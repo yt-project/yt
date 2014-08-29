@@ -16,7 +16,9 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import ConfigParser, os, os.path, types
+import os
+import types
+from yt.extern.six.moves import configparser
 
 ytcfg_defaults = dict(
     serialize = 'False',
@@ -72,11 +74,11 @@ if os.path.exists(__fn):
         print("* Upgrading configuration file to new format; saving old. *")
         print("***********************************************************")
         # This is of the old format
-        cp = ConfigParser.ConfigParser()
+        cp = configparser.ConfigParser()
         cp.read(__fn)
         # NOTE: To avoid having the 'DEFAULT' section here,
         # we are not passing in ytcfg_defaults to the constructor.
-        new_cp = ConfigParser.ConfigParser()
+        new_cp = configparser.ConfigParser()
         new_cp.add_section("yt")
         for section in cp.sections():
             for option in cp.options(section):
@@ -92,10 +94,10 @@ if os.path.exists(__fn):
 #            print "yt is creating a new directory, ~/.yt ."
 #            os.mkdir(os.path.exists("~/.yt/"))
 #    # Now we can read in and write out ...
-#    new_cp = Configparser.ConfigParser(ytcfg_defaults)
+#    new_cp = configparser.ConfigParser(ytcfg_defaults)
 #    new_cp.write(__fn)
 
-class YTConfigParser(ConfigParser.ConfigParser):
+class YTConfigParser(configparser.ConfigParser):
     def __setitem__(self, key, val):
         self.set(key[0], key[1], val)
 
