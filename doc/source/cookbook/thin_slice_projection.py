@@ -4,7 +4,7 @@ import yt
 ds = yt.load("Enzo_64/DD0030/data0030")
 
 # Make a projection that is the full width of the domain,
-# but only 10 Mpc in depth.  This is done by creating a
+# but only 5 Mpc in depth.  This is done by creating a
 # region object with this exact geometry and providing it
 # as a data_source for the projection.
 
