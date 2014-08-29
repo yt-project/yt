@@ -36,6 +36,10 @@ cdef extern from "math.h":
     long int lrint(double x) nogil
     double fabs(double x) nogil
 
+# use this as an epsilon test for grids aligned with selector
+# define here to avoid the gil later
+cdef np.float64_t grid_eps = np.finfo(np.float64).eps
+
 # These routines are separated into a couple different categories:
 #
 #   * Routines for identifying intersections of an object with a bounding box
@@ -112,19 +116,18 @@ cdef class SelectorObject:
         self.max_level = getattr(dobj, "max_level", 99)
         self.overlap_cells = 0
 
-        for i in range(3) :
-            ds = getattr(dobj, 'ds', None)
-            if ds is None:
-                for i in range(3):
-                    # NOTE that this is not universal.
-                    self.domain_width[i] = 1.0
-                    self.periodicity[i] = False
-            else:
-                DLE = _ensure_code(ds.domain_left_edge)
-                DRE = _ensure_code(ds.domain_right_edge)
-                for i in range(3):
-                    self.domain_width[i] = DRE[i] - DLE[i]
-                    self.periodicity[i] = ds.periodicity[i]
+        ds = getattr(dobj, 'ds', None)
+        if ds is None:
+            for i in range(3):
+                # NOTE that this is not universal.
+                self.domain_width[i] = 1.0
+                self.periodicity[i] = False
+        else:
+            DLE = _ensure_code(ds.domain_left_edge)
+            DRE = _ensure_code(ds.domain_right_edge)
+            for i in range(3):
+                self.domain_width[i] = DRE[i] - DLE[i]
+                self.periodicity[i] = ds.periodicity[i]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -442,7 +445,7 @@ cdef class SelectorObject:
                         if child_mask[i, j, k] == 1 or this_level == 1:
                             mask[i, j, k] = self.select_cell(pos, dds)
                             total += mask[i, j, k]
-                        pos[2] += dds[2]
+                        pos[2] += dds[1]
                     pos[1] += dds[1]
                 pos[0] += dds[0]
         if total == 0: return None
@@ -1021,7 +1024,7 @@ cdef class SliceSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
-        if pos[self.axis] + 0.5*dds[self.axis] > self.coord \
+        if pos[self.axis] + 0.5*dds[self.axis]  + grid_eps > self.coord \
            and pos[self.axis] - 0.5*dds[self.axis] <= self.coord:
             return 1
         return 0
@@ -1044,7 +1047,7 @@ cdef class SliceSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
-        if left_edge[self.axis] <= self.coord < right_edge[self.axis]:
+        if left_edge[self.axis] <= self.coord < (right_edge[self.axis] + grid_eps):
             return 1
         return 0
 
