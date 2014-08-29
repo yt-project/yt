@@ -494,6 +494,18 @@ class YTDataContainer(object):
                     ftype = self._current_fluid_type
                     if (ftype, fname) not in self.ds.field_info:
                         ftype = self.ds._last_freq[0]
+
+                # really ugly check to ensure that this field really does exist somewhere,
+                # in some naming convention, before returning it as a possible field type
+                if (ftype,fname) not in self.ds.field_list and \
+                        fname not in self.ds.field_list and \
+                        (ftype,fname) not in self.ds.derived_field_list and \
+                        fname not in self.ds.derived_field_list and \
+                        (ftype,fname) not in self._container_fields:
+                    raise YTFieldNotFound((ftype,fname),self.ds)
+
+            # these tests are really insufficient as a field type may be valid, and the
+            # field name may be valid, but not the combination (field type, field name)
             if finfo.particle_type and ftype not in self.ds.particle_types:
                 raise YTFieldTypeNotFound(ftype)
             elif not finfo.particle_type and ftype not in self.ds.fluid_types:
