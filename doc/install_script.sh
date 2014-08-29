@@ -501,7 +501,6 @@ function do_setup_py
     [ ! -e $LIB/extracted ] && tar xfz $LIB.tar.gz
     touch $LIB/extracted
     BUILD_ARGS=""
-    echo "LIB = $LIB"
     case $LIB in
         *h5py*)
             BUILD_ARGS="--hdf5=${HDF5_DIR}"
