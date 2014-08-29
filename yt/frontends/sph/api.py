@@ -19,14 +19,14 @@ from .data_structures import \
       GadgetDataset, \
       GadgetHDF5Dataset, \
       TipsyDataset,\
-      EagleDataset
+      EagleNetworkDataset
 
 from .io import \
       IOHandlerOWLS, \
       IOHandlerGadgetBinary,\
-      IOHandlerEagle
+      IOHandlerEagleNetwork
 
 from .fields import \
       SPHFieldInfo, \
       TipsyFieldInfo,\
-      EagleFieldInfo
+      EagleNetworkFieldInfo

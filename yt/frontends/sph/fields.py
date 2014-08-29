@@ -26,7 +26,7 @@ from yt.fields.field_info_container import \
 from .definitions import \
     gadget_ptypes, \
     ghdf5_ptypes,\
-    eagle_ion_lookup
+    eaglenetwork_ion_lookup
 
 from yt.units.yt_array import YTQuantity
 from yt.config import ytcfg
@@ -419,7 +419,7 @@ class OWLSFieldInfo(SPHFieldInfo):
         return owls_ion_path
 
 
-class EagleFieldInfo(OWLSFieldInfo):
+class EagleNetworkFieldInfo(OWLSFieldInfo):
 
     _ions = \
         ('H1', 'H2', 'He1', 'He2','He3', 'C1',\
@@ -441,7 +441,7 @@ class EagleFieldInfo(OWLSFieldInfo):
 
     def __init__(self, *args, **kwargs):
         
-        super(EagleFieldInfo,self).__init__( *args, **kwargs )
+        super(EagleNetworkFieldInfo,self).__init__( *args, **kwargs )
         
     def _create_ion_density_func( self, ftype, ion ):
         """ returns a function that calculates the ion density of a particle. 
@@ -450,7 +450,7 @@ class EagleFieldInfo(OWLSFieldInfo):
         def _ion_density(field, data):
 
             # Lookup the index of the ion 
-            index = eagle_ion_lookup[ion] 
+            index = eaglenetwork_ion_lookup[ion] 
 
             # Ion to hydrogen number density ratio
             ion_chem = data[ftype, "Chemistry_%03i"%index]

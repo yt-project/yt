@@ -58,7 +58,7 @@ gadget_field_specs = dict(
 )
 
 
-eagle_ions = \
+eaglenetwork_ions = \
     ('electron', 'H1', 'H2', 'H_m', 'He1', 'He2','He3', 'C1',\
      'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C_m', 'N1', 'N2', \
      'N3', 'N4', 'N5', 'N6', 'N7', 'N8', 'O1', 'O2', 'O3', \
@@ -76,4 +76,4 @@ eagle_ions = \
      'Fe17', 'Fe18', 'Fe19', 'Fe20', 'Fe21', 'Fe22', 'Fe23',\
      'Fe24', 'Fe25', 'Fe25', 'Fe27',)
 
-eagle_ion_lookup = {ion:index for index, ion in enumerate(eagle_ions)}
+eaglenetwork_ion_lookup = {ion:index for index, ion in enumerate(eaglenetwork_ions)}

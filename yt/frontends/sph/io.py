@@ -207,8 +207,8 @@ class IOHandlerOWLS(BaseIOHandler):
         f.close()
         return fields, {}
 
-class IOHandlerEagle(IOHandlerOWLS):
-    _dataset_type = "eagle"
+class IOHandlerEagleNetwork(IOHandlerOWLS):
+    _dataset_type = "eagle_network"
 
 class IOHandlerGadgetHDF5(IOHandlerOWLS):
     _dataset_type = "gadget_hdf5"

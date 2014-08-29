@@ -38,7 +38,7 @@ from yt.utilities.physical_constants import \
     mass_sun_cgs
 from yt.utilities.cosmology import Cosmology
 from .fields import \
-    SPHFieldInfo, OWLSFieldInfo, TipsyFieldInfo, EagleFieldInfo
+    SPHFieldInfo, OWLSFieldInfo, TipsyFieldInfo, EagleNetworkFieldInfo
 from .definitions import \
     gadget_header_specs, \
     gadget_field_specs, \
@@ -292,9 +292,11 @@ class GadgetHDF5Dataset(GadgetDataset):
             pass
         return False
 
-class EagleDataset(GadgetHDF5Dataset):
+class OWLSDataset(GadgetHDF5Dataset):
     _particle_mass_name = "Mass"
-    _field_info_class = EagleFieldInfo
+    _field_info_class = OWLSFieldInfo
+    _time_readin = "Time_GYR"
+
 
 
     def _parse_parameter_file(self):
@@ -311,7 +313,7 @@ class EagleDataset(GadgetHDF5Dataset):
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         # Set standard values
-        self.current_time = hvals["Time"] * sec_conversion["Gyr"]
+        self.current_time = hvals[self._time_readin] * sec_conversion["Gyr"]
         if self.domain_left_edge is None:
             self.domain_left_edge = np.zeros(3, "float64")
             self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
@@ -345,8 +347,9 @@ class EagleDataset(GadgetHDF5Dataset):
             fileh = h5py.File(args[0], mode='r')
             if "Constants" in fileh["/"].keys() and \
                "Header" in fileh["/"].keys() and \
-               "SUBFIND" not in fileh["/"].keys() and \
-               "EAGLE " in fileh["Config"].attrs.values():
+               "SUBFIND" not in fileh["/"].keys() and not\
+               ("ChemistryAbundances" in fileh["PartType0"].keys()
+                or "ChemicalAbundances" in fileh["PartType0"].keys()):
                 fileh.close()
                 return True
             fileh.close()
@@ -354,54 +357,10 @@ class EagleDataset(GadgetHDF5Dataset):
             pass
         return False
 
-class OWLSDataset(GadgetHDF5Dataset):
+class EagleNetworkDataset(OWLSDataset):
     _particle_mass_name = "Mass"
-    _field_info_class = OWLSFieldInfo
-
-
-
-    def _parse_parameter_file(self):
-        handle = h5py.File(self.parameter_filename, mode="r")
-        hvals = {}
-        hvals.update((str(k), v) for k, v in handle["/Header"].attrs.items())
-        hvals["NumFiles"] = hvals["NumFilesPerSnapshot"]
-        hvals["Massarr"] = hvals["MassTable"]
-
-        self.dimensionality = 3
-        self.refine_by = 2
-        self.parameters["HydroMethod"] = "sph"
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-
-        # Set standard values
-        #self.current_time = hvals["Time_GYR"] * sec_conversion["Gyr"]
-        self.current_time = hvals["Time"] * sec_conversion["Gyr"]
-        if self.domain_left_edge is None:
-            self.domain_left_edge = np.zeros(3, "float64")
-            self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(3, "int32") * nz
-        self.cosmological_simulation = 1
-        self.periodicity = (True, True, True)
-        self.current_redshift = hvals["Redshift"]
-        self.omega_lambda = hvals["OmegaLambda"]
-        self.omega_matter = hvals["Omega0"]
-        self.hubble_constant = hvals["HubbleParam"]
-        self.parameters = hvals
-
-        prefix = os.path.abspath(self.parameter_filename.split(".", 1)[0])
-        suffix = self.parameter_filename.rsplit(".", 1)[-1]
-        self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
-        self.file_count = hvals["NumFilesPerSnapshot"]
-
-        # To avoid having to open files twice
-        self._unit_base = {}
-        self._unit_base.update(
-            (str(k), v) for k, v in handle["/Units"].attrs.items())
-        # Comoving cm is given in the Units
-        self._unit_base['cmcm'] = 1.0 / self._unit_base["UnitLength_in_cm"]
-
-        handle.close()
+    _field_info_class = EagleNetworkFieldInfo
+    _time_readin = 'Time'
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -410,7 +369,8 @@ class OWLSDataset(GadgetHDF5Dataset):
             if "Constants" in fileh["/"].keys() and \
                "Header" in fileh["/"].keys() and \
                "SUBFIND" not in fileh["/"].keys() and \
-               "EAGLE " not in fileh["Config"].attrs.values():
+               ("ChemistryAbundances" in fileh["PartType0"].keys()
+                or "ChemicalAbundances" in fileh["PartType0"].keys()):
                 fileh.close()
                 return True
             fileh.close()
