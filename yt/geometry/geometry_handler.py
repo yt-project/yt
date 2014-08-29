@@ -217,7 +217,7 @@ class Index(ParallelAnalysisInterface):
             elif fname in self.ds.derived_field_list or (ftype, fname) in self.ds.derived_field_list:
                 fields_to_generate.append((ftype, fname))
             else:
-                raise RuntimeError("Invalid field encountered in _split_fields: (%s, %s)" % (ftype,fname))
+                raise YTFieldNotFound((ftype,fname), self.ds)
         return fields_to_read, fields_to_generate
 
     def _read_particle_fields(self, fields, dobj, chunk = None):
