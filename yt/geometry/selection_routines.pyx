@@ -1025,7 +1025,7 @@ cdef class SliceSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
         if pos[self.axis] + 0.5*dds[self.axis] > self.coord \
-           and pos[self.axis] - 0.5*dds[self.axis] - grid_eps<= self.coord:
+           and pos[self.axis] - 0.5*dds[self.axis] - grid_eps <= self.coord:
             return 1
         return 0
 
@@ -1047,7 +1047,7 @@ cdef class SliceSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
-        if left_edge[self.axis] - grid_eps <= self.coord < (right_edge[self.axis]):
+        if left_edge[self.axis] - grid_eps <= self.coord < right_edge[self.axis]:
             return 1
         return 0
 
