@@ -2170,8 +2170,10 @@ class ProjectionCamera(Camera):
 
         fields = [field]
         if self.weight is not None:
-            # This is a temporary field, which we will remove at the end.
-            self.weightfield = ("index", "temp_weightfield")
+            # This is a temporary field, which we will remove at the end
+            # it is given a unique name to avoid conflicting with other 
+            # class instances
+            self.weightfield = ("index", "temp_weightfield_%u"%(id(self),))
             def _make_wf(f, w):
                 def temp_weightfield(a, b):
                     tr = b[f].astype("float64") * b[w]
