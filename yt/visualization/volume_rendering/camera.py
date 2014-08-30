@@ -2079,8 +2079,8 @@ def allsky_projection(ds, center, radius, nside, field, weight = None,
     center = np.array(center, dtype='float64')
     if weight is not None:
         # This is a temporary field, which we will remove at the end.
+        weightfield = ("index", "temp_weightfield")
         def _make_wf(f, w):
-            weightfield = ("index", "temp_weightfield")
             def temp_weightfield(a, b):
                 tr = b[f].astype("float64") * b[w]
                 return b.apply_units(tr, a.units)
