@@ -2194,6 +2194,17 @@ class ProjectionCamera(Camera):
                 north_vector=north_vector,
                 no_ghost=no_ghost)
 
+    # this would be better in an __exit__ function, but that would require
+    # changes in code that uses this class
+    def __del__(self):
+        if hasattr(self,"weightfield") and hasattr(self,"ds"):
+            try:
+                self.ds.field_info.pop(self.weightfield)
+                self.ds.field_dependencies.pop(self.weightfield)
+            except KeyError:
+                pass
+        Camera.__del__(self)
+
     def get_sampler(self, args):
         if self.interpolated:
             sampler = InterpolatedProjectionSampler(*args)
@@ -2376,10 +2387,5 @@ def off_axis_projection(ds, center, normal_vector, width, resolution,
                                no_ghost=no_ghost, interpolated=interpolated, 
                                north_vector=north_vector)
     image = projcam.snapshot()
-    # poor encapsulation, should be in a __exit__ method
-    if weight is not None:
-        ds.field_info.pop(projcam.weightfield)
-        ds.field_dependencies.pop(projcam.weightfield)
-    del projcam
     return image[:,:]
 
