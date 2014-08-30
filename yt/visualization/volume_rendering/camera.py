@@ -2080,18 +2080,19 @@ def allsky_projection(ds, center, radius, nside, field, weight = None,
     if weight is not None:
         # This is a temporary field, which we will remove at the end.
         def _make_wf(f, w):
+            weightfield = ("index", "temp_weightfield")
             def temp_weightfield(a, b):
                 tr = b[f].astype("float64") * b[w]
                 return b.apply_units(tr, a.units)
                 return tr
             return temp_weightfield
-        ds.field_info.add_field("temp_weightfield",
+        ds.field_info.add_field(weightfield,
             function=_make_wf(field, weight))
         # Now we have to tell the dataset to add it and to calculate
         # its dependencies..
-        deps, _ = ds.field_info.check_derived_fields(["temp_weightfield"])
+        deps, _ = ds.field_info.check_derived_fields([weightfield])
         ds.field_dependencies.update(deps)
-        fields = ["temp_weightfield", weight]
+        fields = [weightfield, weight]
     nv = 12*nside**2
     image = np.zeros((nv,1,4), dtype='float64', order='C')
     vs = arr_pix2vec_nest(nside, np.arange(nv))
@@ -2128,8 +2129,8 @@ def allsky_projection(ds, center, radius, nside, field, weight = None,
     else:
         image[:,:,0] /= image[:,:,1]
         image = ds.arr(image, finfo.units)
-        ds.field_info.pop("temp_weightfield")
-        ds.field_dependencies.pop("temp_weightfield")
+        ds.field_info.pop(weightfield)
+        ds.field_dependencies.pop(weightfield)
     return image[:,0,0]
 
 def plot_allsky_healpix(image, nside, fn, label = "", rotation = None,
@@ -2170,19 +2171,20 @@ class ProjectionCamera(Camera):
         fields = [field]
         if self.weight is not None:
             # This is a temporary field, which we will remove at the end.
+            self.weightfield = ("index", "temp_weightfield")
             def _make_wf(f, w):
                 def temp_weightfield(a, b):
                     tr = b[f].astype("float64") * b[w]
                     return b.apply_units(tr, a.units)
                     return tr
                 return temp_weightfield
-            ds.field_info.add_field("temp_weightfield",
+            ds.field_info.add_field(self.weightfield,
                 function=_make_wf(self.field, self.weight))
             # Now we have to tell the dataset to add it and to calculate
             # its dependencies..
-            deps, _ = ds.field_info.check_derived_fields(["temp_weightfield"])
+            deps, _ = ds.field_info.check_derived_fields([self.weightfield])
             ds.field_dependencies.update(deps)
-            fields = ["temp_weightfield", self.weight]
+            fields = [self.weightfield, self.weight]
         
         self.fields = fields
         self.log_fields = [False]*len(self.fields)
@@ -2374,9 +2376,10 @@ def off_axis_projection(ds, center, normal_vector, width, resolution,
                                no_ghost=no_ghost, interpolated=interpolated, 
                                north_vector=north_vector)
     image = projcam.snapshot()
+    # poor encapsulation, should be in a __exit__ method
     if weight is not None:
-        ds.field_info.pop("temp_weightfield")
-        ds.field_dependencies.pop("temp_weightfield")
+        ds.field_info.pop(projcam.weightfield)
+        ds.field_dependencies.pop(projcam.weightfield)
     del projcam
     return image[:,:]
 
