@@ -122,7 +122,7 @@ html_theme_options = dict(
     bootswatch_theme = "readable",
     navbar_links = [
         ("How to get help", "help/index"),
-        ("Bootcamp notebooks", "bootcamp/index"),
+        ("Quickstart notebooks", "quickstart/index"),
         ("Cookbook", "cookbook/index"),
         ],
     navbar_sidebarrel = False,

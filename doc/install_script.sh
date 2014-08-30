@@ -1022,7 +1022,7 @@ function print_afterword
     echo
     echo "To get started with yt, check out the orientation:"
     echo
-    echo "    http://yt-project.org/doc/bootcamp/"
+    echo "    http://yt-project.org/doc/quickstart/"
     echo
     echo "The source for yt is located at:"
     echo "    $YT_DIR"

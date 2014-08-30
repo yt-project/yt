@@ -12,7 +12,7 @@ access to data.
           based simulations.  For now, these are represented as patches, with
           the attendant properties.
 
-For a more basic introduction, see :ref:`bootcamp` and more specifically
+For a more basic introduction, see :ref:`quickstart` and more specifically
 :ref:`data_inspection`.
 
 .. _examining-grid-hierarchies:
