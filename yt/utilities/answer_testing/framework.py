@@ -168,7 +168,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
     def get(self, ds_name, default = None):
         if self.reference_name is None: return default
         if ds_name in self.cache: return self.cache[ds_name]
-        url = _url_path % (self.reference_name, ds_name)
+        url = _url_path.format(self.reference_name, ds_name)
         try:
             resp = urllib2.urlopen(url)
         except urllib2.HTTPError as ex:

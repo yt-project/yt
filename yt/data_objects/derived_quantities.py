@@ -29,17 +29,19 @@ from yt.utilities.physical_constants import \
     gravitational_constant_cgs, \
     HUGE
 from yt.utilities.math_utils import prec_accum
+from yt.extern.six import add_metaclass
 
 derived_quantity_registry = {}
 
+class RegisteredDerivedQuantity(type):
+    def __init__(cls, name, b, d):
+        type.__init__(cls, name, b, d)
+        if name != "DerivedQuantity":
+            derived_quantity_registry[name] = cls
+
+@add_metaclass(RegisteredDerivedQuantity)
 class DerivedQuantity(ParallelAnalysisInterface):
     num_vals = -1
-
-    class __metaclass__(type):
-        def __init__(cls, name, b, d):
-            type.__init__(cls, name, b, d)
-            if name != "DerivedQuantity":
-                derived_quantity_registry[name] = cls
 
     def __init__(self, data_source):
         self.data_source = data_source

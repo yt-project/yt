@@ -631,7 +631,7 @@ def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False):
     orig_level = mylog.getEffectiveLevel()
     mylog.setLevel(50)
     nose_argv = sys.argv
-    nose_argv += ['--exclude=answer_testing','--detailed-errors']
+    nose_argv += ['--exclude=answer_testing','--detailed-errors', '--exe']
     if verbose:
         nose_argv.append('-v')
     if run_answer_tests:

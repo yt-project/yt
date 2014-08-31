@@ -275,6 +275,10 @@ class GridIndex(Index):
         return self.dataset.conversion_factors[unit]
 
     def _identify_base_chunk(self, dobj):
+        def _gsort(g):
+            if g.filename is None:
+                return g.id
+            return g.filename
         if dobj._type_name == "grid":
             dobj._chunk_info = np.empty(1, dtype='object')
             dobj._chunk_info[0] = dobj
@@ -282,7 +286,7 @@ class GridIndex(Index):
             gi = dobj.selector.select_grids(self.grid_left_edge,
                                             self.grid_right_edge,
                                             self.grid_levels)
-            grids = list(sorted(self.grids[gi], key = lambda g: g.filename))
+            grids = list(sorted(self.grids[gi], key = _gsort))
             dobj._chunk_info = np.empty(len(grids), dtype='object')
             for i, g in enumerate(grids):
                 dobj._chunk_info[i] = g
