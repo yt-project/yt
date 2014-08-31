@@ -2205,7 +2205,10 @@ class ProjectionCamera(Camera):
                 self.ds.field_dependencies.pop(self.weightfield)
             except KeyError:
                 pass
-        Camera.__del__(self)
+        try:
+            Camera.__del__(self)
+        except AttributeError:
+            pass
 
     def get_sampler(self, args):
         if self.interpolated:
