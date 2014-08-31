@@ -460,9 +460,6 @@ class Dataset(object):
             self._last_freq = field
             self._last_finfo = self.field_info[(ftype, fname)]
             return self._last_finfo
-        #Removed as it can suggest invalid fields are valid
-        #if fname == self._last_freq[1]:
-        #    return self._last_finfo
         if fname in self.field_info:
             # Sometimes, if guessing_type == True, this will be switched for
             # the type of field it is.  So we look at the field type and
