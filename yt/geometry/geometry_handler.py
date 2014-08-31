@@ -232,9 +232,6 @@ class Index(ParallelAnalysisInterface):
             self._chunk_io(dobj, cache = False),
             selector,
             fields_to_read)
-        for field in fields_to_read:
-            ftype, fname = field
-            finfo = self.ds._get_field_info(*field)
         return fields_to_return, fields_to_generate
 
     def _read_fluid_fields(self, fields, dobj, chunk = None):
