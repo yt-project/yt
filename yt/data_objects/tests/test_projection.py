@@ -45,7 +45,7 @@ def test_projection():
         for ax, an in enumerate("xyz"):
             xax = ds.coordinates.x_axis[ax]
             yax = ds.coordinates.y_axis[ax]
-            for wf in ["density", None]:
+            for wf in ['density', ("gas", "density"), None]:
                 proj = ds.proj(["ones", "density"], ax, weight_field=wf)
                 yield assert_equal, proj["ones"].sum(), proj["ones"].size
                 yield assert_equal, proj["ones"].min(), 1.0
@@ -89,8 +89,13 @@ def test_projection():
                         frb.bounds[2:]
                     yield assert_equal, frb[proj_field].info['center'], \
                         proj.center
-                    yield assert_equal, frb[proj_field].info['weight_field'], \
-                        wf
+                    if wf is None:
+                        yield assert_equal, \
+                            frb[proj_field].info['weight_field'], wf
+                    else:
+                        yield assert_equal, \
+                            frb[proj_field].info['weight_field'], \
+                            proj.data_source._determine_fields(wf)[0]
             # wf == None
             yield assert_equal, wf, None
             v1 = proj["density"].sum()
