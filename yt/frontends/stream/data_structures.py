@@ -1424,6 +1424,9 @@ def load_octree(octree_mask, data,
 
     """
 
+    if not isinstance(octree_mask, np.ndarray) or octree_mask.dtype != np.uint8:
+        raise TypeError("octree_mask should be a Numpy array with type uint8")
+
     nz = (1 << (over_refine_factor))
     domain_dimensions = np.array([nz, nz, nz])
     nprocs = 1
