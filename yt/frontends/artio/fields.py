@@ -124,6 +124,8 @@ class ARTIOFieldInfo(FieldInfoContainer):
                 return YTArray(data.ds._handle.tphys_from_tcode_array(data["STAR","BIRTH_TIME"]),"yr")
 
             def _age(field, data):
+                if isinstance(data, FieldDetector):
+                    return data["STAR","creation_time"]
                 return data.ds.current_time - data["STAR","creation_time"]
 
             self.add_field((ptype, "creation_time"), function=_creation_time, units="yr",
