@@ -1282,7 +1282,6 @@ class StreamOctreeSubset(OctreeSubset):
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.ds = ds
-        self.index = self.ds.index
         self.oct_handler = oct_handler
         self._last_mask = None
         self._last_selector_id = None
