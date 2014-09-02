@@ -96,8 +96,8 @@ Making a Turbulent Kinetic Energy Power Spectrum
 
 This recipe shows how to use `yt` to read data and put it on a uniform
 grid to interface with the NumPy FFT routines and create a turbulent
-kinetic energy power spectrum.  (Note: the dataset use here is sort
-of low resolution, so the turbulence is not very well-developed.  The
-spike at high wavenumbers is due to non-periodicity in the z-direction).
+kinetic energy power spectrum.  (Note: the dataset used here is of low
+resolution, so the turbulence is not very well-developed.  The spike
+at high wavenumbers is due to non-periodicity in the z-direction).
 
 .. yt_cookbook:: power_spectrum_example.py
