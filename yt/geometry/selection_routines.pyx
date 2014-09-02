@@ -39,6 +39,7 @@ cdef extern from "math.h":
 # use this as an epsilon test for grids aligned with selector
 # define here to avoid the gil later
 cdef np.float64_t grid_eps = np.finfo(np.float64).eps
+grid_eps = 0.0
 
 # These routines are separated into a couple different categories:
 #
