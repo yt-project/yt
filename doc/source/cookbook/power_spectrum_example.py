@@ -13,8 +13,9 @@ Ultimately, we aim to compute:
      E(k) = integral  -  V(k) . V(k) dS                                      
                       2                                                      
  
-             n                                                              
-where V = rho  U is the density-weighted velocity field.
+             n                                               ^               
+where V = rho  U is the density-weighted velocity field, and V is the
+FFT of V.
  
 (Note: sometimes we normalize by 1/volume to get a spectral
 energy density spectrum).
