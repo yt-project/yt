@@ -1197,6 +1197,14 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
         Size of computational domain in units sim_unit_to_cm
     sim_time : float, optional
         The simulation time in seconds
+    mass_unit : string
+        Unit to use for masses.  Defaults to unitless.
+    time_unit : string
+        Unit to use for times.  Defaults to unitless.
+    velocity_unit : string
+        Unit to use for velocities.  Defaults to unitless.
+    magnetic_unit : string
+        Unit to use for magnetic fields. Defaults to unitless.
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
@@ -1369,8 +1377,11 @@ class StreamOctreeDataset(StreamDataset):
     _field_info_class = StreamFieldInfo
     _dataset_type = "stream_octree"
 
-def load_octree(octree_mask, data, sim_unit_to_cm,
-                bbox=None, sim_time=0.0, periodicity=(True, True, True),
+def load_octree(octree_mask, data,
+                bbox=None, sim_time=0.0, length_unit=None,
+                mass_unit=None, time_unit=None,
+                velocity_unit=None, magnetic_unit=None,
+                periodicity=(True, True, True),
                 over_refine_factor = 1, partial_coverage = 1):
     r"""Load an octree mask into yt.
 
@@ -1390,12 +1401,20 @@ def load_octree(octree_mask, data, sim_unit_to_cm,
     data : dict
         A dictionary of 1D arrays.  Note that these must of the size of the
         number of "False" values in the ``octree_mask``.
-    sim_unit_to_cm : float
-        Conversion factor from simulation units to centimeters
     bbox : array_like (xdim:zdim, LE:RE), optional
-        Size of computational domain in units sim_unit_to_cm
+        Size of computational domain in units of length
     sim_time : float, optional
         The simulation time in seconds
+    length_unit : string
+        Unit to use for lengths.  Defaults to unitless.
+    mass_unit : string
+        Unit to use for masses.  Defaults to unitless.
+    time_unit : string
+        Unit to use for times.  Defaults to unitless.
+    velocity_unit : string
+        Unit to use for velocities.  Defaults to unitless.
+    magnetic_unit : string
+        Unit to use for magnetic fields. Defaults to unitless.
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
@@ -1415,6 +1434,7 @@ def load_octree(octree_mask, data, sim_unit_to_cm,
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
     update_field_names(data)
 
+    field_units, data = unitify_data(data)
     sfh = StreamDictFieldHandler()
     
     particle_types = set_particle_types(data)
@@ -1423,6 +1443,17 @@ def load_octree(octree_mask, data, sim_unit_to_cm,
     grid_left_edges = domain_left_edge
     grid_right_edges = domain_right_edge
     grid_dimensions = domain_dimensions.reshape(nprocs,3).astype("int32")
+
+    if length_unit is None:
+        length_unit = 'code_length'
+    if mass_unit is None:
+        mass_unit = 'code_mass'
+    if time_unit is None:
+        time_unit = 'code_time'
+    if velocity_unit is None:
+        velocity_unit = 'code_velocity'
+    if magnetic_unit is None:
+        magnetic_unit = 'code_magnetic'
 
     # I'm not sure we need any of this.
     handler = StreamHandler(
@@ -1434,6 +1465,8 @@ def load_octree(octree_mask, data, sim_unit_to_cm,
         np.zeros(nprocs, dtype='int64').reshape(nprocs,1), # Temporary
         np.zeros(nprocs).reshape((nprocs,1)),
         sfh,
+        field_units,
+        (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
         particle_types=particle_types,
         periodicity=periodicity
     )
@@ -1450,12 +1483,6 @@ def load_octree(octree_mask, data, sim_unit_to_cm,
     sds = StreamOctreeDataset(handler)
     sds.octree_mask = octree_mask
     sds.partial_coverage = partial_coverage
-    sds.units["cm"] = sim_unit_to_cm
-    sds.units['1'] = 1.0
-    sds.units["unitary"] = 1.0
-    box_in_mpc = sim_unit_to_cm / mpc_conversion['cm']
     sds.over_refine_factor = over_refine_factor
-    for unit in mpc_conversion.keys():
-        sds.units[unit] = mpc_conversion[unit] * box_in_mpc
 
     return sds
