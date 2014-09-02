@@ -17,7 +17,7 @@ sys.path.append(os.path.join(os.getcwd(), "doc/source/cookbook"))
 
 
 def test_recipe():
-    '''dummy test grabing all cookbook's recipes'''
+    '''Dummy test grabbing all cookbook's recipes'''
     for fname in glob.glob("doc/source/cookbook/*.py"):
         module_name = os.path.splitext(os.path.basename(fname))[0]
         yield check_recipe, module_name
