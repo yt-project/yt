@@ -513,6 +513,9 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         fill, gen = self.index._split_fields(fields_to_get)
         particles = []
         for field in gen:
+            if field[0] == 'deposit':
+                fill.append(field)
+                continue
             finfo = self.ds._get_field_info(*field)
             try:
                 finfo.check_available(self)
@@ -743,6 +746,13 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
             self.right_edge + level_state.current_dx)
         level_state.data_source.min_level = level_state.current_level
         level_state.data_source.max_level = level_state.current_level
+        self._pdata_source = self.ds.region(
+            self.center,
+            self.left_edge - level_state.current_dx,
+            self.right_edge + level_state.current_dx)
+        self._pdata_source.min_level = level_state.current_level
+        self._pdata_source.max_level = level_state.current_level
+
 
     def _fill_fields(self, fields):
         ls = self._initialize_level_state(fields)
