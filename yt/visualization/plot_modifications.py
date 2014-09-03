@@ -906,7 +906,7 @@ class TextLabelCallback(PlotCallback):
 
 class HaloCatalogCallback(PlotCallback):
     """
-    annotate_halos(halo_catalog, circle_kwargs=None,
+    annotate_halos(halo_catalog, circle_kwargs = None,
         width = None, annotate_field=False,
         font_kwargs = None, factor = 1.0)
 
@@ -1007,7 +1007,7 @@ class HaloCatalogCallback(PlotCallback):
 
         if self.annotate_field:
             annotate_dat = halo_data[self.annotate_field]
-            texts = ['%g' % dat for dat in annotate_dat]
+            texts = ['{:g}'.format(float(dat))for dat in annotate_dat]
             for pos_x, pos_y, t in zip(px, py, texts): 
                 plot._axes.text(pos_x, pos_y, t, **self.font_kwargs)
  

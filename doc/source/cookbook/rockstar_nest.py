@@ -22,6 +22,10 @@ def DarkMatter(pfilter, data):
 add_particle_filter("dark_matter", function=DarkMatter, filtered_type='all', \
                     requires=["particle_type"])
 
+# First, we make sure that this script is being run using mpirun with
+# at least 3 processors as indicated in the comments above.
+assert(yt.communication_system.communicators[-1].size >= 3)
+
 # Load the dataset and apply dark matter filter
 fn = "Enzo_64/DD0043/data0043"
 ds = yt.load(fn)
