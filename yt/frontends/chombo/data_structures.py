@@ -317,7 +317,14 @@ class ChomboDataset(Dataset):
         self._determine_periodic()
 
     def _determine_periodic(self):
-        self.periodicity = (True, True, True)
+        # we default to true unless the HDF5 file says otherwise
+        is_periodic = np.array([True, True, True])
+        for dir in range(self.dimensionality):
+            try:
+                is_periodic[dir] = self._handle['/level_0'].attrs['is_periodic_%d' % dir]
+            except KeyError:
+                is_periodic[dir] = True
+        self.periodicity = tuple(is_periodic)
 
     def _calc_left_edge(self):
         fileh = self._handle
@@ -508,15 +515,6 @@ class ChomboPICDataset(ChomboDataset):
 
         if self.dimensionality == 2:
             self._field_info_class = ChomboPICFieldInfo2D
-
-    def _determine_periodic(self):
-        is_periodic = np.array([True, True, True])
-        for dir in [0, 1, 2]:
-            try:
-                is_periodic[dir] = self._handle['/level_0'].attrs['is_periodic_%d' % dir]
-            except KeyError:
-                is_periodic[dir] = True
-        self.periodicity = tuple(is_periodic)
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

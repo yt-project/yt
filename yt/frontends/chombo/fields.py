@@ -112,8 +112,11 @@ class ChomboPICFieldInfo3D(FieldInfoContainer):
         ("particle_velocity_z", ("code_length / code_time", [], None)),
     )
 
+    # I am re-implementing this here to over-ride a few of the default behaviors:
+    # I don't want to skip output units for code_length and I want particle_fields
+    # to default to take_log = False. 
     def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64 ):
-        skip_output_units = () #("code_length",)
+        skip_output_units = ()
         for f, (units, aliases, dn) in sorted(self.known_particle_fields):
             units = self.ds.field_units.get((ptype, f), units)
             if (f in aliases or ptype not in self.ds.particle_types_raw) and \
