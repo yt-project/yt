@@ -256,7 +256,7 @@ class ChomboDataset(Dataset):
             self.dataset_type = 'chombo_hdf5'
 
         # some datasets will not be time-dependent, and to make
-        # make matters worse the simulation time is not always
+        # matters worse, the simulation time is not always
         # stored in the same place in the hdf file! Make
         # sure we handle that here.
         try:
