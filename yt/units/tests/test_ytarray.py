@@ -264,11 +264,15 @@ def test_division():
     a3 = [4*cm, 5*cm, 6*cm]
     answer1 = YTArray([0.25, 0.4, 0.5])
     answer2 = YTArray([4, 2.5, 2])
+    if "div" in dir(operator):
+        op = operator.div
+    else:
+        op = operator.truediv
 
-    yield operate_and_compare, a1, a2, operator.div, answer1
-    yield operate_and_compare, a2, a1, operator.div, answer2
-    yield operate_and_compare, a1, a3, operator.div, answer1
-    yield operate_and_compare, a3, a1, operator.div, answer2
+    yield operate_and_compare, a1, a2, op, answer1
+    yield operate_and_compare, a2, a1, op, answer2
+    yield operate_and_compare, a1, a3, op, answer1
+    yield operate_and_compare, a3, a1, op, answer2
     yield operate_and_compare, a1, a2, np.divide, answer1
     yield operate_and_compare, a2, a1, np.divide, answer2
     yield operate_and_compare, a1, a3, np.divide, answer1
@@ -283,10 +287,10 @@ def test_division():
     answer3 = YTArray([0.25, 0.4, 0.5], 'cm/m')
     answer4 = YTArray([4.0, 2.5, 2.0], 'm/cm')
 
-    yield operate_and_compare, a1, a2, operator.div, answer1
-    yield operate_and_compare, a2, a1, operator.div, answer2
-    yield operate_and_compare, a1, a3, operator.div, answer1
-    yield operate_and_compare, a3, a1, operator.div, answer2
+    yield operate_and_compare, a1, a2, op, answer1
+    yield operate_and_compare, a2, a1, op, answer2
+    yield operate_and_compare, a1, a3, op, answer1
+    yield operate_and_compare, a3, a1, op, answer2
     yield operate_and_compare, a1, a2, np.divide, answer3
     yield operate_and_compare, a2, a1, np.divide, answer4
     yield operate_and_compare, a1, a3, np.divide, answer3
@@ -299,10 +303,10 @@ def test_division():
     answer1 = YTArray([0.25, 0.4, 0.5], 'cm/g')
     answer2 = YTArray([4, 2.5, 2], 'g/cm')
 
-    yield operate_and_compare, a1, a2, operator.div, answer1
-    yield operate_and_compare, a2, a1, operator.div, answer2
-    yield operate_and_compare, a1, a3, operator.div, answer1
-    yield operate_and_compare, a3, a1, operator.div, answer2
+    yield operate_and_compare, a1, a2, op, answer1
+    yield operate_and_compare, a2, a1, op, answer2
+    yield operate_and_compare, a1, a3, op, answer1
+    yield operate_and_compare, a3, a1, op, answer2
     yield operate_and_compare, a1, a2, np.divide, answer1
     yield operate_and_compare, a2, a1, np.divide, answer2
     yield operate_and_compare, a1, a3, np.divide, answer1
@@ -315,10 +319,10 @@ def test_division():
     answer1 = YTArray([0.25, 0.4, 0.5], 'cm')
     answer2 = YTArray([4, 2.5, 2], '1/cm')
 
-    yield operate_and_compare, a1, a2, operator.div, answer1
-    yield operate_and_compare, a2, a1, operator.div, answer2
-    yield operate_and_compare, a1, a3, operator.div, answer1
-    yield operate_and_compare, a3, a1, operator.div, answer2
+    yield operate_and_compare, a1, a2, op, answer1
+    yield operate_and_compare, a2, a1, op, answer2
+    yield operate_and_compare, a1, a3, op, answer1
+    yield operate_and_compare, a3, a1, op, answer2
     yield operate_and_compare, a1, a2, np.divide, answer1
     yield operate_and_compare, a2, a1, np.divide, answer2
     yield operate_and_compare, a1, a3, np.divide, answer1
@@ -331,10 +335,10 @@ def test_division():
     answer1 = YTArray([0.25, 0.4, 0.5])
     answer2 = YTArray([4, 2.5, 2])
 
-    yield operate_and_compare, a1, a2, operator.div, answer1
-    yield operate_and_compare, a2, a1, operator.div, answer2
-    yield operate_and_compare, a1, a3, operator.div, answer1
-    yield operate_and_compare, a3, a1, operator.div, answer2
+    yield operate_and_compare, a1, a2, op, answer1
+    yield operate_and_compare, a2, a1, op, answer2
+    yield operate_and_compare, a1, a3, op, answer1
+    yield operate_and_compare, a3, a1, op, answer2
     yield operate_and_compare, a1, a3, np.divide, answer1
     yield operate_and_compare, a3, a1, np.divide, answer2
     yield operate_and_compare, a1, a3, np.divide, answer1
