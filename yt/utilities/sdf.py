@@ -10,10 +10,13 @@ except ImportError:
 from yt.funcs import mylog
 
 _types = {
+    'int16_t': 'int16',
+    'uint16_t': 'uint16',
     'int': 'int32',
     'int32_t': 'int32',
     'uint32_t': 'uint32',
     'int64_t': 'int64',
+    'uint64_t': 'uint64',
     'float': 'float32',
     'double': 'float64',
     'unsigned int': 'I',
@@ -21,6 +24,15 @@ _types = {
     'char': 'B',
 }
 
+_rev_types = {}
+for v, t in _types.iteritems():
+    _rev_types[t] = v
+_rev_types['<f8'] = 'double'
+_rev_types['<f4'] = 'float'
+_rev_types['<i4'] = 'int32_t'
+_rev_types['<i8'] = 'int64_t'
+_rev_types['<u4'] = 'uint32_t'
+_rev_types['|u1'] = 'char'
 
 def _get_type(vtype, tlen=None):
     try:
@@ -104,6 +116,23 @@ def _ensure_xyz_fields(fields):
         if f not in fields:
             fields.append(f)
 
+
+def spread_bitsv(ival, level):
+    res = np.zeros_like(ival, dtype='int64')
+    for i in range(level):
+        ares = np.bitwise_and(ival, 1<<i) << (i*2)
+        np.bitwise_or(res, ares, res)
+    return res
+
+
+def get_keyv(iarr, level):
+    i1, i2, i3 = (v.astype("int64") for v in iarr)
+    i1 = spread_bitsv(i1, level)
+    i2 = spread_bitsv(i2, level) << 1
+    i3 = spread_bitsv(i3, level) << 2
+    np.bitwise_or(i1, i2, i1)
+    np.bitwise_or(i1, i3, i1)
+    return i1
 
 class DataStruct(object):
     """docstring for DataStruct"""
@@ -214,7 +243,7 @@ class SDFRead(dict):
     _eof = 'SDF-EO'
     _data_struct = DataStruct
 
-    def __init__(self, filename, header=None):
+    def __init__(self, filename = None, header=None):
         r""" Read an SDF file, loading parameters and variables.
 
         Given an SDF file (see http://bitbucket.org/JohnSalmon/sdf), parse the
@@ -257,9 +286,43 @@ class SDFRead(dict):
         self.parameters = {}
         self.structs = []
         self.comments = []
-        self.parse_header()
-        self.set_offsets()
-        self.load_memmaps()
+        if filename is not None:
+            self.parse_header()
+            self.set_offsets()
+            self.load_memmaps()
+
+    def write(self, filename):
+        f = file(filename, 'w')
+        f.write("# SDF 1.0\n")
+        f.write("parameter byteorder = %s;\n" % (self.parameters['byteorder']))
+        for c in self.comments:
+            if "\x0c" in c: continue
+            if "SDF 1.0" in c: continue
+            f.write("%s" % c)
+        for k, v in sorted(self.parameters.iteritems()):
+            if k == 'byteorder': continue
+            try:
+                t = _rev_types[v.dtype.name]
+            except:
+                t = type(v).__name__
+            if t == str.__name__:
+                f.write("parameter %s = \"%s\";\n" % (k, v))
+            else:
+                f.write("%s %s = %s;\n" % (t, k, v))
+
+        struct_order = []
+        for s in self.structs:
+            f.write("struct {\n")
+            to_write = []
+            for var in s.dtype.descr:
+                k, v = var[0], _rev_types[var[1]]
+                to_write.append(k)
+                f.write("\t%s %s;\n" % (v, k))
+            f.write("}[%i];\n" % s.size)
+            struct_order.append(to_write)
+        f.write("#\x0c\n")
+        f.write("# SDF-EOH\n")
+        return struct_order, f
 
     def __repr__(self):
         disp = "<SDFRead Object> file: %s\n" % self.filename
@@ -312,6 +375,9 @@ class SDFRead(dict):
         try:
             vval = eval("np."+vtype+"(%s)" % vval)
         except AttributeError:
+            if vtype not in _types:
+                mylog.warning("Skipping parameter %s", vname)
+                return
             vval = eval("np."+_types[vtype]+"(%s)" % vval)
 
         self.parameters[vname] = vval
@@ -604,22 +670,12 @@ class SDFIndex(object):
     def spread_bitsv(self, ival, level=None):
         if level is None:
             level = self.level
-        res = np.zeros_like(ival, dtype='int64')
-        for i in range(level):
-            ares = np.bitwise_and(ival, 1<<i) << (i*2)
-            np.bitwise_or(res, ares, res)
-        return res
+        return spread_bitsv(ival, level)
 
     def get_keyv(self, iarr, level=None):
         if level is None:
             level = self.level
-        i1, i2, i3 = (v.astype("int64") for v in iarr)
-        i1 = self.spread_bitsv(i1, level)
-        i2 = self.spread_bitsv(i2, level) << 1
-        i3 = self.spread_bitsv(i3, level) << 2
-        np.bitwise_or(i1, i2, i1)
-        np.bitwise_or(i1, i3, i1)
-        return i1
+        return get_keyv(iarr, level)
 
     def get_key_slow(self, iarr, level=None):
         if level is None:
@@ -748,6 +804,8 @@ class SDFIndex(object):
         """
         ileft = np.floor((left - self.rmin) / self.domain_width *  self.domain_dims)
         iright = np.floor((right - self.rmin) / self.domain_width * self.domain_dims)
+        if np.any(iright-ileft) > self.domain_dims:
+            mylog.warn("Attempting to get data from bounding box larger than the domain. You may want to check your units.")
         #iright[iright <= ileft+1] += 1
 
         return self.get_ibbox(ileft, iright)
@@ -1189,7 +1247,7 @@ class SDFIndex(object):
         filter_right = bbox[:, 1] + pad
 
         data = []
-        for dd in self.iter_padded_bbox_data(self, level, cell_iarr, pad, fields):
+        for dd in self.iter_padded_bbox_data(level, cell_iarr, pad, fields):
             data.append(dd)
         return data
 

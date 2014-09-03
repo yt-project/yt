@@ -34,7 +34,7 @@ Table of Contents
      <tr valign="top">
        <td width="25%">
          <p>
-           <a href="bootcamp/index.html">yt Bootcamp</a>
+           <a href="quickstart/index.html">yt Quickstart</a>
          </p>
        </td>
        <td width="75%">
@@ -127,7 +127,7 @@ Table of Contents
    :hidden:
 
    installing
-   yt Bootcamp <bootcamp/index>
+   yt Quickstart <quickstart/index>
    yt3differences
    cookbook/index
    visualizing/index
