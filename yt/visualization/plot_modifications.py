@@ -943,11 +943,11 @@ class HaloCatalogCallback(PlotCallback):
         self.halo_catalog = halo_catalog
         self.width = width
         self.annotate_field = annotate_field
-        if font_kwargs == None:
+        if font_kwargs is None:
             font_kwargs = {'color':'white'}
         self.font_kwargs = font_kwargs
         self.factor = factor
-        if circle_kwargs == None:
+        if circle_kwargs is None:
             circle_kwargs = {'edgecolor':'white', 'facecolor':'None'}
         self.circle_kwargs = circle_kwargs
 
