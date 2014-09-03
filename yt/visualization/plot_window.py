@@ -205,8 +205,9 @@ class PlotWindow(ImagePlotContainer):
             ax = self.data_source.axis
             xax = self.ds.coordinates.x_axis[ax]
             yax = self.ds.coordinates.y_axis[ax]
-            center = [self.data_source.center[xax],
-                      self.data_source.center[yax]]
+            center, display_center = self.ds.coordinates.sanitize_center(
+                self.data_source.center, ax)
+            center = [display_center[xax], display_center[yax]]
             self.set_center(center)
         for field in self.data_source._determine_fields(self.frb.data.keys()):
             finfo = self.data_source.ds._get_field_info(*field)
