@@ -105,7 +105,7 @@ def get_window_parameters(axis, center, width, ds):
     return (bounds, center, display_center)
 
 def get_oblique_window_parameters(normal, center, width, ds, depth=None):
-    display_center, center = ds.coordinates.sanitize_center(center, axis)
+    display_center, center = ds.coordinates.sanitize_center(center, 4)
     width = ds.coordinates.sanitize_width(normal, width, depth)
 
     if len(width) == 2:
