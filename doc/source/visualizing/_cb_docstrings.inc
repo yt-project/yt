@@ -151,8 +151,8 @@ Overplot grids
 Overplot Halo Annotations
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_halos(self, halo_catalog, circle_kwargs={}, width=None, \ 
-                             annotate_field=False, font_kwargs={}, factor=1.0):
+.. function:: annotate_halos(self, halo_catalog, circle_kwargs=None, width=None, \ 
+                             annotate_field=False, font_kwargs=None, factor=1.0):
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.HaloCatalogCallback`.)

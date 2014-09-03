@@ -906,9 +906,9 @@ class TextLabelCallback(PlotCallback):
 
 class HaloCatalogCallback(PlotCallback):
     """
-    annotate_halos(halo_catalog, circle_kwargs={},
+    annotate_halos(halo_catalog, circle_kwargs=None,
         width = None, annotate_field=False,
-        font_kwargs = {}, factor = 1.0)
+        font_kwargs = None, factor = 1.0)
 
     Plots circles at the locations of all the halos
     in a halo catalog with radii corresponding to the
@@ -935,19 +935,19 @@ class HaloCatalogCallback(PlotCallback):
     region = None
     _descriptor = None
 
-    def __init__(self, halo_catalog, circle_kwargs = {}, 
+    def __init__(self, halo_catalog, circle_kwargs = None, 
             width = None, annotate_field = False,
-            font_kwargs = {}, factor = 1.0):
+            font_kwargs = None, factor = 1.0):
 
         PlotCallback.__init__(self)
         self.halo_catalog = halo_catalog
         self.width = width
         self.annotate_field = annotate_field
-        if font_kwargs == {}:
+        if font_kwargs == None:
             font_kwargs = {'color':'white'}
         self.font_kwargs = font_kwargs
         self.factor = factor
-        if circle_kwargs == {}:
+        if circle_kwargs == None:
             circle_kwargs = {'edgecolor':'white', 'facecolor':'None'}
         self.circle_kwargs = circle_kwargs
 
