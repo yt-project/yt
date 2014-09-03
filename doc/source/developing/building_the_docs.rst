@@ -28,7 +28,7 @@ categories of:
 * Analyzing
 * Examining
 * Cookbook
-* Bootcamp
+* Quickstart
 * Developing
 * Reference
 * Help
