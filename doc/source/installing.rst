@@ -198,10 +198,9 @@ Note that building a yt conda package requires a C compiler.
 Installing yt on Windows
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-Installation on Microsoft Windows is only supported for Windows XP Service Pack
-3 and higher (both 32-bit and 64-bit) using Anaconda, see
-:ref:`anaconda-installation`.  Also see :ref:`windows-developing` for details on
-how to build yt from source in Windows.
+Installation on 64-bit Microsoft Windows platforms is supported using Anaconda (see
+:ref:`anaconda-installation`). Also see :ref:`windows-developing` for details on how to build yt
+from source in Windows.
 
 .. _source-installation:
 
@@ -341,7 +340,7 @@ You can check which version of yt you have installed by invoking ``yt version``
 at the command line.  If you encounter problems, see :ref:`update-errors`.
 
 If You Installed yt Using from Source or Using pip
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+++++++++++++++++++++++++++++++++++++++++++++++++++
 
 If you have installed python via ``pip``, remove 
 any extant installations of yt on your system and clone the source mercurial 

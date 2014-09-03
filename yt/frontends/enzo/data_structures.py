@@ -286,7 +286,7 @@ class EnzoHierarchy(GridIndex):
             active_particles = True
             nap = dict((ap_type, []) for ap_type in 
                 params["Physics"]["ActiveParticles"]["ActiveParticlesEnabled"])
-        elif version > 2.0:
+        elif version == 2.2:
             active_particles = True
             nap = {}
             for type in self.parameters.get("AppendActiveParticleType", []):

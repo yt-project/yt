@@ -125,6 +125,33 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
              display_name = "\\mathrm{%s CIC Density}" % ptype_dn,
              units = "g/cm**3")
 
+    def _get_density_weighted_deposit_field(fname, units, method):
+        def _deposit_field(field, data):
+            """
+            Create a grid field for particle quantities weighted by particle
+            mass, using cloud-in-cell deposit.
+            """
+            pos = data[ptype, "particle_position"]
+            # Get back into density
+            pden = data[ptype, 'particle_mass']
+            top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+            bottom = data.deposit(pos, [pden], method=method)
+            top[bottom == 0] = 0.0
+            bnz = bottom.nonzero()
+            top[bnz] /= bottom[bnz]
+            d = data.ds.arr(top, input_units=units)
+            return d
+        return _deposit_field
+
+    for ax in 'xyz':
+        for method, name in zip(("cic", "sum"), ("cic", "nn")):
+            function = _get_density_weighted_deposit_field(
+                "particle_velocity_%s" % ax, "cm/s", method)
+            registry.add_field(
+                ("deposit", ("%s_"+name+"_velocity_%s") % (ptype, ax)),
+                function=function, units="cm/s", take_log=False,
+                validators=[ValidateSpatial(0)])
+
     # Now some translation functions.
 
     def particle_ones(field, data):
@@ -337,7 +364,12 @@ def standard_particle_fields(registry, ptype,
               units="cm", particle_type = True,
               display_name = "Particle Radius")
 
-    def _particle_radius_spherical(field, data):
+    def _particle_spherical_position_radius(field, data):
+        """
+        Radial component of the particles' position vectors in spherical coords
+        on the provided field parameters for 'normal', 'center', and 
+        'bulk_velocity', 
+        """
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
@@ -349,13 +381,18 @@ def standard_particle_fields(registry, ptype,
         sphr = get_sph_r_component(pos, theta, phi, normal)
         return sphr
 
-    registry.add_field((ptype, "particle_radius_spherical"),
-              function=_particle_radius_spherical,
-              particle_type=True, units="cm/s",
+    registry.add_field((ptype, "particle_spherical_position_radius"),
+              function=_particle_spherical_position_radius,
+              particle_type=True, units="cm",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
-    def _particle_theta_spherical(field, data):
+    def _particle_spherical_position_theta(field, data):
+        """
+        Theta component of the particles' position vectors in spherical coords
+        on the provided field parameters for 'normal', 'center', and 
+        'bulk_velocity', 
+        """
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
@@ -367,13 +404,18 @@ def standard_particle_fields(registry, ptype,
         spht = get_sph_theta_component(pos, theta, phi, normal)
         return spht
 
-    registry.add_field((ptype, "particle_theta_spherical"),
-              function=_particle_theta_spherical,
-              particle_type=True, units="cm/s",
+    registry.add_field((ptype, "particle_spherical_position_theta"),
+              function=_particle_spherical_position_theta,
+              particle_type=True, units="cm",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
-    def _particle_phi_spherical(field, data):
+    def _particle_spherical_position_phi(field, data):
+        """
+        Phi component of the particles' position vectors in spherical coords
+        on the provided field parameters for 'normal', 'center', and 
+        'bulk_velocity', 
+        """
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
@@ -385,13 +427,18 @@ def standard_particle_fields(registry, ptype,
         sphp = get_sph_phi_component(pos, phi, normal)
         return sphp
 
-    registry.add_field((ptype, "particle_phi_spherical"),
-              function=_particle_phi_spherical,
-              particle_type=True, units="cm/s",
+    registry.add_field((ptype, "particle_spherical_position_phi"),
+              function=_particle_spherical_position_phi,
+              particle_type=True, units="cm",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
-    def _particle_radial_velocity(field, data):
+    def _particle_spherical_velocity_radius(field, data):
+        """
+        Radial component of the particles' velocity vectors in spherical coords
+        based on the provided field parameters for 'normal', 'center', and 
+        'bulk_velocity', 
+        """
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
@@ -406,13 +453,26 @@ def standard_particle_fields(registry, ptype,
         sphr = get_sph_r_component(vel, theta, phi, normal)
         return sphr
 
-    registry.add_field((ptype, "particle_radial_velocity"),
-              function=_particle_radial_velocity,
+    registry.add_field((ptype, "particle_spherical_velocity_radius"),
+              function=_particle_spherical_velocity_radius,
               particle_type=True, units="cm/s",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
-    def _particle_theta_velocity(field, data):
+    # This is simply aliased to "particle_spherical_velocity_radius"
+    # for ease of use.
+    registry.add_field((ptype, "particle_radial_velocity"),
+              function=_particle_spherical_velocity_radius,
+              particle_type=True, units="cm/s",
+              validators=[ValidateParameter("normal"), 
+                          ValidateParameter("center")])
+
+    def _particle_spherical_velocity_theta(field, data):
+        """
+        Theta component of the particles' velocity vectors in spherical coords
+        based on the provided field parameters for 'normal', 'center', and 
+        'bulk_velocity', 
+        """
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
@@ -427,13 +487,18 @@ def standard_particle_fields(registry, ptype,
         spht = get_sph_theta_component(vel, theta, phi, normal)
         return spht
 
-    registry.add_field((ptype, "particle_theta_velocity"),
-              function=_particle_theta_velocity,
+    registry.add_field((ptype, "particle_spherical_velocity_theta"),
+              function=_particle_spherical_velocity_theta,
               particle_type=True, units="cm/s",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
-    def _particle_phi_velocity(field, data):
+    def _particle_spherical_velocity_phi(field, data):
+        """
+        Phi component of the particles' velocity vectors in spherical coords
+        based on the provided field parameters for 'normal', 'center', and 
+        'bulk_velocity', 
+        """
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
@@ -446,36 +511,11 @@ def standard_particle_fields(registry, ptype,
         sphp = get_sph_phi_component(vel, phi, normal)
         return sphp
 
-    registry.add_field((ptype, "particle_phi_velocity"),
-              function=_particle_phi_velocity,
+    registry.add_field((ptype, "particle_spherical_velocity_phi"),
+              function=_particle_spherical_velocity_phi,
               particle_type=True, units="cm/s",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
-
-    def _get_cic_field(fname, units):
-        def _cic_particle_field(field, data):
-            """
-            Create a grid field for particle quantities weighted by particle
-            mass, using cloud-in-cell deposit.
-            """
-            pos = data[ptype, "particle_position"]
-            # Get back into density
-            pden = data[ptype, 'particle_mass'] / data["index", "cell_volume"] 
-            top = data.deposit(pos, [data[('all', particle_field)]*pden],
-                               method = 'cic')
-            bottom = data.deposit(pos, [pden], method = 'cic')
-            top[bottom == 0] = 0.0
-            bnz = bottom.nonzero()
-            top[bnz] /= bottom[bnz]
-            d = data.ds.arr(top, input_units = units)
-            return top
-
-    for ax in 'xyz':
-        registry.add_field(
-            ("deposit", "%s_cic_velocity_%s" % (ptype, ax)),
-            function=_get_cic_field(svel % ax, "cm/s"),
-            units = "cm/s", take_log=False,
-            validators=[ValidateSpatial(0)])
 
 def add_particle_average(registry, ptype, field_name, 
                          weight = "particle_mass",

@@ -251,7 +251,7 @@ class FITSImageBuffer(HDUList):
 
 axis_wcs = [[1,2],[0,2],[0,1]]
 
-def construct_image(data_source):
+def construct_image(data_source, center=None):
     ds = data_source.ds
     axis = data_source.axis
     if hasattr(ds, "wcs"):
@@ -265,11 +265,14 @@ def construct_image(data_source):
     else:
         # This is some other kind of dataset
         unit = ds.get_smallest_appropriate_unit(ds.domain_width.max())
+        if center is None:
+            crval = [0.0,0.0]
+        else:
+            crval = [(ds.domain_center-center)[idx].in_units(unit) for idx in axis_wcs[axis]]
         dx = ds.index.get_smallest_dx()
         nx, ny = (ds.domain_width[axis_wcs[axis]]/dx).ndarray_view().astype("int")
         crpix = [0.5*(nx+1), 0.5*(ny+1)]
         cdelt = [dx.in_units(unit)]*2
-        crval = [ds.domain_center[idx].in_units(unit) for idx in axis_wcs[axis]]
         cunit = [unit]*2
         ctype = ["LINEAR"]*2
     frb = data_source.to_frb((1.0,"unitary"), (nx,ny))
@@ -294,7 +297,7 @@ class FITSSlice(FITSImageBuffer):
     fields : string or list of strings
         The fields to slice
     center : A sequence floats, a string, or a tuple.
-         The coordinate of the center of the image. If set to 'c', 'center' or
+         The coordinate of the origin of the image. If set to 'c', 'center' or
          left blank, the plot is centered on the middle of the domain. If set to
          'max' or 'm', the center will be located at the maximum of the
          ('gas', 'density') field. Units can be specified by passing in center
@@ -307,7 +310,7 @@ class FITSSlice(FITSImageBuffer):
         axis = fix_axis(axis, ds)
         center = ds.coordinates.sanitize_center(center, axis)
         slc = ds.slice(axis, center[axis], **kwargs)
-        w, frb = construct_image(slc)
+        w, frb = construct_image(slc, center=center)
         super(FITSSlice, self).__init__(frb, fields=fields, wcs=w)
         for i, field in enumerate(fields):
             self[i].header["bunit"] = str(frb[field].units)
@@ -326,12 +329,21 @@ class FITSProjection(FITSImageBuffer):
         The fields to project
     weight_field : string
         The field used to weight the projection.
+    center : A sequence floats, a string, or a tuple.
+        The coordinate of the origin of the image. If set to 'c', 'center' or
+        left blank, the plot is centered on the middle of the domain. If set to
+        'max' or 'm', the center will be located at the maximum of the
+        ('gas', 'density') field. Units can be specified by passing in center
+        as a tuple containing a coordinate and string unit name or by passing
+        in a YTArray.  If a list or unitless array is supplied, code units are
+        assumed.
     """
-    def __init__(self, ds, axis, fields, weight_field=None, **kwargs):
+    def __init__(self, ds, axis, fields, center="c", weight_field=None, **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis, ds)
+        center = get_sanitized_center(center, ds)
         prj = ds.proj(fields[0], axis, weight_field=weight_field, **kwargs)
-        w, frb = construct_image(prj)
+        w, frb = construct_image(prj, center=center)
         super(FITSProjection, self).__init__(frb, fields=fields, wcs=w)
         for i, field in enumerate(fields):
             self[i].header["bunit"] = str(frb[field].units)

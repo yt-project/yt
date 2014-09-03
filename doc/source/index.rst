@@ -28,13 +28,13 @@ Table of Contents
          </p>
        </td>
        <td width="75%">
-         <p class="linkdescr">Getting, Installing, and Updating yt</p>
+         <p class="linkdescr">Getting, installing, and updating yt</p>
        </td>
      </tr>
      <tr valign="top">
        <td width="25%">
          <p>
-           <a href="bootcamp/index.html">yt Bootcamp</a>
+           <a href="quickstart/index.html">yt Quickstart</a>
          </p>
        </td>
        <td width="75%">
@@ -127,7 +127,7 @@ Table of Contents
    :hidden:
 
    installing
-   yt Bootcamp <bootcamp/index>
+   yt Quickstart <quickstart/index>
    yt3differences
    cookbook/index
    visualizing/index

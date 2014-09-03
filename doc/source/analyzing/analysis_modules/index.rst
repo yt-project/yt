@@ -17,4 +17,4 @@ with each specific analysis module into python before using them.
    two_point_functions
    clump_finding
    particle_trajectories
-   ellipsoidal_analysis
+   ellipsoid_analysis

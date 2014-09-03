@@ -694,6 +694,7 @@ Function List
 
    ~yt.convenience.load
    ~yt.data_objects.static_output.Dataset.all_data
+   ~yt.data_objects.static_output.Dataset.box
    ~yt.funcs.deprecate
    ~yt.funcs.ensure_list
    ~yt.funcs.get_pbar
@@ -714,6 +715,8 @@ Function List
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_passthrough
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_root_only
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_simple_proxy
+   ~yt.data_objects.data_containers.YTDataContainer.get_field_parameter
+   ~yt.data_objects.data_containers.YTDataContainer.set_field_parameter
 
 Math Utilities
 --------------

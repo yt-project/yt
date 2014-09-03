@@ -39,6 +39,13 @@ be adjusted if the navbar menu changes.
         padding-top: 10px;
         padding-bottom: 10px;
     }
+    /* since 3.1.0 */
+    .navbar-collapse.collapse.in { 
+        display: block!important;
+    }
+    .collapsing {
+        overflow: hidden!important;
+    }
 }
 
 /* 
@@ -85,7 +92,7 @@ See: https://github.com/twbs/bootstrap/issues/1768
 
 */
 
-*[id]:before { 
+*[id]:before :not(p) {
   display: block; 
   content: " "; 
   margin-top: -45px; 

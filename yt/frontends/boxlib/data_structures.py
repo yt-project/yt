@@ -566,8 +566,10 @@ class BoxlibDataset(Dataset):
         # Skip timesteps per level
         header_file.readline()
         self._header_mesh_start = header_file.tell()
-        header_file.next()
-        next_line = header_file.next()
+        # Skip the cell size information per level - we'll get this later
+        for i in range(self._max_level+1): header_file.readline()
+        # Get the geometry
+        next_line = header_file.readline()
         if len(next_line.split()) == 1:
             coordinate_type = int(next_line)
         else:
@@ -780,7 +782,7 @@ class MaestroDataset(BoxlibDataset):
                 line = f.next()
             # get the runtime parameters
             for line in f:
-                p, v = (_.strip() for _ in line[4:].split("="))
+                p, v = (_.strip() for _ in line[4:].split("=",1))
                 if len(v) == 0:
                     self.parameters[p] = ""
                 else:

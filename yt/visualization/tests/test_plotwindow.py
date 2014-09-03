@@ -140,6 +140,11 @@ WIDTH_SPECS = {
     ),
 }
 
+WEIGHT_FIELDS = (
+    None,
+    'density',
+    ('gas', 'density'),
+)
 
 @requires_ds(M7)
 def test_attributes():
@@ -233,6 +238,7 @@ class TestPlotWindowSave(unittest.TestCase):
         projections = []
         projections_ds = []
         projections_c = []
+        projections_wf = []
         projections_w = {}
         for dim in range(3):
             projections.append(ProjectionPlot(test_ds, dim, "density"))
@@ -244,11 +250,15 @@ class TestPlotWindowSave(unittest.TestCase):
         for width in WIDTH_SPECS:
             projections_w[width] = ProjectionPlot(test_ds, dim, 'density',
                                                   width=width)
+        for wf in WEIGHT_FIELDS:
+            projections_wf.append(ProjectionPlot(test_ds, dim, "density",
+                                                 weight_field=wf))
 
         cls.slices = [SlicePlot(test_ds, dim, "density") for dim in range(3)]
         cls.projections = projections
         cls.projections_ds = projections_ds
         cls.projections_c = projections_c
+        cls.projections_wf = projections_wf
         cls.projections_w = projections_w
         cls.offaxis_slice = OffAxisSlicePlot(test_ds, normal, "density")
         cls.offaxis_proj = OffAxisProjectionPlot(test_ds, normal, "density")
@@ -281,6 +291,10 @@ class TestPlotWindowSave(unittest.TestCase):
     @parameterized.expand([(i, ) for i in range(len(CENTER_SPECS))])
     def test_projection_plot_c(self, dim):
         self.projections_c[dim].save()
+
+    @parameterized.expand([(i, ) for i in range(len(WEIGHT_FIELDS))])
+    def test_projection_plot_wf(self, dim):
+        self.projections_wf[dim].save()
 
     @parameterized.expand(
         param.explicit((fname, ))

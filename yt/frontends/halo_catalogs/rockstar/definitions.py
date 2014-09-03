@@ -35,17 +35,25 @@ header_dt = (
     ("unused", BINARY_HEADER_SIZE - 4*12 - 4 - 8*6 - 12, "c")
 )
 
-halo_dt = np.dtype([
+# Note the final field here, which is a field for min/max format revision in
+# which the field appears.
+
+KNOWN_REVISIONS=[0, 1]
+
+halo_dt = [
     ('particle_identifier', np.int64),
     ('particle_position_x', np.float32),
     ('particle_position_y', np.float32),
     ('particle_position_z', np.float32),
+    ('particle_mposition_x', np.float32, (0, 0)),
+    ('particle_mposition_y', np.float32, (0, 0)),
+    ('particle_mposition_z', np.float32, (0, 0)),
     ('particle_velocity_x', np.float32),
     ('particle_velocity_y', np.float32),
     ('particle_velocity_z', np.float32),
-    ('particle_corevel_x', np.float32),
-    ('particle_corevel_y', np.float32),
-    ('particle_corevel_z', np.float32),
+    ('particle_corevel_x', np.float32, (1, 100)),
+    ('particle_corevel_y', np.float32, (1, 100)),
+    ('particle_corevel_z', np.float32, (1, 100)),
     ('particle_bulkvel_x', np.float32),
     ('particle_bulkvel_y', np.float32),
     ('particle_bulkvel_z', np.float32),
@@ -75,15 +83,15 @@ halo_dt = np.dtype([
     ('Ax', np.float32),
     ('Ay', np.float32),
     ('Az', np.float32),
-    ('b_to_a2', np.float32),
-    ('c_to_a2', np.float32),
-    ('A2x', np.float32),
-    ('A2y', np.float32),
-    ('A2z', np.float32),
+    ('b_to_a2', np.float32, (1, 100)),
+    ('c_to_a2', np.float32, (1, 100)),
+    ('A2x', np.float32, (1, 100)),
+    ('A2y', np.float32, (1, 100)),
+    ('A2z', np.float32, (1, 100)),
     ('bullock_spin', np.float32),
     ('kin_to_pot', np.float32),
-    ('m_pe_b', np.float32),
-    ('m_pe_d', np.float32),
+    ('m_pe_b', np.float32, (1, 100)),
+    ('m_pe_d', np.float32, (1, 100)),
     ('num_p', np.int64),
     ('num_child_particles', np.int64),
     ('p_start', np.int64),
@@ -93,7 +101,20 @@ halo_dt = np.dtype([
     ('min_pos_err', np.float32),
     ('min_vel_err', np.float32),
     ('min_bulkvel_err', np.float32),
-], align=True)
+]
+
+halo_dts = {}
+
+for rev in KNOWN_REVISIONS:
+    halo_dts[rev] = []
+    for item in halo_dt:
+        if len(item) == 2:
+            halo_dts[rev].append(item)
+        else:
+            mi, ma = item[2]
+            if (mi <= rev) and (rev <= ma):
+                halo_dts[rev].append(item[:2])
+    halo_dts[rev] = np.dtype(halo_dts[rev], align=True)
 
 particle_dt = np.dtype([
     ('particle_identifier', np.int64),

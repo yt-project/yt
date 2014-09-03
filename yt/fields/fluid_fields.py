@@ -84,7 +84,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
              units="cm/s")
 
     def _radial_mach_number(field, data):
-        """ M{|v|/t_sound} """
+        """ Radial component of M{|v|/c_sound} """
         tr = data[ftype, "radial_velocity"] / data[ftype, "sound_speed"]
         return np.abs(tr)
     registry.add_field((ftype, "radial_mach_number"),
@@ -100,7 +100,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
                        units = "erg / cm**3")
 
     def _mach_number(field, data):
-        """ M{|v|/t_sound} """
+        """ M{|v|/c_sound} """
         return data[ftype, "velocity_magnitude"] / data[ftype, "sound_speed"]
     registry.add_field((ftype, "mach_number"),
             function=_mach_number,

@@ -116,6 +116,9 @@ class IOHandlerOWLS(BaseIOHandler):
                     elif field.startswith("Metallicity_"):
                         col = int(field.rsplit("_", 1)[-1])
                         data = g["Metallicity"][:,col][mask]
+                    elif field.startswith("Chemistry_"):
+                        col = int(field.rsplit("_", 1)[-1])
+                        data = g["ChemistryAbundances"][:,col][mask]
                     else:
                         data = g[field][:][mask,...]
 
@@ -192,6 +195,9 @@ class IOHandlerOWLS(BaseIOHandler):
                     # Vector of metallicity
                     for i in range(g[k].shape[1]):
                         fields.append((ptype, "Metallicity_%02i" % i))
+                elif k == "ChemistryAbundances" and len(g[k].shape)>1:
+                    for i in range(g[k].shape[1]):
+                        fields.append((ptype, "Chemistry_%03i" % i))
                 else:
                     kk = k
                     if not hasattr(g[kk], "shape"): continue
@@ -200,6 +206,9 @@ class IOHandlerOWLS(BaseIOHandler):
 
         f.close()
         return fields, {}
+
+class IOHandlerEagleNetwork(IOHandlerOWLS):
+    _dataset_type = "eagle_network"
 
 class IOHandlerGadgetHDF5(IOHandlerOWLS):
     _dataset_type = "gadget_hdf5"
@@ -344,21 +353,26 @@ class IOHandlerGadgetBinary(BaseIOHandler):
                         for ptype in self._ptypes):
                 continue
             pos += 4
+            any_ptypes = False
             for ptype in self._ptypes:
                 if field == "Mass" and ptype not in self.var_mass:
                     continue
                 if (ptype, field) not in field_list:
                     continue
                 offsets[(ptype, field)] = pos
+                any_ptypes = True
                 if field in self._vector_fields:
                     pos += 3 * pcount[ptype] * fs
                 else:
                     pos += pcount[ptype] * fs
             pos += 4
+            if not any_ptypes: pos -= 8
         if file_size is not None:
             if file_size != pos:
                 mylog.warning("Your Gadget-2 file may have extra " +
-                              "columns or different precision!")
+                              "columns or different precision!" +
+                              " (%s file vs %s computed)",
+                              file_size, pos)
         return offsets
 
     def _identify_fields(self, domain):
