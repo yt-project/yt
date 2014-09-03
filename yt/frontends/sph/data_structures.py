@@ -38,7 +38,7 @@ from yt.utilities.physical_constants import \
     mass_sun_cgs
 from yt.utilities.cosmology import Cosmology
 from .fields import \
-    SPHFieldInfo, OWLSFieldInfo, TipsyFieldInfo
+    SPHFieldInfo, OWLSFieldInfo, TipsyFieldInfo, EagleNetworkFieldInfo
 from .definitions import \
     gadget_header_specs, \
     gadget_field_specs, \
@@ -295,6 +295,7 @@ class GadgetHDF5Dataset(GadgetDataset):
 class OWLSDataset(GadgetHDF5Dataset):
     _particle_mass_name = "Mass"
     _field_info_class = OWLSFieldInfo
+    _time_readin = "Time_GYR"
 
 
 
@@ -312,7 +313,7 @@ class OWLSDataset(GadgetHDF5Dataset):
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         # Set standard values
-        self.current_time = hvals["Time_GYR"] * sec_conversion["Gyr"]
+        self.current_time = hvals[self._time_readin] * sec_conversion["Gyr"]
         if self.domain_left_edge is None:
             self.domain_left_edge = np.zeros(3, "float64")
             self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
@@ -346,7 +347,30 @@ class OWLSDataset(GadgetHDF5Dataset):
             fileh = h5py.File(args[0], mode='r')
             if "Constants" in fileh["/"].keys() and \
                "Header" in fileh["/"].keys() and \
-               "SUBFIND" not in fileh["/"].keys():
+               "SUBFIND" not in fileh["/"].keys() and not\
+               ("ChemistryAbundances" in fileh["PartType0"].keys()
+                or "ChemicalAbundances" in fileh["PartType0"].keys()):
+                fileh.close()
+                return True
+            fileh.close()
+        except:
+            pass
+        return False
+
+class EagleNetworkDataset(OWLSDataset):
+    _particle_mass_name = "Mass"
+    _field_info_class = EagleNetworkFieldInfo
+    _time_readin = 'Time'
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        try:
+            fileh = h5py.File(args[0], mode='r')
+            if "Constants" in fileh["/"].keys() and \
+               "Header" in fileh["/"].keys() and \
+               "SUBFIND" not in fileh["/"].keys() and \
+               ("ChemistryAbundances" in fileh["PartType0"].keys()
+                or "ChemicalAbundances" in fileh["PartType0"].keys()):
                 fileh.close()
                 return True
             fileh.close()
