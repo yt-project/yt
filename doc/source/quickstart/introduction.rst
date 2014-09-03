@@ -1,4 +1,4 @@
-.. _bootcamp-introduction:
+.. _quickstart-introduction:
 
 Introduction
 ------------

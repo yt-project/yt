@@ -222,7 +222,6 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             self.func = np.sum # for the future
         else:
             raise NotImplementedError(style)
-        self.weight_field = weight_field
         self._set_center(center)
         if data_source is None: data_source = self.ds.all_data()
         for k, v in data_source.field_parameters.items():
@@ -230,7 +229,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
               self._is_default_field_parameter(k):
                 self.set_field_parameter(k, v)
         self.data_source = data_source
-        self.weight_field = weight_field
+        if weight_field is None:
+            self.weight_field = weight_field
+        else:
+            self.weight_field = self._determine_fields(weight_field)[0]
         self.get_data(field)
 
     @property
@@ -511,6 +513,9 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         fill, gen = self.index._split_fields(fields_to_get)
         particles = []
         for field in gen:
+            if field[0] == 'deposit':
+                fill.append(field)
+                continue
             finfo = self.ds._get_field_info(*field)
             try:
                 finfo.check_available(self)
@@ -741,6 +746,13 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
             self.right_edge + level_state.current_dx)
         level_state.data_source.min_level = level_state.current_level
         level_state.data_source.max_level = level_state.current_level
+        self._pdata_source = self.ds.region(
+            self.center,
+            self.left_edge - level_state.current_dx,
+            self.right_edge + level_state.current_dx)
+        self._pdata_source.min_level = level_state.current_level
+        self._pdata_source.max_level = level_state.current_level
+
 
     def _fill_fields(self, fields):
         ls = self._initialize_level_state(fields)

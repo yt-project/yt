@@ -463,7 +463,7 @@ class ImagePlotContainer(object):
         if type in ['Projection', 'OffAxisProjection']:
             weight = self.data_source.weight_field
             if weight is not None:
-                weight = weight.replace(' ', '_')
+                weight = weight[1].replace(' ', '_')
         if 'Cutting' in self.data_source.__class__.__name__:
             type = 'OffAxisSlice'
         for k, v in self.plots.iteritems():
@@ -475,8 +475,6 @@ class ImagePlotContainer(object):
                 # for cutting planes
                 n = "%s_%s_%s" % (name, type, k.replace(' ', '_'))
             if weight:
-                if isinstance(weight, tuple):
-                    weight = weight[1]
                 n += "_%s" % (weight)
             names.append(v.save(n, mpl_kwargs))
         return names
