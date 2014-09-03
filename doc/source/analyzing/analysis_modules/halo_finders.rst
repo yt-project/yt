@@ -75,7 +75,8 @@ et al. 2011 <http://rockstar.googlecode.com/files/rockstar_ap101911.pdf>`_.
   mass. In simulations where the highest-resolution particles all have the 
   same mass (ie: zoom-in grid based simulations), one can set up a particle
   filter to select the lowest mass particles and perform the halo finding
-  only on those.
+  only on those.  See the this cookbook recipe for an example: 
+  :ref:`cookbook-rockstar-nested-grid`.
 
 To run the Rockstar Halo finding, you must launch python with MPI and 
 parallelization enabled. While Rockstar itself does not require MPI to run, 
