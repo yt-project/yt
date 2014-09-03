@@ -380,9 +380,9 @@ class WeightedVariance(DerivedQuantity):
         my_weight = values.pop(-1)
         all_weight = my_weight.sum(dtype=np.float64)
         rvals = []
-        for i in range(len(values) / 2):
+        for i in range(int(len(values) / 2)):
             my_mean = values[i]
-            my_var2 = values[i + len(values) / 2]
+            my_var2 = values[i + int(len(values) / 2)]
             all_mean = (my_weight * my_mean).sum(dtype=np.float64) / all_weight
             rvals.append(np.sqrt((my_weight * (my_var2 + 
                                                (my_mean - all_mean)**2)).sum(dtype=np.float64) / 
