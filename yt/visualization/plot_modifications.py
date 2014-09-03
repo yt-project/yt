@@ -30,7 +30,6 @@ from yt.utilities.physical_constants import \
     sec_per_kyr, sec_per_year, \
     sec_per_day, sec_per_hr
 from yt.units.yt_array import YTQuantity, YTArray
-from yt.units.unit_object import Unit
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 
