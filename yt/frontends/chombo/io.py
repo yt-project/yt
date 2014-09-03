@@ -41,7 +41,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
             self.ghost = np.array(self.ghost)
         except KeyError:
             # assume zero ghosts if outputGhosts not present
-            self.ghost = np.array(self.dim)
+            self.ghost = np.zeros(self.dim)
 
     _field_dict = None
     @property
