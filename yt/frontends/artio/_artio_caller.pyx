@@ -25,6 +25,33 @@ ELSE:
     cdef extern from "alloca.h":
         void *alloca(int)
 
+cdef extern from "cosmology.h":
+    ctypedef struct CosmologyParameters "CosmologyParameters" :
+        pass
+    CosmologyParameters *cosmology_allocate()
+    void cosmology_free(CosmologyParameters *c)
+    void cosmology_set_fixed(CosmologyParameters *c)
+
+    void cosmology_set_OmegaM(CosmologyParameters *c, double value)
+    void cosmology_set_OmegaB(CosmologyParameters *c, double value)
+    void cosmology_set_OmegaL(CosmologyParameters *c, double value)
+    void cosmology_set_h(CosmologyParameters *c, double value)
+    void cosmology_set_DeltaDC(CosmologyParameters *c, double value)
+
+    double abox_from_auni(CosmologyParameters *c, double a) nogil
+    double tcode_from_auni(CosmologyParameters *c, double a) nogil
+    double tphys_from_auni(CosmologyParameters *c, double a) nogil
+
+    double auni_from_abox(CosmologyParameters *c, double v) nogil
+    double auni_from_tcode(CosmologyParameters *c, double v) nogil
+    double auni_from_tphys(CosmologyParameters *c, double v) nogil
+
+    double abox_from_tcode(CosmologyParameters *c, double tcode) nogil
+    double tcode_from_abox(CosmologyParameters *c, double abox) nogil
+
+    double tphys_from_abox(CosmologyParameters *c, double abox) nogil
+    double tphys_from_tcode(CosmologyParameters *c, double tcode) nogil
+
 cdef extern from "artio.h":
     ctypedef struct artio_fileset_handle "artio_fileset" :
         pass
@@ -138,6 +165,10 @@ cdef class artio_fileset :
     cdef public object parameters 
     cdef artio_fileset_handle *handle
 
+    # cosmology parameter for time unit conversion
+    cdef CosmologyParameters *cosmology
+    cdef float tcode_to_years
+
     # common attributes
     cdef public int num_grid
     cdef int64_t num_root_cells
@@ -177,6 +208,19 @@ cdef class artio_fileset :
 
         self.sfc_min = 0
         self.sfc_max = self.num_root_cells-1
+
+        # initialize cosmology module
+        if self.parameters.has_key("abox"):
+            self.cosmology = cosmology_allocate()
+            cosmology_set_OmegaM(self.cosmology, self.parameters['OmegaM'][0])
+            cosmology_set_OmegaL(self.cosmology, self.parameters['OmegaL'][0])
+            cosmology_set_OmegaB(self.cosmology, self.parameters['OmegaB'][0])
+            cosmology_set_h(self.cosmology, self.parameters['hubble'][0])
+            cosmology_set_DeltaDC(self.cosmology, self.parameters['DeltaDC'][0])
+            cosmology_set_fixed(self.cosmology)
+        else:
+            self.cosmology = NULL
+            self.tcode_to_years = self.parameters['time_unit'][0]/(365.25*86400)
 
         # grid detection
         self.min_level = 0
@@ -239,6 +283,8 @@ cdef class artio_fileset :
         if self.primary_variables : free(self.primary_variables)
         if self.secondary_variables : free(self.secondary_variables)
 
+        if self.cosmology : cosmology_free(self.cosmology)
+
         if self.handle : artio_fileset_close(self.handle)
   
     def read_parameters(self) :
@@ -287,6 +333,100 @@ cdef class artio_fileset :
                 raise RuntimeError("ARTIO file corruption detected: invalid type!")
 
             self.parameters[key] = parameter
+
+    def abox_from_auni(self, np.float64_t a):
+        if self.cosmology:
+            return abox_from_auni(self.cosmology, a)
+        else:
+            raise RuntimeError("abox_from_auni called for non-cosmological ARTIO fileset!")
+
+    def tcode_from_auni(self, np.float64_t a):
+        if self.cosmology:
+            return tcode_from_auni(self.cosmology, a)
+        else:
+            raise RuntimeError("tcode_from_auni called for non-cosmological ARTIO fileset!")
+
+    def tphys_from_auni(self, np.float64_t a):
+        if self.cosmology:
+            return tphys_from_auni(self.cosmology, a)
+        else:
+            raise RuntimeError("tphys_from_auni called for non-cosmological ARTIO fileset!")
+
+    def auni_from_abox(self, np.float64_t v):
+        if self.cosmology:
+            return auni_from_abox(self.cosmology, v)
+        else:
+            raise RuntimeError("auni_from_abox called for non-cosmological ARTIO fileset!")
+
+    def auni_from_tcode(self, np.float64_t v):
+        if self.cosmology:
+            return auni_from_tcode(self.cosmology, v)
+        else:
+            raise RuntimeError("auni_from_tcode called for non-cosmological ARTIO fileset!")
+
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
+    def auni_from_tcode_array(self, np.ndarray[np.float64_t] tcode):
+        cdef int i, nauni
+        cdef np.ndarray[np.float64_t, ndim=1] auni
+        cdef CosmologyParameters *cosmology = self.cosmology
+        if not cosmology:
+            raise RuntimeError("auni_from_tcode_array called for non-cosmological ARTIO fileset!")
+        auni = np.empty_like(tcode)
+        nauni = auni.shape[0]
+        with nogil:
+            for i in range(nauni):
+                auni[i] = auni_from_tcode(self.cosmology, tcode[i])
+        return auni
+
+    def auni_from_tphys(self, np.float64_t v):
+        if self.cosmology:
+            return auni_from_tphys(self.cosmology, v)
+        else:
+            raise RuntimeError("auni_from_tphys called for non-cosmological ARTIO fileset!")
+
+    def abox_from_tcode(self, np.float64_t abox):
+        if self.cosmology:
+            return abox_from_tcode(self.cosmology, abox)
+        else:
+            raise RuntimeError("abox_from_tcode called for non-cosmological ARTIO fileset!")
+
+    def tcode_from_abox(self, np.float64_t abox):
+        if self.cosmology:
+            return tcode_from_abox(self.cosmology, abox)
+        else:
+            raise RuntimeError("tcode_from_abox called for non-cosmological ARTIO fileset!")
+
+    def tphys_from_abox(self, np.float64_t abox):
+        if self.cosmology:
+            return tphys_from_abox(self.cosmology, abox)
+        else:
+            raise RuntimeError("tphys_from_abox called for non-cosmological ARTIO fileset!")
+
+    def tphys_from_tcode(self, np.float64_t tcode):
+        if self.cosmology:
+            return tphys_from_tcode(self.cosmology, tcode)
+        else:
+            return self.tcode_to_years*tcode
+
+    @cython.wraparound(False)
+    @cython.boundscheck(False)
+    def tphys_from_tcode_array(self, np.ndarray[np.float64_t] tcode):
+        cdef int i, ntphys
+        cdef np.ndarray[np.float64_t, ndim=1] tphys
+        cdef CosmologyParameters *cosmology = self.cosmology
+        tphys = np.empty_like(tcode)
+        ntphys = tcode.shape[0]
+
+        if cosmology:
+            tphys = np.empty_like(tcode)
+            ntphys = tcode.shape[0]
+            with nogil:
+                for i in range(ntphys):
+                    tphys[i] = tphys_from_tcode(cosmology, tcode[i])
+            return tphys
+        else:
+            return tcode*self.tcode_to_years
 
 #    @cython.boundscheck(False)
     @cython.wraparound(False)

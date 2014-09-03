@@ -39,6 +39,7 @@ cdef extern from "math.h":
 # use this as an epsilon test for grids aligned with selector
 # define here to avoid the gil later
 cdef np.float64_t grid_eps = np.finfo(np.float64).eps
+grid_eps = 0.0
 
 # These routines are separated into a couple different categories:
 #
@@ -805,14 +806,9 @@ cdef class DiskSelector(SelectorObject):
         cdef np.float64_t h, d, r2, temp, spos
         cdef int i, j, k
         h = d = 0
-        for ax in range(3):
-            temp = 1e30
-            for i in range(3):
-                if self.periodicity[ax] == 0 and i != 1: continue
-                spos = pos[ax] + (i-1)*self.domain_width[ax]
-                if fabs(spos - self.center[ax]) < fabs(temp):
-                    temp = spos - self.center[ax]
-            h += temp * self.norm_vec[ax]
+        for i in range(3):
+            temp = self.difference(pos[i], self.center[i], i)
+            h += temp * self.norm_vec[i]
             d += temp*temp
         r2 = (d - h*h)
         if fabs(h) <= self.height and r2 <= self.radius2: return 1
