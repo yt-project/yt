@@ -872,7 +872,7 @@ class NyxDataset(BoxlibDataset):
         # We check for the job_info file's existence because this is currently
         # what distinguishes Nyx data from MAESTRO data.
         pfn = os.path.join(pfname)
-        if not os.path.exists(pfn): return False
+        if not os.path.exists(pfn) or os.path.isdir(pfn): return False
         nyx = any(("nyx." in line for line in open(pfn)))
         maestro = os.path.exists(os.path.join(pname, "job_info"))
         orion = (not nyx) and (not maestro)
