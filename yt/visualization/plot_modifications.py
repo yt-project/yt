@@ -30,6 +30,7 @@ from yt.utilities.physical_constants import \
     sec_per_kyr, sec_per_year, \
     sec_per_day, sec_per_hr
 from yt.units.yt_array import YTQuantity, YTArray
+from yt.units.unit_object import Unit
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 
@@ -906,9 +907,9 @@ class TextLabelCallback(PlotCallback):
 
 class HaloCatalogCallback(PlotCallback):
     """
-    annotate_halos(halo_catalog, circle_kwargs=None,
+    annotate_halos(halo_catalog, circle_kwargs={},
         width = None, annotate_field=False,
-        font_kwargs = None, factor = 1.0)
+        font_kwargs = {}, factor = 1.0)
 
     Plots circles at the locations of all the halos
     in a halo catalog with radii corresponding to the
@@ -935,17 +936,19 @@ class HaloCatalogCallback(PlotCallback):
     region = None
     _descriptor = None
 
-    def __init__(self, halo_catalog, circle_kwargs = None, 
+    def __init__(self, halo_catalog, circle_kwargs = {}, 
             width = None, annotate_field = False,
-            font_kwargs = None, factor = 1.0):
+            font_kwargs = {}, factor = 1.0):
 
         PlotCallback.__init__(self)
         self.halo_catalog = halo_catalog
         self.width = width
         self.annotate_field = annotate_field
+        if font_kwargs == {}:
+            font_kwargs = {'color':'white'}
         self.font_kwargs = font_kwargs
         self.factor = factor
-        if circle_kwargs is None:
+        if circle_kwargs == {}:
             circle_kwargs = {'edgecolor':'white', 'facecolor':'None'}
         self.circle_kwargs = circle_kwargs
 
@@ -1005,7 +1008,7 @@ class HaloCatalogCallback(PlotCallback):
 
         if self.annotate_field:
             annotate_dat = halo_data[self.annotate_field]
-            texts = ['{0}'.format(dat) for dat in annotate_dat]
+            texts = ['%g' % dat for dat in annotate_dat]
             for pos_x, pos_y, t in zip(px, py, texts): 
                 plot._axes.text(pos_x, pos_y, t, **self.font_kwargs)
  
