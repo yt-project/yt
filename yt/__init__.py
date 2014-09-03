@@ -72,7 +72,7 @@ categories goes here.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-__version__ = "3.0"
+__version__ = "3.0.1"
 
 # First module imports
 import numpy as np # For modern purposes
@@ -150,7 +150,7 @@ from yt.visualization.volume_rendering.api import \
     TransferFunctionHelper
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_objects, enable_parallelism
+    parallel_objects, enable_parallelism, communication_system
 
 from yt.convenience import \
     load, simulation
