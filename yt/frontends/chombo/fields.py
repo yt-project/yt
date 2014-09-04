@@ -27,6 +27,8 @@ from yt.frontends.boxlib.fields import \
 rho_units = "code_mass / code_length**3"
 mom_units = "code_mass / (code_time * code_length**2)"
 eden_units = "code_mass / (code_time**2 * code_length)" # erg / cm^3
+vel_units = "code_length / code_time"
+b_units = "code_magnetic"
 
 # Chombo does not have any known fields by itself.
 class ChomboFieldInfo(FieldInfoContainer):
@@ -88,3 +90,17 @@ class Orion2FieldInfo(ChomboFieldInfo):
                        units = "erg/cm**3")
         self.add_field("temperature", function=_temperature,
                        units="K")
+
+class PlutoFieldInfo(ChomboFieldInfo):
+    known_other_fields = (
+        ("rho", (rho_units, ["density"], None)),
+        ("prs", ("code_mass / (code_length * code_time**2)", ["pressure"], None)),
+        ("vx1", (vel_units, ["velocity_x"], None)),
+        ("vx2", (vel_units, ["velocity_y"], None)),
+        ("vx3", (vel_units, ["velocity_z"], None)),
+        ("bx1", (b_units, ["magnetic_field_x"], None)),
+        ("bx2", (b_units, ["magnetic_field_y"], None)),
+        ("bx3", (b_units, ["magnetic_field_z"], None)),
+    )
+
+    known_particle_fields = ()

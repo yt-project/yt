@@ -42,7 +42,7 @@ from yt.utilities.lib.misc_utilities import \
 from yt.utilities.io_handler import \
     io_registry
 
-from .fields import ChomboFieldInfo, Orion2FieldInfo
+from .fields import ChomboFieldInfo, Orion2FieldInfo, PlutoFieldInfo
 
 class ChomboGrid(AMRGridPatch):
     _id_offset = 0
@@ -341,7 +341,7 @@ class ChomboDataset(Dataset):
             pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
             orion2_ini_file_exists = os.path.isfile(orion2_ini_filename)
 
-        if not (pluto_ini_file_exists and orion2_ini_file_exists):
+        if not (pluto_ini_file_exists or orion2_ini_file_exists):
             try:
                 fileh = h5py.File(args[0],'r')
                 valid = "Chombo_global" in fileh["/"]
@@ -362,6 +362,153 @@ class ChomboDataset(Dataset):
                 continue
             v = getattr(self, a)
             mylog.info("Parameters: %-25s = %s", a, v)
+
+class PlutoHierarchy(ChomboHierarchy):
+
+    def __init__(self, ds, dataset_type="pluto_chombo_native"):
+        ChomboHierarchy.__init__(self, ds, dataset_type)
+
+    def _parse_index(self):
+        f = self._handle # shortcut
+        self.max_level = f.attrs['num_levels'] - 1
+
+        grids = []
+        self.dds_list = []
+        i = 0
+        D = self.dataset.dimensionality
+        for lev_index, lev in enumerate(self._levels):
+            level_number = int(re.match('level_(\d+)',lev).groups()[0])
+            try:
+                boxes = f[lev]['boxes'].value
+            except KeyError:
+                boxes = f[lev]['particles:boxes'].value
+            dx = f[lev].attrs['dx']
+            self.dds_list.append(dx * np.ones(3))
+
+            if D == 1:
+                self.dds_list[lev_index][1] = 1.0
+                self.dds_list[lev_index][2] = 1.0
+
+            if D == 2:
+                self.dds_list[lev_index][2] = 1.0
+
+            for level_id, box in enumerate(boxes):
+                si = np.array([box['lo_%s' % ax] for ax in 'ijk'[:D]])
+                ei = np.array([box['hi_%s' % ax] for ax in 'ijk'[:D]])
+                
+                if D == 1:
+                    si = np.concatenate((si, [0.0, 0.0]))
+                    ei = np.concatenate((ei, [0.0, 0.0]))
+
+                if D == 2:
+                    si = np.concatenate((si, [0.0]))
+                    ei = np.concatenate((ei, [0.0]))
+
+                pg = self.grid(len(grids),self,level=level_number,
+                               start = si, stop = ei)
+                grids.append(pg)
+                grids[-1]._level_id = level_id
+                self.grid_levels[i] = level_number
+                self.grid_left_edge[i] = self.dds_list[lev_index]*si.astype(self.float_type)+self.domain_left_edge.value
+                self.grid_right_edge[i] = self.dds_list[lev_index]*(ei.astype(self.float_type)+1)+self.domain_left_edge.value
+                self.grid_particle_count[i] = 0
+                self.grid_dimensions[i] = ei - si + 1
+                i += 1
+        self.grids = np.empty(len(grids), dtype='object')
+        for gi, g in enumerate(grids): self.grids[gi] = g
+
+
+class PlutoDataset(ChomboDataset):
+
+    _index_class = PlutoHierarchy
+    _field_info_class = PlutoFieldInfo
+
+    def __init__(self, filename, dataset_type='pluto_chombo_native',
+                 storage_filename = None, ini_filename = None):
+
+        ChomboDataset.__init__(self, filename, dataset_type, 
+                    storage_filename, ini_filename)
+
+    def _parse_parameter_file(self):
+        """
+        Check to see whether a 'pluto.ini' file
+        exists in the plot file directory. If one does, attempt to parse it.
+        Otherwise grab the dimensions from the hdf5 file.
+        """
+
+        pluto_ini_file_exists = False
+        dir_name = os.path.dirname(os.path.abspath(self.fullplotdir))
+        pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
+        pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
+
+        self.unique_identifier = \
+                               int(os.stat(self.parameter_filename)[ST_CTIME])
+        self.dimensionality = self._handle['Chombo_global/'].attrs['SpaceDim']
+        self.domain_dimensions = self._calc_domain_dimensions()
+        self.refine_by = self._handle['/level_0'].attrs['ref_ratio']
+
+        if pluto_ini_file_exists:
+            lines=[line.strip() for line in open(pluto_ini_filename)]
+            self.domain_left_edge = np.zeros(self.dimensionality)
+            self.domain_right_edge = np.zeros(self.dimensionality)
+            for il,ll in enumerate(lines[lines.index('[Grid]')+2:lines.index('[Grid]')+2+self.dimensionality]):
+                self.domain_left_edge[il] = float(ll.split()[2])
+                self.domain_right_edge[il] = float(ll.split()[-1])
+            self.periodicity = [0]*3
+            for il,ll in enumerate(lines[lines.index('[Boundary]')+2:lines.index('[Boundary]')+2+6:2]):
+                self.periodicity[il] = (ll.split()[1] == 'periodic')
+            self.periodicity=tuple(self.periodicity)
+            for il,ll in enumerate(lines[lines.index('[Parameters]')+2:]):
+                if (ll.split()[0] == 'GAMMA'):
+                    self.gamma = float(ll.split()[1])
+        else:
+            self.domain_left_edge = self._calc_left_edge()
+            self.domain_right_edge = self._calc_right_edge()
+            self.periodicity = (True, True, True)
+
+        # if a lower-dimensional dataset, set up pseudo-3D stuff here.
+        if self.dimensionality == 1:
+            self.domain_left_edge = np.concatenate((self.domain_left_edge, [0.0, 0.0]))
+            self.domain_right_edge = np.concatenate((self.domain_right_edge, [1.0, 1.0]))
+            self.domain_dimensions = np.concatenate((self.domain_dimensions, [1, 1]))
+
+        if self.dimensionality == 2:
+            self.domain_left_edge = np.concatenate((self.domain_left_edge, [0.0]))
+            self.domain_right_edge = np.concatenate((self.domain_right_edge, [1.0]))
+            self.domain_dimensions = np.concatenate((self.domain_dimensions, [1]))
+
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+
+        pluto_ini_file_exists  = False
+        orion2_ini_file_exists = False
+
+        if type(args[0]) == type(""):
+            dir_name = os.path.dirname(os.path.abspath(args[0]))
+            pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
+            orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
+            pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
+            orion2_ini_file_exists = os.path.isfile(orion2_ini_filename)
+        
+        if orion2_ini_file_exists:
+            return True
+
+        if pluto_ini_file_exists:
+            return True
+
+        if not (pluto_ini_file_exists and orion2_ini_file_exists):
+            try:
+                fileh = h5py.File(args[0],'r')
+                valid = "Chombo_global" in fileh["/"]
+                valid = 'CeilVA_mass' in fileh.attrs.keys()
+                fileh.close()
+                return valid
+            except:
+                pass
+        return False
+
+
 
 class Orion2Hierarchy(ChomboHierarchy):
 

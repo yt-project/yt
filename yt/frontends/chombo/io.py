@@ -179,6 +179,16 @@ class IOHandlerChombo1DHDF5(IOHandlerChomboHDF5):
         self.ds = ds
         self._handle = ds._handle   
 
+class IOHandlerPlutoHDF5(IOHandlerChomboHDF5):
+    _dataset_type = "pluto_chombo_native"
+    _offset_string = 'data:offsets=0'
+    _data_string = 'data:datatype=0'
+
+    def __init__(self, ds, *args, **kwargs):
+        BaseIOHandler.__init__(self, ds, *args, **kwargs)
+        self.ds = ds
+        self._handle = ds._handle
+
 class IOHandlerOrion2HDF5(IOHandlerChomboHDF5):
     _dataset_type = "orion_chombo_native"
 
