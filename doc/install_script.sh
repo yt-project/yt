@@ -500,13 +500,28 @@ function do_setup_py
     fi
     [ ! -e $LIB/extracted ] && tar xfz $LIB.tar.gz
     touch $LIB/extracted
+    BUILD_ARGS=""
+    case $LIB in
+        *h5py*)
+            BUILD_ARGS="--hdf5=${HDF5_DIR}"
+            ;;
+        *numpy*)
+            if [ -e ${DEST_DIR}/lib/python2.7/site-packages/numpy/__init__.py ]
+            then
+                VER=$(${DEST_DIR}/bin/python -c 'from distutils.version import StrictVersion as SV; \
+                                                 import numpy; print SV(numpy.__version__) < SV("1.8.0")')
+                if [ $VER == "True" ]
+                then
+                    echo "Removing previous NumPy instance (see issue #889)"
+                    rm -rf ${DEST_DIR}/lib/python2.7/site-packages/{numpy*,*.pth}
+                fi
+            fi
+            ;;
+        *)
+            ;;
+    esac
     cd $LIB
-    if [ ! -z `echo $LIB | grep h5py` ]
-    then
-	( ${DEST_DIR}/bin/python2.7 setup.py build --hdf5=${HDF5_DIR} $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
-    else
-        ( ${DEST_DIR}/bin/python2.7 setup.py build   $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
-    fi
+    ( ${DEST_DIR}/bin/python2.7 setup.py build ${BUILD_ARGS} $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
     ( ${DEST_DIR}/bin/python2.7 setup.py install    2>&1 ) 1>> ${LOG_FILE} || do_exit
     touch done
     cd ..
@@ -726,7 +741,7 @@ then
         cd $FREETYPE_VER
         ( ./configure CFLAGS=-I${DEST_DIR}/include --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make 2>&1 ) 1>> ${LOG_FILE} || do_exit
-		( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+        ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
         ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
         touch done
         cd ..
@@ -1022,7 +1037,7 @@ function print_afterword
     echo
     echo "To get started with yt, check out the orientation:"
     echo
-    echo "    http://yt-project.org/doc/bootcamp/"
+    echo "    http://yt-project.org/doc/quickstart/"
     echo
     echo "The source for yt is located at:"
     echo "    $YT_DIR"

@@ -19,6 +19,8 @@ import numpy as np
 from yt.funcs import mylog
 from yt.fields.field_info_container import \
     FieldInfoContainer
+from yt.fields.field_detector import \
+    FieldDetector
 from yt.units.yt_array import \
     YTArray
 
@@ -62,7 +64,8 @@ class ARTIOFieldInfo(FieldInfoContainer):
         ("MASS", ("code_mass", ["particle_mass"], None)),
         ("PID", ("", ["particle_index"], None)),
         ("SPECIES", ("", ["particle_type"], None)),
-        ("BIRTH_TIME", ("code_time", ["creation_time"], None)),
+        ("BIRTH_TIME", ("", [], None)),  # code-units defined as dimensionless to 
+                                         # avoid incorrect conversion 
         ("INITIAL_MASS", ("code_mass", ["initial_mass"], None)),
         ("METALLICITY_SNIa", ("", ["metallicity_snia"], None)),
         ("METALLICITY_SNII", ("", ["metallicity_snii"], None)),
@@ -111,123 +114,35 @@ class ARTIOFieldInfo(FieldInfoContainer):
                        take_log=True)
 
     def setup_particle_fields(self, ptype):
+        if ptype == "STAR":
+            def _creation_time(field,data):
+                # this test is necessary to avoid passing invalid tcode values 
+                # to the function tphys_from_tcode during field detection
+                # (1.0 is not a valid tcode value)
+                if isinstance(data, FieldDetector):
+                    return data["STAR","BIRTH_TIME"]
+                return YTArray(data.ds._handle.tphys_from_tcode_array(data["STAR","BIRTH_TIME"]),"yr")
 
-        def _particle_age(field, data):
-            return b2t(data[ptype,"creation_time"])
-        self.add_field((ptype, "particle_age"), function=_particle_age, units="s",
-                  particle_type=True)
+            def _age(field, data):
+                if isinstance(data, FieldDetector):
+                    return data["STAR","creation_time"]
+                return data.ds.current_time - data["STAR","creation_time"]
+
+            self.add_field((ptype, "creation_time"), function=_creation_time, units="yr",
+                        particle_type=True)
+            self.add_field((ptype, "age"), function=_age, units="yr",
+                        particle_type=True)
+
+            if self.ds.cosmological_simulation:
+                def _creation_redshift(field,data):
+                    # this test is necessary to avoid passing invalid tcode values 
+                    # to the function auni_from_tcode during field detection
+                    # (1.0 is not a valid tcode value)
+                    if isinstance(data, FieldDetector):
+                        return data["STAR","BIRTH_TIME"]
+                    return 1.0/data.ds._handle.auni_from_tcode_array(data["STAR","BIRTH_TIME"]) - 1.0
+
+                self.add_field((ptype, "creation_redshift"), function=_creation_redshift,
+                        particle_type=True)
 
         super(ARTIOFieldInfo, self).setup_particle_fields(ptype)
-
-#stolen from frontends/art/
-#All of these functions are to convert from hydro time var to
-#proper time
-sqrt = np.sqrt
-sign = np.sign
-
-
-def find_root(f, a, b, tol=1e-6):
-    c = (a+b)/2.0
-    last = -np.inf
-    assert(sign(f(a)) != sign(f(b)))
-    while np.abs(f(c)-last) > tol:
-        last = f(c)
-        if sign(last) == sign(f(b)):
-            b = c
-        else:
-            a = c
-        c = (a+b)/2.0
-    return c
-
-
-def quad(fintegrand, xmin, xmax, n=1e4):
-    spacings = np.logspace(np.log10(xmin), np.log10(xmax), n)
-    integrand_arr = fintegrand(spacings)
-    val = np.trapz(integrand_arr, dx=np.diff(spacings))
-    return val
-
-
-def a2b(at, Om0=0.27, Oml0=0.73, h=0.700):
-    def f_a2b(x):
-        val = 0.5*sqrt(Om0) / x**3.0
-        val /= sqrt(Om0/x**3.0 + Oml0 + (1.0-Om0-Oml0)/x**2.0)
-        return val
-    #val, err = si.quad(f_a2b,1,at)
-    val = quad(f_a2b, 1, at)
-    return val
-
-
-def b2a(bt, **kwargs):
-    #converts code time into expansion factor
-    #if Om0 ==1and OmL == 0 then b2a is (1 / (1-td))**2
-    #if bt < -190.0 or bt > -.10:  raise 'bt outside of range'
-    f_b2a = lambda at: a2b(at, **kwargs)-bt
-    return find_root(f_b2a, 1e-4, 1.1)
-    #return so.brenth(f_b2a,1e-4,1.1)
-    #return brent.brent(f_b2a)
-
-
-def a2t(at, Om0=0.27, Oml0=0.73, h=0.700):
-    integrand = lambda x: 1./(x*sqrt(Oml0+Om0*x**-3.0))
-    #current_time,err = si.quad(integrand,0.0,at,epsabs=1e-6,epsrel=1e-6)
-    current_time = quad(integrand, 1e-4, at)
-    #spacings = np.logspace(-5,np.log10(at),1e5)
-    #integrand_arr = integrand(spacings)
-    #current_time = np.trapz(integrand_arr,dx=np.diff(spacings))
-    current_time *= 9.779/h
-    return current_time
-
-
-def b2t(tb, n=1e2, logger=None, **kwargs):
-    tb = np.array(tb)
-    if len(np.atleast_1d(tb)) == 1: 
-        return a2t(b2a(tb))
-    if tb.shape == ():
-        return None 
-    if len(tb) < n:
-        n = len(tb)
-    age_min = a2t(b2a(tb.max(), **kwargs), **kwargs)
-    age_max = a2t(b2a(tb.min(), **kwargs), **kwargs)
-    tbs = -1.*np.logspace(np.log10(-tb.min()),
-                          np.log10(-tb.max()), n)
-    ages = []
-    for i, tbi in enumerate(tbs):
-        ages += a2t(b2a(tbi)),
-        if logger:
-            logger(i)
-    ages = np.array(ages)
-    fb2t = np.interp(tb, tbs, ages)
-    #fb2t = interp1d(tbs,ages)
-    return fb2t*1e9*31556926
-
-
-def spread_ages(ages, logger=None, spread=.0e7*365*24*3600):
-    #stars are formed in lumps; spread out the ages linearly
-    da = np.diff(ages)
-    assert np.all(da <= 0)
-    #ages should always be decreasing, and ordered so
-    agesd = np.zeros(ages.shape)
-    idx, = np.where(da < 0)
-    idx += 1
-    #mark the right edges
-    #spread this age evenly out to the next age
-    lidx = 0
-    lage = 0
-    for i in idx:
-        n = i-lidx
-        #n stars affected
-        rage = ages[i]
-        lage = max(rage-spread, 0.0)
-        agesd[lidx:i] = np.linspace(lage, rage, n)
-        lidx = i
-        #lage=rage
-        if logger:
-            logger(i)
-    #we didn't get the last iter
-    i = ages.shape[0]-1
-    n = i-lidx
-    #n stars affected
-    rage = ages[i]
-    lage = max(rage-spread, 0.0)
-    agesd[lidx:i] = np.linspace(lage, rage, n)
-    return agesd
