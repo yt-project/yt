@@ -681,7 +681,6 @@ class PhotonList(object):
         phYY = events["ypix"][eidxs]
 
         detectedChannels = []
-        pindex = 0
 
         # run through all photon energies and find which bin they go in
         k = 0
