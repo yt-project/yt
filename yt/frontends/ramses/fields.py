@@ -133,4 +133,3 @@ class RAMSESFieldInfo(FieldInfoContainer):
                         (avals["lognH"], avals["logT"]),
                         ["lognH", "logT"], truncate = True)
             _create_field(("gas", n), interp)
-            self._show_field_errors.append(n)
