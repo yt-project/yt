@@ -832,7 +832,6 @@ def integrate_inf(fcn, error=1e-3, initial_guess=10):
     area1 = np.sum(areas)
     # Now we refine until the error is smaller than *error*.
     diff = area1 - area0
-    area_final = area1
     area_last = area1
     one_pow = 3
     while diff > error:
