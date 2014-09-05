@@ -11,9 +11,6 @@ _fields_to_compare = ("spherical_r", "cylindrical_r",
                       "spherical_phi", "cylindrical_z")
 
 def test_domain_sphere():
-    ds = fake_random_ds(16, fields = ("density"))
-    sp = ds.sphere(ds.domain_center, ds.domain_width[0])
-
     # Now we test that we can get different radial velocities based on field
     # parameters.
 
