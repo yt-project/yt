@@ -328,7 +328,7 @@ class LightCone(CosmologySplice):
                                                         output["redshift"])
                 proper_box_size = self.simulation.box_size / \
                   (1.0 + output["redshift"])
-                pixel_xarea = (proper_box_size.in_cgs() / pixels)**2 #in proper cm^2
+                pixel_area = (proper_box_size.in_cgs() / pixels)**2 #in proper cm^2
                 factor = pixel_area / (4.0 * np.pi * dL.in_cgs()**2)
                 mylog.info("Distance to slice = %s" % dL)
                 frb[field] *= factor #in erg/s/cm^2/Hz on observer"s image plane.
