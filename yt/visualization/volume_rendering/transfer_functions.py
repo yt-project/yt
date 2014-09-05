@@ -550,7 +550,6 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             label = ''
         alpha = self.alpha.y 
         max_alpha = alpha.max()
-        norm = max_alpha
         i_data = np.zeros((self.alpha.x.size, self.funcs[0].y.size, 3))
         i_data[:,:,0] = np.outer(self.funcs[0].y, np.ones(self.alpha.x.size))
         i_data[:,:,1] = np.outer(self.funcs[1].y, np.ones(self.alpha.x.size))
