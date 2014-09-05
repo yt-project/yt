@@ -346,6 +346,15 @@ def standard_particle_fields(registry, ptype,
              units="g*cm**2/s", particle_type=True,
              validators=[ValidateParameter('center')])
 
+    def _particle_angular_momentum(field, data):
+        return data[ptype, "particle_mass"] \
+            * data[ptype, "particle_specific_angular_momentum"]
+    registry.add_field((ptype, "particle_angular_momentum"),
+              function=_particle_angular_momentum,
+              particle_type=True,
+              units="g*cm**2/s",
+              validators=[ValidateParameter("center")])
+
     create_magnitude_field(registry, "particle_angular_momentum",
                            "g*cm**2/s", ftype=ptype, particle_type=True)
     
