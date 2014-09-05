@@ -94,8 +94,9 @@ class RAMSESFieldInfo(FieldInfoContainer):
             return rv
         self.add_field(("gas", "temperature"), function=_temperature,
                         units="K")
+        self.create_cooling_fields()
 
-    def create_cooling_fields(self, filename):
+    def create_cooling_fields(self):
         num = os.path.basename(self.ds.parameter_filename).split("."
                 )[0].split("_")[1]
         filename = "%s/cooling_%05i.out" % (
@@ -104,7 +105,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         if not os.path.exists(filename): return
         def _create_field(name, interp_object):
             def _func(field, data):
-                shape = data["Temperature"].shape
+                shape = data["temperature"].shape
                 d = {'lognH': np.log10(_X*data["density"]/mh).ravel(),
                      'logT' : np.log10(data["temperature"]).ravel()}
                 rv = 10**interp_object(d).reshape(shape)
@@ -131,4 +132,5 @@ class RAMSESFieldInfo(FieldInfoContainer):
             interp = BilinearFieldInterpolator(tvals[n],
                         (avals["lognH"], avals["logT"]),
                         ["lognH", "logT"], truncate = True)
-            _create_field(n, interp)
+            _create_field(("gas", n), interp)
+            self._show_field_errors.append(n)
