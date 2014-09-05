@@ -629,7 +629,7 @@ def periodicity_cases(ds):
     # getting different places to check periodicity.
     yield (ds.domain_left_edge + ds.domain_right_edge)/2.0
     dx = ds.domain_width / ds.domain_dimensions
-    # We'll do 2 dx
+    # We start one dx in, and only go to one in as well.
     for i in (1, ds.domain_dimensions[0] - 2):
         for j in (1, ds.domain_dimensions[1] - 2):
             for k in (1, ds.domain_dimensions[2] - 2):

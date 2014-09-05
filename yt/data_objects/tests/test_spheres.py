@@ -56,7 +56,6 @@ def test_domain_sphere():
                                rp1["radial_velocity"][rp1.used]), \
                                False
 
-    ones, sp_r, cyl_r = [], [], []
     ref_sp = ds.sphere("c", 0.25)
     for f in _fields_to_compare:
         ref_sp[f].sort()
