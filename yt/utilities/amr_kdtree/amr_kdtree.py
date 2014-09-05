@@ -91,7 +91,6 @@ class Tree(object):
             grid = self.ds.index.grids[node.grid - self._id_offset]
             dds = grid.dds
             gle = grid.LeftEdge
-            gre = grid.RightEdge
             nle = self.ds.arr(get_left_edge(node), input_units="code_length")
             nre = self.ds.arr(get_right_edge(node), input_units="code_length")
             li = np.rint((nle-gle)/dds).astype('int32')
