@@ -785,7 +785,6 @@ class PointAnnotateCallback(PlotCallback):
                         plot.data.ds.coordinates.y_axis[ax])
             pos = self.pos[xi], self.pos[yi]
         else: pos = self.pos
-        width,height = plot.image._A.shape
         x,y = self.convert_to_plot(plot, pos)
         
         plot._axes.text(x, y, self.text, **self.text_args)
