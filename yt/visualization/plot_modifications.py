@@ -558,7 +558,6 @@ class LabelCallback(PlotCallback):
         plot._axes.set_ylabel(self.label)
 
 def get_smallest_appropriate_unit(v, ds):
-    max_nu = 1e30
     good_u = None
     for unit in ['Mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
         uq = YTQuantity(1.0, unit)
