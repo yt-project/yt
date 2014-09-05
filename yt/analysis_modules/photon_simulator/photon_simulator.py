@@ -666,7 +666,6 @@ class PhotonList(object):
         tblhdu = hdulist["MATRIX"]
         n_de = len(tblhdu.data["ENERG_LO"])
         mylog.info("Number of energy bins in RMF: %d" % (n_de))
-        de = tblhdu.data["ENERG_HI"] - tblhdu.data["ENERG_LO"]
         mylog.info("Energy limits: %g %g" % (min(tblhdu.data["ENERG_LO"]),
                                              max(tblhdu.data["ENERG_HI"])))
 
