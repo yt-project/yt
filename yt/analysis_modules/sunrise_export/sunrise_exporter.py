@@ -128,7 +128,6 @@ def export_to_sunrise_from_halolist(ds,fni,star_particle_type,
     if fni.endswith('.fits'):
         fni = fni.replace('.fits','')
 
-    ndomains_finished = 0
     for (num_halos, domain, halos) in domains_list:
         dle,dre = domain
         print 'exporting: '
@@ -154,7 +153,6 @@ def export_to_sunrise_from_halolist(ds,fni,star_particle_type,
             fh.write("%6.6e \n"%(halo.Rvir*ds['kpc']))
         fh.close()
         export_to_sunrise(ds, fnf, star_particle_type, dle*1.0/dn, dre*1.0/dn)
-        ndomains_finished +=1
 
 def domains_from_halos(ds,halo_list,frvir=0.15):
     domains = {}
