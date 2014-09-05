@@ -128,7 +128,6 @@ class ThermalPhotonModel(PhotonModel):
         energy = self.spectral_model.ebins
     
         cell_em = EM[idxs]*vol_scale
-        cell_vol = vol[idxs]*vol_scale
     
         number_of_photons = np.zeros(dshape, dtype='uint64')
         energies = []
@@ -139,7 +138,6 @@ class ThermalPhotonModel(PhotonModel):
 
         for i, ikT in enumerate(kT_idxs):
 
-            ncells = int(bcounts[i])
             ibegin = bcell[i]
             iend = ecell[i]
             kT = kT_bins[ikT] + 0.5*dkT
