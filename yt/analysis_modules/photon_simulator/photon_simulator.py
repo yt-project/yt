@@ -490,7 +490,6 @@ class PhotonList(object):
         z_hat = orient.unit_vectors[2]
 
         n_ph = self.photons["NumberOfPhotons"]
-        num_cells = len(n_ph)
         n_ph_tot = n_ph.sum()
         
         eff_area = None
