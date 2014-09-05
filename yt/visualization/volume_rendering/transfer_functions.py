@@ -403,7 +403,6 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> tf = ColorTransferFunction( (-10.0, -5.0) )
         >>> tf.add_gaussian(-9.0, 0.01, [1.0, 0.0, 0.0, 1.0])
         """
-        alpha = height[3]
         for tf, v in zip(self.funcs, height):
             tf.add_gaussian(location, width, v)
 
