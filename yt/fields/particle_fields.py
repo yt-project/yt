@@ -322,10 +322,6 @@ def standard_particle_fields(registry, ptype,
     create_magnitude_field(registry, "particle_specific_angular_momentum",
                            "cm**2/s", ftype=ptype, particle_type=True)
     
-    def _particle_angular_momentum(field, data):
-        return data[ptype, "particle_mass"] \
-             * data[ptype, "particle_specific_angular_momentum"]
-
     def _particle_angular_momentum_x(field, data):
         return data[ptype, "particle_mass"] * \
                data[ptype, "particle_specific_angular_momentum_x"]
