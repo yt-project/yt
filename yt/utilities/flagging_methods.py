@@ -147,7 +147,6 @@ class ProtoSubgrid(object):
         for dim in range(3):
             sig = self.sigs[dim]
             sd = sig[:-2] - 2.0*sig[1:-1] + sig[2:]
-            grid_ends = np.zeros((sig.size, 2))
             ng = 0
             center = int((self.flagged.shape[dim] - 1) / 2)
             strength = zero_strength = 0
