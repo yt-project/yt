@@ -90,7 +90,7 @@ class RegressionTestRunner(object):
 
     def run_all_tests(self):
         plot_list = []
-        for i,name in enumerate(sorted(test_registry)):
+        for name in sorted(test_registry):
             self.run_test(name)
         return self.passed_tests
 
