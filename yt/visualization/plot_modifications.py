@@ -707,10 +707,6 @@ class ClumpContourCallback(PlotCallback):
         dxf = "d%s" % xf
         dyf = "d%s" % yf
 
-        DomainRight = plot.data.ds.domain_right_edge
-        DomainLeft = plot.data.ds.domain_left_edge
-        DomainWidth = DomainRight - DomainLeft
-
         nx, ny = plot.image._A.shape
         buff = np.zeros((nx,ny),dtype='float64')
         for i,clump in enumerate(reversed(self.clumps)):
