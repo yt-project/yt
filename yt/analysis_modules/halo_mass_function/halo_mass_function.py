@@ -788,7 +788,7 @@ class TransferFunction(object):
     
         # Now compute the CDM+HDM+baryon transfer functions
         tf_cb = self.tf_master*self.growth_cb/self.growth_k0;
-        tf_cbnu = self.tf_master*self.growth_cbnu/self.growth_k0;
+        #tf_cbnu = self.tf_master*self.growth_cbnu/self.growth_k0;
         return tf_cb
 
 
