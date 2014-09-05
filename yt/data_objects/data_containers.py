@@ -418,7 +418,6 @@ class YTDataContainer(object):
         otherwise Glue will be started.
         """
         from glue.core import DataCollection, Data
-        from glue.core.coordinates import coordinates_from_header
         from glue.qt.glue_application import GlueApplication
         
         gdata = Data(label=label)
