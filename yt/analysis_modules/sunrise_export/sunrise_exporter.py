@@ -170,8 +170,6 @@ def domains_from_halos(ds,halo_list,frvir=0.15):
     domains_list = [(len(v),k,v) for k,v in domains.iteritems()]
     domains_list.sort() 
     domains_list.reverse() #we want the most populated domains first
-    domains_limits = [d[1] for d in domains_list]
-    domains_halos  = [d[2] for d in domains_list]
     return domains_list
 
 def prepare_octree(ds,ile,start_level=0,debug=True,dd=None,center=None):
