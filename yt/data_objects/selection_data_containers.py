@@ -576,7 +576,7 @@ class YTRegionBase(YTSelectionContainer3D):
     _con_args = ('center', 'left_edge', 'right_edge')
     def __init__(self, center, left_edge, right_edge, fields = None,
                  ds = None, **kwargs):
-        YTSelectionContainer3D.__init__(self, center, fields, ds, **kwargs)
+        YTSelectionContainer3D.__init__(self, center, ds, **kwargs)
         if not isinstance(left_edge, YTArray):
             self.left_edge = self.ds.arr(left_edge, 'code_length')
         else:

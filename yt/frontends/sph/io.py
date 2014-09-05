@@ -116,6 +116,9 @@ class IOHandlerOWLS(BaseIOHandler):
                     elif field.startswith("Metallicity_"):
                         col = int(field.rsplit("_", 1)[-1])
                         data = g["Metallicity"][:,col][mask]
+                    elif field.startswith("Chemistry_"):
+                        col = int(field.rsplit("_", 1)[-1])
+                        data = g["ChemistryAbundances"][:,col][mask]
                     else:
                         data = g[field][:][mask,...]
 
@@ -192,6 +195,9 @@ class IOHandlerOWLS(BaseIOHandler):
                     # Vector of metallicity
                     for i in range(g[k].shape[1]):
                         fields.append((ptype, "Metallicity_%02i" % i))
+                elif k == "ChemistryAbundances" and len(g[k].shape)>1:
+                    for i in range(g[k].shape[1]):
+                        fields.append((ptype, "Chemistry_%03i" % i))
                 else:
                     kk = k
                     if not hasattr(g[kk], "shape"): continue
@@ -200,6 +206,9 @@ class IOHandlerOWLS(BaseIOHandler):
 
         f.close()
         return fields, {}
+
+class IOHandlerEagleNetwork(IOHandlerOWLS):
+    _dataset_type = "eagle_network"
 
 class IOHandlerGadgetHDF5(IOHandlerOWLS):
     _dataset_type = "gadget_hdf5"

@@ -154,7 +154,9 @@ class TransferFunctionHelper(object):
             xmi, xma = np.log10(self.bounds[0]), np.log10(self.bounds[1])
         else:
             xfunc = np.linspace
-            xmi, xma = self.bounds
+            # Need to strip units off of the bounds to avoid a recursion error
+            # in matplotlib 1.3.1
+            xmi, xma = [np.float64(b) for b in self.bounds]
 
         x = xfunc(xmi, xma, tf.nbins)
         y = tf.funcs[3].y
@@ -166,7 +168,7 @@ class TransferFunctionHelper(object):
         canvas = FigureCanvasAgg(fig)
         ax = fig.add_axes([0.2, 0.2, 0.75, 0.75])
         ax.bar(x, tf.funcs[3].y, w, edgecolor=[0.0, 0.0, 0.0, 0.0],
-               log=True, color=colors, bottom=[0])
+               log=self.log, color=colors, bottom=[0])
 
         if profile_field is not None:
             try:
@@ -177,10 +179,12 @@ class TransferFunctionHelper(object):
             if profile_field not in prof.keys():
                 prof.add_fields([profile_field], fractional=False,
                                 weight=profile_weight)
-            ax.plot(prof[self.field], prof[profile_field]*tf.funcs[3].y.max() /
-                    prof[profile_field].max(), color='w', linewidth=3)
-            ax.plot(prof[self.field], prof[profile_field]*tf.funcs[3].y.max() /
-                    prof[profile_field].max(), color='k')
+            # Strip units, if any, for matplotlib 1.3.1
+            xplot = np.array(prof[self.field])
+            yplot = np.array(prof[profile_field]*tf.funcs[3].y.max() /
+                             prof[profile_field].max())
+            ax.plot(xplot, yplot, color='w', linewidth=3)
+            ax.plot(xplot, yplot, color='k')
 
         ax.set_xscale({True: 'log', False: 'linear'}[self.log])
         ax.set_xlim(x.min(), x.max())
@@ -200,7 +204,7 @@ class TransferFunctionHelper(object):
 
     def setup_profile(self, profile_field=None, profile_weight=None):
         if profile_field is None:
-            profile_field = 'CellVolume'
+            profile_field = 'cell_volume'
         prof = BinnedProfile1D(self.ds.all_data(), 128, self.field,
                                self.bounds[0], self.bounds[1],
                                log_space=self.log,
