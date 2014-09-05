@@ -28,9 +28,9 @@ def setup_halo_analysis_fields(registry, ftype = "gas", slice_info = None):
     if slice_info is None:
         sl_left = slice(None, -2, None)
         sl_right = slice(2, None, None)
-        div_face = 2.0
+        div_fac = 2.0
     else:
-        sl_left, sl_right, div_face = slice_info
+        sl_left, sl_right, div_fac = slice_info
 
     def _virial_radius(field, data):
         virial_radius = data.get_field_parameter("virial_radius")
