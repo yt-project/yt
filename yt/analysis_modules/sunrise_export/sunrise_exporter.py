@@ -241,10 +241,6 @@ def prepare_octree(ds,ile,start_level=0,debug=True,dd=None,center=None):
     hs       = hilbert_state()
     start_time = time.time()
     if debug:
-        if center is not None: 
-            c = center*ds['kpc']
-        else:
-            c = ile*1.0/ds.domain_dimensions*ds['kpc']
         printing = lambda x: print_oct(x)
     else:
         printing = None
