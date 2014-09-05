@@ -324,7 +324,7 @@ def RecurseOctreeDepthFirstHilbert(cell_index, #integer (rep as a float) on the 
         #then translate onto the subgrid integer index 
         parent_fle  = grid.left_edges + cell_index*grid.dx
         subgrid_ile = np.floor((parent_fle - subgrid.left_edges)/subgrid.dx)
-        for i, (vertex,hilbert_child) in enumerate(hilbert):
+        for (vertex, hilbert_child) in hilbert:
             #vertex is a combination of three 0s and 1s to 
             #denote each of the 8 octs
             if level < 0:
