@@ -257,7 +257,6 @@ def map_to_colors(buff, cmap_name):
             raise KeyError(cmap_name)
 
     x = np.mgrid[0.0:1.0:lut[0].shape[0]*1j]
-    shape = buff.shape
     mapped = np.dstack(
             [(np.interp(buff, x, v)*255) for v in lut ]).astype("uint8")
     return mapped.copy("C")
