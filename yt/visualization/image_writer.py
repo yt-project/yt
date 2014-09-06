@@ -254,9 +254,12 @@ def map_to_colors(buff, cmap_name):
         lut = cmd.color_map_luts[cmap_name]
     except KeyError:
         try:
-            if isinstance(cmap_name, tuple) and has_brewer:
-                bmap = brewer2mpl.get_map(*cmap_name)
-                cmap = bmap.get_mpl_colormap(N=cmap_name[2])
+            if isinstance(cmap_name, tuple):
+                if has_brewer:
+                    bmap = brewer2mpl.get_map(*cmap_name)
+                    cmap = bmap.get_mpl_colormap(N=cmap_name[2])
+                else:
+                    raise RuntimeError("Please install brewer2mpl to use colorbrewer colormaps")
             else:
                 cmap = mcm.get_cmap(cmap_name)
             dummy = cmap(0.0)

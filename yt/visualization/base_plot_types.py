@@ -116,9 +116,12 @@ class ImagePlotMPL(PlotMPL):
         elif (cbnorm == 'linear'):
             norm = matplotlib.colors.Normalize()
         extent = [float(e) for e in extent]
-        if isinstance(cmap, tuple) and has_brewer:
-            bmap = brewer2mpl.get_map(*cmap)
-            cmap = bmap.get_mpl_colormap(N=cmap[2])
+        if isinstance(cmap, tuple):
+            if has_brewer:
+                bmap = brewer2mpl.get_map(*cmap)
+                cmap = bmap.get_mpl_colormap(N=cmap[2])
+            else:
+                raise RuntimeError("Please install brewer2mpl to use colorbrewer colormaps")
 
         self.image = self.axes.imshow(data.to_ndarray(), origin='lower',
                                       extent=extent, norm=norm, vmin=self.zmin,
