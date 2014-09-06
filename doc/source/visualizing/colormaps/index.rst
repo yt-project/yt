@@ -11,7 +11,7 @@ If you have installed `brewer2mpl`
 (`pip install brewer2mpl` or see `https://github.com/jiffyclub/brewer2mpl`_),
 you can also access the discrete colormaps available on
 `http://colorbrewer2.org`_. Instead of supplying the colormap name, specify
-a tuple formed of (name, type, number), for example `('RdBu', 'Diverging', 9)`.
+a tuple of the form (name, type, number), for example `('RdBu', 'Diverging', 9)`.
 These discrete colormaps will not be interpolated, and can be useful for
 creating colorblind/printer/grayscale-friendly plots. For more information,
 visit `http://colorbrewer2.org`_.
