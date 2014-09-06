@@ -19,6 +19,12 @@ from ._mpl_imports import \
 from yt.funcs import \
     get_image_suffix, mylog, iterable
 import numpy as np
+try:
+    import brewer2mpl
+    has_brewer = True
+except:
+    has_brewer = False
+
 
 class CallbackWrapper(object):
     def __init__(self, viewer, window_plot, frb, field):
@@ -110,6 +116,10 @@ class ImagePlotMPL(PlotMPL):
         elif (cbnorm == 'linear'):
             norm = matplotlib.colors.Normalize()
         extent = [float(e) for e in extent]
+        if isinstance(cmap, tuple) and has_brewer:
+            bmap = brewer2mpl.get_map(*cmap)
+            cmap = bmap.get_mpl_colormap(N=cmap[2])
+
         self.image = self.axes.imshow(data.to_ndarray(), origin='lower',
                                       extent=extent, norm=norm, vmin=self.zmin,
                                       aspect=aspect, vmax=self.zmax, cmap=cmap)
