@@ -207,8 +207,11 @@ class ImagePlotContainer(object):
         field : string
             the field to set the colormap
             if field == 'all', applies to all plots.
-        cmap_name : string
-            name of the colormap
+        cmap_name : string or tuple
+            If a string, will be interpreted as name of the colormap.
+            If a tuple, it is assumed to be of the form (name, type, number)
+            to be used for brewer2mpl functionality. (name, type, number, bool)
+            can be used to specify if a reverse colormap is to be used.
 
         """
 
