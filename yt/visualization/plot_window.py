@@ -84,6 +84,7 @@ def get_window_parameters(axis, center, width, ds):
         # Set our default width to be the full domain
         width = [ds.domain_right_edge[0]*2.0, ds.domain_right_edge[0]*2.0]
         center = ds.arr([0.0, 0.0, 0.0], "code_length")
+        display_center = center.copy()
     elif ds.geometry == "geographic":
         c_r = ((ds.domain_right_edge + ds.domain_left_edge)/2.0)[2]
         center = ds.arr([0.0, 0.0, c_r], "code_length")
