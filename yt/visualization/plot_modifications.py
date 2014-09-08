@@ -907,8 +907,8 @@ class TextLabelCallback(PlotCallback):
 class HaloCatalogCallback(PlotCallback):
     """
     annotate_halos(halo_catalog, circle_kwargs=None,
-        width = None, annotate_field=False,
-        font_kwargs = None, factor = 1.0)
+        width = None, annotate_field = False,
+        font_kwargs=None, factor = 1.0)
 
     Plots circles at the locations of all the halos
     in a halo catalog with radii corresponding to the
@@ -935,14 +935,16 @@ class HaloCatalogCallback(PlotCallback):
     region = None
     _descriptor = None
 
-    def __init__(self, halo_catalog, circle_kwargs = None, 
+    def __init__(self, halo_catalog, circle_kwargs=None, 
             width = None, annotate_field = False,
-            font_kwargs = None, factor = 1.0):
+            font_kwargs=None, factor = 1.0):
 
         PlotCallback.__init__(self)
         self.halo_catalog = halo_catalog
         self.width = width
         self.annotate_field = annotate_field
+        if font_kwargs is None:
+            font_kwargs = {'color':'white'}
         self.font_kwargs = font_kwargs
         self.factor = factor
         if circle_kwargs is None:
@@ -1005,7 +1007,7 @@ class HaloCatalogCallback(PlotCallback):
 
         if self.annotate_field:
             annotate_dat = halo_data[self.annotate_field]
-            texts = ['{0}'.format(dat) for dat in annotate_dat]
+            texts = ['{:g}'.format(float(dat))for dat in annotate_dat]
             for pos_x, pos_y, t in zip(px, py, texts): 
                 plot._axes.text(pos_x, pos_y, t, **self.font_kwargs)
  
