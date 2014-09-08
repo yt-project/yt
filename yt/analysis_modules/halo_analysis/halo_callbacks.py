@@ -18,7 +18,7 @@ import numpy as np
 import os
 
 from yt.data_objects.profiles import \
-     Profile1D
+     create_profile
 from yt.units.yt_array import \
      YTArray, YTQuantity
 from yt.utilities.exceptions import \
@@ -148,11 +148,11 @@ def sphere_bulk_velocity(halo):
 
 add_callback("sphere_bulk_velocity", sphere_bulk_velocity)
 
-def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
-            weight_field="cell_mass", accumulation=False, storage="profiles",
-            output_dir="."):
+def profile(halo, bin_fields, profile_fields, n_bins=32, extrema=None, logs=None,
+            weight_field="cell_mass", accumulation=False, fractional=False,
+            storage="profiles", output_dir="."):
     r"""
-    Create 1d profiles.
+    Create 1, 2, or 3D profiles of a halo.
 
     Store profile data in a dictionary associated with the halo object.
 
@@ -160,26 +160,37 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
     ----------
     halo : Halo object
         The Halo object to be provided by the HaloCatalog.
-    x_field : string
-        The binning field for the profile.
-    y_fields : string or list of strings
+    bin_fields : list of strings
+        The binning fields for the profile.
+    profile_fields : string or list of strings
         The fields to be propython
         filed.
-    x_bins : int
-        The number of bins in the profile.
-        Default: 32
-    x_range : (float, float)
-        The range of the x_field.  If None, the extrema are used.
-        Default: None
-    x_log : bool
-        Flag for logarithmmic binning.
-        Default: True
+    n_bins : int or list of ints
+        The number of bins in each dimension.  If None, 32 bins for
+        each bin are used for each bin field.
+        Default: 32.
+    extrema : dict of min, max tuples
+        Minimum and maximum values of the bin_fields for the profiles.
+        The keys correspond to the field names. Defaults to the extrema
+        of the bin_fields of the dataset. If a units dict is provided, extrema
+        are understood to be in the units specified in the dictionary.
+    logs : dict of boolean values
+        Whether or not to log the bin_fields for the profiles.
+        The keys correspond to the field names. Defaults to the take_log
+        attribute of the field.
     weight_field : string
         Weight field for profiling.
         Default : "cell_mass"
-    accumulation : bool
-        If True, profile data is a cumulative sum.
-        Default : False
+    accumulation : bool or list of bools
+        If True, the profile values for a bin n are the cumulative sum of
+        all the values from bin 0 to n.  If -True, the sum is reversed so
+        that the value for bin n is the cumulative sum from bin N (total bins)
+        to n.  If the profile is 2D or 3D, a list of values can be given to
+        control the summation in each dimension independently.
+        Default: False.
+    fractional : If True the profile values are divided by the sum of all
+        the profile data such that the profile represents a probability
+        distribution function.
     storage : string
         Name of the dictionary to store profiles.
         Default: "profiles"
@@ -210,32 +221,18 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
         output_dir = storage
     output_dir = os.path.join(halo.halo_catalog.output_dir, output_dir)
     
-    if x_range is None:
-        x_range = list(halo.data_object.quantities.extrema(x_field, non_zero=True))
-
-    my_profile = Profile1D(halo.data_object, x_field, x_bins, 
-                           x_range[0], x_range[1], x_log, 
-                           weight_field=weight_field)
-    my_profile.add_fields(ensure_list(y_fields))
-
-    # accumulate, if necessary
-    if accumulation:
-        used = my_profile.used
-        for field in my_profile.field_data:
-            if weight_field is None:
-                my_profile.field_data[field][used] = \
-                    np.cumsum(my_profile.field_data[field][used])
-            else:
-                my_weight = my_profile.weight
-                my_profile.field_data[field][used] = \
-                  np.cumsum(my_profile.field_data[field][used] * my_weight[used]) / \
-                  np.cumsum(my_weight[used])
+    bin_fields = ensure_list(bin_fields)
+    my_profile = create_profile(halo.data_object, bin_fields, profile_fields, n_bins=n_bins,
+                                extrema=extrema, logs=logs, weight_field=weight_field,
+                                accumulation=accumulation, fractional=fractional)
                   
-    # create storage dictionary
     prof_store = dict([(field, my_profile[field]) \
                        for field in my_profile.field_data])
     prof_store[my_profile.x_field] = my_profile.x
-
+    if len(bin_fields) > 1:
+        prof_store[my_profile.y_field] = my_profile.y
+    if len(bin_fields) > 2:
+        prof_store[my_profile.z_field] = my_profile.z
     if hasattr(halo, storage):
         halo_store = getattr(halo, storage)
         if "used" in halo_store:
@@ -244,6 +241,17 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
         halo_store = {"used": my_profile.used}
         setattr(halo, storage, halo_store)
     halo_store.update(prof_store)
+
+    if hasattr(my_profile, "variance"):
+        variance_store = dict([(field, my_profile.variance[field]) \
+                           for field in my_profile.variance])
+        variance_storage = "%s_variance" % storage
+        if hasattr(halo, variance_storage):
+            halo_variance_store = getattr(halo, variance_storage)
+        else:
+            halo_variance_store = {}
+            setattr(halo, variance_storage, halo_variance_store)
+        halo_variance_store.update(variance_store)
 
 add_callback("profile", profile)
 
@@ -289,11 +297,16 @@ def save_profiles(halo, storage="profiles", filename=None,
         # Don't write code units because we might not know those later.
         if isinstance(my_profile[field], YTArray):
             my_profile[field].convert_to_cgs()
-        dataset = out_file.create_dataset(str(field), data=my_profile[field])
-        units = ""
-        if isinstance(my_profile[field], YTArray):
-            units = str(my_profile[field].units)
-        dataset.attrs["units"] = units
+        _yt_array_hdf5(out_file, str(field), my_profile[field])
+    variance_storage = "%s_variance" % storage
+    if hasattr(halo, variance_storage):
+        my_profile = getattr(halo, variance_storage)
+        variance_group = out_file.create_group("variance")
+        for field in my_profile:
+            # Don't write code units because we might not know those later.
+            if isinstance(my_profile[field], YTArray):
+                my_profile[field].convert_to_cgs()
+            _yt_array_hdf5(variance_group, str(field), my_profile[field])
     out_file.close()
 
 add_callback("save_profiles", save_profiles)
@@ -493,3 +506,10 @@ def delete_attribute(halo, attribute):
         delattr(halo, attribute)
 
 add_callback("delete_attribute", delete_attribute)
+
+def _yt_array_hdf5(fh, fieldname, data):
+    dataset = fh.create_dataset(fieldname, data=data)
+    units = ""
+    if isinstance(data, YTArray):
+        units = str(data.units)
+    dataset.attrs["units"] = units
