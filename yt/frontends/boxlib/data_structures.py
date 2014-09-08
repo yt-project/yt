@@ -1,5 +1,5 @@
 """
-Data structures for Boxlib Codes
+Data structures for BoxLib Codes
 
 
 
