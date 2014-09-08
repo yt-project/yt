@@ -218,11 +218,6 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
                            weight_field=weight_field)
     my_profile.add_fields(ensure_list(y_fields))
 
-    # temporary fix since profiles do not have units at the moment
-    for field in my_profile.field_data:
-        my_profile.field_data[field] = dds.arr(my_profile[field],
-                                               dds.field_info[field].units)
-
     # accumulate, if necessary
     if accumulation:
         used = my_profile.used
