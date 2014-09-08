@@ -350,19 +350,32 @@ def load_profiles(halo, storage="profiles", fields=None,
                (halo.quantities["particle_identifier"], output_file))
 
     out_file = h5py.File(output_file, "r")
-    my_profile = {}
     if fields is None:
-        fields = out_file.keys()
-    for field in fields:
-        if field not in out_file:
+        profile_fields = out_file["profiles"].keys()
+    else:
+        profile_fields = fields
+    my_profile = {}
+    my_group = out_file["profiles"]
+    for field in profile_fields:
+        if field not in my_group:
             raise RuntimeError("%s field not present in %s." % (field, output_file))
-        units = ""
-        if "units" in out_file[field].attrs:
-            units = out_file[field].attrs["units"]
-        if units == "dimensionless": units = ""
-        my_profile[field] = halo.halo_catalog.halos_ds.arr(out_file[field].value, units)
-    out_file.close()
+        my_profile[field] = _hdf5_yt_array(my_group, field,
+                                           ds=halo.halo_catalog.halos_ds)
     setattr(halo, storage, my_profile)
+    
+    if "variance" in out_file:
+        my_variance = {}
+        my_group = out_file["variance"]
+        if fields is None:
+            profile_fields = my_group.keys()
+        for field in profile_fields:
+            if field not in my_group:
+                raise RuntimeError("%s field not present in %s." % (field, output_file))
+            my_variance[field] = _hdf5_yt_array(my_group, field,
+                                                ds=halo.halo_catalog.halos_ds)
+        setattr(halo, "%s_variance" % storage, my_variance)
+        
+    out_file.close()
 
 add_callback("load_profiles", load_profiles)
 
@@ -514,3 +527,14 @@ def _yt_array_hdf5(fh, fieldname, data):
     if isinstance(data, YTArray):
         units = str(data.units)
     dataset.attrs["units"] = units
+
+def _hdf5_yt_array(fh, fieldname, ds=None):
+    if ds is None:
+        new_arr = YTArray
+    else:
+        new_arr = ds.arr
+    units = ""
+    if "units" in fh[fieldname].attrs:
+        units = fh[fieldname].attrs["units"]
+    if units == "dimensionless": units = ""
+    return new_arr(fh[fieldname].value, units)
