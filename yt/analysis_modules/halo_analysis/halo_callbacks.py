@@ -293,11 +293,12 @@ def save_profiles(halo, storage="profiles", filename=None,
 
     out_file = h5py.File(output_file, "w")
     my_profile = getattr(halo, storage)
+    profile_group = out_file.create_group("profiles")
     for field in my_profile:
         # Don't write code units because we might not know those later.
         if isinstance(my_profile[field], YTArray):
             my_profile[field].convert_to_cgs()
-        _yt_array_hdf5(out_file, str(field), my_profile[field])
+        _yt_array_hdf5(profile_group, str(field), my_profile[field])
     variance_storage = "%s_variance" % storage
     if hasattr(halo, variance_storage):
         my_profile = getattr(halo, variance_storage)
