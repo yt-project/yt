@@ -291,9 +291,9 @@ def save_profiles(halo, storage="profiles", filename=None,
     mylog.info("Saving halo %d profile data to %s." %
                (halo.quantities["particle_identifier"], output_file))
 
-    out_file = h5py.File(output_file, "w")
+    fh = h5py.File(output_file, "w")
     my_profile = getattr(halo, storage)
-    profile_group = out_file.create_group("profiles")
+    profile_group = fh.create_group("profiles")
     for field in my_profile:
         # Don't write code units because we might not know those later.
         if isinstance(my_profile[field], YTArray):
@@ -302,13 +302,13 @@ def save_profiles(halo, storage="profiles", filename=None,
     variance_storage = "%s_variance" % storage
     if hasattr(halo, variance_storage):
         my_profile = getattr(halo, variance_storage)
-        variance_group = out_file.create_group("variance")
+        variance_group = fh.create_group("variance")
         for field in my_profile:
             # Don't write code units because we might not know those later.
             if isinstance(my_profile[field], YTArray):
                 my_profile[field].convert_to_cgs()
             _yt_array_hdf5(variance_group, str(field), my_profile[field])
-    out_file.close()
+    fh.close()
 
 add_callback("save_profiles", save_profiles)
 
@@ -349,13 +349,13 @@ def load_profiles(halo, storage="profiles", fields=None,
     mylog.info("Loading halo %d profile data from %s." %
                (halo.quantities["particle_identifier"], output_file))
 
-    out_file = h5py.File(output_file, "r")
+    fh = h5py.File(output_file, "r")
     if fields is None:
-        profile_fields = out_file["profiles"].keys()
+        profile_fields = fh["profiles"].keys()
     else:
         profile_fields = fields
     my_profile = {}
-    my_group = out_file["profiles"]
+    my_group = fh["profiles"]
     for field in profile_fields:
         if field not in my_group:
             raise RuntimeError("%s field not present in %s." % (field, output_file))
@@ -363,9 +363,9 @@ def load_profiles(halo, storage="profiles", fields=None,
                                            ds=halo.halo_catalog.halos_ds)
     setattr(halo, storage, my_profile)
     
-    if "variance" in out_file:
+    if "variance" in fh:
         my_variance = {}
-        my_group = out_file["variance"]
+        my_group = fh["variance"]
         if fields is None:
             profile_fields = my_group.keys()
         for field in profile_fields:
@@ -375,7 +375,7 @@ def load_profiles(halo, storage="profiles", fields=None,
                                                 ds=halo.halo_catalog.halos_ds)
         setattr(halo, "%s_variance" % storage, my_variance)
         
-    out_file.close()
+    fh.close()
 
 add_callback("load_profiles", load_profiles)
 
