@@ -769,7 +769,7 @@ class MaestroDataset(BoxlibDataset):
             return False
         # Now we check the job_info for the mention of maestro
         lines = open(jobinfo_filename).readlines()
-        if any("maestro" in line.lower() for line in lines): return True
+        if any(line.startswith("MAESTRO   ") for line in lines): return True
         return False
 
     def _parse_parameter_file(self):
