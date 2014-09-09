@@ -35,6 +35,7 @@ from yt.funcs import \
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 
+
 def invalidate_data(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
@@ -206,8 +207,11 @@ class ImagePlotContainer(object):
         field : string
             the field to set the colormap
             if field == 'all', applies to all plots.
-        cmap_name : string
-            name of the colormap
+        cmap_name : string or tuple
+            If a string, will be interpreted as name of the colormap.
+            If a tuple, it is assumed to be of the form (name, type, number)
+            to be used for brewer2mpl functionality. (name, type, number, bool)
+            can be used to specify if a reverse colormap is to be used.
 
         """
 
@@ -382,37 +386,6 @@ class ImagePlotContainer(object):
 
         """
         return self.set_font({'size': size})
-
-    @invalidate_plot
-    def set_cmap(self, field, cmap):
-        """set the colormap for one of the fields
-
-        Parameters
-        ----------
-        field : string
-            the field to set a transform
-            if field == 'all', applies to all plots.
-        cmap : string
-            name of the colormap
-
-        """
-        if field == 'all':
-            fields = self.plots.keys()
-        else:
-            fields = [field]
-
-        for field in self.data_source._determine_fields(fields):
-            self._colorbar_valid = False
-            self._colormaps[field] = cmap
-            if isinstance(cmap, types.StringTypes):
-                if str(cmap) in yt_colormaps:
-                    cmap = yt_colormaps[str(cmap)]
-                elif hasattr(matplotlib.cm, cmap):
-                    cmap = getattr(matplotlib.cm, cmap)
-            if not is_colormap(cmap) and cmap is not None:
-                raise RuntimeError("Colormap '%s' does not exist!" % str(cmap))
-            self.plots[field].image.set_cmap(cmap)
-        return self
 
     @invalidate_plot
     @invalidate_figure
