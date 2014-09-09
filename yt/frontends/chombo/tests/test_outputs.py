@@ -20,7 +20,9 @@ from yt.utilities.answer_testing.framework import \
     requires_ds, \
     small_patch_amr, \
     data_dir_load
-from yt.frontends.chombo.api import ChomboDataset
+from yt.frontends.chombo.api import \
+    ChomboDataset, \
+    Orion2Dataset
 
 _fields = ("density", "velocity_magnitude",  # "velocity_divergence",
            "magnetic_field_x")
@@ -59,6 +61,11 @@ def test_zp():
 @requires_file(zp)
 def test_ChomboDataset():
     assert isinstance(data_dir_load(zp), ChomboDataset)
+
+
+@requires_file(gc)
+def test_Orion2Dataset():
+    assert isinstance(data_dir_load(gc), Orion2Dataset)
 
 
 #@requires_file(kho)
