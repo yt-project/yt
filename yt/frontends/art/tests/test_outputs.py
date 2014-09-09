@@ -16,11 +16,11 @@ ART frontend tests using D9p a=0.500
 
 from yt.testing import \
     requires_file, \
-    assert_equal, \
-    PixelizedProjectionValuesTest
+    assert_equal
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     big_patch_amr, \
+    PixelizedProjectionValuesTest, \
     data_dir_load
 from yt.frontends.art.api import ARTDataset
 
