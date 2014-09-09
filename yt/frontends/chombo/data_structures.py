@@ -482,33 +482,16 @@ class PlutoDataset(ChomboDataset):
     def _is_valid(self, *args, **kwargs):
 
         pluto_ini_file_exists  = False
-        orion2_ini_file_exists = False
 
         if type(args[0]) == type(""):
             dir_name = os.path.dirname(os.path.abspath(args[0]))
             pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
-            orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
             pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
-            orion2_ini_file_exists = os.path.isfile(orion2_ini_filename)
-        
-        if orion2_ini_file_exists:
-            return True
 
         if pluto_ini_file_exists:
             return True
 
-        if not (pluto_ini_file_exists and orion2_ini_file_exists):
-            try:
-                fileh = h5py.File(args[0],'r')
-                valid = "Chombo_global" in fileh["/"]
-                valid = 'CeilVA_mass' in fileh.attrs.keys()
-                fileh.close()
-                return valid
-            except:
-                pass
         return False
-
-
 
 class Orion2Hierarchy(ChomboHierarchy):
 
