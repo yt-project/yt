@@ -926,7 +926,7 @@ cdef OctList *OctList_subneighbor_find(OctList *olist, Oct *top,
     # to zero; i.e., the number of dimensions along which we are aligned.
     # For now, we assume we will not be doing this along all three zeros,
     # because that would be pretty tricky.
-    if i == j == k == 0: return olist
+    if i == j == k == 1: return olist
     cdef np.int64_t n[3], ind[3], off[3][2], ii, ij, ik, ci
     ind[0] = 1 - i
     ind[1] = 1 - j
