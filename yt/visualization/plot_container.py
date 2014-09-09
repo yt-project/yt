@@ -199,7 +199,7 @@ class ImagePlotContainer(object):
         return self
 
     @invalidate_plot
-    def set_cmap(self, field, cmap_name):
+    def set_cmap(self, field, cmap):
         """set the colormap for one of the fields
 
         Parameters
@@ -207,7 +207,7 @@ class ImagePlotContainer(object):
         field : string
             the field to set the colormap
             if field == 'all', applies to all plots.
-        cmap_name : string or tuple
+        cmap : string or tuple
             If a string, will be interpreted as name of the colormap.
             If a tuple, it is assumed to be of the form (name, type, number)
             to be used for brewer2mpl functionality. (name, type, number, bool)
@@ -221,7 +221,7 @@ class ImagePlotContainer(object):
             fields = [field]
         for field in self.data_source._determine_fields(fields):
             self._colorbar_valid = False
-            self._colormaps[field] = cmap_name
+            self._colormaps[field] = cmap
         return self
 
     @invalidate_plot
