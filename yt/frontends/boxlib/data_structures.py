@@ -410,6 +410,8 @@ class BoxlibDataset(Dataset):
     def _is_valid(cls, *args, **kwargs):
         # fill our args
         output_dir = args[0]
+        # boxlib datasets are always directories
+        if not os.path.isdir(output_dir): return False
         header_filename = os.path.join(output_dir, "Header")
         jobinfo_filename = os.path.join(output_dir, "job_info")
         if not os.path.exists(header_filename):
@@ -704,15 +706,17 @@ class OrionDataset(BoxlibDataset):
           
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        # fill our args                                                                               
+        # fill our args
         output_dir = args[0]
+        # boxlib datasets are always directories
+        if not os.path.isdir(output_dir): return False
         header_filename = os.path.join(output_dir, "Header")
         jobinfo_filename = os.path.join(output_dir, "job_info")
         if not os.path.exists(header_filename):
-            # We *know* it's not boxlib if Header doesn't exist.                                      
+            # We *know* it's not boxlib if Header doesn't exist.
             return False
         args = inspect.getcallargs(cls.__init__, args, kwargs)
-        # This might need to be localized somehow                                                     
+        # This might need to be localized somehow
         inputs_filename = os.path.join(
                             os.path.dirname(os.path.abspath(output_dir)),
                             args['cparam_filename'])
@@ -720,7 +724,7 @@ class OrionDataset(BoxlibDataset):
             return False
         if os.path.exists(jobinfo_filename):
             return False
-        # Now we check for all the others                                                             
+        # Now we check for all the others
         lines = open(inputs_filename).readlines()
         if any(("castro." in line for line in lines)): return False
         if any(("nyx." in line for line in lines)): return False
@@ -736,6 +740,8 @@ class CastroDataset(BoxlibDataset):
     def _is_valid(cls, *args, **kwargs):
         # fill our args
         output_dir = args[0]
+        # boxlib datasets are always directories
+        if not os.path.isdir(output_dir): return False
         header_filename = os.path.join(output_dir, "Header")
         jobinfo_filename = os.path.join(output_dir, "job_info")
         if not os.path.exists(header_filename):
@@ -756,6 +762,8 @@ class MaestroDataset(BoxlibDataset):
     def _is_valid(cls, *args, **kwargs):
         # fill our args
         output_dir = args[0]
+        # boxlib datasets are always directories
+        if not os.path.isdir(output_dir): return False
         header_filename = os.path.join(output_dir, "Header")
         jobinfo_filename = os.path.join(output_dir, "job_info")
         if not os.path.exists(header_filename):
@@ -852,6 +860,8 @@ class NyxDataset(BoxlibDataset):
     def _is_valid(cls, *args, **kwargs):
         # fill our args
         pname = args[0].rstrip("/")
+        # boxlib datasets are always directories
+        if not os.path.isdir(pname): return False
         dn = os.path.dirname(pname)
         if len(args) > 1:
             kwargs['paramFilename'] = args[1]
@@ -862,7 +872,7 @@ class NyxDataset(BoxlibDataset):
         # We check for the job_info file's existence because this is currently
         # what distinguishes Nyx data from MAESTRO data.
         pfn = os.path.join(pfname)
-        if not os.path.exists(pfn): return False
+        if not os.path.exists(pfn) or os.path.isdir(pfn): return False
         nyx = any(("nyx." in line for line in open(pfn)))
         maestro = os.path.exists(os.path.join(pname, "job_info"))
         orion = (not nyx) and (not maestro)

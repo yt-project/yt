@@ -129,7 +129,14 @@ definition of center of mass is shown below. Currently available quantities
 are center_of_mass and bulk_velocity. Their definitions are available in 
 ``yt/analysis_modules/halo_analysis/halo_quantities.py``. If you think that 
 your quantity may be of use to the general community, add it to 
-``halo_quantities.py`` and issue a pull request.
+``halo_quantities.py`` and issue a pull request.  Default halo quantities are:
+
+* ``particle_identifier`` -- Halo ID (e.g. 0 to N)
+* ``particle_mass`` -- Mass of halo
+* ``particle_position_x`` -- Location of halo
+* ``particle_position_y`` -- Location of halo
+* ``particle_position_z`` -- Location of halo
+* ``virial_radius`` -- Virial radius of halo
 
 An example of adding a quantity:
 

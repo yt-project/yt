@@ -418,7 +418,7 @@ cdef class OctreeContainer:
         cdef np.ndarray[np.uint8_t, ndim=1] coords
         cdef OctVisitorData data
         self.setup_data(&data, domain_id)
-        coords = np.zeros((num_cells*8), dtype="uint8")
+        coords = np.zeros((num_cells*data.nz), dtype="uint8")
         data.array = <void *> coords.data
         self.visit_all_octs(selector, oct_visitors.mask_octs, &data)
         return coords.astype("bool")
