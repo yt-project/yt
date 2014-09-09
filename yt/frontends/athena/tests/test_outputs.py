@@ -57,3 +57,8 @@ def test_stripping():
     for test in small_patch_amr(stripping, _fields_stripping):
         test_stripping.__name__ = test.description
         yield test
+
+
+@requires_file(cloud)
+def test_AthenaDataset():
+    assert isinstance(data_dir_load(cloud), AthenaDataset)
