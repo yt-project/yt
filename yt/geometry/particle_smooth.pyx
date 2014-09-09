@@ -243,12 +243,11 @@ cdef class ParticleSmoothOperation:
             if visited[oct.domain_ind - moff_m] == 1: continue
             visited[oct.domain_ind - moff_m] = 1
             if offset < 0: continue
-            # These will be PARTICLE octree neighbors.
             nproc += 1
             self.neighbor_process(dims, moi.left_edge, moi.dds,
-                         cart_pos, field_pointers, doffs, nind,
+                         cart_pos, field_pointers, doffs, &nind,
                          pinds, pcounts, offset, index_field_pointers,
-                         particle_octree, domain_id)
+                         particle_octree, domain_id, &nsize)
         #print "VISITED", visited.sum(), visited.size,
         #print 100.0*float(visited.sum())/visited.size
         if nind != NULL:
@@ -383,15 +382,16 @@ cdef class ParticleSmoothOperation:
     cdef void neighbor_process(self, int dim[3], np.float64_t left_edge[3],
                                np.float64_t dds[3], np.float64_t *ppos,
                                np.float64_t **fields, 
-                               np.int64_t *doffs, np.int64_t *nind,
+                               np.int64_t *doffs, np.int64_t **nind,
                                np.int64_t *pinds, np.int64_t *pcounts,
                                np.int64_t offset,
                                np.float64_t **index_fields,
-                               OctreeContainer octree, np.int64_t domain_id):
+                               OctreeContainer octree, np.int64_t domain_id,
+                               int *nsize):
         # Note that we assume that fields[0] == smoothing length in the native
         # units supplied.  We can now iterate over every cell in the block and
         # every particle to find the nearest.  We will use a priority heap.
-        cdef int i, j, k, ntot, nntot, m, nneighbors, nsize
+        cdef int i, j, k, ntot, nntot, m, nneighbors
         cdef np.float64_t cpos[3], opos[3]
         cdef Oct* oct = NULL
         cpos[0] = left_edge[0] + 0.5*dds[0]
@@ -402,16 +402,16 @@ cdef class ParticleSmoothOperation:
                 for k in range(dim[2]):
                     self.pos_setup(cpos, opos)
                     nneighbors = self.neighbor_search(opos, octree,
-                                    &nind, &nsize, nneighbors, domain_id, &oct)
-                    self.neighbor_find(nneighbors, nind, doffs, pcounts,
+                                    nind, nsize, nneighbors, domain_id, &oct)
+                    self.neighbor_find(nneighbors, nind[0], doffs, pcounts,
                         pinds, ppos, opos)
                     # Now we have all our neighbors in our neighbor list.
                     if self.curn <-1*self.maxn:
                         ntot = nntot = 0
                         for m in range(nneighbors):
-                            if nind[m] < 0: continue
+                            if nind[0][m] < 0: continue
                             nntot += 1
-                            ntot += pcounts[nind[m]]
+                            ntot += pcounts[nind[0][m]]
                         print "SOMETHING WRONG", self.curn, nneighbors, ntot, nntot
                     self.process(offset, i, j, k, dim, opos, fields,
                                  index_fields)

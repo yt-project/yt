@@ -54,10 +54,11 @@ cdef class ParticleSmoothOperation:
     cdef void neighbor_process(self, int dim[3], np.float64_t left_edge[3],
                                np.float64_t dds[3], np.float64_t *ppos,
                                np.float64_t **fields, 
-                               np.int64_t *doffs, np.int64_t *nind, 
+                               np.int64_t *doffs, np.int64_t **nind, 
                                np.int64_t *pinds, np.int64_t *pcounts,
                                np.int64_t offset, np.float64_t **index_fields,
-                               OctreeContainer octree, np.int64_t domain_id)
+                               OctreeContainer octree, np.int64_t domain_id,
+                               int *nsize)
     cdef int neighbor_search(self, np.float64_t pos[3], OctreeContainer octree,
                              np.int64_t **nind, int *nsize, 
                              np.int64_t nneighbors, np.int64_t domain_id, Oct **oct = ?)
