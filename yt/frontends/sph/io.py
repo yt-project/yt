@@ -81,7 +81,7 @@ class IOHandlerOWLS(BaseIOHandler):
             f = _get_h5_handle(data_file.filename)
             # This double-reads
             for ptype, field_list in sorted(ptf.items()):
-                if ptype not in f:
+                if data_file.total_particles[ptype] == 0:
                     continue
                 x = f["/%s/Coordinates" % ptype][:,0].astype("float64")
                 y = f["/%s/Coordinates" % ptype][:,1].astype("float64")
@@ -98,7 +98,7 @@ class IOHandlerOWLS(BaseIOHandler):
         for data_file in sorted(data_files):
             f = _get_h5_handle(data_file.filename)
             for ptype, field_list in sorted(ptf.items()):
-                if ptype not in f:
+                if data_file.total_particles[ptype] == 0:
                     continue
                 g = f["/%s" % ptype]
                 coords = g["Coordinates"][:].astype("float64")
