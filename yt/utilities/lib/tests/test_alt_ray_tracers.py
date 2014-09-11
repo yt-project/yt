@@ -14,7 +14,7 @@ left_grid = right_grid = amr_levels = center_grid = data = None
 
 def setup():
     # set up some sample cylindrical grid data, radiating out from center
-    global left_grid, right_grid, amr_levels, center_grid
+    global left_grid, right_grid, amr_levels, center_grid, data
     np.seterr(all='ignore')
     l1, r1, lvl1 = amrspace([0.0, 1.0, 0.0, -1.0, 0.0, 2*np.pi], levels=(7,7,0))
     l2, r2, lvl2 = amrspace([0.0, 1.0, 0.0,  1.0, 0.0, 2*np.pi], levels=(7,7,0))

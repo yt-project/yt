@@ -34,13 +34,7 @@ def decompose_array(shape, psize, bbox):
     """ Calculate list of product(psize) subarrays of arr, along with their
         left and right edges
     """
-    grid_left_edges = np.empty([np.product(psize), 3], dtype=np.float64)
-    grid_right_edges = np.empty([np.product(psize), 3], dtype=np.float64)
-    n_d = shape
-    d_s = (bbox[:, 1] - bbox[:, 0]) / n_d
-    grid_left_edges, grid_right_edges, shapes, slices = \
-            split_array(bbox[:, 0], bbox[:, 1], shape, psize)
-    return grid_left_edges, grid_right_edges, shapes, slices
+    return split_array(bbox[:, 0], bbox[:, 1], shape, psize)
 
 
 def evaluate_domain_decomposition(n_d, pieces, ldom):

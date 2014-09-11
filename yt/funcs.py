@@ -270,7 +270,6 @@ def insert_ipython(num_up=1):
 
     api_version = get_ipython_api_version()
 
-    stack = inspect.stack()
     frame = inspect.stack()[num_up]
     loc = frame[0].f_locals.copy()
     glo = frame[0].f_globals
@@ -537,7 +536,6 @@ def get_version_stack():
     return version_info
 
 def get_script_contents():
-    stack = inspect.stack()
     top_frame = inspect.stack()[-1]
     finfo = inspect.getframeinfo(top_frame[0])
     if finfo[2] != "<module>": return None
