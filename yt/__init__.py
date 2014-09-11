@@ -150,7 +150,7 @@ from yt.visualization.volume_rendering.api import \
     TransferFunctionHelper
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_objects, enable_parallelism
+    parallel_objects, enable_parallelism, communication_system
 
 from yt.convenience import \
     load, simulation
