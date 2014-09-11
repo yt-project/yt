@@ -64,6 +64,17 @@ class FilterAllMessages(logging.Filter):
 # Set up translation table and import things
 
 def enable_parallelism(suppress_logging=False):
+    """
+    This method is used inside a script to turn on MPI parallelism, via 
+    mpi4py.  More information about running yt in parallel can be found
+    here: http://yt-project.org/docs/3.0/analyzing/parallel_computation.html
+    
+    Parameters
+    ----------
+    suppress_logging : bool
+       If set to True, only rank 0 will log information after the initial
+       setup of MPI.
+    """
     global parallel_capable, MPI
     try:
         from mpi4py import MPI as _MPI
