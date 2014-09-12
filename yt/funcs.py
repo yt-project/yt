@@ -747,6 +747,7 @@ def deprecated_class(cls):
     return _func
     
 def enable_plugins():
+    import yt
     from yt.config import ytcfg
     my_plugin_name = ytcfg.get("yt","pluginfilename")
     # We assume that it is with respect to the $HOME/.yt directory
@@ -756,4 +757,4 @@ def enable_plugins():
         _fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
     if os.path.isfile(_fn):
         mylog.info("Loading plugins from %s", _fn)
-        execfile(_fn)
+        execfile(_fn, yt.__dict__)
