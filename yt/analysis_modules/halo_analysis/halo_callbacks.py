@@ -521,6 +521,59 @@ def delete_attribute(halo, attribute):
 
 add_callback("delete_attribute", delete_attribute)
 
+def iterative_center_of_mass(halo, radius_field="virial_radius", inner_ratio=0.1, step_ratio=0.9,
+                             units="pc"):
+    r"""
+    Adjust halo position by iteratively recalculating the center of mass while 
+    decreasing the radius.
+
+    Parameters
+    ----------
+    halo : Halo object
+        The Halo object to be provided by the HaloCatalog.
+    radius_field : string
+        The halo quantity to be used as the radius for the sphere.
+        Default: "virial_radius"
+    inner_ratio : float
+        The ratio of the smallest sphere radius used for calculating the center of 
+        mass to the initial radius.  The sphere radius is reduced and center of mass 
+        recalculated until the sphere has reached this size.
+        Default: 0.1
+    step_ratio : float
+        The multiplicative factor used to reduce the radius of the sphere after the 
+        center of mass is calculated.
+        Default: 0.9
+    units : str
+        The units for printing out the distance between the initial and final centers.
+        Default : "pc"
+        
+    """
+    if inner_ratio <= 0.0 or inner_ratio >= 1.0:
+        raise RuntimeError("iterative_center_of_mass: inner_ratio must be between 0 and 1.")
+    if step_ratio <= 0.0 or step_ratio >= 1.0:
+        raise RuntimeError("iterative_center_of_mass: step_ratio must be between 0 and 1.")
+
+    center_orig = halo.halo_catalog.data_ds.arr([halo.quantities["particle_position_%s" % axis]
+                                                 for axis in "xyz"])
+    sphere = halo.halo_catalog.data_ds.sphere(center_orig, halo.quantities[radius_field])
+
+    while sphere.radius > inner_ratio * halo.quantities[radius_field]:
+        new_center = sphere.quantities.center_of_mass(use_gas=True, use_particles=True)
+        sphere = sphere.ds.sphere(new_center, step_ratio * sphere.radius)
+
+    distance = periodic_distance(center_orig.in_units("code_length").to_ndarray(),
+                                 new_center.in_units("code_length").to_ndarray())
+    distance = halo.halo_catalog.data_ds.quan(distance, "code_length")
+    mylog.info("Recentering halo %d %f %s away." %
+               (halo.quantities["particle_identifier"],
+                distance.in_units(units), units))
+
+    for i, axis in enumerate("xyz"):
+        halo.quantities["particle_position_%s" % axis] = sphere.center[i]
+    del sphere
+    
+add_callback("iterative_center_of_mass", iterative_center_of_mass)
+
 def _yt_array_hdf5(fh, fieldname, data):
     dataset = fh.create_dataset(fieldname, data=data)
     units = ""
