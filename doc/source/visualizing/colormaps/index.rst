@@ -15,7 +15,7 @@ Instead of supplying the colormap name, specify a tuple of the form (name, type,
 number), for example ``('RdBu', 'Diverging', 9)``.  These discrete colormaps will
 not be interpolated, and can be useful for creating
 colorblind/printer/grayscale-friendly plots. For more information, visit
-`http://colorbrewer2 <http://colorbrewer2.org>`_.
+`http://colorbrewer2.org <http://colorbrewer2.org>`_.
 
 Here is a chart of all of the yt and matplotlib colormaps available.  In
 addition to each colormap displayed here, you can access its "reverse" by simply
