@@ -407,6 +407,8 @@ to create these objects in a uniform manner.
    ~yt.data_objects.profiles.Profile3D
    ~yt.data_objects.profiles.create_profile
 
+.. _halo_analysis_ref:
+
 Halo Analysis
 ^^^^^^^^^^^^^
 
@@ -419,21 +421,22 @@ on cosmological halos.  It is also the primary interface for halo finding.
    ~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog
    ~yt.analysis_modules.halo_analysis.halo_finding_methods.HaloFindingMethod
    ~yt.analysis_modules.halo_analysis.halo_callbacks.HaloCallback
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.delete_attribute
    ~yt.analysis_modules.halo_analysis.halo_callbacks.halo_sphere
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.sphere_field_max_recenter
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.sphere_bulk_velocity
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.iterative_center_of_mass
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.load_profiles
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.phase_plot
    ~yt.analysis_modules.halo_analysis.halo_callbacks.profile
    ~yt.analysis_modules.halo_analysis.halo_callbacks.save_profiles
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.load_profiles
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.sphere_bulk_velocity
+   ~yt.analysis_modules.halo_analysis.halo_callbacks.sphere_field_max_recenter
    ~yt.analysis_modules.halo_analysis.halo_callbacks.virial_quantities
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.phase_plot
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.delete_attribute
    ~yt.analysis_modules.halo_analysis.halo_filters.HaloFilter
-   ~yt.analysis_modules.halo_analysis.halo_filters.quantity_value
    ~yt.analysis_modules.halo_analysis.halo_filters.not_subhalo
+   ~yt.analysis_modules.halo_analysis.halo_filters.quantity_value
    ~yt.analysis_modules.halo_analysis.halo_quantities.HaloQuantity
-   ~yt.analysis_modules.halo_analysis.halo_quantities.center_of_mass
    ~yt.analysis_modules.halo_analysis.halo_quantities.bulk_velocity
+   ~yt.analysis_modules.halo_analysis.halo_quantities.center_of_mass
 
 Halo Finding
 ^^^^^^^^^^^^
