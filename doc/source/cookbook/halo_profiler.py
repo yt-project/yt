@@ -18,21 +18,22 @@ hc.add_callback("sphere", factor=2.0)
 
 # use the sphere to calculate radial profiles of gas density
 # weighted by cell volume in terms of the virial radius
-hc.add_callback("profile", x_field="radius",
-                y_fields=[("gas", "overdensity")],
+hc.add_callback("profile", [("index", "radius")],
+                [("gas", "overdensity")],
                 weight_field="cell_volume",
                 accumulation=False,
                 storage="virial_quantities_profiles")
 
 
-hc.add_callback("virial_quantities", ["radius"],
+hc.add_callback("virial_quantities", [("index", "radius")],
                 profile_storage="virial_quantities_profiles")
 hc.add_callback('delete_attribute', 'virial_quantities_profiles')
 
 field_params = dict(virial_radius=('quantity', 'radius_200'))
 hc.add_callback('sphere', radius_field='radius_200', factor=5,
                 field_parameters=field_params)
-hc.add_callback('profile', 'virial_radius', [('gas', 'temperature')],
+hc.add_callback('profile', ['virial_radius'], 
+                [('gas', 'temperature')],
                 storage='virial_profiles',
                 weight_field='cell_mass',
                 accumulation=False, output_dir='profiles')
