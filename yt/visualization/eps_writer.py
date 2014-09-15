@@ -1013,7 +1013,6 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
             for i in range(npanels): ylabels.append("")
 
     d = DualEPS(figsize=figsize)
-    count = 0
     for j in range(nrow):
         invj = nrow - j - 1
         ypos = invj*(figsize[1] + margins[1])

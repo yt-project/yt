@@ -53,3 +53,8 @@ def test_snapshot_033():
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2
+
+
+@requires_file(os33)
+def test_OWLSDataset():
+    assert isinstance(data_dir_load(os33), OWLSDataset)

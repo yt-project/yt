@@ -270,7 +270,6 @@ def insert_ipython(num_up=1):
 
     api_version = get_ipython_api_version()
 
-    stack = inspect.stack()
     frame = inspect.stack()[num_up]
     loc = frame[0].f_locals.copy()
     glo = frame[0].f_globals
@@ -537,7 +536,6 @@ def get_version_stack():
     return version_info
 
 def get_script_contents():
-    stack = inspect.stack()
     top_frame = inspect.stack()[-1]
     finfo = inspect.getframeinfo(top_frame[0])
     if finfo[2] != "<module>": return None
@@ -749,6 +747,7 @@ def deprecated_class(cls):
     return _func
     
 def enable_plugins():
+    import yt
     from yt.config import ytcfg
     my_plugin_name = ytcfg.get("yt","pluginfilename")
     # We assume that it is with respect to the $HOME/.yt directory
@@ -758,4 +757,4 @@ def enable_plugins():
         _fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
     if os.path.isfile(_fn):
         mylog.info("Loading plugins from %s", _fn)
-        execfile(_fn)
+        execfile(_fn, yt.__dict__)
