@@ -250,21 +250,21 @@ class ParticleOctreeSubset(OctreeSubset):
     # This is some subset of an octree.  Note that the sum of subsets of an
     # octree may multiply include data files.  While we can attempt to mitigate
     # this, it's unavoidable for many types of data storage on disk.
-    _type_name = 'octree_forest_subset'
+    _type_name = 'indexed_octree_subset'
     _con_args = ('data_files', 'ds', 'min_ind', 'max_ind')
     domain_id = -1
-    def __init__(self, base_region, oct_handler, data_files, ds, 
+    def __init__(self, base_region, data_files, ds, 
                  min_ind = 0, max_ind = 0, over_refine_factor = 1):
         # The first attempt at this will not work in parallel.
         self._num_zones = 1 << (over_refine_factor)
         self._oref = over_refine_factor
         self.data_files = ensure_list(data_files)
-        self.oct_handler = oct_handler
+        if len(self.data_files) != 1:
+            raise NotImplementedError
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.ds = ds
         self._index = self.ds.index
-        self.oct_handler = ds.index.oct_handler
         self.min_ind = min_ind
         if max_ind == 0: max_ind = (1 << 63)
         self.max_ind = max_ind
@@ -274,6 +274,20 @@ class ParticleOctreeSubset(OctreeSubset):
         self._current_fluid_type = self.ds.default_fluid_type
         self.base_region = base_region
         self.base_selector = base_region.selector
+
+    _oct_handler = None
+    @property
+    def oct_handler(self):
+        if self._oct_handler is not None:
+            return self._oct_handler
+        dfi, count, omask = self._index.regions.identify_data_files(
+                                self.base_selector)
+        oct_handler = self._index.regions.construct_forest(
+                self.data_files[0].file_id, self.base_selector,
+                self._index.io, self._index.data_files,
+                (dfi, count, omask))
+        self._oct_handler = oct_handler
+        return oct_handler
 
 class OctreeSubsetBlockSlice(object):
     def __init__(self, octree_subset):
