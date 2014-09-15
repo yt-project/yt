@@ -510,7 +510,7 @@ cdef class ParticleForest:
                     end += particle_count[arri]
                     morton_view = morton_ind[start:end]
                     morton_view.sort()
-                    octree.add(morton_view, i, j, k)
+                    octree.add(morton_view, i, j, k, owners[i,j,k])
         octree.finalize()
         free(particle_index)
         free(particle_count)
@@ -556,7 +556,8 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
         assert(lpos == self.nocts)
         for i in range(self.nocts):
             self.oct_list[i].domain_ind = i
-            self.oct_list[i].domain = 0
+            # We don't assign this ... it helps with selecting later.
+            #self.oct_list[i].domain = 0
             self.oct_list[i].file_ind = -1
         self.max_level = max_level
 
@@ -591,7 +592,7 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
     @cython.wraparound(False)
     @cython.cdivision(True)
     def add(self, np.ndarray[np.uint64_t, ndim=1] indices,
-             int root_i, int root_j, int root_k):
+             int root_i, int root_j, int root_k, int domain_id = -1):
         #Add this particle to the root oct
         #Then if that oct has children, add it to them recursively
         #If the child needs to be refined because of max particles, do so
@@ -604,6 +605,7 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
         self.get_root(ind, &root)
         if root == NULL:
             raise RuntimeError
+        root.domain = domain_id
         cdef np.uint64_t *data = <np.uint64_t *> indices.data
         # Note what we're doing here: we have decided the root will always be
         # zero, since we're in a forest of octrees, where the root_mesh node is

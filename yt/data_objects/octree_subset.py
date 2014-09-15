@@ -261,6 +261,7 @@ class ParticleOctreeSubset(OctreeSubset):
         self.data_files = ensure_list(data_files)
         if len(self.data_files) != 1:
             raise NotImplementedError
+        self.domain_id = self.data_files[0].file_id
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.ds = ds
@@ -274,6 +275,13 @@ class ParticleOctreeSubset(OctreeSubset):
         self._current_fluid_type = self.ds.default_fluid_type
         self.base_region = base_region
         self.base_selector = base_region.selector
+
+    @property
+    def domain_ind(self):
+        if self._domain_ind is None:
+            di = self.oct_handler.domain_ind(self.selector, self.domain_id)
+            self._domain_ind = di
+        return self._domain_ind
 
     _oct_handler = None
     @property
