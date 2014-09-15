@@ -37,8 +37,7 @@ class ParticleContainer(YTSelectionContainer):
         self.field_data = YTFieldData()
         self.data_files = ensure_list(data_files)
         self.field_parameters = {}
-        self.pf = self.data_files[0].pf
-        self.hierarchy = self.pf.hierarchy
+        self.ds = self.data_files[0].ds
         self._current_particle_type = 'all'
         self.base_region = base_region
         self.base_selector = base_region.selector
