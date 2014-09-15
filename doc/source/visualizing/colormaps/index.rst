@@ -7,18 +7,19 @@ There are several colormaps available for yt.  yt includes all of the
 matplotlib colormaps as well for nearly all functions.  Individual visualization
 functions usually allow you to specify a colormap with the ``cmap`` flag.
 
-If you have installed `brewer2mpl`
-(`pip install brewer2mpl` or see `https://github.com/jiffyclub/brewer2mpl`_),
-you can also access the discrete colormaps available on
-`http://colorbrewer2.org`_. Instead of supplying the colormap name, specify
-a tuple of the form (name, type, number), for example `('RdBu', 'Diverging', 9)`.
-These discrete colormaps will not be interpolated, and can be useful for
-creating colorblind/printer/grayscale-friendly plots. For more information,
-visit `http://colorbrewer2.org`_.
+If you have installed brewer2mpl (``pip install brewer2mpl`` or see
+`https://github.com/jiffyclub/brewer2mpl
+<https://github.com/jiffyclub/brewer2mpl>`_), you can also access the discrete
+colormaps available on `http://colorbrewer2.org <http://colorbrewer2.org>`_.
+Instead of supplying the colormap name, specify a tuple of the form (name, type,
+number), for example ``('RdBu', 'Diverging', 9)``.  These discrete colormaps will
+not be interpolated, and can be useful for creating
+colorblind/printer/grayscale-friendly plots. For more information, visit
+`http://colorbrewer2.org <http://colorbrewer2.org>`_.
 
-Here is a chart of all of the yt and matplotlib colormaps available.  In addition to each 
-colormap displayed here, you can access its "reverse" by simply appending a 
-``"_r"`` to the end of the colormap name.
+Here is a chart of all of the yt and matplotlib colormaps available.  In
+addition to each colormap displayed here, you can access its "reverse" by simply
+appending a ``"_r"`` to the end of the colormap name.
 
 All Colormaps (including matplotlib)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
