@@ -284,7 +284,60 @@ class GadgetHDF5Dataset(GadgetDataset):
         # Compat reasons.
         hvals["NumFiles"] = hvals["NumFilesPerSnapshot"]
         hvals["Massarr"] = hvals["MassTable"]
+        handle.close()
         return hvals
+
+    def _get_uvals(self):
+        handle = h5py.File(self.parameter_filename, mode="r")
+        uvals = {}
+        uvals.update((str(k), v) for k, v in handle["/Units"].attrs.items())
+        handle.close()
+        return uvals
+
+
+
+    def _set_owls_eagle(self):
+
+        self.dimensionality = 3
+        self.refine_by = 2
+        self.parameters["HydroMethod"] = "sph"
+        self.unique_identifier = \
+            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+
+        self._unit_base = self._get_uvals()
+        self._unit_base['cmcm'] = 1.0 / self._unit_base["UnitLength_in_cm"]
+
+        self.current_redshift = self.parameters["Redshift"]
+        self.omega_lambda = self.parameters["OmegaLambda"]
+        self.omega_matter = self.parameters["Omega0"]
+        self.hubble_constant = self.parameters["HubbleParam"]
+
+        if self.domain_left_edge is None:
+            self.domain_left_edge = np.zeros(3, "float64")
+            self.domain_right_edge = np.ones(3, "float64") * self.parameters["BoxSize"]
+
+        nz = 1 << self.over_refine_factor
+        self.domain_dimensions = np.ones(3, "int32") * nz
+
+        self.cosmological_simulation = 1
+        self.periodicity = (True, True, True)
+
+        prefix = os.path.abspath(self.parameter_filename.split(".", 1)[0])
+        suffix = self.parameter_filename.rsplit(".", 1)[-1]
+        self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
+        self.file_count = self.parameters["NumFilesPerSnapshot"]
+
+
+    def _set_owls_eagle_units(self):
+
+        # note the contents of the HDF5 Units group are in _unit_base 
+        # note the velocity stored on disk is sqrt(a) dx/dt 
+        self.length_unit = self.quan( self._unit_base["UnitLength_in_cm"], 'cmcm/h' )
+        self.mass_unit = self.quan( self._unit_base["UnitMass_in_g"], 'g/h' )
+        self.velocity_unit = self.quan( self._unit_base["UnitVelocity_in_cm_per_s"], 'cm/s' )
+        self.time_unit = self.quan( self._unit_base["UnitTime_in_s"], 's/h' )
+
+        
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -305,49 +358,23 @@ class OWLSDataset(GadgetHDF5Dataset):
     _time_readin = "Time_GYR"
 
 
-
     def _parse_parameter_file(self):
-        hvals = self._get_hvals()
 
-        # Set standard values
-        self.current_time = hvals[self._time_readin] * \
-                            sec_conversion["Gyr"] * yt.units.s
-        if self.domain_left_edge is None:
-            self.domain_left_edge = np.zeros(3, "float64")
-            self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(3, "int32") * nz
-        self.cosmological_simulation = 1
-        self.periodicity = (True, True, True)
-        self.current_redshift = hvals["Redshift"]
-        self.omega_lambda = hvals["OmegaLambda"]
-        self.omega_matter = hvals["Omega0"]
-        self.hubble_constant = hvals["HubbleParam"]
+        # read values from header
+        hvals = self._get_hvals()
         self.parameters = hvals
 
-        prefix = os.path.abspath(self.parameter_filename.split(".", 1)[0])
-        suffix = self.parameter_filename.rsplit(".", 1)[-1]
-        self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
-        self.file_count = hvals["NumFilesPerSnapshot"]
+        # set features common to OWLS and Eagle
+        self._set_owls_eagle()
 
-        # To avoid having to open files twice
-        self._unit_base = {}
-        self._unit_base.update(
-            (str(k), v) for k, v in handle["/Units"].attrs.items())
-        # Comoving cm is given in the Units
-        self._unit_base['cmcm'] = 1.0 / self._unit_base["UnitLength_in_cm"]
-
-        handle.close()
+        # Set time from value in header
+        self.current_time = hvals[self._time_readin] * \
+                            sec_conversion["Gyr"] * yt.units.s
 
 
     def _set_code_unit_attributes(self):
+        self._set_owls_eagle_units()
 
-        # note the contents of the HDF5 Units group are in _unit_base 
-        # note the velocity stored on disk is sqrt(a) dx/dt 
-        self.length_unit = self.quan( self._unit_base["UnitLength_in_cm"], 'cmcm/h' )
-        self.mass_unit = self.quan( self._unit_base["UnitMass_in_g"], 'g/h' )
-        self.velocity_unit = self.quan( self._unit_base["UnitVelocity_in_cm_per_s"], 'cm/s' )
-        self.time_unit = self.quan( self._unit_base["UnitTime_in_s"], 's/h' )
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -378,24 +405,15 @@ class EagleDataset(GadgetHDF5Dataset):
     _time_readin_ = 'Time'
 
     def _parse_parameter_file(self):
+
+        # read values from header
         hvals = self._get_hvals()
+        self.parameters = hvals
 
-        # Set standard values
-        if self.domain_left_edge is None:
-            self.domain_left_edge = np.zeros(3, "float64")
-            self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(3, "int32") * nz
-        self.cosmological_simulation = 1
-        self.periodicity = (True, True, True)
-        self.current_redshift = hvals["Redshift"]
-        self.omega_lambda = hvals["OmegaLambda"]
-        self.omega_matter = hvals["Omega0"]
-        self.hubble_constant = hvals["HubbleParam"]
+        # set features common to OWLS and Eagle
+        self._set_owls_eagle()
 
-        # this is an analytic solution in a flat LCDM universe
-        # as the time is not explicitly written out as it was 
-        # for the OWLS snapshots. 
+        # Set time from analytic solution for flat LCDM universe
         a = hvals['ExpansionFactor']
         H0 = hvals['H(z)'] / hvals['E(z)']
         a_eq = ( self.omega_matter / self.omega_lambda )**(1./3)
@@ -405,28 +423,10 @@ class EagleDataset(GadgetHDF5Dataset):
         t = t1 * np.log( t2 + t3 ) / H0
         self.current_time = t * yt.units.s
 
-        self.parameters = hvals
-
-        prefix = os.path.abspath(self.parameter_filename.split(".", 1)[0])
-        suffix = self.parameter_filename.rsplit(".", 1)[-1]
-        self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
-        self.file_count = hvals["NumFilesPerSnapshot"]
-
-        # To avoid having to open files twice
-        self._unit_base = {}
-        self._unit_base.update(
-            (str(k), v) for k, v in handle["/Units"].attrs.items())
-
-        handle.close()
 
     def _set_code_unit_attributes(self):
+        self._set_owls_eagle_units()
 
-        # note the contents of the HDF5 Units group are in _unit_base 
-        # note the velocity stored on disk is sqrt(a) dx/dt 
-        self.length_unit = self.quan( self._unit_base["UnitLength_in_cm"], 'cmcm/h' )
-        self.mass_unit = self.quan( self._unit_base["UnitMass_in_g"], 'g/h' )
-        self.velocity_unit = self.quan( self._unit_base["UnitVelocity_in_cm_per_s"], 'cm/s' )
-        self.time_unit = self.quan( self._unit_base["UnitTime_in_s"], 's/h' )
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -449,6 +449,7 @@ class EagleDataset(GadgetHDF5Dataset):
             valid = False
             pass
         return valid
+
 
 class EagleNetworkDataset(OWLSDataset):
     _particle_mass_name = "Mass"
