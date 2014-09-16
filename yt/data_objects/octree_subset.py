@@ -250,7 +250,7 @@ class ParticleOctreeSubset(OctreeSubset):
     # This is some subset of an octree.  Note that the sum of subsets of an
     # octree may multiply include data files.  While we can attempt to mitigate
     # this, it's unavoidable for many types of data storage on disk.
-    _type_name = 'indexed_octree_subset'
+    _type_name = 'octree_subset'
     _con_args = ('data_files', 'ds', 'min_ind', 'max_ind')
     domain_id = -1
     def __init__(self, base_region, data_files, ds, 

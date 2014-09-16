@@ -59,6 +59,7 @@ class ParticleIndex(Index):
         """
         Returns (in code units) the smallest cell size in the simulation.
         """
+        return 1e-30
         dx = 1.0/(2**self.oct_handler.max_level)
         dx *= (self.dataset.domain_right_edge -
                self.dataset.domain_left_edge)
@@ -82,7 +83,7 @@ class ParticleIndex(Index):
         mylog.info("Allocating for %0.3e particles", self.total_particles)
         # No more than 256^3 in the region finder.
         N = min(len(4*self.data_files), 256) 
-        self.ds.domain_dimensions[:] = N
+        self.ds.domain_dimensions[:] = N*(1<<self.ds.over_refine_factor)
         self.regions = ParticleForest(
                 ds.domain_left_edge, ds.domain_right_edge,
                 [N, N, N], len(self.data_files), ds.over_refine_factor,
