@@ -732,8 +732,11 @@ def memory_checker(interval = 15, dest = None):
     e = threading.Event()
     mem_check = MemoryChecker(e, interval)
     mem_check.start()
-    yield
-    e.set()
+    try:
+        yield
+    finally:
+        e.set()
+
 
 def deprecated_class(cls):
     @wraps(cls)
