@@ -204,11 +204,11 @@ class GadgetDataset(ParticleDataset):
         self.file_count = hvals["NumFiles"]
 
     def _set_code_unit_attributes(self):
-        # Set a sane default for cosmological simulations.
+        # Set a sane default for cosmological simulations (Gadget-2 users guide).
         if self._unit_base is None and self.cosmological_simulation == 1:
-            mylog.info("Assuming length units are in Mpc/h (comoving)")
-            self._unit_base = dict(length = (1.0, "Mpccm/h"))
-        # The other same defaults we will use from the standard Gadget
+            mylog.info("Assuming length units are in kpc/h (comoving)")
+            self._unit_base = dict(length = (1.0, "kpccm/h"))
+        # The other sane defaults we will use from the standard Gadget
         # defaults.
         unit_base = self._unit_base or {}
         if "length" in unit_base:
@@ -343,21 +343,126 @@ class OWLSDataset(GadgetHDF5Dataset):
 
         handle.close()
 
+
+    def _set_code_unit_attributes(self):
+
+        # note the contents of the HDF5 Units group are in _unit_base 
+        # note the velocity stored on disk is sqrt(a) dx/dt 
+        self.length_unit = self.quan( self._unit_base["UnitLength_in_cm"], 'cmcm/h' )
+        self.mass_unit = self.quan( self._unit_base["UnitMass_in_g"], 'g/h' )
+        self.velocity_unit = self.quan( self._unit_base["UnitVelocity_in_cm_per_s"], 'cm/s' )
+        self.time_unit = self.quan( self._unit_base["UnitTime_in_s"], 's/h' )
+
     @classmethod
     def _is_valid(self, *args, **kwargs):
+        need_groups = ['Constants', 'Header', 'Parameters', 'Units']
+        veto_groups = ['SUBFIND',
+                       'PartType0/ChemistryAbundances', 
+                       'PartType0/ChemicalAbundances',
+                       'RuntimePars', 'HashTable']
+        valid = True
         try:
             fileh = h5py.File(args[0], mode='r')
-            if "Constants" in fileh["/"].keys() and \
-               "Header" in fileh["/"].keys() and \
-               "SUBFIND" not in fileh["/"].keys() and not\
-               ("ChemistryAbundances" in fileh["PartType0"].keys()
-                or "ChemicalAbundances" in fileh["PartType0"].keys()):
-                fileh.close()
-                return True
+            for ng in need_groups:
+                if ng not in fileh["/"]:
+                    valid = False
+            for vg in veto_groups:
+                if vg in fileh["/"]:
+                    valid = False                    
             fileh.close()
         except:
+            valid = False
             pass
-        return False
+        return valid
+
+
+class EagleDataset(GadgetHDF5Dataset):
+    _particle_mass_name = "Mass"
+    _field_info_class = OWLSFieldInfo
+    _time_readin_ = 'Time'
+
+    def _parse_parameter_file(self):
+        handle = h5py.File(self.parameter_filename, mode="r")
+        hvals = {}
+        hvals.update((str(k), v) for k, v in handle["/Header"].attrs.items())
+        hvals["NumFiles"] = hvals["NumFilesPerSnapshot"]
+        hvals["Massarr"] = hvals["MassTable"]
+
+        self.dimensionality = 3
+        self.refine_by = 2
+        self.parameters["HydroMethod"] = "sph"
+        self.unique_identifier = \
+            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+
+        # Set standard values
+        if self.domain_left_edge is None:
+            self.domain_left_edge = np.zeros(3, "float64")
+            self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
+        nz = 1 << self.over_refine_factor
+        self.domain_dimensions = np.ones(3, "int32") * nz
+        self.cosmological_simulation = 1
+        self.periodicity = (True, True, True)
+        self.current_redshift = hvals["Redshift"]
+        self.omega_lambda = hvals["OmegaLambda"]
+        self.omega_matter = hvals["Omega0"]
+        self.hubble_constant = hvals["HubbleParam"]
+
+        # this is an analytic solution in a flat LCDM universe
+        # as the time is not explicitly written out as it was 
+        # for the OWLS snapshots. 
+        a = hvals['ExpansionFactor']
+        H0 = hvals['H(z)'] / hvals['E(z)']
+        a_eq = ( self.omega_matter / self.omega_lambda )**(1./3)
+        t1 = 2.0 / ( 3.0 * np.sqrt( self.omega_lambda ) )
+        t2 = (a/a_eq)**(3./2)
+        t3 = np.sqrt( 1.0 + (a/a_eq)**3 )
+        t = t1 * np.log( t2 + t3 ) / H0
+        self.current_time = t * yt.units.s
+
+        self.parameters = hvals
+
+        prefix = os.path.abspath(self.parameter_filename.split(".", 1)[0])
+        suffix = self.parameter_filename.rsplit(".", 1)[-1]
+        self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
+        self.file_count = hvals["NumFilesPerSnapshot"]
+
+        # To avoid having to open files twice
+        self._unit_base = {}
+        self._unit_base.update(
+            (str(k), v) for k, v in handle["/Units"].attrs.items())
+
+        handle.close()
+
+    def _set_code_unit_attributes(self):
+
+        # note the contents of the HDF5 Units group are in _unit_base 
+        # note the velocity stored on disk is sqrt(a) dx/dt 
+        self.length_unit = self.quan( self._unit_base["UnitLength_in_cm"], 'cmcm/h' )
+        self.mass_unit = self.quan( self._unit_base["UnitMass_in_g"], 'g/h' )
+        self.velocity_unit = self.quan( self._unit_base["UnitVelocity_in_cm_per_s"], 'cm/s' )
+        self.time_unit = self.quan( self._unit_base["UnitTime_in_s"], 's/h' )
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        need_groups = ['Config', 'Constants', 'HashTable', 'Header', 
+                       'Parameters', 'RuntimePars', 'Units']
+        veto_groups = ['SUBFIND',
+                       'PartType0/ChemistryAbundances', 
+                       'PartType0/ChemicalAbundances']
+        valid = True
+        try:
+            fileh = h5py.File(args[0], mode='r')
+            for ng in need_groups:
+                if ng not in fileh["/"]:
+                    valid = False
+            for vg in veto_groups:
+                if vg in fileh["/"]:
+                    valid = False                    
+            fileh.close()
+        except:
+            valid = False
+            pass
+        return valid
 
 class EagleNetworkDataset(OWLSDataset):
     _particle_mass_name = "Mass"
