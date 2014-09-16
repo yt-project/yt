@@ -101,9 +101,9 @@ class ChomboPICFieldInfo3D(FieldInfoContainer):
     known_other_fields = (
         ("density", (rho_units, ["density", "Density"], None)),
         ("potential", ("code_length**2 / code_time**2", ["potential", "Potential"], None)),
-        ("gravitational_field_x", ("code_length / code_time**2", ["gravitational-field-x"], None)),
-        ("gravitational_field_y", ("code_length / code_time**2", ["gravitational-field-y"], None)),
-        ("gravitational_field_z", ("code_length / code_time**2", ["gravitational-field-z"], None)),
+        ("gravitational_field_x", ("code_length / code_time**2", [], None)),
+        ("gravitational_field_y", ("code_length / code_time**2", [], None)),
+        ("gravitational_field_z", ("code_length / code_time**2", [], None)),
     )
     known_particle_fields = (
         ("particle_mass", ("code_mass", [], None)),
@@ -190,8 +190,8 @@ class ChomboPICFieldInfo2D(ChomboPICFieldInfo3D):
     known_other_fields = (
         ("density", (rho_units, ["density", "Density"], None)),
         ("potential", ("code_length**2 / code_time**2", ["potential", "Potential"], None)),
-        ("gravitational_field_x", ("code_length / code_time**2", ["gravitational-field-x"], None)),
-        ("gravitational_field_y", ("code_length / code_time**2", ["gravitational-field-y"], None)),
+        ("gravitational_field_x", ("code_length / code_time**2", [], None)),
+        ("gravitational_field_y", ("code_length / code_time**2", [], None)),
     )
     known_particle_fields = (
         ("particle_mass", ("code_mass", [], None)),
@@ -221,7 +221,7 @@ class ChomboPICFieldInfo1D(ChomboPICFieldInfo3D):
     known_other_fields = (
         ("density", (rho_units, ["density", "Density"], None)),
         ("potential", ("code_length**2 / code_time**2", ["potential", "Potential"], None)),
-        ("gravitational_field_x", ("code_length / code_time**2", ["gravitational-field-x"], None)),
+        ("gravitational_field_x", ("code_length / code_time**2", [], None)),
     )
     known_particle_fields = (
         ("particle_mass", ("code_mass", [], None)),
