@@ -53,9 +53,6 @@ def test_zp():
         test_tb.__name__ = test.description
         yield test
 
-_khp_fields = ("density", "velocity_magnitude", #"velocity_divergence",
-           "magnetic_field_x")
-
 kho = "KelvinHelmholtz/data.0004.hdf5"
 @requires_ds(kho)
 def test_kho():
