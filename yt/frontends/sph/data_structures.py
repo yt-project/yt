@@ -301,11 +301,7 @@ class OWLSDataset(GadgetHDF5Dataset):
 
 
     def _parse_parameter_file(self):
-        handle = h5py.File(self.parameter_filename, mode="r")
-        hvals = {}
-        hvals.update((str(k), v) for k, v in handle["/Header"].attrs.items())
-        hvals["NumFiles"] = hvals["NumFilesPerSnapshot"]
-        hvals["Massarr"] = hvals["MassTable"]
+        hvals = self._get_hvals()
 
         # Set standard values
         self.current_time = hvals[self._time_readin] * \
@@ -376,12 +372,7 @@ class EagleDataset(GadgetHDF5Dataset):
     _time_readin_ = 'Time'
 
     def _parse_parameter_file(self):
-        handle = h5py.File(self.parameter_filename, mode="r")
-        hvals = {}
-        hvals.update((str(k), v) for k, v in handle["/Header"].attrs.items())
-        hvals["NumFiles"] = hvals["NumFilesPerSnapshot"]
-        hvals["Massarr"] = hvals["MassTable"]
-
+        hvals = self._get_hvals()
 
         # Set standard values
         if self.domain_left_edge is None:
