@@ -19,17 +19,17 @@ import numpy as np
 from yt.utilities.logger import ytLogger as mylog
 
 from yt.utilities.io_handler import \
-           BaseIOHandler
+    BaseIOHandler
 
 class IOHandlerChomboHDF5(BaseIOHandler):
     _dataset_type = "chombo_hdf5"
     _offset_string = 'data:offsets=0'
     _data_string = 'data:datatype=0'
 
-    def __init__(self, pf, *args, **kwargs):
-        BaseIOHandler.__init__(self, pf, *args, **kwargs)
-        self.pf = pf
-        self._handle = pf._handle
+    def __init__(self, ds, *args, **kwargs):
+        BaseIOHandler.__init__(self, ds, *args, **kwargs)
+        self.ds = ds
+        self._handle = ds._handle
         self.dim = self._handle['Chombo_global/'].attrs['SpaceDim']
         self._read_ghost_info()
 
@@ -178,10 +178,10 @@ class IOHandlerChombo2DHDF5(IOHandlerChomboHDF5):
     _offset_string = 'data:offsets=0'
     _data_string = 'data:datatype=0'
 
-    def __init__(self, pf, *args, **kwargs):
-        BaseIOHandler.__init__(self, pf, *args, **kwargs)
-        self.pf = pf
-        self._handle = pf._handle
+    def __init__(self, ds, *args, **kwargs):
+        BaseIOHandler.__init__(self, ds, *args, **kwargs)
+        self.ds = ds
+        self._handle = ds._handle
         self.dim = 2
         self._read_ghost_info()
 
@@ -190,11 +190,11 @@ class IOHandlerChombo1DHDF5(IOHandlerChomboHDF5):
     _offset_string = 'data:offsets=0'
     _data_string = 'data:datatype=0'
 
-    def __init__(self, pf, *args, **kwargs):
-        BaseIOHandler.__init__(self, pf, *args, **kwargs)
-        self.pf = pf
+    def __init__(self, ds, *args, **kwargs):
+        BaseIOHandler.__init__(self, ds, *args, **kwargs)
+        self.ds = ds
         self.dim = 1
-        self._handle = pf._handle   
+        self._handle = ds._handle
         self._read_ghost_info()
 
 class IOHandlerPlutoHDF5(IOHandlerChomboHDF5):
@@ -213,7 +213,7 @@ class IOHandlerOrion2HDF5(IOHandlerChomboHDF5):
     def _read_particles(self, grid, field):
         """
         parses the Orion Star Particle text files
-             
+
         """
 
         fn = grid.ds.fullplotdir[:-4] + "sink"

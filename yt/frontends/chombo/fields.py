@@ -201,8 +201,8 @@ class ChomboPICFieldInfo2D(ChomboPICFieldInfo3D):
         ("particle_velocity_y", ("code_length / code_time", [], None)),
     )
 
-    def __init__(self, pf, field_list):
-        super(ChomboPICFieldInfo2D, self).__init__(pf, field_list)
+    def __init__(self, ds, field_list):
+        super(ChomboPICFieldInfo2D, self).__init__(ds, field_list)
 
         for ftype in fluid_field_types:
             self.add_field((ftype, 'gravitational_field_z'), function = _dummy_field, 
@@ -229,8 +229,8 @@ class ChomboPICFieldInfo1D(ChomboPICFieldInfo3D):
         ("particle_velocity_x", ("code_length / code_time", [], None)),
     )
 
-    def __init__(self, pf, field_list):
-        super(ChomboPICFieldInfo1D, self).__init__(pf, field_list)
+    def __init__(self, ds, field_list):
+        super(ChomboPICFieldInfo1D, self).__init__(ds, field_list)
 
         for ftype in fluid_field_types:
             self.add_field((ftype, 'gravitational_field_y'), function = _dummy_field, 

@@ -627,8 +627,8 @@ class Orion2Dataset(ChomboDataset):
 
 class ChomboPICHierarchy(ChomboHierarchy):
 
-    def __init__(self, pf, dataset_type="chombo_hdf5"):
-        ChomboHierarchy.__init__(self, pf, dataset_type)
+    def __init__(self, ds, dataset_type="chombo_hdf5"):
+        ChomboHierarchy.__init__(self, ds, dataset_type)
 
 class ChomboPICDataset(ChomboDataset):
 
