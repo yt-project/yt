@@ -80,7 +80,6 @@ def halo_sphere(halo, radius_field="virial_radius", factor=1.0,
     """
 
     dds = halo.halo_catalog.data_ds
-    hds = halo.halo_catalog.halos_ds
     center = dds.arr([halo.quantities["particle_position_%s" % axis] \
                       for axis in "xyz"])
     radius = factor * halo.quantities[radius_field]

@@ -207,7 +207,6 @@ class MinimalProjectDescription(MinimalRepresentation):
 
     def _generate_post(self):
         metadata = self._attrs
-        chunks = []
         return (metadata, ("chunks", []))
 
 class MinimalNotebook(MinimalRepresentation):

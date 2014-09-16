@@ -544,18 +544,17 @@ class ProfilePlot(object):
         >>> pp.save()
 
         """
-        for i, p in enumerate(self.profiles):
-            if field is 'all':
-                fields = self.axes.keys()
-            else:
-                fields = ensure_list(field)
-            for profile in self.profiles:
-                for field in profile.data_source._determine_fields(fields):
-                    if field in profile.field_map:
-                        field = profile.field_map[field]
-                    self.axes.ylim[field] = (ymin, ymax)
-                    # Continue on to the next profile.
-                    break
+        if field is 'all':
+            fields = self.axes.keys()
+        else:
+            fields = ensure_list(field)
+        for profile in self.profiles:
+            for field in profile.data_source._determine_fields(fields):
+                if field in profile.field_map:
+                    field = profile.field_map[field]
+                self.axes.ylim[field] = (ymin, ymax)
+                # Continue on to the next profile.
+                break
         return self
 
     def _get_field_log(self, field_y, profile):
