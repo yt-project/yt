@@ -1189,16 +1189,15 @@ class YTSelectionContainer3D(YTSelectionContainer):
         return self._particle_handler
 
 
-    def volume(self, unit = "unitary"):
+    def volume(self):
         """
-        Return the volume of the data container in units *unit*.
+        Return the volume of the data container.
         This is found by adding up the volume of the cells with centers
         in the container, rather than using the geometric shape of
         the container, so this may vary very slightly
         from what might be expected from the geometric volume.
         """
-        return self.quantities["TotalQuantity"]("CellVolume")[0] * \
-            (self.ds[unit] / self.ds['cm']) ** 3.0
+        return self.quantities.total_quantity(("index", "cell_volume"))
 
 # Many of these items are set up specifically to ensure that
 # we are not breaking old pickle files.  This means we must only call the
