@@ -204,12 +204,17 @@ class GadgetDataset(ParticleDataset):
         self.file_count = hvals["NumFiles"]
 
     def _set_code_unit_attributes(self):
-        # Set a sane default for cosmological simulations (Gadget-2 users guide).
-        if self._unit_base is None and self.cosmological_simulation == 1:
-            mylog.info("Assuming length units are in kpc/h (comoving)")
-            self._unit_base = dict(length = (1.0, "kpccm/h"))
-        # The other sane defaults we will use from the standard Gadget
-        # defaults.
+        # If no units passed in by user, set a sane default (Gadget-2 users guide).
+        if self._unit_base is None:
+            if self.cosmological_simulation == 1:
+                mylog.info("Assuming length units are in kpc/h (comoving)")
+                self._unit_base = dict(length = (1.0, "kpccm/h"))
+            else:
+                mylog.info("Assuming length units are in kpc (physical)")
+                self._unit_base = dict(length = (1.0, "kpc"))
+                
+        # If units passed in by user, decide what to do about
+        # co-moving and factors of h
         unit_base = self._unit_base or {}
         if "length" in unit_base:
             length_unit = unit_base["length"]
@@ -232,6 +237,7 @@ class GadgetDataset(ParticleDataset):
             velocity_unit = (1e5, "cm/s")
         velocity_unit = _fix_unit_ordering(velocity_unit)
         self.velocity_unit = self.quan(velocity_unit[0], velocity_unit[1])
+
         # We set hubble_constant = 1.0 for non-cosmology, so this is safe.
         # Default to 1e10 Msun/h if mass is not specified.
         if "mass" in unit_base:
