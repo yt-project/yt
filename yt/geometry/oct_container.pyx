@@ -281,7 +281,7 @@ cdef class OctreeContainer:
             dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
             ind[i] = <np.int64_t> (floor((ppos[i] - self.DLE[i])/dds[i]))
             cp[i] = (ind[i] + 0.5) * dds[i] + self.DLE[i]
-            ipos[i] = ind[i]
+            ipos[i] = 0 # We add this to ind later, so it should be zero.
             ind32[i] = ind[i]
         self.get_root(ind32, &next)
         # We want to stop recursing when there's nowhere else to go
