@@ -804,7 +804,8 @@ class YTSelectionContainer2D(YTSelectionContainer):
         skip += list(set(frb._exclude_fields).difference(set(self._key_fields)))
         self.fields = ensure_list(fields) + \
             [k for k in self.field_data if k not in skip]
-        (bounds, center) = get_window_parameters(axis, center, width, self.ds)
+        (bounds, center, display_center) = \
+            get_window_parameters(axis, center, width, self.ds)
         pw = PWViewerMPL(self, bounds, fields=self.fields, origin=origin,
                          frb_generator=frb, plot_type=plot_type)
         pw._setup_plots()
