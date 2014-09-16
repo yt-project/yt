@@ -42,7 +42,8 @@ from yt.extern.six.moves import \
     StringIO
 from yt.funcs import \
     mylog, iterable, ensure_list, \
-    fix_axis, validate_width_tuple
+    fix_axis, validate_width_tuple, \
+    fix_unitary
 from yt.units.unit_object import \
     Unit
 from yt.units.unit_registry import \
@@ -75,108 +76,15 @@ try:
 except ImportError:
     from pyparsing import ParseFatalException
 
-def fix_unitary(u):
-    if u == '1':
-        return 'unitary'
-    else:
-        return u
-
-def validate_iterable_width(width, ds, unit=None):
-    if isinstance(width[0], tuple) and isinstance(width[1], tuple):
-        validate_width_tuple(width[0])
-        validate_width_tuple(width[1])
-        return (ds.quan(width[0][0], fix_unitary(width[0][1])),
-                ds.quan(width[1][0], fix_unitary(width[1][1])))
-    elif isinstance(width[0], Number) and isinstance(width[1], Number):
-        return (ds.quan(width[0], 'code_length'),
-                ds.quan(width[1], 'code_length'))
-    elif isinstance(width[0], YTQuantity) and isinstance(width[1], YTQuantity):
-        return (ds.quan(width[0]), ds.quan(width[1]))
-    else:
-        validate_width_tuple(width)
-        # If width and unit are both valid width tuples, we
-        # assume width controls x and unit controls y
-        try:
-            validate_width_tuple(unit)
-            return (ds.quan(width[0], fix_unitary(width[1])),
-                    ds.quan(unit[0], fix_unitary(unit[1])))
-        except YTInvalidWidthError:
-            return (ds.quan(width[0], fix_unitary(width[1])),
-                    ds.quan(width[0], fix_unitary(width[1])))
-
-def get_sanitized_width(axis, width, depth, ds):
-    if width is None:
-        # Default to code units
-        if not iterable(axis):
-            xax = ds.coordinates.x_axis[axis]
-            yax = ds.coordinates.y_axis[axis]
-            w = ds.domain_width[[xax, yax]]
-        else:
-            # axis is actually the normal vector
-            # for an off-axis data object.
-            mi = np.argmin(ds.domain_width)
-            w = ds.domain_width[[mi,mi]]
-        width = (w[0], w[1])
-    elif iterable(width):
-        width = validate_iterable_width(width, ds)
-    elif isinstance(width, YTQuantity):
-        width = (width, width)
-    elif isinstance(width, Number):
-        width = (ds.quan(width, 'code_length'),
-                 ds.quan(width, 'code_length'))
-    else:
-        raise YTInvalidWidthError(width)
-    if depth is not None:
-        if iterable(depth):
-            validate_width_tuple(depth)
-            depth = (ds.quan(depth[0], fix_unitary(depth[1])), )
-        elif isinstance(depth, Number):
-            depth = (ds.quan(depth, 'code_length',
-                     registry = ds.unit_registry), )
-        elif isinstance(depth, YTQuantity):
-            depth = (depth, )
-        else:
-            raise YTInvalidWidthError(depth)
-        return width + depth
-    return width
-
-def get_sanitized_center(center, ds):
-    if isinstance(center, basestring):
-        if center.lower() == "m" or center.lower() == "max":
-            v, center = ds.find_max(("gas", "density"))
-            center = ds.arr(center, 'code_length')
-        elif center.lower() == "c" or center.lower() == "center":
-            center = (ds.domain_left_edge + ds.domain_right_edge) / 2
-        else:
-            raise RuntimeError('center keyword \"%s\" not recognized' % center)
-    elif isinstance(center, YTArray):
-        return ds.arr(center)
-    elif iterable(center):
-        if iterable(center[0]) and isinstance(center[1], basestring):
-            center = ds.arr(center[0], center[1])
-        else:
-            center = ds.arr(center, 'code_length')
-    else:
-        raise RuntimeError("center keyword \"%s\" not recognized" % center)
-    return center
-
 def get_window_parameters(axis, center, width, ds):
-    if ds.geometry == "cartesian" or ds.geometry == "spectral_cube":
-        width = get_sanitized_width(axis, width, None, ds)
-        center = get_sanitized_center(center, ds)
+    if ds.geometry in ("cartesian", "spectral_cube", "spherical"):
+        width = ds.coordinates.sanitize_width(axis, width, None)
+        center, display_center = ds.coordinates.sanitize_center(center, axis)
     elif ds.geometry in ("polar", "cylindrical"):
         # Set our default width to be the full domain
         width = [ds.domain_right_edge[0]*2.0, ds.domain_right_edge[0]*2.0]
         center = ds.arr([0.0, 0.0, 0.0], "code_length")
-    elif ds.geometry == "spherical":
-        if axis == 0:
-            width = ds.domain_width[1], ds.domain_width[2]
-            center = 0.5*(ds.domain_left_edge + ds.domain_right_edge)
-            center.convert_to_units("code_length")
-        else:
-            # Our default width here is the full domain
-            width = [ds.domain_right_edge[0]*2.0, ds.domain_right_edge[0]*2.0]
-            center = ds.arr([0.0, 0.0, 0.0], "code_length")
+        display_center = center.copy()
     elif ds.geometry == "geographic":
         c_r = ((ds.domain_right_edge + ds.domain_left_edge)/2.0)[2]
         center = ds.arr([0.0, 0.0, c_r], "code_length")
@@ -191,15 +99,15 @@ def get_window_parameters(axis, center, width, ds):
         raise NotImplementedError
     xax = ds.coordinates.x_axis[axis]
     yax = ds.coordinates.y_axis[axis]
-    bounds = (center[xax]-width[0] / 2,
-              center[xax]+width[0] / 2,
-              center[yax]-width[1] / 2,
-              center[yax]+width[1] / 2)
-    return (bounds, center)
+    bounds = (display_center[xax]-width[0] / 2,
+              display_center[xax]+width[0] / 2,
+              display_center[yax]-width[1] / 2,
+              display_center[yax]+width[1] / 2)
+    return (bounds, center, display_center)
 
 def get_oblique_window_parameters(normal, center, width, ds, depth=None):
-    width = get_sanitized_width(normal, width, depth, ds)
-    center = get_sanitized_center(center, ds)
+    display_center, center = ds.coordinates.sanitize_center(center, 4)
+    width = ds.coordinates.sanitize_width(normal, width, depth)
 
     if len(width) == 2:
         # Transforming to the cutting plane coordinate system
@@ -298,8 +206,9 @@ class PlotWindow(ImagePlotContainer):
             ax = self.data_source.axis
             xax = self.ds.coordinates.x_axis[ax]
             yax = self.ds.coordinates.y_axis[ax]
-            center = [self.data_source.center[xax],
-                      self.data_source.center[yax]]
+            center, display_center = self.ds.coordinates.sanitize_center(
+                self.data_source.center, ax)
+            center = [display_center[xax], display_center[yax]]
             self.set_center(center)
         for field in self.data_source._determine_fields(self.frb.data.keys()):
             finfo = self.data_source.ds._get_field_info(*field)
@@ -557,7 +466,8 @@ class PlotWindow(ImagePlotContainer):
 
         axes_unit = get_axes_unit(width, self.ds)
 
-        width = get_sanitized_width(self.frb.axis, width, None, self.ds)
+        width = self.ds.coordinates.sanitize_width(
+            self.frb.axis, width, None)
 
         centerx = (self.xlim[1] + self.xlim[0])/2.
         centery = (self.ylim[1] + self.ylim[0])/2.
@@ -880,25 +790,26 @@ class PWViewerMPL(PlotWindow):
                 labels = [r'$\rm{Image\/x'+axes_unit_labels[0]+'}$',
                           r'$\rm{Image\/y'+axes_unit_labels[1]+'}$']
             else:
-                axis_names = self.ds.coordinates.axis_name
-                xax = self.ds.coordinates.x_axis[axis_index]
-                yax = self.ds.coordinates.y_axis[axis_index]
+                coordinates = self.ds.coordinates
+                axis_names = coordinates.image_axis_name[axis_index]
+                xax = coordinates.x_axis[axis_index]
+                yax = coordinates.y_axis[axis_index]
 
-                if hasattr(self.ds.coordinates, "axis_default_unit_label"):
+                if hasattr(coordinates, "axis_default_unit_label"):
                     axes_unit_labels = \
-                    [self.ds.coordinates.axis_default_unit_name[xax],
-                     self.ds.coordinates.axis_default_unit_name[yax]]
-                labels = [r'$\rm{'+axis_names[xax]+axes_unit_labels[0] + r'}$',
-                          r'$\rm{'+axis_names[yax]+axes_unit_labels[1] + r'}$']
+                    [coordinates.axis_default_unit_name[xax],
+                     coordinates.axis_default_unit_name[yax]]
+                labels = [r'$\rm{'+axis_names[0]+axes_unit_labels[0] + r'}$',
+                          r'$\rm{'+axis_names[1]+axes_unit_labels[1] + r'}$']
 
-                if hasattr(self.ds.coordinates, "axis_field"):
-                    if xax in self.ds.coordinates.axis_field:
-                        xmin, xmax = self.ds.coordinates.axis_field[xax](
+                if hasattr(coordinates, "axis_field"):
+                    if xax in coordinates.axis_field:
+                        xmin, xmax = coordinates.axis_field[xax](
                             0, self.xlim, self.ylim)
                     else:
                         xmin, xmax = [float(x) for x in extentx]
-                    if yax in self.ds.coordinates.axis_field:
-                        ymin, ymax = self.ds.coordinates.axis_field[yax](
+                    if yax in coordinates.axis_field:
+                        ymin, ymax = coordinates.axis_field[yax](
                             1, self.xlim, self.ylim)
                     else:
                         ymin, ymax = [float(y) for y in extenty]
@@ -1095,7 +1006,8 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         self.ts = ts
         ds = self.ds = ts[0]
         axis = fix_axis(axis, ds)
-        (bounds, center) = get_window_parameters(axis, center, width, ds)
+        (bounds, center, display_center) = \
+                get_window_parameters(axis, center, width, ds)
         if field_parameters is None: field_parameters = {}
         slc = ds.slice(axis, center[axis],
             field_parameters = field_parameters, center=center)
@@ -1226,7 +1138,8 @@ class ProjectionPlot(PWViewerMPL):
         # If a non-weighted integral projection, assure field-label reflects that
         if weight_field is None and proj_style == "integrate":
             self.projected = True
-        (bounds, center) = get_window_parameters(axis, center, width, ds)
+        (bounds, center, display_center) = \
+                get_window_parameters(axis, center, width, ds)
         if field_parameters is None: field_parameters = {}
         proj = ds.proj(fields, axis, weight_field=weight_field,
                        center=center, data_source=data_source,

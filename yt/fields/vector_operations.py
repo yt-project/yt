@@ -123,7 +123,7 @@ def create_vector_fields(registry, basename, field_units,
     registry.add_field((ftype, "radial_%s" % basename),
                        function = _radial, units = field_units)
     registry.add_field((ftype, "radial_%s_absolute" % basename),
-                       function = _radial, units = field_units)
+                       function = _radial_absolute, units = field_units)
     registry.add_field((ftype, "tangential_%s" % basename),
                        function=_tangential, units = field_units)
 

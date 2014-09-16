@@ -418,7 +418,6 @@ class YTDataContainer(object):
         otherwise Glue will be started.
         """
         from glue.core import DataCollection, Data
-        from glue.core.coordinates import coordinates_from_header
         from glue.qt.glue_application import GlueApplication
         
         gdata = Data(label=label)
@@ -494,6 +493,18 @@ class YTDataContainer(object):
                     ftype = self._current_fluid_type
                     if (ftype, fname) not in self.ds.field_info:
                         ftype = self.ds._last_freq[0]
+
+                # really ugly check to ensure that this field really does exist somewhere,
+                # in some naming convention, before returning it as a possible field type
+                if (ftype,fname) not in self.ds.field_list and \
+                        fname not in self.ds.field_list and \
+                        (ftype,fname) not in self.ds.derived_field_list and \
+                        fname not in self.ds.derived_field_list and \
+                        (ftype,fname) not in self._container_fields:
+                    raise YTFieldNotFound((ftype,fname),self.ds)
+
+            # these tests are really insufficient as a field type may be valid, and the
+            # field name may be valid, but not the combination (field type, field name)
             if finfo.particle_type and ftype not in self.ds.particle_types:
                 raise YTFieldTypeNotFound(ftype)
             elif not finfo.particle_type and ftype not in self.ds.fluid_types:
@@ -621,7 +632,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 fields_to_generate.append(field)
                 continue
             fields_to_get.append(field)
-        if len(fields_to_get) == 0 and fields_to_generate == 0:
+        if len(fields_to_get) == 0 and len(fields_to_generate) == 0:
             return
         elif self._locked == True:
             raise GenerationInProgress(fields)
@@ -793,7 +804,8 @@ class YTSelectionContainer2D(YTSelectionContainer):
         skip += list(set(frb._exclude_fields).difference(set(self._key_fields)))
         self.fields = ensure_list(fields) + \
             [k for k in self.field_data if k not in skip]
-        (bounds, center) = get_window_parameters(axis, center, width, self.ds)
+        (bounds, center, display_center) = \
+            get_window_parameters(axis, center, width, self.ds)
         pw = PWViewerMPL(self, bounds, fields=self.fields, origin=origin,
                          frb_generator=frb, plot_type=plot_type)
         pw._setup_plots()

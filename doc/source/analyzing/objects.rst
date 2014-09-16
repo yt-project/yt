@@ -263,7 +263,7 @@ all the cells contained in a sphere at the center of our dataset.
 
    ds = load("my_data")
    sp = ds.sphere('c', (10, 'kpc'))
-   print ad.quantities.angular_momentum_vector()
+   print sp.quantities.angular_momentum_vector()
 
 Available Derived Quantities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
