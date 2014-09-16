@@ -32,6 +32,8 @@ from yt.frontends.boxlib.fields import \
 rho_units = "code_mass / code_length**3"
 mom_units = "code_mass / (code_time * code_length**2)"
 eden_units = "code_mass / (code_time**2 * code_length)" # erg / cm^3
+vel_units = "code_length / code_time"
+b_units = "code_magnetic"
 
 # Chombo does not have any known fields by itself.
 class ChomboFieldInfo(FieldInfoContainer):
@@ -94,6 +96,7 @@ class Orion2FieldInfo(ChomboFieldInfo):
         self.add_field("temperature", function=_temperature,
                        units="K")
 
+
 class ChomboPICFieldInfo3D(FieldInfoContainer):
     known_other_fields = (
         ("density", (rho_units, ["density", "Density"], None)),
@@ -112,9 +115,9 @@ class ChomboPICFieldInfo3D(FieldInfoContainer):
         ("particle_velocity_z", ("code_length / code_time", [], None)),
     )
 
-    # I am re-implementing this here to over-ride a few of the default behaviors:
-    # I don't want to skip output units for code_length and I want particle_fields
-    # to default to take_log = False. 
+    # I am re-implementing this here to override a few default behaviors:
+    # I don't want to skip output units for code_length and I do want
+    # particle_fields to default to take_log = False.
     def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64 ):
         skip_output_units = ()
         for f, (units, aliases, dn) in sorted(self.known_particle_fields):
@@ -204,7 +207,7 @@ class ChomboPICFieldInfo2D(ChomboPICFieldInfo3D):
         for ftype in fluid_field_types:
             self.add_field((ftype, 'gravitational_field_z'), function = _dummy_field, 
                             units = "code_length / code_time**2")
-        
+
         for ptype in particle_field_types:                
             self.add_field((ptype, "particle_position_z"), function = _dummy_position,
                            particle_type = True,
@@ -228,7 +231,7 @@ class ChomboPICFieldInfo1D(ChomboPICFieldInfo3D):
 
     def __init__(self, pf, field_list):
         super(ChomboPICFieldInfo1D, self).__init__(pf, field_list)
-        
+
         for ftype in fluid_field_types:
             self.add_field((ftype, 'gravitational_field_y'), function = _dummy_field, 
                             units = "code_length / code_time**2")
@@ -249,3 +252,17 @@ class ChomboPICFieldInfo1D(ChomboPICFieldInfo3D):
             self.add_field((ptype, "particle_velocity_z"), function = _dummy_velocity,
                            particle_type = True,
                            units = "code_length / code_time")
+
+class PlutoFieldInfo(ChomboFieldInfo):
+    known_other_fields = (
+        ("rho", (rho_units, ["density"], None)),
+        ("prs", ("code_mass / (code_length * code_time**2)", ["pressure"], None)),
+        ("vx1", (vel_units, ["velocity_x"], None)),
+        ("vx2", (vel_units, ["velocity_y"], None)),
+        ("vx3", (vel_units, ["velocity_z"], None)),
+        ("bx1", (b_units, ["magnetic_field_x"], None)),
+        ("bx2", (b_units, ["magnetic_field_y"], None)),
+        ("bx3", (b_units, ["magnetic_field_z"], None)),
+    )
+
+    known_particle_fields = ()

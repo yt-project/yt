@@ -52,3 +52,15 @@ def test_zp():
     for test in small_patch_amr(zp, _zp_fields, input_center="c", input_weight="rhs"):
         test_tb.__name__ = test.description
         yield test
+
+_khp_fields = ("density", "velocity_magnitude", #"velocity_divergence",
+           "magnetic_field_x")
+
+kho = "KelvinHelmholtz/data.0004.hdf5"
+@requires_ds(kho)
+def test_kho():
+    ds = data_dir_load(kho)
+    yield assert_equal, str(ds), "data.0004.hdf5"
+    for test in small_patch_amr(kho, _fields):
+        test_gc.__name__ = test.description
+        yield test
