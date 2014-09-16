@@ -307,12 +307,6 @@ class OWLSDataset(GadgetHDF5Dataset):
         hvals["NumFiles"] = hvals["NumFilesPerSnapshot"]
         hvals["Massarr"] = hvals["MassTable"]
 
-        self.dimensionality = 3
-        self.refine_by = 2
-        self.parameters["HydroMethod"] = "sph"
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-
         # Set standard values
         self.current_time = hvals[self._time_readin] * \
                             sec_conversion["Gyr"] * yt.units.s
@@ -388,11 +382,6 @@ class EagleDataset(GadgetHDF5Dataset):
         hvals["NumFiles"] = hvals["NumFilesPerSnapshot"]
         hvals["Massarr"] = hvals["MassTable"]
 
-        self.dimensionality = 3
-        self.refine_by = 2
-        self.parameters["HydroMethod"] = "sph"
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         # Set standard values
         if self.domain_left_edge is None:
