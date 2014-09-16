@@ -43,18 +43,14 @@ def create_magnitude_field(registry, basename, field_units,
                            ftype = "gas", slice_info = None,
                            validators = None, particle_type=False):
 
-    xn, yn, zn = [(ftype, "%s_%s" % (basename, ax)) for ax in 'xyz']
-
-    # Is this safe?
-    if registry.ds.dimensionality < 3:
-        zn = ("index", "zeros")
-    if registry.ds.dimensionality < 2:
-        yn = ("index", "zeros")
+    field_components = [(ftype, "%s_%s" % (basename, ax)) for ax in 'xyz']
 
     def _magnitude(field, data):
-        mag  = data[xn] * data[xn]
-        mag += data[yn] * data[yn]
-        mag += data[zn] * data[zn]
+        fn = field_components[0]
+        mag = data[fn] * data[fn]
+        for idim in np.arange(1, registry.ds.dimensionality):
+            fn = field_components[idim]
+            mag += data[fn] * data[fn]
         return np.sqrt(mag)
 
     registry.add_field((ftype, "%s_magnitude" % basename),
