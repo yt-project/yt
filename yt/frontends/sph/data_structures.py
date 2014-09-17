@@ -451,7 +451,7 @@ class EagleDataset(GadgetHDF5Dataset):
         return valid
 
 
-class EagleNetworkDataset(OWLSDataset):
+class EagleNetworkDataset(EagleDataset):
     _particle_mass_name = "Mass"
     _field_info_class = EagleNetworkFieldInfo
     _time_readin = 'Time'
