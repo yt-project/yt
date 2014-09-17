@@ -22,7 +22,8 @@ from yt.utilities.answer_testing.framework import \
     data_dir_load
 from yt.frontends.chombo.api import \
     ChomboDataset, \
-    Orion2Dataset
+    Orion2Dataset, \
+    PlutoDataset
 
 _fields = ("density", "velocity_magnitude",  # "velocity_divergence",
            "magnetic_field_x")
