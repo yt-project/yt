@@ -364,7 +364,6 @@ class HaloCatalog(ParallelAnalysisInterface):
         if self.halos_ds is None:
             # Find the halos and make a dataset of them
             self.halos_ds = self.finder_method(self.data_ds)
-            self.halos_ds.index
             if self.halos_ds is None:
                 mylog.warning('No halos were found for {0}'.format(\
                         self.data_ds.basename))
@@ -373,6 +372,7 @@ class HaloCatalog(ParallelAnalysisInterface):
                     self.save_catalog()
                     self.halos_ds = None
                 return
+            self.halos_ds.index
 
             # Assign ds and data sources appropriately
             self.data_source = self.halos_ds.all_data()
