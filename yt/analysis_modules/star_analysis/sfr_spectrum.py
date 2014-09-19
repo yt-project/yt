@@ -34,7 +34,7 @@ class StarFormationRate(object):
     
     Parameters
     ----------
-    pf : EnzoDataset object
+    ds : EnzoDataset object
     data_source : AMRRegion object, optional
         The region from which stars are extracted for analysis. If this
         is not supplied, the next three must be, otherwise the next
@@ -51,13 +51,13 @@ class StarFormationRate(object):
     Examples
     --------
     
-    >>> pf = load("RedshiftOutput0000")
-    >>> sp = pf.sphere([0.5,0.5,0.5], [.1])
-    >>> sfr = StarFormationRate(pf, sp)
+    >>> ds = load("RedshiftOutput0000")
+    >>> sp = ds.sphere([0.5,0.5,0.5], [.1])
+    >>> sfr = StarFormationRate(ds, sp)
     """
-    def __init__(self, pf, data_source=None, star_mass=None,
+    def __init__(self, ds, data_source=None, star_mass=None,
             star_creation_time=None, volume=None, bins=300):
-        self._pf = pf
+        self._ds = ds
         self._data_source = data_source
         self.star_mass = np.array(star_mass)
         self.star_creation_time = np.array(star_creation_time)
@@ -80,9 +80,9 @@ class StarFormationRate(object):
             self.mode = 'data_source'
         # Set up for time conversion.
         self.cosm = Cosmology(
-             hubble_constant = self._pf.hubble_constant,
-             omega_matter = self._pf.omega_matter,
-             omega_lambda = self._pf.omega_lambda)
+             hubble_constant = self._ds.hubble_constant,
+             omega_matter = self._ds.omega_matter,
+             omega_lambda = self._ds.omega_lambda)
         # Find the time right now.
         self.time_now = self._pf.current_time.in_units('s') # seconds
         # Build the distribution.
