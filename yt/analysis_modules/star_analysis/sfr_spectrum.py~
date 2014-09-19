@@ -274,7 +274,7 @@ class SpectrumBuilder(object):
     >>> ds = load("RedshiftOutput0000")
     >>> spec = SpectrumBuilder(ds, "/home/user/bc/", model="salpeter")
     """
-    def __init__(self, ds, bcdir="", model="chabrier", time_now=None, filter = None):
+    def __init__(self, ds, bcdir="", model="chabrier", time_now=None), filter = None:
         self._ds = ds
         self.bcdir = bcdir
         self._filter = filter
