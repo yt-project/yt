@@ -405,6 +405,8 @@ def virial_quantities(halo, fields, critical_overdensity=200,
                halo.quantities["particle_identifier"])
 
     fields = ensure_list(fields)
+    fields = [halo.halo_catalog.data_source._determine_fields(field)[0]
+              for field in fields]
     
     dds = halo.halo_catalog.data_ds
     profile_data = getattr(halo, profile_storage)
