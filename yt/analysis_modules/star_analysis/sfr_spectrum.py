@@ -83,9 +83,9 @@ class StarFormationRate(object):
         else:
             self.mode = 'data_source'
         if filter is None:
-            self.filter = 'provided'
+            self.filter = 'type7'         
         else:
-            self.filter = 'type7'
+            self.filter = 'provided'
         # Set up for time conversion.
         self.cosm = Cosmology(
              hubble_constant = self._ds.hubble_constant,
@@ -103,7 +103,7 @@ class StarFormationRate(object):
         Build the data for plotting.
         """
         # Pick out the stars.
-        if self.filter == 'provided'
+        if self.filter == 'provided':
           ct = self._filter['creation_time']
           mass_stars = self._filter['particle_mass']
         else:
@@ -385,7 +385,7 @@ class SpectrumBuilder(object):
                 self.star_metal = star_metallicity_fraction
         else:
             # Get the data we need.
-            if self.filter == 'provided'
+            if self.filter == 'provided':
              ct = self._filter['creation_time']
              mass_stars = self._filter['particle_mass']
              if star_metallicity_constant is not None:
