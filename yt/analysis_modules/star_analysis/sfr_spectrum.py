@@ -105,7 +105,7 @@ class StarFormationRate(object):
         # Pick out the stars.
         if self.filter == 'provided':
           ct = self._filter['creation_time']
-          mass_stars = self._filter['particle_mass']
+          mass_stars = self._filter['particle_mass'].in_units('Msun')
         else:
           if self.mode == 'data_source':
             type = self._data_source['particle_type']
@@ -392,12 +392,12 @@ class SpectrumBuilder(object):
             # Get the data we need.
             if self.filter == 'provided':
              ct = self._filter['creation_time']
-             mass_stars = self._filter['particle_mass']
+             mass_stars = self._filter['particle_mass'].in_units('Msun')
              if star_metallicity_constant is not None:
                 self.star_metal = np.ones(self.star_mass.size, dtype='float64') * \
                     star_metallicity_constant
              else:
-                self._filter["metallicity_fraction"]
+                self._filter["metallicity_fraction"].in_units('Zsun')
             else:
               ct = self._data_source["creation_time"]
               type = self._data_source['particle_type']
