@@ -798,12 +798,14 @@ class YTSelectionContainer2D(YTSelectionContainer):
     def _get_pw(self, fields, center, width, origin, plot_type):
         from yt.visualization.plot_window import \
             get_window_parameters, PWViewerMPL
-        from yt.visualization.fixed_resolution import FixedResolutionBuffer as frb
+        from yt.visualization.fixed_resolution import \
+            FixedResolutionBuffer as frb
         axis = self.axis
         skip = self._key_fields
         skip += list(set(frb._exclude_fields).difference(set(self._key_fields)))
-        self.fields = ensure_list(fields) + \
-            [k for k in self.field_data if k not in skip]
+        self.fields = [k for k in self.field_data if k not in skip]
+        if fields is not None:
+            self.fields = ensure_list(fields) + self.fields
         (bounds, center, display_center) = \
             get_window_parameters(axis, center, width, self.ds)
         pw = PWViewerMPL(self, bounds, fields=self.fields, origin=origin,
