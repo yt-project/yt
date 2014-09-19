@@ -186,7 +186,7 @@ class StarFormationRate(object):
         The columns in the output file are:
            1. Time (yrs)
            2. Look-back time (yrs)
-           #3. Redshift
+           3. Redshift
            4. Star formation rate in this bin per year (Msol/yr)
            5. Star formation rate in this bin per year per Mpc**3 (Msol/yr/Mpc**3)
            6. Stars formed in this time bin (Msol)
