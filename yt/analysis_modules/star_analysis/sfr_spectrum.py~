@@ -109,7 +109,7 @@ class StarFormationRate(object):
         # Find the oldest stars in units of code time.
         tmin= min(ct_stars)
         # Multiply the end to prevent numerical issues.
-        self.time_bins = np.linspace(tmin*1.01, self._ds.current_time,
+        self.time_bins = np.linspace(tmin*1.01, self._pf.current_time,
             num = self.bin_count + 1)
         # Figure out which bins the stars go into.
         inds = np.digitize(ct_stars, self.time_bins) - 1
@@ -138,7 +138,7 @@ class StarFormationRate(object):
                 vol = ds['cell_volume'].in_units('Mpccm**3').sum()
         elif self.mode == 'provided':
             vol = self['cell_volume'].in_units('Mpccm**3').sum()
-        #tc = self._ds["Time"] # code time to seconds conversion factor
+        #tc = self._pf["Time"] # code time to seconds conversion factor
         self.time = []
         self.lookback_time = []
         self.redshift = []
@@ -250,7 +250,7 @@ class SpectrumBuilder(object):
     
     Parameters
     ----------
-    ds : EnzoDataset object
+    pf : EnzoDataset object
     bcdir : String
         Path to directory containing Bruzual & Charlot h5 fit files.
     model : String
@@ -259,11 +259,11 @@ class SpectrumBuilder(object):
     
     Examples
     --------
-    >>> ds = load("RedshiftOutput0000")
-    >>> spec = SpectrumBuilder(ds, "/home/user/bc/", model="salpeter")
+    >>> pf = load("RedshiftOutput0000")
+    >>> spec = SpectrumBuilder(pf, "/home/user/bc/", model="salpeter")
     """
-    def __init__(self, ds, bcdir="", model="chabrier", time_now=None):
-        self._ds = ds
+    def __init__(self, pf, bcdir="", model="chabrier", time_now=None):
+        self._pf = pf
         self.bcdir = bcdir
         
         if model == "chabrier":
@@ -272,13 +272,13 @@ class SpectrumBuilder(object):
             self.model = SALPETER
         # Set up for time conversion.
         self.cosm = Cosmology(
-             hubble_constant = self._ds.hubble_constant,
-             omega_matter = self._ds.omega_matter,
-             omega_lambda = self._ds.omega_lambda)
+             hubble_constant = self._pf.hubble_constant,
+             omega_matter = self._pf.omega_matter,
+             omega_lambda = self._pf.omega_lambda)
         # Find the time right now.
         
         if time_now is None:
-            self.time_now = self._ds.current_time.in_units('s') # seconds
+            self.time_now = self._pf.current_time.in_units('s') # seconds
         else:
             self.time_now = time_now
         
@@ -331,7 +331,7 @@ class SpectrumBuilder(object):
         
         Examples
         --------
-        >>> sp = ds.sphere([0.5,0.5,0.5], [.1])
+        >>> sp = pf.sphere([0.5,0.5,0.5], [.1])
         >>> spec.calculate_spectrum(data_source=sp, min_age = 1.e6)
         """
         # Initialize values
