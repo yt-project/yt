@@ -47,6 +47,9 @@ class StarFormationRate(object):
         The comoving volume of the region for the specified list of stars.
     bins : Integer
         The number of time bins used for binning the stars. Default = 300.
+    filter : A user-defined filtering rule for stars. 
+        See: http://yt-project.org/docs/dev/analyzing/filtering.html
+        Default: particle_type == 7
     
     Examples
     --------
