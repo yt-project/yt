@@ -47,6 +47,9 @@ class StarFormationRate(object):
         The comoving volume of the region for the specified list of stars.
     bins : Integer
         The number of time bins used for binning the stars. Default = 300.
+    filter : A user-defined filtering rule for stars. 
+        See: http://yt-project.org/docs/dev/analyzing/filtering.html
+        Default: particle_type == 7
     
     Examples
     --------
@@ -56,9 +59,10 @@ class StarFormationRate(object):
     >>> sfr = StarFormationRate(ds, sp)
     """
     def __init__(self, ds, data_source=None, star_mass=None,
-            star_creation_time=None, volume=None, bins=300):
+            star_creation_time=None, volume=None, bins=300,filter=None):
         self._ds = ds
         self._data_source = data_source
+        self._filter = filter
         self.star_mass = np.array(star_mass)
         self.star_creation_time = np.array(star_creation_time)
         self.volume = volume
@@ -78,6 +82,10 @@ class StarFormationRate(object):
             self.mode = 'provided'
         else:
             self.mode = 'data_source'
+        if filter is None:
+            self.filter = 'provided'
+        else:
+            self.filter = 'type7'
         # Set up for time conversion.
         self.cosm = Cosmology(
              hubble_constant = self._ds.hubble_constant,
@@ -95,7 +103,11 @@ class StarFormationRate(object):
         Build the data for plotting.
         """
         # Pick out the stars.
-        if self.mode == 'data_source':
+        if self.filter == 'provided'
+          ct = self._filter['creation_time']
+          mass_stars = self._filter['particle_mass']
+        else:
+          if self.mode == 'data_source':
             type = self._data_source['particle_type']
             ct = self._data_source['creation_time']
             if ct == None :
@@ -103,7 +115,7 @@ class StarFormationRate(object):
                 sys.exit(1)
             ct_stars = ct[type==7]
             mass_stars = self._data_source['particle_mass'][type==7].in_units('Msun')
-        elif self.mode == 'provided':
+          elif self.mode == 'provided':
             ct_stars = self.star_creation_time
             mass_stars = self.star_mass
         # Find the oldest stars in units of code time.
@@ -373,14 +385,23 @@ class SpectrumBuilder(object):
                 self.star_metal = star_metallicity_fraction
         else:
             # Get the data we need.
-            ct = self._data_source["creation_time"]
-            type = self._data_source['particle_type']
-            self.star_creation_time = ct[type==7]
-            self.star_mass = self._data_source['particle_mass'][type==7].in_units('Msun')
-            if star_metallicity_constant is not None:
+            if self.filter == 'provided'
+             ct = self._filter['creation_time']
+             mass_stars = self._filter['particle_mass']
+             if star_metallicity_constant is not None:
                 self.star_metal = np.ones(self.star_mass.size, dtype='float64') * \
                     star_metallicity_constant
+             else:
+                self._filter["metallicity_fraction"]
             else:
+              ct = self._data_source["creation_time"]
+              type = self._data_source['particle_type']
+              self.star_creation_time = ct[type==7]
+              self.star_mass = self._data_source['particle_mass'][type==7].in_units('Msun')
+              if star_metallicity_constant is not None:
+                self.star_metal = np.ones(self.star_mass.size, dtype='float64') * \
+                    star_metallicity_constant
+              else:
                 self.star_metal = self._data_source["metallicity_fraction"][type==7].in_units('Zsun')
         # Age of star in years.
         dt = (self.time_now - self.star_creation_time).in_units('yr').tolist() 
