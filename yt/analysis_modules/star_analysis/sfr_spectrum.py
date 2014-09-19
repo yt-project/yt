@@ -141,16 +141,17 @@ class StarFormationRate(object):
         #tc = self._pf["Time"] # code time to seconds conversion factor
         self.time = []
         self.lookback_time = []
-        #self.redshift = []
+        self.redshift = []
         self.Msol_yr = []
         self.Msol_yr_vol = []
         self.Msol = []
         self.Msol_cumulative = []
+        co = Cosmology() 
         # Use the center of the time_bin, not the left edge.
         for i, time in enumerate((self.time_bins[1:] + self.time_bins[:-1])/2.):
             self.time.append(time.in_units('yr'))
-            self.lookback_time.append(self.time_now.in_units('yr') - time.in_units('yr')) 
-            # self.redshift.append(self.cosm.z_from_t(time.in_units('s')))
+            self.lookback_time.append(self.time_now.in_units('yr') - time.in_units('yr'))
+            self.redshift.append(co.z_from_t(time.in_units('s')))
             self.Msol_yr.append(self.mass_bins[i] / \
                 (self.time_bins_dt[i].in_units('yr')))
             # changed vol from mpc to mpccm used in literature
@@ -160,7 +161,7 @@ class StarFormationRate(object):
             self.Msol_cumulative.append(self.cum_mass_bins[i])
         self.time = np.array(self.time)
         self.lookback_time = np.array(self.lookback_time)
-        #self.redshift = np.array(self.redshift)
+        self.redshift = np.array(self.redshift)
         self.Msol_yr = np.array(self.Msol_yr)
         self.Msol_yr_vol = np.array(self.Msol_yr_vol)
         self.Msol = np.array(self.Msol)
@@ -189,12 +190,12 @@ class StarFormationRate(object):
         >>> sfr.write_out("stars-SFR.out")
         """
         fp = open(name, "w")
-        fp.write("#time\tlookback\tMsol/yr\tMsol/yr/Mpc3\tMsol\tcumMsol\t\n")
+        fp.write("#time\tlookback\tredshift\tMsol/yr\tMsol/yr/Mpc3\tMsol\tcumMsol\t\n")
         for i, time in enumerate(self.time):
-            line = "%1.5e %1.5e %1.5e %1.5e %1.5e %1.5e\n" % \
+            line = "%1.5e %1.5e %1.5e %1.5e %1.5e %1.5e %1.5e\n" % \
             (time, # Time
             self.lookback_time[i], # Lookback time 
-            #self.redshift[i], # Redshift 
+            self.redshift[i], # Redshift 
             self.Msol_yr[i], # Msol/yr
             self.Msol_yr_vol[i], # Msol/yr/vol
             self.Msol[i], # Msol in bin
@@ -382,7 +383,7 @@ class SpectrumBuilder(object):
             else:
                 self.star_metal = self._data_source["metallicity_fraction"][type==7].in_units('Zsun')
         # Age of star in years.
-        dt = (self.time_now - self.star_creation_time).in_units('yr').tolist() #This is where I am
+        dt = (self.time_now - self.star_creation_time).in_units('yr').tolist() 
         dt = np.maximum(dt, 0.0)
         # Remove young stars
         sub = dt >= self.min_age
