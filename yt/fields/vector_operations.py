@@ -48,7 +48,7 @@ def create_magnitude_field(registry, basename, field_units,
     def _magnitude(field, data):
         fn = field_components[0]
         mag = data[fn] * data[fn]
-        for idim in np.arange(1, registry.ds.dimensionality):
+        for idim in range(1, registry.ds.dimensionality):
             fn = field_components[idim]
             mag += data[fn] * data[fn]
         return np.sqrt(mag)
@@ -66,7 +66,7 @@ def create_squared_field(registry, basename, field_units,
     def _squared(field, data):
         fn = field_components[0]
         squared  = data[fn] * data[fn]
-        for idim in np.arange(1, registry.ds.dimensionality):
+        for idim in range(1, registry.ds.dimensionality):
             fn = field_components[idim]
             squared += data[fn] * data[fn]
         return squared
