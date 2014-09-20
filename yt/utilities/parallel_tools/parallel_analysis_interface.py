@@ -53,9 +53,28 @@ op_names = dict(
         max = "MPI.MAX"
 )
 
+class FilterAllMessages(logging.Filter):
+    """
+    This is a simple filter for logging.Logger's that won't let any 
+    messages pass.
+    """
+    def filter(self, record):
+        return 0
+
 # Set up translation table and import things
 
-def enable_parallelism():
+def enable_parallelism(suppress_logging=False):
+    """
+    This method is used inside a script to turn on MPI parallelism, via 
+    mpi4py.  More information about running yt in parallel can be found
+    here: http://yt-project.org/docs/3.0/analyzing/parallel_computation.html
+    
+    Parameters
+    ----------
+    suppress_logging : bool
+       If set to True, only rank 0 will log information after the initial
+       setup of MPI.
+    """
     global parallel_capable, MPI
     try:
         from mpi4py import MPI as _MPI
@@ -104,6 +123,10 @@ def enable_parallelism():
         min = MPI.MIN,
         max = MPI.MAX
     ))
+    # Turn off logging on all but the root rank, if specified.
+    if suppress_logging:
+        if MPI.COMM_WORLD.rank > 0:
+            mylog.addFilter(FilterAllMessages())
     return True
 
 # Because the dtypes will == correctly but do not hash the same, we need this
