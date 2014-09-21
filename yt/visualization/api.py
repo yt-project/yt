@@ -52,9 +52,6 @@ from .profile_plotter import \
     ProfilePlot, \
     PhasePlot
 
-from .particle_plotter import \
-    ParticlePlot
-    
 from .base_plot_types import \
     get_multi_plot
 
