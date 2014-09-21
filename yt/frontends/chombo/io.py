@@ -12,14 +12,14 @@ The data-file handling functions
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-import h5py
-import os
+
 import re
 import numpy as np
 from yt.utilities.logger import ytLogger as mylog
 
 from yt.utilities.io_handler import \
     BaseIOHandler
+
 
 class IOHandlerChomboHDF5(BaseIOHandler):
     _dataset_type = "chombo_hdf5"
@@ -67,19 +67,19 @@ class IOHandlerChomboHDF5(BaseIOHandler):
                 comp_number = int(re.match('particle_component_(\d)', key).groups()[0])
                 field_dict[val] = comp_number
         self._particle_field_index = field_dict
-        return self._particle_field_index        
-        
+        return self._particle_field_index
+
     def _read_field_names(self,grid):
         ncomp = int(self._handle.attrs['num_components'])
         fns = [c[1] for c in f.attrs.items()[-ncomp-1:-1]]
-    
+
     def _read_data(self,grid,field):
         lstring = 'level_%i' % grid.Level
         lev = self._handle[lstring]
         dims = grid.ActiveDimensions
         shape = grid.ActiveDimensions + 2*self.ghost
         boxsize = shape.prod()
-        
+
         grid_offset = lev[self._offset_string][grid._level_id]
         start = grid_offset+self.field_dict[field]*boxsize
         stop = start + boxsize
@@ -138,7 +138,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
 
             return rv
 
-        rv = {f:np.array([]) for f in fields}
+        rv = {f: np.array([]) for f in fields}
         for chunk in chunks:
             for grid in chunk.objs:
                 for ftype, fname in fields:
@@ -161,7 +161,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
 
         # convert between the global grid id and the id on this level            
         grid_levels = np.array([g.Level for g in self.ds.index.grids])
-        grid_ids    = np.array([g.id    for g in self.ds.index.grids])
+        grid_ids = np.array([g.id    for g in self.ds.index.grids])
         grid_level_offset = grid_ids[np.where(grid_levels == grid.Level)[0][0]]
         lo = grid.id - grid_level_offset
         hi = lo + 1
@@ -172,6 +172,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
 
         data = self._handle[lev]['particles:data'][offsets[lo]:offsets[hi]]
         return np.asarray(data[field_index::items_per_particle], dtype=np.float64, order='F')
+
 
 class IOHandlerChombo2DHDF5(IOHandlerChomboHDF5):
     _dataset_type = "chombo2d_hdf5"
@@ -185,6 +186,7 @@ class IOHandlerChombo2DHDF5(IOHandlerChomboHDF5):
         self.dim = 2
         self._read_ghost_info()
 
+
 class IOHandlerChombo1DHDF5(IOHandlerChomboHDF5):
     _dataset_type = "chombo1d_hdf5"
     _offset_string = 'data:offsets=0'
@@ -197,6 +199,7 @@ class IOHandlerChombo1DHDF5(IOHandlerChomboHDF5):
         self._handle = ds._handle
         self._read_ghost_info()
 
+
 class IOHandlerPlutoHDF5(IOHandlerChomboHDF5):
     _dataset_type = "pluto_chombo_native"
     _offset_string = 'data:offsets=0'
@@ -207,8 +210,78 @@ class IOHandlerPlutoHDF5(IOHandlerChomboHDF5):
         self.ds = ds
         self._handle = ds._handle
 
+
+def parse_orion_sinks(fn):
+    '''
+
+    Orion sink particles are stored in text files. This function
+    is for figuring what particle fields are present based on the
+    number of entries per line in the *.sink file.
+
+    '''
+
+    # Figure out the format of the particle file
+    with open(fn, 'r') as f:
+        lines = f.readlines()
+    line = lines[1]
+
+    # The basic fields that all sink particles have
+    index = {'particle_mass': 0,
+             'particle_position_x': 1,
+             'particle_position_y': 2,
+             'particle_position_z': 3,
+             'particle_momentum_x': 4,
+             'particle_momentum_y': 5,
+             'particle_momentum_z': 6,
+             'particle_angmomen_x': 7,
+             'particle_angmomen_y': 8,
+             'particle_angmomen_z': 9,
+             'particle_id': -1}
+
+    if len(line.strip().split()) == 11:
+        # these are vanilla sinks, do nothing
+        pass
+
+    elif len(line.strip().split()) == 17:
+        # these are old-style stars, add stellar model parameters
+        index['particle_mlast']     = 10
+        index['particle_r']         = 11
+        index['particle_mdeut']     = 12
+        index['particle_n']         = 13
+        index['particle_mdot']      = 14,
+        index['particle_burnstate'] = 15
+
+    elif len(line.strip().split()) == 18:
+        # these are the newer style, add luminosity as well
+        index['particle_mlast']     = 10
+        index['particle_r']         = 11
+        index['particle_mdeut']     = 12
+        index['particle_n']         = 13
+        index['particle_mdot']      = 14,
+        index['particle_burnstate'] = 15,
+        index['particle_luminosity']= 16
+
+    else:
+        # give a warning if none of the above apply:
+        mylog.warning('Warning - could not figure out particle output file')
+        mylog.warning('These results could be nonsense!')
+
+    return index
+
+
 class IOHandlerOrion2HDF5(IOHandlerChomboHDF5):
     _dataset_type = "orion_chombo_native"
+
+    _particle_field_index = None
+    @property
+    def particle_field_index(self):
+
+        fn = self.ds.fullplotdir[:-4] + "sink"
+
+        index = parse_orion_sinks(fn)
+
+        self._particle_field_index = index
+        return self._particle_field_index
 
     def _read_particles(self, grid, field):
         """
@@ -216,56 +289,9 @@ class IOHandlerOrion2HDF5(IOHandlerChomboHDF5):
 
         """
 
-        fn = grid.ds.fullplotdir[:-4] + "sink"
-
-        # Figure out the format of the particle file
-        with open(fn, 'r') as f:
-            lines = f.readlines()
-        line = lines[1]
-
-        # The basic fields that all sink particles have
-        index = {'particle_mass': 0,
-                 'particle_position_x': 1,
-                 'particle_position_y': 2,
-                 'particle_position_z': 3,
-                 'particle_momentum_x': 4,
-                 'particle_momentum_y': 5,
-                 'particle_momentum_z': 6,
-                 'particle_angmomen_x': 7,
-                 'particle_angmomen_y': 8,
-                 'particle_angmomen_z': 9,
-                 'particle_id': -1}
-
-        if len(line.strip().split()) == 11:
-            # these are vanilla sinks, do nothing
-            pass  
-
-        elif len(line.strip().split()) == 17:
-            # these are old-style stars, add stellar model parameters
-            index['particle_mlast']     = 10
-            index['particle_r']         = 11
-            index['particle_mdeut']     = 12
-            index['particle_n']         = 13
-            index['particle_mdot']      = 14,
-            index['particle_burnstate'] = 15
-
-        elif len(line.strip().split()) == 18:
-            # these are the newer style, add luminosity as well
-            index['particle_mlast']     = 10
-            index['particle_r']         = 11
-            index['particle_mdeut']     = 12
-            index['particle_n']         = 13
-            index['particle_mdot']      = 14,
-            index['particle_burnstate'] = 15,
-            index['particle_luminosity']= 16
-
-        else:
-            # give a warning if none of the above apply:
-            mylog.warning('Warning - could not figure out particle output file')
-            mylog.warning('These results could be nonsense!')
-            
         def read(line, field):
-            return float(line.strip().split(' ')[index[field]])
+            entry = line.strip().split(' ')[self.particle_field_index[field]]
+            return np.float(entry)
 
         fn = grid.ds.fullplotdir[:-4] + "sink"
         with open(fn, 'r') as f:
@@ -274,9 +300,9 @@ class IOHandlerOrion2HDF5(IOHandlerChomboHDF5):
             for line in lines[1:]:
                 if grid.NumberOfParticles > 0:
                     coord = read(line, "particle_position_x"), \
-                            read(line, "particle_position_y"), \
-                            read(line, "particle_position_z")
-                    if ( (grid.LeftEdge < coord).all() and
-                         (coord <= grid.RightEdge).all() ):
+                        read(line, "particle_position_y"), \
+                        read(line, "particle_position_z")
+                    if ((grid.LeftEdge <= coord).all() and
+                       (coord <= grid.RightEdge).all() ):
                         particles.append(read(line, field))
         return np.array(particles)
