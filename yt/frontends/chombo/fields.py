@@ -14,8 +14,13 @@ Chombo-specific fields
 #-----------------------------------------------------------------------------
 
 import numpy as np
+from yt.units.unit_object import Unit
 from yt.fields.field_info_container import \
-    FieldInfoContainer
+    FieldInfoContainer, \
+    particle_deposition_functions, \
+    particle_vector_functions, \
+    standard_particle_fields
+
 from yt.frontends.boxlib.fields import \
     rho_units, \
     mom_units, \
@@ -27,6 +32,8 @@ from yt.frontends.boxlib.fields import \
 rho_units = "code_mass / code_length**3"
 mom_units = "code_mass / (code_time * code_length**2)"
 eden_units = "code_mass / (code_time**2 * code_length)" # erg / cm^3
+vel_units = "code_length / code_time"
+b_units = "code_magnetic"
 
 # Chombo does not have any known fields by itself.
 class ChomboFieldInfo(FieldInfoContainer):
@@ -88,3 +95,174 @@ class Orion2FieldInfo(ChomboFieldInfo):
                        units = "erg/cm**3")
         self.add_field("temperature", function=_temperature,
                        units="K")
+
+
+class ChomboPICFieldInfo3D(FieldInfoContainer):
+    known_other_fields = (
+        ("density", (rho_units, ["density", "Density"], None)),
+        ("potential", ("code_length**2 / code_time**2", ["potential", "Potential"], None)),
+        ("gravitational_field_x", ("code_length / code_time**2", [], None)),
+        ("gravitational_field_y", ("code_length / code_time**2", [], None)),
+        ("gravitational_field_z", ("code_length / code_time**2", [], None)),
+    )
+    known_particle_fields = (
+        ("particle_mass", ("code_mass", [], None)),
+        ("particle_position_x", ("code_length", [], None)),
+        ("particle_position_y", ("code_length", [], None)),
+        ("particle_position_z", ("code_length", [], None)),
+        ("particle_velocity_x", ("code_length / code_time", [], None)),
+        ("particle_velocity_y", ("code_length / code_time", [], None)),
+        ("particle_velocity_z", ("code_length / code_time", [], None)),
+    )
+
+    # I am re-implementing this here to override a few default behaviors:
+    # I don't want to skip output units for code_length and I do want
+    # particle_fields to default to take_log = False.
+    def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64 ):
+        skip_output_units = ()
+        for f, (units, aliases, dn) in sorted(self.known_particle_fields):
+            units = self.ds.field_units.get((ptype, f), units)
+            if (f in aliases or ptype not in self.ds.particle_types_raw) and \
+                units not in skip_output_units:
+                u = Unit(units, registry = self.ds.unit_registry)
+                output_units = str(u.get_cgs_equivalent())
+            else:
+                output_units = units
+            if (ptype, f) not in self.field_list:
+                continue
+            self.add_output_field((ptype, f),
+                units = units, particle_type = True,
+                display_name = dn, output_units = output_units, take_log=False)
+            for alias in aliases:
+                self.alias((ptype, alias), (ptype, f), units = output_units)
+
+        # We'll either have particle_position or particle_position_[xyz]
+        if (ptype, "particle_position") in self.field_list or \
+           (ptype, "particle_position") in self.field_aliases:
+            particle_scalar_functions(ptype,
+                   "particle_position", "particle_velocity",
+                   self)
+        else:
+            # We need to check to make sure that there's a "known field" that
+            # overlaps with one of the vector fields.  For instance, if we are
+            # in the Stream frontend, and we have a set of scalar position
+            # fields, they will overlap with -- and be overridden by -- the
+            # "known" vector field that the frontend creates.  So the easiest
+            # thing to do is to simply remove the on-disk field (which doesn't
+            # exist) and replace it with a derived field.
+            if (ptype, "particle_position") in self and \
+                 self[ptype, "particle_position"]._function == NullFunc:
+                self.pop((ptype, "particle_position"))
+            particle_vector_functions(ptype,
+                    ["particle_position_%s" % ax for ax in 'xyz'],
+                    ["particle_velocity_%s" % ax for ax in 'xyz'],
+                    self)
+        particle_deposition_functions(ptype, "particle_position",
+            "particle_mass", self)
+        standard_particle_fields(self, ptype)
+        # Now we check for any leftover particle fields
+        for field in sorted(self.field_list):
+            if field in self: continue
+            if not isinstance(field, tuple):
+                raise RuntimeError
+            if field[0] not in self.ds.particle_types:
+                continue
+            self.add_output_field(field, 
+                                  units = self.ds.field_units.get(field, ""),
+                                  particle_type = True)
+        self.setup_smoothed_fields(ptype, 
+                                   num_neighbors=num_neighbors,
+                                   ftype=ftype)
+
+def _dummy_position(field, data):
+    return 0.5*np.ones_like(data['particle_position_x'])
+
+def _dummy_velocity(field, data):
+    return np.zeros_like(data['particle_velocity_x'])
+
+def _dummy_field(field, data):
+    return 0.0 * data['gravitational_field_x']
+
+fluid_field_types = ['chombo', 'gas']
+particle_field_types = ['io', 'all']
+
+class ChomboPICFieldInfo2D(ChomboPICFieldInfo3D):
+    known_other_fields = (
+        ("density", (rho_units, ["density", "Density"], None)),
+        ("potential", ("code_length**2 / code_time**2", ["potential", "Potential"], None)),
+        ("gravitational_field_x", ("code_length / code_time**2", [], None)),
+        ("gravitational_field_y", ("code_length / code_time**2", [], None)),
+    )
+    known_particle_fields = (
+        ("particle_mass", ("code_mass", [], None)),
+        ("particle_position_x", ("code_length", [], None)),
+        ("particle_position_y", ("code_length", [], None)),
+        ("particle_velocity_x", ("code_length / code_time", [], None)),
+        ("particle_velocity_y", ("code_length / code_time", [], None)),
+    )
+
+    def __init__(self, ds, field_list):
+        super(ChomboPICFieldInfo2D, self).__init__(ds, field_list)
+
+        for ftype in fluid_field_types:
+            self.add_field((ftype, 'gravitational_field_z'), function = _dummy_field, 
+                            units = "code_length / code_time**2")
+
+        for ptype in particle_field_types:                
+            self.add_field((ptype, "particle_position_z"), function = _dummy_position,
+                           particle_type = True,
+                           units = "code_length")
+
+            self.add_field((ptype, "particle_velocity_z"), function = _dummy_velocity,
+                           particle_type = True,
+                           units = "code_length / code_time")
+
+class ChomboPICFieldInfo1D(ChomboPICFieldInfo3D):
+    known_other_fields = (
+        ("density", (rho_units, ["density", "Density"], None)),
+        ("potential", ("code_length**2 / code_time**2", ["potential", "Potential"], None)),
+        ("gravitational_field_x", ("code_length / code_time**2", [], None)),
+    )
+    known_particle_fields = (
+        ("particle_mass", ("code_mass", [], None)),
+        ("particle_position_x", ("code_length", [], None)),
+        ("particle_velocity_x", ("code_length / code_time", [], None)),
+    )
+
+    def __init__(self, ds, field_list):
+        super(ChomboPICFieldInfo1D, self).__init__(ds, field_list)
+
+        for ftype in fluid_field_types:
+            self.add_field((ftype, 'gravitational_field_y'), function = _dummy_field, 
+                            units = "code_length / code_time**2")
+
+            self.add_field((ftype, 'gravitational_field_z'), function = _dummy_field, 
+                    units = "code_length / code_time**2")
+
+        for ptype in particle_field_types:
+            self.add_field((ptype, "particle_position_y"), function = _dummy_position,
+                           particle_type = True,
+                           units = "code_length")
+            self.add_field((ptype, "particle_position_z"), function = _dummy_position,
+                           particle_type = True,
+                           units = "code_length")
+            self.add_field((ptype, "particle_velocity_y"), function = _dummy_velocity,
+                           particle_type = True,
+                           units = "code_length / code_time")
+            self.add_field((ptype, "particle_velocity_z"), function = _dummy_velocity,
+                           particle_type = True,
+                           units = "code_length / code_time")
+
+class PlutoFieldInfo(ChomboFieldInfo):
+    known_other_fields = (
+        ("rho", (rho_units, ["density"], None)),
+        ("prs", ("code_mass / (code_length * code_time**2)", ["pressure"], None)),
+        ("vx1", (vel_units, ["velocity_x"], None)),
+        ("vx2", (vel_units, ["velocity_y"], None)),
+        ("vx3", (vel_units, ["velocity_z"], None)),
+        ("bx1", (b_units, ["magnetic_field_x"], None)),
+        ("bx2", (b_units, ["magnetic_field_y"], None)),
+        ("bx3", (b_units, ["magnetic_field_z"], None)),
+    )
+
+    known_particle_fields = ()
