@@ -649,6 +649,15 @@ class OrionHierarchy(BoxlibHierarchy):
         self.field_order = [f for f in self.field_list]
 
         # look for particle fields
+        self.particle_filename = None
+        for particle_filename in ["StarParticles", "SinkParticles"]:
+            fn = os.path.join(self.ds.output_dir, particle_filename)
+            if os.path.exists(fn):
+                self.particle_filename = fn
+
+        if self.particle_filename is None:
+            return
+
         pfield_list = [("io", c) for c in self.io.particle_field_index.keys()]
         self.field_list.extend(pfield_list)
 
@@ -663,9 +672,8 @@ class OrionHierarchy(BoxlibHierarchy):
         """
         self.grid_particle_count = np.zeros(len(self.grids))
 
-        for particle_filename in ["StarParticles", "SinkParticles"]:
-            fn = os.path.join(self.ds.output_dir, particle_filename)
-            if os.path.exists(fn): self._read_particle_file(fn)
+        if self.particle_filename is not None:
+            self._read_particle_file(self.particle_filename)
 
     def _read_particle_file(self, fn):
         """actually reads the orion particle data file itself.
