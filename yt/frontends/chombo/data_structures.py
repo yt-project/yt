@@ -18,6 +18,7 @@ import re
 import os
 import weakref
 import numpy as np
+import six
 
 from collections import \
      defaultdict
@@ -45,6 +46,7 @@ from yt.utilities.io_handler import \
 from .fields import ChomboFieldInfo, Orion2FieldInfo, \
     ChomboPICFieldInfo1D, ChomboPICFieldInfo2D, ChomboPICFieldInfo3D, \
     PlutoFieldInfo
+
 
 class ChomboGrid(AMRGridPatch):
     _id_offset = 0
@@ -90,6 +92,7 @@ class ChomboGrid(AMRGridPatch):
     def Children(self):
         return [self.index.grids[cid - self._id_offset]
                 for cid in self._children_ids]
+
 
 class ChomboHierarchy(GridIndex):
 
@@ -238,6 +241,7 @@ class ChomboHierarchy(GridIndex):
             for child in grid.Children:
                 child._parent_id.append(i + grid._id_offset)
 
+
 class ChomboDataset(Dataset):
     _index_class = ChomboHierarchy
     _field_info_class = ChomboFieldInfo
@@ -263,8 +267,8 @@ class ChomboDataset(Dataset):
         try:
             self.current_time = self._handle.attrs['time']
         except KeyError:
-            try: 
-                self.current_time = self._handle['level_0'].attrs['time']
+            try:
+                self.current_time = self._handle['/level_0'].attrs['time']
             except KeyError:
                 self.current_time = 0.0
 
@@ -354,7 +358,7 @@ class ChomboDataset(Dataset):
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False
 
-        if isinstance(args[0], str):
+        if isinstance(args[0], six.string_types): 
             dir_name = os.path.dirname(os.path.abspath(args[0]))
             pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
             orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
@@ -383,6 +387,7 @@ class ChomboDataset(Dataset):
                 continue
             v = getattr(self, a)
             mylog.info("Parameters: %-25s = %s", a, v)
+
 
 class PlutoHierarchy(ChomboHierarchy):
 
@@ -504,7 +509,7 @@ class PlutoDataset(ChomboDataset):
 
         pluto_ini_file_exists = False
 
-        if type(args[0]) == type(""):
+        if isinstance(args[0], six.string_types):
             dir_name = os.path.dirname(os.path.abspath(args[0]))
             pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
             pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
@@ -513,6 +518,7 @@ class PlutoDataset(ChomboDataset):
             return True
 
         return False
+
 
 class Orion2Hierarchy(ChomboHierarchy):
 
@@ -546,6 +552,7 @@ class Orion2Hierarchy(ChomboHierarchy):
                     ind = np.where(self.grids == grid)[0][0]
                     self.grid_particle_count[ind] += 1
                     self.grids[ind].NumberOfParticles += 1
+
 
 class Orion2Dataset(ChomboDataset):
 
@@ -625,10 +632,12 @@ class Orion2Dataset(ChomboDataset):
                 pass
         return False
 
+
 class ChomboPICHierarchy(ChomboHierarchy):
 
     def __init__(self, ds, dataset_type="chombo_hdf5"):
         ChomboHierarchy.__init__(self, ds, dataset_type)
+
 
 class ChomboPICDataset(ChomboDataset):
 
@@ -653,7 +662,7 @@ class ChomboPICDataset(ChomboDataset):
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False
 
-        if isinstance(args[0], str):
+        if isinstance(args[0], six.string_types):
             dir_name = os.path.dirname(os.path.abspath(args[0]))
             pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
             orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
