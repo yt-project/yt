@@ -24,6 +24,7 @@ import time
 import os
 import types
 
+import yt.units
 from yt.utilities.fortran_utils import read_record
 from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.particle_geometry_handler import \
@@ -313,7 +314,8 @@ class OWLSDataset(GadgetHDF5Dataset):
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         # Set standard values
-        self.current_time = hvals[self._time_readin] * sec_conversion["Gyr"]
+        self.current_time = hvals[self._time_readin] * \
+                            sec_conversion["Gyr"] * yt.units.s
         if self.domain_left_edge is None:
             self.domain_left_edge = np.zeros(3, "float64")
             self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]

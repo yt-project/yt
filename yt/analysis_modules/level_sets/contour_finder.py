@@ -32,7 +32,6 @@ def identify_contours(data_source, field, min_val, max_val,
     contours = {}
     node_ids = []
     DLE = data_source.ds.domain_left_edge
-    total_vol = None
     selector = getattr(data_source, "base_object", data_source).selector
     masks = dict((g.id, m) for g, m in data_source.blocks)
     for (g, node, (sl, dims, gi)) in data_source.tiles.slice_traverse():

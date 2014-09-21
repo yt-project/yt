@@ -151,19 +151,28 @@ Overplot grids
 Overplot Halo Annotations
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_halos(self, halo_catalog, col='white', alpha=1, \
-                             width=None):
+.. function:: annotate_halos(self, halo_catalog, circle_kwargs=None, width=None, \ 
+                             annotate_field=None, font_kwargs=None, factor=1.0):
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.HaloCatalogCallback`.)
 
    Accepts a :class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog` 
-   and plots a circle at the location of each
-   halo with the radius of the circle corresponding to the virial radius of the
-   halo.  If ``width`` is set to None (default) all halos are plotted.
-   Otherwise, only halos that fall within a slab with width ``width`` centered
-   on the center of the plot data. The color and transparency of the circles can
-   be controlled with ``col`` and ``alpha`` respectively.
+   and plots a circle at the location of each halo with the radius of the 
+   circle corresponding to the virial radius of the halo.  If ``width`` is set 
+   to None (default) all halos are plotted, otherwise it accepts a tuple in 
+   the form (1.0, ‘Mpc’) to only display halos that fall within a slab with 
+   width ``width`` centered on the center of the plot data.  The appearance of 
+   the circles can be changed with the circle_kwargs dictionary, which is 
+   supplied to the Matplotlib patch Circle.  One can label each of the halos 
+   with the annotate_field, which accepts a field contained in the halo catalog 
+   to add text to the plot near the halo (example: ``annotate_field=
+   'particle_mass'`` will write the halo mass next to each halo, whereas 
+   ``'particle_identifier'`` shows the halo number).  font_kwargs contains the 
+   arguments controlling the text appearance of the annotated field.
+   Factor is the number the virial radius is multiplied by for plotting the 
+   circles. Ex: ``factor=2.0`` will plot circles with twice the radius of each 
+   halo virial radius.
 
 .. python-script::
 
@@ -177,7 +186,7 @@ Overplot Halo Annotations
    hc.create()
 
    prj = yt.ProjectionPlot(data_ds, 'z', 'density')
-   prj.annotate_halos(hc)
+   prj.annotate_halos(hc, annotate_field='particle_identifier')
    prj.save()
 
 Overplot a Straight Line
