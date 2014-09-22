@@ -227,9 +227,9 @@ class GDFDataset(Dataset):
         if self.geometry is None:
             if "geometry" in sp:
                 try:
-                    self.geometry = GEOMETRY_TRANS[sp["geometry"]]
+                    self.geometry = GEOMETRY_TRANS[just_one(sp["geometry"])]
                 except KeyError:
-                    raise YTGDFUnknownGeometry(sp["geometry"])
+                    raise YTGDFUnknownGeometry(just_one(sp["geometry"]))
             else:
                 self.geometry = "cartesian"
         self.parameters.update(sp)
