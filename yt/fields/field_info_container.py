@@ -314,6 +314,7 @@ class FieldInfoContainer(dict):
                 if type(e) != YTFieldNotFound:
                     mylog.debug("Raises %s during field %s detection.",
                                 str(type(e)), field)
+                self.pop(field)
                 continue
             # This next bit checks that we can't somehow generate everything.
             # We also manually update the 'requested' attribute
