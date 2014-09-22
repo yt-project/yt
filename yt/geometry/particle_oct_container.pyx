@@ -477,17 +477,34 @@ cdef class ParticleForest:
                     total_pcount += counts[i,j,k]
         # Okay, now just to filter based on our mask.
         cdef int ind[3], arri
-        cdef np.ndarray[np.float64_t, ndim=2] pos
+        cdef np.ndarray pos
+        cdef np.ndarray[np.float32_t, ndim=2] pos32
+        cdef np.ndarray[np.float64_t, ndim=2] pos64
+        cdef np.float64_t ppos[3]
         cdef np.float64_t DLE[3], DRE[3]
+        cdef int bitsize = 0
         for i in range(self.nfiles):
             if file_ids[i] == 0: continue
             # We now get our particle positions
-            for _pos in io_handler._yield_coordinates(data_files[i]):
-                pos = np.asarray(_pos, dtype="float64")
+            for pos in io_handler._yield_coordinates(data_files[i]):
+                pos32 = pos64 = None
+                bitsize = 0
+                if pos.dtype == np.float32:
+                    pos32 = pos
+                    bitsize = 32
+                elif pos.dtype == np.float64:
+                    pos64 = pos
+                    bisize = 64
+                else:
+                    raise RuntimeError
                 for j in range(pos.shape[0]):
                     # First we get our cell index.
                     for k in range(3):
-                        ind[k] = <int> ((pos[j,k] - self.left_edge[k])*self.idds[k])
+                        if bitsize == 32:
+                            ppos[k] = pos32[j,k]
+                        else:
+                            ppos[k] = pos64[j,k]
+                        ind[k] = <int> ((ppos[k] - self.left_edge[k])*self.idds[k])
                     arri = forest_nodes[ind[0], ind[1], ind[2]]
                     if arri == -1: continue
                     # Now we have decided it's worth filtering, so let's toss
@@ -496,7 +513,7 @@ cdef class ParticleForest:
                         DLE[i] = self.left_edge[i] + self.dds[i]*ind[i]
                         DRE[i] = DLE[i] + self.dds[i]
                     morton_ind[particle_index[arri]] = bounded_morton(
-                        pos[j,0], pos[j,1], pos[j,2], DLE, DRE)
+                        ppos[0], ppos[1], ppos[2], DLE, DRE)
                     particle_index[arri] += 1
                     octree.next_root(1, ind)
         cdef int start, end = 0
