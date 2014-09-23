@@ -352,12 +352,19 @@ class AthenaDataset(Dataset):
     _dataset_type = "athena"
 
     def __init__(self, filename, dataset_type='athena',
-                 storage_filename=None, parameters=None):
+                 storage_filename=None, parameters=None,
+                 units_override=None):
         self.fluid_types += ("athena",)
         if parameters is None:
             parameters = {}
         self.specified_parameters = parameters
-        Dataset.__init__(self, filename, dataset_type)
+        if units_override is None:
+            units_override = {}
+        # This is for backwards-compatibility
+        for k,v in self.specified_parameters.items():
+            if k.endswith("_unit") and k not in self.units_override:
+                self.units_override[k] = self.specified_parameters.pop(k)
+        Dataset.__init__(self, filename, dataset_type, units_override=units_override)
         self.filename = filename
         if storage_filename is None:
             storage_filename = '%s.yt' % filename.split('/')[-1]
@@ -373,7 +380,7 @@ class AthenaDataset(Dataset):
         Generates the conversion to various physical _units based on the parameter file
         """
         for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g")]:
-            val = self.specified_parameters.get("%s_unit" % unit, None)
+            val = self.units_override.get("%s_unit" % unit, None)
             if val is None:
                 if unit == "length": self.no_cgs_equiv_length = True
                 mylog.warning("No %s conversion to cgs provided.  " +
