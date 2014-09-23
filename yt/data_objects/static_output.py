@@ -162,10 +162,7 @@ class Dataset(object):
         self.known_filters = self.known_filters or {}
         self.particle_unions = self.particle_unions or {}
         self.field_units = self.field_units or {}
-        if units_override is None:
-            self.units_override = {}
-        else:
-            self.units_override = units_override
+        self.units_override = units_override
 
         # path stuff
         self.parameter_filename = str(filename)
@@ -693,11 +690,19 @@ class Dataset(object):
                                    DW.units.dimensions)
 
     def _override_code_units(self):
-        for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g")]:
+        if self.units_override is None:
+            return
+        else:
+            mylog.warning("Overriding code units. This is an experimental and potentially "+
+                          "dangerous option that may yield inconsistent results, and must be used "+
+                          "very carefully.")
+        for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g"),
+                          ("velocity","cm/s"), ("magnetic","gauss"), ("temperature","K")]:
             val = self.units_override.get("%s_unit" % unit, None)
             if val is not None:
                 if not isinstance(val, tuple):
                     val = (val, cgs)
+                mylog.info("Overriding %s_unit with %s %s.", unit, val[0], val[1])
                 setattr(self, "%s_unit" % unit, self.quan(val[0], val[1]))
 
     _arr = None
