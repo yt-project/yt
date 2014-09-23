@@ -147,7 +147,7 @@ class Dataset(object):
             obj = _cached_datasets[apath]
         return obj
 
-    def __init__(self, filename, dataset_type=None, file_style=None):
+    def __init__(self, filename, dataset_type=None, file_style=None, units_override=None):
         """
         Base class for generating new output types.  Principally consists of
         a *filename* and a *dataset_type* which will be passed on to children.
@@ -162,6 +162,10 @@ class Dataset(object):
         self.known_filters = self.known_filters or {}
         self.particle_unions = self.particle_unions or {}
         self.field_units = self.field_units or {}
+        if units_override is None:
+            self.units_override = {}
+        else:
+            self.units_override = units_override
 
         # path stuff
         self.parameter_filename = str(filename)
@@ -674,6 +678,8 @@ class Dataset(object):
 
     def set_code_units(self):
         self._set_code_unit_attributes()
+        # here we override units, if an override has been provided.
+        self._override_code_units()
         self.unit_registry.modify("code_length", self.length_unit)
         self.unit_registry.modify("code_mass", self.mass_unit)
         self.unit_registry.modify("code_time", self.time_unit)
@@ -685,6 +691,14 @@ class Dataset(object):
             DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
             self.unit_registry.add("unitary", float(DW.max() * DW.units.cgs_value),
                                    DW.units.dimensions)
+
+    def _override_code_units(self):
+        for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g")]:
+            val = self.units_override.get("%s_unit" % unit, None)
+            if val is not None:
+                if not isinstance(val, tuple):
+                    val = (val, cgs)
+                setattr(self, "%s_unit" % unit, self.quan(val[0], val[1]))
 
     _arr = None
     @property
