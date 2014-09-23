@@ -191,14 +191,12 @@ class FLASHDataset(Dataset):
     def __init__(self, filename, dataset_type='flash_hdf5',
                  storage_filename = None,
                  particle_filename = None, 
-                 conversion_override = None):
+                 units_override = None):
 
         self.fluid_types += ("flash",)
         if self._handle is not None: return
         self._handle = HDF5FileHandler(filename)
-        if conversion_override is None: conversion_override = {}
-        self._conversion_override = conversion_override
-        
+
         self.particle_filename = particle_filename
 
         if self.particle_filename is None :
@@ -213,7 +211,7 @@ class FLASHDataset(Dataset):
         # generalization.
         self.refine_by = 2
 
-        Dataset.__init__(self, filename, dataset_type)
+        Dataset.__init__(self, filename, dataset_type, units_override=units_override)
         self.storage_filename = storage_filename
 
         self.parameters["HydroMethod"] = 'flash' # always PPM DE
