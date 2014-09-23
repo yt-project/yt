@@ -359,6 +359,9 @@ cdef class ParticleForest:
         # This should be used for non-spatial chunking of data.
         if hash(selector) == self._last_selector:
             return self._last_return_values
+        if hasattr(selector, "base_selector") and \
+           hash(selector.base_selector) == self._last_selector:
+            return self._last_return_values
         cdef int i, j, k, n
         cdef np.uint64_t fmask, offset, fcheck, pcount
         cdef np.float64_t LE[3], RE[3]

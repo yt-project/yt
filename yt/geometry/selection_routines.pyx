@@ -1609,7 +1609,7 @@ cdef class IndexedOctreeSubsetSelector(SelectorObject):
     # This is a numpy array, which will be a bool of ndim 1
     cdef np.uint64_t min_ind
     cdef np.uint64_t max_ind
-    cdef SelectorObject base_selector
+    cdef public SelectorObject base_selector
     cdef int filter_bbox
     cdef np.float64_t DLE[3]
     cdef np.float64_t DRE[3]

@@ -55,7 +55,7 @@ cdef class AlwaysSelector(SelectorObject):
     pass
 
 cdef class OctreeSubsetSelector(SelectorObject):
-    cdef SelectorObject base_selector
+    cdef public SelectorObject base_selector
     cdef public np.int64_t domain_id
 
 cdef inline np.float64_t _periodic_dist(np.float64_t x1, np.float64_t x2,
