@@ -35,10 +35,12 @@ eden_units = "code_mass / (code_time**2 * code_length)" # erg / cm^3
 vel_units = "code_length / code_time"
 b_units = "code_magnetic"
 
+
 # Chombo does not have any known fields by itself.
 class ChomboFieldInfo(FieldInfoContainer):
     known_other_fields = ()
     known_particle_fields = ()
+
 
 # Orion 2 Fields
 # We duplicate everything here from Boxlib, because we want to be able to
@@ -174,17 +176,21 @@ class ChomboPICFieldInfo3D(FieldInfoContainer):
                                    num_neighbors=num_neighbors,
                                    ftype=ftype)
 
+
 def _dummy_position(field, data):
     return 0.5*np.ones_like(data['particle_position_x'])
 
+
 def _dummy_velocity(field, data):
     return np.zeros_like(data['particle_velocity_x'])
+
 
 def _dummy_field(field, data):
     return 0.0 * data['gravitational_field_x']
 
 fluid_field_types = ['chombo', 'gas']
 particle_field_types = ['io', 'all']
+
 
 class ChomboPICFieldInfo2D(ChomboPICFieldInfo3D):
     known_other_fields = (
@@ -216,6 +222,7 @@ class ChomboPICFieldInfo2D(ChomboPICFieldInfo3D):
             self.add_field((ptype, "particle_velocity_z"), function = _dummy_velocity,
                            particle_type = True,
                            units = "code_length / code_time")
+
 
 class ChomboPICFieldInfo1D(ChomboPICFieldInfo3D):
     known_other_fields = (
@@ -252,6 +259,7 @@ class ChomboPICFieldInfo1D(ChomboPICFieldInfo3D):
             self.add_field((ptype, "particle_velocity_z"), function = _dummy_velocity,
                            particle_type = True,
                            units = "code_length / code_time")
+
 
 class PlutoFieldInfo(ChomboFieldInfo):
     known_other_fields = (

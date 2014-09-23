@@ -638,6 +638,29 @@ class OrionHierarchy(BoxlibHierarchy):
         self._read_particles()
         # self.io = IOHandlerOrion
 
+    def _detect_output_fields(self):
+        # This is all done in _parse_header_file
+        self.field_list = [("boxlib", f) for f in
+                           self.dataset._field_list]
+        self.field_indexes = dict((f[1], i)
+                                  for i, f in enumerate(self.field_list))
+        # There are times when field_list may change.  We copy it here to
+        # avoid that possibility.
+        self.field_order = [f for f in self.field_list]
+
+        # look for particle fields
+        self.particle_filename = None
+        for particle_filename in ["StarParticles", "SinkParticles"]:
+            fn = os.path.join(self.ds.output_dir, particle_filename)
+            if os.path.exists(fn):
+                self.particle_filename = fn
+
+        if self.particle_filename is None:
+            return
+
+        pfield_list = [("io", c) for c in self.io.particle_field_index.keys()]
+        self.field_list.extend(pfield_list)
+
     def _read_particles(self):
         """
         reads in particles and assigns them to grids. Will search for
@@ -649,9 +672,8 @@ class OrionHierarchy(BoxlibHierarchy):
         """
         self.grid_particle_count = np.zeros(len(self.grids))
 
-        for particle_filename in ["StarParticles", "SinkParticles"]:
-            fn = os.path.join(self.ds.output_dir, particle_filename)
-            if os.path.exists(fn): self._read_particle_file(fn)
+        if self.particle_filename is not None:
+            self._read_particle_file(self.particle_filename)
 
     def _read_particle_file(self, fn):
         """actually reads the orion particle data file itself.
@@ -670,8 +692,8 @@ class OrionHierarchy(BoxlibHierarchy):
                 # copied from object_finding_mixin.py
                 mask = np.ones(self.num_grids)
                 for i in xrange(len(coord)):
-                    np.choose(np.greater(self.grid_left_edge[:,i],coord[i]), (mask,0), mask)
-                    np.choose(np.greater(self.grid_right_edge[:,i],coord[i]), (0,mask), mask)
+                    np.choose(np.greater(self.grid_left_edge.d[:,i],coord[i]), (mask,0), mask)
+                    np.choose(np.greater(self.grid_right_edge.d[:,i],coord[i]), (0,mask), mask)
                 ind = np.where(mask == 1)
                 selected_grids = self.grids[ind]
                 # in orion, particles always live on the finest level.
@@ -915,7 +937,7 @@ def _guess_pcast(vals):
         if v in ("F", "T"):
             pcast = bool
     else:
-        syms = (".", "D+", "D-", "E+", "E-")
+        syms = (".", "D+", "D-", "E+", "E-", "E", "D")
         if any(sym in v.upper() for sym in syms for v in vals.split()):
             pcast = float
         else:
