@@ -285,10 +285,14 @@ cdef class ParticleForest:
     cdef public object counts
     cdef public object max_count
     cdef public object owners
+    cdef public object _last_selector
+    cdef public object _last_return_values
 
     def __init__(self, left_edge, right_edge, dims, nfiles, oref = 1,
                  n_ref = 64):
         cdef int i
+        self._last_selector = None
+        self._last_return_values = None
         self.oref = oref
         self.nfiles = nfiles
         self.n_ref = n_ref
@@ -353,6 +357,8 @@ cdef class ParticleForest:
     def identify_data_files(self, SelectorObject selector):
         # This just performs a selection of which data files touch which cells.
         # This should be used for non-spatial chunking of data.
+        if hash(selector) == self._last_selector:
+            return self._last_return_values
         cdef int i, j, k, n
         cdef np.uint64_t fmask, offset, fcheck, pcount
         cdef np.float64_t LE[3], RE[3]
@@ -362,6 +368,7 @@ cdef class ParticleForest:
         omask = np.zeros((self.dims[0], self.dims[1], self.dims[2]),
                          dtype="uint8")
         files = []
+        pcount = fmask = 0
         for n in range(len(self.masks)):
             pcount = 0 # Each loop
             fmask = 0
@@ -389,6 +396,8 @@ cdef class ParticleForest:
             for fcheck in range(64):
                 if ((fmask >> fcheck) & ONEBIT) == ONEBIT:
                     files.append(fcheck + n * 64)
+        self._last_selector = hash(selector)
+        self._last_return_values = (files, pcount, omask)
         return files, pcount, omask
 
     @cython.boundscheck(False)
@@ -604,6 +613,32 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
         my_oct.domain_ind = self.nocts - 1
         my_oct.children = NULL
         return my_oct
+
+    def __dealloc__(self):
+        #Call the freemem ops on every ocy
+        #of the root mesh recursively
+        cdef int i, j, k
+        if self.root_nodes== NULL: return
+        for i in range(self.max_root):
+            if self.root_nodes[i].node == NULL: continue
+            self.visit_free(&self.root_nodes.node[i], 0)
+        free(self.oct_list)
+        free(self.cont)
+        self.cont = self.oct_list = self.root_nodes = NULL
+
+    cdef void visit_free(self, Oct *o, int free_this):
+        #Free the memory for this oct recursively
+        cdef int i, j, k
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
+                    if o.children != NULL \
+                       and o.children[cind(i,j,k)] != NULL:
+                        self.visit_free(o.children[cind(i,j,k)], 1)
+        if o.children != NULL:
+            free(o.children)
+        if free_this == 1:
+            free(o)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
