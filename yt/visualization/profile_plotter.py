@@ -184,7 +184,7 @@ class ProfilePlot(object):
     ...                                  plot_specs=plot_specs)
     >>> plot.save()
 
-    Use plot_line_property to change line properties of one or all profiles.
+    Use set_line_property to change line properties of one or all profiles.
     
     """
     x_log = None
@@ -256,7 +256,6 @@ class ProfilePlot(object):
 
     def show(self):
         r"""This will send any existing plots to the IPython notebook.
-        function name.
 
         If yt is being run from within an IPython session, and it is able to
         determine this, this function will send any existing plots to the

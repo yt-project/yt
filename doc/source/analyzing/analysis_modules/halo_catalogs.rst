@@ -72,6 +72,8 @@ There are three types of actions:
 * Quantities
 * Callbacks
 
+A list of all available filters, quantities, and callbacks can be found in 
+:ref:`halo_analysis_ref`.  
 All interaction with this analysis can be performed by importing from 
 halo_analysis.
 
@@ -161,6 +163,18 @@ An example of defining your own quantity:
    # ... Later on in your script
    hc.add_quantity("my_quantity") 
 
+This quantity will then be accessible for functions called later via the 
+*quantities* dictionary that is associated with the halo object.
+
+.. code-block:: python
+
+   def my_new_function(halo):
+       print halo.quantities["my_quantity"]
+   add_callback("print_quantity", my_new_function)
+
+   # ... Anywhere after "my_quantity" has been called
+   hc.add_callback("print_quantity")
+
 Callbacks
 ^^^^^^^^^
 
@@ -178,10 +192,10 @@ each halo with a radius that is twice the saved ``radius``.
    hc.add_callback("sphere", factor=2.0)
     
 Currently available callbacks are located in 
-``yt/analysis_modules/halo_analysis/halo_callbacks.py``. New callbacks may 
+``yt/analysis_modules/halo_analysis/halo_callbacks.py``.  New callbacks may 
 be added by using the syntax shown below. If you think that your 
 callback may be of use to the general community, add it to 
-halo_callbacks.py and issue a pull request
+halo_callbacks.py and issue a pull request.
 
 An example of defining your own callback:
 
