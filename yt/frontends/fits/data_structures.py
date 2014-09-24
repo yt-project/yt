@@ -326,8 +326,6 @@ class FITSDataset(Dataset):
 
         if parameters is None:
             parameters = {}
-        if units_override is None:
-            units_override = {}
         parameters["nprocs"] = nprocs
         self.specified_parameters = parameters
 

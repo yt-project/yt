@@ -162,6 +162,8 @@ class Dataset(object):
         self.known_filters = self.known_filters or {}
         self.particle_unions = self.particle_unions or {}
         self.field_units = self.field_units or {}
+        if units_override is None:
+            units_override = {}
         self.units_override = units_override
 
         # path stuff
@@ -690,7 +692,7 @@ class Dataset(object):
                                    DW.units.dimensions)
 
     def _override_code_units(self):
-        if self.units_override is None:
+        if len(self.units_override) == 0:
             return
         else:
             mylog.warning("Overriding code units. This is an experimental and potentially "+
