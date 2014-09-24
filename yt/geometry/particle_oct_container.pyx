@@ -287,10 +287,12 @@ cdef class ParticleForest:
     cdef public object owners
     cdef public object _last_selector
     cdef public object _last_return_values
+    cdef public object _cached_octrees
 
     def __init__(self, left_edge, right_edge, dims, nfiles, oref = 1,
                  n_ref = 64):
         cdef int i
+        self._cached_octrees = {}
         self._last_selector = None
         self._last_return_values = None
         self.oref = oref
@@ -408,6 +410,10 @@ cdef class ParticleForest:
     @cython.cdivision(True)
     def construct_forest(self, np.uint64_t file_id, SelectorObject selector,
                          io_handler, data_files, data_file_info = None):
+        if file_id in self._cached_octrees:
+            iv = self._cached_octrees[file_id]
+            rv = ParticleForestOctreeContainer.load_octree(iv)
+            return rv
         cdef np.ndarray[np.uint8_t, ndim=3] omask
         if data_file_info is None:
             data_file_info = self.identify_data_files(selector) 
@@ -545,6 +551,7 @@ cdef class ParticleForest:
         free(particle_count)
         free(file_ids)
         free(masks)
+        self._cached_octrees[file_id] = octree.save_octree()
         return octree
         
 cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
@@ -766,8 +773,10 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
         assert(ref_mask.shape[0] / float(data.nz) ==
             <int>(ref_mask.shape[0]/float(data.nz)))
         obj.allocate_domains([obj.max_root, ref_mask.size - obj.max_root])
-        cdef OctAllocationContainer *cur = obj.domains[1]
         cdef np.ndarray[np.uint64_t, ndim=1] keys = header['keys']
+        cdef np.int64_t domain_id = header['domain_id']
+        cdef OctAllocationContainer *cur 
+        cur = obj.domains[1]
         for i in range(obj.max_root):
             obj.key_to_ipos(keys[i], i64ind)
             for j in range(3):
@@ -789,6 +798,10 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
         obj.visit_all_octs(selector, oct_visitors.load_octree, &data, 1)
         obj.nocts = data.index
         obj.finalize()
+        for j in range(2):
+            cur = obj.domains[j]
+            for i in range(cur.n):
+                cur.my_octs[i].domain = domain_id
         if obj.nocts * data.nz != ref_mask.size:
             raise KeyError(ref_mask.size, obj.nocts, obj.oref,
                 obj.partial_coverage)
@@ -833,6 +846,7 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
         header['octree'] = packed_mask
         header['indices'] = indices
         header['keys'] = keys
+        header['domain_id'] = self.oct_list[0].domain
         assert(indices[-1] == self.nocts)
         return header
 
