@@ -225,13 +225,11 @@ class GDFDataset(Dataset):
             self.data_software = "unknown"
         sp = self._handle["/simulation_parameters"].attrs
         if self.geometry is None:
-            if "geometry" in sp:
-                try:
-                    self.geometry = GEOMETRY_TRANS[just_one(sp["geometry"])]
-                except KeyError:
-                    raise YTGDFUnknownGeometry(just_one(sp["geometry"]))
-            else:
-                self.geometry = "cartesian"
+            geometry = just_one(sp.get("geometry", 0))
+            try:
+                self.geometry = GEOMETRY_TRANS[geometry]
+            except KeyError:
+                raise YTGDFUnknownGeometry(geometry)
         self.parameters.update(sp)
         self.domain_left_edge = sp["domain_left_edge"][:]
         self.domain_right_edge = sp["domain_right_edge"][:]
