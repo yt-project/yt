@@ -18,7 +18,7 @@ cimport cython
 cimport numpy as np
 import numpy as np
 from selection_routines cimport SelectorObject
-from libc.math cimport floor
+from libc.math cimport floor, ceil
 cimport selection_routines
 
 ORDER_MAX = 20
@@ -216,7 +216,7 @@ cdef class OctreeContainer:
     cdef void visit_all_octs(self, SelectorObject selector,
                         oct_visitor_function *func,
                         OctVisitorData *data,
-                        int vc = -1):
+                        int vc = -1, np.int64_t *indices = NULL):
         cdef int i, j, k, n
         if vc == -1:
             vc = self.partial_coverage
@@ -796,7 +796,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
         self.fill_func = oct_visitors.fill_file_indices_rind
 
     @classmethod
-    def load_octree(self, header):
+    def load_octree(cls, header):
         raise NotImplementedError
 
     def save_octree(self):
@@ -839,7 +839,8 @@ cdef class SparseOctreeContainer(OctreeContainer):
     cdef void visit_all_octs(self, SelectorObject selector,
                         oct_visitor_function *func,
                         OctVisitorData *data,
-                        int vc = -1):
+                        int vc = -1,
+                        np.int64_t *indices = NULL):
         cdef int i, j, k, n
         cdef np.int64_t key, ukey
         data.global_index = -1
@@ -860,6 +861,8 @@ cdef class SparseOctreeContainer(OctreeContainer):
                 pos[j] = self.DLE[j] + (data.pos[j] + 0.5) * dds[j]
             selector.recursively_visit_octs(
                 o, pos, dds, 0, func, data, vc)
+            if indices != NULL:
+                indices[i] = data.index
 
     cdef np.int64_t get_domain_offset(self, int domain_id):
         return 0 # We no longer have a domain offset.

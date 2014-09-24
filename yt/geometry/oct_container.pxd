@@ -83,7 +83,7 @@ cdef class OctreeContainer:
                         selection_routines.SelectorObject selector,
                         oct_visitor_function *func,
                         OctVisitorData *data,
-                        int vc = ?)
+                        int vc = ?, np.int64_t *indices = ?)
     cdef Oct *next_root(self, int domain_id, int ind[3])
     cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)
     cdef void setup_data(self, OctVisitorData *data, int domain_id = ?)
