@@ -665,7 +665,8 @@ class EnzoDataset(Dataset):
                  file_style = None,
                  parameter_override = None,
                  conversion_override = None,
-                 storage_filename = None):
+                 storage_filename = None,
+                 units_override=None):
         """
         This class is a stripped down class that simply reads and parses
         *filename* without looking at the index.  *dataset_type* gets passed
@@ -682,8 +683,7 @@ class EnzoDataset(Dataset):
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
         self.storage_filename = storage_filename
-
-        Dataset.__init__(self, filename, dataset_type, file_style=file_style)
+        Dataset.__init__(self, filename, dataset_type, file_style=file_style, units_override=units_override)
 
     def _setup_1d(self):
         self._index_class = EnzoHierarchy1D
@@ -920,6 +920,8 @@ class EnzoDataset(Dataset):
             self.mass_unit = self.quan(mass_unit, "g")
             self.time_unit = self.quan(time_unit, "s")
             self.velocity_unit = self.length_unit / self.time_unit
+
+        self._override_code_units()
 
         magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
                                 (self.time_unit**2 * self.length_unit))
