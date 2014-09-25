@@ -677,7 +677,7 @@ class Dataset(object):
 
     def set_code_units(self):
         self._set_code_unit_attributes()
-        # here we override units, if an override has been provided.
+        # here we override units, if overrides have been provided.
         self._override_code_units()
         self.unit_registry.modify("code_length", self.length_unit)
         self.unit_registry.modify("code_mass", self.mass_unit)
@@ -704,7 +704,8 @@ class Dataset(object):
             if val is not None:
                 if not isinstance(val, tuple):
                     val = (val, cgs)
-                mylog.info("Overriding %s_unit with %s %s.", unit, val[0], val[1])
+                u = getattr(self, "%s_unit" % unit)
+                mylog.info("Overriding %s_unit: %g %s -> %g %s.", unit, u.v, u.units, val[0], val[1])
                 setattr(self, "%s_unit" % unit, self.quan(val[0], val[1]))
 
     _arr = None
