@@ -706,7 +706,6 @@ class Dataset(object):
                     val = (val, cgs)
                 mylog.info("Overriding %s_unit with %s %s.", unit, val[0], val[1])
                 setattr(self, "%s_unit" % unit, self.quan(val[0], val[1]))
-        self.velocity_unit = getattr(self, "velocity_unit", self.length_unit/self.time_unit)
 
     _arr = None
     @property
