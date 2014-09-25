@@ -134,9 +134,9 @@ in code units.
 Alternative values for the following simulation parameters may be specified using a ``parameters``
 dict, accepting the following keys:
 
-* ``Gamma``: ratio of specific heats, float
+* ``Gamma``: ratio of specific heats, Type: Float
 * ``geometry``: Geometry type, currently accepts ``"cartesian"`` or ``"cylindrical"``
-* ``periodicity``: Is the domain periodic? Tuple of boolean values corresponding to each dimension
+* ``periodicity``: Is the domain periodic? Type: Tuple of boolean values corresponding to each dimension
 
 .. code-block:: python
 
