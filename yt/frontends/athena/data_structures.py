@@ -383,6 +383,8 @@ class AthenaDataset(Dataset):
         Generates the conversion to various physical _units based on the parameter file
         """
         for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g")]:
+            # We check to see if these will be overridden. If not, we simply
+            # set them to the unity values in cgs. 
             val = self.units_override.get("%s_unit" % unit, None)
             if val is None:
                 if unit == "length": self.no_cgs_equiv_length = True
