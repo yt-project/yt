@@ -285,7 +285,8 @@ class AthenaHierarchy(GridIndex):
 
         # Need to reset the units in the dataset based on the correct
         # domain left/right/dimensions.
-        self.dataset._set_code_unit_attributes()
+        # DEV: Is this really necessary?
+        #self.dataset._set_code_unit_attributes()
 
         if self.dataset.dimensionality <= 2 :
             self.dataset.domain_dimensions[2] = np.int(1)
@@ -362,8 +363,10 @@ class AthenaDataset(Dataset):
             units_override = {}
         # This is for backwards-compatibility
         for k,v in self.specified_parameters.items():
-            if k.endswith("_unit") and k not in self.units_override:
-                self.units_override[k] = self.specified_parameters.pop(k)
+            if k.endswith("_unit") and k not in units_override:
+                raise DeprecationWarning("Supplying unit conversions from the parameters dict is deprecated, "+
+                                         "and will be removed in a future release. Use units_override instead.")
+                units_override[k] = self.specified_parameters.pop(k)
         Dataset.__init__(self, filename, dataset_type, units_override=units_override)
         self.filename = filename
         if storage_filename is None:
