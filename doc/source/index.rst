@@ -44,6 +44,16 @@ Table of Contents
      <tr valign="top">
        <td width="25%">
          <p>
+           <a href="examining/loading_data.html">Loading Data</a>
+         </p>
+       </td>
+       <td width="75%">
+         <p class="linkdescr">How to load various types of data into yt</p>
+       </td>
+     </tr>
+     <tr valign="top">
+       <td width="25%">
+         <p>
            <a href="yt3differences.html">yt 3.0</a>
          </p>
        </td>
