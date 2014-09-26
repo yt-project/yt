@@ -15,6 +15,7 @@ Orion-specific fields
 
 import numpy as np
 import string
+import re
 
 from yt.utilities.physical_constants import \
     mh, boltzmann_constant_cgs, amu_cgs
@@ -24,6 +25,8 @@ from yt.fields.field_info_container import \
 rho_units = "code_mass / code_length**3"
 mom_units = "code_mass / (code_time * code_length**2)"
 eden_units = "code_mass / (code_time**2 * code_length)" # erg / cm^3
+
+spec_finder = re.compile(r'.*\((\D*)(\d*)\).*')
 
 def _thermal_energy_density(field, data):
     # What we've got here is UEINT:
@@ -175,32 +178,35 @@ class MaestroFieldInfo(FieldInfoContainer):
         ("x_vel", ("cm/s", ["velocity_x"], r"\tilde{u}")),
         ("y_vel", ("cm/s", ["velocity_y"], r"\tilde{v}")),
         ("z_vel", ("cm/s", ["velocity_z"], r"\tilde{w}")),
-        ("magvel", ("cm/s", ["velocity_magnitude"], r"|\tilde{U} + w_0 e_r|")),
+        ("magvel", ("cm/s", ["velocity_magnitude"],
+                    r"|\tilde{\mathbf{U}} + w_0 \mathbf{e}_r|")),
         ("radial_velocity", ("cm/s", [], r"U\cdot e_r")),
-        ("tfromp", ("K", [], None)),
-        ("tfromh", ("K", [], None)),
+        ("tfromp", ("K", [], "T(\\rho,p,X)")),
+        ("tfromh", ("K", [], "T(\\rho,h,X)")),
         ("Machnumber", ("", ["mach_number"], None)),
         ("S", ("1/s", [], None)),
         ("ad_excess", ("", [], "Adiabatic Excess")),
-        ("deltaT", ("", [], None)),
-        ("deltagamma", ("", [], None)),
-        ("deltap", ("", [], None)),
-        ("divw0", ("1/s", [], None)),
+        ("deltaT", ("", [], "\delta T")),
+        ("deltagamma", ("", [], "\Gamma_1^ - \bar \Gamma_1")),
+        ("deltap", ("", [], "\delta p")),
+        ("divw0", ("1/s", [], "\nabla w_0")),
         # Specific entropy
-        ("entropy", ("erg/(g*K)", ["entropy"], None)),
-        ("entropypert", ("", [], None)),
-        ("enucdot", ("erg/(g*s)", [], None)),
-        ("gpi_x", ("dyne/cm**3", [], None)), # Perturbational pressure grad
-        ("gpi_y", ("dyne/cm**3", [], None)),
-        ("gpi_z", ("dyne/cm**3", [], None)),
-        ("h", ("erg/g", [], "Specific Enthalpy")),
-        ("h0", ("erg/g", [], "Base State Specific Enthalpy")),
+        ("entropy", ("erg/(g*K)", ["entropy"], "s")),
+        ("entropypert", ("", [], "\delta s")),
+        ("enucdot", ("erg/(g*s)", [], "\dot{\epsilon_{nuc}}")),
+        ("Hext", ("erg/(g*s)", [], "H_{ext}")),
+        # Perturbational pressure grad
+        ("gpi_x", ("dyne/cm**3", [], "\left(\nabla\pi\right)_x")),
+        ("gpi_y", ("dyne/cm**3", [], "\left(\nabla\pi\right)_y")),
+        ("gpi_z", ("dyne/cm**3", [], "\left(\nabla\pi\right)_z")),
+        ("h", ("erg/g", [], "h")),
+        ("h0", ("erg/g", [], "h_0")),
         # Momentum cannot be computed because we need to include base and
         # full state.
         ("momentum", ("g*cm/s", ["momentum_magnitude"], None)),
         ("p0", ("erg/cm**3", [], "p_0")),
         ("p0pluspi", ("erg/cm**3", [], "p_0 + \pi")),
-        ("pi", ("erg/cm**3", [], None)),
+        ("pi", ("erg/cm**3", [], "\pi")),
         ("pioverp0", ("", [], "\pi/p_0")),
         # Base state density
         ("rho0", ("g/cm**3", [], "\\rho_0")),
@@ -211,39 +217,43 @@ class MaestroFieldInfo(FieldInfoContainer):
         ("rhopert", ("g/cm**3", [], "\\rho^\prime")),
         ("soundspeed", ("cm/s", ["sound_speed"], None)),
         ("sponge", ("", [], None)),
-        ("tpert", ("K", [], None)),
+        ("tpert", ("K", [], "T - \bar T")),
         # Again, base state -- so we can't compute ourselves.
-        ("vort", ("1/s", ["vorticity_magnitude"], None)),
+        ("vort", ("1/s", ["vorticity_magnitude"], "|\nabla\times\tilde{U}|")),
         # Base state
-        ("w0_x", ("cm/s", [], None)),
-        ("w0_y", ("cm/s", [], None)),
-        ("w0_z", ("cm/s", [], None)),
+        ("w0_x", ("cm/s", [], "(w_0)_x")),
+        ("w0_y", ("cm/s", [], "(w_0)_y")),
+        ("w0_z", ("cm/s", [], "(w_0)_z")),
     )
 
     def setup_fluid_fields(self):
         # pick the correct temperature field
         if self.ds.parameters["use_tfromp"]:
             self.alias(("gas", "temperature"), ("boxlib", "tfromp"),
-                       units = "K")
+                       units="K")
         else:
             self.alias(("gas", "temperature"), ("boxlib", "tfromh"),
-                       units = "K")
+                       units="K")
 
         # Add X's and omegadots, units of 1/s
         for _, field in self.ds.field_list:
             if field.startswith("X("):
                 # We have a fraction
-                nice_name = field[2:-1]
-                self.alias(("gas", "%s_fraction" % nice_name), ("boxlib", field),
-                           units = "")
+                nice_name, tex_label = _nice_species_name(field)
+                print nice_name, tex_label
+                self.alias(("gas", "%s_fraction" % nice_name),
+                           ("boxlib", field),
+                           units="")
                 def _create_density_func(field_name):
                     def _func(field, data):
                         return data[field_name] * data["gas", "density"]
                     return _func
                 func = _create_density_func(("gas", "%s_fraction" % nice_name))
-                self.add_field(name = ("gas", "%s_density" % nice_name),
-                               function = func,
-                               units = "g/cm**3")
+                self.add_field(name=("gas", "%s_density" % nice_name),
+                               function=func,
+                               units="g/cm**3",
+                               display_name=r'\\rho%s' % tex_label)
+
                 # Most of the time our species will be of the form
                 # element name + atomic weight (e.g. C12), but
                 # sometimes we make up descriptive names (e.g. ash)
@@ -257,7 +267,20 @@ class MaestroFieldInfo(FieldInfoContainer):
 
                 # Here we can, later, add number density.
             if field.startswith("omegadot("):
-                nice_name = field[9:-1]
-                self.add_output_field(("boxlib", field), units = "1/s")
+                nice_name, tex_label = _nice_species_name(field)
+                print nice_name, tex_label
+                display_name = r'\dot{\omega}\left[%s\right]' % tex_label
+                self.add_output_field(("boxlib", field), units="1/s",
+                                      display_name=display_name)
                 self.alias(("gas", "%s_creation_rate" % nice_name),
-                           ("boxlib", field), units = "1/s")
+                           ("boxlib", field), units="1/s")
+
+
+def _nice_species_name(field):
+    nice_name = None
+    tex_label = None
+    spec_match = spec_finder.search(field)
+    if spec_match is not None:
+        nice_name = ''.join(spec_match.groups())
+        tex_label = r"X\left(^{%s}%s\right)" % spec_match.groups()[::-1]
+    return nice_name, tex_label
