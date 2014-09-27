@@ -1109,7 +1109,7 @@ class ProjectionPlot(PWViewerMPL):
          The maximum level to project to.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
-    style : string
+    method : string
          The method of projection.  Valid methods are: 
 
          "integrate" with no weight_field specified : integrate the requested
@@ -1120,12 +1120,12 @@ class ProjectionPlot(PWViewerMPL):
 
          "mip" : pick out the maximum value of the field in the line of sight.
 
-         "sum" : This style is the same as integrate, except that it does not 
+         "sum" : This method is the same as integrate, except that it does not 
          multiply by a path length when performing the integration, and is 
          just a straight summation of the field along the given axis. 
     proj_style : string
-         The method of projection--same as style keyword.  Deprecated as of 
-         version 3.0.2.  Please use style instead.
+         The method of projection--same as method keyword.  Deprecated as of 
+         version 3.0.2.  Please use method instead.
     window_size : float
          The size of the window in inches. Set to 8 by default.
     aspect : float
@@ -1151,23 +1151,25 @@ class ProjectionPlot(PWViewerMPL):
     def __init__(self, ds, axis, fields, center='c', width=None, axes_unit=None,
                  weight_field=None, max_level=None, origin='center-window',
                  fontsize=18, field_parameters=None, data_source=None,
-                 style = "integrate", proj_style = None, window_size=8.0, aspect=None):
+                 method = "integrate", proj_style = None, window_size=8.0, 
+                 aspect=None):
         ts = self._initialize_dataset(ds)
         self.ts = ts
         ds = self.ds = ts[0]
         axis = fix_axis(axis, ds)
-        # proj_style is deprecated, but if someone specifies then it trumps style.
+        # proj_style is deprecated, but if someone specifies then it trumps 
+        # method.
         if proj_style is not None:
-            style = proj_style
+            method = proj_style
         # If a non-weighted integral projection, assure field-label reflects that
-        if weight_field is None and style == "integrate":
+        if weight_field is None and method == "integrate":
             self.projected = True
         (bounds, center, display_center) = \
                 get_window_parameters(axis, center, width, ds)
         if field_parameters is None: field_parameters = {}
         proj = ds.proj(fields, axis, weight_field=weight_field,
                        center=center, data_source=data_source,
-                       field_parameters = field_parameters, style = style)
+                       field_parameters = field_parameters, method = method)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
                              fontsize=fontsize, window_size=window_size, 
                              aspect=aspect)
@@ -1260,7 +1262,7 @@ class OffAxisSlicePlot(PWViewerMPL):
 
 class OffAxisProjectionDummyDataSource(object):
     _type_name = 'proj'
-    style = 'integrate'
+    method = 'integrate'
     _key_fields = []
     def __init__(self, center, ds, normal_vector, width, fields,
                  interpolated, resolution = (800,800), weight=None,
@@ -1372,7 +1374,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
             weight=weight_field,  volume=volume, no_ghost=no_ghost,
             le=le, re=re, north_vector=north_vector)
         # If a non-weighted, integral projection, assure field-label reflects that
-        if weight_field is None and OffAxisProj.style == "integrate":
+        if weight_field is None and OffAxisProj.method == "integrate":
             self.projected = True
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
@@ -1566,7 +1568,7 @@ class PWViewerExtJS(PlotWindow):
         if source._type_name in ("slice", "cutting"):
             units = finfo.get_units()
         elif source._type_name == "proj":
-            if source.weight_field is not None or source.style in ("mip", "sum"):
+            if source.weight_field is not None or source.method in ("mip", "sum"):
                 units = finfo.get_units()
             else:
                 units = finfo.get_projected_units()

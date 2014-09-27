@@ -186,8 +186,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     data_source : `yt.data_objects.api.AMRData`, optional
         If specified, this will be the data source used for selecting
         regions to project.
-    style : string, optional
-        The style of projection to be performed.
+    method : string, optional
+        The method of projection to be performed.
         "integrate" : integration along the axis
         "mip" : maximum intensity projection
         "sum" : same as "integrate", except that we don't multiply by the path length
@@ -208,20 +208,20 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     _container_fields = ('px', 'py', 'pdx', 'pdy', 'weight_field')
     def __init__(self, field, axis, weight_field = None,
                  center = None, ds = None, data_source = None,
-                 style = "integrate", field_parameters = None):
+                 method = "integrate", field_parameters = None):
         YTSelectionContainer2D.__init__(self, axis, ds, field_parameters)
-        if style == "sum":
-            self.style = "integrate"
+        if method == "sum":
+            self.method = "integrate"
             self._sum_only = True
         else:
-            self.style = style
+            self.method = method
             self._sum_only = False
-        if style == "mip":
+        if self.method == "mip":
             self.func = np.max
-        elif style == "integrate" or style == "sum":
+        elif self.method == "integrate":
             self.func = np.sum # for the future
         else:
-            raise NotImplementedError(style)
+            raise NotImplementedError(self.method)
         self._set_center(center)
         if data_source is None: data_source = self.ds.all_data()
         for k, v in data_source.field_parameters.items():
@@ -260,7 +260,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
                   self.ds.domain_left_edge[xax],
                   self.ds.domain_right_edge[yax])
         return QuadTree(np.array([xd,yd], dtype='int64'), nvals,
-                        bounds, style = self.style)
+                        bounds, method = self.method)
 
     def get_data(self, fields = None):
         fields = fields or []
@@ -282,10 +282,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
                     get_memory_usage()/1024.)
                 self._handle_chunk(chunk, fields, tree)
         # Note that this will briefly double RAM usage
-        if self.style == "mip":
+        if self.method == "mip":
             merge_style = -1
             op = "max"
-        elif self.style == "integrate":
+        elif self.method == "integrate":
             merge_style = 1
             op = "sum"
         else:
@@ -327,7 +327,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             # add length units to "projected units" if non-weighted 
             # integral projection
             if self.weight_field is None and not self._sum_only and \
-               self.style == 'integrate':
+               self.method == 'integrate':
                 # See _handle_chunk where we mandate cm
                 if units == '':
                     input_units = "cm"
@@ -341,7 +341,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
                                   registry=self.ds.unit_registry)
             # convert units if non-weighted integral projection
             if self.weight_field is None and not self._sum_only and \
-               self.style == 'integrate':
+               self.method == 'integrate':
                 u_obj = Unit(units, registry=self.ds.unit_registry)
                 if ((u_obj.is_code_unit or self.ds.no_cgs_equiv_length) and
                     not u_obj.is_dimensionless) and input_units != units:
@@ -360,7 +360,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         tree.initialize_chunk(i1, i2, ilevel)
 
     def _handle_chunk(self, chunk, fields, tree):
-        if self.style == "mip" or self._sum_only:
+        if self.method == "mip" or self._sum_only:
             dl = 1.0
         else:
             # This gets explicitly converted to cm
