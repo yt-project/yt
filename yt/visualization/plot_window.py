@@ -1123,6 +1123,9 @@ class ProjectionPlot(PWViewerMPL):
          "sum" : This style is the same as integrate, except that it does not 
          multiply by a path length when performing the integration, and is 
          just a straight summation of the field along the given axis. 
+    proj_style : string
+         The method of projection--same as style keyword.  Deprecated as of 
+         version 3.0.2.  Please use style instead.
     window_size : float
          The size of the window in inches. Set to 8 by default.
     aspect : float
@@ -1148,11 +1151,14 @@ class ProjectionPlot(PWViewerMPL):
     def __init__(self, ds, axis, fields, center='c', width=None, axes_unit=None,
                  weight_field=None, max_level=None, origin='center-window',
                  fontsize=18, field_parameters=None, data_source=None,
-                 style = "integrate", window_size=8.0, aspect=None):
+                 style = "integrate", proj_style = None, window_size=8.0, aspect=None):
         ts = self._initialize_dataset(ds)
         self.ts = ts
         ds = self.ds = ts[0]
         axis = fix_axis(axis, ds)
+        # proj_style is deprecated, but if someone specifies then it trumps style.
+        if proj_style is not None:
+            style = proj_style
         # If a non-weighted integral projection, assure field-label reflects that
         if weight_field is None and style == "integrate":
             self.projected = True
