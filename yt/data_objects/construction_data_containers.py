@@ -211,10 +211,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
                  style = "integrate", field_parameters = None):
         YTSelectionContainer2D.__init__(self, axis, ds, field_parameters)
         if style == "sum":
-            self.proj_style = "integrate"
+            self.style = "integrate"
             self._sum_only = True
         else:
-            self.proj_style = style
+            self.style = style
             self._sum_only = False
         if style == "mip":
             self.func = np.max
@@ -260,7 +260,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
                   self.ds.domain_left_edge[xax],
                   self.ds.domain_right_edge[yax])
         return QuadTree(np.array([xd,yd], dtype='int64'), nvals,
-                        bounds, style = self.proj_style)
+                        bounds, style = self.style)
 
     def get_data(self, fields = None):
         fields = fields or []
@@ -282,10 +282,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
                     get_memory_usage()/1024.)
                 self._handle_chunk(chunk, fields, tree)
         # Note that this will briefly double RAM usage
-        if self.proj_style == "mip":
+        if self.style == "mip":
             merge_style = -1
             op = "max"
-        elif self.proj_style == "integrate":
+        elif self.style == "integrate":
             merge_style = 1
             op = "sum"
         else:
@@ -355,7 +355,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         tree.initialize_chunk(i1, i2, ilevel)
 
     def _handle_chunk(self, chunk, fields, tree):
-        if self.proj_style == "mip" or self._sum_only:
+        if self.style == "mip" or self._sum_only:
             dl = 1.0
         else:
             # This gets explicitly converted to cm
