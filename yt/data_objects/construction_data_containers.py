@@ -324,7 +324,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             finfo = self.ds._get_field_info(*field)
             mylog.debug("Setting field %s", field)
             units = finfo.units
-            if self.weight_field is None and not self._sum_only:
+            # add length units to "projected units" if non-weighted 
+            # integral projection
+            if self.weight_field is None and not self._sum_only and \
+               self.style == 'integrate':
                 # See _handle_chunk where we mandate cm
                 if units == '':
                     input_units = "cm"
@@ -336,7 +339,9 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             self[field] = YTArray(field_data[fi].ravel(),
                                   input_units=input_units,
                                   registry=self.ds.unit_registry)
-            if self.weight_field is None and not self._sum_only:
+            # convert units if non-weighted integral projection
+            if self.weight_field is None and not self._sum_only and \
+               self.style == 'integrate':
                 u_obj = Unit(units, registry=self.ds.unit_registry)
                 if ((u_obj.is_code_unit or self.ds.no_cgs_equiv_length) and
                     not u_obj.is_dimensionless) and input_units != units:
