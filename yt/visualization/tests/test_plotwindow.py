@@ -146,6 +146,12 @@ WEIGHT_FIELDS = (
     ('gas', 'density'),
 )
 
+PROJECTION_METHODS = (
+    'integrate',
+    'sum',
+    'mip'
+)
+
 @requires_ds(M7)
 def test_attributes():
     """Test plot member functions that aren't callbacks"""
@@ -240,6 +246,7 @@ class TestPlotWindowSave(unittest.TestCase):
         projections_c = []
         projections_wf = []
         projections_w = {}
+        projections_m = []
         for dim in range(3):
             projections.append(ProjectionPlot(test_ds, dim, "density"))
             projections_ds.append(ProjectionPlot(test_ds, dim, "density",
@@ -253,6 +260,9 @@ class TestPlotWindowSave(unittest.TestCase):
         for wf in WEIGHT_FIELDS:
             projections_wf.append(ProjectionPlot(test_ds, dim, "density",
                                                  weight_field=wf))
+        for m in PROJECTION_METHODS:
+            projections_m.append(ProjectionPlot(test_ds, dim, "density",
+                                                 method=m))
 
         cls.slices = [SlicePlot(test_ds, dim, "density") for dim in range(3)]
         cls.projections = projections
@@ -260,6 +270,7 @@ class TestPlotWindowSave(unittest.TestCase):
         cls.projections_c = projections_c
         cls.projections_wf = projections_wf
         cls.projections_w = projections_w
+        cls.projections_m = projections_m
         cls.offaxis_slice = OffAxisSlicePlot(test_ds, normal, "density")
         cls.offaxis_proj = OffAxisProjectionPlot(test_ds, normal, "density")
 
@@ -295,6 +306,10 @@ class TestPlotWindowSave(unittest.TestCase):
     @parameterized.expand([(i, ) for i in range(len(WEIGHT_FIELDS))])
     def test_projection_plot_wf(self, dim):
         self.projections_wf[dim].save()
+
+    @parameterized.expand([(i, ) for i in range(len(PROJECTION_METHODS))])
+    def test_projection_plot_m(self, dim):
+        self.projections_m[dim].save()
 
     @parameterized.expand(
         param.explicit((fname, ))
