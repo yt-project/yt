@@ -113,7 +113,9 @@ cdef class QuadTree:
     cdef np.int64_t last_dims[2]
 
     def __cinit__(self, np.ndarray[np.int64_t, ndim=1] top_grid_dims,
-                  int nvals, bounds, method = "integrate"):
+                  int nvals, bounds, style = None, method = "integrate"):
+        if style is not None:
+            method = style
         if method == "integrate":
             self.combine = QTN_add_value
         elif method == "mip":

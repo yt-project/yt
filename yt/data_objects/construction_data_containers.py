@@ -191,6 +191,9 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         "integrate" : integration along the axis
         "mip" : maximum intensity projection
         "sum" : same as "integrate", except that we don't multiply by the path length
+    style : string, optional
+        The same as the method keyword.  Deprecated as of version 3.0.2.  
+        Please use method keyword instead.
     field_parameters : dict of items
         Values to be passed as field parameters that can be
         accessed by generated fields.
@@ -208,8 +211,14 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     _container_fields = ('px', 'py', 'pdx', 'pdy', 'weight_field')
     def __init__(self, field, axis, weight_field = None,
                  center = None, ds = None, data_source = None,
-                 method = "integrate", field_parameters = None):
+                 style = None, method = "integrate", 
+                 field_parameters = None):
         YTSelectionContainer2D.__init__(self, axis, ds, field_parameters)
+        # Style is deprecated, but if it is set, then it trumps method
+        # keyword.  TODO: Remove this keyword and this check at some point in 
+        # the future.
+        if style is not None:
+            method = style
         if method == "sum":
             self.method = "integrate"
             self._sum_only = True
