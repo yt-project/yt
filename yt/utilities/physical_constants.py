@@ -1,5 +1,6 @@
 from yt.utilities.physical_ratios import *
 from yt.units.yt_array import YTQuantity
+from math import pi
 
 mass_electron_cgs = YTQuantity(mass_electron_grams, 'g')
 amu_cgs           = YTQuantity(amu_grams, 'g')
@@ -48,5 +49,14 @@ speed_of_light = speed_of_light_cgs
 kboltz = boltzmann_constant_cgs
 kb = kboltz
 hcgs = planck_constant_cgs
+hbar = 0.5*hcgs/pi
 sigma_thompson = cross_section_thompson_cgs
 Na = 1 / amu_cgs
+
+#Planck units
+m_pl = YTQuantity(planck_mass, "g")
+l_pl = YTQuantity(planck_length, "cm")
+t_pl = YTQuantity(planck_time, "s")
+E_pl = YTQuantity(planck_energy, "erg")
+q_pl = YTQuantity(planck_charge, "esu")
+T_pl = YTQuantity(planck_temperature, "K")

@@ -109,3 +109,11 @@ mass_mean_atomic_galactic = 2.3
 # Miscellaneous
 HUGE = 1.0e90
 TINY = 1.0e-40
+
+# Planck units
+planck_mass = 2.17650925245e-05
+planck_length = 1.6161992557e-33
+planck_time = planck_length / speed_of_light_cm_per_s
+planck_energy = planck_mass * speed_of_light_cm_per_s * speed_of_light_cm_per_s
+planck_temperature = planck_energy / boltzmann_constant_erg_per_K
+planck_charge = 5.62274532302e-09
