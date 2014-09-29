@@ -316,10 +316,11 @@ To push to your fork on BitBucket if you didn't use a bookmark, you issue the fo
 The ``-r .`` means "push only the commit I'm standing on and any ancestors."  The
 ``-f`` is to force Mecurial to do the push since we are creating a new remote head.
 
-Note that if you *did* use bookmarks, you don't have to force the push, but you do
+Note that if you *did* use a bookmark, you don't have to force the push, but you do
 need to push the bookmark; in otherwords do the following instead of the above:
 
 .. code-block:: bash
+		
    $ hg push -B mybookmark https://bitbucket.org/YourUsername/Your_yt
 
 The ``-B`` means "publish my bookmark and any relevant changesets to the remote server."
