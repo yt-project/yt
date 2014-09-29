@@ -48,9 +48,9 @@ default_unit_symbol_lut = {
     "W": (1.0e7, dimensions.power),
     "Hz": (1.0, dimensions.rate),
     "N": (1.0e5, dimensions.force),
-    "Coulomb": (1.0, dimensions.charge_si),
-    "A": (1.0, dimensions.current_si),
-    "T": (1.0, dimensions.magnetic_field_si),
+    "Coulomb": (2997924580.0, dimensions.charge_si),
+    "A": (2997924580.0, dimensions.current_si),
+    "T": (1.0e4, dimensions.magnetic_field_si),
 
     # Imperial units
     "ft": (30.48, dimensions.length),
@@ -208,3 +208,7 @@ mks_base_units = {
     dimensions.temperature:'K',
     dimensions.angle:'radian',
 }
+
+si_equivalencies = {"Coulomb":"esu",
+                    "T":"gauss",
+                    "A":"esu/s"}

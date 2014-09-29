@@ -29,6 +29,7 @@ from numpy import \
     floor, ceil, trunc, fmax, fmin
 
 from yt.units.unit_object import Unit, UnitParseError
+from yt.units.unit_lookup_table import si_equivalencies
 from yt.units.unit_registry import UnitRegistry
 from yt.units.dimensions import dimensionless
 from yt.utilities.exceptions import \
