@@ -297,7 +297,7 @@ the main yt repository.  If you find yourself doing this a lot, it may
 be worth aliasing this task in your ``hgrc`` file by adding something like::
 
   [alias]
-  myupdate = update -r "remote(tip,'upstream')
+  myupdate = update -r "remote(tip,'upstream')"
 
 And then you can just issue ``hg myupdate`` to get at the tip of the yt
 branch of the main yt repository.
