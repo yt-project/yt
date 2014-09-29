@@ -36,7 +36,7 @@ mass_earth_cgs = YTQuantity(mass_earth_grams, 'g')
 mass_mars_cgs = YTQuantity(mass_mars_grams, 'g')
 mass_saturn_cgs = YTQuantity(mass_saturn_grams, 'g')
 mass_uranus_cgs = YTQuantity(mass_uranus_grams, 'g')
-mass_neptun_cgs = YTQuantity(mass_neptun_grams, 'g')
+mass_neptune_cgs = YTQuantity(mass_neptune_grams, 'g')
 
 #Short cuts
 G = gravitational_constant_cgs
@@ -60,3 +60,6 @@ t_pl = YTQuantity(planck_time, "s")
 E_pl = YTQuantity(planck_energy, "erg")
 q_pl = YTQuantity(planck_charge, "esu")
 T_pl = YTQuantity(planck_temperature, "K")
+
+mu_0 = YTQuantity(4.0e-7*pi, "N/A**2")
+eps_0 = (1.0/(clight.in_mks()**2*mu_0)).in_units("Coulomb**2/N/m**2")

@@ -44,16 +44,25 @@ energy   = force * length
 power    = energy / time
 flux     = power / area
 specific_flux = flux / rate
-charge   = (energy * length)**Rational(1, 2)  # proper 1/2 power
 
+# Gaussian electromagnetic units
+charge   = (energy * length)**Rational(1, 2)  # proper 1/2 power
+current  = charge / time
 electric_field = charge / length**2
 magnetic_field = electric_field
+
+# SI electromagnetic units
+current_si = Symbol("(current_si)", positive=True)
+charge_si = current_si * time
+electric_field_si = force / charge_si
+magnetic_field_si = electric_field_si / velocity
 
 solid_angle = angle * angle
 
 derived_dimensions = [rate, velocity, acceleration, jerk, snap, crackle, pop, 
                       momentum, force, energy, power, charge, electric_field, 
                       magnetic_field, solid_angle, flux, specific_flux, volume,
-                      area]
+                      area, current, current_si, charge_si, electric_field_si,
+                      magnetic_field_si]
 
 dimensions = base_dimensions + derived_dimensions

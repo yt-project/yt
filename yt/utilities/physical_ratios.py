@@ -92,7 +92,7 @@ mass_earth_grams = mass_sun_grams / 328900.56
 mass_mars_grams = mass_sun_grams / 3098708.0
 mass_saturn_grams = mass_sun_grams / 3497.898
 mass_uranus_grams = mass_sun_grams / 22902.98
-mass_neptun_grams = mass_sun_grams / 19412.24
+mass_neptune_grams = mass_sun_grams / 19412.24
 
 # flux
 jansky_cgs = 1.0e-23

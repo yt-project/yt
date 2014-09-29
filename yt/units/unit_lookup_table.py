@@ -40,13 +40,17 @@ default_unit_symbol_lut = {
     "erg":  (1.0, dimensions.energy),
     "esu":  (1.0, dimensions.charge),
     "gauss": (1.0, dimensions.magnetic_field),
-    "C" : (1.0, dimensions.temperature, -273.15),
+    "C": (1.0, dimensions.temperature, -273.15),
 
     # some SI
     "m": (1.0e2, dimensions.length),
     "J": (1.0e7, dimensions.energy),
     "W": (1.0e7, dimensions.power),
     "Hz": (1.0, dimensions.rate),
+    "N": (1.0e5, dimensions.force),
+    "Coulomb": (1.0, dimensions.charge_si),
+    "A": (1.0, dimensions.current_si),
+    "T": (1.0, dimensions.magnetic_field_si),
 
     # Imperial units
     "ft": (30.48, dimensions.length),
