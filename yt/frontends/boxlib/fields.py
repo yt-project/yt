@@ -194,13 +194,13 @@ class MaestroFieldInfo(FieldInfoContainer):
         ("Machnumber", ("", ["mach_number"], "Mach Number")),
         ("S", ("1/s", [], None)),
         ("ad_excess", ("", [], "Adiabatic Excess")),
-        ("deltaT", ("", [], "\delta T")),
+        ("deltaT", ("", [], "[T(\\rho,h,X) - T(\\rho,p,X)]/T(\\rho,h,X)")),
         ("deltagamma", ("", [], "\Gamma_1 - \overline{\Gamma_1}")),
-        ("deltap", ("", [], "\delta p")),
-        ("divw0", ("1/s", [], "\nabla w_0")),
+        ("deltap", ("", [], "[p(\\rho,h,X) - p_0] / p_0")),
+        ("divw0", ("1/s", [], "\nabla \cdot \mathbf{w}_0")),
         # Specific entropy
         ("entropy", ("erg/(g*K)", ["entropy"], "s")),
-        ("entropypert", ("", [], "\delta s")),
+        ("entropypert", ("", [], "[s - \overline{s}] / \overline{s}")),
         ("enucdot", ("erg/(g*s)", [], "\dot{\epsilon_{nuc}}")),
         ("Hext", ("erg/(g*s)", [], "H_{ext}")),
         # Perturbational pressure grad
