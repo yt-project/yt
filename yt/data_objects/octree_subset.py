@@ -285,6 +285,8 @@ class ParticleOctreeSubset(OctreeSubset):
 
     @property
     def oct_handler(self):
+        if self._index.regions._last_octree_subset == id(self):
+            return self._index.regions._last_oct_handler
         cache = self._index.regions._cached_octrees
         if self.data_files[0].file_id not in cache:
             dfi, count, omask = self._index.regions.identify_data_files(
@@ -295,6 +297,8 @@ class ParticleOctreeSubset(OctreeSubset):
                 self.data_files[0].file_id, self.base_selector,
                 self._index.io, self._index.data_files,
                 (dfi, count, omask))
+        self._index.regions._last_octree_subset = id(self)
+        self._index.regions._last_oct_handler = oct_handler
         return oct_handler
 
 class OctreeSubsetBlockSlice(object):

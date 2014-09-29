@@ -288,6 +288,8 @@ cdef class ParticleForest:
     cdef public object _last_selector
     cdef public object _last_return_values
     cdef public object _cached_octrees
+    cdef public object _last_octree_subset
+    cdef public object _last_oct_handler
 
     def __init__(self, left_edge, right_edge, dims, nfiles, oref = 1,
                  n_ref = 64):
@@ -295,6 +297,8 @@ cdef class ParticleForest:
         self._cached_octrees = {}
         self._last_selector = None
         self._last_return_values = None
+        self._last_octree_subset = None
+        self._last_oct_handler = None
         self.oref = oref
         self.nfiles = nfiles
         self.n_ref = n_ref
