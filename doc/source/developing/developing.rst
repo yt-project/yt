@@ -173,7 +173,7 @@ Developing yt on Windows
 If you plan to develop yt on Windows, it is necessary to use the `MinGW
 <http://www.mingw.org/>`_ gcc compiler that can be installed using the `Anaconda
 Python Distribution <https://store.continuum.io/cshop/anaconda/>`_. The libpython package must be
- installed from Anaconda as well. These can both be installed with a single command:
+installed from Anaconda as well. These can both be installed with a single command:
 
 .. code-block:: bash
 
@@ -245,6 +245,75 @@ straightforward.
       hg push https://bitbucket.org/YourUsername/yt/
 
 #. Your pull request will be automatically updated.
+
+.. _multiple-PRs:
+
+Working with Multiple BitBucket Pull Requests
++++++++++++++++++++++++++++++++++++++++++++++
+
+Once you become active developing for yt, you may be working on various aspects
+of the code or bugfixes at the same time.  Currently, BitBucket's *modus operandi*
+for pull requests automatically updates your active pull request with every
+``hg push`` to your fork.  This means that if you have an active pull request,
+make some changes locally for, say, an unrelated bugfix, then push
+those changes back to your fork in the hopes of creating a *new* pull request,
+you'll actually end up updating your current pull request!
+
+There are a few ways around this feature of BitBucket that will allow for
+multiple pull requests to coexist; we outline two such methods below, although
+they are similar in spirit.  We assume that you have a fork of yt at
+``http://bitbucket.org/YourUsername/Your_yt`` (see :ref:`sharing-changes` for
+instructions on creating a fork) and that you have an active pull request to the
+main repository.
+
+The main issue with starting another pull request is to make sure that your
+push back to BitBucket doesn't go to the same head as your existing pull request
+and trigger BitBucket's auto-update feature.  Here's how to get your local repository
+away from your current pull request head:
+
+#. Using yt tip on the BitBucket Website
+   
+   #. Take a look at https://bitbucket.org/yt_analysis/yt/commits/branch/yt and
+      find the commit hash of the current tip of the yt branch, for example
+      f633cb9.
+   #. Update your local copy to that commit:
+
+      .. code-block:: bash
+		      
+	$ hg pull https://bitbucket.org/yt_analysis/yt
+	$ hg update f633cb9
+
+#. Using `revsets <http://www.selenic.com/hg/help/revsets>`_ and Your ``hgrc`` File
+   
+   #. Set up a Mercurial path for the main yt repository (note this is a convenience
+      step and only needs to be done once).  Add the following to your
+      ``Your_yt/.hg/hgrc``::
+
+	[paths]
+	upstream = https://bitbucket.org/yt_analysis/yt
+
+      This will create a path called ``upstream`` that is aliased to the URL of the
+      main yt repository.
+   #. Now we'll use revsets_ to update your local repository to the tip of the
+      ``upstream`` path:
+
+      .. code-block:: bash
+
+	$ hg pull
+	$ hg update -r "remote(tip,'upstream')"
+
+After the above steps, your local repository should be at the tip of the main yt
+repository.  You can then make changes and ``hg commit`` them.  To push back to
+your fork on BitBucket you issue the following:
+
+.. code-block:: bash
+
+  $ hg push -r . -f https://bitbucket.org/YourUsername/Your_yt
+
+The ``-r .`` means "push only the commit I'm standing on and any ancestors."  The
+``-f`` is to force Mecurial to do the push since we are creating a new remote head.
+You can then go to the BitBucket interface and issue a new pull request based on
+your last changes, as usual.
 
 How To Get The Source Code For Editing
 --------------------------------------
