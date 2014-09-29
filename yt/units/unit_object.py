@@ -116,10 +116,10 @@ class Unit(Expr):
 
     # Extra attributes
     __slots__ = ["expr", "is_atomic", "cgs_value", "cgs_offset", "dimensions",
-                 "registry"]
+                 "registry","equivalences"]
 
     def __new__(cls, unit_expr=sympy_one, cgs_value=None, cgs_offset=0.0,
-                dimensions=None, registry=None, **assumptions):
+                equivalences=[], dimensions=None, registry=None, **assumptions):
         """
         Create a new unit. May be an atomic unit (like a gram) or combinations
         of atomic units (like g / cm**3).
@@ -191,12 +191,13 @@ class Unit(Expr):
             validate_dimensions(dimensions)
         else:
             # lookup the unit symbols
-            try:
-                cgs_value, dimensions = \
-                    _get_unit_data_from_expr(unit_expr, registry.lut)
-            except ValueError:
-                cgs_value, dimensions, cgs_offset = \
-                    _get_unit_data_from_expr(unit_expr, registry.lut)
+            unit_data = _get_unit_data_from_expr(unit_expr, registry.lut)
+            cgs_value = unit_data[0]
+            dimensions = unit_data[1]
+            if len(unit_data) >= 3:
+                cgs_offset = unit_data[2]
+            if len(unit_data) == 4:
+                equivalences = unit_data[3]
 
         # Create obj with superclass construct.
         obj = Expr.__new__(cls, **assumptions)
@@ -208,6 +209,7 @@ class Unit(Expr):
         obj.cgs_offset = cgs_offset
         obj.dimensions = dimensions
         obj.registry = registry
+        obj.equivalences = equivalences
 
         if unit_key:
             registry.unit_objs[unit_key] = obj
@@ -340,6 +342,8 @@ class Unit(Expr):
 
     def same_dimensions_as(self, other_unit):
         """ Test if dimensions are the same. """
+        if str(other_unit) in self.equivalences or str(self) in other_unit.equivalences:
+            return True
         return (self.dimensions / other_unit.dimensions) == sympy_one
 
     @property

@@ -41,6 +41,7 @@ default_unit_symbol_lut = {
     "esu":  (1.0, dimensions.charge),
     "gauss": (1.0, dimensions.magnetic_field),
     "degC": (1.0, dimensions.temperature, -273.15),
+    "statA": (1.0, dimensions.current),
 
     # some SI
     "m": (1.0e2, dimensions.length),
@@ -48,9 +49,9 @@ default_unit_symbol_lut = {
     "W": (1.0e7, dimensions.power),
     "Hz": (1.0, dimensions.rate),
     "N": (1.0e5, dimensions.force),
-    "Coulomb": (2997924580.0, dimensions.charge_si),
-    "A": (2997924580.0, dimensions.current_si),
-    "T": (1.0e4, dimensions.magnetic_field_si),
+    "C": (2997924580.0, dimensions.charge_si, 0.0, ["esu"]),
+    "A": (2997924580.0, dimensions.current_si, 0.0, ["statA"]),
+    "T": (1.0e4, dimensions.magnetic_field_si, 0.0, ["gauss"]),
 
     # Imperial units
     "ft": (30.48, dimensions.length),
@@ -212,7 +213,3 @@ mks_base_units = {
     dimensions.temperature:'K',
     dimensions.angle:'radian',
 }
-
-si_equivalencies = {"C":"esu",
-                    "T":"gauss",
-                    "A":"esu/s"}
