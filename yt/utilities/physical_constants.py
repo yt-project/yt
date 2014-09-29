@@ -62,4 +62,4 @@ q_pl = YTQuantity(planck_charge, "esu")
 T_pl = YTQuantity(planck_temperature, "K")
 
 mu_0 = YTQuantity(4.0e-7*pi, "N/A**2")
-eps_0 = (1.0/(clight.in_mks()**2*mu_0)).in_units("Coulomb**2/N/m**2")
+eps_0 = (1.0/(clight.in_mks()**2*mu_0)).in_units("C**2/N/m**2")
