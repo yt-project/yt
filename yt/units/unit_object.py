@@ -116,10 +116,10 @@ class Unit(Expr):
 
     # Extra attributes
     __slots__ = ["expr", "is_atomic", "cgs_value", "cgs_offset", "dimensions",
-                 "registry","equivalences"]
+                 "registry","equivalence"]
 
     def __new__(cls, unit_expr=sympy_one, cgs_value=None, cgs_offset=0.0,
-                equivalences=[], dimensions=None, registry=None, **assumptions):
+                equivalence=None, dimensions=None, registry=None, **assumptions):
         """
         Create a new unit. May be an atomic unit (like a gram) or combinations
         of atomic units (like g / cm**3).
@@ -197,7 +197,7 @@ class Unit(Expr):
             if len(unit_data) >= 3:
                 cgs_offset = unit_data[2]
             if len(unit_data) == 4:
-                equivalences = unit_data[3]
+                equivalence = unit_data[3]
 
         # Create obj with superclass construct.
         obj = Expr.__new__(cls, **assumptions)
@@ -209,7 +209,7 @@ class Unit(Expr):
         obj.cgs_offset = cgs_offset
         obj.dimensions = dimensions
         obj.registry = registry
-        obj.equivalences = equivalences
+        obj.equivalence = equivalence
 
         if unit_key:
             registry.unit_objs[unit_key] = obj
@@ -342,7 +342,7 @@ class Unit(Expr):
 
     def same_dimensions_as(self, other_unit):
         """ Test if dimensions are the same. """
-        if str(other_unit) in self.equivalences or str(self) in other_unit.equivalences:
+        if str(other_unit) == self.equivalence or str(self) == other_unit.equivalence:
             return True
         return (self.dimensions / other_unit.dimensions) == sympy_one
 
