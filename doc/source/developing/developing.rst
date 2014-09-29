@@ -302,8 +302,12 @@ be worth `aliasing`_ this task in your ``hgrc`` file by adding something like::
 And then you can just issue ``hg myupdate`` to get at the tip of the yt
 branch of the main yt repository.
 
-You can then make changes and ``hg commit`` them.  To push to your
-fork on BitBucket you issue the following:
+You can then make changes and ``hg commit`` them.  If you prefer
+working with `bookmarks <http://mercurial.selenic.com/wiki/Bookmarks>`_, you may
+want to make a bookmark before committing your changes, such as
+``hg bookmark mybookmark``.
+
+To push to your fork on BitBucket if you didn't use a bookmark, you issue the following:
 
 .. code-block:: bash
 
@@ -311,6 +315,15 @@ fork on BitBucket you issue the following:
 
 The ``-r .`` means "push only the commit I'm standing on and any ancestors."  The
 ``-f`` is to force Mecurial to do the push since we are creating a new remote head.
+
+Note that if you *did* use bookmarks, you don't have to force the push, but you do
+need to push the bookmark; in otherwords do the following instead of the above:
+
+.. code-block:: bash
+   $ hg push -B mybookmark https://bitbucket.org/YourUsername/Your_yt
+
+The ``-B`` means "publish my bookmark and any relevant changesets to the remote server."
+		
 You can then go to the BitBucket interface and issue a new pull request based on
 your last changes, as usual.
 
