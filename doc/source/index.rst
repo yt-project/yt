@@ -44,11 +44,11 @@ Table of Contents
      <tr valign="top">
        <td width="25%">
          <p>
-           <a href="examining/loading_data.html">Loading Data</a>
+           <a href="examining/index.html">Loading and Examining Data</a>
          </p>
        </td>
        <td width="75%">
-         <p class="linkdescr">How to load various types of data into yt</p>
+         <p class="linkdescr">How to load and examine all dataset types in yt</p>
        </td>
      </tr>
      <tr valign="top">
@@ -89,16 +89,6 @@ Table of Contents
        </td>
        <td width="75%">
          <p class="linkdescr">Use analysis  tools to extract results from your data</p>
-       </td>
-     </tr>
-     <tr valign="top">
-       <td width="25%">
-         <p>
-           <a href="examining/index.html">Examining Data</a>
-         </p>
-       </td>
-       <td width="75%">
-         <p class="linkdescr">Load data and directly access raw values for low-level analysis</p>
        </td>
      </tr>
      <tr valign="top">
