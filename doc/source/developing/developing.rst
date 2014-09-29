@@ -251,60 +251,59 @@ straightforward.
 Working with Multiple BitBucket Pull Requests
 +++++++++++++++++++++++++++++++++++++++++++++
 
-Once you become active developing for yt, you may be working on various aspects
-of the code or bugfixes at the same time.  Currently, BitBucket's *modus operandi*
-for pull requests automatically updates your active pull request with every
-``hg push`` to your fork.  This means that if you have an active pull request,
-make some changes locally for, say, an unrelated bugfix, then push
-those changes back to your fork in the hopes of creating a *new* pull request,
-you'll actually end up updating your current pull request!
+Once you become active developing for yt, you may be working on
+various aspects of the code or bugfixes at the same time.  Currently,
+BitBucket's *modus operandi* for pull requests automatically updates
+your active pull request with every ``hg push`` of commits that are a
+descendant of the head of your pull request.  In a normal workflow,
+this means that if you have an active pull request, make some changes
+locally for, say, an unrelated bugfix, then push those changes back to
+your fork in the hopes of creating a *new* pull request, you'll
+actually end up updating your current pull request!
 
-There are a few ways around this feature of BitBucket that will allow for
-multiple pull requests to coexist; we outline two such methods below, although
-they are similar in spirit.  We assume that you have a fork of yt at
-``http://bitbucket.org/YourUsername/Your_yt`` (see :ref:`sharing-changes` for
-instructions on creating a fork) and that you have an active pull request to the
-main repository.
+There are a few ways around this feature of BitBucket that will allow
+for multiple pull requests to coexist; we outline one such method
+below.  We assume that you have a fork of yt at
+``http://bitbucket.org/YourUsername/Your_yt`` (see
+:ref:`sharing-changes` for instructions on creating a fork) and that
+you have an active pull request to the main repository.
 
-The main issue with starting another pull request is to make sure that your
-push back to BitBucket doesn't go to the same head as your existing pull request
-and trigger BitBucket's auto-update feature.  Here's how to get your local repository
-away from your current pull request head:
-
-#. Using yt tip on the BitBucket Website
+The main issue with starting another pull request is to make sure that
+your push to BitBucket doesn't go to the same head as your
+existing pull request and trigger BitBucket's auto-update feature.
+Here's how to get your local repository away from your current pull
+request head using `revsets <http://www.selenic.com/hg/help/revsets>`_
+and your ``hgrc`` file:
    
-   #. Take a look at https://bitbucket.org/yt_analysis/yt/commits/branch/yt and
-      find the commit hash of the current tip of the yt branch, for example
-      f633cb9.
-   #. Update your local copy to that commit:
+#. Set up a Mercurial path for the main yt repository (note this is a convenience
+   step and only needs to be done once).  Add the following to your
+   ``Your_yt/.hg/hgrc``::
 
-      .. code-block:: bash
-		      
-	$ hg pull https://bitbucket.org/yt_analysis/yt
-	$ hg update f633cb9
+     [paths]
+     upstream = https://bitbucket.org/yt_analysis/yt
 
-#. Using `revsets <http://www.selenic.com/hg/help/revsets>`_ and Your ``hgrc`` File
-   
-   #. Set up a Mercurial path for the main yt repository (note this is a convenience
-      step and only needs to be done once).  Add the following to your
-      ``Your_yt/.hg/hgrc``::
+   This will create a path called ``upstream`` that is aliased to the URL of the
+   main yt repository.
+#. Now we'll use revsets_ to update your local repository to the tip of the
+   ``upstream`` path:
 
-	[paths]
-	upstream = https://bitbucket.org/yt_analysis/yt
+   .. code-block:: bash
 
-      This will create a path called ``upstream`` that is aliased to the URL of the
-      main yt repository.
-   #. Now we'll use revsets_ to update your local repository to the tip of the
-      ``upstream`` path:
+      $ hg pull
+      $ hg update -r "remote(tip,'upstream')"
 
-      .. code-block:: bash
+After the above steps, your local repository should be at the tip of
+the main yt repository.  If you find yourself doing this a lot, it may
+be worth `aliasing`_ this task in your ``hgrc`` file by adding something like::
 
-	$ hg pull
-	$ hg update -r "remote(tip,'upstream')"
+  [alias]
+  myupdate = update -r "remote(tip,'upstream')
 
-After the above steps, your local repository should be at the tip of the main yt
-repository.  You can then make changes and ``hg commit`` them.  To push back to
-your fork on BitBucket you issue the following:
+And then you can just issue ``hg myupdate`` to get at the tip of the yt
+branch of the main yt repository.
+
+You can then make changes and ``hg commit`` them.  To push to your
+fork on BitBucket you issue the following:
 
 .. code-block:: bash
 
@@ -314,6 +313,8 @@ The ``-r .`` means "push only the commit I'm standing on and any ancestors."  Th
 ``-f`` is to force Mecurial to do the push since we are creating a new remote head.
 You can then go to the BitBucket interface and issue a new pull request based on
 your last changes, as usual.
+
+.. _aliasing: http://mercurial.selenic.com/wiki/AliasExtension
 
 How To Get The Source Code For Editing
 --------------------------------------
