@@ -283,18 +283,18 @@ class ParticleOctreeSubset(OctreeSubset):
             self._domain_ind = di
         return self._domain_ind
 
-    _oct_handler = None
     @property
     def oct_handler(self):
-        if self._oct_handler is not None:
-            return self._oct_handler
-        dfi, count, omask = self._index.regions.identify_data_files(
-                                self.base_selector)
+        cache = self._index.regions._cached_octrees
+        if self.data_files[0].file_id not in cache:
+            dfi, count, omask = self._index.regions.identify_data_files(
+                                    self.base_selector)
+        else:
+            dfi = count = omask = None
         oct_handler = self._index.regions.construct_forest(
                 self.data_files[0].file_id, self.base_selector,
                 self._index.io, self._index.data_files,
                 (dfi, count, omask))
-        self._oct_handler = oct_handler
         return oct_handler
 
 class OctreeSubsetBlockSlice(object):
