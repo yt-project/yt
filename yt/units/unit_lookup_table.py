@@ -40,7 +40,7 @@ default_unit_symbol_lut = {
     "erg":  (1.0, dimensions.energy),
     "esu":  (1.0, dimensions.charge),
     "gauss": (1.0, dimensions.magnetic_field),
-    "C": (1.0, dimensions.temperature, -273.15),
+    "degC": (1.0, dimensions.temperature, -273.15),
 
     # some SI
     "m": (1.0e2, dimensions.length),
@@ -55,7 +55,7 @@ default_unit_symbol_lut = {
     # Imperial units
     "ft": (30.48, dimensions.length),
     "mile": (160934, dimensions.length),
-    "F": (kelvin_per_rankine, dimensions.temperature, -459.67),
+    "degF": (kelvin_per_rankine, dimensions.temperature, -459.67),
     "R": (kelvin_per_rankine, dimensions.temperature),
 
     # dimensionless stuff
@@ -191,6 +191,10 @@ prefixable_units = (
     "W",
     "gauss",
     "Jy",
+    "N",
+    "T",
+    "A",
+    "C",
 )
 
 cgs_base_units = {
@@ -209,6 +213,6 @@ mks_base_units = {
     dimensions.angle:'radian',
 }
 
-si_equivalencies = {"Coulomb":"esu",
+si_equivalencies = {"C":"esu",
                     "T":"gauss",
                     "A":"esu/s"}

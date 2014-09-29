@@ -469,21 +469,21 @@ def test_temperature_conversions():
 
     km = YTQuantity(1, 'km')
     balmy = YTQuantity(300, 'K')
-    balmy_F = YTQuantity(80.33, 'F')
-    balmy_C = YTQuantity(26.85, 'C')
+    balmy_F = YTQuantity(80.33, 'degF')
+    balmy_C = YTQuantity(26.85, 'degC')
     balmy_R = YTQuantity(540, 'R')
 
-    assert_array_almost_equal(balmy.in_units('F'), balmy_F)
-    assert_array_almost_equal(balmy.in_units('C'), balmy_C)
+    assert_array_almost_equal(balmy.in_units('defF'), balmy_F)
+    assert_array_almost_equal(balmy.in_units('degC'), balmy_C)
     assert_array_almost_equal(balmy.in_units('R'), balmy_R)
 
     balmy_view = balmy.ndarray_view()
 
-    balmy.convert_to_units('F')
+    balmy.convert_to_units('degF')
     yield assert_true, balmy_view.base is balmy.base
     yield assert_array_almost_equal, np.array(balmy), np.array(balmy_F)
 
-    balmy.convert_to_units('C')
+    balmy.convert_to_units('degC')
     yield assert_true, balmy_view.base is balmy.base
     yield assert_array_almost_equal, np.array(balmy), np.array(balmy_C)
 
@@ -497,7 +497,7 @@ def test_temperature_conversions():
 
     yield assert_raises, InvalidUnitOperation, np.multiply, balmy, km
 
-    # Does CGS convergion from F to K work?
+    # Does CGS conversion from F to K work?
     yield assert_array_almost_equal, balmy.in_cgs(), YTQuantity(300, 'K')
 
 
