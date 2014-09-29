@@ -341,7 +341,7 @@ class FITSProjection(FITSImageBuffer):
     def __init__(self, ds, axis, fields, center="c", weight_field=None, **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis, ds)
-        center = get_sanitized_center(center, ds)
+        center = ds.coordinates.sanitize_center(center, axis)
         prj = ds.proj(fields[0], axis, weight_field=weight_field, **kwargs)
         w, frb = construct_image(prj, center=center)
         super(FITSProjection, self).__init__(frb, fields=fields, wcs=w)
