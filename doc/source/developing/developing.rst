@@ -294,7 +294,7 @@ and your ``hgrc`` file:
 
 After the above steps, your local repository should be at the tip of
 the main yt repository.  If you find yourself doing this a lot, it may
-be worth `aliasing`_ this task in your ``hgrc`` file by adding something like::
+be worth aliasing this task in your ``hgrc`` file by adding something like::
 
   [alias]
   myupdate = update -r "remote(tip,'upstream')
@@ -326,8 +326,6 @@ The ``-B`` means "publish my bookmark and any relevant changesets to the remote 
 		
 You can then go to the BitBucket interface and issue a new pull request based on
 your last changes, as usual.
-
-.. _aliasing: http://mercurial.selenic.com/wiki/AliasExtension
 
 How To Get The Source Code For Editing
 --------------------------------------
