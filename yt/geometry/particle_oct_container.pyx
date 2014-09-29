@@ -754,7 +754,7 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
         cdef np.ndarray[np.uint8_t, ndim=1] ref_mask, packed_mask
         obj.loaded = 1
         packed_mask = header['octree']
-        ref_mask = np.zeros(header['indices'][-1], 'uint8')
+        ref_mask = np.zeros(header['nocts'], 'uint8')
         i = j = 0
         while i * 8 + j < ref_mask.size:
             ref_mask[i * 8 + j] = ((packed_mask[i] >> j) & 1)
@@ -821,10 +821,8 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
         data.nz = 1
         cdef np.ndarray[np.uint8_t, ndim=1] ref_mask
         cdef np.ndarray[np.uint8_t, ndim=1] packed_mask
-        cdef np.ndarray[np.uint64_t, ndim=1] indices
         cdef np.ndarray[np.uint64_t, ndim=1] keys
         ref_mask = np.zeros(self.nocts * data.nz, dtype="uint8") - 1
-        indices = np.zeros(self.num_root, "uint64") - 1
         keys = np.zeros(self.num_root, "uint64")
         for i in range(self.num_root):
             keys[i] = self.root_nodes[i].key
@@ -832,8 +830,7 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
         p[0] = ref_mask.data
         data.array = p
         # Enforce partial_coverage here
-        self.visit_all_octs(selector, oct_visitors.store_octree, &data, 1,
-                            <np.int64_t*> indices.data)
+        self.visit_all_octs(selector, oct_visitors.store_octree, &data, 1)
         # Now let's bitpack; we'll un-bitpack later.
         packed_mask = np.zeros(ceil(self.nocts * data.nz/8.0), dtype="uint8")
         i = j = 0
@@ -844,9 +841,8 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
                 j = 0
                 i += 1
         header['octree'] = packed_mask
-        header['indices'] = indices
+        header['nocts'] = self.nocts
         header['keys'] = keys
         header['domain_id'] = self.oct_list[0].domain
-        assert(indices[-1] == self.nocts)
         return header
 

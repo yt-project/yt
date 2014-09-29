@@ -172,9 +172,3 @@ class ParticleIndex(Index):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for container in oobjs:
             yield YTDataChunk(dobj, "io", [container], None, cache = cache)
-
-class ParticleDataChunk(YTDataChunk):
-    def __init__(self, oct_handler, regions, *args, **kwargs):
-        self.oct_handler = oct_handler
-        self.regions = regions
-        super(ParticleDataChunk, self).__init__(*args, **kwargs)
