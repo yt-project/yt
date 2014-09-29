@@ -19,9 +19,11 @@ length = Symbol("(length)", positive=True)
 time = Symbol("(time)", positive=True)
 temperature = Symbol("(temperature)", positive=True)
 angle = Symbol("(angle)", positive=True)
+current_si = Symbol("(current_si)", positive=True)
 dimensionless = sympify(1)
 
-base_dimensions = [mass, length, time, temperature, angle, dimensionless]
+base_dimensions = [mass, length, time, temperature, angle, current_si,
+                   dimensionless]
 
 #
 # Derived dimensions
@@ -52,7 +54,6 @@ electric_field = charge / length**2
 magnetic_field = electric_field
 
 # SI electromagnetic units
-current_si = Symbol("(current_si)", positive=True)
 charge_si = current_si * time
 electric_field_si = force / charge_si
 magnetic_field_si = electric_field_si / velocity
