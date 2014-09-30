@@ -209,6 +209,9 @@ class Unit(Expr):
         obj.cgs_offset = cgs_offset
         obj.dimensions = dimensions
         obj.registry = registry
+        if isinstance(equivalence, tuple):
+            equivalence = Unit(unit_expr=equivalence[0], cgs_value=1.0,
+                               dimensions=equivalence[1], registry=registry)
         obj.equivalence = equivalence
 
         if unit_key:
@@ -266,12 +269,19 @@ class Unit(Expr):
                 cgs_offset = self.cgs_offset
             else:
                 raise InvalidUnitOperation("Quantities with units of Fahrenheit "
-                                           "and Celcius cannot be multiplied.")
+                                           "and Celsius cannot be multiplied.")
+
+        equivalence = None
+        if self.equivalence or u.equivalence:
+            a = self.equivalence if self.equivalence else self
+            b = u.equivalence if u.equivalence else u
+            equivalence = a*b
 
         return Unit(self.expr * u.expr,
                     cgs_value=(self.cgs_value * u.cgs_value),
                     cgs_offset=cgs_offset,
                     dimensions=(self.dimensions * u.dimensions),
+                    equivalence=equivalence,
                     registry=self.registry)
 
     def __div__(self, u):
@@ -289,12 +299,19 @@ class Unit(Expr):
                 cgs_offset = self.cgs_offset
             else:
                 raise InvalidUnitOperation("Quantities with units of Farhenheit "
-                                           "and Celcius cannot be multiplied.")
+                                           "and Celsius cannot be multiplied.")
+
+        equivalence = None
+        if self.equivalence or u.equivalence:
+            a = self.equivalence if self.equivalence else self
+            b = u.equivalence if u.equivalence else u
+            equivalence = a/b
 
         return Unit(self.expr / u.expr,
                     cgs_value=(self.cgs_value / u.cgs_value),
                     cgs_offset=cgs_offset,
                     dimensions=(self.dimensions / u.dimensions),
+                    equivalence=equivalence,
                     registry=self.registry)
 
     __truediv__ = __div__
@@ -308,8 +325,14 @@ class Unit(Expr):
                                        "power '%s' (type %s). Failed to cast " \
                                        "it to a float." % (p, type(p)) )
 
+        equivalence = None
+        if self.equivalence:
+            equivalence = self.equivalence**p
+
         return Unit(self.expr**p, cgs_value=(self.cgs_value**p),
-                    dimensions=(self.dimensions**p), registry=self.registry)
+                    dimensions=(self.dimensions**p),
+                    equivalence=equivalence,
+                    registry=self.registry)
 
     def __eq__(self, u):
         """ Test unit equality. """
@@ -342,7 +365,7 @@ class Unit(Expr):
 
     def same_dimensions_as(self, other_unit):
         """ Test if dimensions are the same. """
-        if str(other_unit) == self.equivalence or str(self) == other_unit.equivalence:
+        if other_unit == self.equivalence or self == other_unit.equivalence:
             return True
         return (self.dimensions / other_unit.dimensions) == sympy_one
 
@@ -376,20 +399,30 @@ class Unit(Expr):
         Create and return dimensionally-equivalent cgs units.
 
         """
-        units_string = self._get_system_unit_string(cgs_base_units)
+        if self.equivalence is None:
+            units_string = self._get_system_unit_string(cgs_base_units)
+            dims = self.dimensions
+        else:
+            units_string = self.equivalence._get_system_unit_string(cgs_base_units)
+            dims = self.equivalence.dimensions
         return Unit(units_string, cgs_value=1.0,
-                    dimensions=self.dimensions, registry=self.registry)
+                    dimensions=dims, registry=self.registry)
 
     def get_mks_equivalent(self):
         """
         Create and return dimensionally-equivalent mks units.
 
         """
-        units_string = self._get_system_unit_string(mks_base_units)
+        if self.equivalence is None:
+            units_string = self._get_system_unit_string(mks_base_units)
+            dims = self.dimensions
+        else:
+            units_string = self.equivalence._get_system_unit_string(mks_base_units)
+            dims = self.equivalence.dimensions
         cgs_value = (get_conversion_factor(self, self.get_cgs_equivalent())[0] /
                      get_conversion_factor(self, Unit(units_string))[0])
         return Unit(units_string, cgs_value=cgs_value,
-                    dimensions=self.dimensions, registry=self.registry)
+                    dimensions=dims, registry=self.registry)
 
     def get_conversion_factor(self, other_units):
         return get_conversion_factor(self, other_units)
