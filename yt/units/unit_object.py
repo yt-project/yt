@@ -196,7 +196,6 @@ class Unit(Expr):
             dimensions = unit_data[1]
             if len(unit_data) == 3:
                 cgs_offset = unit_data[2]
-            equivalence = cgs_equivalences.get(str(unit_expr),None)
 
         # Create obj with superclass construct.
         obj = Expr.__new__(cls, **assumptions)
@@ -408,18 +407,11 @@ class Unit(Expr):
         Create and return dimensionally-equivalent mks units.
 
         """
-        if self.equivalence is None:
-            units_string = self._get_system_unit_string(mks_base_units)
-            dims = self.dimensions
-            units = self
-        else:
-            units_string = self.equivalence._get_system_unit_string(mks_base_units)
-            dims = self.equivalence.dimensions
-            units = self.equivalence
-        cgs_value = (get_conversion_factor(units, units.get_cgs_equivalent())[0] /
-                     get_conversion_factor(units, Unit(units_string))[0])
+        units_string = self._get_system_unit_string(mks_base_units)
+        cgs_value = (get_conversion_factor(self, self.get_cgs_equivalent())[0] /
+                     get_conversion_factor(self, Unit(units_string))[0])
         return Unit(units_string, cgs_value=cgs_value,
-                    dimensions=dims, registry=self.registry)
+                    dimensions=self.dimensions, registry=self.registry)
 
     def get_conversion_factor(self, other_units):
         return get_conversion_factor(self, other_units)

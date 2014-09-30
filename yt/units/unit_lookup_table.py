@@ -213,11 +213,11 @@ mks_base_units = {
     dimensions.time:'s',
     dimensions.temperature:'K',
     dimensions.angle:'radian',
+    dimensions.current_si:'A',
 }
 
 unit_equivalences = {
     "C":("esu", dimensions.charge),
     "T":("gauss", dimensions.magnetic_field),
     "A":("statA", dimensions.current),
-    "beta":("c", dimensions.velocity),
 }
