@@ -330,7 +330,7 @@ The ``-r .`` means "push only the commit I'm standing on and any ancestors."  Th
 ``-f`` is to force Mecurial to do the push since we are creating a new remote head.
 
 Note that if you *did* use a bookmark, you don't have to force the push, but you do
-need to push the bookmark; in otherwords do the following instead of the above:
+need to push the bookmark; in other words do the following instead of the above:
 
 .. code-block:: bash
 		
