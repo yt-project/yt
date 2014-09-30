@@ -41,11 +41,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
             self.ghost = np.array(self.ghost)
         except KeyError:
             # assume zero ghosts if outputGhosts not present
-<<<<<<< local
             self.ghost = np.zeros(self.dim)
-=======
-            self.ghost = np.array(self.dim)
->>>>>>> other
 
     _field_dict = None
     @property
@@ -83,11 +79,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         dims = grid.ActiveDimensions
         shape = grid.ActiveDimensions + 2*self.ghost
         boxsize = shape.prod()
-<<<<<<< local
 
-=======
-        
->>>>>>> other
         grid_offset = lev[self._offset_string][grid._level_id]
         start = grid_offset+self.field_dict[field]*boxsize
         stop = start + boxsize
@@ -187,46 +179,25 @@ class IOHandlerChombo2DHDF5(IOHandlerChomboHDF5):
     _offset_string = 'data:offsets=0'
     _data_string = 'data:datatype=0'
 
-<<<<<<< local
     def __init__(self, ds, *args, **kwargs):
         BaseIOHandler.__init__(self, ds, *args, **kwargs)
         self.ds = ds
         self._handle = ds._handle
-=======
-    def __init__(self, pf, *args, **kwargs):
-        BaseIOHandler.__init__(self, pf, *args, **kwargs)
-        self.pf = pf
-        self._handle = pf._handle
->>>>>>> other
         self.dim = 2
         self._read_ghost_info()
-<<<<<<< local
 
-=======
->>>>>>> other
 
 class IOHandlerChombo1DHDF5(IOHandlerChomboHDF5):
     _dataset_type = "chombo1d_hdf5"
     _offset_string = 'data:offsets=0'
     _data_string = 'data:datatype=0'
 
-<<<<<<< local
     def __init__(self, ds, *args, **kwargs):
         BaseIOHandler.__init__(self, ds, *args, **kwargs)
         self.ds = ds
-=======
-    def __init__(self, pf, *args, **kwargs):
-        BaseIOHandler.__init__(self, pf, *args, **kwargs)
-        self.pf = pf
->>>>>>> other
         self.dim = 1
-<<<<<<< local
         self._handle = ds._handle
-=======
-        self._handle = pf._handle   
->>>>>>> other
         self._read_ghost_info()
-<<<<<<< local
 
 
 class IOHandlerPlutoHDF5(IOHandlerChomboHDF5):
@@ -297,8 +268,6 @@ def parse_orion_sinks(fn):
 
     return index
 
-=======
->>>>>>> other
 
 class IOHandlerOrion2HDF5(IOHandlerChomboHDF5):
     _dataset_type = "orion_chombo_native"
