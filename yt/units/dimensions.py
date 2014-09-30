@@ -58,6 +58,11 @@ charge_mks = current_mks * time
 electric_field_mks = force / charge_mks
 magnetic_field_mks = electric_field_mks / velocity
 
+# Since cgs is our default, I'm adding these shortcuts for backwards-compatibility
+charge = charge_cgs
+electric_field = electric_field_cgs
+magnetic_field = magnetic_field_cgs
+
 solid_angle = angle * angle
 
 derived_dimensions = [rate, velocity, acceleration, jerk, snap, crackle, pop, 
