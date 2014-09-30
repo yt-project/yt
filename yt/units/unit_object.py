@@ -416,11 +416,13 @@ class Unit(Expr):
         if self.equivalence is None:
             units_string = self._get_system_unit_string(mks_base_units)
             dims = self.dimensions
+            units = self
         else:
             units_string = self.equivalence._get_system_unit_string(mks_base_units)
             dims = self.equivalence.dimensions
-        cgs_value = (get_conversion_factor(self, self.get_cgs_equivalent())[0] /
-                     get_conversion_factor(self, Unit(units_string))[0])
+            units = self.equivalence
+        cgs_value = (get_conversion_factor(units, units.get_cgs_equivalent())[0] /
+                     get_conversion_factor(units, Unit(units_string))[0])
         return Unit(units_string, cgs_value=cgs_value,
                     dimensions=dims, registry=self.registry)
 
