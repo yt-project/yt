@@ -49,7 +49,7 @@ def test_tb():
 _zp_fields = ("rhs", "phi", "gravitational_field_x",
               "gravitational_field_y")
 zp = "ZeldovichPancake/plt32.2d.hdf5"
-@requires_ds(zp)
+@requires_pf(zp)
 def test_zp():
     ds = data_dir_load(zp)
     yield assert_equal, str(ds), "plt32.2d.hdf5"
