@@ -229,6 +229,18 @@ Here's a more detailed flowchart of how to submit changes.
  
    If you end up doing considerable development, you can set an alias in the
    file ``.hg/hgrc`` to point to this path.
+
+   Note that the above approach uses HTTPS as the transfer protocol
+   between your machine and BitBucket.  If you prefer to use SSH - or
+   perhaps you're behind a proxy that doesn't play well with SSL via
+   HTTPS - you may want to set up an `SSH key`_ on BitBucket.  Then, you use
+   the syntax ``ssh://hg@bitbucket.org/YourUsername/yt``, or equivalent, in
+   place of ``https://bitbucket.org/YourUsername/yt`` in Mercurial commands.
+   For consistency, all commands we list in this document will use the HTTPS
+   protocol.
+
+.. _SSH key: https://confluence.atlassian.com/display/BITBUCKET/Set+up+SSH+for+Mercurial
+
 #. Issue a pull request at
    https://bitbucket.org/YourUsername/yt/pull-request/new
 
