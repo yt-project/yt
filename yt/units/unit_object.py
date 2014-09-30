@@ -116,7 +116,7 @@ class Unit(Expr):
 
     # Extra attributes
     __slots__ = ["expr", "is_atomic", "cgs_value", "cgs_offset", "dimensions",
-                 "registry","equivalence"]
+                 "registry","equivalence","is_equiv_mks"]
 
     def __new__(cls, unit_expr=sympy_one, cgs_value=None, cgs_offset=0.0,
                 dimensions=None, registry=None, **assumptions):
@@ -209,9 +209,11 @@ class Unit(Expr):
         obj.registry = registry
 
         equivalences = []
+        is_mks = []
         for atom in unit_expr.atoms():
             if str(atom) in unit_equivalences:
-                equiv, dims = unit_equivalences[str(atom)]
+                unit_sys, equiv = unit_equivalences[str(atom)]
+                is_mks.append(unit_sys == "mks")
                 equivalences.append((atom, symbols(equiv)))
         if len(equivalences) > 0:
             equivalence = unit_expr.subs(equivalences)
@@ -220,6 +222,7 @@ class Unit(Expr):
         else:
             equivalence = None
         obj.equivalence = equivalence
+        obj.is_equiv_mks = all(is_mks)
 
         if unit_key:
             registry.unit_objs[unit_key] = obj
@@ -393,25 +396,22 @@ class Unit(Expr):
         Create and return dimensionally-equivalent cgs units.
 
         """
-        if self.equivalence is None:
-            units_string = self._get_system_unit_string(cgs_base_units)
-            dims = self.dimensions
-        else:
-            units_string = self.equivalence._get_system_unit_string(cgs_base_units)
-            dims = self.equivalence.dimensions
+        units = self.equivalence if self.equivalence else self
+        units_string = units._get_system_unit_string(cgs_base_units)
         return Unit(units_string, cgs_value=1.0,
-                    dimensions=dims, registry=self.registry)
+                    dimensions=units.dimensions, registry=self.registry)
 
     def get_mks_equivalent(self):
         """
         Create and return dimensionally-equivalent mks units.
 
         """
-        units_string = self._get_system_unit_string(mks_base_units)
-        cgs_value = (get_conversion_factor(self, self.get_cgs_equivalent())[0] /
-                     get_conversion_factor(self, Unit(units_string))[0])
+        units = self.equivalence if self.equivalence and not self.is_equiv_mks else self
+        units_string = units._get_system_unit_string(mks_base_units)
+        cgs_value = (get_conversion_factor(units, units.get_cgs_equivalent())[0] /
+                     get_conversion_factor(units, Unit(units_string))[0])
         return Unit(units_string, cgs_value=cgs_value,
-                    dimensions=self.dimensions, registry=self.registry)
+                    dimensions=units.dimensions, registry=self.registry)
 
     def get_conversion_factor(self, other_units):
         return get_conversion_factor(self, other_units)
