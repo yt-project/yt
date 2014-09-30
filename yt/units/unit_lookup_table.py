@@ -49,9 +49,9 @@ default_unit_symbol_lut = {
     "W": (1.0e7, dimensions.power),
     "Hz": (1.0, dimensions.rate),
     "N": (1.0e5, dimensions.force),
-    "C": (0.1*speed_of_light_cm_per_s, dimensions.charge_si, 0.0, ("esu", dimensions.charge)),
-    "A": (0.1*speed_of_light_cm_per_s, dimensions.current_si, 0.0, ("statA", dimensions.current)),
-    "T": (1.0e4, dimensions.magnetic_field_si, 0.0, ("gauss", dimensions.magnetic_field)),
+    "C": (0.1*speed_of_light_cm_per_s, dimensions.charge_si),
+    "A": (0.1*speed_of_light_cm_per_s, dimensions.current_si),
+    "T": (1.0e4, dimensions.magnetic_field_si),
 
     # Imperial units
     "ft": (30.48, dimensions.length),
@@ -71,7 +71,7 @@ default_unit_symbol_lut = {
 
     # Velocities
     "c": (speed_of_light_cm_per_s, dimensions.velocity),
-    "beta": (speed_of_light_cm_per_s, dimensions.dimensionless, 0.0, ("cm/s", dimensions.velocity)),
+    "beta": (speed_of_light_cm_per_s, dimensions.dimensionless),
 
     # Solar units
     "Msun": (mass_sun_grams, dimensions.mass),
@@ -213,4 +213,11 @@ mks_base_units = {
     dimensions.time:'s',
     dimensions.temperature:'K',
     dimensions.angle:'radian',
+}
+
+unit_equivalences = {
+    "C":("esu", dimensions.charge),
+    "T":("gauss", dimensions.magnetic_field),
+    "A":("statA", dimensions.current),
+    "beta":("c", dimensions.velocity),
 }

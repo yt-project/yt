@@ -17,7 +17,7 @@ from sympy import \
     Pow, Symbol, Integer, \
     Float, Basic, Rational, sqrt
 from sympy.core.numbers import One
-from sympy import sympify, latex
+from sympy import sympify, latex, symbols
 from sympy.parsing.sympy_parser import \
     parse_expr, auto_number, rationalize
 from keyword import iskeyword
@@ -26,7 +26,7 @@ from yt.units.dimensions import \
 from yt.units.unit_lookup_table import \
     latex_symbol_lut, unit_prefixes, \
     prefixable_units, cgs_base_units, \
-    mks_base_units
+    mks_base_units, unit_equivalences
 from yt.units.unit_registry import UnitRegistry
 
 import copy
@@ -119,7 +119,7 @@ class Unit(Expr):
                  "registry","equivalence"]
 
     def __new__(cls, unit_expr=sympy_one, cgs_value=None, cgs_offset=0.0,
-                equivalence=None, dimensions=None, registry=None, **assumptions):
+                dimensions=None, registry=None, **assumptions):
         """
         Create a new unit. May be an atomic unit (like a gram) or combinations
         of atomic units (like g / cm**3).
@@ -194,10 +194,9 @@ class Unit(Expr):
             unit_data = _get_unit_data_from_expr(unit_expr, registry.lut)
             cgs_value = unit_data[0]
             dimensions = unit_data[1]
-            if len(unit_data) >= 3:
+            if len(unit_data) == 3:
                 cgs_offset = unit_data[2]
-            if len(unit_data) == 4:
-                equivalence = unit_data[3]
+            equivalence = cgs_equivalences.get(str(unit_expr),None)
 
         # Create obj with superclass construct.
         obj = Expr.__new__(cls, **assumptions)
@@ -209,9 +208,18 @@ class Unit(Expr):
         obj.cgs_offset = cgs_offset
         obj.dimensions = dimensions
         obj.registry = registry
-        if isinstance(equivalence, tuple):
-            equivalence = Unit(unit_expr=equivalence[0], cgs_value=1.0,
-                               dimensions=equivalence[1], registry=registry)
+
+        equivalences = []
+        for atom in unit_expr.atoms():
+            if str(atom) in unit_equivalences:
+                equiv, dims = unit_equivalences[str(atom)]
+                equivalences.append((atom, symbols(equiv)))
+        if len(equivalences) > 0:
+            equivalence = unit_expr.subs(equivalences)
+            equivalence = Unit(unit_expr=equivalence, cgs_value=1.0,
+                               dimensions=None, registry=registry)
+        else:
+            equivalence = None
         obj.equivalence = equivalence
 
         if unit_key:
@@ -271,17 +279,10 @@ class Unit(Expr):
                 raise InvalidUnitOperation("Quantities with units of Fahrenheit "
                                            "and Celsius cannot be multiplied.")
 
-        equivalence = None
-        if self.equivalence or u.equivalence:
-            a = self.equivalence if self.equivalence else self
-            b = u.equivalence if u.equivalence else u
-            equivalence = a*b
-
         return Unit(self.expr * u.expr,
                     cgs_value=(self.cgs_value * u.cgs_value),
                     cgs_offset=cgs_offset,
                     dimensions=(self.dimensions * u.dimensions),
-                    equivalence=equivalence,
                     registry=self.registry)
 
     def __div__(self, u):
@@ -301,17 +302,10 @@ class Unit(Expr):
                 raise InvalidUnitOperation("Quantities with units of Farhenheit "
                                            "and Celsius cannot be multiplied.")
 
-        equivalence = None
-        if self.equivalence or u.equivalence:
-            a = self.equivalence if self.equivalence else self
-            b = u.equivalence if u.equivalence else u
-            equivalence = a/b
-
         return Unit(self.expr / u.expr,
                     cgs_value=(self.cgs_value / u.cgs_value),
                     cgs_offset=cgs_offset,
                     dimensions=(self.dimensions / u.dimensions),
-                    equivalence=equivalence,
                     registry=self.registry)
 
     __truediv__ = __div__
@@ -325,13 +319,8 @@ class Unit(Expr):
                                        "power '%s' (type %s). Failed to cast " \
                                        "it to a float." % (p, type(p)) )
 
-        equivalence = None
-        if self.equivalence:
-            equivalence = self.equivalence**p
-
         return Unit(self.expr**p, cgs_value=(self.cgs_value**p),
                     dimensions=(self.dimensions**p),
-                    equivalence=equivalence,
                     registry=self.registry)
 
     def __eq__(self, u):
@@ -365,7 +354,13 @@ class Unit(Expr):
 
     def same_dimensions_as(self, other_unit):
         """ Test if dimensions are the same. """
-        if other_unit == self.equivalence or self == other_unit.equivalence:
+        first_check = False
+        second_check = False
+        if self.equivalence:
+            first_check = self.equivalence.dimensions / other_unit.dimensions == sympy_one
+        if other_unit.equivalence:
+            second_check = other_unit.equivalence.dimensions / self.dimensions == sympy_one
+        if first_check or second_check:
             return True
         return (self.dimensions / other_unit.dimensions) == sympy_one
 
