@@ -3,14 +3,11 @@
 Creating A New Code Frontend
 ============================
 
-.. note::
+.. warning: This section is not yet updated to work with yt 3.0.  If you
+            have a question about making a custom derived quantity, please
+            contact the mailing list.
 
-   The material in this section will be significantly revised with the release
-   of yt 3.0.  If you would like to write a new frontend, consider sending a
-   message to the mailing list so you can find out the latest about frontends in
-   yt 3.0.
-
-``yt`` is designed to support analysis and visualization of data from multiple
+yt is designed to support analysis and visualization of data from multiple
 different simulation codes, although it has so far been most successfully
 applied to Adaptive Mesh Refinement (AMR) data. For a list of codes and the
 level of support they enjoy, see :ref:`code-support`.

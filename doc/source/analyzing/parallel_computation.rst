@@ -1,9 +1,9 @@
 .. _parallel-computation:
 
-Parallel Computation With YT
+Parallel Computation With yt
 ============================
 
-``yt`` has been instrumented with the ability to compute many -- most, even --
+yt has been instrumented with the ability to compute many -- most, even --
 quantities in parallel.  This utilizes the package 
 `mpi4py <http://code.google.com/p/mpi4py>`_ to parallelize using the Message
 Passing Interface, typically installed on clusters.  
@@ -13,25 +13,25 @@ Passing Interface, typically installed on clusters.
 Capabilities
 ------------
 
-Currently, ``yt`` is able to perform the following actions in parallel:
+Currently, yt is able to perform the following actions in parallel:
 
- * Projections (:ref:`projection-plots`)
- * Slices (:ref:`slice-plots`)
- * Cutting planes (oblique slices) (:ref:`off-axis-slices`)
- * Derived Quantities (total mass, angular momentum, etc) (:ref:`creating_derived_quantities`,
-   :ref:`derived-quantities`)
- * 1-, 2-, and 3-D profiles (:ref:`generating-profiles-and-histograms`)
- * Halo finding (:ref:`halo_finding`)
- * Volume rendering (:ref:`volume_rendering`)
- * Isocontours & flux calculations (:ref:`extracting-isocontour-information`)
+* Projections (:ref:`projection-plots`)
+* Slices (:ref:`slice-plots`)
+* Cutting planes (oblique slices) (:ref:`off-axis-slices`)
+* Derived Quantities (total mass, angular momentum, etc) (:ref:`creating_derived_quantities`,
+  :ref:`derived-quantities`)
+* 1-, 2-, and 3-D profiles (:ref:`generating-profiles-and-histograms`)
+* Halo finding (:ref:`halo_finding`)
+* Volume rendering (:ref:`volume_rendering`)
+* Isocontours & flux calculations (:ref:`extracting-isocontour-information`)
 
-This list covers just about every action ``yt`` can take!  Additionally, almost all
+This list covers just about every action yt can take!  Additionally, almost all
 scripts will benefit from parallelization with minimal modification.  The goal
-of Parallel-``yt`` has been to retain API compatibility and abstract all
+of Parallel-yt has been to retain API compatibility and abstract all
 parallelism.
 
-Setting Up Parallel YT
-----------------------
+Setting Up Parallel yt
+--------------------------
 
 To run scripts in parallel, you must first install `mpi4py
 <http://code.google.com/p/mpi4py>`_ as well as an MPI library, if one is not
@@ -43,7 +43,7 @@ mpi4py website, but you may have luck by just running:
     $ pip install mpi4py
 
 Once that has been installed, you're all done!  You just need to launch your
-scripts with ``mpirun`` (or equivalent) and signal to ``yt`` that you want to
+scripts with ``mpirun`` (or equivalent) and signal to yt that you want to
 run them in parallel by invoking the ``yt.enable_parallelism()`` function in
 your script.  In general, that's all it takes to get a speed benefit on a
 multi-core machine.  Here is an example on an 8-core desktop:
@@ -52,14 +52,14 @@ multi-core machine.  Here is an example on an 8-core desktop:
 
     $ mpirun -np 8 python script.py
 
-Throughout its normal operation, ``yt`` keeps you aware of what is happening with
+Throughout its normal operation, yt keeps you aware of what is happening with
 regular messages to the stderr usually prefaced with: 
 
 .. code-block:: bash
 
     yt : [INFO   ] YYY-MM-DD HH:MM:SS
 
-However, when operating in parallel mode, ``yt`` outputs information from each
+However, when operating in parallel mode, yt outputs information from each
 of your processors to this log mode, as in:
 
 .. code-block:: bash
@@ -73,10 +73,10 @@ It's important to note that all of the processes listed in :ref:`capabilities`
 work in parallel -- and no additional work is necessary to parallelize those
 processes.
 
-Running a ``yt`` script in parallel
------------------------------------
+Running a yt Script in Parallel
+-------------------------------
 
-Many basic ``yt`` operations will run in parallel if yt's parallelism is enabled at
+Many basic yt operations will run in parallel if yt's parallelism is enabled at
 startup.  For example, the following script finds the maximum density location
 in the simulation and then makes a plot of the projected density:
 
@@ -105,10 +105,10 @@ processes using the following Bash command:
    If you run into problems, the you can use :ref:`remote-debugging` to examine
    what went wrong.
 
-Creating Parallel and Serial Sections in a script
+Creating Parallel and Serial Sections in a Script
 +++++++++++++++++++++++++++++++++++++++++++++++++
 
-Many ``yt`` operations will automatically run in parallel (see the next section for
+Many yt operations will automatically run in parallel (see the next section for
 a full enumeration), however some operations, particularly ones that print
 output or save data to the filesystem, will be run by all processors in a
 parallel script.  For example, in the script above the lines ``print v,c`` and
@@ -116,7 +116,7 @@ parallel script.  For example, in the script above the lines ``print v,c`` and
 output will contain 16 repetitions of the output of the print statement and the
 plot will be saved to disk 16 times (overwritten each time).
 
-``yt`` provides two convenience functions that make it easier to run most of a
+yt provides two convenience functions that make it easier to run most of a
 script in parallel but run some subset of the script on only one processor.  The
 first, :func:`~yt.funcs.is_root`, returns ``True`` if run on the 'root'
 processor (the processor with MPI rank 0) and ``False`` otherwise.  One could
@@ -161,8 +161,8 @@ how to use it:
 Types of Parallelism
 --------------------
 
-In order to divide up the work, ``yt`` will attempt to send different tasks to
-different processors.  However, to minimize inter-process communication, YT
+In order to divide up the work, yt will attempt to send different tasks to
+different processors.  However, to minimize inter-process communication, yt
 will decompose the information in different ways based on the task.
 
 Spatial Decomposition
@@ -175,42 +175,83 @@ has been shown to obtain good results overall.
 
 The following operations use spatial decomposition:
 
-  * Halo finding
-  * Volume rendering
+* :ref:`halo_finding`
+* :ref:`volume_rendering`
 
 Grid Decomposition
 ++++++++++++++++++
 
 The alternative to spatial decomposition is a simple round-robin of data chunks,
 which could be grids, octs, or whatever chunking mechanism is used by the code
-frontend begin used.  This process allows ``yt`` to pool data access to a given
+frontend begin used.  This process allows yt to pool data access to a given
 data file, which ultimately results in faster read times and better parallelism.
 
 The following operations use chunk decomposition:
 
-  * Projections
-  * Slices
-  * Cutting planes
-  * Derived Quantities
-  * 1-, 2-, and 3-D profiles
-  * Isocontours & flux calculations
+* Projections (see :ref:`available-objects`)
+* Slices (see :ref:`available-objects`)
+* Cutting planes (see :ref:`available-objects`)
+* Derived Quantities (see :ref:`derived-quantities`)
+* 1-, 2-, and 3-D profiles (see :ref:`generating-profiles-and-histograms`)
+* Isocontours & flux calculations (see :ref:`surfaces`)
 
-Object-Based
-++++++++++++
+Parallelization over Multiple Objects and Datasets
+++++++++++++++++++++++++++++++++++++++++++++++++++
 
-In a fashion similar to grid decomposition, computation can be parallelized
-over objects. This is especially useful for
+If you have a set of computational steps that need to apply identically and 
+independently to several different objects or datasets, a so-called 
 `embarrassingly parallel <http://en.wikipedia.org/wiki/Embarrassingly_parallel>`_
-tasks where the items to be worked on can be split into separate chunks and
-saved to a list. The list is then split up and each MPI task performs parts of
-it independently.
+task, yt can do that easily.  See the sections below on 
+:ref:`parallelizing-your-analysis` and :ref:`parallel-time-series-analysis`.
+
+Use of ``piter()``
+^^^^^^^^^^^^^^^^^^
+
+If you use parallelism over objects or datasets, you will encounter
+the ``piter()`` function.  ``piter`` is a parallel iterator, which effectively
+doles out each item of a DatasetSeries object to a different processor.  In
+serial processing, you might iterate over a DatasetSeries by:
+
+.. code-block:: python
+
+    for dataset in dataset_series:
+        <process>
+
+But in parallel, you can use ``piter()`` to force each dataset to go to
+a different processor:
+
+.. code-block:: python
+
+    yt.enable_parallelism()
+    for dataset in dataset_series.piter():
+        <process>
+
+In order to store information from the parallel processing step to 
+a data structure that exists on all of the processors operating in parallel
+we offer the ``storage`` keyword in the ``piter`` function.
+You may define an empty dictionary and include it as the keyword argument 
+``storage`` to ``piter()``.  Then, during the processing step, you can access
+this dictionary as the ``sto`` object.  After the 
+loop is finished, the dictionary is re-aggragated from all of the processors, 
+and you can access the contents:
+
+.. code-block:: python
+
+    yt.enable_parallelism()
+    my_dictionary = {}
+    for dataset in dataset_series.piter(storage=my_dictionary):
+        <process>
+        sto.result = <some information processed for this dataset>
+        sto.result_id = <some identfier for this dataset>
+
+    print my_dictionary
 
 .. _parallelizing-your-analysis:
 
-Parallelizing Your Analysis
----------------------------
+Parallelizing over Multiple Objects
+-----------------------------------
 
-It is easy within ``yt`` to parallelize a list of tasks, as long as those tasks
+It is easy within yt to parallelize a list of tasks, as long as those tasks
 are independent of one another. Using object-based parallelism, the function
 :func:`~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_objects`
 will automatically split up a list of tasks over the specified number of
@@ -279,8 +320,8 @@ a Python list: halos, data files, arrays, and more.
 
 .. _parallel-time-series-analysis:
 
-Parallel Time Series Analysis
------------------------------
+Parallelization over Multiple Datasets (including Time Series)
+--------------------------------------------------------------
 
 The same ``parallel_objects`` machinery discussed above is turned on by
 default when using a :class:`~yt.data_objects.time_series.DatasetSeries` object
@@ -294,15 +335,23 @@ density cell in a large number of simulation outputs:
    import yt
    yt.enable_parallelism()
 
+   # Load all of the DD*/output_* files into a DatasetSeries object
+   # in this case it is a Time Series
    ts = yt.load("DD*/output_*")
 
+   # Define an empty storage dictionary for collecting information
+   # in parallel through processing
    storage = {}
 
+   # Use piter() to iterate over the time series, one proc per dataset
+   # and store the resulting information from each dataset in
+   # the storage dictionary
    for sto, ds in ts.piter(storage=storage):
        sphere = ds.sphere("max", (1.0, "pc"))
        sto.result = sphere.quantities.angular_momentum_vector()
        sto.result_id = str(ds)
 
+   # Print out the angular momentum vector for all of the datasets
    for L in sorted(storage.items()):
        print L
 
@@ -311,10 +360,10 @@ of processors.  When running in parallel, each output is given to a different
 processor.
 
 You can also request a fixed number of processors to calculate each
-angular momentum vector.  For example, this script will calculate each angular
-momentum vector using 4 workgroups, splitting up the pool available processors.
-Note that parallel=1 implies that the analysis will be run using 1 workgroup, 
-whereas parallel=True will run with Nprocs workgroups.
+angular momentum vector.  For example, the following script will calculate each 
+angular momentum vector using 4 workgroups, splitting up the pool available 
+processors.  Note that parallel=1 implies that the analysis will be run using 
+1 workgroup, whereas parallel=True will run with Nprocs workgroups.
 
 .. code-block:: python
 
@@ -337,7 +386,7 @@ outputs.
 Parallel Performance, Resources, and Tuning
 -------------------------------------------
 
-Optimizing parallel jobs in ``yt`` is difficult; there are many parameters that
+Optimizing parallel jobs in yt is difficult; there are many parameters that
 affect how well and quickly the job runs.  In many cases, the only way to find
 out what the minimum (or optimal) number of processors is, or amount of memory
 needed, is through trial and error.  However, this section will attempt to
@@ -366,31 +415,31 @@ Projections, slices and cutting planes are the most common methods of creating
 two-dimensional representations of data.  All three have been parallelized in a
 chunk-based fashion.
 
- * Projections: projections are parallelized utilizing a quad-tree approach.
-   Data is loaded for each processor, typically by a process that consolidates
-   open/close/read operations, and each grid is then iterated over and cells are
-   deposited into a data structure that stores values corresponding to positions
-   in the two-dimensional plane.  This provides excellent load balancing, and in
-   serial is quite fast.  However, the operation by which quadtrees are joined
-   across processors scales poorly; while memory consumption scales well, the
-   time to completion does not.  As such, projections can often be done very
-   fast when operating only on a single processor!  The quadtree algorithm can
-   be used inline (and, indeed, it is for this reason that it is slow.)  It is
-   recommended that you attempt to project in serial before projecting in
-   parallel; even for the very largest datasets (Enzo 1024^3 root grid with 7
-   levels of refinement) in the absence of IO the quadtree algorithm takes only
-   three minutes or so on a decent processor.
+* **Projections**: projections are parallelized utilizing a quad-tree approach.
+  Data is loaded for each processor, typically by a process that consolidates
+  open/close/read operations, and each grid is then iterated over and cells are
+  deposited into a data structure that stores values corresponding to positions
+  in the two-dimensional plane.  This provides excellent load balancing, and in
+  serial is quite fast.  However, the operation by which quadtrees are joined
+  across processors scales poorly; while memory consumption scales well, the
+  time to completion does not.  As such, projections can often be done very
+  fast when operating only on a single processor!  The quadtree algorithm can
+  be used inline (and, indeed, it is for this reason that it is slow.)  It is
+  recommended that you attempt to project in serial before projecting in
+  parallel; even for the very largest datasets (Enzo 1024^3 root grid with 7
+  levels of refinement) in the absence of IO the quadtree algorithm takes only
+  three minutes or so on a decent processor.
 
- * Slices: to generate a slice, chunks that intersect a given slice are iterated
-   over and their finest-resolution cells are deposited.  The chunks are
-   decomposed via standard load balancing.  While this operation is parallel,
-   **it is almost never necessary to slice a dataset in parallel**, as all data is
-   loaded on demand anyway.  The slice operation has been parallelized so as to
-   enable slicing when running *in situ*.
+* **Slices**: to generate a slice, chunks that intersect a given slice are iterated
+  over and their finest-resolution cells are deposited.  The chunks are
+  decomposed via standard load balancing.  While this operation is parallel,
+  **it is almost never necessary to slice a dataset in parallel**, as all data is
+  loaded on demand anyway.  The slice operation has been parallelized so as to
+  enable slicing when running *in situ*.
 
- * Cutting planes: cutting planes are parallelized exactly as slices are.
-   However, in contrast to slices, because the data-selection operation can be
-   much more time consuming, cutting planes often benefit from parallelism.
+* **Cutting planes**: cutting planes are parallelized exactly as slices are.
+  However, in contrast to slices, because the data-selection operation can be
+  much more time consuming, cutting planes often benefit from parallelism.
 
 Object-Based
 ++++++++++++
@@ -437,6 +486,7 @@ most memory-conservative.  It has been found that :func:`parallelHF` needs
 roughly 1 MB of memory per 5,000 particles, although recent work has improved
 this and the memory requirement is now smaller than this. But this is a good
 starting point for beginning to calculate the memory required for halo-finding.
+For more information, see :ref:`halo_finding`.
 
 **Volume Rendering**
 
@@ -449,81 +499,82 @@ actually do anything.  Second, the absolute maximum number of processors is the
 number of chunks.  In order to keep work distributed evenly, typically the
 number of processors should be no greater than one-eighth or one-quarter the
 number of processors that were used to produce the dataset.
+For more information, see :ref:`volume_rendering`.
 
 Additional Tips
 ---------------
 
-  * Don't be afraid to change how a parallel job is run. Change the
-    number of processors, or memory allocated, and see if things work better
-    or worse. After all, it's just a computer, it doesn't pass moral judgment!
+* Don't be afraid to change how a parallel job is run. Change the
+  number of processors, or memory allocated, and see if things work better
+  or worse. After all, it's just a computer, it doesn't pass moral judgment!
 
-  * Similarly, human time is more valuable than computer time. Try increasing
-    the number of processors, and see if the runtime drops significantly.
-    There will be a sweet spot between speed of run and the waiting time in
-    the job scheduler queue; it may be worth trying to find it.
+* Similarly, human time is more valuable than computer time. Try increasing
+  the number of processors, and see if the runtime drops significantly.
+  There will be a sweet spot between speed of run and the waiting time in
+  the job scheduler queue; it may be worth trying to find it.
 
-  * If you are using object-based parallelism but doing CPU-intensive computations
-    on each object, you may find that setting ``num_procs`` equal to the 
-    number of processors per compute node can lead to significant speedups.
-    By default, most mpi implementations will assign tasks to processors on a
-    'by-slot' basis, so this setting will tell ``yt`` to do computations on a single
-    object using only the processors on a single compute node.  A nice application
-    for this type of parallelism is calculating a list of derived quantities for 
-    a large number of simulation outputs.
+* If you are using object-based parallelism but doing CPU-intensive computations
+  on each object, you may find that setting ``num_procs`` equal to the 
+  number of processors per compute node can lead to significant speedups.
+  By default, most mpi implementations will assign tasks to processors on a
+  'by-slot' basis, so this setting will tell yt to do computations on a single
+  object using only the processors on a single compute node.  A nice application
+  for this type of parallelism is calculating a list of derived quantities for 
+  a large number of simulation outputs.
 
-  * It is impossible to tune a parallel operation without understanding what's
-    going on. Read the documentation, look at the underlying code, or talk to
-    other ``yt`` users. Get informed!
+* It is impossible to tune a parallel operation without understanding what's
+  going on. Read the documentation, look at the underlying code, or talk to
+  other yt users. Get informed!
     
-  * Sometimes it is difficult to know if a job is cpu, memory, or disk
-    intensive, especially if the parallel job utilizes several of the kinds of
-    parallelism discussed above. In this case, it may be worthwhile to put
-    some simple timers in your script (as below) around different parts.
-    
-    .. code-block:: python
-    
-       import yt
-       import time
-
-       yt.enable_parallelism()
-
-       ds = yt.load("DD0152")
-       t0 = time.time()
-       bigstuff, hugestuff = StuffFinder(ds)
-       BigHugeStuffParallelFunction(ds, bigstuff, hugestuff)
-       t1 = time.time()
-       for i in range(1000000):
-           tinystuff, ministuff = GetTinyMiniStuffOffDisk("in%06d.txt" % i)
-           array = TinyTeensyParallelFunction(ds, tinystuff, ministuff)
-           SaveTinyMiniStuffToDisk("out%06d.txt" % i, array)
-       t2 = time.time()
-       
-       if yt.is_root()
-           print "BigStuff took %.5e sec, TinyStuff took %.5e sec" % (t1 - t0, t2 - t1)
+* Sometimes it is difficult to know if a job is cpu, memory, or disk
+  intensive, especially if the parallel job utilizes several of the kinds of
+  parallelism discussed above. In this case, it may be worthwhile to put
+  some simple timers in your script (as below) around different parts.
   
-  * Remember that if the script handles disk IO explicitly, and does not use
-    a built-in ``yt`` function to write data to disk,
-    care must be taken to
-    avoid `race-conditions <http://en.wikipedia.org/wiki/Race_conditions>`_.
-    Be explicit about which MPI task writes to disk using a construction
-    something like this:
+.. code-block:: python
     
-    .. code-block:: python
-       
-       if yt.is_root()
-           file = open("out.txt", "w")
-           file.write(stuff)
-           file.close()
+   import yt
+   import time
 
-  * Many supercomputers allow users to ssh into the nodes that their job is
-    running on.
-    Many job schedulers send the names of the nodes that are
-    used in the notification emails, or a command like ``qstat -f NNNN``, where
-    ``NNNN`` is the job ID, will also show this information.
-    By ssh-ing into nodes, the memory usage of each task can be viewed in
-    real-time as the job runs (using ``top``, for example),
-    and can give valuable feedback about the
-    resources the task requires.
+   yt.enable_parallelism()
+
+   ds = yt.load("DD0152")
+   t0 = time.time()
+   bigstuff, hugestuff = StuffFinder(ds)
+   BigHugeStuffParallelFunction(ds, bigstuff, hugestuff)
+   t1 = time.time()
+   for i in range(1000000):
+       tinystuff, ministuff = GetTinyMiniStuffOffDisk("in%06d.txt" % i)
+       array = TinyTeensyParallelFunction(ds, tinystuff, ministuff)
+       SaveTinyMiniStuffToDisk("out%06d.txt" % i, array)
+   t2 = time.time()
+   
+   if yt.is_root()
+       print "BigStuff took %.5e sec, TinyStuff took %.5e sec" % (t1 - t0, t2 - t1)
+  
+* Remember that if the script handles disk IO explicitly, and does not use
+  a built-in yt function to write data to disk,
+  care must be taken to
+  avoid `race-conditions <http://en.wikipedia.org/wiki/Race_conditions>`_.
+  Be explicit about which MPI task writes to disk using a construction
+  something like this:
+  
+.. code-block:: python
+       
+   if yt.is_root()
+       file = open("out.txt", "w")
+       file.write(stuff)
+       file.close()
+
+* Many supercomputers allow users to ssh into the nodes that their job is
+  running on.
+  Many job schedulers send the names of the nodes that are
+  used in the notification emails, or a command like ``qstat -f NNNN``, where
+  ``NNNN`` is the job ID, will also show this information.
+  By ssh-ing into nodes, the memory usage of each task can be viewed in
+  real-time as the job runs (using ``top``, for example),
+  and can give valuable feedback about the
+  resources the task requires.
     
 An Advanced Worked Example
 --------------------------
@@ -532,19 +583,19 @@ Below is a script used to calculate the redshift of first 99.9% ionization in a
 simulation.  This script was designed to analyze a set of 100 outputs on
 Gordon, running on 128 processors.  This script goes through three phases:
 
- #. Define a new derived field, which calculates the fraction of ionized
-    hydrogen as a function only of the total hydrogen density.
- #. Load a time series up, specifying ``parallel = 8``.  This means that it
-    will decompose into 8 jobs.  So if we ran on 128 processors, we would have
-    16 processors assigned to each output in the time series.
- #. Creating a big cube that will hold our results for this set of processors.
-    Note that this will be only for each output considered by this processor,
-    and this cube will not necessarily be filled in in every cell.
- #. For each output, distribute the grids to each of the sixteen processors
-    working on that output.  Each of these takes the max of the ionized
-    redshift in their zone versus the accumulation cube.
- #. Iterate over slabs and find the maximum redshift in each slab of our
-    accumulation cube.
+#. Define a new derived field, which calculates the fraction of ionized
+   hydrogen as a function only of the total hydrogen density.
+#. Load a time series up, specifying ``parallel = 8``.  This means that it
+   will decompose into 8 jobs.  So if we ran on 128 processors, we would have
+   16 processors assigned to each output in the time series.
+#. Creating a big cube that will hold our results for this set of processors.
+   Note that this will be only for each output considered by this processor,
+   and this cube will not necessarily be filled in in every cell.
+#. For each output, distribute the grids to each of the sixteen processors
+   working on that output.  Each of these takes the max of the ionized
+   redshift in their zone versus the accumulation cube.
+#. Iterate over slabs and find the maximum redshift in each slab of our
+   accumulation cube.
 
 At the end, the root processor (of the global calculation) writes out an
 ionization cube that contains the redshift of first reionization for each zone

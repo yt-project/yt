@@ -1,3 +1,5 @@
+.. _particle-trajectories:
+
 Particle Trajectories
 ---------------------
 

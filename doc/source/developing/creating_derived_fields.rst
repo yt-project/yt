@@ -3,7 +3,7 @@
 Creating Derived Fields
 =======================
 
-One of the more powerful means of extending ``yt`` is through the usage of derived
+One of the more powerful means of extending yt is through the usage of derived
 fields.  These are fields that describe a value at each cell in a simulation.
 
 Defining a New Field
@@ -31,7 +31,7 @@ the ``thermal_energy`` field.  ``thermal_energy`` is, in fact, another derived
 field!  We don't do any loops, we don't do any
 type-checking, we can simply multiply the three items together.
 
-Once we've defined our function, we need to notify ``yt`` that the field is
+Once we've defined our function, we need to notify yt that the field is
 available.  The :func:`add_field` function is the means of doing this; it has a
 number of fairly specific parameters that can be passed in, but here we'll only
 look at the most basic ones needed for a simple scalar baryon field.
@@ -41,7 +41,7 @@ look at the most basic ones needed for a simple scalar baryon field.
    yt.add_field("pressure", function=_pressure, units="dyne/cm**2")
 
 We feed it the name of the field, the name of the function, and the
-units.  Note that the units parameter is a "raw" string, in the format that ``yt`` uses
+units.  Note that the units parameter is a "raw" string, in the format that yt uses
 in its `symbolic units implementation <units>`_ (e.g., employing only unit names, numbers,
 and mathematical operators in the string, and using ``"**"`` for exponentiation). We suggest
 that you name the function that creates a derived field with the intended field name prefixed
@@ -67,8 +67,8 @@ a new field.
 Defining derived fields in the above fashion must be done before a dataset is loaded,
 in order for the dataset to recognize it. If you want to set up a derived field after you
 have loaded a dataset, or if you only want to set up a derived field for a particular
-dataset, there is an :meth:`add_field` method that hangs off dataset objects. The calling
-syntax is the same:
+dataset, there is an :func:`~yt.data_objects.static_output.Dataset.add_field` 
+method that hangs off dataset objects. The calling syntax is the same:
 
 .. code-block:: python
 
@@ -84,8 +84,9 @@ A More Complicated Example
 But what if we want to do something a bit more fancy?  Here's an example of getting
 parameters from the data object and using those to define the field;
 specifically, here we obtain the ``center`` and ``bulk_velocity`` parameters
-and use those to define a field for radial velocity (there is already a ``"radial_velocity"``
-field in ``yt``, but we create this one here just as a transparent and simple example).
+and use those to define a field for radial velocity (there is already 
+a ``radial_velocity`` field in yt, but we create this one here just as a 
+transparent and simple example).
 
 .. code-block:: python
 
@@ -121,11 +122,11 @@ that we do not wish to display this field as logged, that we require both
 ``bulk_velocity`` and ``center`` to be present in a given data object we wish
 to calculate this for, and we say that it should not be displayed in a
 drop-down box of fields to display. This is done through the parameter
-*validators*, which accepts a list of :class:`FieldValidator` objects. These
-objects define the way in which the field is generated, and when it is able to
-be created. In this case, we mandate that parameters *center* and
-*bulk_velocity* are set before creating the field. These are set via
-:meth:`~yt.data_objects.data_containers.set_field_parameter`, which can 
+*validators*, which accepts a list of :class:`~yt.fields.derived_field.FieldValidator` 
+objects. These objects define the way in which the field is generated, and 
+when it is able to be created. In this case, we mandate that parameters 
+``center`` and ``bulk_velocity`` are set before creating the field. These are 
+set via :meth:`~yt.data_objects.data_containers.set_field_parameter`, which can 
 be called on any object that has fields:
 
 .. code-block:: python
@@ -134,8 +135,9 @@ be called on any object that has fields:
    sp = ds.sphere("max", (200.,"kpc"))
    sp.set_field_parameter("bulk_velocity", yt.YTArray([-100.,200.,300.], "km/s"))
 
-In this case, we already know what the *center* of the sphere is, so we do not set it. Also,
-note that *center* and *bulk_velocity* need to be :class:`YTArray` objects with units.
+In this case, we already know what the ``center`` of the sphere is, so we do 
+not set it. Also, note that ``center`` and ``bulk_velocity`` need to be 
+:class:`~yt.units.yt_array.YTArray` objects with units.
 
 Other examples for creating derived fields can be found in the cookbook recipe
 :ref:`cookbook-simple-derived-fields`.
@@ -177,10 +179,42 @@ There are a number of options available, but the only mandatory ones are ``name`
      fields or that get aliased to themselves, we can specify a different
      desired output unit than the unit found on disk.
 
+Debugging a Derived Field
+-------------------------
+
+If your derived field is not behaving as you would like, you can insert a call
+to ``data._debug()`` to spawn an interactive interpreter whenever that line is
+reached.  Note that this is slightly different from calling
+``pdb.set_trace()``, as it will *only* trigger when the derived field is being
+called on an actual data object, rather than during the field detection phase.
+The starting position will be one function lower in the stack than you are
+likely interested in, but you can either step through back to the derived field
+function, or simply type ``u`` to go up a level in the stack.
+
+For instance, if you had defined this derived field:
+
+.. code-block:: python
+
+   @yt.derived_field(name = "funthings")
+   def funthings(field, data):
+       return data["sillythings"] + data["humorousthings"]**2.0
+
+And you wanted to debug it, you could do:
+
+.. code-block:: python
+
+   @yt.derived_field(name = "funthings")
+   def funthings(field, data):
+       data._debug()
+       return data["sillythings"] + data["humorousthings"]**2.0
+
+And now, when that derived field is actually used, you will be placed into a
+debugger.
+
 Units for Cosmological Datasets
 -------------------------------
 
-``yt`` has additional capabilities to handle the comoving coordinate system used
+yt has additional capabilities to handle the comoving coordinate system used
 internally in cosmological simulations. Simulations that use comoving
 coordinates, all length units have three other counterparts correspoding to
 comoving units, scaled comoving units, and scaled proper units. In all cases

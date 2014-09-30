@@ -313,6 +313,15 @@ class YTDomainOverflow(YTException):
         return "Particle bounds %s and %s exceed domain bounds %s and %s" % (
             self.mi, self.ma, self.dle, self.dre)
 
+class YTIntDomainOverflow(YTException):
+    def __init__(self, dims, dd):
+        self.dims = dims
+        self.dd = dd
+
+    def __str__(self):
+        return "Integer domain overflow: %s in %s" % (
+            self.dims, self.dd)
+
 class YTIllDefinedFilter(YTException):
     def __init__(self, filter, s1, s2):
         self.filter = filter

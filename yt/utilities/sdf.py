@@ -10,10 +10,13 @@ except ImportError:
 from yt.funcs import mylog
 
 _types = {
+    'int16_t': 'int16',
+    'uint16_t': 'uint16',
     'int': 'int32',
     'int32_t': 'int32',
     'uint32_t': 'uint32',
     'int64_t': 'int64',
+    'uint64_t': 'uint64',
     'float': 'float32',
     'double': 'float64',
     'unsigned int': 'I',
@@ -21,6 +24,15 @@ _types = {
     'char': 'B',
 }
 
+_rev_types = {}
+for v, t in _types.iteritems():
+    _rev_types[t] = v
+_rev_types['<f8'] = 'double'
+_rev_types['<f4'] = 'float'
+_rev_types['<i4'] = 'int32_t'
+_rev_types['<i8'] = 'int64_t'
+_rev_types['<u4'] = 'uint32_t'
+_rev_types['|u1'] = 'char'
 
 def _get_type(vtype, tlen=None):
     try:
@@ -104,6 +116,23 @@ def _ensure_xyz_fields(fields):
         if f not in fields:
             fields.append(f)
 
+
+def spread_bitsv(ival, level):
+    res = np.zeros_like(ival, dtype='int64')
+    for i in range(level):
+        ares = np.bitwise_and(ival, 1<<i) << (i*2)
+        np.bitwise_or(res, ares, res)
+    return res
+
+
+def get_keyv(iarr, level):
+    i1, i2, i3 = (v.astype("int64") for v in iarr)
+    i1 = spread_bitsv(i1, level)
+    i2 = spread_bitsv(i2, level) << 1
+    i3 = spread_bitsv(i3, level) << 2
+    np.bitwise_or(i1, i2, i1)
+    np.bitwise_or(i1, i3, i1)
+    return i1
 
 class DataStruct(object):
     """docstring for DataStruct"""
@@ -214,7 +243,7 @@ class SDFRead(dict):
     _eof = 'SDF-EO'
     _data_struct = DataStruct
 
-    def __init__(self, filename, header=None):
+    def __init__(self, filename = None, header=None):
         r""" Read an SDF file, loading parameters and variables.
 
         Given an SDF file (see http://bitbucket.org/JohnSalmon/sdf), parse the
@@ -257,9 +286,43 @@ class SDFRead(dict):
         self.parameters = {}
         self.structs = []
         self.comments = []
-        self.parse_header()
-        self.set_offsets()
-        self.load_memmaps()
+        if filename is not None:
+            self.parse_header()
+            self.set_offsets()
+            self.load_memmaps()
+
+    def write(self, filename):
+        f = file(filename, 'w')
+        f.write("# SDF 1.0\n")
+        f.write("parameter byteorder = %s;\n" % (self.parameters['byteorder']))
+        for c in self.comments:
+            if "\x0c" in c: continue
+            if "SDF 1.0" in c: continue
+            f.write("%s" % c)
+        for k, v in sorted(self.parameters.iteritems()):
+            if k == 'byteorder': continue
+            try:
+                t = _rev_types[v.dtype.name]
+            except:
+                t = type(v).__name__
+            if t == str.__name__:
+                f.write("parameter %s = \"%s\";\n" % (k, v))
+            else:
+                f.write("%s %s = %s;\n" % (t, k, v))
+
+        struct_order = []
+        for s in self.structs:
+            f.write("struct {\n")
+            to_write = []
+            for var in s.dtype.descr:
+                k, v = var[0], _rev_types[var[1]]
+                to_write.append(k)
+                f.write("\t%s %s;\n" % (v, k))
+            f.write("}[%i];\n" % s.size)
+            struct_order.append(to_write)
+        f.write("#\x0c\n")
+        f.write("# SDF-EOH\n")
+        return struct_order, f
 
     def __repr__(self):
         disp = "<SDFRead Object> file: %s\n" % self.filename
@@ -312,6 +375,9 @@ class SDFRead(dict):
         try:
             vval = eval("np."+vtype+"(%s)" % vval)
         except AttributeError:
+            if vtype not in _types:
+                mylog.warning("Skipping parameter %s", vname)
+                return
             vval = eval("np."+_types[vtype]+"(%s)" % vval)
 
         self.parameters[vname] = vval
@@ -456,6 +522,19 @@ def load_sdf(filename, header=None):
     else:
         sdf = SDFRead(filename, header=header)
     return sdf
+
+
+def _shift_periodic(pos, left, right, domain_width):
+    """
+    Periodically shift positions that are right of left+domain_width to
+    the left, and those left of right-domain_width to the right.
+    """
+    for i in range(3):
+        mask = pos[:,i] >= left[i] + domain_width[i]
+        pos[mask, i] -= domain_width[i]
+        mask = pos[:,i] < right[i] - domain_width[i]
+        pos[mask, i] += domain_width[i]
+    return
 
 
 class SDFIndex(object):
@@ -604,22 +683,12 @@ class SDFIndex(object):
     def spread_bitsv(self, ival, level=None):
         if level is None:
             level = self.level
-        res = np.zeros_like(ival, dtype='int64')
-        for i in range(level):
-            ares = np.bitwise_and(ival, 1<<i) << (i*2)
-            np.bitwise_or(res, ares, res)
-        return res
+        return spread_bitsv(ival, level)
 
     def get_keyv(self, iarr, level=None):
         if level is None:
             level = self.level
-        i1, i2, i3 = (v.astype("int64") for v in iarr)
-        i1 = self.spread_bitsv(i1, level)
-        i2 = self.spread_bitsv(i2, level) << 1
-        i3 = self.spread_bitsv(i3, level) << 2
-        np.bitwise_or(i1, i2, i1)
-        np.bitwise_or(i1, i3, i1)
-        return i1
+        return get_keyv(iarr, level)
 
     def get_key_slow(self, iarr, level=None):
         if level is None:
@@ -748,6 +817,8 @@ class SDFIndex(object):
         """
         ileft = np.floor((left - self.rmin) / self.domain_width *  self.domain_dims)
         iright = np.floor((right - self.rmin) / self.domain_width * self.domain_dims)
+        if np.any(iright-ileft) > self.domain_dims:
+            mylog.warn("Attempting to get data from bounding box larger than the domain. You may want to check your units.")
         #iright[iright <= ileft+1] += 1
 
         return self.get_ibbox(ileft, iright)
@@ -856,14 +927,7 @@ class SDFIndex(object):
             DW = self.true_domain_width
             # This hurts, but is useful for periodicity. Probably should check first
             # if it is even needed for a given left/right
-            for i in range(3):
-                #pos[:,i] = np.mod(pos[:,i] - left[i],
-                #                  self.true_domain_width[i]) + left[i]
-                mask = pos[:,i] >= left[i] + DW[i]
-                pos[mask, i] -= DW[i]
-                mask = pos[:,i] < right[i] - DW[i]
-                pos[mask, i] += DW[i]
-                #del mask
+            _shift_periodic(pos, left, right, DW)
 
             # Now get all particles that are within the bbox
             mask = np.all(pos >= left, axis=1) * np.all(pos < right, axis=1)
@@ -887,6 +951,39 @@ class SDFIndex(object):
 
             yield filtered
 
+    def filter_sphere(self, center, radius, myiter):
+        """
+        Filter data by masking out data outside of a sphere defined
+        by a center and radius. Account for periodicity of data, allowing
+        left/right to be outside of the domain.
+        """
+
+        # Get left/right for periodicity considerations
+        left = center - radius
+        right = center + radius
+        for data in myiter:
+            pos = np.array([data['x'].copy(), data['y'].copy(), data['z'].copy()]).T
+
+            DW = self.true_domain_width
+            _shift_periodic(pos, left, right, DW)
+
+            # Now get all particles that are within the sphere 
+            mask = ((pos-center)**2).sum(axis=1)**0.5 < radius
+
+            mylog.debug("Filtering particles, returning %i out of %i" % (mask.sum(), mask.shape[0]))
+
+            if not np.any(mask):
+                continue
+
+            filtered = {ax: pos[:, i][mask] for i, ax in enumerate('xyz')}
+            for f in data.keys():
+                if f in 'xyz':
+                    continue
+                filtered[f] = data[f][mask]
+
+            yield filtered
+
+
     def iter_filtered_bbox_fields(self, left, right, data,
                                   pos_fields, fields):
         """
@@ -906,11 +1003,7 @@ class SDFIndex(object):
 
         # This hurts, but is useful for periodicity. Probably should check first
         # if it is even needed for a given left/right
-        for i in range(3):
-            mask = pos[:,i] >= DW[i] + left[i]
-            pos[mask, i] -= DW[i]
-            mask = pos[:,i] < right[i] - DW[i]
-            pos[mask, i] += DW[i]
+        _shift_periodic(pos, left, right, DW)
 
         mylog.debug("Periodic filtering, %s %s %s %s" % (left, right, pos.min(axis=0), pos.max(axis=0)))
         # Now get all particles that are within the bbox
@@ -929,6 +1022,10 @@ class SDFIndex(object):
                 yield f, data[f][mask]
 
     def iter_bbox_data(self, left, right, fields):
+        """
+        Iterate over all data within a bounding box defined by a left
+        and a right.
+        """
         _ensure_xyz_fields(fields)
         mylog.debug('MIDX Loading region from %s to %s' %(left, right))
         inds = self.get_bbox(left, right)
@@ -949,15 +1046,17 @@ class SDFIndex(object):
         #    yield dd
 
     def iter_sphere_data(self, center, radius, fields):
+        """
+        Iterate over all data within some sphere defined by a center and
+        a radius.
+        """
         _ensure_xyz_fields(fields)
         mylog.debug('MIDX Loading spherical region %s to %s' %(center, radius))
         inds = self.get_bbox(center-radius, center+radius)
 
-        my_filter = sphere_filter(center, radius, self.true_domain_width)
-
-        for dd in self.filter_particles(
-            self.iter_data(inds, fields),
-            my_filter):
+        for dd in self.filter_sphere(
+            center, radius,
+            self.iter_data(inds, fields)):
             yield dd
 
     def iter_ibbox_data(self, left, right, fields):
@@ -1189,7 +1288,7 @@ class SDFIndex(object):
         filter_right = bbox[:, 1] + pad
 
         data = []
-        for dd in self.iter_padded_bbox_data(self, level, cell_iarr, pad, fields):
+        for dd in self.iter_padded_bbox_data(level, cell_iarr, pad, fields):
             data.append(dd)
         return data
 

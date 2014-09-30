@@ -45,17 +45,12 @@ from yt.units.yt_array import \
     YTArray, \
     YTQuantity
 
-from yt.geometry.cartesian_coordinates import \
-    CartesianCoordinateHandler
-from yt.geometry.polar_coordinates import \
-    PolarCoordinateHandler
-from yt.geometry.cylindrical_coordinates import \
-    CylindricalCoordinateHandler
-from yt.geometry.spherical_coordinates import \
-    SphericalCoordinateHandler
-from yt.geometry.geographic_coordinates import \
-    GeographicCoordinateHandler
-from yt.geometry.spec_cube_coordinates import \
+from yt.geometry.coordinates.api import \
+    CartesianCoordinateHandler, \
+    PolarCoordinateHandler, \
+    CylindricalCoordinateHandler, \
+    SphericalCoordinateHandler, \
+    GeographicCoordinateHandler, \
     SpectralCubeCoordinateHandler
 
 # We want to support the movie format in the future.
@@ -460,8 +455,6 @@ class Dataset(object):
             self._last_freq = field
             self._last_finfo = self.field_info[(ftype, fname)]
             return self._last_finfo
-        if fname == self._last_freq[1]:
-            return self._last_finfo
         if fname in self.field_info:
             # Sometimes, if guessing_type == True, this will be switched for
             # the type of field it is.  So we look at the field type and
@@ -572,7 +565,7 @@ class Dataset(object):
         return out
 
     # Now all the object related stuff
-    def all_data(self, find_max=False):
+    def all_data(self, find_max=False, **kwargs):
         """
         all_data is a wrapper to the Region object for creating a region
         which covers the entire simulation domain.
@@ -580,7 +573,7 @@ class Dataset(object):
         if find_max: c = self.find_max("density")[1]
         else: c = (self.domain_right_edge + self.domain_left_edge)/2.0
         return self.region(c,
-            self.domain_left_edge, self.domain_right_edge)
+            self.domain_left_edge, self.domain_right_edge, **kwargs)
 
     def box(self, left_edge, right_edge, **kwargs):
         """

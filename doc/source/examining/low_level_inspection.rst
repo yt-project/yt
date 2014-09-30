@@ -12,7 +12,7 @@ access to data.
           based simulations.  For now, these are represented as patches, with
           the attendant properties.
 
-For a more basic introduction, see :ref:`bootcamp` and more specifically
+For a more basic introduction, see :ref:`quickstart` and more specifically
 :ref:`data_inspection`.
 
 .. _examining-grid-hierarchies:
@@ -32,26 +32,26 @@ either data or index information.
 The :class:`~yt.data_objects.grid_patch.AMRGridPatch` object itself provides
 the following attributes:
 
- * ``Children``: a list of grids contained within this one, of one higher level
-   of refinement
- * ``Parent``: a single object or a list of objects this grid is contained
-   within, one level of refinement coarser
- * ``child_mask``: a mask of 0's and 1's, representing where no finer data is
-   available in refined grids (1) or where this grid is covered by finer regions
-   (0).  Note that to get back the final data contained within a grid, one can
-   multiple a field by this attribute.
- * ``child_indices``: a mask of booleans, where False indicates no finer data
-   is available.  This is essentially the inverse of ``child_mask``.
- * ``child_index_mask``: a mask of indices into the ``ds.index.grids`` array of the
-   child grids.
- * ``LeftEdge``: the left edge, in native code coordinates, of this grid
- * ``RightEdge``: the right edge, in native code coordinates, of this grid
- * ``dds``: the width of a cell in this grid
- * ``id``: the id (not necessarily the index) of this grid.  Defined such that
-   subtracting the property ``_id_offset`` gives the index into ``ds.index.grids``.
- * ``NumberOfParticles``: the number of particles in this grid
- * ``OverlappingSiblings``: a list of sibling grids that this grid overlaps
-   with.  Likely only defined for Octree-based codes.
+* ``Children``: a list of grids contained within this one, of one higher level
+  of refinement
+* ``Parent``: a single object or a list of objects this grid is contained
+  within, one level of refinement coarser
+* ``child_mask``: a mask of 0's and 1's, representing where no finer data is
+  available in refined grids (1) or where this grid is covered by finer regions
+  (0).  Note that to get back the final data contained within a grid, one can
+  multiple a field by this attribute.
+* ``child_indices``: a mask of booleans, where False indicates no finer data
+  is available.  This is essentially the inverse of ``child_mask``.
+* ``child_index_mask``: a mask of indices into the ``ds.index.grids`` array of the
+  child grids.
+* ``LeftEdge``: the left edge, in native code coordinates, of this grid
+* ``RightEdge``: the right edge, in native code coordinates, of this grid
+* ``dds``: the width of a cell in this grid
+* ``id``: the id (not necessarily the index) of this grid.  Defined such that
+  subtracting the property ``_id_offset`` gives the index into ``ds.index.grids``.
+* ``NumberOfParticles``: the number of particles in this grid
+* ``OverlappingSiblings``: a list of sibling grids that this grid overlaps
+  with.  Likely only defined for Octree-based codes.
 
 In addition, the method
 :meth:`~yt.data_objects.grid_patch.AMRGridPatch.get_global_startindex` can be
@@ -230,6 +230,5 @@ also access the raw image data that is returned from various yt functions
 directly as a fixed resolution array.  This provides a means for bypassing the 
 yt method for generating plots, and allows the user the freedom to use 
 whatever interface they wish for displaying and saving their image data.  
-The object for doing this is the aptly titled Fixed Resolution Buffer, and 
-there is a full explanation for how to use it 
-:ref:`here <fixed-resolution-buffers>`.
+You can use the :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`
+to accomplish this as described in :ref:`fixed-resolution-buffers`.

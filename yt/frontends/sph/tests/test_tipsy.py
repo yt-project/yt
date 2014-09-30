@@ -92,3 +92,8 @@ def test_gasoline():
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2
+
+
+@requires_file(pkdgrav)
+def test_TipsyDataset():
+    assert isinstance(data_dir_load(pkdgrav), TipsyDataset)

@@ -18,6 +18,7 @@ SlicePlot and ProjectionPlot
    ~yt.visualization.plot_window.ProjectionPlot
    ~yt.visualization.plot_window.OffAxisProjectionPlot
    ~yt.visualization.plot_window.WindowPlotMPL
+   ~yt.visualization.plot_window.PlotWindow
 
 ProfilePlot and PhasePlot
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -61,6 +62,7 @@ These will almost never need to be instantiated on their own.
    :toctree: generated/
 
    ~yt.data_objects.data_containers.YTSelectionContainer
+   ~yt.data_objects.data_containers.YTSelectionContainer0D
    ~yt.data_objects.data_containers.YTSelectionContainer1D
    ~yt.data_objects.data_containers.YTSelectionContainer2D
    ~yt.data_objects.data_containers.YTSelectionContainer3D
@@ -85,6 +87,7 @@ geometric.
    ~yt.data_objects.selection_data_containers.YTSphereBase
    ~yt.data_objects.selection_data_containers.YTEllipsoidBase
    ~yt.data_objects.selection_data_containers.YTCutRegionBase
+   ~yt.data_objects.grid_patch.AMRGridPatch
 
 Construction Objects
 ++++++++++++++++++++
@@ -665,15 +668,21 @@ See also :ref:`callbacks`.
    ~yt.visualization.plot_modifications.ContourCallback
    ~yt.visualization.plot_modifications.CuttingQuiverCallback
    ~yt.visualization.plot_modifications.GridBoundaryCallback
+   ~yt.visualization.plot_modifications.HaloCatalogCallback
+   ~yt.visualization.plot_modifications.ImageLineCallback
    ~yt.visualization.plot_modifications.LabelCallback
    ~yt.visualization.plot_modifications.LinePlotCallback
+   ~yt.visualization.plot_modifications.MagFieldCallback
    ~yt.visualization.plot_modifications.MarkerAnnotateCallback
    ~yt.visualization.plot_modifications.ParticleCallback
    ~yt.visualization.plot_modifications.PointAnnotateCallback
    ~yt.visualization.plot_modifications.QuiverCallback
    ~yt.visualization.plot_modifications.SphereCallback
+   ~yt.visualization.plot_modifications.StreamlineCallback
    ~yt.visualization.plot_modifications.TextLabelCallback
+   ~yt.visualization.plot_modifications.TimestampCallback
    ~yt.visualization.plot_modifications.TitleCallback
+   ~yt.visualization.plot_modifications.TriangleFacetsCallback
    ~yt.visualization.plot_modifications.VelocityCallback
 
 Function List
@@ -684,6 +693,8 @@ Function List
    :toctree: generated/
 
    ~yt.convenience.load
+   ~yt.data_objects.static_output.Dataset.all_data
+   ~yt.data_objects.static_output.Dataset.box
    ~yt.funcs.deprecate
    ~yt.funcs.ensure_list
    ~yt.funcs.get_pbar
@@ -704,6 +715,8 @@ Function List
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_passthrough
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_root_only
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_simple_proxy
+   ~yt.data_objects.data_containers.YTDataContainer.get_field_parameter
+   ~yt.data_objects.data_containers.YTDataContainer.set_field_parameter
 
 Math Utilities
 --------------

@@ -624,13 +624,25 @@ def check_results(func):
         return _func
     return compare_results(func)
 
+def periodicity_cases(ds):
+    # This is a generator that yields things near the corners.  It's good for
+    # getting different places to check periodicity.
+    yield (ds.domain_left_edge + ds.domain_right_edge)/2.0
+    dx = ds.domain_width / ds.domain_dimensions
+    # We start one dx in, and only go to one in as well.
+    for i in (1, ds.domain_dimensions[0] - 2):
+        for j in (1, ds.domain_dimensions[1] - 2):
+            for k in (1, ds.domain_dimensions[2] - 2):
+                center = dx * np.array([i,j,k]) + ds.domain_left_edge
+                yield center
+
 def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False):
     import nose, os, sys, yt
     from yt.funcs import mylog
     orig_level = mylog.getEffectiveLevel()
     mylog.setLevel(50)
     nose_argv = sys.argv
-    nose_argv += ['--exclude=answer_testing','--detailed-errors']
+    nose_argv += ['--exclude=answer_testing','--detailed-errors', '--exe']
     if verbose:
         nose_argv.append('-v')
     if run_answer_tests:

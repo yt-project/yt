@@ -1,13 +1,13 @@
-from yt.mods import *
-from yt.analysis_modules.halo_analysis.api import *
+import yt
+from yt.analysis_modules.halo_analysis.api import HaloCatalog
 
 # Load the data set with the full simulation information
 # and rockstar halos
-data_pf = load('Enzo_64/RD0006/RedshiftOutput0006')
-halos_pf = load('rockstar_halos/halos_0.0.bin')
+data_ds = yt.load('Enzo_64/RD0006/RedshiftOutput0006')
+halos_ds = yt.load('rockstar_halos/halos_0.0.bin')
 
 # Instantiate a catalog using those two paramter files
-hc = HaloCatalog(data_pf=data_pf, halos_pf=halos_pf)
+hc = HaloCatalog(data_ds=data_ds, halos_ds=halos_ds)
 
 # Filter out less massive halos
 hc.add_filter("quantity_value", "particle_mass", ">", 1e14, "Msun")

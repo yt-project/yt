@@ -28,3 +28,10 @@ lc.project_light_cone((600.0, "arcmin"), (60.0, "arcsec"), field,
                       save_final_image=True,
                       save_slice_images=True,
                       njobs=-1)
+
+# By default, the light cone projections are kept in the LC directory, 
+# but this moves them back to the current directory so that they're rendered
+# in our cookbook.
+import shutil, glob
+for file in glob.glob('LC/*png'):
+    shutil.move(file, '.')

@@ -7,7 +7,7 @@ Volume rendering, as implemented in yt, is a mechanism by which rays are cast
 through a domain, converting field values to emission and absorption, and producing a final image.
 This provides the ability to create off-axis projections, isocontour images,
 volume emission, and absorption from intervening material.  The primary goal 
-of the volume rendering in ``yt`` is to provide the ability to make
+of the volume rendering in yt is to provide the ability to make
 *scientifically-informed* visualizations of simulations.  
 
 The volume renderer is implemented in a hybrid of Python and Cython, which is
@@ -19,7 +19,7 @@ partitioning, transfer functions, display, etc., may be useful in the future
 for transitioning the rendering to the GPU.  In addition, this allows users to create
 volume renderings on traditional supercomputing platforms that may not have access to GPUs.
 
-As of yt 2.4, this code is threaded using OpenMP.  Many of the commands
+The volume renderer is also threaded using OpenMP.  Many of the commands
 (including `snapshot`) will accept a `num_threads` option.
 
 Tutorial
@@ -34,7 +34,7 @@ homogenization; a transfer function, and a camera object.
    direction
 #. Take a snapshot and save the image.
 
-Here is a working example for the IsolatedGalaxy dataset from the 2012 yt workshop.
+Here is a working example for the IsolatedGalaxy dataset.
 
 .. python-script::
 
@@ -60,7 +60,7 @@ Here is a working example for the IsolatedGalaxy dataset from the 2012 yt worksh
    # Set up the camera parameters: center, looking direction, width, resolution
    c = (ds.domain_right_edge + ds.domain_left_edge)/2.0
    L = np.array([1.0, 1.0, 1.0])
-   W = ds.quan(0.3, 'unitary)
+   W = ds.quan(0.3, 'unitary')
    N = 256 
 
    # Create a camera object
@@ -83,20 +83,20 @@ Method
 ------
 
 Direct ray casting through a volume enables the generation of new types of
-visualizations and images describing a simulation.  ``yt`` now has the facility
+visualizations and images describing a simulation.  yt has the facility
 to generate volume renderings by a direct ray casting method.  However, the
 ability to create volume renderings informed by analysis by other mechanisms --
 for instance, halo location, angular momentum, spectral energy distributions --
 is useful.
 
-The volume rendering in ``yt`` follows a relatively straightforward approach.
+The volume rendering in yt follows a relatively straightforward approach.
 
 #. Create a set of transfer functions governing the emission and absorption as
    a function of one or more variables. (:math:`f(v) \rightarrow (r,g,b,a)`)
    These can be functions of any field variable, weighted by independent
    fields, and even weighted by other evaluated transfer functions.  (See
    `transfer_functions`.)
-#. Partition all grids into non-overlapping, fully domain-tiling "bricks."
+#. Partition all chunks into non-overlapping, fully domain-tiling "bricks."
    Each of these "bricks" contains the finest available data at any location.
 #. Generate vertex-centered data for all grids in the volume rendered domain.
 #. Order the bricks from back-to-front.
@@ -145,7 +145,7 @@ one itself.  This can also be specified if you wish to save bricks between
 repeated calls, thus saving considerable amounts of time.
 
 The camera interface allows the user to move the camera about the domain, as
-well as providing interfaces for zooming in and out.  Furthermore, ``yt`` now
+well as providing interfaces for zooming in and out.  Furthermore, yt now
 includes a stereoscopic camera
 (:class:`~yt.visualization.volume_rendering.camera.StereoPairCamera`).
 
@@ -196,14 +196,14 @@ the underlying machinery.
    you're curious about how to construct your own, or why you get the values
    you do, you should read the source!
 
-There are three ready-to-go transfer functions implemented in ``yt``.
+There are three ready-to-go transfer functions implemented in yt.
 :class:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction`,
 :class:`~yt.visualization.volume_rendering.transfer_functions.ProjectionTransferFunction`,
 and
 :class:`~yt.visualization.volume_rendering.transfer_functions.PlanckTransferFunction`.
 
 Color Transfer Functions
-++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 These transfer functions are the standard way to apply colors to specific
 values in the field being rendered.  For instance, applying isocontours at
@@ -219,7 +219,7 @@ call
 which will allow you to specify the colors directly.
 
 An alternate method for modifying the colormap is done using
-`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.map_to_colormap`,
+:meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.map_to_colormap`,
 where you can map a segment of the transfer function space to an entire
 colormap at a single alpha value.  This is sometimes useful for very opaque
 renderings.
@@ -227,7 +227,7 @@ renderings.
 See :ref:`cookbook-simple_volume_rendering` for an example usage.
 
 Projection Transfer Function
-++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This is designed to allow you to very easily project off-axis through a region.
 See :ref:`cookbook-offaxis_projection` for a simple example.  Note that the
@@ -236,7 +236,7 @@ apply a colorbar, you will have to multiply by the integration width (specified
 when you initialize the volume renderer) in whatever units are appropriate.
 
 Planck Transfer Function
-++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 This transfer function is designed to apply a semi-realistic color field based
 on temperature, emission weighted by density, and approximate scattering based
@@ -244,7 +244,7 @@ on the density.  This class is currently under-documented, and it may be best
 to examine the source code to use it.
 
 More Complicated Transfer Functions
-+++++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 For more complicated transfer functions, you can use the
 :class:`~yt.visualization.volume_rendering.transfer_functions.MultiVariateTransferFunction`
@@ -290,6 +290,8 @@ Caveats:
     limiting the number of MPI tasks you can use.  This is also being addressed
     in current development by using image plane decomposition.
 
+For more information about enabling parallelism, see :ref:`parallel-computation`.
+
 OpenMP Parallelization
 ----------------------
 
@@ -328,6 +330,8 @@ nodes, each with cores_per_node cores per node.
 #.  For many cases when rendering using your laptop/desktop, OpenMP will
     provide a good enough speedup by default that it is preferable to launching
     the MPI tasks.
+
+For more information about enabling parallelism, see :ref:`parallel-computation`.
 
 Opacity
 -------

@@ -388,7 +388,7 @@ def get_yt_version():
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
     if not os.path.isdir(os.path.join(path, ".hg")): return None
-    version = _get_hg_version(path)[:12]
+    version = _get_hg_version(path)
     return version
 
 # This code snippet is modified from Georg Brandl
@@ -907,6 +907,46 @@ class YTLoadCmd(YTCommand):
             # prepend sys.path with current working directory
             sys.path.insert(0,'')
             IPython.embed(config=cfg,user_ns=local_ns)
+
+class YTMapserverCmd(YTCommand):
+    args = ("proj", "field", "weight",
+            dict(short="-a", longname="--axis", action="store", type=int,
+                 dest="axis", default=0, help="Axis (4 for all three)"),
+            dict(short ="-o", longname="--host", action="store", type=str,
+                   dest="host", default=None, help="IP Address to bind on"),
+            "ds",
+            )
+
+    name = "mapserver"
+    description = \
+        """
+        Serve a plot in a GMaps-style interface
+
+        """
+
+    def __call__(self, args):
+        ds = args.ds
+        if args.axis == 4:
+            print "Doesn't work with multiple axes!"
+            return
+        if args.projection:
+            p = ProjectionPlot(ds, args.axis, args.field, weight_field=args.weight)
+        else:
+            p = SlicePlot(ds, args.axis, args.field)
+        from yt.gui.reason.pannable_map import PannableMapServer
+        mapper = PannableMapServer(p.data_source, args.field)
+        import yt.extern.bottle as bottle
+        bottle.debug(True)
+        if args.host is not None:
+            colonpl = args.host.find(":")
+            if colonpl >= 0:
+                port = int(args.host.split(":")[-1])
+                args.host = args.host[:colonpl]
+            else:
+                port = 8080
+            bottle.run(server='rocket', host=args.host, port=port)
+        else:
+            bottle.run(server='rocket')
 
 
 class YTPastebinCmd(YTCommand):

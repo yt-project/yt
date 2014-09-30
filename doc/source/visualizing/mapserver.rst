@@ -4,13 +4,13 @@ Mapserver
 ---------
 
 The mapserver is a new, experimental feature.  It's based on `Leaflet
-<http://leaflet.cloudmade.com/>`, a library written to create zoomable,
+<http://leaflet.cloudmade.com/>`_, a library written to create zoomable,
 map-tile interfaces.  (Similar to Google Maps.)  yt provides everything you
 need to start up a web server that will interactively re-pixelize an adaptive
 image.  This means you can explore your datasets in a fully pan-n-zoom
 interface.
 
-To start up the mapserver, you can use the command ``yt`` (see
+To start up the mapserver, you can use the command yt (see
 :ref:`command-line`) with the ``mapserver`` subcommand.  It takes several of
 the same options and arguments as the ``plot`` subcommand.  For instance:
 

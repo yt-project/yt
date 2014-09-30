@@ -9,7 +9,7 @@
 Surface Objects and Extracting Isocontour Information
 -----------------------------------------------------
 
-``yt`` contains an implementation of the `Marching Cubes
+yt contains an implementation of the `Marching Cubes
 <http://en.wikipedia.org/wiki/Marching_cubes>`_ algorithm, which can operate on
 3D data objects.  This provides two things.  The first is to identify
 isocontours and return either the geometry of those isocontours or to return
@@ -44,7 +44,8 @@ To extract geometry or sample a field, call
 :meth:`~yt.data_objects.data_containers.YTSelectionContainer3D.extract_isocontours`.  To
 calculate a flux, call
 :meth:`~yt.data_objects.data_containers.YTSelectionContainer3D.calculate_isocontour_flux`.
-both of these operations will run in parallel.
+both of these operations will run in parallel.  For more information on enabling
+parallelism in yt, see :ref:`parallel-computation`.
 
 Alternatively, you can make an object called ``YTSurfaceBase`` that makes
 this process much easier.  You can create one of these objects by specifying a

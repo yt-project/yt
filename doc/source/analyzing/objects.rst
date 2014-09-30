@@ -133,7 +133,7 @@ for the grid cell to be incorporated.
 """"""""""
 
 **All Data** 
-    | Class :func:`~yt.data_objects.static_output.Dataset.all_data`
+    | Function :meth:`~yt.data_objects.static_output.Dataset.all_data`
     | Usage: ``all_data(find_max=False)``
     | ``all_data()`` is a wrapper on the Box Region class which defaults to 
       creating a Region covering the entire dataset domain.  It is effectively 
@@ -344,8 +344,8 @@ exactly aligned with the mesh.  This is a
 holdover from the time when yt was used exclusively for data that came in
 regularly structured grid patches, and does not necessarily work as well for
 data that is composed of discrete objects like particles.  To augment this, the
-:class:`~yt.data_objects.data_containers.YTArbitraryGridBase` object was
-created, which enables construction of meshes (onto which particles can be
+:class:`~yt.data_objects.construction_data_containers.YTArbitraryGridBase` object 
+was created, which enables construction of meshes (onto which particles can be
 deposited or smoothed) in arbitrary regions.  This eliminates any assumptions
 on yt's part about how the data is organized, and will allow for more
 fine-grained control over visualizations.
@@ -431,7 +431,11 @@ set of level sets.  The second (``connected_sets``) will be a dict of dicts.
 The key for the first (outer) dict is the level of the contour, corresponding
 to ``contour_values``.  The inner dict returned is keyed by the contour ID.  It
 contains :class:`~yt.data_objects.selection_data_containers.YTCutRegionBase`
-objects.  These can be queried just as any other data object.
+objects.  These can be queried just as any other data object.  The clump finder 
+(:ref:`clump_finding`) differs from the above method in that the contour 
+identification is performed recursively within each individual structure, and 
+structures can be kept or remerged later based on additional criteria, such as 
+gravitational boundedness.
 
 .. _object-serialization:
 
@@ -440,19 +444,13 @@ Storing and Loading Objects
 
 Often, when operating interactively or via the scripting interface, it is
 convenient to save an object or multiple objects out to disk and then restart
-the calculation later.  Personally, I found this most useful when dealing with
-identification of clumps and contours (see :ref:`cookbook` for a recipe on how
-to find clumps and the API documentation for both 
-:mod:`~yt.analysis_modules.level_sets.contour_finder.identify_contours`
-and :mod:`~yt.analysis_modules.level_sets.clump_handling.Clump`) where 
-the identification step can be quite time-consuming, but the analysis 
-may be relatively fast.
-
-Typically, the save and load operations are used on 3D data objects.  ``yt``
+the calculation later.  For example, this is useful after clump finding 
+(:ref:`clump_finding`), which can be very time consuming.  
+Typically, the save and load operations are used on 3D data objects.  yt
 has a separate set of serialization operations for 2D objects such as
 projections.
 
-``yt`` will save out objects to disk under the presupposition that the
+yt will save out objects to disk under the presupposition that the
 construction of the objects is the difficult part, rather than the generation
 of the data -- this means that you can save out an object as a description of
 how to recreate it in space, but not the actual data arrays affiliated with
@@ -461,15 +459,8 @@ which the object "hangs."  It is this piece of information that is the most
 difficult; the object, when reloaded, must be able to reconstruct a dataset
 from whatever limited information it has in the save file.
 
-To do this, ``yt`` is able to identify datasets based on a "hash"
-generated from the base file name, the "CurrentTimeIdentifier", and the
-simulation time.  These three characteristics should never be changed outside
-of a simulation, they are independent of the file location on disk, and in
-conjunction they should be uniquely identifying.  (This process is all done in
-:mod:`~yt.utilities.ParameterFileStorage` via :class:`~yt.utilities.ParameterFileStorage.ParameterFileStore`.)
-
 You can save objects to an output file using the function 
-:meth:`~yt.data_objects.index.save_object`: 
+:func:`~yt.data_objects.index.save_object`: 
 
 .. code-block:: python
 

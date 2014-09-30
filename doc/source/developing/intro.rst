@@ -15,8 +15,8 @@ Communication Channels
 
 There are four main communication channels for yt:
 
- * We also have an IRC channel, on ``irc.freenode.net`` in ``#yt``, which can be a
-   bit less on-topic than the mailing lists.  You can connect through our web
+ * We have an IRC channel, on ``irc.freenode.net`` in ``#yt``.
+   You can connect through our web
    gateway without any special client, at http://yt-project.org/irc.html .
    *IRC is the first stop for conversation!*
  * `yt-users <http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org>`_
@@ -42,6 +42,9 @@ participation, we encourage it.
 Share Your Scripts
 ------------------
 
+.. warning:: The yt Hub is currently offline due to some hosting problems.  We
+             hope to have it back up online soon.
+
 The next easiest way to get involved with yt is to participate in the `yt Hub
 <http://hub.yt-project.org/>`_.  This is a place where scripts, paper
 repositories, documents and so on can be submitted to share with the broader
@@ -57,8 +60,8 @@ This is one of the best ways to get involved in the community!  We would love
 to have more examples that show complex or advanced behavior -- and if you have
 used such scripts to write a paper, that too would be an amazing contribution.
 
-Documentation and Screencasts
------------------------------
+Documentation 
+-------------
 
 The yt documentation -- which you are reading right now -- is constantly being
 updated, and it is a task we would very much appreciate assistance with.
@@ -72,18 +75,6 @@ repository) and then make your changes in your own fork.  When you are done,
 issue a pull request through the website for your new fork, and we can comment
 back and forth and eventually accept your changes.
 
-One of the more interesting ways we are attempting to do lately is to add
-screencasts to the documentation -- these are recordings of people executing
-sessions in a terminal or in a web browser, showing off functionality and
-describing how to do various things.  These provide a more dynamic and
-engaging way of demonstrating functionality and teaching methods.
-
-One easy place to record screencasts is with `Screencast-O-Matic
-<http://www.screencast-o-matic.com/>`_ but there are many to choose from.  Once
-you have recorded it, let us know and be sure to add it to the
-`yt Vimeo group <http://vimeo.com/groups/ytgallery>`_.  We'll then link to it
-from the documentation!
-
 Gallery Images and Videos
 -------------------------
 
@@ -93,9 +84,9 @@ repository <http://bitbucket.org/yt_analysis/website>`_ and add it there, or
 email it to us and we'll add it to the `Gallery
 <http://yt-project.org/gallery.html>`_.
 
-We're eager to show off the images you make with yt, so please feel free to
-drop `us <http://lists.spacepope.org/listinfo.cgi/yt-dev-spacepope.org>`_ a
-line and let us know if you've got something great!
+We're eager to show off the images and movies you make with yt, so please feel 
+free to drop `us <http://lists.spacepope.org/listinfo.cgi/yt-dev-spacepope.org>`_ 
+a line and let us know if you've got something great!
 
 Technical Contributions
 -----------------------

@@ -1,21 +1,20 @@
-.. _bootcamp:
+.. _quickstart:
 
-yt Bootcamp
-===========
+yt Quickstart
+=============
 
-yt Bootcamp is a series of worked examples of how to use much of the 
-funtionality of yt.  These are not meant to be detailed walkthroughs but simple,
-short introductions to give you a taste of what the code can do.
+The quickstart is a series of worked examples of how to use much of the
+funtionality of yt.  These are simple, short introductions to give you a taste
+of what the code can do and are not meant to be detailed walkthroughs.
 
-There are two ways in which you can go through the bootcamp: interactively and 
+There are two ways in which you can go through the quickstart: interactively and 
 non-interactively.  We recommend the interactive method, but if you're pressed 
-on time, you can non-interactively go through the following pages and view the 
+on time, you can non-interactively go through the linked pages below and view the 
 worked examples.
 
-To execute the bootcamp interactively, you need to download the repository and
+To execute the quickstart interactively, you need to download the repository and
 start the IPython notebook.  If you do not already have the yt repository, the
-easiest way to get the repository is to use your already-installed mercurial
-program to grab it:
+easiest way to get the repository is to clone it using mercurial:
 
 .. code-block:: bash
 
@@ -25,7 +24,7 @@ Now start the IPython notebook from within the repository:
 
 .. code-block:: bash
 
-   cd yt/doc/source/bootcamp
+   cd yt/doc/source/quickstart
    yt notebook
 
 This command will give you information about the notebook server and how to
@@ -53,7 +52,7 @@ Here are the notebooks, which have been filled in for inspection:
 .. note::
 
    The notebooks use sample datasets that are available for download at
-   http://yt-project.org/data.  See :ref:`bootcamp-introduction` for more
+   http://yt-project.org/data.  See :ref:`quickstart-introduction` for more
    details.
 
 Let us know if you would like to contribute other example notebooks, or have

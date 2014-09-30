@@ -65,7 +65,7 @@ class MultipleTexture(vv.Wobject):
         self._colormap = vvt.Colormap()
         
         # create glsl program for this texture...
-        self._program1 = program =  vvt.GlslProgram()
+        self._program1 = vvt.GlslProgram()
         
         # scale and translation transforms
         self._trafo_scale = vv.Transform_Scale()
@@ -287,7 +287,7 @@ def visvis_plot(vp):
 
     ax = vv.gca()
 
-    for i,g in enumerate(gs):
+    for g in gs:
         ss = ((g.RightEdge - g.LeftEdge) / (np.array(g.my_data[0].shape)-1)).tolist()
         origin = g.LeftEdge.astype("float32").tolist()
         dd = (g.my_data[0].astype("float32") - mi)/(ma - mi)

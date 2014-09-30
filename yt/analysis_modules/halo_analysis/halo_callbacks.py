@@ -80,7 +80,6 @@ def halo_sphere(halo, radius_field="virial_radius", factor=1.0,
     """
 
     dds = halo.halo_catalog.data_ds
-    hds = halo.halo_catalog.halos_ds
     center = dds.arr([halo.quantities["particle_position_%s" % axis] \
                       for axis in "xyz"])
     radius = factor * halo.quantities[radius_field]
@@ -225,13 +224,13 @@ def profile(halo, x_field, y_fields, x_bins=32, x_range=None, x_log=True,
 
     # accumulate, if necessary
     if accumulation:
-        used = my_profile.used        
+        used = my_profile.used
         for field in my_profile.field_data:
             if weight_field is None:
                 my_profile.field_data[field][used] = \
                     np.cumsum(my_profile.field_data[field][used])
             else:
-                my_weight = my_profile.weight[:, 0]
+                my_weight = my_profile.weight
                 my_profile.field_data[field][used] = \
                   np.cumsum(my_profile.field_data[field][used] * my_weight[used]) / \
                   np.cumsum(my_weight[used])

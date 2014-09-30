@@ -341,7 +341,7 @@ Version 2.3
  * Real, extensive answer tests
  * Boolean data regions (see :ref:`boolean_data_objects`)
  * Isocontours / flux calculations (see :ref:`extracting-isocontour-information`)
- * Field reorganization (see :ref:`types_of_fields`)
+ * Field reorganization
  * PHOP memory improvements
  * Bug fixes for tests
  * Parallel data loading for RAMSES, along with other speedups and improvements
@@ -482,7 +482,7 @@ finder (see :ref:`halo_finding`)
  * Optimized data structures such as the index
  * Star particle analysis routines
    (see :ref:`star_analysis`)
- * Halo mass function routines (see :ref:`hmf_howto`)
+ * Halo mass function routines
  * Completely rewritten, massively faster and more memory efficient Particle IO
  * Fixes for plots, including normalized phase plots
  * Better collective communication in parallel routines

@@ -4,10 +4,20 @@
 Field List
 ==========
 
-This is a list of all fields available in ``yt``.  It has been organized by the
-type of code that each field is supported by.  "Universal" fields are available
-everywhere, "Enzo" fields in Enzo datasets, "Orion" fields in Orion datasets,
-and so on.
+This is a list of many of the fields available in yt.  We have attempted to
+include most of the fields that are accessible through the plugin system, as 
+well as the fields that are known by the frontends, however it is possible to 
+generate many more permutations, particularly through vector operations. For 
+more information about the fields framework, see :ref:`fields`.
+
+Some fields are recognized by specific frontends only. These are typically 
+fields like density and temperature that have their own names and units in 
+the different frontend datasets. Often, these fields are aliased to their 
+yt-named counterpart fields (typically 'gas' fieldtypes). For example, in 
+the ``FLASH`` frontend, the ``dens`` field (i.e. ``(flash, dens)``) is aliased 
+to the gas field density (i.e. ``(gas, density)``), similarly ``(flash, velx)`` 
+is aliased to ``(gas, velocity_x)``, and so on. In what follows, if a field 
+is aliased it will be noted.
 
 Try using the ``ds.field_list`` and ``ds.derived_field_list`` to view the
 native and derived fields available for your dataset respectively. For example
@@ -15,99 +25,527 @@ to display the native fields in alphabetical order:
 
 .. notebook-cell::
 
-  from yt.mods import *
-  ds = load("Enzo_64/DD0043/data0043")
+  import yt
+  ds = yt.load("Enzo_64/DD0043/data0043")
   for i in sorted(ds.field_list):
     print i
 
-.. note:: Universal fields will be overridden by a code-specific field.
+To figure out out what all of the field types here mean, see
+:ref:`known-field-types`.
 
-.. rubric:: Table of Contents
-
-.. contents::
-   :depth: 2
+.. contents:: Table of Contents
+   :depth: 1
    :local:
    :backlinks: none
 
-.. _universal-field-list:
+.. _yt-fields:
 
-Universal Field List
---------------------
+Universal Fields
+----------------
 
-AbsDivV
-+++++++
+('all', 'mesh_id')
+^^^^^^^^^^^^^^^^^^
 
-   * Units: :math:`\rm{s}^{-1}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def particle_mesh_ids(field, data):
+          pos = data[ptype, coord_name]
+          ids = np.zeros(pos.shape[0], dtype="float64") - 1
+          # This is float64 in name only.  It will be properly cast inside the
+          # deposit operation.
+          #_ids = ids.view("float64")
+          data.deposit(pos, [ids], method = "mesh_id")
+          return data.apply_units(ids, "")
+  
+
+('all', 'particle_angular_momentum_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _magnitude(field, data):
+          mag  = data[xn] * data[xn]
+          mag += data[yn] * data[yn]
+          mag += data[zn] * data[zn]
+          return np.sqrt(mag)
+  
+
+('all', 'particle_angular_momentum_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_angular_momentum_x(field, data):
+          return data[ptype, "particle_mass"] * \
+                 data[ptype, "particle_specific_angular_momentum_x"]
+  
+
+('all', 'particle_angular_momentum_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_angular_momentum_y(field, data):
+          return data[ptype, "particle_mass"] * \
+                 data[ptype, "particle_specific_angular_momentum_y"]
+  
+
+('all', 'particle_angular_momentum_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_angular_momentum_z(field, data):
+          return data[ptype, "particle_mass"] * \
+                 data[ptype, "particle_specific_angular_momentum_z"]
+  
+
+('all', 'particle_ones')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def particle_ones(field, data):
+          v = np.ones(data[ptype, mass_name].shape, dtype="float64")
+          return data.apply_units(v, field.units)
+  
+
+('all', 'particle_position')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{code}~\rm{length}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+          def particle_vectors(field, data):
+              v = [data[_ptype, name].in_units(field.units)
+                    for name in names]
+              c = np.column_stack(v)
+              return data.apply_units(c, field.units)
+  
+
+('all', 'particle_radial_velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_spherical_velocity_radius(field, data):
+          """
+          Radial component of the particles' velocity vectors in spherical coords
+          based on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          vel = svel
+          vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          vel = vel - np.reshape(bv, (3, 1))
+          sphr = get_sph_r_component(vel, theta, phi, normal)
+          return sphr
+  
+
+('all', 'particle_radius')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_radius(field, data):
+          return get_radius(data, "particle_position_")
+  
+
+('all', 'particle_specific_angular_momentum')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_specific_angular_momentum(field, data):
+          """
+          Calculate the angular of a particle velocity.  Returns a vector for each
+          particle.
+          """
+          if data.has_field_parameter("bulk_velocity"):
+              bv = data.get_field_parameter("bulk_velocity")
+          else: bv = np.zeros(3, dtype=np.float64)
+          xv = data[ptype, svel % 'x'] - bv[0]
+          yv = data[ptype, svel % 'y'] - bv[1]
+          zv = data[ptype, svel % 'z'] - bv[2]
+          center = data.get_field_parameter('center')
+          coords = YTArray([data[ptype, spos % 'x'],
+                             data[ptype, spos % 'y'],
+                             data[ptype, spos % 'z']], dtype=np.float64)
+          new_shape = tuple([3] + [1]*(len(coords.shape)-1))
+          r_vec = coords - np.reshape(center,new_shape)
+          v_vec = YTArray([xv,yv,zv], dtype=np.float64)
+          return np.cross(r_vec, v_vec, axis=0)
+  
+
+('all', 'particle_specific_angular_momentum_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _magnitude(field, data):
+          mag  = data[xn] * data[xn]
+          mag += data[yn] * data[yn]
+          mag += data[zn] * data[zn]
+          return np.sqrt(mag)
+  
+
+('all', 'particle_specific_angular_momentum_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_specific_angular_momentum_x(field, data):
+          if data.has_field_parameter("bulk_velocity"):
+              bv = data.get_field_parameter("bulk_velocity")
+          else: bv = np.zeros(3, dtype=np.float64)
+          center = data.get_field_parameter('center')
+          y = data[ptype, spos % "y"] - center[1]
+          z = data[ptype, spos % "z"] - center[2]
+          yv = data[ptype, svel % "y"] - bv[1]
+          zv = data[ptype, svel % "z"] - bv[2]
+          return yv*z - zv*y
+  
+
+('all', 'particle_specific_angular_momentum_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_specific_angular_momentum_y(field, data):
+          if data.has_field_parameter("bulk_velocity"):
+              bv = data.get_field_parameter("bulk_velocity")
+          else: bv = np.zeros(3, dtype=np.float64)
+          center = data.get_field_parameter('center')
+          x = data[ptype, spos % "x"] - center[0]
+          z = data[ptype, spos % "z"] - center[2]
+          xv = data[ptype, svel % "x"] - bv[0]
+          zv = data[ptype, svel % "z"] - bv[2]
+          return -(xv*z - zv*x)
+  
+
+('all', 'particle_specific_angular_momentum_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_specific_angular_momentum_z(field, data):
+          if data.has_field_parameter("bulk_velocity"):
+              bv = data.get_field_parameter("bulk_velocity")
+          else: bv = np.zeros(3, dtype=np.float64)
+          center = data.get_field_parameter('center')
+          x = data[ptype, spos % "x"] - center[0]
+          y = data[ptype, spos % "y"] - center[1]
+          xv = data[ptype, svel % "x"] - bv[0]
+          yv = data[ptype, svel % "y"] - bv[1]
+          return xv*y - yv*x
+  
+
+('all', 'particle_spherical_position_phi')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_spherical_position_phi(field, data):
+          """
+          Phi component of the particles' position vectors in spherical coords
+          on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          sphp = get_sph_phi_component(pos, phi, normal)
+          return sphp
+  
+
+('all', 'particle_spherical_position_radius')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_spherical_position_radius(field, data):
+          """
+          Radial component of the particles' position vectors in spherical coords
+          on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          sphr = get_sph_r_component(pos, theta, phi, normal)
+          return sphr
+  
+
+('all', 'particle_spherical_position_theta')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_spherical_position_theta(field, data):
+          """
+          Theta component of the particles' position vectors in spherical coords
+          on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          spht = get_sph_theta_component(pos, theta, phi, normal)
+          return spht
+  
+
+('all', 'particle_spherical_velocity_phi')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_spherical_velocity_phi(field, data):
+          """
+          Phi component of the particles' velocity vectors in spherical coords
+          based on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = YTArray([data[ptype, spos % ax] for ax in "xyz"])
+          vel = YTArray([data[ptype, svel % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          vel = vel - np.reshape(bv, (3, 1))
+          sphp = get_sph_phi_component(vel, phi, normal)
+          return sphp
+  
+
+('all', 'particle_spherical_velocity_radius')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_spherical_velocity_radius(field, data):
+          """
+          Radial component of the particles' velocity vectors in spherical coords
+          based on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          vel = svel
+          vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          vel = vel - np.reshape(bv, (3, 1))
+          sphr = get_sph_r_component(vel, theta, phi, normal)
+          return sphr
+  
+
+('all', 'particle_spherical_velocity_theta')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_spherical_velocity_theta(field, data):
+          """
+          Theta component of the particles' velocity vectors in spherical coords
+          based on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          vel = svel
+          vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          vel = vel - np.reshape(bv, (3, 1))
+          spht = get_sph_theta_component(vel, theta, phi, normal)
+          return spht
+  
+
+('all', 'particle_velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+          def particle_vectors(field, data):
+              v = [data[_ptype, name].in_units(field.units)
+                    for name in names]
+              c = np.column_stack(v)
+              return data.apply_units(c, field.units)
+  
+
+('all', 'particle_velocity_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_velocity_magnitude(field, data):
+          """ M{|v|} """
+          bulk_velocity = data.get_field_parameter("bulk_velocity")
+          if bulk_velocity is None:
+              bulk_velocity = np.zeros(3)
+          return np.sqrt((data[ptype, svel % 'x'] - bulk_velocity[0])**2
+                       + (data[ptype, svel % 'y'] - bulk_velocity[1])**2
+                       + (data[ptype, svel % 'z'] - bulk_velocity[2])**2 )
+  
+
+('deposit', 'all_cic')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _AbsDivV(field, data):
-      return np.abs(data['DivV'])
+      def particle_cic(field, data):
+          pos = data[ptype, coord_name]
+          d = data.deposit(pos, [data[ptype, mass_name]], method = "cic")
+          d = data.apply_units(d, data[ptype, mass_name].units)
+          d /= data["index", "cell_volume"]
+          return d
   
 
-**Convert Function Source**
-
-No source available.
-
-AngularMomentumX
-++++++++++++++++
-
-   * Units: :math:`\rm{g}\/\rm{cm}^2/\rm{s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _AngularMomentumX(field, data):
-      return data["CellMass"] * data["SpecificAngularMomentumX"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-AngularMomentumY
-++++++++++++++++
-
-   * Units: :math:`\rm{g}\/\rm{cm}^2/\rm{s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _AngularMomentumY(field, data):
-      return data["CellMass"] * data["SpecificAngularMomentumY"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-AngularMomentumZ
-++++++++++++++++
-
-   * Units: :math:`\rm{g}\/\rm{cm}^2/\rm{s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _AngularMomentumZ(field, data):
-      return data["CellMass"] * data["SpecificAngularMomentumZ"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-AveragedDensity
-+++++++++++++++
+('deposit', 'all_count')
+^^^^^^^^^^^^^^^^^^^^^^^^
 
    * Particle Type: False
 
@@ -115,226 +553,36 @@ AveragedDensity
 
 .. code-block:: python
 
-  def _AveragedDensity(field, data):
-      nx, ny, nz = data["density"].shape
-      new_field = np.zeros((nx-2,ny-2,nz-2), dtype='float64')
-      weight_field = np.zeros((nx-2,ny-2,nz-2), dtype='float64')
-      i_i, j_i, k_i = np.mgrid[0:3,0:3,0:3]
-      for i,j,k in zip(i_i.ravel(),j_i.ravel(),k_i.ravel()):
-          sl = [slice(i,nx-(2-i)),slice(j,ny-(2-j)),slice(k,nz-(2-k))]
-          new_field += data["density"][sl] * data["CellMass"][sl]
-          weight_field += data["CellMass"][sl]
-      # Now some fancy footwork
-      new_field2 = np.zeros((nx,ny,nz))
-      new_field2[1:-1,1:-1,1:-1] = new_field/weight_field
-      return new_field2
+      def particle_count(field, data):
+          pos = data[ptype, coord_name]
+          d = data.deposit(pos, method = "count")
+          d = data.ds.arr(d, input_units = "cm**-3")
+          return data.apply_units(d, field.units)
   
 
-**Convert Function Source**
+('deposit', 'all_density')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-BMagnitude
-++++++++++
-
-   * Units: :math:`\rm{Gauss}`
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _BMagnitude(field,data):
-      """This assumes that your front end has provided Bx, By, Bz in
-      units of Gauss. If you use MKS, make sure to write your own
-      BMagnitude field to deal with non-unitary \mu_0.
-      """
-      return np.sqrt((data["Bx"]**2 + data["By"]**2 + data["Bz"]**2))
+      def particle_density(field, data):
+          pos = data[ptype, coord_name]
+          mass = data[ptype, mass_name]
+          pos.convert_to_units("code_length")
+          mass.convert_to_units("code_mass")
+          d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
+          d = data.ds.arr(d, "code_mass")
+          d /= data["index", "cell_volume"]
+          return d
   
 
-**Convert Function Source**
-
-No source available.
-
-BPoloidal
-+++++++++
-
-   * Units: :math:`\rm{Gauss}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _BPoloidal(field,data):
-      normal = data.get_field_parameter("normal")
-  
-      Bfields = np.array([data['Bx'], data['By'], data['Bz']])
-  
-      theta = data['sph_theta']
-      phi   = data['sph_phi']
-  
-      return get_sph_theta_component(Bfields, theta, phi, normal)
-  
-
-**Convert Function Source**
-
-No source available.
-
-BRadial
-+++++++
-
-   * Units: :math:`\rm{Gauss}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _BRadial(field,data):
-      normal = data.get_field_parameter("normal")
-  
-      Bfields = np.array([data['Bx'], data['By'], data['Bz']])
-  
-      theta = data['sph_theta']
-      phi   = data['sph_phi']
-  
-      return get_sph_r_component(Bfields, theta, phi, normal)
-  
-
-**Convert Function Source**
-
-No source available.
-
-BToroidal
-+++++++++
-
-   * Units: :math:`\rm{Gauss}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _BToroidal(field,data):
-      normal = data.get_field_parameter("normal")
-  
-      Bfields = np.array([data['Bx'], data['By'], data['Bz']])
-  
-      phi   = data['sph_phi']
-  
-      return get_sph_phi_component(Bfields, phi, normal)
-  
-
-**Convert Function Source**
-
-No source available.
-
-BaroclinicVorticityMagnitude
-++++++++++++++++++++++++++++
-
-   * Units: :math:`\rm{s}^{-1}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _BaroclinicVorticityMagnitude(field, data):
-      return np.sqrt(data["BaroclinicVorticityX"]**2 +
-                     data["BaroclinicVorticityY"]**2 +
-                     data["BaroclinicVorticityZ"]**2)
-  
-
-**Convert Function Source**
-
-No source available.
-
-BaroclinicVorticityX
-++++++++++++++++++++
-
-   * Units: :math:`\rm{s}^{-1}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _BaroclinicVorticityX(field, data):
-      rho2 = data["density"].astype('float64')**2
-      return (data["gradPressureY"] * data["gradDensityZ"] -
-              data["gradPressureZ"] * data["gradDensityY"]) / rho2
-  
-
-**Convert Function Source**
-
-No source available.
-
-BaroclinicVorticityY
-++++++++++++++++++++
-
-   * Units: :math:`\rm{s}^{-1}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _BaroclinicVorticityY(field, data):
-      rho2 = data["density"].astype('float64')**2
-      return (data["gradPressureZ"] * data["gradDensityX"] -
-              data["gradPressureX"] * data["gradDensityZ"]) / rho2
-  
-
-**Convert Function Source**
-
-No source available.
-
-BaroclinicVorticityZ
-++++++++++++++++++++
-
-   * Units: :math:`\rm{s}^{-1}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _BaroclinicVorticityZ(field, data):
-      rho2 = data["density"].astype('float64')**2
-      return (data["gradPressureX"] * data["gradDensityY"] -
-              data["gradPressureY"] * data["gradDensityX"]) / rho2
-  
-
-**Convert Function Source**
-
-No source available.
-
-Baryon_Overdensity
-++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Baryon_Overdensity(field, data):
-      if data.ds.has_key('omega_baryon_now'):
-          omega_baryon_now = data.ds['omega_baryon_now']
-      else:
-          omega_baryon_now = 0.0441
-      return data['density'] / (omega_baryon_now * rho_crit_now * 
-                                (data.ds.hubble_constant**2) * 
-                                ((1+data.ds.current_redshift)**3))
-  
-
-**Convert Function Source**
-
-No source available.
-
-CellMass
-++++++++
+('deposit', 'all_mass')
+^^^^^^^^^^^^^^^^^^^^^^^
 
    * Units: :math:`\rm{g}`
    * Particle Type: False
@@ -343,16 +591,33 @@ CellMass
 
 .. code-block:: python
 
-  def _CellMass(field, data):
-      return data["density"] * data["CellVolume"]
+      def particle_mass(field, data):
+          pos = data[ptype, coord_name]
+          pmass = data[ptype, mass_name].in_units(field.units)
+          d = data.deposit(pos, [pmass], method = "sum")
+          return data.apply_units(d, field.units)
   
 
-**Convert Function Source**
+('deposit', 'io_cic')
+^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
+   * Particle Type: False
 
-CellMassCode
-++++++++++++
+**Field Source**
+
+.. code-block:: python
+
+      def particle_cic(field, data):
+          pos = data[ptype, coord_name]
+          d = data.deposit(pos, [data[ptype, mass_name]], method = "cic")
+          d = data.apply_units(d, data[ptype, mass_name].units)
+          d /= data["index", "cell_volume"]
+          return d
+  
+
+('deposit', 'io_count')
+^^^^^^^^^^^^^^^^^^^^^^^
 
    * Particle Type: False
 
@@ -360,342 +625,218 @@ CellMassCode
 
 .. code-block:: python
 
-  def _CellMassCode(field, data):
-      return data["density"] * data["CellVolumeCode"]
+      def particle_count(field, data):
+          pos = data[ptype, coord_name]
+          d = data.deposit(pos, method = "count")
+          d = data.ds.arr(d, input_units = "cm**-3")
+          return data.apply_units(d, field.units)
   
 
-**Convert Function Source**
+('deposit', 'io_density')
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _convertCellMassCode(data):
-      return 1.0/data.convert("density")
-  
-
-CellMassMsun
-++++++++++++
-
-   * Units: :math:`M_{\odot}`
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _CellMass(field, data):
-      return data["density"] * data["CellVolume"]
+      def particle_density(field, data):
+          pos = data[ptype, coord_name]
+          mass = data[ptype, mass_name]
+          pos.convert_to_units("code_length")
+          mass.convert_to_units("code_mass")
+          d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
+          d = data.ds.arr(d, "code_mass")
+          d /= data["index", "cell_volume"]
+          return d
   
 
-**Convert Function Source**
+('deposit', 'io_mass')
+^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _convertCellMassMsun(data):
-      return 5.027854e-34 # g^-1
-  
-
-CellVolume
-++++++++++
-
-   * Units: :math:`\rm{cm}^3`
+   * Units: :math:`\rm{g}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _CellVolume(field, data):
-      if data['dx'].size == 1:
-          try:
-              return data['dx'] * data['dy'] * data['dz'] * \
-                  np.ones(data.ActiveDimensions, dtype='float64')
-          except AttributeError:
-              return data['dx'] * data['dy'] * data['dz']
-      return data["dx"] * data["dy"] * data["dz"]
+      def particle_mass(field, data):
+          pos = data[ptype, coord_name]
+          pmass = data[ptype, mass_name].in_units(field.units)
+          d = data.deposit(pos, [pmass], method = "sum")
+          return data.apply_units(d, field.units)
   
 
-**Convert Function Source**
+('gas', 'angular_momentum_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _ConvertCellVolumeCGS(data):
-      return data.convert("cm")**3.0
-  
-
-CellVolumeCode
-++++++++++++++
-
-   * Units: :math:`\rm{BoxVolume}^3`
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _CellVolume(field, data):
-      if data['dx'].size == 1:
-          try:
-              return data['dx'] * data['dy'] * data['dz'] * \
-                  np.ones(data.ActiveDimensions, dtype='float64')
-          except AttributeError:
-              return data['dx'] * data['dy'] * data['dz']
-      return data["dx"] * data["dy"] * data["dz"]
+      def _magnitude(field, data):
+          mag  = data[xn] * data[xn]
+          mag += data[yn] * data[yn]
+          mag += data[zn] * data[zn]
+          return np.sqrt(mag)
   
 
-**Convert Function Source**
+('gas', 'angular_momentum_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-CellVolumeMpc
-+++++++++++++
-
-   * Units: :math:`\rm{Mpc}^3`
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _CellVolume(field, data):
-      if data['dx'].size == 1:
-          try:
-              return data['dx'] * data['dy'] * data['dz'] * \
-                  np.ones(data.ActiveDimensions, dtype='float64')
-          except AttributeError:
-              return data['dx'] * data['dy'] * data['dz']
-      return data["dx"] * data["dy"] * data["dz"]
+      def _angular_momentum_x(field, data):
+          return data[ftype, "cell_mass"] \
+               * data[ftype, "specific_angular_momentum_x"]
   
 
-**Convert Function Source**
+('gas', 'angular_momentum_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _ConvertCellVolumeMpc(data):
-      return data.convert("mpc")**3.0
-  
-
-CellsPerBin
-+++++++++++
-
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _Ones(field, data):
-      return np.ones(data.ActiveDimensions, dtype='float64')
+      def _angular_momentum_y(field, data):
+          return data[ftype, "cell_mass"] \
+               * data[ftype, "specific_angular_momentum_y"]
   
 
-**Convert Function Source**
+('gas', 'angular_momentum_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-ChandraEmissivity
-+++++++++++++++++
-
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _ChandraEmissivity(field, data):
-      logT0 = np.log10(data["Temperature"]) - 7
-      return ((data["NumberDensity"].astype('float64')**2.0) \
-              *(10**(-0.0103*logT0**8 \
-                     +0.0417*logT0**7 \
-                     -0.0636*logT0**6 \
-                     +0.1149*logT0**5 \
-                     -0.3151*logT0**4 \
-                     +0.6655*logT0**3 \
-                     -1.1256*logT0**2 \
-                     +1.0026*logT0**1 \
-                     -0.6984*logT0) \
-                +data["Metallicity"]*10**(0.0305*logT0**11 \
-                                          -0.0045*logT0**10 \
-                                          -0.3620*logT0**9 \
-                                          +0.0513*logT0**8 \
-                                          +1.6669*logT0**7 \
-                                          -0.3854*logT0**6 \
-                                          -3.3604*logT0**5 \
-                                          +0.4728*logT0**4 \
-                                          +4.5774*logT0**3 \
-                                          -2.3661*logT0**2 \
-                                          -1.6667*logT0**1 \
-                                          -0.2193*logT0)))
+      def _angular_momentum_z(field, data):
+          return data[ftype, "cell_mass"] \
+               * data[ftype, "specific_angular_momentum_z"]
   
 
-**Convert Function Source**
+('gas', 'averaged_density')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _convertChandraEmissivity(data):
-      return 1.0 #1.0e-23*0.76**2
-  
-
-ComovingDensity
-+++++++++++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^3`
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _ComovingDensity(field, data):
-      ef = (1.0 + data.ds.current_redshift)**3.0
-      return data["density"]/ef
+      def _averaged_field(field, data):
+          nx, ny, nz = data[(ftype, basename)].shape
+          new_field = data.ds.arr(np.zeros((nx-2, ny-2, nz-2), dtype=np.float64),
+                                  (just_one(data[(ftype, basename)]) *
+                                   just_one(data[(ftype, weight)])).units)
+          weight_field = data.ds.arr(np.zeros((nx-2, ny-2, nz-2), dtype=np.float64),
+                                     data[(ftype, weight)].units)
+          i_i, j_i, k_i = np.mgrid[0:3, 0:3, 0:3]
+  
+          for i, j, k in zip(i_i.ravel(), j_i.ravel(), k_i.ravel()):
+              sl = [slice(i, nx-(2-i)), slice(j, ny-(2-j)), slice(k, nz-(2-k))]
+              new_field += data[(ftype, basename)][sl] * \
+                data[(ftype, weight)][sl]
+              weight_field += data[(ftype, weight)][sl]
+  
+          # Now some fancy footwork
+          new_field2 = data.ds.arr(np.zeros((nx, ny, nz)), 
+                                   data[(ftype, basename)].units)
+          new_field2[1:-1, 1:-1, 1:-1] = new_field / weight_field
+          return new_field2
   
 
-**Convert Function Source**
+('gas', 'baroclinic_vorticity_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-Contours
-++++++++
-
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _Contours(field, data):
-      return -np.ones_like(data["Ones"])
+      def _magnitude(field, data):
+          mag  = data[xn] * data[xn]
+          mag += data[yn] * data[yn]
+          mag += data[zn] * data[zn]
+          return np.sqrt(mag)
   
 
-**Convert Function Source**
+('gas', 'baroclinic_vorticity_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-CourantTimeStep
-+++++++++++++++
-
-   * Units: :math:`$\rm{s}$`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _CourantTimeStep(field, data):
-      t1 = data['dx'] / (
-          data["SoundSpeed"] + \
-          abs(data["x-velocity"]))
-      t2 = data['dy'] / (
-          data["SoundSpeed"] + \
-          abs(data["y-velocity"]))
-      t3 = data['dz'] / (
-          data["SoundSpeed"] + \
-          abs(data["z-velocity"]))
-      return np.minimum(np.minimum(t1,t2),t3)
+      def _baroclinic_vorticity_x(field, data):
+          rho2 = data[ftype, "density"].astype(np.float64)**2
+          return (data[ftype, "pressure_gradient_y"] *
+                  data[ftype, "density_gradient_z"] -
+                  data[ftype, "pressure_gradient_z"] *
+                  data[ftype, "density_gradient_z"]) / rho2
   
 
-**Convert Function Source**
+('gas', 'baroclinic_vorticity_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _convertCourantTimeStep(data):
-      # SoundSpeed and z-velocity are in cm/s, dx is in code
-      return data.convert("cm")
-  
-
-CuttingPlaneBx
-++++++++++++++
-
-   * Units: :math:`\rm{Gauss}`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _CuttingPlaneBx(field, data):
-      x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
-                             for ax in 'xyz']
-      b_vec = np.array([data["B%s" % ax] for ax in 'xyz'])
-      return np.dot(x_vec, b_vec)
+      def _baroclinic_vorticity_y(field, data):
+          rho2 = data[ftype, "density"].astype(np.float64)**2
+          return (data[ftype, "pressure_gradient_z"] *
+                  data[ftype, "density_gradient_x"] -
+                  data[ftype, "pressure_gradient_x"] *
+                  data[ftype, "density_gradient_z"]) / rho2
   
 
-**Convert Function Source**
+('gas', 'baroclinic_vorticity_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-CuttingPlaneBy
-++++++++++++++
-
-   * Units: :math:`\rm{Gauss}`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _CuttingPlaneBy(field, data):
-      x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
-                             for ax in 'xyz']
-      b_vec = np.array([data["B%s" % ax] for ax in 'xyz'])
-      return np.dot(y_vec, b_vec)
+      def _baroclinic_vorticity_z(field, data):
+          rho2 = data[ftype, "density"].astype(np.float64)**2
+          return (data[ftype, "pressure_gradient_x"] *
+                  data[ftype, "density_gradient_y"] -
+                  data[ftype, "pressure_gradient_y"] *
+                  data[ftype, "density_gradient_x"]) / rho2
   
 
-**Convert Function Source**
-
-No source available.
-
-CuttingPlaneVelocityX
-+++++++++++++++++++++
-
-   * Units: :math:`\rm{km}/\rm{s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _CuttingPlaneVelocityX(field, data):
-      x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
-                             for ax in 'xyz']
-      bulk_velocity = data.get_field_parameter("bulk_velocity")
-      if bulk_velocity == None:
-          bulk_velocity = np.zeros(3)
-      v_vec = np.array([data["%s-velocity" % ax] for ax in 'xyz']) \
-                  - bulk_velocity[...,np.newaxis]
-      return np.dot(x_vec, v_vec)
-  
-
-**Convert Function Source**
-
-No source available.
-
-CuttingPlaneVelocityY
-+++++++++++++++++++++
-
-   * Units: :math:`\rm{km}/\rm{s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _CuttingPlaneVelocityY(field, data):
-      x_vec, y_vec, z_vec = [data.get_field_parameter("cp_%s_vec" % (ax))
-                             for ax in 'xyz']
-      bulk_velocity = data.get_field_parameter("bulk_velocity")
-      if bulk_velocity == None:
-          bulk_velocity = np.zeros(3)
-      v_vec = np.array([data["%s-velocity" % ax] for ax in 'xyz']) \
-                  - bulk_velocity[...,np.newaxis]
-      return np.dot(y_vec, v_vec)
-  
-
-**Convert Function Source**
-
-No source available.
-
-DensityPerturbation
-+++++++++++++++++++
+('gas', 'baryon_overdensity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    * Particle Type: False
 
@@ -703,19 +844,36 @@ DensityPerturbation
 
 .. code-block:: python
 
-  def _DensityPerturbation(field, data):
-      rho_bar = rho_crit_now * data.ds.omega_matter * \
-          data.ds.hubble_constant**2 * \
-          (1.0 + data.ds.current_redshift)**3
-      return ((data['Matter_Density'] - rho_bar) / rho_bar)
+      def _baryon_overdensity(field, data):
+          if not hasattr(data.ds, "cosmological_simulation") or \
+            not data.ds.cosmological_simulation:
+              raise NeedsConfiguration("cosmological_simulation", 1)
+          omega_baryon = data.get_field_parameter("omega_baryon")
+          if omega_baryon is None:
+              raise NeedsParameter("omega_baryon")
+          co = data.ds.cosmology
+          # critical_density(z) ~ omega_lambda + omega_matter * (1 + z)^3
+          # mean matter density(z) ~ omega_matter * (1 + z)^3
+          return data[ftype, "density"] / omega_baryon / co.critical_density(0.0) / \
+            (1.0 + data.ds.current_redshift)**3
   
 
-**Convert Function Source**
+('gas', 'cell_mass')
+^^^^^^^^^^^^^^^^^^^^
 
-No source available.
+   * Units: :math:`\rm{g}`
+   * Particle Type: False
 
-DiskAngle
-+++++++++
+**Field Source**
+
+.. code-block:: python
+
+      def _cell_mass(field, data):
+          return data[ftype, "density"] * data["index", "cell_volume"]
+  
+
+('gas', 'chandra_emissivity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    * Particle Type: False
 
@@ -723,60 +881,28 @@ DiskAngle
 
 .. code-block:: python
 
-  def _DiskAngle(field, data):
-      return data['sph_theta']
+      def _chandra_emissivity(field, data):
+          logT0 = np.log10(data[ftype, "temperature"].to_ndarray().astype(np.float64)) - 7
+          # we get rid of the units here since this is a fit and not an 
+          # analytical expression
+          return data.ds.arr(data[ftype, "number_density"].to_ndarray().astype(np.float64)**2
+                             * (10**(- 0.0103 * logT0**8 + 0.0417 * logT0**7
+                                     - 0.0636 * logT0**6 + 0.1149 * logT0**5
+                                     - 0.3151 * logT0**4 + 0.6655 * logT0**3
+                                     - 1.1256 * logT0**2 + 1.0026 * logT0**1
+                                     - 0.6984 * logT0)
+                               + data[ftype, "metallicity"].to_ndarray() *
+                               10**(  0.0305 * logT0**11 - 0.0045 * logT0**10
+                                      - 0.3620 * logT0**9  + 0.0513 * logT0**8
+                                      + 1.6669 * logT0**7  - 0.3854 * logT0**6
+                                      - 3.3604 * logT0**5  + 0.4728 * logT0**4
+                                      + 4.5774 * logT0**3  - 2.3661 * logT0**2
+                                      - 1.6667 * logT0**1  - 0.2193 * logT0)),
+                             "") # add correct units here
   
 
-**Convert Function Source**
-
-No source available.
-
-DivV
-++++
-
-   * Units: :math:`\rm{s}^{-1}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _DivV(field, data):
-      # We need to set up stencils
-      if data.ds["HydroMethod"] == 2:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(1,-1,None)
-          div_fac = 1.0
-      else:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(2,None,None)
-          div_fac = 2.0
-      ds = div_fac * data['dx'].flat[0]
-      f  = data["x-velocity"][sl_right,1:-1,1:-1]/ds
-      f -= data["x-velocity"][sl_left ,1:-1,1:-1]/ds
-      if data.ds.dimensionality > 1:
-          ds = div_fac * data['dy'].flat[0]
-          f += data["y-velocity"][1:-1,sl_right,1:-1]/ds
-          f -= data["y-velocity"][1:-1,sl_left ,1:-1]/ds
-      if data.ds.dimensionality > 2:
-          ds = div_fac * data['dz'].flat[0]
-          f += data["z-velocity"][1:-1,1:-1,sl_right]/ds
-          f -= data["z-velocity"][1:-1,1:-1,sl_left ]/ds
-      new_field = np.zeros(data["x-velocity"].shape, dtype='float64')
-      new_field[1:-1,1:-1,1:-1] = f
-      return new_field
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertDivV(data):
-      return data.convert("cm")**-1.0
-  
-
-DynamicalTime
-+++++++++++++
+('gas', 'courant_time_step')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    * Units: :math:`\rm{s}`
    * Particle Type: False
@@ -785,1409 +911,408 @@ DynamicalTime
 
 .. code-block:: python
 
-  def _DynamicalTime(field, data):
-      """
-      The formulation for the dynamical time is:
-      M{sqrt(3pi/(16*G*rho))} or M{sqrt(3pi/(16G))*rho^-(1/2)}
-      Note that we return in our natural units already
-      """
-      return (3.0*np.pi/(16*G*data["density"]))**(1./2.)
+      def _courant_time_step(field, data):
+          t1 = data["index", "dx"] / (data[ftype, "sound_speed"]
+                          + np.abs(data[ftype, "velocity_x"]))
+          t2 = data["index", "dy"] / (data[ftype, "sound_speed"]
+                          + np.abs(data[ftype, "velocity_y"]))
+          t3 = data["index", "dz"] / (data[ftype, "sound_speed"]
+                          + np.abs(data[ftype, "velocity_z"]))
+          tr = np.minimum(np.minimum(t1, t2), t3)
+          return tr
   
 
-**Convert Function Source**
+('gas', 'cutting_plane_velocity_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _cp_val(field, data):
+              vec = data.get_field_parameter("cp_%s_vec" % (ax))
+              bv = data.get_field_parameter("bulk_%s" % basename)
+              if bv == None: bv = np.zeros(3)
+              tr  = (data[xn] - bv[0]) * vec[0]
+              tr += (data[yn] - bv[1]) * vec[1]
+              tr += (data[zn] - bv[2]) * vec[2]
+              return tr
+  
+
+('gas', 'cutting_plane_velocity_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _cp_val(field, data):
+              vec = data.get_field_parameter("cp_%s_vec" % (ax))
+              bv = data.get_field_parameter("bulk_%s" % basename)
+              if bv == None: bv = np.zeros(3)
+              tr  = (data[xn] - bv[0]) * vec[0]
+              tr += (data[yn] - bv[1]) * vec[1]
+              tr += (data[zn] - bv[2]) * vec[2]
+              return tr
+  
+
+('gas', 'cutting_plane_velocity_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _cp_val(field, data):
+              vec = data.get_field_parameter("cp_%s_vec" % (ax))
+              bv = data.get_field_parameter("bulk_%s" % basename)
+              if bv == None: bv = np.zeros(3)
+              tr  = (data[xn] - bv[0]) * vec[0]
+              tr += (data[yn] - bv[1]) * vec[1]
+              tr += (data[zn] - bv[2]) * vec[2]
+              return tr
+  
+
+('gas', 'cylindrical_radial_velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _cylindrical_radial(field, data):
+          normal = data.get_field_parameter("normal")
+          vectors = obtain_rv_vec(data, (xn, yn, zn),
+                                  "bulk_%s" % basename)
+          theta = resize_vector(data["index", 'cylindrical_theta'], vectors)
+          return get_cyl_r_component(vectors, theta, normal)
+  
+
+('gas', 'cylindrical_radial_velocity_absolute')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _cylindrical_radial_absolute(field, data):
+          return np.abs(_cylindrical_radial(field, data))
+  
+
+('gas', 'cylindrical_tangential_velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _cylindrical_tangential(field, data):
+          normal = data.get_field_parameter("normal")
+          vectors = obtain_rv_vec(data, (xn, yn, zn),
+                                  "bulk_%s" % basename)
+          theta = data["index", 'cylindrical_theta'].copy()
+          theta = np.tile(theta, (3,) + (1,)*len(theta.shape))
+          return get_cyl_theta_component(vectors, theta, normal)
+  
+
+('gas', 'cylindrical_tangential_velocity_absolute')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _cylindrical_tangential_absolute(field, data):
+          return np.abs(_cylindrical_tangential(field, data))
+  
+
+('gas', 'dark_matter_density')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
+   * Particle Type: False
+
+**Field Source**
 
 No source available.
 
-Entropy
-+++++++
+('gas', 'density')
+^^^^^^^^^^^^^^^^^^
 
-   * Units: :math:`\rm{ergs}\ \rm{cm}^{3\gamma-3}`
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
-
-.. code-block:: python
-
-  def _Entropy(field, data):
-      if data.has_field_parameter("mu"):
-          mw = mh*data.get_field_parameter("mu")
-      else :
-          mw = mh
-      try:
-          gammam1 = data.ds["Gamma"] - 1.0
-      except:
-          gammam1 = 5./3. - 1.0
-      return kboltz * data["Temperature"] / \
-             ((data["density"]/mw)**gammam1)
-  
-
-**Convert Function Source**
 
 No source available.
 
-GridIndices
-+++++++++++
+('gas', 'density_gradient_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{4}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _GridIndices(field, data):
-      return np.ones(data["Ones"].shape)*(data.id-data._id_offset)
+      def _magnitude(field, data):
+          mag  = data[xn] * data[xn]
+          mag += data[yn] * data[yn]
+          mag += data[zn] * data[zn]
+          return np.sqrt(mag)
   
 
-**Convert Function Source**
+('gas', 'density_gradient_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{4}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def func(field, data):
+              ds = div_fac * data["index", "dx"]
+              f  = data[grad_field][slice_3dr]/ds[slice_3d]
+              f -= data[grad_field][slice_3dl]/ds[slice_3d]
+              new_field = data.ds.arr(np.zeros_like(data[grad_field], dtype=np.float64),
+                                      f.units)
+              new_field[slice_3d] = f
+              return new_field
+  
+
+('gas', 'density_gradient_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{4}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def func(field, data):
+              ds = div_fac * data["index", "dx"]
+              f  = data[grad_field][slice_3dr]/ds[slice_3d]
+              f -= data[grad_field][slice_3dl]/ds[slice_3d]
+              new_field = data.ds.arr(np.zeros_like(data[grad_field], dtype=np.float64),
+                                      f.units)
+              new_field[slice_3d] = f
+              return new_field
+  
+
+('gas', 'density_gradient_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{4}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def func(field, data):
+              ds = div_fac * data["index", "dx"]
+              f  = data[grad_field][slice_3dr]/ds[slice_3d]
+              f -= data[grad_field][slice_3dl]/ds[slice_3d]
+              new_field = data.ds.arr(np.zeros_like(data[grad_field], dtype=np.float64),
+                                      f.units)
+              new_field[slice_3d] = f
+              return new_field
+  
+
+('gas', 'di_density')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
+   * Particle Type: False
+
+**Field Source**
 
 No source available.
 
-GridLevel
-+++++++++
+('gas', 'dii_density')
+^^^^^^^^^^^^^^^^^^^^^^
 
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
-
-.. code-block:: python
-
-  def _GridLevel(field, data):
-      return np.ones(data.ActiveDimensions)*(data.Level)
-  
-
-**Convert Function Source**
 
 No source available.
 
-Height
-++++++
+('gas', 'dynamical_time')
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-   * Units: :math:`cm`
+   * Units: :math:`\rm{s}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _Height(field, data):
-      return data['cyl_z']
+      def _dynamical_time(field, data):
+          """
+          sqrt(3 pi / (16 G rho))
+          """
+          return np.sqrt(3.0 * np.pi / (16.0 * G * data[ftype, "density"]))
   
 
-**Convert Function Source**
+('gas', 'entropy')
+^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _convertHeight(data):
-      return data.convert("cm")
-  
-
-HeightAU
-++++++++
-
-   * Units: :math:`AU`
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{keV}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _Height(field, data):
-      return data['cyl_z']
+      def _entropy(field, data):
+          mw = data.get_field_parameter("mu")
+          if mw is None:
+              mw = 1.0
+          mw *= mh
+          gammam1 = 2./3.
+          tr = data[ftype,"kT"] / ((data[ftype, "density"]/mw)**gammam1)
+          return data.apply_units(tr, field.units)
   
 
-**Convert Function Source**
+('gas', 'h2i_density')
+^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _convertHeightAU(data):
-      return data.convert("au")
-  
-
-JeansMassMsun
-+++++++++++++
-
-   * Units: :math:`\rm{M_{\odot}}`
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
-
-.. code-block:: python
-
-  def _JeansMassMsun(field,data):
-      MJ_constant = (((5*kboltz)/(G*mh))**(1.5)) * \
-      (3/(4*3.1415926535897931))**(0.5) / 1.989e33
-  
-      return (MJ_constant *
-              ((data["Temperature"]/data["MeanMolecularWeight"])**(1.5)) *
-              (data["density"]**(-0.5)))
-  
-
-**Convert Function Source**
 
 No source available.
 
-MachNumber
-++++++++++
+('gas', 'h2ii_density')
+^^^^^^^^^^^^^^^^^^^^^^^
 
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
-
-.. code-block:: python
-
-  def _MachNumber(field, data):
-      """M{|v|/t_sound}"""
-      return data["VelocityMagnitude"] / data["SoundSpeed"]
-  
-
-**Convert Function Source**
 
 No source available.
 
-MagneticEnergy
-++++++++++++++
+('gas', 'h2m_density')
+^^^^^^^^^^^^^^^^^^^^^^
 
-   * Units: :math:`\rm{ergs}\/\rm{cm}^{-3}`
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
-
-.. code-block:: python
-
-  def _MagneticEnergy(field,data):
-      """This assumes that your front end has provided Bx, By, Bz in
-      units of Gauss. If you use MKS, make sure to write your own
-      MagneticEnergy field to deal with non-unitary \mu_0.
-      """
-      return (data["Bx"]**2 + data["By"]**2 + data["Bz"]**2)/(8*np.pi)
-  
-
-**Convert Function Source**
 
 No source available.
 
-MagneticPressure
-++++++++++++++++
+('gas', 'hdi_density')
+^^^^^^^^^^^^^^^^^^^^^^
 
-   * Units: :math:`\rm{ergs}\/\rm{cm}^{-3}`
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
-
-.. code-block:: python
-
-  def _MagneticPressure(field,data):
-      return data['MagneticEnergy']
-  
-
-**Convert Function Source**
 
 No source available.
 
-Matter_Density
-++++++++++++++
+('gas', 'hei_density')
+^^^^^^^^^^^^^^^^^^^^^^
 
-   * Units: :math:`\rm{g}/\rm{cm^3}`
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
-
-.. code-block:: python
-
-  def _Matter_Density(field,data):
-      return (data['density'] + data['particle_density'])
-  
-
-**Convert Function Source**
 
 No source available.
 
-MeanMolecularWeight
-+++++++++++++++++++
+('gas', 'heii_density')
+^^^^^^^^^^^^^^^^^^^^^^^
 
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
-
-.. code-block:: python
-
-  def _MeanMolecularWeight(field,data):
-      return (data["density"] / (mh *data["NumberDensity"]))
-  
-
-**Convert Function Source**
 
 No source available.
 
-Ones
-++++
+('gas', 'heiii_density')
+^^^^^^^^^^^^^^^^^^^^^^^^
 
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
-
-.. code-block:: python
-
-  def _Ones(field, data):
-      return np.ones(data.ActiveDimensions, dtype='float64')
-  
-
-**Convert Function Source**
 
 No source available.
 
-OnesOverDx
-++++++++++
+('gas', 'hi_density')
+^^^^^^^^^^^^^^^^^^^^^
 
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
-
-.. code-block:: python
-
-  def _OnesOverDx(field, data):
-      return np.ones(data["Ones"].shape,
-                     dtype=data["density"].dtype)/data['dx']
-  
-
-**Convert Function Source**
 
 No source available.
 
-Overdensity
-+++++++++++
+('gas', 'hii_density')
+^^^^^^^^^^^^^^^^^^^^^^
 
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
    * Particle Type: False
 
 **Field Source**
-
-.. code-block:: python
-
-  def _Matter_Density(field,data):
-      return (data['density'] + data['particle_density'])
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _Convert_Overdensity(data):
-      return 1.0 / (rho_crit_now * data.ds.hubble_constant**2 * 
-                  (1+data.ds.current_redshift)**3)
-  
-
-ParticleAngularMomentumX
-++++++++++++++++++++++++
-
-   * Units: :math:`\rm{g}\/\rm{cm}^2/\rm{s}`
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ParticleAngularMomentumX(field, data):
-      return data["CellMass"] * data["ParticleSpecificAngularMomentumX"]
-  
-
-**Convert Function Source**
 
 No source available.
 
-ParticleAngularMomentumY
-++++++++++++++++++++++++
+('gas', 'jeans_mass')
+^^^^^^^^^^^^^^^^^^^^^
 
-   * Units: :math:`\rm{g}\/\rm{cm}^2/\rm{s}`
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ParticleAngularMomentumY(field, data):
-      return data["CellMass"] * data["ParticleSpecificAngularMomentumY"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-ParticleAngularMomentumZ
-++++++++++++++++++++++++
-
-   * Units: :math:`\rm{g}\/\rm{cm}^2/\rm{s}`
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ParticleAngularMomentumZ(field, data):
-      return data["CellMass"] * data["ParticleSpecificAngularMomentumZ"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-ParticleMass
-++++++++++++
-
-   * Units: :math:`UNDEFINED`
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def NullFunc(field, data):
-      return
-  
-
-**Convert Function Source**
-
-No source available.
-
-ParticleRadius
-++++++++++++++
-
-   * Units: :math:`\rm{cm}`
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ParticleRadius(field, data):
-      return get_radius(data, "particle_position_")
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _ConvertRadiusCGS(data):
-      return data.convert("cm")
-  
-
-ParticleRadiusAU
-++++++++++++++++
-
-   * Units: :math:`\rm{AU}`
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ParticleRadius(field, data):
-      return get_radius(data, "particle_position_")
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _ConvertRadiusAU(data):
-      return data.convert("au")
-  
-
-ParticleRadiusCode
-++++++++++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ParticleRadius(field, data):
-      return get_radius(data, "particle_position_")
-  
-
-**Convert Function Source**
-
-No source available.
-
-ParticleRadiusMpc
-+++++++++++++++++
-
-   * Units: :math:`\rm{Mpc}`
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ParticleRadius(field, data):
-      return get_radius(data, "particle_position_")
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _ConvertRadiusMpc(data):
-      return data.convert("mpc")
-  
-
-ParticleRadiuskpc
-+++++++++++++++++
-
-   * Units: :math:`\rm{kpc}`
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ParticleRadius(field, data):
-      return get_radius(data, "particle_position_")
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _ConvertRadiuskpc(data):
-      return data.convert("kpc")
-  
-
-ParticleRadiuskpch
-++++++++++++++++++
-
-   * Units: :math:`\rm{kpc}/\rm{h}`
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ParticleRadius(field, data):
-      return get_radius(data, "particle_position_")
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _ConvertRadiuskpch(data):
-      return data.convert("kpch")
-  
-
-ParticleRadiuspc
-++++++++++++++++
-
-   * Units: :math:`\rm{pc}`
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ParticleRadius(field, data):
-      return get_radius(data, "particle_position_")
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _ConvertRadiuspc(data):
-      return data.convert("pc")
-  
-
-ParticleSpecificAngularMomentumX
-++++++++++++++++++++++++++++++++
-
-   * Units: :math:`\rm{cm}^2/\rm{s}`
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ParticleSpecificAngularMomentumX(field, data):
-      if data.has_field_parameter("bulk_velocity"):
-          bv = data.get_field_parameter("bulk_velocity")
-      else: bv = np.zeros(3, dtype='float64')
-      center = data.get_field_parameter('center')
-      y = data["particle_position_y"] - center[1]
-      z = data["particle_position_z"] - center[2]
-      yv = data["particle_velocity_y"] - bv[1]
-      zv = data["particle_velocity_z"] - bv[2]
-      return yv*z - zv*y
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertSpecificAngularMomentum(data):
-      return data.convert("cm")
-  
-
-ParticleSpecificAngularMomentumXKMSMPC
-++++++++++++++++++++++++++++++++++++++
-
-   * Units: :math:`\rm{cm}^2/\rm{s}`
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ParticleSpecificAngularMomentumX(field, data):
-      if data.has_field_parameter("bulk_velocity"):
-          bv = data.get_field_parameter("bulk_velocity")
-      else: bv = np.zeros(3, dtype='float64')
-      center = data.get_field_parameter('center')
-      y = data["particle_position_y"] - center[1]
-      z = data["particle_position_z"] - center[2]
-      yv = data["particle_velocity_y"] - bv[1]
-      zv = data["particle_velocity_z"] - bv[2]
-      return yv*z - zv*y
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertSpecificAngularMomentumKMSMPC(data):
-      return km_per_cm*data.convert("mpc")
-  
-
-ParticleSpecificAngularMomentumY
-++++++++++++++++++++++++++++++++
-
-   * Units: :math:`\rm{cm}^2/\rm{s}`
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ParticleSpecificAngularMomentumY(field, data):
-      if data.has_field_parameter("bulk_velocity"):
-          bv = data.get_field_parameter("bulk_velocity")
-      else: bv = np.zeros(3, dtype='float64')
-      center = data.get_field_parameter('center')
-      x = data["particle_position_x"] - center[0]
-      z = data["particle_position_z"] - center[2]
-      xv = data["particle_velocity_x"] - bv[0]
-      zv = data["particle_velocity_z"] - bv[2]
-      return -(xv*z - zv*x)
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertSpecificAngularMomentum(data):
-      return data.convert("cm")
-  
-
-ParticleSpecificAngularMomentumYKMSMPC
-++++++++++++++++++++++++++++++++++++++
-
-   * Units: :math:`\rm{cm}^2/\rm{s}`
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ParticleSpecificAngularMomentumY(field, data):
-      if data.has_field_parameter("bulk_velocity"):
-          bv = data.get_field_parameter("bulk_velocity")
-      else: bv = np.zeros(3, dtype='float64')
-      center = data.get_field_parameter('center')
-      x = data["particle_position_x"] - center[0]
-      z = data["particle_position_z"] - center[2]
-      xv = data["particle_velocity_x"] - bv[0]
-      zv = data["particle_velocity_z"] - bv[2]
-      return -(xv*z - zv*x)
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertSpecificAngularMomentumKMSMPC(data):
-      return km_per_cm*data.convert("mpc")
-  
-
-ParticleSpecificAngularMomentumZ
-++++++++++++++++++++++++++++++++
-
-   * Units: :math:`\rm{cm}^2/\rm{s}`
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ParticleSpecificAngularMomentumZ(field, data):
-      if data.has_field_parameter("bulk_velocity"):
-          bv = data.get_field_parameter("bulk_velocity")
-      else: bv = np.zeros(3, dtype='float64')
-      center = data.get_field_parameter('center')
-      x = data["particle_position_x"] - center[0]
-      y = data["particle_position_y"] - center[1]
-      xv = data["particle_velocity_x"] - bv[0]
-      yv = data["particle_velocity_y"] - bv[1]
-      return xv*y - yv*x
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertSpecificAngularMomentum(data):
-      return data.convert("cm")
-  
-
-ParticleSpecificAngularMomentumZKMSMPC
-++++++++++++++++++++++++++++++++++++++
-
-   * Units: :math:`\rm{cm}^2/\rm{s}`
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ParticleSpecificAngularMomentumZ(field, data):
-      if data.has_field_parameter("bulk_velocity"):
-          bv = data.get_field_parameter("bulk_velocity")
-      else: bv = np.zeros(3, dtype='float64')
-      center = data.get_field_parameter('center')
-      x = data["particle_position_x"] - center[0]
-      y = data["particle_position_y"] - center[1]
-      xv = data["particle_velocity_x"] - bv[0]
-      yv = data["particle_velocity_y"] - bv[1]
-      return xv*y - yv*x
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertSpecificAngularMomentumKMSMPC(data):
-      return km_per_cm*data.convert("mpc")
-  
-
-ParticleVelocityMagnitude
-+++++++++++++++++++++++++
-
-   * Units: :math:`\rm{cm}/\rm{s}`
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ParticleVelocityMagnitude(field, data):
-      """M{|v|}"""
-      bulk_velocity = data.get_field_parameter("bulk_velocity")
-      if bulk_velocity == None:
-          bulk_velocity = np.zeros(3)
-      return ( (data["particle_velocity_x"]-bulk_velocity[0])**2.0 + \
-               (data["particle_velocity_y"]-bulk_velocity[1])**2.0 + \
-               (data["particle_velocity_z"]-bulk_velocity[2])**2.0 )**(1.0/2.0)
-  
-
-**Convert Function Source**
-
-No source available.
-
-PlasmaBeta
-++++++++++
-
+   * Units: :math:`\rm{g}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _PlasmaBeta(field,data):
-      """This assumes that your front end has provided Bx, By, Bz in
-      units of Gauss. If you use MKS, make sure to write your own
-      PlasmaBeta field to deal with non-unitary \mu_0.
-      """
-      return data['Pressure']/data['MagneticEnergy']
+      def _jeans_mass(field, data):
+          MJ_constant = (((5.0 * kboltz) / (G * mh)) ** (1.5)) * \
+            (3.0 / (4.0 * np.pi)) ** (0.5)
+          u = (MJ_constant * \
+               ((data[ftype, "temperature"] /
+                 data[ftype, "mean_molecular_weight"])**(1.5)) * \
+               (data[ftype, "density"]**(-0.5)))
+          return u
   
 
-**Convert Function Source**
-
-No source available.
-
-Pressure
-++++++++
-
-   * Units: :math:`\rm{dyne}/\rm{cm}^{2}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Pressure(field, data):
-      """M{(Gamma-1.0)*rho*E}"""
-      return (data.ds["Gamma"] - 1.0) * \
-             data["density"] * data["ThermalEnergy"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-RadialMachNumber
-++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _RadialMachNumber(field, data):
-      """M{|v|/t_sound}"""
-      return np.abs(data["RadialVelocity"]) / data["SoundSpeed"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-RadialVelocity
-++++++++++++++
-
-   * Units: :math:`\rm{cm}/\rm{s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _RadialVelocity(field, data):
-      normal = data.get_field_parameter("normal")
-      velocities = obtain_rv_vec(data)    
-      theta = data['sph_theta']
-      phi   = data['sph_phi']
-  
-      return get_sph_r_component(velocities, theta, phi, normal)
-  
-
-**Convert Function Source**
-
-No source available.
-
-RadialVelocityABS
-+++++++++++++++++
-
-   * Units: :math:`\rm{cm}/\rm{s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _RadialVelocityABS(field, data):
-      return np.abs(_RadialVelocity(field, data))
-  
-
-**Convert Function Source**
-
-No source available.
-
-RadialVelocityKMS
-+++++++++++++++++
-
-   * Units: :math:`\rm{km}/\rm{s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _RadialVelocity(field, data):
-      normal = data.get_field_parameter("normal")
-      velocities = obtain_rv_vec(data)    
-      theta = data['sph_theta']
-      phi   = data['sph_phi']
-  
-      return get_sph_r_component(velocities, theta, phi, normal)
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _ConvertRadialVelocityKMS(data):
-      return km_per_cm
-  
-
-RadialVelocityKMSABS
-++++++++++++++++++++
-
-   * Units: :math:`\rm{km}/\rm{s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _RadialVelocityABS(field, data):
-      return np.abs(_RadialVelocity(field, data))
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _ConvertRadialVelocityKMS(data):
-      return km_per_cm
-  
-
-Radius
-++++++
-
-   * Units: :math:`\rm{cm}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Radius(field, data):
-      return get_radius(data, "")
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _ConvertRadiusCGS(data):
-      return data.convert("cm")
-  
-
-RadiusAU
-++++++++
-
-   * Units: :math:`\rm{AU}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Radius(field, data):
-      return get_radius(data, "")
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _ConvertRadiusAU(data):
-      return data.convert("au")
-  
-
-RadiusCode
-++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Radius(field, data):
-      return get_radius(data, "")
-  
-
-**Convert Function Source**
-
-No source available.
-
-RadiusMpc
-+++++++++
-
-   * Units: :math:`\rm{Mpc}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Radius(field, data):
-      return get_radius(data, "")
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _ConvertRadiusMpc(data):
-      return data.convert("mpc")
-  
-
-Radiuskpc
-+++++++++
-
-   * Units: :math:`\rm{kpc}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Radius(field, data):
-      return get_radius(data, "")
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _ConvertRadiuskpc(data):
-      return data.convert("kpc")
-  
-
-Radiuspc
-++++++++
-
-   * Units: :math:`\rm{pc}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Radius(field, data):
-      return get_radius(data, "")
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _ConvertRadiuspc(data):
-      return data.convert("pc")
-  
-
-SZKinetic
-+++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SZKinetic(field, data):
-      vel_axis = data.get_field_parameter('axis')
-      if vel_axis > 2:
-          raise NeedsParameter(['axis'])
-      vel = data["%s-velocity" % ({0:'x',1:'y',2:'z'}[vel_axis])]
-      return (vel*data["density"])
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertSZKinetic(data):
-      return 0.88*((sigma_thompson/mh)/clight)
-  
-
-SZY
-+++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SZY(field, data):
-      return (data["density"]*data["Temperature"])
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertSZY(data):
-      conv = (0.88/mh) * (kboltz)/(me * clight*clight) * sigma_thompson
-      return conv
-  
-
-Shear
-+++++
-
-   * Units: :math:`\rm{s}^{-1}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Shear(field, data):
-      """
-      Shear is defined as [(dvx/dy + dvy/dx)^2 + (dvz/dy + dvy/dz)^2 +
-                           (dvx/dz + dvz/dx)^2 ]^(0.5)
-      where dvx/dy = [vx(j-1) - vx(j+1)]/[2dy]
-      and is in units of s^(-1)
-      (it's just like vorticity except add the derivative pairs instead
-       of subtracting them)
-      """
-      # We need to set up stencils
-      if data.ds["HydroMethod"] == 2:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(1,-1,None)
-          div_fac = 1.0
-      else:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(2,None,None)
-          div_fac = 2.0
-      new_field = np.zeros(data["x-velocity"].shape)
-      if data.ds.dimensionality > 1:
-          dvydx = (data["y-velocity"][sl_right,1:-1,1:-1] -
-                  data["y-velocity"][sl_left,1:-1,1:-1]) \
-                  / (div_fac*data["dx"].flat[0])
-          dvxdy = (data["x-velocity"][1:-1,sl_right,1:-1] -
-                  data["x-velocity"][1:-1,sl_left,1:-1]) \
-                  / (div_fac*data["dy"].flat[0])
-          new_field[1:-1,1:-1,1:-1] += (dvydx + dvxdy)**2.0
-          del dvydx, dvxdy
-      if data.ds.dimensionality > 2:
-          dvzdy = (data["z-velocity"][1:-1,sl_right,1:-1] -
-                  data["z-velocity"][1:-1,sl_left,1:-1]) \
-                  / (div_fac*data["dy"].flat[0])
-          dvydz = (data["y-velocity"][1:-1,1:-1,sl_right] -
-                  data["y-velocity"][1:-1,1:-1,sl_left]) \
-                  / (div_fac*data["dz"].flat[0])
-          new_field[1:-1,1:-1,1:-1] += (dvzdy + dvydz)**2.0
-          del dvzdy, dvydz
-          dvxdz = (data["x-velocity"][1:-1,1:-1,sl_right] -
-                  data["x-velocity"][1:-1,1:-1,sl_left]) \
-                  / (div_fac*data["dz"].flat[0])
-          dvzdx = (data["z-velocity"][sl_right,1:-1,1:-1] -
-                  data["z-velocity"][sl_left,1:-1,1:-1]) \
-                  / (div_fac*data["dx"].flat[0])
-          new_field[1:-1,1:-1,1:-1] += (dvxdz + dvzdx)**2.0
-          del dvxdz, dvzdx
-      new_field = new_field**0.5
-      new_field = np.abs(new_field)
-      return new_field
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertShear(data):
-      return data.convert("cm")**-1.0
-  
-
-ShearCriterion
-++++++++++++++
-
-   * Units: :math:`\rm{cm}^{-1}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ShearCriterion(field, data):
-      """
-      Shear is defined as [(dvx/dy + dvy/dx)^2 + (dvz/dy + dvy/dz)^2 +
-                           (dvx/dz + dvz/dx)^2 ]^(0.5)
-      where dvx/dy = [vx(j-1) - vx(j+1)]/[2dy]
-      and is in units of s^(-1)
-      (it's just like vorticity except add the derivative pairs instead
-       of subtracting them)
-  
-      Divide by c_s to leave Shear in units of cm**-1, which 
-      can be compared against the inverse of the local cell size (1/dx) 
-      to determine if refinement should occur.
-      """
-      # We need to set up stencils
-      if data.ds["HydroMethod"] == 2:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(1,-1,None)
-          div_fac = 1.0
-      else:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(2,None,None)
-          div_fac = 2.0
-      new_field = np.zeros(data["x-velocity"].shape)
-      if data.ds.dimensionality > 1:
-          dvydx = (data["y-velocity"][sl_right,1:-1,1:-1] -
-                  data["y-velocity"][sl_left,1:-1,1:-1]) \
-                  / (div_fac*data["dx"].flat[0])
-          dvxdy = (data["x-velocity"][1:-1,sl_right,1:-1] -
-                  data["x-velocity"][1:-1,sl_left,1:-1]) \
-                  / (div_fac*data["dy"].flat[0])
-          new_field[1:-1,1:-1,1:-1] += (dvydx + dvxdy)**2.0
-          del dvydx, dvxdy
-      if data.ds.dimensionality > 2:
-          dvzdy = (data["z-velocity"][1:-1,sl_right,1:-1] -
-                  data["z-velocity"][1:-1,sl_left,1:-1]) \
-                  / (div_fac*data["dy"].flat[0])
-          dvydz = (data["y-velocity"][1:-1,1:-1,sl_right] -
-                  data["y-velocity"][1:-1,1:-1,sl_left]) \
-                  / (div_fac*data["dz"].flat[0])
-          new_field[1:-1,1:-1,1:-1] += (dvzdy + dvydz)**2.0
-          del dvzdy, dvydz
-          dvxdz = (data["x-velocity"][1:-1,1:-1,sl_right] -
-                  data["x-velocity"][1:-1,1:-1,sl_left]) \
-                  / (div_fac*data["dz"].flat[0])
-          dvzdx = (data["z-velocity"][sl_right,1:-1,1:-1] -
-                  data["z-velocity"][sl_left,1:-1,1:-1]) \
-                  / (div_fac*data["dx"].flat[0])
-          new_field[1:-1,1:-1,1:-1] += (dvxdz + dvzdx)**2.0
-          del dvxdz, dvzdx
-      new_field /= data["SoundSpeed"]**2.0
-      new_field = new_field**(0.5)
-      new_field = np.abs(new_field)
-      return new_field
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertShearCriterion(data):
-      return data.convert("cm")**-1.0
-  
-
-ShearMach
-+++++++++
-
-   * Units: :math:`\rm{Mach}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ShearMach(field, data):
-      """
-      Dimensionless Shear (ShearMach) is defined nearly the same as shear, 
-      except that it is scaled by the local dx/dy/dz and the local sound speed.
-      So it results in a unitless quantity that is effectively measuring 
-      shear in mach number.  
-  
-      In order to avoid discontinuities created by multiplying by dx/dy/dz at
-      grid refinement boundaries, we also multiply by 2**GridLevel.
-  
-      Shear (Mach) = [(dvx + dvy)^2 + (dvz + dvy)^2 +
-                      (dvx + dvz)^2  ]^(0.5) / c_sound
-      """
-      # We need to set up stencils
-      if data.ds["HydroMethod"] == 2:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(1,-1,None)
-          div_fac = 1.0
-      else:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(2,None,None)
-          div_fac = 2.0
-      new_field = np.zeros(data["x-velocity"].shape)
-      if data.ds.dimensionality > 1:
-          dvydx = (data["y-velocity"][sl_right,1:-1,1:-1] -
-                  data["y-velocity"][sl_left,1:-1,1:-1]) \
-                  / (div_fac)
-          dvxdy = (data["x-velocity"][1:-1,sl_right,1:-1] -
-                  data["x-velocity"][1:-1,sl_left,1:-1]) \
-                  / (div_fac)
-          new_field[1:-1,1:-1,1:-1] += (dvydx + dvxdy)**2.0
-          del dvydx, dvxdy
-      if data.ds.dimensionality > 2:
-          dvzdy = (data["z-velocity"][1:-1,sl_right,1:-1] -
-                  data["z-velocity"][1:-1,sl_left,1:-1]) \
-                  / (div_fac)
-          dvydz = (data["y-velocity"][1:-1,1:-1,sl_right] -
-                  data["y-velocity"][1:-1,1:-1,sl_left]) \
-                  / (div_fac)
-          new_field[1:-1,1:-1,1:-1] += (dvzdy + dvydz)**2.0
-          del dvzdy, dvydz
-          dvxdz = (data["x-velocity"][1:-1,1:-1,sl_right] -
-                  data["x-velocity"][1:-1,1:-1,sl_left]) \
-                  / (div_fac)
-          dvzdx = (data["z-velocity"][sl_right,1:-1,1:-1] -
-                  data["z-velocity"][sl_left,1:-1,1:-1]) \
-                  / (div_fac)
-          new_field[1:-1,1:-1,1:-1] += (dvxdz + dvzdx)**2.0
-          del dvxdz, dvzdx
-      new_field *= ((2.0**data.level)/data["SoundSpeed"])**2.0
-      new_field = new_field**0.5
-      new_field = np.abs(new_field)
-      return new_field
-  
-
-**Convert Function Source**
-
-No source available.
-
-SoundSpeed
-++++++++++
-
-   * Units: :math:`\rm{cm}/\rm{s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SoundSpeed(field, data):
-      if data.ds["EOSType"] == 1:
-          return np.ones(data["density"].shape, dtype='float64') * \
-                  data.ds["EOSSoundSpeed"]
-      return ( data.ds["Gamma"]*data["Pressure"] / \
-               data["density"] )**(1.0/2.0)
-  
-
-**Convert Function Source**
-
-No source available.
-
-SpecificAngularMomentumX
-++++++++++++++++++++++++
-
-   * Units: :math:`\rm{cm}^2/\rm{s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpecificAngularMomentumX(field, data):
-      xv, yv, zv = obtain_velocities(data)
-      rv = obtain_rvec(data)
-      return yv*rv[2,:] - zv*rv[1,:]
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertSpecificAngularMomentum(data):
-      return data.convert("cm")
-  
-
-SpecificAngularMomentumY
-++++++++++++++++++++++++
-
-   * Units: :math:`\rm{cm}^2/\rm{s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpecificAngularMomentumY(field, data):
-      xv, yv, zv = obtain_velocities(data)
-      rv = obtain_rvec(data)
-      return -(xv*rv[2,:] - zv*rv[0,:])
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertSpecificAngularMomentum(data):
-      return data.convert("cm")
-  
-
-SpecificAngularMomentumZ
-++++++++++++++++++++++++
-
-   * Units: :math:`\rm{cm}^2/\rm{s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpecificAngularMomentumZ(field, data):
-      xv, yv, zv = obtain_velocities(data)
-      rv = obtain_rvec(data)
-      return xv*rv[1,:] - yv*rv[0,:]
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertSpecificAngularMomentum(data):
-      return data.convert("cm")
-  
-
-StarMassMsun
-++++++++++++
-
-   * Units: :math:`M_{\odot}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _StarMass(field,data):
-      return data["star_density"] * data["CellVolume"]
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertCellMassMsun(data):
-      return 5.027854e-34 # g^-1
-  
-
-TangentialOverVelocityMagnitude
-+++++++++++++++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _TangentialOverVelocityMagnitude(field, data):
-      return np.abs(data["TangentialVelocity"])/np.abs(data["VelocityMagnitude"])
-  
-
-**Convert Function Source**
-
-No source available.
-
-TangentialVelocity
-++++++++++++++++++
-
-   * Units: :math:`\rm{cm}/\rm{s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _TangentialVelocity(field, data):
-      return np.sqrt(data["VelocityMagnitude"]**2.0
-                   - data["RadialVelocity"]**2.0)
-  
-
-**Convert Function Source**
-
-No source available.
-
-TempkeV
-+++++++
+('gas', 'kT')
+^^^^^^^^^^^^^
 
    * Units: :math:`\rm{keV}`
    * Particle Type: False
@@ -2196,16 +1321,183 @@ TempkeV
 
 .. code-block:: python
 
-  def _TempkeV(field, data):
-      return data["Temperature"] * keV_per_K
+      def _kT(field, data):
+          return (kboltz*data[ftype, "temperature"]).in_units("keV")
   
 
-**Convert Function Source**
+('gas', 'kinetic_energy')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{g}}{\rm{cm} \cdot \rm{s}^{2}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _kin_energy(field, data):
+          return 0.5*data[ftype, "density"] * ( data[ftype, "velocity_x"]**2.0
+                                                + data[ftype, "velocity_y"]**2.0
+                                                + data[ftype, "velocity_z"]**2.0 )
+  
+
+('gas', 'mach_number')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _mach_number(field, data):
+          """ M{|v|/c_sound} """
+          return data[ftype, "velocity_magnitude"] / data[ftype, "sound_speed"]
+  
+
+('gas', 'magnetic_energy')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{g}}{\rm{cm} \cdot \rm{s}^{2}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _magnetic_energy(field,data):
+          """This assumes that your front end has provided Bx, By, Bz in
+          units of Gauss. If you use MKS, make sure to write your own
+          magnetic_energy field to deal with non-unitary \mu_0.
+          """
+          return (data[ftype,"magnetic_field_x"]**2 +
+                  data[ftype,"magnetic_field_y"]**2 +
+                  data[ftype,"magnetic_field_z"]**2)/(8*np.pi)
+  
+
+('gas', 'magnetic_field_poloidal')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\sqrt{\rm{g}}}{\sqrt{\rm{cm}} \cdot \rm{s}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _magnetic_field_poloidal(field,data):
+          normal = data.get_field_parameter("normal")
+          d = data[ftype,'magnetic_field_x']
+          Bfields = data.ds.arr(
+                      [data[ftype,'magnetic_field_x'],
+                       data[ftype,'magnetic_field_y'],
+                       data[ftype,'magnetic_field_z']],
+                       d.units)
+          
+          theta = data["index", 'spherical_theta']
+          phi   = data["index", 'spherical_phi']
+          
+          return get_sph_theta_component(Bfields, theta, phi, normal)
+  
+
+('gas', 'magnetic_field_strength')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\sqrt{\rm{g}}}{\sqrt{\rm{cm}} \cdot \rm{s}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _magnetic_field_strength(field,data):
+          return np.sqrt(8.*np.pi*data[ftype,"magnetic_energy"])
+  
+
+('gas', 'magnetic_field_toroidal')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\sqrt{\rm{g}}}{\sqrt{\rm{cm}} \cdot \rm{s}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _magnetic_field_toroidal(field,data):
+          normal = data.get_field_parameter("normal")
+          d = data[ftype,'magnetic_field_x']
+          Bfields = data.ds.arr(
+                      [data[ftype,'magnetic_field_x'],
+                       data[ftype,'magnetic_field_y'],
+                       data[ftype,'magnetic_field_z']],
+                       d.units)
+          
+          phi = data["index", 'spherical_phi']
+          return get_sph_phi_component(Bfields, phi, normal)
+  
+
+('gas', 'magnetic_field_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\sqrt{\rm{g}}}{\sqrt{\rm{cm}} \cdot \rm{s}}`
+   * Particle Type: False
+
+**Field Source**
 
 No source available.
 
-TotalMass
-+++++++++
+('gas', 'magnetic_field_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\sqrt{\rm{g}}}{\sqrt{\rm{cm}} \cdot \rm{s}}`
+   * Particle Type: False
+
+**Field Source**
+
+No source available.
+
+('gas', 'magnetic_field_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\sqrt{\rm{g}}}{\sqrt{\rm{cm}} \cdot \rm{s}}`
+   * Particle Type: False
+
+**Field Source**
+
+No source available.
+
+('gas', 'magnetic_pressure')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{g}}{\rm{cm} \cdot \rm{s}^{2}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _magnetic_pressure(field,data):
+          return data[ftype,'magnetic_energy']
+  
+
+('gas', 'matter_density')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _matter_density(field, data):
+          return data[ftype, "density"] + \
+            data[ftype, "dark_matter_density"]
+  
+
+('gas', 'matter_mass')
+^^^^^^^^^^^^^^^^^^^^^^
 
    * Units: :math:`\rm{g}`
    * Particle Type: False
@@ -2214,103 +1506,733 @@ TotalMass
 
 .. code-block:: python
 
-  def _TotalMass(field,data):
-      return (data["density"]+data["particle_density"]) * data["CellVolume"]
+      def _matter_mass(field, data):
+          return data[ftype, "matter_density"] * data["index", "cell_volume"]
   
 
-**Convert Function Source**
+('gas', 'matter_overdensity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-TotalMassMsun
-+++++++++++++
-
-   * Units: :math:`M_{\odot}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _TotalMass(field,data):
-      return (data["density"]+data["particle_density"]) * data["CellVolume"]
+      def _matter_overdensity(field, data):
+          if not hasattr(data.ds, "cosmological_simulation") or \
+            not data.ds.cosmological_simulation:
+              raise NeedsConfiguration("cosmological_simulation", 1)
+          co = data.ds.cosmology
+          # critical_density(z) ~ omega_lambda + omega_matter * (1 + z)^3
+          # mean density(z) ~ omega_matter * (1 + z)^3
+          return data[ftype, "matter_density"] / data.ds.omega_matter / \
+            co.critical_density(0.0) / \
+            (1.0 + data.ds.current_redshift)**3
   
 
-**Convert Function Source**
+('gas', 'mean_molecular_weight')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _convertCellMassMsun(data):
-      return 5.027854e-34 # g^-1
-  
-
-VelocityMagnitude
-+++++++++++++++++
-
-   * Units: :math:`\rm{cm}/\rm{s}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VelocityMagnitude(field, data):
-      """M{|v|}"""
-      velocities = obtain_rv_vec(data)
-      return np.sqrt(np.sum(velocities**2,axis=0))
+      def _mean_molecular_weight(field, data):
+          return (data[ftype, "density"] / (mh * data[ftype, "number_density"]))
   
 
-**Convert Function Source**
+('gas', 'metal_density')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
+   * Particle Type: False
+
+**Field Source**
 
 No source available.
 
-VorticityGrowthMagnitude
-++++++++++++++++++++++++
+('gas', 'metal_mass')
+^^^^^^^^^^^^^^^^^^^^^
 
-   * Units: :math:`\rm{s}^{-1}`
+   * Units: :math:`\rm{g}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityGrowthMagnitude(field, data):
-      result = np.sqrt(data["VorticityGrowthX"]**2 +
-                       data["VorticityGrowthY"]**2 +
-                       data["VorticityGrowthZ"]**2)
-      dot = np.zeros(result.shape)
-      for ax in "XYZ":
-          dot += data["Vorticity%s" % ax] * data["VorticityGrowth%s" % ax]
-      result = np.sign(dot) * result
-      return result
+      def _metal_mass(field, data):
+          return data[ftype, "metal_density"] * data["index", "cell_volume"]
   
 
-**Convert Function Source**
+('gas', 'metallicity')
+^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-VorticityGrowthMagnitudeABS
-+++++++++++++++++++++++++++
-
-   * Units: :math:`\rm{s}^{-1}`
+   * Units: :math:`\rm{Z}_\odot`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityGrowthMagnitudeABS(field, data):
-      return np.sqrt(data["VorticityGrowthX"]**2 +
-                     data["VorticityGrowthY"]**2 +
-                     data["VorticityGrowthZ"]**2)
+      def _metallicity(field, data):
+          tr = data[ftype, "metal_density"] / data[ftype, "density"]
+          tr /= metallicity_sun
+          return data.apply_units(tr, "Zsun")
   
 
-**Convert Function Source**
+('gas', 'number_density')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{1}{\rm{cm}^{3}}`
+   * Particle Type: False
+
+**Field Source**
 
 No source available.
 
-VorticityGrowthTimescale
-++++++++++++++++++++++++
+('gas', 'overdensity')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _overdensity(field, data):
+          if not hasattr(data.ds, "cosmological_simulation") or \
+            not data.ds.cosmological_simulation:
+              raise NeedsConfiguration("cosmological_simulation", 1)
+          co = data.ds.cosmology
+          return data[ftype, "matter_density"] / \
+            co.critical_density(data.ds.current_redshift)
+  
+
+('gas', 'plasma_beta')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _plasma_beta(field,data):
+          """This assumes that your front end has provided Bx, By, Bz in
+          units of Gauss. If you use MKS, make sure to write your own
+          PlasmaBeta field to deal with non-unitary \mu_0.
+          """
+          return data[ftype,'pressure']/data[ftype,'magnetic_energy']
+  
+
+('gas', 'pressure')
+^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{g}}{\rm{cm} \cdot \rm{s}^{2}}`
+   * Particle Type: False
+
+**Field Source**
+
+No source available.
+
+('gas', 'pressure_gradient_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{2} \cdot \rm{s}^{2}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _magnitude(field, data):
+          mag  = data[xn] * data[xn]
+          mag += data[yn] * data[yn]
+          mag += data[zn] * data[zn]
+          return np.sqrt(mag)
+  
+
+('gas', 'pressure_gradient_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{2} \cdot \rm{s}^{2}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def func(field, data):
+              ds = div_fac * data["index", "dx"]
+              f  = data[grad_field][slice_3dr]/ds[slice_3d]
+              f -= data[grad_field][slice_3dl]/ds[slice_3d]
+              new_field = data.ds.arr(np.zeros_like(data[grad_field], dtype=np.float64),
+                                      f.units)
+              new_field[slice_3d] = f
+              return new_field
+  
+
+('gas', 'pressure_gradient_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{2} \cdot \rm{s}^{2}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def func(field, data):
+              ds = div_fac * data["index", "dx"]
+              f  = data[grad_field][slice_3dr]/ds[slice_3d]
+              f -= data[grad_field][slice_3dl]/ds[slice_3d]
+              new_field = data.ds.arr(np.zeros_like(data[grad_field], dtype=np.float64),
+                                      f.units)
+              new_field[slice_3d] = f
+              return new_field
+  
+
+('gas', 'pressure_gradient_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{2} \cdot \rm{s}^{2}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def func(field, data):
+              ds = div_fac * data["index", "dx"]
+              f  = data[grad_field][slice_3dr]/ds[slice_3d]
+              f -= data[grad_field][slice_3dl]/ds[slice_3d]
+              new_field = data.ds.arr(np.zeros_like(data[grad_field], dtype=np.float64),
+                                      f.units)
+              new_field[slice_3d] = f
+              return new_field
+  
+
+('gas', 'radial_mach_number')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _radial_mach_number(field, data):
+          """ Radial component of M{|v|/c_sound} """
+          tr = data[ftype, "radial_velocity"] / data[ftype, "sound_speed"]
+          return np.abs(tr)
+  
+
+('gas', 'radial_velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _radial(field, data):
+          normal = data.get_field_parameter("normal")
+          vectors = obtain_rv_vec(data, (xn, yn, zn),
+                                  "bulk_%s" % basename)
+          theta = data['index', 'spherical_theta']
+          phi   = data['index', 'spherical_phi']
+          rv = get_sph_r_component(vectors, theta, phi, normal)
+          # Now, anywhere that radius is in fact zero, we want to zero out our
+          # return values.
+          rv[np.isnan(theta)] = 0.0
+          return rv
+  
+
+('gas', 'radial_velocity_absolute')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _radial(field, data):
+          normal = data.get_field_parameter("normal")
+          vectors = obtain_rv_vec(data, (xn, yn, zn),
+                                  "bulk_%s" % basename)
+          theta = data['index', 'spherical_theta']
+          phi   = data['index', 'spherical_phi']
+          rv = get_sph_r_component(vectors, theta, phi, normal)
+          # Now, anywhere that radius is in fact zero, we want to zero out our
+          # return values.
+          rv[np.isnan(theta)] = 0.0
+          return rv
+  
+
+('gas', 'radiation_acceleration_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{cm}}{\rm{s}^{2}}`
+   * Particle Type: False
+
+**Field Source**
+
+No source available.
+
+('gas', 'radiation_acceleration_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{cm}}{\rm{s}^{2}}`
+   * Particle Type: False
+
+**Field Source**
+
+No source available.
+
+('gas', 'radiation_acceleration_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{cm}}{\rm{s}^{2}}`
+   * Particle Type: False
+
+**Field Source**
+
+No source available.
+
+('gas', 'shear')
+^^^^^^^^^^^^^^^^
+
+   * Units: :math:`1 / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _shear(field, data):
+          """
+          Shear is defined as [(dvx/dy + dvy/dx)^2 + (dvz/dy + dvy/dz)^2 +
+                               (dvx/dz + dvz/dx)^2 ]^(0.5)
+          where dvx/dy = [vx(j-1) - vx(j+1)]/[2dy]
+          and is in units of s^(-1)
+          (it's just like vorticity except add the derivative pairs instead
+           of subtracting them)
+          """
+          
+          if data.ds.dimensionality > 1:
+              dvydx = (data[ftype, "velocity_y"][sl_right,sl_center,sl_center] -
+                      data[ftype, "velocity_y"][sl_left,sl_center,sl_center]) \
+                      / (div_fac*just_one(data["index", "dx"]))
+              dvxdy = (data[ftype, "velocity_x"][sl_center,sl_right,sl_center] -
+                      data[ftype, "velocity_x"][sl_center,sl_left,sl_center]) \
+                      / (div_fac*just_one(data["index", "dy"]))
+              f  = (dvydx + dvxdy)**2.0
+              del dvydx, dvxdy
+          if data.ds.dimensionality > 2:
+              dvzdy = (data[ftype, "velocity_z"][sl_center,sl_right,sl_center] -
+                      data[ftype, "velocity_z"][sl_center,sl_left,sl_center]) \
+                      / (div_fac*just_one(data["index", "dy"]))
+              dvydz = (data[ftype, "velocity_y"][sl_center,sl_center,sl_right] -
+                      data[ftype, "velocity_y"][sl_center,sl_center,sl_left]) \
+                      / (div_fac*just_one(data["index", "dz"]))
+              f += (dvzdy + dvydz)**2.0
+              del dvzdy, dvydz
+              dvxdz = (data[ftype, "velocity_x"][sl_center,sl_center,sl_right] -
+                      data[ftype, "velocity_x"][sl_center,sl_center,sl_left]) \
+                      / (div_fac*just_one(data["index", "dz"]))
+              dvzdx = (data[ftype, "velocity_z"][sl_right,sl_center,sl_center] -
+                      data[ftype, "velocity_z"][sl_left,sl_center,sl_center]) \
+                      / (div_fac*just_one(data["index", "dx"]))
+              f += (dvxdz + dvzdx)**2.0
+              del dvxdz, dvzdx
+          np.sqrt(f, out=f)
+          new_field = data.ds.arr(np.zeros_like(data[ftype, "velocity_x"]), f.units)
+          new_field[sl_center, sl_center, sl_center] = f
+          return new_field
+  
+
+('gas', 'shear_criterion')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`1 / \rm{cm}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _shear_criterion(field, data):
+          """
+          Divide by c_s to leave shear in units of cm**-1, which 
+          can be compared against the inverse of the local cell size (1/dx) 
+          to determine if refinement should occur.
+          """
+          
+          return data[ftype, "shear"] / data[ftype, "sound_speed"]
+  
+
+('gas', 'shear_mach')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _shear_mach(field, data):
+          """
+          Dimensionless shear (shear_mach) is defined nearly the same as shear, 
+          except that it is scaled by the local dx/dy/dz and the local sound speed.
+          So it results in a unitless quantity that is effectively measuring 
+          shear in mach number.  
+  
+          In order to avoid discontinuities created by multiplying by dx/dy/dz at
+          grid refinement boundaries, we also multiply by 2**GridLevel.
+  
+          Shear (Mach) = [(dvx + dvy)^2 + (dvz + dvy)^2 +
+                          (dvx + dvz)^2  ]^(0.5) / c_sound
+          """
+          
+          if data.ds.dimensionality > 1:
+              dvydx = (data[ftype, "velocity_y"][sl_right,sl_center,sl_center] -
+                       data[ftype, "velocity_y"][sl_left,sl_center,sl_center]) \
+                      / div_fac
+              dvxdy = (data[ftype, "velocity_x"][sl_center,sl_right,sl_center] -
+                       data[ftype, "velocity_x"][sl_center,sl_left,sl_center]) \
+                      / div_fac
+              f  = (dvydx + dvxdy)**2.0
+              del dvydx, dvxdy
+          if data.ds.dimensionality > 2:
+              dvzdy = (data[ftype, "velocity_z"][sl_center,sl_right,sl_center] -
+                       data[ftype, "velocity_z"][sl_center,sl_left,sl_center]) \
+                      / div_fac
+              dvydz = (data[ftype, "velocity_y"][sl_center,sl_center,sl_right] -
+                       data[ftype, "velocity_y"][sl_center,sl_center,sl_left]) \
+                      / div_fac
+              f += (dvzdy + dvydz)**2.0
+              del dvzdy, dvydz
+              dvxdz = (data[ftype, "velocity_x"][sl_center,sl_center,sl_right] -
+                       data[ftype, "velocity_x"][sl_center,sl_center,sl_left]) \
+                      / div_fac
+              dvzdx = (data[ftype, "velocity_z"][sl_right,sl_center,sl_center] -
+                       data[ftype, "velocity_z"][sl_left,sl_center,sl_center]) \
+                      / div_fac
+              f += (dvxdz + dvzdx)**2.0
+              del dvxdz, dvzdx
+          f *= (2.0**data["index", "grid_level"][sl_center, sl_center, sl_center] /
+                data[ftype, "sound_speed"][sl_center, sl_center, sl_center])**2.0
+          np.sqrt(f, out=f)
+          new_field = data.ds.arr(np.zeros_like(data[ftype, "velocity_x"]), f.units)
+          new_field[sl_center, sl_center, sl_center] = f
+          return new_field
+  
+
+('gas', 'sound_speed')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _sound_speed(field, data):
+          tr = data.ds.gamma * data[ftype, "pressure"] / data[ftype, "density"]
+          return np.sqrt(tr)
+  
+
+('gas', 'specific_angular_momentum_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _magnitude(field, data):
+          mag  = data[xn] * data[xn]
+          mag += data[yn] * data[yn]
+          mag += data[zn] * data[zn]
+          return np.sqrt(mag)
+  
+
+('gas', 'specific_angular_momentum_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _specific_angular_momentum_x(field, data):
+          xv, yv, zv = obtain_velocities(data, ftype)
+          rv = obtain_rvec(data)
+          rv = np.rollaxis(rv, 0, len(rv.shape))
+          rv = data.ds.arr(rv, input_units = data["index", "x"].units)
+          return yv * rv[...,2] - zv * rv[...,1]
+  
+
+('gas', 'specific_angular_momentum_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _specific_angular_momentum_y(field, data):
+          xv, yv, zv = obtain_velocities(data, ftype)
+          rv = obtain_rvec(data)
+          rv = np.rollaxis(rv, 0, len(rv.shape))
+          rv = data.ds.arr(rv, input_units = data["index", "x"].units)
+          return - (xv * rv[...,2] - zv * rv[...,0])
+  
+
+('gas', 'specific_angular_momentum_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _specific_angular_momentum_z(field, data):
+          xv, yv, zv = obtain_velocities(data, ftype)
+          rv = obtain_rvec(data)
+          rv = np.rollaxis(rv, 0, len(rv.shape))
+          rv = data.ds.arr(rv, input_units = data["index", "x"].units)
+          return xv * rv[...,1] - yv * rv[...,0]
+  
+
+('gas', 'sz_kinetic')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`1 / \rm{cm}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _sz_kinetic(field, data):
+          scale = 0.88 * sigma_thompson / mh / clight
+          vel_axis = data.get_field_parameter("axis")
+          if vel_axis > 2:
+              raise NeedsParameter(["axis"])
+          vel = data[ftype, "velocity_%s" % ({0: "x", 1: "y", 2: "z"}[vel_axis])]
+          return scale * vel * data[ftype, "density"]
+  
+
+('gas', 'szy')
+^^^^^^^^^^^^^^
+
+   * Units: :math:`1 / \rm{cm}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _szy(field, data):
+          scale = 0.88 / mh * kboltz / (me * clight*clight) * sigma_thompson
+          return scale * data[ftype, "density"] * data[ftype, "temperature"]
+  
+
+('gas', 'tangential_over_velocity_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _tangential_over_magnitude(field, data):
+          tr = data[ftype, "tangential_%s" % basename] / \
+               data[ftype, "%s_magnitude" % basename]
+          return np.abs(tr)
+  
+
+('gas', 'tangential_velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _tangential(field, data):
+          return np.sqrt(data[ftype, "%s_magnitude" % basename]**2.0
+                       - data[ftype, "radial_%s" % basename]**2.0)
+  
+
+('gas', 'temperature')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{K}`
+   * Particle Type: False
+
+**Field Source**
+
+No source available.
+
+('gas', 'thermal_energy')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{cm}^{2}}{\rm{s}^{2}}`
+   * Particle Type: False
+
+**Field Source**
+
+No source available.
+
+('gas', 'velocity_divergence')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`1 / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _divergence(field, data):
+          ds = div_fac * just_one(data["index", "dx"])
+          f  = data[xn][sl_right,1:-1,1:-1]/ds
+          f -= data[xn][sl_left ,1:-1,1:-1]/ds
+          ds = div_fac * just_one(data["index", "dy"])
+          f += data[yn][1:-1,sl_right,1:-1]/ds
+          f -= data[yn][1:-1,sl_left ,1:-1]/ds
+          ds = div_fac * just_one(data["index", "dz"])
+          f += data[zn][1:-1,1:-1,sl_right]/ds
+          f -= data[zn][1:-1,1:-1,sl_left ]/ds
+          new_field = data.ds.arr(np.zeros(data[xn].shape, dtype=np.float64),
+                                  f.units)        
+          new_field[1:-1,1:-1,1:-1] = f
+          return new_field
+  
+
+('gas', 'velocity_divergence_absolute')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`1 / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _divergence_abs(field, data):
+          return np.abs(data[ftype, "%s_divergence" % basename])
+  
+
+('gas', 'velocity_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _magnitude(field, data):
+          mag  = data[xn] * data[xn]
+          mag += data[yn] * data[yn]
+          mag += data[zn] * data[zn]
+          return np.sqrt(mag)
+  
+
+('gas', 'velocity_x')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+No source available.
+
+('gas', 'velocity_y')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+No source available.
+
+('gas', 'velocity_z')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+No source available.
+
+('gas', 'vorticity_growth_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _vorticity_growth_magnitude(field, data):
+          result = np.sqrt(data[ftype, "vorticity_growth_x"]**2 +
+                           data[ftype, "vorticity_growth_y"]**2 +
+                           data[ftype, "vorticity_growth_z"]**2)
+          dot = data.ds.arr(np.zeros(result.shape), "")
+          for ax in "xyz":
+              dot += (data[ftype, "vorticity_%s" % ax] *
+                      data[ftype, "vorticity_growth_%s" % ax]).to_ndarray()
+          result = np.sign(dot) * result
+          return result
+  
+
+('gas', 'vorticity_growth_magnitude_absolute')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _vorticity_growth_magnitude_absolute(field, data):
+          return np.sqrt(data[ftype, "vorticity_growth_x"]**2 +
+                         data[ftype, "vorticity_growth_y"]**2 +
+                         data[ftype, "vorticity_growth_z"]**2)
+  
+
+('gas', 'vorticity_growth_timescale')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    * Units: :math:`\rm{s}`
    * Particle Type: False
@@ -2319,551 +2241,433 @@ VorticityGrowthTimescale
 
 .. code-block:: python
 
-  def _VorticityGrowthTimescale(field, data):
-      domegax_dt = data["VorticityX"] / data["VorticityGrowthX"]
-      domegay_dt = data["VorticityY"] / data["VorticityGrowthY"]
-      domegaz_dt = data["VorticityZ"] / data["VorticityGrowthZ"]
-      return np.sqrt(domegax_dt**2 + domegay_dt**2 + domegaz_dt**2)
+      def _vorticity_growth_timescale(field, data):
+          domegax_dt = data[ftype, "vorticity_x"] / data[ftype, "vorticity_growth_x"]
+          domegay_dt = data[ftype, "vorticity_y"] / data[ftype, "vorticity_growth_y"]
+          domegaz_dt = data[ftype, "vorticity_z"] / data[ftype, "vorticity_growth_z"]
+          return np.sqrt(domegax_dt**2 + domegay_dt**2 + domegaz_dt**2)
   
 
-**Convert Function Source**
+('gas', 'vorticity_growth_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-VorticityGrowthX
-++++++++++++++++
-
-   * Units: :math:`\rm{s}^{-2}`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityGrowthX(field, data):
-      return -data["VorticityStretchingX"] - data["BaroclinicVorticityX"]
+      def _vorticity_growth_x(field, data):
+          return -data[ftype, "vorticity_stretching_x"] - \
+            data[ftype, "baroclinic_vorticity_x"]
   
 
-**Convert Function Source**
+('gas', 'vorticity_growth_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-VorticityGrowthY
-++++++++++++++++
-
-   * Units: :math:`\rm{s}^{-2}`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityGrowthY(field, data):
-      return -data["VorticityStretchingY"] - data["BaroclinicVorticityY"]
+      def _vorticity_growth_y(field, data):
+          return -data[ftype, "vorticity_stretching_y"] - \
+            data[ftype, "baroclinic_vorticity_y"]
   
 
-**Convert Function Source**
+('gas', 'vorticity_growth_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-VorticityGrowthZ
-++++++++++++++++
-
-   * Units: :math:`\rm{s}^{-2}`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityGrowthZ(field, data):
-      return -data["VorticityStretchingZ"] - data["BaroclinicVorticityZ"]
+      def _vorticity_growth_z(field, data):
+          return -data[ftype, "vorticity_stretching_z"] - \
+            data[ftype, "baroclinic_vorticity_z"]
   
 
-**Convert Function Source**
+('gas', 'vorticity_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-VorticityMagnitude
-++++++++++++++++++
-
-   * Units: :math:`\rm{s}^{-1}`
+   * Units: :math:`1 / \rm{s}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityMagnitude(field, data):
-      return np.sqrt(data["VorticityX"]**2 +
-                     data["VorticityY"]**2 +
-                     data["VorticityZ"]**2)
+      def _magnitude(field, data):
+          mag  = data[xn] * data[xn]
+          mag += data[yn] * data[yn]
+          mag += data[zn] * data[zn]
+          return np.sqrt(mag)
   
 
-**Convert Function Source**
+('gas', 'vorticity_radiation_pressure_growth_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-VorticityRPGrowthMagnitude
-++++++++++++++++++++++++++
-
-   * Units: :math:`\rm{s}^{-1}`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityGrowthMagnitude(field, data):
-      result = np.sqrt(data["VorticityGrowthX"]**2 +
-                       data["VorticityGrowthY"]**2 +
-                       data["VorticityGrowthZ"]**2)
-      dot = np.zeros(result.shape)
-      for ax in "XYZ":
-          dot += data["Vorticity%s" % ax] * data["VorticityGrowth%s" % ax]
-      result = np.sign(dot) * result
-      return result
+      def _vorticity_radiation_pressure_growth_magnitude(field, data):
+          result = np.sqrt(data[ftype, "vorticity_radiation_pressure_growth_x"]**2 +
+                           data[ftype, "vorticity_radiation_pressure_growth_y"]**2 +
+                           data[ftype, "vorticity_radiation_pressure_growth_z"]**2)
+          dot = data.ds.arr(np.zeros(result.shape), "")
+          for ax in "xyz":
+              dot += (data[ftype, "vorticity_%s" % ax] *
+                      data[ftype, "vorticity_growth_%s" % ax]).to_ndarray()
+          result = np.sign(dot) * result
+          return result
   
 
-**Convert Function Source**
+('gas', 'vorticity_radiation_pressure_growth_magnitude_absolute')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-VorticityRPGrowthMagnitudeABS
-+++++++++++++++++++++++++++++
-
-   * Units: :math:`\rm{s}^{-1}`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityRPGrowthMagnitudeABS(field, data):
-      return np.sqrt(data["VorticityRPGrowthX"]**2 +
-                     data["VorticityRPGrowthY"]**2 +
-                     data["VorticityRPGrowthZ"]**2)
+      def _vorticity_radiation_pressure_growth_magnitude_absolute(field, data):
+          return np.sqrt(data[ftype, "vorticity_radiation_pressure_growth_x"]**2 +
+                         data[ftype, "vorticity_radiation_pressure_growth_y"]**2 +
+                         data[ftype, "vorticity_radiation_pressure_growth_z"]**2)
   
 
-**Convert Function Source**
+('gas', 'vorticity_radiation_pressure_growth_timescale')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-VorticityRPGrowthTimescale
-++++++++++++++++++++++++++
-
-   * Units: :math:`\rm{s}^{-1}`
+   * Units: :math:`\rm{s}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityRPGrowthTimescale(field, data):
-      domegax_dt = data["VorticityX"] / data["VorticityRPGrowthX"]
-      domegay_dt = data["VorticityY"] / data["VorticityRPGrowthY"]
-      domegaz_dt = data["VorticityZ"] / data["VorticityRPGrowthZ"]
-      return np.sqrt(domegax_dt**2 + domegay_dt**2 + domegaz_dt**2)
+      def _vorticity_radiation_pressure_growth_timescale(field, data):
+          domegax_dt = data[ftype, "vorticity_x"] / \
+            data[ftype, "vorticity_radiation_pressure_growth_x"]
+          domegay_dt = data[ftype, "vorticity_y"] / \
+            data[ftype, "vorticity_radiation_pressure_growth_y"]
+          domegaz_dt = data[ftype, "vorticity_z"] / \
+            data[ftype, "vorticity_radiation_pressure_growth_z"]
+          return np.sqrt(domegax_dt**2 + domegay_dt**2 + domegaz_dt**2)
   
 
-**Convert Function Source**
+('gas', 'vorticity_radiation_pressure_growth_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-VorticityRPGrowthX
-++++++++++++++++++
-
-   * Units: :math:`\rm{s}^{-1}`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityRPGrowthX(field, data):
-      return -data["VorticityStretchingX"] - data["BaroclinicVorticityX"] \
-             -data["VorticityRadPressureX"]
+      def _vorticity_radiation_pressure_growth_x(field, data):
+          return -data[ftype, "vorticity_stretching_x"] - \
+            data[ftype, "baroclinic_vorticity_x"] \
+            -data[ftype, "vorticity_radiation_pressure_x"]
   
 
-**Convert Function Source**
+('gas', 'vorticity_radiation_pressure_growth_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-VorticityRPGrowthY
-++++++++++++++++++
-
-   * Units: :math:`\rm{s}^{-1}`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityRPGrowthY(field, data):
-      return -data["VorticityStretchingY"] - data["BaroclinicVorticityY"] \
-             -data["VorticityRadPressureY"]
+      def _vorticity_radiation_pressure_growth_y(field, data):
+          return -data[ftype, "vorticity_stretching_y"] - \
+            data[ftype, "baroclinic_vorticity_y"] \
+            -data[ftype, "vorticity_radiation_pressure_y"]
   
 
-**Convert Function Source**
+('gas', 'vorticity_radiation_pressure_growth_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-VorticityRPGrowthZ
-++++++++++++++++++
-
-   * Units: :math:`\rm{s}^{-1}`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityRPGrowthZ(field, data):
-      return -data["VorticityStretchingZ"] - data["BaroclinicVorticityZ"] \
-             -data["VorticityRadPressureZ"]
+      def _vorticity_radiation_pressure_growth_z(field, data):
+          return -data[ftype, "vorticity_stretching_z"] - \
+            data[ftype, "baroclinic_vorticity_z"] \
+            -data[ftype, "vorticity_radiation_pressure_z"]
   
 
-**Convert Function Source**
+('gas', 'vorticity_radiation_pressure_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-VorticityRadPressureMagnitude
-+++++++++++++++++++++++++++++
-
-   * Units: :math:`\rm{s}^{-1}`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityRadPressureMagnitude(field, data):
-      return np.sqrt(data["VorticityRadPressureX"]**2 +
-                     data["VorticityRadPressureY"]**2 +
-                     data["VorticityRadPressureZ"]**2)
+      def _magnitude(field, data):
+          mag  = data[xn] * data[xn]
+          mag += data[yn] * data[yn]
+          mag += data[zn] * data[zn]
+          return np.sqrt(mag)
   
 
-**Convert Function Source**
+('gas', 'vorticity_radiation_pressure_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-VorticityRadPressureX
-+++++++++++++++++++++
-
-   * Units: :math:`\rm{s}^{-1}`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityRadPressureX(field, data):
-      rho = data["density"].astype('float64')
-      return (data["RadAccel2"] * data["gradDensityZ"] -
-              data["RadAccel3"] * data["gradDensityY"]) / rho
+      def _vorticity_radiation_pressure_x(field, data):
+          rho = data[ftype, "density"].astype(np.float64)
+          return (data[ftype, "radiation_acceleration_y"] *
+                  data[ftype, "density_gradient_z"] -
+                  data[ftype, "radiation_acceleration_z"] *
+                  data[ftype, "density_gradient_y"]) / rho
   
 
-**Convert Function Source**
+('gas', 'vorticity_radiation_pressure_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _convertRadAccel(data):
-      return data.convert("x-velocity")/data.convert("Time")
-  
-
-VorticityRadPressureY
-+++++++++++++++++++++
-
-   * Units: :math:`\rm{s}^{-1}`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityRadPressureY(field, data):
-      rho = data["density"].astype('float64')
-      return (data["RadAccel3"] * data["gradDensityX"] -
-              data["RadAccel1"] * data["gradDensityZ"]) / rho
+      def _vorticity_radiation_pressure_y(field, data):
+          rho = data[ftype, "density"].astype(np.float64)
+          return (data[ftype, "radiation_acceleration_z"] *
+                  data[ftype, "density_gradient_x"] -
+                  data[ftype, "radiation_acceleration_x"] *
+                  data[ftype, "density_gradient_z"]) / rho
   
 
-**Convert Function Source**
+('gas', 'vorticity_radiation_pressure_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _convertRadAccel(data):
-      return data.convert("x-velocity")/data.convert("Time")
-  
-
-VorticityRadPressureZ
-+++++++++++++++++++++
-
-   * Units: :math:`\rm{s}^{-1}`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityRadPressureZ(field, data):
-      rho = data["density"].astype('float64')
-      return (data["RadAccel1"] * data["gradDensityY"] -
-              data["RadAccel2"] * data["gradDensityX"]) / rho
+      def _vorticity_radiation_pressure_z(field, data):
+          rho = data[ftype, "density"].astype(np.float64)
+          return (data[ftype, "radiation_acceleration_x"] *
+                  data[ftype, "density_gradient_y"] -
+                  data[ftype, "radiation_acceleration_y"] *
+                  data[ftype, "density_gradient_x"]) / rho
   
 
-**Convert Function Source**
+('gas', 'vorticity_squared')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _convertRadAccel(data):
-      return data.convert("x-velocity")/data.convert("Time")
-  
-
-VorticitySquared
-++++++++++++++++
-
-   * Units: :math:`\rm{s}^{-2}`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticitySquared(field, data):
-      mylog.debug("Generating vorticity on %s", data)
-      # We need to set up stencils
-      if data.ds["HydroMethod"] == 2:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(1,-1,None)
-          div_fac = 1.0
-      else:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(2,None,None)
-          div_fac = 2.0
-      new_field = np.zeros(data["x-velocity"].shape)
-      dvzdy = (data["z-velocity"][1:-1,sl_right,1:-1] -
-               data["z-velocity"][1:-1,sl_left,1:-1]) \
-               / (div_fac*data["dy"].flat[0])
-      dvydz = (data["y-velocity"][1:-1,1:-1,sl_right] -
-               data["y-velocity"][1:-1,1:-1,sl_left]) \
-               / (div_fac*data["dz"].flat[0])
-      new_field[1:-1,1:-1,1:-1] += (dvzdy - dvydz)**2.0
-      del dvzdy, dvydz
-      dvxdz = (data["x-velocity"][1:-1,1:-1,sl_right] -
-               data["x-velocity"][1:-1,1:-1,sl_left]) \
-               / (div_fac*data["dz"].flat[0])
-      dvzdx = (data["z-velocity"][sl_right,1:-1,1:-1] -
-               data["z-velocity"][sl_left,1:-1,1:-1]) \
-               / (div_fac*data["dx"].flat[0])
-      new_field[1:-1,1:-1,1:-1] += (dvxdz - dvzdx)**2.0
-      del dvxdz, dvzdx
-      dvydx = (data["y-velocity"][sl_right,1:-1,1:-1] -
-               data["y-velocity"][sl_left,1:-1,1:-1]) \
-               / (div_fac*data["dx"].flat[0])
-      dvxdy = (data["x-velocity"][1:-1,sl_right,1:-1] -
-               data["x-velocity"][1:-1,sl_left,1:-1]) \
-               / (div_fac*data["dy"].flat[0])
-      new_field[1:-1,1:-1,1:-1] += (dvydx - dvxdy)**2.0
-      del dvydx, dvxdy
-      new_field = np.abs(new_field)
-      return new_field
+      def _squared(field, data):
+          squared  = data[xn] * data[xn]
+          squared += data[yn] * data[yn]
+          squared += data[zn] * data[zn]
+          return squared
   
 
-**Convert Function Source**
+('gas', 'vorticity_stretching_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _convertVorticitySquared(data):
-      return data.convert("cm")**-2.0
-  
-
-VorticityStretchingMagnitude
-++++++++++++++++++++++++++++
-
-   * Units: :math:`\rm{s}^{-1}`
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityStretchingMagnitude(field, data):
-      return np.sqrt(data["VorticityStretchingX"]**2 +
-                     data["VorticityStretchingY"]**2 +
-                     data["VorticityStretchingZ"]**2)
+      def _magnitude(field, data):
+          mag  = data[xn] * data[xn]
+          mag += data[yn] * data[yn]
+          mag += data[zn] * data[zn]
+          return np.sqrt(mag)
   
 
-**Convert Function Source**
+('gas', 'vorticity_stretching_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-VorticityStretchingX
-++++++++++++++++++++
-
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityStretchingX(field, data):
-      return data["DivV"] * data["VorticityX"]
+      def _vorticity_stretching_x(field, data):
+          return data[ftype, "velocity_divergence"] * data[ftype, "vorticity_x"]
   
 
-**Convert Function Source**
+('gas', 'vorticity_stretching_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-VorticityStretchingY
-++++++++++++++++++++
-
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityStretchingY(field, data):
-      return data["DivV"] * data["VorticityY"]
+      def _vorticity_stretching_y(field, data):
+          return data[ftype, "velocity_divergence"] * data[ftype, "vorticity_y"]
   
 
-**Convert Function Source**
+('gas', 'vorticity_stretching_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-VorticityStretchingZ
-++++++++++++++++++++
-
+   * Units: :math:`\frac{1}{\rm{s}^{2}}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityStretchingZ(field, data):
-      return data["DivV"] * data["VorticityZ"]
+      def _vorticity_stretching_z(field, data):
+          return data[ftype, "velocity_divergence"] * data[ftype, "vorticity_z"]
   
 
-**Convert Function Source**
+('gas', 'vorticity_x')
+^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-VorticityX
-++++++++++
-
-   * Units: :math:`\rm{s}^{-1}`
+   * Units: :math:`1 / \rm{s}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityX(field, data):
-      # We need to set up stencils
-      if data.ds["HydroMethod"] == 2:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(1,-1,None)
-          div_fac = 1.0
-      else:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(2,None,None)
-          div_fac = 2.0
-      new_field = np.zeros(data["z-velocity"].shape, dtype='float64')
-      new_field[1:-1,1:-1,1:-1] = (data["z-velocity"][1:-1,sl_right,1:-1] -
-                                   data["z-velocity"][1:-1,sl_left,1:-1]) \
-                                   / (div_fac*data["dy"].flat[0])
-      new_field[1:-1,1:-1,1:-1] -= (data["y-velocity"][1:-1,1:-1,sl_right] -
-                                    data["y-velocity"][1:-1,1:-1,sl_left]) \
-                                    / (div_fac*data["dz"].flat[0])
-      return new_field
+      def _vorticity_x(field, data):
+          f  = (data[ftype, "velocity_z"][sl_center,sl_right,sl_center] -
+                data[ftype, "velocity_z"][sl_center,sl_left,sl_center]) \
+                / (div_fac*just_one(data["index", "dy"]).in_cgs())
+          f -= (data[ftype, "velocity_y"][sl_center,sl_center,sl_right] -
+                data[ftype, "velocity_y"][sl_center,sl_center,sl_left]) \
+                / (div_fac*just_one(data["index", "dz"].in_cgs()))
+          new_field = data.ds.arr(np.zeros_like(data[ftype, "velocity_z"],
+                                                dtype=np.float64),
+                                  f.units)
+          new_field[sl_center, sl_center, sl_center] = f
+          return new_field
   
 
-**Convert Function Source**
+('gas', 'vorticity_y')
+^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _convertVorticity(data):
-      return 1.0/data.convert("cm")
-  
-
-VorticityY
-++++++++++
-
-   * Units: :math:`\rm{s}^{-1}`
+   * Units: :math:`1 / \rm{s}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityY(field, data):
-      # We need to set up stencils
-      if data.ds["HydroMethod"] == 2:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(1,-1,None)
-          div_fac = 1.0
-      else:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(2,None,None)
-          div_fac = 2.0
-      new_field = np.zeros(data["z-velocity"].shape, dtype='float64')
-      new_field[1:-1,1:-1,1:-1] = (data["x-velocity"][1:-1,1:-1,sl_right] -
-                                   data["x-velocity"][1:-1,1:-1,sl_left]) \
-                                   / (div_fac*data["dz"].flat[0])
-      new_field[1:-1,1:-1,1:-1] -= (data["z-velocity"][sl_right,1:-1,1:-1] -
-                                    data["z-velocity"][sl_left,1:-1,1:-1]) \
-                                    / (div_fac*data["dx"].flat[0])
-      return new_field
+      def _vorticity_y(field, data):
+          f  = (data[ftype, "velocity_x"][sl_center,sl_center,sl_right] -
+                data[ftype, "velocity_x"][sl_center,sl_center,sl_left]) \
+                / (div_fac*just_one(data["index", "dz"]))
+          f -= (data[ftype, "velocity_z"][sl_right,sl_center,sl_center] -
+                data[ftype, "velocity_z"][sl_left,sl_center,sl_center]) \
+                / (div_fac*just_one(data["index", "dx"]))
+          new_field = data.ds.arr(np.zeros_like(data[ftype, "velocity_z"],
+                                                dtype=np.float64),
+                                  f.units)
+          new_field[sl_center, sl_center, sl_center] = f
+          return new_field
   
 
-**Convert Function Source**
+('gas', 'vorticity_z')
+^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _convertVorticity(data):
-      return 1.0/data.convert("cm")
-  
-
-VorticityZ
-++++++++++
-
-   * Units: :math:`\rm{s}^{-1}`
+   * Units: :math:`1 / \rm{s}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _VorticityZ(field, data):
-      # We need to set up stencils
-      if data.ds["HydroMethod"] == 2:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(1,-1,None)
-          div_fac = 1.0
-      else:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(2,None,None)
-          div_fac = 2.0
-      new_field = np.zeros(data["x-velocity"].shape, dtype='float64')
-      new_field[1:-1,1:-1,1:-1] = (data["y-velocity"][sl_right,1:-1,1:-1] -
-                                   data["y-velocity"][sl_left,1:-1,1:-1]) \
-                                   / (div_fac*data["dx"].flat[0])
-      new_field[1:-1,1:-1,1:-1] -= (data["x-velocity"][1:-1,sl_right,1:-1] -
-                                    data["x-velocity"][1:-1,sl_left,1:-1]) \
-                                    / (div_fac*data["dy"].flat[0])
-      return new_field
+      def _vorticity_z(field, data):
+          f  = (data[ftype, "velocity_y"][sl_right,sl_center,sl_center] -
+                data[ftype, "velocity_y"][sl_left,sl_center,sl_center]) \
+                / (div_fac*just_one(data["index", "dx"]))
+          f -= (data[ftype, "velocity_x"][sl_center,sl_right,sl_center] -
+                data[ftype, "velocity_x"][sl_center,sl_left,sl_center]) \
+                / (div_fac*just_one(data["index", "dy"]))
+          new_field = data.ds.arr(np.zeros_like(data[ftype, "velocity_z"],
+                                                dtype=np.float64),
+                                  f.units)
+          new_field[sl_center, sl_center, sl_center] = f
+          return new_field
   
 
-**Convert Function Source**
+('gas', 'weak_lensing_convergence')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`1 / \rm{cm}`
+   * Particle Type: False
+
+**Field Source**
 
 .. code-block:: python
 
-  def _convertVorticity(data):
-      return 1.0/data.convert("cm")
+      def _weak_lensing_convergence(field, data):
+          if not hasattr(data.ds, "cosmological_simulation") or \
+            not data.ds.cosmological_simulation:
+              raise NeedsConfiguration("cosmological_simulation", 1)
+          co = data.ds.cosmology
+          observer_redshift = data.get_field_parameter('observer_redshift')
+          source_redshift = data.get_field_parameter('source_redshift')
+          
+          # observer to lens
+          dl = co.angular_diameter_distance(observer_redshift, data.ds.current_redshift)
+          # observer to source
+          ds = co.angular_diameter_distance(observer_redshift, source_redshift)
+          # lens to source
+          dls = co.angular_diameter_distance(data.ds.current_redshift, source_redshift)
+  
+          # removed the factor of 1 / a to account for the fact that we are projecting 
+          # with a proper distance.
+          return (1.5 * (co.hubble_constant / speed_of_light_cgs)**2 * (dl * dls / ds) * \
+            data[ftype, "matter_overdensity"]).in_units("1/cm")
   
 
-WeakLensingConvergence
-++++++++++++++++++++++
+('gas', 'xray_emissivity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    * Particle Type: False
 
@@ -2871,77 +2675,32 @@ WeakLensingConvergence
 
 .. code-block:: python
 
-  def _DensityPerturbation(field, data):
-      rho_bar = rho_crit_now * data.ds.omega_matter * \
-          data.ds.hubble_constant**2 * \
-          (1.0 + data.ds.current_redshift)**3
-      return ((data['Matter_Density'] - rho_bar) / rho_bar)
+      def _xray_emissivity(field, data):
+          # old scaling coefficient was 2.168e60
+          return data.ds.arr(data[ftype, "density"].to_ndarray().astype(np.float64)**2
+                             * data[ftype, "temperature"].to_ndarray()**0.5,
+                             "") # add correct units here
   
 
-**Convert Function Source**
+('index', 'cell_volume')
+^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _convertConvergence(data):
-      if not data.ds.parameters.has_key('cosmology_calculator'):
-          data.ds.parameters['cosmology_calculator'] = Cosmology(
-              HubbleConstantNow=(100.*data.ds.hubble_constant),
-              OmegaMatterNow=data.ds.omega_matter, OmegaLambdaNow=data.ds.omega_lambda)
-      # observer to lens
-      DL = data.ds.parameters['cosmology_calculator'].AngularDiameterDistance(
-          data.ds.parameters['observer_redshift'], data.ds.current_redshift)
-      # observer to source
-      DS = data.ds.parameters['cosmology_calculator'].AngularDiameterDistance(
-          data.ds.parameters['observer_redshift'], data.ds.parameters['lensing_source_redshift'])
-      # lens to source
-      DLS = data.ds.parameters['cosmology_calculator'].AngularDiameterDistance(
-          data.ds.current_redshift, data.ds.parameters['lensing_source_redshift'])
-      return (((DL * DLS) / DS) * (1.5e14 * data.ds.omega_matter * 
-                                  (data.ds.hubble_constant / speed_of_light_cgs)**2 *
-                                  (1 + data.ds.current_redshift)))
-  
-
-XRayEmissivity
-++++++++++++++
-
+   * Units: :math:`\rm{code}~\rm{length}^{3}`
    * Particle Type: False
 
 **Field Source**
 
 .. code-block:: python
 
-  def _XRayEmissivity(field, data):
-      return ((data["density"].astype('float64')**2.0) \
-              *data["Temperature"]**0.5)
+          def _cell_volume(field, data):
+              rv  = data["index", "dx"].copy(order='K')
+              rv *= data["index", "dy"]
+              rv *= data["index", "dz"]
+              return rv
   
 
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertXRayEmissivity(data):
-      return 2.168e60
-  
-
-Zeros
-+++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Zeros(field, data):
-      return np.zeros(data.ActiveDimensions, dtype='float64')
-  
-
-**Convert Function Source**
-
-No source available.
-
-cyl_R
-+++++
+('index', 'cylindrical_r')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    * Units: :math:`\rm{cm}`
    * Particle Type: False
@@ -2950,226 +2709,14 @@ cyl_R
 
 .. code-block:: python
 
-  def _cyl_R(field, data):
-      center = data.get_field_parameter("center")
-      normal = data.get_field_parameter("normal")
-        
-      coords = obtain_rvec(data)
-  
-      return get_cyl_r(coords, normal)
+      def _cylindrical_r(field, data):
+          normal = data.get_field_parameter("normal")
+          coords = get_periodic_rvec(data)
+          return data.ds.arr(get_cyl_r(coords, normal), "code_length").in_cgs()
   
 
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _Convert_cyl_R_CGS(data):
-     return data.convert("cm")
-  
-
-cyl_RCode
-+++++++++
-
-   * Units: :math:`Radius (code)`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _cyl_R(field, data):
-      center = data.get_field_parameter("center")
-      normal = data.get_field_parameter("normal")
-        
-      coords = obtain_rvec(data)
-  
-      return get_cyl_r(coords, normal)
-  
-
-**Convert Function Source**
-
-No source available.
-
-cyl_RadialVelocity
-++++++++++++++++++
-
-   * Units: :math:`\rm{cm}/\rm{s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _cyl_RadialVelocity(field, data):
-      normal = data.get_field_parameter("normal")
-      velocities = obtain_rv_vec(data)
-  
-      theta = data['cyl_theta']
-  
-      return get_cyl_r_component(velocities, theta, normal)
-  
-
-**Convert Function Source**
-
-No source available.
-
-cyl_RadialVelocityABS
-+++++++++++++++++++++
-
-   * Units: :math:`\rm{cm}/\rm{s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _cyl_RadialVelocityABS(field, data):
-      return np.abs(_cyl_RadialVelocity(field, data))
-  
-
-**Convert Function Source**
-
-No source available.
-
-cyl_RadialVelocityKMS
-+++++++++++++++++++++
-
-   * Units: :math:`\rm{km}/\rm{s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _cyl_RadialVelocity(field, data):
-      normal = data.get_field_parameter("normal")
-      velocities = obtain_rv_vec(data)
-  
-      theta = data['cyl_theta']
-  
-      return get_cyl_r_component(velocities, theta, normal)
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _Convert_cyl_RadialVelocityKMS(data):
-      return km_per_cm
-  
-
-cyl_RadialVelocityKMSABS
-++++++++++++++++++++++++
-
-   * Units: :math:`\rm{km}/\rm{s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _cyl_RadialVelocityABS(field, data):
-      return np.abs(_cyl_RadialVelocity(field, data))
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _Convert_cyl_RadialVelocityKMS(data):
-      return km_per_cm
-  
-
-cyl_TangentialVelocity
-++++++++++++++++++++++
-
-   * Units: :math:`\rm{cm}/\rm{s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _cyl_TangentialVelocity(field, data):
-      normal = data.get_field_parameter("normal")
-      velocities = obtain_rv_vec(data)
-      theta = data['cyl_theta']
-  
-      return get_cyl_theta_component(velocities, theta, normal)
-  
-
-**Convert Function Source**
-
-No source available.
-
-cyl_TangentialVelocityABS
-+++++++++++++++++++++++++
-
-   * Units: :math:`\rm{cm}/\rm{s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _cyl_TangentialVelocityABS(field, data):
-      return np.abs(_cyl_TangentialVelocity(field, data))
-  
-
-**Convert Function Source**
-
-No source available.
-
-cyl_TangentialVelocityKMS
-+++++++++++++++++++++++++
-
-   * Units: :math:`\rm{km}/\rm{s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _cyl_TangentialVelocity(field, data):
-      normal = data.get_field_parameter("normal")
-      velocities = obtain_rv_vec(data)
-      theta = data['cyl_theta']
-  
-      return get_cyl_theta_component(velocities, theta, normal)
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _Convert_cyl_TangentialVelocityKMS(data):
-      return km_per_cm
-  
-
-cyl_TangentialVelocityKMSABS
-++++++++++++++++++++++++++++
-
-   * Units: :math:`\rm{km}/\rm{s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _cyl_TangentialVelocityABS(field, data):
-      return np.abs(_cyl_TangentialVelocity(field, data))
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _Convert_cyl_TangentialVelocityKMS(data):
-      return km_per_cm
-  
-
-cyl_theta
-+++++++++
+('index', 'cylindrical_theta')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    * Particle Type: False
 
@@ -3177,21 +2724,14 @@ cyl_theta
 
 .. code-block:: python
 
-  def _cyl_theta(field, data):
-      center = data.get_field_parameter("center")
-      normal = data.get_field_parameter("normal")
-      
-      coords = obtain_rvec(data)
-  
-      return get_cyl_theta(coords, normal)
+      def _cylindrical_theta(field, data):
+          normal = data.get_field_parameter("normal")
+          coords = get_periodic_rvec(data)
+          return get_cyl_theta(coords, normal)
   
 
-**Convert Function Source**
-
-No source available.
-
-cyl_z
-+++++
+('index', 'cylindrical_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    * Units: :math:`\rm{cm}`
    * Particle Type: False
@@ -3200,25 +2740,14 @@ cyl_z
 
 .. code-block:: python
 
-  def _cyl_z(field, data):
-      center = data.get_field_parameter("center")
-      normal = data.get_field_parameter("normal")
-      
-      coords = obtain_rvec(data)
-  
-      return get_cyl_z(coords, normal)
+      def _cylindrical_z(field, data):
+          normal = data.get_field_parameter("normal")
+          coords = get_periodic_rvec(data)
+          return data.ds.arr(get_cyl_z(coords, normal), "code_length").in_cgs()
   
 
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _Convert_cyl_z_CGS(data):
-     return data.convert("cm")
-  
-
-dx
-++
+('index', 'disk_angle')
+^^^^^^^^^^^^^^^^^^^^^^^
 
    * Particle Type: False
 
@@ -3226,17 +2755,57 @@ dx
 
 .. code-block:: python
 
-  def _dx(field, data):
-      return data.dds[0]
-      return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[0]
+      def _disk_angle(field, data):
+          return data["index", "spherical_theta"]
   
 
-**Convert Function Source**
+('index', 'dx')
+^^^^^^^^^^^^^^^
 
-No source available.
+   * Units: :math:`\rm{code}~\rm{length}`
+   * Particle Type: False
 
-dy
-++
+**Field Source**
+
+.. code-block:: python
+
+      def _dds(field, data):
+          rv = data.ds.arr(data.fwidth[...,axi].copy(), units)
+          return data._reshape_vals(rv)
+  
+
+('index', 'dy')
+^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{code}~\rm{length}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _dds(field, data):
+          rv = data.ds.arr(data.fwidth[...,axi].copy(), units)
+          return data._reshape_vals(rv)
+  
+
+('index', 'dz')
+^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{code}~\rm{length}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _dds(field, data):
+          rv = data.ds.arr(data.fwidth[...,axi].copy(), units)
+          return data._reshape_vals(rv)
+  
+
+('index', 'grid_indices')
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
    * Particle Type: False
 
@@ -3244,17 +2813,12 @@ dy
 
 .. code-block:: python
 
-  def _dy(field, data):
-      return data.dds[1]
-      return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[1]
+      def _grid_indices(field, data):
+          return np.ones(data["index", "ones"].shape)*(data.id-data._id_offset)
   
 
-**Convert Function Source**
-
-No source available.
-
-dz
-++
+('index', 'grid_level')
+^^^^^^^^^^^^^^^^^^^^^^^
 
    * Particle Type: False
 
@@ -3262,371 +2826,12 @@ dz
 
 .. code-block:: python
 
-  def _dz(field, data):
-      return data.dds[2]
-      return np.ones(data.ActiveDimensions, dtype='float64') * data.dds[2]
+      def _grid_level(field, data):
+          return np.ones(data.ActiveDimensions)*(data.Level)
   
 
-**Convert Function Source**
-
-No source available.
-
-gradDensityMagnitude
-++++++++++++++++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^{4}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _gradDensityMagnitude(field, data):
-      return np.sqrt(data["gradDensityX"]**2 +
-                     data["gradDensityY"]**2 +
-                     data["gradDensityZ"]**2)
-  
-
-**Convert Function Source**
-
-No source available.
-
-gradDensityX
-++++++++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^{4}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _gradDensityX(field, data):
-      # We need to set up stencils
-      if data.ds["HydroMethod"] == 2:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(1,-1,None)
-          div_fac = 1.0
-      else:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(2,None,None)
-          div_fac = 2.0
-      new_field = np.zeros(data["density"].shape, dtype='float64')
-      ds = div_fac * data['dx'].flat[0]
-      new_field[1:-1,1:-1,1:-1]  = data["density"][sl_right,1:-1,1:-1]/ds
-      new_field[1:-1,1:-1,1:-1] -= data["density"][sl_left ,1:-1,1:-1]/ds
-      return new_field
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertgradDensity(data):
-      return 1.0/data.convert("cm")
-  
-
-gradDensityY
-++++++++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^{4}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _gradDensityY(field, data):
-      # We need to set up stencils
-      if data.ds["HydroMethod"] == 2:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(1,-1,None)
-          div_fac = 1.0
-      else:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(2,None,None)
-          div_fac = 2.0
-      new_field = np.zeros(data["density"].shape, dtype='float64')
-      ds = div_fac * data['dy'].flat[0]
-      new_field[1:-1,1:-1,1:-1]  = data["density"][1:-1,sl_right,1:-1]/ds
-      new_field[1:-1,1:-1,1:-1] -= data["density"][1:-1,sl_left ,1:-1]/ds
-      return new_field
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertgradDensity(data):
-      return 1.0/data.convert("cm")
-  
-
-gradDensityZ
-++++++++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^{4}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _gradDensityZ(field, data):
-      # We need to set up stencils
-      if data.ds["HydroMethod"] == 2:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(1,-1,None)
-          div_fac = 1.0
-      else:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(2,None,None)
-          div_fac = 2.0
-      new_field = np.zeros(data["density"].shape, dtype='float64')
-      ds = div_fac * data['dz'].flat[0]
-      new_field[1:-1,1:-1,1:-1]  = data["density"][1:-1,1:-1,sl_right]/ds
-      new_field[1:-1,1:-1,1:-1] -= data["density"][1:-1,1:-1,sl_left ]/ds
-      return new_field
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertgradDensity(data):
-      return 1.0/data.convert("cm")
-  
-
-gradPressureMagnitude
-+++++++++++++++++++++
-
-   * Units: :math:`\rm{dyne}/\rm{cm}^{3}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _gradPressureMagnitude(field, data):
-      return np.sqrt(data["gradPressureX"]**2 +
-                     data["gradPressureY"]**2 +
-                     data["gradPressureZ"]**2)
-  
-
-**Convert Function Source**
-
-No source available.
-
-gradPressureX
-+++++++++++++
-
-   * Units: :math:`\rm{dyne}/\rm{cm}^{3}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _gradPressureX(field, data):
-      # We need to set up stencils
-      if data.ds["HydroMethod"] == 2:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(1,-1,None)
-          div_fac = 1.0
-      else:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(2,None,None)
-          div_fac = 2.0
-      new_field = np.zeros(data["Pressure"].shape, dtype='float64')
-      ds = div_fac * data['dx'].flat[0]
-      new_field[1:-1,1:-1,1:-1]  = data["Pressure"][sl_right,1:-1,1:-1]/ds
-      new_field[1:-1,1:-1,1:-1] -= data["Pressure"][sl_left ,1:-1,1:-1]/ds
-      return new_field
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertgradPressure(data):
-      return 1.0/data.convert("cm")
-  
-
-gradPressureY
-+++++++++++++
-
-   * Units: :math:`\rm{dyne}/\rm{cm}^{3}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _gradPressureY(field, data):
-      # We need to set up stencils
-      if data.ds["HydroMethod"] == 2:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(1,-1,None)
-          div_fac = 1.0
-      else:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(2,None,None)
-          div_fac = 2.0
-      new_field = np.zeros(data["Pressure"].shape, dtype='float64')
-      ds = div_fac * data['dy'].flat[0]
-      new_field[1:-1,1:-1,1:-1]  = data["Pressure"][1:-1,sl_right,1:-1]/ds
-      new_field[1:-1,1:-1,1:-1] -= data["Pressure"][1:-1,sl_left ,1:-1]/ds
-      return new_field
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertgradPressure(data):
-      return 1.0/data.convert("cm")
-  
-
-gradPressureZ
-+++++++++++++
-
-   * Units: :math:`\rm{dyne}/\rm{cm}^{3}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _gradPressureZ(field, data):
-      # We need to set up stencils
-      if data.ds["HydroMethod"] == 2:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(1,-1,None)
-          div_fac = 1.0
-      else:
-          sl_left = slice(None,-2,None)
-          sl_right = slice(2,None,None)
-          div_fac = 2.0
-      new_field = np.zeros(data["Pressure"].shape, dtype='float64')
-      ds = div_fac * data['dz'].flat[0]
-      new_field[1:-1,1:-1,1:-1]  = data["Pressure"][1:-1,1:-1,sl_right]/ds
-      new_field[1:-1,1:-1,1:-1] -= data["Pressure"][1:-1,1:-1,sl_left ]/ds
-      return new_field
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertgradPressure(data):
-      return 1.0/data.convert("cm")
-  
-
-particle_density
-++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _pdensity(field, data):
-      blank = np.zeros(data.ActiveDimensions, dtype='float64')
-      if data["particle_position_x"].size == 0: return blank
-      CICDeposit_3(data["particle_position_x"].astype(np.float64),
-                   data["particle_position_y"].astype(np.float64),
-                   data["particle_position_z"].astype(np.float64),
-                   data["ParticleMass"],
-                   data["particle_position_x"].size,
-                   blank, np.array(data.LeftEdge).astype(np.float64),
-                   np.array(data.ActiveDimensions).astype(np.int32),
-                   np.float64(data['dx']))
-      np.divide(blank, data["CellVolume"], blank)
-      return blank
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_position_x
-+++++++++++++++++++
-
-   * Units: :math:`UNDEFINED`
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def NullFunc(field, data):
-      return
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_position_y
-+++++++++++++++++++
-
-   * Units: :math:`UNDEFINED`
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def NullFunc(field, data):
-      return
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_position_z
-+++++++++++++++++++
-
-   * Units: :math:`UNDEFINED`
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def NullFunc(field, data):
-      return
-  
-
-**Convert Function Source**
-
-No source available.
-
-sph_phi
-+++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _sph_phi(field, data):
-      center = data.get_field_parameter("center")
-      normal = data.get_field_parameter("normal")
-      
-      coords = obtain_rvec(data)
-  
-      return get_sph_phi(coords, normal)
-  
-
-**Convert Function Source**
-
-No source available.
-
-sph_r
-+++++
+('index', 'height')
+^^^^^^^^^^^^^^^^^^^
 
    * Units: :math:`\rm{cm}`
    * Particle Type: False
@@ -3635,24 +2840,12 @@ sph_r
 
 .. code-block:: python
 
-  def _sph_r(field, data):
-      center = data.get_field_parameter("center")
-        
-      coords = obtain_rvec(data)
-  
-      return get_sph_r(coords)
+      def _height(field, data):
+          return data["index", "cylindrical_z"]
   
 
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _Convert_sph_r_CGS(data):
-     return data.convert("cm")
-  
-
-sph_theta
-+++++++++
+('index', 'ones')
+^^^^^^^^^^^^^^^^^
 
    * Particle Type: False
 
@@ -3660,21 +2853,44 @@ sph_theta
 
 .. code-block:: python
 
-  def _sph_theta(field, data):
-      center = data.get_field_parameter("center")
-      normal = data.get_field_parameter("normal")
-      
-      coords = obtain_rvec(data)
-  
-      return get_sph_theta(coords, normal)
+      def _ones(field, data):
+          arr = np.ones(data.ires.shape, dtype="float64")
+          if data._spatial:
+              return data._reshape_vals(arr)
+          return data.apply_units(arr, field.units)
   
 
-**Convert Function Source**
+('index', 'ones_over_dx')
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
+   * Units: :math:`1 / \rm{cm}`
+   * Particle Type: False
 
-tempContours
-++++++++++++
+**Field Source**
+
+.. code-block:: python
+
+      def _ones_over_dx(field, data):
+          return np.ones(data["index", "ones"].shape,
+                         dtype="float64")/data["index", "dx"]
+  
+
+('index', 'radius')
+^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _radius(field, data):
+          return get_radius(data, "")
+  
+
+('index', 'spherical_phi')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    * Particle Type: False
 
@@ -3682,16 +2898,29 @@ tempContours
 
 .. code-block:: python
 
-  def _Contours(field, data):
-      return -np.ones_like(data["Ones"])
+      def _spherical_phi(field, data):
+          normal = data.get_field_parameter("normal")
+          coords = get_periodic_rvec(data)
+          return get_sph_phi(coords, normal)
   
 
-**Convert Function Source**
+('index', 'spherical_r')
+^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
+   * Units: :math:`\rm{cm}`
+   * Particle Type: False
 
-x
-+
+**Field Source**
+
+.. code-block:: python
+
+      def _spherical_r(field, data):
+          coords = get_periodic_rvec(data)
+          return data.ds.arr(get_sph_r(coords), "code_length").in_cgs()
+  
+
+('index', 'spherical_theta')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    * Particle Type: False
 
@@ -3699,19 +2928,59 @@ x
 
 .. code-block:: python
 
-  def _coordX(field, data):
-      dim = data.ActiveDimensions[0]
-      return (np.ones(data.ActiveDimensions, dtype='float64')
-                     * np.arange(data.ActiveDimensions[0])[:,None,None]
-              +0.5) * data['dx'] + data.LeftEdge[0]
+      def _spherical_theta(field, data):
+          normal = data.get_field_parameter("normal")
+          coords = get_periodic_rvec(data)
+          return get_sph_theta(coords, normal)
   
 
-**Convert Function Source**
+('index', 'x')
+^^^^^^^^^^^^^^
 
-No source available.
+   * Units: :math:`\rm{code}~\rm{length}`
+   * Particle Type: False
 
-y
-+
+**Field Source**
+
+.. code-block:: python
+
+      def _coords(field, data):
+          rv = data.ds.arr(data.fcoords[...,axi].copy(), units)
+          return data._reshape_vals(rv)
+  
+
+('index', 'y')
+^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{code}~\rm{length}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _coords(field, data):
+          rv = data.ds.arr(data.fcoords[...,axi].copy(), units)
+          return data._reshape_vals(rv)
+  
+
+('index', 'z')
+^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{code}~\rm{length}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def _coords(field, data):
+          rv = data.ds.arr(data.fcoords[...,axi].copy(), units)
+          return data._reshape_vals(rv)
+  
+
+('index', 'zeros')
+^^^^^^^^^^^^^^^^^^
 
    * Particle Type: False
 
@@ -3719,937 +2988,13 @@ y
 
 .. code-block:: python
 
-  def _coordY(field, data):
-      dim = data.ActiveDimensions[1]
-      return (np.ones(data.ActiveDimensions, dtype='float64')
-                     * np.arange(data.ActiveDimensions[1])[None,:,None]
-              +0.5) * data['dy'] + data.LeftEdge[1]
+      def _zeros(field, data):
+          arr = np.zeros(data["index", "ones"].shape, dtype='float64')
+          return data.apply_units(arr, field.units)
   
 
-**Convert Function Source**
-
-No source available.
-
-z
-+
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _coordZ(field, data):
-      dim = data.ActiveDimensions[2]
-      return (np.ones(data.ActiveDimensions, dtype='float64')
-                     * np.arange(data.ActiveDimensions[2])[None,None,:]
-              +0.5) * data['dz'] + data.LeftEdge[2]
-  
-
-**Convert Function Source**
-
-No source available.
-
-.. _enzo-field-names:
-
-Enzo-Specific Field List
-------------------------
-
-Bmag
-++++
-
-   * Units: :math:`\rm{Gauss}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Bmag(field, data):
-      """ magnitude of bvec
-      """
-      return np.sqrt(data['Bx']**2 + data['By']**2 + data['Bz']**2)
-  
-
-**Convert Function Source**
-
-No source available.
-
-Comoving_DII_Density
-++++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesComovingDensity(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.ds.current_redshift)**3.0
-      return data[sp] / ef
-  
-
-**Convert Function Source**
-
-No source available.
-
-Comoving_DI_Density
-+++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesComovingDensity(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.ds.current_redshift)**3.0
-      return data[sp] / ef
-  
-
-**Convert Function Source**
-
-No source available.
-
-Comoving_Electron_Density
-+++++++++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesComovingDensity(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.ds.current_redshift)**3.0
-      return data[sp] / ef
-  
-
-**Convert Function Source**
-
-No source available.
-
-Comoving_H2II_Density
-+++++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesComovingDensity(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.ds.current_redshift)**3.0
-      return data[sp] / ef
-  
-
-**Convert Function Source**
-
-No source available.
-
-Comoving_H2I_Density
-++++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesComovingDensity(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.ds.current_redshift)**3.0
-      return data[sp] / ef
-  
-
-**Convert Function Source**
-
-No source available.
-
-Comoving_HDI_Density
-++++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesComovingDensity(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.ds.current_redshift)**3.0
-      return data[sp] / ef
-  
-
-**Convert Function Source**
-
-No source available.
-
-Comoving_HII_Density
-++++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesComovingDensity(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.ds.current_redshift)**3.0
-      return data[sp] / ef
-  
-
-**Convert Function Source**
-
-No source available.
-
-Comoving_HI_Density
-+++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesComovingDensity(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.ds.current_redshift)**3.0
-      return data[sp] / ef
-  
-
-**Convert Function Source**
-
-No source available.
-
-Comoving_HM_Density
-+++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesComovingDensity(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.ds.current_redshift)**3.0
-      return data[sp] / ef
-  
-
-**Convert Function Source**
-
-No source available.
-
-Comoving_HeIII_Density
-++++++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesComovingDensity(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.ds.current_redshift)**3.0
-      return data[sp] / ef
-  
-
-**Convert Function Source**
-
-No source available.
-
-Comoving_HeII_Density
-+++++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesComovingDensity(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.ds.current_redshift)**3.0
-      return data[sp] / ef
-  
-
-**Convert Function Source**
-
-No source available.
-
-Comoving_HeI_Density
-++++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesComovingDensity(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.ds.current_redshift)**3.0
-      return data[sp] / ef
-  
-
-**Convert Function Source**
-
-No source available.
-
-Comoving_MetalSNIa_Density
-++++++++++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesComovingDensity(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.ds.current_redshift)**3.0
-      return data[sp] / ef
-  
-
-**Convert Function Source**
-
-No source available.
-
-Comoving_Metal_Density
-++++++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesComovingDensity(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.ds.current_redshift)**3.0
-      return data[sp] / ef
-  
-
-**Convert Function Source**
-
-No source available.
-
-Comoving_PreShock_Density
-+++++++++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesComovingDensity(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      ef = (1.0 + data.ds.current_redshift)**3.0
-      return data[sp] / ef
-  
-
-**Convert Function Source**
-
-No source available.
-
-DII_Fraction
-++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesFraction(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] / data["density"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-DII_Mass
-++++++++
-
-   * Units: :math:`\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesMass(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] * data["CellVolume"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-DII_MassMsun
-++++++++++++
-
-   * Units: :math:`M_{\odot}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesMass(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] * data["CellVolume"]
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertCellMassMsun(data):
-      return 5.027854e-34 # g^-1
-  
-
-DII_NumberDensity
-+++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesNumberDensity(field, data):
-      species = field.name.split("_")[0]
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] / _speciesMass[species]
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _ConvertNumberDensity(data):
-      return 1.0/mh
-  
-
-DI_Fraction
-+++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesFraction(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] / data["density"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-DI_Mass
-+++++++
-
-   * Units: :math:`\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesMass(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] * data["CellVolume"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-Dark_Matter_Mass
-++++++++++++++++
-
-   * Units: :math:`\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Dark_Matter_Mass(field, data):
-      return data['Dark_Matter_Density'] * data["CellVolume"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-Dark_Matter_MassMsun
-++++++++++++++++++++
-
-   * Units: :math:`M_{\odot}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Dark_Matter_Mass(field, data):
-      return data['Dark_Matter_Density'] * data["CellVolume"]
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertCellMassMsun(data):
-      return 5.027854e-34 # g^-1
-  
-
-Electron_Fraction
-+++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesFraction(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] / data["density"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-Electron_Mass
-+++++++++++++
-
-   * Units: :math:`\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesMass(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] * data["CellVolume"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-Gas_Energy
-++++++++++
-
-   * Units: :math:`\rm{ergs}/\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Gas_Energy(field, data):
-      return data["GasEnergy"] / _convertEnergy(data)
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertEnergy(data):
-      return data.convert("x-velocity")**2.0
-  
-
-H2II_Fraction
-+++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesFraction(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] / data["density"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-H2II_Mass
-+++++++++
-
-   * Units: :math:`\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesMass(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] * data["CellVolume"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-H2I_Fraction
-++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesFraction(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] / data["density"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-H2I_Mass
-++++++++
-
-   * Units: :math:`\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesMass(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] * data["CellVolume"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-HDI_Fraction
-++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesFraction(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] / data["density"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-HDI_Mass
-++++++++
-
-   * Units: :math:`\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesMass(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] * data["CellVolume"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-HII_Fraction
-++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesFraction(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] / data["density"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-HII_Mass
-++++++++
-
-   * Units: :math:`\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesMass(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] * data["CellVolume"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-HI_Fraction
-+++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesFraction(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] / data["density"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-HI_Mass
-+++++++
-
-   * Units: :math:`\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesMass(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] * data["CellVolume"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-HM_Fraction
-+++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesFraction(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] / data["density"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-HM_Mass
-+++++++
-
-   * Units: :math:`\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesMass(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] * data["CellVolume"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-H_NumberDensity
-+++++++++++++++
-
-   * Units: :math:`\rm{cm}^{-3}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _H_NumberDensity(field, data):
-      field_data = np.zeros(data["density"].shape,
-                            dtype=data["density"].dtype)
-      if data.ds.parameters["MultiSpecies"] == 0:
-          field_data += data["density"] * \
-            data.ds.parameters["HydrogenFractionByMass"]
-      if data.ds.parameters["MultiSpecies"] > 0:
-          field_data += data["HI_Density"]
-          field_data += data["HII_Density"]
-      if data.ds.parameters["MultiSpecies"] > 1:
-          field_data += data["HM_Density"]
-          field_data += data["H2I_Density"]
-          field_data += data["H2II_Density"]
-      if data.ds.parameters["MultiSpecies"] > 2:
-          field_data += data["HDI_Density"] / 2.0
-      return field_data
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _ConvertNumberDensity(data):
-      return 1.0/mh
-  
-
-HeIII_Fraction
-++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesFraction(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] / data["density"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-HeIII_Mass
-++++++++++
-
-   * Units: :math:`\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesMass(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] * data["CellVolume"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-HeII_Fraction
-+++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesFraction(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] / data["density"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-HeII_Mass
-+++++++++
-
-   * Units: :math:`\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesMass(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] * data["CellVolume"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-HeI_Fraction
-++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesFraction(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] / data["density"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-HeI_Mass
-++++++++
-
-   * Units: :math:`\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesMass(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] * data["CellVolume"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-IsStarParticle
-++++++++++++++
+('io', 'mesh_id')
+^^^^^^^^^^^^^^^^^
 
    * Particle Type: True
 
@@ -4657,203 +3002,80 @@ IsStarParticle
 
 .. code-block:: python
 
-  def _IsStarParticle(field, data):
-      is_star = (data['creation_time'] > 0).astype('float64')
-      return is_star
+      def particle_mesh_ids(field, data):
+          pos = data[ptype, coord_name]
+          ids = np.zeros(pos.shape[0], dtype="float64") - 1
+          # This is float64 in name only.  It will be properly cast inside the
+          # deposit operation.
+          #_ids = ids.view("float64")
+          data.deposit(pos, [ids], method = "mesh_id")
+          return data.apply_units(ids, "")
   
 
-**Convert Function Source**
+('io', 'particle_angular_momentum_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-KineticEnergy
-+++++++++++++
-
-   * Units: :math:`\rm{ergs}/\rm{cm^3}`
-   * Particle Type: False
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
+   * Particle Type: True
 
 **Field Source**
 
 .. code-block:: python
 
-  def _KineticEnergy(field, data):
-      return 0.5*data["density"] * ( data["x-velocity"]**2.0
-                                     + data["y-velocity"]**2.0
-                                     + data["z-velocity"]**2.0 )
+      def _magnitude(field, data):
+          mag  = data[xn] * data[xn]
+          mag += data[yn] * data[yn]
+          mag += data[zn] * data[zn]
+          return np.sqrt(mag)
   
 
-**Convert Function Source**
+('io', 'particle_angular_momentum_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-MetalSNIa_Fraction
-++++++++++++++++++
-
-   * Particle Type: False
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
+   * Particle Type: True
 
 **Field Source**
 
 .. code-block:: python
 
-  def _SpeciesFraction(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] / data["density"]
+      def _particle_angular_momentum_x(field, data):
+          return data[ptype, "particle_mass"] * \
+                 data[ptype, "particle_specific_angular_momentum_x"]
   
 
-**Convert Function Source**
+('io', 'particle_angular_momentum_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-MetalSNIa_Mass
-++++++++++++++
-
-   * Units: :math:`\rm{g}`
-   * Particle Type: False
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
+   * Particle Type: True
 
 **Field Source**
 
 .. code-block:: python
 
-  def _SpeciesMass(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] * data["CellVolume"]
+      def _particle_angular_momentum_y(field, data):
+          return data[ptype, "particle_mass"] * \
+                 data[ptype, "particle_specific_angular_momentum_y"]
   
 
-**Convert Function Source**
+('io', 'particle_angular_momentum_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-Metal_Fraction
-++++++++++++++
-
-   * Particle Type: False
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
+   * Particle Type: True
 
 **Field Source**
 
 .. code-block:: python
 
-  def _SpeciesFraction(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] / data["density"]
+      def _particle_angular_momentum_z(field, data):
+          return data[ptype, "particle_mass"] * \
+                 data[ptype, "particle_specific_angular_momentum_z"]
   
 
-**Convert Function Source**
-
-No source available.
-
-Metal_Mass
-++++++++++
-
-   * Units: :math:`\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesMass(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] * data["CellVolume"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-Metallicity
-+++++++++++
-
-   * Units: :math:`Z_{\rm{\odot}}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Metallicity(field, data):
-      return data["Metal_Fraction"]
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _ConvertMetallicity(data):
-      return 49.0196 # 1 / 0.0204
-  
-
-Metallicity3
-++++++++++++
-
-   * Units: :math:`Z_{\rm{\odot}}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Metallicity3(field, data):
-      return data["SN_Colour"]/data["density"]
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _ConvertMetallicity(data):
-      return 49.0196 # 1 / 0.0204
-  
-
-NumberDensity
-+++++++++++++
-
-   * Units: :math:`\rm{cm}^{-3}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _NumberDensity(field, data):
-      # We can assume that we at least have Density
-      # We should actually be guaranteeing the presence of a .shape attribute,
-      # but I am not currently implementing that
-      fieldData = np.zeros(data["density"].shape,
-                           dtype = data["density"].dtype)
-      if data.ds["MultiSpecies"] == 0:
-          if data.has_field_parameter("mu"):
-              mu = data.get_field_parameter("mu")
-          else:
-              mu = 0.6
-          fieldData += data["density"] / mu
-      if data.ds["MultiSpecies"] > 0:
-          fieldData += data["HI_Density"] / 1.0
-          fieldData += data["HII_Density"] / 1.0
-          fieldData += data["HeI_Density"] / 4.0
-          fieldData += data["HeII_Density"] / 4.0
-          fieldData += data["HeIII_Density"] / 4.0
-          fieldData += data["Electron_Density"] / 1.0
-      if data.ds["MultiSpecies"] > 1:
-          fieldData += data["HM_Density"] / 1.0
-          fieldData += data["H2I_Density"] / 2.0
-          fieldData += data["H2II_Density"] / 2.0
-      if data.ds["MultiSpecies"] > 2:
-          fieldData += data["DI_Density"] / 2.0
-          fieldData += data["DII_Density"] / 2.0
-          fieldData += data["HDI_Density"] / 3.0
-      return fieldData
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _ConvertNumberDensity(data):
-      return 1.0/mh
-  
-
-ParticleAge
-+++++++++++
+('io', 'particle_ones')
+^^^^^^^^^^^^^^^^^^^^^^^
 
    * Particle Type: True
 
@@ -4861,2188 +3083,61 @@ ParticleAge
 
 .. code-block:: python
 
-  def _ParticleAge(field, data):
-      current_time = data.ds.current_time
-      return (current_time - data["creation_time"])
+      def particle_ones(field, data):
+          v = np.ones(data[ptype, mass_name].shape, dtype="float64")
+          return data.apply_units(v, field.units)
   
 
-**Convert Function Source**
+('io', 'particle_position')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _convertParticleAge(data):
-      return data.convert("years")
-  
-
-ParticleMass
-++++++++++++
-
+   * Units: :math:`\rm{code}~\rm{length}`
    * Particle Type: True
 
 **Field Source**
 
 .. code-block:: python
 
-  def _ParticleMass(field, data):
-      particles = data["particle_mass"].astype('float64') * \
-                  just_one(data["CellVolumeCode"].ravel())
-      # Note that we mandate grid-type here, so this is okay
-      return particles
+          def particle_vectors(field, data):
+              v = [data[_ptype, name].in_units(field.units)
+                    for name in names]
+              c = np.column_stack(v)
+              return data.apply_units(c, field.units)
   
 
-**Convert Function Source**
+('io', 'particle_radial_velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _convertParticleMass(data):
-      return data.convert("density")*(data.convert("cm")**3.0)
-  
-
-ParticleMassMsun
-++++++++++++++++
-
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
 
 .. code-block:: python
 
-  def _ParticleMass(field, data):
-      particles = data["particle_mass"].astype('float64') * \
-                  just_one(data["CellVolumeCode"].ravel())
-      # Note that we mandate grid-type here, so this is okay
-      return particles
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertParticleMassMsun(data):
-      return data.convert("density")*((data.convert("cm")**3.0)/1.989e33)
-  
-
-PreShock_Fraction
-+++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesFraction(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] / data["density"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-PreShock_Mass
-+++++++++++++
-
-   * Units: :math:`\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _SpeciesMass(field, data):
-      sp = field.name.split("_")[0] + "_Density"
-      return data[sp] * data["CellVolume"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-RadiationAcceleration
-+++++++++++++++++++++
-
-   * Units: :math:`\rm{cm} \rm{s}^{-2}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _RadiationAccelerationMagnitude(field, data):
-      return ( data["RadAccel1"]**2 + data["RadAccel2"]**2 +
-               data["RadAccel3"]**2 )**(1.0/2.0)
-  
-
-**Convert Function Source**
-
-No source available.
-
-StarAgeYears
-++++++++++++
-
-   * Units: :math:`\rm{yr}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _StarAge(field, data):
-      star_age = np.zeros(data['StarCreationTimeYears'].shape)
-      with_stars = data['StarCreationTimeYears'] > 0
-      star_age[with_stars] = data.ds.time_units['years'] * \
-          data.ds.current_time - \
-          data['StarCreationTimeYears'][with_stars]
-      return star_age
-  
-
-**Convert Function Source**
-
-No source available.
-
-StarCreationTimeYears
-+++++++++++++++++++++
-
-   * Units: :math:`\rm{yr}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _StarCreationTime(field, data):
-      return data['star_creation_time']
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _ConvertEnzoTimeYears(data):
-      return data.ds.time_units['years']
-  
-
-StarDynamicalTimeYears
-++++++++++++++++++++++
-
-   * Units: :math:`\rm{yr}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _StarDynamicalTime(field, data):
-      return data['star_dynamical_time']
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _ConvertEnzoTimeYears(data):
-      return data.ds.time_units['years']
-  
-
-StarMetallicity
-+++++++++++++++
-
-   * Units: :math:`Z_{\rm{\odot}}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _StarMetallicity(field, data):
-      return data['star_metallicity_fraction']
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _ConvertMetallicity(data):
-      return 49.0196 # 1 / 0.0204
-  
-
-ThermalEnergy
-+++++++++++++
-
-   * Units: :math:`\rm{ergs}/\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ThermalEnergy(field, data):
-      if data.ds["HydroMethod"] == 2:
-          return data["TotalEnergy"]
-      
-      if data.ds["DualEnergyFormalism"]:
-          return data["GasEnergy"]
-  
-      if data.ds["HydroMethod"] in (4,6):
-          return data["TotalEnergy"] - 0.5*(
-              data["x-velocity"]**2.0
-              + data["y-velocity"]**2.0
-              + data["z-velocity"]**2.0 ) \
-              - data["MagneticEnergy"]/data["density"]
-  
-      return data["TotalEnergy"] - 0.5*(
-          data["x-velocity"]**2.0
-          + data["y-velocity"]**2.0
-          + data["z-velocity"]**2.0 )
-  
-
-**Convert Function Source**
-
-No source available.
-
-TotalEnergy
-+++++++++++
-
-   * Units: :math:`\rm{ergs}/\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _TotalEnergy(field, data):
-      return data["Total_Energy"] / _convertEnergy(data)
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertEnergy(data):
-      return data.convert("x-velocity")**2.0
-  
-
-Total_Energy
-++++++++++++
-
-   * Units: :math:`\rm{ergs}/\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Total_Energy(field, data):
-      return data["TotalEnergy"] / _convertEnergy(data)
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertEnergy(data):
-      return data.convert("x-velocity")**2.0
-  
-
-cic_particle_velocity_x
-+++++++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _cic_particle_field(field, data):
-      """
-      Create a grid field for particle quantities weighted by particle mass, 
-      using cloud-in-cell deposit.
-      """
-      particle_field = field.name[4:]
-      top = np.zeros(data.ActiveDimensions, dtype='float64')
-      if data["particle_position_x"].size == 0: return top
-      particle_field_data = data[particle_field] * data['particle_mass']
-      amr_utils.CICDeposit_3(data["particle_position_x"].astype(np.float64),
-                             data["particle_position_y"].astype(np.float64),
-                             data["particle_position_z"].astype(np.float64),
-                             particle_field_data,
-                             data["particle_position_x"].size,
-                             top, np.array(data.LeftEdge).astype(np.float64),
-                             np.array(data.ActiveDimensions).astype(np.int32), 
-                             np.float64(data['dx']))
-      del particle_field_data
-  
-      bottom = np.zeros(data.ActiveDimensions, dtype='float64')
-      amr_utils.CICDeposit_3(data["particle_position_x"].astype(np.float64),
-                             data["particle_position_y"].astype(np.float64),
-                             data["particle_position_z"].astype(np.float64),
-                             data["particle_mass"],
-                             data["particle_position_x"].size,
-                             bottom, np.array(data.LeftEdge).astype(np.float64),
-                             np.array(data.ActiveDimensions).astype(np.int32), 
-                             np.float64(data['dx']))
-      top[bottom == 0] = 0.0
-      bnz = bottom.nonzero()
-      top[bnz] /= bottom[bnz]
-      return top
-  
-
-**Convert Function Source**
-
-No source available.
-
-cic_particle_velocity_y
-+++++++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _cic_particle_field(field, data):
-      """
-      Create a grid field for particle quantities weighted by particle mass, 
-      using cloud-in-cell deposit.
-      """
-      particle_field = field.name[4:]
-      top = np.zeros(data.ActiveDimensions, dtype='float64')
-      if data["particle_position_x"].size == 0: return top
-      particle_field_data = data[particle_field] * data['particle_mass']
-      amr_utils.CICDeposit_3(data["particle_position_x"].astype(np.float64),
-                             data["particle_position_y"].astype(np.float64),
-                             data["particle_position_z"].astype(np.float64),
-                             particle_field_data,
-                             data["particle_position_x"].size,
-                             top, np.array(data.LeftEdge).astype(np.float64),
-                             np.array(data.ActiveDimensions).astype(np.int32), 
-                             np.float64(data['dx']))
-      del particle_field_data
-  
-      bottom = np.zeros(data.ActiveDimensions, dtype='float64')
-      amr_utils.CICDeposit_3(data["particle_position_x"].astype(np.float64),
-                             data["particle_position_y"].astype(np.float64),
-                             data["particle_position_z"].astype(np.float64),
-                             data["particle_mass"],
-                             data["particle_position_x"].size,
-                             bottom, np.array(data.LeftEdge).astype(np.float64),
-                             np.array(data.ActiveDimensions).astype(np.int32), 
-                             np.float64(data['dx']))
-      top[bottom == 0] = 0.0
-      bnz = bottom.nonzero()
-      top[bnz] /= bottom[bnz]
-      return top
-  
-
-**Convert Function Source**
-
-No source available.
-
-cic_particle_velocity_z
-+++++++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _cic_particle_field(field, data):
-      """
-      Create a grid field for particle quantities weighted by particle mass, 
-      using cloud-in-cell deposit.
-      """
-      particle_field = field.name[4:]
-      top = np.zeros(data.ActiveDimensions, dtype='float64')
-      if data["particle_position_x"].size == 0: return top
-      particle_field_data = data[particle_field] * data['particle_mass']
-      amr_utils.CICDeposit_3(data["particle_position_x"].astype(np.float64),
-                             data["particle_position_y"].astype(np.float64),
-                             data["particle_position_z"].astype(np.float64),
-                             particle_field_data,
-                             data["particle_position_x"].size,
-                             top, np.array(data.LeftEdge).astype(np.float64),
-                             np.array(data.ActiveDimensions).astype(np.int32), 
-                             np.float64(data['dx']))
-      del particle_field_data
-  
-      bottom = np.zeros(data.ActiveDimensions, dtype='float64')
-      amr_utils.CICDeposit_3(data["particle_position_x"].astype(np.float64),
-                             data["particle_position_y"].astype(np.float64),
-                             data["particle_position_z"].astype(np.float64),
-                             data["particle_mass"],
-                             data["particle_position_x"].size,
-                             bottom, np.array(data.LeftEdge).astype(np.float64),
-                             np.array(data.ActiveDimensions).astype(np.int32), 
-                             np.float64(data['dx']))
-      top[bottom == 0] = 0.0
-      bnz = bottom.nonzero()
-      top[bnz] /= bottom[bnz]
-      return top
-  
-
-**Convert Function Source**
-
-No source available.
-
-dm_density
-++++++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^3`
-   * Projected Units: :math:`\rm{g}/\rm{cm}^2`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _dmpdensity(field, data):
-      blank = np.zeros(data.ActiveDimensions, dtype='float64')
-      if data["particle_position_x"].size == 0: return blank
-      if 'creation_time' in data.ds.field_info:
-          filter = data['creation_time'] <= 0.0
-          if not filter.any(): return blank
-          num = filter.sum()
-      else:
-          filter = Ellipsis
-          num = data["particle_position_x"].size
-      amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
-                             data["particle_position_y"][filter].astype(np.float64),
-                             data["particle_position_z"][filter].astype(np.float64),
-                             data["particle_mass"][filter],
-                             num,
-                             blank, np.array(data.LeftEdge).astype(np.float64),
-                             np.array(data.ActiveDimensions).astype(np.int32), 
-                             np.float64(data['dx']))
-      return blank
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertDensity(data):
-      return data.convert("density")
-  
-
-particle_mass
-+++++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          try:
-              return io._read_data_set(data, p_field).astype(dtype)
-          except io._read_exception:
-              pass
-          # This is bad.  But it's the best idea I have right now.
-          return data._read_data(p_field.replace("_"," ")).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-star_creation_time
-++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _star_field(field, data):
-      """
-      Create a grid field for star quantities, weighted by star mass.
-      """
-      particle_field = field.name[5:]
-      top = np.zeros(data.ActiveDimensions, dtype='float64')
-      if data["particle_position_x"].size == 0: return top
-      filter = data['creation_time'] > 0.0
-      if not filter.any(): return top
-      particle_field_data = data[particle_field][filter] * data['particle_mass'][filter]
-      amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
-                            data["particle_position_y"][filter].astype(np.float64),
-                            data["particle_position_z"][filter].astype(np.float64),
-                            particle_field_data,
-                            np.int64(np.where(filter)[0].size),
-                            top, np.array(data.LeftEdge).astype(np.float64),
-                            np.array(data.ActiveDimensions).astype(np.int32), 
-                            np.float64(data['dx']))
-      del particle_field_data
-  
-      bottom = np.zeros(data.ActiveDimensions, dtype='float64')
-      amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
-                            data["particle_position_y"][filter].astype(np.float64),
-                            data["particle_position_z"][filter].astype(np.float64),
-                            data["particle_mass"][filter],
-                            np.int64(np.where(filter)[0].size),
-                            bottom, np.array(data.LeftEdge).astype(np.float64),
-                            np.array(data.ActiveDimensions).astype(np.int32), 
-                            np.float64(data['dx']))
-      top[bottom == 0] = 0.0
-      bnz = bottom.nonzero()
-      top[bnz] /= bottom[bnz]
-      return top
-  
-
-**Convert Function Source**
-
-No source available.
-
-star_density
-++++++++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^3`
-   * Projected Units: :math:`\rm{g}/\rm{cm}^2`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _spdensity(field, data):
-      blank = np.zeros(data.ActiveDimensions, dtype='float64')
-      if data["particle_position_x"].size == 0: return blank
-      filter = data['creation_time'] > 0.0
-      if not filter.any(): return blank
-      amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
-                             data["particle_position_y"][filter].astype(np.float64),
-                             data["particle_position_z"][filter].astype(np.float64),
-                             data["particle_mass"][filter],
-                             np.int64(np.where(filter)[0].size),
-                             blank, np.array(data.LeftEdge).astype(np.float64),
-                             np.array(data.ActiveDimensions).astype(np.int32), 
-                             np.float64(data['dx']))
-      return blank
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertDensity(data):
-      return data.convert("density")
-  
-
-star_dynamical_time
-+++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _star_field(field, data):
-      """
-      Create a grid field for star quantities, weighted by star mass.
-      """
-      particle_field = field.name[5:]
-      top = np.zeros(data.ActiveDimensions, dtype='float64')
-      if data["particle_position_x"].size == 0: return top
-      filter = data['creation_time'] > 0.0
-      if not filter.any(): return top
-      particle_field_data = data[particle_field][filter] * data['particle_mass'][filter]
-      amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
-                            data["particle_position_y"][filter].astype(np.float64),
-                            data["particle_position_z"][filter].astype(np.float64),
-                            particle_field_data,
-                            np.int64(np.where(filter)[0].size),
-                            top, np.array(data.LeftEdge).astype(np.float64),
-                            np.array(data.ActiveDimensions).astype(np.int32), 
-                            np.float64(data['dx']))
-      del particle_field_data
-  
-      bottom = np.zeros(data.ActiveDimensions, dtype='float64')
-      amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
-                            data["particle_position_y"][filter].astype(np.float64),
-                            data["particle_position_z"][filter].astype(np.float64),
-                            data["particle_mass"][filter],
-                            np.int64(np.where(filter)[0].size),
-                            bottom, np.array(data.LeftEdge).astype(np.float64),
-                            np.array(data.ActiveDimensions).astype(np.int32), 
-                            np.float64(data['dx']))
-      top[bottom == 0] = 0.0
-      bnz = bottom.nonzero()
-      top[bnz] /= bottom[bnz]
-      return top
-  
-
-**Convert Function Source**
-
-No source available.
-
-star_metallicity_fraction
-+++++++++++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _star_field(field, data):
-      """
-      Create a grid field for star quantities, weighted by star mass.
-      """
-      particle_field = field.name[5:]
-      top = np.zeros(data.ActiveDimensions, dtype='float64')
-      if data["particle_position_x"].size == 0: return top
-      filter = data['creation_time'] > 0.0
-      if not filter.any(): return top
-      particle_field_data = data[particle_field][filter] * data['particle_mass'][filter]
-      amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
-                            data["particle_position_y"][filter].astype(np.float64),
-                            data["particle_position_z"][filter].astype(np.float64),
-                            particle_field_data,
-                            np.int64(np.where(filter)[0].size),
-                            top, np.array(data.LeftEdge).astype(np.float64),
-                            np.array(data.ActiveDimensions).astype(np.int32), 
-                            np.float64(data['dx']))
-      del particle_field_data
-  
-      bottom = np.zeros(data.ActiveDimensions, dtype='float64')
-      amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
-                            data["particle_position_y"][filter].astype(np.float64),
-                            data["particle_position_z"][filter].astype(np.float64),
-                            data["particle_mass"][filter],
-                            np.int64(np.where(filter)[0].size),
-                            bottom, np.array(data.LeftEdge).astype(np.float64),
-                            np.array(data.ActiveDimensions).astype(np.int32), 
-                            np.float64(data['dx']))
-      top[bottom == 0] = 0.0
-      bnz = bottom.nonzero()
-      top[bnz] /= bottom[bnz]
-      return top
-  
-
-**Convert Function Source**
-
-No source available.
-
-tracer_number_density
-+++++++++++++++++++++
-
-   * Units: :math:`\rm{particles}/\rm{kpc}^3`
-   * Projected Units: :math:`\rm{particles}/\rm{kpc}^2`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _tpdensity(field, data): 
-      blank = np.zeros(data.ActiveDimensions, dtype='float64')
-      if data["particle_position_x"].size == 0: return blank
-      filter = data['particle_type'] == 3 # tracer particles
-      if not filter.any(): return blank
-      amr_utils.CICDeposit_3(data["particle_position_x"][filter].astype(np.float64),
-                             data["particle_position_y"][filter].astype(np.float64),
-                             data["particle_position_z"][filter].astype(np.float64),
-                             np.ones(filter.sum(), dtype="float64"),
-                             np.int64(np.where(filter)[0].size),
-                             blank, np.array(data.LeftEdge).astype(np.float64),
-                             np.array(data.ActiveDimensions).astype(np.int32), 
-                             np.float64(data['dx']))
-      blank /= data['CellVolume']
-      return blank
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertCmToKpc(data):
-      return 1/(kpc_per_cm)**3
-  
-
-Orion-Specific Field List
--------------------------
-
-Density
-+++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^3`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-ParticleMass
-++++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ParticleMass(field, data):
-      particles = data["particle_mass"].astype('float64')
-      return particles
-  
-
-**Convert Function Source**
-
-No source available.
-
-ParticleMassMsun
-++++++++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ParticleMassMsun(field, data):
-      particles = data["particle_mass"].astype('float64')
-      return particles/1.989e33
-  
-
-**Convert Function Source**
-
-No source available.
-
-Pressure
-++++++++
-
-   * Units: :math:`\rm{dyne}/\rm{cm}^{2}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Pressure(field,data):
-      """M{(Gamma-1.0)*e, where e is thermal energy density
-         NB: this will need to be modified for radiation
-      """
-      return (data.ds["Gamma"] - 1.0)*data["ThermalEnergy"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-Temperature
-+++++++++++
-
-   * Units: :math:`\rm{Kelvin}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Temperature(field,data):
-      return (data.ds["Gamma"]-1.0)*data.ds["mu"]*mh*data["ThermalEnergy"]/(kboltz*data["density"])
-  
-
-**Convert Function Source**
-
-No source available.
-
-ThermalEnergy
-+++++++++++++
-
-   * Units: :math:`\rm{ergs}/\rm{cm^3}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ThermalEnergy(field, data):
-      """generate thermal (gas energy). Dual Energy Formalism was
-          implemented by Stella, but this isn't how it's called, so I'll
-          leave that commented out for now.
-      """
-      #if data.ds["DualEnergyFormalism"]:
-      #    return data["GasEnergy"]
-      #else:
-      return data["TotalEnergy"] - 0.5 * data["density"] * (
-          data["x-velocity"]**2.0
-          + data["y-velocity"]**2.0
-          + data["z-velocity"]**2.0 )
-  
-
-**Convert Function Source**
-
-No source available.
-
-TotalEnergy
-+++++++++++
-
-   * Units: :math:`\rm{erg}/\rm{cm}^3`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_angmomen_x
-+++++++++++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_angmomen_y
-+++++++++++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_angmomen_z
-+++++++++++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_burnstate
-++++++++++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_id
-+++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_luminosity
-+++++++++++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_mass
-+++++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_mdeut
-++++++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_mdot
-+++++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_mlast
-++++++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_momentum_x
-+++++++++++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_momentum_y
-+++++++++++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_momentum_z
-+++++++++++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_n
-++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_position_x
-+++++++++++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_position_y
-+++++++++++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_position_z
-+++++++++++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_r
-++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-x-momentum
-++++++++++
-
-   * Units: :math:`\rm{g}/\rm{cm^2\ s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-x-velocity
-++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-y-momentum
-++++++++++
-
-   * Units: :math:`\rm{gm}/\rm{cm^2\ s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-y-velocity
-++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-z-momentum
-++++++++++
-
-   * Units: :math:`\rm{g}/\rm{cm^2\ s}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-z-velocity
-++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-FLASH-Specific Field List
--------------------------
-
-Bx
-++
-
-   * Units: :math:`\rm{Gauss}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Bx(fields, data):
-      factor = GetMagRescalingFactor(data.ds)
-      return data['magx']*factor
-  
-
-**Convert Function Source**
-
-No source available.
-
-By
-++
-
-   * Units: :math:`\rm{Gauss}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _By(fields, data):
-      factor = GetMagRescalingFactor(data.ds)
-      return data['magy']*factor
-  
-
-**Convert Function Source**
-
-No source available.
-
-Bz
-++
-
-   * Units: :math:`\rm{Gauss}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Bz(fields, data):
-      factor = GetMagRescalingFactor(data.ds)
-      return data['magz']*factor
-  
-
-**Convert Function Source**
-
-No source available.
-
-DII_Density
-+++++++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^{3}`
-   * Projected Units: :math:`\rm{g}/\rm{cm}^{2}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _dens(field, data):
-          return data[fname] * data['density']
-  
-
-**Convert Function Source**
-
-No source available.
-
-DII_Fraction
-++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-DI_Density
-++++++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^{3}`
-   * Projected Units: :math:`\rm{g}/\rm{cm}^{2}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _dens(field, data):
-          return data[fname] * data['density']
-  
-
-**Convert Function Source**
-
-No source available.
-
-DI_Fraction
-+++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-Density
-+++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^{3}`
-   * Projected Units: :math:`\rm{g}/\rm{cm}^{2}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-DivB
-++++
-
-   * Units: :math:`\rm{Gauss}\/\rm{cm}^{-1}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _DivB(fields, data):
-      factor = GetMagRescalingFactor(data.ds)
-      return data['divb']*factor
-  
-
-**Convert Function Source**
-
-No source available.
-
-Electron_Density
-++++++++++++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^{3}`
-   * Projected Units: :math:`\rm{g}/\rm{cm}^{2}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _dens(field, data):
-          return data[fname] * data['density']
-  
-
-**Convert Function Source**
-
-No source available.
-
-Electron_Fraction
-+++++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-Flame_Density
-+++++++++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^{3}`
-   * Projected Units: :math:`\rm{g}/\rm{cm}^{2}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _dens(field, data):
-          return data[fname] * data['density']
-  
-
-**Convert Function Source**
-
-No source available.
-
-Flame_Fraction
-++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-GasEnergy
-+++++++++
-
-   * Units: :math:`\rm{ergs}/\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _GasEnergy(fields, data) :
-      return data["ThermalEnergy"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-Grav_Potential
-++++++++++++++
-
-   * Units: :math:`\rm{ergs}/\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-H2II_Density
-++++++++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^{3}`
-   * Projected Units: :math:`\rm{g}/\rm{cm}^{2}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _dens(field, data):
-          return data[fname] * data['density']
-  
-
-**Convert Function Source**
-
-No source available.
-
-H2II_Fraction
-+++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-H2I_Density
-+++++++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^{3}`
-   * Projected Units: :math:`\rm{g}/\rm{cm}^{2}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _dens(field, data):
-          return data[fname] * data['density']
-  
-
-**Convert Function Source**
-
-No source available.
-
-H2I_Fraction
-++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-HD_Density
-++++++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^{3}`
-   * Projected Units: :math:`\rm{g}/\rm{cm}^{2}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _dens(field, data):
-          return data[fname] * data['density']
-  
-
-**Convert Function Source**
-
-No source available.
-
-HD_Fraction
-+++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-HII_Density
-+++++++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^{3}`
-   * Projected Units: :math:`\rm{g}/\rm{cm}^{2}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _dens(field, data):
-          return data[fname] * data['density']
-  
-
-**Convert Function Source**
-
-No source available.
-
-HII_Fraction
-++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-HI_Density
-++++++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^{3}`
-   * Projected Units: :math:`\rm{g}/\rm{cm}^{2}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _dens(field, data):
-          return data[fname] * data['density']
-  
-
-**Convert Function Source**
-
-No source available.
-
-HI_Fraction
-+++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-HM_Density
-++++++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^{3}`
-   * Projected Units: :math:`\rm{g}/\rm{cm}^{2}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _dens(field, data):
-          return data[fname] * data['density']
-  
-
-**Convert Function Source**
-
-No source available.
-
-HM_Fraction
-+++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-HeIII_Density
-+++++++++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^{3}`
-   * Projected Units: :math:`\rm{g}/\rm{cm}^{2}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _dens(field, data):
-          return data[fname] * data['density']
-  
-
-**Convert Function Source**
-
-No source available.
-
-HeIII_Fraction
-++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-HeII_Density
-++++++++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^{3}`
-   * Projected Units: :math:`\rm{g}/\rm{cm}^{2}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _dens(field, data):
-          return data[fname] * data['density']
-  
-
-**Convert Function Source**
-
-No source available.
-
-HeII_Fraction
-+++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-HeI_Density
-+++++++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^{3}`
-   * Projected Units: :math:`\rm{g}/\rm{cm}^{2}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _dens(field, data):
-          return data[fname] * data['density']
-  
-
-**Convert Function Source**
-
-No source available.
-
-HeI_Fraction
-++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-NumberDensity
-+++++++++++++
-
-   * Units: :math:`\rm{cm}^{-3}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _NumberDensity(fields,data) :
-      try:
-          return data["nele"]+data["nion"]
-      except:
-          pass
-      return data['pres']/(data['temp']*kboltz)
-  
-
-**Convert Function Source**
-
-No source available.
-
-ParticleMass
-++++++++++++
-
-   * Units: :math:`\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-ParticleMassMsun
-++++++++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ParticleMassMsun(field, data):
-      return data["ParticleMass"]
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertParticleMassMsun(data):
-      return 1.0/1.989e33
-  
-
-Pressure
-++++++++
-
-   * Units: :math:`\rm{erg}/\rm{cm}^{3}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-Temperature
-+++++++++++
-
-   * Units: :math:`\rm{K}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-ThermalEnergy
-+++++++++++++
-
-   * Units: :math:`\rm{ergs}/\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _ThermalEnergy(fields, data) :
-      try:
-          return data["eint"]
-      except:
-          pass
-      try:
-          return data["Pressure"] / (data.ds["Gamma"] - 1.0) / data["density"]
-      except:
-          pass
-      if data.has_field_parameter("mu") :
-          mu = data.get_field_parameter("mu")
-      else:
-          mu = 0.6
-      return kboltz*data["density"]*data["Temperature"]/(mu*mh) / (data.ds["Gamma"] - 1.0)
-  
-
-**Convert Function Source**
-
-No source available.
-
-TotalEnergy
-+++++++++++
-
-   * Units: :math:`\rm{ergs}/\rm{g}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _TotalEnergy(fields, data) :
-      try:
-          etot = data["ener"]
-      except:
-          etot = data["ThermalEnergy"] + 0.5 * (
-              data["x-velocity"]**2.0 +
-              data["y-velocity"]**2.0 +
-              data["z-velocity"]**2.0)
-      try:
-          etot += data['magp']/data["density"]
-      except:
-          pass
-      return etot
-  
-
-**Convert Function Source**
-
-No source available.
-
-abar
-++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _abar(field, data):
-      try:
-          return 1.0 / data['sumy']
-      except:
-          pass
-      return data['dens']*Na*kboltz*data['temp']/data['pres']
-  
-
-**Convert Function Source**
-
-No source available.
-
-edens
-+++++
-
-   * Units: :math:`\rm{cm}^{-3}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _nele(field, data):
-      return data['dens'] * data['ye'] * Na
-  
-
-**Convert Function Source**
-
-No source available.
-
-nele
-++++
-
-   * Units: :math:`\rm{cm}^{-3}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _nele(field, data):
-      return data['dens'] * data['ye'] * Na
-  
-
-**Convert Function Source**
-
-No source available.
-
-nion
-++++
-
-   * Units: :math:`\rm{cm}^{-3}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _nion(field, data):
-      return data['dens'] * data['sumy'] * Na
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_index
-++++++++++++++
-
-   * Particle Type: True
-
-**Field Source**
-
-.. code-block:: python
-
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_position_x
-+++++++++++++++++++
+      def _particle_spherical_velocity_radius(field, data):
+          """
+          Radial component of the particles' velocity vectors in spherical coords
+          based on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          vel = svel
+          vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          vel = vel - np.reshape(bv, (3, 1))
+          sphr = get_sph_r_component(vel, theta, phi, normal)
+          return sphr
+  
+
+('io', 'particle_radius')
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
    * Units: :math:`\rm{cm}`
    * Particle Type: True
@@ -7051,16 +3146,126 @@ particle_position_x
 
 .. code-block:: python
 
-      def _TranslationFunc(field, data):
-          return data[field_name]
+      def _particle_radius(field, data):
+          return get_radius(data, "particle_position_")
   
 
-**Convert Function Source**
+('io', 'particle_specific_angular_momentum')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: True
 
-particle_position_y
-+++++++++++++++++++
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_specific_angular_momentum(field, data):
+          """
+          Calculate the angular of a particle velocity.  Returns a vector for each
+          particle.
+          """
+          if data.has_field_parameter("bulk_velocity"):
+              bv = data.get_field_parameter("bulk_velocity")
+          else: bv = np.zeros(3, dtype=np.float64)
+          xv = data[ptype, svel % 'x'] - bv[0]
+          yv = data[ptype, svel % 'y'] - bv[1]
+          zv = data[ptype, svel % 'z'] - bv[2]
+          center = data.get_field_parameter('center')
+          coords = YTArray([data[ptype, spos % 'x'],
+                             data[ptype, spos % 'y'],
+                             data[ptype, spos % 'z']], dtype=np.float64)
+          new_shape = tuple([3] + [1]*(len(coords.shape)-1))
+          r_vec = coords - np.reshape(center,new_shape)
+          v_vec = YTArray([xv,yv,zv], dtype=np.float64)
+          return np.cross(r_vec, v_vec, axis=0)
+  
+
+('io', 'particle_specific_angular_momentum_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _magnitude(field, data):
+          mag  = data[xn] * data[xn]
+          mag += data[yn] * data[yn]
+          mag += data[zn] * data[zn]
+          return np.sqrt(mag)
+  
+
+('io', 'particle_specific_angular_momentum_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_specific_angular_momentum_x(field, data):
+          if data.has_field_parameter("bulk_velocity"):
+              bv = data.get_field_parameter("bulk_velocity")
+          else: bv = np.zeros(3, dtype=np.float64)
+          center = data.get_field_parameter('center')
+          y = data[ptype, spos % "y"] - center[1]
+          z = data[ptype, spos % "z"] - center[2]
+          yv = data[ptype, svel % "y"] - bv[1]
+          zv = data[ptype, svel % "z"] - bv[2]
+          return yv*z - zv*y
+  
+
+('io', 'particle_specific_angular_momentum_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_specific_angular_momentum_y(field, data):
+          if data.has_field_parameter("bulk_velocity"):
+              bv = data.get_field_parameter("bulk_velocity")
+          else: bv = np.zeros(3, dtype=np.float64)
+          center = data.get_field_parameter('center')
+          x = data[ptype, spos % "x"] - center[0]
+          z = data[ptype, spos % "z"] - center[2]
+          xv = data[ptype, svel % "x"] - bv[0]
+          zv = data[ptype, svel % "z"] - bv[2]
+          return -(xv*z - zv*x)
+  
+
+('io', 'particle_specific_angular_momentum_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_specific_angular_momentum_z(field, data):
+          if data.has_field_parameter("bulk_velocity"):
+              bv = data.get_field_parameter("bulk_velocity")
+          else: bv = np.zeros(3, dtype=np.float64)
+          center = data.get_field_parameter('center')
+          x = data[ptype, spos % "x"] - center[0]
+          y = data[ptype, spos % "y"] - center[1]
+          xv = data[ptype, svel % "x"] - bv[0]
+          yv = data[ptype, svel % "y"] - bv[1]
+          return xv*y - yv*x
+  
+
+('io', 'particle_spherical_position_phi')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    * Units: :math:`\rm{cm}`
    * Particle Type: True
@@ -7069,16 +3274,26 @@ particle_position_y
 
 .. code-block:: python
 
-      def _TranslationFunc(field, data):
-          return data[field_name]
+      def _particle_spherical_position_phi(field, data):
+          """
+          Phi component of the particles' position vectors in spherical coords
+          on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          sphp = get_sph_phi_component(pos, phi, normal)
+          return sphp
   
 
-**Convert Function Source**
-
-No source available.
-
-particle_position_z
-+++++++++++++++++++
+('io', 'particle_spherical_position_radius')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    * Units: :math:`\rm{cm}`
    * Particle Type: True
@@ -7087,1305 +3302,3444 @@ particle_position_z
 
 .. code-block:: python
 
-      def _TranslationFunc(field, data):
-          return data[field_name]
+      def _particle_spherical_position_radius(field, data):
+          """
+          Radial component of the particles' position vectors in spherical coords
+          on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          sphr = get_sph_r_component(pos, theta, phi, normal)
+          return sphr
   
 
-**Convert Function Source**
+('io', 'particle_spherical_position_theta')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-particle_velocity_x
-+++++++++++++++++++
-
-   * Units: :math:`\rm{cm}/\rm{s}`
+   * Units: :math:`\rm{cm}`
    * Particle Type: True
 
 **Field Source**
 
 .. code-block:: python
 
-      def _TranslationFunc(field, data):
-          return data[field_name]
+      def _particle_spherical_position_theta(field, data):
+          """
+          Theta component of the particles' position vectors in spherical coords
+          on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          spht = get_sph_theta_component(pos, theta, phi, normal)
+          return spht
   
 
-**Convert Function Source**
+('io', 'particle_spherical_velocity_phi')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-particle_velocity_y
-+++++++++++++++++++
-
-   * Units: :math:`\rm{cm}/\rm{s}`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
 
 .. code-block:: python
 
-      def _TranslationFunc(field, data):
-          return data[field_name]
+      def _particle_spherical_velocity_phi(field, data):
+          """
+          Phi component of the particles' velocity vectors in spherical coords
+          based on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = YTArray([data[ptype, spos % ax] for ax in "xyz"])
+          vel = YTArray([data[ptype, svel % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          vel = vel - np.reshape(bv, (3, 1))
+          sphp = get_sph_phi_component(vel, phi, normal)
+          return sphp
   
 
-**Convert Function Source**
+('io', 'particle_spherical_velocity_radius')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-particle_velocity_z
-+++++++++++++++++++
-
-   * Units: :math:`\rm{cm}/\rm{s}`
+   * Units: :math:`\rm{cm} / \rm{s}`
    * Particle Type: True
 
 **Field Source**
 
 .. code-block:: python
 
-      def _TranslationFunc(field, data):
-          return data[field_name]
+      def _particle_spherical_velocity_radius(field, data):
+          """
+          Radial component of the particles' velocity vectors in spherical coords
+          based on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          vel = svel
+          vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          vel = vel - np.reshape(bv, (3, 1))
+          sphr = get_sph_r_component(vel, theta, phi, normal)
+          return sphr
   
 
-**Convert Function Source**
+('io', 'particle_spherical_velocity_theta')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-x-velocity
-++++++++++
-
-   * Units: :math:`\rm{cm}/\rm{s}`
-   * Particle Type: False
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
 
 **Field Source**
 
 .. code-block:: python
 
-      def _TranslationFunc(field, data):
-          return data[field_name]
+      def _particle_spherical_velocity_theta(field, data):
+          """
+          Theta component of the particles' velocity vectors in spherical coords
+          based on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          vel = svel
+          vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          vel = vel - np.reshape(bv, (3, 1))
+          spht = get_sph_theta_component(vel, theta, phi, normal)
+          return spht
   
 
-**Convert Function Source**
+('io', 'particle_velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-y-velocity
-++++++++++
-
-   * Units: :math:`\rm{cm}/\rm{s}`
-   * Particle Type: False
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
 
 **Field Source**
 
 .. code-block:: python
 
-      def _TranslationFunc(field, data):
-          return data[field_name]
+          def particle_vectors(field, data):
+              v = [data[_ptype, name].in_units(field.units)
+                    for name in names]
+              c = np.column_stack(v)
+              return data.apply_units(c, field.units)
   
 
-**Convert Function Source**
+('io', 'particle_velocity_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
-
-z-velocity
-++++++++++
-
-   * Units: :math:`\rm{cm}/\rm{s}`
-   * Particle Type: False
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
 
 **Field Source**
 
 .. code-block:: python
 
-      def _TranslationFunc(field, data):
-          return data[field_name]
+      def _particle_velocity_magnitude(field, data):
+          """ M{|v|} """
+          bulk_velocity = data.get_field_parameter("bulk_velocity")
+          if bulk_velocity is None:
+              bulk_velocity = np.zeros(3)
+          return np.sqrt((data[ptype, svel % 'x'] - bulk_velocity[0])**2
+                       + (data[ptype, svel % 'y'] - bulk_velocity[1])**2
+                       + (data[ptype, svel % 'z'] - bulk_velocity[2])**2 )
   
 
-**Convert Function Source**
+.. _ART_specific_fields:
 
-No source available.
+ART-Specific Fields
+-------------------
 
-Athena-Specific Field List
---------------------------
+('art', 'Density')
+^^^^^^^^^^^^^^^^^^
 
-Bx
-++
-
-   * Units: :math:`\rm{Gauss}`
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
+   * Aliased to: ``density``
    * Particle Type: False
 
-**Field Source**
+('art', 'TotalEnergy')
+^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _Bx(field, data):
-      return data['cell_centered_B_x']
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertBfield(data):
-          return np.sqrt(4*np.pi*data.convert("density")*data.convert("x-velocity")**2)
-  
-
-By
-++
-
-   * Units: :math:`\rm{Gauss}`
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}} \cdot \rm{code}~\rm{velocity}^{2}}`
+   * Aliased to: ``total_energy``
    * Particle Type: False
 
-**Field Source**
+('art', 'XMomentumDensity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _By(field, data):
-      return data['cell_centered_B_y']
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertBfield(data):
-          return np.sqrt(4*np.pi*data.convert("density")*data.convert("x-velocity")**2)
-  
-
-Bz
-++
-
-   * Units: :math:`\rm{Gauss}`
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
+   * Aliased to: ``momentum_x``
    * Particle Type: False
 
-**Field Source**
+('art', 'YMomentumDensity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _Bz(field, data):
-      return data['cell_centered_B_z']
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertBfield(data):
-          return np.sqrt(4*np.pi*data.convert("density")*data.convert("x-velocity")**2)
-  
-
-Density
-+++++++
-
-   * Units: :math:`\rm{g}/\rm{cm}^3`
-   * Projected Units: :math:`\rm{g}/\rm{cm}^2`
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
+   * Aliased to: ``momentum_y``
    * Particle Type: False
 
-**Field Source**
+('art', 'ZMomentumDensity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _density(field, data) :
-      return data["density"]
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertDensity(data) :
-      return data.convert("density")
-  
-
-Gas_Energy
-++++++++++
-
-   * Units: :math:`\rm{erg}/\rm{g}`
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
+   * Aliased to: ``momentum_z``
    * Particle Type: False
 
-**Field Source**
+('art', 'Pressure')
+^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _gasenergy(field, data) :
-      if "pressure" in data.ds.field_info:
-          return data["pressure"]/(data.ds["Gamma"]-1.0)/data["density"]
-      else:
-          eint = data["total_energy"] - 0.5*(data["momentum_x"]**2 +
-                                             data["momentum_y"]**2 +
-                                             data["momentum_z"]**2)/data["density"]
-          if "cell_centered_B_x" in data.ds.field_info:
-              eint -= 0.5*(data["cell_centered_B_x"]**2 +
-                           data["cell_centered_B_y"]**2 +
-                           data["cell_centered_B_z"]**2)
-          return eint/data["density"]
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertEnergy(data) :
-      return data.convert("x-velocity")**2
-  
-
-Pressure
-++++++++
-
-   * Units: :math:`\rm{erg}/\rm{cm}^3`
-   * Projected Units: :math:`\rm{erg}/\rm{cm}^2`
+   * Aliased to: ``pressure``
    * Particle Type: False
 
-**Field Source**
+('art', 'Gamma')
+^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _pressure(field, data) :
-      if "pressure" in data.ds.field_info:
-          return data["pressure"]
-      else:
-          eint = data["total_energy"] - 0.5*(data["momentum_x"]**2 +
-                                             data["momentum_y"]**2 +
-                                             data["momentum_z"]**2)/data["density"]
-          if "cell_centered_B_x" in data.ds.field_info:
-              eint -= 0.5*(data["cell_centered_B_x"]**2 +
-                           data["cell_centered_B_y"]**2 +
-                           data["cell_centered_B_z"]**2)
-          return eint*(data.ds["Gamma"]-1.0)
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertPressure(data) :
-      return data.convert("density")*data.convert("x-velocity")**2
-  
-
-Temperature
-+++++++++++
-
-   * Units: :math:`\rm{K}`
+   * Aliased to: ``g`` ``a`` ``m`` ``m`` ``a``
    * Particle Type: False
 
-**Field Source**
+('art', 'GasEnergy')
+^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _temperature(field, data):
-      if data.has_field_parameter("mu"):
-          mu = data.get_field_parameter("mu")
-      else:
-          mu = 0.6
-      return mu*mh*data["Pressure"]/data["density"]/kboltz
-  
-
-**Convert Function Source**
-
-No source available.
-
-x-velocity
-++++++++++
-
-   * Units: :math:`\rm{cm}/\rm{s}`
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}} \cdot \rm{code}~\rm{velocity}^{2}}`
+   * Aliased to: ``thermal_energy``
    * Particle Type: False
 
-**Field Source**
+('art', 'MetalDensitySNII')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _xvelocity(field, data):
-      if "velocity_x" in data.ds.field_info:
-          return data["velocity_x"]
-      else:
-          return data["momentum_x"]/data["density"]           
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertVelocity(data):
-      return data.convert("x-velocity")
-  
-
-y-velocity
-++++++++++
-
-   * Units: :math:`\rm{cm}/\rm{s}`
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
+   * Aliased to: ``metal_ii_density``
    * Particle Type: False
 
-**Field Source**
+('art', 'MetalDensitySNIa')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _yvelocity(field, data):
-      if "velocity_y" in data.ds.field_info:
-          return data["velocity_y"]
-      else:
-          return data["momentum_y"]/data["density"]
-  
-
-**Convert Function Source**
-
-.. code-block:: python
-
-  def _convertVelocity(data):
-      return data.convert("x-velocity")
-  
-
-z-velocity
-++++++++++
-
-   * Units: :math:`\rm{cm}/\rm{s}`
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
+   * Aliased to: ``metal_ia_density``
    * Particle Type: False
 
-**Field Source**
+('art', 'PotentialNew')
+^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
+   * Aliased to: ``potential``
+   * Particle Type: False
 
-  def _zvelocity(field, data):
-      if "velocity_z" in data.ds.field_info:
-          return data["velocity_z"]
-      else:
-          return data["momentum_z"]/data["density"]
-  
+('art', 'PotentialOld')
+^^^^^^^^^^^^^^^^^^^^^^^
 
-**Convert Function Source**
+   * Aliased to: ``gas_potential``
+   * Particle Type: False
 
-.. code-block:: python
+('io', 'particle_position_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-  def _convertVelocity(data):
-      return data.convert("x-velocity")
-  
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Particle Type: True
 
-Nyx-Specific Field List
+('io', 'particle_position_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Particle Type: True
+
+('io', 'particle_position_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Particle Type: True
+
+('io', 'particle_velocity_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
+   * Particle Type: True
+
+('io', 'particle_velocity_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
+   * Particle Type: True
+
+('io', 'particle_velocity_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
+   * Particle Type: True
+
+('io', 'particle_mass')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Particle Type: True
+
+('io', 'particle_index')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+('io', 'particle_species')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``particle_type``
+   * Particle Type: True
+
+('io', 'particle_creation_time')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{time}}`
+   * Particle Type: True
+
+('io', 'particle_mass_initial')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Particle Type: True
+
+('io', 'particle_metallicity1')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+('io', 'particle_metallicity2')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+.. _ARTIO_specific_fields:
+
+ARTIO-Specific Fields
+---------------------
+
+('artio', 'HVAR_GAS_DENSITY')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
+   * Aliased to: ``density``
+   * Particle Type: False
+
+('artio', 'HVAR_GAS_ENERGY')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}} \cdot \rm{code}~\rm{velocity}^{2}}`
+   * Aliased to: ``total_energy``
+   * Particle Type: False
+
+('artio', 'HVAR_INTERNAL_ENERGY')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}} \cdot \rm{code}~\rm{velocity}^{2}}`
+   * Aliased to: ``thermal_energy``
+   * Particle Type: False
+
+('artio', 'HVAR_PRESSURE')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``pressure``
+   * Particle Type: False
+
+('artio', 'HVAR_MOMENTUM_X')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
+   * Aliased to: ``momentum_x``
+   * Particle Type: False
+
+('artio', 'HVAR_MOMENTUM_Y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
+   * Aliased to: ``momentum_y``
+   * Particle Type: False
+
+('artio', 'HVAR_MOMENTUM_Z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
+   * Aliased to: ``momentum_z``
+   * Particle Type: False
+
+('artio', 'HVAR_GAMMA')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``gamma``
+   * Particle Type: False
+
+('artio', 'HVAR_METAL_DENSITY_Ia')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
+   * Aliased to: ``metal_ia_density``
+   * Particle Type: False
+
+('artio', 'HVAR_METAL_DENSITY_II')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
+   * Aliased to: ``metal_ii_density``
+   * Particle Type: False
+
+('artio', 'VAR_POTENTIAL')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``potential``
+   * Particle Type: False
+
+('artio', 'VAR_POTENTIAL_HYDRO')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``gas_potential``
+   * Particle Type: False
+
+('io', 'POSITION_X')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Aliased to: ``particle_position_x``
+   * Particle Type: True
+
+('io', 'POSITION_Y')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Aliased to: ``particle_position_y``
+   * Particle Type: True
+
+('io', 'POSITION_Z')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Aliased to: ``particle_position_z``
+   * Particle Type: True
+
+('io', 'VELOCITY_X')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
+   * Aliased to: ``particle_velocity_x``
+   * Particle Type: True
+
+('io', 'VELOCITY_Y')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
+   * Aliased to: ``particle_velocity_y``
+   * Particle Type: True
+
+('io', 'VELOCITY_Z')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
+   * Aliased to: ``particle_velocity_z``
+   * Particle Type: True
+
+('io', 'MASS')
+^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Aliased to: ``particle_mass``
+   * Particle Type: True
+
+('io', 'PID')
+^^^^^^^^^^^^^
+
+   * Aliased to: ``particle_index``
+   * Particle Type: True
+
+('io', 'SPECIES')
+^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``particle_type``
+   * Particle Type: True
+
+('io', 'BIRTH_TIME')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{time}}`
+   * Aliased to: ``creation_time``
+   * Particle Type: True
+
+('io', 'INITIAL_MASS')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Aliased to: ``initial_mass``
+   * Particle Type: True
+
+('io', 'METALLICITY_SNIa')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``metallicity_snia``
+   * Particle Type: True
+
+('io', 'METALLICITY_SNII')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``metallicity_snii``
+   * Particle Type: True
+
+.. _Athena_specific_fields:
+
+Athena-Specific Fields
+----------------------
+
+('athena', 'density')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
+   * Aliased to: ``density``
+   * Particle Type: False
+
+('athena', 'cell_centered_B_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code_magnetic}}`
+   * Aliased to: ``magnetic_field_x``
+   * Particle Type: False
+
+('athena', 'cell_centered_B_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code_magnetic}}`
+   * Aliased to: ``magnetic_field_y``
+   * Particle Type: False
+
+('athena', 'cell_centered_B_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code_magnetic}}`
+   * Aliased to: ``magnetic_field_z``
+   * Particle Type: False
+
+.. _Boxlib_specific_fields:
+
+Boxlib-Specific Fields
+----------------------
+
+('boxlib', 'density')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
+   * Aliased to: ``density``
+   * Particle Type: False
+
+('boxlib', 'eden')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`
+   * Aliased to: ``energy_density``
+   * Particle Type: False
+
+('boxlib', 'xmom')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
+   * Aliased to: ``momentum_x``
+   * Particle Type: False
+
+('boxlib', 'ymom')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
+   * Aliased to: ``momentum_y``
+   * Particle Type: False
+
+('boxlib', 'zmom')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
+   * Aliased to: ``momentum_z``
+   * Particle Type: False
+
+('boxlib', 'temperature')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{K}}`
+   * Aliased to: ``temperature``
+   * Particle Type: False
+
+('boxlib', 'Temp')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{K}}`
+   * Aliased to: ``temperature``
+   * Particle Type: False
+
+('boxlib', 'x_velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_x``
+   * Particle Type: False
+
+('boxlib', 'y_velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_y``
+   * Particle Type: False
+
+('boxlib', 'z_velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_z``
+   * Particle Type: False
+
+('boxlib', 'xvel')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_x``
+   * Particle Type: False
+
+('boxlib', 'yvel')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_y``
+   * Particle Type: False
+
+('boxlib', 'zvel')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_z``
+   * Particle Type: False
+
+('io', 'particle_mass')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Particle Type: True
+
+('io', 'particle_position_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Particle Type: True
+
+('io', 'particle_position_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Particle Type: True
+
+('io', 'particle_position_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Particle Type: True
+
+('io', 'particle_momentum_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
+   * Particle Type: True
+
+('io', 'particle_momentum_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
+   * Particle Type: True
+
+('io', 'particle_momentum_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
+   * Particle Type: True
+
+('io', 'particle_angmomen_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}^{2} / \rm{code}~\rm{time}}`
+   * Particle Type: True
+
+('io', 'particle_angmomen_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}^{2} / \rm{code}~\rm{time}}`
+   * Particle Type: True
+
+('io', 'particle_angmomen_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}^{2} / \rm{code}~\rm{time}}`
+   * Particle Type: True
+
+('io', 'particle_id')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``particle_index``
+   * Particle Type: True
+
+('io', 'particle_mdot')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass} / \rm{code}~\rm{time}}`
+   * Particle Type: True
+
+.. _Castro_specific_fields:
+
+Castro-Specific Fields
+----------------------
+
+('boxlib', 'density')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{3}}}`
+   * Aliased to: ``density``
+   * Particle Type: False
+
+('boxlib', 'xmom')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{2} \cdot \rm{s}}}`
+   * Aliased to: ``momentum_x``
+   * Particle Type: False
+
+('boxlib', 'ymom')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{2} \cdot \rm{s}}}`
+   * Aliased to: ``momentum_y``
+   * Particle Type: False
+
+('boxlib', 'zmom')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{2} \cdot \rm{s}}}`
+   * Aliased to: ``momentum_z``
+   * Particle Type: False
+
+('boxlib', 'x_velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_x``
+   * Particle Type: False
+
+('boxlib', 'y_velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_y``
+   * Particle Type: False
+
+('boxlib', 'z_velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_z``
+   * Particle Type: False
+
+('boxlib', 'rho_E')
+^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`
+   * Aliased to: ``energy_density``
+   * Particle Type: False
+
+('boxlib', 'rho_e')
+^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`
+   * Particle Type: False
+
+('boxlib', 'Temp')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{K}}`
+   * Aliased to: ``temperature``
+   * Particle Type: False
+
+('boxlib', 'grav_x')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`
+   * Particle Type: False
+
+('boxlib', 'grav_y')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`
+   * Particle Type: False
+
+('boxlib', 'grav_z')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`
+   * Particle Type: False
+
+('boxlib', 'pressure')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{2}}}`
+   * Particle Type: False
+
+('boxlib', 'kineng')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`
+   * Particle Type: False
+
+('boxlib', 'soundspeed')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``sound_speed``
+   * Particle Type: False
+
+('boxlib', 'Machnumber')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``mach_number``
+   * Particle Type: False
+
+('boxlib', 'entropy')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{erg}}{\rm{K} \cdot \rm{g}}}`
+   * Aliased to: ``entropy``
+   * Particle Type: False
+
+('boxlib', 'magvort')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{1 / \rm{s}}`
+   * Aliased to: ``vorticity_magnitude``
+   * Particle Type: False
+
+('boxlib', 'divu')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{1 / \rm{s}}`
+   * Particle Type: False
+
+('boxlib', 'eint_E')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{erg} / \rm{g}}`
+   * Particle Type: False
+
+('boxlib', 'eint_e')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{erg} / \rm{g}}`
+   * Particle Type: False
+
+('boxlib', 'magvel')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_magnitude``
+   * Particle Type: False
+
+('boxlib', 'radvel')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Particle Type: False
+
+('boxlib', 'magmom')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} \cdot \rm{g} / \rm{s}}`
+   * Aliased to: ``momentum_magnitude``
+   * Particle Type: False
+
+('boxlib', 'maggrav')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`
+   * Particle Type: False
+
+('boxlib', 'phiGrav')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{erg} / \rm{g}}`
+   * Particle Type: False
+
+.. _Maestro_specific_fields:
+
+Maestro-Specific Fields
 -----------------------
 
-Density
-+++++++
+('boxlib', 'density')
+^^^^^^^^^^^^^^^^^^^^^
 
-   * Units: :math:`\rm{g} / \rm{cm}^3`
-   * Projected Units: :math:`\rm{g} / \rm{cm}^2`
+   * Units: :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{3}}}`
+   * Aliased to: ``density``
    * Particle Type: False
 
-**Field Source**
+('boxlib', 'x_vel')
+^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_x``
+   * Particle Type: False
 
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
+('boxlib', 'y_vel')
+^^^^^^^^^^^^^^^^^^^
 
-**Convert Function Source**
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_y``
+   * Particle Type: False
 
-No source available.
+('boxlib', 'z_vel')
+^^^^^^^^^^^^^^^^^^^
 
-ParticleMassMsun
-++++++++++++++++
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_z``
+   * Particle Type: False
 
-   * Units: :math:`\rm{M_{\odot}}`
+('boxlib', 'magvel')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_magnitude``
+   * Particle Type: False
+
+('boxlib', 'radial_velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Particle Type: False
+
+('boxlib', 'tfromp')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{K}}`
+   * Particle Type: False
+
+('boxlib', 'tfromh')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{K}}`
+   * Particle Type: False
+
+('boxlib', 'Machnumber')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``mach_number``
+   * Particle Type: False
+
+('boxlib', 'S')
+^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{1 / \rm{s}}`
+   * Particle Type: False
+
+('boxlib', 'ad_excess')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('boxlib', 'deltaT')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('boxlib', 'deltagamma')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('boxlib', 'deltap')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('boxlib', 'divw0')
+^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{1 / \rm{s}}`
+   * Particle Type: False
+
+('boxlib', 'entropy')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{erg}}{\rm{K} \cdot \rm{g}}}`
+   * Aliased to: ``entropy``
+   * Particle Type: False
+
+('boxlib', 'entropypert')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('boxlib', 'enucdot')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{erg}}{\rm{g} \cdot \rm{s}}}`
+   * Particle Type: False
+
+('boxlib', 'gpi_x')
+^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{3}}}`
+   * Particle Type: False
+
+('boxlib', 'gpi_y')
+^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{3}}}`
+   * Particle Type: False
+
+('boxlib', 'gpi_z')
+^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{3}}}`
+   * Particle Type: False
+
+('boxlib', 'h')
+^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{erg} / \rm{g}}`
+   * Particle Type: False
+
+('boxlib', 'h0')
+^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{erg} / \rm{g}}`
+   * Particle Type: False
+
+('boxlib', 'momentum')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} \cdot \rm{g} / \rm{s}}`
+   * Aliased to: ``momentum_magnitude``
+   * Particle Type: False
+
+('boxlib', 'p0')
+^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`
+   * Particle Type: False
+
+('boxlib', 'p0pluspi')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`
+   * Particle Type: False
+
+('boxlib', 'pi')
+^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`
+   * Particle Type: False
+
+('boxlib', 'pioverp0')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('boxlib', 'rho0')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{3}}}`
+   * Particle Type: False
+
+('boxlib', 'rhoh')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`
+   * Aliased to: ``enthalpy_density``
+   * Particle Type: False
+
+('boxlib', 'rhoh0')
+^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`
+   * Particle Type: False
+
+('boxlib', 'rhohpert')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`
+   * Particle Type: False
+
+('boxlib', 'rhopert')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{3}}}`
+   * Particle Type: False
+
+('boxlib', 'soundspeed')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``sound_speed``
+   * Particle Type: False
+
+('boxlib', 'sponge')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('boxlib', 'tpert')
+^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{K}}`
+   * Particle Type: False
+
+('boxlib', 'vort')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{1 / \rm{s}}`
+   * Aliased to: ``vorticity_magnitude``
+   * Particle Type: False
+
+('boxlib', 'w0_x')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Particle Type: False
+
+('boxlib', 'w0_y')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Particle Type: False
+
+('boxlib', 'w0_z')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Particle Type: False
+
+.. _Orion_specific_fields:
+
+Orion-Specific Fields
+---------------------
+
+('boxlib', 'density')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
+   * Aliased to: ``density``
+   * Particle Type: False
+
+('boxlib', 'eden')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`
+   * Aliased to: ``energy_density``
+   * Particle Type: False
+
+('boxlib', 'xmom')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
+   * Aliased to: ``momentum_x``
+   * Particle Type: False
+
+('boxlib', 'ymom')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
+   * Aliased to: ``momentum_y``
+   * Particle Type: False
+
+('boxlib', 'zmom')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
+   * Aliased to: ``momentum_z``
+   * Particle Type: False
+
+('boxlib', 'temperature')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{K}}`
+   * Aliased to: ``temperature``
+   * Particle Type: False
+
+('boxlib', 'Temp')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{K}}`
+   * Aliased to: ``temperature``
+   * Particle Type: False
+
+('boxlib', 'x_velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_x``
+   * Particle Type: False
+
+('boxlib', 'y_velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_y``
+   * Particle Type: False
+
+('boxlib', 'z_velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_z``
+   * Particle Type: False
+
+('boxlib', 'xvel')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_x``
+   * Particle Type: False
+
+('boxlib', 'yvel')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_y``
+   * Particle Type: False
+
+('boxlib', 'zvel')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_z``
+   * Particle Type: False
+
+('io', 'particle_mass')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
    * Particle Type: True
 
-**Field Source**
+('io', 'particle_position_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Particle Type: True
 
-  def _particle_mass_m_sun(field, data):
-      return data["particle_mass"]
-  
+('io', 'particle_position_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Convert Function Source**
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Particle Type: True
 
-.. code-block:: python
+('io', 'particle_position_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-  def _convertParticleMassMsun(data):
-      return (1/1.989e33)
-  
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Particle Type: True
 
-Pressure
-++++++++
+('io', 'particle_momentum_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-   * Units: :math:`\rm{M_{\odot}} (\rm{km} / \rm{s})^2 / \rm{Mpc}^3`
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
+   * Particle Type: True
+
+('io', 'particle_momentum_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
+   * Particle Type: True
+
+('io', 'particle_momentum_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`
+   * Particle Type: True
+
+('io', 'particle_angmomen_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}^{2} / \rm{code}~\rm{time}}`
+   * Particle Type: True
+
+('io', 'particle_angmomen_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}^{2} / \rm{code}~\rm{time}}`
+   * Particle Type: True
+
+('io', 'particle_angmomen_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}^{2} / \rm{code}~\rm{time}}`
+   * Particle Type: True
+
+('io', 'particle_id')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``particle_index``
+   * Particle Type: True
+
+('io', 'particle_mdot')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass} / \rm{code}~\rm{time}}`
+   * Particle Type: True
+
+.. _Enzo_specific_fields:
+
+Enzo-Specific Fields
+--------------------
+
+('enzo', 'Cooling_Time')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{s}}`
+   * Aliased to: ``cooling_time``
    * Particle Type: False
 
-**Field Source**
+('enzo', 'Dengo_Cooling_Rate')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _pressure(field, data):
-      """
-      Computed using
-  
-      $$ pressure = (\gamma - 1.0) * e$$
-  
-      where e is thermal energy density. Note that this will need to be modified
-      when radiation is accounted for.
-  
-      """
-      return (data.ds["Gamma"] - 1.0) * data["ThermalEnergy"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-Temperature
-+++++++++++
-
-   * Units: :math:`\rm{Kelvin}`
+   * Units: :math:`\mathrm{\frac{\rm{erg}}{\rm{g} \cdot \rm{s}}}`
    * Particle Type: False
 
-**Field Source**
+('enzo', 'Grackle_Cooling_Rate')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _temperature(field, data):
-      return ((data.ds["Gamma"] - 1.0) * data.ds["mu"] * mh *
-              data["ThermalEnergy"] / (kboltz * data["density"]))
-  
-
-**Convert Function Source**
-
-No source available.
-
-ThermalEnergy
-+++++++++++++
-
-   * Units: :math:`\rm{M_{\odot}} (\rm{km} / \rm{s})^2`
+   * Units: :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3} \cdot \rm{s}}}`
    * Particle Type: False
 
-**Field Source**
+('enzo', 'HI_kph')
+^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _thermal_energy(field, data):
-      """
-      Generate thermal (gas energy). Dual Energy Formalism was implemented by
-      Stella, but this isn't how it's called, so I'll leave that commented out for
-      now.
-  
-      """
-      #if data.ds["DualEnergyFormalism"]:
-      #    return data["Gas_Energy"]
-      #else:
-      return data["Total_Energy"] - 0.5 * data["density"] * (
-                                            data["x-velocity"]**2.0
-                                          + data["y-velocity"]**2.0
-                                          + data["z-velocity"]**2.0 )
-  
-
-**Convert Function Source**
-
-No source available.
-
-x-velocity
-++++++++++
-
-   * Units: :math:`\rm{km} / \rm{s}`
+   * Units: :math:`\mathrm{1 / \rm{code}~\rm{time}}`
    * Particle Type: False
 
-**Field Source**
+('enzo', 'HeI_kph')
+^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _x_velocity(field, data):
-      """ Generate x-velocity from x-momentum and density. """
-      return data["x-momentum"] / data["density"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-y-velocity
-++++++++++
-
-   * Units: :math:`\rm{km} / \rm{s}`
+   * Units: :math:`\mathrm{1 / \rm{code}~\rm{time}}`
    * Particle Type: False
 
-**Field Source**
+('enzo', 'HeII_kph')
+^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _y_velocity(field, data):
-      """ Generate y-velocity from y-momentum and density. """
-      return data["y-momentum"] / data["density"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-z-velocity
-++++++++++
-
-   * Units: :math:`\rm{km} / \rm{s}`
+   * Units: :math:`\mathrm{1 / \rm{code}~\rm{time}}`
    * Particle Type: False
 
-**Field Source**
+('enzo', 'H2I_kdiss')
+^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
+   * Units: :math:`\mathrm{1 / \rm{code}~\rm{time}}`
+   * Particle Type: False
 
-  def _z_velocity(field, data):
-      """ Generate z-velocity from z-momentum and density. """
-      return data["z-momentum"] / data["density"]
-  
+('enzo', 'Bx')
+^^^^^^^^^^^^^^
 
-**Convert Function Source**
+   * Units: :math:`\mathrm{\rm{code_magnetic}}`
+   * Aliased to: ``magnetic_field_x``
+   * Particle Type: False
 
-No source available.
+('enzo', 'By')
+^^^^^^^^^^^^^^
 
-Chombo-Specific Field List
+   * Units: :math:`\mathrm{\rm{code_magnetic}}`
+   * Aliased to: ``magnetic_field_y``
+   * Particle Type: False
+
+('enzo', 'Bz')
+^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code_magnetic}}`
+   * Aliased to: ``magnetic_field_z``
+   * Particle Type: False
+
+('enzo', 'RadAccel1')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{length}}{\rm{code}~\rm{time}^{2}}}`
+   * Aliased to: ``radiation_acceleration_x``
+   * Particle Type: False
+
+('enzo', 'RadAccel2')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{length}}{\rm{code}~\rm{time}^{2}}}`
+   * Aliased to: ``radiation_acceleration_y``
+   * Particle Type: False
+
+('enzo', 'RadAccel3')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{length}}{\rm{code}~\rm{time}^{2}}}`
+   * Aliased to: ``radiation_acceleration_z``
+   * Particle Type: False
+
+('enzo', 'Dark_Matter_Density')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
+   * Aliased to: ``dark_matter_density``
+   * Particle Type: False
+
+('enzo', 'Temperature')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{K}}`
+   * Aliased to: ``temperature``
+   * Particle Type: False
+
+('enzo', 'Dust_Temperature')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{K}}`
+   * Aliased to: ``dust_temperature``
+   * Particle Type: False
+
+('enzo', 'x-velocity')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
+   * Aliased to: ``velocity_x``
+   * Particle Type: False
+
+('enzo', 'y-velocity')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
+   * Aliased to: ``velocity_y``
+   * Particle Type: False
+
+('enzo', 'z-velocity')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
+   * Aliased to: ``velocity_z``
+   * Particle Type: False
+
+('enzo', 'RaySegments')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``ray_segments``
+   * Particle Type: False
+
+('enzo', 'PhotoGamma')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{length}}{\rm{code}~\rm{time}^{2}}}`
+   * Aliased to: ``photo_gamma``
+   * Particle Type: False
+
+('enzo', 'PotentialField')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}^{2}}`
+   * Aliased to: ``gravitational_potential``
+   * Particle Type: False
+
+('enzo', 'Density')
+^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
+   * Aliased to: ``density``
+   * Particle Type: False
+
+('enzo', 'Metal_Density')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
+   * Aliased to: ``metal_density``
+   * Particle Type: False
+
+('enzo', 'SN_Colour')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
+   * Particle Type: False
+
+('enzo', 'Electron_Density')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
+   * Particle Type: False
+
+('io', 'particle_position_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Particle Type: True
+
+('io', 'particle_position_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Particle Type: True
+
+('io', 'particle_position_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Particle Type: True
+
+('io', 'particle_velocity_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
+   * Aliased to: ``particle_velocity_x``
+   * Particle Type: True
+
+('io', 'particle_velocity_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
+   * Aliased to: ``particle_velocity_y``
+   * Particle Type: True
+
+('io', 'particle_velocity_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
+   * Aliased to: ``particle_velocity_z``
+   * Particle Type: True
+
+('io', 'creation_time')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{time}}`
+   * Particle Type: True
+
+('io', 'dynamical_time')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{time}}`
+   * Particle Type: True
+
+('io', 'metallicity_fraction')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{metallicity}}`
+   * Particle Type: True
+
+('io', 'metallicity')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+('io', 'particle_type')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+('io', 'particle_index')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+('io', 'particle_mass')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Aliased to: ``particle_mass``
+   * Particle Type: True
+
+('io', 'GridID')
+^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+('io', 'identifier')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``particle_index``
+   * Particle Type: True
+
+('io', 'level')
+^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+.. _FLASH_specific_fields:
+
+FLASH-Specific Fields
+---------------------
+
+('flash', 'velx')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
+   * Aliased to: ``velocity_x``
+   * Particle Type: False
+
+('flash', 'vely')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
+   * Aliased to: ``velocity_y``
+   * Particle Type: False
+
+('flash', 'velz')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
+   * Aliased to: ``velocity_z``
+   * Particle Type: False
+
+('flash', 'dens')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
+   * Aliased to: ``density``
+   * Particle Type: False
+
+('flash', 'temp')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{temperature}}`
+   * Aliased to: ``temperature``
+   * Particle Type: False
+
+('flash', 'pres')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`
+   * Aliased to: ``pressure``
+   * Particle Type: False
+
+('flash', 'gpot')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{length}^{2}}{\rm{code}~\rm{time}^{2}}}`
+   * Aliased to: ``gravitational_potential``
+   * Particle Type: False
+
+('flash', 'gpol')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{length}^{2}}{\rm{code}~\rm{time}^{2}}}`
+   * Particle Type: False
+
+('flash', 'tion')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{temperature}}`
+   * Particle Type: False
+
+('flash', 'tele')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{temperature}}`
+   * Particle Type: False
+
+('flash', 'trad')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{temperature}}`
+   * Particle Type: False
+
+('flash', 'pion')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`
+   * Particle Type: False
+
+('flash', 'pele')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`
+   * Particle Type: False
+
+('flash', 'prad')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`
+   * Particle Type: False
+
+('flash', 'eion')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{time}^{2}} \cdot \rm{code}~\rm{length}^{2}}`
+   * Particle Type: False
+
+('flash', 'eele')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{time}^{2}} \cdot \rm{code}~\rm{length}^{2}}`
+   * Particle Type: False
+
+('flash', 'erad')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{time}^{2}} \cdot \rm{code}~\rm{length}^{2}}`
+   * Particle Type: False
+
+('flash', 'pden')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
+   * Particle Type: False
+
+('flash', 'depo')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{length}^{2}}{\rm{code}~\rm{time}^{2}}}`
+   * Particle Type: False
+
+('flash', 'ye')
+^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('flash', 'magp')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`
+   * Particle Type: False
+
+('flash', 'divb')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length} \cdot \rm{code_magnetic}}`
+   * Particle Type: False
+
+('flash', 'game')
+^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('flash', 'gamc')
+^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('flash', 'flam')
+^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('flash', 'absr')
+^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('flash', 'emis')
+^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('flash', 'cond')
+^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('flash', 'dfcf')
+^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('flash', 'fllm')
+^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('flash', 'pipe')
+^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('flash', 'tite')
+^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('flash', 'dbgs')
+^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('flash', 'cham')
+^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('flash', 'targ')
+^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('flash', 'sumy')
+^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('flash', 'mgdc')
+^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+('flash', 'magx')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code_magnetic}}`
+   * Aliased to: ``magnetic_field_x``
+   * Particle Type: False
+
+('flash', 'magy')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code_magnetic}}`
+   * Aliased to: ``magnetic_field_y``
+   * Particle Type: False
+
+('flash', 'magz')
+^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code_magnetic}}`
+   * Aliased to: ``magnetic_field_z``
+   * Particle Type: False
+
+('io', 'particle_posx')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Aliased to: ``particle_position_x``
+   * Particle Type: True
+
+('io', 'particle_posy')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Aliased to: ``particle_position_y``
+   * Particle Type: True
+
+('io', 'particle_posz')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Aliased to: ``particle_position_z``
+   * Particle Type: True
+
+('io', 'particle_velx')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
+   * Aliased to: ``particle_velocity_x``
+   * Particle Type: True
+
+('io', 'particle_vely')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
+   * Aliased to: ``particle_velocity_y``
+   * Particle Type: True
+
+('io', 'particle_velz')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
+   * Aliased to: ``particle_velocity_z``
+   * Particle Type: True
+
+('io', 'particle_tag')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``particle_index``
+   * Particle Type: True
+
+('io', 'particle_mass')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Aliased to: ``particle_mass``
+   * Particle Type: True
+
+.. _GDF_specific_fields:
+
+GDF-Specific Fields
+-------------------
+
+('gdf', 'density')
+^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{3}}}`
+   * Aliased to: ``density``
+   * Particle Type: False
+
+('gdf', 'specific_energy')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{erg} / \rm{g}}`
+   * Aliased to: ``thermal_energy``
+   * Particle Type: False
+
+('gdf', 'pressure')
+^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`
+   * Aliased to: ``pressure``
+   * Particle Type: False
+
+('gdf', 'temperature')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{K}}`
+   * Aliased to: ``temperature``
+   * Particle Type: False
+
+('gdf', 'velocity_x')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_x``
+   * Particle Type: False
+
+('gdf', 'velocity_y')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_y``
+   * Particle Type: False
+
+('gdf', 'velocity_z')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Aliased to: ``velocity_z``
+   * Particle Type: False
+
+('gdf', 'mag_field_x')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{gauss}}`
+   * Aliased to: ``magnetic_field_x``
+   * Particle Type: False
+
+('gdf', 'mag_field_y')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{gauss}}`
+   * Aliased to: ``magnetic_field_y``
+   * Particle Type: False
+
+('gdf', 'mag_field_z')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{gauss}}`
+   * Aliased to: ``magnetic_field_z``
+   * Particle Type: False
+
+.. _HaloCatalog_specific_fields:
+
+HaloCatalog-Specific Fields
+---------------------------
+
+(particle_type, 'particle_identifier')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'particle_position_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm}}`
+   * Particle Type: True
+
+(particle_type, 'particle_position_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm}}`
+   * Particle Type: True
+
+(particle_type, 'particle_position_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm}}`
+   * Particle Type: True
+
+(particle_type, 'particle_velocity_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Particle Type: True
+
+(particle_type, 'particle_velocity_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Particle Type: True
+
+(particle_type, 'particle_velocity_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm} / \rm{s}}`
+   * Particle Type: True
+
+(particle_type, 'particle_mass')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{g}}`
+   * Particle Type: True
+
+(particle_type, 'virial_radius')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{cm}}`
+   * Particle Type: True
+
+.. _OWLSSubfind_specific_fields:
+
+OWLSSubfind-Specific Fields
+---------------------------
+
+(particle_type, 'CenterOfMass_0')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
+   * Aliased to: ``particle_position_x``
+   * Particle Type: True
+
+(particle_type, 'CenterOfMass_1')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
+   * Aliased to: ``particle_position_y``
+   * Particle Type: True
+
+(particle_type, 'CenterOfMass_2')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
+   * Aliased to: ``particle_position_z``
+   * Particle Type: True
+
+(particle_type, 'CenterOfMassVelocity_0')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{100000.0 \cdot \rm{m}/(1+z) / \rm{s}}`
+   * Aliased to: ``particle_velocity_x``
+   * Particle Type: True
+
+(particle_type, 'CenterOfMassVelocity_1')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{100000.0 \cdot \rm{m}/(1+z) / \rm{s}}`
+   * Aliased to: ``particle_velocity_y``
+   * Particle Type: True
+
+(particle_type, 'CenterOfMassVelocity_2')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{100000.0 \cdot \rm{m}/(1+z) / \rm{s}}`
+   * Aliased to: ``particle_velocity_z``
+   * Particle Type: True
+
+(particle_type, 'Mass')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Aliased to: ``particle_mass``
+   * Particle Type: True
+
+(particle_type, 'Halo_M_Crit200')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Aliased to: ``Virial Mass``
+   * Particle Type: True
+
+(particle_type, 'Halo_M_Crit2500')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Particle Type: True
+
+(particle_type, 'Halo_M_Crit500')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Particle Type: True
+
+(particle_type, 'Halo_M_Mean200')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Particle Type: True
+
+(particle_type, 'Halo_M_Mean2500')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Particle Type: True
+
+(particle_type, 'Halo_M_Mean500')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Particle Type: True
+
+(particle_type, 'Halo_M_TopHat200')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Particle Type: True
+
+(particle_type, 'Halo_R_Crit200')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
+   * Aliased to: ``Virial Radius``
+   * Particle Type: True
+
+(particle_type, 'Halo_R_Crit2500')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
+   * Particle Type: True
+
+(particle_type, 'Halo_R_Crit500')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
+   * Particle Type: True
+
+(particle_type, 'Halo_R_Mean200')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
+   * Particle Type: True
+
+(particle_type, 'Halo_R_Mean2500')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
+   * Particle Type: True
+
+(particle_type, 'Halo_R_Mean500')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
+   * Particle Type: True
+
+(particle_type, 'Halo_R_TopHat200')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
+   * Particle Type: True
+
+(particle_type, 'BH_Mass')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Particle Type: True
+
+(particle_type, 'Stars/Mass')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Particle Type: True
+
+(particle_type, 'BH_Mdot')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass} / \rm{code}~\rm{time}}`
+   * Particle Type: True
+
+(particle_type, 'StarFormationRate')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass} / \rm{code}~\rm{time}}`
+   * Particle Type: True
+
+.. _Rockstar_specific_fields:
+
+Rockstar-Specific Fields
+------------------------
+
+(particle_type, 'particle_identifier')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'particle_position_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
+   * Particle Type: True
+
+(particle_type, 'particle_position_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
+   * Particle Type: True
+
+(particle_type, 'particle_position_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
+   * Particle Type: True
+
+(particle_type, 'particle_velocity_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
+   * Particle Type: True
+
+(particle_type, 'particle_velocity_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
+   * Particle Type: True
+
+(particle_type, 'particle_velocity_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
+   * Particle Type: True
+
+(particle_type, 'particle_corevel_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
+   * Particle Type: True
+
+(particle_type, 'particle_corevel_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
+   * Particle Type: True
+
+(particle_type, 'particle_corevel_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
+   * Particle Type: True
+
+(particle_type, 'particle_bulkvel_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
+   * Particle Type: True
+
+(particle_type, 'particle_bulkvel_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
+   * Particle Type: True
+
+(particle_type, 'particle_bulkvel_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
+   * Particle Type: True
+
+(particle_type, 'particle_mass')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{M}_\odot / \rm{h}}`
+   * Particle Type: True
+
+(particle_type, 'virial_radius')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
+   * Particle Type: True
+
+(particle_type, 'child_r')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
+   * Particle Type: True
+
+(particle_type, 'vmax_r')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
+   * Particle Type: True
+
+(particle_type, 'mgrav')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'vmax')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
+   * Particle Type: True
+
+(particle_type, 'rvmax')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
+   * Particle Type: True
+
+(particle_type, 'rs')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
+   * Particle Type: True
+
+(particle_type, 'klypin_rs')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{pc}/(1+z) / \rm{h}}`
+   * Particle Type: True
+
+(particle_type, 'vrms')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{km} / \rm{s}}`
+   * Particle Type: True
+
+(particle_type, 'Jx')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'Jy')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'Jz')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'energy')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'spin')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'alt_m1')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{M}_\odot / \rm{h}}`
+   * Particle Type: True
+
+(particle_type, 'alt_m2')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{M}_\odot / \rm{h}}`
+   * Particle Type: True
+
+(particle_type, 'alt_m3')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{M}_\odot / \rm{h}}`
+   * Particle Type: True
+
+(particle_type, 'alt_m4')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{M}_\odot / \rm{h}}`
+   * Particle Type: True
+
+(particle_type, 'Xoff')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'Voff')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'b_to_a')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'c_to_a')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'Ax')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'Ay')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'Az')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'b_to_a2')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'c_to_a2')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'A2x')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'A2y')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'A2z')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'bullock_spin')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'kin_to_pot')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'm_pe_b')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'm_pe_d')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'num_p')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'num_child_particles')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'p_start')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'desc')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'flags')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'n_core')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'min_pos_err')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'min_vel_err')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+(particle_type, 'min_bulkvel_err')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+.. _RAMSES_specific_fields:
+
+RAMSES-Specific Fields
+----------------------
+
+('ramses', 'Density')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
+   * Aliased to: ``density``
+   * Particle Type: False
+
+('ramses', 'x-velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
+   * Aliased to: ``velocity_x``
+   * Particle Type: False
+
+('ramses', 'y-velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
+   * Aliased to: ``velocity_y``
+   * Particle Type: False
+
+('ramses', 'z-velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
+   * Aliased to: ``velocity_z``
+   * Particle Type: False
+
+('ramses', 'Pressure')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`
+   * Aliased to: ``pressure``
+   * Particle Type: False
+
+('ramses', 'Metallicity')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``metallicity``
+   * Particle Type: False
+
+('io', 'particle_position_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Particle Type: True
+
+('io', 'particle_position_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Particle Type: True
+
+('io', 'particle_position_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Particle Type: True
+
+('io', 'particle_velocity_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
+   * Particle Type: True
+
+('io', 'particle_velocity_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
+   * Particle Type: True
+
+('io', 'particle_velocity_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`
+   * Particle Type: True
+
+('io', 'particle_mass')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Particle Type: True
+
+('io', 'particle_identifier')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``particle_index``
+   * Particle Type: True
+
+('io', 'particle_refinement_level')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+('io', 'particle_age')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{time}}`
+   * Particle Type: True
+
+('io', 'particle_metallicity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+.. _Gadget_specific_fields:
+
+Gadget-Specific Fields
+----------------------
+
+(particle_type, 'Mass')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Aliased to: ``particle_mass``
+   * Particle Type: True
+
+(particle_type, 'Masses')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Aliased to: ``particle_mass``
+   * Particle Type: True
+
+(particle_type, 'Coordinates')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Aliased to: ``particle_position``
+   * Particle Type: True
+
+(particle_type, 'Velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
+   * Aliased to: ``particle_velocity``
+   * Particle Type: True
+
+(particle_type, 'Velocities')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
+   * Aliased to: ``particle_velocity``
+   * Particle Type: True
+
+(particle_type, 'ParticleIDs')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``particle_index``
+   * Particle Type: True
+
+(particle_type, 'InternalEnergy')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``thermal_energy``
+   * Particle Type: True
+
+(particle_type, 'SmoothingLength')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Aliased to: ``smoothing_length``
+   * Particle Type: True
+
+(particle_type, 'Density')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
+   * Aliased to: ``density``
+   * Particle Type: True
+
+(particle_type, 'MaximumTemperature')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{K}}`
+   * Particle Type: True
+
+(particle_type, 'Temperature')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{K}}`
+   * Aliased to: ``temperature``
+   * Particle Type: True
+
+(particle_type, 'Epsilon')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Particle Type: True
+
+(particle_type, 'Metals')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{metallicity}}`
+   * Aliased to: ``metallicity``
+   * Particle Type: True
+
+(particle_type, 'Metallicity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{metallicity}}`
+   * Aliased to: ``metallicity``
+   * Particle Type: True
+
+(particle_type, 'Phi')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Particle Type: True
+
+(particle_type, 'FormationTime')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{time}}`
+   * Aliased to: ``creation_time``
+   * Particle Type: True
+
+(particle_type, 'Metallicity_00')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``metallicity``
+   * Particle Type: True
+
+(particle_type, 'Metallicity_01')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``He_fraction``
+   * Particle Type: True
+
+(particle_type, 'Metallicity_02')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``C_fraction``
+   * Particle Type: True
+
+(particle_type, 'Metallicity_03')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``N_fraction``
+   * Particle Type: True
+
+(particle_type, 'Metallicity_04')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``O_fraction``
+   * Particle Type: True
+
+(particle_type, 'Metallicity_05')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``Ne_fraction``
+   * Particle Type: True
+
+(particle_type, 'Metallicity_06')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``Mg_fraction``
+   * Particle Type: True
+
+(particle_type, 'Metallicity_07')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``Si_fraction``
+   * Particle Type: True
+
+(particle_type, 'Metallicity_08')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``S_fraction``
+   * Particle Type: True
+
+(particle_type, 'Metallicity_09')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``Ca_fraction``
+   * Particle Type: True
+
+(particle_type, 'Metallicity_10')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``Fe_fraction``
+   * Particle Type: True
+
+.. _GadgetHDF5_specific_fields:
+
+GadgetHDF5-Specific Fields
 --------------------------
 
-Bx
-++
+(particle_type, 'Mass')
+^^^^^^^^^^^^^^^^^^^^^^^
 
-   * Units: :math:`\rm{Gauss}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Bx(field,data):
-      return data["X-magnfield"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-By
-++
-
-   * Units: :math:`\rm{Gauss}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _By(field,data):
-      return data["Y-magnfield"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-Bz
-++
-
-   * Units: :math:`\rm{Gauss}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Bz(field,data):
-      return data["Z-magnfield"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-Density
-+++++++
-
-   * Units: :math:`\rm{g}/\rm{cm^3}`
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _Density(field,data):
-      """A duplicate of the density field. This is needed because when you try 
-      to instantiate a PlotCollection without passing in a center, the code
-      will try to generate one for you using the "density" field, which gives an error 
-      if it isn't defined.
-  
-      """
-      return data["density"]
-  
-
-**Convert Function Source**
-
-No source available.
-
-MagneticEnergy
-++++++++++++++
-
-   * Particle Type: False
-
-**Field Source**
-
-.. code-block:: python
-
-  def _MagneticEnergy(field,data):
-      return (data["X-magnfield"]**2 +
-              data["Y-magnfield"]**2 +
-              data["Z-magnfield"]**2)/2.
-  
-
-**Convert Function Source**
-
-No source available.
-
-ParticleMass
-++++++++++++
-
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Aliased to: ``particle_mass``
    * Particle Type: True
 
-**Field Source**
+(particle_type, 'Masses')
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _ParticleMass(field, data):
-      particles = data["particle_mass"].astype('float64')
-      return particles
-  
-
-**Convert Function Source**
-
-No source available.
-
-ParticleMassMsun
-++++++++++++++++
-
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Aliased to: ``particle_mass``
    * Particle Type: True
 
-**Field Source**
+(particle_type, 'Coordinates')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-  def _ParticleMassMsun(field, data):
-      particles = data["particle_mass"].astype('float64')
-      return particles/1.989e33
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_angmomen_x
-+++++++++++++++++++
-
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Aliased to: ``particle_position``
    * Particle Type: True
 
-**Field Source**
+(particle_type, 'Velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_angmomen_y
-+++++++++++++++++++
-
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
+   * Aliased to: ``particle_velocity``
    * Particle Type: True
 
-**Field Source**
+(particle_type, 'Velocities')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_angmomen_z
-+++++++++++++++++++
-
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
+   * Aliased to: ``particle_velocity``
    * Particle Type: True
 
-**Field Source**
+(particle_type, 'ParticleIDs')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_burnstate
-++++++++++++++++++
-
+   * Aliased to: ``particle_index``
    * Particle Type: True
 
-**Field Source**
+(particle_type, 'InternalEnergy')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_id
-+++++++++++
-
+   * Aliased to: ``thermal_energy``
    * Particle Type: True
 
-**Field Source**
+(particle_type, 'SmoothingLength')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_luminosity
-+++++++++++++++++++
-
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Aliased to: ``smoothing_length``
    * Particle Type: True
 
-**Field Source**
+(particle_type, 'Density')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_mass
-+++++++++++++
-
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
+   * Aliased to: ``density``
    * Particle Type: True
 
-**Field Source**
+(particle_type, 'MaximumTemperature')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_mdeut
-++++++++++++++
-
+   * Units: :math:`\mathrm{\rm{K}}`
    * Particle Type: True
 
-**Field Source**
+(particle_type, 'Temperature')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_mdot
-+++++++++++++
-
+   * Units: :math:`\mathrm{\rm{K}}`
+   * Aliased to: ``temperature``
    * Particle Type: True
 
-**Field Source**
+(particle_type, 'Epsilon')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_mlast
-++++++++++++++
-
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
    * Particle Type: True
 
-**Field Source**
+(particle_type, 'Metals')
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_momentum_x
-+++++++++++++++++++
-
+   * Units: :math:`\mathrm{\rm{code}~\rm{metallicity}}`
+   * Aliased to: ``metallicity``
    * Particle Type: True
 
-**Field Source**
+(particle_type, 'Metallicity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_momentum_y
-+++++++++++++++++++
-
+   * Units: :math:`\mathrm{\rm{code}~\rm{metallicity}}`
+   * Aliased to: ``metallicity``
    * Particle Type: True
 
-**Field Source**
+(particle_type, 'Phi')
+^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_momentum_z
-+++++++++++++++++++
-
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
    * Particle Type: True
 
-**Field Source**
+(particle_type, 'FormationTime')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_n
-++++++++++
-
+   * Units: :math:`\mathrm{\rm{code}~\rm{time}}`
+   * Aliased to: ``creation_time``
    * Particle Type: True
 
-**Field Source**
+(particle_type, 'Metallicity_00')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_position_x
-+++++++++++++++++++
-
+   * Aliased to: ``metallicity``
    * Particle Type: True
 
-**Field Source**
+(particle_type, 'Metallicity_01')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_position_y
-+++++++++++++++++++
-
+   * Aliased to: ``He_fraction``
    * Particle Type: True
 
-**Field Source**
+(particle_type, 'Metallicity_02')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_position_z
-+++++++++++++++++++
-
+   * Aliased to: ``C_fraction``
    * Particle Type: True
 
-**Field Source**
+(particle_type, 'Metallicity_03')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
-
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
-
-**Convert Function Source**
-
-No source available.
-
-particle_r
-++++++++++
-
+   * Aliased to: ``N_fraction``
    * Particle Type: True
 
-**Field Source**
+(particle_type, 'Metallicity_04')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
+   * Aliased to: ``O_fraction``
+   * Particle Type: True
 
-      def _Particles(field, data):
-          io = data.index.io
-          if not data.NumberOfParticles > 0:
-              return np.array([], dtype=dtype)
-          else:
-              return io._read_particles(data, p_field).astype(dtype)
-  
+(particle_type, 'Metallicity_05')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Convert Function Source**
+   * Aliased to: ``Ne_fraction``
+   * Particle Type: True
 
-No source available.
+(particle_type, 'Metallicity_06')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-x-velocity
-++++++++++
+   * Aliased to: ``Mg_fraction``
+   * Particle Type: True
 
-   * Units: :math:`\rm{cm}/\rm{s}`
-   * Particle Type: False
+(particle_type, 'Metallicity_07')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Field Source**
+   * Aliased to: ``Si_fraction``
+   * Particle Type: True
 
-.. code-block:: python
+(particle_type, 'Metallicity_08')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-  def _xVelocity(field, data):
-      """ Generate x-velocity from x-momentum and density. """
-      return data["X-momentum"]/data["density"]
-  
+   * Aliased to: ``S_fraction``
+   * Particle Type: True
 
-**Convert Function Source**
+(particle_type, 'Metallicity_09')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
+   * Aliased to: ``Ca_fraction``
+   * Particle Type: True
 
-y-velocity
-++++++++++
+(particle_type, 'Metallicity_10')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-   * Units: :math:`\rm{cm}/\rm{s}`
-   * Particle Type: False
+   * Aliased to: ``Fe_fraction``
+   * Particle Type: True
 
-**Field Source**
+.. _OWLS_specific_fields:
 
-.. code-block:: python
+OWLS-Specific Fields
+--------------------
 
-  def _yVelocity(field,data):
-      """ Generate y-velocity from y-momentum and density. """
-      #try:
-      #    return data["xvel"]
-      #except KeyError:
-      return data["Y-momentum"]/data["density"]
-  
+(particle_type, 'Mass')
+^^^^^^^^^^^^^^^^^^^^^^^
 
-**Convert Function Source**
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Aliased to: ``particle_mass``
+   * Particle Type: True
 
-No source available.
+(particle_type, 'Masses')
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-z-velocity
-++++++++++
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Aliased to: ``particle_mass``
+   * Particle Type: True
 
-   * Units: :math:`\rm{cm}/\rm{s}`
-   * Particle Type: False
+(particle_type, 'Coordinates')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Field Source**
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Aliased to: ``particle_position``
+   * Particle Type: True
 
-.. code-block:: python
+(particle_type, 'Velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-  def _zVelocity(field,data):
-      """ Generate z-velocity from z-momentum and density. """
-      return data["Z-momentum"]/data["density"]
-  
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
+   * Aliased to: ``particle_velocity``
+   * Particle Type: True
 
-**Convert Function Source**
+(particle_type, 'Velocities')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
+   * Aliased to: ``particle_velocity``
+   * Particle Type: True
 
-Pluto-Specific Field List
---------------------------
+(particle_type, 'ParticleIDs')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Density
-+++++++
+   * Aliased to: ``particle_index``
+   * Particle Type: True
 
-   * Units: :math:`\rm{g}/\rm{cm^3}`
-   * Particle Type: False
+(particle_type, 'InternalEnergy')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Field Source**
+   * Aliased to: ``thermal_energy``
+   * Particle Type: True
 
-.. code-block:: python
+(particle_type, 'SmoothingLength')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-  def _Density(field,data):
-      """A duplicate of the density field. This is needed because when you try 
-      to instantiate a PlotCollection without passing in a center, the code
-      will try to generate one for you using the "density" field, which gives an error 
-      if it isn't defined.
-  
-      """
-      return data["rho"]
-  
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Aliased to: ``smoothing_length``
+   * Particle Type: True
 
-**Convert Function Source**
+(particle_type, 'Density')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
+   * Aliased to: ``density``
+   * Particle Type: True
 
-X-momentum
-++++++++++
+(particle_type, 'MaximumTemperature')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-   * Units: :math:`\rm{g}/\rm{cm^2 s}`
-   * Particle Type: False
+   * Units: :math:`\mathrm{\rm{K}}`
+   * Particle Type: True
 
-**Field Source**
+(particle_type, 'Temperature')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
+   * Units: :math:`\mathrm{\rm{K}}`
+   * Aliased to: ``temperature``
+   * Particle Type: True
 
-  def _Xmomentum(field, data):
-      """ Generate x-momentum. """
-      return data["vx1"]*data["density"]
-  
+(particle_type, 'Epsilon')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Convert Function Source**
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Particle Type: True
 
-No source available.
+(particle_type, 'Metals')
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Y-momentum
-++++++++++
+   * Units: :math:`\mathrm{\rm{code}~\rm{metallicity}}`
+   * Aliased to: ``metallicity``
+   * Particle Type: True
 
-   * Units: :math:`\rm{g}/\rm{cm^2 s}`
-   * Particle Type: False
+(particle_type, 'Metallicity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Field Source**
+   * Units: :math:`\mathrm{\rm{code}~\rm{metallicity}}`
+   * Aliased to: ``metallicity``
+   * Particle Type: True
 
-.. code-block:: python
+(particle_type, 'Phi')
+^^^^^^^^^^^^^^^^^^^^^^
 
-  def _Ymomentum(field, data):
-      """ Generate y-momentum  """
-      return data["vx2"]*data["density"]
-  
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Particle Type: True
 
-**Convert Function Source**
+(particle_type, 'FormationTime')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
+   * Units: :math:`\mathrm{\rm{code}~\rm{time}}`
+   * Aliased to: ``creation_time``
+   * Particle Type: True
 
-Z-Momentum
-++++++++++
+(particle_type, 'Metallicity_00')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-   * Units: :math:`\rm{g}/\rm{cm^2 s}`
-   * Particle Type: False
+   * Aliased to: ``metallicity``
+   * Particle Type: True
 
-**Field Source**
+(particle_type, 'Metallicity_01')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
+   * Aliased to: ``He_fraction``
+   * Particle Type: True
 
-  def _Zmomentum(field,data):
-      """ Generate z-momentum"""
-      return data["vx3"]*data["density"]
-  
+(particle_type, 'Metallicity_02')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Convert Function Source**
+   * Aliased to: ``C_fraction``
+   * Particle Type: True
 
-No source available.
+(particle_type, 'Metallicity_03')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Grid-Data-Format-Specific Field List
-------------------------------------
+   * Aliased to: ``N_fraction``
+   * Particle Type: True
 
-Density
-+++++++
+(particle_type, 'Metallicity_04')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-   * Units: :math:`\rm{g}/\rm{cm}^3`
-   * Projected Units: :math:`\rm{g}/\rm{cm}^2`
-   * Particle Type: False
+   * Aliased to: ``O_fraction``
+   * Particle Type: True
 
-**Field Source**
+(particle_type, 'Metallicity_05')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
+   * Aliased to: ``Ne_fraction``
+   * Particle Type: True
 
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
+(particle_type, 'Metallicity_06')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Convert Function Source**
+   * Aliased to: ``Mg_fraction``
+   * Particle Type: True
 
-No source available.
+(particle_type, 'Metallicity_07')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Pressure
-++++++++
+   * Aliased to: ``Si_fraction``
+   * Particle Type: True
 
-   * Units: :math:`\rm{erg}/\rm{g}`
-   * Particle Type: False
+(particle_type, 'Metallicity_08')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Field Source**
+   * Aliased to: ``S_fraction``
+   * Particle Type: True
 
-.. code-block:: python
+(particle_type, 'Metallicity_09')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
+   * Aliased to: ``Ca_fraction``
+   * Particle Type: True
 
-**Convert Function Source**
+(particle_type, 'Metallicity_10')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
+   * Aliased to: ``Fe_fraction``
+   * Particle Type: True
 
-x-velocity
-++++++++++
+.. _Tipsy_specific_fields:
 
-   * Units: :math:`\rm{cm}/\rm{s}`
-   * Particle Type: False
+Tipsy-Specific Fields
+---------------------
 
-**Field Source**
+(particle_type, 'Mass')
+^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Aliased to: ``particle_mass``
+   * Particle Type: True
 
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
+(particle_type, 'Masses')
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Convert Function Source**
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Aliased to: ``particle_mass``
+   * Particle Type: True
 
-No source available.
+(particle_type, 'Coordinates')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-y-velocity
-++++++++++
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Aliased to: ``particle_position``
+   * Particle Type: True
 
-   * Units: :math:`\rm{cm}/\rm{s}`
-   * Particle Type: False
+(particle_type, 'Velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Field Source**
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
+   * Aliased to: ``particle_velocity``
+   * Particle Type: True
 
-.. code-block:: python
+(particle_type, 'Velocities')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
+   * Aliased to: ``particle_velocity``
+   * Particle Type: True
 
-**Convert Function Source**
+(particle_type, 'ParticleIDs')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-No source available.
+   * Aliased to: ``particle_index``
+   * Particle Type: True
 
-z-velocity
-++++++++++
+(particle_type, 'InternalEnergy')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-   * Units: :math:`\rm{cm}/\rm{s}`
-   * Particle Type: False
+   * Aliased to: ``thermal_energy``
+   * Particle Type: True
 
-**Field Source**
+(particle_type, 'SmoothingLength')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Aliased to: ``smoothing_length``
+   * Particle Type: True
 
-      def _TranslationFunc(field, data):
-          return data[field_name]
-  
+(particle_type, 'Density')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Convert Function Source**
+   * Units: :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`
+   * Aliased to: ``density``
+   * Particle Type: True
 
-No source available.
+(particle_type, 'MaximumTemperature')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Generic-Format (Stream) Field List
-----------------------------------
+   * Units: :math:`\mathrm{\rm{K}}`
+   * Particle Type: True
+
+(particle_type, 'Temperature')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{K}}`
+   * Aliased to: ``temperature``
+   * Particle Type: True
+
+(particle_type, 'Epsilon')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Particle Type: True
+
+(particle_type, 'Metals')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{metallicity}}`
+   * Aliased to: ``metallicity``
+   * Particle Type: True
+
+(particle_type, 'Metallicity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{metallicity}}`
+   * Aliased to: ``metallicity``
+   * Particle Type: True
+
+(particle_type, 'Phi')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{length}}`
+   * Particle Type: True
+
+(particle_type, 'FormationTime')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{time}}`
+   * Aliased to: ``creation_time``
+   * Particle Type: True
+
+(particle_type, 'Metallicity_00')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``metallicity``
+   * Particle Type: True
+
+(particle_type, 'Metallicity_01')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``He_fraction``
+   * Particle Type: True
+
+(particle_type, 'Metallicity_02')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``C_fraction``
+   * Particle Type: True
+
+(particle_type, 'Metallicity_03')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``N_fraction``
+   * Particle Type: True
+
+(particle_type, 'Metallicity_04')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``O_fraction``
+   * Particle Type: True
+
+(particle_type, 'Metallicity_05')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``Ne_fraction``
+   * Particle Type: True
+
+(particle_type, 'Metallicity_06')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``Mg_fraction``
+   * Particle Type: True
+
+(particle_type, 'Metallicity_07')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``Si_fraction``
+   * Particle Type: True
+
+(particle_type, 'Metallicity_08')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``S_fraction``
+   * Particle Type: True
+
+(particle_type, 'Metallicity_09')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``Ca_fraction``
+   * Particle Type: True
+
+(particle_type, 'Metallicity_10')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Aliased to: ``Fe_fraction``
+   * Particle Type: True
+
+(particle_type, 'uDotFB')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass} \cdot \rm{code}~\rm{velocity}^{2}}`
+   * Aliased to: ``uDotFB``
+   * Particle Type: True
+
+(particle_type, 'acc')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity} / \rm{code}~\rm{time}}`
+   * Aliased to: ``acc``
+   * Particle Type: True
+
+(particle_type, 'c')
+^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity}}`
+   * Aliased to: ``c``
+   * Particle Type: True
+
+(particle_type, 'uDotDiff')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass} \cdot \rm{code}~\rm{velocity}^{2}}`
+   * Aliased to: ``uDotDiff``
+   * Particle Type: True
+
+(particle_type, 'FeMassFrac')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{}`
+   * Aliased to: ``FeMassFrac``
+   * Particle Type: True
+
+(particle_type, 'timeform')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{time}}`
+   * Aliased to: ``timeform``
+   * Particle Type: True
+
+(particle_type, 'uDot')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass} \cdot \rm{code}~\rm{velocity}^{2}}`
+   * Aliased to: ``uDot``
+   * Particle Type: True
+
+(particle_type, 'accg')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{velocity} / \rm{code}~\rm{time}}`
+   * Aliased to: ``accg``
+   * Particle Type: True
+
+(particle_type, 'uDotHydro')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass} \cdot \rm{code}~\rm{velocity}^{2}}`
+   * Aliased to: ``uDotHydro``
+   * Particle Type: True
+
+(particle_type, 'uDotPdV')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass} \cdot \rm{code}~\rm{velocity}^{2}}`
+   * Aliased to: ``uDotPdV``
+   * Particle Type: True
+
+(particle_type, 'uDotAV')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass} \cdot \rm{code}~\rm{velocity}^{2}}`
+   * Aliased to: ``uDotAV``
+   * Particle Type: True
+
+(particle_type, 'HI')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{}`
+   * Aliased to: ``HI``
+   * Particle Type: True
+
+(particle_type, 'coolontime')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{time}}`
+   * Aliased to: ``coolontime``
+   * Particle Type: True
+
+(particle_type, 'HeII')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{}`
+   * Aliased to: ``HeII``
+   * Particle Type: True
+
+(particle_type, 'HII')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{}`
+   * Aliased to: ``HII``
+   * Particle Type: True
+
+(particle_type, 'massform')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{\rm{code}~\rm{mass}}`
+   * Aliased to: ``massform``
+   * Particle Type: True
+
+(particle_type, 'OxMassFrac')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{}`
+   * Aliased to: ``OxMassFrac``
+   * Particle Type: True
+
+(particle_type, 'HeI')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\mathrm{}`
+   * Aliased to: ``HeI``
+   * Particle Type: True
+
+
+
+Index of Fields
+---------------
+
+.. contents:: 
+   :depth: 3
+   :backlinks: none
+
 

@@ -51,7 +51,7 @@ class CameraTest(TestCase):
         self.L = np.array([0.5, 0.5, 0.5])
         self.W = 1.5*self.ds.domain_width
         self.N = 64
-        self.field = "density"
+        self.field = ("gas", "density")
 
     def tearDown(self):
         if use_tmpdir:
@@ -61,7 +61,7 @@ class CameraTest(TestCase):
     def setup_transfer_function(self, camera_type):
         if camera_type in ['perspective', 'camera',
                            'stereopair', 'interactive']:
-            mi, ma = self.ds.all_data().quantities['Extrema']("density")
+            mi, ma = self.ds.all_data().quantities['Extrema'](self.field)
             tf = ColorTransferFunction((mi, ma),
                                        grey_opacity=True)
             tf.map_to_colormap(mi, ma, scale=10., colormap='RdBu_r')
@@ -110,7 +110,7 @@ class CameraTest(TestCase):
         ds = self.ds
 
         cam = ProjectionCamera(self.c, self.L, self.W, self.N, ds=ds,
-                               field="density")
+                               field=self.field)
         cam.snapshot('projection.png')
         assert_fname('projection.png')
 
