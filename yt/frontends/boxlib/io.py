@@ -125,29 +125,27 @@ class IOHandlerOrion(IOHandlerBoxlib):
                     rv[ftype, fname] = np.concatenate((data, rv[ftype, fname]))
         return rv
 
-    def _read_particles(self, grid, field): 
+    def _read_particles(self, grid, field):
         """
         parses the Orion Star Particle text files
 
         """
 
-        fn = self.particle_filename
+        particles = []
+
+        if grid.NumberOfParticles == 0:
+            return np.array(particles)
 
         def read(line, field):
             entry = line.strip().split(' ')[self.particle_field_index[field]]
             return np.float(entry)
 
+        fn = self.particle_filename
         with open(fn, 'r') as f:
             lines = f.readlines()
-            particles = []
-            for line in lines[1:]:
-                if grid.NumberOfParticles > 0:
-                    coord = read(line, "particle_position_x"), \
-                            read(line, "particle_position_y"), \
-                            read(line, "particle_position_z") 
-                    if ( (grid.LeftEdge <= coord).all() and 
-                         (coord <= grid.RightEdge).all() ):
-                        particles.append(read(line, field))
+            for num in grid._particle_line_numbers:
+                line = lines[num]
+                particles.append(read(line, field))
         return np.array(particles)
 
 
