@@ -40,7 +40,7 @@ ds = yt.load("GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0350")
 
 # gradient operator requires periodic boundaries.  This dataset has
 # open boundary conditions.  We need to hack it for now (this will be fixed
-# in version of yt)
+# in future version of yt)
 ds.periodicity = (True, True, True)
 
 # Take a slice through the center of the domain
