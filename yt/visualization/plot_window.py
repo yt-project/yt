@@ -813,7 +813,7 @@ class PWViewerMPL(PlotWindow):
                             1, self.xlim, self.ylim)
                     else:
                         ymin, ymax = [float(y) for y in extenty]
-                    self.plots[f].image.set_extent((xmin,xmax,ymin,ymax))
+                    self.plots[f].image.set_extent((xmin, xmax, ymin, ymax))
                     self.plots[f].axes.set_aspect("auto")
 
             x_label, y_label, colorbar_label = self._get_axes_labels(f)
@@ -843,7 +843,7 @@ class PWViewerMPL(PlotWindow):
                 if units is None or units == '':
                     pass
                 else:
-                    colorbar_label += r'$\/\/('+units+r')$'
+                    colorbar_label += r'$\/\/\left('+units+r'\right)$'
 
             parser = MathTextParser('Agg')
             try:
