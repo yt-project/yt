@@ -705,7 +705,7 @@ class OrionHierarchy(BoxlibHierarchy):
                     self.grid_particle_count[ind] += 1
                     self.grids[ind].NumberOfParticles += 1
 
-                    # store the position in the *.sink file for fast access.
+                    # store the position in the particle file for fast access.
                     try:
                         self.grids[ind]._particle_line_numbers.append(num + 1)
                     except AttributeError:
