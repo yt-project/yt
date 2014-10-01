@@ -19,7 +19,8 @@ from .data_structures import \
       GadgetDataset, \
       GadgetHDF5Dataset, \
       TipsyDataset,\
-      EagleNetworkDataset
+      EagleNetworkDataset, \
+      EagleDataset
 
 from .io import \
       IOHandlerOWLS, \

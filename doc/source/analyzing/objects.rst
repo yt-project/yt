@@ -225,12 +225,12 @@ Construction Objects
 
 **Projection** 
     | Class :class:`~yt.data_objects.construction_data_containers.YTQuadTreeProjBase`
-    | Usage: ``proj(field, axis, weight_field=None, center=None, ds=None, data_source=None, style="integrate", field_parameters=None)``
+    | Usage: ``proj(field, axis, weight_field=None, center=None, ds=None, data_source=None, method="integrate", field_parameters=None)``
     | A 2D projection of a 3D volume along one of the axis directions.  
       By default, this is a line integral through the entire simulation volume 
       (although it can be a subset of that volume specified by a data object
       with the ``data_source`` keyword).  Alternatively, one can specify 
-      a weight_field and different ``style`` values to change the nature
+      a weight_field and different ``method`` values to change the nature
       of the projection outcome.  See :ref:`projection-types` for more information.
 
 **Streamline** 
@@ -263,7 +263,7 @@ all the cells contained in a sphere at the center of our dataset.
 
    ds = load("my_data")
    sp = ds.sphere('c', (10, 'kpc'))
-   print ad.quantities.angular_momentum_vector()
+   print sp.quantities.angular_momentum_vector()
 
 Available Derived Quantities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^

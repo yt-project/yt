@@ -732,8 +732,11 @@ def memory_checker(interval = 15, dest = None):
     e = threading.Event()
     mem_check = MemoryChecker(e, interval)
     mem_check.start()
-    yield
-    e.set()
+    try:
+        yield
+    finally:
+        e.set()
+
 
 def deprecated_class(cls):
     @wraps(cls)
@@ -758,3 +761,9 @@ def enable_plugins():
     if os.path.isfile(_fn):
         mylog.info("Loading plugins from %s", _fn)
         execfile(_fn, yt.__dict__)
+
+def fix_unitary(u):
+    if u == '1':
+        return 'unitary'
+    else:
+        return u

@@ -113,6 +113,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
                                      data_source['theta'],
                                      data_source['dtheta'] / 2.0, # half-widths
                                      size, data_source[field], bounds)
+            buff = buff.transpose()
         else:
             raise RuntimeError
         return buff
@@ -122,7 +123,21 @@ class SphericalCoordinateHandler(CoordinateHandler):
         raise NotImplementedError
 
     def convert_to_cartesian(self, coord):
-        raise NotImplementedError
+        if isinstance(coord, np.ndarray) and len(coord.shape) > 1:
+            r = coord[:,0]
+            theta = coord[:,1]
+            phi = coord[:,2]
+            nc = np.zeros_like(coord)
+            # r, theta, phi
+            nc[:,0] = np.cos(phi) * np.sin(theta)*r
+            nc[:,1] = np.sin(phi) * np.sin(theta)*r
+            nc[:,2] = np.cos(theta) * r
+        else:
+            r, theta, phi = coord
+            nc = (np.cos(phi) * np.sin(theta)*r,
+                  np.sin(phi) * np.sin(theta)*r,
+                  np.cos(theta) * r)
+        return nc
 
     def convert_to_cylindrical(self, coord):
         raise NotImplementedError
@@ -142,6 +157,24 @@ class SphericalCoordinateHandler(CoordinateHandler):
                  'r' : 'r', 'theta' : 'theta', 'phi' : 'phi',
                  'R' : 'r', 'Theta' : 'theta', 'Phi' : 'phi'}
 
+    _image_axis_name = None
+    @property
+    def image_axis_name(self):    
+        if self._image_axis_name is not None:
+            return self._image_axis_name
+        # This is the x and y axes labels that get displayed.  For
+        # non-Cartesian coordinates, we usually want to override these for
+        # Cartesian coordinates, since we transform them.
+        rv = {0: ('theta', 'phi'),
+              1: ('x / \\sin(\\theta)', 'y / \\sin(\\theta)'),
+              2: ('R', 'z')}
+        for i in rv.keys():
+            rv[self.axis_name[i]] = rv[i]
+            rv[self.axis_name[i].upper()] = rv[i]
+        self._image_axis_name = rv
+        return rv
+
+
     axis_id = { 'r' : 0, 'theta' : 1, 'phi' : 2,
                  0  : 0,  1  : 1,  2  : 2}
 
@@ -155,3 +188,34 @@ class SphericalCoordinateHandler(CoordinateHandler):
     def period(self):
         return self.ds.domain_width
 
+    def sanitize_center(self, center, axis):
+        center, display_center = super(
+            SphericalCoordinateHandler, self).sanitize_center(center, axis)
+        if axis == 0:
+            display_center = center
+        elif axis == 1:
+            display_center = (0.0 * display_center[0],
+                              0.0 * display_center[1],
+                              0.0 * display_center[2])
+        elif axis ==2:
+            display_center = (self.ds.domain_width[0]/2.0,
+                              0.0 * display_center[1],
+                              0.0 * display_center[2])
+        return center, display_center
+
+    def sanitize_width(self, axis, width, depth):
+        if width is not None:
+            width = super(SphericalCoordinateHandler, self).sanitize_width(
+              axis, width, depth)
+        elif axis == 0:
+            width = [self.ds.domain_width[self.x_axis[0]],
+                     self.ds.domain_width[self.y_axis[0]]]
+        elif axis == 1:
+            # Remember, in spherical coordinates when we cut in theta,
+            # we create a conic section
+            width = [2.0*self.ds.domain_width[0],
+                     2.0*self.ds.domain_width[0]]
+        elif axis == 2:
+            width = [self.ds.domain_width[0],
+                     2.0*self.ds.domain_width[0]]
+        return width

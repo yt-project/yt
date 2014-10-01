@@ -281,7 +281,7 @@ cdef class OctreeContainer:
             dds[i] = (self.DRE[i] - self.DLE[i])/self.nn[i]
             ind[i] = <np.int64_t> (floor((ppos[i] - self.DLE[i])/dds[i]))
             cp[i] = (ind[i] + 0.5) * dds[i] + self.DLE[i]
-            ipos[i] = 0
+            ipos[i] = 0 # We add this to ind later, so it should be zero.
             ind32[i] = ind[i]
         self.get_root(ind32, &next)
         # We want to stop recursing when there's nowhere else to go
@@ -307,12 +307,6 @@ cdef class OctreeContainer:
         cdef np.float64_t factor = 1.0 / (1 << (self.oref-1))
         if self.oref == 0: factor = 2.0
         for i in range(3):
-            # This will happen *after* we quit out, so we need to back out the
-            # last change to cp
-            if ind[i] == 1:
-                cp[i] -= dds[i]/2.0 # Now centered
-            else:
-                cp[i] += dds[i]/2.0
             # We don't normally need to change dds[i] as it has been halved
             # from the oct width, thus making it already the cell width.
             # But, since not everything has the cell width equal to have the
@@ -926,7 +920,7 @@ cdef OctList *OctList_subneighbor_find(OctList *olist, Oct *top,
     # to zero; i.e., the number of dimensions along which we are aligned.
     # For now, we assume we will not be doing this along all three zeros,
     # because that would be pretty tricky.
-    if i == j == k == 0: return olist
+    if i == j == k == 1: return olist
     cdef np.int64_t n[3], ind[3], off[3][2], ii, ij, ik, ci
     ind[0] = 1 - i
     ind[1] = 1 - j

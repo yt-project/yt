@@ -496,7 +496,8 @@ class YTDataContainer(object):
 
                 # really ugly check to ensure that this field really does exist somewhere,
                 # in some naming convention, before returning it as a possible field type
-                if (ftype,fname) not in self.ds.field_list and \
+                if (ftype,fname) not in self.ds.field_info and \
+                        (ftype,fname) not in self.ds.field_list and \
                         fname not in self.ds.field_list and \
                         (ftype,fname) not in self.ds.derived_field_list and \
                         fname not in self.ds.derived_field_list and \
@@ -798,13 +799,16 @@ class YTSelectionContainer2D(YTSelectionContainer):
     def _get_pw(self, fields, center, width, origin, plot_type):
         from yt.visualization.plot_window import \
             get_window_parameters, PWViewerMPL
-        from yt.visualization.fixed_resolution import FixedResolutionBuffer as frb
+        from yt.visualization.fixed_resolution import \
+            FixedResolutionBuffer as frb
         axis = self.axis
         skip = self._key_fields
         skip += list(set(frb._exclude_fields).difference(set(self._key_fields)))
-        self.fields = ensure_list(fields) + \
-            [k for k in self.field_data if k not in skip]
-        (bounds, center) = get_window_parameters(axis, center, width, self.ds)
+        self.fields = [k for k in self.field_data if k not in skip]
+        if fields is not None:
+            self.fields = ensure_list(fields) + self.fields
+        (bounds, center, display_center) = \
+            get_window_parameters(axis, center, width, self.ds)
         pw = PWViewerMPL(self, bounds, fields=self.fields, origin=origin,
                          frb_generator=frb, plot_type=plot_type)
         pw._setup_plots()
@@ -1188,16 +1192,15 @@ class YTSelectionContainer3D(YTSelectionContainer):
         return self._particle_handler
 
 
-    def volume(self, unit = "unitary"):
+    def volume(self):
         """
-        Return the volume of the data container in units *unit*.
+        Return the volume of the data container.
         This is found by adding up the volume of the cells with centers
         in the container, rather than using the geometric shape of
         the container, so this may vary very slightly
         from what might be expected from the geometric volume.
         """
-        return self.quantities["TotalQuantity"]("CellVolume")[0] * \
-            (self.ds[unit] / self.ds['cm']) ** 3.0
+        return self.quantities.total_quantity(("index", "cell_volume"))
 
 # Many of these items are set up specifically to ensure that
 # we are not breaking old pickle files.  This means we must only call the
