@@ -6,6 +6,7 @@ import yt
 # Need to grab the proton mass from the constants database
 from yt.utilities.physical_constants import mp
 
+exit()
 # Define the emission field
 
 keVtoerg = 1.602e-9  # Convert energy in keV to energy in erg
