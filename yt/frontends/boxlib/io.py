@@ -140,13 +140,21 @@ class IOHandlerOrion(IOHandlerBoxlib):
             entry = line.strip().split(' ')[self.particle_field_index[field]]
             return np.float(entry)
 
-        fn = self.particle_filename
-        with open(fn, 'r') as f:
-            lines = f.readlines()
+        try:
+            lines = self._cached_lines
             for num in grid._particle_line_numbers:
                 line = lines[num]
                 particles.append(read(line, field))
-        return np.array(particles)
+            return np.array(particles)
+        except AttributeError:
+            fn = self.particle_filename
+            with open(fn, 'r') as f:
+                lines = f.readlines()
+                self._cached_lines = lines
+                for num in grid._particle_line_numbers:
+                    line = lines[num]
+                    particles.append(read(line, field))
+            return np.array(particles)
 
 
 class IOHandlerCastro(IOHandlerBoxlib):
