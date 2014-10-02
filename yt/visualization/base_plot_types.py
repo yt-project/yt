@@ -121,8 +121,8 @@ class ImagePlotMPL(PlotMPL):
                 bmap = brewer2mpl.get_map(*cmap)
                 cmap = bmap.get_mpl_colormap(N=cmap[2])
             else:
-                raise RuntimeError("Please install brewer2mpl to use colorbrewer colormaps")
-
+                raise RuntimeError(
+                    "Please install brewer2mpl to use colorbrewer colormaps")
         self.image = self.axes.imshow(data.to_ndarray(), origin='lower',
                                       extent=extent, norm=norm, vmin=self.zmin,
                                       aspect=aspect, vmax=self.zmax, cmap=cmap)
