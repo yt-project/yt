@@ -151,7 +151,9 @@ dict, accepting the following keys:
 * yt primarily works with primitive variables. If the Athena
   dataset contains conservative variables, the yt primitive fields will be generated from the
   conserved variables on disk.
-* Special relativistic datasets may be loaded, but are not fully supported. In particular,
+* Special relativistic datasets may be loaded, but are not fully supported. In particular, the relationships between
+  quantities such as pressure and thermal energy will be incorrect, as it is currently assumed that their relationship
+  is that of an ideal a :math:`\gamma`-law equation of state.
 * Domains may be visualized assuming periodicity.
 * Particle list data is currently unsupported.
 
