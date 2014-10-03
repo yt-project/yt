@@ -312,13 +312,13 @@ be worth aliasing this task in your ``hgrc`` file by adding something like::
   [alias]
   myupdate = update -r "remote(tip,'upstream')"
 
-And then you can just issue ``hg myupdate`` to get at the tip of the yt
-branch of the main yt repository.
+And then you can just issue ``hg myupdate`` to get at the tip of the main yt repository.
 
-You can then make changes and ``hg commit`` them.  If you prefer
-working with `bookmarks <http://mercurial.selenic.com/wiki/Bookmarks>`_, you may
-want to make a bookmark before committing your changes, such as
-``hg bookmark mybookmark``.
+Make sure you are on the branch you want to be on, and then you can
+make changes and ``hg commit`` them.  If you prefer working with
+`bookmarks <http://mercurial.selenic.com/wiki/Bookmarks>`_, you may
+want to make a bookmark before committing your changes, such as ``hg
+bookmark mybookmark``.
 
 To push to your fork on BitBucket if you didn't use a bookmark, you issue the following:
 
