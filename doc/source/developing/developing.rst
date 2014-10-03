@@ -302,7 +302,7 @@ and your ``hgrc`` file:
 
    .. code-block:: bash
 
-      $ hg pull
+      $ hg pull upstream
       $ hg update -r "remote(tip,'upstream')"
 
 After the above steps, your local repository should be at the tip of
