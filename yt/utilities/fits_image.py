@@ -13,7 +13,6 @@ FITSImageBuffer Class
 import numpy as np
 from yt.funcs import mylog, iterable, fix_axis, ensure_list
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
-from yt.visualization.plot_window import get_sanitized_center
 from yt.data_objects.construction_data_containers import YTCoveringGridBase
 from yt.utilities.on_demand_imports import _astropy
 from yt.units.yt_array import YTQuantity
@@ -309,7 +308,7 @@ class FITSSlice(FITSImageBuffer):
     def __init__(self, ds, axis, fields, center="c", **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis, ds)
-        center = get_sanitized_center(center, ds)
+        center = ds.coordinates.sanitize_center(center, axis)
         slc = ds.slice(axis, center[axis], **kwargs)
         w, frb = construct_image(slc, center=center)
         super(FITSSlice, self).__init__(frb, fields=fields, wcs=w)
@@ -342,7 +341,7 @@ class FITSProjection(FITSImageBuffer):
     def __init__(self, ds, axis, fields, center="c", weight_field=None, **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis, ds)
-        center = get_sanitized_center(center, ds)
+        center = ds.coordinates.sanitize_center(center, axis)
         prj = ds.proj(fields[0], axis, weight_field=weight_field, **kwargs)
         w, frb = construct_image(prj, center=center)
         super(FITSProjection, self).__init__(frb, fields=fields, wcs=w)

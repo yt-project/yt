@@ -955,7 +955,7 @@ class Profile1D(ProfileND):
     x_min : float
         The minimum value of the x profile field.
     x_max : float
-        The maximum value of hte x profile field.
+        The maximum value of the x profile field.
     x_log : boolean
         Controls whether or not the bins for the x field are evenly
         spaced in linear (False) or log (True) space.

@@ -490,7 +490,6 @@ class PhotonList(object):
         z_hat = orient.unit_vectors[2]
 
         n_ph = self.photons["NumberOfPhotons"]
-        num_cells = len(n_ph)
         n_ph_tot = n_ph.sum()
         
         eff_area = None
@@ -667,7 +666,6 @@ class PhotonList(object):
         tblhdu = hdulist["MATRIX"]
         n_de = len(tblhdu.data["ENERG_LO"])
         mylog.info("Number of energy bins in RMF: %d" % (n_de))
-        de = tblhdu.data["ENERG_HI"] - tblhdu.data["ENERG_LO"]
         mylog.info("Energy limits: %g %g" % (min(tblhdu.data["ENERG_LO"]),
                                              max(tblhdu.data["ENERG_HI"])))
 
@@ -682,7 +680,6 @@ class PhotonList(object):
         phYY = events["ypix"][eidxs]
 
         detectedChannels = []
-        pindex = 0
 
         # run through all photon energies and find which bin they go in
         k = 0

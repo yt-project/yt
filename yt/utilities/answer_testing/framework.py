@@ -574,7 +574,7 @@ class ParentageRelationshipsTest(AnswerTestingTest):
         for newp, oldp in zip(new_result["parents"], old_result["parents"]):
             assert(newp == oldp)
         for newc, oldc in zip(new_result["children"], old_result["children"]):
-            assert(newp == oldp)
+            assert(newc == oldc)
 
 class SimulatedHaloMassFunctionTest(AnswerTestingTest):
     _type_name = "SimulatedHaloMassFunction"

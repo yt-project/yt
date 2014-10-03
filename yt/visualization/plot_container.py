@@ -35,6 +35,7 @@ from yt.funcs import \
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 
+
 def invalidate_data(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
@@ -120,7 +121,7 @@ class PlotDictionary(defaultdict):
         return defaultdict.__init__(self, default_factory)
 
 class ImagePlotContainer(object):
-    """A countainer for plots with colorbars.
+    """A container for plots with colorbars.
 
     """
     _plot_type = None
@@ -198,7 +199,7 @@ class ImagePlotContainer(object):
         return self
 
     @invalidate_plot
-    def set_cmap(self, field, cmap_name):
+    def set_cmap(self, field, cmap):
         """set the colormap for one of the fields
 
         Parameters
@@ -206,8 +207,11 @@ class ImagePlotContainer(object):
         field : string
             the field to set the colormap
             if field == 'all', applies to all plots.
-        cmap_name : string
-            name of the colormap
+        cmap : string or tuple
+            If a string, will be interpreted as name of the colormap.
+            If a tuple, it is assumed to be of the form (name, type, number)
+            to be used for brewer2mpl functionality. (name, type, number, bool)
+            can be used to specify if a reverse colormap is to be used.
 
         """
 
@@ -217,7 +221,7 @@ class ImagePlotContainer(object):
             fields = [field]
         for field in self.data_source._determine_fields(fields):
             self._colorbar_valid = False
-            self._colormaps[field] = cmap_name
+            self._colormaps[field] = cmap
         return self
 
     @invalidate_plot
@@ -384,37 +388,6 @@ class ImagePlotContainer(object):
         return self.set_font({'size': size})
 
     @invalidate_plot
-    def set_cmap(self, field, cmap):
-        """set the colormap for one of the fields
-
-        Parameters
-        ----------
-        field : string
-            the field to set a transform
-            if field == 'all', applies to all plots.
-        cmap : string
-            name of the colormap
-
-        """
-        if field == 'all':
-            fields = self.plots.keys()
-        else:
-            fields = [field]
-
-        for field in self.data_source._determine_fields(fields):
-            self._colorbar_valid = False
-            self._colormaps[field] = cmap
-            if isinstance(cmap, types.StringTypes):
-                if str(cmap) in yt_colormaps:
-                    cmap = yt_colormaps[str(cmap)]
-                elif hasattr(matplotlib.cm, cmap):
-                    cmap = getattr(matplotlib.cm, cmap)
-            if not is_colormap(cmap) and cmap is not None:
-                raise RuntimeError("Colormap '%s' does not exist!" % str(cmap))
-            self.plots[field].image.set_cmap(cmap)
-        return self
-
-    @invalidate_plot
     @invalidate_figure
     def set_figure_size(self, size):
         """Sets a new figure size for the plot
@@ -499,7 +472,6 @@ class ImagePlotContainer(object):
 
     def show(self):
         r"""This will send any existing plots to the IPython notebook.
-        function name.
 
         If yt is being run from within an IPython session, and it is able to
         determine this, this function will send any existing plots to the

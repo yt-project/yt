@@ -57,7 +57,7 @@ def doit(ds):
     
     # physical limits to the wavenumbers
     kmin = np.min(1.0/L)
-    kmax = np.max(0.5*dims/L)
+    kmax = np.min(0.5*dims/L)
     
     kbins = np.arange(kmin, kmax, kmin)
     N = len(kbins)
@@ -112,7 +112,6 @@ def fft_comp(ds, irho, iu, nindex_rho, level, low, delta ):
     return np.abs(ru)**2
 
 
-if __name__ == "__main__":
 
-    ds = yt.load("maestro_xrb_lores_23437")
-    doit(ds)
+ds = yt.load("maestro_xrb_lores_23437")
+doit(ds)
