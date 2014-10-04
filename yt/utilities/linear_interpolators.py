@@ -240,7 +240,6 @@ def get_centers(ds, filename, center_cols, radius_col, unit='1'):
     Return an iterator over EnzoSphere objects generated from the appropriate 
     columns in *filename*.  Optionally specify the *unit* radius is in.
     """
-    sp_list = []
     for line in open(filename):
         if line.startswith("#"): continue
         vals = line.split()

@@ -27,7 +27,7 @@ from collections import defaultdict
 from yt.extern.six import add_metaclass
 
 from yt.config import ytcfg
-from yt.funcs import mylog
+from yt.funcs import mylog, ensure_dir_exists
 from yt.utilities.performance_counters import \
     time_function, \
     yt_counters

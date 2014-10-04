@@ -170,10 +170,16 @@ Only one of these two options is needed.
 Developing yt on Windows
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you plan to develop yt on Windows, we recommend using the `MinGW
+If you plan to develop yt on Windows, it is necessary to use the `MinGW
 <http://www.mingw.org/>`_ gcc compiler that can be installed using the `Anaconda
-Python Distribution <https://store.continuum.io/cshop/anaconda/>`_. Also, the
-syntax for the setup command is slightly different; you must type:
+Python Distribution <https://store.continuum.io/cshop/anaconda/>`_. The libpython package must be
+installed from Anaconda as well. These can both be installed with a single command:
+
+.. code-block:: bash
+
+  $ conda install libpython mingw
+
+Additionally, the syntax for the setup command is slightly different; you must type:
 
 .. code-block:: bash
 
@@ -223,6 +229,19 @@ Here's a more detailed flowchart of how to submit changes.
  
    If you end up doing considerable development, you can set an alias in the
    file ``.hg/hgrc`` to point to this path.
+
+   .. note::
+     Note that the above approach uses HTTPS as the transfer protocol
+     between your machine and BitBucket.  If you prefer to use SSH - or
+     perhaps you're behind a proxy that doesn't play well with SSL via
+     HTTPS - you may want to set up an `SSH key`_ on BitBucket.  Then, you use
+     the syntax ``ssh://hg@bitbucket.org/YourUsername/yt``, or equivalent, in
+     place of ``https://bitbucket.org/YourUsername/yt`` in Mercurial commands.
+     For consistency, all commands we list in this document will use the HTTPS
+     protocol.
+
+     .. _SSH key: https://confluence.atlassian.com/display/BITBUCKET/Set+up+SSH+for+Mercurial
+
 #. Issue a pull request at
    https://bitbucket.org/YourUsername/yt/pull-request/new
 
@@ -239,6 +258,88 @@ straightforward.
       hg push https://bitbucket.org/YourUsername/yt/
 
 #. Your pull request will be automatically updated.
+
+.. _multiple-PRs:
+
+Working with Multiple BitBucket Pull Requests
++++++++++++++++++++++++++++++++++++++++++++++
+
+Once you become active developing for yt, you may be working on
+various aspects of the code or bugfixes at the same time.  Currently,
+BitBucket's *modus operandi* for pull requests automatically updates
+your active pull request with every ``hg push`` of commits that are a
+descendant of the head of your pull request.  In a normal workflow,
+this means that if you have an active pull request, make some changes
+locally for, say, an unrelated bugfix, then push those changes back to
+your fork in the hopes of creating a *new* pull request, you'll
+actually end up updating your current pull request!
+
+There are a few ways around this feature of BitBucket that will allow
+for multiple pull requests to coexist; we outline one such method
+below.  We assume that you have a fork of yt at
+``http://bitbucket.org/YourUsername/Your_yt`` (see
+:ref:`sharing-changes` for instructions on creating a fork) and that
+you have an active pull request to the main repository.
+
+The main issue with starting another pull request is to make sure that
+your push to BitBucket doesn't go to the same head as your
+existing pull request and trigger BitBucket's auto-update feature.
+Here's how to get your local repository away from your current pull
+request head using `revsets <http://www.selenic.com/hg/help/revsets>`_
+and your ``hgrc`` file:
+   
+#. Set up a Mercurial path for the main yt repository (note this is a convenience
+   step and only needs to be done once).  Add the following to your
+   ``Your_yt/.hg/hgrc``::
+
+     [paths]
+     upstream = https://bitbucket.org/yt_analysis/yt
+
+   This will create a path called ``upstream`` that is aliased to the URL of the
+   main yt repository.
+#. Now we'll use revsets_ to update your local repository to the tip of the
+   ``upstream`` path:
+
+   .. code-block:: bash
+
+      $ hg pull
+      $ hg update -r "remote(tip,'upstream')"
+
+After the above steps, your local repository should be at the tip of
+the main yt repository.  If you find yourself doing this a lot, it may
+be worth aliasing this task in your ``hgrc`` file by adding something like::
+
+  [alias]
+  myupdate = update -r "remote(tip,'upstream')"
+
+And then you can just issue ``hg myupdate`` to get at the tip of the yt
+branch of the main yt repository.
+
+You can then make changes and ``hg commit`` them.  If you prefer
+working with `bookmarks <http://mercurial.selenic.com/wiki/Bookmarks>`_, you may
+want to make a bookmark before committing your changes, such as
+``hg bookmark mybookmark``.
+
+To push to your fork on BitBucket if you didn't use a bookmark, you issue the following:
+
+.. code-block:: bash
+
+  $ hg push -r . -f https://bitbucket.org/YourUsername/Your_yt
+
+The ``-r .`` means "push only the commit I'm standing on and any ancestors."  The
+``-f`` is to force Mecurial to do the push since we are creating a new remote head.
+
+Note that if you *did* use a bookmark, you don't have to force the push, but you do
+need to push the bookmark; in other words do the following instead of the above:
+
+.. code-block:: bash
+		
+   $ hg push -B mybookmark https://bitbucket.org/YourUsername/Your_yt
+
+The ``-B`` means "publish my bookmark and any relevant changesets to the remote server."
+		
+You can then go to the BitBucket interface and issue a new pull request based on
+your last changes, as usual.
 
 How To Get The Source Code For Editing
 --------------------------------------

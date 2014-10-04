@@ -369,32 +369,34 @@ class ContourCallback(PlotCallback):
 
 class GridBoundaryCallback(PlotCallback):
     """
-    annotate_grids(alpha=0.7, min_pix=1, min_pix_ids=20, draw_ids=False, periodic=True, 
-                 min_level=None, max_level=None, cmap='B-W LINEAR_r', edgecolors=None,
-                 linewidth=1.0):
+    annotate_grids(alpha=0.7, min_pix=1, min_pix_ids=20, draw_ids=False,
+                   periodic=True, min_level=None, max_level=None,
+                   cmap='B-W LINEAR_r', edgecolors=None, linewidth=1.0):
 
-    Draws grids on an existing PlotWindow object.
-    Adds grid boundaries to a plot, optionally with alpha-blending. By default, 
-    colors different levels of grids with different colors going from white to
-    black, but you can change to any arbitrary colormap with cmap keyword, to all black
-    grid edges for all levels with cmap=None and edgecolors=None, or to an arbitrary single
-    color for grid edges with edgecolors='YourChosenColor' defined in any of the standard ways
-    (e.g., edgecolors='white', edgecolors='r', edgecolors='#00FFFF', or edgecolor='0.3', where
-    the last is a float in 0-1 scale indicating gray).
-    Note that setting edgecolors overrides cmap if you have both set to non-None values.
-    Cutoff for display is at min_pix wide. draw_ids puts the grid id in the corner of the grid.
-    (Not so great in projections...).  One can set min and maximum level of
-    grids to display, and can change the linewidth of the displayed grids.
+    Draws grids on an existing PlotWindow object.  Adds grid boundaries to a
+    plot, optionally with alpha-blending. By default, colors different levels of
+    grids with different colors going from white to black, but you can change to
+    any arbitrary colormap with cmap keyword, to all black grid edges for all
+    levels with cmap=None and edgecolors=None, or to an arbitrary single color
+    for grid edges with edgecolors='YourChosenColor' defined in any of the
+    standard ways (e.g., edgecolors='white', edgecolors='r',
+    edgecolors='#00FFFF', or edgecolor='0.3', where the last is a float in 0-1
+    scale indicating gray).  Note that setting edgecolors overrides cmap if you
+    have both set to non-None values.  Cutoff for display is at min_pix
+    wide. draw_ids puts the grid id in the corner of the grid.  (Not so great in
+    projections...).  One can set min and maximum level of grids to display, and
+    can change the linewidth of the displayed grids.
     """
     _type_name = "grids"
-    def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20, draw_ids=False, periodic=True, 
-                 min_level=None, max_level=None, cmap='B-W LINEAR_r', edgecolors=None,
-                 linewidth=1.0):
+
+    def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20, draw_ids=False,
+                 periodic=True, min_level=None, max_level=None,
+                 cmap='B-W LINEAR_r', edgecolors=None, linewidth=1.0):
         PlotCallback.__init__(self)
         self.alpha = alpha
         self.min_pix = min_pix
         self.min_pix_ids = min_pix_ids
-        self.draw_ids = draw_ids # put grid numbers in the corner.
+        self.draw_ids = draw_ids  # put grid numbers in the corner.
         self.periodic = periodic
         self.min_level = min_level
         self.max_level = max_level
@@ -430,6 +432,12 @@ class GridBoundaryCallback(PlotCallback):
         min_level = self.min_level or 0
         max_level = self.max_level or levels.max()
 
+        # sorts the three arrays in order of ascending level - this makes images look nicer
+        new_indices = np.argsort(levels)
+        levels = levels[new_indices]
+        GLE = GLE[new_indices]
+        GRE = GRE[new_indices]
+        
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
             pxo = px_off * DW[px_index]
             pyo = py_off * DW[py_index]
@@ -437,20 +445,22 @@ class GridBoundaryCallback(PlotCallback):
             left_edge_y = np.array((GLE[:,py_index]+pyo-y0)*dy) + yy0
             right_edge_x = np.array((GRE[:,px_index]+pxo-x0)*dx) + xx0
             right_edge_y = np.array((GRE[:,py_index]+pyo-y0)*dy) + yy0
-            visible =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix ) & \
-                       ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix ) & \
-                       ( levels >= min_level) & \
-                       ( levels <= max_level)
+            xwidth = xpix * (right_edge_x - left_edge_x) / (xx1 - xx0)
+            ywidth = ypix * (right_edge_y - left_edge_y) / (yy1 - yy0)
+            visible = np.logical_and(
+                np.logical_and(xwidth > self.min_pix, ywidth > self.min_pix),
+                np.logical_and(levels >= min_level, levels <= max_level))
 
             # Grids can either be set by edgecolors OR a colormap.
             if self.edgecolors is not None:
-                edgecolors = colorConverter.to_rgba(self.edgecolors, alpha=self.alpha)
+                edgecolors = colorConverter.to_rgba(
+                    self.edgecolors, alpha=self.alpha)
             else:  # use colormap if not explicity overridden by edgecolors
                 if self.cmap is not None:
-                    sample_levels = levels[(levels <= max_level) & (levels >= min_level)]
-                    color_bounds = [0,plot.data.pf.h.max_level]
-                    edgecolors = apply_colormap(sample_levels*1.0, color_bounds=color_bounds,
-                                                cmap_name=self.cmap)[0,:,:]*1.0/255.
+                    color_bounds = [0,plot.data.ds.index.max_level]
+                    edgecolors = apply_colormap(
+                        levels[visible]*1.0, color_bounds=color_bounds,
+                        cmap_name=self.cmap)[0,:,:]*1.0/255.
                     edgecolors[:,3] = self.alpha
                 else:
                     edgecolors = (0.0,0.0,0.0,self.alpha)
@@ -461,13 +471,16 @@ class GridBoundaryCallback(PlotCallback):
                  (left_edge_y, right_edge_y, right_edge_y, left_edge_y)])
             verts=verts.transpose()[visible,:,:]
             grid_collection = matplotlib.collections.PolyCollection(
-                verts, facecolors="none", edgecolors=edgecolors, linewidth=self.linewidth)
+                verts, facecolors="none", edgecolors=edgecolors,
+                linewidth=self.linewidth)
             plot._axes.hold(True)
             plot._axes.add_collection(grid_collection)
 
             if self.draw_ids:
-                visible_ids =  ( xpix * (right_edge_x - left_edge_x) / (xx1 - xx0) > self.min_pix_ids ) & \
-                               ( ypix * (right_edge_y - left_edge_y) / (yy1 - yy0) > self.min_pix_ids )
+                visible_ids = np.logical_and(
+                    np.logical_and(xwidth > self.min_pix_ids,
+                                   ywidth > self.min_pix_ids),
+                    np.logical_and(levels >= min_level, levels <= max_level))
                 active_ids = np.unique(plot.data['grid_indices'])
                 for i in np.where(visible_ids)[0]:
                     plot._axes.text(
@@ -545,7 +558,6 @@ class LabelCallback(PlotCallback):
         plot._axes.set_ylabel(self.label)
 
 def get_smallest_appropriate_unit(v, ds):
-    max_nu = 1e30
     good_u = None
     for unit in ['Mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
         uq = YTQuantity(1.0, unit)
@@ -695,10 +707,6 @@ class ClumpContourCallback(PlotCallback):
         dxf = "d%s" % xf
         dyf = "d%s" % yf
 
-        DomainRight = plot.data.ds.domain_right_edge
-        DomainLeft = plot.data.ds.domain_left_edge
-        DomainWidth = DomainRight - DomainLeft
-
         nx, ny = plot.image._A.shape
         buff = np.zeros((nx,ny),dtype='float64')
         for i,clump in enumerate(reversed(self.clumps)):
@@ -777,7 +785,6 @@ class PointAnnotateCallback(PlotCallback):
                         plot.data.ds.coordinates.y_axis[ax])
             pos = self.pos[xi], self.pos[yi]
         else: pos = self.pos
-        width,height = plot.image._A.shape
         x,y = self.convert_to_plot(plot, pos)
         
         plot._axes.text(x, y, self.text, **self.text_args)
@@ -894,8 +901,8 @@ class TextLabelCallback(PlotCallback):
 class HaloCatalogCallback(PlotCallback):
     """
     annotate_halos(halo_catalog, circle_kwargs=None,
-        width = None, annotate_field=False,
-        font_kwargs = None, factor = 1.0)
+        width=None, annotate_field=None,
+        font_kwargs=None, factor = 1.0)
 
     Plots circles at the locations of all the halos
     in a halo catalog with radii corresponding to the
@@ -922,14 +929,16 @@ class HaloCatalogCallback(PlotCallback):
     region = None
     _descriptor = None
 
-    def __init__(self, halo_catalog, circle_kwargs = None, 
-            width = None, annotate_field = False,
-            font_kwargs = None, factor = 1.0):
+    def __init__(self, halo_catalog, circle_kwargs=None, 
+            width=None, annotate_field=None,
+            font_kwargs=None, factor = 1.0):
 
         PlotCallback.__init__(self)
         self.halo_catalog = halo_catalog
         self.width = width
         self.annotate_field = annotate_field
+        if font_kwargs is None:
+            font_kwargs = {'color':'white'}
         self.font_kwargs = font_kwargs
         self.factor = factor
         if circle_kwargs is None:
@@ -992,7 +1001,7 @@ class HaloCatalogCallback(PlotCallback):
 
         if self.annotate_field:
             annotate_dat = halo_data[self.annotate_field]
-            texts = ['{0}'.format(dat) for dat in annotate_dat]
+            texts = ['{:g}'.format(float(dat))for dat in annotate_dat]
             for pos_x, pos_y, t in zip(px, py, texts): 
                 plot._axes.text(pos_x, pos_y, t, **self.font_kwargs)
  

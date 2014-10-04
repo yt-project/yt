@@ -517,15 +517,15 @@ class YTDiskBase(YTSelectionContainer3D):
     Parameters
     ----------
     center : array_like 
-        coordinate to which the normal, radius, and height all reference; in
-        the center of one of the bases of the cylinder
+        coordinate to which the normal, radius, and height all reference
     normal : array_like
         the normal vector defining the direction of lengthwise part of the 
         cylinder
     radius : float
         the radius of the cylinder
     height : float
-        the height of the lengthwise part of the cylinder
+        the distance from the midplane of the cylinder to the top and 
+        bottom planes
     fields : array of fields, optional
         any fields to be pre-loaded in the cylinder object
     ds: Dataset, optional
@@ -543,14 +543,15 @@ class YTDiskBase(YTSelectionContainer3D):
     >>> disk = ds.disk(c, [1,0,0], (1, 'kpc'), (10, 'kpc'))
     """
     _type_name = "disk"
-    _con_args = ('center', '_norm_vec', '_radius', '_height')
+    _con_args = ('center', '_norm_vec', 'radius', 'height')
     def __init__(self, center, normal, radius, height, fields=None,
                  ds=None, **kwargs):
         YTSelectionContainer3D.__init__(self, center, fields, ds, **kwargs)
         self._norm_vec = np.array(normal)/np.sqrt(np.dot(normal,normal))
         self.set_field_parameter("normal", self._norm_vec)
-        self._height = fix_length(height, self.ds)
-        self._radius = fix_length(radius, self.ds)
+        self.set_field_parameter("center", self.center)
+        self.height = fix_length(height, self.ds)
+        self.radius = fix_length(radius, self.ds)
         self._d = -1.0 * np.dot(self._norm_vec, self.center)
 
 class YTRegionBase(YTSelectionContainer3D):
@@ -575,7 +576,7 @@ class YTRegionBase(YTSelectionContainer3D):
     _con_args = ('center', 'left_edge', 'right_edge')
     def __init__(self, center, left_edge, right_edge, fields = None,
                  ds = None, **kwargs):
-        YTSelectionContainer3D.__init__(self, center, fields, ds, **kwargs)
+        YTSelectionContainer3D.__init__(self, center, ds, **kwargs)
         if not isinstance(left_edge, YTArray):
             self.left_edge = self.ds.arr(left_edge, 'code_length')
         else:
@@ -615,7 +616,7 @@ class YTSphereBase(YTSelectionContainer3D):
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
     >>> c = [0.5,0.5,0.5]
-    >>> sphere = ds.sphere(c,1.*ds['kpc'])
+    >>> sphere = ds.sphere(c, (1., "kpc"))
     """
     _type_name = "sphere"
     _con_args = ('center', 'radius')
@@ -627,6 +628,7 @@ class YTSphereBase(YTSelectionContainer3D):
             raise YTSphereTooSmall(ds, radius.in_units("code_length"),
                                    self.index.get_smallest_dx().in_units("code_length"))
         self.set_field_parameter('radius',radius)
+        self.set_field_parameter("center", self.center)
         self.radius = radius
 
 class YTEllipsoidBase(YTSelectionContainer3D):

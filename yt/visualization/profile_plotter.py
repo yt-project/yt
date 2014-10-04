@@ -184,7 +184,7 @@ class ProfilePlot(object):
     ...                                  plot_specs=plot_specs)
     >>> plot.save()
 
-    Use plot_line_property to change line properties of one or all profiles.
+    Use set_line_property to change line properties of one or all profiles.
     
     """
     x_log = None
@@ -256,7 +256,6 @@ class ProfilePlot(object):
 
     def show(self):
         r"""This will send any existing plots to the IPython notebook.
-        function name.
 
         If yt is being run from within an IPython session, and it is able to
         determine this, this function will send any existing plots to the
@@ -544,18 +543,17 @@ class ProfilePlot(object):
         >>> pp.save()
 
         """
-        for i, p in enumerate(self.profiles):
-            if field is 'all':
-                fields = self.axes.keys()
-            else:
-                fields = ensure_list(field)
-            for profile in self.profiles:
-                for field in profile.data_source._determine_fields(fields):
-                    if field in profile.field_map:
-                        field = profile.field_map[field]
-                    self.axes.ylim[field] = (ymin, ymax)
-                    # Continue on to the next profile.
-                    break
+        if field is 'all':
+            fields = self.axes.keys()
+        else:
+            fields = ensure_list(field)
+        for profile in self.profiles:
+            for field in profile.data_source._determine_fields(fields):
+                if field in profile.field_map:
+                    field = profile.field_map[field]
+                self.axes.ylim[field] = (ymin, ymax)
+                # Continue on to the next profile.
+                break
         return self
 
     def _get_field_log(self, field_y, profile):

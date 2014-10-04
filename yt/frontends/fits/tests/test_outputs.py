@@ -33,7 +33,7 @@ def test_grs():
 
 _fields_vels = ("velocity_x","velocity_y","velocity_z")
 
-vf = "UniformGrid/velocity_field_20.fits"
+vf = "UnigridData/velocity_field_20.fits"
 @requires_ds(vf)
 def test_velocity_field():
     ds = data_dir_load(vf, cls=FITSDataset)

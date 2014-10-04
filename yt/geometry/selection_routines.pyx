@@ -36,6 +36,11 @@ cdef extern from "math.h":
     long int lrint(double x) nogil
     double fabs(double x) nogil
 
+# use this as an epsilon test for grids aligned with selector
+# define here to avoid the gil later
+cdef np.float64_t grid_eps = np.finfo(np.float64).eps
+grid_eps = 0.0
+
 # These routines are separated into a couple different categories:
 #
 #   * Routines for identifying intersections of an object with a bounding box
@@ -111,20 +116,19 @@ cdef class SelectorObject:
         self.min_level = getattr(dobj, "min_level", 0)
         self.max_level = getattr(dobj, "max_level", 99)
         self.overlap_cells = 0
-
-        for i in range(3) :
-            ds = getattr(dobj, 'ds', None)
-            if ds is None:
-                for i in range(3):
-                    # NOTE that this is not universal.
-                    self.domain_width[i] = 1.0
-                    self.periodicity[i] = False
-            else:
-                DLE = _ensure_code(ds.domain_left_edge)
-                DRE = _ensure_code(ds.domain_right_edge)
-                for i in range(3):
-                    self.domain_width[i] = DRE[i] - DLE[i]
-                    self.periodicity[i] = ds.periodicity[i]
+        
+        ds = getattr(dobj, 'ds', None)
+        if ds is None:
+            for i in range(3):
+                # NOTE that this is not universal.
+                self.domain_width[i] = 1.0
+                self.periodicity[i] = False
+        else:
+            DLE = _ensure_code(ds.domain_left_edge)
+            DRE = _ensure_code(ds.domain_right_edge)
+            for i in range(3):
+                self.domain_width[i] = DRE[i] - DLE[i]
+                self.periodicity[i] = ds.periodicity[i]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -785,9 +789,9 @@ cdef class DiskSelector(SelectorObject):
         for i in range(3):
             self.norm_vec[i] = dobj._norm_vec[i]
             self.center[i] = _ensure_code(dobj.center[i])
-        self.radius = _ensure_code(dobj._radius)
+        self.radius = _ensure_code(dobj.radius)
         self.radius2 = self.radius * self.radius
-        self.height = _ensure_code(dobj._height)
+        self.height = _ensure_code(dobj.height)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -799,8 +803,8 @@ cdef class DiskSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_point(self, np.float64_t pos[3]) nogil:
-        cdef np.float64_t h, d, r2, temp
-        cdef int i
+        cdef np.float64_t h, d, r2, temp, spos
+        cdef int i, j, k
         h = d = 0
         for i in range(3):
             temp = self.difference(pos[i], self.center[i], i)
@@ -831,6 +835,8 @@ cdef class DiskSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
+        # Until we can get our OBB/OBB intersection correct, disable this.
+        return 1
         cdef np.float64_t *arr[2]
         cdef np.float64_t pos[3], H, D, R2, temp
         cdef int i, j, k, n
@@ -1015,7 +1021,7 @@ cdef class SliceSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
         if pos[self.axis] + 0.5*dds[self.axis] > self.coord \
-           and pos[self.axis] - 0.5*dds[self.axis] <= self.coord:
+           and pos[self.axis] - 0.5*dds[self.axis] - grid_eps <= self.coord:
             return 1
         return 0
 
@@ -1037,7 +1043,7 @@ cdef class SliceSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
-        if left_edge[self.axis] <= self.coord < right_edge[self.axis]:
+        if left_edge[self.axis] - grid_eps <= self.coord < right_edge[self.axis]:
             return 1
         return 0
 
