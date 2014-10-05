@@ -255,18 +255,6 @@ class ChomboDataset(Dataset):
         if D == 2:
             self.dataset_type = 'chombo2d_hdf5'
 
-        # some datasets will not be time-dependent, and to make
-        # matters worse, the simulation time is not always
-        # stored in the same place in the hdf file! Make
-        # sure we handle that here.
-        try:
-            self.current_time = self._handle.attrs['time']
-        except KeyError:
-            try:
-                self.current_time = self._handle['/level_0'].attrs['time']
-            except KeyError:
-                self.current_time = 0.0
-
         self.geometry = "cartesian"
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)
@@ -315,6 +303,20 @@ class ChomboDataset(Dataset):
 
         self.refine_by = self._handle['/level_0'].attrs['ref_ratio']
         self._determine_periodic()
+        self._determine_current_time()
+
+    def _determine_current_time(self):
+        # some datasets will not be time-dependent, and to make
+        # matters worse, the simulation time is not always
+        # stored in the same place in the hdf file! Make
+        # sure we handle that here.
+        try:
+            self.current_time = self._handle.attrs['time']
+        except KeyError:
+            try:
+                self.current_time = self._handle['/level_0'].attrs['time']
+            except KeyError:
+                self.current_time = 0.0
 
     def _determine_periodic(self):
         # we default to true unless the HDF5 file says otherwise
@@ -498,6 +500,7 @@ class PlutoDataset(ChomboDataset):
             self.domain_right_edge = np.concatenate((self.domain_right_edge, [1.0]))
             self.domain_dimensions = np.concatenate((self.domain_dimensions, [1]))
 
+        self._determine_current_time()
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -601,6 +604,7 @@ class Orion2Dataset(ChomboDataset):
         self.domain_dimensions = self._calc_domain_dimensions()
         self.refine_by = self._handle['/level_0'].attrs['ref_ratio']
         self._determine_periodic()
+        self._determine_current_time()
 
     def _parse_inputs_file(self, ini_filename):
         self.fullplotdir = os.path.abspath(self.parameter_filename)
