@@ -16,7 +16,7 @@ from yt.utilities.orientation import Orientation
 from yt.utilities.fits_image import FITSImageBuffer
 from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.funcs import get_pbar
-from yt.utilities.physical_constants import clight
+from yt.utilities.physical_constants import clight, mh, kboltz
 import yt.units.dimensions as ytdims
 
 def create_vlos(z_hat):
@@ -34,7 +34,8 @@ fits_info = {"velocity":("m/s","VELOCITY"),
 
 class PPVCube(object):
     def __init__(self, ds, normal, field, width=(1.0,"unitary"),
-                 dims=(100,100,100), velocity_bounds=None, rest_freq=None):
+                 dims=(100,100,100), velocity_bounds=None, rest_value=None,
+                 ion_weight=None):
         r""" Initialize a PPVCube object.
 
         Parameters
@@ -54,11 +55,14 @@ class PPVCube(object):
             A 3-tuple of (vmin, vmax, units) for the velocity bounds to
             integrate over. If None, the largest velocity of the
             dataset will be used, e.g. velocity_bounds = (-v.max(), v.max())
-        rest_freq : tuple, optional
-            A (value, unit) tuple indicating the "rest frequency" of the spectral
+        rest_value : tuple, optional
+            A (value, unit) tuple indicating the rest value of the spectral
             axis of the PPV cube. The spectral axis will be converted to the units and
             displaced by the value. Can be in units of energy, wavelength, or frequency.
             If not set the default is to leave the spectral axis in velocity units.
+        ion_weight : float, optional
+            Set this value to the atomic weight of the ion that is emitting the line
+            in order to include thermal broadening.
 
         Examples
         --------
@@ -70,7 +74,7 @@ class PPVCube(object):
         self.ds = ds
         self.field = field
         self.width = width
-        self.rest_freq = rest_freq
+        self.rest_value = rest_value
 
         self.nx = dims[0]
         self.ny = dims[1]
@@ -99,7 +103,14 @@ class PPVCube(object):
 
         self.vbins = np.linspace(self.v_bnd[0], self.v_bnd[1], num=self.nv+1)
         self.vmid = 0.5*(self.vbins[1:]+self.vbins[:-1])
-        self.dv = self.v_bins[1]-self.v_bins[0]
+        self.dv = self.vbins[1]-self.vbins[0]
+
+        if ion_weight is None:
+            self.ion_mass = mh
+            self.phi_th = lambda v, v_th: 1.0
+        else:
+            self.ion_mass = ion_weight*mh
+            self.phi_th = lambda v, v_th: self.dv/(np.sqrt(np.pi)*v_th)*np.exp(-(v/v_th)**2)
 
         _vlos = create_vlos(orient.unit_vectors[2])
         self.ds.field_info.add_field(("gas","v_los"), function=_vlos, units="cm/s")
@@ -117,10 +128,10 @@ class PPVCube(object):
 
         pbar.finish()
 
-        if self.rest_freq is not None:
+        if self.rest_value is not None:
             # If we want units other than velocity, we re-calculate these quantities
-            self.rest_freq = self.ds.quan(rest_freq[0], rest_freq[1])
-            self.vbins = self.rest_freq*(1.-self.vbins.in_cgs()/clight)
+            self.rest_value = self.ds.quan(rest_value[0], rest_value[1])
+            self.vbins = self.rest_value*(1.-self.vbins.in_cgs()/clight)
             self.vmid = 0.5*(self.vbins[1:]+self.vbins[:-1])
             self.dv = self.v_bins[1]-self.v_bins[0]
 
@@ -166,7 +177,7 @@ class PPVCube(object):
         vunit = fits_info[axis_type]
         vtype = fits_info[axis_type]
 
-        v_center = 0.5*(self.v_bnd[0]+self.v_bnd[1]).in_units(vunit).value
+        v_center = 0.5*(self.v_bins[0]+self.v_bins[-1]).in_units(vunit).value
 
         dx = length_unit[0]/self.nx
         dy = length_unit[0]/self.ny
@@ -191,8 +202,9 @@ class PPVCube(object):
     def _create_intensity(self, i):
         def _intensity(field, data):
             vlos = data["v_los"]
+            v_th = np.sqrt(2*kboltz*data["temperature"]/self.ion_mass)
             w = np.abs(vlos-self.vmid[i])/self.dv.in_units(vlos.units)
             w = 1.-w
             w[w < 0.0] = 0.0
-            return data[self.field]*w
+            return data[self.field]*self.phi_th(vlos, v_th)*w
         return _intensity
