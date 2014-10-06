@@ -496,7 +496,8 @@ class YTDataContainer(object):
 
                 # really ugly check to ensure that this field really does exist somewhere,
                 # in some naming convention, before returning it as a possible field type
-                if (ftype,fname) not in self.ds.field_list and \
+                if (ftype,fname) not in self.ds.field_info and \
+                        (ftype,fname) not in self.ds.field_list and \
                         fname not in self.ds.field_list and \
                         (ftype,fname) not in self.ds.derived_field_list and \
                         fname not in self.ds.derived_field_list and \

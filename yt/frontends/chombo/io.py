@@ -69,11 +69,11 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         self._particle_field_index = field_dict
         return self._particle_field_index
 
-    def _read_field_names(self,grid):
+    def _read_field_names(self, grid):
         ncomp = int(self._handle.attrs['num_components'])
         fns = [c[1] for c in f.attrs.items()[-ncomp-1:-1]]
 
-    def _read_data(self,grid,field):
+    def _read_data(self, grid, field):
         lstring = 'level_%i' % grid.Level
         lev = self._handle[lstring]
         dims = grid.ActiveDimensions
@@ -289,20 +289,27 @@ class IOHandlerOrion2HDF5(IOHandlerChomboHDF5):
 
         """
 
+        particles = []
+
+        if grid.NumberOfParticles == 0:
+            return np.array(particles)
+
         def read(line, field):
             entry = line.strip().split(' ')[self.particle_field_index[field]]
             return np.float(entry)
 
-        fn = grid.ds.fullplotdir[:-4] + "sink"
-        with open(fn, 'r') as f:
-            lines = f.readlines()
-            particles = []
-            for line in lines[1:]:
-                if grid.NumberOfParticles > 0:
-                    coord = read(line, "particle_position_x"), \
-                        read(line, "particle_position_y"), \
-                        read(line, "particle_position_z")
-                    if ((grid.LeftEdge <= coord).all() and
-                       (coord <= grid.RightEdge).all() ):
-                        particles.append(read(line, field))
-        return np.array(particles)
+        try:
+            lines = self._cached_lines
+            for num in grid._particle_line_numbers:
+                line = lines[num]
+                particles.append(read(line, field))
+            return np.array(particles)
+        except AttributeError:
+            fn = grid.ds.fullplotdir[:-4] + "sink"
+            with open(fn, 'r') as f:
+                lines = f.readlines()
+                self._cached_lines = lines
+                for num in grid._particle_line_numbers:
+                    line = lines[num]
+                    particles.append(read(line, field))
+            return np.array(particles)

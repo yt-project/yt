@@ -113,10 +113,10 @@ cdef class QuadTree:
     cdef np.int64_t last_dims[2]
 
     def __cinit__(self, np.ndarray[np.int64_t, ndim=1] top_grid_dims,
-                  int nvals, bounds, style = "integrate"):
-        if style == "integrate":
+                  int nvals, bounds, method = "integrate"):
+        if method == "integrate":
             self.combine = QTN_add_value
-        elif style == "mip":
+        elif method == "mip":
             self.combine = QTN_max_value
         else:
             raise NotImplementedError
@@ -212,10 +212,10 @@ cdef class QuadTree:
     def frombuffer(self, np.ndarray[np.int32_t, ndim=1] refined,
                          np.ndarray[np.float64_t, ndim=2] values,
                          np.ndarray[np.float64_t, ndim=1] wval,
-                         style):
-        if style == "mip" or style == -1:
+                         method):
+        if method == "mip" or method == -1:
             self.merged = -1
-        elif style == "integrate" or style == 1:
+        elif method == "integrate" or method == 1:
             self.merged = 1
         cdef int curpos = 0
         cdef QuadTreeNode *root
@@ -348,11 +348,11 @@ cdef class QuadTree:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def get_all(self, int count_only = 0, int style = 1):
+    def get_all(self, int count_only = 0, int method = 1):
         cdef int i, j, vi
         cdef int total = 0
         vals = []
-        self.merged = style
+        self.merged = method
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
                 total += self.count(self.root_nodes[i][j])
@@ -540,14 +540,14 @@ cdef void QTN_merge_nodes(QuadTreeNode *n1, QuadTreeNode *n2, int nvals,
     else:
         raise RuntimeError
 
-def merge_quadtrees(QuadTree qt1, QuadTree qt2, style = 1):
+def merge_quadtrees(QuadTree qt1, QuadTree qt2, method = 1):
     cdef int i, j
     qt1.num_cells = 0
     cdef QTN_combine *func
-    if style == 1:
+    if method == 1:
         qt1.merged = 1
         func = QTN_add_value
-    elif style == -1:
+    elif method == -1:
         qt1.merged = -1
         func = QTN_max_value
     else:

@@ -255,18 +255,6 @@ class ChomboDataset(Dataset):
         if D == 2:
             self.dataset_type = 'chombo2d_hdf5'
 
-        # some datasets will not be time-dependent, and to make
-        # matters worse, the simulation time is not always
-        # stored in the same place in the hdf file! Make
-        # sure we handle that here.
-        try:
-            self.current_time = self._handle.attrs['time']
-        except KeyError:
-            try:
-                self.current_time = self._handle['/level_0'].attrs['time']
-            except KeyError:
-                self.current_time = 0.0
-
         self.geometry = "cartesian"
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)
@@ -315,6 +303,20 @@ class ChomboDataset(Dataset):
 
         self.refine_by = self._handle['/level_0'].attrs['ref_ratio']
         self._determine_periodic()
+        self._determine_current_time()
+
+    def _determine_current_time(self):
+        # some datasets will not be time-dependent, and to make
+        # matters worse, the simulation time is not always
+        # stored in the same place in the hdf file! Make
+        # sure we handle that here.
+        try:
+            self.current_time = self._handle.attrs['time']
+        except KeyError:
+            try:
+                self.current_time = self._handle['/level_0'].attrs['time']
+            except KeyError:
+                self.current_time = 0.0
 
     def _determine_periodic(self):
         # we default to true unless the HDF5 file says otherwise
@@ -498,6 +500,7 @@ class PlutoDataset(ChomboDataset):
             self.domain_right_edge = np.concatenate((self.domain_right_edge, [1.0]))
             self.domain_dimensions = np.concatenate((self.domain_dimensions, [1]))
 
+        self._determine_current_time()
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -540,14 +543,14 @@ class Orion2Hierarchy(ChomboHierarchy):
         with open(self.particle_filename, 'r') as f:
             lines = f.readlines()
             self.num_stars = int(lines[0].strip().split(' ')[0])
-            for line in lines[1:]:
+            for num, line in enumerate(lines[1:]):
                 particle_position_x = float(line.split(' ')[1])
                 particle_position_y = float(line.split(' ')[2])
                 particle_position_z = float(line.split(' ')[3])
                 coord = [particle_position_x, particle_position_y, particle_position_z]
                 # for each particle, determine which grids contain it
                 # copied from object_finding_mixin.py
-                mask=np.ones(self.num_grids)
+                mask = np.ones(self.num_grids)
                 for i in xrange(len(coord)):
                     np.choose(np.greater(self.grid_left_edge.d[:,i],coord[i]), (mask,0), mask)
                     np.choose(np.greater(self.grid_right_edge.d[:,i],coord[i]), (0,mask), mask)
@@ -561,6 +564,12 @@ class Orion2Hierarchy(ChomboHierarchy):
                     ind = np.where(self.grids == grid)[0][0]
                     self.grid_particle_count[ind] += 1
                     self.grids[ind].NumberOfParticles += 1
+
+                    # store the position in the *.sink file for fast access.
+                    try:
+                        self.grids[ind]._particle_line_numbers.append(num + 1)
+                    except AttributeError:
+                        self.grids[ind]._particle_line_numbers = [num + 1]
 
 
 class Orion2Dataset(ChomboDataset):
@@ -595,6 +604,7 @@ class Orion2Dataset(ChomboDataset):
         self.domain_dimensions = self._calc_domain_dimensions()
         self.refine_by = self._handle['/level_0'].attrs['ref_ratio']
         self._determine_periodic()
+        self._determine_current_time()
 
     def _parse_inputs_file(self, ini_filename):
         self.fullplotdir = os.path.abspath(self.parameter_filename)

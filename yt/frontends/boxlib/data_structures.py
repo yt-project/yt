@@ -683,7 +683,7 @@ class OrionHierarchy(BoxlibHierarchy):
         with open(fn, 'r') as f:
             lines = f.readlines()
             self.num_stars = int(lines[0].strip()[0])
-            for line in lines[1:]:
+            for num, line in enumerate(lines[1:]):
                 particle_position_x = float(line.split(' ')[1])
                 particle_position_y = float(line.split(' ')[2])
                 particle_position_z = float(line.split(' ')[3])
@@ -704,6 +704,12 @@ class OrionHierarchy(BoxlibHierarchy):
                     ind = np.where(self.grids == grid)[0][0]
                     self.grid_particle_count[ind] += 1
                     self.grids[ind].NumberOfParticles += 1
+
+                    # store the position in the particle file for fast access.
+                    try:
+                        self.grids[ind]._particle_line_numbers.append(num + 1)
+                    except AttributeError:
+                        self.grids[ind]._particle_line_numbers = [num + 1]
         return True
 
 
