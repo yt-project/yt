@@ -16,6 +16,8 @@ from yt.utilities.orientation import Orientation
 from yt.utilities.fits_image import FITSImageBuffer
 from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.funcs import get_pbar
+from yt.utilities.physical_constants import clight
+import yt.units.dimensions as ytdims
 
 def create_vlos(z_hat):
     def _v_los(field, data):
@@ -25,9 +27,14 @@ def create_vlos(z_hat):
         return -vz
     return _v_los
 
+fits_info = {"velocity":("m/s","VELOCITY"),
+             "frequency":("Hz","FREQUENCY"),
+             "energy":("eV","ENERGY"),
+             "wavelength":("angstrom","WAVELENG")}
+
 class PPVCube(object):
     def __init__(self, ds, normal, field, width=(1.0,"unitary"),
-                 dims=(100,100,100), velocity_bounds=None):
+                 dims=(100,100,100), velocity_bounds=None, rest_freq=None):
         r""" Initialize a PPVCube object.
 
         Parameters
@@ -47,6 +54,11 @@ class PPVCube(object):
             A 3-tuple of (vmin, vmax, units) for the velocity bounds to
             integrate over. If None, the largest velocity of the
             dataset will be used, e.g. velocity_bounds = (-v.max(), v.max())
+        rest_freq : tuple, optional
+            A (value, unit) tuple indicating the "rest frequency" of the spectral
+            axis of the PPV cube. The spectral axis will be converted to the units and
+            displaced by the value. Can be in units of energy, wavelength, or frequency.
+            If not set the default is to leave the spectral axis in velocity units.
 
         Examples
         --------
@@ -58,6 +70,7 @@ class PPVCube(object):
         self.ds = ds
         self.field = field
         self.width = width
+        self.rest_freq = rest_freq
 
         self.nx = dims[0]
         self.ny = dims[1]
@@ -86,10 +99,10 @@ class PPVCube(object):
 
         self.vbins = np.linspace(self.v_bnd[0], self.v_bnd[1], num=self.nv+1)
         self.vmid = 0.5*(self.vbins[1:]+self.vbins[:-1])
-        self.dv = (self.v_bnd[1]-self.v_bnd[0])/self.nv
+        self.dv = self.v_bins[1]-self.v_bins[0]
 
         _vlos = create_vlos(orient.unit_vectors[2])
-        ds.field_info.add_field(("gas","v_los"), function=_vlos, units="cm/s")
+        self.ds.field_info.add_field(("gas","v_los"), function=_vlos, units="cm/s")
 
         self.data = ds.arr(np.zeros((self.nx,self.ny,self.nv)), self.field_units)
         pbar = get_pbar("Generating cube.", self.nv)
@@ -103,6 +116,13 @@ class PPVCube(object):
             pbar.update(i)
 
         pbar.finish()
+
+        if self.rest_freq is not None:
+            # If we want units other than velocity, we re-calculate these quantities
+            self.rest_freq = self.ds.quan(rest_freq[0], rest_freq[1])
+            self.vbins = self.rest_freq*(1.-self.vbins.in_cgs()/clight)
+            self.vmid = 0.5*(self.vbins[1:]+self.vbins[:-1])
+            self.dv = self.v_bins[1]-self.v_bins[0]
 
     def write_fits(self, filename, clobber=True, length_unit=(10.0, "kpc"),
                    sky_center=(30.,45.)):
@@ -132,11 +152,25 @@ class PPVCube(object):
             center = [0.0,0.0]
             types = ["LINEAR","LINEAR"]
 
-        v_center = 0.5*(self.v_bnd[0]+self.v_bnd[1]).in_units("m/s").value
+        dims = self.dv.units.dimensions
+
+        if dims == ytdims.rate:
+            axis_type = "frequency"
+        elif dims == ytdims.length:
+            axis_type = "wavelength"
+        elif dims == ytdims.energy:
+            axis_type = "energy"
+        elif dims == ytdims.velocity:
+            axis_type = "velocity"
+
+        vunit = fits_info[axis_type]
+        vtype = fits_info[axis_type]
+
+        v_center = 0.5*(self.v_bnd[0]+self.v_bnd[1]).in_units(vunit).value
 
         dx = length_unit[0]/self.nx
         dy = length_unit[0]/self.ny
-        dv = self.dv.in_units("m/s").value
+        dv = self.dv.in_units(vunit).value
 
         if length_unit[1] == "deg":
             dx *= -1.
@@ -145,8 +179,8 @@ class PPVCube(object):
         w.wcs.crpix = [0.5*(self.nx+1), 0.5*(self.ny+1), 0.5*(self.nv+1)]
         w.wcs.cdelt = [dx,dy,dv]
         w.wcs.crval = [center[0], center[1], v_center]
-        w.wcs.cunit = [length_unit[1],length_unit[1],"m/s"]
-        w.wcs.ctype = [types[0],types[1],"VELO-LSR"]
+        w.wcs.cunit = [length_unit[1],length_unit[1],vunit]
+        w.wcs.ctype = [types[0],types[1],vtype]
 
         fib = FITSImageBuffer(self.data.transpose(), fields=self.field, wcs=w)
         fib[0].header["bunit"] = self.field_units
