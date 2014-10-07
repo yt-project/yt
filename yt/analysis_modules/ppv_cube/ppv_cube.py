@@ -62,7 +62,7 @@ class PPVCube(object):
             If not set the default is to leave the spectral axis in velocity units.
         particle_weight : float, optional
             Set this value to the atomic weight of the particle that is emitting the line
-            if *thermal_broad* is True.
+            if *thermal_broad* is True. Defaults to 56 (Fe).
 
         Examples
         --------
@@ -71,6 +71,7 @@ class PPVCube(object):
         >>> cube = PPVCube(ds, L, "density", width=(10.,"kpc"),
         ...                velocity_bounds=(-5.,4.,"km/s"))
         """
+
         self.ds = ds
         self.field = field
         self.width = width
@@ -115,7 +116,7 @@ class PPVCube(object):
             self.phi_th = lambda v, T: self.dv*np.exp(-(v/self.v_th(T))**2)/(np.sqrt(np.pi)*self.v_th(T))
         else:
             self.v_th = lambda T: 1.0
-            self.phi_th = lambda v, T: np.maximum(1.-np.abs(v-self.vmid[i])/self.dv.in_units(v.units),0.0)
+            self.phi_th = lambda v, T: np.maximum(1.-np.abs(v)/self.dv.in_units(v.units),0.0)
 
         self.data = ds.arr(np.zeros((self.nx,self.ny,self.nv)), self.field_units)
         pbar = get_pbar("Generating cube.", self.nv)
@@ -203,7 +204,7 @@ class PPVCube(object):
 
     def _create_intensity(self, i):
         def _intensity(field, data):
-            w = self.phi_th(self.vmid[i].in_cgs()-data["v_los"], data["temperature"])
+            w = self.phi_th((self.vmid[i]-data["v_los"]).in_cgs(), data["temperature"])
             return data[self.field]*w
         return _intensity
 
