@@ -27,15 +27,15 @@ def create_vlos(z_hat):
         return -vz
     return _v_los
 
-fits_info = {"velocity":("m/s","VELOCITY"),
-             "frequency":("Hz","FREQUENCY"),
-             "energy":("eV","ENERGY"),
-             "wavelength":("angstrom","WAVELENG")}
+fits_info = {"velocity":("m/s","VELOCITY","v"),
+             "frequency":("Hz","FREQUENCY","f"),
+             "energy":("eV","ENERGY","E"),
+             "wavelength":("angstrom","WAVELENG","lambda")}
 
 class PPVCube(object):
     def __init__(self, ds, normal, field, width=(1.0,"unitary"),
                  dims=(100,100,100), velocity_bounds=None, rest_value=None,
-                 ion_weight=None):
+                 thermal_broad=False, particle_weight=56.):
         r""" Initialize a PPVCube object.
 
         Parameters
@@ -60,9 +60,9 @@ class PPVCube(object):
             axis of the PPV cube. The spectral axis will be converted to the units and
             displaced by the value. Can be in units of energy, wavelength, or frequency.
             If not set the default is to leave the spectral axis in velocity units.
-        ion_weight : float, optional
-            Set this value to the atomic weight of the ion that is emitting the line
-            in order to include thermal broadening.
+        particle_weight : float, optional
+            Set this value to the atomic weight of the particle that is emitting the line
+            if *thermal_broad* is True.
 
         Examples
         --------
@@ -75,6 +75,8 @@ class PPVCube(object):
         self.field = field
         self.width = width
         self.rest_value = rest_value
+        self.particle_mass = particle_weight*mh
+        self.thermal_broad = thermal_broad
 
         self.nx = dims[0]
         self.ny = dims[1]
@@ -105,15 +107,15 @@ class PPVCube(object):
         self.vmid = 0.5*(self.vbins[1:]+self.vbins[:-1])
         self.dv = self.vbins[1]-self.vbins[0]
 
-        if ion_weight is None:
-            self.ion_mass = mh
-            self.phi_th = lambda v, v_th: 1.0
-        else:
-            self.ion_mass = ion_weight*mh
-            self.phi_th = lambda v, v_th: self.dv/(np.sqrt(np.pi)*v_th)*np.exp(-(v/v_th)**2)
-
         _vlos = create_vlos(orient.unit_vectors[2])
         self.ds.field_info.add_field(("gas","v_los"), function=_vlos, units="cm/s")
+
+        if thermal_broad:
+            self.v_th = lambda T: np.sqrt(2.*kboltz*T/self.particle_mass)
+            self.phi_th = lambda v, T: self.dv*np.exp(-(v/self.v_th(T))**2)/(np.sqrt(np.pi)*self.v_th(T))
+        else:
+            self.v_th = lambda T: 1.0
+            self.phi_th = lambda v, T: np.maximum(1.-np.abs(v-self.vmid[i])/self.dv.in_units(v.units),0.0)
 
         self.data = ds.arr(np.zeros((self.nx,self.ny,self.nv)), self.field_units)
         pbar = get_pbar("Generating cube.", self.nv)
@@ -133,7 +135,18 @@ class PPVCube(object):
             self.rest_value = self.ds.quan(rest_value[0], rest_value[1])
             self.vbins = self.rest_value*(1.-self.vbins.in_cgs()/clight)
             self.vmid = 0.5*(self.vbins[1:]+self.vbins[:-1])
-            self.dv = self.v_bins[1]-self.v_bins[0]
+            self.dv = self.vbins[1]-self.vbins[0]
+
+        dims = self.dv.units.dimensions
+
+        if dims == ytdims.rate:
+            self.axis_type = "frequency"
+        elif dims == ytdims.length:
+            self.axis_type = "wavelength"
+        elif dims == ytdims.energy:
+            self.axis_type = "energy"
+        elif dims == ytdims.velocity:
+            self.axis_type = "velocity"
 
     def write_fits(self, filename, clobber=True, length_unit=(10.0, "kpc"),
                    sky_center=(30.,45.)):
@@ -163,21 +176,10 @@ class PPVCube(object):
             center = [0.0,0.0]
             types = ["LINEAR","LINEAR"]
 
-        dims = self.dv.units.dimensions
+        vunit = fits_info[self.axis_type][0]
+        vtype = fits_info[self.axis_type][1]
 
-        if dims == ytdims.rate:
-            axis_type = "frequency"
-        elif dims == ytdims.length:
-            axis_type = "wavelength"
-        elif dims == ytdims.energy:
-            axis_type = "energy"
-        elif dims == ytdims.velocity:
-            axis_type = "velocity"
-
-        vunit = fits_info[axis_type]
-        vtype = fits_info[axis_type]
-
-        v_center = 0.5*(self.v_bins[0]+self.v_bins[-1]).in_units(vunit).value
+        v_center = 0.5*(self.vbins[0]+self.vbins[-1]).in_units(vunit).value
 
         dx = length_unit[0]/self.nx
         dy = length_unit[0]/self.ny
@@ -201,10 +203,15 @@ class PPVCube(object):
 
     def _create_intensity(self, i):
         def _intensity(field, data):
-            vlos = data["v_los"]
-            v_th = np.sqrt(2*kboltz*data["temperature"]/self.ion_mass)
-            w = np.abs(vlos-self.vmid[i])/self.dv.in_units(vlos.units)
-            w = 1.-w
-            w[w < 0.0] = 0.0
-            return data[self.field]*self.phi_th(vlos, v_th)*w
+            w = self.phi_th(self.vmid[i].in_cgs()-data["v_los"], data["temperature"])
+            return data[self.field]*w
         return _intensity
+
+    def __repr__(self):
+        return "PPVCube [%d %d %d] (%s < %s < %s)" % (self.nx, self.ny, self.nv,
+                                                      self.vbins[0],
+                                                      fits_info[self.axis_type][2],
+                                                      self.vbins[-1])
+
+    def __getitem__(self, item):
+        return self.data[item]
