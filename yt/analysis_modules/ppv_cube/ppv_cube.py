@@ -88,7 +88,7 @@ class PPVCube(object):
         self.particle_mass = particle_weight*mh
         self.thermal_broad = thermal_broad
 
-        self.center = ds.coordinates.sanitize_center(center, normal)
+        self.center = ds.coordinates.sanitize_center(center, normal)[0]
 
         self.nx = dims[0]
         self.ny = dims[1]
