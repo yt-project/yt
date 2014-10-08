@@ -18,6 +18,8 @@ from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.funcs import get_pbar
 from yt.utilities.physical_constants import clight, mh, kboltz
 import yt.units.dimensions as ytdims
+from yt.units.yt_array import YTQuantity
+from yt.funcs import iterable
 
 def create_vlos(z_hat):
     def _v_los(field, data):
@@ -55,8 +57,8 @@ class PPVCube(object):
             A 3-tuple of (vmin, vmax, units) for the velocity bounds to
             integrate over. If None, the largest velocity of the
             dataset will be used, e.g. velocity_bounds = (-v.max(), v.max())
-        rest_value : tuple, optional
-            A (value, unit) tuple indicating the rest value of the spectral
+        rest_value : tuple or YTQuantity, optional
+            A (value, unit) tuple or YTQuantity indicating the rest value of the spectral
             axis of the PPV cube. The spectral axis will be converted to the units and
             displaced by the value. Can be in units of energy, wavelength, or frequency.
             If not set the default is to leave the spectral axis in velocity units.
@@ -75,7 +77,10 @@ class PPVCube(object):
         self.ds = ds
         self.field = field
         self.width = width
-        self.rest_value = rest_value
+        if isinstance(rest_value, YTQuantity):
+            self.rest_value = rest_value
+        else:
+            self.rest_value = ds.quan(rest_value[0], rest_value[1])
         self.particle_mass = particle_weight*mh
         self.thermal_broad = thermal_broad
 
@@ -128,12 +133,10 @@ class PPVCube(object):
             self.data[:,:,i] = prj[:,:]
             ds.field_info.pop(("gas","intensity"))
             pbar.update(i)
-
         pbar.finish()
 
         if self.rest_value is not None:
             # If we want units other than velocity, we re-calculate these quantities
-            self.rest_value = self.ds.quan(rest_value[0], rest_value[1])
             self.vbins = self.rest_value*(1.-self.vbins.in_cgs()/clight)
             self.vmid = 0.5*(self.vbins[1:]+self.vbins[:-1])
             self.dv = self.vbins[1]-self.vbins[0]
@@ -149,7 +152,13 @@ class PPVCube(object):
         elif dims == ytdims.velocity:
             self.axis_type = "velocity"
 
-    def write_fits(self, filename, clobber=True, length_unit=(10.0, "kpc"),
+        # Now fix the width
+        if iterable(self.width):
+            self.width = ds.quan(self.width[0], self.width[1])
+        else:
+            self.width = ds.quan(self.width, "code_length")
+
+    def write_fits(self, filename, clobber=True, sky_scale=None,
                    sky_center=(30.,45.)):
         r""" Write the PPVCube to a FITS file.
 
@@ -159,41 +168,52 @@ class PPVCube(object):
             The name of the file to write.
         clobber : boolean
             Whether or not to clobber an existing file with the same name.
-        length_unit : tuple, optional
-            The length that corresponds to the width of the projection in
-            (value, unit) form. Accepts a length unit or 'deg'.
+        sky_scale : tuple or YTQuantity
+            Conversion between an angle unit and a length unit, if sky
+            coordinates are desired.
+            Examples: (1.0, "arcsec/kpc"), YTQuantity(0.001, "deg/kpc")
         sky_center : tuple, optional
             The (RA, Dec) coordinate in degrees of the central pixel if
-            *length_unit* is 'deg'.
+            *sky_scale* has been specified.
 
         Examples
         --------
-        >>> cube.write_fits("my_cube.fits", clobber=False, length_unit=(5,"deg"))
+        >>> cube.write_fits("my_cube.fits", clobber=False, sky_scale=(1.0,"arcsec/kpc"))
         """
-        if length_unit[1] == "deg":
-            center = sky_center
-            types = ["RA---SIN","DEC--SIN"]
-        else:
-            center = [0.0,0.0]
+        if sky_scale is None:
+            center = (0.0,0.0)
             types = ["LINEAR","LINEAR"]
+        else:
+            if iterable(sky_scale):
+                sky_scale = self.ds.quan(sky_scale[0], sky_scale[1])
+            if sky_center is None:
+                center = (30.,45.)
+            else:
+                center = sky_center
+            types = ["RA---TAN","DEC--TAN"]
 
         vunit = fits_info[self.axis_type][0]
         vtype = fits_info[self.axis_type][1]
 
         v_center = 0.5*(self.vbins[0]+self.vbins[-1]).in_units(vunit).value
 
-        dx = length_unit[0]/self.nx
-        dy = length_unit[0]/self.ny
-        dv = self.dv.in_units(vunit).value
+        if sky_scale:
+            dx = (self.width*sky_scale).in_units("deg")/self.nx
+            units = "deg"
+        else:
+            dx = self.width/self.nx
+            units = str(self.width.units)
+        dy = dx
+        dv = self.dv.in_units(vunit)
 
-        if length_unit[1] == "deg":
+        if sky_scale:
             dx *= -1.
 
         w = _astropy.pywcs.WCS(naxis=3)
         w.wcs.crpix = [0.5*(self.nx+1), 0.5*(self.ny+1), 0.5*(self.nv+1)]
-        w.wcs.cdelt = [dx,dy,dv]
-        w.wcs.crval = [center[0], center[1], v_center]
-        w.wcs.cunit = [length_unit[1],length_unit[1],vunit]
+        w.wcs.cdelt = [dx.v,dy.v,dv.v]
+        w.wcs.crval = [center[0],center[1],v_center]
+        w.wcs.cunit = [units,units,vunit]
         w.wcs.ctype = [types[0],types[1],vtype]
 
         fib = FITSImageBuffer(self.data.transpose(), fields=self.field, wcs=w)
