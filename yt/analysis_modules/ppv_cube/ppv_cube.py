@@ -37,7 +37,7 @@ fits_info = {"velocity":("m/s","VELOCITY","v"),
              "wavelength":("angstrom","WAVELENG","lambda")}
 
 class PPVCube(object):
-    def __init__(self, ds, normal, field, width=(1.0,"unitary"),
+    def __init__(self, ds, normal, field, center="c", width=(1.0,"unitary"),
                  dims=(100,100,100), velocity_bounds=None, rest_value=None,
                  thermal_broad=False, particle_weight=56.):
         r""" Initialize a PPVCube object.
@@ -50,6 +50,8 @@ class PPVCube(object):
             The normal vector along with to make the projections.
         field : string
             The field to project.
+        center : float, tuple, or string
+
         width : float or tuple, optional
             The width of the projection in length units. Specify a float
             for code_length units or a tuple (value, units).
@@ -85,6 +87,8 @@ class PPVCube(object):
             self.rest_value = ds.quan(rest_value[0], rest_value[1])
         self.particle_mass = particle_weight*mh
         self.thermal_broad = thermal_broad
+
+        self.center = ds.coordinates.sanitize_center(center, normal)
 
         self.nx = dims[0]
         self.ny = dims[1]
@@ -130,7 +134,7 @@ class PPVCube(object):
         for i in xrange(self.nv):
             _intensity = self._create_intensity(i)
             ds.add_field(("gas","intensity"), function=_intensity, units=self.field_units)
-            prj = off_axis_projection(ds, ds.domain_center, normal, width,
+            prj = off_axis_projection(ds, self.center, normal, width,
                                       (self.nx, self.ny), "intensity")
             self.data[:,:,i] = prj[:,:]
             ds.field_info.pop(("gas","intensity"))
@@ -206,6 +210,8 @@ class PPVCube(object):
         else:
             dx = self.width/self.nx
             units = str(self.width.units)
+        # Hack because FITS is stupid and doesn't understand case
+        if units == "Mpc": units = "kpc"
         dy = dx
         dv = self.dv.in_units(vunit)
 
