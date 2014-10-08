@@ -55,18 +55,6 @@ def ensure_unitless(func):
         return func(unit)
     return wrapped
 
-def ensure_same_dimensions(func):
-    @wraps(func)
-    def wrapped(unit1, unit2):
-        if unit1 is None and not unit2.is_dimensionless:
-            raise RuntimeError
-        elif unit2 is None and not unit1.is_dimensionless:
-            raise RuntimeError
-        elif unit1.dimensions != unit2.dimensions:
-            raise RuntimeError
-        return func(unit1, unit2)
-    return wrapped
-
 def return_arr(func):
     @wraps(func)
     def wrapped(*args, **kwargs):
@@ -84,7 +72,6 @@ def sqrt_unit(unit):
 def multiply_units(unit1, unit2):
     return unit1 * unit2
 
-@ensure_same_dimensions
 def preserve_units(unit1, unit2):
     return unit1
 
@@ -110,11 +97,9 @@ def return_without_unit(unit):
 def unitless(unit):
     return Unit()
 
-@ensure_same_dimensions
 def arctan2_unit(unit1, unit2):
     return Unit()
 
-@ensure_same_dimensions
 def comparison_unit(unit1, unit2):
     return None
 
@@ -979,12 +964,7 @@ class YTArray(np.ndarray):
             u = getattr(context[1][0], 'units', None)
             if u is None:
                 u = Unit()
-            try:
-                unit = self._ufunc_registry[context[0]](u)
-            # Catch the RuntimeError raised inside of ensure_same_dimensions
-            # Raise YTUnitOperationError up here since we know the context now
-            except RuntimeError:
-                raise YTUnitOperationError(context[0], u)
+            unit = self._ufunc_registry[context[0]](u)
             ret_class = type(self)
         elif context[0] in binary_operators:
             oper1 = coerce_iterable_units(context[1][0])
@@ -1014,12 +994,7 @@ class YTArray(np.ndarray):
                         raise YTUnitOperationError(context[0], unit1, unit2)
                     else:
                         raise YTUfuncUnitError(context[0], unit1, unit2)
-            try:
-                unit = self._ufunc_registry[context[0]](unit1, unit2)
-            # Catch the RuntimeError raised inside of ensure_same_dimensions
-            # Raise YTUnitOperationError up here since we know the context now
-            except RuntimeError:
-                raise YTUnitOperationError(context[0], unit1, unit2)
+            unit = self._ufunc_registry[context[0]](unit1, unit2)
         else:
             raise RuntimeError("Operation is not defined.")
         if unit is None:
