@@ -81,7 +81,7 @@ class PPVCube(object):
         self.ds = ds
         self.field = field
         self.width = width
-        if isinstance(rest_value, YTQuantity):
+        if isinstance(rest_value, YTQuantity) or rest_value is None:
             self.rest_value = rest_value
         else:
             self.rest_value = ds.quan(rest_value[0], rest_value[1])
