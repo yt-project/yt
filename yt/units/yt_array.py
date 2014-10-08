@@ -44,17 +44,6 @@ def iterable(obj):
     except: return False
     return True
 
-def ensure_unitless(func):
-    @wraps(func)
-    def wrapped(unit):
-        if unit != Unit():
-            raise RuntimeError(
-                "This operation is only defined for unitless quantities. "
-                "Received unit (%s)" % unit
-                )
-        return func(unit)
-    return wrapped
-
 def return_arr(func):
     @wraps(func)
     def wrapped(*args, **kwargs):
@@ -92,10 +81,6 @@ def passthrough_unit(unit):
 
 def return_without_unit(unit):
     return None
-
-@ensure_unitless
-def unitless(unit):
-    return Unit()
 
 def arctan2_unit(unit1, unit2):
     return Unit()
