@@ -473,9 +473,6 @@ def unitify_data(data):
             field_units[k] = v.units
             new_data[k] = v.copy().d
         data = new_data
-    elif all([iterable(val) for val in data.values()]):
-        field_units = {field:'' for field in data.keys()}
-        data = dict((field, np.array(val)) for field, val in data.iteritems())
     elif all([(len(val) == 2) for val in data.values()]):
         new_data, field_units = {}, {}
         for field in data:
@@ -492,6 +489,9 @@ def unitify_data(data):
                 raise RuntimeError("The data dict appears to be invalid.\n" +
                                    str(e))
         data = new_data
+    elif all([iterable(val) for val in data.values()]):
+        field_units = {field:'' for field in data.keys()}
+        data = dict((field, np.array(val)) for field, val in data.iteritems())
     else:
         raise RuntimeError("The data dict appears to be invalid. "
                            "The data dictionary must map from field "
