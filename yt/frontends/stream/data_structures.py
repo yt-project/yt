@@ -364,8 +364,10 @@ class StreamDictFieldHandler(dict):
     _additional_fields = ()
 
     @property
-    def all_fields(self): 
-        fields = list(self._additional_fields) + self[0].keys()
+    def all_fields(self):
+        self_fields = chain.from_iterable(s.keys() for s in self.values())
+        self_fields = list(set(self_fields))
+        fields = list(self._additional_fields) + self_fields
         fields = list(set(fields))
         return fields
 
@@ -471,8 +473,9 @@ def unitify_data(data):
             field_units[k] = v.units
             new_data[k] = v.copy().d
         data = new_data
-    elif all([isinstance(val, np.ndarray) for val in data.values()]):
+    elif all([iterable(val) for val in data.values()]):
         field_units = {field:'' for field in data.keys()}
+        data = dict((field, np.array(val)) for field, val in data.iteritems())
     elif all([(len(val) == 2) for val in data.values()]):
         new_data, field_units = {}, {}
         for field in data:
@@ -823,6 +826,11 @@ def load_amr_grids(grid_data, domain_dimensions,
     if magnetic_unit is None:
         magnetic_unit = 'code_magnetic'
 
+    particle_types = {}
+
+    for grid in grid_data:
+        particle_types.update(set_particle_types(grid))
+
     handler = StreamHandler(
         grid_left_edges,
         grid_right_edges,
@@ -834,7 +842,7 @@ def load_amr_grids(grid_data, domain_dimensions,
         sfh,
         field_units,
         (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
-        particle_types=set_particle_types(grid_data[0])
+        particle_types=particle_types
     )
 
     handler.name = "AMRGridData"
