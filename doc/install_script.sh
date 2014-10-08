@@ -987,6 +987,7 @@ cd $MY_PWD
 if !( ( ${DEST_DIR}/bin/python2.7 -c "import readline" 2>&1 )>> ${LOG_FILE})
 then
     if !( ( ${DEST_DIR}/bin/python2.7 -c "import gnureadline" 2>&1 )>> ${LOG_FILE})
+    then
         echo "Installing pure-python readline"
         ( ${DEST_DIR}/bin/pip install gnureadline 2>&1 ) 1>> ${LOG_FILE}
     fi
