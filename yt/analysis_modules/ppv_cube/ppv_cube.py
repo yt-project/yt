@@ -20,6 +20,8 @@ from yt.utilities.physical_constants import clight, mh, kboltz
 import yt.units.dimensions as ytdims
 from yt.units.yt_array import YTQuantity
 from yt.funcs import iterable
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_root_only
 
 def create_vlos(z_hat):
     def _v_los(field, data):
@@ -158,6 +160,7 @@ class PPVCube(object):
         else:
             self.width = ds.quan(self.width, "code_length")
 
+    @parallel_root_only
     def write_fits(self, filename, clobber=True, sky_scale=None,
                    sky_center=None):
         r""" Write the PPVCube to a FITS file.
