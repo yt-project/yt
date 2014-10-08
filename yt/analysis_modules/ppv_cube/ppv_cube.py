@@ -159,7 +159,7 @@ class PPVCube(object):
             self.width = ds.quan(self.width, "code_length")
 
     def write_fits(self, filename, clobber=True, sky_scale=None,
-                   sky_center=(30.,45.)):
+                   sky_center=None):
         r""" Write the PPVCube to a FITS file.
 
         Parameters
