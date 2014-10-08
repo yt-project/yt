@@ -763,12 +763,13 @@ def load_amr_grids(grid_data, domain_dimensions,
     ...          dimensions = [32, 32, 32],
     ...          number_of_particles = 0)
     ... ]
-    ... 
-    >>> for g in grid_data:
-    ...     g["Density"] = np.random.random(g["dimensions"]) * 2**g["level"]
     ...
-    >>> units = dict(Density='g/cm**3')
-    >>> ds = load_amr_grids(grid_data, [32, 32, 32], 1.0)
+    >>> for g in grid_data:
+    ...     g["density"] = np.random.random(g["dimensions"]) * 2**g["level"]
+    ...
+    >>> units = dict(density='g/cm**3')
+    >>> ds = load_amr_grids(grid_data, [8, 8, 8], field_units=units,
+    ...                     length_unit=1.0)
     """
 
     domain_dimensions = np.array(domain_dimensions)
@@ -1018,7 +1019,7 @@ def load_particles(data, length_unit = None, bbox=None,
     magnetic_unit : float
         Conversion factor from simulation magnetic units to gauss
     bbox : array_like (xdim:zdim, LE:RE), optional
-        Size of computational domain in units sim_unit_to_cm
+        Size of computational domain in units of the length_unit
     sim_time : float, optional
         The simulation time in seconds
     periodicity : tuple of booleans
@@ -1191,10 +1192,8 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
     coordinates : array_like
         This should be of size (M,3) where M is the number of vertices
         indicated in the connectivity matrix.
-    sim_unit_to_cm : float
-        Conversion factor from simulation units to centimeters
     bbox : array_like (xdim:zdim, LE:RE), optional
-        Size of computational domain in units sim_unit_to_cm
+        Size of computational domain in units of the length unit.
     sim_time : float, optional
         The simulation time in seconds
     mass_unit : string
