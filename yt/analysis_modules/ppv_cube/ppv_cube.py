@@ -46,8 +46,10 @@ class PPVCube(object):
         ----------
         ds : dataset
             The dataset.
-        normal : array_like
-            The normal vector along with to make the projections.
+        normal : array_like or string
+            The normal vector along with to make the projections. If an array, it
+            will be normalized. If a string, it will be assumed to be along one of the
+            principal axes of the domain ("x","y", or "z").
         field : string
             The field to project.
         center : float, tuple, or string
@@ -94,13 +96,18 @@ class PPVCube(object):
         self.ny = dims[1]
         self.nv = dims[2]
 
-        normal = np.array(normal)
-        normal /= np.sqrt(np.dot(normal, normal))
-        vecs = np.identity(3)
-        t = np.cross(normal, vecs).sum(axis=1)
-        ax = t.argmax()
-        north = np.cross(normal, vecs[ax,:]).ravel()
-        orient = Orientation(normal, north_vector=north)
+        if isinstance(normal, basestring):
+            los_vec = np.zeros(3)
+            los_vec[ds.coordinates.axis_id[normal]] = 1.0
+        else:
+            normal = np.array(normal)
+            normal /= np.sqrt(np.dot(normal, normal))
+            vecs = np.identity(3)
+            t = np.cross(normal, vecs).sum(axis=1)
+            ax = t.argmax()
+            north = np.cross(normal, vecs[ax,:]).ravel()
+            orient = Orientation(normal, north_vector=north)
+            los_vec = orient.unit_vectors[2]
 
         dd = ds.all_data()
 
@@ -119,7 +126,7 @@ class PPVCube(object):
         self.vmid = 0.5*(self.vbins[1:]+self.vbins[:-1])
         self.dv = self.vbins[1]-self.vbins[0]
 
-        _vlos = create_vlos(orient.unit_vectors[2])
+        _vlos = create_vlos(los_vec)
         self.ds.field_info.add_field(("gas","v_los"), function=_vlos, units="cm/s")
 
         if thermal_broad:
@@ -134,9 +141,13 @@ class PPVCube(object):
         for i in xrange(self.nv):
             _intensity = self._create_intensity(i)
             ds.add_field(("gas","intensity"), function=_intensity, units=self.field_units)
-            prj = off_axis_projection(ds, self.center, normal, width,
-                                      (self.nx, self.ny), "intensity")
-            self.data[:,:,i] = prj[:,:]
+            if isinstance(normal, basestring):
+                prj = ds.proj("intensity", ds.coordinates.axis_id[normal])
+                buf = prj.to_frb(width, self.nx, center=self.center)["intensity"]
+            else:
+                buf = off_axis_projection(ds, self.center, normal, width,
+                                          (self.nx, self.ny), "intensity")
+            self.data[:,:,i] = buf[:,:]
             ds.field_info.pop(("gas","intensity"))
             pbar.update(i)
         pbar.finish()
