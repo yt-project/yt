@@ -51,11 +51,13 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     fields.append( ("io", str(name)) )
             else:
                 fields.append( ("enzo", str(name)) )
-        for ptype, field_list in sorted(group['Particles/'].items()):
-            pds = group['Particles/{0}'.format(ptype)]
-            for field in field_list:
-                if np.asarray(pds[field]).ndim > 1:
-                    self._array_fields[field] = pds[field].shape
+
+        if 'Particles' in group.keys():
+            for ptype, field_list in sorted(group['Particles/'].items()):
+                pds = group['Particles/{0}'.format(ptype)]
+                for field in field_list:
+                    if np.asarray(pds[field]).ndim > 1:
+                        self._array_fields[field] = pds[field].shape
 
         f.close()
         return fields
