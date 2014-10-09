@@ -35,7 +35,6 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     _base = slice(None)
 
     def _read_field_names(self, grid):
-        print grid.id
         if grid.filename is None: return []
         f = h5py.File(grid.filename, "r")
         group = f["/Grid%08i" % grid.id]
