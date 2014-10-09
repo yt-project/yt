@@ -35,6 +35,7 @@ class RegisteredIOHandler(type):
 @add_metaclass(RegisteredIOHandler)
 class BaseIOHandler(object):
     _vector_fields = ()
+    _array_fields = ()
     _dataset_type = None
     _particle_reader = False
 
@@ -160,6 +161,8 @@ class BaseIOHandler(object):
         for field in fields:
             if field[1] in self._vector_fields:
                 shape = (fsize[field], 3)
+            elif field[1] in self._array_fields:
+                shape = (fsize[field],)+self._array_fields[field[1]]
             else:
                 shape = (fsize[field], )
             rv[field] = np.empty(shape, dtype="float64")
