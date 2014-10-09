@@ -35,7 +35,6 @@ class RegisteredIOHandler(type):
 @add_metaclass(RegisteredIOHandler)
 class BaseIOHandler(object):
     _vector_fields = ()
-    _array_fields = ()
     _dataset_type = None
     _particle_reader = False
 
@@ -44,6 +43,7 @@ class BaseIOHandler(object):
         self.ds = ds
         self._last_selector_id = None
         self._last_selector_counts = None
+        self._array_fields = {}
 
     # We need a function for reading a list of sets
     # and a function for *popping* from a queue all the appropriate sets

@@ -31,7 +31,6 @@ _particle_position_names = {}
 class IOHandlerPackedHDF5(BaseIOHandler):
 
     _dataset_type = "enzo_packed_3d"
-    _array_fields = {}
     _base = slice(None)
 
     def _read_field_names(self, grid):
@@ -51,14 +50,6 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     fields.append( ("io", str(name)) )
             else:
                 fields.append( ("enzo", str(name)) )
-
-        if 'Particles' in group.keys():
-            for ptype, field_list in sorted(group['Particles/'].items()):
-                pds = group['Particles/{0}'.format(ptype)]
-                for field in field_list:
-                    if np.asarray(pds[field]).ndim > 1:
-                        self._array_fields[field] = pds[field].shape
-
         f.close()
         return fields
 
@@ -89,6 +80,9 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                             r"particle_position_%s")
                     x, y, z = (np.asarray(pds.get(pn % ax).value, dtype="=f8")
                                for ax in 'xyz')
+                    for field in field_list:
+                        if np.asarray(pds[field]).ndim > 1:
+                            self._array_fields[field] = pds[field].shape
                     yield ptype, (x, y, z)
             if f: f.close()
 
