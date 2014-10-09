@@ -87,7 +87,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
                     x = coords[:, 0]
                     y = coords[:, 1]
                     z = coords[:, 2]
-                    mask = selector.select_points(x, y, z)
+                    mask = selector.select_points(x, y, z, 0.0)
                     del x, y, z
                     if mask is None: continue
                     for field in field_list:
