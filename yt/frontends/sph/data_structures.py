@@ -379,7 +379,7 @@ class OWLSDataset(GadgetHDF5Dataset):
     @classmethod
     def _is_valid(self, *args, **kwargs):
         need_groups = ['Constants', 'Header', 'Parameters', 'Units']
-        veto_groups = ['SUBFIND',
+        veto_groups = ['SUBFIND', 'FOF',
                        'PartType0/ChemistryAbundances', 
                        'PartType0/ChemicalAbundances',
                        'RuntimePars', 'HashTable']
