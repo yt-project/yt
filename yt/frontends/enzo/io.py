@@ -55,8 +55,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             pds = group['Particles/{0}'.format(ptype)]
             for field in field_list:
                 if np.asarray(pds[field]).ndim > 1:
-                    shape = pds[field].shape
-                    self._array_fields[field] = shape
+                    self._array_fields[field] = pds[field].shape
 
         f.close()
         return fields
