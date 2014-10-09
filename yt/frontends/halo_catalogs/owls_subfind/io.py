@@ -113,7 +113,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
                         yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):
-        pcount = sum(self._count_particles(data_file).values())
+        pcount = sum(data_file.total_particles.values())
         morton = np.empty(pcount, dtype='uint64')
         mylog.debug("Initializing index % 5i (% 7i particles)",
                     data_file.file_id, pcount)
@@ -122,12 +122,11 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
             if not f.keys(): return None
             dx = np.finfo(f["FOF"]['CenterOfMass'].dtype).eps
             dx = 2.0*self.ds.quan(dx, "code_length")
-            
-            for ptype, pattr in zip(["FOF", "SUBFIND"],
-                                    ["Number_of_groups", "Number_of_subgroups"]):
-                my_pcount = f[ptype].attrs[pattr]
+
+            for ptype in data_file.ds.particle_types_raw:
+                if data_file.total_particles[ptype] == 0: continue
                 pos = f[ptype]["CenterOfMass"].value.astype("float64")
-                pos = np.resize(pos, (my_pcount, 3))
+                pos = np.resize(pos, (data_file.total_particles[ptype], 3))
                 pos = data_file.ds.arr(pos, "code_length")
                 
                 # These are 32 bit numbers, so we give a little lee-way.
@@ -151,17 +150,23 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
 
     def _count_particles(self, data_file):
         with h5py.File(data_file.filename, "r") as f:
-            # We need this to figure out where the offset fields are stored.
-            data_file.total_offset = f["SUBFIND"].attrs["Number_of_groups"]
-            return {"FOF": f["FOF"].attrs["Number_of_groups"],
-                    "SUBFIND": f["FOF"].attrs["Number_of_subgroups"]}
+            pcount = {"FOF": f["FOF"].attrs["Number_of_groups"]}
+            if "SUBFIND" in f:
+                # We need this to figure out where the offset fields are stored.
+                data_file.total_offset = f["SUBFIND"].attrs["Number_of_groups"]
+                pcount["SUBFIND"] = f["FOF"].attrs["Number_of_subgroups"]
+            else:
+                data_file.total_offset = 0
+                pcount["SUBFIND"] = 0
+            return pcount
 
     def _identify_fields(self, data_file):
-        fields = [(ptype, "particle_identifier")
-                  for ptype in self.ds.particle_types_raw]
+        fields = []
         pcount = data_file.total_particles
         with h5py.File(data_file.filename, "r") as f:
             for ptype in self.ds.particle_types_raw:
+                if data_file.total_particles[ptype] == 0: continue
+                fields.append((ptype, "particle_identifier"))
                 my_fields, my_offset_fields = \
                   subfind_field_list(f[ptype], ptype, data_file.total_particles)
                 fields.extend(my_fields)

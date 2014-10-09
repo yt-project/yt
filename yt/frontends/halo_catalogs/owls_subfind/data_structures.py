@@ -208,14 +208,19 @@ class OWLSSubfindDataset(Dataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+        need_groups = ['Constants', 'Header', 'Parameters', 'Units', 'FOF']
+        veto_groups = []
+        valid = True
         try:
             fileh = h5py.File(args[0], mode='r')
-            if "Constants" in fileh["/"].keys() and \
-               "Header" in fileh["/"].keys() and \
-               "SUBFIND" in fileh["/"].keys():
-                fileh.close()
-                return True
+            for ng in need_groups:
+                if ng not in fileh["/"]:
+                    valid = False
+            for vg in veto_groups:
+                if vg in fileh["/"]:
+                    valid = False                    
             fileh.close()
         except:
+            valid = False
             pass
-        return False
+        return valid
