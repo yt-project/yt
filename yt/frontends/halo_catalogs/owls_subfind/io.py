@@ -82,6 +82,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     pcount = data_file.total_particles[ptype]
+                    if pcount == 0: continue
                     coords = f[ptype]["CenterOfMass"].value.astype("float64")
                     coords = np.resize(coords, (pcount, 3))
                     x = coords[:, 0]
@@ -115,6 +116,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
     def _initialize_index(self, data_file, regions):
         pcount = sum(data_file.total_particles.values())
         morton = np.empty(pcount, dtype='uint64')
+        if pcount == 0: return morton
         mylog.debug("Initializing index % 5i (% 7i particles)",
                     data_file.file_id, pcount)
         ind = 0
@@ -163,6 +165,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
     def _identify_fields(self, data_file):
         fields = []
         pcount = data_file.total_particles
+        if sum(pcount.values()) == 0: return fields, {}
         with h5py.File(data_file.filename, "r") as f:
             for ptype in self.ds.particle_types_raw:
                 if data_file.total_particles[ptype] == 0: continue

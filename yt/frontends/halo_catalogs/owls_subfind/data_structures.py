@@ -80,7 +80,7 @@ class OWLSSubfindParticleIndex(ParticleIndex):
         # TODO: Add additional fields
         dsl = []
         units = {}
-        for dom in self.data_files[:1]:
+        for dom in self.data_files:
             fl, _units = self.io._identify_fields(dom)
             units.update(_units)
             dom._calculate_offsets(fl)
