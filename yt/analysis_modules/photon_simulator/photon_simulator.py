@@ -791,7 +791,7 @@ class EventList(object) :
         if "channel_type" in f:
             parameters["ChannelType"] = f["/channel_type"].value
         if "mission" in f:
-             parameters["Mission"] = f["/mission"].value
+            parameters["Mission"] = f["/mission"].value
         if "telescope" in f:
             parameters["Telescope"] = f["/telescope"].value
         if "instrument" in f:
@@ -835,7 +835,7 @@ class EventList(object) :
         if "CHANTYPE" in tblhdu.header:
             parameters["ChannelType"] = tblhdu["CHANTYPE"]
         if "MISSION" in tblhdu.header:
-             parameters["Mission"] = tblhdu["MISSION"]
+            parameters["Mission"] = tblhdu["MISSION"]
         if "TELESCOP" in tblhdu.header:
             parameters["Telescope"] = tblhdu["TELESCOP"]
         if "INSTRUME" in tblhdu.header:
@@ -931,7 +931,7 @@ class EventList(object) :
         if "ChannelType" in self.parameters:
             tbhdu.header["CHANTYPE"] = self.parameters["ChannelType"]
         if "Mission" in self.parameters:
-             tbhdu.header["MISSION"] = self.parameters["Mission"]
+            tbhdu.header["MISSION"] = self.parameters["Mission"]
         if "Telescope" in self.parameters:
             tbhdu.header["TELESCOP"] = self.parameters["Telescope"]
         if "Instrument" in self.parameters:
@@ -1049,7 +1049,7 @@ class EventList(object) :
         if "ChannelType" in self.parameters:
             f.create_dataset("/channel_type", data=self.parameters["ChannelType"])
         if "Mission" in self.parameters:
-             f.create_dataset("/mission", data=self.parameters["Mission"]) 
+            f.create_dataset("/mission", data=self.parameters["Mission"]) 
         if "Telescope" in self.parameters:
             f.create_dataset("/telescope", data=self.parameters["Telescope"])
         if "Instrument" in self.parameters:
@@ -1219,9 +1219,9 @@ class EventList(object) :
             else:        
                 tbhdu.header["ANCRFILE"] = "none"
             if self.parameters.has_key("Mission"):
-                 tbhdu.header["MISSION"] = self.parameters["Mission"]
+                tbhdu.header["MISSION"] = self.parameters["Mission"]
              else:
-                 tbhdu.header["MISSION"] = "none"
+                tbhdu.header["MISSION"] = "none"
             if self.parameters.has_key("Telescope"):
                 tbhdu.header["TELESCOP"] = self.parameters["Telescope"]
             else:
