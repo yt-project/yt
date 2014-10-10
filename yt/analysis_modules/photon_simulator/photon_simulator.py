@@ -1220,7 +1220,7 @@ class EventList(object) :
                 tbhdu.header["ANCRFILE"] = "none"
             if self.parameters.has_key("Mission"):
                 tbhdu.header["MISSION"] = self.parameters["Mission"]
-             else:
+            else:
                 tbhdu.header["MISSION"] = "none"
             if self.parameters.has_key("Telescope"):
                 tbhdu.header["TELESCOP"] = self.parameters["Telescope"]
