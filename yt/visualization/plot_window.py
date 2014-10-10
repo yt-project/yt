@@ -756,9 +756,10 @@ class PWViewerMPL(PlotWindow):
             for i, un in enumerate((unit_x, unit_y)):
                 if hasattr(self.ds.coordinates, "default_unit_label"):
                     axax = getattr(self.ds.coordinates, "%s_axis" % ("xy"[i]))[axis_index]
-                    un = self.ds.coordinates.default_unit_label[axax]
-                    axes_unit_labels[i] = '\/\/('+un+')'
-                    continue
+                    unn = self.ds.coordinates.default_unit_label.get(axax, "")
+                    if unn != "":
+                        axes_unit_labels[i] = '\/\/('+unn+')'
+                        continue
                 # Use sympy to factor h out of the unit.  In this context 'un'
                 # is a string, so we call the Unit constructor.
                 expr = Unit(un, registry=self.ds.unit_registry).expr

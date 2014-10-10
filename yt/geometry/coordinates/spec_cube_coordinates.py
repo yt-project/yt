@@ -26,8 +26,19 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
         self.axis_name = {}
         self.axis_id = {}
 
-        for axis, axis_name in zip([ds.lon_axis, ds.lat_axis, ds.spec_axis],
-                                   ["Image\ x", "Image\ y", ds.spec_name]):
+        self.default_unit_label = {}
+        if ds.lon_name == "X" and ds.lat_name == "Y":
+            names = ["x","y"]
+        else:
+            names = ["Image\ x", "Image\ y"]
+            self.default_unit_label[ds.lon_axis] = "pixel"
+            self.default_unit_label[ds.lat_axis] = "pixel"
+        names.append(ds.spec_name)
+        axes = [ds.lon_axis, ds.lat_axis, ds.spec_axis]
+        self.default_unit_label[ds.spec_axis] = ds.spec_unit
+
+        for axis, axis_name in zip(axes, names):
+
             lower_ax = "xyz"[axis]
             upper_ax = lower_ax.upper()
 
@@ -39,11 +50,6 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
             self.axis_id[lower_ax] = axis
             self.axis_id[axis] = axis
             self.axis_id[axis_name] = axis
-
-        self.default_unit_label = {}
-        self.default_unit_label[ds.lon_axis] = "pixel"
-        self.default_unit_label[ds.lat_axis] = "pixel"
-        self.default_unit_label[ds.spec_axis] = ds.spec_unit
 
         def _spec_axis(ax, x, y):
             p = (x,y)[ax]
