@@ -134,7 +134,7 @@ class PPVCube(object):
             self.v2_th = lambda T: 1.0
             self.phi_th = lambda v, T: np.maximum(1.-np.abs(v)/self.dv_cgs,0.0)
 
-        self.proj_units = self.field_units * u.cm.units
+        self.proj_units = self.field_units+"*cm"
 
         self.data = ds.arr(np.zeros((self.nx,self.ny,self.nv)), self.proj_units)
         pbar = get_pbar("Generating cube.", self.nv)
