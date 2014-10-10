@@ -100,13 +100,7 @@ class PPVCube(object):
             los_vec = np.zeros(3)
             los_vec[ds.coordinates.axis_id[normal]] = 1.0
         else:
-            normal = np.array(normal)
-            normal /= np.sqrt(np.dot(normal, normal))
-            vecs = np.identity(3)
-            t = np.cross(normal, vecs).sum(axis=1)
-            ax = t.argmax()
-            north = np.cross(normal, vecs[ax,:]).ravel()
-            orient = Orientation(normal, north_vector=north)
+            orient = Orientation(normal)
             los_vec = orient.unit_vectors[2]
 
         dd = ds.all_data()
@@ -124,17 +118,19 @@ class PPVCube(object):
 
         self.vbins = np.linspace(self.v_bnd[0], self.v_bnd[1], num=self.nv+1)
         self.vmid = 0.5*(self.vbins[1:]+self.vbins[:-1])
+        self.vmid_cgs = self.vmid.in_cgs()
         self.dv = self.vbins[1]-self.vbins[0]
+        self.dv_cgs = self.dv.in_cgs()
 
         _vlos = create_vlos(los_vec)
         self.ds.field_info.add_field(("gas","v_los"), function=_vlos, units="cm/s")
 
         if thermal_broad:
-            self.v_th = lambda T: np.sqrt(2.*kboltz*T/self.particle_mass)
-            self.phi_th = lambda v, T: self.dv*np.exp(-(v/self.v_th(T))**2)/(np.sqrt(np.pi)*self.v_th(T))
+            self.v2_th = lambda T: 2.*kboltz*T/self.particle_mass
+            self.phi_th = lambda v, T: self.dv_cgs*np.exp(-v*v/self.v2_th(T))/(np.sqrt(np.pi*self.v2_th(T)))
         else:
-            self.v_th = lambda T: 1.0
-            self.phi_th = lambda v, T: np.maximum(1.-np.abs(v)/self.dv.in_units(v.units),0.0)
+            self.v2_th = lambda T: 1.0
+            self.phi_th = lambda v, T: np.maximum(1.-np.abs(v)/self.dv_cgs,0.0)
 
         self.data = ds.arr(np.zeros((self.nx,self.ny,self.nv)), self.field_units)
         pbar = get_pbar("Generating cube.", self.nv)
@@ -151,6 +147,8 @@ class PPVCube(object):
             ds.field_info.pop(("gas","intensity"))
             pbar.update(i)
         pbar.finish()
+
+        self.proj_units = self.data.units
 
         if self.rest_value is not None:
             # If we want units other than velocity, we re-calculate these quantities
@@ -237,14 +235,14 @@ class PPVCube(object):
         w.wcs.ctype = [types[0],types[1],vtype]
 
         fib = FITSImageBuffer(self.data.transpose(), fields=self.field, wcs=w)
-        fib[0].header["bunit"] = self.field_units
+        fib[0].header["bunit"] = str(self.proj_units)
         fib[0].header["btype"] = self.field
 
         fib.writeto(filename, clobber=clobber)
 
     def _create_intensity(self, i):
         def _intensity(field, data):
-            w = self.phi_th((self.vmid[i]-data["v_los"]).in_cgs(), data["temperature"])
+            w = self.phi_th(self.vmid_cgs[i]-data["v_los"], data["temperature"])
             return data[self.field]*w
         return _intensity
 
