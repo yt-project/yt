@@ -16,6 +16,7 @@ from yt.visualization.fixed_resolution import FixedResolutionBuffer
 from yt.data_objects.construction_data_containers import YTCoveringGridBase
 from yt.utilities.on_demand_imports import _astropy
 from yt.units.yt_array import YTQuantity
+import re
 
 pyfits = _astropy.pyfits
 pywcs = _astropy.pywcs
@@ -109,7 +110,7 @@ class FITSImageBuffer(HDUList):
                 hdu.name = key
                 hdu.header["btype"] = key
                 if hasattr(img_data[key], "units"):
-                    hdu.header["bunit"] = str(img_data[key].units)
+                    hdu.header["bunit"] = re.sub('()', '', str(img_data[key].units))
                 self.append(hdu)
 
         self.dimensionality = len(self[0].data.shape)

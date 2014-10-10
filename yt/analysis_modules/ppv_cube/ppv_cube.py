@@ -18,10 +18,12 @@ from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.funcs import get_pbar
 from yt.utilities.physical_constants import clight, mh, kboltz
 import yt.units.dimensions as ytdims
+import yt.units as u
 from yt.units.yt_array import YTQuantity
 from yt.funcs import iterable
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
+import re
 
 def create_vlos(z_hat):
     def _v_los(field, data):
@@ -132,7 +134,9 @@ class PPVCube(object):
             self.v2_th = lambda T: 1.0
             self.phi_th = lambda v, T: np.maximum(1.-np.abs(v)/self.dv_cgs,0.0)
 
-        self.data = ds.arr(np.zeros((self.nx,self.ny,self.nv)), self.field_units)
+        self.proj_units = self.field_units * u.cm.units
+
+        self.data = ds.arr(np.zeros((self.nx,self.ny,self.nv)), self.proj_units)
         pbar = get_pbar("Generating cube.", self.nv)
         for i in xrange(self.nv):
             _intensity = self._create_intensity(i)
@@ -147,8 +151,6 @@ class PPVCube(object):
             ds.field_info.pop(("gas","intensity"))
             pbar.update(i)
         pbar.finish()
-
-        self.proj_units = self.data.units
 
         if self.rest_value is not None:
             # If we want units other than velocity, we re-calculate these quantities
@@ -220,7 +222,9 @@ class PPVCube(object):
             dx = self.width/self.nx
             units = str(self.width.units)
         # Hack because FITS is stupid and doesn't understand case
-        if units == "Mpc": units = "kpc"
+        if units == "Mpc":
+            units = "kpc"
+            dx *= 1000.
         dy = dx
         dv = self.dv.in_units(vunit)
 
@@ -235,7 +239,7 @@ class PPVCube(object):
         w.wcs.ctype = [types[0],types[1],vtype]
 
         fib = FITSImageBuffer(self.data.transpose(), fields=self.field, wcs=w)
-        fib[0].header["bunit"] = str(self.proj_units)
+        fib[0].header["bunit"] = re.sub('()', '', str(self.proj_units))
         fib[0].header["btype"] = self.field
 
         fib.writeto(filename, clobber=clobber)

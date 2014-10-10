@@ -321,7 +321,8 @@ class SZProjection(object):
 
         units = self.ds.get_smallest_appropriate_unit(self.width)
         # Hack because FITS is stupid and doesn't understand case
-        if units == "Mpc": units = "kpc"
+        if units == "Mpc":
+            units = "kpc"
         dx = self.dx.in_units(units)
         if sky_scale:
             dx = (dx*sky_scale).in_units("deg")
