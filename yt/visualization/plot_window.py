@@ -755,9 +755,10 @@ class PWViewerMPL(PlotWindow):
             hinv = False
             for i, un in enumerate((unit_x, unit_y)):
                 if hasattr(self.ds.coordinates, "default_unit_label"):
-                    axax = getattr(self.ds.coordinates, "%s_axis" % ("xy"[i]))[axis_index]
+                    axax = getattr(self.ds.coordinates,
+                                   "%s_axis" % ("xy"[i]))[axis_index]
                     un = self.ds.coordinates.default_unit_label[axax]
-                    axes_unit_labels[i] = '\/\/('+un+')'
+                    axes_unit_labels[i] = '\/\/\left('+un+'\right)'
                     continue
                 # Use sympy to factor h out of the unit.  In this context 'un'
                 # is a string, so we call the Unit constructor.
@@ -813,7 +814,7 @@ class PWViewerMPL(PlotWindow):
                             1, self.xlim, self.ylim)
                     else:
                         ymin, ymax = [float(y) for y in extenty]
-                    self.plots[f].image.set_extent((xmin,xmax,ymin,ymax))
+                    self.plots[f].image.set_extent((xmin, xmax, ymin, ymax))
                     self.plots[f].axes.set_aspect("auto")
 
             x_label, y_label, colorbar_label = self._get_axes_labels(f)
@@ -843,7 +844,7 @@ class PWViewerMPL(PlotWindow):
                 if units is None or units == '':
                     pass
                 else:
-                    colorbar_label += r'$\/\/('+units+r')$'
+                    colorbar_label += r'$\/\/\left('+units+r'\right)$'
 
             parser = MathTextParser('Agg')
             try:
