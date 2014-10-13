@@ -238,7 +238,7 @@ class PPVCube(object):
         w.wcs.cunit = [units,units,vunit]
         w.wcs.ctype = [types[0],types[1],vtype]
 
-        fib = FITSImageBuffer(self.data.transpose(), fields=self.field, wcs=w)
+        fib = FITSImageBuffer(self.data, fields=self.field, wcs=w)
         fib[0].header["bunit"] = re.sub('()', '', str(self.proj_units))
         fib[0].header["btype"] = self.field
 
