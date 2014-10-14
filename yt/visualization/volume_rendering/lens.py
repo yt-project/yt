@@ -118,6 +118,7 @@ class PlaneParallelLens(Lens):
         px = (res[1]*(dy/camera.width[1].d)).astype('int')
         return px, py, dz
 
+
 class PerspectiveLens(Lens):
 
     """docstring for PerspectiveLens"""
@@ -133,7 +134,7 @@ class PerspectiveLens(Lens):
             info={'imtype': 'rendering'})
         return self.current_image
 
-    def get_sampler_params(self, camera):
+    def get_sampler_params(self, camera, render_source):
         # We should move away from pre-generation of vectors like this and into
         # the usage of on-the-fly generation in the VolumeIntegrator module
         # We might have a different width and back_center
@@ -206,6 +207,7 @@ class FisheyeLens(Lens):
     def setup_box_properties(self, camera):
         self.radius = camera.width.max()
         super(FisheyeLens, self).setup_box_properties(camera)
+        self.set_viewpoint(camera)
 
     def new_image(self, camera):
         self.current_image = ImageArray(
@@ -248,7 +250,7 @@ class FisheyeLens(Lens):
         """
         For a PerspectiveLens, the viewpoint is the front center.
         """
-        self.viewpoint = self.center
+        self.viewpoint = camera.position
 
 
 lenses = {'plane-parallel': PlaneParallelLens,

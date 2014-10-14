@@ -42,7 +42,7 @@ class Camera(Orientation):
         self.set_lens(lens_type)
         if data_source is not None:
             data_source = data_source_or_all(data_source)
-            self.set_defaults_from_data_source(data_source)
+        self.set_defaults_from_data_source(data_source)
 
         super(Camera, self).__init__(self.focus - self.position,
                                      self.north_vector, steady_north=False)
@@ -71,9 +71,11 @@ class Camera(Orientation):
         if iterable(width) and len(width) > 1 and isinstance(width[1], str):
             width = data_source.pf.quan(width[0], input_units=width[1])
             # Now convert back to code length for subsequent manipulation
-            width = width.in_units("code_length").value
+            width = width.in_units("code_length")  # .value
         if not iterable(width):
-            width = (width, width, width)  # left/right, top/bottom, front/back
+            width = data_source.pf.arr([width, width, width],
+                                       input_units='code_length')
+            # left/right, top/bottom, front/back
         if not isinstance(width, YTArray):
             width = data_source.pf.arr(width, input_units="code_length")
         if not isinstance(focus, YTArray):
@@ -88,7 +90,7 @@ class Camera(Orientation):
 
     def set_width(self, width):
         if not iterable(width):
-            width = [width, width, width] # No way to get code units.
+            width = np.array([width, width, width])  # Can't get code units.
         self.width = width
         self.switch_orientation()
 

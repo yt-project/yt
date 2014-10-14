@@ -21,35 +21,39 @@ from yt.visualization.volume_rendering.render_source import VolumeSource
 from time import time
 
 #pf = fake_random_pf(8)
-#w = (pf.domain_width[0]*30).in_units('code_length')
-#sc = Scene()
-#cam = Camera(pf, lens_type='perspective')
-#print "WIDTH: ", w
-#cam.set_width(w)
-#vol = VolumeSource(pf, field=('gas', 'density'))
-#sc.set_default_camera(cam)
-#sc.add_source(vol)
-#
-#t = -time()
-#sc.render('test_perspective.png', clip_ratio=None)
-#t += time()
-#print 'Total time: %e' % t
+pf = load('/home/skillman/kipac/data/IsolatedGalaxy/galaxy0030/galaxy0030')
+w = (pf.domain_width*30).in_units('code_length')
+w = pf.arr(w, 'code_length')
+sc = Scene()
+cam = Camera(pf, lens_type='perspective')
+print "WIDTH: ", w
+cam.set_width(w)
+vol = VolumeSource(pf, field=('gas', 'density'))
+sc.set_default_camera(cam)
+sc.add_source(vol)
+
+t = -time()
+sc.render('test_perspective.png', clip_ratio=None)
+t += time()
+print 'Total time: %e' % t
 
 pf = load('/home/skillman/kipac/data/IsolatedGalaxy/galaxy0030/galaxy0030')
 ds = pf.h.sphere(pf.domain_center, pf.domain_width[0] / 100)
 sc = Scene()
 cam = Camera(pf, lens_type='fisheye')
-cam.lens.fov=180.0
-cam.resolution=(512,512)
-cam.set_width(1.0)
-v,c = pf.find_max('density')
+cam.lens.fov = 180.0
+cam.resolution = (512,512)
+cam.set_width(pf.domain_width)
+v, c = pf.find_max('density')
+c = pf.arr(c, 'code_length')
 p = pf.domain_center.copy()
-cam.set_position(c)
+cam.set_position(c-0.05*pf.domain_width)
 #pf.field_info[('gas','density')].take_log=False
 vol = VolumeSource(pf, field=('gas', 'density'))
 tf = vol.transfer_function
-tf.grey_opacity=True
-#tf.map_to_colormap(tf.x_bounds[0], tf.x_bounds[1], scale=3000.0, colormap='RdBu')
+tf.grey_opacity = True
+# tf.map_to_colormap(tf.x_bounds[0], tf.x_bounds[1], scale=3000.0, 
+#                    colormap='RdBu')
 sc.set_default_camera(cam)
 sc.add_source(vol)
 
