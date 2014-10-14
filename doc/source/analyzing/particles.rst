@@ -28,8 +28,7 @@ automatically select particles based on the region of space they describe, and
 the quantities (:ref:`derived-quantities`) in those objects will operate on
 particle fields.
 
-(For information on halo finding, see :ref:`cookbook-halo_finding` and
-:ref:`cookbook-halo_mass_info`.)
+(For information on halo finding, see :ref:`cookbook-halo_finding`)
 
 .. warning:: If you use the built-in methods of interacting with particles, you
              should be well off.  Otherwise, there are caveats!
@@ -64,8 +63,8 @@ do that.  Here is an example of selecting all star particles in the domain.
 .. code-block:: python
 
    from yt.mods import *
-   pf = load("galaxy1200.dir/galaxy1200")
-   dd = pf.h.all_data()
+   ds = load("galaxy1200.dir/galaxy1200")
+   dd = ds.all_data()
 
    star_particles = dd["creation_time"] > 0.0
    print dd["ParticleMassMsun"][star_particles].max()
@@ -81,8 +80,8 @@ In Enzo, star particles are type 2.  So we will select using the boolean array
 .. code-block:: python
 
    from yt.mods import *
-   pf = load("galaxy1200.dir/galaxy1200")
-   dd = pf.h.all_data()
+   ds = load("galaxy1200.dir/galaxy1200")
+   dd = ds.all_data()
 
    star_particles = dd["particle_type"] == 2
    print dd["ParticleMassMsun"][star_particles].max()

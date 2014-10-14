@@ -40,8 +40,8 @@ def _thermal_energy(field, data):
     return data["thermal_energy_density"] / data["density"]
 
 def _temperature(field,data):
-    mu = data.pf.parameters["mu"]
-    gamma = data.pf.parameters["gamma"]
+    mu = data.ds.parameters["mu"]
+    gamma = data.ds.parameters["gamma"]
     tr  = data["thermal_energy_density"] / data["density"]
     tr *= mu * amu_cgs / boltzmann_constant_cgs
     tr *= (gamma - 1.0)
@@ -146,7 +146,7 @@ class CastroFieldInfo(FieldInfoContainer):
 
     def setup_fluid_fields(self):
         # add X's
-        for _, field in self.pf.field_list:
+        for _, field in self.ds.field_list:
             if field.startswith("X("):
                 # We have a fraction
                 nice_name = field[2:-1]
@@ -188,7 +188,7 @@ class MaestroFieldInfo(FieldInfoContainer):
         # Specific entropy
         ("entropy", ("erg/(g*K)", ["entropy"], None)),
         ("entropypert", ("", [], None)),
-        ("enucdot", ("ergs/(g*s)", [], None)),
+        ("enucdot", ("erg/(g*s)", [], None)),
         ("gpi_x", ("dyne/cm**3", [], None)), # Perturbational pressure grad
         ("gpi_y", ("dyne/cm**3", [], None)),
         ("gpi_z", ("dyne/cm**3", [], None)),
@@ -221,7 +221,7 @@ class MaestroFieldInfo(FieldInfoContainer):
 
     def setup_fluid_fields(self):
         # pick the correct temperature field
-        if self.pf.parameters["use_tfromp"]:
+        if self.ds.parameters["use_tfromp"]:
             self.alias(("gas", "temperature"), ("boxlib", "tfromp"),
                        units = "K")
         else:
@@ -229,7 +229,7 @@ class MaestroFieldInfo(FieldInfoContainer):
                        units = "K")
 
         # Add X's and omegadots, units of 1/s
-        for _, field in self.pf.field_list:
+        for _, field in self.ds.field_list:
             if field.startswith("X("):
                 # We have a fraction
                 nice_name = field[2:-1]
@@ -243,12 +243,17 @@ class MaestroFieldInfo(FieldInfoContainer):
                 self.add_field(name = ("gas", "%s_density" % nice_name),
                                function = func,
                                units = "g/cm**3")
-                # We know this will either have one letter, or two.
-                if field[3] in string.letters:
-                    element, weight = field[2:4], field[4:-1]
-                else:
-                    element, weight = field[2:3], field[3:-1]
-                weight = int(weight)
+                # Most of the time our species will be of the form
+                # element name + atomic weight (e.g. C12), but
+                # sometimes we make up descriptive names (e.g. ash)
+                if any(char.isdigit() for char in field):
+                    # We know this will either have one letter, or two.
+                    if field[3] in string.letters:
+                        element, weight = field[2:4], field[4:-1]
+                    else:
+                        element, weight = field[2:3], field[3:-1]
+                    weight = int(weight)
+
                 # Here we can, later, add number density.
             if field.startswith("omegadot("):
                 nice_name = field[9:-1]

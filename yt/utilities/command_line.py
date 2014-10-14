@@ -18,22 +18,23 @@ ytcfg["yt","__command_line"] = "True"
 from yt.startup_tasks import parser, subparsers
 from yt.mods import *
 from yt.funcs import *
+from yt.extern.six import add_metaclass
 from yt.utilities.minimal_representation import MinimalProjectDescription
 import argparse, os, os.path, math, sys, time, subprocess, getpass, tempfile
 import urllib, urllib2, base64, os
 
-def _fix_pf(arg):
+def _fix_ds(arg):
     if os.path.isdir("%s" % arg) and \
         os.path.exists("%s/%s" % (arg,arg)):
-        pf = load("%s/%s" % (arg,arg))
+        ds = load("%s/%s" % (arg,arg))
     elif os.path.isdir("%s.dir" % arg) and \
         os.path.exists("%s.dir/%s" % (arg,arg)):
-        pf = load("%s.dir/%s" % (arg,arg))
+        ds = load("%s.dir/%s" % (arg,arg))
     elif arg.endswith(".index"):
-        pf = load(arg[:-10])
+        ds = load(arg[:-10])
     else:
-        pf = load(arg)
-    return pf
+        ds = load(arg)
+    return ds
 
 def _add_arg(sc, arg):
     if isinstance(arg, types.StringTypes):
@@ -41,249 +42,250 @@ def _add_arg(sc, arg):
     argc = dict(arg.items())
     argnames = []
     if "short" in argc: argnames.append(argc.pop('short'))
-    if "long" in argc: argnames.append(argc.pop('long'))
+    if "longname" in argc: argnames.append(argc.pop('longname'))
     sc.add_argument(*argnames, **argc)
 
+class YTCommandSubtype(type):
+    def __init__(cls, name, b, d):
+        type.__init__(cls, name, b, d)
+        if cls.name is not None:
+            names = ensure_list(cls.name)
+            for name in names:
+                sc = subparsers.add_parser(name,
+                    description = cls.description,
+                    help = cls.description)
+                sc.set_defaults(func=cls.run)
+                for arg in cls.args:
+                    _add_arg(sc, arg)
+
+@add_metaclass(YTCommandSubtype)
 class YTCommand(object):
     args = ()
     name = None
     description = ""
     aliases = ()
-    npfs = 1
-
-    class __metaclass__(type):
-        def __init__(cls, name, b, d):
-            type.__init__(cls, name, b, d)
-            if cls.name is not None:
-                names = ensure_list(cls.name)
-                for name in names:
-                    sc = subparsers.add_parser(name,
-                        description = cls.description,
-                        help = cls.description)
-                    sc.set_defaults(func=cls.run)
-                    for arg in cls.args:
-                        _add_arg(sc, arg)
+    ndatasets = 1
 
     @classmethod
     def run(cls, args):
         self = cls()
-        # Some commands need to be run repeatedly on parameter files
+        # Some commands need to be run repeatedly on datasets
         # In fact, this is the rule and the opposite is the exception
         # BUT, we only want to parse the arguments once.
-        if cls.npfs > 1:
+        if cls.ndatasets > 1:
             self(args)
         else:
-            pf_args = getattr(args, "pf", [])
-            if len(pf_args) > 1:
-                pfs = args.pf
-                for pf in pfs:
-                    args.pf = pf
+            ds_args = getattr(args, "ds", [])
+            if len(ds_args) > 1:
+                datasets = args.ds
+                for ds in datasets:
+                    args.ds = ds
                     self(args)
-            elif len(pf_args) == 0:
-                pfs = []
+            elif len(ds_args) == 0:
+                datasets = []
                 self(args)
             else:
-                args.pf = getattr(args, 'pf', [None])[0]
+                args.ds = getattr(args, 'ds', [None])[0]
                 self(args)
 
 class GetParameterFiles(argparse.Action):
     def __call__(self, parser, namespace, values, option_string = None):
         if len(values) == 1:
-            pfs = values
+            datasets = values
         elif len(values) == 2 and namespace.basename is not None:
-            pfs = ["%s%04i" % (namespace.basename, r)
+            datasets = ["%s%04i" % (namespace.basename, r)
                    for r in range(int(values[0]), int(values[1]), namespace.skip) ]
         else:
-            pfs = values
-        namespace.pf = [_fix_pf(pf) for pf in pfs]
+            datasets = values
+        namespace.ds = [_fix_ds(ds) for ds in datasets]
 
 _common_options = dict(
-    all     = dict(long="--all", dest="reinstall",
+    all     = dict(longname="--all", dest="reinstall",
                    default=False, action="store_true",
                    help="Reinstall the full yt stack in the current location."),
-    pf      = dict(short="pf", action=GetParameterFiles,
-                   nargs="+", help="Parameter files to run on"),
-    opf     = dict(action=GetParameterFiles, dest="pf",
-                   nargs="*", help="(Optional) Parameter files to run on"),
-    axis    = dict(short="-a", long="--axis",
+    ds      = dict(short="ds", action=GetParameterFiles,
+                   nargs="+", help="datasets to run on"),
+    ods     = dict(action=GetParameterFiles, dest="ds",
+                   nargs="*", help="(Optional) datasets to run on"),
+    axis    = dict(short="-a", longname="--axis",
                    action="store", type=int,
                    dest="axis", default=4,
                    help="Axis (4 for all three)"),
-    log     = dict(short="-l", long="--log",
+    log     = dict(short="-l", longname="--log",
                    action="store_true",
                    dest="takelog", default=True,
                    help="Use logarithmic scale for image"),
-    linear  = dict(long="--linear",
+    linear  = dict(longname="--linear",
                    action="store_false",
                    dest="takelog",
                    help="Use linear scale for image"),
-    text    = dict(short="-t", long="--text",
+    text    = dict(short="-t", longname="--text",
                    action="store", type=str,
                    dest="text", default=None,
                    help="Textual annotation"),
-    field   = dict(short="-f", long="--field",
+    field   = dict(short="-f", longname="--field",
                    action="store", type=str,
                    dest="field", default="density",
                    help="Field to color by"),
-    weight  = dict(short="-g", long="--weight",
+    weight  = dict(short="-g", longname="--weight",
                    action="store", type=str,
                    dest="weight", default=None,
                    help="Field to weight projections with"),
-    cmap    = dict(long="--colormap",
+    cmap    = dict(longname="--colormap",
                    action="store", type=str,
                    dest="cmap", default="algae",
                    help="Colormap name"),
-    zlim    = dict(short="-z", long="--zlim",
+    zlim    = dict(short="-z", longname="--zlim",
                    action="store", type=float,
                    dest="zlim", default=None,
                    nargs=2,
                    help="Color limits (min, max)"),
-    dex     = dict(long="--dex",
+    dex     = dict(longname="--dex",
                    action="store", type=float,
                    dest="dex", default=None,
                    nargs=1,
                    help="Number of dex above min to display"),
-    width   = dict(short="-w", long="--width",
+    width   = dict(short="-w", longname="--width",
                    action="store", type=float,
                    dest="width", default=None,
                    help="Width in specified units"),
-    unit    = dict(short="-u", long="--unit",
+    unit    = dict(short="-u", longname="--unit",
                    action="store", type=str,
                    dest="unit", default='1',
                    help="Desired units"),
-    center  = dict(short="-c", long="--center",
+    center  = dict(short="-c", longname="--center",
                    action="store", type=float,
                    dest="center", default=None,
                    nargs=3,
                    help="Center, space separated (-1 -1 -1 for max)"),
-    max     = dict(short="-m", long="--max",
+    max     = dict(short="-m", longname="--max",
                    action="store_true",
                    dest="max",default=False,
                    help="Center the plot on the density maximum"),
-    bn      = dict(short="-b", long="--basename",
+    bn      = dict(short="-b", longname="--basename",
                    action="store", type=str,
                    dest="basename", default=None,
-                   help="Basename of parameter files"),
-    output  = dict(short="-o", long="--output",
+                   help="Basename of datasets"),
+    output  = dict(short="-o", longname="--output",
                    action="store", type=str,
                    dest="output", default="frames/",
                    help="Folder in which to place output images"),
-    outputfn= dict(short="-o", long="--output",
+    outputfn= dict(short="-o", longname="--output",
                    action="store", type=str,
                    dest="output", default=None,
                    help="File in which to place output"),
-    skip    = dict(short="-s", long="--skip",
+    skip    = dict(short="-s", longname="--skip",
                    action="store", type=int,
                    dest="skip", default=1,
                    help="Skip factor for outputs"),
-    proj    = dict(short="-p", long="--projection",
+    proj    = dict(short="-p", longname="--projection",
                    action="store_true",
                    dest="projection", default=False,
                    help="Use a projection rather than a slice"),
-    maxw    = dict(long="--max-width",
+    maxw    = dict(longname="--max-width",
                    action="store", type=float,
                    dest="max_width", default=1.0,
                    help="Maximum width in code units"),
-    minw    = dict(long="--min-width",
+    minw    = dict(longname="--min-width",
                    action="store", type=float,
                    dest="min_width", default=50,
                    help="Minimum width in units of smallest dx (default: 50)"),
-    nframes = dict(short="-n", long="--nframes",
+    nframes = dict(short="-n", longname="--nframes",
                    action="store", type=int,
                    dest="nframes", default=100,
                    help="Number of frames to generate"),
-    slabw   = dict(long="--slab-width",
+    slabw   = dict(longname="--slab-width",
                    action="store", type=float,
                    dest="slab_width", default=1.0,
                    help="Slab width in specified units"),
-    slabu   = dict(short="-g", long="--slab-unit",
+    slabu   = dict(short="-g", longname="--slab-unit",
                    action="store", type=str,
                    dest="slab_unit", default='1',
                    help="Desired units for the slab"),
-    ptype   = dict(long="--particle-type",
+    ptype   = dict(longname="--particle-type",
                    action="store", type=int,
                    dest="ptype", default=2,
                    help="Particle type to select"),
-    agecut  = dict(long="--age-cut",
+    agecut  = dict(longname="--age-cut",
                    action="store", type=float,
                    dest="age_filter", default=None,
                    nargs=2,
                    help="Bounds for the field to select"),
-    uboxes  = dict(long="--unit-boxes",
+    uboxes  = dict(longname="--unit-boxes",
                    action="store_true",
                    dest="unit_boxes",
-                   help="Display helpful unit boxes"),
-    thresh  = dict(long="--threshold",
+                   help="Display heldsul unit boxes"),
+    thresh  = dict(longname="--threshold",
                    action="store", type=float,
                    dest="threshold", default=None,
                    help="Density threshold"),
-    dm_only = dict(long="--all-particles",
+    dm_only = dict(longname="--all-particles",
                    action="store_false",
                    dest="dm_only", default=True,
                    help="Use all particles"),
-    grids   = dict(long="--show-grids",
+    grids   = dict(longname="--show-grids",
                    action="store_true",
                    dest="grids", default=False,
                    help="Show the grid boundaries"),
-    time    = dict(long="--time",
+    time    = dict(longname="--time",
                    action="store_true",
                    dest="time", default=False,
                    help="Print time in years on image"),
-    contours    = dict(long="--contours",
+    contours    = dict(longname="--contours",
                    action="store",type=int,
                    dest="contours", default=None,
                    help="Number of Contours for Rendering"),
-    contour_width  = dict(long="--contour_width",
+    contour_width  = dict(longname="--contour_width",
                    action="store",type=float,
                    dest="contour_width", default=None,
                    help="Width of gaussians used for rendering."),
-    enhance   = dict(long="--enhance",
+    enhance   = dict(longname="--enhance",
                    action="store_true",
                    dest="enhance", default=False,
                    help="Enhance!"),
-    valrange  = dict(short="-r", long="--range",
+    valrange  = dict(short="-r", longname="--range",
                    action="store", type=float,
                    dest="valrange", default=None,
                    nargs=2,
                    help="Range, space separated"),
-    up  = dict(long="--up",
+    up  = dict(longname="--up",
                    action="store", type=float,
                    dest="up", default=None,
                    nargs=3,
                    help="Up, space separated"),
-    viewpoint  = dict(long="--viewpoint",
+    viewpoint  = dict(longname="--viewpoint",
                    action="store", type=float,
                    dest="viewpoint", default=[1., 1., 1.],
                    nargs=3,
                    help="Viewpoint, space separated"),
-    pixels    = dict(long="--pixels",
+    pixels    = dict(longname="--pixels",
                    action="store",type=int,
                    dest="pixels", default=None,
                    help="Number of Pixels for Rendering"),
-    halos   = dict(long="--halos",
+    halos   = dict(longname="--halos",
                    action="store", type=str,
                    dest="halos",default="multiple",
                    help="Run halo profiler on a 'single' halo or 'multiple' halos."),
-    halo_radius = dict(long="--halo_radius",
+    halo_radius = dict(longname="--halo_radius",
                        action="store", type=float,
                        dest="halo_radius",default=0.1,
                        help="Constant radius for profiling halos if using hop output files with no radius entry. Default: 0.1."),
-    halo_radius_units = dict(long="--halo_radius_units",
+    halo_radius_units = dict(longname="--halo_radius_units",
                              action="store", type=str,
                              dest="halo_radius_units",default="1",
                              help="Units for radius used with --halo_radius flag. Default: '1' (code units)."),
-    halo_hop_style = dict(long="--halo_hop_style",
+    halo_hop_style = dict(longname="--halo_hop_style",
                           action="store", type=str,
                           dest="halo_hop_style",default="new",
                           help="Style of hop output file.  'new' for yt_hop files and 'old' for enzo_hop files."),
-    halo_parameter_file = dict(long="--halo_parameter_file",
+    halo_dataset = dict(longname="--halo_dataset",
                                action="store", type=str,
-                               dest="halo_parameter_file",default=None,
-                               help="HaloProfiler parameter file."),
-    make_profiles = dict(long="--make_profiles",
+                               dest="halo_dataset",default=None,
+                               help="HaloProfiler dataset."),
+    make_profiles = dict(longname="--make_profiles",
                          action="store_true", default=False,
                          help="Make profiles with halo profiler."),
-    make_projections = dict(long="--make_projections",
+    make_projections = dict(longname="--make_projections",
                             action="store_true", default=False,
                             help="Make projections with halo profiler.")
 
@@ -707,7 +709,7 @@ class YTBugreportCmd(YTCommand):
             print
             print "Press enter to spawn your editor, %s" % os.environ["EDITOR"]
             loki = raw_input()
-            tf = tempfile.NamedTemporaryFile(delete=False)
+            tf = temdsile.NamedTemporaryFile(delete=False)
             fn = tf.name
             tf.close()
             popen = subprocess.call("$EDITOR %s" % fn, shell = True)
@@ -767,7 +769,7 @@ class YTBugreportCmd(YTCommand):
         print
 
 class YTHopCmd(YTCommand):
-    args = ('outputfn','bn','thresh','dm_only','skip', 'pf')
+    args = ('outputfn','bn','thresh','dm_only','skip', 'ds')
     name = "hop"
     description = \
         """
@@ -776,11 +778,11 @@ class YTHopCmd(YTCommand):
         """
 
     def __call__(self, args):
-        pf = args.pf
+        ds = args.ds
         kwargs = {'dm_only' : args.dm_only}
         if args.threshold is not None: kwargs['threshold'] = args.threshold
-        hop_list = HaloFinder(pf, **kwargs)
-        if args.output is None: fn = "%s.hop" % pf
+        hop_list = HaloFinder(ds, **kwargs)
+        if args.output is None: fn = "%s.hop" % ds
         else: fn = args.output
         hop_list.write_out(fn)
 
@@ -867,7 +869,7 @@ class YTHubRegisterCmd(YTCommand):
 class YTHubSubmitCmd(YTCommand):
     name = "hub_submit"
     args = (
-            dict(long="--repo", action="store", type=str,
+            dict(longname="--repo", action="store", type=str,
                  dest="repo", default=".", help="Repository to upload"),
            )
     description = \
@@ -1039,10 +1041,10 @@ class YTHubSubmitCmd(YTCommand):
 class YTInstInfoCmd(YTCommand):
     name = ["instinfo", "version"]
     args = (
-            dict(short="-u", long="--update-source", action="store_true",
+            dict(short="-u", longname="--update-source", action="store_true",
                  default = False,
                  help="Update the yt installation, if able"),
-            dict(short="-o", long="--output-version", action="store",
+            dict(short="-o", longname="--output-version", action="store",
                   default = None, dest="outputfile",
                   help="File into which the current revision number will be" +
                        "stored")
@@ -1103,10 +1105,10 @@ class YTLoadCmd(YTCommand):
 
         """
 
-    args = ("pf", )
+    args = ("ds", )
 
     def __call__(self, args):
-        if args.pf is None:
+        if args.ds is None:
             print "Could not load file."
             sys.exit()
         import yt.mods
@@ -1119,13 +1121,13 @@ class YTLoadCmd(YTCommand):
             api_version = '0.11'
 
         local_ns = yt.mods.__dict__.copy()
-        local_ns['ds'] = args.pf
+        local_ns['ds'] = args.ds
 
         if api_version == '0.10':
             shell = IPython.Shell.IPShellEmbed()
             shell(local_ns = local_ns,
                   header =
-                  "\nHi there!  Welcome to yt.\n\nWe've loaded your parameter file as 'ds'.  Enjoy!"
+                  "\nHi there!  Welcome to yt.\n\nWe've loaded your dataset as 'ds'.  Enjoy!"
                   )
         else:
             from IPython.config.loader import Config
@@ -1138,11 +1140,11 @@ class YTLoadCmd(YTCommand):
 
 class YTMapserverCmd(YTCommand):
     args = ("proj", "field", "weight",
-            dict(short="-a", long="--axis", action="store", type=int,
+            dict(short="-a", longname="--axis", action="store", type=int,
                  dest="axis", default=0, help="Axis (4 for all three)"),
-            dict(short ="-o", long="--host", action="store", type=str,
+            dict(short ="-o", longname="--host", action="store", type=str,
                    dest="host", default=None, help="IP Address to bind on"),
-            "pf",
+            "ds",
             )
 
     name = "mapserver"
@@ -1153,14 +1155,14 @@ class YTMapserverCmd(YTCommand):
         """
 
     def __call__(self, args):
-        pf = args.pf
+        ds = args.ds
         if args.axis == 4:
             print "Doesn't work with multiple axes!"
             return
         if args.projection:
-            p = ProjectionPlot(pf, args.axis, args.field, weight_field=args.weight)
+            p = ProjectionPlot(ds, args.axis, args.field, weight_field=args.weight)
         else:
-            p = SlicePlot(pf, args.axis, args.field)
+            p = SlicePlot(ds, args.axis, args.field)
         from yt.gui.reason.pannable_map import PannableMapServer
         mapper = PannableMapServer(p.data_source, args.field)
         import yt.extern.bottle as bottle
@@ -1179,23 +1181,23 @@ class YTMapserverCmd(YTCommand):
 class YTPastebinCmd(YTCommand):
     name = "pastebin"
     args = (
-             dict(short="-l", long="--language", action="store",
+             dict(short="-l", longname="--language", action="store",
                   default = None, dest="language",
                   help="Use syntax highlighter for the file in language"),
-             dict(short="-L", long="--languages", action="store_true",
+             dict(short="-L", longname="--languages", action="store_true",
                   default = False, dest="languages",
                   help="Retrive a list of supported languages"),
-             dict(short="-e", long="--encoding", action="store",
+             dict(short="-e", longname="--encoding", action="store",
                   default = 'utf-8', dest="encoding",
                   help="Specify the encoding of a file (default is "
                         "utf-8 or guessing if available)"),
-             dict(short="-b", long="--open-browser", action="store_true",
+             dict(short="-b", longname="--open-browser", action="store_true",
                   default = False, dest="open_browser",
                   help="Open the paste in a web browser"),
-             dict(short="-p", long="--private", action="store_true",
+             dict(short="-p", longname="--private", action="store_true",
                   default = False, dest="private",
                   help="Paste as private"),
-             dict(short="-c", long="--clipboard", action="store_true",
+             dict(short="-c", longname="--clipboard", action="store_true",
                   default = False, dest="clipboard",
                   help="File to output to; else, print."),
              dict(short="file", type=str),
@@ -1262,7 +1264,7 @@ class YTNotebookUploadCmd(YTCommand):
 
 class YTPlotCmd(YTCommand):
     args = ("width", "unit", "bn", "proj", "center", "zlim", "axis", "field",
-            "weight", "skip", "cmap", "output", "grids", "time", "pf", "max",
+            "weight", "skip", "cmap", "output", "grids", "time", "ds", "max",
             "log", "linear")
 
     name = "plot"
@@ -1274,18 +1276,18 @@ class YTPlotCmd(YTCommand):
         """
 
     def __call__(self, args):
-        pf = args.pf
+        ds = args.ds
         center = args.center
         if args.center == (-1,-1,-1):
             mylog.info("No center fed in; seeking.")
-            v, center = pf.h.find_max("density")
+            v, center = ds.find_max("density")
         if args.max:
-            v, center = pf.h.find_max("density")
+            v, center = ds.find_max("density")
         elif args.center is None:
-            center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
+            center = 0.5*(ds.domain_left_edge + ds.domain_right_edge)
         center = np.array(center)
-        if pf.dimensionality < 3:
-            dummy_dimensions = np.nonzero(pf.index.grids[0].ActiveDimensions <= 1)
+        if ds.dimensionality < 3:
+            dummy_dimensions = np.nonzero(ds.index.grids[0].ActiveDimensions <= 1)
             axes = ensure_list(dummy_dimensions[0][0])
         elif args.axis == 4:
             axes = range(3)
@@ -1303,16 +1305,16 @@ class YTPlotCmd(YTCommand):
         for ax in axes:
             mylog.info("Adding plot for axis %i", ax)
             if args.projection:
-                plt = ProjectionPlot(pf, ax, args.field, center=center,
+                plt = ProjectionPlot(ds, ax, args.field, center=center,
                                      width=width,
                                      weight_field=args.weight)
             else:
-                plt = SlicePlot(pf, ax, args.field, center=center,
+                plt = SlicePlot(ds, ax, args.field, center=center,
                                 width=width)
             if args.grids:
                 plt.annotate_grids()
             if args.time:
-                time = pf.current_time*pf['years']
+                time = ds.current_time*ds['years']
                 plt.annotate_text((0.2,0.8), 't = %5.2e yr'%time)
 
             plt.set_cmap(args.field, args.cmap)
@@ -1320,13 +1322,13 @@ class YTPlotCmd(YTCommand):
             if args.zlim:
                 plt.set_zlim(args.field,*args.zlim)
             ensure_dir_exists(args.output)
-            plt.save(os.path.join(args.output,"%s" % (pf)))
+            plt.save(os.path.join(args.output,"%s" % (ds)))
 
 class YTRenderCmd(YTCommand):
 
     args = ("width", "unit", "center","enhance",'outputfn',
             "field", "cmap", "contours", "viewpoint", "linear",
-            "pixels", "up", "valrange", "log","contour_width", "pf")
+            "pixels", "up", "valrange", "log","contour_width", "ds")
     name = "render"
     description = \
         """
@@ -1334,13 +1336,13 @@ class YTRenderCmd(YTCommand):
         """
 
     def __call__(self, args):
-        pf = args.pf
+        ds = args.ds
         center = args.center
         if args.center == (-1,-1,-1):
             mylog.info("No center fed in; seeking.")
-            v, center = pf.h.find_max("density")
+            v, center = ds.find_max("density")
         elif args.center is None:
-            center = 0.5*(pf.domain_left_edge + pf.domain_right_edge)
+            center = 0.5*(ds.domain_left_edge + ds.domain_right_edge)
         center = np.array(center)
 
         L = args.viewpoint
@@ -1353,8 +1355,8 @@ class YTRenderCmd(YTCommand):
             unit = '1'
         width = args.width
         if width is None:
-            width = 0.5*(pf.domain_right_edge - pf.domain_left_edge)
-        width /= pf[unit]
+            width = 0.5*(ds.domain_right_edge - ds.domain_left_edge)
+        width /= ds[unit]
 
         N = args.pixels
         if N is None:
@@ -1374,7 +1376,7 @@ class YTRenderCmd(YTCommand):
 
         myrange = args.valrange
         if myrange is None:
-            roi = pf.region(center, center-width, center+width)
+            roi = ds.region(center, center-width, center+width)
             mi, ma = roi.quantities['Extrema'](field)[0]
             if log:
                 mi, ma = np.log10(mi), np.log10(ma)
@@ -1393,7 +1395,7 @@ class YTRenderCmd(YTCommand):
         tf = ColorTransferFunction((mi-2, ma+2))
         tf.add_layers(n_contours,w=contour_width,col_bounds = (mi,ma), colormap=cmap)
 
-        cam = pf.h.camera(center, L, width, (N,N), transfer_function=tf, fields=[field])
+        cam = ds.camera(center, L, width, (N,N), transfer_function=tf, fields=[field])
         image = cam.snapshot()
 
         if args.enhance:
@@ -1403,7 +1405,7 @@ class YTRenderCmd(YTCommand):
 
         save_name = args.output
         if save_name is None:
-            save_name = "%s"%pf+"_"+field+"_rendering.png"
+            save_name = "%s"%ds+"_"+field+"_rendering.png"
         if not '.png' in save_name:
             save_name += '.png'
         if cam.comm.rank != -1:
@@ -1420,7 +1422,7 @@ class YTRPDBCmd(YTCommand):
 
         """
     args = (
-            dict(short="-t", long="--task", action="store",
+            dict(short="-t", longname="--task", action="store",
                  default = 0, dest='task',
                  help="Open a web browser."),
            )
@@ -1432,13 +1434,16 @@ class YTRPDBCmd(YTCommand):
 class YTNotebookCmd(YTCommand):
     name = ["notebook"]
     args = (
-            dict(short="-o", long="--open-browser", action="store_true",
+            dict(short="-o", longname="--open-browser", action="store_true",
                  default = False, dest='open_browser',
                  help="Open a web browser."),
-            dict(short="-p", long="--port", action="store",
+            dict(short="-p", longname="--port", action="store",
                  default = 0, dest='port',
                  help="Port to listen on; defaults to auto-detection."),
-            dict(short="-n", long="--no-password", action="store_true",
+            dict(short="-prof", longname="--profile", action="store",
+                 default = None, dest="profile",
+                 help="The IPython profile to use when lauching the kernel."),
+            dict(short="-n", longname="--no-password", action="store_true",
                  default = False, dest='no_password',
                  help="If set, do not prompt or use a password."),
             )
@@ -1454,7 +1459,8 @@ class YTNotebookCmd(YTCommand):
         except ImportError:
             # pre-IPython v1.0
             from IPython.frontend.html.notebook.notebookapp import NotebookApp
-        print "You must choose a password so that others cannot connect to your notebook."
+        print "You must choose a password so that others cannot connect to " \
+              "your notebook."
         pw = ytcfg.get("yt", "notebook_password")
         if len(pw) == 0 and not args.no_password:
             import IPython.lib
@@ -1469,6 +1475,8 @@ class YTNotebookCmd(YTCommand):
             pw = None
         if args.port != 0:
             kwargs['port'] = int(args.port)
+        if args.profile is not None:
+            kwargs['profile'] = args.profile
         if pw is not None:
             kwargs['password'] = pw
         app = NotebookApp(open_browser=args.open_browser,
@@ -1485,7 +1493,8 @@ class YTNotebookCmd(YTCommand):
         print "~C and then typing -L%s:localhost:%s" % (app.port, app.port)
         print "where the first number is the port on your local machine. "
         print
-        print "If you are using %s on your machine already, try -L8889:localhost:%s" % (app.port, app.port)
+        print "If you are using %s on your machine already, try " \
+              "-L8889:localhost:%s" % (app.port, app.port)
         print
         print "***************************************************************"
         print
@@ -1495,22 +1504,22 @@ class YTNotebookCmd(YTCommand):
 class YTGUICmd(YTCommand):
     name = ["serve", "reason"]
     args = (
-            dict(short="-o", long="--open-browser", action="store_true",
+            dict(short="-o", longname="--open-browser", action="store_true",
                  default = False, dest='open_browser',
                  help="Open a web browser."),
-            dict(short="-p", long="--port", action="store",
+            dict(short="-p", longname="--port", action="store",
                  default = 0, dest='port',
                  help="Port to listen on"),
-            dict(short="-f", long="--find", action="store_true",
+            dict(short="-f", longname="--find", action="store_true",
                  default = False, dest="find",
-                 help="At startup, find all *.index files in the CWD"),
-            dict(short="-d", long="--debug", action="store_true",
+                 help="At startup, find all *.hierarchy files in the CWD"),
+            dict(short="-d", longname="--debug", action="store_true",
                  default = False, dest="debug",
                  help="Add a debugging mode for cell execution"),
-            dict(short = "-r", long = "--remote", action = "store_true",
+            dict(short = "-r", longname = "--remote", action = "store_true",
                  default = False, dest="use_pyro",
                  help = "Use with a remote Pyro4 server."),
-            "opf"
+            "ods"
             )
     description = \
         """
@@ -1546,21 +1555,21 @@ class YTGUICmd(YTCommand):
         from yt.gui.reason.bottle_mods import uuid_serve_functions, PayloadHandler
         hr = ExtDirectREPL(reasonjs_path, use_pyro=args.use_pyro)
         hr.debug = PayloadHandler.debug = args.debug
-        command_line = ["pfs = []"]
+        command_line = ["datasets = []"]
         if args.find:
             # We just have to find them and store references to them.
             for fn in sorted(glob.glob("*/*.index")):
-                command_line.append("pfs.append(load('%s'))" % fn[:-10])
+                command_line.append("datasets.append(load('%s'))" % fn[:-10])
         hr.execute("\n".join(command_line))
         bottle.debug()
         uuid_serve_functions(open_browser=args.open_browser,
                     port=int(args.port), repl=hr)
 
 class YTStatsCmd(YTCommand):
-    args = ('outputfn','bn','skip','pf','field',
-            dict(long="--max", action='store_true', default=False,
+    args = ('outputfn','bn','skip','ds','field',
+            dict(longname="--max", action='store_true', default=False,
                  dest='max', help="Display maximum of field requested through -f option."),
-            dict(long="--min", action='store_true', default=False,
+            dict(longname="--min", action='store_true', default=False,
                  dest='min', help="Display minimum of field requested through -f option."))
     name = "stats"
     description = \
@@ -1573,22 +1582,22 @@ class YTStatsCmd(YTCommand):
         """
 
     def __call__(self, args):
-        pf = args.pf
-        pf.h.print_stats()
+        ds = args.ds
+        ds.print_stats()
         vals = {}
-        if args.field in pf.derived_field_list:
+        if args.field in ds.derived_field_list:
             if args.max == True:
-                vals['min'] = pf.h.find_max(args.field)
+                vals['min'] = ds.find_max(args.field)
                 print "Maximum %s: %0.5e at %s" % (args.field,
                     vals['min'][0], vals['min'][1])
             if args.min == True:
-                vals['max'] = pf.h.find_min(args.field)
+                vals['max'] = ds.find_min(args.field)
                 print "Minimum %s: %0.5e at %s" % (args.field,
                     vals['max'][0], vals['max'][1])
         if args.output is not None:
-            t = pf.current_time * pf['years']
+            t = ds.current_time * ds['years']
             with open(args.output, "a") as f:
-                f.write("%s (%0.5e years)\n" % (pf, t))
+                f.write("%s (%0.5e years)\n" % (ds, t))
                 if 'min' in vals:
                     f.write('Minimum %s is %0.5e at %s\n' % (
                         args.field, vals['min'][0], vals['min'][1]))

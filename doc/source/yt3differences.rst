@@ -27,7 +27,7 @@ Here's a quick reference for how to update your code to work with yt-3.0.
     FieldName)``.
   * Previously, yt would use "Enzo-isms" for field names.  We now very
     specifically define fields as lowercase with underscores.  For instance,
-    what used to be ``VelocityMagnitude`` would not be ``velocity_magnitude``.
+    what used to be ``VelocityMagnitude`` would now be ``velocity_magnitude``.
   * Particles are either named by their type or default to the type ``io``.
   * Axis names are now at the *end* of field names, not the beginning.
     ``x-velocity`` is now ``velocity_x``.
@@ -128,7 +128,7 @@ have to modify them in a unitful way.
 Field Info
 ++++++++++
 
-In the past, the object ``ds`` (or ``pf``) had a ``field_info`` object which
+In the past, the object ``ds`` (or ``ds``) had a ``field_info`` object which
 was a dictionary leading to derived field definitions.  At the present time,
 because of the field naming changes (i.e., access-by-tuple) it is better to
 utilize the function ``_get_field_info`` than to directly access the
@@ -143,8 +143,8 @@ Parameter Files are Now Datasets
 ++++++++++++++++++++++++++++++++
 
 Wherever possible, we have attempted to replace the term "parameter file"
-(i.e., ``pf``) with the term "dataset."  Future revisions will change most of
-the ``pf`` atrributes of objects into ``ds`` or ``dataset`` attributes.
+(i.e., ``ds``) with the term "dataset."  Future revisions will change most of
+the ``ds`` atrributes of objects into ``ds`` or ``dataset`` attributes.
 
 Projection Argument Order
 +++++++++++++++++++++++++

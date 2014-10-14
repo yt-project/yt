@@ -58,14 +58,14 @@ def _fix_unit_ordering(unit):
     return unit
 
 class GadgetBinaryFile(ParticleFile):
-    def __init__(self, pf, io, filename, file_id):
+    def __init__(self, ds, io, filename, file_id):
         with open(filename, "rb") as f:
-            self.header = read_record(f, pf._header_spec)
+            self.header = read_record(f, ds._header_spec)
             self._position_offset = f.tell()
             f.seek(0, os.SEEK_END)
             self._file_size = f.tell()
 
-        super(GadgetBinaryFile, self).__init__(pf, io, filename, file_id)
+        super(GadgetBinaryFile, self).__init__(ds, io, filename, file_id)
 
     def _calculate_offsets(self, field_list):
         self.field_offsets = self.io._calculate_field_offsets(
@@ -76,6 +76,7 @@ class GadgetBinaryFile(ParticleFile):
 class ParticleDataset(Dataset):
     _unit_base = None
     over_refine_factor = 1
+    filter_bbox = False
 
 
 class GadgetDataset(ParticleDataset):
@@ -312,8 +313,9 @@ class OWLSDataset(GadgetHDF5Dataset):
 
         # Set standard values
         self.current_time = hvals["Time_GYR"] * sec_conversion["Gyr"]
-        self.domain_left_edge = np.zeros(3, "float64")
-        self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
+        if self.domain_left_edge is None:
+            self.domain_left_edge = np.zeros(3, "float64")
+            self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
         nz = 1 << self.over_refine_factor
         self.domain_dimensions = np.ones(3, "int32") * nz
         self.cosmological_simulation = 1
@@ -343,7 +345,8 @@ class OWLSDataset(GadgetHDF5Dataset):
         try:
             fileh = h5py.File(args[0], mode='r')
             if "Constants" in fileh["/"].keys() and \
-               "Header" in fileh["/"].keys():
+               "Header" in fileh["/"].keys() and \
+               "SUBFIND" not in fileh["/"].keys():
                 fileh.close()
                 return True
             fileh.close()
@@ -356,11 +359,11 @@ class TipsyFile(ParticleFile):
     def _calculate_offsets(self, field_list):
         self.field_offsets = self.io._calculate_particle_offsets(self)
 
-    def __init__(self, pf, io, filename, file_id):
+    def __init__(self, ds, io, filename, file_id):
         # To go above 1 domain, we need to include an indexing step in the
         # IOHandler, rather than simply reading from a single file.
         assert file_id == 0
-        super(TipsyFile, self).__init__(pf, io, filename, file_id)
+        super(TipsyFile, self).__init__(ds, io, filename, file_id)
         io._create_dtypes(self)
         io._update_domain(self)#Check automatically what the domain size is
 
@@ -471,16 +474,20 @@ class TipsyDataset(ParticleDataset):
         self.current_time = hvals["time"]
         nz = 1 << self.over_refine_factor
         self.domain_dimensions = np.ones(3, "int32") * nz
-        if self.parameters.get('bPeriodic', True):
-            self.periodicity = (True, True, True)
+        periodic = self.parameters.get('bPeriodic', True)
+        period = self.parameters.get('dPeriod', None)
+        comoving = self.parameters.get('bComove', False)
+        self.periodicity = (periodic, periodic, periodic)
+        if comoving and period is None:
+            period = 1.0
+        if periodic and period is not None:
             # If we are periodic, that sets our domain width to either 1 or dPeriod.
-            self.domain_left_edge = np.zeros(3, "float64") - 0.5*self.parameters.get('dPeriod', 1)
-            self.domain_right_edge = np.zeros(3, "float64") + 0.5*self.parameters.get('dPeriod', 1)
+            self.domain_left_edge = np.zeros(3, "float64") - 0.5*period
+            self.domain_right_edge = np.zeros(3, "float64") + 0.5*period
         else:
-            self.periodicity = (False, False, False)
             self.domain_left_edge = None
             self.domain_right_edge = None
-        if self.parameters.get('bComove', False):
+        if comoving:
             cosm = self._cosmology_parameters or {}
             self.scale_factor = hvals["time"]#In comoving simulations, time stores the scale factor a
             self.cosmological_simulation = 1
@@ -500,6 +507,13 @@ class TipsyDataset(ParticleDataset):
         self.file_count = 1
 
         f.close()
+
+    def _set_derived_attrs(self):
+        if self.domain_left_edge is None or self.domain_right_edge is None:
+            self.domain_left_edge = np.nan
+            self.domain_right_edge = np.nan
+            self.index
+        super(TipsyDataset, self)._set_derived_attrs()
 
     def _set_code_unit_attributes(self):
         if self.cosmological_simulation:
@@ -538,10 +552,10 @@ class TipsyDataset(ParticleDataset):
             f.seek(0, os.SEEK_END)
             fs = f.tell()
             f.seek(0, os.SEEK_SET)
+            #Read in the header
+            t, n, ndim, ng, nd, ns = struct.unpack("<diiiii", f.read(28))
         except IOError:
             return False, 1
-        #Read in the header
-        t, n, ndim, ng, nd, ns = struct.unpack("<diiiii", f.read(28))
         endianswap = "<"
         #Check Endianness
         if (ndim < 1 or ndim > 3):
@@ -635,6 +649,9 @@ class HTTPStreamDataset(ParticleDataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        if args[0].startswith("http://"):
+        if not args[0].startswith("http://"):
+            return False
+        hreq = requests.get(args[0] + "/yt_index.json")
+        if hreq.status_code == 200:
             return True
         return False

@@ -1,8 +1,9 @@
-from yt.mods import * # set up our namespace
+import yt
+import numpy as np
 
-fn = "IsolatedGalaxy/galaxy0030/galaxy0030" # parameter file to load
+fn = "IsolatedGalaxy/galaxy0030/galaxy0030" # dataset to load
 
-pf = load(fn) # load data
+ds = yt.load(fn) # load data
 
 # Now we need a center of our volume to render.  Here we'll just use
 # 0.5,0.5,0.5, because volume renderings are not periodic.
@@ -31,9 +32,9 @@ Npixels = 512
 # Also note that we set the field which we want to project as "density", but
 # really we could use any arbitrary field like "temperature", "metallicity"
 # or whatever.
-image = off_axis_projection(pf, c, L, W, Npixels, "density", no_ghost=False)
+image = yt.off_axis_projection(ds, c, L, W, Npixels, "density", no_ghost=False)
 
 # Image is now an NxN array representing the intensities of the various pixels.
 # And now, we call our direct image saver.  We save the log of the result.
-write_projection(image, "offaxis_projection_colorbar.png", 
-                 colorbar_label="Column Density (cm$^{-2}$)")
+yt.write_projection(image, "offaxis_projection_colorbar.png", 
+                    colorbar_label="Column Density (cm$^{-2}$)")

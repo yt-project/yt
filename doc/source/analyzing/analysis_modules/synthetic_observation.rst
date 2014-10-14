@@ -18,3 +18,4 @@ from simulation data.
    sunyaev_zeldovich
    radial_column_density
    photon_simulator
+   ppv_cubes

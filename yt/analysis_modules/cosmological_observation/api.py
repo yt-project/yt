@@ -17,9 +17,7 @@ from .cosmology_splice import \
     CosmologySplice
 
 from .light_cone.api import \
-    LightCone, \
-    find_unique_solutions, \
-    project_unique_light_cones
+    LightCone
 
 from .light_ray.api import \
     LightRay

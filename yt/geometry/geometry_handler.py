@@ -18,8 +18,6 @@ import os
 import cPickle
 import weakref
 import h5py
-from exceptions import IOError, TypeError
-from types import ClassType
 import numpy as np
 import abc
 import copy
@@ -36,18 +34,19 @@ from yt.fields.particle_fields import \
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface, parallel_splitter
+    ParallelAnalysisInterface, parallel_root_only
 from yt.utilities.exceptions import YTFieldNotFound
 
 class Index(ParallelAnalysisInterface):
+    """The base index class"""
     _global_mesh = True
     _unsupported_objects = ()
     _index_properties = ()
 
-    def __init__(self, pf, dataset_type):
+    def __init__(self, ds, dataset_type):
         ParallelAnalysisInterface.__init__(self)
-        self.parameter_file = weakref.proxy(pf)
-        self.pf = self.parameter_file
+        self.dataset = weakref.proxy(ds)
+        self.ds = self.dataset
 
         self._initialize_state_variables()
 
@@ -73,19 +72,18 @@ class Index(ParallelAnalysisInterface):
         self._parallel_locking = False
         self._data_file = None
         self._data_mode = None
-        self._max_locations = {}
         self.num_grids = None
 
     def _initialize_data_storage(self):
         if not ytcfg.getboolean('yt','serialize'): return
-        fn = self.pf.storage_filename
+        fn = self.ds.storage_filename
         if fn is None:
             if os.path.isfile(os.path.join(self.directory,
-                                "%s.yt" % self.pf.unique_identifier)):
-                fn = os.path.join(self.directory,"%s.yt" % self.pf.unique_identifier)
+                                "%s.yt" % self.ds.unique_identifier)):
+                fn = os.path.join(self.directory,"%s.yt" % self.ds.unique_identifier)
             else:
                 fn = os.path.join(self.directory,
-                        "%s.yt" % self.parameter_file.basename)
+                        "%s.yt" % self.dataset.basename)
         dir_to_check = os.path.dirname(fn)
         if dir_to_check == '':
             dir_to_check = '.'
@@ -124,9 +122,10 @@ class Index(ParallelAnalysisInterface):
 
     def _setup_data_io(self):
         if getattr(self, "io", None) is not None: return
-        self.io = io_registry[self.dataset_type](self.parameter_file)
+        self.io = io_registry[self.dataset_type](self.dataset)
 
-    def _save_data(self, array, node, name, set_attr=None, force=False, passthrough = False):
+    @parallel_root_only
+    def save_data(self, array, node, name, set_attr=None, force=False, passthrough = False):
         """
         Arbitrary numpy data will be saved to the region in the datafile
         described by *node* and *name*.  If data file does not exist, it throws
@@ -157,14 +156,6 @@ class Index(ParallelAnalysisInterface):
         del self._data_file
         self._data_file = h5py.File(self.__data_filename, self._data_mode)
 
-    save_data = parallel_splitter(_save_data, _reload_data_file)
-
-    def _reset_save_data(self,round_robin=False):
-        if round_robin:
-            self.save_data = self._save_data
-        else:
-            self.save_data = parallel_splitter(self._save_data, self._reload_data_file)
-
     def save_object(self, obj, name):
         """
         Save an object (*obj*) to the data_file using the Pickle protocol,
@@ -183,7 +174,7 @@ class Index(ParallelAnalysisInterface):
             return
         obj = cPickle.loads(obj.value)
         if iterable(obj) and len(obj) == 2:
-            obj = obj[1] # Just the object, not the pf
+            obj = obj[1] # Just the object, not the ds
         if hasattr(obj, '_fix_pickle'): obj._fix_pickle()
         return obj
 
@@ -242,7 +233,7 @@ class Index(ParallelAnalysisInterface):
             fields_to_read)
         for field in fields_to_read:
             ftype, fname = field
-            finfo = self.pf._get_field_info(*field)
+            finfo = self.ds._get_field_info(*field)
         return fields_to_return, fields_to_generate
 
     def _read_fluid_fields(self, fields, dobj, chunk = None):
@@ -326,7 +317,7 @@ class YTDataChunk(object):
     def fcoords(self):
         ci = np.empty((self.data_size, 3), dtype='float64')
         ci = YTArray(ci, input_units = "code_length",
-                     registry = self.dobj.pf.unit_registry)
+                     registry = self.dobj.ds.unit_registry)
         if self.data_size == 0: return ci
         ind = 0
         for obj in self.objs:
@@ -352,7 +343,7 @@ class YTDataChunk(object):
     def fwidth(self):
         ci = np.empty((self.data_size, 3), dtype='float64')
         ci = YTArray(ci, input_units = "code_length",
-                     registry = self.dobj.pf.unit_registry)
+                     registry = self.dobj.ds.unit_registry)
         if self.data_size == 0: return ci
         ind = 0
         for obj in self.objs:

@@ -15,6 +15,4 @@ API for spectral_integrator
 
 from .spectral_frequency_integrator import \
     EmissivityIntegrator, \
-    add_xray_emissivity_field, \
-    add_xray_luminosity_field, \
-    add_xray_photon_emissivity_field
+    add_xray_emissivity_field

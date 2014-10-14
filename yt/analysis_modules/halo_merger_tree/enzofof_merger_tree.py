@@ -137,8 +137,8 @@ class HaloCatalog(object):
 
         Examples
         --------
-        pf = load("DD0000/DD0000")
-        halo_list = FOFHaloFinder(pf)
+        ds = load("DD0000/DD0000")
+        halo_list = FOFHaloFinder(ds)
         halo_list.write_out("FOF/groups_00000.txt")
         halos_COM = parse_halo_catalog_internal()
         """
@@ -743,9 +743,9 @@ def plot_halo_evolution(filename, halo_id, x_quantity='cycle', y_quantity='mass'
     >>> # generates mass history plots for the 20 most massive halos at t_fin.
     >>> ts = DatasetSeries.from_filenames("DD????/DD????")
     >>> # long step--must run FOF on each DD, but saves outputs for later use
-    >>> for pf in ts:   
-    ...     halo_list = FOFHaloFinder(pf)
-    ...     i = int(pf.basename[2:])
+    >>> for ds in ts:   
+    ...     halo_list = FOFHaloFinder(ds)
+    ...     i = int(ds.basename[2:])
     ...     halo_list.write_out("FOF/groups_%05i.txt" % i)
     ...     halo_list.write_particle_lists("FOF/particles_%05i" % i)
     ...

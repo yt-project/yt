@@ -86,10 +86,10 @@ in the simulation and then makes a plot of the projected density:
 .. code-block:: python
 
    from yt.pmods import *
-   pf = load("RD0035/RedshiftOutput0035")
-   v, c = pf.h.find_max("density")
+   ds = load("RD0035/RedshiftOutput0035")
+   v, c = ds.find_max("density")
    print v, c
-   p = ProjectionPlot(pf, "x", "density")
+   p = ProjectionPlot(ds, "x", "density")
    p.save()
 
 If this script is run in parallel, two of the most expensive operations -
@@ -127,9 +127,9 @@ so:
 .. code-block:: python
 
    from yt.pmods import *
-   pf = load("RD0035/RedshiftOutput0035")
-   v, c = pf.h.find_max("density")
-   p = ProjectionPlot(pf, "x", "density")
+   ds = load("RD0035/RedshiftOutput0035")
+   v, c = ds.find_max("density")
+   p = ProjectionPlot(ds, "x", "density")
    if is_root():
        print v, c
        p.save()
@@ -151,9 +151,9 @@ how to use it:
           print v, c
        plot.save()
 
-   pf = load("RD0035/RedshiftOutput0035")
-   v, c = pf.h.find_max("density")
-   p = ProjectionPlot(pf, "x", "density")
+   ds = load("RD0035/RedshiftOutput0035")
+   v, c = ds.find_max("density")
+   p = ProjectionPlot(ds, "x", "density")
    only_on_root(print_and_save_plot, v, c, plot, print=True)
 
 Types of Parallelism
@@ -252,8 +252,8 @@ Please see this heavily-commented example:
    for sto, fn in parallel_objects(fns, num_procs, storage = my_storage):
 
        # Open a data file, remembering that fn is different on each task.
-       pf = load(fn)
-       dd = pf.h.all_data()
+       ds = load(fn)
+       dd = ds.all_data()
 
        # This copies fn and the min/max of density to the local copy of
        # my_storage
@@ -261,7 +261,7 @@ Please see this heavily-commented example:
        sto.result = dd.quantities["Extrema"]("density")
 
        # Makes and saves a plot of the gas density.
-       p = ProjectionPlot(pf, "x", "density")
+       p = ProjectionPlot(ds, "x", "density")
        p.save()
 
    # At this point, as the loop exits, the local copies of my_storage are
@@ -301,7 +301,7 @@ of processors.  When running in parallel, each output is given to a different
 processor.  By default, parallel is set to ``True``, so you do not have to
 explicitly set ``parallel = True`` as in the above example. 
 
-One could get the same effect by iterating over the individual parameter files
+One could get the same effect by iterating over the individual datasets
 in the DatasetSeries object:
 
 .. code-block:: python
@@ -309,10 +309,10 @@ in the DatasetSeries object:
    from yt.pmods import *
    ts = DatasetSeries.from_filenames("DD*/output_*", parallel = True)
    my_storage = {}
-   for sto,pf in ts.piter(storage=my_storage):
-       sphere = pf.sphere("max", (1.0, "pc"))
+   for sto,ds in ts.piter(storage=my_storage):
+       sphere = ds.sphere("max", (1.0, "pc"))
        L_vec = sphere.quantities["AngularMomentumVector"]()
-       sto.result_id = pf.parameter_filename
+       sto.result_id = ds.parameter_filename
        sto.result = L_vec
 
    L_vecs = []
@@ -503,14 +503,14 @@ Additional Tips
        from yt.mods import *
        import time
        
-       pf = load("DD0152")
+       ds = load("DD0152")
        t0 = time.time()
-       bigstuff, hugestuff = StuffFinder(pf)
-       BigHugeStuffParallelFunction(pf, bigstuff, hugestuff)
+       bigstuff, hugestuff = StuffFinder(ds)
+       BigHugeStuffParallelFunction(ds, bigstuff, hugestuff)
        t1 = time.time()
        for i in range(1000000):
            tinystuff, ministuff = GetTinyMiniStuffOffDisk("in%06d.txt" % i)
-           array = TinyTeensyParallelFunction(pf, tinystuff, ministuff)
+           array = TinyTeensyParallelFunction(ds, tinystuff, ministuff)
            SaveTinyMiniStuffToDisk("out%06d.txt" % i, array)
        t2 = time.time()
        

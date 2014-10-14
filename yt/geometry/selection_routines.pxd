@@ -18,6 +18,10 @@ cimport numpy as np
 from oct_visitors cimport Oct, OctVisitorData, \
     oct_visitor_function
 
+ctypedef fused anyfloat:
+    np.float32_t
+    np.float64_t
+
 cdef class SelectorObject:
     cdef public np.int32_t min_level
     cdef public np.int32_t max_level
@@ -53,3 +57,13 @@ cdef class AlwaysSelector(SelectorObject):
 cdef class OctreeSubsetSelector(SelectorObject):
     cdef SelectorObject base_selector
     cdef public np.int64_t domain_id
+
+cdef inline np.float64_t _periodic_dist(np.float64_t x1, np.float64_t x2,
+                                        np.float64_t dw, bint periodic) nogil:
+    cdef np.float64_t rel = x1 - x2
+    if not periodic: return rel
+    if rel > dw * 0.5:
+        rel -= dw
+    elif rel < -dw * 0.5:
+        rel += dw
+    return rel

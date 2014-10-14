@@ -13,7 +13,7 @@ Useful functions.  If non-original, see function for citation.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import __builtin__
+import time, types, signal, inspect, traceback, sys, pdb, os, re
 import time, types, signal, inspect, traceback, sys, pdb, os, re
 import contextlib
 import warnings, struct, subprocess
@@ -22,9 +22,9 @@ from distutils.version import LooseVersion
 from math import floor, ceil
 from numbers import Number as numeric_type
 
+from yt.extern.six.moves import builtins
 from yt.utilities.exceptions import *
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.definitions import inv_axis_names, axis_names, x_dict, y_dict
 import yt.extern.progressbar as pb
 import yt.utilities.rpdb as rpdb
 from yt.units.yt_array import YTArray, YTQuantity
@@ -60,7 +60,10 @@ def ensure_numpy_array(obj):
     convert scalar, list or tuple argument passed to functions using Cython.
     """
     if isinstance(obj, np.ndarray):
-        return obj
+        if obj.shape == ():
+            return np.array([obj])
+        # We cast to ndarray to catch ndarray subclasses
+        return np.array(obj)
     elif isinstance(obj, (types.ListType, types.TupleType)):
         return np.asarray(obj)
     else:
@@ -117,7 +120,7 @@ try:
 except ImportError:
     pass
 
-def get_memory_usage():
+def get_memory_usage(subtract_share = False):
     """
     Returning resident size in megabytes
     """
@@ -131,6 +134,7 @@ def get_memory_usage():
         return -1024
     line = open(status_file).read()
     size, resident, share, text, library, data, dt = [int(i) for i in line.split()]
+    if subtract_share: resident -= share
     return resident * pagesize / (1024 * 1024) # return in megs
 
 def time_execution(func):
@@ -341,7 +345,7 @@ def get_pbar(title, maxval):
     maxval = max(maxval, 1)
     from yt.config import ytcfg
     if ytcfg.getboolean("yt", "suppressStreamLogging") or \
-       "__IPYTHON__" in dir(__builtin__) or \
+       "__IPYTHON__" in dir(builtins) or \
        ytcfg.getboolean("yt", "__withintesting"):
         return DummyProgressBar()
     elif ytcfg.getboolean("yt", "__withinreason"):
@@ -406,11 +410,12 @@ def paste_traceback(exc_type, exc, tb):
     Should only be used in sys.excepthook.
     """
     sys.__excepthook__(exc_type, exc, tb)
-    import xmlrpclib, cStringIO
+    from yt.extern.six.moves import StringIO
+    import xmlrpclib
     p = xmlrpclib.ServerProxy(
             "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
-    s = cStringIO.StringIO()
+    s = StringIO()
     traceback.print_exception(exc_type, exc, tb, file=s)
     s = s.getvalue()
     ret = p.pastes.newPaste('pytb', s, None, '', '', True)
@@ -423,8 +428,9 @@ def paste_traceback_detailed(exc_type, exc, tb):
     This is a traceback handler that knows how to paste to the pastebin.
     Should only be used in sys.excepthook.
     """
-    import xmlrpclib, cStringIO, cgitb
-    s = cStringIO.StringIO()
+    import xmlrpclib, cgitb
+    from yt.extern.six.moves import StringIO
+    s = StringIO()
     handler = cgitb.Hook(format="text", file = s)
     handler(exc_type, exc, tb)
     s = s.getvalue()
@@ -598,10 +604,10 @@ def get_yt_supp():
     # Now we think we have our supplemental repository.
     return supp_path
 
-def fix_length(length, pf=None):
-    assert pf is not None
-    if pf is not None:
-        registry = pf.unit_registry
+def fix_length(length, ds=None):
+    assert ds is not None
+    if ds is not None:
+        registry = ds.unit_registry
     else:
         registry = None
     if isinstance(length, YTArray):
@@ -619,6 +625,22 @@ def fix_length(length, pf=None):
 
 @contextlib.contextmanager
 def parallel_profile(prefix):
+    r"""A context manager for profiling parallel code execution using cProfile
+
+    This is a simple context manager that automatically profiles the execution
+    of a snippet of code.
+
+    Parameters
+    ----------
+    prefix : string
+        A string name to prefix outputs with.
+
+    Examples
+    --------
+
+    >>> with parallel_profile('my_profile'):
+    ...     yt.PhasePlot(ds.all_data(), 'density', 'temperature', 'cell_mass')
+    """
     import cProfile
     from yt.config import ytcfg
     fn = "%s_%04i_%04i.cprof" % (prefix,
@@ -637,8 +659,8 @@ def get_num_threads():
         return os.environ.get("OMP_NUM_THREADS", 0)
     return nt
 
-def fix_axis(axis):
-    return inv_axis_names.get(axis, axis)
+def fix_axis(axis, ds):
+    return ds.coordinates.axis_id.get(axis, axis)
 
 def get_image_suffix(name):
     suffix = os.path.splitext(name)[1]
@@ -657,17 +679,14 @@ def ensure_dir(path):
     if not os.path.exists(path):
         only_on_root(os.makedirs, path)
     return path
-        
-def assert_valid_width_tuple(width):
-    try:
-        assert iterable(width) and len(width) == 2, \
-            "width (%s) is not a two element tuple" % width
-        valid = isinstance(width[0], numeric_type) and isinstance(width[1], str)
+
+def validate_width_tuple(width):
+    if not iterable(width) or len(width) != 2:
+        raise YTInvalidWidthError("width (%s) is not a two element tuple" % width)
+    if not isinstance(width[0], numeric_type) and isinstance(width[1], basestring):
         msg = "width (%s) is invalid. " % str(width)
         msg += "Valid widths look like this: (12, 'au')"
-        assert valid, msg
-    except AssertionError, e:
-        raise YTInvalidWidthError(e)
+        raise YTInvalidWidthError(msg)
 
 def camelcase_to_underscore(name):
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
@@ -682,7 +701,7 @@ def set_intersection(some_list):
     return s
 
 @contextlib.contextmanager
-def memory_checker(interval = 15):
+def memory_checker(interval = 15, dest = None):
     r"""This is a context manager that monitors memory usage.
 
     Parameters
@@ -700,6 +719,8 @@ def memory_checker(interval = 15):
     ...     del arr
     """
     import threading
+    if dest is None:
+        dest = sys.stdout
     class MemoryChecker(threading.Thread):
         def __init__(self, event, interval):
             self.event = event
@@ -708,7 +729,7 @@ def memory_checker(interval = 15):
 
         def run(self):
             while not self.event.wait(self.interval):
-                print "MEMORY: %0.3e gb" % (get_memory_usage()/1024.)
+                print >> dest, "MEMORY: %0.3e gb" % (get_memory_usage()/1024.)
 
     e = threading.Event()
     mem_check = MemoryChecker(e, interval)

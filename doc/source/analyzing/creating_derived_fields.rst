@@ -20,11 +20,11 @@ this approach.
 .. code-block:: python
 
    def _Pressure(field, data):
-       return (data.pf["Gamma"] - 1.0) * \
+       return (data.ds.gamma - 1.0) * \
               data["density"] * data["thermal_energy"]
 
 Note that we do a couple different things here.  We access the "Gamma"
-parameter from the parameter file, we access the "density" field and we access
+parameter from the dataset, we access the "density" field and we access
 the "thermal_energy" field.  "thermal_energy" is, in fact, another derived field!
 ("thermal_energy" deals with the distinction in storage of energy between dual
 energy formalism and non-DEF.)  We don't do any loops, we don't do any
@@ -87,14 +87,14 @@ http://yt-project.org/data :
 .. code-block:: python
 
    >>> from yt.mods import *
-   >>> pf = load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100")
-   >>> pf.field_list
+   >>> ds = load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100")
+   >>> ds.field_list
    ['dens', 'temp', 'pres', 'gpot', 'divb', 'velx', 'vely', 'velz', 'magx', 'magy', 'magz', 'magp']
-   >>> pf.field_info['dens']._units
+   >>> ds.field_info['dens']._units
    '\\rm{g}/\\rm{cm}^{3}'
-   >>> pf.field_info['temp']._units
+   >>> ds.field_info['temp']._units
    '\\rm{K}'
-   >>> pf.field_info['velx']._units
+   >>> ds.field_info['velx']._units
    '\\rm{cm}/\\rm{s}'
 
 Thus if you were using any of these fields as input to your derived field, you 
@@ -178,7 +178,7 @@ velocity.
 
     def _DivV(field, data):
         # We need to set up stencils
-        if data.pf["HydroMethod"] == 2:
+        if data.ds["HydroMethod"] == 2:
             sl_left = slice(None,-2,None)
             sl_right = slice(1,-1,None)
             div_fac = 1.0
@@ -189,11 +189,11 @@ velocity.
         ds = div_fac * data['dx'].flat[0]
         f  = data["velocity_x"][sl_right,1:-1,1:-1]/ds
         f -= data["velocity_x"][sl_left ,1:-1,1:-1]/ds
-        if data.pf.dimensionality > 1:
+        if data.ds.dimensionality > 1:
             ds = div_fac * data['dy'].flat[0]
             f += data["velocity_y"][1:-1,sl_right,1:-1]/ds
             f -= data["velocity_y"][1:-1,sl_left ,1:-1]/ds
-        if data.pf.dimensionality > 2:
+        if data.ds.dimensionality > 2:
             ds = div_fac * data['dz'].flat[0]
             f += data["velocity_z"][1:-1,1:-1,sl_right]/ds
             f -= data["velocity_z"][1:-1,1:-1,sl_left ]/ds
@@ -241,8 +241,8 @@ The code below creates a new derived field called "Entr" and saves it to disk:
         return data["temperature"]*data["density"]**(-2./3.)
     add_field("Entr", function=_Entropy)
 
-    pf = load('GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100')
-    writer.save_field(pf, "Entr")
+    ds = load('GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100')
+    writer.save_field(ds, "Entr")
 
 This creates a "_backup.gdf" file next to your datadump. If you load up the dataset again:
 
@@ -250,8 +250,8 @@ This creates a "_backup.gdf" file next to your datadump. If you load up the data
 
     from yt.mods import *
 
-    pf = load('GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100')
-    data = pf.h.all_data()
+    ds = load('GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100')
+    data = ds.all_data()
     print data["Entr"]
 
 you can work with the field exactly as before, without having to recompute it.

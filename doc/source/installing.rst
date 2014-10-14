@@ -14,8 +14,7 @@ version control.  Because installation of all of these interlocking parts can
 be time-consuming, yt provides an installation script which downloads and builds
 a fully-isolated Python + NumPy + Matplotlib + HDF5 + Mercurial installation.  
 yt supports Linux and OSX deployment, with the possibility of deployment on 
-other Unix-like systems (XSEDE resources, clusters, etc.).  Windows is not 
-supported.
+other Unix-like systems (XSEDE resources, clusters, etc.).
 
 Since the install is fully-isolated, if you get tired of having yt on your 
 system, you can just delete its directory, and yt and all of its dependencies
@@ -83,14 +82,73 @@ directory containing the install. By default, this will be ``yt-<arch>``, where
 will also need to set ``LD_LIBRARY_PATH`` and ``PYTHONPATH`` to contain 
 ``$YT_DEST/lib`` and ``$YT_DEST/python2.7/site-packages``, respectively.
 
+.. _testing-installation:
+
+Testing Your Installation
+-------------------------
+
+To test to make sure everything is installed properly, try running yt at
+the command line:
+
+.. code-block:: bash
+
+  $ yt --help
+
+If this works, you should get a list of the various command-line options for
+yt, which means you have successfully installed yt.  Congratulations!
+
+If you get an error, follow the instructions it gives you to debug the problem.
+Do not hesitate to :ref:`contact us <asking-for-help>` so we can help you
+figure it out.
+
+If you like, this might be a good time :ref:`to run the test suite <testing>`.
+
+.. _updating-yt:
+
+Updating yt and its dependencies
+--------------------------------
+
+With many active developers, code development sometimes occurs at a furious
+pace in yt.  To make sure you're using the latest version of the code, run
+this command at a command-line:
+
+.. code-block:: bash
+
+  $ yt update
+
+Additionally, if you want to make sure you have the latest dependencies
+associated with yt and update the codebase simultaneously, type this:
+
+.. code-block:: bash
+
+  $ yt update --all
+
+.. _removing-yt:
+
+Removing yt and its dependencies
+--------------------------------
+
+Because yt and its dependencies are installed in an isolated directory when
+you use the script installer, you can easily remove yt and all of its
+dependencies cleanly.  Simply remove the install directory and its
+subdirectories and you're done.  If you *really* had problems with the
+code, this is a last defense for solving: remove and then fully
+:ref:`re-install <installing-yt>` from the install script again.
+
+.. _alternative-installation:
+
 Alternative Installation Methods
 --------------------------------
 
+.. _pip-installation:
+
+Installing yt Using pip or from Source
+++++++++++++++++++++++++++++++++++++++
+
 If you want to forego the use of the install script, you need to make sure you
 have yt's dependencies installed on your system.  These include: a C compiler,
-``HDF5``, ``Freetype``, ``libpng``, ``python``, ``cython``, ``NumPy``, and
-``matplotlib``.  From here, you can use ``pip`` (which comes with ``Python``) to
-install yt as:
+``HDF5``, ``python``, ``cython``, ``NumPy``, ``matplotlib``, and ``h5py``. From here,
+you can use ``pip`` (which comes with ``Python``) to install yt as:
 
 .. code-block:: bash
 
@@ -110,67 +168,46 @@ tools, you will need ``mercurial`` to clone the official repo:
 It will install yt into ``$HOME/.local/lib64/python2.7/site-packages``. 
 Please refer to ``setuptools`` documentation for the additional options.
 
-Provided that the required dependencies are in a predictable location, yt should
-be able to find them automatically. However, you can manually specify prefix used
-for installation of ``HDF5``, ``Freetype`` and ``libpng`` by using ``hdf5.cfg``,
-``freetype.cfg``, ``png.cfg`` or setting ``HDF5_DIR``, ``FTYPE_DIR``, ``PNG_DIR``
-environmental variables respectively, e.g.
-
-.. code-block:: bash
-
-  $ echo '/usr/local' > hdf5.cfg
-  $ export FTYPE_DIR=/opt/freetype
-
 If you choose this installation method, you do not need to run the activation
 script as it is unnecessary.
 
-.. _testing-installation:
+.. _anaconda-installation:
 
-Testing Your Installation
--------------------------
+Installing yt Using Anaconda
+++++++++++++++++++++++++++++
 
-To test to make sure everything is installed properly, try running yt at 
-the command line:
-
-.. code-block:: bash
-
-  $ yt --help
-
-If this works, you should get a list of the various command-line options for
-yt, which means you have successfully installed yt.  Congratulations!  
-
-If you get an error, follow the instructions it gives you to debug the problem.  
-Do not hesitate to :ref:`contact us <asking-for-help>` so we can help you 
-figure it out.
-
-.. _updating-yt:
-
-Updating yt and its dependencies
---------------------------------
-
-With many active developers, code development sometimes occurs at a furious 
-pace in yt.  To make sure you're using the latest version of the code, run
-this command at a command-line:
+Perhaps the quickest way to get yt up and running is to install it using the `Anaconda Python
+Distribution <https://store.continuum.io/cshop/anaconda/>`_, which will provide you with a
+easy-to-use environment for installing Python packages. To install a bare-bones Python
+installation with yt, first visit http://repo.continuum.io/miniconda/ and download a recent
+version of the ``Miniconda-x.y.z`` script (corresponding to Python 2.7) for your platform and
+system architecture. Next, run the script, e.g.:
 
 .. code-block:: bash
 
-  $ yt update
+  $ bash Miniconda-3.3.0-Linux-x86_64.sh
 
-Additionally, if you want to make sure you have the latest dependencies 
-associated with yt and update the codebase simultaneously, type this:
+Make sure that the Anaconda ``bin`` directory is in your path, and then issue:
 
 .. code-block:: bash
 
-  $ yt update --all
+  $ conda install yt
 
-.. _removing-yt:
+which will install yt along with all of its dependencies.
 
-Removing yt and its dependencies
---------------------------------
+.. _windows-installation:
 
-Because yt and its dependencies are installed in an isolated directory when
-you use the script installer, you can easily remove yt and all of its 
-dependencies cleanly.  Simply remove the install directory and its 
-subdirectories and you're done.  If you *really* had problems with the
-code, this is a last defense for solving: remove and then fully
-:ref:`re-install <installing-yt>` from the install script again.
+Installing yt on Windows
+++++++++++++++++++++++++
+
+Installation on Microsoft Windows is only supported for Windows XP Service Pack 3 and
+higher (both 32-bit and 64-bit) using Anaconda.
+
+Keeping yt Updated via Mercurial
+++++++++++++++++++++++++++++++++
+
+If you want to maintain your yt installation via updates straight from the Bitbucket repository,
+or if you want to do some development on your own, we suggest you check out some of the
+:ref:`development docs <contributing-code>`, especially the sections on :ref:`Mercurial
+<mercurial-with-yt>` and :ref:`building yt from source <building-yt>`.
+

@@ -127,7 +127,8 @@ frontends = _frontend_container()
 
 from yt.frontends.stream.api import \
     load_uniform_grid, load_amr_grids, \
-    load_particles, load_hexahedral_mesh, load_octree
+    load_particles, load_hexahedral_mesh, load_octree, \
+    hexahedral_connectivity
 
 # For backwards compatibility
 GadgetDataset = frontends.sph.GadgetDataset
@@ -153,6 +154,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 
 from yt.convenience import \
     load, simulation
+
+from yt.testing import \
+    run_nose
 
 # Import some helpful math utilities
 from yt.utilities.math_utils import \

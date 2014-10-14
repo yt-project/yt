@@ -8,9 +8,9 @@ _units = ("g/cm**3", "K", "dyne", "erg")
 
 def test_binned_profiles():
     return
-    pf = fake_random_pf(64, nprocs = 8, fields = _fields, units = _units)
-    nv = pf.domain_dimensions.prod()
-    dd = pf.h.all_data()
+    ds = fake_random_ds(64, nprocs = 8, fields = _fields, units = _units)
+    nv = ds.domain_dimensions.prod()
+    dd = ds.all_data()
     (rmi, rma), (tmi, tma), (dmi, dma) = dd.quantities["Extrema"](
         ["density", "temperature", "dinosaurs"])
     rt, tt, dt = dd.quantities["TotalQuantity"](
@@ -75,9 +75,9 @@ def test_binned_profiles():
         yield assert_equal, p3d["ones"][:-1,:-1,:-1], np.ones((nb,nb,nb))
 
 def test_profiles():
-    pf = fake_random_pf(64, nprocs = 8, fields = _fields, units = _units)
-    nv = pf.domain_dimensions.prod()
-    dd = pf.h.all_data()
+    ds = fake_random_ds(64, nprocs = 8, fields = _fields, units = _units)
+    nv = ds.domain_dimensions.prod()
+    dd = ds.all_data()
     (rmi, rma), (tmi, tma), (dmi, dma) = dd.quantities["Extrema"](
         ["density", "temperature", "dinosaurs"])
     rt, tt, dt = dd.quantities["TotalQuantity"](
@@ -156,8 +156,8 @@ def test_profiles():
 
 def test_particle_profiles():
     for nproc in [1, 2, 4, 8]:
-        pf = fake_random_pf(32, nprocs=nproc, particles = 32**3)
-        dd = pf.h.all_data()
+        ds = fake_random_ds(32, nprocs=nproc, particles = 32**3)
+        dd = ds.all_data()
 
         p1d = Profile1D(dd, "particle_position_x", 128,
                         0.0, 1.0, False, weight_field = None)

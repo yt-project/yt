@@ -54,6 +54,7 @@ class StreamFieldInfo(FieldInfoContainer):
     )
 
     known_particle_fields = (
+        ("particle_position", ("code_length", [], None)),
         ("particle_position_x", ("code_length", [], None)),
         ("particle_position_y", ("code_length", [], None)),
         ("particle_position_z", ("code_length", [], None)),
@@ -67,8 +68,8 @@ class StreamFieldInfo(FieldInfoContainer):
     )
         
     def setup_fluid_fields(self):
-        for field in self.pf.stream_handler.field_units:
-            units = self.pf.stream_handler.field_units[field]
+        for field in self.ds.stream_handler.field_units:
+            units = self.ds.stream_handler.field_units[field]
             if units != '': self.add_output_field(field, units=units)
 
         

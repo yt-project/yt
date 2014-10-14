@@ -7,41 +7,46 @@ merger tree creation, and individual halo analysis) are all brought
 together into a single framework. This framework is substantially
 different from the limited framework included in yt-2.x and is only 
 backwards compatible in that output from old halo finders may be loaded.
+For a direct translation of various halo analysis tasks using yt-2.x
+to yt-3.0 please see :ref:`halo_transition`.
 
 A catalog of halos can be created from any initial dataset given to halo 
-catalog through data_pf. These halos can be found using friends-of-friends,
+catalog through data_ds. These halos can be found using friends-of-friends,
 HOP, and Rockstar. The finder_method keyword dictates which halo finder to
 use. The available arguments are 'fof', 'hop', and'rockstar'. For more
 details on the relative differences between these halo finders see 
 :ref:`halo_finding`.
 
-.. code-block:: 
-    from yt.mods import *
-    from yt.analysis_modules.halo_analysis.api import HaloCatalog
-    data_pf = load('Enzo_64/RD0006/RedshiftOutput0006')
-    hc = HaloCatalog(data_pf=data_pf, finder_method='hop')
+.. code-block:: python
+
+   from yt.mods import *
+   from yt.analysis_modules.halo_analysis.api import HaloCatalog
+   data_ds = load('Enzo_64/RD0006/RedshiftOutput0006')
+   hc = HaloCatalog(data_ds=data_ds, finder_method='hop')
 
 A halo catalog may also be created from already run rockstar outputs. 
 This method is not implemented for previously run friends-of-friends or 
 HOP finders. Even though rockstar creates one file per processor, 
 specifying any one file allows the full catalog to be loaded. Here we 
 only specify the file output by the processor with ID 0. Note that the 
-argument for supplying a rockstar output is `halos_pf`, not `data_pf`.
+argument for supplying a rockstar output is `halos_ds`, not `data_ds`.
 
-.. code-block:: 
-    halos_pf = load(path+'rockstar_halos/halos_0.0.bin')
-    hc = HaloCatalog(halos_pf=halos_pf)
+.. code-block:: python
+
+   halos_ds = load(path+'rockstar_halos/halos_0.0.bin')
+   hc = HaloCatalog(halos_ds=halos_ds)
 
 Although supplying only the binary output of the rockstar halo finder 
 is sufficient for creating a halo catalog, it is not possible to find 
 any new information about the identified halos. To associate the halos 
 with the dataset from which they were found, supply arguments to both 
-halos_pf and data_pf.
+halos_ds and data_ds.
 
-.. code-block::
-    halos_pf = load(path+'rockstar_halos/halos_0.0.bin')
-    data_pf = load('Enzo_64/RD0006/RedshiftOutput0006')
-    hc = HaloCatalog(data_pf=data_pf, halos_pf=halos_pf)
+.. code-block:: python
+
+   halos_ds = load(path+'rockstar_halos/halos_0.0.bin')
+   data_ds = load('Enzo_64/RD0006/RedshiftOutput0006')
+   hc = HaloCatalog(data_ds=data_ds, halos_ds=halos_ds)
 
 A data container can also be supplied via keyword data_source, 
 associated with either dataset, to control the spatial region in 
@@ -72,9 +77,9 @@ in the final catalog.
 
 An example of adding a filter:
 
-.. code-block::
+.. code-block:: python
 
-    hc.add_filter('quantity_value', 'particle_mass', '>', 1E13, 'Msun')
+   hc.add_filter('quantity_value', 'particle_mass', '>', 1E13, 'Msun')
 
 Currently quantity_value is the only available filter, but more can be 
 added by the user by defining a function that accepts a halo object as 
@@ -85,20 +90,21 @@ pull request.
 
 An example of defining your own filter:
 
-.. code-block::
-    def my_filter_function(halo):
-        
-        # Define condition for filter
-        filter_value = True
-        
-        # Return a boolean value 
-        return filter_value
+.. code-block:: python
 
-    # Add your filter to the filter registry
-    add_filter("my_filter", my_filter_function)
+   def my_filter_function(halo):
+       
+       # Define condition for filter
+       filter_value = True
+       
+       # Return a boolean value 
+       return filter_value
 
-    # ... Later on in your script
-    hc.add_filter("my_filter")
+   # Add your filter to the filter registry
+   add_filter("my_filter", my_filter_function)
+
+   # ... Later on in your script
+   hc.add_filter("my_filter")
 
 Quantities
 ----------
@@ -118,25 +124,26 @@ halo_quantities.py and issue a pull request.
 
 An example of adding a quantity:
 
-.. code-block::
-    hc.add_quantity('center_of_mass')
+.. code-block:: python
+
+   hc.add_quantity('center_of_mass')
 
 An example of defining your own quantity:
 
-.. code-block::
+.. code-block:: python
 
-    def my_quantity_function(halo):
-        # Define quantity to return
-        quantity = 5
-        
-        return quantity
+   def my_quantity_function(halo):
+       # Define quantity to return
+       quantity = 5
+       
+       return quantity
 
-    # Add your filter to the filter registry
-    add_quantity('my_quantity', my_quantity_function)
+   # Add your filter to the filter registry
+   add_quantity('my_quantity', my_quantity_function)
 
 
-    # ... Later on in your script
-    hc.add_quantity("my_quantity") 
+   # ... Later on in your script
+   hc.add_quantity("my_quantity") 
 
 Callbacks
 ---------
@@ -150,8 +157,9 @@ anything.
 An example of using a pre-defined callback where we create a sphere for 
 each halo with a radius that is twice the saved “radius”.
 
-.. code-block::
-    hc.add_callback("sphere", factor=2.0)
+.. code-block:: python
+
+   hc.add_callback("sphere", factor=2.0)
     
 Currently available callbacks are located in 
 yt/analysis_modules/halo_analysis/halo_callbacks.py. New callbacks may 
@@ -161,19 +169,19 @@ halo_callbacks.py and issue a pull request
 
 An example of defining your own callback:
 
-.. code-block::
+.. code-block:: python
 
-    def my_callback_function(halo):
-        # Perform some callback actions here
-        x = 2
-        halo.x_val = x
+   def my_callback_function(halo):
+       # Perform some callback actions here
+       x = 2
+       halo.x_val = x
 
-    # Add the callback to the callback registry
-    add_callback('my_callback', my_callback_function)
+   # Add the callback to the callback registry
+   add_callback('my_callback', my_callback_function)
 
 
-    # ...  Later on in your script
-    hc.add_callback("my_callback")
+   # ...  Later on in your script
+   hc.add_callback("my_callback")
 
 Running Analysis
 ================
@@ -181,8 +189,9 @@ Running Analysis
 After all callbacks, quantities, and filters have been added, the 
 analysis begins with a call to HaloCatalog.create.
 
-.. code-block::
-    hc.create()
+.. code-block:: python
+
+   hc.create()
 
 The save_halos keyword determines whether the actual Halo objects 
 are saved after analysis on them has completed or whether just the 
@@ -206,16 +215,17 @@ A HaloCatalog saved to disk can be reloaded as yt dataset with the
 standard call to load. Any side data, such as profiles, can be reloaded 
 with a load_profiles callback and a call to HaloCatalog.load.
 
-.. code-block::
-    hpf = load(path+"halo_catalogs/catalog_0046/catalog_0046.0.h5")
-    hc = HaloCatalog(halos_pf=hpf,
-                     output_dir="halo_catalogs/catalog_0046")
-    hc.add_callback("load_profiles", output_dir="profiles",
-                    filename="virial_profiles")
-    hc.load()
+.. code-block:: python
+
+   hds = load(path+"halo_catalogs/catalog_0046/catalog_0046.0.h5")
+   hc = HaloCatalog(halos_ds=hds,
+                    output_dir="halo_catalogs/catalog_0046")
+   hc.add_callback("load_profiles", output_dir="profiles",
+                   filename="virial_profiles")
+   hc.load()
 
 Summary
 =======
 
 For a full example of how to use these methods together see 
-:ref:`halo_analysis_example`.
+:doc:`halo_analysis_example`.

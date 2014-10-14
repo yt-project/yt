@@ -36,24 +36,6 @@ cdef struct NeighborList:
     np.int64_t pn       # Particle number
     np.float64_t r2     # radius**2
 
-cdef inline np.float64_t r2dist(np.float64_t ppos[3],
-                                np.float64_t cpos[3],
-                                np.float64_t DW[3],
-                                bint periodicity[3]):
-    cdef int i
-    cdef np.float64_t r2, DR
-    r2 = 0.0
-    for i in range(3):
-        DR = (ppos[i] - cpos[i])
-        if not periodicity[i]:
-            pass
-        elif (DR > DW[i]/2.0):
-            DR -= DW[i]
-        elif (DR < -DW[i]/2.0):
-            DR += DW[i]
-        r2 += DR * DR
-    return r2
-
 cdef class ParticleSmoothOperation:
     # We assume each will allocate and define their own temporary storage
     cdef public object nvals
@@ -68,6 +50,7 @@ cdef class ParticleSmoothOperation:
     cdef np.float64_t *ppos
     # Note that we are preallocating here, so this is *not* threadsafe.
     cdef NeighborList *neighbors
+    cdef void (*pos_setup)(np.float64_t ipos[3], np.float64_t opos[3])
     cdef void neighbor_process(self, int dim[3], np.float64_t left_edge[3],
                                np.float64_t dds[3], np.float64_t *ppos,
                                np.float64_t **fields, np.int64_t nneighbors,

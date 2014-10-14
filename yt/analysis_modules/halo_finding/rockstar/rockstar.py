@@ -146,7 +146,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         the width of the smallest grid element in the simulation from the
         last data snapshot (i.e. the one where time has evolved the
         longest) in the time series:
-        ``pf_last.index.get_smallest_dx().in_units("Mpc/h")``.
+        ``ds_last.index.get_smallest_dx().in_units("Mpc/h")``.
     total_particles : int
         If supplied, this is a pre-calculated total number of particles present
         in the simulation. For example, this is useful when analyzing a series
@@ -170,29 +170,26 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
     To use the script below you must run it using MPI:
     mpirun -np 4 python run_rockstar.py --parallel
 
-    run_rockstar.py:
+    >>> import yt
+    >>> from yt.analysis_modules.halo_finding.rockstar.api import \
+    ... RockstarHaloFinder
+    >>> from yt.data_objects.particle_filters import \
+    ... particle_filter
 
-    from yt.mods import *
+    >>> # create a particle filter to remove star particles
+    >>> @yt.particle_filter("dark_matter", requires=["creation_time"])
+    ... def _dm_filter(pfilter, data):
+    ...     return data["creation_time"] <= 0.0
 
-    from yt.analysis_modules.halo_finding.rockstar.api import \
-        RockstarHaloFinder
-    from yt.data_objects.particle_filters import \
-        particle_filter
+    >>> def setup_ds(ds):
+    ...     ds.add_particle_filter("dark_matter")
 
-    # create a particle filter to remove star particles
-    @particle_filter("dark_matter", requires=["creation_time"])
-    def _dm_filter(pfilter, data):
-        return data["creation_time"] <= 0.0
+    >>> es = yt.simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
+    >>> es.get_time_series(setup_function=setup_ds, redshift_data=False)
 
-    def setup_pf(pf):
-        pf.add_particle_filter("dark_matter")
-
-    es = simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
-    es.get_time_series(setup_function=setup_pf, redshift_data=False)
-
-    rh = RockstarHaloFinder(es, num_readers=1, num_writers=2,
-                            particle_type="dark_matter")
-    rh.run()
+    >>> rh = RockstarHaloFinder(es, num_readers=1, num_writers=2,
+    ...                         particle_type="dark_matter")
+    >>> rh.run()
 
     """
     def __init__(self, ts, num_readers = 1, num_writers = None,
@@ -221,10 +218,10 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         self.particle_type = particle_type
         self.outbase = outbase
         if force_res is None:
-            tpf = ts[-1] # Cache a reference
-            self.force_res = tpf.index.get_smallest_dx().in_units("Mpc/h")
+            tds = ts[-1] # Cache a reference
+            self.force_res = tds.index.get_smallest_dx().in_units("Mpc/h")
             # We have to delete now to wipe the index
-            del tpf
+            del tds
         else:
             self.force_res = force_res
         self.total_particles = total_particles
@@ -239,16 +236,16 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
 
     def _setup_parameters(self, ts):
         if self.workgroup.name != "readers": return None
-        tpf = ts[0]
+        tds = ts[0]
         ptype = self.particle_type
-        if ptype not in tpf.particle_types and ptype != 'all':
-            has_particle_filter = tpf.add_particle_filter(ptype)
+        if ptype not in tds.particle_types and ptype != 'all':
+            has_particle_filter = tds.add_particle_filter(ptype)
             if not has_particle_filter:
                 raise RuntimeError("Particle type (filter) %s not found." % (ptype))
 
-        dd = tpf.h.all_data()
+        dd = tds.all_data()
         # Get DM particle mass.
-        all_fields = set(tpf.derived_field_list + tpf.field_list)
+        all_fields = set(tds.derived_field_list + tds.field_list)
         has_particle_type = ("particle_type" in all_fields)
 
         particle_mass = self.particle_mass
@@ -266,12 +263,12 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             tp = dd.quantities.total_quantity((ptype, "particle_ones"))
             p['total_particles'] = int(tp)
             mylog.warning("Total Particle Count: %0.3e", int(tp))
-        p['left_edge'] = tpf.domain_left_edge
-        p['right_edge'] = tpf.domain_right_edge
-        p['center'] = (tpf.domain_right_edge + tpf.domain_left_edge)/2.0
+        p['left_edge'] = tds.domain_left_edge
+        p['right_edge'] = tds.domain_right_edge
+        p['center'] = (tds.domain_right_edge + tds.domain_left_edge)/2.0
         p['particle_mass'] = self.particle_mass = particle_mass
         p['particle_mass'].convert_to_units("Msun / h")
-        del tpf
+        del tds
         return p
 
     def __del__(self):
@@ -354,11 +351,11 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                 os.makedirs(self.outbase)
             # Make a record of which dataset corresponds to which set of
             # output files because it will be easy to lose this connection.
-            fp = open(self.outbase + '/pfs.txt', 'w')
-            fp.write("# pfname\tindex\n")
-            for i, pf in enumerate(self.ts):
-                pfloc = path.join(path.relpath(pf.fullpath), pf.basename)
-                line = "%s\t%d\n" % (pfloc, i)
+            fp = open(self.outbase + '/datasets.txt', 'w')
+            fp.write("# dsname\tindex\n")
+            for i, ds in enumerate(self.ts):
+                dsloc = path.join(path.relpath(ds.fullpath), ds.basename)
+                line = "%s\t%d\n" % (dsloc, i)
                 fp.write(line)
             fp.close()
         # This barrier makes sure the directory exists before it might be used.

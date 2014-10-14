@@ -8,19 +8,16 @@ extend these plots to be ready for publication.
 Simple Slices
 ~~~~~~~~~~~~~
 
-This script shows the simplest way to make a slice from the scripting
-interface.
+This script shows the simplest way to make a slice through a dataset.
 
 .. yt_cookbook:: simple_slice.py
 
-Simple Probability Distribution Functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Simple Projections
+~~~~~~~~~~~~~~~~~~
 
-Often, one wants to examine the distribution of one variable as a function of
-another.  This shows how to see the distribution of mass in a simulation, with
-respect to the total mass in the simulation.
+This is the simplest way to make a projection through a dataset.
 
-.. yt_cookbook:: simple_pdf.py
+.. yt_cookbook:: simple_projection.py
 
 Simple Phase Plots
 ~~~~~~~~~~~~~~~~~~
@@ -31,14 +28,30 @@ the total accumulation in a cell.
 
 .. yt_cookbook:: simple_phase.py
 
-Simple 1D Histograms
-~~~~~~~~~~~~~~~~~~~~
+Simple Probability Distribution Functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This is a "profile," which is a 1D profile.  This can be thought of as either
+Often, one wants to examine the distribution of one variable as a function of
+another.  This shows how to see the distribution of mass in a simulation, with
+respect to the total mass in the simulation.
+
+.. yt_cookbook:: simple_pdf.py
+
+Simple 1D Histograms (Profiles)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is a "profile," which is a 1D histogram.  This can be thought of as either
 the total accumulation (when weight_field is set to ``None``) or the average 
 (when a weight_field is supplied.)
 
 .. yt_cookbook:: simple_profile.py
+
+Simple Radial Profiles
+~~~~~~~~~~~~~~~~~~~~~~
+
+This shows how to make a profile of a quantity with respect to the radius.
+
+.. yt_cookbook:: simple_radial_profile.py
 
 1D Profiles Over Time
 ~~~~~~~~~~~~~~~~~~~~~
@@ -47,21 +60,6 @@ This is a simple example of overplotting multiple 1D profiles from a number
 of datasets to show how they evolve over time.
 
 .. yt_cookbook:: time_series_profiles.py
-
-Simple Projections
-~~~~~~~~~~~~~~~~~~
-
-This is the simplest way to make a projection through a dataset.
-
-.. yt_cookbook:: simple_projection.py
-
-Simple Radial Profiles
-~~~~~~~~~~~~~~~~~~~~~~
-
-This shows how to make a profile of a quantity with respect to the radius, in
-this case the radius in Mpc.
-
-.. yt_cookbook:: simple_radial_profile.py
 
 .. _cookbook-profile-variance:
 
@@ -85,6 +83,32 @@ This recipe shows how to add multiple fields to a single plot.
 
 .. yt_cookbook:: simple_slice_with_multiple_fields.py 
 
+Off-Axis Slicing
+~~~~~~~~~~~~~~~~
+
+One can create slices from any arbitrary angle, not just those aligned with
+the x,y,z axes.
+
+.. yt_cookbook:: simple_off_axis_slice.py
+
+.. _cookbook-simple-off-axis-projection:
+
+Off-Axis Projection
+~~~~~~~~~~~~~~~~~~~
+
+Like off-axis slices, off-axis projections can be created from any arbitrary 
+viewing angle.
+
+.. yt_cookbook:: simple_off_axis_projection.py
+
+Simple Volume Rendering
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Volume renderings are 3D projections rendering isocontours in any arbitrary
+field (e.g. density, temperature, pressure, etc.)
+
+.. yt_cookbook:: simple_volume_rendering.py
+
 Showing and Hiding Axes Labels and Colorbars
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -93,6 +117,8 @@ labels and colorbars.  This is useful when you don't care about the physical
 scales and just want to take a closer look at the raw plot data.
 
 .. yt_cookbook:: show_hide_axes_colorbar.py
+
+.. _matplotlib-primitives:
 
 Accessing and Modifying Plots Directly
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -104,32 +130,7 @@ window :class:`matplotlib.axes.Axes` object directly.
 
 .. yt_cookbook:: simple_slice_matplotlib_example.py 
 
-Off-Axis Slicing
-~~~~~~~~~~~~~~~~
-
-A cutting plane allows you to slice at some angle that isn't aligned with the
-axes.
-
-.. yt_cookbook:: aligned_cutting_plane.py
-
-.. _cookbook-simple-off-axis-projection:
-
-Off-Axis Projection
-~~~~~~~~~~~~~~~~~~~
-
-Here we see how to make a off axis projection through a dataset.
-
-.. yt_cookbook:: simple_off_axis_projection.py
-
 .. _cookbook-simple_volume_rendering:
-
-Simple Volume Rendering
-~~~~~~~~~~~~~~~~~~~~~~~
-
-Here we see how to make a very simple volume rendering, where each option is
-considered in turn.
-
-.. yt_cookbook:: simple_volume_rendering.py
 
 Image Background Colors
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -137,4 +138,3 @@ Image Background Colors
 Here we see how to take an image and save it using different background colors. 
 
 .. yt_cookbook:: image_background_colors.py
-

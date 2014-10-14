@@ -1,48 +1,44 @@
 from yt.mods import *
+from yt.analysis_modules.halo_analysis.api import *
 
-from yt.analysis_modules.halo_profiler.api import *
+# Load the data set with the full simulation information
+# and rockstar halos
+data_pf = load('Enzo_64/RD0006/RedshiftOutput0006')
+halos_pf = load('rockstar_halos/halos_0.0.bin')
 
-# Define a custom function to be called on all halos.
-# The first argument is a dictionary containing the
-# halo id, center, etc.
-# The second argument is the sphere centered on the halo.
-def get_density_extrema(halo, sphere):
-    my_extrema = sphere.quantities['Extrema']('density')
-    mylog.info('Halo %d has density extrema: %s',
-               halo['id'], my_extrema)
+# Instantiate a catalog using those two paramter files
+hc = HaloCatalog(data_pf=data_pf, halos_pf=halos_pf)
+
+# Filter out less massive halos
+hc.add_filter("quantity_value", "particle_mass", ">", 1e14, "Msun")
+
+# attach a sphere object to each halo whose radius extends
+#   to twice the radius of the halo
+hc.add_callback("sphere", factor=2.0)
+
+# use the sphere to calculate radial profiles of gas density
+# weighted by cell volume in terms of the virial radius
+hc.add_callback("profile", x_field="radius",
+                y_fields=[("gas", "overdensity")],
+                weight_field="cell_volume",
+                accumulation=False,
+                storage="virial_quantities_profiles")
 
 
-# Instantiate HaloProfiler for this dataset.
-hp = HaloProfiler('enzo_tiny_cosmology/DD0046/DD0046',
-                  output_dir='.')
+hc.add_callback("virial_quantities", ["radius"],
+                profile_storage="virial_quantities_profiles")
+hc.add_callback('delete_attribute', 'virial_quantities_profiles')
 
-# Add a filter to remove halos that have no profile points with overdensity
-# above 200, and with virial masses less than 1e10 solar masses.
-# Also, return the virial mass and radius to be written out to a file.
-hp.add_halo_filter(amods.halo_profiler.VirialFilter, must_be_virialized=True,
-                   overdensity_field='ActualOverdensity',
-                   virial_overdensity=200,
-                   virial_filters=[['TotalMassMsun', '>=', '1e10']],
-                   virial_quantities=['TotalMassMsun', 'RadiusMpc'])
+field_params = dict(virial_radius=('quantity', 'radius_200'))
+hc.add_callback('sphere', radius_field='radius_200', factor=5,
+                field_parameters=field_params)
+hc.add_callback('profile', 'virial_radius', [('gas', 'temperature')],
+                storage='virial_profiles',
+                weight_field='cell_mass',
+                accumulation=False, output_dir='profiles')
 
-# Add profile fields.
-hp.add_profile('cell_volume', weight_field=None, accumulation=True)
-hp.add_profile('TotalMassMsun', weight_field=None, accumulation=True)
-hp.add_profile('density', weight_field='cell_mass', accumulation=False)
-hp.add_profile('temperature', weight_field='cell_mass', accumulation=False)
+# Save the profiles
+hc.add_callback("save_profiles", storage="virial_profiles",
+                output_dir="profiles")
 
-# Make profiles and output filtered halo list to FilteredQuantities.h5.
-hp.make_profiles(filename="FilteredQuantities.h5",
-                 profile_format='hdf5', njobs=-1)
-
-# Add projection fields.
-hp.add_projection('density', weight_field=None)
-hp.add_projection('temperature', weight_field='density')
-hp.add_projection('metallicity', weight_field='density')
-
-# Make projections just along the x axis using the filtered halo list.
-hp.make_projections(save_cube=False, save_images=True,
-                    halo_list='filtered', axes=[0], njobs=-1)
-
-# Run our custom analysis function on all halos in the filtered list.
-hp.analyze_halo_spheres(get_density_extrema, njobs=-1)
+hc.create()

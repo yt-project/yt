@@ -19,11 +19,6 @@ import matplotlib.pyplot as plt
 from _mpl_imports import FigureCanvasAgg
 
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.definitions import \
-    x_dict, x_names, \
-    y_dict, y_names, \
-    axis_names, \
-    axis_labels
 from .plot_window import PlotWindow
 from .profile_plotter import PhasePlot
 from .plot_modifications import get_smallest_appropriate_unit
@@ -291,11 +286,12 @@ class DualEPS(object):
             data = plot._frb
             width = plot.width[0]
             if units == None:
-                units = get_smallest_appropriate_unit(width, plot.pf)
-            _xrange = (0, width * plot.pf[units])
-            _yrange = (0, width * plot.pf[units])
+                units = get_smallest_appropriate_unit(width, plot.ds)
+            _xrange = (0, width * plot.ds[units])
+            _yrange = (0, width * plot.ds[units])
             _xlog = False
             _ylog = False
+            axis_names = plot.ds.coordinates.axis_name
             if bare_axes:
                 _xlabel = ""
                 _ylabel = ""
@@ -305,14 +301,16 @@ class DualEPS(object):
                     _xlabel = xlabel
                 else:
                     if data.axis != 4:
-                        _xlabel = '%s (%s)' % (x_names[data.axis], units)
+                        xax = plot.ds.coordinates.x_axis[data.axis]
+                        _xlabel = '%s (%s)' % (axis_names[xax], units)
                     else:
                         _xlabel = 'Image x (%s)' % (units)
                 if ylabel != None:
                     _ylabel = ylabel
                 else:
                     if data.axis != 4:
-                        _ylabel = '%s (%s)' % (y_names[data.axis], units)
+                        yax = plot.ds.coordinatesyx_axis[data.axis]
+                        _ylabel = '%s (%s)' % (axis_names[yax], units)
                     else:
                         _ylabel = 'Image y (%s)' % (units)
             if tickcolor == None:
@@ -654,7 +652,7 @@ class DualEPS(object):
         if isinstance(plot, VMPlot):
             proj = "Proj" in plot._type_name and \
                 plot.data._weight is None
-            _zlabel = plot.pf.field_info[plot.axis_names["Z"]].get_label(proj)
+            _zlabel = plot.ds.field_info[plot.axis_names["Z"]].get_label(proj)
             _zlabel = _zlabel.replace("_","\;")
             _zlog = plot.log_field
             _zrange = (plot.norm.vmin, plot.norm.vmax)
@@ -662,9 +660,9 @@ class DualEPS(object):
             proj = plot._plot_type.endswith("Projection") and \
                 plot.data_source.weight_field == None
             if isinstance(plot, PlotWindow):
-                _zlabel = plot.pf.field_info[self.field].get_label(proj)
+                _zlabel = plot.ds.field_info[self.field].get_label(proj)
             else:
-                _zlabel = plot.data_source.pf.field_info[self.field].get_label(proj)
+                _zlabel = plot.data_source.ds.field_info[self.field].get_label(proj)
             _zlabel = _zlabel.replace("_","\;")
             _zlog = plot.get_log(self.field)[self.field]
             if plot.plots[self.field].zmin == None:
@@ -1171,7 +1169,7 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
 
     Examples
     --------
-    >>> pc = PlotCollection(pf)
+    >>> pc = PlotCollection(ds)
     >>> p = pc.add_slice('Density',0,use_colorbar=False)
     >>> p.set_width(0.1,'kpc')
     >>> p1 = pc.add_slice('Temperature',0,use_colorbar=False)
@@ -1283,8 +1281,8 @@ def return_cmap(cmap="algae", label="", range=(0,1), log=False):
 #=============================================================================
 
 #if __name__ == "__main__":
-#    pf = load('/Users/jwise/runs/16Jul09_Pop3/DD0019/output_0019')
-#    pc = PlotCollection(pf)
+#    ds = load('/Users/jwise/runs/16Jul09_Pop3/DD0019/output_0019')
+#    pc = PlotCollection(ds)
 #    p = pc.add_slice('Density',0,use_colorbar=False)
 #    p.set_width(0.1,'kpc')
 #    p1 = pc.add_slice('Temperature',0,use_colorbar=False)

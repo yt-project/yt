@@ -22,7 +22,7 @@ tab-completion and pre-imported modules) by executing:
 
 The other option, which is shorthand for "iyt plus dataset loading" is to use
 the command-line tool (see :ref:`command-line`) with the ``load`` subcommand
-and to specify a parameter file.  For instance:
+and to specify a dataset.  For instance:
 
 .. code-block:: bash
 
@@ -34,8 +34,8 @@ or
 
    yt load DD0030/DD0030
 
-This will spawn ``iyt``, but the parameter file given on the command line will
-already be in the namespace as ``pf``.  With interactive mode, you can use the
+This will spawn ``iyt``, but the dataset given on the command line will
+already be in the namespace as ``ds``.  With interactive mode, you can use the
 ``pylab`` module to interactively plot.
 
 Command-line Functions

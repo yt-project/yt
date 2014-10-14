@@ -61,8 +61,8 @@ callback:
 
 .. code-block:: python
 
-    pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    p = ProjectionPlot(pf, "z", "density")
+    ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    p = ProjectionPlot(ds, "z", "density")
 
     p.set_cmap(field="density", cmap='jet')
     p.save('proj_with_jet_cmap.png')

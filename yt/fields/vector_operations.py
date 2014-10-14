@@ -46,9 +46,9 @@ def create_magnitude_field(registry, basename, field_units,
     xn, yn, zn = [(ftype, "%s_%s" % (basename, ax)) for ax in 'xyz']
 
     # Is this safe?
-    if registry.pf.dimensionality < 3:
+    if registry.ds.dimensionality < 3:
         zn = ("index", "zeros")
-    if registry.pf.dimensionality < 2:
+    if registry.ds.dimensionality < 2:
         yn = ("index", "zeros")
 
     def _magnitude(field, data):
@@ -68,9 +68,9 @@ def create_squared_field(registry, basename, field_units,
     xn, yn, zn = [(ftype, "%s_%s" % (basename, ax)) for ax in 'xyz']
 
     # Is this safe?
-    if registry.pf.dimensionality < 3:
+    if registry.ds.dimensionality < 3:
         zn = ("index", "zeros")
-    if registry.pf.dimensionality < 2:
+    if registry.ds.dimensionality < 2:
         yn = ("index", "zeros")
 
     def _squared(field, data):
@@ -102,9 +102,9 @@ def create_vector_fields(registry, basename, field_units,
     xn, yn, zn = [(ftype, "%s_%s" % (basename, ax)) for ax in 'xyz']
 
     # Is this safe?
-    if registry.pf.dimensionality < 3:
+    if registry.ds.dimensionality < 3:
         zn = ("index", "zeros")
-    if registry.pf.dimensionality < 2:
+    if registry.ds.dimensionality < 2:
         yn = ("index", "zeros")
 
     create_magnitude_field(registry, basename, field_units,
@@ -158,7 +158,7 @@ def create_vector_fields(registry, basename, field_units,
         ds = div_fac * just_one(data["index", "dz"])
         f += data[zn][1:-1,1:-1,sl_right]/ds
         f -= data[zn][1:-1,1:-1,sl_left ]/ds
-        new_field = data.pf.arr(np.zeros(data[xn].shape, dtype=np.float64),
+        new_field = data.ds.arr(np.zeros(data[xn].shape, dtype=np.float64),
                                 f.units)        
         new_field[1:-1,1:-1,1:-1] = f
         return new_field
@@ -231,10 +231,10 @@ def create_averaged_field(registry, basename, field_units,
 
     def _averaged_field(field, data):
         nx, ny, nz = data[(ftype, basename)].shape
-        new_field = data.pf.arr(np.zeros((nx-2, ny-2, nz-2), dtype=np.float64),
+        new_field = data.ds.arr(np.zeros((nx-2, ny-2, nz-2), dtype=np.float64),
                                 (just_one(data[(ftype, basename)]) *
                                  just_one(data[(ftype, weight)])).units)
-        weight_field = data.pf.arr(np.zeros((nx-2, ny-2, nz-2), dtype=np.float64),
+        weight_field = data.ds.arr(np.zeros((nx-2, ny-2, nz-2), dtype=np.float64),
                                    data[(ftype, weight)].units)
         i_i, j_i, k_i = np.mgrid[0:3, 0:3, 0:3]
 
@@ -245,7 +245,7 @@ def create_averaged_field(registry, basename, field_units,
             weight_field += data[(ftype, weight)][sl]
 
         # Now some fancy footwork
-        new_field2 = data.pf.arr(np.zeros((nx, ny, nz)), 
+        new_field2 = data.ds.arr(np.zeros((nx, ny, nz)), 
                                  data[(ftype, basename)].units)
         new_field2[1:-1, 1:-1, 1:-1] = new_field / weight_field
         return new_field2

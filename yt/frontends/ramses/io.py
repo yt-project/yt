@@ -77,7 +77,7 @@ class IOHandlerRAMSES(BaseIOHandler):
                 for ptype, field_list in sorted(ptf.items()):
                     x, y, z = (np.asarray(rv[ptype, pn % ax], "=f8")
                                for ax in 'xyz')
-                    mask = selector.select_points(x, y, z)
+                    mask = selector.select_points(x, y, z, 0.0)
                     for field in field_list:
                         data = np.asarray(rv.pop((ptype, field))[mask], "=f8")
                         yield (ptype, field), data
@@ -94,5 +94,5 @@ class IOHandlerRAMSES(BaseIOHandler):
             dt = subset.domain.particle_field_types[field]
             tr[field] = fpu.read_vector(f, dt)
             if field[1].startswith("particle_position"):
-                np.divide(tr[field], subset.domain.pf["boxlen"], tr[field])
+                np.divide(tr[field], subset.domain.ds["boxlen"], tr[field])
         return tr

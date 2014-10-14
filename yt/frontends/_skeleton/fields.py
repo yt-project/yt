@@ -13,79 +13,35 @@ Skeleton-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import numpy as np
+from yt.funcs import mylog
 from yt.fields.field_info_container import \
-    FieldInfoContainer, \
-    NullFunc, \
-    TranslationFunc, \
-    FieldInfo, \
-    ValidateParameter, \
-    ValidateDataField, \
-    ValidateProperty, \
-    ValidateSpatial, \
-    ValidateGridType
-from yt.utilities.physical_constants import \
-    kboltz
+    FieldInfoContainer
 
-# The first field container is where any fields that exist on disk go, along
-# with their conversion factors, display names, etc.
+# We need to specify which fields we might have in our dataset.  The field info
+# container subclass here will define which fields it knows about.  There are
+# optionally methods on it that get called which can be subclassed.
 
-KnownSkeletonFields = FieldInfoContainer()
-add_skeleton_field = KnownSkeletonFields.add_field
+class SkeletonFieldInfo(FieldInfoContainer):
+    known_other_fields = (
+        # Each entry here is of the form
+        # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
+    )
 
-SkeletonFieldInfo = FieldInfoContainer.create_with_fallback(FieldInfo)
-add_field = SkeletonFieldInfo.add_field
+    known_particle_fields = (
+        # Identical form to above
+        # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
+    )
 
-# Often, we want to translate between fields on disk and fields in yt.  This
-# construct shows how to do that.  Note that we use TranslationFunc.
+    def __init__(self, ds):
+        super(SkeletonFieldInfo, self).__init__(ds)
+        # If you want, you can check self.field_list
 
-translation_dict = {"x-velocity": "velx",
-                    "y-velocity": "vely",
-                    "z-velocity": "velz",
-                    "Density": "dens",
-                    "Temperature": "temp",
-                    "Pressure" : "pres", 
-                    "Grav_Potential" : "gpot",
-                    "particle_position_x" : "particle_posx",
-                    "particle_position_y" : "particle_posy",
-                    "particle_position_z" : "particle_posz",
-                    "particle_velocity_x" : "particle_velx",
-                    "particle_velocity_y" : "particle_vely",
-                    "particle_velocity_z" : "particle_velz",
-                    "particle_index" : "particle_tag",
-                    "Electron_Fraction" : "elec",
-                    "HI_Fraction" : "h   ",
-                    "HD_Fraction" : "hd  ",
-                    "HeI_Fraction": "hel ",
-                    "HeII_Fraction": "hep ",
-                    "HeIII_Fraction": "hepp",
-                    "HM_Fraction": "hmin",
-                    "HII_Fraction": "hp  ",
-                    "H2I_Fraction": "htwo",
-                    "H2II_Fraction": "htwp",
-                    "DI_Fraction": "deut",
-                    "DII_Fraction": "dplu",
-                    "ParticleMass": "particle_mass",
-                    "Flame_Fraction": "flam"}
+    def setup_fluid_fields(self):
+        # Here we do anything that might need info about the dataset.
+        # You can use self.alias, self.add_output_field and self.add_field .
+        pass
 
-for f,v in translation_dict.items():
-    if v not in KnownSkeletonFields:
-        pfield = v.startswith("particle")
-        add_skeleton_field(v, function=NullFunc, take_log=False,
-                  validators = [ValidateDataField(v)],
-                  particle_type = pfield)
-    if f.endswith("_Fraction") :
-        dname = "%s\/Fraction" % f.split("_")[0]
-    else :
-        dname = f                    
-    ff = KnownSkeletonFields[v]
-    pfield = f.startswith("particle")
-    add_field(f, TranslationFunc(v),
-              take_log=KnownSkeletonFields[v].take_log,
-              units = ff.units, display_name=dname,
-              particle_type = pfield)
-
-# Here's an example of adding a new field:
-
-add_skeleton_field("dens", function=NullFunc, take_log=True,
-                convert_function=_get_convert("dens"),
-                units=r"g / cm**3")
+    def setup_particle_fields(self, ptype):
+        # This will get called for every particle type.
+        pass

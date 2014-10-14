@@ -21,8 +21,6 @@ from yt.funcs import *
 
 from yt.config import ytcfg
 from yt.units.yt_array import YTArray, uconcatenate, array_like_field
-from yt.fields.field_info_container import \
-    FieldDetector
 from yt.utilities.data_point_utilities import FindBindingEnergy
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -52,6 +50,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
         return
 
     def __call__(self, *args, **kwargs):
+        """Calculate results for the derived quantity"""
         self.count_values(*args, **kwargs)
         chunks = self.data_source.chunks([], chunking_style="io")
         storage = {}
@@ -65,7 +64,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
             for i in range(self.num_vals):
                 values[i].append(storage[key][i])
         # These will be YTArrays
-        values = [self.data_source.pf.arr(values[i]) for i in range(self.num_vals)]
+        values = [self.data_source.ds.arr(values[i]) for i in range(self.num_vals)]
         values = self.reduce_intermediate(values)
         return values
 
@@ -110,8 +109,8 @@ class WeightedAverageQuantity(DerivedQuantity):
     Examples
     --------
 
-    >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = pf.all_data()
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
     >>> print ad.quantities.weighted_average_quantity([("gas", "density"),
     ...                                                ("gas", "temperature")],
     ...                                               ("gas", "cell_mass"))
@@ -149,8 +148,8 @@ class TotalQuantity(DerivedQuantity):
     Examples
     --------
 
-    >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = pf.all_data()
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
     >>> print ad.quantities.total_quantity([("gas", "cell_mass")])
     
     """
@@ -179,14 +178,14 @@ class TotalMass(TotalQuantity):
     Examples
     --------
 
-    >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = pf.all_data()
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
     >>> print ad.quantities.total_mass()
     
     """
     def __call__(self):
-        self.data_source.pf.index
-        fi = self.data_source.pf.field_info
+        self.data_source.ds.index
+        fi = self.data_source.ds.field_info
         fields = []
         if ("gas", "cell_mass") in fi:
             fields.append(("gas", "cell_mass"))
@@ -215,16 +214,16 @@ class CenterOfMass(DerivedQuantity):
     Examples
     --------
 
-    >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = pf.all_data()
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
     >>> print ad.quantities.center_of_mass()
     
     """
     def count_values(self, use_gas = True, use_particles = False):
         use_gas &= \
-          (("gas", "cell_mass") in self.data_source.pf.field_info)
+          (("gas", "cell_mass") in self.data_source.ds.field_info)
         use_particles &= \
-          (("all", "particle_mass") in self.data_source.pf.field_info)
+          (("all", "particle_mass") in self.data_source.ds.field_info)
         self.num_vals = 0
         if use_gas:
             self.num_vals += 4
@@ -233,9 +232,9 @@ class CenterOfMass(DerivedQuantity):
 
     def process_chunk(self, data, use_gas = True, use_particles = False):
         use_gas &= \
-          (("gas", "cell_mass") in self.data_source.pf.field_info)
+          (("gas", "cell_mass") in self.data_source.ds.field_info)
         use_particles &= \
-          (("all", "particle_mass") in self.data_source.pf.field_info)
+          (("all", "particle_mass") in self.data_source.ds.field_info)
         vals = []
         if use_gas:
             vals += [(data[ax] * data["cell_mass"]).sum(dtype=np.float64)
@@ -284,8 +283,8 @@ class BulkVelocity(DerivedQuantity):
     Examples
     --------
 
-    >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = pf.all_data()
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
     >>> print ad.quantities.bulk_velocity()
     
     """
@@ -346,8 +345,8 @@ class WeightedVariance(DerivedQuantity):
     Examples
     --------
 
-    >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = pf.all_data()
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
     >>> print ad.quantities.weighted_variance([("gas", "density"),
     ...                                        ("gas", "temperature")],
     ...                                       ("gas", "cell_mass"))
@@ -409,16 +408,16 @@ class AngularMomentumVector(DerivedQuantity):
     Examples
     --------
 
-    >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = pf.all_data()
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
     >>> print ad.quantities.angular_momentum_vector()
     
     """
     def count_values(self, use_gas=True, use_particles=True):
         use_gas &= \
-          (("gas", "cell_mass") in self.data_source.pf.field_info)
+          (("gas", "cell_mass") in self.data_source.ds.field_info)
         use_particles &= \
-          (("all", "particle_mass") in self.data_source.pf.field_info)
+          (("all", "particle_mass") in self.data_source.ds.field_info)
         num_vals = 0
         if use_gas: num_vals += 4
         if use_particles: num_vals += 4
@@ -426,9 +425,9 @@ class AngularMomentumVector(DerivedQuantity):
 
     def process_chunk(self, data, use_gas=True, use_particles=True):
         use_gas &= \
-          (("gas", "cell_mass") in self.data_source.pf.field_info)
+          (("gas", "cell_mass") in self.data_source.ds.field_info)
         use_particles &= \
-          (("all", "particle_mass") in self.data_source.pf.field_info)
+          (("all", "particle_mass") in self.data_source.ds.field_info)
         rvals = []
         if use_gas:
             rvals.extend([(data["gas", "specific_angular_momentum_%s" % axis] *
@@ -469,8 +468,8 @@ class Extrema(DerivedQuantity):
     Examples
     --------
 
-    >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = pf.all_data()
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
     >>> print ad.quantities.extrema([("gas", "density"),
     ...                              ("gas", "temperature")])
     
@@ -515,8 +514,8 @@ class MaxLocation(DerivedQuantity):
     Examples
     --------
 
-    >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = pf.all_data()
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
     >>> print ad.quantities.max_location(("gas", "density"))
     
     """
@@ -558,8 +557,8 @@ class MinLocation(DerivedQuantity):
     Examples
     --------
 
-    >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = pf.all_data()
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
     >>> print ad.quantities.min_location(("gas", "density"))
     
     """
@@ -614,8 +613,8 @@ class SpinParameter(DerivedQuantity):
     Examples
     --------
 
-    >>> pf = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> ad = pf.all_data()
+    >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> ad = ds.all_data()
     >>> print ad.quantities.center_of_mass()
     
     """
@@ -624,12 +623,12 @@ class SpinParameter(DerivedQuantity):
 
     def process_chunk(self, data, use_gas=True, use_particles=True):
         use_gas &= \
-          (("gas", "cell_mass") in self.data_source.pf.field_info)
+          (("gas", "cell_mass") in self.data_source.ds.field_info)
         use_particles &= \
-          (("all", "particle_mass") in self.data_source.pf.field_info)
-        e = data.pf.quan(0., "erg")
-        j = data.pf.quan(0., "g*cm**2/s")
-        m = data.pf.quan(0., "g")
+          (("all", "particle_mass") in self.data_source.ds.field_info)
+        e = data.ds.quan(0., "erg")
+        j = data.ds.quan(0., "g*cm**2/s")
+        m = data.ds.quan(0., "g")
         if use_gas:
             e += (data["gas", "kinetic_energy"] *
                   data["index", "cell_volume"]).sum(dtype=np.float64)

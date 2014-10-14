@@ -20,3 +20,6 @@ from .fields import \
 
 from .io import \
       IOHandlerFITS
+
+from .misc import \
+      setup_counts_fields
