@@ -146,7 +146,7 @@ class PPVCube(object):
                 buf = prj.to_frb(width, self.nx, center=self.center)["intensity"]
             else:
                 buf = off_axis_projection(ds, self.center, normal, width,
-                                          (self.nx, self.ny), "intensity")
+                                          (self.nx, self.ny), "intensity")[::-1]
             self.data[:,:,i] = buf[:,:]
             ds.field_info.pop(("gas","intensity"))
             pbar.update(i)
@@ -238,7 +238,7 @@ class PPVCube(object):
         w.wcs.cunit = [units,units,vunit]
         w.wcs.ctype = [types[0],types[1],vtype]
 
-        fib = FITSImageBuffer(self.data, fields=self.field, wcs=w)
+        fib = FITSImageBuffer(self.data.transpose(2,0,1), fields=self.field, wcs=w)
         fib[0].header["bunit"] = re.sub('()', '', str(self.proj_units))
         fib[0].header["btype"] = self.field
 
