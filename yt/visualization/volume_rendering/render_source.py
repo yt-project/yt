@@ -161,7 +161,12 @@ class VolumeSource(RenderSource):
         mylog.debug("Done casting rays")
 
         self.current_image = self.finalize_image(camera, self.sampler.aimage)
-        self.zbuffer = ZBuffer(self.current_image, 0.0*zbuffer.z)
+        if zbuffer is None:
+            self.zbuffer = ZBuffer(self.current_image,
+                                   np.zeros(self.current_image.shape[:2]))
+        else:
+            self.zbuffer = ZBuffer(self.current_image, 0.0*zbuffer.z)
+
         return self.current_image
 
     def finalize_image(self, camera, image):

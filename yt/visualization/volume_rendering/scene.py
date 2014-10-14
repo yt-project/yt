@@ -146,7 +146,7 @@ class Scene(object):
         for k, source in self.iter_transparent_sources():
             print "Adding transparent source:", source
             print opaque.z.min(), opaque.z.max()
-            print opaque.rgba[:,:,:3].max()
+            print opaque.rgba[:, :, :3].max()
             im = source.render(cam, zbuffer=opaque)
             #opaque = opaque + source.zbuffer
         return im
@@ -164,7 +164,7 @@ class Scene(object):
         return handle
 
 
-def volume_render(data_source, field=None, fname=None):
+def volume_render(data_source, field=None, fname=None, clip_ratio=None):
     data_source = data_source_or_all(data_source)
     sc = Scene()
     if field is None:
@@ -176,4 +176,4 @@ def volume_render(data_source, field=None, fname=None):
     cam = Camera(data_source)
     sc.set_default_camera(cam)
     sc.add_source(vol)
-    return sc.render(fname=fname), sc
+    return sc.render(fname=fname, clip_ratio=clip_ratio), sc

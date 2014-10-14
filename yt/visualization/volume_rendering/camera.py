@@ -65,7 +65,7 @@ class Camera(Orientation):
         (xmi, xma), (ymi, yma), (zmi, zma) = \
             data_source.quantities['Extrema'](['x', 'y', 'z'])
         width = np.sqrt((xma - xmi) ** 2 + (yma - ymi) ** 2 +
-                        (zma - zmi) ** 2) / np.sqrt(3)
+                        (zma - zmi) ** 2)
         focus = data_source.get_field_parameter('center')
 
         if iterable(width) and len(width) > 1 and isinstance(width[1], str):
