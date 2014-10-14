@@ -226,9 +226,9 @@ class FromListParticleGenerator(ParticleGenerator) :
         """
 
         field_list = data.keys()
-        x = data.pop(("io", "particle_position_x"))
-        y = data.pop(("io", "particle_position_y"))
-        z = data.pop(("io", "particle_position_z"))
+        x = data.pop("particle_position_x")
+        y = data.pop("particle_position_y")
+        z = data.pop("particle_position_z")
 
         xcond = np.logical_or(x < ds.domain_left_edge[0],
                               x >= ds.domain_right_edge[0])
