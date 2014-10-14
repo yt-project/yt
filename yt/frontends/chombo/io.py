@@ -223,7 +223,14 @@ def parse_orion_sinks(fn):
     # Figure out the format of the particle file
     with open(fn, 'r') as f:
         lines = f.readlines()
-    line = lines[1]
+
+    try:
+        line = lines[1]
+    except IndexError:
+        # a particle file exists, but there is only one line,
+        # so no sinks have been created yet.
+        index = {}
+        return index
 
     # The basic fields that all sink particles have
     index = {'particle_mass': 0,

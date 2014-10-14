@@ -156,7 +156,7 @@ class ChomboHierarchy(GridIndex):
         for key, val in self._handle.attrs.items():
             if key.startswith("particle"):
                 particle_fields.append(val)
-        self.field_list.extend([("io", c) for c in particle_fields])        
+        self.field_list.extend([("io", c) for c in particle_fields])
 
     def _count_grids(self):
         self.num_grids = 0
@@ -534,7 +534,8 @@ class Orion2Hierarchy(ChomboHierarchy):
 
         # look for particle fields
         self.particle_filename = self.index_filename[:-4] + 'sink'
-        if not os.path.exists(self.particle_filename): return
+        if not os.path.exists(self.particle_filename):
+            return
         pfield_list = [("io", c) for c in self.io.particle_field_index.keys()]
         self.field_list.extend(pfield_list)
 
