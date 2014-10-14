@@ -20,5 +20,7 @@ from .transfer_functions import TransferFunction, ColorTransferFunction, \
 from .image_handling import export_rgba, import_rgba, \
                            plot_channel, plot_rgb
 
-from camera import Camera
+from .camera import Camera
 from .transfer_function_helper import TransferFunctionHelper
+from .volume_rendering import volume_render
+from .off_axis_projection import off_axis_projection

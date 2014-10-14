@@ -41,7 +41,7 @@ class CameraTest(TestCase):
         if use_tmpdir:
             self.curdir = os.getcwd()
             # Perform I/O in safe place instead of yt main dir
-            self.tmpdir = temdsile.mkdtemp()
+            self.tmpdir = tempfile.mkdtemp()
             os.chdir(self.tmpdir)
         else:
             self.curdir, self.tmpdir = None, None

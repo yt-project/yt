@@ -15,7 +15,7 @@ Fixed resolution buffer support, along with a primitive image analysis tool.
 
 from yt.funcs import *
 from yt.units.unit_object import Unit
-#from .volume_rendering.api import off_axis_projection
+from .volume_rendering.api import off_axis_projection
 from yt.data_objects.image_array import ImageArray
 from yt.utilities.lib.misc_utilities import \
     pixelize_cylinder
@@ -414,17 +414,17 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         width = self.ds.arr((self.bounds[1] - self.bounds[0],
                              self.bounds[3] - self.bounds[2],
                              self.bounds[5] - self.bounds[4]))
-        raise NotImplementedError
-        #buff = off_axis_projection(dd.ds, dd.center, dd.normal_vector,
-        #                           width, dd.resolution, item,
-        #                           weight=dd.weight_field, volume=dd.volume,
-        #                           no_ghost=dd.no_ghost, interpolated=dd.interpolated,
-        #                           north_vector=dd.north_vector)
-        #units = Unit(dd.ds.field_info[item].units, registry=dd.ds.unit_registry)
-        #if dd.weight_field is None:
-        #    units *= Unit('cm', registry=dd.ds.unit_registry)
-        #ia = ImageArray(buff.swapaxes(0,1), input_units=units, info=self._get_info(item))
-        #self[item] = ia
-        #return ia
+        #raise NotImplementedError
+        buff = off_axis_projection(dd.ds, dd.center, dd.normal_vector,
+                                   width, dd.resolution, item,
+                                   weight=dd.weight_field, volume=dd.volume,
+                                   no_ghost=dd.no_ghost, interpolated=dd.interpolated,
+                                   north_vector=dd.north_vector)
+        units = Unit(dd.ds.field_info[item].units, registry=dd.ds.unit_registry)
+        if dd.weight_field is None:
+            units *= Unit('cm', registry=dd.ds.unit_registry)
+        ia = ImageArray(buff.swapaxes(0,1), input_units=units, info=self._get_info(item))
+        self[item] = ia
+        return ia
 
 
