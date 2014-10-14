@@ -400,7 +400,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         pw._setup_plots()
         return pw
 
-    def to_frb(self, width, resolution, height=None):
+    def to_frb(self, width, resolution, height=None, periodic=False):
         r"""This function returns an ObliqueFixedResolutionBuffer generated
         from this object.
 
@@ -422,6 +422,9 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             This will be the height of the FRB, by default it is equal to width.
         resolution : int or tuple of ints
             The number of pixels on a side of the final FRB.
+        periodic : boolean
+            This can be true or false, and governs whether the pixelization
+            will span the domain boundaries.
 
         Returns
         -------
@@ -450,7 +453,8 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
         bounds = (-width/2.0, width/2.0, -height/2.0, height/2.0)
-        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution)
+        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution,
+                                           periodic=periodic)
         return frb
 
 class YTDiskBase(YTSelectionContainer3D):
