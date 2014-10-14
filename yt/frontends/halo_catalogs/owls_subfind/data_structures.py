@@ -212,14 +212,10 @@ class OWLSSubfindDataset(Dataset):
         veto_groups = []
         valid = True
         try:
-            fileh = h5py.File(args[0], mode='r')
-            for ng in need_groups:
-                if ng not in fileh["/"]:
-                    valid = False
-            for vg in veto_groups:
-                if vg in fileh["/"]:
-                    valid = False                    
-            fileh.close()
+            fh = h5py.File(args[0], mode='r')
+            valid = all(ng in fh["/"] for ng in need_groups) and \
+              not any(vg in fh["/"] for vg in veto_groups)
+            fh.close()
         except:
             valid = False
             pass
