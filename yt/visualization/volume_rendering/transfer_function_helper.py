@@ -16,7 +16,7 @@ rendering.
 
 from yt.funcs import mylog
 from yt.data_objects.profiles import BinnedProfile1D
-from yt.visualization.volume_rendering.api import ColorTransferFunction
+from .transfer_functions import ColorTransferFunction
 from yt.visualization._mpl_imports import FigureCanvasAgg
 from matplotlib.figure import Figure
 from yt.extern.six.moves import StringIO
@@ -64,7 +64,7 @@ class TransferFunctionHelper(object):
             in the dataset.  This can be slow for very large datasets.
         """
         if bounds is None:
-            bounds = self.pf.h.all_data().quantities['Extrema'](self.field)
+            bounds = self.ds.h.all_data().quantities['Extrema'](self.field)
             bounds = [b.ndarray_view() for b in bounds]
         self.bounds = bounds
 
@@ -85,7 +85,7 @@ class TransferFunctionHelper(object):
             The field to be rendered.
         """
         self.field = field
-        self.log = self.pf._get_field_info(self.field).take_log
+        self.log = self.ds._get_field_info(self.field).take_log
 
     def set_log(self, log):
         """

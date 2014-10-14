@@ -15,7 +15,7 @@ Test for Volume Rendering Cameras, and their movement.
 #-----------------------------------------------------------------------------
 import os
 import os.path
-import tempfile
+import temdsile
 import shutil
 from yt.testing import \
     fake_random_ds
@@ -41,7 +41,7 @@ class CameraTest(TestCase):
         if use_tmpdir:
             self.curdir = os.getcwd()
             # Perform I/O in safe place instead of yt main dir
-            self.tmpdir = tempfile.mkdtemp()
+            self.tmpdir = temdsile.mkdtemp()
             os.chdir(self.tmpdir)
         else:
             self.curdir, self.tmpdir = None, None
@@ -158,8 +158,8 @@ class CameraTest(TestCase):
         assert_fname('final.png')
 
     def test_fisheye(self):
-        pf = self.pf
+        ds = self.ds
         tf = self.setup_transfer_function('camera')
-        cam = FisheyeCamera(pf.domain_center, pf.domain_width[0],
-                            360.0, 256, transfer_function=tf, pf=pf)
+        cam = FisheyeCamera(ds.domain_center, ds.domain_width[0],
+                            360.0, 256, transfer_function=tf, ds=ds)
         cam.snapshot('fisheye.png')

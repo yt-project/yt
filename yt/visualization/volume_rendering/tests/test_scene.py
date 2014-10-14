@@ -16,18 +16,18 @@ Test for Volume Rendering Scene, and their movement.
 #-----------------------------------------------------------------------------
 from yt.mods import *
 from yt.testing import \
-    fake_random_pf
+    fake_random_ds
 from yt.visualization.volume_rendering.scene import Scene, \
     volume_render
 from yt.visualization.volume_rendering.camera import Camera
 from yt.visualization.volume_rendering.render_source import VolumeSource
 
-#pf = fake_random_pf(64)
-#pf = load('/home/skillman/kipac/data/IsolatedGalaxy/galaxy0030/galaxy0030')
-pf = load('/home/skillman/kipac/data/enzo_cosmology_plus/DD0046/DD0046')
-ds = pf.h.sphere(pf.domain_center, pf.domain_width[0] / 2)
+#ds = fake_random_ds(64)
+#ds = load('/home/skillman/kipac/data/IsolatedGalaxy/galaxy0030/galaxy0030')
+ds = load('/home/skillman/kipac/data/enzo_cosmology_plus/DD0046/DD0046')
+dd = ds.h.sphere(ds.domain_center, ds.domain_width[0] / 2)
 
-im, sc = volume_render(ds, field=('gas', 'density'))
+im, sc = volume_render(dd, field=('gas', 'density'))
 im.write_png('test.png')
 
 sc.default_camera.resolution = (512, 512)
@@ -36,7 +36,7 @@ tf = vol.transfer_function
 tf.clear()
 tf.map_to_colormap(-30.5, -28, scale=0.001, colormap='Blues_r')
 
-vol2 = VolumeSource(ds, field=('gas', 'temperature'))
+vol2 = VolumeSource(dd, field=('gas', 'temperature'))
 sc.add_source(vol2)
 
 tf = vol2.transfer_function

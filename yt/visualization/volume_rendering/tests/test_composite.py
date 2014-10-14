@@ -1,6 +1,6 @@
 from yt.mods import *
 from yt.testing import \
-    fake_random_pf
+    fake_random_ds
 from yt.visualization.volume_rendering.scene import Scene
 from yt.visualization.volume_rendering.camera import Camera
 from yt.visualization.volume_rendering.zbuffer_array import ZBuffer
@@ -10,17 +10,17 @@ from yt.utilities.lib.misc_utilities import \
     lines
 np.random.seed(0)
 
-pf = fake_random_pf(64)
-ds = pf.h.sphere(pf.domain_center, pf.domain_width[0] / 3.)
-pf.field_info[pf.field_list[0]].take_log=False
+ds = fake_random_ds(64)
+dd = ds.h.sphere(ds.domain_center, ds.domain_width[0] / 3.)
+ds.field_info[ds.field_list[0]].take_log=False
 
 sc = Scene()
 cam = Camera(ds)
 sc.set_default_camera(cam)
-vr = VolumeSource(ds, field=pf.field_list[0])
+vr = VolumeSource(dd, field=ds.field_list[0])
 vr.transfer_function.clear()
 vr.transfer_function.grey_opacity=True
-vr.transfer_function.map_to_colormap(0.0, 1.0, scale=10.0, colormap="Reds")
+vr.transfer_function.map_to_colormap(0.0, 1.0, scale=3.0, colormap="Reds")
 sc.add_source(vr)
 
 op = OpaqueSource()
@@ -32,12 +32,12 @@ op.set_zbuffer(zbuff)
 
 sc.add_source(op)
 
-cam.set_width( pf.domain_width )
+cam.set_width( ds.domain_width )
 
 # DRAW SOME LINES
 npoints = 100
 vertices = 0.5 * np.random.random([npoints, 3])
-#vertices = np.array([pf.domain_center, [2., 2., 1.]])
+#vertices = np.array([ds.domain_center, [2., 2., 1.]])
 cam.lens.setup_box_properties(cam)
 px, py, dz = cam.lens.project_to_plane(cam, vertices)
 print dz
