@@ -97,6 +97,8 @@ class BoxlibFieldInfo(FieldInfoContainer):
         # Now, let's figure out what fields are included.
         if any(f[1] == "xmom" for f in self.field_list):
             self.setup_momentum_to_velocity()
+        elif any(f[1] == "xvel" for f in self.field_list):
+            self.setup_velocity_to_momentum()
         self.add_field(("gas", "thermal_energy"),
                        function=_thermal_energy,
                        units="erg/g")
@@ -112,10 +114,21 @@ class BoxlibFieldInfo(FieldInfoContainer):
         def _get_vel(axis):
             def velocity(field, data):
                 return data["%smom" % axis]/data["density"]
+            return velocity
         for ax in 'xyz':
             self.add_field(("gas", "velocity_%s" % ax),
                            function=_get_vel(ax),
                            units="cm/s")
+
+    def setup_velocity_to_momentum(self):
+        def _get_mom(axis):
+            def momentum(field, data):
+                return data["%svel" % axis]*data["density"]
+            return momentum
+        for ax in 'xyz':
+            self.add_field(("gas", "momentum_%s" % ax),
+                           function=_get_mom(ax),
+                           units=mom_units)
 
 
 class CastroFieldInfo(FieldInfoContainer):
