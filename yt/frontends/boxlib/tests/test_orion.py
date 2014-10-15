@@ -43,6 +43,14 @@ def test_radtube():
         test_radtube.__name__ = test.description
         yield test
 
+star = "StarParticles/plrd01000"
+@requires_ds(star)
+def test_star():
+    ds = data_dir_load(star)
+    yield assert_equal, str(ds), "plrd01000"
+    for test in small_patch_amr(star, _fields):
+        test_star.__name__ = test.description
+        yield test
 
 @requires_file(rt)
 def test_OrionDataset():
