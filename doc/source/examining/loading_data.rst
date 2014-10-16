@@ -16,8 +16,8 @@ cared for by Kenza Arraki.  Please contact the ``yt-dev`` mailing list if you
 are interested in using yt for ART data, or if you are interested in assisting
 with development of yt to work with ART data.
 
-To load an ART dataset you can use the ``yt.load`` command and provide it the
-gas mesh file.
+To load an ART dataset you can use the ``yt.load`` command and provide
+it with the gas mesh file.
 
 .. code-block:: python
     
@@ -30,8 +30,8 @@ It will search for and attempt to find the complementary dark matter and stellar
 particle header and data files. However, your simulations may not follow the
 same naming convention.
 
-For example, the single snapshot given in the sample data has a series of
-files that look like this:
+For example, the single snapshot given in the sample data has a series of files
+that look like this:
 
 .. code-block:: none
 
@@ -40,10 +40,11 @@ files that look like this:
    PMcrs0a0.500.DAT               #Particle data (positions,velocities)
    stars_a0.500.dat               #Stellar data (metallicities, ages, etc.)
 
-The ART frontend tries to find the associated files matching the above, but if
-that fails you can specify ``file_particle_header``,``file_particle_data``, and
-``file_particle_stars``, in addition to specifying the gas mesh. Note that the
-``pta0.500.dat`` file containing particle times is not loaded by yt.
+The ART frontend tries to find the associated files matching the
+above, but if that fails you can specify ``file_particle_header``,
+``file_particle_data``, and ``file_particle_stars``, in addition to
+specifying the gas mesh. Note that the ``pta0.500.dat`` or ``pt.dat``
+file containing particle time steps is not loaded by yt.
 
 You also have the option of gridding particles and assigning them onto the
 meshes.  This process is in beta, and for the time being it's probably best to
@@ -59,8 +60,9 @@ smoothing window. By default this is turned on and set to 10Myr. To turn this
 off you can set ``spread=False``, and you can tweak the age smoothing window
 by specifying the window in seconds, ``spread=1.0e7*365*24*3600``. 
 
-Preliminary support for dark matter ART data. To load a DM-only ART dataset you
-can use the ``yt.load`` command and provide it the particle data file.
+There is currently preliminary support for dark matter only ART data. To load a
+dataset use the ``yt.load`` command and provide it the particle data file. It
+will search for the complementary particle header file.
 
 .. code-block:: python
     
@@ -68,8 +70,9 @@ can use the ``yt.load`` command and provide it the particle data file.
 
    ds = yt.load("PMcrs0a0.500.DAT")
 
-This should not be used for loading just the dark matter data for a 'regular'
-hydrodynamical data set as the units and IO are different!
+Important: This should not be used for loading just the dark matter
+data for a 'regular' hydrodynamical data set as the units and IO are
+different!
 
 
 .. _loading-artio-data:
