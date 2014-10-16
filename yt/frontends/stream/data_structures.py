@@ -473,7 +473,8 @@ def unitify_data(data):
             field_units[k] = v.units
             new_data[k] = v.copy().d
         data = new_data
-    elif all([(len(val) == 2) for val in data.values()]):
+    elif all([((not isinstance(val, np.ndarray)) and (len(val) == 2))
+             for val in data.values()]):
         new_data, field_units = {}, {}
         for field in data:
             try:
