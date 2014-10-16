@@ -1,8 +1,5 @@
 """
 ART-specific data structures
-
-
-
 """
 
 #-----------------------------------------------------------------------------
@@ -13,7 +10,7 @@ ART-specific data structures
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 import numpy as np
-import os.path
+import os
 import stat
 import weakref
 import cStringIO
@@ -26,7 +23,7 @@ from yt.geometry.oct_geometry_handler import \
 from yt.geometry.geometry_handler import \
     Index, YTDataChunk
 from yt.data_objects.static_output import \
-    Dataset
+    Dataset, ParticleFile
 from yt.data_objects.octree_subset import \
     OctreeSubset
 from yt.geometry.oct_container import \
@@ -41,6 +38,8 @@ from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.data_objects.particle_unions import \
     ParticleUnion
+from yt.geometry.particle_geometry_handler import \
+    ParticleIndex
 
 from yt.frontends.art.definitions import *
 import yt.utilities.fortran_utils as fpu
@@ -94,7 +93,9 @@ class ARTIndex(OctreeIndex):
         # The 1 here refers to domain_id == 1 always for ARTIO.
         self.domains = [ARTDomainFile(self.dataset, nv, 
                                       self.oct_handler, 1)]
-        self.octs_per_domain = [dom.level_count.sum() for dom in self.domains]
+        self.octs_per_domain = [dom.level_count.sum() for dom in
+        self.domains]
+        
         self.total_octs = sum(self.octs_per_domain)
         mylog.debug("Allocating %s octs", self.total_octs)
         self.oct_handler.allocate_domains(self.octs_per_domain)
@@ -389,13 +390,31 @@ class ARTDataset(Dataset):
                 return False
         return False
 
+class ARTParticleFile(ParticleFile):
+    def __init__(self, ds, io, filename, file_id):
+        super(ARTParticleFile, self).__init__(ds, io, filename, file_id)
+        self.total_particles = {}
+        for ptype, count in zip(ds.particle_types_raw, 
+                                ds.parameters['total_particles']):
+            self.total_particles[ptype] = count
+        with open(filename, "rb") as f:
+            self._position_offset = 0
+            f.seek(0, os.SEEK_END)
+            self._file_size = f.tell()
+
+
 class DarkMatterARTDataset(ARTDataset):
+    _index_class = ParticleIndex
+    _file_class = ARTParticleFile
+
     def __init__(self, filename, dataset_type='art',
                           fields=None, storage_filename=None,
                           skip_particles=False, skip_stars=False,
                  limit_level=None, spread_age=True,
                  force_max_level=None, file_particle_header=None,
                  file_particle_stars=None):
+        self.over_refine_factor = 1
+        self.n_ref = 64
         self.particle_types += ("all",)
         if fields is None:
             fields = particle_fields
@@ -410,6 +429,7 @@ class DarkMatterARTDataset(ARTDataset):
         self.spread_age = spread_age
         self.domain_left_edge = np.zeros(3, dtype='float')
         self.domain_right_edge = np.zeros(3, dtype='float')+1.0
+        self.domain_dimensions = np.ones(3, dtype='int32')
         Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
@@ -487,6 +507,8 @@ class DarkMatterARTDataset(ARTDataset):
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         self.parameters.update(constants)
         self.parameters['Time'] = 1.0
+        self.file_count = 1
+        self.filename_template = self.parameter_filename
 
         # read the particle header
         self.particle_types = []
@@ -523,7 +545,10 @@ class DarkMatterARTDataset(ARTDataset):
             boxsize = np.fromfile(fh, count=1, dtype='>f4')
         n = nspecs
         particle_header_vals = {}
-        tmp = np.array([headerstr, aexpn, aexp0, amplt, astep, istep, partw, tintg, ekin, ekin1, ekin2, au0, aeu0, nrowc, ngridc, nspecs, nseed, Om0, Oml0, hubble, Wp5, Ocurv, wspecies, lspecies, extras, boxsize])
+        tmp = np.array([headerstr, aexpn, aexp0, amplt, astep, istep,
+            partw, tintg, ekin, ekin1, ekin2, au0, aeu0, nrowc, ngridc,
+            nspecs, nseed, Om0, Oml0, hubble, Wp5, Ocurv, wspecies,
+            lspecies, extras, boxsize])
         for i in range(len(tmp)):
             a1 = dmparticle_header_struct[0][i]
             a2 = dmparticle_header_struct[1][i]
@@ -556,6 +581,7 @@ class DarkMatterARTDataset(ARTDataset):
         self.parameters['ng'] = self.parameters['Ngridc']
         self.parameters['ncell0'] = self.parameters['ng']**3
         self.parameters['boxh'] = self.parameters['boxsize']
+        self.parameters['total_particles'] = ls_nonzero
 
         # setup standard simulation params yt expects to see
         self.current_redshift = self.parameters["aexpn"]**-1.0 - 1.0

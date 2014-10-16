@@ -26,6 +26,7 @@ from yt.utilities.fortran_utils import *
 from yt.utilities.logger import ytLogger as mylog
 from yt.frontends.art.definitions import *
 from yt.utilities.physical_constants import sec_per_year
+from yt.geometry.oct_container import _ORDER_MAX
 
 
 class IOHandlerART(BaseIOHandler):
@@ -85,6 +86,7 @@ class IOHandlerART(BaseIOHandler):
             return mask
 
     def _read_particle_coords(self, chunks, ptf):
+        chunks = list(chunks)
         for chunk in chunks:
             for ptype, field_list in sorted(ptf.items()):
                 x = self._get_field((ptype, "particle_position_x"))
@@ -93,6 +95,7 @@ class IOHandlerART(BaseIOHandler):
                 yield ptype, (x, y, z)
 
     def _read_particle_fields(self, chunks, ptf, selector):
+        chunks = list(chunks)
         for chunk in chunks:
             for ptype, field_list in sorted(ptf.items()):
                 x = self._get_field((ptype, "particle_position_x"))
@@ -176,6 +179,26 @@ class IOHandlerART(BaseIOHandler):
             return self.cache[field]
         else:
             return tr[field]
+
+class IOHandlerDarkMatterART(IOHandlerART):
+    def _count_particles(self, data_file):
+        return self.ds.parameters['lspecies'][-1]
+
+    def _initialize_index(self, data_file, regions):
+        count = sum(data_file.total_particles.values())
+        DLE = data_file.ds.domain_left_edge
+        DRE = data_file.ds.domain_right_edge
+        dx = (DRE - DLE) / 2**_ORDER_MAX
+        with open(data_file.filename, "rb") as f:
+            # We add on an additionally 4 for the first record.
+            f.seek(data_file._position_offset + 4)
+            # The first total_particles * 3 values are positions
+            pp = np.fromfile(f, dtype = 'float32', count = count*3)
+            pp.shape = (count, 3)
+        regions.add_data_file(pp, data_file.file_id, data_file.ds.filter_bbox)
+        morton = compute_morton(pp[:,0], pp[:,1], pp[:,2], DLE, DRE,
+                                                data_file.ds.filter_bbox)
+        return morton
 
 def _determine_field_size(pf, field, lspecies, ptmax):
     pbool = np.zeros(len(lspecies), dtype="bool")
