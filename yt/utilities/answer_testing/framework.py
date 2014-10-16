@@ -32,6 +32,7 @@ from yt.testing import *
 from yt.convenience import load, simulation
 from yt.config import ytcfg
 from yt.data_objects.static_output import Dataset
+from yt.data_objects.time_series import SimulationTimeSeries
 from yt.utilities.logger import disable_stream_logging
 from yt.utilities.command_line import get_yt_version
 
@@ -255,6 +256,22 @@ def can_run_ds(ds_fn, file_check = False):
                 AnswerTestingTest.result_storage is not None
         try:
             load(ds_fn)
+        except YTOutputNotIdentified:
+            return False
+    return AnswerTestingTest.result_storage is not None
+
+def can_run_sim(sim_fn, sim_type, file_check = False):
+    if isinstance(sim_fn, SimulationTimeSeries):
+        return AnswerTestingTest.result_storage is not None
+    path = ytcfg.get("yt", "test_data_dir")
+    if not os.path.isdir(path):
+        return False
+    with temp_cwd(path):
+        if file_check:
+            return os.path.isfile(sim_fn) and \
+                AnswerTestingTest.result_storage is not None
+        try:
+            simulation(sim_fn, sim_type)
         except YTOutputNotIdentified:
             return False
     return AnswerTestingTest.result_storage is not None
@@ -727,7 +744,18 @@ class GenericImageTest(AnswerTestingTest):
     def compare(self, new_result, old_result):
         compare_image_lists(new_result, old_result, self.decimals)
 
-
+def requires_sim(sim_fn, sim_type, big_data = False, file_check = False):
+    def ffalse(func):
+        return lambda: None
+    def ftrue(func):
+        return func
+    if run_big_data == False and big_data == True:
+        return ffalse
+    elif not can_run_sim(sim_fn, sim_type, file_check):
+        return ffalse
+    else:
+        return ftrue
+        
 def requires_ds(ds_fn, big_data = False, file_check = False):
     def ffalse(func):
         return lambda: None
