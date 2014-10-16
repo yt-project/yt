@@ -414,6 +414,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         width = self.ds.arr((self.bounds[1] - self.bounds[0],
                              self.bounds[3] - self.bounds[2],
                              self.bounds[5] - self.bounds[4]))
+        #raise NotImplementedError
         buff = off_axis_projection(dd.ds, dd.center, dd.normal_vector,
                                    width, dd.resolution, item,
                                    weight=dd.weight_field, volume=dd.volume,
@@ -424,6 +425,6 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
             units *= Unit('cm', registry=dd.ds.unit_registry)
         ia = ImageArray(buff.swapaxes(0,1), input_units=units, info=self._get_info(item))
         self[item] = ia
-        return ia 
+        return ia
 
 

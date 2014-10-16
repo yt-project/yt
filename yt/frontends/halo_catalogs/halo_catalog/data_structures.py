@@ -52,8 +52,11 @@ class HaloCatalogDataset(Dataset):
     _suffix = ".h5"
 
     def __init__(self, filename, dataset_type="halocatalog_hdf5",
-                 n_ref = 16, over_refine_factor = 1):
+                 n_ref = 16, over_refine_factor = 1, catalog=None):
         self.n_ref = n_ref
+        if catalog is None:
+            datalog = whatever_default
+        self.catalog = catalog
         self.over_refine_factor = over_refine_factor
         super(HaloCatalogDataset, self).__init__(filename, dataset_type)
 

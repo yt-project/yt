@@ -18,6 +18,7 @@ from yt.units.yt_array import YTArray
 cimport numpy as np
 cimport cython
 cimport libc.math as math
+from libc.math cimport abs
 from fp_utils cimport fmin, fmax
 
 cdef extern from "stdlib.h":
@@ -227,19 +228,28 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
     cdef int dx, dy, sx, sy, e2, err
     cdef np.int64_t x0, x1, y0, y1
     cdef int has_alpha = (image.shape[2] == 4)
+    cdef int no_color = (image.shape[2] < 3)
     for j in range(0, nl, 2):
         # From wikipedia http://en.wikipedia.org/wiki/Bresenham's_line_algorithm
-        x0 = xs[j]; y0 = ys[j]; x1 = xs[j+1]; y1 = ys[j+1]
+        x0 = xs[j] 
+        y0 = ys[j]
+        x1 = xs[j+1]
+        y1 = ys[j+1]
         dx = abs(x1-x0)
         dy = abs(y1-y0)
         err = dx - dy
-        if has_alpha:
+
+        if no_color:
+            for i in range(4):
+                alpha[i] = colors[j, 0]
+        elif has_alpha:
             for i in range(4):
                 alpha[i] = colors[j/points_per_color,i]
         else:
             for i in range(3):
                 alpha[i] = colors[j/points_per_color,3]*\
                         colors[j/points_per_color,i]
+
         if x0 < x1:
             sx = 1
         else:
@@ -256,7 +266,9 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
             if x0 >= thick and x0 < nx-thick and y0 >= thick and y0 < ny-thick:
                 for xi in range(x0-thick/2, x0+(1+thick)/2):
                     for yi in range(y0-thick/2, y0+(1+thick)/2):
-                        if has_alpha:
+                        if no_color:
+                            image[xi, yi, 0] = fmin(alpha[i], image[xi, yi, 0])
+                        elif has_alpha:
                             image[xi, yi, 3] = outa = alpha[3] + image[xi, yi, 3]*(1-alpha[3])
                             if outa != 0.0:
                                 outa = 1.0/outa
@@ -268,6 +280,7 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
                             for i in range(3):
                                 image[xi, yi, i] = \
                                         (1.-alpha[i])*image[xi,yi,i] + alpha[i]
+
 
             if (x0 == x1 and y0 == y1):
                 break

@@ -18,8 +18,8 @@ import tempfile
 import shutil
 from yt.testing import \
     fake_random_ds, assert_equal, expand_keywords
-from yt.mods import \
-    off_axis_projection, write_projection
+from yt.mods import write_projection
+from yt.visualization.volume_rendering.api import off_axis_projection
 
 
 def setup():
