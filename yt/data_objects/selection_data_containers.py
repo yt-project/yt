@@ -542,8 +542,8 @@ class YTDataCollectionBase(YTSelectionContainer3D):
     """
     _type_name = "data_collection"
     _con_args = ("_obj_list",)
-    def __init__(self, center, obj_list, ds = None, field_parameters = None):
-        YTSelectionContainer3D.__init__(self, center, ds, field_parameters)
+    def __init__(self, obj_list, ds = None, field_parameters = None):
+        YTSelectionContainer3D.__init__(self, None, ds, field_parameters)
         self._obj_ids = np.array([o.id - o._id_offset for o in obj_list],
                                 dtype="int64")
         self._obj_list = obj_list
