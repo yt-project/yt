@@ -771,7 +771,7 @@ def load_amr_grids(grid_data, domain_dimensions,
     ...     g["density"] = np.random.random(g["dimensions"]) * 2**g["level"]
     ...
     >>> units = dict(density='g/cm**3')
-    >>> ds = load_amr_grids(grid_data, [8, 8, 8], field_units=units,
+    >>> ds = load_amr_grids(grid_data, [32, 32, 32], field_units=units,
     ...                     length_unit=1.0)
     """
 
