@@ -71,7 +71,6 @@ default_unit_symbol_lut = {
 
     # Velocities
     "c": (speed_of_light_cm_per_s, dimensions.velocity),
-    "beta": (speed_of_light_cm_per_s, dimensions.dimensionless),
 
     # Solar units
     "Msun": (mass_sun_grams, dimensions.mass),
@@ -220,5 +219,4 @@ unit_equivalences = {
     "C":("mks","esu"),
     "T":("mks","gauss"),
     "A":("mks","statA"),
-    "beta":(None,"c"),
 }
