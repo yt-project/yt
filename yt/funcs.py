@@ -762,7 +762,7 @@ def enable_plugins():
         mylog.info("Loading plugins from %s", _fn)
         execdict = yt.__dict__
         execdict['add_field'] = my_plugins_fields.add_field
-        execfile(_fn, yt.__dict__)
+        execfile(_fn, execdict)
 
 def fix_unitary(u):
     if u == '1':
