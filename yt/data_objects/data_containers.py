@@ -41,6 +41,8 @@ from yt.fields.field_exceptions import \
 from yt.fields.derived_field import \
     ValidateSpatial
 import yt.geometry.selection_routines
+from yt.geometry.selection_routines import \
+    compose_selector
 from yt.extern.six import add_metaclass
 
 def force_array(item, shape):
@@ -542,9 +544,12 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     _sort_by = None
     _selector = None
     _current_chunk = None
+    _data_source = None
 
-    def __init__(self, *args, **kwargs):
-        super(YTSelectionContainer, self).__init__(*args, **kwargs)
+    def __init__(self, ds, field_parameters, data_source=None):
+        ParallelAnalysisInterface.__init__(self)
+        super(YTSelectionContainer, self).__init__(ds, field_parameters)
+        self._data_source = data_source
 
     @property
     def selector(self):
@@ -555,7 +560,11 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                          "%s_selector" % self._type_name, None)
         if sclass is None:
             raise YTDataSelectorNotImplemented(self._type_name)
-        self._selector = sclass(self)
+
+        if self._data_source is not None:
+            self._selector = compose_selector(self, self._data_source.selector, sclass(self))
+        else:
+            self._selector = sclass(self)
         return self._selector
 
     def chunks(self, fields, chunking_style, **kwargs):
@@ -765,15 +774,15 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
 
 class YTSelectionContainer0D(YTSelectionContainer):
     _spatial = False
-    def __init__(self, ds, field_parameters):
+    def __init__(self, ds, field_parameters = None, data_source = None):
         super(YTSelectionContainer0D, self).__init__(
-            ds, field_parameters)
+            ds, field_parameters, data_source)
 
 class YTSelectionContainer1D(YTSelectionContainer):
     _spatial = False
-    def __init__(self, ds, field_parameters):
+    def __init__(self, ds, field_parameters = None, data_source = None):
         super(YTSelectionContainer1D, self).__init__(
-            ds, field_parameters)
+            ds, field_parameters, data_source)
         self._grids = None
         self._sortkey = None
         self._sorted = {}
@@ -785,10 +794,9 @@ class YTSelectionContainer2D(YTSelectionContainer):
     aligned with any axis.
     """
     _spatial = False
-    def __init__(self, axis, ds, field_parameters):
-        ParallelAnalysisInterface.__init__(self)
+    def __init__(self, axis, ds, field_parameters = None, data_source = None):
         super(YTSelectionContainer2D, self).__init__(
-            ds, field_parameters)
+            ds, field_parameters, data_source)
         # We need the ds, which will exist by now, for fix_axis.
         self.axis = fix_axis(axis, self.ds)
         self.set_field_parameter("axis", axis)
@@ -908,9 +916,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
     _key_fields = ['x','y','z','dx','dy','dz']
     _spatial = False
     _num_ghost_zones = 0
-    def __init__(self, center, ds = None, field_parameters = None):
-        ParallelAnalysisInterface.__init__(self)
-        super(YTSelectionContainer3D, self).__init__(ds, field_parameters)
+    def __init__(self, center, ds, field_parameters = None, data_source = None):
+        super(YTSelectionContainer3D, self).__init__(ds, field_parameters, data_source)
         self._set_center(center)
         self.coords = None
         self._grids = None
@@ -1271,9 +1278,9 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
     """
     _type_name = "boolean"
     _con_args = ("regions",)
-    def __init__(self, regions, fields = None, ds = None, **kwargs):
+    def __init__(self, regions, fields = None, ds = None, field_parameters = None, data_source = None):
         # Center is meaningless, but we'll define it all the same.
-        YTSelectionContainer3D.__init__(self, [0.5]*3, fields, ds, **kwargs)
+        YTSelectionContainer3D.__init__(self, [0.5]*3, fields, ds, field_parameters, data_source)
         self.regions = regions
         self._all_regions = []
         self._some_overlap = []
