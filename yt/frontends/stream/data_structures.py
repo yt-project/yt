@@ -701,7 +701,7 @@ def load_amr_grids(grid_data, domain_dimensions,
                    field_units=None, bbox=None, sim_time=0.0, length_unit=None,
                    mass_unit=None, time_unit=None, velocity_unit=None,
                    magnetic_unit=None, periodicity=(True, True, True),
-                   geometry = "cartesian"):
+                   geometry = "cartesian", refine_by=2):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
     This should allow a sequence of grids of varying resolution of data to be
@@ -751,6 +751,8 @@ def load_amr_grids(grid_data, domain_dimensions,
         each axis
     geometry : string
         "cartesian", "cylindrical" or "polar"
+    refine_by : integer
+        Specifies the refinement ratio between levels.  Defaults to 2.
 
     Examples
     --------
@@ -849,7 +851,7 @@ def load_amr_grids(grid_data, domain_dimensions,
     handler.name = "AMRGridData"
     handler.domain_left_edge = domain_left_edge
     handler.domain_right_edge = domain_right_edge
-    handler.refine_by = 2
+    handler.refine_by = refine_by
     handler.dimensionality = 3
     handler.domain_dimensions = domain_dimensions
     handler.simulation_time = sim_time
