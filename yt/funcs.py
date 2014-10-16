@@ -14,7 +14,6 @@ Useful functions.  If non-original, see function for citation.
 #-----------------------------------------------------------------------------
 
 import time, types, signal, inspect, traceback, sys, pdb, os, re
-import time, types, signal, inspect, traceback, sys, pdb, os, re
 import contextlib
 import warnings, struct, subprocess
 import numpy as np
@@ -748,9 +747,10 @@ def deprecated_class(cls):
             SyntaxWarning, stacklevel=2)
         return cls(*args, **kwargs)
     return _func
-    
+
 def enable_plugins():
     import yt
+    from yt.fields.my_plugin_fields import my_plugins_fields
     from yt.config import ytcfg
     my_plugin_name = ytcfg.get("yt","pluginfilename")
     # We assume that it is with respect to the $HOME/.yt directory
@@ -760,6 +760,8 @@ def enable_plugins():
         _fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
     if os.path.isfile(_fn):
         mylog.info("Loading plugins from %s", _fn)
+        execdict = yt.__dict__
+        execdict['add_field'] = my_plugins_fields.add_field
         execfile(_fn, yt.__dict__)
 
 def fix_unitary(u):
