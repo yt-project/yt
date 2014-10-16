@@ -760,7 +760,7 @@ def enable_plugins():
         _fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
     if os.path.isfile(_fn):
         mylog.info("Loading plugins from %s", _fn)
-        execdict = yt.__dict__
+        execdict = yt.__dict__.copy()
         execdict['add_field'] = my_plugins_fields.add_field
         execfile(_fn, execdict)
 
