@@ -211,8 +211,12 @@ class Unit(Expr):
         equivalences = []
         is_mks = []
         for atom in unit_expr.atoms():
-            if str(atom) in unit_equivalences:
-                unit_sys, equiv = unit_equivalences[str(atom)]
+            ua = str(atom)
+            possible_prefix = ua[0]
+            if possible_prefix in unit_prefixes:
+                ua = ua[1:]
+            if ua in unit_equivalences:
+                unit_sys, equiv = unit_equivalences[ua]
                 is_mks.append(unit_sys == "mks")
                 equivalences.append((atom, symbols(equiv)))
         if len(equivalences) > 0:
