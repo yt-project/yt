@@ -461,7 +461,7 @@ def get_conversion_factor(old_units, new_units):
             return ratio, ratio*old_units.cgs_offset - new_units.cgs_offset
         else:
             raise InvalidUnitOperation(
-                "Fahrenheit and Celsius are not absoulte temperature scales "
+                "Fahrenheit and Celsius are not absolute temperature scales "
                 "and cannot be used in compound unit symbols.")
 
 #
