@@ -197,6 +197,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
             pp.shape = (3, totcount)
             pp = pp[:,:count] #remove zeros
             pp = np.transpose(pp).astype(np.float32) #cast as float32 for compute_morton
+            pp = (pp - 1.)/data_file.ds.parameters['ng'] #correct the dm particle units
         regions.add_data_file(pp, data_file.file_id)
         morton = compute_morton(pp[:,0], pp[:,1], pp[:,2], DLE, DRE)
         return morton

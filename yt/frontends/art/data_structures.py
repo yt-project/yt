@@ -427,10 +427,9 @@ class DarkMatterARTDataset(ARTDataset):
         self.parameter_filename = filename
         self.skip_stars = skip_stars
         self.spread_age = spread_age
-        self.domain_left_edge = np.zeros(3, dtype='float')+1.0
-        self.domain_right_edge = np.zeros(3, dtype='float')+513.0 # CHANGE THIS!!!
-        self.domain_dimensions = np.ones(3, dtype='int64')
-        print self.domain_dimensions
+        self.domain_left_edge = np.zeros(3, dtype='float')
+        self.domain_right_edge = np.zeros(3, dtype='float')+1.0
+#        self.domain_dimensions = np.ones(3, dtype='int64')
         Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
@@ -465,7 +464,6 @@ class DarkMatterARTDataset(ARTDataset):
         Generates the conversion to various physical units based
                 on the parameters from the header
         """
-
         # spatial units
         z = self.current_redshift
         h = self.hubble_constant
@@ -583,6 +581,8 @@ class DarkMatterARTDataset(ARTDataset):
         self.parameters['ncell0'] = self.parameters['ng']**3
         self.parameters['boxh'] = self.parameters['boxsize']
         self.parameters['total_particles'] = ls_nonzero
+        self.domain_dimensions = np.ones(3,
+                        dtype='int64')*self.parameters['ng']
 
         # setup standard simulation params yt expects to see
         self.current_redshift = self.parameters["aexpn"]**-1.0 - 1.0
