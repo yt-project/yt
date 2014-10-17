@@ -723,10 +723,12 @@ class OrionDataset(BoxlibDataset):
                  cparam_filename="inputs",
                  fparam_filename="probin",
                  dataset_type='orion_native',
-                 storage_filename=None):
+                 storage_filename=None,
+                 units_override=None):
 
         BoxlibDataset.__init__(self, output_dir,
-                               cparam_filename, fparam_filename, dataset_type)
+                               cparam_filename, fparam_filename,
+                               dataset_type, units_override=units_override)
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
