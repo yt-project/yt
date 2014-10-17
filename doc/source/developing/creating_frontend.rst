@@ -172,6 +172,12 @@ At a minimum, one should also override the following methods
   dictionary whose keys are the fields and whose values are numpy arrays of
   the data.
 
+If your dataset has particle information, you'll want to override the
+``_read_particle_coords()`` and ``read_particle_fields()`` methods as
+well.  Each code is going to read data from disk in a different
+fashion, but the ``yt.frontends.boxlib.io.IOHandlerBoxlib`` is a
+decent place to start.
+
 And that just about covers it. Please feel free to email
 `yt-users <http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org>`_ or
 `yt-dev <http://lists.spacepope.org/listinfo.cgi/yt-dev-spacepope.org>`_ with
