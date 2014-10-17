@@ -56,10 +56,12 @@ class RockstarDataset(Dataset):
     _suffix = ".bin"
 
     def __init__(self, filename, dataset_type="rockstar_binary",
-                 n_ref = 16, over_refine_factor = 1):
+                 n_ref = 16, over_refine_factor = 1,
+                 units_override=None):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
-        super(RockstarDataset, self).__init__(filename, dataset_type)
+        super(RockstarDataset, self).__init__(filename, dataset_type,
+                                              units_override=units_override)
 
     def _parse_parameter_file(self):
         with open(self.parameter_filename, "rb") as f:
