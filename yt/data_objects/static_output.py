@@ -695,7 +695,9 @@ class Dataset(object):
                           ("velocity","cm/s"), ("magnetic","gauss"), ("temperature","K")]:
             val = self.units_override.get("%s_unit" % unit, None)
             if val is not None:
-                if not isinstance(val, tuple):
+                if isinstance(val, YTQuantity):
+                    val = (val.v, str(val.units))
+                elif not isinstance(val, tuple):
                     val = (val, cgs)
                 u = getattr(self, "%s_unit" % unit)
                 mylog.info("Overriding %s_unit: %g %s -> %g %s.", unit, u.v, u.units, val[0], val[1])
