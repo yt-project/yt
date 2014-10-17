@@ -46,9 +46,6 @@ class SkeletonHierarchy(GridIndex):
         self.directory = os.path.dirname(self.index_filename)
         GridIndex.__init__(self, ds, dataset_type)
 
-    def _initialize_data_storage(self):
-        pass
-
     def _detect_output_fields(self):
         # This needs to set a self.field_list that contains all the available,
         # on-disk fields.
