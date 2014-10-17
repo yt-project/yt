@@ -1,6 +1,5 @@
 """
-Base dimensions
-
+Equivalencies between different kinds of units
 
 """
 
@@ -13,7 +12,8 @@ Base dimensions
 #-----------------------------------------------------------------------------
 
 import yt.utilities.physical_constants as pc
-from yt.units.dimensions import temperature, mass, energy, length, rate
+from yt.units.dimensions import temperature, mass, energy, length, rate, \
+    velocity
 from yt.extern.six import add_metaclass
 import numpy as np
 
