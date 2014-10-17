@@ -683,7 +683,8 @@ class EnzoDataset(Dataset):
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
         self.storage_filename = storage_filename
-        Dataset.__init__(self, filename, dataset_type, file_style=file_style, units_override=units_override)
+        Dataset.__init__(self, filename, dataset_type, file_style=file_style,
+                         units_override=units_override)
 
     def _setup_1d(self):
         self._index_class = EnzoHierarchy1D
