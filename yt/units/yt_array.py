@@ -511,12 +511,6 @@ class YTArray(np.ndarray):
         """
         from equivalencies import equivalence_registry
         this_equiv = equivalence_registry[equiv]()
-        possible_prefix = unit[0]
-        symbol_wo_prefix = unit[1:]
-        if possible_prefix in unit_prefixes and symbol_wo_prefix in prefixable_units:
-            u = unit[1:]
-        else:
-            u = unit
         old_dims = self.units.dimensions
         new_dims = YTQuantity(1.0, unit, registry=self.units.registry).units.dimensions
         if old_dims in this_equiv.dims and new_dims in this_equiv.dims:
