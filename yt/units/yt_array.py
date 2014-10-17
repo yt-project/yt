@@ -490,7 +490,25 @@ class YTArray(np.ndarray):
         """
         return self.in_units(self.units.get_mks_equivalent())
 
-    def in_equivalent(self, unit, equiv):
+    def to_equivalent(self, unit, equiv, **kwargs):
+        """
+        Convert a YTArray or YTQuantity to an equivalent, e.g., something that is
+        related by only a constant factor but not in the same units.
+
+        Parameters
+        ----------
+        unit : string
+            The unit that you wish to convert to.
+        equiv : string
+            The equivalence you wish to use. To see which equivalencies are
+            supported for this unitful quantity, try the :method:`list_equivalencies`
+            method.
+
+        Examples
+        --------
+        >>> a = yt.YTArray(1.0e7,"K")
+        >>> a.to_equivalent("keV", "thermal")
+        """
         from equivalencies import equivalence_registry
         this_equiv = equivalence_registry[equiv]()
         possible_prefix = unit[0]
@@ -502,11 +520,15 @@ class YTArray(np.ndarray):
         old_dims = self.units.dimensions
         new_dims = self.units.registry.lut[u][1]
         if old_dims in this_equiv.dims and new_dims in this_equiv.dims:
-            return this_equiv.convert(self, new_dims).in_units(unit)
+            return this_equiv.convert(self, new_dims, **kwargs).in_units(unit)
         else:
             raise YTInvalidUnitEquivalence(equiv, self.units, unit)
 
     def list_equivalencies(self):
+        """
+        Lists the possible equivalencies associated with this YTArray or
+        YTQuantity.
+        """
         from equivalencies import equivalence_registry
         for k,v in equivalence_registry.items():
             if self.units.dimensions in v.dims:

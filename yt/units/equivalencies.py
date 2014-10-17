@@ -15,6 +15,7 @@ Base dimensions
 import yt.utilities.physical_constants as pc
 from yt.units.dimensions import temperature, mass, energy, length, rate
 from yt.extern.six import add_metaclass
+import numpy as np
 
 equivalence_registry = {}
 
@@ -79,3 +80,23 @@ class SpectralEquivalence(Equivalence):
     def __str__(self):
         return "spectral: length <-> rate <-> energy"
 
+class SoundSpeedEquivalence(Equivalence):
+    _type_name = "sound_speed"
+    dims = (velocity,temperature,energy,)
+
+    def convert(self, x, new_dims, mu=0.6, gamma=5./3.):
+        if new_dims == velocity:
+            if x.units.dimensions == temperature:
+                kT = pc.kboltz*x
+            elif x.units.dimensions == energy:
+                kT = x
+            return np.sqrt(gamma*kT/(mu*pc.mh))
+        else:
+            kT = x*x*mu*pc.mh/gamma
+            if new_dims == temperature:
+                return kT/pc.kboltz
+            else:
+                return kT
+
+    def __str__(self):
+        return "sound_speed: velocity <-> temperature <-> energy"
