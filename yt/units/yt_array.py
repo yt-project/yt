@@ -518,7 +518,7 @@ class YTArray(np.ndarray):
         else:
             u = unit
         old_dims = self.units.dimensions
-        new_dims = self.units.registry.lut[u][1]
+        new_dims = YTQuantity(1.0, unit, registry=self.units.registry).units.dimensions
         if old_dims in this_equiv.dims and new_dims in this_equiv.dims:
             return this_equiv.convert(self, new_dims, **kwargs).in_units(unit)
         else:
