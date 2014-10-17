@@ -513,7 +513,7 @@ class YTDiskBase(YTSelectionContainer3D):
     _con_args = ('center', '_norm_vec', 'radius', 'height')
     def __init__(self, center, normal, radius, height, fields=None,
                  ds=None, field_parameters = None, data_source = None):
-        YTSelectionContainer3D.__init__(self, center, fields, ds, field_parameters, data_source)
+        YTSelectionContainer3D.__init__(self, center, ds, field_parameters, data_source)
         self._norm_vec = np.array(normal)/np.sqrt(np.dot(normal,normal))
         self.set_field_parameter("normal", self._norm_vec)
         self.set_field_parameter("center", self.center)
