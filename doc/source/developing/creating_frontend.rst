@@ -74,7 +74,7 @@ your on-disk field for the x-direction velocity were
 ``"x-direction-velocity"``, maybe you'd prefer to alias to the more
 terse name of ``"xvel"``.  ``"display_name"`` is an optional parameter
 that can be used to specify how you want the field to be displayed on
-a plot; this can be LaTeX-code, for example the density field could
+a plot; this can be LaTeX code, for example the density field could
 have a display name of ``r"\rho"``.  Omitting the ``"display_name"``
 will result in using a capitalized version of the ``"name"``.
 
