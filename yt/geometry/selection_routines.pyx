@@ -1728,7 +1728,6 @@ cdef class ComposeSelector(SelectorObject):
     def __init__(self, dobj, selector1, selector2):
         self.selector1 = selector1
         self.selector2 = selector2
-        self.overlap_cells = 1
 
     def select_grids(self,
                      np.ndarray[np.float64_t, ndim=2] left_edges,
