@@ -40,6 +40,7 @@ from yt.data_objects.particle_unions import \
     ParticleUnion
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
+from yt.utilities.lib.geometry_utils import compute_morton
 
 from yt.frontends.art.definitions import *
 import yt.utilities.fortran_utils as fpu
@@ -398,7 +399,6 @@ class ARTParticleFile(ParticleFile):
                                 ds.parameters['total_particles']):
             self.total_particles[ptype] = count
         with open(filename, "rb") as f:
-            self._position_offset = 0
             f.seek(0, os.SEEK_END)
             self._file_size = f.tell()
 
@@ -406,6 +406,7 @@ class ARTParticleFile(ParticleFile):
 class DarkMatterARTDataset(ARTDataset):
     _index_class = ParticleIndex
     _file_class = ARTParticleFile
+    filter_bbox = False
 
     def __init__(self, filename, dataset_type='art',
                           fields=None, storage_filename=None,
@@ -422,7 +423,6 @@ class DarkMatterARTDataset(ARTDataset):
         self._fields_in_file = fields
         self._file_particle = filename
         self._file_particle_header = file_particle_header
-        self._file_particle_stars = file_particle_stars
         self._find_files(filename)
         self.parameter_filename = filename
         self.skip_stars = skip_stars

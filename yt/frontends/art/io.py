@@ -26,6 +26,7 @@ from yt.utilities.fortran_utils import *
 from yt.utilities.logger import ytLogger as mylog
 from yt.frontends.art.definitions import *
 from yt.utilities.physical_constants import sec_per_year
+from yt.utilities.lib.geometry_utils import compute_morton
 from yt.geometry.oct_container import _ORDER_MAX
 
 
@@ -185,19 +186,19 @@ class IOHandlerDarkMatterART(IOHandlerART):
         return self.ds.parameters['lspecies'][-1]
 
     def _initialize_index(self, data_file, regions):
-        count = sum(data_file.total_particles.values())
+        totcount = 4096**2 #file is always this size
+        count = data_file.ds.parameters['lspecies'][-1]
         DLE = data_file.ds.domain_left_edge
         DRE = data_file.ds.domain_right_edge
         dx = (DRE - DLE) / 2**_ORDER_MAX
         with open(data_file.filename, "rb") as f:
-            # We add on an additionally 4 for the first record.
-            f.seek(data_file._position_offset + 4)
             # The first total_particles * 3 values are positions
-            pp = np.fromfile(f, dtype = 'float32', count = count*3)
-            pp.shape = (count, 3)
-        regions.add_data_file(pp, data_file.file_id, data_file.ds.filter_bbox)
-        morton = compute_morton(pp[:,0], pp[:,1], pp[:,2], DLE, DRE,
-                                                data_file.ds.filter_bbox)
+            pp = np.fromfile(f, dtype = '>f4', count = totcount*3)
+            pp.shape = (3, totcount)
+            pp = pp[:,:count] #remove zeros
+            pp = np.transpose(pp)
+        regions.add_data_file(pp, data_file.file_id)
+        morton = compute_morton(pp[:,0], pp[:,1], pp[:,2], DLE, DRE)
         return morton
 
 def _determine_field_size(pf, field, lspecies, ptmax):
