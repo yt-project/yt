@@ -633,7 +633,7 @@ class YTEllipsoidBase(YTSelectionContainer3D):
     _type_name = "ellipsoid"
     _con_args = ('center', '_A', '_B', '_C', '_e0', '_tilt')
     def __init__(self, center, A, B, C, e0, tilt, fields=None,
-                 ds=None, field_parameters = None, data_source = None):
+                 ds = None, field_parameters = None, data_source = None):
         YTSelectionContainer3D.__init__(self, center, ds, field_parameters, data_source)
         # make sure the magnitudes of semi-major axes are in order
         if A<B or B<C:
@@ -643,7 +643,7 @@ class YTEllipsoidBase(YTSelectionContainer3D):
         self._B = self.ds.quan(B, 'code_length')
         self._C = self.ds.quan(C, 'code_length')
         if self._C < self.index.get_smallest_dx():
-            raise YTSphereTooSmall(ds, self._C, self.index.get_smallest_dx())
+            raise YTSphereTooSmall(self.ds, self._C, self.index.get_smallest_dx())
         self._e0 = e0 = e0 / (e0**2.0).sum()**0.5
         self._tilt = tilt
         

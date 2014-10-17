@@ -103,8 +103,15 @@ class YTDataContainer(object):
         sets its initial set of fields, and the remainder of the arguments
         are passed as field_parameters.
         """
-        if ds != None:
+        # ds is typically set in the new object type created in Dataset._add_object_class
+        # but it can also be passed as a parameter to the constructor, in which case it will 
+        # override the default. This code ensures it is never not set.
+        if ds is not None:
             self.ds = ds
+        else:
+            if not hasattr(self, "ds"):
+                raise RuntimeError("Error: ds must be set either through class type or parameter to the constructor")
+
         self._current_particle_type = "all"
         self._current_fluid_type = self.ds.default_fluid_type
         self.ds.objects.append(weakref.proxy(self))
@@ -545,14 +552,21 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     _selector = None
     _current_chunk = None
     _data_source = None
+    _dimensionality = None
 
     def __init__(self, ds, field_parameters, data_source=None):
         ParallelAnalysisInterface.__init__(self)
         super(YTSelectionContainer, self).__init__(ds, field_parameters)
         self._data_source = data_source
-        if data_source is not None and data_source.ds is not ds:
-            raise RuntimeError("Attempted to construct a DataContainer with a data_source from a different DataSet")
-
+        if data_source is not None:
+            if data_source.ds is not self.ds:
+                raise RuntimeError("Attempted to construct a DataContainer with a data_source from a different DataSet", ds, data_source.ds)
+            else:
+                print "DataSets: ", self.ds, data_source.ds
+            if data_source._dimensionality < self._dimensionality:
+                raise RuntimeError("Attempted to construct a DataContainer with a data_source of lower dimensionality (%u vs %u)" %
+                                    (data_source._dimensionality, self._dimensionality))
+ 
     @property
     def selector(self):
         if self._selector is not None: return self._selector
@@ -776,12 +790,14 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
 
 class YTSelectionContainer0D(YTSelectionContainer):
     _spatial = False
+    _dimensionality = 0
     def __init__(self, ds, field_parameters = None, data_source = None):
         super(YTSelectionContainer0D, self).__init__(
             ds, field_parameters, data_source)
 
 class YTSelectionContainer1D(YTSelectionContainer):
     _spatial = False
+    _dimensionality = 1
     def __init__(self, ds, field_parameters = None, data_source = None):
         super(YTSelectionContainer1D, self).__init__(
             ds, field_parameters, data_source)
@@ -791,6 +807,7 @@ class YTSelectionContainer1D(YTSelectionContainer):
 
 class YTSelectionContainer2D(YTSelectionContainer):
     _key_fields = ['px','py','pdx','pdy']
+    _dimensionality = 2
     """
     Prepares the YTSelectionContainer2D, normal to *axis*.  If *axis* is 4, we are not
     aligned with any axis.
@@ -918,6 +935,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
     _key_fields = ['x','y','z','dx','dy','dz']
     _spatial = False
     _num_ghost_zones = 0
+    _dimensionality = 3
     def __init__(self, center, ds, field_parameters = None, data_source = None):
         super(YTSelectionContainer3D, self).__init__(ds, field_parameters, data_source)
         self._set_center(center)
