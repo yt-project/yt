@@ -50,7 +50,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
             lname = 'level_%i' % level
             if lname not in self._handle: break
             boxes = self._handle['level_0']['boxes'].value
-            box_sizes = [box_size(box) for box in boxes]
+            box_sizes = np.array([box_size(box) for box in boxes])
 
             offsets = np.cumsum(box_sizes*num_comp, dtype='int64') 
             offsets -= offsets[0]
