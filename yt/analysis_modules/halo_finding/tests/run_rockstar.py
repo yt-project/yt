@@ -12,11 +12,11 @@ comm = MPI.Comm.Get_parent()
 def _dm_filter(pfilter, data):
     return data["creation_time"] <= 0.0
 
-def setup_pf(pf):
-    pf.add_particle_filter("dark_matter")
+def setup_ds(ds):
+    ds.add_particle_filter("dark_matter")
 
 es = yt.simulation("Enzo_64/64.param", "Enzo")
-es.get_time_series(setup_function=setup_pf,
+es.get_time_series(setup_function=setup_ds,
                    redshifts=[1., 0.])
 
 rh = RockstarHaloFinder(es, num_readers=1, num_writers=1,
