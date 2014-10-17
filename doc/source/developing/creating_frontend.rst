@@ -33,31 +33,50 @@ Data Meaning Structures
 If you are interested in adding a new code, be sure to drop us a line on
 `yt-dev <http://lists.spacepope.org/listinfo.cgi/yt-dev-spacepope.org>`_!
 
-To get started, make a new directory in ``yt/frontends`` with the name of your
-code -- you can start by copying into it the contents of the ``stream``
-directory, which is a pretty empty format. You'll then have to create a subclass
-of ``Dataset``. This subclass will need to handle conversion between the
-different physical units and the code units; for the most part, the examples of
-``OrionDataset`` and ``EnzoDataset`` should be followed, but
-``ChomboDataset``, as a slightly newer addition, can also be used as an
-instructive example -- be sure to add an ``_is_valid`` classmethod that will
-verify if a filename is valid for that output type, as that is how "load" works.
+To get started, make a new directory in ``yt/frontends`` with the name
+of your code.  Copying the contents of the ``yt/frontends/_skeleton``
+directory will add a lot of boilerplate for the required classes and
+methods that are needed.  In particular, you'll have to create a
+subclass of ``Dataset``. This subclass will need to handle conversion
+between the different physical units and the code units (typically in
+the ``_set_code_unit_attributes`` method), read in metadata describing
+the overall data on disk (via the ``_parse_parameter_file`` method),
+and provide a ``classmethod`` called ``_is_valid`` that lets the
+``yt.load`` method help identify an input file as belonging to *this*
+particular ``Dataset`` subclass.  For the most part, the examples of
+``yt.frontends.boxlib.OrionDataset`` and
+``yt.frontends.enzo.EnzoDataset`` should be followed, but
+``yt.frontends.chombo.ChomboDataset``, as a slightly newer addition,
+can also be used as an instructive example.
 
-A new set of fields must be added in the file ``fields.py`` in that directory.
-For the most part this means subclassing ``CodeFieldInfoContainer`` and adding
-the necessary fields specific to that code. Here is the Chombo field container:
+A new set of fields must be added in the file ``fields.py`` in your
+new directory.  For the most part this means subclassing 
+``FieldInfoContainer`` and adding the necessary fields specific to
+your code. Here is the base Chombo field container:
 
 .. code-block:: python
 
-    from UniversalFields import *
-    class ChomboFieldContainer(CodeFieldInfoContainer):
-        _shared_state = {}
-        _field_list = {}
-    ChomboFieldInfo = ChomboFieldContainer()
-    add_chombo_field = ChomboFieldInfo.add_field
+    from yt.fields.field_info_container import FieldInfoContainer
+    class ChomboFieldInfo(FieldInfoContainer):
+        known_other_fields = ()
+	known_particle_fields = ()
 
-The field container is a shared state object, which is why we explicitly set
-``_shared_state`` equal to a mutable.
+This is a very stripped down class.  There are several codes
+(e.g. Orion2 and Pluto) that use a Chombo-based datastructure, and
+those particular codes subclass the ``ChomboFieldInfo`` class.  The
+tuples, ``known_other_fields`` and ``known_particle_fields`` contain
+entries, which are tuples of the form ``("name", ("units", ["fields",
+"to", "alias"], "display_name"))``.  ``"name"`` is the name of a field
+stored on-disk in the dataset. ``"units"`` corresponds to the units of
+that field.  The list ``["fields", "to", "alias"]`` allows you to
+specify additional aliases to this particular field; for example, if
+your on-disk field for the x-direction velocity were
+``"x-direction-velocity"``, maybe you'd prefer to alias to the more
+terse name of ``"xvel"``.  ``"display_name"`` is an optional parameter
+that can be used to specify how you want the field to be displayed on
+a plot; this can be LaTeX-code, for example the density field could
+have a display name of ``r"\rho"``.  Omitting the ``"display_name"``
+will result in using a capitalized version of the ``"name"``.
 
 Data Localization Structures
 ----------------------------
