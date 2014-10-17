@@ -133,8 +133,10 @@ class ImagePlotMPL(PlotMPL):
         if (cbnorm == 'symlog'):
             formatter = matplotlib.ticker.LogFormatterMathtext()
             self.cb = self.figure.colorbar(self.image, self.cax, format=formatter)
-            yticks = list(-10**np.arange(np.floor(np.log10(-data.min())),np.rint(np.log10(cblinthresh))-1, -1)) + [0] + \
-                     list(10**np.arange(np.rint(np.log10(cblinthresh)),np.ceil(np.log10(data.max()))+1))
+            yticks = list(-10**np.arange(np.floor(np.log10(-data.min())),\
+                          np.rint(np.log10(cblinthresh))-1, -1)) + [0] + \
+                     list(10**np.arange(np.rint(np.log10(cblinthresh)),\
+                          np.ceil(np.log10(data.max()))+1))
             self.cb.set_ticks(yticks)
         else:
             self.cb = self.figure.colorbar(self.image, self.cax)
