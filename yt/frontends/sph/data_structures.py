@@ -96,7 +96,8 @@ class GadgetDataset(ParticleDataset):
                  bounding_box = None,
                  header_spec = "default",
                  field_spec = "default",
-                 ptype_spec = "default"):
+                 ptype_spec = "default",
+                 units_override=None):
         if self._instantiated: return
         self._header_spec = self._setup_binary_spec(
             header_spec, gadget_header_specs)
@@ -120,6 +121,9 @@ class GadgetDataset(ParticleDataset):
             self.domain_right_edge = bbox[:,1]
         else:
             self.domain_left_edge = self.domain_right_edge = None
+        if units_override is not None:
+            mylog.warning("units_override is not supported for GadgetDataset, "+
+                          "so it will be ignored. Use unit_base instead.")
         super(GadgetDataset, self).__init__(filename, dataset_type)
 
     def _setup_binary_spec(self, spec, spec_dict):
@@ -269,9 +273,13 @@ class GadgetHDF5Dataset(GadgetDataset):
     def __init__(self, filename, dataset_type="gadget_hdf5", 
                  unit_base = None, n_ref=64,
                  over_refine_factor=1,
-                 bounding_box = None):
+                 bounding_box = None,
+                 units_override=None):
         self.storage_filename = None
         filename = os.path.abspath(filename)
+        if units_override is not None:
+            mylog.warning("units_override is not supported for GadgetHDF5Dataset, "+
+                          "so it will be ignored. Use unit_base instead.")
         super(GadgetHDF5Dataset, self).__init__(
             filename, dataset_type, unit_base=unit_base, n_ref=n_ref,
             over_refine_factor=over_refine_factor,
@@ -505,7 +513,8 @@ class TipsyDataset(ParticleDataset):
                  unit_base=None,
                  parameter_file=None,
                  cosmology_parameters=None,
-                 n_ref=64, over_refine_factor=1):
+                 n_ref=64, over_refine_factor=1,
+                 units_override=None):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         if field_dtypes is None:
@@ -534,6 +543,9 @@ class TipsyDataset(ParticleDataset):
             parameter_file = os.path.abspath(parameter_file)
         self._param_file = parameter_file
         filename = os.path.abspath(filename)
+        if units_override is not None:
+            mylog.warning("units_override is not supported for TipsyDataset, "+
+                          "so it will be ignored. Use unit_base instead.")
         super(TipsyDataset, self).__init__(filename, dataset_type)
 
     def __repr__(self):
