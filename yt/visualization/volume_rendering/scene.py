@@ -46,12 +46,25 @@ class SceneHandle(object):
 
 class Scene(object):
 
-    """Skeleton Class for 3D Scenes"""
+    """The Scene Class
+
+    The Scene class is meant to be the primary container for the
+    new volume rendering framework. A single scene may contain
+    several Camera and RenderSource instances, and is the primary
+    driver behind creating a volume rendering.
+
+    """
 
     _current = None
 
     def __init__(self):
-        mylog.debug("Entering %s" % str(self))
+        """
+        Create a new Scene instance.
+
+        This sets up the basics needed to add sources and cameras.
+        This does very little setup, and requires additional input
+        to do anything useful.
+        """
         super(Scene, self).__init__()
         self.sources = {}
         self.default_camera = None
@@ -163,4 +176,9 @@ class Scene(object):
                              self.sources[key].lens)
         return handle
 
-
+    def __repr__(self):
+        disp = "<Scene Object>:"
+        disp += "sources: \n"
+        for k, v in self.sources.iteritems():
+            disp += "\t%s: %s\n" % (k, v)
+        return disp

@@ -16,5 +16,5 @@ from yt.testing import \
 from yt.visualization.volume_rendering.api import volume_render
 
 ds = fake_random_ds(32)
-dd = ds.all_data()
-im, sc = volume_render(dd, fname='test.png', clip_ratio=4.0)
+
+im, sc = volume_render(ds, fname='test.png', clip_ratio=4.0)

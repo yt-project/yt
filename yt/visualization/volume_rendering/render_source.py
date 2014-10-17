@@ -61,9 +61,10 @@ class VolumeSource(RenderSource):
 
     """docstring for VolumeSource"""
     _image = None
+    data_source = None
 
     def __init__(self, data_source, field, auto=True):
-        mylog.debug("Entering %s" % str(self))
+        #mylog.debug("Entering %s" % str(self))
         super(VolumeSource, self).__init__()
         self.data_source = data_source_or_all(data_source)
         self.field = field
@@ -176,3 +177,7 @@ class VolumeSource(RenderSource):
         if self.transfer_function.grey_opacity is False:
             image[:, :, 3] = 1.0
         return image
+
+    def __repr__(self):
+        disp = "<Volume Source>:%s" % str(self.data_source)
+        return disp
