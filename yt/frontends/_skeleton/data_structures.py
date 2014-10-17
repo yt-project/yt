@@ -95,9 +95,12 @@ class SkeletonDataset(Dataset):
     _index_class = SkeletonHierarchy
     _field_info_class = SkeletonFieldInfo
     
-    def __init__(self, filename, dataset_type='skeleton'):
+    def __init__(self, filename, dataset_type='skeleton',
+                 storage_filename=None,
+                 units_override=None):
         self.fluid_types += ('skeleton',)
-        Dataset.__init__(self, filename, dataset_type)
+        Dataset.__init__(self, filename, dataset_type,
+                         units_override=units_override)
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):
