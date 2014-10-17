@@ -196,10 +196,21 @@ class IOHandlerDarkMatterART(IOHandlerART):
             pp = np.fromfile(f, dtype = '>f4', count = totcount*3)
             pp.shape = (3, totcount)
             pp = pp[:,:count] #remove zeros
-            pp = np.transpose(pp)
+            pp = np.transpose(pp).astype(np.float32) #cast as float32 for compute_morton
         regions.add_data_file(pp, data_file.file_id)
         morton = compute_morton(pp[:,0], pp[:,1], pp[:,2], DLE, DRE)
         return morton
+
+    def _identify_fields(self, domain):
+        field_list = []
+        tp = domain.total_particles
+        self.particle_field_list = [f for f in particle_fields]
+        for ptype in self.ds.particle_types_raw:
+            for pfield in self.particle_field_list:
+                pfn = (ptype, pfield)
+                field_list.append(pfn)
+        return field_list, {}
+
 
 def _determine_field_size(pf, field, lspecies, ptmax):
     pbool = np.zeros(len(lspecies), dtype="bool")

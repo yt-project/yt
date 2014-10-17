@@ -427,9 +427,10 @@ class DarkMatterARTDataset(ARTDataset):
         self.parameter_filename = filename
         self.skip_stars = skip_stars
         self.spread_age = spread_age
-        self.domain_left_edge = np.zeros(3, dtype='float')
-        self.domain_right_edge = np.zeros(3, dtype='float')+1.0
-        self.domain_dimensions = np.ones(3, dtype='int32')
+        self.domain_left_edge = np.zeros(3, dtype='float')+1.0
+        self.domain_right_edge = np.zeros(3, dtype='float')+513.0 # CHANGE THIS!!!
+        self.domain_dimensions = np.ones(3, dtype='int64')
+        print self.domain_dimensions
         Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
