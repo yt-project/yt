@@ -26,7 +26,7 @@ from yt.units.dimensions import \
 from yt.units.unit_lookup_table import \
     latex_symbol_lut, unit_prefixes, \
     prefixable_units, cgs_base_units, \
-    mks_base_units, unit_equivalences
+    mks_base_units, cgs_conversions
 from yt.units.unit_registry import UnitRegistry
 
 import copy
@@ -116,7 +116,7 @@ class Unit(Expr):
 
     # Extra attributes
     __slots__ = ["expr", "is_atomic", "cgs_value", "cgs_offset", "dimensions",
-                 "registry","equivalence","is_equiv_mks"]
+                 "registry","cgs_conversion","is_mks"]
 
     def __new__(cls, unit_expr=sympy_one, cgs_value=None, cgs_offset=0.0,
                 dimensions=None, registry=None, **assumptions):
@@ -208,25 +208,26 @@ class Unit(Expr):
         obj.dimensions = dimensions
         obj.registry = registry
 
-        equivalences = []
+        conversions = []
         is_mks = []
         for atom in unit_expr.atoms():
             ua = str(atom)
             possible_prefix = ua[0]
-            if possible_prefix in unit_prefixes:
-                ua = ua[1:]
-            if ua in unit_equivalences:
-                unit_sys, equiv = unit_equivalences[ua]
+            symbol_wo_prefix = ua[1:]
+            if possible_prefix in unit_prefixes and symbol_wo_prefix in prefixable_units:
+                ua = symbol_wo_prefix
+            if ua in cgs_conversions:
+                unit_sys, conv = cgs_conversions[ua]
                 is_mks.append(unit_sys == "mks")
-                equivalences.append((atom, symbols(equiv)))
-        if len(equivalences) > 0:
-            equivalence = unit_expr.subs(equivalences)
-            equivalence = Unit(unit_expr=equivalence, cgs_value=1.0,
+                conversions.append((atom, symbols(conv)))
+        if len(conversions) > 0:
+            conversion = unit_expr.subs(conversions)
+            conversion = Unit(unit_expr=conversion, cgs_value=1.0,
                                dimensions=None, registry=registry)
         else:
-            equivalence = None
-        obj.equivalence = equivalence
-        obj.is_equiv_mks = all(is_mks)
+            conversion = None
+        obj.cgs_conversion = conversion
+        obj.is_mks = all(is_mks)
 
         if unit_key:
             registry.unit_objs[unit_key] = obj
@@ -362,10 +363,10 @@ class Unit(Expr):
         """ Test if dimensions are the same. """
         first_check = False
         second_check = False
-        if self.equivalence:
-            first_check = self.equivalence.dimensions / other_unit.dimensions == sympy_one
-        if other_unit.equivalence:
-            second_check = other_unit.equivalence.dimensions / self.dimensions == sympy_one
+        if self.cgs_conversion:
+            first_check = self.cgs_conversion.dimensions / other_unit.dimensions == sympy_one
+        if other_unit.cgs_conversion:
+            second_check = other_unit.cgs_conversion.dimensions / self.dimensions == sympy_one
         if first_check or second_check:
             return True
         return (self.dimensions / other_unit.dimensions) == sympy_one
@@ -400,7 +401,7 @@ class Unit(Expr):
         Create and return dimensionally-equivalent cgs units.
 
         """
-        units = self.equivalence if self.equivalence else self
+        units = self.cgs_conversion if self.cgs_conversion else self
         units_string = units._get_system_unit_string(cgs_base_units)
         return Unit(units_string, cgs_value=1.0,
                     dimensions=units.dimensions, registry=self.registry)
@@ -410,7 +411,7 @@ class Unit(Expr):
         Create and return dimensionally-equivalent mks units.
 
         """
-        units = self.equivalence if self.equivalence and not self.is_equiv_mks else self
+        units = self.cgs_conversion if self.cgs_conversion and not self.is_mks else self
         units_string = units._get_system_unit_string(mks_base_units)
         cgs_value = (get_conversion_factor(units, units.get_cgs_equivalent())[0] /
                      get_conversion_factor(units, Unit(units_string))[0])

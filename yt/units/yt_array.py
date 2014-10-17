@@ -33,10 +33,12 @@ from yt.units.unit_registry import UnitRegistry
 from yt.units.dimensions import dimensionless
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUnitConversionError, \
-    YTUfuncUnitError, YTIterableUnitCoercionError
+    YTUfuncUnitError, YTIterableUnitCoercionError, \
+    YTInvalidUnitEquivalence
 from numbers import Number as numeric_type
 from yt.utilities.on_demand_imports import _astropy
 from sympy import Rational
+from yt.units.unit_lookup_table import unit_prefixes, prefixable_units
 
 # redefine this here to avoid a circular import from yt.funcs
 def iterable(obj):
@@ -487,6 +489,28 @@ class YTArray(np.ndarray):
 
         """
         return self.in_units(self.units.get_mks_equivalent())
+
+    def in_equivalent(self, unit, equiv):
+        from equivalencies import equivalence_registry
+        this_equiv = equivalence_registry[equiv]()
+        possible_prefix = unit[0]
+        symbol_wo_prefix = unit[1:]
+        if possible_prefix in unit_prefixes and symbol_wo_prefix in prefixable_units:
+            u = unit[1:]
+        else:
+            u = unit
+        old_dims = self.units.dimensions
+        new_dims = self.units.registry.lut[u][1]
+        if old_dims in this_equiv.dims and new_dims in this_equiv.dims:
+            return this_equiv.convert(self, new_dims).in_units(unit)
+        else:
+            raise YTInvalidUnitEquivalence(equiv, self.units, unit)
+
+    def list_equivalencies(self):
+        from equivalencies import equivalence_registry
+        for k,v in equivalence_registry.items():
+            if self.units.dimensions in v.dims:
+                print v()
 
     def ndarray_view(self):
         """

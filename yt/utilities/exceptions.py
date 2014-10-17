@@ -416,3 +416,12 @@ class YTGDFAlreadyExists(Exception):
 
     def __str__(self):
         return "A file already exists at %s and clobber=False." % self.filename
+
+class YTInvalidUnitEquivalence(Exception):
+    def __init__(self, equiv, unit1, unit2):
+        self.equiv = equiv
+        self.unit1 = unit1
+        self.unit2 = unit2
+
+    def __str__(self):
+        return "The unit equivalence '%s' does not exist for %s and %s." % (self.equiv, self.unit1, self.unit2)

@@ -99,12 +99,9 @@ default_unit_symbol_lut = {
     # misc
     "eV": (erg_per_eV, dimensions.energy),
     "amu": (amu_grams, dimensions.mass),
-    "me": (mass_electron_grams, dimensions.mass),
     "angstrom": (cm_per_ang, dimensions.length),
     "Jy": (jansky_cgs, dimensions.specific_flux),
     "counts": (1.0, dimensions.dimensionless),
-    "kB": (boltzmann_constant_erg_per_K,
-           dimensions.energy/dimensions.temperature),
     "photons": (1.0, dimensions.dimensionless),
 
     # for AstroPy compatibility
@@ -215,7 +212,7 @@ mks_base_units = {
     dimensions.current_mks:'A',
 }
 
-unit_equivalences = {
+cgs_conversions = {
     "C":("mks","esu"),
     "T":("mks","gauss"),
     "A":("mks","statA"),
