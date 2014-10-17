@@ -13,7 +13,8 @@ Test Simple Volume Rendering Scene
 from yt.mods import *
 from yt.testing import \
     fake_random_ds
-from yt.visualization.volume_rendering.scene import volume_render
+from yt.visualization.volume_rendering.api import volume_render
 
 ds = fake_random_ds(32)
-im, sc = volume_render(ds, fname='test.png', clip_ratio=4.0)
+dd = ds.all_data()
+im, sc = volume_render(dd, fname='test.png', clip_ratio=4.0)
