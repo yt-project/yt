@@ -550,6 +550,8 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         ParallelAnalysisInterface.__init__(self)
         super(YTSelectionContainer, self).__init__(ds, field_parameters)
         self._data_source = data_source
+        if data_source is not None and data_source.ds is not ds:
+            raise RuntimeError("Attempted to construct a DataContainer with a data_source from a different DataSet")
 
     @property
     def selector(self):
