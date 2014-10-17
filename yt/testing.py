@@ -26,6 +26,7 @@ from numpy.testing import assert_array_equal, assert_almost_equal, \
     assert_allclose, assert_raises
 from yt.units.yt_array import uconcatenate
 import yt.fields.api as field_api
+from yt.convenience import load
 
 def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):
     # We have nan checks in here because occasionally we have fields that get
@@ -321,7 +322,28 @@ def requires_file(req_file):
             return ftrue
         else:
             return ffalse
-                                        
+
+def units_override_check(fn):
+    units_list = ["length","time","mass","velocity",
+                  "magnetic","temperature"]
+    ds1 = load(fn)
+    units_override = {}
+    attrs1 = []
+    attrs2 = []
+    for u in units_list:
+        unit_attr = getattr(ds1, "%s_unit" % u, None)
+        if unit_attr is not None:
+            attrs1.append(unit_attr)
+            units_override["%s_unit" % u] = (unit_attr.v, str(unit_attr.units))
+    del ds1
+    ds2 = load(fn, units_override=units_override)
+    assert(len(ds2.units_override) > 0)
+    for u in units_list:
+        unit_attr = getattr(ds2, "%s_unit" % u, None)
+        if unit_attr is not None:
+            attrs2.append(unit_attr)
+    yield assert_equal, attrs1, attrs2
+
 # This is an export of the 40 grids in IsolatedGalaxy that are of level 4 or
 # lower.  It's just designed to give a sample AMR index to deal with.
 _amr_grid_index = [
