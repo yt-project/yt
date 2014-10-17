@@ -212,6 +212,72 @@ class IOHandlerDarkMatterART(IOHandlerART):
                 field_list.append(pfn)
         return field_list, {}
 
+    def _get_field(self,  field):
+        if field in self.cache.keys() and self.caching:
+            mylog.debug("Cached %s", str(field))
+            return self.cache[field]
+        mylog.debug("Reading %s", str(field))
+        tr = {}
+        ftype, fname = field
+        ptmax = self.ws[-1]
+        pbool, idxa, idxb = _determine_field_size(self.ds, ftype, 
+                                                  self.ls, ptmax)
+        npa = idxb - idxa
+        sizes = np.diff(np.concatenate(([0], self.ls)))
+        rp = lambda ax: read_particles(
+            self.file_particle, self.Nrow, idxa=idxa,
+            idxb=idxb, fields=ax)
+        for i, ax in enumerate('xyz'):
+            if fname.startswith("particle_position_%s" % ax):
+                dd = self.ds.domain_dimensions[0]
+                off = 1.0/dd
+                tr[field] = rp([ax])[0]/dd - off
+            if fname.startswith("particle_velocity_%s" % ax):
+                tr[field], = rp(['v'+ax])
+        if fname == "particle_mass":
+            a = 0
+            data = np.zeros(npa, dtype='f8')
+            for ptb, size, m in zip(pbool, sizes, self.ws):
+                if ptb:
+                    data[a:a+size] = m
+                    a += size
+            tr[field] = data
+        elif fname == "particle_index":
+            tr[field] = np.arange(idxa, idxb)
+        elif fname == "particle_type":
+            a = 0
+            data = np.zeros(npa, dtype='int')
+            for i, (ptb, size) in enumerate(zip(pbool, sizes)):
+                if ptb:
+                    data[a: a + size] = i
+                    a += size
+            tr[field] = data
+        if fname == "particle_creation_time":
+            self.tb, self.ages, data = interpolate_ages(
+                tr[field][-nstars:],
+                self.file_stars,
+                self.tb,
+                self.ages,
+                self.ds.current_time)
+            temp = tr.get(field, np.zeros(npa, 'f8'))
+            temp[-nstars:] = data
+            tr[field] = temp
+            del data
+        # We check again, after it's been filled
+        if fname == "particle_mass":
+            # We now divide by NGrid in order to make this match up.  Note that
+            # this means that even when requested in *code units*, we are
+            # giving them as modified by the ng value.  This only works for
+            # dark_matter -- stars are regular matter.
+            tr[field] /= self.ds.domain_dimensions.prod()
+        if tr == {}:
+            tr = dict((f, np.array([])) for f in fields)
+        if self.caching:
+            self.cache[field] = tr[field]
+            return self.cache[field]
+        else:
+            return tr[field]
+
 
 def _determine_field_size(pf, field, lspecies, ptmax):
     pbool = np.zeros(len(lspecies), dtype="bool")

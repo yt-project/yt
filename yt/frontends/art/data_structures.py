@@ -429,7 +429,6 @@ class DarkMatterARTDataset(ARTDataset):
         self.spread_age = spread_age
         self.domain_left_edge = np.zeros(3, dtype='float')
         self.domain_right_edge = np.zeros(3, dtype='float')+1.0
-#        self.domain_dimensions = np.ones(3, dtype='int64')
         Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
@@ -604,6 +603,12 @@ class DarkMatterARTDataset(ARTDataset):
         self.gamma = self.parameters["gamma"]
         mylog.info("Max level is %02i", self.max_level)
 
+    def create_field_info(self):
+        super(ARTDataset, self).create_field_info()
+        ptr = self.particle_types_raw
+        pu = ParticleUnion("darkmatter", list(ptr))
+        self.add_particle_union(pu)
+        pass
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
