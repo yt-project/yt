@@ -38,4 +38,5 @@ def setup_halo_analysis_fields(registry, ftype = "gas", slice_info = None):
 
     registry.add_field(("index", "virial_radius"),
                        function=_virial_radius,
+                       validators=[ValidateParameter("virial_radius")],
                        units="")
