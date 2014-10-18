@@ -328,6 +328,7 @@ cdef class ImageSampler:
         cdef ImageAccumulator *idata
         cdef np.float64_t px, py 
         cdef np.float64_t width[3] 
+        cdef int every
         for i in range(3):
             width[i] = self.width[i]
         if im.vd_strides[0] == -1:
