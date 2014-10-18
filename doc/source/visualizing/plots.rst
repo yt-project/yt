@@ -481,7 +481,7 @@ under symlog scale with the linear range of ``(0, linthresh)``.
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    slc = yt.SlicePlot(ds, 'z', 'x-velocity', width=(30,'kpc'))
-   slc.set_log('x-velocity',True,linthresh=1.e1)
+   slc.set_log('x-velocity', True, linthresh=1.e1)
    slc.save()
 
 Lastly, the :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_zlim`
