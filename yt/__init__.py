@@ -146,7 +146,7 @@ from yt.visualization.api import \
     show_colormaps, ProfilePlot, PhasePlot
 
 from yt.visualization.volume_rendering.api import \
-    ColorTransferFunction
+    volume_render, ColorTransferFunction
 #    off_axis_projection, ColorTransferFunction, \
 #    TransferFunctionHelper
 

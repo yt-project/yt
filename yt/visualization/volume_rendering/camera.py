@@ -30,8 +30,21 @@ class Camera(Orientation):
     _moved = True
 
     def __init__(self, data_source=None, lens_type='plane-parallel'):
+        """
+        Initialize a Camera Instance
+
+        Parameters
+        ----------
+        data_source: :class:`yt.data_objects.data_containers.AMR3DData`, optional
+            This is the source to be rendered, which can be any arbitrary yt
+        lens_type: string, optional
+            This specifies the type of lens to use for rendering. Current options
+            are 'plane-parallel', 'perspective', and 'fisheye'. See
+            :class:`yt.visualization.volume_rendering.lens.Lens` for details.
+            Default: 'plane-parallel'
+
+        """
         mylog.debug("Entering %s" % str(self))
-        """Initialize a Camera Instance"""
         self.lens = None
         self.position = None
         self.north_vector = None

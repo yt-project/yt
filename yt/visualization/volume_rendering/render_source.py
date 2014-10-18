@@ -22,6 +22,8 @@ from transfer_function_helper import TransferFunctionHelper
 from transfer_functions import TransferFunction
 from utils import new_volume_render_sampler, data_source_or_all
 from zbuffer_array import ZBuffer
+from yt.utilities.lib.misc_utilities import \
+    lines
 
 
 class RenderSource(ParallelAnalysisInterface):
@@ -128,10 +130,10 @@ class VolumeSource(RenderSource):
         del self.volume
         self.volume = volume
 
-    def set_fields(self, fields, no_ghost=True):
-        log_fields = [self.data_source.pf.field_info[self.field].take_log
-                      for field in fields]
-        self.volume.set_fields(fields, log_fields, no_ghost)
+    def set_field(self, field, no_ghost=True):
+        log_field = self.data_source.pf.field_info[field].take_log
+        self.volume.set_fields([field], [log_field], no_ghost)
+        self.field = field
 
     def set_sampler(self, camera, sampler_type='volume-render'):
         """docstring for add_sampler"""
@@ -181,3 +183,42 @@ class VolumeSource(RenderSource):
     def __repr__(self):
         disp = "<Volume Source>:%s" % str(self.data_source)
         return disp
+
+
+class LineSource(OpaqueSource):
+
+    """Add set of opaque lines to a scene."""
+    _image = None
+    data_source = None
+
+    def __init__(self, positions, color='black'):
+        super(LineSource, self).__init__()
+        self.positions = positions
+        self.color = color
+
+    def render(self, camera, zbuffer=None):
+        vertices = self.positions
+        empty = camera.lens.new_image(camera)
+        z = np.empty(empty.shape[:2])
+        np.equal(empty, 0.0, empty)
+        np.equal(z, np.inf, z)
+        zbuff = ZBuffer(empty, z)
+
+        # DRAW SOME LINES
+        px, py, dz = camera.lens.project_to_plane(camera, vertices)
+        colors = np.random.random([vertices.shape[0], 4])
+        colors[:, 3] = 1.0
+        lines(empty, px, py, colors, 24)
+
+        zdummy = -np.ones_like(empty)
+        lines(zdummy, px, py, np.vstack([dz, dz]), 24)
+        z[:, :] = zdummy[:, :, 3]
+        z[z == -1] = np.inf
+        print 'When rendering opaque lines:', z.min(), z.max()
+        self.zbuffer = zbuff
+        return zbuff
+
+    def __repr__(self):
+        disp = "<Line Source>"
+        return disp
+

@@ -78,7 +78,9 @@ class Scene(object):
         returning a tuple of (key, source)
         """
         for k, source in self.sources.iteritems():
-            if isinstance(source, OpaqueSource):
+            print source, issubclass(OpaqueSource, type(source))
+            print source, issubclass(VolumeSource, type(source))
+            if isinstance(source, OpaqueSource) or issubclass(OpaqueSource, type(source)):
                 yield k, source
 
     def iter_transparent_sources(self):
@@ -151,6 +153,7 @@ class Scene(object):
 
         for k, source in self.iter_opaque_sources():
             print "Adding opaque source:", source
+            source.render(cam, zbuffer=None)
             if source.zbuffer is not None:
                 opaque = opaque + source.zbuffer
 
