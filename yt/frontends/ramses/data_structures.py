@@ -331,7 +331,6 @@ class RAMSESDomainSubset(OctreeSubset):
 class RAMSESIndex(OctreeIndex):
 
     def __init__(self, ds, dataset_type='ramses'):
-        self._ds = ds # TODO: Figure out the class composition better!
         self.fluid_field_list = ds._fields_in_file
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
@@ -370,12 +369,12 @@ class RAMSESIndex(OctreeIndex):
         
 
         # TODO: copy/pasted from DomainFile; needs refactoring!
-        num = os.path.basename(self._ds.parameter_filename).split("."
+        num = os.path.basename(self.dataset.parameter_filename).split("."
                 )[0].split("_")[1]
         testdomain = 1 # Just pick the first domain file to read
         basename = "%s/%%s_%s.out%05i" % (
             os.path.abspath(
-              os.path.dirname(self._ds.parameter_filename)),
+              os.path.dirname(self.dataset.parameter_filename)),
             num, testdomain)
         hydro_fn = basename % "hydro"
         # Do we have a hydro file?
@@ -553,6 +552,7 @@ class RAMSESDataset(Dataset):
         self.omega_matter = rheader["omega_m"]
         self.hubble_constant = rheader["H0"] / 100.0 # This is H100
         self.max_level = rheader['levelmax'] - self.min_level
+        f.close()
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
