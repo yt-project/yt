@@ -28,6 +28,7 @@ from yt.utilities.io_handler import \
     io_registry
 from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
+from yt.utilities.file_handler import HDF5FileHandler
 
 from .fields import MoabFieldInfo, PyneFieldInfo
 
@@ -75,7 +76,7 @@ class MoabHex8Dataset(Dataset):
                          units_override=units_override)
         self.storage_filename = storage_filename
         self.filename = filename
-        self._handle = h5py.File(self.parameter_filename, "r")
+        self._handle = HDF5FileHandler(filename)
 
     def _set_code_unit_attributes(self):
         # Almost everything is regarded as dimensionless in MOAB, so these will

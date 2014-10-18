@@ -60,3 +60,8 @@ def test_cantor_5():
 @requires_file(c5)
 def test_MoabHex8Dataset():
     assert isinstance(data_dir_load(c5), MoabHex8Dataset)
+
+@requires_file(c5)
+def test_units_override():
+    for test in units_override_check(c5):
+        yield test
