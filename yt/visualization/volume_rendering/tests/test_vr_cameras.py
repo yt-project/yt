@@ -15,7 +15,7 @@ Test for Volume Rendering Cameras, and their movement.
 #-----------------------------------------------------------------------------
 import os
 import os.path
-import temdsile
+import tempfile
 import shutil
 from yt.testing import \
     fake_random_ds
