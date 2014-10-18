@@ -331,10 +331,10 @@ class Dataset(object):
             mylog.debug("Creating Particle Union 'all'")
             pu = ParticleUnion("all", list(self.particle_types_raw))
             self.add_particle_union(pu)
-        deps, unloaded = self.field_info.check_derived_fields()
-        self.field_dependencies.update(deps)
         mylog.info("Loading field plugins.")
         self.field_info.load_all_plugins()
+        deps, unloaded = self.field_info.check_derived_fields()
+        self.field_dependencies.update(deps)
 
     def setup_deprecated_fields(self):
         from yt.fields.field_aliases import _field_name_aliases

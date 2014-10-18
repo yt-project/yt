@@ -157,6 +157,8 @@ class FITSHierarchy(GridIndex):
             naxis4 = 1
         for i, fits_file in enumerate(self.dataset._handle._fits_files):
             for j, hdu in enumerate(fits_file):
+                if isinstance(hdu, _astropy.pyfits.BinTableHDU):
+                    continue
                 if self._ensure_same_dims(hdu):
                     units = self._determine_image_units(hdu.header, known_units)
                     try:

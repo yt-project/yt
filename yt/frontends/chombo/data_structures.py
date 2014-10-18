@@ -113,7 +113,8 @@ class ChomboHierarchy(GridIndex):
         self.directory = ds.fullpath
         self._handle = ds._handle
 
-        self.float_type = self._handle['Chombo_global'].attrs['testReal'].dtype.name
+        tr = self._handle['Chombo_global'].attrs.get("testReal", "float32")
+            
         self._levels = [key for key in self._handle.keys() if key.startswith('level')]
         GridIndex.__init__(self, ds, dataset_type)
 
@@ -156,12 +157,18 @@ class ChomboHierarchy(GridIndex):
         for key, val in self._handle.attrs.items():
             if key.startswith("particle"):
                 particle_fields.append(val)
-        self.field_list.extend([("io", c) for c in particle_fields])        
+        self.field_list.extend([("io", c) for c in particle_fields])
 
     def _count_grids(self):
         self.num_grids = 0
         for lev in self._levels:
-            self.num_grids += self._handle[lev]['Processors'].len()
+            d = self._handle[lev]
+            if 'Processors' in d:
+                self.num_grids += d['Processors'].len()
+            elif 'boxes' in d:
+                self.num_grids += d['boxes'].len()
+            else:
+                raise RuntimeError("Uknown file specification")
 
     def _parse_index(self):
         f = self._handle # shortcut
@@ -256,18 +263,6 @@ class ChomboDataset(Dataset):
         if D == 2:
             self.dataset_type = 'chombo2d_hdf5'
 
-        # some datasets will not be time-dependent, and to make
-        # matters worse, the simulation time is not always
-        # stored in the same place in the hdf file! Make
-        # sure we handle that here.
-        try:
-            self.current_time = self._handle.attrs['time']
-        except KeyError:
-            try:
-                self.current_time = self._handle['/level_0'].attrs['time']
-            except KeyError:
-                self.current_time = 0.0
-
         self.geometry = "cartesian"
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)
@@ -317,6 +312,20 @@ class ChomboDataset(Dataset):
 
         self.refine_by = self._handle['/level_0'].attrs['ref_ratio']
         self._determine_periodic()
+        self._determine_current_time()
+
+    def _determine_current_time(self):
+        # some datasets will not be time-dependent, and to make
+        # matters worse, the simulation time is not always
+        # stored in the same place in the hdf file! Make
+        # sure we handle that here.
+        try:
+            self.current_time = self._handle.attrs['time']
+        except KeyError:
+            try:
+                self.current_time = self._handle['/level_0'].attrs['time']
+            except KeyError:
+                self.current_time = 0.0
 
     def _determine_periodic(self):
         # we default to true unless the HDF5 file says otherwise
@@ -502,6 +511,7 @@ class PlutoDataset(ChomboDataset):
             self.domain_right_edge = np.concatenate((self.domain_right_edge, [1.0]))
             self.domain_dimensions = np.concatenate((self.domain_dimensions, [1]))
 
+        self._determine_current_time()
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -535,7 +545,8 @@ class Orion2Hierarchy(ChomboHierarchy):
 
         # look for particle fields
         self.particle_filename = self.index_filename[:-4] + 'sink'
-        if not os.path.exists(self.particle_filename): return
+        if not os.path.exists(self.particle_filename):
+            return
         pfield_list = [("io", c) for c in self.io.particle_field_index.keys()]
         self.field_list.extend(pfield_list)
 
@@ -607,6 +618,7 @@ class Orion2Dataset(ChomboDataset):
         self.domain_dimensions = self._calc_domain_dimensions()
         self.refine_by = self._handle['/level_0'].attrs['ref_ratio']
         self._determine_periodic()
+        self._determine_current_time()
 
     def _parse_inputs_file(self, ini_filename):
         self.fullplotdir = os.path.abspath(self.parameter_filename)
