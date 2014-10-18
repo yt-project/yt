@@ -1,4 +1,5 @@
 from mpi4py import MPI
+import os
 import sys
 import yt
 from yt.analysis_modules.halo_analysis.api import \
@@ -22,7 +23,9 @@ def _dm_filter(pfilter, data):
 ds = yt.load("Enzo_64/DD0043/data0043")
 ds.add_particle_filter("dark_matter")
 
-hc = HaloCatalog(data_ds=ds, output_dir="halo_catalogs/%s" % method,
+output_dir = os.path.join(os.path.dirname(__file__),
+                          "halo_catalogs", method)
+hc = HaloCatalog(data_ds=ds, output_dir=output_dir,
                  finder_method=method, finder_kwargs=methods[method])
 hc.create()
 
