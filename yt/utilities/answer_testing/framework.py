@@ -306,7 +306,10 @@ class AnswerTestingTest(object):
     result_storage = None
     prefix = ""
     def __init__(self, ds_fn):
-        self.ds = data_dir_load(ds_fn)
+        if isinstance(ds_fn, Dataset):
+            self.ds = ds_fn
+        else:
+            self.ds = data_dir_load(ds_fn)
 
     def __call__(self):
         nv = self.run()
@@ -377,16 +380,21 @@ class FieldValuesTest(AnswerTestingTest):
     _attrs = ("field", )
 
     def __init__(self, ds_fn, field, obj_type = None,
-                 decimals = 10):
+                 particle_type=False, decimals = 10):
         super(FieldValuesTest, self).__init__(ds_fn)
         self.obj_type = obj_type
         self.field = field
+        self.particle_type = particle_type
         self.decimals = decimals
 
     def run(self):
         obj = create_obj(self.ds, self.obj_type)
+        if self.particle_type:
+            weight_field = "particle_ones"
+        else:
+            weight_field = "ones"
         avg = obj.quantities.weighted_average_quantity(
-            self.field, weight="ones")
+            self.field, weight=weight_field)
         mi, ma = obj.quantities.extrema(self.field)
         return np.array([avg, mi, ma])
 
