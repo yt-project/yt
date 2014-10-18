@@ -10,10 +10,10 @@ Test Simple Volume Rendering Scene
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-from yt.mods import *
-from yt.testing import \
-    fake_random_ds
-from yt.visualization.volume_rendering.scene import volume_render
+import yt
+from yt.testing import fake_random_ds
+from yt.visualization.volume_rendering.api import volume_render
 
-ds = fake_random_ds(32)
-im, sc = volume_render(ds, fname='test.png', clip_ratio=4.0)
+def test_simple_vr():
+    ds = fake_random_ds(32)
+    im, sc = volume_render(ds, fname='test.png', clip_ratio=4.0)
