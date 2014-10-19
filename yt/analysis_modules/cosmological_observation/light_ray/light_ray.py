@@ -169,7 +169,7 @@ class LightRay(CosmologySplice):
                                 (self.light_ray_solution[q]['redshift'], z_next,
                                  self.light_ray_solution[q]['traversal_box_fraction']))
                     mylog.error("Full box delta z is %f, but it is %f to the next data dump." %
-                                (self.light_ray_solution[q]['deltazMax'],
+                                (self.light_ray_solution[q]['dz_max'],
                                  self.light_ray_solution[q]['redshift']-z_next))
 
                 # Get dataset axis and center.
