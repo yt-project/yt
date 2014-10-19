@@ -14,6 +14,8 @@ Cosmology related fields.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from yt.fields.derived_field import \
+    ValidateParameter
 from yt.fields.field_plugin_registry import \
     register_field_plugin
 
