@@ -154,8 +154,23 @@ minimum) the following methods:
    ``_prepare_grid()`` and ``_setup_dx()`` on all of them.  Additionally, it 
    should set up ``Children`` and ``Parent`` lists on each grid object.
 
+The ``OctreeIndex`` has somewhat analogous methods, but often with
+different names; both ``OctreeIndex`` and ``GridIndex`` are subclasses
+of the ``Index`` class.  In particular, for the ``OctreeIndex``, the
+method ``_initialize_oct_handler()`` setups up much of the oct
+metadata that is analogous to the grid metadata created in the
+``GridIndex`` methods ``_count_grids()``, ``_parse_index()``, and
+``_populate_grid_objects()``.
+
 Grids
 ^^^^^
+
+.. note:: This section only applies to the approach using yt's patch-based
+	  datastructures.  For the octree-based approach, one does not create
+	  a grid object, but rather an ``OctreeSubset``, which has methods
+	  for filling out portions of the octree structure.  Again, see the
+	  code in ``yt.frontends.ramses.data_structures`` for an example of
+	  the octree approach.
 
 A new grid object, subclassing ``AMRGridPatch``, will also have to be added in
 ``data_structures.py``. For the most part, this may be all
@@ -180,9 +195,14 @@ Even one of the more complex grid objects,
 Data Reading Functions
 ----------------------
 
-In ``io.py``, there are a number of IO handlers that handle the mechanisms by
-which data is read off disk.  To implement a new data reader, you must subclass
-``BaseIOHandler``.  The various frontend IO handlers are stored in an IO registry - essentially a dictionary that uses the name of the frontend as a key, and the specific IO handler as a value.  It is important, therefore, to set the ``dataset_type`` attribute of your subclass, which is what is used as the key in the IO registry.  For example:
+In ``io.py``, there are a number of IO handlers that handle the
+mechanisms by which data is read off disk.  To implement a new data
+reader, you must subclass ``BaseIOHandler``.  The various frontend IO
+handlers are stored in an IO registry - essentially a dictionary that
+uses the name of the frontend as a key, and the specific IO handler as
+a value.  It is important, therefore, to set the ``dataset_type``
+attribute of your subclass, which is what is used as the key in the IO
+registry.  For example:
 
 .. code-block:: python
 
