@@ -97,6 +97,8 @@ if os.path.exists(__fn):
 class YTConfigParser(ConfigParser.ConfigParser):
     def __setitem__(self, key, val):
         self.set(key[0], key[1], val)
+    def __getitem__(self, key):
+        self.get(key[0], key[1])
 
 if os.path.exists(os.path.expanduser("~/.yt/config")):
     ytcfg = YTConfigParser(ytcfg_defaults)
