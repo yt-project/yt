@@ -531,6 +531,29 @@ To change the resolution of the image, call the
    slc.set_buff_size(1600)
    slc.save()
 
+Turning off minorticks
+~~~~~~~~~~~~~~~~~~~~~~
+
+By default minorticks for the x and y axes are turned on.
+The minorticks may be removed using the
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.minorticks_off` function,
+which either accepts a specific field name or will apply to all associated plots
+if no argument is given. There is also a 
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.minorticks_on` function
+so minorticks may be turned on again. Finally, there are analogous
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.cbar_minorticks_off` and
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.cbar_minorticks_on` functions
+for the colorbar axis.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
+   slc.minorticks_off()
+   slc.cbar_minorticks_off()
+   slc.save()
+
 .. _matplotlib-customization:
 
 Further customization via matplotlib
@@ -743,7 +766,7 @@ Units for both the x and y axis can be controlled via the
 Adjusting the plot units does not require recreating the histogram, so adjusting
 units will always be inexpensive, requiring only an in-place unit conversion.
 
-In the following example we create a a plot of the average density in solar
+In the following example we create a plot of the average density in solar
 masses per cubic parsec as a function of radius in kiloparsecs.
 
 .. python-script::
@@ -892,7 +915,7 @@ turned into probability distribution functions (PDFs) by setting the
 ``fractional`` keyword to ``True``.  When set to ``True``, the value in each bin
 is divided by the sum total from all bins.  These can be turned into cumulative
 distribution functions (CDFs) by setting the ``accumulation`` keyword to
-``True``.  This will make is so that the value in any bin N is the cumulative
+``True``.  This will make it so that the value in any bin N is the cumulative
 sum of all bins from 0 to N.  The direction of the summation can be reversed by
 setting ``accumulation`` to ``-True``.  For ``PhasePlot``, the accumulation can
 be set independently for each axis by setting ``accumulation`` to a list of

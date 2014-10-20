@@ -80,6 +80,53 @@ def apply_callback(f):
         return args[0]
     return newfunc
 
+def get_log_minorticks(vmin, vmax):
+    """calculate positions of linear minorticks on a log colorbar
+
+    Parameters
+    ----------
+    vmin : float
+        the minimum value in the colorbar
+    vmax : float
+        the maximum value in the colorbar
+
+    """
+    expA = np.floor(np.log10(vmin))
+    expB = np.floor(np.log10(vmax))
+    cofA = np.ceil(vmin/10**expA)
+    cofB = np.floor(vmax/10**expB)
+    lmticks = []
+    while cofA*10**expA <= cofB*10**expB:
+        if expA < expB:
+            lmticks = np.hstack( (lmticks, np.linspace(cofA, 9, 10-cofA)*10**expA) )
+            cofA = 1
+            expA += 1
+        else:
+            lmticks = np.hstack( (lmticks, np.linspace(cofA, cofB, cofB-cofA+1)*10**expA) )
+            expA += 1
+    return np.array(lmticks)
+
+def get_symlog_minorticks(linthresh, vmin, vmax):
+    """calculate positions of linear minorticks on a log colorbar
+
+    Parameters
+    ----------
+    linthresh: float
+        the threshold for the linear region
+    vmin : float
+        the minimum value in the colorbar
+    vmax : float
+        the maximum value in the colorbar
+
+    """
+    if vmin >= 0 or vmax <= 0:
+        raise RuntimeError(
+            '''attempting to set minorticks for
+              a symlog plot with one-sided data:
+              got vmin = %s, vmax = %s''' % (vmin, vmax))
+    return np.hstack( (-get_log_minorticks(linthresh,-vmin)[::-1], 0,
+                        get_log_minorticks(linthresh, vmax)) )
+
 field_transforms = {}
 
 
@@ -144,6 +191,8 @@ class ImagePlotContainer(object):
         self._font_color = None
         self._xlabel = None
         self._ylabel = None
+        self._minorticks = {}
+        self._cbar_minorticks = {}
         self._colorbar_label = PlotDictionary(
             self.data_source, lambda: None)
 
@@ -278,6 +327,90 @@ class ImagePlotContainer(object):
 
             self.plots[field].zmin = myzmin
             self.plots[field].zmax = myzmax
+        return self
+
+    @invalidate_plot
+    def minorticks_off(self, field='all'):
+        """remove minor ticks from the current plot
+
+        Displaying minor ticks reduces performance; turn them off 
+        using minorticks_off() if drawing speed is a problem.
+
+        Parameters
+        ----------
+        field : string
+            the field to remove minorticks
+
+        """
+        if field == 'all':
+            fields = self.plots.keys()
+        else:
+            fields = [field]
+        for field in self.data_source._determine_fields(fields):
+            self._minorticks[field] = False
+        return self
+
+    @invalidate_plot
+    def minorticks_on(self, field='all'):
+        """display minor ticks on the current plot
+
+        Displaying minor ticks reduces performance; turn them off 
+        using minorticks_off() if drawing speed is a problem.
+
+        Parameters
+        ----------
+        field : string
+            the field to display minorticks
+
+        """
+        if field == 'all':
+            fields = self.plots.keys()
+        else:
+            fields = [field]
+        for field in self.data_source._determine_fields(fields):
+            self._minorticks[field] = True
+        return self
+
+    @invalidate_plot
+    def cbar_minorticks_off(self, field='all'):
+        """remove colorbar minor ticks from the current plot
+
+        Displaying minor ticks reduces performance; turn them off 
+        using cbar_minorticks_off() if drawing speed is a problem.
+
+        Parameters
+        ----------
+        field : string
+            the field to remove colorbar minorticks
+
+        """
+        if field == 'all':
+            fields = self.plots.keys()
+        else:
+            fields = [field]
+        for field in self.data_source._determine_fields(fields):
+            self._cbar_minorticks[field] = False
+        return self
+
+    @invalidate_plot
+    def cbar_minorticks_on(self, field='all'):
+        """display colorbar minor ticks on the current plot
+
+        Displaying minor ticks reduces performance; turn them off 
+        using cbar_minorticks_off() if drawing speed is a problem.
+
+        Parameters
+        ----------
+        field : string
+            the field to display colorbar minorticks
+
+        """
+        if field == 'all':
+            fields = self.plots.keys()
+        else:
+            fields = [field]
+        for field in self.data_source._determine_fields(fields):
+            self._cbar_minorticks[field] = True
         return self
 
     def setup_callbacks(self):

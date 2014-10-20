@@ -35,6 +35,7 @@ from .plot_modifications import get_smallest_appropriate_unit, \
 from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform, symlog_transform, \
+    get_log_minorticks, get_symlog_minorticks, \
     invalidate_data, invalidate_plot, apply_callback
 
 from yt.data_objects.time_series import \
@@ -872,6 +873,34 @@ class PWViewerMPL(PlotWindow):
                           [self.plots[f].cb.ax.axes.xaxis.get_offset_text(),
                            self.plots[f].cb.ax.axes.yaxis.get_offset_text()]):
                 label.set_fontproperties(fp)
+
+            # x-y axes minorticks
+            if f not in self._minorticks:
+                self._minorticks[f] = True
+            if self._minorticks[f] is True:
+                self.plots[f].axes.minorticks_on()
+            else:
+                self.plots[f].axes.minorticks_off()
+
+            # colorbar minorticks
+            if f not in self._cbar_minorticks:
+                self._cbar_minorticks[f] = True
+            if self._cbar_minorticks[f] is True:
+                if self._field_transform[f] == linear_transform:
+                    self.plots[f].cax.minorticks_on()
+                else:
+                    vmin = self.plots[f].cb.norm.vmin
+                    vmax = self.plots[f].cb.norm.vmax
+                    if self._field_transform[f] == log_transform:
+                        mticks = self.plots[f].image.norm( get_log_minorticks(vmin, vmax) )
+                    else: # symlog_transform
+                        if isinstance(vmin, YTArray): vmin = vmin.d
+                        if isinstance(vmax, YTArray): vmax = vmax.d
+                        flinthresh = 10**np.floor( np.log10( self.plots[f].cb.norm.linthresh ) )
+                        mticks = self.plots[f].image.norm( get_symlog_minorticks(flinthresh, vmin, vmax) )
+                    self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
+            else:
+                self.plots[f].cax.minorticks_off()
 
             self.run_callbacks(f)
 
