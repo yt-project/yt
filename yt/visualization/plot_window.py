@@ -33,7 +33,8 @@ from .fixed_resolution import \
 from .plot_modifications import get_smallest_appropriate_unit, \
     callback_registry
 from .plot_container import \
-    ImagePlotContainer, log_transform, linear_transform, \
+    ImagePlotContainer, \
+    log_transform, linear_transform, symlog_transform, \
     invalidate_data, invalidate_plot, apply_callback
 
 from yt.data_objects.time_series import \
@@ -711,9 +712,9 @@ class PWViewerMPL(PlotWindow):
                 zlim = (None, None)
 
             image = self.frb[f]
-
             if self._field_transform[f] == log_transform:
                 msg = None
+                use_symlog = False
                 if zlim != (None, None):
                     pass
                 elif np.nanmax(image) == np.nanmin(image):
@@ -724,10 +725,21 @@ class PWViewerMPL(PlotWindow):
                           "values.  Max = %f." % (f, np.nanmax(image))
                 elif not np.any(np.isfinite(image)):
                     msg = "Plot image for field %s is filled with NaNs." % (f,)
+                elif np.nanmax(image) > 0. and np.nanmin(image) < 0:
+                    msg = "Plot image for field %s has both positive "\
+                          "and negative values. Min = %f, Max = %f."\
+                          % (f, np.nanmin(image), np.nanmax(image))
+                    use_symlog = True
                 if msg is not None:
                     mylog.warning(msg)
-                    mylog.warning("Switching to linear colorbar scaling.")
-                    self._field_transform[f] = linear_transform
+                    if use_symlog:
+                        mylog.warning("Switching to symlog colorbar scaling "\
+                                      "unless linear scaling is specified later")
+                        self._field_transform[f] = symlog_transform
+                        self._field_transform[f].func = None
+                    else:
+                        mylog.warning("Switching to linear colorbar scaling.")
+                        self._field_transform[f] = linear_transform
 
             fp = self._font_properties
 
@@ -746,6 +758,7 @@ class PWViewerMPL(PlotWindow):
 
             self.plots[f] = WindowPlotMPL(
                 image, self._field_transform[f].name,
+                self._field_transform[f].func,
                 self._colormaps[f], extent, zlim,
                 self.figure_size, fp.get_size(),
                 self.aspect, fig, axes, cax)
@@ -1643,7 +1656,7 @@ class PWViewerExtJS(PlotWindow):
 
 class WindowPlotMPL(ImagePlotMPL):
     """A container for a single PlotWindow matplotlib figure and axes"""
-    def __init__(self, data, cbname, cmap, extent, zlim, figure_size, fontsize,
+    def __init__(self, data, cbname, cblinthresh, cmap, extent, zlim, figure_size, fontsize,
                  unit_aspect, figure, axes, cax):
         self._draw_colorbar = True
         self._draw_axes = True
@@ -1669,7 +1682,7 @@ class WindowPlotMPL(ImagePlotMPL):
         super(WindowPlotMPL, self).__init__(
             size, axrect, caxrect, zlim, figure, axes, cax)
 
-        self._init_image(data, cbname, cmap, extent, unit_aspect)
+        self._init_image(data, cbname, cblinthresh, cmap, extent, unit_aspect)
 
         self.image.axes.ticklabel_format(scilimits=(-2, 3))
         if cbname == 'linear':

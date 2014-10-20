@@ -102,6 +102,7 @@ class FieldTransform(object):
 
 log_transform = FieldTransform('log10', np.log10, LogLocator())
 linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
+symlog_transform = FieldTransform('symlog', None, LogLocator())
 
 class PlotDictionary(defaultdict):
     def __getitem__(self, item):
@@ -147,7 +148,7 @@ class ImagePlotContainer(object):
             self.data_source, lambda: None)
 
     @invalidate_plot
-    def set_log(self, field, log):
+    def set_log(self, field, log, linthresh=None):
         """set a field to log or linear.
 
         Parameters
@@ -156,6 +157,8 @@ class ImagePlotContainer(object):
             the field to set a transform
         log : boolean
             Log on/off.
+        linthresh : float (must be positive)
+            linthresh will be enabled for symlog scale only when log is true
 
         """
         if field == 'all':
@@ -164,7 +167,13 @@ class ImagePlotContainer(object):
             fields = [field]
         for field in self.data_source._determine_fields(fields):
             if log:
-                self._field_transform[field] = log_transform
+                if linthresh is not None:
+                    if not linthresh > 0.: 
+                        raise ValueError('\"linthresh\" must be positive')
+                    self._field_transform[field] = symlog_transform
+                    self._field_transform[field].func = linthresh 
+                else:
+                    self._field_transform[field] = log_transform
             else:
                 self._field_transform[field] = linear_transform
         return self

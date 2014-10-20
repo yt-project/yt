@@ -469,6 +469,21 @@ linear.
    slc.set_log('density', False)
    slc.save()
 
+Specifically, a field containing both positive and negative values can be plotted
+with symlog scale, by seting the boolean to be ``True`` and providing an extra
+parameter ``linthresh``. In the region around zero (when the log scale approaches
+to infinity), the linear scale will be applied to the region ``(-linthresh, linthresh)``
+and stretched relative to the logarithmic range. You can also plot a positive field 
+under symlog scale with the linear range of ``(0, linthresh)``.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, 'z', 'x-velocity', width=(30,'kpc'))
+   slc.set_log('x-velocity', True, linthresh=1.e1)
+   slc.save()
+
 Lastly, the :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_zlim`
 function makes it possible to set a custom colormap range.
 
