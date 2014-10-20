@@ -7,14 +7,14 @@ Creating A New Code Frontend
             have a question about making a custom derived quantity, please
             contact the mailing list.
 
-yt is designed to support analysis and visualization of data from multiple
-different simulation codes, although it has so far been most successfully
-applied to Adaptive Mesh Refinement (AMR) data. For a list of codes and the
-level of support they enjoy, see :ref:`code-support`.
+yt is designed to support analysis and visualization of data from
+multiple different simulation codes. For a list of codes and the level
+of support they enjoy, see :ref:`code-support`.
 
-We'd like to support a broad range of codes, both AMR-based and otherwise. To
-add support for a new code, a few things need to be put into place. These
-necessary structures can be classified into a couple categories:
+We'd like to support a broad range of codes, both Adaptive Mesh
+Refinement (AMR)-based and otherwise. To add support for a new code, a
+few things need to be put into place. These necessary structures can
+be classified into a couple categories:
 
  * Data meaning: This is the set of parameters that convert the data into
    physically relevant units; things like spatial and mass conversions, time
@@ -53,25 +53,50 @@ slightly newer addition, can also be used as an instructive example.
 A new set of fields must be added in the file ``fields.py`` in your
 new directory.  For the most part this means subclassing 
 ``FieldInfoContainer`` and adding the necessary fields specific to
-your code. Here is the base Chombo field container:
+your code. Here is a snippet from the base BoxLib field container:
 
 .. code-block:: python
 
     from yt.fields.field_info_container import FieldInfoContainer
-    class ChomboFieldInfo(FieldInfoContainer):
-        known_other_fields = ()
-	known_particle_fields = ()
+    class BoxlibFieldInfo(FieldInfoContainer):
+        known_other_fields = (
+            ("density", (rho_units, ["density"], None)),
+	    ("eden", (eden_units, ["energy_density"], None)),
+	    ("xmom", (mom_units, ["momentum_x"], None)),
+	    ("ymom", (mom_units, ["momentum_y"], None)),
+	    ("zmom", (mom_units, ["momentum_z"], None)),
+	    ("temperature", ("K", ["temperature"], None)),
+	    ("Temp", ("K", ["temperature"], None)),
+	    ("x_velocity", ("cm/s", ["velocity_x"], None)),
+	    ("y_velocity", ("cm/s", ["velocity_y"], None)),
+	    ("z_velocity", ("cm/s", ["velocity_z"], None)),
+	    ("xvel", ("cm/s", ["velocity_x"], None)),
+	    ("yvel", ("cm/s", ["velocity_y"], None)),
+	    ("zvel", ("cm/s", ["velocity_z"], None)),
+	)
 
-This is a very stripped-down class.  There are several codes
-(e.g. Orion2 and Pluto) that use a Chombo-based datastructure, and
-those particular codes subclass the ``ChomboFieldInfo`` class.  The
-tuples, ``known_other_fields`` and ``known_particle_fields`` contain
-entries, which are tuples of the form ``("name", ("units", ["fields",
-"to", "alias"], "display_name"))``.  ``"name"`` is the name of a field
-stored on-disk in the dataset. ``"units"`` corresponds to the units of
-that field.  The list ``["fields", "to", "alias"]`` allows you to
-specify additional aliases to this particular field; for example, if
-your on-disk field for the x-direction velocity were
+	known_particle_fields = (
+	    ("particle_mass", ("code_mass", [], None)),
+	    ("particle_position_x", ("code_length", [], None)),
+	    ("particle_position_y", ("code_length", [], None)),
+	    ("particle_position_z", ("code_length", [], None)),
+	    ("particle_momentum_x", (mom_units, [], None)),
+	    ("particle_momentum_y", (mom_units, [], None)),
+	    ("particle_momentum_z", (mom_units, [], None)),
+	    ("particle_angmomen_x", ("code_length**2/code_time", [], None)),
+	    ("particle_angmomen_y", ("code_length**2/code_time", [], None)),
+	    ("particle_angmomen_z", ("code_length**2/code_time", [], None)),
+	    ("particle_id", ("", ["particle_index"], None)),
+	    ("particle_mdot", ("code_mass/code_time", [], None)),
+	)
+
+The tuples, ``known_other_fields`` and ``known_particle_fields``
+contain entries, which are tuples of the form ``("name", ("units",
+["fields", "to", "alias"], "display_name"))``.  ``"name"`` is the name
+of a field stored on-disk in the dataset. ``"units"`` corresponds to
+the units of that field.  The list ``["fields", "to", "alias"]``
+allows you to specify additional aliases to this particular field; for
+example, if your on-disk field for the x-direction velocity were
 ``"x-direction-velocity"``, maybe you'd prefer to alias to the more
 terse name of ``"xvel"``.  ``"display_name"`` is an optional parameter
 that can be used to specify how you want the field to be displayed on
@@ -142,7 +167,7 @@ that is needed:
             self.Level = level
 
 
-Even one of the more complex grid object,
+Even one of the more complex grid objects,
 ``yt.frontends.boxlib.BoxlibGrid``, is still relatively simple.
 
 Data Reading Functions
