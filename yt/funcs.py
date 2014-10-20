@@ -14,7 +14,6 @@ Useful functions.  If non-original, see function for citation.
 #-----------------------------------------------------------------------------
 
 import time, types, signal, inspect, traceback, sys, pdb, os, re
-import time, types, signal, inspect, traceback, sys, pdb, os, re
 import contextlib
 import warnings, struct, subprocess
 import numpy as np
