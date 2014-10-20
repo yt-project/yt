@@ -109,26 +109,33 @@ Data Localization Structures
 
 These functions and classes let yt know about how the arrangement of
 data on disk corresponds to the physical arrangement of data within
-the simulation.  There are some subtle differences between
-AMR/patch-based codes and Octree-based codes, however, both approaches
-have a concept of a *Hierarchy* or *Index* (used somewhat
-interchangeably in the code) of datastructures and something that
-describes the elements that make up the Hierarchy or Index.  For
-AMR-based codes, the Index is a collection of ``AMRGridPatch`` objects
-that describe a block of zones.  For Octree-based codes, the Index
-contains datastructures that hold information about the individual
-octs, namely an ``OctreeContainer``.
+the simulation.  yt has grid datastructures for handling both
+patch-based and octree-based AMR codes.  The terms 'patch-based'
+and 'octree-based' are used somewhat loosely here.  For example,
+traditionally, the FLASH code used the paramesh AMR library, which is
+based on a tree structure, but the FLASH frontend in yt utilizes yt's
+patch-based datastructures.  It is up to the frontend developer to
+determine which yt datastructures best match the datastructures of
+their simulation code.
+
+Both approaches -- patch-based and octree-based -- have a concept of a
+*Hierarchy* or *Index* (used somewhat interchangeably in the code) of
+datastructures and something that describes the elements that make up
+the Hierarchy or Index.  For patch-based codes, the Index is a
+collection of ``AMRGridPatch`` objects that describe a block of zones.
+For octree-based codes, the Index contains datastructures that hold
+information about the individual octs, namely an ``OctreeContainer``.
 
 Hierarchy or Index
 ^^^^^^^^^^^^^^^^^^
 
-To set up data localization, a ``GridIndex`` subclass for AMR-based
-codes or an ``OctreeIndex`` subclass for Octree-based codes must be
+To set up data localization, a ``GridIndex`` subclass for patch-based
+codes or an ``OctreeIndex`` subclass for octree-based codes must be
 added in the file ``data_structures.py``. Examples of these different
 types of ``Index`` can be found in, for example, the
-``yt.frontends.chombo.data_structures.ChomboHierarchy`` for AMR-based
+``yt.frontends.chombo.data_structures.ChomboHierarchy`` for patch-based
 codes and ``yt.frontends.ramses.data_structures.RAMSESIndex`` for
-Octree-based codes.  
+octree-based codes.  
 
 For the most part, the ``GridIndex`` subclass must override (at a
 minimum) the following methods:
