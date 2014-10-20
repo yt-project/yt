@@ -107,7 +107,7 @@ def get_log_minorticks(vmin, vmax):
     return np.array(lmticks)
 
 def get_symlog_minorticks(linthresh, vmin, vmax):
-    """calculate positions of linear minorticks on a log colorbar
+    """calculate positions of linear minorticks on a symmetric log colorbar
 
     Parameters
     ----------
