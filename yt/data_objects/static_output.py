@@ -689,10 +689,9 @@ class Dataset(object):
     def _override_code_units(self):
         if len(self.units_override) == 0:
             return
-        else:
-            mylog.warning("Overriding code units. This is an experimental and potentially "+
-                          "dangerous option that may yield inconsistent results, and must be used "+
-                          "very carefully, and only if you know what you want from it.")
+        mylog.warning("Overriding code units. This is an experimental and potentially "+
+                      "dangerous option that may yield inconsistent results, and must be used "+
+                      "very carefully, and only if you know what you want from it.")
         for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g"),
                           ("velocity","cm/s"), ("magnetic","gauss"), ("temperature","K")]:
             val = self.units_override.get("%s_unit" % unit, None)
