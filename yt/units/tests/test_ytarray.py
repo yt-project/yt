@@ -868,10 +868,10 @@ def test_cgs_conversions():
     K = 1.0/(4*np.pi*eps_0)
     yield assert_array_almost_equal, K.in_cgs(), 1.0
 
-    B = YTQuantity(1.0,"T")
+    B = YTQuantity(1.0, "T")
     yield assert_array_almost_equal, B.in_units("gauss"), YTQuantity(1.0e4, "gauss")
 
-    I = YTQuantity(1.0,"A")
+    I = YTQuantity(1.0, "A")
     yield assert_array_almost_equal, I.in_units("statA"), YTQuantity(0.1*clight, "statA")
 
 def test_equivalencies():
