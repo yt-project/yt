@@ -52,7 +52,7 @@ Specifically, all quantities can be accessed as shown:
    data_ds = yt.load('Enzo_64/RD0006/RedshiftOutput0006')
    hc = HaloCatalog(data_ds=data_ds, finder_method='hop')
    hc.create()
-   ad = hc.all_data()
+   ad = hc.halos_ds.all_data()
    masses = ad['particle_mass'][:]
 
 

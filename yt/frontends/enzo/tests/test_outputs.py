@@ -90,3 +90,13 @@ def test_ecp():
     ds = data_dir_load(ecp)
     # Now we test our species fields
     yield check_color_conservation(ds)
+
+@requires_ds(ecp, big_data=True)
+def test_nuclei_density_fields():
+    ds = data_dir_load(ecp)
+    ad = ds.all_data()
+    yield assert_array_equal, ad["H_nuclei_density"], \
+      (ad["H_number_density"] + ad["H_p1_number_density"])
+    yield assert_array_equal, ad["He_nuclei_density"], \
+      (ad["He_number_density"] + ad["He_p1_number_density"] +
+       ad["He_p2_number_density"])

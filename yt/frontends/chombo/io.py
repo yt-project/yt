@@ -25,6 +25,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
     _dataset_type = "chombo_hdf5"
     _offset_string = 'data:offsets=0'
     _data_string = 'data:datatype=0'
+    _offsets = None
 
     def __init__(self, ds, *args, **kwargs):
         BaseIOHandler.__init__(self, ds, *args, **kwargs)
@@ -32,6 +33,29 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         self._handle = ds._handle
         self.dim = self._handle['Chombo_global/'].attrs['SpaceDim']
         self._read_ghost_info()
+        if self._offset_string not in self._handle['level_0']:
+            self._calculate_offsets()
+
+    def _calculate_offsets(self):
+        def box_size(corners):
+            size = 1
+            for idim in range(self.dim):
+                size *= (corners[idim+self.dim] - corners[idim] + 1)
+            return size
+
+        self._offsets = {}
+        num_comp = self._handle.attrs['num_components']
+        level = 0
+        while 1:
+            lname = 'level_%i' % level
+            if lname not in self._handle: break
+            boxes = self._handle['level_0']['boxes'].value
+            box_sizes = np.array([box_size(box) for box in boxes])
+
+            offsets = np.cumsum(box_sizes*num_comp, dtype='int64') 
+            offsets -= offsets[0]
+            self._offsets[level] = offsets
+            level += 1
 
     def _read_ghost_info(self):
         try:
@@ -41,7 +65,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
             self.ghost = np.array(self.ghost)
         except KeyError:
             # assume zero ghosts if outputGhosts not present
-            self.ghost = np.zeros(self.dim)
+            self.ghost = np.zeros(self.dim, 'int64')
 
     _field_dict = None
     @property
@@ -69,18 +93,21 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         self._particle_field_index = field_dict
         return self._particle_field_index
 
-    def _read_field_names(self,grid):
+    def _read_field_names(self, grid):
         ncomp = int(self._handle.attrs['num_components'])
         fns = [c[1] for c in f.attrs.items()[-ncomp-1:-1]]
 
-    def _read_data(self,grid,field):
+    def _read_data(self, grid, field):
         lstring = 'level_%i' % grid.Level
         lev = self._handle[lstring]
         dims = grid.ActiveDimensions
         shape = grid.ActiveDimensions + 2*self.ghost
         boxsize = shape.prod()
 
-        grid_offset = lev[self._offset_string][grid._level_id]
+        if self._offsets is not None:
+            grid_offset = self._offsets[grid.Level][grid._level_id]
+        else:
+            grid_offset = lev[self._offset_string][grid._level_id]
         start = grid_offset+self.field_dict[field]*boxsize
         stop = start + boxsize
         data = lev[self._data_string][start:stop]
@@ -223,7 +250,14 @@ def parse_orion_sinks(fn):
     # Figure out the format of the particle file
     with open(fn, 'r') as f:
         lines = f.readlines()
-    line = lines[1]
+
+    try:
+        line = lines[1]
+    except IndexError:
+        # a particle file exists, but there is only one line,
+        # so no sinks have been created yet.
+        index = {}
+        return index
 
     # The basic fields that all sink particles have
     index = {'particle_mass': 0,
@@ -289,20 +323,27 @@ class IOHandlerOrion2HDF5(IOHandlerChomboHDF5):
 
         """
 
+        particles = []
+
+        if grid.NumberOfParticles == 0:
+            return np.array(particles)
+
         def read(line, field):
             entry = line.strip().split(' ')[self.particle_field_index[field]]
             return np.float(entry)
 
-        fn = grid.ds.fullplotdir[:-4] + "sink"
-        with open(fn, 'r') as f:
-            lines = f.readlines()
-            particles = []
-            for line in lines[1:]:
-                if grid.NumberOfParticles > 0:
-                    coord = read(line, "particle_position_x"), \
-                        read(line, "particle_position_y"), \
-                        read(line, "particle_position_z")
-                    if ((grid.LeftEdge <= coord).all() and
-                       (coord <= grid.RightEdge).all() ):
-                        particles.append(read(line, field))
-        return np.array(particles)
+        try:
+            lines = self._cached_lines
+            for num in grid._particle_line_numbers:
+                line = lines[num]
+                particles.append(read(line, field))
+            return np.array(particles)
+        except AttributeError:
+            fn = grid.ds.fullplotdir[:-4] + "sink"
+            with open(fn, 'r') as f:
+                lines = f.readlines()
+                self._cached_lines = lines
+                for num in grid._particle_line_numbers:
+                    line = lines[num]
+                    particles.append(read(line, field))
+            return np.array(particles)

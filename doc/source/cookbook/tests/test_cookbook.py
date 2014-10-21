@@ -11,19 +11,30 @@ Example:
 """
 import glob
 import os
-import sys
+import subprocess
 
-sys.path.append(os.path.join(os.getcwd(), "doc/source/cookbook"))
+
+PARALLEL_TEST = {"rockstar_nest.py": "3"}
 
 
 def test_recipe():
     '''Dummy test grabbing all cookbook's recipes'''
     for fname in glob.glob("doc/source/cookbook/*.py"):
-        module_name = os.path.splitext(os.path.basename(fname))[0]
-        yield check_recipe, module_name
+        recipe = os.path.basename(fname)
+        check_recipe.description = "Testing recipe: %s" % recipe
+        if recipe in PARALLEL_TEST:
+            yield check_recipe, \
+                ["mpiexec", "-n", PARALLEL_TEST[recipe], "python", fname]
+        else:
+            yield check_recipe, ["python", fname]
 
 
-def check_recipe(module_name):
+def check_recipe(cmd):
     '''Run single recipe'''
-    __import__(module_name)
-    assert True
+    try:
+        subprocess.check_call(cmd)
+        result = True
+    except subprocess.CalledProcessError, e:
+        print("Stdout output:\n", e.output)
+        result = False
+    assert result

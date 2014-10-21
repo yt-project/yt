@@ -33,7 +33,9 @@ from .fixed_resolution import \
 from .plot_modifications import get_smallest_appropriate_unit, \
     callback_registry
 from .plot_container import \
-    ImagePlotContainer, log_transform, linear_transform, \
+    ImagePlotContainer, \
+    log_transform, linear_transform, symlog_transform, \
+    get_log_minorticks, get_symlog_minorticks, \
     invalidate_data, invalidate_plot, apply_callback
 
 from yt.data_objects.time_series import \
@@ -697,8 +699,8 @@ class PWViewerMPL(PlotWindow):
             # This will likely be replaced at some point by the coordinate handler
             # setting plot aspect.
             if self.aspect is None:
-                self.aspect = np.float64(self.ds.quan(1.0, unit_y) /
-                                         self.ds.quan(1.0, unit_x))
+                self.aspect = np.float64((self.ds.quan(1.0, unit_y) /
+                                         self.ds.quan(1.0, unit_x)).in_cgs())
 
             extentx = [(self.xlim[i] - xc).in_units(unit_x) for i in (0, 1)]
             extenty = [(self.ylim[i] - yc).in_units(unit_y) for i in (0, 1)]
@@ -711,9 +713,9 @@ class PWViewerMPL(PlotWindow):
                 zlim = (None, None)
 
             image = self.frb[f]
-
             if self._field_transform[f] == log_transform:
                 msg = None
+                use_symlog = False
                 if zlim != (None, None):
                     pass
                 elif np.nanmax(image) == np.nanmin(image):
@@ -724,10 +726,21 @@ class PWViewerMPL(PlotWindow):
                           "values.  Max = %f." % (f, np.nanmax(image))
                 elif not np.any(np.isfinite(image)):
                     msg = "Plot image for field %s is filled with NaNs." % (f,)
+                elif np.nanmax(image) > 0. and np.nanmin(image) < 0:
+                    msg = "Plot image for field %s has both positive "\
+                          "and negative values. Min = %f, Max = %f."\
+                          % (f, np.nanmin(image), np.nanmax(image))
+                    use_symlog = True
                 if msg is not None:
                     mylog.warning(msg)
-                    mylog.warning("Switching to linear colorbar scaling.")
-                    self._field_transform[f] = linear_transform
+                    if use_symlog:
+                        mylog.warning("Switching to symlog colorbar scaling "\
+                                      "unless linear scaling is specified later")
+                        self._field_transform[f] = symlog_transform
+                        self._field_transform[f].func = None
+                    else:
+                        mylog.warning("Switching to linear colorbar scaling.")
+                        self._field_transform[f] = linear_transform
 
             fp = self._font_properties
 
@@ -746,6 +759,7 @@ class PWViewerMPL(PlotWindow):
 
             self.plots[f] = WindowPlotMPL(
                 image, self._field_transform[f].name,
+                self._field_transform[f].func,
                 self._colormaps[f], extent, zlim,
                 self.figure_size, fp.get_size(),
                 self.aspect, fig, axes, cax)
@@ -755,9 +769,10 @@ class PWViewerMPL(PlotWindow):
             hinv = False
             for i, un in enumerate((unit_x, unit_y)):
                 if hasattr(self.ds.coordinates, "default_unit_label"):
-                    axax = getattr(self.ds.coordinates, "%s_axis" % ("xy"[i]))[axis_index]
+                    axax = getattr(self.ds.coordinates,
+                                   "%s_axis" % ("xy"[i]))[axis_index]
                     un = self.ds.coordinates.default_unit_label[axax]
-                    axes_unit_labels[i] = '\/\/('+un+')'
+                    axes_unit_labels[i] = '\/\/\left('+un+'\right)'
                     continue
                 # Use sympy to factor h out of the unit.  In this context 'un'
                 # is a string, so we call the Unit constructor.
@@ -813,7 +828,7 @@ class PWViewerMPL(PlotWindow):
                             1, self.xlim, self.ylim)
                     else:
                         ymin, ymax = [float(y) for y in extenty]
-                    self.plots[f].image.set_extent((xmin,xmax,ymin,ymax))
+                    self.plots[f].image.set_extent((xmin, xmax, ymin, ymax))
                     self.plots[f].axes.set_aspect("auto")
 
             x_label, y_label, colorbar_label = self._get_axes_labels(f)
@@ -843,7 +858,7 @@ class PWViewerMPL(PlotWindow):
                 if units is None or units == '':
                     pass
                 else:
-                    colorbar_label += r'$\/\/('+units+r')$'
+                    colorbar_label += r'$\/\/\left('+units+r'\right)$'
 
             parser = MathTextParser('Agg')
             try:
@@ -858,6 +873,32 @@ class PWViewerMPL(PlotWindow):
                           [self.plots[f].cb.ax.axes.xaxis.get_offset_text(),
                            self.plots[f].cb.ax.axes.yaxis.get_offset_text()]):
                 label.set_fontproperties(fp)
+
+            # x-y axes minorticks
+            if f not in self._minorticks:
+                self._minorticks[f] = True
+            if self._minorticks[f] is True:
+                self.plots[f].axes.minorticks_on()
+            else:
+                self.plots[f].axes.minorticks_off()
+
+            # colorbar minorticks
+            if f not in self._cbar_minorticks:
+                self._cbar_minorticks[f] = True
+            if self._cbar_minorticks[f] is True:
+                if self._field_transform[f] == linear_transform:
+                    self.plots[f].cax.minorticks_on()
+                else:
+                    vmin = self.plots[f].cb.norm.vmin
+                    vmax = self.plots[f].cb.norm.vmax
+                    if self._field_transform[f] == log_transform:
+                        mticks = self.plots[f].image.norm( get_log_minorticks(vmin, vmax) )
+                    else: # symlog_transform
+                        flinthresh = 10**np.floor( np.log10( self.plots[f].cb.norm.linthresh ) )
+                        mticks = self.plots[f].image.norm( get_symlog_minorticks(flinthresh, vmin.d, vmax.d) )
+                    self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
+            else:
+                self.plots[f].cax.minorticks_off()
 
             self.run_callbacks(f)
 
@@ -1642,7 +1683,7 @@ class PWViewerExtJS(PlotWindow):
 
 class WindowPlotMPL(ImagePlotMPL):
     """A container for a single PlotWindow matplotlib figure and axes"""
-    def __init__(self, data, cbname, cmap, extent, zlim, figure_size, fontsize,
+    def __init__(self, data, cbname, cblinthresh, cmap, extent, zlim, figure_size, fontsize,
                  unit_aspect, figure, axes, cax):
         self._draw_colorbar = True
         self._draw_axes = True
@@ -1661,14 +1702,14 @@ class WindowPlotMPL(ImagePlotMPL):
         self._cb_size = 0.0375*fsize
         self._ax_text_size = [1.2*fontscale, 0.9*fontscale]
         self._top_buff_size = 0.30*fontscale
-        self._aspect = ((extent[1] - extent[0])/(extent[3] - extent[2]))
+        self._aspect = ((extent[1] - extent[0])/(extent[3] - extent[2])).in_cgs()
 
         size, axrect, caxrect = self._get_best_layout()
 
         super(WindowPlotMPL, self).__init__(
             size, axrect, caxrect, zlim, figure, axes, cax)
 
-        self._init_image(data, cbname, cmap, extent, unit_aspect)
+        self._init_image(data, cbname, cblinthresh, cmap, extent, unit_aspect)
 
         self.image.axes.ticklabel_format(scilimits=(-2, 3))
         if cbname == 'linear':
