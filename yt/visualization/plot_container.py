@@ -330,16 +330,18 @@ class ImagePlotContainer(object):
         return self
 
     @invalidate_plot
-    def minorticks_off(self, field='all'):
-        """remove minor ticks from the current plot
+    def set_minorticks(self, field, state):
+        """turn minor ticks on or off in the current plot
 
-        Displaying minor ticks reduces performance; turn them off 
-        using minorticks_off() if drawing speed is a problem.
+        Displaying minor ticks reduces performance; turn them off
+        using set_minorticks('all', 'off') if drawing speed is a problem.
 
         Parameters
         ----------
         field : string
             the field to remove minorticks
+        state : string
+            the state indicating 'on' or 'off'
 
         """
         if field == 'all':
@@ -347,41 +349,25 @@ class ImagePlotContainer(object):
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
-            self._minorticks[field] = False
+            if state == 'on':
+                self._minorticks[field] = True
+            else:
+                self._minorticks[field] = False
         return self
 
     @invalidate_plot
-    def minorticks_on(self, field='all'):
-        """display minor ticks on the current plot
+    def set_cbar_minorticks(self, field, state):
+        """turn colorbar minor ticks on or off in the current plot
 
         Displaying minor ticks reduces performance; turn them off 
-        using minorticks_off() if drawing speed is a problem.
-
-        Parameters
-        ----------
-        field : string
-            the field to display minorticks
-
-        """
-        if field == 'all':
-            fields = self.plots.keys()
-        else:
-            fields = [field]
-        for field in self.data_source._determine_fields(fields):
-            self._minorticks[field] = True
-        return self
-
-    @invalidate_plot
-    def cbar_minorticks_off(self, field='all'):
-        """remove colorbar minor ticks from the current plot
-
-        Displaying minor ticks reduces performance; turn them off 
-        using cbar_minorticks_off() if drawing speed is a problem.
+        using set_cbar_minorticks('all', 'off') if drawing speed is a problem.
 
         Parameters
         ----------
         field : string
             the field to remove colorbar minorticks
+        state : string
+            the state indicating 'on' or 'off'
 
         """
         if field == 'all':
@@ -389,28 +375,10 @@ class ImagePlotContainer(object):
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
-            self._cbar_minorticks[field] = False
-        return self
-
-    @invalidate_plot
-    def cbar_minorticks_on(self, field='all'):
-        """display colorbar minor ticks on the current plot
-
-        Displaying minor ticks reduces performance; turn them off 
-        using cbar_minorticks_off() if drawing speed is a problem.
-
-        Parameters
-        ----------
-        field : string
-            the field to display colorbar minorticks
-
-        """
-        if field == 'all':
-            fields = self.plots.keys()
-        else:
-            fields = [field]
-        for field in self.data_source._determine_fields(fields):
-            self._cbar_minorticks[field] = True
+            if state == 'on':
+                self._cbar_minorticks[field] = True
+            else:
+                self._cbar_minorticks[field] = False
         return self
 
     def setup_callbacks(self):

@@ -894,10 +894,8 @@ class PWViewerMPL(PlotWindow):
                     if self._field_transform[f] == log_transform:
                         mticks = self.plots[f].image.norm( get_log_minorticks(vmin, vmax) )
                     else: # symlog_transform
-                        if isinstance(vmin, YTArray): vmin = vmin.d
-                        if isinstance(vmax, YTArray): vmax = vmax.d
                         flinthresh = 10**np.floor( np.log10( self.plots[f].cb.norm.linthresh ) )
-                        mticks = self.plots[f].image.norm( get_symlog_minorticks(flinthresh, vmin, vmax) )
+                        mticks = self.plots[f].image.norm( get_symlog_minorticks(flinthresh, vmin.d, vmax.d) )
                     self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
             else:
                 self.plots[f].cax.minorticks_off()

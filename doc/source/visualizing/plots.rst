@@ -536,22 +536,19 @@ Turning off minorticks
 
 By default minorticks for the x and y axes are turned on.
 The minorticks may be removed using the
-:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.minorticks_off` function,
-which either accepts a specific field name or will apply to all associated plots
-if no argument is given. There is also a 
-:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.minorticks_on` function
-so minorticks may be turned on again. Finally, there are analogous
-:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.cbar_minorticks_off` and
-:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.cbar_minorticks_on` functions
-for the colorbar axis.
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_minorticks`
+function, which either accepts a specific field name including the 'all' alias
+and the desired state for the plot as 'on' or 'off'. There is also an analogous
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_cbar_minorticks`
+function for the colorbar axis.
 
 .. python-script::
 
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
-   slc.minorticks_off()
-   slc.cbar_minorticks_off()
+   slc.set_minorticks('all', 'off')
+   slc.set_cbar_minorticks('all', 'off')
    slc.save()
 
 .. _matplotlib-customization:
