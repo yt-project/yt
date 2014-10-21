@@ -28,8 +28,7 @@ else:
 
 class FITSImageBuffer(HDUList):
 
-    def __init__(self, data, fields=None, units="cm",
-                 center=None, scale=None, wcs=None):
+    def __init__(self, data, fields=None, units="cm", wcs=None):
         r""" Initialize a FITSImageBuffer object.
 
         FITSImageBuffer contains a list of FITS ImageHDU instances, and
@@ -50,29 +49,32 @@ class FITSImageBuffer(HDUList):
             keys, it will use these for the fields. If *data* is just a
             single array one field name must be specified.
         units : string
-            The units of the WCS coordinates, default "cm". 
-        center : array_like, optional
-            The coordinates [xctr,yctr] of the images in units
-            *units*. If *units* is not specified, defaults to the origin. 
-        scale : tuple of floats, optional
-            Pixel scale in unit *units*. Will be ignored if *data* is
-            a FixedResolutionBuffer or a YTCoveringGrid. Must be
-            specified otherwise, or if *units* is "deg".
+            The units of the WCS coordinates. Only applies
+            to FixedResolutionBuffers or YTCoveringGrids. Defaults to "cm".
         wcs : `astropy.wcs.WCS` instance, optional
-            Supply an AstroPy WCS instance to override automatic WCS creation.
+            Supply an AstroPy WCS instance. Will override automatic WCS
+            creation from FixedResolutionBuffers and YTCoveringGrids.
 
         Examples
         --------
 
+        >>> # This example uses a FRB.
         >>> ds = load("sloshing_nomag2_hdf5_plt_cnt_0150")
         >>> prj = ds.proj(2, "kT", weight_field="density")
         >>> frb = prj.to_frb((0.5, "Mpc"), 800)
         >>> # This example just uses the FRB and puts the coords in kpc.
         >>> f_kpc = FITSImageBuffer(frb, fields="kT", units="kpc")
-        >>> # This example specifies sky coordinates.
-        >>> scale = [1./3600.]*2 # One arcsec per pixel
-        >>> f_deg = FITSImageBuffer(frb, fields="kT", units="deg",
-                                    scale=scale, center=(30., 45.))
+        >>> # This example specifies a specific WCS.
+        >>> from astropy.wcs import WCS
+        >>> w = WCS(naxis=self.dimensionality)
+        >>> w.wcs.crval = [30., 45.] # RA, Dec in degrees
+        >>> w.wcs.cunit = ["deg"]*2
+        >>> nx, ny = 800, 800
+        >>> w.wcs.crpix = [0.5*(nx+1), 0.5*(ny+1)]
+        >>> w.wcs.ctype = ["RA---TAN","DEC--TAN"]
+        >>> scale = 1./3600. # One arcsec per pixel
+        >>> w.wcs.cdelt = [-scale, scale]
+        >>> f_deg = FITSImageBuffer(frb, fields="kT", wcs=w)
         >>> f_deg.writeto("temp.fits")
         """
         
@@ -122,25 +124,11 @@ class FITSImageBuffer(HDUList):
 
         has_coords = (isinstance(img_data, FixedResolutionBuffer) or
                       isinstance(img_data, YTCoveringGridBase))
-        
-        if center is None:
-            if units == "deg":
-                mylog.error("Please specify center=(RA, Dec) in degrees.")
-                raise ValueError
-            elif not has_coords:
-                mylog.warning("Setting center to the origin.")
-                center = [0.0]*self.dimensionality
-
-        if scale is None:
-            if units == "deg" or not has_coords and wcs is None:
-                mylog.error("Please specify scale=(dx,dy[,dz]) in %s." % (units))
-                raise ValueError
 
         if wcs is None:
             w = pywcs.WCS(header=self[0].header, naxis=self.dimensionality)
             w.wcs.crpix = 0.5*(np.array(self.shape)+1)
-            proj_type = ["linear"]*self.dimensionality
-            if isinstance(img_data, FixedResolutionBuffer) and units != "deg":
+            if isinstance(img_data, FixedResolutionBuffer):
                 # FRBs are a special case where we have coordinate
                 # information, so we take advantage of this and
                 # construct the WCS object
@@ -152,28 +140,20 @@ class FITSImageBuffer(HDUList):
             elif isinstance(img_data, YTCoveringGridBase):
                 dx, dy, dz = img_data.dds.in_units(units)
                 center = 0.5*(img_data.left_edge+img_data.right_edge).in_units(units)
-            elif units == "deg" and self.dimensionality == 2:
-                dx = -scale[0]
-                dy = scale[1]
-                proj_type = ["RA---TAN","DEC--TAN"]
             else:
-                dx = scale[0]
-                dy = scale[1]
-                if self.dimensionality == 3: dz = scale[2]
-            
+                # We default to pixel coordinates if nothing is provided
+                dx, dy, dz = 1.0, 1.0, 1.0
+                center = 0.5*(np.array(self.shape)+1)
             w.wcs.crval = center
-            w.wcs.cunit = [units]*self.dimensionality
-            w.wcs.ctype = proj_type
-        
+            if has_coords:
+                w.wcs.cunit = [units]*self.dimensionality
             if self.dimensionality == 2:
                 w.wcs.cdelt = [dx,dy]
             elif self.dimensionality == 3:
                 w.wcs.cdelt = [dx,dy,dz]
-
+            w.wcs.ctype = ["linear"]*self.dimensionality
             self._set_wcs(w)
-
         else:
-
             self._set_wcs(wcs)
 
     def _set_wcs(self, wcs):
