@@ -864,9 +864,9 @@ class PhasePlot(ImagePlotContainer):
                 if self._field_transform[f] == linear_transform:
                     self.plots[f].cax.minorticks_on()
                 else:
-                    vmin = self.plots[f].cb.norm.vmin
-                    vmax = self.plots[f].cb.norm.vmax
-                    mticks = self.plots[f].image.norm( get_log_minorticks(vmin.d, vmax.d) )
+                    vmin = np.float64( self.plots[f].cb.norm.vmin )
+                    vmax = np.float64( self.plots[f].cb.norm.vmax )
+                    mticks = self.plots[f].image.norm( get_log_minorticks(vmin, vmax) )
                     self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
             else:
                 self.plots[f].cax.minorticks_off()
