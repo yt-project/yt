@@ -13,7 +13,7 @@ Equivalencies between different kinds of units
 
 import yt.utilities.physical_constants as pc
 from yt.units.dimensions import temperature, mass, energy, length, rate, \
-    velocity
+    velocity, dimensionless
 from yt.extern.six import add_metaclass
 import numpy as np
 
@@ -100,3 +100,18 @@ class SoundSpeedEquivalence(Equivalence):
 
     def __str__(self):
         return "sound_speed: velocity <-> temperature <-> energy"
+
+class LorentzEquivalence(Equivalence):
+    _type_name = "lorentz"
+    dims = (dimensionless,velocity,)
+
+    def convert(self, x, new_dims):
+        if new_dims == dimensionless:
+            beta = x.in_cgs()/pc.clight
+            return 1./np.sqrt(1.-beta**2)
+        elif new_dims == velocity:
+            return pc.clight*np.sqrt(1.-1./(x*x))
+
+    def __str__(self):
+        return "lorentz: velocity <-> dimensionless"
+
