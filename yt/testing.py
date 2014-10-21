@@ -324,7 +324,7 @@ def requires_file(req_file):
             return ffalse
 
 def units_override_check(fn):
-    import gc
+    ytcfg["yt","skip_dataset_cache"] = "True"
     units_list = ["length","time","mass","velocity",
                   "magnetic","temperature"]
     ds1 = load(fn)
@@ -337,8 +337,8 @@ def units_override_check(fn):
             attrs1.append(unit_attr)
             units_override["%s_unit" % u] = (unit_attr.v, str(unit_attr.units))
     del ds1
-    gc.collect()
     ds2 = load(fn, units_override=units_override)
+    ytcfg["yt","skip_dataset_cache"] = "False"
     assert(len(ds2.units_override) > 0)
     for u in units_list:
         unit_attr = getattr(ds2, "%s_unit" % u, None)

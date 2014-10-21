@@ -134,7 +134,9 @@ class Dataset(object):
             return obj
         apath = os.path.abspath(filename)
         #if not os.path.exists(apath): raise IOError(filename)
-        if apath not in _cached_datasets:
+        if ytcfg.getboolean("yt","skip_dataset_cache"):
+            obj = object.__new__(cls)
+        elif apath not in _cached_datasets:
             obj = object.__new__(cls)
             if obj._skip_cache is False:
                 _cached_datasets[apath] = obj

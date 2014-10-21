@@ -39,6 +39,7 @@ ytcfg_defaults = dict(
     storeparameterfiles = 'False',
     parameterfilestore = 'parameter_files.csv',
     maximumstoreddatasets = '500',
+    skip_dataset_cache = 'False',
     loadfieldplugins = 'True',
     pluginfilename = 'my_plugins.py',
     parallel_traceback = 'False',
