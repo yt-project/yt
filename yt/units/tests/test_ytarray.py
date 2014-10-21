@@ -473,7 +473,7 @@ def test_temperature_conversions():
     balmy_C = YTQuantity(26.85, 'degC')
     balmy_R = YTQuantity(540, 'R')
 
-    assert_array_almost_equal(balmy.in_units('defF'), balmy_F)
+    assert_array_almost_equal(balmy.in_units('degF'), balmy_F)
     assert_array_almost_equal(balmy.in_units('degC'), balmy_C)
     assert_array_almost_equal(balmy.in_units('R'), balmy_R)
 
@@ -491,7 +491,7 @@ def test_temperature_conversions():
     yield assert_true, balmy_view.base is balmy.base
     yield assert_array_almost_equal, np.array(balmy), np.array(balmy_R)
 
-    balmy.convert_to_units('F')
+    balmy.convert_to_units('degF')
     yield assert_true, balmy_view.base is balmy.base
     yield assert_array_almost_equal, np.array(balmy), np.array(balmy_F)
 
@@ -856,3 +856,73 @@ def test_h5_io():
 
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
+
+def test_cgs_conversions():
+    from yt.utilities.physical_constants import qp, eps_0, clight
+    from yt.units.dimensions import current_mks, time
+
+    qp_mks = qp.in_units("C")
+    yield assert_equal, qp_mks.units.dimensions, current_mks*time
+    yield assert_array_almost_equal, qp_mks.in_cgs(), qp
+
+    K = 1.0/(4*np.pi*eps_0)
+    yield assert_array_almost_equal, K.in_cgs(), 1.0
+
+    B = YTQuantity(1.0,"T")
+    yield assert_array_almost_equal, B.in_units("gauss"), YTQuantity(1.0e4, "gauss")
+
+    I = YTQuantity(1.0,"A")
+    yield assert_array_almost_equal, I.in_units("statA"), YTQuantity(0.1*clight, "statA")
+
+def test_equivalencies():
+    from yt.utilities.physical_constants import clight, mp, kboltz, hcgs, mh
+
+    # Mass-energy
+
+    E = mp.to_equivalent("keV","mass_energy")
+    yield assert_equal, E, mp*clight*clight
+    yield assert_array_almost_equal, mp, E.to_equivalent("g", "mass_energy")
+
+    # Thermal
+
+    T = YTQuantity(1.0e8,"K")
+    E = T.to_equivalent("W*hr","thermal")
+    yield assert_equal, E, (kboltz*T).in_units("W*hr")
+    yield assert_array_almost_equal, T, E.to_equivalent("K", "thermal")
+
+    # Spectral
+
+    l = YTQuantity(4000.,"angstrom")
+    nu = l.to_equivalent("Hz","spectral")
+    yield assert_equal, nu, clight/l
+    E = hcgs*nu
+    l2 = E.to_equivalent("angstrom", "spectral")
+    yield assert_array_almost_equal, l, l2
+    nu2 = clight/l2.in_units("cm")
+    yield assert_array_almost_equal, nu, nu2
+    E2 = nu2.to_equivalent("keV", "spectral")
+    yield assert_array_almost_equal, E2, E.in_units("keV")
+
+    # Sound-speed
+
+    mu = 0.6
+    gg = 5./3.
+    c_s = T.to_equivalent("km/s","sound_speed")
+    yield assert_equal, c_s, np.sqrt(gg*kboltz*T/(mu*mh))
+    yield assert_array_almost_equal, T, c_s.to_equivalent("K","sound_speed")
+
+    mu = 0.5
+    gg = 4./3.
+    c_s = T.to_equivalent("km/s","sound_speed", mu=mu, gamma=gg)
+    yield assert_equal, c_s, np.sqrt(gg*kboltz*T/(mu*mh))
+    yield assert_array_almost_equal, T, c_s.to_equivalent("K","sound_speed",
+                                                          mu=mu, gamma=gg)
+
+    # Lorentz
+
+    v = 0.8*clight
+    g = v.to_equivalent("dimensionless","lorentz")
+    g2 = YTQuantity(1./np.sqrt(1.-0.8*0.8), "dimensionless")
+    yield assert_array_almost_equal, g, g2
+    v2 = g2.to_equivalent("mile/hr", "lorentz")
+    yield assert_array_almost_equal, v2, v.in_units("mile/hr")
