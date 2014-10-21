@@ -473,7 +473,8 @@ def unitify_data(data):
             field_units[k] = v.units
             new_data[k] = v.copy().d
         data = new_data
-    elif all([(len(val) == 2) for val in data.values()]):
+    elif all([((not isinstance(val, np.ndarray)) and (len(val) == 2))
+             for val in data.values()]):
         new_data, field_units = {}, {}
         for field in data:
             try:
@@ -700,7 +701,7 @@ def load_amr_grids(grid_data, domain_dimensions,
                    field_units=None, bbox=None, sim_time=0.0, length_unit=None,
                    mass_unit=None, time_unit=None, velocity_unit=None,
                    magnetic_unit=None, periodicity=(True, True, True),
-                   geometry = "cartesian"):
+                   geometry = "cartesian", refine_by=2):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
     This should allow a sequence of grids of varying resolution of data to be
@@ -750,6 +751,8 @@ def load_amr_grids(grid_data, domain_dimensions,
         each axis
     geometry : string
         "cartesian", "cylindrical" or "polar"
+    refine_by : integer
+        Specifies the refinement ratio between levels.  Defaults to 2.
 
     Examples
     --------
@@ -771,7 +774,7 @@ def load_amr_grids(grid_data, domain_dimensions,
     ...     g["density"] = np.random.random(g["dimensions"]) * 2**g["level"]
     ...
     >>> units = dict(density='g/cm**3')
-    >>> ds = load_amr_grids(grid_data, [8, 8, 8], field_units=units,
+    >>> ds = load_amr_grids(grid_data, [32, 32, 32], field_units=units,
     ...                     length_unit=1.0)
     """
 
@@ -848,7 +851,7 @@ def load_amr_grids(grid_data, domain_dimensions,
     handler.name = "AMRGridData"
     handler.domain_left_edge = domain_left_edge
     handler.domain_right_edge = domain_right_edge
-    handler.refine_by = 2
+    handler.refine_by = refine_by
     handler.dimensionality = 3
     handler.domain_dimensions = domain_dimensions
     handler.simulation_time = sim_time

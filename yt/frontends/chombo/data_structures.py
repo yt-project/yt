@@ -113,7 +113,8 @@ class ChomboHierarchy(GridIndex):
         self.directory = ds.fullpath
         self._handle = ds._handle
 
-        self.float_type = self._handle['Chombo_global'].attrs['testReal'].dtype.name
+        tr = self._handle['Chombo_global'].attrs.get("testReal", "float32")
+            
         self._levels = [key for key in self._handle.keys() if key.startswith('level')]
         GridIndex.__init__(self, ds, dataset_type)
 
@@ -161,7 +162,13 @@ class ChomboHierarchy(GridIndex):
     def _count_grids(self):
         self.num_grids = 0
         for lev in self._levels:
-            self.num_grids += self._handle[lev]['Processors'].len()
+            d = self._handle[lev]
+            if 'Processors' in d:
+                self.num_grids += d['Processors'].len()
+            elif 'boxes' in d:
+                self.num_grids += d['boxes'].len()
+            else:
+                raise RuntimeError("Uknown file specification")
 
     def _parse_index(self):
         f = self._handle # shortcut

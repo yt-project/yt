@@ -80,6 +80,53 @@ def apply_callback(f):
         return args[0]
     return newfunc
 
+def get_log_minorticks(vmin, vmax):
+    """calculate positions of linear minorticks on a log colorbar
+
+    Parameters
+    ----------
+    vmin : float
+        the minimum value in the colorbar
+    vmax : float
+        the maximum value in the colorbar
+
+    """
+    expA = np.floor(np.log10(vmin))
+    expB = np.floor(np.log10(vmax))
+    cofA = np.ceil(vmin/10**expA)
+    cofB = np.floor(vmax/10**expB)
+    lmticks = []
+    while cofA*10**expA <= cofB*10**expB:
+        if expA < expB:
+            lmticks = np.hstack( (lmticks, np.linspace(cofA, 9, 10-cofA)*10**expA) )
+            cofA = 1
+            expA += 1
+        else:
+            lmticks = np.hstack( (lmticks, np.linspace(cofA, cofB, cofB-cofA+1)*10**expA) )
+            expA += 1
+    return np.array(lmticks)
+
+def get_symlog_minorticks(linthresh, vmin, vmax):
+    """calculate positions of linear minorticks on a symmetric log colorbar
+
+    Parameters
+    ----------
+    linthresh: float
+        the threshold for the linear region
+    vmin : float
+        the minimum value in the colorbar
+    vmax : float
+        the maximum value in the colorbar
+
+    """
+    if vmin >= 0 or vmax <= 0:
+        raise RuntimeError(
+            '''attempting to set minorticks for
+              a symlog plot with one-sided data:
+              got vmin = %s, vmax = %s''' % (vmin, vmax))
+    return np.hstack( (-get_log_minorticks(linthresh,-vmin)[::-1], 0,
+                        get_log_minorticks(linthresh, vmax)) )
+
 field_transforms = {}
 
 
@@ -102,6 +149,7 @@ class FieldTransform(object):
 
 log_transform = FieldTransform('log10', np.log10, LogLocator())
 linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
+symlog_transform = FieldTransform('symlog', None, LogLocator())
 
 class PlotDictionary(defaultdict):
     def __getitem__(self, item):
@@ -143,11 +191,13 @@ class ImagePlotContainer(object):
         self._font_color = None
         self._xlabel = None
         self._ylabel = None
+        self._minorticks = {}
+        self._cbar_minorticks = {}
         self._colorbar_label = PlotDictionary(
             self.data_source, lambda: None)
 
     @invalidate_plot
-    def set_log(self, field, log):
+    def set_log(self, field, log, linthresh=None):
         """set a field to log or linear.
 
         Parameters
@@ -156,6 +206,8 @@ class ImagePlotContainer(object):
             the field to set a transform
         log : boolean
             Log on/off.
+        linthresh : float (must be positive)
+            linthresh will be enabled for symlog scale only when log is true
 
         """
         if field == 'all':
@@ -164,7 +216,13 @@ class ImagePlotContainer(object):
             fields = [field]
         for field in self.data_source._determine_fields(fields):
             if log:
-                self._field_transform[field] = log_transform
+                if linthresh is not None:
+                    if not linthresh > 0.: 
+                        raise ValueError('\"linthresh\" must be positive')
+                    self._field_transform[field] = symlog_transform
+                    self._field_transform[field].func = linthresh 
+                else:
+                    self._field_transform[field] = log_transform
             else:
                 self._field_transform[field] = linear_transform
         return self
@@ -269,6 +327,58 @@ class ImagePlotContainer(object):
 
             self.plots[field].zmin = myzmin
             self.plots[field].zmax = myzmax
+        return self
+
+    @invalidate_plot
+    def set_minorticks(self, field, state):
+        """turn minor ticks on or off in the current plot
+
+        Displaying minor ticks reduces performance; turn them off
+        using set_minorticks('all', 'off') if drawing speed is a problem.
+
+        Parameters
+        ----------
+        field : string
+            the field to remove minorticks
+        state : string
+            the state indicating 'on' or 'off'
+
+        """
+        if field == 'all':
+            fields = self.plots.keys()
+        else:
+            fields = [field]
+        for field in self.data_source._determine_fields(fields):
+            if state == 'on':
+                self._minorticks[field] = True
+            else:
+                self._minorticks[field] = False
+        return self
+
+    @invalidate_plot
+    def set_cbar_minorticks(self, field, state):
+        """turn colorbar minor ticks on or off in the current plot
+
+        Displaying minor ticks reduces performance; turn them off 
+        using set_cbar_minorticks('all', 'off') if drawing speed is a problem.
+
+        Parameters
+        ----------
+        field : string
+            the field to remove colorbar minorticks
+        state : string
+            the state indicating 'on' or 'off'
+
+        """
+        if field == 'all':
+            fields = self.plots.keys()
+        else:
+            fields = [field]
+        for field in self.data_source._determine_fields(fields):
+            if state == 'on':
+                self._cbar_minorticks[field] = True
+            else:
+                self._cbar_minorticks[field] = False
         return self
 
     def setup_callbacks(self):

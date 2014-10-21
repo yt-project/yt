@@ -807,6 +807,8 @@ class YTSelectionContainer2D(YTSelectionContainer):
         self.fields = [k for k in self.field_data if k not in skip]
         if fields is not None:
             self.fields = ensure_list(fields) + self.fields
+        if len(self.fields) == 0:
+            raise ValueError("No fields found to plot in get_pw")
         (bounds, center, display_center) = \
             get_window_parameters(axis, center, width, self.ds)
         pw = PWViewerMPL(self, bounds, fields=self.fields, origin=origin,
