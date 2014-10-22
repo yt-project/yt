@@ -1164,10 +1164,12 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
                 # read in last vertex
                 linesave = ''
                 for line in fileinput.input(filename + '.obj'):
-                    if line[0] == 'f':
-                        linesave = line
-                p = [m.start() for m in finditer(' ', linesave)]
-                cc = int(linesave[p[len(p)-1]:])+1
+                    if line[0:6] == '#vmax=': 
+                        cc = int(line[6:len(line)]) 
+                #    if line[0] == 'f':
+                #        linesave = line
+                #p = [m.start() for m in finditer(' ', linesave)]
+                #cc = int(linesave[p[len(p)-1]:])+1
                 fobj = open(filename + '.obj', "a")
                 fmtl = open(filename + '.mtl', 'a')
         ftype = [("cind", "uint8"), ("emit", "float")]
@@ -1226,15 +1228,17 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
             fmtl.write("illum 2\n") # not relevant, 2 means highlights on?
             fmtl.write("Ns %.6f\n\n" %(0.0)) #keep off, some other specular thing
         #(2) write vertices
-        print("HERE!!!")
-        for i in range(0,self.vertices.shape[1]):
-            fobj.write("v %.6f %.6f %.6f\n" %(v["x"][i], v["y"][i], v["z"][i]))    
+        u, indices = np.unique(v, return_inverse=True)
+        #for i in range(0,self.vertices.shape[1]):
+        for i in range(0,len(u['x'][:])):
+            fobj.write("v %.6f %.6f %.6f\n" %(u["x"][i], u["y"][i], u["z"][i]))    
         fobj.write("#done defining vertices\n\n")
+        fobj.write("#vmax=" + str(len(u['x'][:])))
         #(3) define faces and materials for each face
         for i in range(0,self.triangles.shape[0]):
             omname = 'material_' + str(f["cind"][i]) + '_' + str(plot_index) # which color to use
             fobj.write("usemtl " + omname + '\n') # which material to use for this face (color)
-            fobj.write("f " + str(cc) + ' ' + str(cc+1) + ' ' + str(cc+2) + '\n\n') # vertices to color
+            fobj.write("f " + str(indices[cc]) + ' ' + str(indices[cc+1]) + ' ' + str(indices[cc+2]) + '\n\n') # vertices to color
             cc = cc+3
         fmtl.close()
         fobj.close()
