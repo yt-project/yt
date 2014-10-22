@@ -729,6 +729,7 @@ class PhotonList(object):
         events[tblhdu.header["CHANTYPE"]] = dchannel.astype(int)
 
         info = {"ChannelType" : tblhdu.header["CHANTYPE"],
+                "Mission" : tblhdu.header["MISSION"],
                 "Telescope" : tblhdu.header["TELESCOP"],
                 "Instrument" : tblhdu.header["INSTRUME"]}
         
@@ -789,6 +790,8 @@ class EventList(object) :
             parameters["ARF"] = f["/arf"].value
         if "channel_type" in f:
             parameters["ChannelType"] = f["/channel_type"].value
+        if "mission" in f:
+            parameters["Mission"] = f["/mission"].value
         if "telescope" in f:
             parameters["Telescope"] = f["/telescope"].value
         if "instrument" in f:
@@ -831,6 +834,8 @@ class EventList(object) :
             parameters["ARF"] = tblhdu["ARF"]
         if "CHANTYPE" in tblhdu.header:
             parameters["ChannelType"] = tblhdu["CHANTYPE"]
+        if "MISSION" in tblhdu.header:
+            parameters["Mission"] = tblhdu["MISSION"]
         if "TELESCOP" in tblhdu.header:
             parameters["Telescope"] = tblhdu["TELESCOP"]
         if "INSTRUME" in tblhdu.header:
@@ -920,11 +925,13 @@ class EventList(object) :
         tbhdu.header["RADECSYS"] = "FK5"
         tbhdu.header["EQUINOX"] = 2000.0
         if "RMF" in self.parameters:
-            tbhdu.header["RMF"] = self.parameters["RMF"]
+            tbhdu.header["RESPFILE"] = self.parameters["RMF"]
         if "ARF" in self.parameters:
-            tbhdu.header["ARF"] = self.parameters["ARF"]
+            tbhdu.header["ANCRFILE"] = self.parameters["ARF"]
         if "ChannelType" in self.parameters:
             tbhdu.header["CHANTYPE"] = self.parameters["ChannelType"]
+        if "Mission" in self.parameters:
+            tbhdu.header["MISSION"] = self.parameters["Mission"]
         if "Telescope" in self.parameters:
             tbhdu.header["TELESCOP"] = self.parameters["Telescope"]
         if "Instrument" in self.parameters:
@@ -1041,6 +1048,8 @@ class EventList(object) :
             f.create_dataset("/rmf", data=self.parameters["RMF"])
         if "ChannelType" in self.parameters:
             f.create_dataset("/channel_type", data=self.parameters["ChannelType"])
+        if "Mission" in self.parameters:
+            f.create_dataset("/mission", data=self.parameters["Mission"]) 
         if "Telescope" in self.parameters:
             f.create_dataset("/telescope", data=self.parameters["Telescope"])
         if "Instrument" in self.parameters:
@@ -1209,6 +1218,10 @@ class EventList(object) :
                 tbhdu.header["ANCRFILE"] = self.parameters["ARF"]
             else:        
                 tbhdu.header["ANCRFILE"] = "none"
+            if self.parameters.has_key("Mission"):
+                tbhdu.header["MISSION"] = self.parameters["Mission"]
+            else:
+                tbhdu.header["MISSION"] = "none"
             if self.parameters.has_key("Telescope"):
                 tbhdu.header["TELESCOP"] = self.parameters["Telescope"]
             else:

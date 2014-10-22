@@ -13,9 +13,6 @@ Skeleton-specific IO functions
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
-import h5py
-
 from yt.utilities.io_handler import \
     BaseIOHandler
 

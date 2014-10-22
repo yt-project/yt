@@ -333,61 +333,6 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     def normal(self):
         return self._norm_vec
 
-    def to_frb(self, width, resolution, height=None,
-               periodic=False):
-        r"""This function returns an ObliqueFixedResolutionBuffer generated
-        from this object.
-
-        An ObliqueFixedResolutionBuffer is an object that accepts a
-        variable-resolution 2D object and transforms it into an NxM bitmap that
-        can be plotted, examined or processed.  This is a convenience function
-        to return an FRB directly from an existing 2D data object.  Unlike the
-        corresponding to_frb function for other YTSelectionContainer2D objects, 
-        this does not accept a 'center' parameter as it is assumed to be 
-        centered at the center of the cutting plane.
-
-        Parameters
-        ----------
-        width : width specifier
-            This can either be a floating point value, in the native domain
-            units of the simulation, or a tuple of the (value, unit) style.
-            This will be the width of the FRB.
-        height : height specifier, optional
-            This will be the height of the FRB, by default it is equal to width.
-        resolution : int or tuple of ints
-            The number of pixels on a side of the final FRB.
-
-        Returns
-        -------
-        frb : :class:`~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`
-            A fixed resolution buffer, which can be queried for fields.
-
-        Examples
-        --------
-
-        >>> v, c = ds.find_max("density")
-        >>> sp = ds.sphere(c, (100.0, 'au'))
-        >>> L = sp.quantities.angular_momentum_vector()
-        >>> cutting = ds.cutting(L, c)
-        >>> frb = cutting.to_frb( (1.0, 'pc'), 1024)
-        >>> write_image(np.log10(frb["Density"]), 'density_1pc.png')
-        """
-        if iterable(width):
-            w, u = width
-            width = self.ds.quan(w, input_units = u)
-        if height is None:
-            height = width
-        elif iterable(height):
-            h, u = height
-            height = self.ds.quan(w, input_units = u)
-        if not iterable(resolution):
-            resolution = (resolution, resolution)
-        from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
-        bounds = (-width/2.0, width/2.0, -height/2.0, height/2.0)
-        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution,
-                    periodic = periodic)
-        return frb
-
     def _generate_container_field(self, field):
         if self._current_chunk is None:
             self.index._identify_base_chunk(self)
@@ -455,7 +400,7 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
         pw._setup_plots()
         return pw
 
-    def to_frb(self, width, resolution, height=None):
+    def to_frb(self, width, resolution, height=None, periodic=False):
         r"""This function returns an ObliqueFixedResolutionBuffer generated
         from this object.
 
@@ -477,6 +422,9 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             This will be the height of the FRB, by default it is equal to width.
         resolution : int or tuple of ints
             The number of pixels on a side of the final FRB.
+        periodic : boolean
+            This can be true or false, and governs whether the pixelization
+            will span the domain boundaries.
 
         Returns
         -------
@@ -505,7 +453,8 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
         bounds = (-width/2.0, width/2.0, -height/2.0, height/2.0)
-        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution)
+        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution,
+                                           periodic=periodic)
         return frb
 
 class YTDiskBase(YTSelectionContainer3D):
@@ -593,7 +542,7 @@ class YTDataCollectionBase(YTSelectionContainer3D):
     """
     _type_name = "data_collection"
     _con_args = ("_obj_list",)
-    def __init__(self, center, obj_list, ds = None, field_parameters = None):
+    def __init__(self, obj_list, ds=None, field_parameters=None, center=None):
         YTSelectionContainer3D.__init__(self, center, ds, field_parameters)
         self._obj_ids = np.array([o.id - o._id_offset for o in obj_list],
                                 dtype="int64")
