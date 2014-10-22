@@ -217,10 +217,12 @@ class EnzoFieldInfo(FieldInfoContainer):
                 units = "code_velocity**2")
             self.alias(("gas", "total_energy"), ("enzo", te_name))
             def _tot_minus_kin(field, data):
-                return data[te_name] - 0.5*(
-                    data["x-velocity"]**2.0
-                    + data["y-velocity"]**2.0
-                    + data["z-velocity"]**2.0 )
+                ret = data[te_name] - 0.5*data["x-velocity"]**2.0
+                if data.ds.dimensionality > 1:
+                    ret -= 0.5*data["y-velocity"]**2.0
+                if data.ds.dimensionality > 2:
+                    ret -= 0.5*data["z-velocity"]**2.0
+                return ret
             self.add_field(
                 ("gas", "thermal_energy"),
                 function = _tot_minus_kin,
