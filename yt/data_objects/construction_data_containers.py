@@ -1097,14 +1097,21 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
     def _color_samples_obj(self, cs, em, color_log, emit_log, color_map, arr, 
                            color_field_max, color_field_min, 
                            emit_field_max, emit_field_min): # this now holds for obj files
+        from sys import version
         if color_log: cs = np.log10(cs)
         if emit_log: em = np.log10(em)
         if color_field_min is None:
+            if version >= '3':
+                cs = [float(field) for field in cs]
+                cs = np.array(cs)
             mi = cs.min()
         else:
             mi = color_field_min
             if color_log: mi = np.log10(mi)
         if color_field_max is None:
+            if version >= '3':
+                cs = [float(field) for field in cs]
+                cs = np.array(cs)
             ma = cs.max()
         else:
             ma = color_field_max
@@ -1219,6 +1226,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
             fmtl.write("illum 2\n") # not relevant, 2 means highlights on?
             fmtl.write("Ns %.6f\n\n" %(0.0)) #keep off, some other specular thing
         #(2) write vertices
+        print("HERE!!!")
         for i in range(0,self.vertices.shape[1]):
             fobj.write("v %.6f %.6f %.6f\n" %(v["x"][i], v["y"][i], v["z"][i]))    
         fobj.write("#done defining vertices\n\n")
