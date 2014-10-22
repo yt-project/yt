@@ -16,3 +16,5 @@ API for OWLS frontend
 
 from .data_structures import \
     OWLSDataset
+
+from . import tests

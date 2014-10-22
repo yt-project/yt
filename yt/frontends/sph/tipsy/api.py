@@ -16,3 +16,5 @@ API for Tipsy frontend
 
 from .data_structures import \
      TipsyDataset
+
+from . import tests

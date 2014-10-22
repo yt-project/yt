@@ -39,3 +39,5 @@ class _frontend_container:
         for frontend in _frontends:
             _mod = "yt.frontends.%s.api" % frontend
             setattr(self, frontend, importlib.import_module(_mod))
+        setattr(self, 'api', importlib.import_module('yt.frontends.api'))
+        setattr(self, '__name__', 'yt.frontends.api')
