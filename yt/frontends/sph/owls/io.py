@@ -17,12 +17,13 @@ OWLS data-file handling function
 import h5py
 import numpy as np
 
-from yt.frontends.sph.gradget.definitions import \
-    ghdf5_ptypes
 from yt.utilities.io_handler import \
     BaseIOHandler
+from yt.utilities.lib.geometry_utils import \
+    compute_morton
 
-from yt.utilities.lib.geometry_utils import compute_morton
+.definitions import \
+    ghdf5_ptypes
 
 CHUNKSIZE = 10000000
 
