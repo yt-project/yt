@@ -102,7 +102,13 @@ class PPVCube(object):
             los_vec = np.zeros(3)
             los_vec[ds.coordinates.axis_id[normal]] = 1.0
         else:
-            orient = Orientation(normal)
+            normal = np.array(normal)
+            normal /= np.sqrt(np.dot(normal, normal))
+            vecs = np.identity(3)
+            t = np.cross(normal, vecs).sum(axis=1)
+            ax = t.argmax()
+            north = np.cross(normal, vecs[ax,:]).ravel()
+            orient = Orientation(normal, north_vector=north)
             los_vec = orient.unit_vectors[2]
 
         dd = ds.all_data()
@@ -176,8 +182,8 @@ class PPVCube(object):
             self.width = ds.quan(self.width, "code_length")
 
     @parallel_root_only
-    def write_fits(self, filename, clobber=True, sky_scale=None,
-                   sky_center=None):
+    def write_fits(self, filename, clobber=True, length_unit=None,
+                   sky_scale=None, sky_center=None):
         r""" Write the PPVCube to a FITS file.
 
         Parameters
@@ -186,6 +192,8 @@ class PPVCube(object):
             The name of the file to write.
         clobber : boolean
             Whether or not to clobber an existing file with the same name.
+        length_unit : string
+            The units to convert the coordinates to in the file.
         sky_scale : tuple or YTQuantity
             Conversion between an angle unit and a length unit, if sky
             coordinates are desired.
@@ -219,12 +227,17 @@ class PPVCube(object):
             dx = (self.width*sky_scale).in_units("deg").v/self.nx
             units = "deg"
         else:
-            units = str(self.ds.get_smallest_appropriate_unit(self.width))
+            if length_unit is None:
+                units = str(self.ds.get_smallest_appropriate_unit(self.width))
+            else:
+                units = length_unit
             dx = self.width.v/self.nx
-        # Hack because FITS is stupid and doesn't understand case
+        # Hacks because FITS is stupid and doesn't understand case
         if units == "Mpc":
             units = "kpc"
             dx *= 1000.
+        elif units == "au":
+            units = "AU"
         dy = dx
         dv = self.dv.in_units(vunit).v
 
