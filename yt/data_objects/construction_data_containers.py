@@ -1166,10 +1166,6 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
                 for line in fileinput.input(filename + '.obj'):
                     if line[0:6] == '#vmax=': 
                         cc = int(line[6:len(line)]) 
-                #    if line[0] == 'f':
-                #        linesave = line
-                #p = [m.start() for m in finditer(' ', linesave)]
-                #cc = int(linesave[p[len(p)-1]:])+1
                 fobj = open(filename + '.obj', "a")
                 fmtl = open(filename + '.mtl', 'a')
         ftype = [("cind", "uint8"), ("emit", "float")]
@@ -1229,7 +1225,6 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
             fmtl.write("Ns %.6f\n\n" %(0.0)) #keep off, some other specular thing
         #(2) write vertices
         u, indices = np.unique(v, return_inverse=True)
-        #for i in range(0,self.vertices.shape[1]):
         for i in range(0,len(u['x'][:])):
             fobj.write("v %.6f %.6f %.6f\n" %(u["x"][i], u["y"][i], u["z"][i]))    
         fobj.write("#done defining vertices\n\n")
