@@ -1233,7 +1233,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         for i in range(0,len(u['x'][:])):
             fobj.write("v %.6f %.6f %.6f\n" %(u["x"][i], u["y"][i], u["z"][i]))    
         fobj.write("#done defining vertices\n\n")
-        fobj.write("#vmax=" + str(len(u['x'][:])))
+        fobj.write("#vmax=" + str(len(u['x'][:])) + '\n\n')
         #(3) define faces and materials for each face
         for i in range(0,self.triangles.shape[0]):
             omname = 'material_' + str(f["cind"][i]) + '_' + str(plot_index) # which color to use
