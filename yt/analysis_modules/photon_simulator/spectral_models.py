@@ -22,14 +22,10 @@ try:
 except ImportError:
     pass
 
-try:
-    import xspec
-    from scipy.integrate import cumtrapz
-    from scipy import stats        
-except ImportError:
-    pass
-from yt.utilities.on_demand_imports import _astropy
+from yt.utilities.on_demand_imports import _astropy, _scipy
+
 pyfits = _astropy.pyfits
+stats = _scipy.stats
 
 from yt.utilities.physical_constants import hcgs, clight, erg_per_keV, amu_cgs
 
@@ -212,11 +208,14 @@ class TableApecModel(SpectralModel):
         try:
             self.line_handle = pyfits.open(self.linefile)
         except IOError:
-            mylog.error("LINE file %s does not exist" % (self.linefile))
+            mylog.error("LINE file %s does not exist" % self.linefile)
+            raise IOError("LINE file %s does not exist" % self.linefile)
         try:
             self.coco_handle = pyfits.open(self.cocofile)
         except IOError:
-            mylog.error("COCO file %s does not exist" % (self.cocofile))
+            mylog.error("COCO file %s does not exist" % self.cocofile)
+            raise IOError("COCO file %s does not exist" % self.cocofile)
+
         self.Tvals = self.line_handle[1].data.field("kT")
         self.dTvals = np.diff(self.Tvals)
         self.minlam = self.wvbins.min()
@@ -224,18 +223,18 @@ class TableApecModel(SpectralModel):
     
     def _make_spectrum(self, element, tindex):
         
-        tmpspec = np.zeros((self.nchan))
+        tmpspec = np.zeros(self.nchan)
         
         i = np.where((self.line_handle[tindex].data.field('element') == element) &
                      (self.line_handle[tindex].data.field('lambda') > self.minlam) &
                      (self.line_handle[tindex].data.field('lambda') < self.maxlam))[0]
 
-        vec = np.zeros((self.nchan))
+        vec = np.zeros(self.nchan)
         E0 = hc.value/self.line_handle[tindex].data.field('lambda')[i]
         amp = self.line_handle[tindex].data.field('epsilon')[i]
         ebins = self.ebins.ndarray_view()
         if self.thermal_broad:
-            vec = np.zeros((self.nchan))
+            vec = np.zeros(self.nchan)
             sigma = E0*np.sqrt(self.Tvals[tindex]*erg_per_keV/(self.A[element]*amu_cgs))/clight.value
             for E, sig, a in zip(E0, sigma, amp):
                 cdf = stats.norm(E,sig).cdf(ebins)
@@ -270,10 +269,10 @@ class TableApecModel(SpectralModel):
         """
         Get the thermal emission spectrum given a temperature *kT* in keV. 
         """
-        cspec_l = np.zeros((self.nchan))
-        mspec_l = np.zeros((self.nchan))
-        cspec_r = np.zeros((self.nchan))
-        mspec_r = np.zeros((self.nchan))
+        cspec_l = np.zeros(self.nchan)
+        mspec_l = np.zeros(self.nchan)
+        cspec_r = np.zeros(self.nchan)
+        mspec_r = np.zeros(self.nchan)
         tindex = np.searchsorted(self.Tvals, kT)-1
         if tindex >= self.Tvals.shape[0]-1 or tindex < 0:
             return cspec_l*cm3/units.s, mspec_l*cm3/units.s

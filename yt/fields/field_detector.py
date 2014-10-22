@@ -148,6 +148,10 @@ class FieldDetector(defaultdict):
             self[item] = self._read_data(item)
         return self[item]
 
+    def _debug(self):
+        # We allow this to pass through.
+        return
+
     def deposit(self, *args, **kwargs):
         return np.random.random((self.nd, self.nd, self.nd))
 

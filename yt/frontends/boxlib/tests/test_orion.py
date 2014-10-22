@@ -42,3 +42,8 @@ def test_radtube():
     for test in small_patch_amr(rt, _fields):
         test_radtube.__name__ = test.description
         yield test
+
+
+@requires_file(rt)
+def test_OrionDataset():
+    assert isinstance(data_dir_load(rt), OrionDataset)

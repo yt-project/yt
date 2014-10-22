@@ -33,7 +33,9 @@ from .fixed_resolution import \
 from .plot_modifications import get_smallest_appropriate_unit, \
     callback_registry
 from .plot_container import \
-    ImagePlotContainer, log_transform, linear_transform, \
+    ImagePlotContainer, \
+    log_transform, linear_transform, symlog_transform, \
+    get_log_minorticks, get_symlog_minorticks, \
     invalidate_data, invalidate_plot, apply_callback
 
 from yt.data_objects.time_series import \
@@ -42,7 +44,8 @@ from yt.extern.six.moves import \
     StringIO
 from yt.funcs import \
     mylog, iterable, ensure_list, \
-    fix_axis, validate_width_tuple
+    fix_axis, validate_width_tuple, \
+    fix_unitary
 from yt.units.unit_object import \
     Unit
 from yt.units.unit_registry import \
@@ -75,108 +78,15 @@ try:
 except ImportError:
     from pyparsing import ParseFatalException
 
-def fix_unitary(u):
-    if u == '1':
-        return 'unitary'
-    else:
-        return u
-
-def validate_iterable_width(width, ds, unit=None):
-    if isinstance(width[0], tuple) and isinstance(width[1], tuple):
-        validate_width_tuple(width[0])
-        validate_width_tuple(width[1])
-        return (ds.quan(width[0][0], fix_unitary(width[0][1])),
-                ds.quan(width[1][0], fix_unitary(width[1][1])))
-    elif isinstance(width[0], Number) and isinstance(width[1], Number):
-        return (ds.quan(width[0], 'code_length'),
-                ds.quan(width[1], 'code_length'))
-    elif isinstance(width[0], YTQuantity) and isinstance(width[1], YTQuantity):
-        return (ds.quan(width[0]), ds.quan(width[1]))
-    else:
-        validate_width_tuple(width)
-        # If width and unit are both valid width tuples, we
-        # assume width controls x and unit controls y
-        try:
-            validate_width_tuple(unit)
-            return (ds.quan(width[0], fix_unitary(width[1])),
-                    ds.quan(unit[0], fix_unitary(unit[1])))
-        except YTInvalidWidthError:
-            return (ds.quan(width[0], fix_unitary(width[1])),
-                    ds.quan(width[0], fix_unitary(width[1])))
-
-def get_sanitized_width(axis, width, depth, ds):
-    if width is None:
-        # Default to code units
-        if not iterable(axis):
-            xax = ds.coordinates.x_axis[axis]
-            yax = ds.coordinates.y_axis[axis]
-            w = ds.domain_width[[xax, yax]]
-        else:
-            # axis is actually the normal vector
-            # for an off-axis data object.
-            mi = np.argmin(ds.domain_width)
-            w = ds.domain_width[[mi,mi]]
-        width = (w[0], w[1])
-    elif iterable(width):
-        width = validate_iterable_width(width, ds)
-    elif isinstance(width, YTQuantity):
-        width = (width, width)
-    elif isinstance(width, Number):
-        width = (ds.quan(width, 'code_length'),
-                 ds.quan(width, 'code_length'))
-    else:
-        raise YTInvalidWidthError(width)
-    if depth is not None:
-        if iterable(depth):
-            validate_width_tuple(depth)
-            depth = (ds.quan(depth[0], fix_unitary(depth[1])), )
-        elif isinstance(depth, Number):
-            depth = (ds.quan(depth, 'code_length',
-                     registry = ds.unit_registry), )
-        elif isinstance(depth, YTQuantity):
-            depth = (depth, )
-        else:
-            raise YTInvalidWidthError(depth)
-        return width + depth
-    return width
-
-def get_sanitized_center(center, ds):
-    if isinstance(center, basestring):
-        if center.lower() == "m" or center.lower() == "max":
-            v, center = ds.find_max(("gas", "density"))
-            center = ds.arr(center, 'code_length')
-        elif center.lower() == "c" or center.lower() == "center":
-            center = (ds.domain_left_edge + ds.domain_right_edge) / 2
-        else:
-            raise RuntimeError('center keyword \"%s\" not recognized' % center)
-    elif isinstance(center, YTArray):
-        return ds.arr(center)
-    elif iterable(center):
-        if iterable(center[0]) and isinstance(center[1], basestring):
-            center = ds.arr(center[0], center[1])
-        else:
-            center = ds.arr(center, 'code_length')
-    else:
-        raise RuntimeError("center keyword \"%s\" not recognized" % center)
-    return center
-
 def get_window_parameters(axis, center, width, ds):
-    if ds.geometry == "cartesian" or ds.geometry == "spectral_cube":
-        width = get_sanitized_width(axis, width, None, ds)
-        center = get_sanitized_center(center, ds)
+    if ds.geometry in ("cartesian", "spectral_cube", "spherical"):
+        width = ds.coordinates.sanitize_width(axis, width, None)
+        center, display_center = ds.coordinates.sanitize_center(center, axis)
     elif ds.geometry in ("polar", "cylindrical"):
         # Set our default width to be the full domain
         width = [ds.domain_right_edge[0]*2.0, ds.domain_right_edge[0]*2.0]
         center = ds.arr([0.0, 0.0, 0.0], "code_length")
-    elif ds.geometry == "spherical":
-        if axis == 0:
-            width = ds.domain_width[1], ds.domain_width[2]
-            center = 0.5*(ds.domain_left_edge + ds.domain_right_edge)
-            center.convert_to_units("code_length")
-        else:
-            # Our default width here is the full domain
-            width = [ds.domain_right_edge[0]*2.0, ds.domain_right_edge[0]*2.0]
-            center = ds.arr([0.0, 0.0, 0.0], "code_length")
+        display_center = center.copy()
     elif ds.geometry == "geographic":
         c_r = ((ds.domain_right_edge + ds.domain_left_edge)/2.0)[2]
         center = ds.arr([0.0, 0.0, c_r], "code_length")
@@ -191,15 +101,15 @@ def get_window_parameters(axis, center, width, ds):
         raise NotImplementedError
     xax = ds.coordinates.x_axis[axis]
     yax = ds.coordinates.y_axis[axis]
-    bounds = (center[xax]-width[0] / 2,
-              center[xax]+width[0] / 2,
-              center[yax]-width[1] / 2,
-              center[yax]+width[1] / 2)
-    return (bounds, center)
+    bounds = (display_center[xax]-width[0] / 2,
+              display_center[xax]+width[0] / 2,
+              display_center[yax]-width[1] / 2,
+              display_center[yax]+width[1] / 2)
+    return (bounds, center, display_center)
 
 def get_oblique_window_parameters(normal, center, width, ds, depth=None):
-    width = get_sanitized_width(normal, width, depth, ds)
-    center = get_sanitized_center(center, ds)
+    display_center, center = ds.coordinates.sanitize_center(center, 4)
+    width = ds.coordinates.sanitize_width(normal, width, depth)
 
     if len(width) == 2:
         # Transforming to the cutting plane coordinate system
@@ -298,8 +208,9 @@ class PlotWindow(ImagePlotContainer):
             ax = self.data_source.axis
             xax = self.ds.coordinates.x_axis[ax]
             yax = self.ds.coordinates.y_axis[ax]
-            center = [self.data_source.center[xax],
-                      self.data_source.center[yax]]
+            center, display_center = self.ds.coordinates.sanitize_center(
+                self.data_source.center, ax)
+            center = [display_center[xax], display_center[yax]]
             self.set_center(center)
         for field in self.data_source._determine_fields(self.frb.data.keys()):
             finfo = self.data_source.ds._get_field_info(*field)
@@ -557,7 +468,8 @@ class PlotWindow(ImagePlotContainer):
 
         axes_unit = get_axes_unit(width, self.ds)
 
-        width = get_sanitized_width(self.frb.axis, width, None, self.ds)
+        width = self.ds.coordinates.sanitize_width(
+            self.frb.axis, width, None)
 
         centerx = (self.xlim[1] + self.xlim[0])/2.
         centery = (self.ylim[1] + self.ylim[0])/2.
@@ -787,8 +699,8 @@ class PWViewerMPL(PlotWindow):
             # This will likely be replaced at some point by the coordinate handler
             # setting plot aspect.
             if self.aspect is None:
-                self.aspect = np.float64(self.ds.quan(1.0, unit_y) /
-                                         self.ds.quan(1.0, unit_x))
+                self.aspect = np.float64((self.ds.quan(1.0, unit_y) /
+                                         self.ds.quan(1.0, unit_x)).in_cgs())
 
             extentx = [(self.xlim[i] - xc).in_units(unit_x) for i in (0, 1)]
             extenty = [(self.ylim[i] - yc).in_units(unit_y) for i in (0, 1)]
@@ -801,9 +713,9 @@ class PWViewerMPL(PlotWindow):
                 zlim = (None, None)
 
             image = self.frb[f]
-
             if self._field_transform[f] == log_transform:
                 msg = None
+                use_symlog = False
                 if zlim != (None, None):
                     pass
                 elif np.nanmax(image) == np.nanmin(image):
@@ -814,10 +726,21 @@ class PWViewerMPL(PlotWindow):
                           "values.  Max = %f." % (f, np.nanmax(image))
                 elif not np.any(np.isfinite(image)):
                     msg = "Plot image for field %s is filled with NaNs." % (f,)
+                elif np.nanmax(image) > 0. and np.nanmin(image) < 0:
+                    msg = "Plot image for field %s has both positive "\
+                          "and negative values. Min = %f, Max = %f."\
+                          % (f, np.nanmin(image), np.nanmax(image))
+                    use_symlog = True
                 if msg is not None:
                     mylog.warning(msg)
-                    mylog.warning("Switching to linear colorbar scaling.")
-                    self._field_transform[f] = linear_transform
+                    if use_symlog:
+                        mylog.warning("Switching to symlog colorbar scaling "\
+                                      "unless linear scaling is specified later")
+                        self._field_transform[f] = symlog_transform
+                        self._field_transform[f].func = None
+                    else:
+                        mylog.warning("Switching to linear colorbar scaling.")
+                        self._field_transform[f] = linear_transform
 
             fp = self._font_properties
 
@@ -836,6 +759,7 @@ class PWViewerMPL(PlotWindow):
 
             self.plots[f] = WindowPlotMPL(
                 image, self._field_transform[f].name,
+                self._field_transform[f].func,
                 self._colormaps[f], extent, zlim,
                 self.figure_size, fp.get_size(),
                 self.aspect, fig, axes, cax)
@@ -845,9 +769,10 @@ class PWViewerMPL(PlotWindow):
             hinv = False
             for i, un in enumerate((unit_x, unit_y)):
                 if hasattr(self.ds.coordinates, "default_unit_label"):
-                    axax = getattr(self.ds.coordinates, "%s_axis" % ("xy"[i]))[axis_index]
+                    axax = getattr(self.ds.coordinates,
+                                   "%s_axis" % ("xy"[i]))[axis_index]
                     un = self.ds.coordinates.default_unit_label[axax]
-                    axes_unit_labels[i] = '\/\/('+un+')'
+                    axes_unit_labels[i] = '\/\/\left('+un+'\right)'
                     continue
                 # Use sympy to factor h out of the unit.  In this context 'un'
                 # is a string, so we call the Unit constructor.
@@ -880,29 +805,30 @@ class PWViewerMPL(PlotWindow):
                 labels = [r'$\rm{Image\/x'+axes_unit_labels[0]+'}$',
                           r'$\rm{Image\/y'+axes_unit_labels[1]+'}$']
             else:
-                axis_names = self.ds.coordinates.axis_name
-                xax = self.ds.coordinates.x_axis[axis_index]
-                yax = self.ds.coordinates.y_axis[axis_index]
+                coordinates = self.ds.coordinates
+                axis_names = coordinates.image_axis_name[axis_index]
+                xax = coordinates.x_axis[axis_index]
+                yax = coordinates.y_axis[axis_index]
 
-                if hasattr(self.ds.coordinates, "axis_default_unit_label"):
+                if hasattr(coordinates, "axis_default_unit_label"):
                     axes_unit_labels = \
-                    [self.ds.coordinates.axis_default_unit_name[xax],
-                     self.ds.coordinates.axis_default_unit_name[yax]]
-                labels = [r'$\rm{'+axis_names[xax]+axes_unit_labels[0] + r'}$',
-                          r'$\rm{'+axis_names[yax]+axes_unit_labels[1] + r'}$']
+                    [coordinates.axis_default_unit_name[xax],
+                     coordinates.axis_default_unit_name[yax]]
+                labels = [r'$\rm{'+axis_names[0]+axes_unit_labels[0] + r'}$',
+                          r'$\rm{'+axis_names[1]+axes_unit_labels[1] + r'}$']
 
-                if hasattr(self.ds.coordinates, "axis_field"):
-                    if xax in self.ds.coordinates.axis_field:
-                        xmin, xmax = self.ds.coordinates.axis_field[xax](
+                if hasattr(coordinates, "axis_field"):
+                    if xax in coordinates.axis_field:
+                        xmin, xmax = coordinates.axis_field[xax](
                             0, self.xlim, self.ylim)
                     else:
                         xmin, xmax = [float(x) for x in extentx]
-                    if yax in self.ds.coordinates.axis_field:
-                        ymin, ymax = self.ds.coordinates.axis_field[yax](
+                    if yax in coordinates.axis_field:
+                        ymin, ymax = coordinates.axis_field[yax](
                             1, self.xlim, self.ylim)
                     else:
                         ymin, ymax = [float(y) for y in extenty]
-                    self.plots[f].image.set_extent((xmin,xmax,ymin,ymax))
+                    self.plots[f].image.set_extent((xmin, xmax, ymin, ymax))
                     self.plots[f].axes.set_aspect("auto")
 
             x_label, y_label, colorbar_label = self._get_axes_labels(f)
@@ -932,7 +858,7 @@ class PWViewerMPL(PlotWindow):
                 if units is None or units == '':
                     pass
                 else:
-                    colorbar_label += r'$\/\/('+units+r')$'
+                    colorbar_label += r'$\/\/\left('+units+r'\right)$'
 
             parser = MathTextParser('Agg')
             try:
@@ -947,6 +873,32 @@ class PWViewerMPL(PlotWindow):
                           [self.plots[f].cb.ax.axes.xaxis.get_offset_text(),
                            self.plots[f].cb.ax.axes.yaxis.get_offset_text()]):
                 label.set_fontproperties(fp)
+
+            # x-y axes minorticks
+            if f not in self._minorticks:
+                self._minorticks[f] = True
+            if self._minorticks[f] is True:
+                self.plots[f].axes.minorticks_on()
+            else:
+                self.plots[f].axes.minorticks_off()
+
+            # colorbar minorticks
+            if f not in self._cbar_minorticks:
+                self._cbar_minorticks[f] = True
+            if self._cbar_minorticks[f] is True:
+                if self._field_transform[f] == linear_transform:
+                    self.plots[f].cax.minorticks_on()
+                else:
+                    vmin = np.float64( self.plots[f].cb.norm.vmin )
+                    vmax = np.float64( self.plots[f].cb.norm.vmax )
+                    if self._field_transform[f] == log_transform:
+                        mticks = self.plots[f].image.norm( get_log_minorticks(vmin, vmax) )
+                    else: # symlog_transform
+                        flinthresh = 10**np.floor( np.log10( self.plots[f].cb.norm.linthresh ) )
+                        mticks = self.plots[f].image.norm( get_symlog_minorticks(flinthresh, vmin, vmax) )
+                    self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
+            else:
+                self.plots[f].cax.minorticks_off()
 
             self.run_callbacks(f)
 
@@ -1095,7 +1047,8 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         self.ts = ts
         ds = self.ds = ts[0]
         axis = fix_axis(axis, ds)
-        (bounds, center) = get_window_parameters(axis, center, width, ds)
+        (bounds, center, display_center) = \
+                get_window_parameters(axis, center, width, ds)
         if field_parameters is None: field_parameters = {}
         slc = ds.slice(axis, center[axis],
             field_parameters = field_parameters, center=center)
@@ -1197,6 +1150,27 @@ class ProjectionPlot(PWViewerMPL):
          The maximum level to project to.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
+    method : string
+         The method of projection.  Valid methods are: 
+
+         "integrate" with no weight_field specified : integrate the requested
+         field along the line of sight.
+
+         "integrate" with a weight_field specified : weight the requested
+         field by the weighting field and integrate along the line of sight.
+
+         "mip" : pick out the maximum value of the field in the line of sight.
+
+         "sum" : This method is the same as integrate, except that it does not 
+         multiply by a path length when performing the integration, and is 
+         just a straight summation of the field along the given axis. 
+    proj_style : string
+         The method of projection--same as method keyword.  Deprecated as of 
+         version 3.0.2.  Please use method instead.
+    window_size : float
+         The size of the window in inches. Set to 8 by default.
+    aspect : float
+         The aspect ratio of the plot.  Set to None for 1.
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
          fields.
@@ -1218,19 +1192,25 @@ class ProjectionPlot(PWViewerMPL):
     def __init__(self, ds, axis, fields, center='c', width=None, axes_unit=None,
                  weight_field=None, max_level=None, origin='center-window',
                  fontsize=18, field_parameters=None, data_source=None,
-                 proj_style = "integrate", window_size=8.0, aspect=None):
+                 method = "integrate", proj_style = None, window_size=8.0, 
+                 aspect=None):
         ts = self._initialize_dataset(ds)
         self.ts = ts
         ds = self.ds = ts[0]
         axis = fix_axis(axis, ds)
+        # proj_style is deprecated, but if someone specifies then it trumps 
+        # method.
+        if proj_style is not None:
+            method = proj_style
         # If a non-weighted integral projection, assure field-label reflects that
-        if weight_field is None and proj_style == "integrate":
+        if weight_field is None and method == "integrate":
             self.projected = True
-        (bounds, center) = get_window_parameters(axis, center, width, ds)
+        (bounds, center, display_center) = \
+                get_window_parameters(axis, center, width, ds)
         if field_parameters is None: field_parameters = {}
         proj = ds.proj(fields, axis, weight_field=weight_field,
                        center=center, data_source=data_source,
-                       field_parameters = field_parameters, style = proj_style)
+                       field_parameters = field_parameters, method = method)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
                              fontsize=fontsize, window_size=window_size, 
                              aspect=aspect)
@@ -1323,7 +1303,7 @@ class OffAxisSlicePlot(PWViewerMPL):
 
 class OffAxisProjectionDummyDataSource(object):
     _type_name = 'proj'
-    proj_style = 'integrate'
+    method = 'integrate'
     _key_fields = []
     def __init__(self, center, ds, normal_vector, width, fields,
                  interpolated, resolution = (800,800), weight=None,
@@ -1435,7 +1415,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
             weight=weight_field,  volume=volume, no_ghost=no_ghost,
             le=le, re=re, north_vector=north_vector)
         # If a non-weighted, integral projection, assure field-label reflects that
-        if weight_field is None and OffAxisProj.proj_style == "integrate":
+        if weight_field is None and OffAxisProj.method == "integrate":
             self.projected = True
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
@@ -1629,7 +1609,7 @@ class PWViewerExtJS(PlotWindow):
         if source._type_name in ("slice", "cutting"):
             units = finfo.get_units()
         elif source._type_name == "proj":
-            if source.weight_field is not None or source.proj_style in ("mip", "sum"):
+            if source.weight_field is not None or source.method in ("mip", "sum"):
                 units = finfo.get_units()
             else:
                 units = finfo.get_projected_units()
@@ -1703,7 +1683,7 @@ class PWViewerExtJS(PlotWindow):
 
 class WindowPlotMPL(ImagePlotMPL):
     """A container for a single PlotWindow matplotlib figure and axes"""
-    def __init__(self, data, cbname, cmap, extent, zlim, figure_size, fontsize,
+    def __init__(self, data, cbname, cblinthresh, cmap, extent, zlim, figure_size, fontsize,
                  unit_aspect, figure, axes, cax):
         self._draw_colorbar = True
         self._draw_axes = True
@@ -1722,14 +1702,14 @@ class WindowPlotMPL(ImagePlotMPL):
         self._cb_size = 0.0375*fsize
         self._ax_text_size = [1.2*fontscale, 0.9*fontscale]
         self._top_buff_size = 0.30*fontscale
-        self._aspect = ((extent[1] - extent[0])/(extent[3] - extent[2]))
+        self._aspect = ((extent[1] - extent[0])/(extent[3] - extent[2])).in_cgs()
 
         size, axrect, caxrect = self._get_best_layout()
 
         super(WindowPlotMPL, self).__init__(
             size, axrect, caxrect, zlim, figure, axes, cax)
 
-        self._init_image(data, cbname, cmap, extent, unit_aspect)
+        self._init_image(data, cbname, cblinthresh, cmap, extent, unit_aspect)
 
         self.image.axes.ticklabel_format(scilimits=(-2, 3))
         if cbname == 'linear':

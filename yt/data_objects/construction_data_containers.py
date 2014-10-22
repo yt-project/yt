@@ -186,11 +186,14 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     data_source : `yt.data_objects.api.AMRData`, optional
         If specified, this will be the data source used for selecting
         regions to project.
-    style : string, optional
-        The style of projection to be performed.
+    method : string, optional
+        The method of projection to be performed.
         "integrate" : integration along the axis
         "mip" : maximum intensity projection
         "sum" : same as "integrate", except that we don't multiply by the path length
+    style : string, optional
+        The same as the method keyword.  Deprecated as of version 3.0.2.  
+        Please use method keyword instead.
     field_parameters : dict of items
         Values to be passed as field parameters that can be
         accessed by generated fields.
@@ -208,21 +211,26 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     _container_fields = ('px', 'py', 'pdx', 'pdy', 'weight_field')
     def __init__(self, field, axis, weight_field = None,
                  center = None, ds = None, data_source = None,
-                 style = "integrate", field_parameters = None):
+                 style = None, method = "integrate", 
+                 field_parameters = None):
         YTSelectionContainer2D.__init__(self, axis, ds, field_parameters)
-        if style == "sum":
-            self.proj_style = "integrate"
+        # Style is deprecated, but if it is set, then it trumps method
+        # keyword.  TODO: Remove this keyword and this check at some point in 
+        # the future.
+        if style is not None:
+            method = style
+        if method == "sum":
+            self.method = "integrate"
             self._sum_only = True
         else:
-            self.proj_style = style
+            self.method = method
             self._sum_only = False
-        if style == "mip":
+        if self.method == "mip":
             self.func = np.max
-        elif style == "integrate" or style == "sum":
+        elif self.method == "integrate":
             self.func = np.sum # for the future
         else:
-            raise NotImplementedError(style)
-        self.weight_field = weight_field
+            raise NotImplementedError(self.method)
         self._set_center(center)
         if data_source is None: data_source = self.ds.all_data()
         for k, v in data_source.field_parameters.items():
@@ -230,7 +238,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
               self._is_default_field_parameter(k):
                 self.set_field_parameter(k, v)
         self.data_source = data_source
-        self.weight_field = weight_field
+        if weight_field is None:
+            self.weight_field = weight_field
+        else:
+            self.weight_field = self._determine_fields(weight_field)[0]
         self.get_data(field)
 
     @property
@@ -258,7 +269,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
                   self.ds.domain_left_edge[xax],
                   self.ds.domain_right_edge[yax])
         return QuadTree(np.array([xd,yd], dtype='int64'), nvals,
-                        bounds, style = self.proj_style)
+                        bounds, method = self.method)
 
     def get_data(self, fields = None):
         fields = fields or []
@@ -280,10 +291,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
                     get_memory_usage()/1024.)
                 self._handle_chunk(chunk, fields, tree)
         # Note that this will briefly double RAM usage
-        if self.proj_style == "mip":
+        if self.method == "mip":
             merge_style = -1
             op = "max"
-        elif self.proj_style == "integrate":
+        elif self.method == "integrate":
             merge_style = 1
             op = "sum"
         else:
@@ -322,7 +333,10 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             finfo = self.ds._get_field_info(*field)
             mylog.debug("Setting field %s", field)
             units = finfo.units
-            if self.weight_field is None and not self._sum_only:
+            # add length units to "projected units" if non-weighted 
+            # integral projection
+            if self.weight_field is None and not self._sum_only and \
+               self.method == 'integrate':
                 # See _handle_chunk where we mandate cm
                 if units == '':
                     input_units = "cm"
@@ -334,7 +348,9 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             self[field] = YTArray(field_data[fi].ravel(),
                                   input_units=input_units,
                                   registry=self.ds.unit_registry)
-            if self.weight_field is None and not self._sum_only:
+            # convert units if non-weighted integral projection
+            if self.weight_field is None and not self._sum_only and \
+               self.method == 'integrate':
                 u_obj = Unit(units, registry=self.ds.unit_registry)
                 if ((u_obj.is_code_unit or self.ds.no_cgs_equiv_length) and
                     not u_obj.is_dimensionless) and input_units != units:
@@ -353,7 +369,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         tree.initialize_chunk(i1, i2, ilevel)
 
     def _handle_chunk(self, chunk, fields, tree):
-        if self.proj_style == "mip" or self._sum_only:
+        if self.method == "mip" or self._sum_only:
             dl = 1.0
         else:
             # This gets explicitly converted to cm
@@ -511,6 +527,9 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         fill, gen = self.index._split_fields(fields_to_get)
         particles = []
         for field in gen:
+            if field[0] == 'deposit':
+                fill.append(field)
+                continue
             finfo = self.ds._get_field_info(*field)
             try:
                 finfo.check_available(self)
@@ -741,6 +760,13 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
             self.right_edge + level_state.current_dx)
         level_state.data_source.min_level = level_state.current_level
         level_state.data_source.max_level = level_state.current_level
+        self._pdata_source = self.ds.region(
+            self.center,
+            self.left_edge - level_state.current_dx,
+            self.right_edge + level_state.current_dx)
+        self._pdata_source.min_level = level_state.current_level
+        self._pdata_source.max_level = level_state.current_level
+
 
     def _fill_fields(self, fields):
         ls = self._initialize_level_state(fields)

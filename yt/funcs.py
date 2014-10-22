@@ -14,7 +14,6 @@ Useful functions.  If non-original, see function for citation.
 #-----------------------------------------------------------------------------
 
 import time, types, signal, inspect, traceback, sys, pdb, os, re
-import time, types, signal, inspect, traceback, sys, pdb, os, re
 import contextlib
 import warnings, struct, subprocess
 import numpy as np
@@ -270,7 +269,6 @@ def insert_ipython(num_up=1):
 
     api_version = get_ipython_api_version()
 
-    stack = inspect.stack()
     frame = inspect.stack()[num_up]
     loc = frame[0].f_locals.copy()
     glo = frame[0].f_globals
@@ -537,7 +535,6 @@ def get_version_stack():
     return version_info
 
 def get_script_contents():
-    stack = inspect.stack()
     top_frame = inspect.stack()[-1]
     finfo = inspect.getframeinfo(top_frame[0])
     if finfo[2] != "<module>": return None
@@ -734,8 +731,11 @@ def memory_checker(interval = 15, dest = None):
     e = threading.Event()
     mem_check = MemoryChecker(e, interval)
     mem_check.start()
-    yield
-    e.set()
+    try:
+        yield
+    finally:
+        e.set()
+
 
 def deprecated_class(cls):
     @wraps(cls)
@@ -747,8 +747,10 @@ def deprecated_class(cls):
             SyntaxWarning, stacklevel=2)
         return cls(*args, **kwargs)
     return _func
-    
+
 def enable_plugins():
+    import yt
+    from yt.fields.my_plugin_fields import my_plugins_fields
     from yt.config import ytcfg
     my_plugin_name = ytcfg.get("yt","pluginfilename")
     # We assume that it is with respect to the $HOME/.yt directory
@@ -758,4 +760,12 @@ def enable_plugins():
         _fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
     if os.path.isfile(_fn):
         mylog.info("Loading plugins from %s", _fn)
-        execfile(_fn)
+        execdict = yt.__dict__.copy()
+        execdict['add_field'] = my_plugins_fields.add_field
+        execfile(_fn, execdict)
+
+def fix_unitary(u):
+    if u == '1':
+        return 'unitary'
+    else:
+        return u

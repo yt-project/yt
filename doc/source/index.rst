@@ -34,11 +34,21 @@ Table of Contents
      <tr valign="top">
        <td width="25%">
          <p>
-           <a href="bootcamp/index.html">yt Bootcamp</a>
+           <a href="quickstart/index.html">yt Quickstart</a>
          </p>
        </td>
        <td width="75%">
          <p class="linkdescr">Demonstrations of what yt can do</p>
+       </td>
+     </tr>
+     <tr valign="top">
+       <td width="25%">
+         <p>
+           <a href="examining/index.html">Loading and Examining Data</a>
+         </p>
+       </td>
+       <td width="75%">
+         <p class="linkdescr">How to load and examine all dataset types in yt</p>
        </td>
      </tr>
      <tr valign="top">
@@ -84,16 +94,6 @@ Table of Contents
      <tr valign="top">
        <td width="25%">
          <p>
-           <a href="examining/index.html">Examining Data</a>
-         </p>
-       </td>
-       <td width="75%">
-         <p class="linkdescr">Load data and directly access raw values for low-level analysis</p>
-       </td>
-     </tr>
-     <tr valign="top">
-       <td width="25%">
-         <p>
            <a href="developing/index.html">Developing in yt</a>
          </p>
        </td>
@@ -127,7 +127,7 @@ Table of Contents
    :hidden:
 
    installing
-   yt Bootcamp <bootcamp/index>
+   yt Quickstart <quickstart/index>
    yt3differences
    cookbook/index
    visualizing/index

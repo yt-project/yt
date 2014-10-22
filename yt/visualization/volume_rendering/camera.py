@@ -316,8 +316,11 @@ class Camera(ParallelAnalysisInterface):
         nim = im.rescale(inline=False)
         enhance_rgba(nim)
         nim.add_background_color('black', inline=True)
-       
-        lines(nim, px, py, colors, 24)
+
+        # we flipped it in snapshot to get the orientation correct, so
+        # flip the lines
+        lines(nim, px, py, colors, 24, flip=1)
+
         return nim
 
     def draw_coordinate_vectors(self, im, length=0.05, thickness=1):
@@ -370,11 +373,13 @@ class Camera(ParallelAnalysisInterface):
                   np.array([0.0, 1.0, 0.0, alpha]),
                   np.array([0.0, 0.0, 1.0, alpha])]
 
+        # we flipped it in snapshot to get the orientation correct, so
+        # flip the lines
         for vec, color in zip(coord_vectors, colors):
             dx = int(np.dot(vec, self.orienter.unit_vectors[0]))
             dy = int(np.dot(vec, self.orienter.unit_vectors[1]))
             lines(im, np.array([px0, px0+dx]), np.array([py0, py0+dy]),
-                  np.array([color, color]), 1, thickness)
+                  np.array([color, color]), 1, thickness, flip=1)
 
     def draw_line(self, im, x0, x1, color=None):
         r"""Draws a line on an existing volume rendering.
@@ -415,7 +420,10 @@ class Camera(ParallelAnalysisInterface):
         py1 = int(self.resolution[0]*(dx1/self.width[0]))
         px0 = int(self.resolution[1]*(dy0/self.width[1]))
         px1 = int(self.resolution[1]*(dy1/self.width[1]))
-        lines(im, np.array([px0,px1]), np.array([py0,py1]), color=np.array([color,color]))
+
+        # we flipped it in snapshot to get the orientation correct, so
+        # flip the lines
+        lines(im, np.array([px0,px1]), np.array([py0,py1]), color=np.array([color,color]),flip=1)
 
     def draw_domain(self,im,alpha=0.3):
         r"""Draws domain edges on an existing volume rendering.
@@ -497,7 +505,9 @@ class Camera(ParallelAnalysisInterface):
 
         px, py, dz = self.project_to_plane(vertices, res=im.shape[:2])
        
-        lines(im, px, py, color.reshape(1,4), 24)
+        # we flipped it in snapshot to get the orientation correct, so
+        # flip the lines
+        lines(im, px, py, color.reshape(1,4), 24, flip=1)
 
     def look_at(self, new_center, north_vector = None):
         r"""Change the view direction based on a new focal point.
@@ -649,7 +659,7 @@ class Camera(ParallelAnalysisInterface):
             del nz
         else:
             nim = im
-        ax = self._pylab.imshow(nim[:,:,:3]/nim[:,:,:3].max(), origin='lower')
+        ax = self._pylab.imshow(nim[:,:,:3]/nim[:,:,:3].max(), origin='upper')
         return ax
 
     def draw(self):
@@ -747,6 +757,9 @@ class Camera(ParallelAnalysisInterface):
         image = ImageArray(self._render(double_check, num_threads, 
                                         image, sampler),
                            info=self.get_information())
+
+        # flip it up/down to handle how the png orientation is done
+        image = image[:,::-1,:]
         self.save_image(image, fn=fn, clip_ratio=clip_ratio, 
                        transparent=transparent)
         return image
@@ -2079,19 +2092,20 @@ def allsky_projection(ds, center, radius, nside, field, weight = None,
     center = np.array(center, dtype='float64')
     if weight is not None:
         # This is a temporary field, which we will remove at the end.
+        weightfield = ("index", "temp_weightfield")
         def _make_wf(f, w):
             def temp_weightfield(a, b):
                 tr = b[f].astype("float64") * b[w]
                 return b.apply_units(tr, a.units)
                 return tr
             return temp_weightfield
-        ds.field_info.add_field("temp_weightfield",
+        ds.field_info.add_field(weightfield,
             function=_make_wf(field, weight))
         # Now we have to tell the dataset to add it and to calculate
         # its dependencies..
-        deps, _ = ds.field_info.check_derived_fields(["temp_weightfield"])
+        deps, _ = ds.field_info.check_derived_fields([weightfield])
         ds.field_dependencies.update(deps)
-        fields = ["temp_weightfield", weight]
+        fields = [weightfield, weight]
     nv = 12*nside**2
     image = np.zeros((nv,1,4), dtype='float64', order='C')
     vs = arr_pix2vec_nest(nside, np.arange(nv))
@@ -2128,8 +2142,8 @@ def allsky_projection(ds, center, radius, nside, field, weight = None,
     else:
         image[:,:,0] /= image[:,:,1]
         image = ds.arr(image, finfo.units)
-        ds.field_info.pop("temp_weightfield")
-        ds.field_dependencies.pop("temp_weightfield")
+        ds.field_info.pop(weightfield)
+        ds.field_dependencies.pop(weightfield)
     return image[:,0,0]
 
 def plot_allsky_healpix(image, nside, fn, label = "", rotation = None,
@@ -2169,20 +2183,23 @@ class ProjectionCamera(Camera):
 
         fields = [field]
         if self.weight is not None:
-            # This is a temporary field, which we will remove at the end.
+            # This is a temporary field, which we will remove at the end
+            # it is given a unique name to avoid conflicting with other 
+            # class instances
+            self.weightfield = ("index", "temp_weightfield_%u"%(id(self),))
             def _make_wf(f, w):
                 def temp_weightfield(a, b):
                     tr = b[f].astype("float64") * b[w]
                     return b.apply_units(tr, a.units)
                     return tr
                 return temp_weightfield
-            ds.field_info.add_field("temp_weightfield",
+            ds.field_info.add_field(self.weightfield,
                 function=_make_wf(self.field, self.weight))
             # Now we have to tell the dataset to add it and to calculate
             # its dependencies..
-            deps, _ = ds.field_info.check_derived_fields(["temp_weightfield"])
+            deps, _ = ds.field_info.check_derived_fields([self.weightfield])
             ds.field_dependencies.update(deps)
-            fields = ["temp_weightfield", self.weight]
+            fields = [self.weightfield, self.weight]
         
         self.fields = fields
         self.log_fields = [False]*len(self.fields)
@@ -2191,6 +2208,20 @@ class ProjectionCamera(Camera):
                 log_fields=self.log_fields, 
                 north_vector=north_vector,
                 no_ghost=no_ghost)
+
+    # this would be better in an __exit__ function, but that would require
+    # changes in code that uses this class
+    def __del__(self):
+        if hasattr(self,"weightfield") and hasattr(self,"ds"):
+            try:
+                self.ds.field_info.pop(self.weightfield)
+                self.ds.field_dependencies.pop(self.weightfield)
+            except KeyError:
+                pass
+        try:
+            Camera.__del__(self)
+        except AttributeError:
+            pass
 
     def get_sampler(self, args):
         if self.interpolated:
@@ -2374,9 +2405,5 @@ def off_axis_projection(ds, center, normal_vector, width, resolution,
                                no_ghost=no_ghost, interpolated=interpolated, 
                                north_vector=north_vector)
     image = projcam.snapshot()
-    if weight is not None:
-        ds.field_info.pop("temp_weightfield")
-        ds.field_dependencies.pop("temp_weightfield")
-    del projcam
     return image[:,:]
 

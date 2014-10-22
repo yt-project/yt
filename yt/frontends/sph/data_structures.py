@@ -24,6 +24,7 @@ import time
 import os
 import types
 
+import yt.units
 from yt.utilities.fortran_utils import read_record
 from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.particle_geometry_handler import \
@@ -38,7 +39,7 @@ from yt.utilities.physical_constants import \
     mass_sun_cgs
 from yt.utilities.cosmology import Cosmology
 from .fields import \
-    SPHFieldInfo, OWLSFieldInfo, TipsyFieldInfo
+    SPHFieldInfo, OWLSFieldInfo, TipsyFieldInfo, EagleNetworkFieldInfo
 from .definitions import \
     gadget_header_specs, \
     gadget_field_specs, \
@@ -203,12 +204,17 @@ class GadgetDataset(ParticleDataset):
         self.file_count = hvals["NumFiles"]
 
     def _set_code_unit_attributes(self):
-        # Set a sane default for cosmological simulations.
-        if self._unit_base is None and self.cosmological_simulation == 1:
-            mylog.info("Assuming length units are in Mpc/h (comoving)")
-            self._unit_base = dict(length = (1.0, "Mpccm/h"))
-        # The other same defaults we will use from the standard Gadget
-        # defaults.
+        # If no units passed in by user, set a sane default (Gadget-2 users guide).
+        if self._unit_base is None:
+            if self.cosmological_simulation == 1:
+                mylog.info("Assuming length units are in kpc/h (comoving)")
+                self._unit_base = dict(length = (1.0, "kpccm/h"))
+            else:
+                mylog.info("Assuming length units are in kpc (physical)")
+                self._unit_base = dict(length = (1.0, "kpc"))
+                
+        # If units passed in by user, decide what to do about
+        # co-moving and factors of h
         unit_base = self._unit_base or {}
         if "length" in unit_base:
             length_unit = unit_base["length"]
@@ -231,6 +237,7 @@ class GadgetDataset(ParticleDataset):
             velocity_unit = (1e5, "cm/s")
         velocity_unit = _fix_unit_ordering(velocity_unit)
         self.velocity_unit = self.quan(velocity_unit[0], velocity_unit[1])
+
         # We set hubble_constant = 1.0 for non-cosmology, so this is safe.
         # Default to 1e10 Msun/h if mass is not specified.
         if "mass" in unit_base:
@@ -277,7 +284,60 @@ class GadgetHDF5Dataset(GadgetDataset):
         # Compat reasons.
         hvals["NumFiles"] = hvals["NumFilesPerSnapshot"]
         hvals["Massarr"] = hvals["MassTable"]
+        handle.close()
         return hvals
+
+    def _get_uvals(self):
+        handle = h5py.File(self.parameter_filename, mode="r")
+        uvals = {}
+        uvals.update((str(k), v) for k, v in handle["/Units"].attrs.items())
+        handle.close()
+        return uvals
+
+
+
+    def _set_owls_eagle(self):
+
+        self.dimensionality = 3
+        self.refine_by = 2
+        self.parameters["HydroMethod"] = "sph"
+        self.unique_identifier = \
+            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+
+        self._unit_base = self._get_uvals()
+        self._unit_base['cmcm'] = 1.0 / self._unit_base["UnitLength_in_cm"]
+
+        self.current_redshift = self.parameters["Redshift"]
+        self.omega_lambda = self.parameters["OmegaLambda"]
+        self.omega_matter = self.parameters["Omega0"]
+        self.hubble_constant = self.parameters["HubbleParam"]
+
+        if self.domain_left_edge is None:
+            self.domain_left_edge = np.zeros(3, "float64")
+            self.domain_right_edge = np.ones(3, "float64") * self.parameters["BoxSize"]
+
+        nz = 1 << self.over_refine_factor
+        self.domain_dimensions = np.ones(3, "int32") * nz
+
+        self.cosmological_simulation = 1
+        self.periodicity = (True, True, True)
+
+        prefix = os.path.abspath(self.parameter_filename.split(".", 1)[0])
+        suffix = self.parameter_filename.rsplit(".", 1)[-1]
+        self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
+        self.file_count = self.parameters["NumFilesPerSnapshot"]
+
+
+    def _set_owls_eagle_units(self):
+
+        # note the contents of the HDF5 Units group are in _unit_base 
+        # note the velocity stored on disk is sqrt(a) dx/dt 
+        self.length_unit = self.quan( self._unit_base["UnitLength_in_cm"], 'cmcm/h' )
+        self.mass_unit = self.quan( self._unit_base["UnitMass_in_g"], 'g/h' )
+        self.velocity_unit = self.quan( self._unit_base["UnitVelocity_in_cm_per_s"], 'cm/s' )
+        self.time_unit = self.quan( self._unit_base["UnitTime_in_s"], 's/h' )
+
+        
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -295,50 +355,106 @@ class GadgetHDF5Dataset(GadgetDataset):
 class OWLSDataset(GadgetHDF5Dataset):
     _particle_mass_name = "Mass"
     _field_info_class = OWLSFieldInfo
-
+    _time_readin = "Time_GYR"
 
 
     def _parse_parameter_file(self):
-        handle = h5py.File(self.parameter_filename, mode="r")
-        hvals = {}
-        hvals.update((str(k), v) for k, v in handle["/Header"].attrs.items())
-        hvals["NumFiles"] = hvals["NumFilesPerSnapshot"]
-        hvals["Massarr"] = hvals["MassTable"]
 
-        self.dimensionality = 3
-        self.refine_by = 2
-        self.parameters["HydroMethod"] = "sph"
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-
-        # Set standard values
-        self.current_time = hvals["Time_GYR"] * sec_conversion["Gyr"]
-        if self.domain_left_edge is None:
-            self.domain_left_edge = np.zeros(3, "float64")
-            self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(3, "int32") * nz
-        self.cosmological_simulation = 1
-        self.periodicity = (True, True, True)
-        self.current_redshift = hvals["Redshift"]
-        self.omega_lambda = hvals["OmegaLambda"]
-        self.omega_matter = hvals["Omega0"]
-        self.hubble_constant = hvals["HubbleParam"]
+        # read values from header
+        hvals = self._get_hvals()
         self.parameters = hvals
 
-        prefix = os.path.abspath(self.parameter_filename.split(".", 1)[0])
-        suffix = self.parameter_filename.rsplit(".", 1)[-1]
-        self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
-        self.file_count = hvals["NumFilesPerSnapshot"]
+        # set features common to OWLS and Eagle
+        self._set_owls_eagle()
 
-        # To avoid having to open files twice
-        self._unit_base = {}
-        self._unit_base.update(
-            (str(k), v) for k, v in handle["/Units"].attrs.items())
-        # Comoving cm is given in the Units
-        self._unit_base['cmcm'] = 1.0 / self._unit_base["UnitLength_in_cm"]
+        # Set time from value in header
+        self.current_time = hvals[self._time_readin] * \
+                            sec_conversion["Gyr"] * yt.units.s
 
-        handle.close()
+
+    def _set_code_unit_attributes(self):
+        self._set_owls_eagle_units()
+
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        need_groups = ['Constants', 'Header', 'Parameters', 'Units']
+        veto_groups = ['SUBFIND', 'FOF',
+                       'PartType0/ChemistryAbundances', 
+                       'PartType0/ChemicalAbundances',
+                       'RuntimePars', 'HashTable']
+        valid = True
+        try:
+            fileh = h5py.File(args[0], mode='r')
+            for ng in need_groups:
+                if ng not in fileh["/"]:
+                    valid = False
+            for vg in veto_groups:
+                if vg in fileh["/"]:
+                    valid = False                    
+            fileh.close()
+        except:
+            valid = False
+            pass
+        return valid
+
+
+class EagleDataset(GadgetHDF5Dataset):
+    _particle_mass_name = "Mass"
+    _field_info_class = OWLSFieldInfo
+    _time_readin_ = 'Time'
+
+    def _parse_parameter_file(self):
+
+        # read values from header
+        hvals = self._get_hvals()
+        self.parameters = hvals
+
+        # set features common to OWLS and Eagle
+        self._set_owls_eagle()
+
+        # Set time from analytic solution for flat LCDM universe
+        a = hvals['ExpansionFactor']
+        H0 = hvals['H(z)'] / hvals['E(z)']
+        a_eq = ( self.omega_matter / self.omega_lambda )**(1./3)
+        t1 = 2.0 / ( 3.0 * np.sqrt( self.omega_lambda ) )
+        t2 = (a/a_eq)**(3./2)
+        t3 = np.sqrt( 1.0 + (a/a_eq)**3 )
+        t = t1 * np.log( t2 + t3 ) / H0
+        self.current_time = t * yt.units.s
+
+
+    def _set_code_unit_attributes(self):
+        self._set_owls_eagle_units()
+
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        need_groups = ['Config', 'Constants', 'HashTable', 'Header', 
+                       'Parameters', 'RuntimePars', 'Units']
+        veto_groups = ['SUBFIND',
+                       'PartType0/ChemistryAbundances', 
+                       'PartType0/ChemicalAbundances']
+        valid = True
+        try:
+            fileh = h5py.File(args[0], mode='r')
+            for ng in need_groups:
+                if ng not in fileh["/"]:
+                    valid = False
+            for vg in veto_groups:
+                if vg in fileh["/"]:
+                    valid = False                    
+            fileh.close()
+        except:
+            valid = False
+            pass
+        return valid
+
+
+class EagleNetworkDataset(EagleDataset):
+    _particle_mass_name = "Mass"
+    _field_info_class = EagleNetworkFieldInfo
+    _time_readin = 'Time'
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -346,7 +462,9 @@ class OWLSDataset(GadgetHDF5Dataset):
             fileh = h5py.File(args[0], mode='r')
             if "Constants" in fileh["/"].keys() and \
                "Header" in fileh["/"].keys() and \
-               "SUBFIND" not in fileh["/"].keys():
+               "SUBFIND" not in fileh["/"].keys() and \
+               ("ChemistryAbundances" in fileh["PartType0"].keys()
+                or "ChemicalAbundances" in fileh["PartType0"].keys()):
                 fileh.close()
                 return True
             fileh.close()

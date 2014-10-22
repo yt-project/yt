@@ -29,7 +29,7 @@ import cStringIO
 from .base_plot_types import ImagePlotMPL
 from .plot_container import \
     ImagePlotContainer, \
-    log_transform, linear_transform
+    log_transform, linear_transform, get_log_minorticks
 from yt.data_objects.profiles import \
     create_profile
 from yt.utilities.exceptions import \
@@ -184,7 +184,7 @@ class ProfilePlot(object):
     ...                                  plot_specs=plot_specs)
     >>> plot.save()
 
-    Use plot_line_property to change line properties of one or all profiles.
+    Use set_line_property to change line properties of one or all profiles.
     
     """
     x_log = None
@@ -256,7 +256,6 @@ class ProfilePlot(object):
 
     def show(self):
         r"""This will send any existing plots to the IPython notebook.
-        function name.
 
         If yt is being run from within an IPython session, and it is able to
         determine this, this function will send any existing plots to the
@@ -544,18 +543,17 @@ class ProfilePlot(object):
         >>> pp.save()
 
         """
-        for i, p in enumerate(self.profiles):
-            if field is 'all':
-                fields = self.axes.keys()
-            else:
-                fields = ensure_list(field)
-            for profile in self.profiles:
-                for field in profile.data_source._determine_fields(fields):
-                    if field in profile.field_map:
-                        field = profile.field_map[field]
-                    self.axes.ylim[field] = (ymin, ymax)
-                    # Continue on to the next profile.
-                    break
+        if field is 'all':
+            fields = self.axes.keys()
+        else:
+            fields = ensure_list(field)
+        for profile in self.profiles:
+            for field in profile.data_source._determine_fields(fields):
+                if field in profile.field_map:
+                    field = profile.field_map[field]
+                self.axes.ylim[field] = (ymin, ymax)
+                # Continue on to the next profile.
+                break
         return self
 
     def _get_field_log(self, field_y, profile):
@@ -850,6 +848,29 @@ class PhasePlot(ImagePlotContainer):
                 label.set_fontproperties(fp)
                 if self._font_color is not None:
                     label.set_color(self._font_color)
+
+            # x-y axes minorticks
+            if f not in self._minorticks:
+                self._minorticks[f] = True
+            if self._minorticks[f] is True:
+                self.plots[f].axes.minorticks_on()
+            else:
+                self.plots[f].axes.minorticks_off()
+
+            # colorbar minorticks
+            if f not in self._cbar_minorticks:
+                self._cbar_minorticks[f] = True
+            if self._cbar_minorticks[f] is True:
+                if self._field_transform[f] == linear_transform:
+                    self.plots[f].cax.minorticks_on()
+                else:
+                    vmin = np.float64( self.plots[f].cb.norm.vmin )
+                    vmax = np.float64( self.plots[f].cb.norm.vmax )
+                    mticks = self.plots[f].image.norm( get_log_minorticks(vmin, vmax) )
+                    self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
+            else:
+                self.plots[f].cax.minorticks_off()
+
         self._plot_valid = True
 
     @classmethod

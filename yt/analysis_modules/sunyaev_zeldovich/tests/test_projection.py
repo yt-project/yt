@@ -89,8 +89,6 @@ def setup_cluster():
     L = 2 * R * cm_per_kpc
     bbox = np.array([[-0.5,0.5],[-0.5,0.5],[-0.5,0.5]]) * L
 
-    dl = L/nz
-
     ds = load_uniform_grid(data, ddims, length_unit='cm', bbox=bbox)
     ds.index
 

@@ -7,14 +7,14 @@ Creating A New Code Frontend
             have a question about making a custom derived quantity, please
             contact the mailing list.
 
-yt is designed to support analysis and visualization of data from multiple
-different simulation codes, although it has so far been most successfully
-applied to Adaptive Mesh Refinement (AMR) data. For a list of codes and the
-level of support they enjoy, see :ref:`code-support`.
+yt is designed to support analysis and visualization of data from
+multiple different simulation codes. For a list of codes and the level
+of support they enjoy, see :ref:`code-support`.
 
-We'd like to support a broad range of codes, both AMR-based and otherwise. To
-add support for a new code, a few things need to be put into place. These
-necessary structures can be classified into a couple categories:
+We'd like to support a broad range of codes, both Adaptive Mesh
+Refinement (AMR)-based and otherwise. To add support for a new code, a
+few things need to be put into place. These necessary structures can
+be classified into a couple categories:
 
  * Data meaning: This is the set of parameters that convert the data into
    physically relevant units; things like spatial and mass conversions, time
@@ -33,73 +33,147 @@ Data Meaning Structures
 If you are interested in adding a new code, be sure to drop us a line on
 `yt-dev <http://lists.spacepope.org/listinfo.cgi/yt-dev-spacepope.org>`_!
 
-To get started, make a new directory in ``yt/frontends`` with the name of your
-code -- you can start by copying into it the contents of the ``stream``
-directory, which is a pretty empty format. You'll then have to create a subclass
-of ``Dataset``. This subclass will need to handle conversion between the
-different physical units and the code units; for the most part, the examples of
-``OrionDataset`` and ``EnzoDataset`` should be followed, but
-``ChomboDataset``, as a slightly newer addition, can also be used as an
-instructive example -- be sure to add an ``_is_valid`` classmethod that will
-verify if a filename is valid for that output type, as that is how "load" works.
+To get started, make a new directory in ``yt/frontends`` with the name
+of your code.  Copying the contents of the ``yt/frontends/_skeleton``
+directory will add a lot of boilerplate for the required classes and
+methods that are needed.  In particular, you'll have to create a
+subclass of ``Dataset`` in the data_structures.py file. This subclass
+will need to handle conversion between the different physical units
+and the code units (typically in the ``_set_code_unit_attributes()``
+method), read in metadata describing the overall data on disk (via the
+``_parse_parameter_file()`` method), and provide a ``classmethod``
+called ``_is_valid()`` that lets the ``yt.load`` method help identify an
+input file as belonging to *this* particular ``Dataset`` subclass.
+For the most part, the examples of
+``yt.frontends.boxlib.data_structures.OrionDataset`` and
+``yt.frontends.enzo.data_structures.EnzoDataset`` should be followed,
+but ``yt.frontends.chombo.data_structures.ChomboDataset``, as a
+slightly newer addition, can also be used as an instructive example.
 
-A new set of fields must be added in the file ``fields.py`` in that directory.
-For the most part this means subclassing ``CodeFieldInfoContainer`` and adding
-the necessary fields specific to that code. Here is the Chombo field container:
+A new set of fields must be added in the file ``fields.py`` in your
+new directory.  For the most part this means subclassing 
+``FieldInfoContainer`` and adding the necessary fields specific to
+your code. Here is a snippet from the base BoxLib field container:
 
 .. code-block:: python
 
-    from UniversalFields import *
-    class ChomboFieldContainer(CodeFieldInfoContainer):
-        _shared_state = {}
-        _field_list = {}
-    ChomboFieldInfo = ChomboFieldContainer()
-    add_chombo_field = ChomboFieldInfo.add_field
+    from yt.fields.field_info_container import FieldInfoContainer
+    class BoxlibFieldInfo(FieldInfoContainer):
+        known_other_fields = (
+            ("density", (rho_units, ["density"], None)),
+	    ("eden", (eden_units, ["energy_density"], None)),
+	    ("xmom", (mom_units, ["momentum_x"], None)),
+	    ("ymom", (mom_units, ["momentum_y"], None)),
+	    ("zmom", (mom_units, ["momentum_z"], None)),
+	    ("temperature", ("K", ["temperature"], None)),
+	    ("Temp", ("K", ["temperature"], None)),
+	    ("x_velocity", ("cm/s", ["velocity_x"], None)),
+	    ("y_velocity", ("cm/s", ["velocity_y"], None)),
+	    ("z_velocity", ("cm/s", ["velocity_z"], None)),
+	    ("xvel", ("cm/s", ["velocity_x"], None)),
+	    ("yvel", ("cm/s", ["velocity_y"], None)),
+	    ("zvel", ("cm/s", ["velocity_z"], None)),
+	)
 
-The field container is a shared state object, which is why we explicitly set
-``_shared_state`` equal to a mutable.
+	known_particle_fields = (
+	    ("particle_mass", ("code_mass", [], None)),
+	    ("particle_position_x", ("code_length", [], None)),
+	    ("particle_position_y", ("code_length", [], None)),
+	    ("particle_position_z", ("code_length", [], None)),
+	    ("particle_momentum_x", (mom_units, [], None)),
+	    ("particle_momentum_y", (mom_units, [], None)),
+	    ("particle_momentum_z", (mom_units, [], None)),
+	    ("particle_angmomen_x", ("code_length**2/code_time", [], None)),
+	    ("particle_angmomen_y", ("code_length**2/code_time", [], None)),
+	    ("particle_angmomen_z", ("code_length**2/code_time", [], None)),
+	    ("particle_id", ("", ["particle_index"], None)),
+	    ("particle_mdot", ("code_mass/code_time", [], None)),
+	)
+
+The tuples, ``known_other_fields`` and ``known_particle_fields``
+contain entries, which are tuples of the form ``("name", ("units",
+["fields", "to", "alias"], "display_name"))``.  ``"name"`` is the name
+of a field stored on-disk in the dataset. ``"units"`` corresponds to
+the units of that field.  The list ``["fields", "to", "alias"]``
+allows you to specify additional aliases to this particular field; for
+example, if your on-disk field for the x-direction velocity were
+``"x-direction-velocity"``, maybe you'd prefer to alias to the more
+terse name of ``"xvel"``.  ``"display_name"`` is an optional parameter
+that can be used to specify how you want the field to be displayed on
+a plot; this can be LaTeX code, for example the density field could
+have a display name of ``r"\rho"``.  Omitting the ``"display_name"``
+will result in using a capitalized version of the ``"name"``.
 
 Data Localization Structures
 ----------------------------
 
-As of right now, the "grid patch" mechanism is going to remain in yt, however in
-the future that may change. As such, some other output formats -- like Gadget --
-may be shoe-horned in, slightly.
+These functions and classes let yt know about how the arrangement of
+data on disk corresponds to the physical arrangement of data within
+the simulation.  yt has grid datastructures for handling both
+patch-based and octree-based AMR codes.  The terms 'patch-based'
+and 'octree-based' are used somewhat loosely here.  For example,
+traditionally, the FLASH code used the paramesh AMR library, which is
+based on a tree structure, but the FLASH frontend in yt utilizes yt's
+patch-based datastructures.  It is up to the frontend developer to
+determine which yt datastructures best match the datastructures of
+their simulation code.
 
-Hierarchy
-^^^^^^^^^
+Both approaches -- patch-based and octree-based -- have a concept of a
+*Hierarchy* or *Index* (used somewhat interchangeably in the code) of
+datastructures and something that describes the elements that make up
+the Hierarchy or Index.  For patch-based codes, the Index is a
+collection of ``AMRGridPatch`` objects that describe a block of zones.
+For octree-based codes, the Index contains datastructures that hold
+information about the individual octs, namely an ``OctreeContainer``.
 
-To set up data localization, an ``AMRHierarchy`` subclass must be added in the
-file ``data_structures.py``. The index object must override the following
-methods:
+Hierarchy or Index
+^^^^^^^^^^^^^^^^^^
 
- * ``_detect_fields``: ``self.field_list`` must be populated as a list of
-   strings corresponding to "native" fields in the data files.
- * ``_setup_classes``: it's probably safe to crib this from one of the other
-   ``AMRHierarchy`` subclasses.
- * ``_count_grids``: this must set self.num_grids to be the total number of
-   grids in the simulation.
- * ``_parse_index``: this must fill in ``grid_left_edge``,
+To set up data localization, a ``GridIndex`` subclass for patch-based
+codes or an ``OctreeIndex`` subclass for octree-based codes must be
+added in the file ``data_structures.py``. Examples of these different
+types of ``Index`` can be found in, for example, the
+``yt.frontends.chombo.data_structures.ChomboHierarchy`` for patch-based
+codes and ``yt.frontends.ramses.data_structures.RAMSESIndex`` for
+octree-based codes.  
+
+For the most part, the ``GridIndex`` subclass must override (at a
+minimum) the following methods:
+
+ * ``_detect_output_fields()``: ``self.field_list`` must be populated as a list
+   of strings corresponding to "native" fields in the data files.
+ * ``_count_grids()``: this must set ``self.num_grids`` to be the total number
+   of grids (equivalently ``AMRGridPatch``'es) in the simulation.
+ * ``_parse_index()``: this must fill in ``grid_left_edge``,
    ``grid_right_edge``, ``grid_particle_count``, ``grid_dimensions`` and
-   ``grid_levels`` with the appropriate information. Additionally, ``grids``
-   must be an array of grid objects that already know their IDs.
- * ``_populate_grid_objects``: this initializes the grids by calling
-   ``_prepare_grid`` and ``_setup_dx`` on all of them.  Additionally, it should
-   set up ``Children`` and ``Parent`` lists on each grid object.
- * ``_setup_unknown_fields``: If a field is in the data file that yt doesn't
-   already know, this is where you make a guess at it.
- * ``_setup_derived_fields``: ``self.derived_field_list`` needs to be made a
-   list of strings that correspond to all derived fields valid for this
-   index.
+   ``grid_levels`` with the appropriate information.  Each of these variables 
+   is an array, with an entry for each of the ``self.num_grids`` grids.  
+   Additionally, ``grids``  must be an array of ``AMRGridPatch`` objects that 
+   already know their IDs.
+ * ``_populate_grid_objects()``: this initializes the grids by calling
+   ``_prepare_grid()`` and ``_setup_dx()`` on all of them.  Additionally, it 
+   should set up ``Children`` and ``Parent`` lists on each grid object.
 
-For the most part, the ``ChomboHierarchy`` should be the first place to look for
-hints on how to do this; ``EnzoHierarchy`` is also instructive.
+The ``OctreeIndex`` has somewhat analogous methods, but often with
+different names; both ``OctreeIndex`` and ``GridIndex`` are subclasses
+of the ``Index`` class.  In particular, for the ``OctreeIndex``, the
+method ``_initialize_oct_handler()`` setups up much of the oct
+metadata that is analogous to the grid metadata created in the
+``GridIndex`` methods ``_count_grids()``, ``_parse_index()``, and
+``_populate_grid_objects()``.
 
 Grids
 ^^^^^
 
-A new grid object, subclassing ``AMRGridPatch``, will also have to be added.
-This should go in ``data_structures.py``. For the most part, this may be all
+.. note:: This section only applies to the approach using yt's patch-based
+	  datastructures.  For the octree-based approach, one does not create
+	  a grid object, but rather an ``OctreeSubset``, which has methods
+	  for filling out portions of the octree structure.  Again, see the
+	  code in ``yt.frontends.ramses.data_structures`` for an example of
+	  the octree approach.
+
+A new grid object, subclassing ``AMRGridPatch``, will also have to be added in
+``data_structures.py``. For the most part, this may be all
 that is needed:
 
 .. code-block:: python
@@ -115,32 +189,46 @@ that is needed:
             self.Level = level
 
 
-Even the most complex grid object, ``OrionGrid``, is still relatively simple.
+Even one of the more complex grid objects,
+``yt.frontends.boxlib.BoxlibGrid``, is still relatively simple.
 
 Data Reading Functions
 ----------------------
 
-In ``io.py``, there are a number of IO handlers that handle the mechanisms by
-which data is read off disk.  To implement a new data reader, you must subclass
-``BaseIOHandler`` and override the following methods:
+In ``io.py``, there are a number of IO handlers that handle the
+mechanisms by which data is read off disk.  To implement a new data
+reader, you must subclass ``BaseIOHandler``.  The various frontend IO
+handlers are stored in an IO registry - essentially a dictionary that
+uses the name of the frontend as a key, and the specific IO handler as
+a value.  It is important, therefore, to set the ``dataset_type``
+attribute of your subclass, which is what is used as the key in the IO
+registry.  For example:
 
- * ``_read_field_names``: this routine accepts a grid object and must return all
-   the fields in the data file affiliated with that grid. It is used at the
-   initialization of the ``AMRHierarchy`` but likely not later.
- * ``modify``: This accepts a field from a data file and returns it ready to be
-   used by yt. This is used in Enzo data for preloading.
- * ``_read_data_set``: This accepts a grid object and a field name and must
-   return that field, ready to be used by yt as a NumPy array. Note that this
-   presupposes that any actions done in ``modify`` (above) have been executed.
- * ``_read_data_slice``: This accepts a grid object, a field name, an axis and
-   an (integer) coordinate, and it must return a slice through the array at that
-   value.
- * ``preload``: (optional) This accepts a list of grids and a list of datasets
-   and it populates ``self.queue`` (a dict keyed by grid id) with dicts of
-   datasets.
- * ``_read_exception``: (property) This is a tuple of exceptions that can be
-   raised by the data reading to indicate a field does not exist in the file.
+.. code-block:: python
 
+    class IOHandlerBoxlib(BaseIOHandler):
+        _dataset_type = "boxlib_native"
+	...
+
+At a minimum, one should also override the following methods
+
+* ``_read_fluid_selection()``: this receives a collection of data "chunks", a 
+  selector describing which "chunks" you are concerned with, a list of fields,
+  and the size of the data to read.  It should create and return a dictionary 
+  whose keys are the fields, and whose values are numpy arrays containing the 
+  data.  The data should actually be read via the ``_read_chunk_data()`` 
+  method.
+* ``_read_chunk_data()``: this method receives a "chunk" of data along with a 
+  list of fields we want to read.  It loops over all the grid objects within 
+  the "chunk" of data and reads from disk the specific fields, returning a 
+  dictionary whose keys are the fields and whose values are numpy arrays of
+  the data.
+
+If your dataset has particle information, you'll want to override the
+``_read_particle_coords()`` and ``read_particle_fields()`` methods as
+well.  Each code is going to read data from disk in a different
+fashion, but the ``yt.frontends.boxlib.io.IOHandlerBoxlib`` is a
+decent place to start.
 
 And that just about covers it. Please feel free to email
 `yt-users <http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org>`_ or

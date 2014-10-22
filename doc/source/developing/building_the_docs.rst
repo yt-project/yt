@@ -28,7 +28,7 @@ categories of:
 * Analyzing
 * Examining
 * Cookbook
-* Bootcamp
+* Quickstart
 * Developing
 * Reference
 * Help
@@ -105,7 +105,10 @@ Building the Docs (Quick)
 
 You will need to have the yt repository available on your computer, which
 is done by default if you have yt installed.  In addition, you need a 
-current version of Sphinx_ (1.1.3) documentation software installed.
+current version of Sphinx_ (1.1.3) documentation software installed, as
+well as the Sphinx
+`Bootstrap theme <https://pypi.python.org/pypi/sphinx-bootstrap-theme/>`_,
+which can be installed via ``pip install sphinx_bootstrap_theme``.
 
 In order to tell sphinx not to do all of the dynamical building, you must
 set the ``$READTHEDOCS`` environment variable to be True by typing this at 

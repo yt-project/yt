@@ -217,7 +217,8 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
           np.ndarray[np.int64_t, ndim=1] ys,
           np.ndarray[np.float64_t, ndim=2] colors,
           int points_per_color=1,
-          int thick=1):
+          int thick=1,
+	  int flip=0):
 
     cdef int nx = image.shape[0]
     cdef int ny = image.shape[1]
@@ -256,18 +257,23 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
             if x0 >= thick and x0 < nx-thick and y0 >= thick and y0 < ny-thick:
                 for xi in range(x0-thick/2, x0+(1+thick)/2):
                     for yi in range(y0-thick/2, y0+(1+thick)/2):
+                        if flip: 
+                            yi0 = ny - yi
+                        else:
+                            yi0 = yi
+
                         if has_alpha:
-                            image[xi, yi, 3] = outa = alpha[3] + image[xi, yi, 3]*(1-alpha[3])
+                            image[xi, yi0, 3] = outa = alpha[3] + image[xi, yi0, 3]*(1-alpha[3])
                             if outa != 0.0:
                                 outa = 1.0/outa
                             for i in range(3):
-                                image[xi, yi, i] = \
-                                        ((1.-alpha[3])*image[xi, yi, i]*image[xi, yi, 3]
+                                image[xi, yi0, i] = \
+                                        ((1.-alpha[3])*image[xi, yi0, i]*image[xi, yi0, 3]
                                          + alpha[3]*alpha[i])*outa
                         else:
                             for i in range(3):
-                                image[xi, yi, i] = \
-                                        (1.-alpha[i])*image[xi,yi,i] + alpha[i]
+                                image[xi, yi0, i] = \
+                                        (1.-alpha[i])*image[xi,yi0,i] + alpha[i]
 
             if (x0 == x1 and y0 == y1):
                 break
@@ -486,6 +492,7 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
     cdef np.float64_t x, y, dx, dy, r0, theta0
     cdef np.float64_t rmax, x0, y0, x1, y1
     cdef np.float64_t r_i, theta_i, dr_i, dtheta_i, dthetamin
+    cdef np.float64_t costheta, sintheta
     cdef int i, pi, pj
     
     imax = radius.argmax()
@@ -499,25 +506,52 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
     x0, x1, y0, y1 = extents
     dx = (x1 - x0) / img.shape[0]
     dy = (y1 - y0) / img.shape[1]
-      
+    cdef np.float64_t rbounds[2]
+    cdef np.float64_t corners[8]
+    # Find our min and max r
+    corners[0] = x0*x0+y0*y0
+    corners[1] = x1*x1+y0*y0
+    corners[2] = x0*x0+y1*y1
+    corners[3] = x1*x1+y1*y1
+    corners[4] = x0*x0
+    corners[5] = x1*x1
+    corners[6] = y0*y0
+    corners[7] = y1*y1
+    rbounds[0] = rbounds[1] = corners[0]
+    for i in range(8):
+        rbounds[0] = fmin(rbounds[0], corners[i])
+        rbounds[1] = fmax(rbounds[1], corners[i])
+    rbounds[0] = rbounds[0]**0.5
+    rbounds[1] = rbounds[1]**0.5
+    # If we include the origin in either direction, we need to have radius of
+    # zero as our lower bound.
+    if x0 < 0 and x1 > 0:
+        rbounds[0] = 0.0
+    if y0 < 0 and y1 > 0:
+        rbounds[0] = 0.0
     dthetamin = dx / rmax
-      
     for i in range(radius.shape[0]):
 
         r0 = radius[i]
         theta0 = theta[i]
         dr_i = dradius[i]
         dtheta_i = dtheta[i]
-
+        # Skip out early if we're offsides, for zoomed in plots
+        if r0 + dr_i < rbounds[0] or r0 - dr_i > rbounds[1]:
+            continue
         theta_i = theta0 - dtheta_i
+        # Buffer of 0.5 here
+        dthetamin = 0.5*dx/(r0 + dr_i)
         while theta_i < theta0 + dtheta_i:
             r_i = r0 - dr_i
+            costheta = math.cos(theta_i)
+            sintheta = math.sin(theta_i)
             while r_i < r0 + dr_i:
                 if rmax <= r_i:
                     r_i += 0.5*dx 
                     continue
-                x = r_i * math.cos(theta_i)
-                y = r_i * math.sin(theta_i)
+                y = r_i * costheta
+                x = r_i * sintheta
                 pi = <int>((x - x0)/dx)
                 pj = <int>((y - y0)/dy)
                 if pi >= 0 and pi < img.shape[0] and \

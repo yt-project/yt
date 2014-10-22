@@ -25,6 +25,8 @@ from libc.stdlib cimport malloc, free, abs
 from cython.operator cimport dereference as deref, preincrement as inc
 from fp_utils cimport fmax
 
+from yt.utilities.exceptions import YTIntDomainOverflow
+
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
     void *alloca(int)
@@ -108,12 +110,13 @@ cdef class QuadTree:
     cdef QTN_combine *combine
     cdef np.float64_t bounds[4]
     cdef np.float64_t dds[2]
+    cdef np.int64_t last_dims[2]
 
     def __cinit__(self, np.ndarray[np.int64_t, ndim=1] top_grid_dims,
-                  int nvals, bounds, style = "integrate"):
-        if style == "integrate":
+                  int nvals, bounds, method = "integrate"):
+        if method == "integrate":
             self.combine = QTN_add_value
-        elif style == "mip":
+        elif method == "mip":
             self.combine = QTN_max_value
         else:
             raise NotImplementedError
@@ -209,10 +212,10 @@ cdef class QuadTree:
     def frombuffer(self, np.ndarray[np.int32_t, ndim=1] refined,
                          np.ndarray[np.float64_t, ndim=2] values,
                          np.ndarray[np.float64_t, ndim=1] wval,
-                         style):
-        if style == "mip" or style == -1:
+                         method):
+        if method == "mip" or method == -1:
             self.merged = -1
-        elif style == "integrate" or style == 1:
+        elif method == "integrate" or method == 1:
             self.merged = 1
         cdef int curpos = 0
         cdef QuadTreeNode *root
@@ -246,13 +249,15 @@ cdef class QuadTree:
     def get_args(self):
         return (self.top_grid_dims[0], self.top_grid_dims[1], self.nvals)
 
-    cdef void add_to_position(self,
+    cdef int add_to_position(self,
                  int level, np.int64_t pos[2],
                  np.float64_t *val,
                  np.float64_t weight_val, skip = 0):
         cdef int i, j, L
         cdef QuadTreeNode *node
         node = self.find_on_root_level(pos, level)
+        if node == NULL:
+            return -1
         cdef np.int64_t fac
         for L in range(level):
             if node.children[0][0] == NULL:
@@ -263,8 +268,9 @@ cdef class QuadTree:
             i = (pos[0] >= fac*(2*node.pos[0]+1))
             j = (pos[1] >= fac*(2*node.pos[1]+1))
             node = node.children[i][j]
-        if skip == 1: return
+        if skip == 1: return 0
         self.combine(node, val, weight_val, self.nvals)
+        return 0
             
     @cython.cdivision(True)
     cdef QuadTreeNode *find_on_root_level(self, np.int64_t pos[2], int level):
@@ -273,8 +279,12 @@ cdef class QuadTree:
         cdef np.int64_t i, j
         i = <np.int64_t> (pos[0] / self.po2[level])
         j = <np.int64_t> (pos[1] / self.po2[level])
+        if i > self.top_grid_dims[0] or i < 0 or \
+           j > self.top_grid_dims[1] or j < 0:
+            self.last_dims[0] = i
+            self.last_dims[1] = j
+            return NULL
         return self.root_nodes[i][j]
-        
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -322,23 +332,27 @@ cdef class QuadTree:
             np.ndarray[np.int64_t, ndim=1] pys,
             np.ndarray[np.int64_t, ndim=1] level):
         cdef int num = pxs.shape[0]
-        cdef int p
+        cdef int p, rv
         cdef cnp.float64_t *vals
         cdef cnp.int64_t pos[2]
         for p in range(num):
             pos[0] = pxs[p]
             pos[1] = pys[p]
-            self.add_to_position(level[p], pos, NULL, 0.0, 1)
+            rv = self.add_to_position(level[p], pos, NULL, 0.0, 1)
+            if rv == -1:
+                raise YTIntDomainOverflow(
+                    (self.last_dims[0], self.last_dims[1]),
+                    (self.top_grid_dims[0], self.top_grid_dims[1]))
         return
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def get_all(self, int count_only = 0, int style = 1):
+    def get_all(self, int count_only = 0, int method = 1):
         cdef int i, j, vi
         cdef int total = 0
         vals = []
-        self.merged = style
+        self.merged = method
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
                 total += self.count(self.root_nodes[i][j])
@@ -526,14 +540,14 @@ cdef void QTN_merge_nodes(QuadTreeNode *n1, QuadTreeNode *n2, int nvals,
     else:
         raise RuntimeError
 
-def merge_quadtrees(QuadTree qt1, QuadTree qt2, style = 1):
+def merge_quadtrees(QuadTree qt1, QuadTree qt2, method = 1):
     cdef int i, j
     qt1.num_cells = 0
     cdef QTN_combine *func
-    if style == 1:
+    if method == 1:
         qt1.merged = 1
         func = QTN_add_value
-    elif style == -1:
+    elif method == -1:
         qt1.merged = -1
         func = QTN_max_value
     else:

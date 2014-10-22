@@ -129,6 +129,15 @@ class YTDataContainer(object):
         self._index = self.ds.index
         return self._index
 
+    def _debug(self):
+        """
+        When called from within a derived field, this will run pdb.  However,
+        during field detection, it will not.  This allows you to more easily
+        debug fields that are being called on actual objects.
+        """
+        import pdb
+        pdb.set_trace()
+
     def _set_default_field_parameters(self):
         self.field_parameters = {}
         for k,v in self._default_field_parameters.items():
@@ -409,7 +418,6 @@ class YTDataContainer(object):
         otherwise Glue will be started.
         """
         from glue.core import DataCollection, Data
-        from glue.core.coordinates import coordinates_from_header
         from glue.qt.glue_application import GlueApplication
         
         gdata = Data(label=label)
@@ -438,8 +446,14 @@ class YTDataContainer(object):
 
     @contextmanager
     def _field_parameter_state(self, field_parameters):
+        # What we're doing here is making a copy of the incoming field
+        # parameters, and then updating it with our own.  This means that we'll
+        # be using our own center, if set, rather than the supplied one.  But
+        # it also means that any additionally set values can override it.
         old_field_parameters = self.field_parameters
-        self.field_parameters = field_parameters
+        new_field_parameters = field_parameters.copy()
+        new_field_parameters.update(old_field_parameters)
+        self.field_parameters = new_field_parameters
         yield
         self.field_parameters = old_field_parameters
 
@@ -479,6 +493,19 @@ class YTDataContainer(object):
                     ftype = self._current_fluid_type
                     if (ftype, fname) not in self.ds.field_info:
                         ftype = self.ds._last_freq[0]
+
+                # really ugly check to ensure that this field really does exist somewhere,
+                # in some naming convention, before returning it as a possible field type
+                if (ftype,fname) not in self.ds.field_info and \
+                        (ftype,fname) not in self.ds.field_list and \
+                        fname not in self.ds.field_list and \
+                        (ftype,fname) not in self.ds.derived_field_list and \
+                        fname not in self.ds.derived_field_list and \
+                        (ftype,fname) not in self._container_fields:
+                    raise YTFieldNotFound((ftype,fname),self.ds)
+
+            # these tests are really insufficient as a field type may be valid, and the
+            # field name may be valid, but not the combination (field type, field name)
             if finfo.particle_type and ftype not in self.ds.particle_types:
                 raise YTFieldTypeNotFound(ftype)
             elif not finfo.particle_type and ftype not in self.ds.fluid_types:
@@ -606,7 +633,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 fields_to_generate.append(field)
                 continue
             fields_to_get.append(field)
-        if len(fields_to_get) == 0 and fields_to_generate == 0:
+        if len(fields_to_get) == 0 and len(fields_to_generate) == 0:
             return
         elif self._locked == True:
             raise GenerationInProgress(fields)
@@ -772,13 +799,18 @@ class YTSelectionContainer2D(YTSelectionContainer):
     def _get_pw(self, fields, center, width, origin, plot_type):
         from yt.visualization.plot_window import \
             get_window_parameters, PWViewerMPL
-        from yt.visualization.fixed_resolution import FixedResolutionBuffer as frb
+        from yt.visualization.fixed_resolution import \
+            FixedResolutionBuffer as frb
         axis = self.axis
         skip = self._key_fields
         skip += list(set(frb._exclude_fields).difference(set(self._key_fields)))
-        self.fields = ensure_list(fields) + \
-            [k for k in self.field_data if k not in skip]
-        (bounds, center) = get_window_parameters(axis, center, width, self.ds)
+        self.fields = [k for k in self.field_data if k not in skip]
+        if fields is not None:
+            self.fields = ensure_list(fields) + self.fields
+        if len(self.fields) == 0:
+            raise ValueError("No fields found to plot in get_pw")
+        (bounds, center, display_center) = \
+            get_window_parameters(axis, center, width, self.ds)
         pw = PWViewerMPL(self, bounds, fields=self.fields, origin=origin,
                          frb_generator=frb, plot_type=plot_type)
         pw._setup_plots()
@@ -1162,16 +1194,15 @@ class YTSelectionContainer3D(YTSelectionContainer):
         return self._particle_handler
 
 
-    def volume(self, unit = "unitary"):
+    def volume(self):
         """
-        Return the volume of the data container in units *unit*.
+        Return the volume of the data container.
         This is found by adding up the volume of the cells with centers
         in the container, rather than using the geometric shape of
         the container, so this may vary very slightly
         from what might be expected from the geometric volume.
         """
-        return self.quantities["TotalQuantity"]("CellVolume")[0] * \
-            (self.ds[unit] / self.ds['cm']) ** 3.0
+        return self.quantities.total_quantity(("index", "cell_volume"))
 
 # Many of these items are set up specifically to ensure that
 # we are not breaking old pickle files.  This means we must only call the

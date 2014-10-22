@@ -53,7 +53,7 @@ class IOHandlerOWLS(BaseIOHandler):
     _vector_fields = ("Coordinates", "Velocity", "Velocities")
     _known_ptypes = ghdf5_ptypes
     _var_mass = None
-    _element_names = ('Hydrogen', 'Helium', 'Carbon', 'Nitrogen', 'Oxygen', 
+    _element_names = ('Hydrogen', 'Helium', 'Carbon', 'Nitrogen', 'Oxygen',
                        'Neon', 'Magnesium', 'Silicon', 'Iron' )
 
 
@@ -81,6 +81,8 @@ class IOHandlerOWLS(BaseIOHandler):
             f = _get_h5_handle(data_file.filename)
             # This double-reads
             for ptype, field_list in sorted(ptf.items()):
+                if data_file.total_particles[ptype] == 0:
+                    continue
                 x = f["/%s/Coordinates" % ptype][:,0].astype("float64")
                 y = f["/%s/Coordinates" % ptype][:,1].astype("float64")
                 z = f["/%s/Coordinates" % ptype][:,2].astype("float64")
@@ -96,6 +98,8 @@ class IOHandlerOWLS(BaseIOHandler):
         for data_file in sorted(data_files):
             f = _get_h5_handle(data_file.filename)
             for ptype, field_list in sorted(ptf.items()):
+                if data_file.total_particles[ptype] == 0:
+                    continue
                 g = f["/%s" % ptype]
                 coords = g["Coordinates"][:].astype("float64")
                 mask = selector.select_points(
@@ -103,11 +107,11 @@ class IOHandlerOWLS(BaseIOHandler):
                 del coords
                 if mask is None: continue
                 for field in field_list:
-                    
+
                     if field in ("Mass", "Masses") and \
                         ptype not in self.var_mass:
                         data = np.empty(mask.sum(), dtype="float64")
-                        ind = self._known_ptypes.index(ptype) 
+                        ind = self._known_ptypes.index(ptype)
                         data[:] = self.ds["Massarr"][ind]
 
                     elif field in self._element_names:
@@ -116,6 +120,9 @@ class IOHandlerOWLS(BaseIOHandler):
                     elif field.startswith("Metallicity_"):
                         col = int(field.rsplit("_", 1)[-1])
                         data = g["Metallicity"][:,col][mask]
+                    elif field.startswith("Chemistry_"):
+                        col = int(field.rsplit("_", 1)[-1])
+                        data = g["ChemistryAbundances"][:,col][mask]
                     else:
                         data = g[field][:][mask,...]
 
@@ -149,7 +156,7 @@ class IOHandlerOWLS(BaseIOHandler):
         f = _get_h5_handle(data_file.filename)
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:]
         f.close()
-        npart = dict(("PartType%s" % (i), v) for i, v in enumerate(pcount)) 
+        npart = dict(("PartType%s" % (i), v) for i, v in enumerate(pcount))
         return npart
 
 
@@ -161,7 +168,7 @@ class IOHandlerOWLS(BaseIOHandler):
 
         # loop over all keys in OWLS hdf5 file
         #--------------------------------------------------
-        for key in f.keys():   
+        for key in f.keys():
 
             # only want particle data
             #--------------------------------------
@@ -192,6 +199,9 @@ class IOHandlerOWLS(BaseIOHandler):
                     # Vector of metallicity
                     for i in range(g[k].shape[1]):
                         fields.append((ptype, "Metallicity_%02i" % i))
+                elif k == "ChemistryAbundances" and len(g[k].shape)>1:
+                    for i in range(g[k].shape[1]):
+                        fields.append((ptype, "Chemistry_%03i" % i))
                 else:
                     kk = k
                     if not hasattr(g[kk], "shape"): continue
@@ -200,6 +210,9 @@ class IOHandlerOWLS(BaseIOHandler):
 
         f.close()
         return fields, {}
+
+class IOHandlerEagleNetwork(IOHandlerOWLS):
+    _dataset_type = "eagle_network"
 
 class IOHandlerGadgetHDF5(IOHandlerOWLS):
     _dataset_type = "gadget_hdf5"
@@ -325,7 +338,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
 
     def _count_particles(self, data_file):
         npart = dict((self._ptypes[i], v)
-            for i, v in enumerate(data_file.header["Npart"])) 
+            for i, v in enumerate(data_file.header["Npart"]))
         return npart
 
     # header is 256, but we have 4 at beginning and end for ints
@@ -434,13 +447,13 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         dtype = None
         # We need to do some fairly ugly detection to see what format the auxiliary
         # files are in.  They can be either ascii or binary, and the binary files can be
-        # either floats, ints, or doubles.  We're going to use a try-catch cascade to 
+        # either floats, ints, or doubles.  We're going to use a try-catch cascade to
         # determine the format.
         try:#ASCII
             auxdata = np.genfromtxt(filename, skip_header=1)
             if auxdata.size != np.sum(data_file.total_particles.values()):
                 print "Error reading auxiliary tipsy file"
-                raise RuntimeError 
+                raise RuntimeError
         except ValueError:#binary/xdr
             f = open(filename, 'rb')
             l = struct.unpack(data_file.ds.endian+"i", f.read(4))[0]
@@ -460,7 +473,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 except struct.error: # None of the binary attempts to read succeeded
                     print "Error reading auxiliary tipsy file"
                     raise RuntimeError
-            
+
         # Use the mask to slice out the appropriate particle type data
         if mask.size == data_file.total_particles['Gas']:
             return auxdata[:data_file.total_particles['Gas']]
@@ -547,14 +560,14 @@ class IOHandlerTipsyBinary(BaseIOHandler):
 
     def _update_domain(self, data_file):
         '''
-        This method is used to determine the size needed for a box that will 
+        This method is used to determine the size needed for a box that will
         bound the particles.  It simply finds the largest position of the
         whole set of particles, and sets the domain to +/- that value.
         '''
         ds = data_file.ds
         ind = 0
         # Check to make sure that the domain hasn't already been set
-        # by the parameter file 
+        # by the parameter file
         if np.all(np.isfinite(ds.domain_left_edge)) and np.all(np.isfinite(ds.domain_right_edge)):
             return
         with open(data_file.filename, "rb") as f:
@@ -673,11 +686,11 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 continue
             field_list.append((ptype, field))
         if any(["Gas"==f[0] for f in field_list]): #Add the auxiliary fields to each ptype we have
-            field_list += [("Gas",a) for a in self._aux_fields] 
+            field_list += [("Gas",a) for a in self._aux_fields]
         if any(["DarkMatter"==f[0] for f in field_list]):
-            field_list += [("DarkMatter",a) for a in self._aux_fields] 
+            field_list += [("DarkMatter",a) for a in self._aux_fields]
         if any(["Stars"==f[0] for f in field_list]):
-            field_list += [("Stars",a) for a in self._aux_fields] 
+            field_list += [("Stars",a) for a in self._aux_fields]
         self._field_list = field_list
         return self._field_list
 
@@ -697,11 +710,11 @@ class IOHandlerTipsyBinary(BaseIOHandler):
 class IOHandlerHTTPStream(BaseIOHandler):
     _dataset_type = "http_particle_stream"
     _vector_fields = ("Coordinates", "Velocity", "Velocities")
-    
+
     def __init__(self, ds):
         if requests is None:
             raise RuntimeError
-        self._url = ds.base_url 
+        self._url = ds.base_url
         # This should eventually manage the IO and cache it
         self.total_bytes = 0
         super(IOHandlerHTTPStream, self).__init__(ds)

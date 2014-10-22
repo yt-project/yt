@@ -125,6 +125,33 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
              display_name = "\\mathrm{%s CIC Density}" % ptype_dn,
              units = "g/cm**3")
 
+    def _get_density_weighted_deposit_field(fname, units, method):
+        def _deposit_field(field, data):
+            """
+            Create a grid field for particle quantities weighted by particle
+            mass, using cloud-in-cell deposit.
+            """
+            pos = data[ptype, "particle_position"]
+            # Get back into density
+            pden = data[ptype, 'particle_mass']
+            top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+            bottom = data.deposit(pos, [pden], method=method)
+            top[bottom == 0] = 0.0
+            bnz = bottom.nonzero()
+            top[bnz] /= bottom[bnz]
+            d = data.ds.arr(top, input_units=units)
+            return d
+        return _deposit_field
+
+    for ax in 'xyz':
+        for method, name in zip(("cic", "sum"), ("cic", "nn")):
+            function = _get_density_weighted_deposit_field(
+                "particle_velocity_%s" % ax, "cm/s", method)
+            registry.add_field(
+                ("deposit", ("%s_"+name+"_velocity_%s") % (ptype, ax)),
+                function=function, units="cm/s", take_log=False,
+                validators=[ValidateSpatial(0)])
+
     # Now some translation functions.
 
     def particle_ones(field, data):
@@ -295,10 +322,6 @@ def standard_particle_fields(registry, ptype,
     create_magnitude_field(registry, "particle_specific_angular_momentum",
                            "cm**2/s", ftype=ptype, particle_type=True)
     
-    def _particle_angular_momentum(field, data):
-        return data[ptype, "particle_mass"] \
-             * data[ptype, "particle_specific_angular_momentum"]
-
     def _particle_angular_momentum_x(field, data):
         return data[ptype, "particle_mass"] * \
                data[ptype, "particle_specific_angular_momentum_x"]
@@ -322,6 +345,15 @@ def standard_particle_fields(registry, ptype,
              function=_particle_angular_momentum_z,
              units="g*cm**2/s", particle_type=True,
              validators=[ValidateParameter('center')])
+
+    def _particle_angular_momentum(field, data):
+        return data[ptype, "particle_mass"] \
+            * data[ptype, "particle_specific_angular_momentum"]
+    registry.add_field((ptype, "particle_angular_momentum"),
+              function=_particle_angular_momentum,
+              particle_type=True,
+              units="g*cm**2/s",
+              validators=[ValidateParameter("center")])
 
     create_magnitude_field(registry, "particle_angular_momentum",
                            "g*cm**2/s", ftype=ptype, particle_type=True)
@@ -489,31 +521,6 @@ def standard_particle_fields(registry, ptype,
               particle_type=True, units="cm/s",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
-
-    def _get_cic_field(fname, units):
-        def _cic_particle_field(field, data):
-            """
-            Create a grid field for particle quantities weighted by particle
-            mass, using cloud-in-cell deposit.
-            """
-            pos = data[ptype, "particle_position"]
-            # Get back into density
-            pden = data[ptype, 'particle_mass'] / data["index", "cell_volume"] 
-            top = data.deposit(pos, [data[('all', particle_field)]*pden],
-                               method = 'cic')
-            bottom = data.deposit(pos, [pden], method = 'cic')
-            top[bottom == 0] = 0.0
-            bnz = bottom.nonzero()
-            top[bnz] /= bottom[bnz]
-            d = data.ds.arr(top, input_units = units)
-            return top
-
-    for ax in 'xyz':
-        registry.add_field(
-            ("deposit", "%s_cic_velocity_%s" % (ptype, ax)),
-            function=_get_cic_field(svel % ax, "cm/s"),
-            units = "cm/s", take_log=False,
-            validators=[ValidateSpatial(0)])
 
 def add_particle_average(registry, ptype, field_name, 
                          weight = "particle_mass",

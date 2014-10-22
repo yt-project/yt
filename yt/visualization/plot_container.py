@@ -35,6 +35,7 @@ from yt.funcs import \
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 
+
 def invalidate_data(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
@@ -79,6 +80,53 @@ def apply_callback(f):
         return args[0]
     return newfunc
 
+def get_log_minorticks(vmin, vmax):
+    """calculate positions of linear minorticks on a log colorbar
+
+    Parameters
+    ----------
+    vmin : float
+        the minimum value in the colorbar
+    vmax : float
+        the maximum value in the colorbar
+
+    """
+    expA = np.floor(np.log10(vmin))
+    expB = np.floor(np.log10(vmax))
+    cofA = np.ceil(vmin/10**expA)
+    cofB = np.floor(vmax/10**expB)
+    lmticks = []
+    while cofA*10**expA <= cofB*10**expB:
+        if expA < expB:
+            lmticks = np.hstack( (lmticks, np.linspace(cofA, 9, 10-cofA)*10**expA) )
+            cofA = 1
+            expA += 1
+        else:
+            lmticks = np.hstack( (lmticks, np.linspace(cofA, cofB, cofB-cofA+1)*10**expA) )
+            expA += 1
+    return np.array(lmticks)
+
+def get_symlog_minorticks(linthresh, vmin, vmax):
+    """calculate positions of linear minorticks on a symmetric log colorbar
+
+    Parameters
+    ----------
+    linthresh: float
+        the threshold for the linear region
+    vmin : float
+        the minimum value in the colorbar
+    vmax : float
+        the maximum value in the colorbar
+
+    """
+    if vmin >= 0 or vmax <= 0:
+        raise RuntimeError(
+            '''attempting to set minorticks for
+              a symlog plot with one-sided data:
+              got vmin = %s, vmax = %s''' % (vmin, vmax))
+    return np.hstack( (-get_log_minorticks(linthresh,-vmin)[::-1], 0,
+                        get_log_minorticks(linthresh, vmax)) )
+
 field_transforms = {}
 
 
@@ -101,6 +149,7 @@ class FieldTransform(object):
 
 log_transform = FieldTransform('log10', np.log10, LogLocator())
 linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
+symlog_transform = FieldTransform('symlog', None, LogLocator())
 
 class PlotDictionary(defaultdict):
     def __getitem__(self, item):
@@ -120,7 +169,7 @@ class PlotDictionary(defaultdict):
         return defaultdict.__init__(self, default_factory)
 
 class ImagePlotContainer(object):
-    """A countainer for plots with colorbars.
+    """A container for plots with colorbars.
 
     """
     _plot_type = None
@@ -142,11 +191,13 @@ class ImagePlotContainer(object):
         self._font_color = None
         self._xlabel = None
         self._ylabel = None
+        self._minorticks = {}
+        self._cbar_minorticks = {}
         self._colorbar_label = PlotDictionary(
             self.data_source, lambda: None)
 
     @invalidate_plot
-    def set_log(self, field, log):
+    def set_log(self, field, log, linthresh=None):
         """set a field to log or linear.
 
         Parameters
@@ -155,6 +206,8 @@ class ImagePlotContainer(object):
             the field to set a transform
         log : boolean
             Log on/off.
+        linthresh : float (must be positive)
+            linthresh will be enabled for symlog scale only when log is true
 
         """
         if field == 'all':
@@ -163,7 +216,13 @@ class ImagePlotContainer(object):
             fields = [field]
         for field in self.data_source._determine_fields(fields):
             if log:
-                self._field_transform[field] = log_transform
+                if linthresh is not None:
+                    if not linthresh > 0.: 
+                        raise ValueError('\"linthresh\" must be positive')
+                    self._field_transform[field] = symlog_transform
+                    self._field_transform[field].func = linthresh 
+                else:
+                    self._field_transform[field] = log_transform
             else:
                 self._field_transform[field] = linear_transform
         return self
@@ -198,7 +257,7 @@ class ImagePlotContainer(object):
         return self
 
     @invalidate_plot
-    def set_cmap(self, field, cmap_name):
+    def set_cmap(self, field, cmap):
         """set the colormap for one of the fields
 
         Parameters
@@ -206,8 +265,11 @@ class ImagePlotContainer(object):
         field : string
             the field to set the colormap
             if field == 'all', applies to all plots.
-        cmap_name : string
-            name of the colormap
+        cmap : string or tuple
+            If a string, will be interpreted as name of the colormap.
+            If a tuple, it is assumed to be of the form (name, type, number)
+            to be used for brewer2mpl functionality. (name, type, number, bool)
+            can be used to specify if a reverse colormap is to be used.
 
         """
 
@@ -217,7 +279,7 @@ class ImagePlotContainer(object):
             fields = [field]
         for field in self.data_source._determine_fields(fields):
             self._colorbar_valid = False
-            self._colormaps[field] = cmap_name
+            self._colormaps[field] = cmap
         return self
 
     @invalidate_plot
@@ -265,6 +327,58 @@ class ImagePlotContainer(object):
 
             self.plots[field].zmin = myzmin
             self.plots[field].zmax = myzmax
+        return self
+
+    @invalidate_plot
+    def set_minorticks(self, field, state):
+        """turn minor ticks on or off in the current plot
+
+        Displaying minor ticks reduces performance; turn them off
+        using set_minorticks('all', 'off') if drawing speed is a problem.
+
+        Parameters
+        ----------
+        field : string
+            the field to remove minorticks
+        state : string
+            the state indicating 'on' or 'off'
+
+        """
+        if field == 'all':
+            fields = self.plots.keys()
+        else:
+            fields = [field]
+        for field in self.data_source._determine_fields(fields):
+            if state == 'on':
+                self._minorticks[field] = True
+            else:
+                self._minorticks[field] = False
+        return self
+
+    @invalidate_plot
+    def set_cbar_minorticks(self, field, state):
+        """turn colorbar minor ticks on or off in the current plot
+
+        Displaying minor ticks reduces performance; turn them off 
+        using set_cbar_minorticks('all', 'off') if drawing speed is a problem.
+
+        Parameters
+        ----------
+        field : string
+            the field to remove colorbar minorticks
+        state : string
+            the state indicating 'on' or 'off'
+
+        """
+        if field == 'all':
+            fields = self.plots.keys()
+        else:
+            fields = [field]
+        for field in self.data_source._determine_fields(fields):
+            if state == 'on':
+                self._cbar_minorticks[field] = True
+            else:
+                self._cbar_minorticks[field] = False
         return self
 
     def setup_callbacks(self):
@@ -384,37 +498,6 @@ class ImagePlotContainer(object):
         return self.set_font({'size': size})
 
     @invalidate_plot
-    def set_cmap(self, field, cmap):
-        """set the colormap for one of the fields
-
-        Parameters
-        ----------
-        field : string
-            the field to set a transform
-            if field == 'all', applies to all plots.
-        cmap : string
-            name of the colormap
-
-        """
-        if field == 'all':
-            fields = self.plots.keys()
-        else:
-            fields = [field]
-
-        for field in self.data_source._determine_fields(fields):
-            self._colorbar_valid = False
-            self._colormaps[field] = cmap
-            if isinstance(cmap, types.StringTypes):
-                if str(cmap) in yt_colormaps:
-                    cmap = yt_colormaps[str(cmap)]
-                elif hasattr(matplotlib.cm, cmap):
-                    cmap = getattr(matplotlib.cm, cmap)
-            if not is_colormap(cmap) and cmap is not None:
-                raise RuntimeError("Colormap '%s' does not exist!" % str(cmap))
-            self.plots[field].image.set_cmap(cmap)
-        return self
-
-    @invalidate_plot
     @invalidate_figure
     def set_figure_size(self, size):
         """Sets a new figure size for the plot
@@ -463,7 +546,7 @@ class ImagePlotContainer(object):
         if type in ['Projection', 'OffAxisProjection']:
             weight = self.data_source.weight_field
             if weight is not None:
-                weight = weight.replace(' ', '_')
+                weight = weight[1].replace(' ', '_')
         if 'Cutting' in self.data_source.__class__.__name__:
             type = 'OffAxisSlice'
         for k, v in self.plots.iteritems():
@@ -475,8 +558,6 @@ class ImagePlotContainer(object):
                 # for cutting planes
                 n = "%s_%s_%s" % (name, type, k.replace(' ', '_'))
             if weight:
-                if isinstance(weight, tuple):
-                    weight = weight[1]
                 n += "_%s" % (weight)
             names.append(v.save(n, mpl_kwargs))
         return names
@@ -501,7 +582,6 @@ class ImagePlotContainer(object):
 
     def show(self):
         r"""This will send any existing plots to the IPython notebook.
-        function name.
 
         If yt is being run from within an IPython session, and it is able to
         determine this, this function will send any existing plots to the
