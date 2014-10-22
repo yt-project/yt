@@ -214,26 +214,37 @@ What is the "Plugin File"?
 
 The plugin file is a means of modifying the available fields, quantities, data
 objects and so on without modifying the source code of yt.  The plugin file
-will be executed if it is detected, and it must be:
+will be executed if it is detected.  It must be located in a ``.yt`` folder
+in your home directory and be named ``my_plugins.py``:
 
 .. code-block:: bash
 
    $HOME/.yt/my_plugins.py
 
-The code in this file can thus add fields, add derived quantities, add
+The code in this file can add fields, define functions, define
 datatypes, and on and on.  It is executed at the bottom of ``yt.mods``, and so
-it is provided with the entire namespace available in the module ``yt.mods`` --
-which is the primary entry point to yt, and which contains most of the
-functionality of yt.  For example, if I created a plugin file containing:
+it is provided with the entire namespace available in the module ``yt.mods``.
+For example, if I created a plugin file containing:
 
 .. code-block:: python
 
    def _myfunc(field, data):
        return np.random.random(data["density"].shape)
-   add_field("SomeQuantity", function=_myfunc)
+   add_field("some_quantity", function=_myfunc, units='')
 
-then all of my data objects would have access to the field "SomeQuantity"
-despite its lack of use.
+then all of my data objects would have access to the field "some_quantity".
+Note that the units must be specified as a string, see
+:ref:`data_selection_and_fields` for more details on units and derived fields.
+
+.. note::
+
+   Since the ``my_plugins.py`` is parsed inside of ``yt.mods``, you must import
+   yt using ``yt.mods`` to use the plugins file.  If you import using
+   ``import yt``, the plugins file will not be parsed.  You can tell that your
+   plugins file is being parsed by watching for a logging message when you
+   import yt.  Note that both the ``yt load`` and ``iyt`` command line entry
+   points invoke ``from yt.mods import *``, so the ``my_plugins.py`` file
+   will be parsed if you enter yt that way.
 
 You can also define other convenience functions in your plugin file.  For
 instance, you could define some variables or functions, and even import common
