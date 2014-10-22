@@ -1328,6 +1328,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
                                                                 color_map, color_log, emit_log, plot_index, 
                                                                 color_field_max, 
                                                                 color_field_min, emit_field_max, emit_field_min)
+        return vertices, faces, colors, alpha, emisses, colorindex
 
     def _export_blender(self, filename, transparency, dist_fac = None, 
                     color_field = None, emit_field = None, color_map = "algae", 
