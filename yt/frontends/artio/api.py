@@ -22,3 +22,5 @@ from .fields import \
 
 from .io import \
     IOHandlerARTIO
+
+from . import tests

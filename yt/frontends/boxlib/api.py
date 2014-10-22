@@ -29,3 +29,5 @@ from .fields import \
 
 from .io import \
       IOHandlerBoxlib
+
+from . import tests

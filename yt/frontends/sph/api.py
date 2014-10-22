@@ -31,3 +31,5 @@ from .fields import \
       SPHFieldInfo, \
       TipsyFieldInfo,\
       EagleNetworkFieldInfo
+
+from . import tests
