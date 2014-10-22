@@ -18,9 +18,9 @@ import h5py
 import numpy as np
 import types
 
-from yt.frontends.sph.gadget.data_structures import \
+from yt.frontends.gadget.data_structures import \
     GadgetHDF5Dataset
-from yt.frontends.sph.owls.fields import \
+from yt.frontends.owls.fields import \
     OWLSFieldInfo
 import yt.units
 

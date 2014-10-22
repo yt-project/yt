@@ -18,7 +18,7 @@ import h5py
 import types
 
 import yt.units
-from yt.frontends.sph.gadget.data_structures import \
+from yt.frontends.gadget.data_structures import \
     GadgetHDF5Dataset
 from yt.utilities.definitions import \
     sec_conversion

@@ -14,7 +14,7 @@ EAGLE data-file handling function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.frontends.sph.owls.io import \
+from yt.frontends.owls.io import \
     IOHandlerOWLS
 
 class IOHandlerEagleNetwork(IOHandlerOWLS):

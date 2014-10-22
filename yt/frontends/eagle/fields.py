@@ -14,7 +14,7 @@ EAGLE fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.frontends.sph.owls.fields import \
+from yt.frontends.owls.fields import \
     OWLSFieldInfo
 from yt.units.yt_array import YTQuantity
 from yt.utilities.periodic_table import periodic_table
