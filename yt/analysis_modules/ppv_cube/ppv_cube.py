@@ -24,13 +24,20 @@ from yt.funcs import iterable
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 import re
+import ppv_utils
 
-def create_vlos(z_hat):
-    def _v_los(field, data):
-        vz = data["velocity_x"]*z_hat[0] + \
-             data["velocity_y"]*z_hat[1] + \
-             data["velocity_z"]*z_hat[2]
-        return -vz
+def create_vlos(normal):
+    if isinstance(normal, basestring):
+        def _v_los(field, data): 
+            return -data["velocity_%s" % normal]
+    else:
+        orient = Orientation(normal)
+        los_vec = orient.unit_vectors[2]
+        def _v_los(field, data):
+            vz = data["velocity_x"]*los_vec[0] + \
+                data["velocity_y"]*los_vec[1] + \
+                data["velocity_z"]*los_vec[2]
+            return -vz
     return _v_los
 
 fits_info = {"velocity":("m/s","VELOCITY","v"),
@@ -89,19 +96,6 @@ class PPVCube(object):
         self.ny = dims[1]
         self.nv = dims[2]
 
-        if isinstance(normal, basestring):
-            los_vec = np.zeros(3)
-            los_vec[ds.coordinates.axis_id[normal]] = 1.0
-        else:
-            normal = np.array(normal)
-            normal /= np.sqrt(np.dot(normal, normal))
-            vecs = np.identity(3)
-            t = np.cross(normal, vecs).sum(axis=1)
-            ax = t.argmax()
-            north = np.cross(normal, vecs[ax,:]).ravel()
-            orient = Orientation(normal, north_vector=north)
-            los_vec = orient.unit_vectors[2]
-
         dd = ds.all_data()
 
         fd = dd._determine_fields(field)[0]
@@ -118,35 +112,31 @@ class PPVCube(object):
         self.vbins = np.linspace(self.v_bnd[0], self.v_bnd[1], num=self.nv+1)
         self._vbins = self.vbins.copy()
         self.vmid = 0.5*(self.vbins[1:]+self.vbins[:-1])
-        self.vmid_cgs = self.vmid.in_cgs()
+        self.vmid_cgs = self.vmid.in_cgs().v
         self.dv = self.vbins[1]-self.vbins[0]
-        self.dv_cgs = self.dv.in_cgs()
+        self.dv_cgs = self.dv.in_cgs().v
 
-        _vlos = create_vlos(los_vec)
-        self.ds.field_info.add_field(("gas","v_los"), function=_vlos, units="cm/s")
+        self.current_v = 0.0
 
-        if thermal_broad:
-            self.v2_th = lambda T: 2.*kboltz*T/self.particle_mass
-            self.phi_th = lambda v, T: self.dv_cgs*np.exp(-v*v/self.v2_th(T))/(np.sqrt(np.pi*self.v2_th(T)))
-        else:
-            self.v2_th = lambda T: 1.0
-            self.phi_th = lambda v, T: np.maximum(1.-np.abs(v)/self.dv_cgs,0.0)
+        _vlos = create_vlos(normal)
+        self.ds.add_field(("gas","v_los"), function=_vlos, units="cm/s")
+
+        _intensity = self.create_intensity()
+        self.ds.add_field(("gas","intensity"), function=_intensity, units=self.field_units)
 
         self.proj_units = str(ds.quan(1.0, self.field_units+"*cm").units)
 
         self.data = ds.arr(np.zeros((self.nx,self.ny,self.nv)), self.proj_units)
         pbar = get_pbar("Generating cube.", self.nv)
         for i in xrange(self.nv):
-            _intensity = self._create_intensity(i)
-            ds.add_field(("gas","intensity"), function=_intensity, units=self.field_units)
+            self.current_v = self.vmid_cgs[i]
             if isinstance(normal, basestring):
                 prj = ds.proj("intensity", ds.coordinates.axis_id[normal])
                 buf = prj.to_frb(width, self.nx, center=self.center)["intensity"]
             else:
                 buf = off_axis_projection(ds, self.center, normal, width,
-                                          (self.nx, self.ny), "intensity")[::-1]
+                                          (self.nx, self.ny), "intensity", no_ghost=True)[::-1]
             self.data[:,:,i] = buf[:,:]
-            ds.field_info.pop(("gas","intensity"))
             pbar.update(i)
         pbar.finish()
 
@@ -157,6 +147,16 @@ class PPVCube(object):
             self.width = ds.quan(self.width[0], self.width[1])
         else:
             self.width = ds.quan(self.width, "code_length")
+
+    def create_intensity(self):
+        def _intensity(field, data):
+            v = self.current_v-data["v_los"].v
+            T = data["temperature"].v
+            w = ppv_utils.compute_weight(self.thermal_broad, self.dv_cgs,                                                                               
+                                         self.particle_mass, v.flatten(), T.flatten())                                                        
+            w[np.isnan(w)] = 0.0                                                                                                                        
+            return data[self.field]*w.reshape(v.shape)                                                                                                  
+        return _intensity
 
     def transform_spectral_axis(self, rest_value, units):
         """
@@ -267,13 +267,6 @@ class PPVCube(object):
         fib[0].header["btype"] = self.field
 
         fib.writeto(filename, clobber=clobber)
-
-    def _create_intensity(self, i):
-        def _intensity(field, data):
-            w = self.phi_th(self.vmid_cgs[i]-data["v_los"], data["temperature"])
-            w[np.isnan(w)] = 0.0
-            return data[self.field]*w
-        return _intensity
 
     def __repr__(self):
         return "PPVCube [%d %d %d] (%s < %s < %s)" % (self.nx, self.ny, self.nv,
