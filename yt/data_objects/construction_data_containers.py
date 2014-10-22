@@ -1137,35 +1137,32 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         x = np.mgrid[0.0:255.0:2j] # assume 1 emissivity per color
         arr["emit"][:] = (np.interp(em,x,x))*2.0 # for some reason, max emiss = 2
 
+
+
     @parallel_root_only
     def _export_obj(self, filename, transparency, dist_fac = None, 
                     color_field = None, emit_field = None, color_map = "algae", 
                     color_log = True, emit_log = True, plot_index = None, 
                     color_field_max = None, color_field_min = None, 
                     emit_field_max = None, emit_field_min = None):
-        import io
-        from sys import version
         if plot_index is None:
             plot_index = 0
-        # which version?  
-        if version < '3':
-            checker = file
-        else:
-            checker = io.IOBase
-        if isinstance(filename, checker):
+        if isinstance(filename, file):
             fobj = filename + '.obj'
             fmtl = filename + '.mtl'
         else:
             if plot_index == 0:
                 fobj = open(filename + '.obj', "w")
                 fmtl = open(filename + '.mtl', 'w')
-                vmax=0
+                cc = 1
             else:
                 # read in last vertex
                 linesave = ''
                 for line in fileinput.input(filename + '.obj'):
-                    if line[0:6] == '#vmax=': 
-                        vmax = int(line[6:len(line)]) 
+                    if line[0] == 'f':
+                        linesave = line
+                p = [m.start() for m in finditer(' ', linesave)]
+                cc = int(linesave[p[len(p)-1]:])+1
                 fobj = open(filename + '.obj', "a")
                 fmtl = open(filename + '.mtl', 'a')
         ftype = [("cind", "uint8"), ("emit", "float")]
@@ -1176,6 +1173,174 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
             fobj.write("mtllib " + filename + '.mtl\n\n')  # use this material file for the faces
             fmtl.write("# yt MLT file\n")
             fmtl.write("# www.yt-project.com\n\n")
+        #(0) formulate vertices
+        nv = self.vertices.shape[1] # number of groups of vertices
+        f = np.empty(nv/self.vertices.shape[0], dtype=ftype) # store sets of face colors
+        v = np.empty(nv, dtype=vtype) # stores vertices
+        if color_field is not None:
+            cs = self[color_field]
+        else:
+            cs = np.empty(self.vertices.shape[1]/self.vertices.shape[0])
+        if emit_field is not None:
+            em = self[emit_field]
+        else:
+            em = np.empty(self.vertices.shape[1]/self.vertices.shape[0])            
+        self._color_samples_obj(cs, em, color_log, emit_log, color_map, f, 
+                                color_field_max, color_field_min, 
+                                emit_field_max, emit_field_min) # map color values to color scheme
+        from yt.visualization._colormap_data import color_map_luts # import colors for mtl file
+        lut = color_map_luts[color_map] # enumerate colors
+        # interpolate emissivity to enumerated colors
+        emiss = np.interp(np.mgrid[0:lut[0].shape[0]],np.mgrid[0:len(cs)],f["emit"][:])
+        if dist_fac is None: # then normalize by bounds
+            DLE = self.pf.domain_left_edge
+            DRE = self.pf.domain_right_edge
+            bounds = [(DLE[i], DRE[i]) for i in range(3)]
+            for i, ax in enumerate("xyz"):
+                # Do the bounds first since we cast to f32
+                tmp = self.vertices[i,:]
+                np.subtract(tmp, bounds[i][0], tmp)
+                w = bounds[i][1] - bounds[i][0]
+                np.divide(tmp, w, tmp)
+                np.subtract(tmp, 0.5, tmp) # Center at origin.
+                v[ax][:] = tmp   
+        else:
+            for i, ax in enumerate("xyz"):
+                tmp = self.vertices[i,:]
+                np.divide(tmp, dist_fac, tmp)
+                v[ax][:] = tmp
+        #(1) write all colors per surface to mtl file
+        for i in range(0,lut[0].shape[0]): 
+            omname = "material_" + str(i) + '_' + str(plot_index)  # name of the material
+            fmtl.write("newmtl " + omname +'\n') # the specific material (color) for this face
+            fmtl.write("Ka %.6f %.6f %.6f\n" %(0.0, 0.0, 0.0)) # ambient color, keep off
+            fmtl.write("Kd %.6f %.6f %.6f\n" %(lut[0][i], lut[1][i], lut[2][i])) # color of face
+            fmtl.write("Ks %.6f %.6f %.6f\n" %(0.0, 0.0, 0.0)) # specular color, keep off
+            fmtl.write("d %.6f\n" %(transparency))  # transparency
+            fmtl.write("em %.6f\n" %(emiss[i])) # emissivity per color
+            fmtl.write("illum 2\n") # not relevant, 2 means highlights on?
+            fmtl.write("Ns %.6f\n\n" %(0.0)) #keep off, some other specular thing
+        #(2) write vertices
+        for i in range(0,self.vertices.shape[1]):
+            fobj.write("v %.6f %.6f %.6f\n" %(v["x"][i], v["y"][i], v["z"][i]))    
+        fobj.write("#done defining vertices\n\n")
+        #(3) define faces and materials for each face
+        for i in range(0,self.triangles.shape[0]):
+            omname = 'material_' + str(f["cind"][i]) + '_' + str(plot_index) # which color to use
+            fobj.write("usemtl " + omname + '\n') # which material to use for this face (color)
+            fobj.write("f " + str(cc) + ' ' + str(cc+1) + ' ' + str(cc+2) + '\n\n') # vertices to color
+            cc = cc+3
+        fmtl.close()
+        fobj.close()
+
+
+    def export_blender(self, filename, transparency = 1.0, dist_fac = None,
+                   color_field = None, emit_field = None, color_map = "algae", 
+                   color_log = True, emit_log = True, plot_index = None, 
+                   color_field_max = None, color_field_min = None, 
+                   emit_field_max = None, emit_field_min = None):
+        r"""This exports the surface to the OBJ format, suitable for visualization
+        in many different programs (e.g., Blender).  NOTE: this exports an .obj file 
+        and an .mtl file, both with the general 'filename' as a prefix.  
+        The .obj file points to the .mtl file in its header, so if you move the 2 
+        files, make sure you change the .obj header to account for this. ALSO NOTE: 
+        the emit_field needs to be a combination of the other 2 fields used to 
+        have the emissivity track with the color.
+
+        Parameters
+        ----------
+        filename : string
+            The file this will be exported to.  This cannot be a file-like object.
+            Note - there are no file extentions included - both obj & mtl files 
+            are created.
+        transparency : float
+            This gives the transparency of the output surface plot.  Values
+            from 0.0 (invisible) to 1.0 (opaque).
+        dist_fac : float
+            Divide the axes distances by this amount.
+        color_field : string
+            Should a field be sample and colormapped?
+        emit_field : string
+            Should we track the emissivity of a field?
+              NOTE: this should be a combination of the other 2 fields being used.
+        color_map : string
+            Which color map should be applied?
+        color_log : bool
+            Should the color field be logged before being mapped?
+        emit_log : bool
+            Should the emitting field be logged before being mapped?
+        plot_index : integer
+            Index of plot for multiple plots.  If none, then only 1 plot.
+        color_field_max : float
+            Maximum value of the color field across all surfaces.
+        color_field_min : float
+            Minimum value of the color field across all surfaces.
+        emit_field_max : float
+            Maximum value of the emitting field across all surfaces.
+        emit_field_min : float
+            Minimum value of the emitting field across all surfaces.
+
+        Examples
+        --------
+
+        >>> sp = ds.sphere("max", (10, "kpc"))
+        >>> trans = 1.0
+        >>> distf = 3.1e18*1e3 # distances into kpc
+        >>> surf = ds.surface(sp, "Density", 5e-27)
+        >>> surf.export_obj("my_galaxy", transparency=trans, dist_fac = distf)
+
+        >>> sp = ds.sphere("max", (10, "kpc"))
+        >>> mi, ma = sp.quantities['Extrema']('Temperature')[0]
+        >>> rhos = [1e-24, 1e-25]
+        >>> trans = [0.5, 1.0]
+        >>> distf = 3.1e18*1e3 # distances into kpc
+        >>> for i, r in enumerate(rhos):
+        ...     surf = ds.surface(sp,'Density',r)
+        ...     surf.export_obj("my_galaxy", transparency=trans[i], 
+        ...                      color_field='Temperature', dist_fac = distf, 
+        ...                      plot_index = i, color_field_max = ma, 
+        ...                      color_field_min = mi)
+
+        >>> sp = ds.sphere("max", (10, "kpc"))
+        >>> rhos = [1e-24, 1e-25]
+        >>> trans = [0.5, 1.0]
+        >>> distf = 3.1e18*1e3 # distances into kpc
+        >>> def _Emissivity(field, data):
+        ...     return (data['Density']*data['Density']*np.sqrt(data['Temperature']))
+        >>> add_field("Emissivity", function=_Emissivity, units=r"\rm{g K}/\rm{cm}^{6}")
+        >>> for i, r in enumerate(rhos):
+        ...     surf = ds.surface(sp,'Density',r)
+        ...     surf.export_obj("my_galaxy", transparency=trans[i], 
+        ...                      color_field='Temperature', emit_field = 'Emissivity', 
+        ...                      dist_fac = distf, plot_index = i)
+
+        """
+        if self.vertices is None:
+            self.get_data(color_field,"face")
+        elif color_field is not None:
+            if color_field not in self.field_data:
+                self[color_field]
+        if emit_field is not None:
+            if color_field not in self.field_data:
+                self[emit_field]
+        vertices, faces, colors, alpha, emisses, colorindex = only_on_root(self._export_blender, filename, 
+                                                                transparency, dist_fac, color_field, emit_field, 
+                                                                color_map, color_log, emit_log, plot_index, 
+                                                                color_field_max, 
+                                                                color_field_min, emit_field_max, emit_field_min)
+
+    def _export_blender(self, filename, transparency, dist_fac = None, 
+                    color_field = None, emit_field = None, color_map = "algae", 
+                    color_log = True, emit_log = True, plot_index = None, 
+                    color_field_max = None, color_field_min = None, 
+                    emit_field_max = None, emit_field_min = None):
+        import io
+        from sys import version
+        if plot_index is None:
+            plot_index = 0
+            vmax=0
+        ftype = [("cind", "uint8"), ("emit", "float")]
+        vtype = [("x","float"),("y","float"), ("z","float")]
         #(0) formulate vertices
         nv = self.vertices.shape[1] # number of groups of vertices
         f = np.empty(nv/self.vertices.shape[0], dtype=ftype) # store sets of face colors
@@ -1211,33 +1376,10 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
             for i, ax in enumerate("xyz"):
                 tmp = self.vertices[i,:]
                 np.divide(tmp, dist_fac, tmp)
-                v[ax][:] = tmp
-        #(1) write all colors per surface to mtl file
-        for i in range(0,lut[0].shape[0]): 
-            omname = "material_" + str(i) + '_' + str(plot_index)  # name of the material
-            fmtl.write("newmtl " + omname +'\n') # the specific material (color) for this face
-            fmtl.write("Ka %.6f %.6f %.6f\n" %(0.0, 0.0, 0.0)) # ambient color, keep off
-            fmtl.write("Kd %.6f %.6f %.6f\n" %(lut[0][i], lut[1][i], lut[2][i])) # color of face
-            fmtl.write("Ks %.6f %.6f %.6f\n" %(0.0, 0.0, 0.0)) # specular color, keep off
-            fmtl.write("d %.6f\n" %(transparency))  # transparency
-            fmtl.write("em %.6f\n" %(emiss[i])) # emissivity per color
-            fmtl.write("illum 2\n") # not relevant, 2 means highlights on?
-            fmtl.write("Ns %.6f\n\n" %(0.0)) #keep off, some other specular thing
+                v[ax][:] = tmp        
         #(2) write vertices
         u, indices = np.unique(v, return_inverse=True)
-        for i in range(0,len(u['x'][:])):
-            fobj.write("v %.6f %.6f %.6f\n" %(u["x"][i], u["y"][i], u["z"][i]))    
-        fobj.write("#done defining vertices\n\n")
-        fobj.write("#vmax=" + str(len(u['x'][:])) + '\n\n')
-        #(3) define faces and materials for each face
-        cc = 0
-        for i in range(0,self.triangles.shape[0]):
-            omname = 'material_' + str(f["cind"][i]) + '_' + str(plot_index) # which color to use
-            fobj.write("usemtl " + omname + '\n') # which material to use for this face (color)
-            fobj.write("f " + str(indices[cc]+1+vmax) + ' ' + str(indices[cc+1]+1+vmax) + ' ' + str(indices[cc+2]+1+vmax) + '\n\n') # vertices to color
-            cc = cc+3
-        fmtl.close()
-        fobj.close()
+        return  u, indices, lut, transparency, emiss, f['cind']
 
 
     def export_ply(self, filename, bounds = None, color_field = None,
