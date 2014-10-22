@@ -40,8 +40,8 @@ fits_info = {"velocity":("m/s","VELOCITY","v"),
 
 class PPVCube(object):
     def __init__(self, ds, normal, field, center="c", width=(1.0,"unitary"),
-                 dims=(100,100,100), velocity_bounds=None, rest_value=None,
-                 thermal_broad=False, atomic_weight=56.):
+                 dims=(100,100,100), velocity_bounds=None, thermal_broad=False,
+                 atomic_weight=56.):
         r""" Initialize a PPVCube object.
 
         Parameters
@@ -65,11 +65,6 @@ class PPVCube(object):
             A 3-tuple of (vmin, vmax, units) for the velocity bounds to
             integrate over. If None, the largest velocity of the
             dataset will be used, e.g. velocity_bounds = (-v.max(), v.max())
-        rest_value : tuple or YTQuantity, optional
-            A (value, unit) tuple or YTQuantity indicating the rest value of the spectral
-            axis of the PPV cube. The spectral axis will be converted to the units and
-            displaced by the value. Can be in units of energy, wavelength, or frequency.
-            If not set the default is to leave the spectral axis in velocity units.
         atomic_weight : float, optional
             Set this value to the atomic weight of the particle that is emitting the line
             if *thermal_broad* is True. Defaults to 56 (Fe).
@@ -85,10 +80,6 @@ class PPVCube(object):
         self.ds = ds
         self.field = field
         self.width = width
-        if isinstance(rest_value, YTQuantity) or rest_value is None:
-            self.rest_value = rest_value
-        else:
-            self.rest_value = ds.quan(rest_value[0], rest_value[1])
         self.particle_mass = atomic_weight*mh
         self.thermal_broad = thermal_broad
 
@@ -125,6 +116,7 @@ class PPVCube(object):
                           ds.quan(velocity_bounds[1], velocity_bounds[2]))
 
         self.vbins = np.linspace(self.v_bnd[0], self.v_bnd[1], num=self.nv+1)
+        self._vbins = self.vbins.copy()
         self.vmid = 0.5*(self.vbins[1:]+self.vbins[:-1])
         self.vmid_cgs = self.vmid.in_cgs()
         self.dv = self.vbins[1]-self.vbins[0]
@@ -158,14 +150,31 @@ class PPVCube(object):
             pbar.update(i)
         pbar.finish()
 
-        if self.rest_value is not None:
-            # If we want units other than velocity, we re-calculate these quantities
-            self.vbins = self.rest_value*(1.-self.vbins.in_cgs()/clight)
-            self.vmid = 0.5*(self.vbins[1:]+self.vbins[:-1])
-            self.dv = self.vbins[1]-self.vbins[0]
+        self.axis_type = "velocity"
 
+        # Now fix the width
+        if iterable(self.width):
+            self.width = ds.quan(self.width[0], self.width[1])
+        else:
+            self.width = ds.quan(self.width, "code_length")
+
+    def transform_spectral_axis(self, rest_value, units):
+        """
+        Change the units of the spectral axis to some equivalent unit, such
+        as energy, wavelength, or frequency, by providing a *rest_value* and the
+        *units* of the new spectral axis. This corresponds to the Doppler-shifting
+        of lines due to gas motions and thermal broadening.
+        """
+        if self.axis_type != "velocity":
+            self.reset_spectral_axis()
+        x0 = self.ds.quan(rest_value, units)
+        if x0.units.dimensions == ytdims.rate or x0.units.dimensions == ytdims.energy:
+            self.vbins = x0*(1.-self.vbins.in_cgs()/clight)
+        elif x0.units.dimensions == ytdims.length:
+            self.vbins = x0/(1.-self.vbins.in_cgs()/clight)
+        self.vmid = 0.5*(self.vbins[1:]+self.vbins[:-1])
+        self.dv = self.vbins[1]-self.vbins[0]
         dims = self.dv.units.dimensions
-
         if dims == ytdims.rate:
             self.axis_type = "frequency"
         elif dims == ytdims.length:
@@ -175,11 +184,13 @@ class PPVCube(object):
         elif dims == ytdims.velocity:
             self.axis_type = "velocity"
 
-        # Now fix the width
-        if iterable(self.width):
-            self.width = ds.quan(self.width[0], self.width[1])
-        else:
-            self.width = ds.quan(self.width, "code_length")
+    def reset_spectral_axis(self):
+        """
+        Reset the spectral axis to the original velocity range and units.
+        """
+        self.vbins = self._vbins.copy()
+        self.vmid = 0.5*(self.vbins[1:]+self.vbins[:-1])
+        self.dv = self.vbins[1]-self.vbins[0]
 
     @parallel_root_only
     def write_fits(self, filename, clobber=True, length_unit=None,
