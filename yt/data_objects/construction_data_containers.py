@@ -1238,7 +1238,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         for i in range(0,self.triangles.shape[0]):
             omname = 'material_' + str(f["cind"][i]) + '_' + str(plot_index) # which color to use
             fobj.write("usemtl " + omname + '\n') # which material to use for this face (color)
-            fobj.write("f " + str(indices[cc]) + ' ' + str(indices[cc+1]) + ' ' + str(indices[cc+2]) + '\n\n') # vertices to color
+            fobj.write("f " + str(indices[cc]+1) + ' ' + str(indices[cc+1]+1) + ' ' + str(indices[cc+2]+1) + '\n\n') # vertices to color
             cc = cc+3
         fmtl.close()
         fobj.close()
