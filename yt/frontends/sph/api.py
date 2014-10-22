@@ -1,5 +1,5 @@
 """
-API for yt.frontends.sph
+API for SPH frontends
 
 
 
@@ -14,20 +14,18 @@ API for yt.frontends.sph
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from .data_structures import \
-      OWLSDataset, \
-      GadgetDataset, \
-      GadgetHDF5Dataset, \
-      TipsyDataset,\
-      EagleNetworkDataset, \
-      EagleDataset
+from .eagle.api import \
+    EagleDataset, \
+    EagleNetworkDataset
 
-from .io import \
-      IOHandlerOWLS, \
-      IOHandlerGadgetBinary,\
-      IOHandlerEagleNetwork
+from .gadget.api import \
+    GadgetDataset
 
-from .fields import \
-      SPHFieldInfo, \
-      TipsyFieldInfo,\
-      EagleNetworkFieldInfo
+from .http_stream.api import \
+    HTTPStreamDataset
+    
+from .owls.api import \
+    OWLSDataset
+
+from .tipsy.api import \
+    TipsyDataset
