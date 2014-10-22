@@ -1159,7 +1159,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
             if plot_index == 0:
                 fobj = open(filename + '.obj', "w")
                 fmtl = open(filename + '.mtl', 'w')
-                cc = 1
+                cc = 0
             else:
                 # read in last vertex
                 linesave = ''
