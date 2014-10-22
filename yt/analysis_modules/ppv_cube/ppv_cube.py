@@ -231,7 +231,7 @@ class PPVCube(object):
                 units = str(self.ds.get_smallest_appropriate_unit(self.width))
             else:
                 units = length_unit
-            dx = self.width.v/self.nx
+            dx = self.width.in_units(units).v/self.nx
         # Hacks because FITS is stupid and doesn't understand case
         if units == "Mpc":
             units = "kpc"
@@ -251,7 +251,7 @@ class PPVCube(object):
         w.wcs.cunit = [units,units,vunit]
         w.wcs.ctype = [types[0],types[1],vtype]
 
-        fib = FITSImageBuffer(self.data.transpose(2,0,1), fields=self.field, wcs=w)
+        fib = FITSImageBuffer(self.data.transpose(), fields=self.field, wcs=w)
         fib[0].header["bunit"] = re.sub('()', '', str(self.proj_units))
         fib[0].header["btype"] = self.field
 
