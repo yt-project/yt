@@ -24,6 +24,8 @@ from yt.data_objects.static_output import \
     ParticleFile
 from yt.frontends.sph.data_structures import \
     ParticleDataset
+from yt.frontends.sph.fields import \
+    SPHFieldInfo
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.utilities.cosmology import \
@@ -33,8 +35,6 @@ from yt.utilities.definitions import \
 from yt.utilities.fortran_utils import read_record
 from yt.utilities.logger import ytLogger as mylog
 
-from .fields import \
-    GadgetFieldInfo
 from .definitions import \
     gadget_header_specs, \
     gadget_field_specs, \
@@ -63,7 +63,7 @@ class GadgetBinaryFile(ParticleFile):
 class GadgetDataset(ParticleDataset):
     _index_class = ParticleIndex
     _file_class = GadgetBinaryFile
-    _field_info_class = GadgetFieldInfo
+    _field_info_class = SPHFieldInfo
     _particle_mass_name = "Mass"
     _particle_coordinates_name = "Coordinates"
     _particle_velocity_name = "Velocities"
@@ -242,7 +242,7 @@ class GadgetDataset(ParticleDataset):
 
 class GadgetHDF5Dataset(GadgetDataset):
     _file_class = ParticleFile
-    _field_info_class = GadgetFieldInfo
+    _field_info_class = SPHFieldInfo
     _particle_mass_name = "Masses"
     _suffix = ".hdf5"
 
