@@ -317,11 +317,9 @@ class Camera(ParallelAnalysisInterface):
         enhance_rgba(nim)
         nim.add_background_color('black', inline=True)
 
-        # we flipped it in snapshot to get the orientation correct when
-        # it is output -- temporarily undo that here
-        im = im[:,::-1,:]       
-        lines(nim, px, py, colors, 24)
-        im = im[:,::-1,:]
+        # we flipped it in snapshot to get the orientation correct, so
+        # flip the lines
+        lines(nim, px, py, colors, 24, flip=1)
 
         return nim
 
@@ -375,15 +373,13 @@ class Camera(ParallelAnalysisInterface):
                   np.array([0.0, 1.0, 0.0, alpha]),
                   np.array([0.0, 0.0, 1.0, alpha])]
 
-        # we flipped it in snapshot to get the orientation correct when
-        # it is output -- temporarily undo that here
-        im = im[:,::-1,:]
+        # we flipped it in snapshot to get the orientation correct, so
+        # flip the lines
         for vec, color in zip(coord_vectors, colors):
             dx = int(np.dot(vec, self.orienter.unit_vectors[0]))
             dy = int(np.dot(vec, self.orienter.unit_vectors[1]))
             lines(im, np.array([px0, px0+dx]), np.array([py0, py0+dy]),
-                  np.array([color, color]), 1, thickness)
-        im = im[:,::-1,:]
+                  np.array([color, color]), 1, thickness, flip=1)
 
     def draw_line(self, im, x0, x1, color=None):
         r"""Draws a line on an existing volume rendering.
@@ -425,11 +421,9 @@ class Camera(ParallelAnalysisInterface):
         px0 = int(self.resolution[1]*(dy0/self.width[1]))
         px1 = int(self.resolution[1]*(dy1/self.width[1]))
 
-        # we flipped it in snapshot to get the orientation correct when
-        # it is output -- temporarily undo that here
-        im = im[:,::-1,:]
-        lines(im, np.array([px0,px1]), np.array([py0,py1]), color=np.array([color,color]))
-        im = im[:,::-1,:]
+        # we flipped it in snapshot to get the orientation correct, so
+        # flip the lines
+        lines(im, np.array([px0,px1]), np.array([py0,py1]), color=np.array([color,color]),flip=1)
 
     def draw_domain(self,im,alpha=0.3):
         r"""Draws domain edges on an existing volume rendering.
@@ -511,11 +505,9 @@ class Camera(ParallelAnalysisInterface):
 
         px, py, dz = self.project_to_plane(vertices, res=im.shape[:2])
        
-        # we flipped it in snapshot to get the orientation correct when
-        # it is output -- temporarily undo that here
-        im = im[:,::-1,:]
-        lines(im, px, py, color.reshape(1,4), 24)
-        im = im[:,::-1,:]
+        # we flipped it in snapshot to get the orientation correct, so
+        # flip the lines
+        lines(im, px, py, color.reshape(1,4), 24, flip=1)
 
     def look_at(self, new_center, north_vector = None):
         r"""Change the view direction based on a new focal point.
@@ -766,7 +758,7 @@ class Camera(ParallelAnalysisInterface):
                                         image, sampler),
                            info=self.get_information())
 
-        # flip it up/down to handle how the png orientation is donetest.png
+        # flip it up/down to handle how the png orientation is done
         image = image[:,::-1,:]
         self.save_image(image, fn=fn, clip_ratio=clip_ratio, 
                        transparent=transparent)
