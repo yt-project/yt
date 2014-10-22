@@ -41,7 +41,7 @@ fits_info = {"velocity":("m/s","VELOCITY","v"),
 class PPVCube(object):
     def __init__(self, ds, normal, field, center="c", width=(1.0,"unitary"),
                  dims=(100,100,100), velocity_bounds=None, rest_value=None,
-                 thermal_broad=False, particle_weight=56.):
+                 thermal_broad=False, atomic_weight=56.):
         r""" Initialize a PPVCube object.
 
         Parameters
@@ -55,7 +55,7 @@ class PPVCube(object):
         field : string
             The field to project.
         center : float, tuple, or string
-
+            The coordinates of the dataset *ds* on which to center the PPVCube.
         width : float or tuple, optional
             The width of the projection in length units. Specify a float
             for code_length units or a tuple (value, units).
@@ -70,7 +70,7 @@ class PPVCube(object):
             axis of the PPV cube. The spectral axis will be converted to the units and
             displaced by the value. Can be in units of energy, wavelength, or frequency.
             If not set the default is to leave the spectral axis in velocity units.
-        particle_weight : float, optional
+        atomic_weight : float, optional
             Set this value to the atomic weight of the particle that is emitting the line
             if *thermal_broad* is True. Defaults to 56 (Fe).
 
@@ -89,7 +89,7 @@ class PPVCube(object):
             self.rest_value = rest_value
         else:
             self.rest_value = ds.quan(rest_value[0], rest_value[1])
-        self.particle_mass = particle_weight*mh
+        self.particle_mass = atomic_weight*mh
         self.thermal_broad = thermal_broad
 
         self.center = ds.coordinates.sanitize_center(center, normal)[0]
@@ -216,24 +216,24 @@ class PPVCube(object):
         v_center = 0.5*(self.vbins[0]+self.vbins[-1]).in_units(vunit).value
 
         if sky_scale:
-            dx = (self.width*sky_scale).in_units("deg")/self.nx
+            dx = (self.width*sky_scale).in_units("deg").v/self.nx
             units = "deg"
         else:
-            dx = self.width/self.nx
-            units = str(self.width.units)
+            units = str(self.ds.get_smallest_appropriate_unit(self.width))
+            dx = self.width.v/self.nx
         # Hack because FITS is stupid and doesn't understand case
         if units == "Mpc":
             units = "kpc"
             dx *= 1000.
         dy = dx
-        dv = self.dv.in_units(vunit)
+        dv = self.dv.in_units(vunit).v
 
         if sky_scale:
             dx *= -1.
 
         w = _astropy.pywcs.WCS(naxis=3)
         w.wcs.crpix = [0.5*(self.nx+1), 0.5*(self.ny+1), 0.5*(self.nv+1)]
-        w.wcs.cdelt = [dx.v,dy.v,dv.v]
+        w.wcs.cdelt = [dx,dy,dv]
         w.wcs.crval = [center[0],center[1],v_center]
         w.wcs.cunit = [units,units,vunit]
         w.wcs.ctype = [types[0],types[1],vtype]
