@@ -1159,13 +1159,13 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
             if plot_index == 0:
                 fobj = open(filename + '.obj', "w")
                 fmtl = open(filename + '.mtl', 'w')
-                cc = 0
+                vmax=0
             else:
                 # read in last vertex
                 linesave = ''
                 for line in fileinput.input(filename + '.obj'):
                     if line[0:6] == '#vmax=': 
-                        cc = int(line[6:len(line)]) 
+                        vmax = int(line[6:len(line)]) 
                 fobj = open(filename + '.obj', "a")
                 fmtl = open(filename + '.mtl', 'a')
         ftype = [("cind", "uint8"), ("emit", "float")]
@@ -1230,10 +1230,11 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         fobj.write("#done defining vertices\n\n")
         fobj.write("#vmax=" + str(len(u['x'][:])) + '\n\n')
         #(3) define faces and materials for each face
+        cc = 0
         for i in range(0,self.triangles.shape[0]):
             omname = 'material_' + str(f["cind"][i]) + '_' + str(plot_index) # which color to use
             fobj.write("usemtl " + omname + '\n') # which material to use for this face (color)
-            fobj.write("f " + str(indices[cc]+1) + ' ' + str(indices[cc+1]+1) + ' ' + str(indices[cc+2]+1) + '\n\n') # vertices to color
+            fobj.write("f " + str(indices[cc]+1+vmax) + ' ' + str(indices[cc+1]+1+vmax) + ' ' + str(indices[cc+2]+1+vmax) + '\n\n') # vertices to color
             cc = cc+3
         fmtl.close()
         fobj.close()
