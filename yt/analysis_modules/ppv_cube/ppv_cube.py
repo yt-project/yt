@@ -140,7 +140,7 @@ class PPVCube(object):
             self.v2_th = lambda T: 1.0
             self.phi_th = lambda v, T: np.maximum(1.-np.abs(v)/self.dv_cgs,0.0)
 
-        self.proj_units = self.field_units+"*cm"
+        self.proj_units = str(ds.quan(1.0, self.field_units+"*cm").units)
 
         self.data = ds.arr(np.zeros((self.nx,self.ny,self.nv)), self.proj_units)
         pbar = get_pbar("Generating cube.", self.nv)
@@ -260,6 +260,7 @@ class PPVCube(object):
     def _create_intensity(self, i):
         def _intensity(field, data):
             w = self.phi_th(self.vmid_cgs[i]-data["v_los"], data["temperature"])
+            w[np.isnan(w)] = 0.0
             return data[self.field]*w
         return _intensity
 
