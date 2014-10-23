@@ -37,7 +37,7 @@ from yt.geometry.particle_geometry_handler import \
 from yt.data_objects.static_output import \
     Dataset, \
     ParticleFile
-from yt.frontends.sph.gadget.data_structures import \
+from yt.frontends.gadget.data_structures import \
     _fix_unit_ordering
 import yt.utilities.fortran_utils as fpu
 from yt.units.yt_array import \

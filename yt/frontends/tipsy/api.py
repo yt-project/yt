@@ -15,6 +15,9 @@ API for Tipsy frontend
 #-----------------------------------------------------------------------------
 
 from .data_structures import \
-     TipsyDataset
+    TipsyDataset
 
+from .io import \
+    IOHandlerTipsyBinary
+     
 from . import tests

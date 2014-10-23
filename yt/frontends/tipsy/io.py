@@ -16,6 +16,7 @@ Tipsy data-file handling function
 
 import glob
 import numpy as np
+import os
 
 from yt.geometry.oct_container import \
     _ORDER_MAX
@@ -23,7 +24,9 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.lib.geometry_utils import \
     compute_morton
-
+from yt.utilities.logger import ytLogger as \
+    mylog
+    
 CHUNKSIZE = 10000000
 
 class IOHandlerTipsyBinary(BaseIOHandler):
