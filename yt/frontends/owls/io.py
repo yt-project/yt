@@ -22,7 +22,7 @@ from yt.utilities.io_handler import \
 from yt.utilities.lib.geometry_utils import \
     compute_morton
 
-.definitions import \
+from .definitions import \
     ghdf5_ptypes
 
 CHUNKSIZE = 10000000

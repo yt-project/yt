@@ -22,4 +22,4 @@ from .fields import \
     EagleNetworkFieldInfo
 
 from .io import \
-    IOHandlerTipsyBinary
+    IOHandlerEagleNetwork

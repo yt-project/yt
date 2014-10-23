@@ -27,7 +27,7 @@ _frontends = [
     'flash',
     'gadget',
     'gdf',
-    'halo_catalogs',
+    'halo_catalog',
     'http_stream',
     'moab',
     'owls',
