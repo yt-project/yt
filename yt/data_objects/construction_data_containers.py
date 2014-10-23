@@ -1234,7 +1234,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         fobj.close()
 
 
-    def export_blender(self, filename, transparency = 1.0, dist_fac = None,
+    def export_blender(self,  transparency = 1.0, dist_fac = None,
                    color_field = None, emit_field = None, color_map = "algae", 
                    color_log = True, emit_log = True, plot_index = None, 
                    color_field_max = None, color_field_min = None, 
@@ -1323,14 +1323,14 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         if emit_field is not None:
             if color_field not in self.field_data:
                 self[emit_field]
-        fullverts, colors, alpha, emisses, colorindex = only_on_root(self._export_blender, filename, 
+        fullverts, colors, alpha, emisses, colorindex = only_on_root(self._export_blender, 
                                                                 transparency, dist_fac, color_field, emit_field, 
                                                                 color_map, color_log, emit_log, plot_index, 
                                                                 color_field_max, 
                                                                 color_field_min, emit_field_max, emit_field_min)
         return fullverts, colors, alpha, emisses, colorindex
 
-    def _export_blender(self, filename, transparency, dist_fac = None, 
+    def _export_blender(self, transparency, dist_fac = None, 
                     color_field = None, emit_field = None, color_map = "algae", 
                     color_log = True, emit_log = True, plot_index = None, 
                     color_field_max = None, color_field_min = None, 
