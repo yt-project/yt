@@ -44,7 +44,7 @@ class Camera(Orientation):
             Default: 'plane-parallel'
 
         """
-        mylog.debug("Entering %s" % str(self))
+        #mylog.debug("Entering %s" % str(self))
         self.lens = None
         self.position = None
         self.north_vector = None
@@ -234,3 +234,7 @@ class Camera(Orientation):
         py = (res[0]/2 + res[0]*(dx/self.width[0].d)).astype('int')
         px = (res[1]/2 + res[1]*(dy/self.width[1].d)).astype('int')
         return px, py, dz
+
+    def __repr__(self):
+        disp = "<Camera Object>: position:%s focus:%s north_vector:%s width:%s light:%s resolution:%s" % (self.position, self.focus, self.north_vector, self.width, self.light, self.resolution)
+        return disp
