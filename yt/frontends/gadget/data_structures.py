@@ -239,7 +239,6 @@ class GadgetDataset(ParticleDataset):
         # We do not allow load() of these files.
         return False
 
-
 class GadgetHDF5Dataset(GadgetDataset):
     _file_class = ParticleFile
     _field_info_class = SPHFieldInfo

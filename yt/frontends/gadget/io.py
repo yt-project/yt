@@ -24,6 +24,11 @@ from yt.utilities.io_handler import \
 from yt.utilities.lib.geometry_utils import \
     compute_morton
 
+class IOHandlerGadgetHDF5(IOHandlerOWLS):
+    _dataset_type = "gadget_hdf5"
+
+ZeroMass = object()
+    
 class IOHandlerGadgetBinary(BaseIOHandler):
     _dataset_type = "gadget_binary"
     _vector_fields = ("Coordinates", "Velocity", "Velocities")
