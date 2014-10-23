@@ -1328,7 +1328,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
                                                                 color_map, color_log, emit_log, plot_index, 
                                                                 color_field_max, 
                                                                 color_field_min, emit_field_max, emit_field_min)
-        return fullverts, faces, colors, alpha, emisses, colorindex
+        return fullverts, colors, alpha, emisses, colorindex
 
     def _export_blender(self, filename, transparency, dist_fac = None, 
                     color_field = None, emit_field = None, color_map = "algae", 
@@ -1378,7 +1378,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
                 tmp = self.vertices[i,:]
                 np.divide(tmp, dist_fac, tmp)
                 v[ax][:] = tmp        
-        return  v, indices, lut, transparency, emiss, f['cind']
+        return  v, lut, transparency, emiss, f['cind']
 
 
     def export_ply(self, filename, bounds = None, color_field = None,
