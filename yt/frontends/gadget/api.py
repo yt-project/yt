@@ -19,4 +19,5 @@ from .data_structures import \
     GadgetHDF5Dataset
 
 from .io import \
-    IOHandlerGadgetBinary
+    IOHandlerGadgetBinary, \
+    IOHandlerGadgetHDF5
