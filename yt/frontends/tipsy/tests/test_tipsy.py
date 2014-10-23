@@ -23,7 +23,7 @@ from yt.utilities.answer_testing.framework import \
     PixelizedProjectionValuesTest, \
     FieldValuesTest, \
     create_obj
-from yt.frontends.sph.api import TipsyDataset
+from yt.frontends.tipsy.api import TipsyDataset
 
 _fields = (("deposit", "all_density"),
            ("deposit", "all_count"),
