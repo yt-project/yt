@@ -1323,7 +1323,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         if emit_field is not None:
             if color_field not in self.field_data:
                 self[emit_field]
-        fullverts, faces, colors, alpha, emisses, colorindex = only_on_root(self._export_blender, filename, 
+        fullverts, colors, alpha, emisses, colorindex = only_on_root(self._export_blender, filename, 
                                                                 transparency, dist_fac, color_field, emit_field, 
                                                                 color_map, color_log, emit_log, plot_index, 
                                                                 color_field_max, 
