@@ -1323,12 +1323,12 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         if emit_field is not None:
             if color_field not in self.field_data:
                 self[emit_field]
-        vertices, faces, colors, alpha, emisses, colorindex = only_on_root(self._export_blender, filename, 
+        fullverts, faces, colors, alpha, emisses, colorindex = only_on_root(self._export_blender, filename, 
                                                                 transparency, dist_fac, color_field, emit_field, 
                                                                 color_map, color_log, emit_log, plot_index, 
                                                                 color_field_max, 
                                                                 color_field_min, emit_field_max, emit_field_min)
-        return vertices, faces, colors, alpha, emisses, colorindex
+        return fullverts, faces, colors, alpha, emisses, colorindex
 
     def _export_blender(self, filename, transparency, dist_fac = None, 
                     color_field = None, emit_field = None, color_map = "algae", 
@@ -1378,9 +1378,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
                 tmp = self.vertices[i,:]
                 np.divide(tmp, dist_fac, tmp)
                 v[ax][:] = tmp        
-        #(2) write vertices
-        u, indices = np.unique(v, return_inverse=True)
-        return  u, indices, lut, transparency, emiss, f['cind']
+        return  v, indices, lut, transparency, emiss, f['cind']
 
 
     def export_ply(self, filename, bounds = None, color_field = None,
