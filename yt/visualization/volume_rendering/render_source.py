@@ -32,7 +32,7 @@ class RenderSource(ParallelAnalysisInterface):
        streamlines, etc"""
 
     def __init__(self):
-        mylog.debug("Entering %s" % str(self))
+        #mylog.debug("Entering %s" % str(self))
         super(RenderSource, self).__init__()
         self.opaque = False
         self.zbuffer = None
@@ -47,7 +47,7 @@ class RenderSource(ParallelAnalysisInterface):
 class OpaqueSource(RenderSource):
     """docstring for OpaqueSource"""
     def __init__(self):
-        mylog.debug("Entering %s" % str(self))
+        #mylog.debug("Entering %s" % str(self))
         super(OpaqueSource, self).__init__()
         self.opaque = True
 
@@ -181,7 +181,8 @@ class VolumeSource(RenderSource):
         return image
 
     def __repr__(self):
-        disp = "<Volume Source>:%s" % str(self.data_source)
+        disp = "<Volume Source>:%s " % str(self.data_source)
+        disp += "transfer_function:%s" % str(self.transfer_function)
         return disp
 
 
