@@ -17,4 +17,10 @@ API for OWLS frontend
 from .data_structures import \
     OWLSDataset
 
+from .fields import \
+    OWLSFieldInfo
+
+from .io import \
+    IOHandlerOWLS
+    
 from . import tests

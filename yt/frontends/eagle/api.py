@@ -17,3 +17,9 @@ API for EAGLE frontend
 from .data_structures import \
     EagleDataset, \
     EagleNetworkDataset
+
+from .fields import \
+    EagleNetworkFieldInfo
+
+from .io import \
+    IOHandlerTipsyBinary
