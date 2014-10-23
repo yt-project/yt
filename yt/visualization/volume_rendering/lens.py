@@ -29,7 +29,7 @@ class Lens(ParallelAnalysisInterface):
     """docstring for Lens"""
 
     def __init__(self, ):
-        mylog.debug("Entering %s" % str(self))
+        #mylog.debug("Entering %s" % str(self))
         super(Lens, self).__init__()
         self.viewpoint = None
         self.sub_samples = 5
@@ -72,13 +72,12 @@ class Lens(ParallelAnalysisInterface):
         """
         raise NotImplementedError("Need to choose viewpoint for this class")
 
-
 class PlaneParallelLens(Lens):
 
     """docstring for PlaneParallelLens"""
 
     def __init__(self, ):
-        mylog.debug("Entering %s" % str(self))
+        #mylog.debug("Entering %s" % str(self))
         super(PlaneParallelLens, self).__init__()
 
     def get_sampler_params(self, camera, render_source):
@@ -118,6 +117,9 @@ class PlaneParallelLens(Lens):
         px = (res[1]*(dy/camera.width[1].d)).astype('int')
         return px, py, dz
 
+    def __repr__(self):
+        disp = "<Lens Object>: lens_type:plane-parallel viewpoint:%s" % (self.viewpoint)
+        return disp
 
 class PerspectiveLens(Lens):
 
@@ -191,6 +193,10 @@ class PerspectiveLens(Lens):
         For a PerspectiveLens, the viewpoint is the front center.
         """
         self.viewpoint = self.front_center
+
+    def __repr__(self):
+        disp = "<Lens Object>: lens_type:perspective viewpoint:%s" % (self.viewpoint)
+        return disp
 
 
 class FisheyeLens(Lens):
@@ -278,6 +284,12 @@ class FisheyeLens(Lens):
         px = (u * np.rint(px)).astype("int64")
         py = (u * np.rint(py)).astype("int64")
         return px, py, dz
+
+    def __repr__(self):
+        disp = "<Lens Object>: lens_type:fisheye viewpoint:%s fov:%s radius:" %\
+                (self.viewpoint, self.fov, self.radius)
+        return disp
+
 
 lenses = {'plane-parallel': PlaneParallelLens,
           'perspective': PerspectiveLens,
