@@ -17,6 +17,8 @@ Gadget data-file handling functions
 import h5py
 import numpy as np
 
+from yt.frontends.owls.io import \
+    IOHandlerOWLS
 from yt.geometry.oct_container import \
     _ORDER_MAX
 from yt.utilities.io_handler import \
