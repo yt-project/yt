@@ -31,7 +31,7 @@ def compute_weight(np.uint8_t thermal_broad,
         if thermal_broad:
             if T[i] > 0.0:
                 v2_th = 2.*kb*T[i]/m_part
-                w[i] = dv*exp(-v[i]*v[i]/v2_th)/(sqrt(v2_th)*pi)
+                w[i] = dv*exp(-v[i]*v[i]/v2_th)/sqrt(v2_th*pi)
         else:
             x = 1.-fabs(v[i])/dv
             if x > 0.0:
