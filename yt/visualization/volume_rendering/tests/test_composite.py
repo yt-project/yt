@@ -41,8 +41,10 @@ def test_composite_vr():
     vertices = 0.5 * np.random.random([npoints, 3])
     colors = np.random.random([npoints, 4])
 
-    line_source = LineSource(vertices, colors)
+    #line_source = LineSource(vertices, colors)
+    line_source = LineSource(vertices)
     sc.add_source(line_source)
+    import pdb; pdb.set_trace()
     im = sc.composite()
     im = ImageArray(im.d)
     im.write_png("composite.png")
