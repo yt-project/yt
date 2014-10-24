@@ -115,3 +115,26 @@ class LorentzEquivalence(Equivalence):
     def __str__(self):
         return "lorentz: velocity <-> dimensionless"
 
+class SchwarzschildEquivalence(Equivalence):
+    _type_name = "schwarzschild"
+    dims = (mass,length,)
+
+    def convert(self, x, new_dims):
+        if new_dims == length:
+            return 2.*pc.G*x/(pc.clight*pc.clight)
+        elif new_dims == mass:
+            return 0.5*x*pc.clight*pc.clight/pc.G
+
+    def __str__(self):
+        return "schwarzschild: mass <-> length"
+
+class ComptonEquivalence(Equivalence):
+    _type_name = "compton"
+    dims = (mass,length,)
+
+    def convert(self, x, new_dims):
+        return pc.hcgs/(x*pc.clight)
+
+    def __str__(self):
+        return "compton: mass <-> length"
+

@@ -875,7 +875,8 @@ def test_cgs_conversions():
     yield assert_array_almost_equal, I.in_units("statA"), YTQuantity(0.1*clight, "statA")
 
 def test_equivalencies():
-    from yt.utilities.physical_constants import clight, mp, kboltz, hcgs, mh
+    from yt.utilities.physical_constants import clight, mp, kboltz, hcgs, mh, me, \
+        mass_sun_cgs, G
 
     # Mass-energy
 
@@ -926,3 +927,15 @@ def test_equivalencies():
     yield assert_array_almost_equal, g, g2
     v2 = g2.to_equivalent("mile/hr", "lorentz")
     yield assert_array_almost_equal, v2, v.in_units("mile/hr")
+
+    # Schwarzschild
+
+    R = mass_sun_cgs.to_equivalent("kpc","schwarzschild")
+    yield assert_equal, R.in_cgs(), 2*G*mass_sun_cgs/(clight*clight)
+    yield assert_array_almost_equal, mass_sun_cgs, R.to_equivalent("g", "schwarzschild")
+
+    # Compton
+
+    l = me.to_equivalent("angstrom","compton")
+    yield assert_equal, l, hcgs/(me*clight)
+    yield assert_array_almost_equal, mp, l.to_equivalent("g", "compton")
