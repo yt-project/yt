@@ -1364,7 +1364,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
             em = np.empty(self.vertices.shape[1]/self.vertices.shape[0])            
         self._color_samples_obj(cs, em, color_log, emit_log, color_map, f, 
                                 color_field_max, color_field_min, 
-                                emit_field_max, emit_field_min) # map color values to color scheme
+                                emit_field_max, emit_field_min, emit_field) # map color values to color scheme
         from yt.visualization._colormap_data import color_map_luts # import colors for mtl file
         lut = color_map_luts[color_map] # enumerate colors
         # interpolate emissivity to enumerated colors
