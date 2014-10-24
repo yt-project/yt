@@ -95,3 +95,5 @@ used internally.
   quiet.
 * ``stdoutStreamLogging`` (default: ``'False'``): If true, logging is directed
   to stdout rather than stderr
+* ``skip_dataset_cache`` (default: ``'False'``): If true, automatic caching of datasets
+  is turned off.

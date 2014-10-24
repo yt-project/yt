@@ -73,7 +73,7 @@ class FLASHHierarchy(GridIndex):
     def _detect_output_fields(self):
         ncomp = self._handle["/unknown names"].shape[0]
         self.field_list = [("flash", s) for s in self._handle["/unknown names"][:].flat]
-        if ("/particle names" in self._particle_handle) :
+        if ("/particle names" in self._particle_handle):
             self.field_list += [("io", "particle_" + s[0].strip()) for s
                                 in self._particle_handle["/particle names"][:]]
     
@@ -113,10 +113,10 @@ class FLASHHierarchy(GridIndex):
         except KeyError:
             self.grid_particle_count[:] = 0.0
         self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
-        if self.num_grids > 1 :
+        if self.num_grids > 1:
             np.add.accumulate(self.grid_particle_count.squeeze(),
                               out=self._particle_indices[1:])
-        else :
+        else:
             self._particle_indices[1] = self.grid_particle_count.squeeze()
         # This will become redundant, as _prepare_grid will reset it to its
         # current value.  Note that FLASH uses 1-based indexing for refinement
@@ -191,29 +191,27 @@ class FLASHDataset(Dataset):
     def __init__(self, filename, dataset_type='flash_hdf5',
                  storage_filename = None,
                  particle_filename = None, 
-                 conversion_override = None):
+                 units_override = None):
 
         self.fluid_types += ("flash",)
         if self._handle is not None: return
         self._handle = HDF5FileHandler(filename)
-        if conversion_override is None: conversion_override = {}
-        self._conversion_override = conversion_override
-        
+
         self.particle_filename = particle_filename
 
-        if self.particle_filename is None :
+        if self.particle_filename is None:
             self._particle_handle = self._handle
-        else :
+        else:
             try:
                 self._particle_handle = HDF5FileHandler(self.particle_filename)
-            except :
+            except:
                 raise IOError(self.particle_filename)
         # These should be explicitly obtained from the file, but for now that
         # will wait until a reorganization of the source tree and better
         # generalization.
         self.refine_by = 2
 
-        Dataset.__init__(self, filename, dataset_type)
+        Dataset.__init__(self, filename, dataset_type, units_override=units_override)
         self.storage_filename = storage_filename
 
         self.parameters["HydroMethod"] = 'flash' # always PPM DE
@@ -311,9 +309,9 @@ class FLASHDataset(Dataset):
                     zipover = zip(self._handle[hn][:,'name'],self._handle[hn][:,'value'])
                 for varname, val in zipover:
                     vn = varname.strip()
-                    if hn.startswith("string") :
+                    if hn.startswith("string"):
                         pval = val.strip()
-                    else :
+                    else:
                         pval = val
                     if vn in self.parameters and self.parameters[vn] != pval:
                         mylog.info("{0} {1} overwrites a simulation "
@@ -327,7 +325,7 @@ class FLASHDataset(Dataset):
             nzb = self.parameters["nzb"]
         except KeyError:
             nxb, nyb, nzb = [int(self._handle["/simulation parameters"]['n%sb' % ax])
-                              for ax in 'xyz'] # FLASH2 only!
+                             for ax in 'xyz'] # FLASH2 only!
         
         # Determine dimensionality
         try:
@@ -343,18 +341,18 @@ class FLASHDataset(Dataset):
 
         self.geometry = self.parameters["geometry"]
         # Determine base grid parameters
-        if 'lrefine_min' in self.parameters.keys() : # PARAMESH
+        if 'lrefine_min' in self.parameters.keys(): # PARAMESH
             nblockx = self.parameters["nblockx"]
             nblocky = self.parameters["nblocky"]
             nblockz = self.parameters["nblockz"]
-        else : # Uniform Grid
+        else: # Uniform Grid
             nblockx = self.parameters["iprocs"]
             nblocky = self.parameters["jprocs"]
             nblockz = self.parameters["kprocs"]
 
         # In case the user wasn't careful
-        if self.dimensionality <= 2 : nblockz = 1
-        if self.dimensionality == 1 : nblocky = 1
+        if self.dimensionality <= 2: nblockz = 1
+        if self.dimensionality == 1: nblocky = 1
 
         # Determine domain boundaries
         self.domain_left_edge = np.array(
