@@ -17,8 +17,8 @@ cdef double pi = np.pi
 def compute_weight(np.uint8_t thermal_broad,
     	           double dv,
                    double m_part,
-	           np.ndarray[np.float64_t, ndim=1] v,
-    		   np.ndarray[np.float64_t, ndim=1] T):
+	               np.ndarray[np.float64_t, ndim=1] v,
+    		       np.ndarray[np.float64_t, ndim=1] T):
 
     cdef int i, n
     cdef double v2_th, x
@@ -29,7 +29,7 @@ def compute_weight(np.uint8_t thermal_broad,
 
     for i in range(n):
         if thermal_broad:
-            if T[i] == 0.0:
+            if T[i] > 0.0:
                 v2_th = 2.*kb*T[i]/m_part
                 w[i] = dv*exp(-v[i]*v[i]/v2_th)/(sqrt(v2_th)*pi)
         else:
