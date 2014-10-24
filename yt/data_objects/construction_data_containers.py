@@ -1145,9 +1145,15 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
                     color_log = True, emit_log = True, plot_index = None, 
                     color_field_max = None, color_field_min = None, 
                     emit_field_max = None, emit_field_min = None):
+        from sys import version
+        from io import IOBase
         if plot_index is None:
             plot_index = 0
-        if isinstance(filename, file):
+        if version < '3':
+            checker = file
+        else:
+            checker = IOBase
+        if isinstance(filename, checker):
             fobj = filename + '.obj'
             fmtl = filename + '.mtl'
         else:
