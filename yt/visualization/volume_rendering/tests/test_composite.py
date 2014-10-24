@@ -13,7 +13,7 @@ Test for Composite VR.
 import yt
 from yt.testing import fake_random_ds
 from yt.visualization.volume_rendering.api import Scene, Camera, ZBuffer, \
-    VolumeSource, OpaqueSource
+    VolumeSource, OpaqueSource, LineSource
 from yt.utilities.lib.misc_utilities import lines
 from yt.data_objects.api import ImageArray
 import numpy as np

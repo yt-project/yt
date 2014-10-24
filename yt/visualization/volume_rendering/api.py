@@ -25,5 +25,5 @@ from .transfer_function_helper import TransferFunctionHelper
 from .volume_rendering import volume_render
 from .off_axis_projection import off_axis_projection
 from .scene import Scene
-from .render_source import VolumeSource, OpaqueSource
+from .render_source import VolumeSource, OpaqueSource, LineSource
 from .zbuffer_array import ZBuffer
