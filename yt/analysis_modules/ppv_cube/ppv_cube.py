@@ -16,15 +16,14 @@ from yt.utilities.orientation import Orientation
 from yt.utilities.fits_image import FITSImageBuffer
 from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.funcs import get_pbar
-from yt.utilities.physical_constants import clight, mh, kboltz
+from yt.utilities.physical_constants import clight, mh
 import yt.units.dimensions as ytdims
-import yt.units as u
-from yt.units.yt_array import YTQuantity
 from yt.funcs import iterable
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_root_only
+    parallel_root_only, parallel_objects
 import re
 import ppv_utils
+from yt.funcs import is_root
 
 def create_vlos(normal):
     if isinstance(normal, basestring):
@@ -127,8 +126,9 @@ class PPVCube(object):
         self.proj_units = str(ds.quan(1.0, self.field_units+"*cm").units)
 
         self.data = ds.arr(np.zeros((self.nx,self.ny,self.nv)), self.proj_units)
+        storage = {}
         pbar = get_pbar("Generating cube.", self.nv)
-        for i in xrange(self.nv):
+        for sto, i in parallel_objects(xrange(self.nv), storage=storage):
             self.current_v = self.vmid_cgs[i]
             if isinstance(normal, basestring):
                 prj = ds.proj("intensity", ds.coordinates.axis_id[normal])
@@ -136,9 +136,15 @@ class PPVCube(object):
             else:
                 buf = off_axis_projection(ds, self.center, normal, width,
                                           (self.nx, self.ny), "intensity", no_ghost=True)[::-1]
-            self.data[:,:,i] = buf[:,:]
+            sto.result_id = i
+            sto.result = buf
             pbar.update(i)
         pbar.finish()
+
+        self.data = ds.arr(np.zeros((self.nx,self.ny,self.nv)), self.proj_units)
+        if is_root():
+            for i, buf in sorted(storage.items()):
+                self.data[:,:,i] = buf[:,:]
 
         self.axis_type = "velocity"
 
