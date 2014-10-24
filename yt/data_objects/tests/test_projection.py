@@ -45,7 +45,7 @@ def test_projection():
         for ax, an in enumerate("xyz"):
             xax = ds.coordinates.x_axis[ax]
             yax = ds.coordinates.y_axis[ax]
-            for wf in ["density", None]:
+            for wf in ['density', ("gas", "density"), None]:
                 proj = ds.proj(["ones", "density"], ax, weight_field=wf)
                 yield assert_equal, proj["ones"].sum(), proj["ones"].size
                 yield assert_equal, proj["ones"].min(), 1.0
@@ -54,12 +54,13 @@ def test_projection():
                 yield assert_equal, np.unique(proj["py"]), uc[yax]
                 yield assert_equal, np.unique(proj["pdx"]), 1.0/(dims[xax]*2.0)
                 yield assert_equal, np.unique(proj["pdy"]), 1.0/(dims[yax]*2.0)
-                pw = proj.to_pw(fields='density')
-                for p in pw.plots.values():
-                    tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
-                    os.close(tmpfd)
-                    p.save(name=tmpname)
-                    fns.append(tmpname)
+                plots = [proj.to_pw(fields='density'), proj.to_pw()]
+                for pw in plots:
+                    for p in pw.plots.values():
+                        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+                        os.close(tmpfd)
+                        p.save(name=tmpname)
+                        fns.append(tmpname)
                 frb = proj.to_frb((1.0, 'unitary'), 64)
                 for proj_field in ['ones', 'density']:
                     fi = ds._get_field_info(proj_field)
@@ -89,8 +90,13 @@ def test_projection():
                         frb.bounds[2:]
                     yield assert_equal, frb[proj_field].info['center'], \
                         proj.center
-                    yield assert_equal, frb[proj_field].info['weight_field'], \
-                        wf
+                    if wf is None:
+                        yield assert_equal, \
+                            frb[proj_field].info['weight_field'], wf
+                    else:
+                        yield assert_equal, \
+                            frb[proj_field].info['weight_field'], \
+                            proj.data_source._determine_fields(wf)[0]
             # wf == None
             yield assert_equal, wf, None
             v1 = proj["density"].sum()

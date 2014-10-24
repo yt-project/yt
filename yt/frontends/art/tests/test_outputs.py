@@ -14,11 +14,14 @@ ART frontend tests using D9p a=0.500
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.testing import *
+from yt.testing import \
+    requires_file, \
+    assert_equal, \
+    units_override_check
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
-    small_patch_amr, \
     big_patch_amr, \
+    PixelizedProjectionValuesTest, \
     data_dir_load
 from yt.frontends.art.api import ARTDataset
 
@@ -41,3 +44,14 @@ def test_d9p():
                     yield PixelizedProjectionValuesTest(
                         d9p, axis, field, weight_field,
                         dobj_name)
+
+
+@requires_file(d9p)
+def test_ARTDataset():
+    assert isinstance(data_dir_load(d9p), ARTDataset)
+
+@requires_file(d9p)
+def test_units_override():
+    for test in units_override_check(d9p):
+        yield test
+

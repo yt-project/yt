@@ -33,7 +33,7 @@ def test_grs():
 
 _fields_vels = ("velocity_x","velocity_y","velocity_z")
 
-vf = "UniformGrid/velocity_field_20.fits"
+vf = "UnigridData/velocity_field_20.fits"
 @requires_ds(vf)
 def test_velocity_field():
     ds = data_dir_load(vf, cls=FITSDataset)
@@ -41,3 +41,9 @@ def test_velocity_field():
     for test in small_patch_amr(vf, _fields_vels, input_center="c", input_weight="ones"):
         test_velocity_field.__name__ = test.description
         yield test
+
+@requires_file(vf)
+def test_units_override():
+    for test in units_override_check(vf):
+        yield test
+

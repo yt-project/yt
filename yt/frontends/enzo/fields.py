@@ -20,9 +20,6 @@ from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.units.yt_array import \
     YTArray
-from yt.fields.species_fields import \
-    add_nuclei_density_fields, \
-    add_species_field_by_density
 from yt.utilities.physical_constants import \
     mh, me, mp, \
     mass_sun_cgs
@@ -152,7 +149,6 @@ class EnzoFieldInfo(FieldInfoContainer):
         for sp in species_names:
             self.add_species_field(sp)
             self.species_names.append(known_species_names[sp])
-        add_nuclei_density_fields(self, "gas")
 
     def setup_fluid_fields(self):
         # Now we conditionally load a few other things.
@@ -219,6 +215,7 @@ class EnzoFieldInfo(FieldInfoContainer):
             self.add_output_field(
                 ("enzo", te_name),
                 units = "code_velocity**2")
+            self.alias(("gas", "total_energy"), ("enzo", te_name))
             def _tot_minus_kin(field, data):
                 return data[te_name] - 0.5*(
                     data["x-velocity"]**2.0
@@ -226,6 +223,7 @@ class EnzoFieldInfo(FieldInfoContainer):
                     + data["z-velocity"]**2.0 )
             self.add_field(
                 ("gas", "thermal_energy"),
+                function = _tot_minus_kin,
                 units = "erg/g")
 
     def setup_particle_fields(self, ptype):

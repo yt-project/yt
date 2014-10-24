@@ -239,13 +239,13 @@ The :ref:`thin-slice-projections` recipes demonstrates this functionality.
 Types of Projections
 """"""""""""""""""""
 
-There are several different styles of projections that can be made either 
+There are several different methods of projections that can be made either 
 when creating a projection with ds.proj() or when making a ProjectionPlot.  
-In either construction method, set the ``style`` keyword to be one of the 
+In either construction method, set the ``method`` keyword to be one of the 
 following:
 
 ``integrate`` (unweighted)
-    This is the default projection style. It simply integrates the 
+    This is the default projection method. It simply integrates the 
     requested field  :math:`f(x)` along a line of sight  :math:`\hat{n}` , 
     given by the axis parameter (e.g. :math:`\hat{i},\hat{j},` or 
     :math:`\hat{k}`).  The units of the projected field  
@@ -258,7 +258,7 @@ following:
     g(X) = {\int\ {f(x)\hat{n}\cdot{dx}}}
 
 ``integrate`` (weighted)
-    When using the ``integrate``  style, a ``weight_field`` argument may also 
+    When using the ``integrate``  method, a ``weight_field`` argument may also 
     be specified, which will produce a weighted projection.  :math:`w(x)` 
     is the field used as a weight. One common example would 
     be to weight the "temperature" field by the "density" field. In this case, 
@@ -269,15 +269,15 @@ following:
     g(X) = \frac{\int\ {f(x)w(x)\hat{n}\cdot{dx}}}{\int\ {w(x)\hat{n}\cdot{dx}}}
 
 ``mip`` 
-    This style picks out the maximum value of a field along the line of 
+    This method picks out the maximum value of a field along the line of 
     sight given by the axis parameter.
 
 ``sum``
-    This style is the same as ``integrate``, except that it does not 
+    This method is the same as ``integrate``, except that it does not 
     multiply by a path length when performing the integration, and is just a 
     straight summation of the field along the given axis. The units of the 
     projected field will be the same as those of the unprojected field. This 
-    style is typically only useful for datasets such as 3D FITS cubes where 
+    method is typically only useful for datasets such as 3D FITS cubes where 
     the third axis of the dataset is something like velocity or frequency.
 
 .. _off-axis-projections:

@@ -45,17 +45,12 @@ from yt.units.yt_array import \
     YTArray, \
     YTQuantity
 
-from yt.geometry.cartesian_coordinates import \
-    CartesianCoordinateHandler
-from yt.geometry.polar_coordinates import \
-    PolarCoordinateHandler
-from yt.geometry.cylindrical_coordinates import \
-    CylindricalCoordinateHandler
-from yt.geometry.spherical_coordinates import \
-    SphericalCoordinateHandler
-from yt.geometry.geographic_coordinates import \
-    GeographicCoordinateHandler
-from yt.geometry.spec_cube_coordinates import \
+from yt.geometry.coordinates.api import \
+    CartesianCoordinateHandler, \
+    PolarCoordinateHandler, \
+    CylindricalCoordinateHandler, \
+    SphericalCoordinateHandler, \
+    GeographicCoordinateHandler, \
     SpectralCubeCoordinateHandler
 
 # We want to support the movie format in the future.
@@ -139,7 +134,9 @@ class Dataset(object):
             return obj
         apath = os.path.abspath(filename)
         #if not os.path.exists(apath): raise IOError(filename)
-        if apath not in _cached_datasets:
+        if ytcfg.getboolean("yt","skip_dataset_cache"):
+            obj = object.__new__(cls)
+        elif apath not in _cached_datasets:
             obj = object.__new__(cls)
             if obj._skip_cache is False:
                 _cached_datasets[apath] = obj
@@ -336,10 +333,10 @@ class Dataset(object):
             mylog.debug("Creating Particle Union 'all'")
             pu = ParticleUnion("all", list(self.particle_types_raw))
             self.add_particle_union(pu)
-        deps, unloaded = self.field_info.check_derived_fields()
-        self.field_dependencies.update(deps)
         mylog.info("Loading field plugins.")
         self.field_info.load_all_plugins()
+        deps, unloaded = self.field_info.check_derived_fields()
+        self.field_dependencies.update(deps)
 
     def setup_deprecated_fields(self):
         from yt.fields.field_aliases import _field_name_aliases
@@ -463,8 +460,6 @@ class Dataset(object):
             self._last_freq = field
             self._last_finfo = self.field_info[(ftype, fname)]
             return self._last_finfo
-        if fname == self._last_freq[1]:
-            return self._last_finfo
         if fname in self.field_info:
             # Sometimes, if guessing_type == True, this will be switched for
             # the type of field it is.  So we look at the field type and
@@ -575,7 +570,7 @@ class Dataset(object):
         return out
 
     # Now all the object related stuff
-    def all_data(self, find_max=False):
+    def all_data(self, find_max=False, **kwargs):
         """
         all_data is a wrapper to the Region object for creating a region
         which covers the entire simulation domain.
@@ -583,7 +578,7 @@ class Dataset(object):
         if find_max: c = self.find_max("density")[1]
         else: c = (self.domain_right_edge + self.domain_left_edge)/2.0
         return self.region(c,
-            self.domain_left_edge, self.domain_right_edge)
+            self.domain_left_edge, self.domain_right_edge, **kwargs)
 
     def box(self, left_edge, right_edge, **kwargs):
         """
@@ -694,15 +689,16 @@ class Dataset(object):
     def _override_code_units(self):
         if len(self.units_override) == 0:
             return
-        else:
-            mylog.warning("Overriding code units. This is an experimental and potentially "+
-                          "dangerous option that may yield inconsistent results, and must be used "+
-                          "very carefully.")
+        mylog.warning("Overriding code units. This is an experimental and potentially "+
+                      "dangerous option that may yield inconsistent results, and must be used "+
+                      "very carefully, and only if you know what you want from it.")
         for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g"),
                           ("velocity","cm/s"), ("magnetic","gauss"), ("temperature","K")]:
             val = self.units_override.get("%s_unit" % unit, None)
             if val is not None:
-                if not isinstance(val, tuple):
+                if isinstance(val, YTQuantity):
+                    val = (val.v, str(val.units))
+                elif not isinstance(val, tuple):
                     val = (val, cgs)
                 u = getattr(self, "%s_unit" % unit)
                 mylog.info("Overriding %s_unit: %g %s -> %g %s.", unit, u.v, u.units, val[0], val[1])

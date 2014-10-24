@@ -286,7 +286,7 @@ class EnzoHierarchy(GridIndex):
             active_particles = True
             nap = dict((ap_type, []) for ap_type in 
                 params["Physics"]["ActiveParticles"]["ActiveParticlesEnabled"])
-        elif version > 2.0:
+        elif version == 2.2:
             active_particles = True
             nap = {}
             for type in self.parameters.get("AppendActiveParticleType", []):
@@ -683,7 +683,8 @@ class EnzoDataset(Dataset):
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
         self.storage_filename = storage_filename
-        Dataset.__init__(self, filename, dataset_type, file_style=file_style, units_override=units_override)
+        Dataset.__init__(self, filename, dataset_type, file_style=file_style,
+                         units_override=units_override)
 
     def _setup_1d(self):
         self._index_class = EnzoHierarchy1D

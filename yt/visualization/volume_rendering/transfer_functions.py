@@ -48,6 +48,8 @@ class TransferFunction(object):
     def __init__(self, x_bounds, nbins=256):
         self.pass_through = 0
         self.nbins = nbins
+        # Strip units off of x_bounds, if any
+        x_bounds = [np.float64(xb) for xb in x_bounds]
         self.x_bounds = x_bounds
         self.x = np.linspace(x_bounds[0], x_bounds[1], nbins).astype('float64')
         self.y = np.zeros(nbins, dtype='float64')
@@ -353,6 +355,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
     """
     def __init__(self, x_bounds, nbins=256, grey_opacity = False):
         MultiVariateTransferFunction.__init__(self)
+        # Strip units off of x_bounds, if any
+        x_bounds = [np.float64(xb) for xb in x_bounds]
         self.x_bounds = x_bounds
         self.nbins = nbins
         # This is all compatibility and convenience.
@@ -399,7 +403,6 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> tf = ColorTransferFunction( (-10.0, -5.0) )
         >>> tf.add_gaussian(-9.0, 0.01, [1.0, 0.0, 0.0, 1.0])
         """
-        alpha = height[3]
         for tf, v in zip(self.funcs, height):
             tf.add_gaussian(location, width, v)
 
@@ -547,7 +550,6 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             label = ''
         alpha = self.alpha.y 
         max_alpha = alpha.max()
-        norm = max_alpha
         i_data = np.zeros((self.alpha.x.size, self.funcs[0].y.size, 3))
         i_data[:,:,0] = np.outer(self.funcs[0].y, np.ones(self.alpha.x.size))
         i_data[:,:,1] = np.outer(self.funcs[1].y, np.ones(self.alpha.x.size))
@@ -633,6 +635,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> tf = ColorTransferFunction( (-10.0, -5.0) )
         >>> tf.sample_colormap(-7.0, 0.01, colormap='algae')
         """
+        v = np.float64(v)
         if col_bounds is None:
             rel = (v - self.x_bounds[0])/(self.x_bounds[1] - self.x_bounds[0])
         else:
@@ -680,7 +683,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> tf.map_to_colormap(-6.0, -5.0, scale=10.0, colormap='algae',
         ...                    scale_func = linramp)
         """
-
+        mi = np.float64(mi)
+        ma = np.float64(ma)
         rel0 = int(self.nbins*(mi - self.x_bounds[0])/(self.x_bounds[1] -
                                                        self.x_bounds[0]))
         rel1 = int(self.nbins*(ma - self.x_bounds[0])/(self.x_bounds[1] -
@@ -800,6 +804,8 @@ class ProjectionTransferFunction(MultiVariateTransferFunction):
         if n_fields > 3:
             raise NotImplementedError
         MultiVariateTransferFunction.__init__(self)
+        # Strip units off of x_bounds, if any
+        x_bounds = [np.float64(xb) for xb in x_bounds]
         self.x_bounds = x_bounds
         self.nbins = 2
         self.linear_mapping = TransferFunction(x_bounds, 2)

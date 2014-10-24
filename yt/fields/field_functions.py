@@ -15,6 +15,9 @@ General field-related functions.
 
 import numpy as np
 
+from yt.utilities.lib.geometry_utils import \
+    obtain_rvec
+
 def get_radius(data, field_prefix):
     center = data.get_field_parameter("center").in_units("cm")
     DW = (data.ds.domain_right_edge - data.ds.domain_left_edge).in_units("cm")
@@ -43,3 +46,17 @@ def get_radius(data, field_prefix):
     # Alias it, just for clarity.
     radius = radius2
     return radius
+
+def get_periodic_rvec(data):
+    coords = obtain_rvec(data)
+    if sum(data.ds.periodicity) == 0: return coords
+    le = data.ds.domain_left_edge.in_units("code_length").d
+    dw = data.ds.domain_width.in_units("code_length").d
+    for i in range(coords.shape[0]):
+        if not data.ds.periodicity[i]: continue
+        coords[i, ...] -= le[i]
+        coords[i, ...] = np.min([np.abs(np.mod(coords[i, ...],  dw[i])),
+                                 np.abs(np.mod(coords[i, ...], -dw[i]))],
+                                 axis=0)
+        coords[i, ...] += le[i]
+    return coords

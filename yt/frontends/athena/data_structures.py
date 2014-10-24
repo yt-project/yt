@@ -362,10 +362,13 @@ class AthenaDataset(Dataset):
         if units_override is None:
             units_override = {}
         # This is for backwards-compatibility
+        already_warned = False
         for k,v in self.specified_parameters.items():
             if k.endswith("_unit") and k not in units_override:
-                raise DeprecationWarning("Supplying unit conversions from the parameters dict is deprecated, "+
-                                         "and will be removed in a future release. Use units_override instead.")
+                if not already_warned:
+                    mylog.warning("Supplying unit conversions from the parameters dict is deprecated, "+
+                                  "and will be removed in a future release. Use units_override instead.")
+                    already_warned = True
                 units_override[k] = self.specified_parameters.pop(k)
         Dataset.__init__(self, filename, dataset_type, units_override=units_override)
         self.filename = filename
@@ -382,15 +385,12 @@ class AthenaDataset(Dataset):
         """
         Generates the conversion to various physical _units based on the parameter file
         """
+        if "length_unit" not in self.units_override:
+            self.no_cgs_equiv_length = True
         for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g")]:
-            # We check to see if these will be overridden. If not, we simply
-            # set them to the unity values in cgs. 
-            val = self.units_override.get("%s_unit" % unit, None)
-            if val is None:
-                if unit == "length": self.no_cgs_equiv_length = True
-                mylog.warning("No %s conversion to cgs provided.  " +
-                              "Assuming 1.0 = 1.0 %s", unit, cgs)
-                setattr(self, "%s_unit" % unit, self.quan(1.0, cgs))
+            # We set these to cgs for now, but they may be overridden later.
+            mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
+            setattr(self, "%s_unit" % unit, self.quan(1.0, cgs))
 
     def set_code_units(self):
         super(AthenaDataset, self).set_code_units()

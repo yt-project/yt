@@ -233,7 +233,6 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
             fi += 1
         pi += npart
     num_p[0] = local_parts
-    del ds._instantiated_hierarchy
     del ds
 
 cdef class RockstarInterface:

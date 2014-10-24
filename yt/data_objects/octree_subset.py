@@ -177,7 +177,7 @@ class OctreeSubset(YTSelectionContainer):
                 self.ds.domain_left_edge,
                 self.ds.domain_right_edge,
                 over_refine = self._oref)
-            particle_octree.n_ref = nneighbors / 2
+            particle_octree.n_ref = nneighbors
             particle_octree.add(morton)
             particle_octree.finalize()
             pdom_ind = particle_octree.domain_ind(self.selector)

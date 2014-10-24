@@ -80,7 +80,7 @@ class OWLSSubfindParticleIndex(ParticleIndex):
         # TODO: Add additional fields
         dsl = []
         units = {}
-        for dom in self.data_files[:1]:
+        for dom in self.data_files:
             fl, _units = self.io._identify_fields(dom)
             units.update(_units)
             dom._calculate_offsets(fl)
@@ -113,10 +113,11 @@ class OWLSSubfindDataset(Dataset):
     _suffix = ".hdf5"
 
     def __init__(self, filename, dataset_type="subfind_hdf5",
-                 n_ref = 16, over_refine_factor = 1):
+                 n_ref = 16, over_refine_factor = 1, units_override=None):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
-        super(OWLSSubfindDataset, self).__init__(filename, dataset_type)
+        super(OWLSSubfindDataset, self).__init__(filename, dataset_type,
+                                                 units_override=units_override)
 
     def _parse_parameter_file(self):
         handle = h5py.File(self.parameter_filename, mode="r")
@@ -208,14 +209,15 @@ class OWLSSubfindDataset(Dataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+        need_groups = ['Constants', 'Header', 'Parameters', 'Units', 'FOF']
+        veto_groups = []
+        valid = True
         try:
-            fileh = h5py.File(args[0], mode='r')
-            if "Constants" in fileh["/"].keys() and \
-               "Header" in fileh["/"].keys() and \
-               "SUBFIND" in fileh["/"].keys():
-                fileh.close()
-                return True
-            fileh.close()
+            fh = h5py.File(args[0], mode='r')
+            valid = all(ng in fh["/"] for ng in need_groups) and \
+              not any(vg in fh["/"] for vg in veto_groups)
+            fh.close()
         except:
+            valid = False
             pass
-        return False
+        return valid
