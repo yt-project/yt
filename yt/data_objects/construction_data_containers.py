@@ -1015,7 +1015,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         have the emissivity track with the color.
 
         Parameters
-        ----------
+         ----------
         filename : string
             The file this will be exported to.  This cannot be a file-like object.
             Note - there are no file extentions included - both obj & mtl files 
@@ -1123,20 +1123,22 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         x = np.mgrid[0.0:1.0:lut[0].shape[0]*1j]
         arr["cind"][:] = (np.interp(cs,x,x)*(lut[0].shape[0]-1)).astype("uint8")
         # now, get emission
-        if emit_field_min is None:
-            emi = em.min()
+        if emit_field is not None:
+            if emit_field_min is None:
+                emi = em.min()
+            else:
+                emi = emit_field_min
+                if emit_log: emi = np.log10(emi)
+            if emit_field_max is None:
+                ema = em.max()
+            else:
+                ema = emit_field_max
+                if emit_log: ema = np.log10(ema)
+            em = (em - emi)/(ema - emi)
+            x = np.mgrid[0.0:255.0:2j] # assume 1 emissivity per color
+            arr["emit"][:] = (np.interp(em,x,x))*2.0 # for some reason, max emiss = 2
         else:
-            emi = emit_field_min
-            if emit_log: emi = np.log10(emi)
-        if emit_field_max is None:
-            ema = em.max()
-        else:
-            ema = emit_field_max
-            if emit_log: ema = np.log10(ema)
-        em = (em - emi)/(ema - emi)
-        x = np.mgrid[0.0:255.0:2j] # assume 1 emissivity per color
-        arr["emit"][:] = (np.interp(em,x,x))*2.0 # for some reason, max emiss = 2
-
+            arr["emit"][:] = 0.0
 
 
     @parallel_root_only
