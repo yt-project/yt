@@ -127,7 +127,7 @@ class Scene(object):
         ims = {}
         for k, v in self.sources.iteritems():
             v.validate()
-            print 'Running', k, v
+            #print 'Running', k, v
             ims[k] = v.render(camera)
 
         bmp = np.zeros_like(ims.values()[0])
