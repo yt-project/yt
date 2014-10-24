@@ -185,6 +185,9 @@ class VolumeSource(RenderSource):
         disp += "transfer_function:%s" % str(self.transfer_function)
         return disp
 
+class PointSource(OpaqueSource):
+
+    """Add set of opaque points to a scene."""
 
 class LineSource(OpaqueSource):
 
@@ -192,10 +195,15 @@ class LineSource(OpaqueSource):
     _image = None
     data_source = None
 
-    def __init__(self, positions, color='black'):
+    def __init__(self, positions, colors=None):
         super(LineSource, self).__init__()
         self.positions = positions
-        self.color = color
+        # If colors aren't individually set, make black with full opacity
+        if colors is None:
+            self.colors = np.zeros((len(positions), 4))
+            self.colors[:,3] = 1.
+        else:
+            self.colors = colors
 
     def render(self, camera, zbuffer=None):
         vertices = self.positions
@@ -207,9 +215,7 @@ class LineSource(OpaqueSource):
 
         # DRAW SOME LINES
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
-        colors = np.random.random([vertices.shape[0], 4])
-        colors[:, 3] = 1.0
-        lines(empty, px, py, colors, 24)
+        lines(empty, px, py, self.colors, 24)
 
         zdummy = -np.ones_like(empty)
         lines(zdummy, px, py, np.vstack([dz, dz]), 24)
