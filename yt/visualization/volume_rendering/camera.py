@@ -236,6 +236,9 @@ class Camera(Orientation):
         return px, py, dz
 
     def __repr__(self):
-        disp = "<Camera Object>: position:%s focus:%s north_vector:%s width:%s light:%s resolution:%s " % (self.position, self.focus, self.north_vector, self.width, self.light, self.resolution)
+        disp = ("<Camera Object>:\n\tposition:%s\n\tfocus:%s\n\t"+\
+                "north_vector:%s\n\twidth:%s\n\tlight:%s\n\tresolution:%s\n")\
+                % (self.position, self.focus, self.north_vector, self.width,
+                        self.light, self.resolution)
         disp += "Lens: %s" % self.lens
         return disp
