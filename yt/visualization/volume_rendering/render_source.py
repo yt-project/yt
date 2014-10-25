@@ -26,7 +26,7 @@ from utils import new_volume_render_sampler, data_source_or_all, \
 
 from zbuffer_array import ZBuffer
 from yt.utilities.lib.misc_utilities import \
-    lines
+    lines, zlines
 
 
 class RenderSource(ParallelAnalysisInterface):
@@ -170,10 +170,10 @@ class VolumeSource(RenderSource):
         if zbuffer is None:
             self.zbuffer = ZBuffer(self.current_image,
                                    np.inf*np.ones(self.current_image.shape[:2]))
-        else:
-            newz = zbuffer.z.copy()
-            newz[:] = 0.0
-            self.zbuffer = ZBuffer(self.current_image, newz)
+        #else:
+        #    newz = zbuffer.z.copy()
+        #    newz[:] = 0.0
+        #    self.zbuffer = ZBuffer(self.current_image, newz)
 
         return self.current_image
 
@@ -205,31 +205,33 @@ class LineSource(OpaqueSource):
         self.positions = positions
         # If colors aren't individually set, make black with full opacity
         if colors is None:
-            color =  np.zeros((len(positions), 4))
+            color =  np.ones((len(positions), 4))
             colors[:,3] = 1.
         self.colors = colors
         self.color_stride = color_stride
 
     def render(self, camera, zbuffer=None):
         vertices = self.positions
-        empty = camera.lens.new_image(camera)
-        z = np.empty(empty.shape[:2])
-        empty[:] = 0.0
-        z[:] = np.inf
-        zbuff = ZBuffer(empty, z)
+        if zbuffer is None:
+            empty = camera.lens.new_image(camera)
+            z = np.empty(empty.shape[:2], dtype='float64')
+            empty[:] = 0.0
+            z[:] = np.inf
+            zbuffer = ZBuffer(empty, z)
+        else:
+            empty = zbuffer.rgba
+            z = zbuffer.z
 
         # DRAW SOME LINES
+        print 'Before rendering opaque lines: z range', z.min(), z.max()
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
-        lines(empty, px, py, self.colors, self.color_stride)
+        zlines(empty, z, px, py, dz, self.colors, self.color_stride)
 
-        zdummy = -np.ones_like(empty)
-        lines(zdummy, px, py, np.vstack([dz, dz, dz, dz]).T, 1)
-        z[:, :] = zdummy[:, :, 3]
-        z[z == -1] = np.inf
+        print 'When rendering opaque lines: dz range:', dz.min(), dz.max()
         print 'When rendering opaque lines:', z.min(), z.max()
-        self.zbuffer = zbuff
-        return zbuff
+        self.zbuffer = zbuffer
+        return zbuffer
 
     def __repr__(self):
         disp = "<Line Source>"
@@ -240,7 +242,7 @@ class BoxSource(LineSource):
     def __init__(self, left_edge, right_edge, color=None):
         if color is None:
             color = np.array([1.0,1.0,1.0,1.0]) 
-            color.shape = (1, 4)
+        color.shape = (1, 4)
         corners = get_corners(left_edge.copy(), right_edge.copy())
         order  = [0, 1, 1, 2, 2, 3, 3, 0]
         order += [4, 5, 5, 6, 6, 7, 7, 4]

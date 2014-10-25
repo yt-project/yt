@@ -153,17 +153,19 @@ class Scene(object):
 
         for k, source in self.iter_opaque_sources():
             print "Adding opaque source:", source
-            source.render(cam, zbuffer=None)
-            if source.zbuffer is not None:
-                opaque = opaque + source.zbuffer
-        im = opaque.rgba
+            source.render(cam, zbuffer=opaque)
+            print opaque.z.min(), opaque.z.max()
+            print opaque.rgba[:, :, :3].max()
+            #if source.zbuffer is not None:
+            #    opaque = opaque + source.zbuffer
+        #im = opaque.rgba
 
         for k, source in self.iter_transparent_sources():
             print "Adding transparent source:", source
             print opaque.z.min(), opaque.z.max()
             print opaque.rgba[:, :, :3].max()
             im = source.render(cam, zbuffer=opaque)
-            #opaque = opaque + source.zbuffer
+            opaque = opaque + source.zbuffer
         return im
 
     def set_default_camera(self, camera):

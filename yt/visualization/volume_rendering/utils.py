@@ -30,6 +30,8 @@ def new_volume_render_sampler(camera, render_source):
     kwargs = {}
     if render_source.zbuffer is not None:
         kwargs['zbuffer'] = render_source.zbuffer.z
+        args[4][:] = render_source.zbuffer.rgba[:]
+
     sampler = VolumeRenderSampler(*args, **kwargs)
     return sampler
 

@@ -26,6 +26,7 @@ def test_composite_vr():
 
     sc = Scene()
     cam = Camera(ds)
+    cam.resolution = (512,512)
     sc.set_default_camera(cam)
     vr = VolumeSource(dd, field=ds.field_list[0])
     vr.transfer_function.clear()
@@ -41,11 +42,16 @@ def test_composite_vr():
     vertices = 0.5 * np.random.random([npoints, 3])
     colors = np.random.random([npoints, 4])
 
-    #line_source = LineSource(vertices, colors)
-    #sc.add_source(line_source)
-
     box_source = BoxSource(ds.domain_left_edge, ds.domain_right_edge)
     sc.add_source(box_source)
+    
+    box_source = BoxSource(ds.domain_left_edge + np.array([0.1,0.,0.3])*ds.domain_left_edge.uq,
+            ds.domain_right_edge-np.array([0.1,0.2,0.3])*ds.domain_left_edge.uq, 
+            color=np.array([0.0, 1.0, 0.0, 1.0]))
+    sc.add_source(box_source)
+    
+    line_source = LineSource(vertices, colors)
+    sc.add_source(line_source)
 
     im = sc.composite()
     im = ImageArray(im.d)
