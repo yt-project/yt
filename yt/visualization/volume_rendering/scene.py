@@ -85,7 +85,7 @@ class Scene(object):
 
     def iter_transparent_sources(self):
         """
-        Iterate over opaque RenderSource objects,
+        Iterate over transparent RenderSource objects,
         returning a tuple of (key, source)
         """
         for k, source in self.sources.iteritems():
@@ -127,7 +127,7 @@ class Scene(object):
         ims = {}
         for k, v in self.sources.iteritems():
             v.validate()
-            print 'Running', k, v
+            #print 'Running', k, v
             ims[k] = v.render(camera)
 
         bmp = np.zeros_like(ims.values()[0])
@@ -180,7 +180,9 @@ class Scene(object):
 
     def __repr__(self):
         disp = "<Scene Object>:"
-        disp += "sources: \n"
+        disp += "\nSources: \n"
         for k, v in self.sources.iteritems():
-            disp += "\t%s: %s\n" % (k, v)
+            disp += "    %s: %s\n" % (k, v)
+        disp += "Camera: \n"
+        disp += "    %s" % self.default_camera
         return disp

@@ -23,7 +23,7 @@ def volume_render(data_source, field=None, fname=None, clip_ratio=None):
     r""" Create a simple volume rendering of a data source.
 
     A helper function that creates a default camera view, transfer
-    function, and image size. Using these, it returns and image and
+    function, and image size. Using these, it returns an image and
     an instance of the Scene class, allowing one to further modify
     their rendering.
 
@@ -31,6 +31,7 @@ def volume_render(data_source, field=None, fname=None, clip_ratio=None):
     ----------
     data_source : :class:`yt.data_objects.data_containers.AMR3DData`
         This is the source to be rendered, which can be any arbitrary yt
+        3D object
     field: string, tuple, optional
         The field to be rendered. By default, this will use the first
         field in data_source.ds.field_list.  A default transfer function
