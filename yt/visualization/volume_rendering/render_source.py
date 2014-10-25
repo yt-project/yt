@@ -223,13 +223,13 @@ class LineSource(OpaqueSource):
             z = zbuffer.z
 
         # DRAW SOME LINES
-        print 'Before rendering opaque lines: z range', z.min(), z.max()
+        #print 'Before rendering opaque lines: z range', z.min(), z.max()
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
         zlines(empty, z, px, py, dz, self.colors, self.color_stride)
 
-        print 'When rendering opaque lines: dz range:', dz.min(), dz.max()
-        print 'When rendering opaque lines:', z.min(), z.max()
+        #print 'When rendering opaque lines: dz range:', dz.min(), dz.max()
+        #print 'When rendering opaque lines:', z.min(), z.max()
         self.zbuffer = zbuffer
         return zbuffer
 
@@ -250,5 +250,4 @@ class BoxSource(LineSource):
         vertices = np.empty([24,3])
         for i in xrange(3):
             vertices[:,i] = corners[order,i,...].ravel(order='F')
-        print vertices
         super(BoxSource, self).__init__(vertices, color, color_stride=24)
