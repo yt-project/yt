@@ -15,12 +15,15 @@ RenderSource Class
 
 import numpy as np
 from yt.funcs import mylog
+from yt.units import yt_array
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from transfer_function_helper import TransferFunctionHelper
 from transfer_functions import TransferFunction
-from utils import new_volume_render_sampler, data_source_or_all
+from utils import new_volume_render_sampler, data_source_or_all, \
+    get_corners
+
 from zbuffer_array import ZBuffer
 from yt.utilities.lib.misc_utilities import \
     lines
@@ -166,9 +169,11 @@ class VolumeSource(RenderSource):
         self.current_image = self.finalize_image(camera, self.sampler.aimage)
         if zbuffer is None:
             self.zbuffer = ZBuffer(self.current_image,
-                                   np.zeros(self.current_image.shape[:2]))
+                                   np.inf*np.ones(self.current_image.shape[:2]))
         else:
-            self.zbuffer = ZBuffer(self.current_image, 0.0*zbuffer.z)
+            newz = zbuffer.z.copy()
+            newz[:] = 0.0
+            self.zbuffer = ZBuffer(self.current_image, newz)
 
         return self.current_image
 
@@ -191,27 +196,29 @@ class LineSource(OpaqueSource):
     _image = None
     data_source = None
 
-    def __init__(self, positions, color='black'):
+    def __init__(self, positions, colors=None, color_stride=1):
         super(LineSource, self).__init__()
         self.positions = positions
-        self.color = color
+        if colors is None:
+            color = np.ones([positions.shape[0], 4])
+        self.colors = colors
+        self.color_stride = color_stride
 
     def render(self, camera, zbuffer=None):
         vertices = self.positions
         empty = camera.lens.new_image(camera)
         z = np.empty(empty.shape[:2])
-        np.equal(empty, 0.0, empty)
-        np.equal(z, np.inf, z)
+        empty[:] = 0.0
+        z[:] = np.inf
         zbuff = ZBuffer(empty, z)
 
         # DRAW SOME LINES
+        camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
-        colors = np.random.random([vertices.shape[0], 4])
-        colors[:, 3] = 1.0
-        lines(empty, px, py, colors, 24)
+        lines(empty, px, py, self.colors, self.color_stride)
 
         zdummy = -np.ones_like(empty)
-        lines(zdummy, px, py, np.vstack([dz, dz]), 24)
+        lines(zdummy, px, py, np.vstack([dz, dz, dz, dz]).T, 1)
         z[:, :] = zdummy[:, :, 3]
         z[z == -1] = np.inf
         print 'When rendering opaque lines:', z.min(), z.max()
@@ -222,3 +229,18 @@ class LineSource(OpaqueSource):
         disp = "<Line Source>"
         return disp
 
+class BoxSource(LineSource):
+    """Add a box to the scene"""
+    def __init__(self, left_edge, right_edge, color=None):
+        if color is None:
+            color = np.array([1.0,1.0,1.0,1.0]) 
+            color.shape = (1, 4)
+        corners = get_corners(left_edge.copy(), right_edge.copy())
+        order  = [0, 1, 1, 2, 2, 3, 3, 0]
+        order += [4, 5, 5, 6, 6, 7, 7, 4]
+        order += [0, 4, 1, 5, 2, 6, 3, 7]
+        vertices = np.empty([24,3])
+        for i in xrange(3):
+            vertices[:,i] = corners[order,i,...].ravel(order='F')
+        print vertices
+        super(BoxSource, self).__init__(vertices, color, color_stride=24)

@@ -1,4 +1,4 @@
-
+import numpy as np
 from yt.data_objects.static_output import Dataset
 from yt.utilities.lib.grid_traversal import \
     VolumeRenderSampler, InterpolatedProjectionSampler, ProjectionSampler
@@ -54,3 +54,16 @@ def new_projection_sampler(camera, render_source):
         kwargs['zbuffer'] = render_source.zbuffer.z
     sampler = InterpolatedProjectionSampler(*args)
     return sampler
+
+def get_corners(le, re):
+    return np.array([
+        [le[0], le[1], le[2]],
+        [re[0], le[1], le[2]],
+        [re[0], re[1], le[2]],
+        [le[0], re[1], le[2]],
+        [le[0], le[1], re[2]],
+        [re[0], le[1], re[2]],
+        [re[0], re[1], re[2]],
+        [le[0], re[1], re[2]],
+        ], dtype='float64')
+

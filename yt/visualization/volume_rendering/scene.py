@@ -156,6 +156,7 @@ class Scene(object):
             source.render(cam, zbuffer=None)
             if source.zbuffer is not None:
                 opaque = opaque + source.zbuffer
+        im = opaque.rgba
 
         for k, source in self.iter_transparent_sources():
             print "Adding transparent source:", source
