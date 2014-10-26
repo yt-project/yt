@@ -339,7 +339,11 @@ class YTArray(np.ndarray):
         """
         if obj is None and hasattr(self, 'units'):
             return
-        self.units = getattr(obj, 'units', None)
+        units = getattr(obj, 'units', None)
+        if units is None:
+            self.units = Unit()
+        else:
+            self.units = units
 
     def __repr__(self):
         """
