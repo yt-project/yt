@@ -1108,6 +1108,12 @@ class YTQuantity(YTArray):
         return str(self)
 
 def uconcatenate(arrs, *args, **kwargs):
+    """A wrapper around numpy.concatenate that preserves units.
+
+    Concatenates a sequence of YTArray instances into one array.  All input
+    arrays must have the same units.  See the documentation of numpy.concatenate
+    for full details.
+    """
     v = np.concatenate(arrs, *args, **kwargs)
     if not any(isinstance(a, YTArray) for a in arrs):
         return v
@@ -1117,6 +1123,23 @@ def uconcatenate(arrs, *args, **kwargs):
     if not all(a.units == a1.units for a in arrs[1:]):
         raise RuntimeError("Your arrays must have identical units.")
     v.units = a1.units
+    return v
+
+def uintersect1d(arr1, arr2, assume_unique=False):
+    """A wrapper around numpy.intersect1d that preserves units.
+
+    Returns the sorted unique elements of the two input arrays.  All input
+    arrays must have the same units.  See the documentation of numpy.intersect1d
+    for full details.
+    """
+    v = np.intersect1d(arr1, arr2, assume_unique=assume_unique)
+    if not any(isinstance(a, YTArray) for a in (arr1, arr2)):
+        return v
+    if not all(isinstance(a, YTArray) for a in (arr1, arr2)):
+        raise RuntimeError("Not all of your arrays are YTArrays.")
+    if not arr1.units == arr2.units:
+        raise RuntimeError("Your arrays must have identical units.")
+    v.units = arr1.units
     return v
 
 def array_like_field(data, x, field):
