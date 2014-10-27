@@ -188,6 +188,7 @@ prefixable_units = (
     "Hz",
     "W",
     "gauss",
+    "G",
     "Jy",
     "N",
     "T",
