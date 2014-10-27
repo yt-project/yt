@@ -1120,6 +1120,14 @@ def uconcatenate(arrs, *args, **kwargs):
     This wrapper around numpy.concatenate preserves units. All input arrays must
     have the same units.  See the documentation of numpy.concatenate for full
     details.
+
+    Examples
+    --------
+    >>> A = yt.YTArray([1, 2, 3], 'cm')
+    >>> B = yt.YTArray([2, 3, 4], 'cm')
+    >>> uconcatenate(A, B)
+    YTArray([ 1., 2., 3., 2., 3., 4.]) cm
+
     """
     v = np.concatenate(arrs, *args, **kwargs)
     v = validate_numpy_wrapper_units(v, arrs)
@@ -1131,6 +1139,14 @@ def uintersect1d(arr1, arr2, assume_unique=False):
     A wrapper around numpy.intersect1d that preserves units.  All input arrays
     must have the same units.  See the documentation of numpy.intersect1d for
     full details.
+
+    Examples
+    --------
+    >>> A = yt.YTArray([1, 2, 3], 'cm')
+    >>> B = yt.YTArray([2, 3, 4], 'cm')
+    >>> uintersect1d(A, B)
+    YTArray([ 2., 3.]) cm
+
     """
     v = np.intersect1d(arr1, arr2, assume_unique=assume_unique)
     v = validate_numpy_wrapper_units(v, [arr1, arr2])
@@ -1142,6 +1158,14 @@ def uunion1d(arr1, arr2):
     A wrapper around numpy.intersect1d that preserves units.  All input arrays
     must have the same units.  See the documentation of numpy.intersect1d for
     full details.
+
+    Examples
+    --------
+    >>> A = yt.YTArray([1, 2, 3], 'cm')
+    >>> B = yt.YTArray([2, 3, 4], 'cm')
+    >>> uunion1d(A, B)
+    YTArray([ 1., 2., 3., 4.]) cm
+
     """
     v = np.union1d(arr1, arr2)
     v = validate_numpy_wrapper_units(v, [arr1, arr2])
