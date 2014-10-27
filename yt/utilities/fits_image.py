@@ -181,7 +181,7 @@ class FITSImageBuffer(HDUList):
         for img in self: img.header[key] = value
             
     def keys(self):
-        return [f.name for f in self]
+        return [f.name.lower() for f in self]
 
     def has_key(self, key):
         return key in self.keys()
