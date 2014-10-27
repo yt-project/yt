@@ -314,7 +314,8 @@ class ARTIODataset(Dataset):
     _field_info_class = ARTIOFieldInfo
 
     def __init__(self, filename, dataset_type='artio',
-                 storage_filename=None, max_range = 1024):
+                 storage_filename=None, max_range = 1024,
+                 units_override=None):
         if self._handle is not None:
             return
         self.max_range = max_range
@@ -324,7 +325,8 @@ class ARTIODataset(Dataset):
         self._handle = artio_fileset(self._fileset_prefix)
         self.artio_parameters = self._handle.parameters
         # Here we want to initiate a traceback, if the reader is not built.
-        Dataset.__init__(self, filename, dataset_type)
+        Dataset.__init__(self, filename, dataset_type,
+                         units_override=units_override)
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):

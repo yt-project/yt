@@ -113,28 +113,55 @@ the entire dataset.
 
 yt works in cgs ("Gaussian") units by default, but Athena data is not
 normally stored in these units. If you would like to convert data to
-cgs units, you may supply conversions for length, time, and mass to ``load``:
+cgs units, you may supply conversions for length, time, and mass to ``load`` using
+the ``units_override`` functionality:
 
 .. code-block:: python
 
    import yt
-   ds = yt.load("id0/cluster_merger.0250.vtk",
-                parameters={"length_unit":(1.0,"Mpc"),
-                            "time_unit"(1.0,"Myr"),
-                            "mass_unit":(1.0e14,"Msun")})
+
+   units_override = {"length_unit":(1.0,"Mpc"),
+                     "time_unit"(1.0,"Myr"),
+                     "mass_unit":(1.0e14,"Msun")}
+
+   ds = yt.load("id0/cluster_merger.0250.vtk", units_override=units_override)
 
 This means that the yt fields, e.g. ``("gas","density")``, ``("gas","x-velocity")``,
 ``("gas","magnetic_field_x")``, will be in cgs units, but the Athena fields, e.g.,
 ``("athena","density")``, ``("athena","velocity_x")``, ``("athena","cell_centered_B_x")``, will be
 in code units.
 
+Alternative values for the following simulation parameters may be specified using a ``parameters``
+dict, accepting the following keys:
+
+* ``Gamma``: ratio of specific heats, Type: Float
+* ``geometry``: Geometry type, currently accepts ``"cartesian"`` or ``"cylindrical"``
+* ``periodicity``: Is the domain periodic? Type: Tuple of boolean values corresponding to each dimension
+
+.. code-block:: python
+
+   import yt
+
+   parameters = {"gamma":4./3., "geometry":"cylindrical", "periodicity":(False,False,False)}
+
+   ds = yt.load("relativistic_jet_0000.vtk", parameters=parameters)
+
 .. rubric:: Caveats
 
 * yt primarily works with primitive variables. If the Athena
   dataset contains conservative variables, the yt primitive fields will be generated from the
   conserved variables on disk.
+* Special relativistic datasets may be loaded, but are not fully supported. In particular, the relationships between
+  quantities such as pressure and thermal energy will be incorrect, as it is currently assumed that their relationship
+  is that of an ideal a :math:`\gamma`-law equation of state.
 * Domains may be visualized assuming periodicity.
 * Particle list data is currently unsupported.
+
+.. note::
+
+   The old behavior of supplying unit conversions using a ``parameters``
+   dict supplied to ``load`` for Athena datasets is still supported, but is being deprecated in
+   favor of ``units_override``, which provides the same functionality.
 
 .. _loading-orion-data:
 
@@ -982,6 +1009,8 @@ smoothing length do not typically see each other in SPH simulations.  By
 changing the value of the ``smoothing_length`` and then re-depositing particles
 onto the grid, you can also effectively mimic what your data would look like at
 lower resolution.
+
+See :ref:`gadget-notebook` for an example.
 
 .. _loading-tipsy-data:
 

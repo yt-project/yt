@@ -41,3 +41,9 @@ def test_velocity_field():
     for test in small_patch_amr(vf, _fields_vels, input_center="c", input_weight="ones"):
         test_velocity_field.__name__ = test.description
         yield test
+
+@requires_file(vf)
+def test_units_override():
+    for test in units_override_check(vf):
+        yield test
+

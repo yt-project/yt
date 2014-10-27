@@ -55,7 +55,7 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
     def _plasma_beta(field,data):
         """This assumes that your front end has provided Bx, By, Bz in
         units of Gauss. If you use MKS, make sure to write your own
-        PlasmaBeta field to deal with non-unitary \mu_0.
+        plasma_beta field to deal with non-unitary \mu_0.
         """
         return data[ftype,'pressure']/data[ftype,'magnetic_energy']
     registry.add_field((ftype, "plasma_beta"),
@@ -69,6 +69,10 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
              units="erg / cm**3")
 
     def _magnetic_field_strength(field,data):
+        """This assumes that your front end has provided Bx, By, Bz in
+        units of Gauss. If you use MKS, make sure to write your own
+        PlasmaBeta field to deal with non-unitary \mu_0.
+        """
         return np.sqrt(8.*np.pi*data[ftype,"magnetic_energy"])
     registry.add_field((ftype,"magnetic_field_strength"),
                        function=_magnetic_field_strength,
@@ -109,4 +113,18 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
              function=_magnetic_field_toroidal,
              units="gauss",
              validators=[ValidateParameter("normal")])
+
+    def _alfven_speed(field,data):
+        """This assumes that your front end has provided Bx, By, Bz in
+        units of Gauss. If you use MKS, make sure to write your own
+        alfven_speed field to deal with non-unitary \mu_0.
+        """
+        return data[ftype,'magnetic_field_strength']/np.sqrt(4.*np.pi*data[ftype,'density'])
+    registry.add_field((ftype, "alfven_speed"), function=_alfven_speed,
+                       units="cm/s")
+
+    def _mach_alfven(field,data):
+        return data[ftype,'velocity_magnitude']/data[ftype,'alfven_speed']
+    registry.add_field((ftype, "mach_alfven"), function=_mach_alfven,
+                       units="dimensionless")
 

@@ -727,9 +727,14 @@ cdef class RegionSelector(SelectorObject):
                 if dobj.left_edge[i] < dobj.ds.domain_left_edge[i] or \
                    dobj.right_edge[i] > dobj.ds.domain_right_edge[i]:
                     raise RuntimeError(
-                        "Error: bad Region in non-periodic domain along dimension %s. "
-                        "Region left edge = %s, Region right edge = %s"
-                        "Dataset left edge = %s, Dataset right edge = %s" % \
+                        "Error: yt attempted to read outside the boundaries of "
+                        "a non-periodic domain along dimension %s.\n"
+                        "Region left edge = %s, Region right edge = %s\n"
+                        "Dataset left edge = %s, Dataset right edge = %s\n\n"
+                        "This commonly happens when trying to compute ghost cells "
+                        "up to the domain boundary. Two possible solutions are to "
+                        "load a smaller region that does not border the edge or "
+                        "override the periodicity for this dataset." % \
                         (i, dobj.left_edge[i], dobj.right_edge[i],
                          dobj.ds.domain_left_edge[i], dobj.ds.domain_right_edge[i])
                     )
