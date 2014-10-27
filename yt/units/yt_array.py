@@ -1114,7 +1114,7 @@ def validate_numpy_wrapper_units(v, arrs):
     v.units = a1.units
     return v
 
-def uconcatenate(arrs, *args, **kwargs):
+def uconcatenate(arrs, axis=0):
     """Concatenate a sequence of arrays.
 
     This wrapper around numpy.concatenate preserves units. All input arrays must
@@ -1125,11 +1125,11 @@ def uconcatenate(arrs, *args, **kwargs):
     --------
     >>> A = yt.YTArray([1, 2, 3], 'cm')
     >>> B = yt.YTArray([2, 3, 4], 'cm')
-    >>> uconcatenate(A, B)
+    >>> uconcatenate((A, B))
     YTArray([ 1., 2., 3., 2., 3., 4.]) cm
 
     """
-    v = np.concatenate(arrs, *args, **kwargs)
+    v = np.concatenate(arrs, axis=axis)
     v = validate_numpy_wrapper_units(v, arrs)
     return v
 
