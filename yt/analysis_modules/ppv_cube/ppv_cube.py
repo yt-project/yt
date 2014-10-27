@@ -13,7 +13,7 @@ Generating PPV FITS cubes
 import numpy as np
 from yt.utilities.on_demand_imports import _astropy
 from yt.utilities.orientation import Orientation
-from yt.utilities.fits_image import FITSImageBuffer
+from yt.utilities.fits_image import FITSImageBuffer, sanitize_fits_unit
 from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.funcs import get_pbar
 from yt.utilities.physical_constants import clight, mh
@@ -248,13 +248,8 @@ class PPVCube(object):
                 units = str(self.ds.get_smallest_appropriate_unit(self.width))
             else:
                 units = length_unit
-            dx = self.width.in_units(units).v/self.nx
-        # Hacks because FITS is stupid and doesn't understand case
-        if units == "Mpc":
-            units = "kpc"
-            dx *= 1000.
-        elif units == "au":
-            units = "AU"
+        units = sanitize_fits_unit(units)
+        dx = self.width.in_units(units).v/self.nx
         dy = dx
         dv = self.dv.in_units(vunit).v
 

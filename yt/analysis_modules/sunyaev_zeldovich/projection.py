@@ -309,7 +309,7 @@ class SZProjection(object):
         >>> sky_center = (30., 45.) # In degrees
         >>> szprj.write_fits("SZbullet.fits", sky_center=sky_center, sky_scale=sky_scale)
         """
-        from yt.utilities.fits_image import FITSImageBuffer
+        from yt.utilities.fits_image import FITSImageBuffer, sanitize_fits_unit
 
         if sky_scale is None:
             center = (0.0,0.0)
@@ -324,9 +324,8 @@ class SZProjection(object):
             types = ["RA---TAN","DEC--TAN"]
 
         units = self.ds.get_smallest_appropriate_unit(self.width)
+        units = sanitize_fits_unit(units)
         # Hack because FITS is stupid and doesn't understand case
-        if units == "Mpc":
-            units = "kpc"
         dx = self.dx.in_units(units)
         if sky_scale:
             dx = (dx*sky_scale).in_units("deg")
