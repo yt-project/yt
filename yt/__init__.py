@@ -99,10 +99,11 @@ from yt.utilities.logger import ytLogger as mylog
 import yt.utilities.physical_constants as physical_constants
 import yt.units as units
 from yt.units.yt_array import \
-     YTArray, \
-     YTQuantity, \
-     uconcatenate, \
-     uintersect1d
+    YTArray, \
+    YTQuantity, \
+    uconcatenate, \
+    uintersect1d, \
+    uunion1d
 
 from yt.fields.api import \
     field_plugins, \
