@@ -15,7 +15,7 @@ from yt.funcs import mylog, iterable, fix_axis, ensure_list
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
 from yt.data_objects.construction_data_containers import YTCoveringGridBase
 from yt.utilities.on_demand_imports import _astropy
-from yt.units.yt_array import YTQuantity
+from yt.units.yt_array import YTQuantity, YTArray
 import re
 
 pyfits = _astropy.pyfits
@@ -101,8 +101,14 @@ class FITSImageBuffer(HDUList):
 
         first = True
 
+        self.field_units = {}
+
         for key in fields:
             if key not in exclude_fields:
+                if hasattr(img_data[key], "units"):
+                    self.field_units[key] = str(img_data[key].units)
+                else:
+                    self.field_units[key] = "dimensionless"
                 mylog.info("Making a FITS image of field %s" % (key))
                 if first:
                     hdu = pyfits.PrimaryHDU(np.array(img_data[key]))
@@ -230,6 +236,18 @@ class FITSImageBuffer(HDUList):
         import aplpy
         return aplpy.FITSFigure(self, **kwargs)
 
+    def get_data(self, field):
+        return YTArray(self[field].data, self.field_units[field])
+
+    def set_unit(self, field, units):
+        """
+        Set the units of *field* to *units*.
+        """
+        new_data = YTArray(self[field].data, self.field_units[field]).in_units(units)
+        self[field].data = new_data.v
+        self[field].header["bunit"] = units
+        self.field_units[field] = units
+        
 axis_wcs = [[1,2],[0,2],[0,1]]
 
 def sanitize_fits_unit(unit):
@@ -270,6 +288,7 @@ def construct_image(data_source, center=None, width=None):
         ctype = ["LINEAR"]*2
         crval = [center[idx].in_units(unit) for idx in axis_wcs[axis]]
         cdelt = [dx.in_units(unit)]*2
+        crpix = [0.5*(nx+1), 0.5*(ny+1)]
     frb = data_source.to_frb(width[0], (nx,ny), center=center, height=width[1])
     w = pywcs.WCS(naxis=2)
     w.wcs.crpix = crpix
@@ -335,7 +354,8 @@ class FITSProjection(FITSImageBuffer):
         assumed.
     width :
     """
-    def __init__(self, ds, axis, fields, center="c", width=None, weight_field=None, **kwargs):
+    def __init__(self, ds, axis, fields, center="c", width=None, 
+                 weight_field=None, **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis, ds)
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
