@@ -46,6 +46,8 @@ energy   = force * length
 power    = energy / time
 flux     = power / area
 specific_flux = flux / rate
+number_density = 1/(length*length*length)
+density = mass * number_density
 
 # Gaussian electromagnetic units
 charge_cgs  = (energy * length)**Rational(1, 2)  # proper 1/2 power
@@ -58,7 +60,7 @@ charge_mks = current_mks * time
 electric_field_mks = force / charge_mks
 magnetic_field_mks = electric_field_mks / velocity
 
-# Since cgs is our default, I'm adding these shortcuts for backwards-compatibility
+# Since cgs is our default, I'm adding these aliases for backwards-compatibility
 charge = charge_cgs
 electric_field = electric_field_cgs
 magnetic_field = magnetic_field_cgs
