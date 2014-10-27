@@ -30,7 +30,7 @@ _fields = (("deposit", "all_density"), ("deposit", "all_count"),
            ("deposit", "PartType4_density"))
 
 os33 = "snapshot_033/snap_033.0.hdf5"
-@requires_ds(os33)
+@requires_ds(os33, big_data=True)
 def test_snapshot_033():
     ds = data_dir_load(os33)
     yield assert_equal, str(ds), "snap_033"
