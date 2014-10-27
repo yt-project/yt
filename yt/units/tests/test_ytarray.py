@@ -33,7 +33,8 @@ from numpy import array
 from yt.units.yt_array import \
     YTArray, YTQuantity, \
     unary_operators, binary_operators, \
-    uconcatenate, uintersect1d
+    uconcatenate, uintersect1d, \
+    uunion1d
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUfuncUnitError
 from yt.testing import fake_random_ds, requires_module
@@ -861,11 +862,17 @@ def test_h5_io():
 def test_numpy_wrappers():
     a1 = YTArray([1, 2, 3], 'cm')
     a2 = YTArray([2, 3, 4, 5, 6], 'cm')
-    catanswer = [1, 2, 3, 2, 3, 4, 5, 6]
-    intanswer = [2, 3]
+    catenate_answer = [1, 2, 3, 2, 3, 4, 5, 6]
+    intersect_answer = [2, 3]
+    union_answer = [1, 2, 3, 4, 5, 6]
 
-    yield assert_array_equal, YTArray(catanswer, 'cm'), uconcatenate((a1, a2))
-    yield assert_array_equal, catanswer, np.concatenate((a1, a2))
+    yield (assert_array_equal, YTArray(catenate_answer, 'cm'),
+           uconcatenate((a1, a2)))
+    yield assert_array_equal, catenate_answer, np.concatenate((a1, a2))
 
-    yield assert_array_equal, YTArray(intanswer, 'cm'), uintersect1d(a1, a2)
-    yield assert_array_equal, intanswer, np.intersect1d(a1, a2)
+    yield (assert_array_equal, YTArray(intersect_answer, 'cm'),
+           uintersect1d(a1, a2))
+    yield assert_array_equal, intersect_answer, np.intersect1d(a1, a2)
+
+    yield assert_array_equal, YTArray(union_answer, 'cm'), uunion1d(a1, a2)
+    yield assert_array_equal, union_answer, np.union1d(a1, a2)

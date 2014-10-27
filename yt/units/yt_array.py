@@ -38,6 +38,8 @@ from numbers import Number as numeric_type
 from yt.utilities.on_demand_imports import _astropy
 from sympy import Rational
 
+NULL_UNIT = Unit()
+
 # redefine this here to avoid a circular import from yt.funcs
 def iterable(obj):
     try: len(obj)
@@ -83,12 +85,10 @@ def return_without_unit(unit):
     return None
 
 def arctan2_unit(unit1, unit2):
-    return Unit()
+    return NULL_UNIT
 
 def comparison_unit(unit1, unit2):
     return None
-
-NULL_UNIT = Unit()
 
 def coerce_iterable_units(input_object):
     if isinstance(input_object, np.ndarray):
@@ -339,11 +339,7 @@ class YTArray(np.ndarray):
         """
         if obj is None and hasattr(self, 'units'):
             return
-        units = getattr(obj, 'units', None)
-        if units is None:
-            self.units = Unit()
-        else:
-            self.units = units
+        self.units = getattr(obj, 'units', NULL_UNIT)
 
     def __repr__(self):
         """
@@ -952,7 +948,7 @@ class YTArray(np.ndarray):
         elif context[0] in unary_operators:
             u = getattr(context[1][0], 'units', None)
             if u is None:
-                u = Unit()
+                u = NULL_UNIT
             unit = self._ufunc_registry[context[0]](u)
             ret_class = type(self)
         elif context[0] in binary_operators:
@@ -1107,14 +1103,7 @@ class YTQuantity(YTArray):
     def __repr__(self):
         return str(self)
 
-def uconcatenate(arrs, *args, **kwargs):
-    """A wrapper around numpy.concatenate that preserves units.
-
-    Concatenates a sequence of YTArray instances into one array.  All input
-    arrays must have the same units.  See the documentation of numpy.concatenate
-    for full details.
-    """
-    v = np.concatenate(arrs, *args, **kwargs)
+def validate_numpy_wrapper_units(v, arrs):
     if not any(isinstance(a, YTArray) for a in arrs):
         return v
     if not all(isinstance(a, YTArray) for a in arrs):
@@ -1125,21 +1114,37 @@ def uconcatenate(arrs, *args, **kwargs):
     v.units = a1.units
     return v
 
-def uintersect1d(arr1, arr2, assume_unique=False):
-    """A wrapper around numpy.intersect1d that preserves units.
+def uconcatenate(arrs, *args, **kwargs):
+    """Concatenate a sequence of arrays.
 
-    Returns the sorted unique elements of the two input arrays.  All input
-    arrays must have the same units.  See the documentation of numpy.intersect1d
-    for full details.
+    This wrapper around numpy.concatenate preserves units. All input arrays must
+    have the same units.  See the documentation of numpy.concatenate for full
+    details.
+    """
+    v = np.concatenate(arrs, *args, **kwargs)
+    v = validate_numpy_wrapper_units(v, arrs)
+    return v
+
+def uintersect1d(arr1, arr2, assume_unique=False):
+    """Find the sorted unique elements of the two input arrays.
+
+    A wrapper around numpy.intersect1d that preserves units.  All input arrays
+    must have the same units.  See the documentation of numpy.intersect1d for
+    full details.
     """
     v = np.intersect1d(arr1, arr2, assume_unique=assume_unique)
-    if not any(isinstance(a, YTArray) for a in (arr1, arr2)):
-        return v
-    if not all(isinstance(a, YTArray) for a in (arr1, arr2)):
-        raise RuntimeError("Not all of your arrays are YTArrays.")
-    if not arr1.units == arr2.units:
-        raise RuntimeError("Your arrays must have identical units.")
-    v.units = arr1.units
+    v = validate_numpy_wrapper_units(v, [arr1, arr2])
+    return v
+
+def uunion1d(arr1, arr2):
+    """Find the union of two arrays.
+
+    A wrapper around numpy.intersect1d that preserves units.  All input arrays
+    must have the same units.  See the documentation of numpy.intersect1d for
+    full details.
+    """
+    v = np.union1d(arr1, arr2)
+    v = validate_numpy_wrapper_units(v, [arr1, arr2])
     return v
 
 def array_like_field(data, x, field):
