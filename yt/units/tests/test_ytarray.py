@@ -32,7 +32,8 @@ from numpy.testing import \
 from numpy import array
 from yt.units.yt_array import \
     YTArray, YTQuantity, \
-    unary_operators, binary_operators
+    unary_operators, binary_operators, \
+    uconcatenate, uintersect1d
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUfuncUnitError
 from yt.testing import fake_random_ds, requires_module
@@ -856,3 +857,15 @@ def test_h5_io():
 
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
+
+def test_numpy_wrappers():
+    a1 = YTArray([1, 2, 3], 'cm')
+    a2 = YTArray([2, 3, 4, 5, 6], 'cm')
+    catanswer = [1, 2, 3, 2, 3, 4, 5, 6]
+    intanswer = [2, 3]
+
+    yield assert_array_equal, YTArray(catanswer, 'cm'), uconcatenate((a1, a2))
+    yield assert_array_equal, catanswer, np.concatenate((a1, a2))
+
+    yield assert_array_equal, YTArray(intanswer, 'cm'), uintersect1d(a1, a2)
+    yield assert_array_equal, intanswer, np.intersect1d(a1, a2)
