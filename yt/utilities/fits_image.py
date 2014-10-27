@@ -276,8 +276,10 @@ def construct_image(data_source, center=None, width=None):
         # This is a FITS dataset, so we use it to construct the WCS
         cunit = [str(ds.wcs.wcs.cunit[idx]) for idx in axis_wcs[axis]]
         ctype = [ds.wcs.wcs.ctype[idx] for idx in axis_wcs[axis]]
-        crval = [ds.wcs.wcs.crval[idx] for idx in axis_wcs[axis]]
         cdelt = [ds.wcs.wcs.cdelt[idx] for idx in axis_wcs[axis]]
+        ctr_pix = center.in_units("code_length")[:self.dimensionality].v
+        crval = ds.wcs.wcs_pix2world(ctr_pix.reshape(1,self.dimensionality))[0]
+        crval = [crval[idx] for idx in axis_wcs[axis]]
     else:
         # This is some other kind of dataset                                                                                    
         unit = str(width[0].units)
@@ -286,9 +288,9 @@ def construct_image(data_source, center=None, width=None):
         unit = sanitize_fits_unit(unit)
         cunit = [unit]*2
         ctype = ["LINEAR"]*2
-        crval = [center[idx].in_units(unit) for idx in axis_wcs[axis]]
         cdelt = [dx.in_units(unit)]*2
-        crpix = [0.5*(nx+1), 0.5*(ny+1)]
+        crval = [center[idx].in_units(unit) for idx in axis_wcs[axis]]
+    crpix = [0.5*(nx+1), 0.5*(ny+1)]
     frb = data_source.to_frb(width[0], (nx,ny), center=center, height=width[1])
     w = pywcs.WCS(naxis=2)
     w.wcs.crpix = crpix
@@ -323,7 +325,7 @@ class FITSSlice(FITSImageBuffer):
     def __init__(self, ds, axis, fields, center="c", width=None, **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis, ds)
-        center = ds.coordinates.sanitize_center(center, axis)
+        center, dcenter = ds.coordinates.sanitize_center(center, axis)
         slc = ds.slice(axis, center[axis], **kwargs)
         w, frb = construct_image(slc, center=dcenter, width=width)
         super(FITSSlice, self).__init__(frb, fields=fields, wcs=w)
