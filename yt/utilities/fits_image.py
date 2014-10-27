@@ -232,14 +232,13 @@ class FITSImageBuffer(HDUList):
 
 axis_wcs = [[1,2],[0,2],[0,1]]
 
-def sanitize_fits_unit(unit, dx):
+def sanitize_fits_unit(unit):
     if unit == "Mpc":
         mylog.info("Changing FITS file unit to kpc.")
         unit = "kpc"
-        dx *= 1000.
     elif unit == "au":
         unit = "AU"
-    return unit, dx
+    return unit
 
 def construct_image(data_source, center=None, width=None):
     ds = data_source.ds
