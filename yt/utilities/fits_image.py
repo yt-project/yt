@@ -290,7 +290,6 @@ def construct_image(data_source, center=None, width=None):
         ctype = ["LINEAR"]*2
         cdelt = [dx.in_units(unit)]*2
         crval = [center[idx].in_units(unit) for idx in axis_wcs[axis]]
-    crpix = [0.5*(nx+1), 0.5*(ny+1)]
     frb = data_source.to_frb(width[0], (nx,ny), center=center, height=width[1])
     w = pywcs.WCS(naxis=2)
     w.wcs.crpix = crpix
