@@ -232,31 +232,46 @@ class FITSImageBuffer(HDUList):
 
 axis_wcs = [[1,2],[0,2],[0,1]]
 
-def construct_image(data_source, center=None):
+def sanitize_fits_unit(unit, dx):
+    if unit == "Mpc":
+        mylog.info("Changing FITS file unit to kpc.")
+        unit = "kpc"
+        dx *= 1000.
+    elif unit == "au":
+        unit = "AU"
+    return unit, dx
+
+def construct_image(data_source, center=None, width=None):
     ds = data_source.ds
     axis = data_source.axis
+    if center is None or width is None:
+        center = ds.domain_center[axis_wcs[axis]]
+    if width is None:
+        width = ds.domain_width[axis_wcs[axis]]
+        mylog.info("Making an image of the entire domain, "+
+                   "so setting the center to the domain center.")
+    else:
+        width = ds.coordinates.sanitize_width(axis, width, None)
+    dx = ds.index.get_smallest_dx()
+    nx, ny = [int((w/dx).in_units("dimensionless")) for w in width]
+    crpix = [0.5*(nx+1), 0.5*(ny+1)]
     if hasattr(ds, "wcs"):
-        # This is a FITS dataset
-        nx, ny = ds.domain_dimensions[axis_wcs[axis]]
-        crpix = [ds.wcs.wcs.crpix[idx] for idx in axis_wcs[axis]]
-        cdelt = [ds.wcs.wcs.cdelt[idx] for idx in axis_wcs[axis]]
-        crval = [ds.wcs.wcs.crval[idx] for idx in axis_wcs[axis]]
+        # This is a FITS dataset, so we use it to construct the WCS
         cunit = [str(ds.wcs.wcs.cunit[idx]) for idx in axis_wcs[axis]]
         ctype = [ds.wcs.wcs.ctype[idx] for idx in axis_wcs[axis]]
+        crval = [ds.wcs.wcs.crval[idx] for idx in axis_wcs[axis]]
+        cdelt = [ds.wcs.wcs.cdelt[idx] for idx in axis_wcs[axis]]
     else:
-        # This is some other kind of dataset
-        unit = ds.get_smallest_appropriate_unit(ds.domain_width.max())
-        if center is None:
-            crval = [0.0,0.0]
-        else:
-            crval = [(ds.domain_center-center)[idx].in_units(unit) for idx in axis_wcs[axis]]
-        dx = ds.index.get_smallest_dx()
-        nx, ny = (ds.domain_width[axis_wcs[axis]]/dx).ndarray_view().astype("int")
-        crpix = [0.5*(nx+1), 0.5*(ny+1)]
-        cdelt = [dx.in_units(unit)]*2
+        # This is some other kind of dataset                                                                                    
+        unit = str(width[0].units)
+        if unit == "unitary":
+            unit = ds.get_smallest_appropriate_unit(ds.domain_width.max())
+        unit = sanitize_fits_unit(unit)
         cunit = [unit]*2
         ctype = ["LINEAR"]*2
-    frb = data_source.to_frb((1.0,"unitary"), (nx,ny))
+        crval = [center[idx].in_units(unit) for idx in axis_wcs[axis]]
+        cdelt = [dx.in_units(unit)]*2
+    frb = data_source.to_frb(width[0], (nx,ny), center=center, height=width[1])
     w = pywcs.WCS(naxis=2)
     w.wcs.crpix = crpix
     w.wcs.cdelt = cdelt
@@ -285,13 +300,14 @@ class FITSSlice(FITSImageBuffer):
          as a tuple containing a coordinate and string unit name or by passing
          in a YTArray.  If a list or unitless array is supplied, code units are
          assumed.
+    width : 
     """
-    def __init__(self, ds, axis, fields, center="c", **kwargs):
+    def __init__(self, ds, axis, fields, center="c", width=None, **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis, ds)
         center = ds.coordinates.sanitize_center(center, axis)
         slc = ds.slice(axis, center[axis], **kwargs)
-        w, frb = construct_image(slc, center=center)
+        w, frb = construct_image(slc, center=dcenter, width=width)
         super(FITSSlice, self).__init__(frb, fields=fields, wcs=w)
         for i, field in enumerate(fields):
             self[i].header["bunit"] = str(frb[field].units)
@@ -318,13 +334,14 @@ class FITSProjection(FITSImageBuffer):
         as a tuple containing a coordinate and string unit name or by passing
         in a YTArray.  If a list or unitless array is supplied, code units are
         assumed.
+    width :
     """
-    def __init__(self, ds, axis, fields, center="c", weight_field=None, **kwargs):
+    def __init__(self, ds, axis, fields, center="c", width=None, weight_field=None, **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis, ds)
-        center = ds.coordinates.sanitize_center(center, axis)
+        center, dcenter = ds.coordinates.sanitize_center(center, axis)
         prj = ds.proj(fields[0], axis, weight_field=weight_field, **kwargs)
-        w, frb = construct_image(prj, center=center)
+        w, frb = construct_image(prj, center=dcenter, width=width)
         super(FITSProjection, self).__init__(frb, fields=fields, wcs=w)
         for i, field in enumerate(fields):
             self[i].header["bunit"] = str(frb[field].units)
