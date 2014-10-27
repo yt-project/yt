@@ -54,12 +54,12 @@ sigma_thompson = cross_section_thompson_cgs
 Na = 1 / amu_cgs
 
 #Planck units
-m_pl = YTQuantity(planck_mass, "g")
-l_pl = YTQuantity(planck_length, "cm")
-t_pl = YTQuantity(planck_time, "s")
-E_pl = YTQuantity(planck_energy, "erg")
-q_pl = YTQuantity(planck_charge, "esu")
-T_pl = YTQuantity(planck_temperature, "K")
+m_pl = planck_mass = YTQuantity(planck_mass_grams, "g")
+l_pl = planck_length = YTQuantity(planck_length_cm, "cm")
+t_pl = planck_time = YTQuantity(planck_time_s, "s")
+E_pl = planck_energy = YTQuantity(planck_energy_erg, "erg")
+q_pl = planck_charge = YTQuantity(planck_charge_esu, "esu")
+T_pl = planck_temperature = YTQuantity(planck_temperature_K, "K")
 
 mu_0 = YTQuantity(4.0e-7*pi, "N/A**2")
 eps_0 = (1.0/(clight.in_mks()**2*mu_0)).in_units("C**2/N/m**2")
