@@ -116,7 +116,7 @@ class Unit(Expr):
 
     # Extra attributes
     __slots__ = ["expr", "is_atomic", "cgs_value", "cgs_offset", "dimensions",
-                 "registry","cgs_conversion","is_mks"]
+                 "registry", "cgs_conversion", "is_mks"]
 
     def __new__(cls, unit_expr=sympy_one, cgs_value=None, cgs_offset=0.0,
                 dimensions=None, registry=None, **assumptions):
@@ -401,7 +401,10 @@ class Unit(Expr):
         Create and return dimensionally-equivalent cgs units.
 
         """
-        units = self.cgs_conversion if self.cgs_conversion else self
+        if self.cgs_conversion:
+            units = self.cgs_conversion
+        else:
+            units = self
         units_string = units._get_system_unit_string(cgs_base_units)
         return Unit(units_string, cgs_value=1.0,
                     dimensions=units.dimensions, registry=self.registry)
@@ -411,7 +414,10 @@ class Unit(Expr):
         Create and return dimensionally-equivalent mks units.
 
         """
-        units = self.cgs_conversion if self.cgs_conversion and not self.is_mks else self
+        if self.cgs_conversion and not self.is_mks:
+            units = self.cgs_conversion
+        else:
+            units = self
         units_string = units._get_system_unit_string(mks_base_units)
         cgs_value = (get_conversion_factor(units, units.get_cgs_equivalent())[0] /
                      get_conversion_factor(units, Unit(units_string))[0])
