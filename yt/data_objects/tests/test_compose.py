@@ -2,51 +2,35 @@ from yt.testing import *
 from yt.fields.local_fields import add_field
 from yt.units.yt_array import YTArray, uintersect1d
 
-def setup_foo():
+def setup():
     from yt.config import ytcfg
     ytcfg["yt","__withintesting"] = "True"
-    def _ID(field, data):
-        width = data.ds.domain_right_edge - data.ds.domain_left_edge
-        min_dx = YTArray(1.0/8192, input_units='code_length',
-                         registry=data.ds.unit_registry)
-        delta = width / min_dx
-        x = data['x'] - min_dx / 2.
-        y = data['y'] - min_dx / 2.
-        z = data['z'] - min_dx / 2.
-        xi = x / min_dx
-        yi = y / min_dx
-        zi = z / min_dx
-        index = xi + delta[0] * (yi + delta[1] * zi)
-        index = index.astype('int64')
-        return index
 
-    add_field("ID", function=_ID, units=None)
+# Copied from test_boolean for computing a unique identifier for
+# each cell from cell positions
+def _IDFIELD(field, data):
+    width = data.ds.domain_right_edge - data.ds.domain_left_edge
+    min_dx = YTArray(1.0/8192, input_units='code_length',
+                     registry=data.ds.unit_registry)
+    delta = width / min_dx
+    x = data['x'] - min_dx / 2.
+    y = data['y'] - min_dx / 2.
+    z = data['z'] - min_dx / 2.
+    xi = x / min_dx
+    yi = y / min_dx
+    zi = z / min_dx
+    index = xi + delta[0] * (yi + delta[1] * zi)
+    index = index.astype('int64')
+    return index
 
 def test_compose_no_overlap():
     r"""Test to make sure that composed data objects that don't
     overlap behave the way we expect (return empty collections)
     """
-
-    def _ID(field, data):
-        width = data.ds.domain_right_edge - data.ds.domain_left_edge
-        min_dx = YTArray(1.0/8192, input_units='code_length',
-                         registry=data.ds.unit_registry)
-        delta = width / min_dx
-        x = data['x'] - min_dx / 2.
-        y = data['y'] - min_dx / 2.
-        z = data['z'] - min_dx / 2.
-        xi = x / min_dx
-        yi = y / min_dx
-        zi = z / min_dx
-        index = xi + delta[0] * (yi + delta[1] * zi)
-        index = index.astype('int64')
-        return index
-
     empty = np.array([])
     for n in [1, 2, 4, 8]:
         ds = fake_random_ds(64, nprocs=n)
-        ds.add_field("ID", function=_ID)
-        ds.index
+        ds.add_field("ID", function=_IDFIELD)
 
         # position parameters for initial region
         center = [0.25]*3
@@ -94,7 +78,7 @@ def test_compose_overlap():
     empty = np.array([])
     for n in [1, 2, 4, 8]:
         ds = fake_random_ds(64, nprocs=n)
-        ds.index
+        ds.add_field("ID", function=_IDFIELD)
 
         # position parameters for initial region
         center = [0.4, 0.5, 0.5]
