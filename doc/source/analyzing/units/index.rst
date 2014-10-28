@@ -33,6 +33,7 @@ Here are the notebooks, which have been filled in for inspection:
    comoving_units_and_code_units
    comparing_units_from_different_datasets
    units_and_plotting
+   unit_equivalencies
 
 .. note::
 
