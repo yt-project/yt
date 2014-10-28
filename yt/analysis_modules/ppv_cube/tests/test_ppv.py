@@ -24,6 +24,8 @@ def setup():
 
 def test_ppv():
 
+    np.random.seed(seed=0x4d3d3d3)
+
     dims = (8,8,1024)
     v_shift = 1.0e7*u.cm/u.s
     sigma_v = 2.0e7*u.cm/u.s
