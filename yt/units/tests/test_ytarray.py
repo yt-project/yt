@@ -864,6 +864,10 @@ def test_cgs_conversions():
     qp_mks = qp.in_units("C")
     yield assert_equal, qp_mks.units.dimensions, current_mks*time
     yield assert_array_almost_equal, qp_mks.in_cgs(), qp
+    qp_mks_k = qp_mks.in_units("kC")
+    yield assert_equal, qp_mks.units.dimensions, current_mks*time
+    yield assert_array_almost_equal, qp_mks_k.in_cgs(), qp
+    yield assert_array_almost_equal, qp_mks_k.in_units("kesu"), qp.in_units("kesu")
 
     K = 1.0/(4*np.pi*eps_0)
     yield assert_array_almost_equal, K.in_cgs(), 1.0
