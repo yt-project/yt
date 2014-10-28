@@ -103,6 +103,7 @@ default_unit_symbol_lut = {
     "Jy": (jansky_cgs, dimensions.specific_flux),
     "counts": (1.0, dimensions.dimensionless),
     "photons": (1.0, dimensions.dimensionless),
+    "me": (mass_electron_grams, dimensions.mass),
 
     # for AstroPy compatibility
     "solMass": (mass_sun_grams, dimensions.mass),
