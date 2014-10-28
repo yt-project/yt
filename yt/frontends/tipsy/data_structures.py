@@ -66,7 +66,8 @@ class TipsyDataset(ParticleDataset):
                  unit_base=None,
                  parameter_file=None,
                  cosmology_parameters=None,
-                 n_ref=64, over_refine_factor=1):
+                 n_ref=64, over_refine_factor=1,
+                 units_override=None):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         if field_dtypes is None:
@@ -95,6 +96,9 @@ class TipsyDataset(ParticleDataset):
             parameter_file = os.path.abspath(parameter_file)
         self._param_file = parameter_file
         filename = os.path.abspath(filename)
+        if units_override is not None:
+            raise RuntimeError("units_override is not supported for TipsyDataset. "+
+                               "Use unit_base instead.")
         super(TipsyDataset, self).__init__(filename, dataset_type)
 
     def __repr__(self):
