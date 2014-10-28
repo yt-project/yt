@@ -15,6 +15,7 @@ cross_section_thompson_cgs = YTQuantity(6.65245854533e-25, 'cm**2')
 
 # Charge
 charge_proton_cgs = YTQuantity(4.8032056e-10, 'esu')
+elementary_charge = charge_proton_cgs
 
 # Physical Constants
 boltzmann_constant_cgs = YTQuantity(boltzmann_constant_erg_per_K, 'erg/K')
