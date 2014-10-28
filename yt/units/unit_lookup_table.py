@@ -215,7 +215,12 @@ mks_base_units = {
 }
 
 cgs_conversions = {
-    "C":("mks","esu"),
-    "T":("mks","gauss"),
-    "A":("mks","statA"),
+    "C":"esu",
+    "T":"gauss",
+    "A":"statA",
 }
+
+for conv in cgs_conversions.keys():
+    if conv in prefixable_units:
+        for p in unit_prefixes:
+            cgs_conversions[p+conv] = p+cgs_conversions[conv]

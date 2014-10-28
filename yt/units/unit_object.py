@@ -116,7 +116,7 @@ class Unit(Expr):
 
     # Extra attributes
     __slots__ = ["expr", "is_atomic", "cgs_value", "cgs_offset", "dimensions",
-                 "registry", "cgs_conversion", "is_mks"]
+                 "registry", "cgs_conversion"]
 
     def __new__(cls, unit_expr=sympy_one, cgs_value=None, cgs_offset=0.0,
                 dimensions=None, registry=None, **assumptions):
@@ -208,26 +208,17 @@ class Unit(Expr):
         obj.dimensions = dimensions
         obj.registry = registry
 
-        conversions = []
-        is_mks = []
-        for atom in unit_expr.atoms():
-            ua = str(atom)
-            possible_prefix = ua[0]
-            symbol_wo_prefix = ua[1:]
-            if possible_prefix in unit_prefixes and symbol_wo_prefix in prefixable_units:
-                ua = symbol_wo_prefix
-            if ua in cgs_conversions:
-                unit_sys, conv = cgs_conversions[ua]
-                is_mks.append(unit_sys == "mks")
-                conversions.append((atom, symbols(conv)))
-        if len(conversions) > 0:
+        check_atoms = [atom for atom in unit_expr.free_symbols
+                       if str(atom) in cgs_conversions]
+        if len(check_atoms) > 0:
+            conversions = [(atom, symbols(cgs_conversions[str(atom)]))
+                           for atom in check_atoms]
             conversion = unit_expr.subs(conversions)
             conversion = Unit(unit_expr=conversion, cgs_value=1.0,
                                dimensions=None, registry=registry)
         else:
             conversion = None
         obj.cgs_conversion = conversion
-        obj.is_mks = all(is_mks)
 
         if unit_key:
             registry.unit_objs[unit_key] = obj
@@ -414,7 +405,7 @@ class Unit(Expr):
         Create and return dimensionally-equivalent mks units.
 
         """
-        if self.cgs_conversion and not self.is_mks:
+        if self.cgs_conversion:
             units = self.cgs_conversion
         else:
             units = self
