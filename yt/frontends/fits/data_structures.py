@@ -46,7 +46,7 @@ from yt.utilities.on_demand_imports import _astropy
 
 lon_prefixes = ["X","RA","GLON","LINEAR"]
 lat_prefixes = ["Y","DEC","GLAT","LINEAR"]
-delimiters = ["*", "/", "-", "^"]
+delimiters = ["*", "/", "-", "^", "(", ")"]
 delimiters += [str(i) for i in xrange(10)]
 regex_pattern = '|'.join(re.escape(_) for _ in delimiters)
 

@@ -138,10 +138,6 @@ for key in default_unit_symbol_lut:
     if key not in latex_symbol_lut:
         latex_symbol_lut[key] = "\\rm{" + key + "}"
 
-latex_prefixes = {
-    "u" : "\\mu",
-}
-
 # This dictionary formatting from magnitude package, credit to Juan Reyero.
 unit_prefixes = {
     'Y': 1e24,   # yotta
@@ -163,6 +159,10 @@ unit_prefixes = {
     'z': 1e-21,  # zepto
     'y': 1e-24,  # yocto
 }
+
+latex_prefixes = {
+    "u" : "\\mu",
+    }
 
 prefixable_units = (
     "m",
