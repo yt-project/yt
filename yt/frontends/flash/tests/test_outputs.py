@@ -47,3 +47,8 @@ def test_wind_tunnel():
 @requires_file(wt)
 def test_FLASHDataset():
     assert isinstance(data_dir_load(wt), FLASHDataset)
+
+@requires_file(sloshing)
+def test_units_override():
+    for test in units_override_check(sloshing):
+        yield test
