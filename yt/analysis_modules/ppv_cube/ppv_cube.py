@@ -47,7 +47,7 @@ fits_info = {"velocity":("m/s","VELOCITY","v"),
 class PPVCube(object):
     def __init__(self, ds, normal, field, center="c", width=(1.0,"unitary"),
                  dims=(100,100,100), velocity_bounds=None, thermal_broad=False,
-                 atomic_weight=56.):
+                 atomic_weight=56., method="integrate"):
         r""" Initialize a PPVCube object.
 
         Parameters
@@ -74,6 +74,10 @@ class PPVCube(object):
         atomic_weight : float, optional
             Set this value to the atomic weight of the particle that is emitting the line
             if *thermal_broad* is True. Defaults to 56 (Fe).
+        method : string, optional
+            Set the projection method to be used.
+            "integrate" : line of sight integration over the line element.
+            "sum" : straight summation over the line of sight.
 
         Examples
         --------
@@ -94,6 +98,10 @@ class PPVCube(object):
         self.nx = dims[0]
         self.ny = dims[1]
         self.nv = dims[2]
+
+        if method not in ["integrate","sum"]:
+            raise RuntimeError("Only the 'integrate' and 'sum' projection +"
+                               "methods are supported in PPVCube.")
 
         dd = ds.all_data()
 
@@ -123,7 +131,10 @@ class PPVCube(object):
         _intensity = self.create_intensity()
         self.ds.add_field(("gas","intensity"), function=_intensity, units=self.field_units)
 
-        self.proj_units = str(ds.quan(1.0, self.field_units+"*cm").units)
+        if method == "integrate":
+            self.proj_units = str(ds.quan(1.0, self.field_units+"*cm").units)
+        elif method == "sum":
+            self.proj_units = self.field_units
 
         self.data = ds.arr(np.zeros((self.nx,self.ny,self.nv)), self.proj_units)
         storage = {}
@@ -131,11 +142,12 @@ class PPVCube(object):
         for sto, i in parallel_objects(xrange(self.nv), storage=storage):
             self.current_v = self.vmid_cgs[i]
             if isinstance(normal, basestring):
-                prj = ds.proj("intensity", ds.coordinates.axis_id[normal])
+                prj = ds.proj("intensity", ds.coordinates.axis_id[normal], method=method)
                 buf = prj.to_frb(width, self.nx, center=self.center)["intensity"]
             else:
                 buf = off_axis_projection(ds, self.center, normal, width,
-                                          (self.nx, self.ny), "intensity", no_ghost=True)[::-1]
+                                          (self.nx, self.ny), "intensity",
+                                          no_ghost=True, method=method)[::-1]
             sto.result_id = i
             sto.result = buf
             pbar.update(i)
