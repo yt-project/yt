@@ -103,6 +103,8 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
                        units="") # add correct units here
 
     def _mazzotta_weighting(field, data):
+        # Spectroscopic-like weighting field for galaxy clusters
+        # Only useful as a weight_field for temperature, metallicity, velocity
         return data["density"]*data["density"]*data["kT"]**-0.25/mh/mh
 
     registry.add_field((ftype,"mazzotta_weighting"),
