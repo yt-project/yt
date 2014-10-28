@@ -85,7 +85,7 @@ Gyr  = Gigayear = gigayear = quan(1.0, "Gyr")
 # Kelvin
 #
 
-degree_kelvin = Kelvin = quan(1.0, "K")
+degree_kelvin = Kelvin = K = quan(1.0, "K")
 
 #
 # Misc CGS

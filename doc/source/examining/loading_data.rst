@@ -1010,6 +1010,8 @@ changing the value of the ``smoothing_length`` and then re-depositing particles
 onto the grid, you can also effectively mimic what your data would look like at
 lower resolution.
 
+See :ref:`gadget-notebook` for an example.
+
 .. _loading-tipsy-data:
 
 Tipsy Data
