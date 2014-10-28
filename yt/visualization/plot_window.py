@@ -1304,12 +1304,11 @@ class OffAxisSlicePlot(PWViewerMPL):
 
 class OffAxisProjectionDummyDataSource(object):
     _type_name = 'proj'
-    method = 'integrate'
     _key_fields = []
     def __init__(self, center, ds, normal_vector, width, fields,
                  interpolated, resolution = (800,800), weight=None,
                  volume=None, no_ghost=False, le=None, re=None,
-                 north_vector=None):
+                 north_vector=None, method="integrate"):
         self.center = center
         self.ds = ds
         self.axis = 4 # always true for oblique data objects
@@ -1326,6 +1325,7 @@ class OffAxisProjectionDummyDataSource(object):
         self.le = le
         self.re = re
         self.north_vector = north_vector
+        self.method = method
 
     def _determine_fields(self, *args):
         return self.dd._determine_fields(*args)
@@ -1396,7 +1396,18 @@ class OffAxisProjectionPlot(PWViewerMPL):
          set, an arbitrary grid-aligned north-vector is chosen.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
+    method : string
+         The method of projection.  Valid methods are:
 
+         "integrate" with no weight_field specified : integrate the requested
+         field along the line of sight.
+
+         "integrate" with a weight_field specified : weight the requested
+         field by the weighting field and integrate along the line of sight.
+
+         "sum" : This method is the same as integrate, except that it does not
+         multiply by a path length when performing the integration, and is
+         just a straight summation of the field along the given axis.
     """
     _plot_type = 'OffAxisProjection'
     _frb_generator = OffAxisProjectionFixedResolutionBuffer
@@ -1404,7 +1415,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
     def __init__(self, ds, normal, fields, center='c', width=None,
                  depth=(1, '1'), axes_unit=None, weight_field=None,
                  max_level=None, north_vector=None, volume=None, no_ghost=False,
-                 le=None, re=None, interpolated=False, fontsize=18):
+                 le=None, re=None, interpolated=False, fontsize=18, method="integrate"):
         (bounds, center_rot) = \
           get_oblique_window_parameters(normal,center,width,ds,depth=depth)
         fields = ensure_list(fields)[:]
@@ -1414,7 +1425,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
         OffAxisProj = OffAxisProjectionDummyDataSource(
             center_rot, ds, normal, oap_width, fields, interpolated,
             weight=weight_field,  volume=volume, no_ghost=no_ghost,
-            le=le, re=re, north_vector=north_vector)
+            le=le, re=re, north_vector=north_vector, method=method)
         # If a non-weighted, integral projection, assure field-label reflects that
         if weight_field is None and OffAxisProj.method == "integrate":
             self.projected = True
