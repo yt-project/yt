@@ -13,7 +13,7 @@ Equivalencies between different kinds of units
 
 import yt.utilities.physical_constants as pc
 from yt.units.dimensions import temperature, mass, energy, length, rate, \
-    velocity, dimensionless
+    velocity, dimensionless, density, number_density
 from yt.extern.six import add_metaclass
 import numpy as np
 
@@ -28,6 +28,16 @@ class RegisteredEquivalence(type):
 @add_metaclass(RegisteredEquivalence)
 class Equivalence(object):
     _skip_add = False
+
+class NumberDensityEquivalence(Equivalence):
+    _type_name = "number_density"
+    dims = (density,number_density,)
+
+    def convert(self, x, new_dims, mu=0.6):
+        if new_dims == number_density:
+            return x/(mu*pc.mh)
+        elif new_dims == density:
+            return x*mu*pc.mh
 
 class ThermalEquivalence(Equivalence):
     _type_name = "thermal"
@@ -99,7 +109,7 @@ class SoundSpeedEquivalence(Equivalence):
                 return kT
 
     def __str__(self):
-        return "sound_speed: velocity <-> temperature <-> energy"
+        return "sound_speed (ideal gas): velocity <-> temperature <-> energy"
 
 class LorentzEquivalence(Equivalence):
     _type_name = "lorentz"
