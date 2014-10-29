@@ -72,10 +72,12 @@ class FLASHHierarchy(GridIndex):
 
     def _detect_output_fields(self):
         ncomp = self._handle["/unknown names"].shape[0]
-        self.field_list = [("flash", s) for s in self._handle["/unknown names"][:].flat]
+        self.field_list = [("flash", s.decode('utf-8')) for s in self._handle["/unknown names"][:].flat]
         if ("/particle names" in self._particle_handle) :
-            self.field_list += [("io", "particle_" + s[0].strip()) for s
+            self.field_list += [("io", "particle_" + s[0].strip().decode('utf-8')) for s
                                 in self._particle_handle["/particle names"][:]]
+        print("HERE")
+        print(self.field_list.keys())
     
     def _count_grids(self):
         try:
@@ -216,7 +218,7 @@ class FLASHDataset(Dataset):
         Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
-        self.parameters["HydroMethod"] = 'flash' # always PPM DE
+        self.parameters["HydroMethod"] = bytes('flash','utf-8') # always PPM DE
         self.parameters["Time"] = 1. # default unit is 1...
         
     def _set_code_unit_attributes(self):
@@ -280,7 +282,7 @@ class FLASHDataset(Dataset):
         else:
             raise RuntimeError("Can't figure out FLASH file version.")
         # First we load all of the parameters
-        hns = ["simulation parameters"]
+        hns = [u"simulation parameters"]
         # note the ordering here is important: runtime parameters should
         # ovewrite scalars with the same name.
         for ptype in ['scalars', 'runtime parameters']:
@@ -331,7 +333,7 @@ class FLASHDataset(Dataset):
         
         # Determine dimensionality
         try:
-            dimensionality = self.parameters["dimensionality"]
+            dimensionality = self.parameters["dimensionality"].decode('utf-8')
         except KeyError:
             dimensionality = 3
             if nzb == 1: dimensionality = 2
@@ -341,7 +343,7 @@ class FLASHDataset(Dataset):
         
         self.dimensionality = dimensionality
 
-        self.geometry = self.parameters["geometry"]
+        self.geometry = self.parameters["geometry"].decode('utf-8')
         # Determine base grid parameters
         if 'lrefine_min' in self.parameters.keys() : # PARAMESH
             nblockx = self.parameters["nblockx"]
@@ -356,11 +358,11 @@ class FLASHDataset(Dataset):
         if self.dimensionality <= 2 : nblockz = 1
         if self.dimensionality == 1 : nblocky = 1
 
-        # Determine domain boundaries
+        #print(self.parameters.keys())
         self.domain_left_edge = np.array(
-            [self.parameters["%smin" % ax] for ax in 'xyz']).astype("float64")
+            [self.parameters[bytes("%smin" % ax, 'utf-8')] for ax in 'xyz']).astype("float64")
         self.domain_right_edge = np.array(
-            [self.parameters["%smax" % ax] for ax in 'xyz']).astype("float64")
+            [self.parameters[bytes("%smax" % ax, 'utf-8')] for ax in 'xyz']).astype("float64")
         if self.dimensionality < 3:
             for d in [dimensionality]+range(3-dimensionality):
                 if self.domain_left_edge[d] == self.domain_right_edge[d]:
@@ -397,10 +399,10 @@ class FLASHDataset(Dataset):
         try: 
             self.parameters["usecosmology"]
             self.cosmological_simulation = 1
-            self.current_redshift = 1.0/self.parameters['scalefactor'] - 1.0
-            self.omega_lambda = self.parameters['cosmologicalconstant']
-            self.omega_matter = self.parameters['omegamatter']
-            self.hubble_constant = self.parameters['hubbleconstant']
+            self.current_redshift = 1.0/self.parameters['scalefactor'].decode('utf-8') - 1.0
+            self.omega_lambda = self.parameters['cosmologicalconstant'].decode('utf-8')
+            self.omega_matter = self.parameters['omegamatter'].decode('utf-8')
+            self.hubble_constant = self.parameters['hubbleconstant'].decode('utf-8')
             self.hubble_constant *= cm_per_mpc * 1.0e-5 * 1.0e-2 # convert to 'h'
         except:
             self.current_redshift = self.omega_lambda = self.omega_matter = \

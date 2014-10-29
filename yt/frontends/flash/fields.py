@@ -45,57 +45,57 @@ rho_units = "code_mass / code_length**3"
 
 class FLASHFieldInfo(FieldInfoContainer):
     known_other_fields = (
-        ("velx", ("code_length/code_time", ["velocity_x"], None)),
-        ("vely", ("code_length/code_time", ["velocity_y"], None)),
-        ("velz", ("code_length/code_time", ["velocity_z"], None)),
-        ("dens", ("code_mass/code_length**3", ["density"], None)),
-        ("temp", ("code_temperature", ["temperature"], None)),
-        ("pres", (pres_units, ["pressure"], None)),
-        ("gpot", ("code_length**2/code_time**2", ["gravitational_potential"], None)),
-        ("gpol", ("code_length**2/code_time**2", [], None)),
-        ("tion", ("code_temperature", [], None)),
-        ("tele", ("code_temperature", [], None)),
-        ("trad", ("code_temperature", [], None)),
-        ("pion", (pres_units, [], None)),
-        ("pele", (pres_units, [], "Electron Pressure, P_e")),
-        ("prad", (pres_units, [], "Radiation Pressure")),
-        ("eion", (erg_units, [], "Ion Internal Energy")),
-        ("eele", (erg_units, [], "Electron Internal Energy")),
-        ("erad", (erg_units, [], "Radiation Internal Energy")),
-        ("pden", (rho_units, [], None)),
-        ("depo", ("code_length**2/code_time**2", [], None)),
-        ("ye", ("", [], "Y_e")),
-        ("magp", (pres_units, [], None)),
-        ("divb", ("code_magnetic*code_length", [], None)),
-        ("game", ("", [], "\gamma_e\/\rm{(ratio\/of\/specific\/heats)}")),
-        ("gamc", ("", [], "\gamma_c\/\rm{(ratio\/of\/specific\/heats)}")),
-        ("flam", ("", [], None)),
-        ("absr", ("", [], "Absorption Coefficient")),
-        ("emis", ("", [], "Emissivity")),
-        ("cond", ("", [], "Conductivity")),
-        ("dfcf", ("", [], "Diffusion Equation Scalar")),
-        ("fllm", ("", [], "Flux Limit")),
-        ("pipe", ("", [], "P_i/P_e")),
-        ("tite", ("", [], "T_i/T_e")),
-        ("dbgs", ("", [], "Debug for Shocks")),
-        ("cham", ("", [], "Chamber Material Fraction")),
-        ("targ", ("", [], "Target Material Fraction")),
-        ("sumy", ("", [], None)),
-        ("mgdc", ("", [], "Emission Minus Absorption Diffusion Terms")),
-        ("magx", (b_units, ["magnetic_field_x"], "B_x")),
-        ("magy", (b_units, ["magnetic_field_y"], "B_y")),
-        ("magz", (b_units, ["magnetic_field_z"], "B_z")),
+        (b"velx", ("code_length/code_time", ["velocity_x"], None)),
+        (b"vely", ("code_length/code_time", ["velocity_y"], None)),
+        (b"velz", ("code_length/code_time", ["velocity_z"], None)),
+        (b"dens", ("code_mass/code_length**3", ["density"], None)),
+        (b"temp", ("code_temperature", ["temperature"], None)),
+        (b"pres", (pres_units, ["pressure"], None)),
+        (b"gpot", ("code_length**2/code_time**2", ["gravitational_potential"], None)),
+        (b"gpol", ("code_length**2/code_time**2", [], None)),
+        (b"tion", ("code_temperature", [], None)),
+        (b"tele", ("code_temperature", [], None)),
+        (b"trad", ("code_temperature", [], None)),
+        (b"pion", (pres_units, [], None)),
+        (b"pele", (pres_units, [], "Electron Pressure, P_e")),
+        (b"prad", (pres_units, [], "Radiation Pressure")),
+        (b"eion", (erg_units, [], "Ion Internal Energy")),
+        (b"eele", (erg_units, [], "Electron Internal Energy")),
+        (b"erad", (erg_units, [], "Radiation Internal Energy")),
+        (b"pden", (rho_units, [], None)),
+        (b"depo", ("code_length**2/code_time**2", [], None)),
+        (b"ye", ("", [], "Y_e")),
+        (b"magp", (pres_units, [], None)),
+        (b"divb", ("code_magnetic*code_length", [], None)),
+        (b"game", ("", [], "\gamma_e\/\rm{(ratio\/of\/specific\/heats)}")),
+        (b"gamc", ("", [], "\gamma_c\/\rm{(ratio\/of\/specific\/heats)}")),
+        (b"flam", ("", [], None)),
+        (b"absr", ("", [], "Absorption Coefficient")),
+        (b"emis", ("", [], "Emissivity")),
+        (b"cond", ("", [], "Conductivity")),
+        (b"dfcf", ("", [], "Diffusion Equation Scalar")),
+        (b"fllm", ("", [], "Flux Limit")),
+        (b"pipe", ("", [], "P_i/P_e")),
+        (b"tite", ("", [], "T_i/T_e")),
+        (b"dbgs", ("", [], "Debug for Shocks")),
+        (b"cham", ("", [], "Chamber Material Fraction")),
+        (b"targ", ("", [], "Target Material Fraction")),
+        (b"sumy", ("", [], None)),
+        (b"mgdc", ("", [], "Emission Minus Absorption Diffusion Terms")),
+        (b"magx", (b_units, ["magnetic_field_x"], "B_x")),
+        (b"magy", (b_units, ["magnetic_field_y"], "B_y")),
+        (b"magz", (b_units, ["magnetic_field_z"], "B_z")),
     )
 
     known_particle_fields = (
-        ("particle_posx", ("code_length", ["particle_position_x"], None)),
-        ("particle_posy", ("code_length", ["particle_position_y"], None)),
-        ("particle_posz", ("code_length", ["particle_position_z"], None)),
-        ("particle_velx", ("code_length/code_time", ["particle_velocity_x"], None)),
-        ("particle_vely", ("code_length/code_time", ["particle_velocity_y"], None)),
-        ("particle_velz", ("code_length/code_time", ["particle_velocity_z"], None)),
-        ("particle_tag", ("", ["particle_index"], None)),
-        ("particle_mass", ("code_mass", ["particle_mass"], None)),
+        (b"particle_posx", ("code_length", ["particle_position_x"], None)),
+        (b"particle_posy", ("code_length", ["particle_position_y"], None)),
+        (b"particle_posz", ("code_length", ["particle_position_z"], None)),
+        (b"particle_velx", ("code_length/code_time", ["particle_velocity_x"], None)),
+        (b"particle_vely", ("code_length/code_time", ["particle_velocity_y"], None)),
+        (b"particle_velz", ("code_length/code_time", ["particle_velocity_z"], None)),
+        (b"particle_tag", ("", ["particle_index"], None)),
+        (b"particle_mass", ("code_mass", ["particle_mass"], None)),
     )
 
     def setup_fluid_fields(self):
@@ -105,37 +105,37 @@ class FLASHFieldInfo(FieldInfoContainer):
                 display_name="Energy Group {0}".format(i))
         # Add energy fields
         def ekin(data):
-            ek = data["flash","velx"]**2
+            ek = data["flash",b"velx"]**2
             if data.ds.dimensionality >= 2:
-                ek += data["flash","vely"]**2
+                ek += data["flash",b"vely"]**2
             if data.ds.dimensionality == 3:
-                ek += data["flash","velz"]**2
+                ek += data["flash",b"velz"]**2
             return 0.5*ek
-        if ("flash","ener") in self.field_list:
-            self.add_output_field(("flash","ener"),
+        if ("flash",b"ener") in self.field_list:
+            self.add_output_field(("flash",b"ener"),
                                   units="code_length**2/code_time**2")
-            self.alias(("gas","total_energy"),("flash","ener"),
+            self.alias(("gas","total_energy"),("flash",b"ener"),
                        units="erg/g")
         else:
             def _ener(field, data):
-                ener = data["flash","eint"]+ekin(data)
+                ener = data["flash",b"eint"]+ekin(data)
                 try:
-                    ener += data["flash","magp"]/data["flash","dens"]
+                    ener += data["flash",b"magp"]/data["flash",b"dens"]
                 except:
                     pass
                 return ener
             self.add_field(("gas","total_energy"), function=_ener,
                            units="erg/g")
-        if ("flash","eint") in self.field_list:
-            self.add_output_field(("flash","eint"),
+        if ("flash",b"eint") in self.field_list:
+            self.add_output_field(("flash",b"eint"),
                                   units="code_length**2/code_time**2")
-            self.alias(("gas","thermal_energy"),("flash","eint"),
+            self.alias(("gas","thermal_energy"),("flash",b"eint"),
                        units="erg/g")
         else:
             def _eint(field, data):
-                eint = data["flash","ener"]-ekin(data)
+                eint = data["flash",b"ener"]-ekin(data)
                 try:
-                    eint -= data["flash","magp"]/data["flash","dens"]
+                    eint -= data["flash",b"magp"]/data["flash",b"dens"]
                 except:
                     pass
                 return eint
@@ -144,21 +144,21 @@ class FLASHFieldInfo(FieldInfoContainer):
         ## Derived FLASH Fields
         def _nele(field, data):
             Na_code = data.ds.quan(Na, '1/code_mass')
-            return data["flash","dens"]*data["flash","ye"]*Na_code
-        self.add_field(('flash','nele'), function=_nele, units="code_length**-3")
-        self.add_field(('flash','edens'), function=_nele, units="code_length**-3")
+            return data["flash",b"dens"]*data["flash",b"ye"]*Na_code
+        self.add_field(('flash',b'nele'), function=_nele, units="code_length**-3")
+        self.add_field(('flash',b'edens'), function=_nele, units="code_length**-3")
         def _nion(field, data):
             Na_code = data.ds.quan(Na, '1/code_mass')
-            return data["flash","dens"]*data["flash","sumy"]*Na_code
-        self.add_field(('flash','nion'), function=_nion, units="code_length**-3")
+            return data["flash",b"dens"]*data["flash",b"sumy"]*Na_code
+        self.add_field(('flash',b'nion'), function=_nion, units="code_length**-3")
         def _abar(field, data):
             try:
-                return data["flash","abar"]
+                return data["flash",b"abar"]
             except:
-                return 1.0/data["flash","sumy"]
-        self.add_field(("flash","abar"), function=_abar, units="1")
+                return 1.0/data["flash",b"sumy"]
+        self.add_field(("flash",b"abar"), function=_abar, units="1")
         def _number_density(fields,data) :
-            return (data["nele"]+data["nion"])
+            return (data[b"nele"]+data[b"nion"])
         self.add_field(("gas","number_density"), function=_number_density,
                        units="cm**-3")
 
