@@ -427,6 +427,19 @@ class ImagePlotContainer(object):
             if key not in keys:
                 del self.frb[key]
 
+    def _set_font_properties(self):
+        for f in self.plots:
+            ax = self.plots[f].axes
+            cbax = self.plots[f].cb.ax
+            labels = ax.xaxis.get_ticklabels() + ax.yaxis.get_ticklabels()
+            labels += cbax.yaxis.get_ticklabels()
+            labels += [ax.title, ax.xaxis.label, ax.yaxis.label,
+                       cbax.yaxis.label]
+            for label in labels:
+                label.set_fontproperties(self._font_properties)
+                if self._font_color is not None:
+                    label.set_color(self._font_color)
+
     @invalidate_plot
     @invalidate_figure
     def set_font(self, font_dict=None):

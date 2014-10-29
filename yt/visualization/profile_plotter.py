@@ -814,21 +814,21 @@ class PhasePlot(ImagePlotContainer):
                     self._field_transform[f] = linear_transform
                 zlim = [zmin, np.nanmax(data)]
 
-            fp = self._font_properties
+            font_size = self._font_properties.get_size()
             f = self.profile.data_source._determine_fields(f)[0]
 
             self.plots[f] = PhasePlotMPL(self.profile.x, self.profile.y, data,
                                          x_scale, y_scale, z_scale,
                                          self._colormaps[f], zlim,
-                                         self.figure_size, fp.get_size(),
+                                         self.figure_size, font_size,
                                          fig, axes, cax)
 
             self.plots[f]._toggle_axes(draw_axes)
             self.plots[f]._toggle_colorbar(draw_colorbar)
 
-            self.plots[f].axes.xaxis.set_label_text(x_title, fontproperties=fp)
-            self.plots[f].axes.yaxis.set_label_text(y_title, fontproperties=fp)
-            self.plots[f].cax.yaxis.set_label_text(z_title, fontproperties=fp)
+            self.plots[f].axes.xaxis.set_label_text(x_title)
+            self.plots[f].axes.yaxis.set_label_text(y_title)
+            self.plots[f].cax.yaxis.set_label_text(z_title)
 
             if f in self._plot_text:
                 self.plots[f].axes.text(self._text_xpos[f], self._text_ypos[f],
@@ -838,16 +838,6 @@ class PhasePlot(ImagePlotContainer):
 
             if f in self.plot_title:
                 self.plots[f].axes.set_title(self.plot_title[f])
-
-            ax = self.plots[f].axes
-            cbax = self.plots[f].cb.ax
-            labels = ((ax.xaxis.get_ticklabels() + ax.yaxis.get_ticklabels() +
-                       cbax.yaxis.get_ticklabels()) +
-                      [ax.xaxis.label, ax.yaxis.label, cbax.yaxis.label])
-            for label in labels:
-                label.set_fontproperties(fp)
-                if self._font_color is not None:
-                    label.set_color(self._font_color)
 
             # x-y axes minorticks
             if f not in self._minorticks:
@@ -870,6 +860,8 @@ class PhasePlot(ImagePlotContainer):
                     self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
             else:
                 self.plots[f].cax.minorticks_off()
+
+        self._set_font_properties()
 
         self._plot_valid = True
 
