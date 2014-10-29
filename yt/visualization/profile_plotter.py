@@ -1004,8 +1004,8 @@ class PhasePlot(ImagePlotContainer):
         >>> plot.set_title("cell_mass", "This is a phase plot")
         
         """
-
-        self.plot_title[field] = title
+        self.plot_title[self.data_source._determine_fields(field)[0]] = title
+        return self
 
     @invalidate_plot
     def reset_plot(self):
