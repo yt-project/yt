@@ -13,7 +13,7 @@ Equivalencies between different kinds of units
 
 import yt.utilities.physical_constants as pc
 from yt.units.dimensions import temperature, mass, energy, length, rate, \
-    velocity, dimensionless, density, number_density
+    velocity, dimensionless, density, number_density, flux
 from yt.extern.six import add_metaclass
 import numpy as np
 
@@ -38,6 +38,9 @@ class NumberDensityEquivalence(Equivalence):
             return x/(mu*pc.mh)
         elif new_dims == density:
             return x*mu*pc.mh
+
+    def __str__(self):
+        return "number density: density <-> number density"
 
 class ThermalEquivalence(Equivalence):
     _type_name = "thermal"
@@ -147,4 +150,17 @@ class ComptonEquivalence(Equivalence):
 
     def __str__(self):
         return "compton: mass <-> length"
+
+class EffectiveTemperature(Equivalence):
+    _type_name = "effective_temperature"
+    dims = (flux,temperature,)
+
+    def convert(self, x, new_dims):
+        if new_dims == flux:
+            return pc.stefan_boltzmann_constant_cgs*x**4
+        elif new_dims == temperature:
+            return (x/pc.stefan_boltzmann_constant_cgs)**0.25
+
+    def __str__(self):
+        return "effective_temperature: flux <-> temperature"
 
