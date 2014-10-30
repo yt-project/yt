@@ -120,7 +120,7 @@ class SZProjection(object):
             The width of the projection.
         nx : integer, optional
             The dimensions on a side of the projection image.
-        source : yt.data_objects.api.AMRData, optional
+        source : yt.data_objects.data_containers.YTSelectionContainer, optional
             If specified, this will be the data source used for selecting regions to project.
 
         Examples
@@ -182,7 +182,7 @@ class SZProjection(object):
             The width of the projection.
         nx : integer, optional
             The dimensions on a side of the projection image.
-        source : yt.data_objects.api.AMRData, optional
+        source : yt.data_objects.data_containers.YTSelectionContainer, optional
             If specified, this will be the data source used for selecting regions to project.
             Currently unsupported in yt 2.x.
 

@@ -1242,7 +1242,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
 
     Parameters
     ----------
-    data_source : AMR3DData Object
+    data_source : YTSelectionContainer Object
         The data object to be profiled.
     bin_fields : list of strings
         List of the binning fields for profiling.
