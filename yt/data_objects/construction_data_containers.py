@@ -850,7 +850,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
     
     Parameters
     ----------
-    data_source : YTDataContainer
+    data_source : YTSelectionContainer
         This is the object which will used as a source
     surface_field : string
         Any field that can be obtained in a data object.  This is the field
