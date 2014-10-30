@@ -34,7 +34,6 @@ def load(*args ,**kwargs):
     match, at which point it returns an instance of the appropriate
     :class:`yt.data_objects.api.Dataset` subclass.
     """
-    print("BEGINNING OF LOAD")
     if len(args) == 0:
         try:
             from yt.extern.six.moves import tkinter
@@ -51,7 +50,6 @@ def load(*args ,**kwargs):
     args = [os.path.expanduser(arg) if isinstance(arg, str)
             else arg for arg in args]
     valid_file = []
-    print("HERE1")
     for argno, arg in enumerate(args):
         if isinstance(arg, str):
             if os.path.exists(arg):
@@ -76,18 +74,11 @@ def load(*args ,**kwargs):
         mylog.error("None of the arguments provided to load() is a valid file")
         mylog.error("Please check that you have used a correct path")
         raise YTOutputNotIdentified(args, kwargs)
-    print("HERE2")
     for n, c in output_type_registry.items():
         if n is None: continue
         if c._is_valid(*args, **kwargs): candidates.append(n)
-    print("HERE5")
-    print(candidates[0])
-    print(args)
-    print(" ")
-    print(kwargs)
     if len(candidates) == 1:
         return output_type_registry[candidates[0]](*args, **kwargs)
-    print("HERE4")
     if len(candidates) == 0:
         if ytcfg.get("yt", "enzo_db") != '' \
            and len(args) == 1 \
@@ -100,12 +91,10 @@ def load(*args ,**kwargs):
                 return output_type_registry[n](fn)
         mylog.error("Couldn't figure out output type for %s", args[0])
         raise YTOutputNotIdentified(args, kwargs)
-    print("HERE3")
     mylog.error("Multiple output type candidates for %s:", args[0])
     for c in candidates:
         mylog.error("    Possible: %s", c)
     raise YTOutputNotIdentified(args, kwargs)
-    print("END OF LOAD")
 
 def projload(ds, axis, weight_field = None):
     # This is something of a hack, so that we can just get back a projection
