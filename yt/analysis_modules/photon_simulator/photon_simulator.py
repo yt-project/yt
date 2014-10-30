@@ -150,7 +150,7 @@ class PhotonList(object):
         Parameters
         ----------
 
-        data_source : `yt.data_objects.api.AMRData`
+        data_source : `yt.data_objects.data_containers.YTSelectionContainer`
             The data source from which the photons will be generated.
         redshift : float
             The cosmological redshift for the photons.

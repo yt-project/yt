@@ -183,7 +183,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     center : array_like, optional
         The 'center' supplied to fields that use it.  Note that this does
         not have to have `coord` as one value.  Strictly optional.
-    data_source : `yt.data_objects.api.AMRData`, optional
+    data_source : `yt.data_objects.data_containers.YTSelectionContainer`, optional
         If specified, this will be the data source used for selecting
         regions to project.
     method : string, optional
@@ -850,7 +850,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
     
     Parameters
     ----------
-    data_source : AMR3DDataObject
+    data_source : YTDataContainer
         This is the object which will used as a source
     surface_field : string
         Any field that can be obtained in a data object.  This is the field

@@ -120,7 +120,7 @@ class ProfilePlot(object):
     
     Parameters
     ----------
-    data_source : AMR3DData Object
+    data_source : YTSelectionContainer Object
         The data object to be profiled, such as all_data, region, or 
         sphere.
     x_field : str
@@ -618,7 +618,7 @@ class PhasePlot(ImagePlotContainer):
     
     Parameters
     ----------
-    data_source : AMR3DData Object
+    data_source : YTSelectionContainer Object
         The data object to be profiled, such as all_data, region, or 
         sphere.
     x_field : str

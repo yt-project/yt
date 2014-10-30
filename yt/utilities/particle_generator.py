@@ -319,7 +319,7 @@ class WithDensityParticleGenerator(ParticleGenerator) :
         ----------
         ds : `Dataset`
             The dataset which will serve as the base for these particles.
-        data_source : `yt.data_objects.api.AMRData`
+        data_source : `yt.data_objects.data_containers.YTSelectionContainer`
             The data source containing the density field.
         num_particles : int
             The number of particles to be generated
