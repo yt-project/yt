@@ -122,6 +122,7 @@ class ParameterFileStore(object):
         fp = ds_dict['fp']
         fn = os.path.join(fp, bn)
         class_name = ds_dict['class_name']
+        print("HERE 2.1")
         if class_name not in output_type_registry:
             raise UnknownDatasetType(class_name)
         mylog.info("Checking %s", fn)

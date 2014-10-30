@@ -71,13 +71,18 @@ class FLASHHierarchy(GridIndex):
         pass
 
     def _detect_output_fields(self):
+        from sys import version
         ncomp = self._handle["/unknown names"].shape[0]
-        self.field_list = [("flash", s.decode('utf-8')) for s in self._handle["/unknown names"][:].flat]
-        if ("/particle names" in self._particle_handle) :
-            self.field_list += [("io", "particle_" + s[0].strip().decode('utf-8')) for s
-                                in self._particle_handle["/particle names"][:]]
-        print("HERE")
-        print(self.field_list.keys())
+        if version < '3':
+            self.field_list = [("flash", s) for s in self._handle["/unknown names"][:].flat]
+            if ("/particle names" in self._particle_handle) :
+                self.field_list += [("io", "particle_" + s[0].strip()) for s
+                                    in self._particle_handle["/particle names"][:]]
+        else:
+            self.field_list = [("flash", s.decode('utf-8')) for s in self._handle["/unknown names"][:].flat]
+            if ("/particle names" in self._particle_handle) :
+                self.field_list += [("io", "particle_" + s[0].strip().decode('utf-8')) for s
+                                    in self._particle_handle["/particle names"][:]]
     
     def _count_grids(self):
         try:
@@ -195,12 +200,15 @@ class FLASHDataset(Dataset):
                  particle_filename = None, 
                  conversion_override = None):
 
+        print("HERE 3.1")
         self.fluid_types += ("flash",)
         if self._handle is not None: return
         self._handle = HDF5FileHandler(filename)
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
         
+        print("HERE 3.2")
+
         self.particle_filename = particle_filename
 
         if self.particle_filename is None :
@@ -215,10 +223,11 @@ class FLASHDataset(Dataset):
         # generalization.
         self.refine_by = 2
 
+        print(dataset_type)
         Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
-        self.parameters["HydroMethod"] = bytes('flash','utf-8') # always PPM DE
+        self.parameters["HydroMethod"] = 'flash' # always PPM DE
         self.parameters["Time"] = 1. # default unit is 1...
         
     def _set_code_unit_attributes(self):
@@ -260,17 +269,32 @@ class FLASHDataset(Dataset):
     def _find_parameter(self, ptype, pname, scalar = False):
         nn = "/%s %s" % (ptype,
                 {False: "runtime parameters", True: "scalars"}[scalar])
+        #print("HERE s3.6")
+        #print(nn)
+        #print(pname)
+        #print(self._handle.keys())
+        #print(self.parameters)
+        #print(self._handle[:][:,'name'])
         if nn not in self._handle: raise KeyError(nn)
         for tpname, pval in zip(self._handle[nn][:,'name'],
                                 self._handle[nn][:,'value']):
-            if tpname.strip() == pname:
+            #print(self._handle[nn][:,'name'])
+            #print(tpname)
+            #print(pval)
+            if tpname.strip().decode('utf-8') == pname:
                 if ptype == "string":
                     return pval.strip()
                 else:
                     return pval
+        #print("here?????")
+        #print(pname)
+        #print(pval)
         raise KeyError(pname)
 
     def _parse_parameter_file(self):
+        from sys import version
+        print("HERE s3.8")
+        print(self._handle.keys())
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         if "file format version" in self._handle:
@@ -281,10 +305,12 @@ class FLASHDataset(Dataset):
                 self._handle["sim info"][:]["file format version"])
         else:
             raise RuntimeError("Can't figure out FLASH file version.")
+        print("HERE 3.3")
         # First we load all of the parameters
         hns = [u"simulation parameters"]
         # note the ordering here is important: runtime parameters should
         # ovewrite scalars with the same name.
+        print("HERE s3.4")
         for ptype in ['scalars', 'runtime parameters']:
             for vtype in ['integer', 'real', 'logical', 'string']:
                 hns.append("%s %s" % (vtype, ptype))
@@ -294,9 +320,15 @@ class FLASHDataset(Dataset):
                     continue
                 for varname, val in zip(self._handle[hn][:,'name'],
                                         self._handle[hn][:,'value']):
-                    vn = varname.strip()
+                    if version < '3':
+                        vn = varname.strip()
+                    else:
+                        vn = varname.strip().decode('utf-8') # JPN
                     if hn.startswith("string") :
-                        pval = val.strip()
+                        if version < '3':
+                            pval = val.strip()
+                        else:
+                            pval = val.strip().decode('utf-8') # JPN
                     else :
                         pval = val
                     if vn in self.parameters and self.parameters[vn] != pval:
@@ -333,7 +365,7 @@ class FLASHDataset(Dataset):
         
         # Determine dimensionality
         try:
-            dimensionality = self.parameters["dimensionality"].decode('utf-8')
+            dimensionality = self.parameters["dimensionality"]
         except KeyError:
             dimensionality = 3
             if nzb == 1: dimensionality = 2
@@ -343,7 +375,7 @@ class FLASHDataset(Dataset):
         
         self.dimensionality = dimensionality
 
-        self.geometry = self.parameters["geometry"].decode('utf-8')
+        self.geometry = self.parameters["geometry"]
         # Determine base grid parameters
         if 'lrefine_min' in self.parameters.keys() : # PARAMESH
             nblockx = self.parameters["nblockx"]
@@ -359,10 +391,14 @@ class FLASHDataset(Dataset):
         if self.dimensionality == 1 : nblocky = 1
 
         #print(self.parameters.keys())
+        #self.domain_left_edge = np.array(
+        #    [self.parameters[bytes("%smin" % ax, 'utf-8')] for ax in 'xyz']).astype("float64")
+        #self.domain_right_edge = np.array(
+        #    [self.parameters[bytes("%smax" % ax, 'utf-8')] for ax in 'xyz']).astype("float64")
         self.domain_left_edge = np.array(
-            [self.parameters[bytes("%smin" % ax, 'utf-8')] for ax in 'xyz']).astype("float64")
+            [self.parameters["%smin" % ax] for ax in 'xyz']).astype("float64")
         self.domain_right_edge = np.array(
-            [self.parameters[bytes("%smax" % ax, 'utf-8')] for ax in 'xyz']).astype("float64")
+            [self.parameters["%smax" % ax] for ax in 'xyz']).astype("float64")
         if self.dimensionality < 3:
             for d in [dimensionality]+range(3-dimensionality):
                 if self.domain_left_edge[d] == self.domain_right_edge[d]:
@@ -399,10 +435,10 @@ class FLASHDataset(Dataset):
         try: 
             self.parameters["usecosmology"]
             self.cosmological_simulation = 1
-            self.current_redshift = 1.0/self.parameters['scalefactor'].decode('utf-8') - 1.0
-            self.omega_lambda = self.parameters['cosmologicalconstant'].decode('utf-8')
-            self.omega_matter = self.parameters['omegamatter'].decode('utf-8')
-            self.hubble_constant = self.parameters['hubbleconstant'].decode('utf-8')
+            self.current_redshift = 1.0/self.parameters['scalefactor'] - 1.0
+            self.omega_lambda = self.parameters['cosmologicalconstant']
+            self.omega_matter = self.parameters['omegamatter']
+            self.hubble_constant = self.parameters['hubbleconstant']
             self.hubble_constant *= cm_per_mpc * 1.0e-5 * 1.0e-2 # convert to 'h'
         except:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
