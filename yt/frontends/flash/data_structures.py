@@ -200,15 +200,12 @@ class FLASHDataset(Dataset):
                  particle_filename = None, 
                  conversion_override = None):
 
-        print("HERE 3.1")
         self.fluid_types += ("flash",)
         if self._handle is not None: return
         self._handle = HDF5FileHandler(filename)
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
         
-        print("HERE 3.2")
-
         self.particle_filename = particle_filename
 
         if self.particle_filename is None :
@@ -223,7 +220,6 @@ class FLASHDataset(Dataset):
         # generalization.
         self.refine_by = 2
 
-        print(dataset_type)
         Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
@@ -267,34 +263,28 @@ class FLASHDataset(Dataset):
                                   self.temperature_unit.value)
 
     def _find_parameter(self, ptype, pname, scalar = False):
+        from sys import version
         nn = "/%s %s" % (ptype,
                 {False: "runtime parameters", True: "scalars"}[scalar])
-        #print("HERE s3.6")
-        #print(nn)
-        #print(pname)
-        #print(self._handle.keys())
-        #print(self.parameters)
-        #print(self._handle[:][:,'name'])
         if nn not in self._handle: raise KeyError(nn)
         for tpname, pval in zip(self._handle[nn][:,'name'],
                                 self._handle[nn][:,'value']):
-            #print(self._handle[nn][:,'name'])
-            #print(tpname)
-            #print(pval)
-            if tpname.strip().decode('utf-8') == pname:
-                if ptype == "string":
-                    return pval.strip()
-                else:
-                    return pval
-        #print("here?????")
-        #print(pname)
-        #print(pval)
+            if version < '3':
+                if tpname.strip() == pname:
+                    if ptype == "string":
+                        return pval.strip()
+                    else:
+                        return pval
+            else:
+                if tpname.strip().decode('utf-8') == pname:
+                    if ptype == "string":
+                        return pval.strip()
+                    else:
+                        return pval
         raise KeyError(pname)
 
     def _parse_parameter_file(self):
         from sys import version
-        print("HERE s3.8")
-        print(self._handle.keys())
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         if "file format version" in self._handle:
@@ -305,12 +295,10 @@ class FLASHDataset(Dataset):
                 self._handle["sim info"][:]["file format version"])
         else:
             raise RuntimeError("Can't figure out FLASH file version.")
-        print("HERE 3.3")
         # First we load all of the parameters
         hns = [u"simulation parameters"]
         # note the ordering here is important: runtime parameters should
         # ovewrite scalars with the same name.
-        print("HERE s3.4")
         for ptype in ['scalars', 'runtime parameters']:
             for vtype in ['integer', 'real', 'logical', 'string']:
                 hns.append("%s %s" % (vtype, ptype))
@@ -390,11 +378,6 @@ class FLASHDataset(Dataset):
         if self.dimensionality <= 2 : nblockz = 1
         if self.dimensionality == 1 : nblocky = 1
 
-        #print(self.parameters.keys())
-        #self.domain_left_edge = np.array(
-        #    [self.parameters[bytes("%smin" % ax, 'utf-8')] for ax in 'xyz']).astype("float64")
-        #self.domain_right_edge = np.array(
-        #    [self.parameters[bytes("%smax" % ax, 'utf-8')] for ax in 'xyz']).astype("float64")
         self.domain_left_edge = np.array(
             [self.parameters["%smin" % ax] for ax in 'xyz']).astype("float64")
         self.domain_right_edge = np.array(
