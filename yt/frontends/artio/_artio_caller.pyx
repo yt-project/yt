@@ -203,10 +203,14 @@ cdef class artio_fileset :
             status = artio_fileset_open_particles(self.handle)
             check_artio_status(status)
             self.has_particles = 1
+	    
+            print("HERE p1.0")
+            print(self.parameters) #**HERE- check what self.parameters is in python2!!
 
             for v in ["num_particle_species","num_primary_variables","num_secondary_variables"]:
                 if not self.parameters.has_key(v):
                     raise RuntimeError("Unable to locate particle header information in artio header: key=", v)
+            print("HERE p1.1")
 
             self.num_species = self.parameters['num_particle_species'][0]
             self.particle_position_index = <int *>malloc(3*sizeof(int)*self.num_species)

@@ -1104,7 +1104,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
             if version >= '3':
                 cs = [float(field) for field in cs]
                 cs = np.array(cs)
-            mi = cs.min()
+            mi = cs.min()  
         else:
             mi = color_field_min
             if color_log: mi = np.log10(mi)
