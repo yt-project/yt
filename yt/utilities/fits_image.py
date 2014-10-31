@@ -329,7 +329,29 @@ class FITSSlice(FITSImageBuffer):
          as a tuple containing a coordinate and string unit name or by passing
          in a YTArray.  If a list or unitless array is supplied, code units are
          assumed.
-    width : 
+    width : tuple or a float.
+         Width can have four different formats to support windows with variable
+         x and y widths.  They are:
+
+         ==================================     =======================
+         format                                 example
+         ==================================     =======================
+         (float, string)                        (10,'kpc')
+         ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+         float                                  0.2
+         (float, float)                         (0.2, 0.3)
+         ==================================     =======================
+
+         For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
+         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
+         window that is 10 kiloparsecs wide along the x axis and 15
+         kiloparsecs wide along the y axis.  In the other two examples, code
+         units are assumed, for example (0.2, 0.3) requests a plot that has an
+         x width of 0.2 and a y width of 0.3 in code units.  If units are
+         provided the resulting plot axis labels will use the supplied units.
+    image_res : an int or 2-tuple of ints
+        Specify the resolution of the resulting image. If not provided, it will be
+        determined based on the minimum cell size of the dataset.
     """
     def __init__(self, ds, axis, fields, center="c", width=None, **kwargs):
         fields = ensure_list(fields)
@@ -364,7 +386,29 @@ class FITSProjection(FITSImageBuffer):
         as a tuple containing a coordinate and string unit name or by passing
         in a YTArray.  If a list or unitless array is supplied, code units are
         assumed.
-    width :
+    width : tuple or a float.
+         Width can have four different formats to support windows with variable
+         x and y widths.  They are:
+
+         ==================================     =======================
+         format                                 example
+         ==================================     =======================
+         (float, string)                        (10,'kpc')
+         ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+         float                                  0.2
+         (float, float)                         (0.2, 0.3)
+         ==================================     =======================
+
+         For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
+         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
+         window that is 10 kiloparsecs wide along the x axis and 15
+         kiloparsecs wide along the y axis.  In the other two examples, code
+         units are assumed, for example (0.2, 0.3) requests a plot that has an
+         x width of 0.2 and a y width of 0.3 in code units.  If units are
+         provided the resulting plot axis labels will use the supplied units.
+    image_res : an int or 2-tuple of ints
+        Specify the resolution of the resulting image. If not provided, it will be
+        determined based on the minimum cell size of the dataset.
     """
     def __init__(self, ds, axis, fields, center="c", width=None, 
                  weight_field=None, image_res=None, **kwargs):
