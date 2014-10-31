@@ -273,8 +273,8 @@ def construct_image(data_source, center=None, width=None, image_res=None):
         dd = ds.all_data()
         dx, dy = [dd.quantities.extrema("d%s" % "xyz"[idx])[0]
                   for idx in axis_wcs[axis]]
-        nx = int(width[0]/dx).in_units("dimensionless")
-        ny = int(width[1]/dy).in_units("dimensionless")
+        nx = int((width[0]/dx).in_units("dimensionless"))
+        ny = int((width[1]/dy).in_units("dimensionless"))
     else:
         if iterable(image_res):
             nx, ny = image_res
