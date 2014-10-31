@@ -168,9 +168,12 @@ cdef class artio_fileset :
 
         self.read_parameters()
 
+        print('HERE 1.0')
         self.num_root_cells = self.parameters['num_root_cells'][0]
+        print('HERE 1.2')
         self.num_grid = 1
         num_root = self.num_root_cells
+        print('HERE 1.1')
         while num_root > 1 :
             self.num_grid <<= 1
             num_root >>= 3
@@ -242,6 +245,7 @@ cdef class artio_fileset :
         if self.handle : artio_fileset_close(self.handle)
   
     def read_parameters(self) :
+        from sys import version
         cdef char key[64]
         cdef int type
         cdef int length
@@ -252,8 +256,10 @@ cdef class artio_fileset :
         cdef double *double_values
 
         self.parameters = {}
+        print('HERE 1.3')
 
         while artio_parameter_iterate( self.handle, key, &type, &length ) == ARTIO_SUCCESS :
+	    
             if type == ARTIO_TYPE_STRING :
                 char_values = <char **>malloc(length*sizeof(char *))
                 for i in range(length) :
@@ -263,6 +269,9 @@ cdef class artio_fileset :
                 for i in range(length) :
                     free(char_values[i])
                 free(char_values)
+                if version >= '3':
+                    for i in range(0,len(parameter)):
+                        parameter[i] = parameter[i].decode('utf-8')
             elif type == ARTIO_TYPE_INT :
                 int_values = <int32_t *>malloc(length*sizeof(int32_t))
                 artio_parameter_get_int_array( self.handle, key, length, int_values )
@@ -286,7 +295,10 @@ cdef class artio_fileset :
             else :
                 raise RuntimeError("ARTIO file corruption detected: invalid type!")
 
-            self.parameters[key] = parameter
+            if version >= '3':
+                self.parameters[key.decode('utf-8')] = parameter
+            else:
+                self.parameters[key] = parameter
 
 #    @cython.boundscheck(False)
     @cython.wraparound(False)
