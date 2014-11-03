@@ -42,7 +42,7 @@ from yt.units.unit_lookup_table import \
     unit_prefixes
 from yt.units import dimensions
 from yt.units.yt_array import YTQuantity
-from yt.utilities.on_demand_imports import _astropy
+from yt.utilities.on_demand_imports import _astropy, NotAModule
 
 lon_prefixes = ["X","RA","GLON","LINEAR"]
 lat_prefixes = ["Y","DEC","GLAT","LINEAR"]
@@ -664,6 +664,8 @@ class FITSDataset(Dataset):
             ext = args[0].rsplit(".", 1)[0].rsplit(".", 1)[-1]
         if ext.upper() not in ("FITS", "FTS"):
             return False
+        elif isinstance(_astropy.pyfits, NotAModule):
+            mylog.warning("This appears to be a FITS file, but AstroPy is not installed.")
         try:
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore', category=UserWarning, append=True)
