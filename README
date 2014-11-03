@@ -44,7 +44,7 @@ frontends supported in python3:
 - then orion 2
 - then pluto
 -------------------
-- working on fits 
+- fits is done -> just need astropy installed
 - then grid data format
 - then owls
 - then rockstar
