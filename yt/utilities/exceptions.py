@@ -426,7 +426,6 @@ class YTGDFAlreadyExists(Exception):
     def __str__(self):
         return "A file already exists at %s and clobber=False." % self.filename
 
-
 class YTGDFUnknownGeometry(Exception):
     def __init__(self, geometry):
         self.geometry = geometry
@@ -435,4 +434,14 @@ class YTGDFUnknownGeometry(Exception):
         return '''Unknown geometry %i. Please refer to GDF standard
                   for more information''' % self.geometry
 
+class YTInvalidUnitEquivalence(Exception):
+    def __init__(self, equiv, unit1, unit2):
+        self.equiv = equiv
+        self.unit1 = unit1
+        self.unit2 = unit2
+
+    def __str__(self):
+        return "The unit equivalence '%s' does not exist for the units '%s' and '%s.'" % (self.equiv,
+                                                                                          self.unit1,
+                                                                                          self.unit2)
 
