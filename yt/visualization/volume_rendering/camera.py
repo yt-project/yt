@@ -2252,14 +2252,14 @@ class ProjectionCamera(Camera):
         dd = ds.all_data()
         field = dd._determine_fields([self.field])[0]
         finfo = ds._get_field_info(*field)
+        dl = 1.0
         if self.method == "integrate":
             if self.weight is None:
-                dl = self.width[2]
-                image *= dl
+                dl = self.width[2].in_units("cm")
             else:
                 image[:,:,0] /= image[:,:,1]
 
-        return image[:,:,0]
+        return ImageArray(image[:,:,0], finfo.units)*dl
 
 
     def _render(self, double_check, num_threads, image, sampler):
