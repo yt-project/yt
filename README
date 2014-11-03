@@ -27,20 +27,24 @@ JPN Notes:
 
 SKIP: chombo & boxlib
 
-MISSING test files: art? gdf? stream? sph?... check it out...
+MISSING test files: art?  stream? sph?... check it out...
 
 frontends supported in python3:
 -enzo
 -flash
 -artio is done, but there are no surfaces... yet
 -athena is done
-- working on castro at the moment
+-----boxlib?---------
+- castro
 - then maestro
 - then nyx
 - then orion
+---------------------
+-----chombo?--------
 - then orion 2
 - then pluto
-- then fits 
+-------------------
+- working on fits 
 - then grid data format
 - then owls
 - then rockstar
