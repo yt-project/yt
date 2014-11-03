@@ -339,9 +339,8 @@ class ProfilePlot(object):
 
     @classmethod
     def _initialize_instance(cls, obj, profiles, labels, plot_specs, y_log):
-        if not hasattr(obj, "x_log"):
-            obj.x_log = None
         obj.profiles = ensure_list(profiles)
+        obj.x_log = None
         obj.y_log = {}
         if y_log is not None:
             for field, log in y_log.items():
