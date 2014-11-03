@@ -2400,7 +2400,9 @@ def off_axis_projection(ds, center, normal_vector, width, resolution,
 
          "sum" : This method is the same as integrate, except that it does not
          multiply by a path length when performing the integration, and is
-         just a straight summation of the field along the given axis.
+         just a straight summation of the field along the given axis. WARNING:
+         This should only be used for uniform resolution grid datasets, as other
+         datasets may result in unphysical images.
 
     Returns
     -------

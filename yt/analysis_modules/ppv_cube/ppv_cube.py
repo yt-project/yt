@@ -18,6 +18,7 @@ from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.funcs import get_pbar
 from yt.utilities.physical_constants import clight, mh
 import yt.units.dimensions as ytdims
+from yt.units.yt_array import YTQuantity
 from yt.funcs import iterable
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only, parallel_objects
@@ -60,11 +61,20 @@ class PPVCube(object):
             principal axes of the domain ("x","y", or "z").
         field : string
             The field to project.
-        center : float, tuple, or string
-            The coordinates of the dataset *ds* on which to center the PPVCube.
-        width : float or tuple, optional
-            The width of the projection in length units. Specify a float
-            for code_length units or a tuple (value, units).
+        center : A sequence of floats, a string, or a tuple.
+            The coordinate of the center of the image. If set to 'c', 'center' or
+            left blank, the plot is centered on the middle of the domain. If set to
+            'max' or 'm', the center will be located at the maximum of the
+            ('gas', 'density') field. Centering on the max or min of a specific
+            field is supported by providing a tuple such as ("min","temperature") or
+            ("max","dark_matter_density"). Units can be specified by passing in *center*
+            as a tuple containing a coordinate and string unit name or by passing
+            in a YTArray. If a list or unitless array is supplied, code units are
+            assumed.
+        width : float, tuple, or YTQuantity.
+            The width of the projection. A float will assume the width is in code units.
+            A (value, unit) tuple or YTQuantity allows for the units of the width to be
+            specified.
         dims : tuple, optional
             A 3-tuple of dimensions (nx,ny,nv) for the cube.
         velocity_bounds : tuple, optional
@@ -163,6 +173,8 @@ class PPVCube(object):
         # Now fix the width
         if iterable(self.width):
             self.width = ds.quan(self.width[0], self.width[1])
+        elif isinstance(self.width, YTQuantity):
+            self.width = width
         else:
             self.width = ds.quan(self.width, "code_length")
 

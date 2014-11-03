@@ -115,10 +115,19 @@ class SZProjection(object):
         ----------
         axis : integer or string
             The axis of the simulation domain along which to make the SZprojection.
-        center : array_like or string, optional
-            The center of the projection.
-        width : float or tuple
-            The width of the projection.
+        center : A sequence of floats, a string, or a tuple.
+            The coordinate of the center of the image. If set to 'c', 'center' or
+            left blank, the plot is centered on the middle of the domain. If set to
+            'max' or 'm', the center will be located at the maximum of the
+            ('gas', 'density') field. Centering on the max or min of a specific
+            field is supported by providing a tuple such as ("min","temperature") or
+            ("max","dark_matter_density"). Units can be specified by passing in *center*
+            as a tuple containing a coordinate and string unit name or by passing
+            in a YTArray. If a list or unitless array is supplied, code units are
+            assumed.
+        width : float, tuple, or YTQuantity.
+            The width of the projection. A float will assume the width is in code units.
+            A (value, unit) tuple or YTQuantity allows for the units of the width to be specified.
         nx : integer, optional
             The dimensions on a side of the projection image.
         source : yt.data_objects.data_containers.YTSelectionContainer, optional
@@ -129,13 +138,8 @@ class SZProjection(object):
         >>> szprj.on_axis("y", center="max", width=(1.0, "Mpc"), source=my_sphere)
         """
         axis = fix_axis(axis, self.ds)
-
-        if center == "c":
-            ctr = self.ds.domain_center
-        elif center == "max":
-            v, ctr = self.ds.find_max("density")
-        else:
-            ctr = center
+        ctr, dctr = self.ds.coordinates.sanitize_center(center, axis)
+        width = self.ds.coordinates.sanitize_width(axis, width, None)
 
         L = np.zeros((3))
         L[axis] = 1.0
@@ -177,10 +181,19 @@ class SZProjection(object):
         ----------
         L : array_like
             The normal vector of the projection.
-        center : array_like or string, optional
-            The center of the projection.
-        width : float or tuple
-            The width of the projection.
+        center : A sequence of floats, a string, or a tuple.
+            The coordinate of the center of the image. If set to 'c', 'center' or
+            left blank, the plot is centered on the middle of the domain. If set to
+            'max' or 'm', the center will be located at the maximum of the
+            ('gas', 'density') field. Centering on the max or min of a specific
+            field is supported by providing a tuple such as ("min","temperature") or
+            ("max","dark_matter_density"). Units can be specified by passing in *center*
+            as a tuple containing a coordinate and string unit name or by passing
+            in a YTArray. If a list or unitless array is supplied, code units are
+            assumed.
+        width : float, tuple, or YTQuantity.
+            The width of the projection. A float will assume the width is in code units.
+            A (value, unit) tuple or YTQuantity allows for the units of the width to be specified.
         nx : integer, optional
             The dimensions on a side of the projection image.
         source : yt.data_objects.data_containers.YTSelectionContainer, optional
@@ -198,12 +211,7 @@ class SZProjection(object):
             w = width.in_units("code_length").value
         else:
             w = width
-        if center == "c":
-            ctr = self.ds.domain_center
-        elif center == "max":
-            v, ctr = self.ds.find_max("density")
-        else:
-            ctr = center
+        ctr, dctr = self.ds.coordinates.sanitize_center(center, L)
 
         if source is not None:
             mylog.error("Source argument is not currently supported for off-axis S-Z projections.")

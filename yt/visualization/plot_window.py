@@ -960,13 +960,15 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          or the axis name itself
     fields : string
          The name of the field(s) to be plotted.
-    center : A sequence floats, a string, or a tuple.
+    center : A sequence of floats, a string, or a tuple.
          The coordinate of the center of the image. If set to 'c', 'center' or
          left blank, the plot is centered on the middle of the domain. If set to
          'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Units can be specified by passing in center
+         ('gas', 'density') field. Centering on the max or min of a specific
+         field is supported by providing a tuple such as ("min","temperature") or
+         ("max","dark_matter_density"). Units can be specified by passing in *center*
          as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray.  If a list or unitless array is supplied, code units are
+         in a YTArray. If a list or unitless array is supplied, code units are
          assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
@@ -1081,13 +1083,15 @@ class ProjectionPlot(PWViewerMPL):
          or the axis name itself
     fields : string
          The name of the field(s) to be plotted.
-    center : A sequence floats, a string, or a tuple.
+    center : A sequence of floats, a string, or a tuple.
          The coordinate of the center of the image. If set to 'c', 'center' or
          left blank, the plot is centered on the middle of the domain. If set to
          'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Units can be specified by passing in center
+         ('gas', 'density') field. Centering on the max or min of a specific
+         field is supported by providing a tuple such as ("min","temperature") or
+         ("max","dark_matter_density"). Units can be specified by passing in *center*
          as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray.  If a list or unitless array is supplied, code units are
+         in a YTArray. If a list or unitless array is supplied, code units are
          assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
@@ -1164,7 +1168,9 @@ class ProjectionPlot(PWViewerMPL):
 
          "sum" : This method is the same as integrate, except that it does not 
          multiply by a path length when performing the integration, and is 
-         just a straight summation of the field along the given axis. 
+         just a straight summation of the field along the given axis. WARNING:
+         This should only be used for uniform resolution grid datasets, as other
+         datasets may result in unphysical images.
     proj_style : string
          The method of projection--same as method keyword.  Deprecated as of 
          version 3.0.2.  Please use method instead.
@@ -1238,13 +1244,15 @@ class OffAxisSlicePlot(PWViewerMPL):
          The vector normal to the slicing plane.
     fields : string
          The name of the field(s) to be plotted.
-    center : A sequence floats, a string, or a tuple.
+    center : A sequence of floats, a string, or a tuple.
          The coordinate of the center of the image. If set to 'c', 'center' or
          left blank, the plot is centered on the middle of the domain. If set to
          'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Units can be specified by passing in center
+         ('gas', 'density') field. Centering on the max or min of a specific
+         field is supported by providing a tuple such as ("min","temperature") or
+         ("max","dark_matter_density"). Units can be specified by passing in *center*
          as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray.  If a list or unitless array is supplied, code units are
+         in a YTArray. If a list or unitless array is supplied, code units are
          assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
@@ -1349,13 +1357,15 @@ class OffAxisProjectionPlot(PWViewerMPL):
         The vector normal to the slicing plane.
     fields : string
         The name of the field(s) to be plotted.
-    center : A sequence floats, a string, or a tuple.
+    center : A sequence of floats, a string, or a tuple.
          The coordinate of the center of the image. If set to 'c', 'center' or
          left blank, the plot is centered on the middle of the domain. If set to
          'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Units can be specified by passing in center
+         ('gas', 'density') field. Centering on the max or min of a specific
+         field is supported by providing a tuple such as ("min","temperature") or
+         ("max","dark_matter_density"). Units can be specified by passing in *center*
          as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray.  If a list or unitless array is supplied, code units are
+         in a YTArray. If a list or unitless array is supplied, code units are
          assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
@@ -1407,7 +1417,9 @@ class OffAxisProjectionPlot(PWViewerMPL):
 
          "sum" : This method is the same as integrate, except that it does not
          multiply by a path length when performing the integration, and is
-         just a straight summation of the field along the given axis.
+         just a straight summation of the field along the given axis. WARNING:
+         This should only be used for uniform resolution grid datasets, as other
+         datasets may result in unphysical images.
     """
     _plot_type = 'OffAxisProjection'
     _frb_generator = OffAxisProjectionFixedResolutionBuffer
@@ -1767,9 +1779,11 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
          The coordinate of the center of the image. If set to 'c', 'center' or
          left blank, the plot is centered on the middle of the domain. If set to
          'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Units can be specified by passing in center
+         ('gas', 'density') field. Centering on the max or min of a specific
+         field is supported by providing a tuple such as ("min","temperature") or
+         ("max","dark_matter_density"). Units can be specified by passing in *center*
          as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray.  If a list or unitless array is supplied, code units are
+         in a YTArray. If a list or unitless array is supplied, code units are
          assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
