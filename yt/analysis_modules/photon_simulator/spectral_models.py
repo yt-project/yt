@@ -39,7 +39,7 @@ class SpectralModel(object):
         self.emax = emax*units.keV
         self.nchan = nchan
         self.ebins = np.linspace(emin, emax, nchan+1)*units.keV
-        self.de = np.diff(self.ebins)*units.keV
+        self.de = np.diff(self.ebins)
         self.emid = 0.5*(self.ebins[1:]+self.ebins[:-1])
         
     def prepare(self):
