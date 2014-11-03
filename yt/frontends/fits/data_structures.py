@@ -665,7 +665,7 @@ class FITSDataset(Dataset):
         if ext.upper() not in ("FITS", "FTS"):
             return False
         elif isinstance(_astropy.pyfits, NotAModule):
-            mylog.warning("This appears to be a FITS file, but AstroPy is not installed.")
+            raise RuntimeError("This appears to be a FITS file, but AstroPy is not installed.")
         try:
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore', category=UserWarning, append=True)
