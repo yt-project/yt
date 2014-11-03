@@ -150,6 +150,15 @@ class ProfilePlot(object):
         A dictionary or list of dictionaries containing plot keyword 
         arguments.  For example, dict(color="red", linestyle=":").
         Default: None.
+    x_log : bool
+        If not None, whether the x_axis should be plotted with a logarithmic
+        scaling.
+        Default: None
+    y_log : dict
+        A dictionary containing field:boolean pairs, setting the logarithmic
+        property for that field. May be overridden after instantiation using 
+        set_log.
+        Default: None
 
     Examples
     --------
@@ -189,7 +198,6 @@ class ProfilePlot(object):
     """
     x_log = None
     y_log = None
-    z_log = None
     x_title = None
     y_title = None
     _plot_valid = False
@@ -197,21 +205,28 @@ class ProfilePlot(object):
     def __init__(self, data_source, x_field, y_fields,
                  weight_field="cell_mass", n_bins=64,
                  accumulation=False, fractional=False,
-                 label=None, plot_spec=None):
+                 label=None, plot_spec=None,
+                 x_log=None, y_log=None):
+
+        if x_log is None:
+            logs = None
+        else:
+            logs = {x_field:x_log}
 
         profiles = [create_profile(data_source, [x_field],
                                    n_bins=[n_bins],
                                    fields=ensure_list(y_fields),
                                    weight_field=weight_field,
                                    accumulation=accumulation,
-                                   fractional=fractional)]
+                                   fractional=fractional,
+                                   logs=logs)]
 
         if plot_spec is None:
             plot_spec = [dict() for p in profiles]
         if not isinstance(plot_spec, list):
             plot_spec = [plot_spec.copy() for p in profiles]
 
-        ProfilePlot._initialize_instance(self, profiles, label, plot_spec)
+        ProfilePlot._initialize_instance(self, profiles, label, plot_spec, y_log)
 
     def save(self, name=None):
         r"""
@@ -323,11 +338,16 @@ class ProfilePlot(object):
         self._plot_valid = True
 
     @classmethod
-    def _initialize_instance(cls, obj, profiles, labels, plot_specs):
-        obj.y_log = {}
-        obj.y_title = {}
-        obj.x_log = None
+    def _initialize_instance(cls, obj, profiles, labels, plot_specs, y_log):
+        if not hasattr(obj, "x_log"):
+            obj.x_log = None
         obj.profiles = ensure_list(profiles)
+        obj.y_log = {}
+        if y_log is not None:
+            for field, log in y_log.items():
+                field, = obj.profiles[0].data_source._determine_fields([field])
+                obj.y_log[field] = log
+        obj.y_title = {}
         obj.label = sanitize_label(labels, len(obj.profiles))
         if plot_specs is None:
             plot_specs = [dict() for p in obj.profiles]
@@ -338,7 +358,7 @@ class ProfilePlot(object):
         return obj
 
     @classmethod
-    def from_profiles(cls, profiles, labels=None, plot_specs=None):
+    def from_profiles(cls, profiles, labels=None, plot_specs=None, y_log=None):
         r"""
         Instantiate a ProfilePlot object from a list of profiles
         created with :func:`~yt.data_objects.profiles.create_profile`.
@@ -384,7 +404,7 @@ class ProfilePlot(object):
         if plot_specs is not None and len(plot_specs) != len(profiles):
             raise RuntimeError("Profiles list and plot_specs list must be the same size.")
         obj = cls.__new__(cls)
-        return cls._initialize_instance(obj, profiles, labels, plot_specs)
+        return cls._initialize_instance(obj, profiles, labels, plot_specs, y_log)
 
     @invalidate_plot
     def set_line_property(self, property, value, index=None):
