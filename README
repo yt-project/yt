@@ -25,7 +25,27 @@ Enjoy!
 
 JPN Notes:
 
+SKIP: chombo & boxlib
+
 frontends supported in python3:
 -enzo
 -flash
 -artio is done, but there are no surfaces... yet
+-working on athena at the moment
+- then castro
+- then maestro
+- then nyx
+- then orion
+- then orion 2
+- then pluto
+- then fits 
+- then grid data format
+- then owls
+- then rockstar
+- then moab
+- then ramses
+- then gadget
+- then gasoline
+- then pkdgrav
+- then tipsy
+- ... check out test_outputs?
