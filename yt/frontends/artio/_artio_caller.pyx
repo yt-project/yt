@@ -168,12 +168,9 @@ cdef class artio_fileset :
 
         self.read_parameters()
 
-        print('HERE 1.0')
         self.num_root_cells = self.parameters['num_root_cells'][0]
-        print('HERE 1.2')
         self.num_grid = 1
         num_root = self.num_root_cells
-        print('HERE 1.1')
         while num_root > 1 :
             self.num_grid <<= 1
             num_root >>= 3
@@ -200,17 +197,18 @@ cdef class artio_fileset :
 
         # particle detection
         if ( artio_fileset_has_particles(self.handle) ):
+            from sys import version
             status = artio_fileset_open_particles(self.handle)
             check_artio_status(status)
             self.has_particles = 1
 	    
-            print("HERE p1.0")
-            print(self.parameters) #**HERE- check what self.parameters is in python2!!
-
             for v in ["num_particle_species","num_primary_variables","num_secondary_variables"]:
-                if not self.parameters.has_key(v):
-                    raise RuntimeError("Unable to locate particle header information in artio header: key=", v)
-            print("HERE p1.1")
+                if version < '3':
+                    if not self.parameters.has_key(v):
+                        raise RuntimeError("Unable to locate particle header information in artio header: key=", v)
+                else:
+                    if v not in self.parameters:
+                        raise RuntimeError("Unable to locate particle header information in artio header: key=", v)
 
             self.num_species = self.parameters['num_particle_species'][0]
             self.particle_position_index = <int *>malloc(3*sizeof(int)*self.num_species)
@@ -218,8 +216,12 @@ cdef class artio_fileset :
                 raise MemoryError
             for ispec in range(self.num_species) :
                 species_labels = "species_%02d_primary_variable_labels"% (ispec,)
-                if not self.parameters.has_key(species_labels):
-                    raise RuntimeError("Unable to locate variable labels for species",ispec)
+                if version < '3':
+                    if not self.parameters.has_key(species_labels):
+                        raise RuntimeError("Unable to locate variable labels for species",ispec)
+                else:
+                    if species_labels not in self.parameters:
+                        raise RuntimeError("Unable to locate variable labels for species",ispec)
 
                 labels = self.parameters[species_labels]
                 try :
@@ -260,7 +262,6 @@ cdef class artio_fileset :
         cdef double *double_values
 
         self.parameters = {}
-        print('HERE 1.3')
 
         while artio_parameter_iterate( self.handle, key, &type, &length ) == ARTIO_SUCCESS :
 	    
