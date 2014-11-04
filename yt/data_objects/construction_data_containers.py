@@ -42,7 +42,7 @@ from yt.utilities.data_point_utilities import CombineGrids,\
 from yt.utilities.minimal_representation import \
     MinimalProjectionData
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_objects, parallel_root_only, ParallelAnalysisInterface
+    parallel_objects, parallel_root_only 
 from yt.units.unit_object import Unit
 import yt.geometry.particle_deposit as particle_deposit
 from yt.utilities.grid_data_format.writer import write_to_gdf
@@ -833,7 +833,7 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
             new_fields.append(output_field)
         level_state.fields = new_fields
 
-class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
+class YTSurfaceBase(YTSelectionContainer3D):
     r"""This surface object identifies isocontours on a cell-by-cell basis,
     with no consideration of global connectedness, and returns the vertices
     of the Triangles in that isocontour.
@@ -886,7 +886,6 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
                          ("index", "z"))
     vertices = None
     def __init__(self, data_source, surface_field, field_value):
-        ParallelAnalysisInterface.__init__(self)
         self.data_source = data_source
         self.surface_field = surface_field
         self.field_value = field_value
