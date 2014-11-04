@@ -51,8 +51,11 @@ class YTPointBase(YTSelectionContainer0D):
     ds: Dataset, optional
         An optional dataset to use rather than self.ds
     field_parameters : dictionary
-         A dictionary of field parameters than can be accessed by derived
-         fields.
+        A dictionary of field parameters than can be accessed by derived
+        fields.
+    data_source: optional
+        Draw the selection from the provided data source rather than
+        all data associated with the data_set
 
     Examples
     --------
@@ -64,8 +67,8 @@ class YTPointBase(YTSelectionContainer0D):
     """
     _type_name = "point"
     _con_args = ('p',)
-    def __init__(self, p, ds = None, field_parameters = None):
-        super(YTPointBase, self).__init__(ds, field_parameters)
+    def __init__(self, p, ds=None, field_parameters=None, data_source=None):
+        super(YTPointBase, self).__init__(ds, field_parameters, data_source)
         self.p = p
 
 class YTOrthoRayBase(YTSelectionContainer1D):
@@ -92,6 +95,9 @@ class YTOrthoRayBase(YTSelectionContainer1D):
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
          fields.
+    data_source: optional
+        Draw the selection from the provided data source rather than
+        all data associated with the data_set
 
     Examples
     --------
@@ -104,8 +110,9 @@ class YTOrthoRayBase(YTSelectionContainer1D):
     _key_fields = ['x','y','z','dx','dy','dz']
     _type_name = "ortho_ray"
     _con_args = ('axis', 'coords')
-    def __init__(self, axis, coords, ds=None, field_parameters=None):
-        super(YTOrthoRayBase, self).__init__(ds, field_parameters)
+    def __init__(self, axis, coords, ds=None, 
+                 field_parameters=None, data_source=None):
+        super(YTOrthoRayBase, self).__init__(ds, field_parameters, data_source)
         self.axis = axis
         xax = self.ds.coordinates.x_axis[self.axis]
         yax = self.ds.coordinates.y_axis[self.axis]
@@ -144,6 +151,9 @@ class YTRayBase(YTSelectionContainer1D):
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
          fields.
+    data_source: optional
+        Draw the selection from the provided data source rather than
+        all data associated with the data_set
 
     Examples
     --------
@@ -156,8 +166,9 @@ class YTRayBase(YTSelectionContainer1D):
     _type_name = "ray"
     _con_args = ('start_point', 'end_point')
     _container_fields = ("t", "dts")
-    def __init__(self, start_point, end_point, ds=None, field_parameters=None):
-        super(YTRayBase, self).__init__(ds, field_parameters)
+    def __init__(self, start_point, end_point, ds=None,
+                 field_parameters=None, data_source=None):
+        super(YTRayBase, self).__init__(ds, field_parameters, data_source)
         self.start_point = self.ds.arr(start_point,
                             'code_length', dtype='float64')
         self.end_point = self.ds.arr(end_point,
@@ -204,6 +215,9 @@ class YTSliceBase(YTSelectionContainer2D):
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
          fields.
+    data_source: optional
+        Draw the selection from the provided data source rather than
+        all data associated with the data_set
 
     Examples
     --------
@@ -217,10 +231,10 @@ class YTSliceBase(YTSelectionContainer2D):
     _type_name = "slice"
     _con_args = ('axis', 'coord')
     _container_fields = ("px", "py", "pdx", "pdy")
-
     def __init__(self, axis, coord, center=None, ds=None,
-                 field_parameters = None):
-        YTSelectionContainer2D.__init__(self, axis, ds, field_parameters)
+                 field_parameters=None, data_source=None):
+        YTSelectionContainer2D.__init__(self, axis, ds,
+                                        field_parameters, data_source)
         self._set_center(center)
         self.coord = coord
 
@@ -285,6 +299,9 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
          fields.
+    data_source: optional
+        Draw the selection from the provided data source rather than
+        all data associated with the data_set
 
     Notes
     -----
@@ -308,10 +325,10 @@ class YTCuttingPlaneBase(YTSelectionContainer2D):
     _type_name = "cutting"
     _con_args = ('normal', 'center')
     _container_fields = ("px", "py", "pz", "pdx", "pdy", "pdz")
-
-    def __init__(self, normal, center, north_vector = None, 
-                 ds = None, field_parameters = None):
-        YTSelectionContainer2D.__init__(self, 4, ds, field_parameters)
+    def __init__(self, normal, center, north_vector=None,
+                 ds=None, field_parameters=None, data_source=None):
+        YTSelectionContainer2D.__init__(self, 4, ds,
+                                        field_parameters, data_source)
         self._set_center(center)
         self.set_field_parameter('center',center)
         # Let's set up our plane equation
@@ -465,7 +482,7 @@ class YTDiskBase(YTSelectionContainer3D):
 
     Parameters
     ----------
-    center : array_like 
+    center : array_like
         coordinate to which the normal, radius, and height all reference
     normal : array_like
         the normal vector defining the direction of lengthwise part of the 
@@ -482,6 +499,9 @@ class YTDiskBase(YTSelectionContainer3D):
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
          fields.
+    data_source: optional
+        Draw the selection from the provided data source rather than
+        all data associated with the data_set
 
     Examples
     --------
@@ -494,8 +514,9 @@ class YTDiskBase(YTSelectionContainer3D):
     _type_name = "disk"
     _con_args = ('center', '_norm_vec', 'radius', 'height')
     def __init__(self, center, normal, radius, height, fields=None,
-                 ds=None, **kwargs):
-        YTSelectionContainer3D.__init__(self, center, fields, ds, **kwargs)
+                 ds=None, field_parameters=None, data_source=None):
+        YTSelectionContainer3D.__init__(self, center, ds,
+                                        field_parameters, data_source)
         self._norm_vec = np.array(normal)/np.sqrt(np.dot(normal,normal))
         self.set_field_parameter("normal", self._norm_vec)
         self.set_field_parameter("center", self.center)
@@ -523,9 +544,10 @@ class YTRegionBase(YTSelectionContainer3D):
     """
     _type_name = "region"
     _con_args = ('center', 'left_edge', 'right_edge')
-    def __init__(self, center, left_edge, right_edge, fields = None,
-                 ds = None, **kwargs):
-        YTSelectionContainer3D.__init__(self, center, ds, **kwargs)
+    def __init__(self, center, left_edge, right_edge, fields=None,
+                 ds=None, field_parameters=None, data_source=None):
+        YTSelectionContainer3D.__init__(self, center, ds,
+                                        field_parameters, data_source)
         if not isinstance(left_edge, YTArray):
             self.left_edge = self.ds.arr(left_edge, 'code_length')
         else:
@@ -542,8 +564,10 @@ class YTDataCollectionBase(YTSelectionContainer3D):
     """
     _type_name = "data_collection"
     _con_args = ("_obj_list",)
-    def __init__(self, obj_list, ds=None, field_parameters=None, center=None):
-        YTSelectionContainer3D.__init__(self, center, ds, field_parameters)
+    def __init__(self, obj_list, ds=None, field_parameters=None,
+                 data_source=None, center=None):
+        YTSelectionContainer3D.__init__(self, center, ds,
+                                        field_parameters, data_source)
         self._obj_ids = np.array([o.id - o._id_offset for o in obj_list],
                                 dtype="int64")
         self._obj_list = obj_list
@@ -569,8 +593,10 @@ class YTSphereBase(YTSelectionContainer3D):
     """
     _type_name = "sphere"
     _con_args = ('center', 'radius')
-    def __init__(self, center, radius, ds = None, field_parameters = None):
-        super(YTSphereBase, self).__init__(center, ds, field_parameters)
+    def __init__(self, center, radius, ds=None,
+                 field_parameters=None, data_source=None):
+        super(YTSphereBase, self).__init__(center, ds,
+                                           field_parameters, data_source)
         # Unpack the radius, if necessary
         radius = fix_length(radius, self.ds)
         if radius < self.index.get_smallest_dx():
@@ -615,8 +641,9 @@ class YTEllipsoidBase(YTSelectionContainer3D):
     _type_name = "ellipsoid"
     _con_args = ('center', '_A', '_B', '_C', '_e0', '_tilt')
     def __init__(self, center, A, B, C, e0, tilt, fields=None,
-                 ds=None, field_parameters = None):
-        YTSelectionContainer3D.__init__(self, center, ds, field_parameters)
+                 ds=None, field_parameters=None, data_source=None):
+        YTSelectionContainer3D.__init__(self, center, ds,
+                                        field_parameters, data_source)
         # make sure the magnitudes of semi-major axes are in order
         if A<B or B<C:
             raise YTEllipsoidOrdering(ds, A, B, C)
@@ -625,10 +652,10 @@ class YTEllipsoidBase(YTSelectionContainer3D):
         self._B = self.ds.quan(B, 'code_length')
         self._C = self.ds.quan(C, 'code_length')
         if self._C < self.index.get_smallest_dx():
-            raise YTSphereTooSmall(ds, self._C, self.index.get_smallest_dx())
+            raise YTSphereTooSmall(self.ds, self._C, self.index.get_smallest_dx())
         self._e0 = e0 = e0 / (e0**2.0).sum()**0.5
         self._tilt = tilt
-        
+ 
         # find the t1 angle needed to rotate about z axis to align e0 to x
         t1 = np.arctan(e0[1] / e0[0])
         # rotate e0 by -t1
@@ -684,9 +711,10 @@ class YTCutRegionBase(YTSelectionContainer3D):
     """
     _type_name = "cut_region"
     _con_args = ("base_object", "conditionals")
-    def __init__(self, base_object, conditionals, ds = None,
-                 field_parameters = None):
-        super(YTCutRegionBase, self).__init__(base_object.center, ds, field_parameters)
+    def __init__(self, base_object, conditionals, ds=None,
+                 field_parameters=None, data_source=None):
+        super(YTCutRegionBase, self).__init__(base_object.center, ds,
+                                              field_parameters, data_source)
         self.conditionals = ensure_list(conditionals)
         self.base_object = base_object
         self._selector = None
@@ -762,4 +790,3 @@ class YTCutRegionBase(YTSelectionContainer3D):
     @property
     def fwidth(self):
         return self.base_object.fwidth[self._cond_ind,:]
-
