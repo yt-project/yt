@@ -278,7 +278,8 @@ following:
     straight summation of the field along the given axis. The units of the 
     projected field will be the same as those of the unprojected field. This 
     method is typically only useful for datasets such as 3D FITS cubes where 
-    the third axis of the dataset is something like velocity or frequency.
+    the third axis of the dataset is something like velocity or frequency, and
+    should _only_ be used with fixed-resolution grid-based datasets. 
 
 .. _off-axis-projections:
 
