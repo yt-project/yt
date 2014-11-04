@@ -27,6 +27,18 @@ JPN Notes:
 
 SKIP: chombo & boxlib
 
+-----boxlib---------
+- castro
+- then maestro
+- then nyx
+- then orion
+---------------------
+-----chombo--------
+- then orion 2
+- then pluto
+-------------------
+
+
 MISSING test files: art?  stream? sph?... check it out...
 
 frontends supported in python3:
@@ -34,18 +46,8 @@ frontends supported in python3:
 -flash
 -artio is done, but there are no surfaces... yet
 -athena is done
------boxlib?---------
-- castro
-- then maestro
-- then nyx
-- then orion
----------------------
------chombo?--------
-- then orion 2
-- then pluto
--------------------
-- fits is done -> just need astropy installed
-- then grid data format
+- fits is done -> just need astropy installed, no surfaces
+- grid data format is done, but no surfaces
 - then owls
 - then rockstar
 - then moab

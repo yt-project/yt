@@ -1095,28 +1095,33 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
                              color_field_min, emit_field_max, emit_field_min)
 
     def _color_samples_obj(self, cs, em, color_log, emit_log, color_map, arr, 
-                           color_field_max, color_field_min, 
+                           color_field_max, color_field_min, color_field, 
                            emit_field_max, emit_field_min, emit_field): # this now holds for obj files
         from sys import version
-        if color_log: cs = np.log10(cs)
-        if emit_log: em = np.log10(em)
-        if color_field_min is None:
-            if version >= '3':
-                cs = [float(field) for field in cs]
-                cs = np.array(cs)
-            mi = cs.min()  
+        if color_field is not None:
+            if color_log: cs = np.log10(cs)
+        if emit_field is not None:
+            if emit_log: em = np.log10(em)
+        if color_field is not None:
+            if color_field_min is None:
+                if version >= '3':
+                    cs = [float(field) for field in cs]
+                    cs = np.array(cs)
+                mi = cs.min()  
+            else:
+                mi = color_field_min
+                if color_log: mi = np.log10(mi)
+            if color_field_max is None:
+                if version >= '3':
+                    cs = [float(field) for field in cs]
+                    cs = np.array(cs)
+                ma = cs.max()
+            else:
+                ma = color_field_max
+                if color_log: ma = np.log10(ma)            
+            cs = (cs - mi) / (ma - mi)
         else:
-            mi = color_field_min
-            if color_log: mi = np.log10(mi)
-        if color_field_max is None:
-            if version >= '3':
-                cs = [float(field) for field in cs]
-                cs = np.array(cs)
-            ma = cs.max()
-        else:
-            ma = color_field_max
-            if color_log: ma = np.log10(ma)
-        cs = (cs - mi) / (ma - mi)
+            cs = np.zeros(len(cs))
         # to get color indicies for OBJ formatting
         from yt.visualization._colormap_data import color_map_luts
         lut = color_map_luts[color_map]
@@ -1194,7 +1199,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         else:
             em = np.empty(self.vertices.shape[1]/self.vertices.shape[0])            
         self._color_samples_obj(cs, em, color_log, emit_log, color_map, f, 
-                                color_field_max, color_field_min,  
+                                color_field_max, color_field_min,  color_field, 
                                 emit_field_max, emit_field_min, emit_field) # map color values to color scheme
         from yt.visualization._colormap_data import color_map_luts # import colors for mtl file
         lut = color_map_luts[color_map] # enumerate colors
@@ -1363,7 +1368,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         else:
             em = np.empty(self.vertices.shape[1]/self.vertices.shape[0])            
         self._color_samples_obj(cs, em, color_log, emit_log, color_map, f, 
-                                color_field_max, color_field_min, 
+                                color_field_max, color_field_min, color_field, 
                                 emit_field_max, emit_field_min, emit_field) # map color values to color scheme
         from yt.visualization._colormap_data import color_map_luts # import colors for mtl file
         lut = color_map_luts[color_map] # enumerate colors
