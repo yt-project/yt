@@ -50,6 +50,8 @@ from yt.units.unit_object import \
     Unit
 from yt.units.unit_registry import \
     UnitParseError
+from yt.units.unit_lookup_table import \
+    prefixable_units, latex_prefixes
 from yt.units.yt_array import \
     YTArray, YTQuantity
 from yt.utilities.png_writer import \
@@ -795,6 +797,11 @@ class PWViewerMPL(PlotWindow):
                     raise RuntimeError
                 if un in formatted_length_unit_names:
                     un = formatted_length_unit_names[un]
+                pp = un[0]
+                if pp in latex_prefixes:
+                    symbol_wo_prefix = un[1:]
+                    if symbol_wo_prefix in prefixable_units:
+                        un = un.replace(pp, "{"+latex_prefixes[pp]+"}", 1)
                 if un not in ['1', 'u', 'unitary']:
                     if hinv:
                         un = un + '\,h^{-1}'
