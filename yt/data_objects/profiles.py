@@ -761,6 +761,7 @@ class ProfileND(ParallelAnalysisInterface):
         self.field_data = YTFieldData()
         if weight_field is not None:
             self.variance = YTFieldData()
+            weight_field = self.data_source._determine_fields(weight_field)[0]
         self.weight_field = weight_field
         self.field_units = {}
         ParallelAnalysisInterface.__init__(self, comm=data_source.comm)
@@ -774,7 +775,7 @@ class ProfileND(ParallelAnalysisInterface):
             A list of fields to create profile histograms for
         
         """
-        fields = ensure_list(fields)
+        fields = self.data_source._determine_fields(fields)
         temp_storage = ProfileFieldAccumulator(len(fields), self.size)
         cfields = fields + list(self.bin_fields)
         citer = self.data_source.chunks(cfields, "io")
