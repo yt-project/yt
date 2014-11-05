@@ -1296,7 +1296,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     >>> print profile["gas", "temperature"]
 
     """
-    bin_fields = ensure_list(bin_fields)
+    bin_fields = data_source._determine_fields(bin_fields)
     fields = ensure_list(fields)
     if len(bin_fields) == 1:
         cls = Profile1D
@@ -1318,6 +1318,11 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
         for item in extrema:
             dummy[data_source._determine_fields(item)[0]] = extrema[item]
         extrema.update(dummy)
+    if logs is not None:
+        dummy = {}
+        for item in logs:
+            dummy[data_source._determine_fields(item)[0]] = logs[item]
+        logs.update(dummy)
     if weight_field is not None:
         weight_field, = data_source._determine_fields([weight_field])
     if not iterable(n_bins):
@@ -1328,7 +1333,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
         logs = [data_source.ds._get_field_info(f[0],f[1]).take_log
                 for f in bin_fields]
     else:
-        logs = [logs[bin_field[-1]] for bin_field in bin_fields]
+        logs = [logs[bin_field] for bin_field in bin_fields]
     if extrema is None:
         ex = [data_source.quantities["Extrema"](f, non_zero=l)
               for f, l in zip(bin_fields, logs)]
