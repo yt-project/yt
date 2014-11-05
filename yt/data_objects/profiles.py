@@ -1328,10 +1328,14 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     if not iterable(accumulation):
         accumulation = [accumulation] * len(bin_fields)
     if logs is None:
-        logs = [data_source.ds._get_field_info(f[0],f[1]).take_log
-                for f in bin_fields]
-    else:
-        logs = [logs[bin_field] for bin_field in bin_fields]
+        logs = {}
+    logs_list = []
+    for bin_field in bin_fields:
+        if bin_field in logs:
+            logs_list.append(logs[bin_field])
+        else:
+            logs_list.append(data_source.ds.field_info[bin_field].take_log)
+    logs = logs_list
     if extrema is None:
         ex = [data_source.quantities["Extrema"](f, non_zero=l)
               for f, l in zip(bin_fields, logs)]
