@@ -141,6 +141,7 @@ def read_cattrs(f, attrs, endian='='):
     return vv
 
 def read_vector(f, d, endian='='):
+    from sys import version
     r"""This function accepts a file pointer and reads from that file pointer
     a vector of values.
 
@@ -174,7 +175,12 @@ def read_vector(f, d, endian='='):
               % (vec_fmt, vec_len, vec_size))
         raise RuntimeError
     vec_num = vec_len / vec_size
-    if isinstance(f, file): # Needs to be explicitly a file
+    if version < '3':
+        checker = file
+    else:
+        from io import IOBase
+        checker = IOBase
+    if isinstance(f, checker): # Needs to be explicitly a file
         tr = np.fromfile(f, vec_fmt, count=vec_num)
     else:
         tr = np.fromstring(f.read(vec_len), vec_fmt, count=vec_num)

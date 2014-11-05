@@ -48,9 +48,9 @@ frontends supported in python3:
 -athena is done
 - fits is done -> just need astropy installed, no surfaces
 - grid data format is done, but no surfaces
-- then owls
-- then rockstar
-- then moab
+- then owls - COME BACK TO, DON'T GET IT, but seems to load
+- then rockstar - COME BACK TO, DON'T GET IT, but seems to load, halos might need extra data
+- working on moab
 - then ramses
 - then gadget
 - then gasoline
