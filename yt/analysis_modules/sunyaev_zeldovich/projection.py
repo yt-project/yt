@@ -148,7 +148,7 @@ class SZProjection(object):
         self.ds.add_field(("gas","beta_par"), function=beta_par, units="g/cm**3")
         setup_sunyaev_zeldovich_fields(self.ds)
         proj = self.ds.proj("density", axis, center=ctr, data_source=source)
-        frb = proj.to_frb(width, nx)
+        frb = proj.to_frb(width[0], nx, height=width[1])
         dens = frb["density"]
         Te = frb["t_sz"]/dens
         bpar = frb["beta_par"]/dens
