@@ -1233,6 +1233,16 @@ class Profile3D(ProfileND):
         self.z_bins.convert_to_units(new_unit)
         self.z = 0.5*(self.z_bins[1:]+self.z_bins[:-1])
 
+
+def sanitize_field_tuple_keys(input_dict, data_source):
+    if input_dict is not None:
+        dummy = {}
+        for item in input_dict:
+            dummy[data_source._determine_fields(item)[0]] = input_dict[item]
+        return dummy
+    else:
+        return input_dict
+
 def create_profile(data_source, bin_fields, fields, n_bins=64,
                    extrema=None, logs=None, units=None,
                    weight_field="cell_mass",
@@ -1308,21 +1318,9 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
         raise NotImplementedError
     bin_fields = data_source._determine_fields(bin_fields)
     fields = data_source._determine_fields(fields)
-    if units is not None:
-        dummy = {}
-        for item in units:
-            dummy[data_source._determine_fields(item)[0]] = units[item]
-        units.update(dummy)
-    if extrema is not None:
-        dummy = {}
-        for item in extrema:
-            dummy[data_source._determine_fields(item)[0]] = extrema[item]
-        extrema.update(dummy)
-    if logs is not None:
-        dummy = {}
-        for item in logs:
-            dummy[data_source._determine_fields(item)[0]] = logs[item]
-        logs.update(dummy)
+    units = sanitize_field_tuple_keys(units, data_source)
+    extrema = sanitize_field_tuple_keys(extrema, data_source)
+    logs = sanitize_field_tuple_keys(logs, data_source)
     if weight_field is not None:
         weight_field, = data_source._determine_fields([weight_field])
     if not iterable(n_bins):
