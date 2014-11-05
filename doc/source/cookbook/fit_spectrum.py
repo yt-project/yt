@@ -3,14 +3,19 @@ from yt.analysis_modules.cosmological_observation.light_ray.api import LightRay
 from yt.analysis_modules.absorption_spectrum.api import AbsorptionSpectrum
 from yt.analysis_modules.absorption_spectrum.api import generate_total_fit
 
-# Define and add a field to simulate OVI based on a constant relationship to HI
+# Define a field to simulate OVI based on a constant relationship to HI
 # Do *NOT* use this for science, because this is not how OVI actually behaves;
 # it is just an example.
 
-@yt.derived_field(name='O_p5_number_density', units='cm**-3')
 def _OVI_number_density(field, data):
     return data['H_number_density']*2.0
 
+# Define a function that will accept a ds and add the new field 
+# defined above.  This will be given to the LightRay below.
+def setup_ds(ds):
+    ds.add_field("O_p5_number_density", 
+                 function=_OVI_number_density,
+                 units="cm**-3")
 
 # Define species and associated parameters to add to continuum
 # Parameters used for both adding the transition to the spectrum
@@ -65,7 +70,7 @@ for s, params in species_dicts.iteritems():
 lr.make_light_ray(seed=123456780,
                   solution_filename='lightraysolution.txt',
                   data_filename='lightray.h5',
-                  fields=fields,
+                  fields=fields, setup_function=setup_ds,
                   get_los_velocity=True,
                   njobs=-1)
 
