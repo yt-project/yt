@@ -108,12 +108,12 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
                        units="")
 
     # r / r_vir
-    def _virial_radius(field, data):
+    def _virial_radius_fraction(field, data):
         virial_radius = data.get_field_parameter("virial_radius")
         return data["radius"] / virial_radius
 
-    registry.add_field(("index", "virial_radius"),
-                       function=_virial_radius,
+    registry.add_field(("index", "virial_radius_fraction"),
+                       function=_virial_radius_fraction,
                        validators=[ValidateParameter("virial_radius")],
                        units="")
     
