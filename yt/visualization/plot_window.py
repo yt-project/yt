@@ -744,7 +744,7 @@ class PWViewerMPL(PlotWindow):
                         mylog.warning("Switching to linear colorbar scaling.")
                         self._field_transform[f] = linear_transform
 
-            fp = self._font_properties
+            font_size = self._font_properties.get_size()
 
             fig = None
             axes = None
@@ -763,7 +763,7 @@ class PWViewerMPL(PlotWindow):
                 image, self._field_transform[f].name,
                 self._field_transform[f].func,
                 self._colormaps[f], extent, zlim,
-                self.figure_size, fp.get_size(),
+                self.figure_size, font_size,
                 self.aspect, fig, axes, cax)
 
             axes_unit_labels = ['', '']
@@ -846,14 +846,8 @@ class PWViewerMPL(PlotWindow):
             if y_label is not None:
                 labels[1] = y_label
 
-            self.plots[f].axes.set_xlabel(labels[0],fontproperties=fp)
-            self.plots[f].axes.set_ylabel(labels[1],fontproperties=fp)
-
-            for label in (self.plots[f].axes.get_xticklabels() +
-                          self.plots[f].axes.get_yticklabels() +
-                          [self.plots[f].axes.xaxis.get_offset_text(),
-                           self.plots[f].axes.yaxis.get_offset_text()]):
-                label.set_fontproperties(fp)
+            self.plots[f].axes.set_xlabel(labels[0])
+            self.plots[f].axes.set_ylabel(labels[1])
 
             # Determine the units of the data
             units = Unit(self.frb[f].units, registry=self.ds.unit_registry)
@@ -874,13 +868,7 @@ class PWViewerMPL(PlotWindow):
             except ParseFatalException, err:
                 raise YTCannotParseUnitDisplayName(f, colorbar_label, str(err))
 
-            self.plots[f].cb.set_label(colorbar_label, fontproperties=fp)
-
-            for label in (self.plots[f].cb.ax.get_xticklabels() +
-                          self.plots[f].cb.ax.get_yticklabels() +
-                          [self.plots[f].cb.ax.axes.xaxis.get_offset_text(),
-                           self.plots[f].cb.ax.axes.yaxis.get_offset_text()]):
-                label.set_fontproperties(fp)
+            self.plots[f].cb.set_label(colorbar_label)
 
             # x-y axes minorticks
             if f not in self._minorticks:
@@ -916,14 +904,7 @@ class PWViewerMPL(PlotWindow):
             if draw_colorbar is False:
                 self.plots[f]._toggle_colorbar(draw_colorbar)
 
-            if self._font_color is not None:
-                ax = self.plots[f].axes
-                cbax = self.plots[f].cb.ax
-                labels = ax.xaxis.get_ticklabels() + ax.yaxis.get_ticklabels()
-                labels += cbax.yaxis.get_ticklabels()
-                labels += [ax.xaxis.label, ax.yaxis.label, cbax.yaxis.label]
-                for label in labels:
-                    label.set_color(self._font_color)
+        self._set_font_properties()
 
         self._plot_valid = True
 
