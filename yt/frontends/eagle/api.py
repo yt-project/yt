@@ -1,5 +1,5 @@
 """
-API for OWLSSubfind frontend
+API for EAGLE frontend
 
 
 
@@ -15,10 +15,11 @@ API for OWLSSubfind frontend
 #-----------------------------------------------------------------------------
 
 from .data_structures import \
-     OWLSSubfindDataset
-
-from .io import \
-     IOHandlerOWLSSubfindHDF5
+    EagleDataset, \
+    EagleNetworkDataset
 
 from .fields import \
-     OWLSSubfindFieldInfo
+    EagleNetworkFieldInfo
+
+from .io import \
+    IOHandlerEagleNetwork

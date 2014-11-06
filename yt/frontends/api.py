@@ -21,17 +21,21 @@ _frontends = [
     'athena',
     'boxlib',
     'chombo',
+    'eagle',
     'enzo',
     'fits',
     'flash',
+    'gadget',
     'gdf',
-    'halo_catalogs',
+    'halo_catalog',
+    'http_stream',
     'moab',
+    'owls',
     #'pluto',
     'ramses',
     'sdf',
-    'sph',
     'stream',
+    'tipsy',
 ]
 
 class _frontend_container:

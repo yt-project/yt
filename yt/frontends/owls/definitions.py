@@ -1,5 +1,5 @@
 """
-Data structures for SPH frontends.
+OWLS definitions
 
 
 
@@ -7,17 +7,12 @@ Data structures for SPH frontends.
 """
 
 #-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
+# Copyright (c) 2014, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.data_objects.static_output import \
-    Dataset
-
-class ParticleDataset(Dataset):
-    _unit_base = None
-    over_refine_factor = 1
-    filter_bbox = False
+ghdf5_ptypes  = ("PartType0", "PartType1", "PartType2", "PartType3",
+                 "PartType4", "PartType5")

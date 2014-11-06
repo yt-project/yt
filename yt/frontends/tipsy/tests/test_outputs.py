@@ -23,7 +23,7 @@ from yt.utilities.answer_testing.framework import \
     PixelizedProjectionValuesTest, \
     FieldValuesTest, \
     create_obj
-from yt.frontends.sph.api import TipsyDataset
+from yt.frontends.tipsy.api import TipsyDataset
 
 _fields = (("deposit", "all_density"),
            ("deposit", "all_count"),
@@ -31,7 +31,7 @@ _fields = (("deposit", "all_density"),
 )
 
 pkdgrav = "halo1e11_run1.00400/halo1e11_run1.00400"
-@requires_ds(pkdgrav, file_check = True)
+@requires_ds(pkdgrav, big_data = True, file_check = True)
 def test_pkdgrav():
     cosmology_parameters = dict(current_redshift = 0.0,
                                 omega_lambda = 0.728,
@@ -63,7 +63,7 @@ def test_pkdgrav():
         yield assert_equal, s1, s2
 
 gasoline = "agora_1e11.00400/agora_1e11.00400"
-@requires_ds(gasoline, file_check = True)
+@requires_ds(gasoline, big_data = True, file_check = True)
 def test_gasoline():
     cosmology_parameters = dict(current_redshift = 0.0,
                                 omega_lambda = 0.728,

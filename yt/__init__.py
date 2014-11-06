@@ -136,9 +136,9 @@ from yt.frontends.stream.api import \
     hexahedral_connectivity
 
 # For backwards compatibility
-GadgetDataset = frontends.sph.GadgetDataset
+GadgetDataset = frontends.gadget.GadgetDataset
 GadgetStaticOutput = deprecated_class(GadgetDataset)
-TipsyDataset = frontends.sph.TipsyDataset
+TipsyDataset = frontends.tipsy.TipsyDataset
 TipsyStaticOutput = deprecated_class(TipsyDataset)
 
 # Now individual component imports from the visualization API
