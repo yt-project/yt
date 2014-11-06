@@ -40,9 +40,7 @@ def export_rgba(image, fn, h5=True, fits=False, ):
         data["b"] = image[:,:,2]
         data["a"] = image[:,:,3]
         nx, ny = data["r"].shape
-        fib = FITSImageBuffer(data, units="pixel",
-                              center=[0.5*(nx+1), 0.5*(ny+1)],
-                              scale=[1.]*2)
+        fib = FITSImageBuffer(data)
         fib.writeto('%s.fits'%fn,clobber=True)
 
 def import_rgba(name, h5=True):

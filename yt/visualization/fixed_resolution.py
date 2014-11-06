@@ -418,9 +418,9 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
                                    width, dd.resolution, item,
                                    weight=dd.weight_field, volume=dd.volume,
                                    no_ghost=dd.no_ghost, interpolated=dd.interpolated,
-                                   north_vector=dd.north_vector)
+                                   north_vector=dd.north_vector, method=dd.method)
         units = Unit(dd.ds.field_info[item].units, registry=dd.ds.unit_registry)
-        if dd.weight_field is None:
+        if dd.weight_field is None and dd.method == "integrate":
             units *= Unit('cm', registry=dd.ds.unit_registry)
         ia = ImageArray(buff.swapaxes(0,1), input_units=units, info=self._get_info(item))
         self[item] = ia

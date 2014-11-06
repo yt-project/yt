@@ -47,6 +47,15 @@ def test_tb():
         test_tb.__name__ = test.description
         yield test
 
+iso = "IsothermalSphere/data.0000.3d.hdf5"
+@requires_ds(iso)
+def test_iso():
+    ds = data_dir_load(iso)
+    yield assert_equal, str(ds), "data.0000.3d.hdf5"
+    for test in small_patch_amr(iso, _fields):
+        test_iso.__name__ = test.description
+        yield test
+
 _zp_fields = ("rhs", "phi", "gravitational_field_x",
               "gravitational_field_y")
 zp = "ZeldovichPancake/plt32.2d.hdf5"

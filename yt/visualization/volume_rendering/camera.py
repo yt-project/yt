@@ -2171,7 +2171,8 @@ def plot_allsky_healpix(image, nside, fn, label = "", rotation = None,
 class ProjectionCamera(Camera):
     def __init__(self, center, normal_vector, width, resolution,
             field, weight=None, volume=None, no_ghost = False, 
-            north_vector=None, ds=None, interpolated=False):
+            north_vector=None, ds=None, interpolated=False,
+            method="integrate"):
 
         if not interpolated:
             volume = 1
@@ -2180,6 +2181,7 @@ class ProjectionCamera(Camera):
         self.field = field
         self.weight = weight
         self.resolution = resolution
+        self.method = method
 
         fields = [field]
         if self.weight is not None:
@@ -2250,13 +2252,14 @@ class ProjectionCamera(Camera):
         dd = ds.all_data()
         field = dd._determine_fields([self.field])[0]
         finfo = ds._get_field_info(*field)
-        if self.weight is None:
-            dl = self.width[2]
-            image *= dl
-        else:
-            image[:,:,0] /= image[:,:,1]
+        dl = 1.0
+        if self.method == "integrate":
+            if self.weight is None:
+                dl = self.width[2].in_units("cm")
+            else:
+                image[:,:,0] /= image[:,:,1]
 
-        return image[:,:,0]
+        return ImageArray(image[:,:,0], finfo.units)*dl
 
 
     def _render(self, double_check, num_threads, image, sampler):
@@ -2342,7 +2345,7 @@ data_object_registry["projection_camera"] = ProjectionCamera
 def off_axis_projection(ds, center, normal_vector, width, resolution,
                         field, weight = None, 
                         volume = None, no_ghost = False, interpolated = False,
-                        north_vector = None):
+                        north_vector = None, method = "integrate"):
     r"""Project through a dataset, off-axis, and return the image plane.
 
     This function will accept the necessary items to integrate through a volume
@@ -2386,6 +2389,20 @@ def off_axis_projection(ds, center, normal_vector, width, resolution,
         If True, the data is first interpolated to vertex-centered data, 
         then tri-linearly interpolated along the ray. Not suggested for 
         quantitative studies.
+    method : string
+         The method of projection.  Valid methods are:
+
+         "integrate" with no weight_field specified : integrate the requested
+         field along the line of sight.
+
+         "integrate" with a weight_field specified : weight the requested
+         field by the weighting field and integrate along the line of sight.
+
+         "sum" : This method is the same as integrate, except that it does not
+         multiply by a path length when performing the integration, and is
+         just a straight summation of the field along the given axis. WARNING:
+         This should only be used for uniform resolution grid datasets, as other
+         datasets may result in unphysical images.
 
     Returns
     -------
@@ -2403,7 +2420,7 @@ def off_axis_projection(ds, center, normal_vector, width, resolution,
     projcam = ProjectionCamera(center, normal_vector, width, resolution,
                                field, weight=weight, ds=ds, volume=volume,
                                no_ghost=no_ghost, interpolated=interpolated, 
-                               north_vector=north_vector)
+                               north_vector=north_vector, method=method)
     image = projcam.snapshot()
     return image[:,:]
 

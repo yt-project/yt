@@ -42,7 +42,7 @@ from yt.utilities.data_point_utilities import CombineGrids,\
 from yt.utilities.minimal_representation import \
     MinimalProjectionData
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_objects, parallel_root_only, ParallelAnalysisInterface
+    parallel_objects, parallel_root_only 
 from yt.units.unit_object import Unit
 import yt.geometry.particle_deposit as particle_deposit
 from yt.utilities.grid_data_format.writer import write_to_gdf
@@ -183,7 +183,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     center : array_like, optional
         The 'center' supplied to fields that use it.  Note that this does
         not have to have `coord` as one value.  Strictly optional.
-    data_source : `yt.data_objects.api.AMRData`, optional
+    data_source : `yt.data_objects.data_containers.YTSelectionContainer`, optional
         If specified, this will be the data source used for selecting
         regions to project.
     method : string, optional
@@ -191,6 +191,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         "integrate" : integration along the axis
         "mip" : maximum intensity projection
         "sum" : same as "integrate", except that we don't multiply by the path length
+        WARNING: The "sum" option should only be used for uniform resolution grid
+        datasets, as other datasets may result in unphysical images.
     style : string, optional
         The same as the method keyword.  Deprecated as of version 3.0.2.  
         Please use method keyword instead.
@@ -833,7 +835,7 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
             new_fields.append(output_field)
         level_state.fields = new_fields
 
-class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
+class YTSurfaceBase(YTSelectionContainer3D):
     r"""This surface object identifies isocontours on a cell-by-cell basis,
     with no consideration of global connectedness, and returns the vertices
     of the Triangles in that isocontour.
@@ -850,7 +852,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
     
     Parameters
     ----------
-    data_source : AMR3DDataObject
+    data_source : YTSelectionContainer
         This is the object which will used as a source
     surface_field : string
         Any field that can be obtained in a data object.  This is the field
@@ -886,7 +888,6 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
                          ("index", "z"))
     vertices = None
     def __init__(self, data_source, surface_field, field_value):
-        ParallelAnalysisInterface.__init__(self)
         self.data_source = data_source
         self.surface_field = surface_field
         self.field_value = field_value
