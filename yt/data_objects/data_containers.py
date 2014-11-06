@@ -159,8 +159,6 @@ class YTDataContainer(object):
           self.field_parameters[parameter]
 
     def apply_units(self, arr, units):
-        if hasattr(arr, "units"):
-            return self.ds.arr(arr.in_units(units), input_units = units)
         return self.ds.arr(arr, input_units = units)
 
     def _set_center(self, center):
