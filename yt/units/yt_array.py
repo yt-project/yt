@@ -39,6 +39,7 @@ from numbers import Number as numeric_type
 from yt.utilities.on_demand_imports import _astropy
 from sympy import Rational
 from yt.units.unit_lookup_table import unit_prefixes, prefixable_units
+from yt.units.equivalencies import equivalence_registry
 
 NULL_UNIT = Unit()
 
@@ -479,12 +480,10 @@ class YTArray(np.ndarray):
         >>> a = yt.YTArray(1.0e7,"K")
         >>> a.to_equivalent("keV", "thermal")
         """
-        from equivalencies import equivalence_registry
-        this_equiv = equivalence_registry[equiv]()
-        old_dims = self.units.dimensions
-        new_dims = YTQuantity(1.0, unit, registry=self.units.registry).units.dimensions
-        if old_dims in this_equiv.dims and new_dims in this_equiv.dims:
-            return this_equiv.convert(self, new_dims, **kwargs).in_units(unit)
+        unit_quan = YTQuantity(1.0, unit, registry=self.units.registry)
+        if self.has_equivalent(equiv) and unit_quan.has_equivalent(equiv):
+            this_equiv = equivalence_registry[equiv]()
+            return this_equiv.convert(self, unit_quan.units.dimensions, **kwargs).in_units(unit)
         else:
             raise YTInvalidUnitEquivalence(equiv, self.units, unit)
 
@@ -493,10 +492,21 @@ class YTArray(np.ndarray):
         Lists the possible equivalencies associated with this YTArray or
         YTQuantity.
         """
-        from equivalencies import equivalence_registry
         for k,v in equivalence_registry.items():
-            if self.units.dimensions in v.dims:
+            if self.has_equivalent(k):
                 print v()
+
+    def has_equivalent(self, equiv):
+        """
+        Check to see if this YTArray or YTQuantity has an equivalent unit in
+        *equiv*.
+        """
+        try:
+            this_equiv = equivalence_registry[equiv]()
+        except KeyError:
+            raise KeyError("No such equivalence \"%s\"." % equiv)
+        old_dims = self.units.dimensions
+        return old_dims in this_equiv.dims
 
     def ndarray_view(self):
         """
