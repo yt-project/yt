@@ -17,7 +17,7 @@ from sympy import \
     Pow, Symbol, Integer, \
     Float, Basic, Rational, sqrt
 from sympy.core.numbers import One
-from sympy import sympify, latex
+from sympy import sympify, latex, symbols
 from sympy.parsing.sympy_parser import \
     parse_expr, auto_number, rationalize
 from keyword import iskeyword
@@ -26,7 +26,7 @@ from yt.units.dimensions import \
 from yt.units.unit_lookup_table import \
     latex_symbol_lut, unit_prefixes, \
     prefixable_units, cgs_base_units, \
-    mks_base_units
+    mks_base_units, cgs_conversions
 from yt.units.unit_registry import UnitRegistry
 
 import copy
@@ -116,7 +116,7 @@ class Unit(Expr):
 
     # Extra attributes
     __slots__ = ["expr", "is_atomic", "cgs_value", "cgs_offset", "dimensions",
-                 "registry"]
+                 "registry", "cgs_conversion", "is_mks"]
 
     def __new__(cls, unit_expr=sympy_one, cgs_value=None, cgs_offset=0.0,
                 dimensions=None, registry=None, **assumptions):
@@ -191,12 +191,11 @@ class Unit(Expr):
             validate_dimensions(dimensions)
         else:
             # lookup the unit symbols
-            try:
-                cgs_value, dimensions = \
-                    _get_unit_data_from_expr(unit_expr, registry.lut)
-            except ValueError:
-                cgs_value, dimensions, cgs_offset = \
-                    _get_unit_data_from_expr(unit_expr, registry.lut)
+            unit_data = _get_unit_data_from_expr(unit_expr, registry.lut)
+            cgs_value = unit_data[0]
+            dimensions = unit_data[1]
+            if len(unit_data) == 3:
+                cgs_offset = unit_data[2]
 
         # Create obj with superclass construct.
         obj = Expr.__new__(cls, **assumptions)
@@ -208,6 +207,22 @@ class Unit(Expr):
         obj.cgs_offset = cgs_offset
         obj.dimensions = dimensions
         obj.registry = registry
+
+        check_atoms = [atom for atom in unit_expr.free_symbols
+                       if str(atom) in cgs_conversions]
+        if len(check_atoms) > 0:
+            conversions = []
+            for atom in check_atoms:
+                conversions.append((atom,symbols(cgs_conversions[str(atom)])))
+            conversion = unit_expr.subs(conversions)
+            conversion = Unit(unit_expr=conversion, cgs_value=1.0,
+                               dimensions=None, registry=registry)
+            is_mks = True
+        else:
+            conversion = None
+            is_mks = False
+        obj.cgs_conversion = conversion
+        obj.is_mks = is_mks
 
         if unit_key:
             registry.unit_objs[unit_key] = obj
@@ -264,7 +279,7 @@ class Unit(Expr):
                 cgs_offset = self.cgs_offset
             else:
                 raise InvalidUnitOperation("Quantities with units of Fahrenheit "
-                                           "and Celcius cannot be multiplied.")
+                                           "and Celsius cannot be multiplied.")
 
         return Unit(self.expr * u.expr,
                     cgs_value=(self.cgs_value * u.cgs_value),
@@ -287,7 +302,7 @@ class Unit(Expr):
                 cgs_offset = self.cgs_offset
             else:
                 raise InvalidUnitOperation("Quantities with units of Farhenheit "
-                                           "and Celcius cannot be multiplied.")
+                                           "and Celsius cannot be multiplied.")
 
         return Unit(self.expr / u.expr,
                     cgs_value=(self.cgs_value / u.cgs_value),
@@ -307,7 +322,8 @@ class Unit(Expr):
                                        "it to a float." % (p, type(p)) )
 
         return Unit(self.expr**p, cgs_value=(self.cgs_value**p),
-                    dimensions=(self.dimensions**p), registry=self.registry)
+                    dimensions=(self.dimensions**p),
+                    registry=self.registry)
 
     def __eq__(self, u):
         """ Test unit equality. """
@@ -340,6 +356,14 @@ class Unit(Expr):
 
     def same_dimensions_as(self, other_unit):
         """ Test if dimensions are the same. """
+        first_check = False
+        second_check = False
+        if self.cgs_conversion:
+            first_check = self.cgs_conversion.dimensions / other_unit.dimensions == sympy_one
+        if other_unit.cgs_conversion:
+            second_check = other_unit.cgs_conversion.dimensions / self.dimensions == sympy_one
+        if first_check or second_check:
+            return True
         return (self.dimensions / other_unit.dimensions) == sympy_one
 
     @property
@@ -372,20 +396,28 @@ class Unit(Expr):
         Create and return dimensionally-equivalent cgs units.
 
         """
-        units_string = self._get_system_unit_string(cgs_base_units)
+        if self.cgs_conversion:
+            units = self.cgs_conversion
+        else:
+            units = self
+        units_string = units._get_system_unit_string(cgs_base_units)
         return Unit(units_string, cgs_value=1.0,
-                    dimensions=self.dimensions, registry=self.registry)
+                    dimensions=units.dimensions, registry=self.registry)
 
     def get_mks_equivalent(self):
         """
         Create and return dimensionally-equivalent mks units.
 
         """
-        units_string = self._get_system_unit_string(mks_base_units)
-        cgs_value = (get_conversion_factor(self, self.get_cgs_equivalent())[0] /
-                     get_conversion_factor(self, Unit(units_string))[0])
+        if self.cgs_conversion and not self.is_mks:
+            units = self.cgs_conversion
+        else:
+            units = self
+        units_string = units._get_system_unit_string(mks_base_units)
+        cgs_value = (get_conversion_factor(units, units.get_cgs_equivalent())[0] /
+                     get_conversion_factor(units, Unit(units_string))[0])
         return Unit(units_string, cgs_value=cgs_value,
-                    dimensions=self.dimensions, registry=self.registry)
+                    dimensions=units.dimensions, registry=self.registry)
 
     def get_conversion_factor(self, other_units):
         return get_conversion_factor(self, other_units)
@@ -430,7 +462,7 @@ def get_conversion_factor(old_units, new_units):
             return ratio, ratio*old_units.cgs_offset - new_units.cgs_offset
         else:
             raise InvalidUnitOperation(
-                "Fahrenheit and Celsius are not absoulte temperature scales "
+                "Fahrenheit and Celsius are not absolute temperature scales "
                 "and cannot be used in compound unit symbols.")
 
 #

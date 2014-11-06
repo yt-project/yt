@@ -313,17 +313,18 @@ class FITSDataset(Dataset):
     _handle = None
 
     def __init__(self, filename,
-                 dataset_type = 'fits',
-                 auxiliary_files = [],
-                 nprocs = None,
-                 storage_filename = None,
-                 nan_mask = None,
-                 spectral_factor = 1.0,
-                 z_axis_decomp = False,
-                 line_database = None,
-                 line_width = None,
-                 suppress_astropy_warnings = True,
-                 parameters = None):
+                 dataset_type='fits',
+                 auxiliary_files=[],
+                 nprocs=None,
+                 storage_filename=None,
+                 nan_mask=None,
+                 spectral_factor=1.0,
+                 z_axis_decomp=False,
+                 line_database=None,
+                 line_width=None,
+                 suppress_astropy_warnings=True,
+                 parameters=None,
+                 units_override=None):
 
         if parameters is None:
             parameters = {}
@@ -434,7 +435,7 @@ class FITSDataset(Dataset):
 
         self.refine_by = 2
 
-        Dataset.__init__(self, fn, dataset_type)
+        Dataset.__init__(self, fn, dataset_type, units_override=units_override)
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):

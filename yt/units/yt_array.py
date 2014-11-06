@@ -33,10 +33,14 @@ from yt.units.unit_registry import UnitRegistry
 from yt.units.dimensions import dimensionless
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUnitConversionError, \
-    YTUfuncUnitError, YTIterableUnitCoercionError
+    YTUfuncUnitError, YTIterableUnitCoercionError, \
+    YTInvalidUnitEquivalence
 from numbers import Number as numeric_type
 from yt.utilities.on_demand_imports import _astropy
 from sympy import Rational
+from yt.units.unit_lookup_table import unit_prefixes, prefixable_units
+
+NULL_UNIT = Unit()
 
 # redefine this here to avoid a circular import from yt.funcs
 def iterable(obj):
@@ -83,12 +87,10 @@ def return_without_unit(unit):
     return None
 
 def arctan2_unit(unit1, unit2):
-    return Unit()
+    return NULL_UNIT
 
 def comparison_unit(unit1, unit2):
     return None
-
-NULL_UNIT = Unit()
 
 def coerce_iterable_units(input_object):
     if isinstance(input_object, np.ndarray):
@@ -339,7 +341,7 @@ class YTArray(np.ndarray):
         """
         if obj is None and hasattr(self, 'units'):
             return
-        self.units = getattr(obj, 'units', None)
+        self.units = getattr(obj, 'units', NULL_UNIT)
 
     def __repr__(self):
         """
@@ -457,6 +459,44 @@ class YTArray(np.ndarray):
 
         """
         return self.in_units(self.units.get_mks_equivalent())
+
+    def to_equivalent(self, unit, equiv, **kwargs):
+        """
+        Convert a YTArray or YTQuantity to an equivalent, e.g., something that is
+        related by only a constant factor but not in the same units.
+
+        Parameters
+        ----------
+        unit : string
+            The unit that you wish to convert to.
+        equiv : string
+            The equivalence you wish to use. To see which equivalencies are
+            supported for this unitful quantity, try the :method:`list_equivalencies`
+            method.
+
+        Examples
+        --------
+        >>> a = yt.YTArray(1.0e7,"K")
+        >>> a.to_equivalent("keV", "thermal")
+        """
+        from equivalencies import equivalence_registry
+        this_equiv = equivalence_registry[equiv]()
+        old_dims = self.units.dimensions
+        new_dims = YTQuantity(1.0, unit, registry=self.units.registry).units.dimensions
+        if old_dims in this_equiv.dims and new_dims in this_equiv.dims:
+            return this_equiv.convert(self, new_dims, **kwargs).in_units(unit)
+        else:
+            raise YTInvalidUnitEquivalence(equiv, self.units, unit)
+
+    def list_equivalencies(self):
+        """
+        Lists the possible equivalencies associated with this YTArray or
+        YTQuantity.
+        """
+        from equivalencies import equivalence_registry
+        for k,v in equivalence_registry.items():
+            if self.units.dimensions in v.dims:
+                print v()
 
     def ndarray_view(self):
         """
@@ -948,7 +988,7 @@ class YTArray(np.ndarray):
         elif context[0] in unary_operators:
             u = getattr(context[1][0], 'units', None)
             if u is None:
-                u = Unit()
+                u = NULL_UNIT
             unit = self._ufunc_registry[context[0]](u)
             ret_class = type(self)
         elif context[0] in binary_operators:
@@ -1103,8 +1143,7 @@ class YTQuantity(YTArray):
     def __repr__(self):
         return str(self)
 
-def uconcatenate(arrs, *args, **kwargs):
-    v = np.concatenate(arrs, *args, **kwargs)
+def validate_numpy_wrapper_units(v, arrs):
     if not any(isinstance(a, YTArray) for a in arrs):
         return v
     if not all(isinstance(a, YTArray) for a in arrs):
@@ -1113,6 +1152,63 @@ def uconcatenate(arrs, *args, **kwargs):
     if not all(a.units == a1.units for a in arrs[1:]):
         raise RuntimeError("Your arrays must have identical units.")
     v.units = a1.units
+    return v
+
+def uconcatenate(arrs, axis=0):
+    """Concatenate a sequence of arrays.
+
+    This wrapper around numpy.concatenate preserves units. All input arrays must
+    have the same units.  See the documentation of numpy.concatenate for full
+    details.
+
+    Examples
+    --------
+    >>> A = yt.YTArray([1, 2, 3], 'cm')
+    >>> B = yt.YTArray([2, 3, 4], 'cm')
+    >>> uconcatenate((A, B))
+    YTArray([ 1., 2., 3., 2., 3., 4.]) cm
+
+    """
+    v = np.concatenate(arrs, axis=axis)
+    v = validate_numpy_wrapper_units(v, arrs)
+    return v
+
+def uintersect1d(arr1, arr2, assume_unique=False):
+    """Find the sorted unique elements of the two input arrays.
+
+    A wrapper around numpy.intersect1d that preserves units.  All input arrays
+    must have the same units.  See the documentation of numpy.intersect1d for
+    full details.
+
+    Examples
+    --------
+    >>> A = yt.YTArray([1, 2, 3], 'cm')
+    >>> B = yt.YTArray([2, 3, 4], 'cm')
+    >>> uintersect1d(A, B)
+    YTArray([ 2., 3.]) cm
+
+    """
+    v = np.intersect1d(arr1, arr2, assume_unique=assume_unique)
+    v = validate_numpy_wrapper_units(v, [arr1, arr2])
+    return v
+
+def uunion1d(arr1, arr2):
+    """Find the union of two arrays.
+
+    A wrapper around numpy.intersect1d that preserves units.  All input arrays
+    must have the same units.  See the documentation of numpy.intersect1d for
+    full details.
+
+    Examples
+    --------
+    >>> A = yt.YTArray([1, 2, 3], 'cm')
+    >>> B = yt.YTArray([2, 3, 4], 'cm')
+    >>> uunion1d(A, B)
+    YTArray([ 1., 2., 3., 4.]) cm
+
+    """
+    v = np.union1d(arr1, arr2)
+    v = validate_numpy_wrapper_units(v, [arr1, arr2])
     return v
 
 def array_like_field(data, x, field):

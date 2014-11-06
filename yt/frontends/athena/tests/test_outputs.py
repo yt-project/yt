@@ -43,16 +43,16 @@ def test_blast():
         test_blast.__name__ = test.description
         yield test
 
-parameters_stripping = {"time_unit":3.086e14,
-                        "length_unit":8.0236e22,
-                        "mass_unit":9.999e-30*8.0236e22**3}
+uo_stripping = {"time_unit":3.086e14,
+                "length_unit":8.0236e22,
+                "mass_unit":9.999e-30*8.0236e22**3}
 
 _fields_stripping = ("temperature", "density", "specific_scalar[0]")
 
 stripping = "RamPressureStripping/id0/rps.0062.vtk"
 @requires_ds(stripping, big_data=True)
 def test_stripping():
-    ds = data_dir_load(stripping, kwargs={"parameters":parameters_stripping})
+    ds = data_dir_load(stripping, kwargs={"units_override":uo_stripping})
     yield assert_equal, str(ds), "rps.0062"
     for test in small_patch_amr(stripping, _fields_stripping):
         test_stripping.__name__ = test.description
