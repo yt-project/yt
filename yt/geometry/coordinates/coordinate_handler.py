@@ -183,7 +183,15 @@ class CoordinateHandler(object):
         elif isinstance(center, YTArray):
             return self.ds.arr(center), self.convert_to_cartesian(center)
         elif iterable(center):
-            if iterable(center[0]) and isinstance(center[1], basestring):
+            if isinstance(center[0], basestring) and isinstance(center[1], basestring):
+                if center[0].lower() == "min":
+                    v, center = self.ds.find_min(center[1])
+                elif center[0].lower() == "max":
+                    v, center = self.ds.find_max(center[1])
+                else:
+                    raise RuntimeError("center keyword \"%s\" not recognized" % center)
+                center = self.ds.arr(center, 'code_length')
+            elif iterable(center[0]) and isinstance(center[1], basestring):
                 center = self.ds.arr(center[0], center[1])
             else:
                 center = self.ds.arr(center, 'code_length')

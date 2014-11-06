@@ -191,6 +191,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         "integrate" : integration along the axis
         "mip" : maximum intensity projection
         "sum" : same as "integrate", except that we don't multiply by the path length
+        WARNING: The "sum" option should only be used for uniform resolution grid
+        datasets, as other datasets may result in unphysical images.
     style : string, optional
         The same as the method keyword.  Deprecated as of version 3.0.2.  
         Please use method keyword instead.

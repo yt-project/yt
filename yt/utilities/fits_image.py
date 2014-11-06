@@ -15,7 +15,8 @@ from yt.funcs import mylog, iterable, fix_axis, ensure_list
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
 from yt.data_objects.construction_data_containers import YTCoveringGridBase
 from yt.utilities.on_demand_imports import _astropy
-from yt.units.yt_array import YTQuantity
+from yt.units.yt_array import YTQuantity, YTArray
+import re
 
 pyfits = _astropy.pyfits
 pywcs = _astropy.pywcs
@@ -27,8 +28,7 @@ else:
 
 class FITSImageBuffer(HDUList):
 
-    def __init__(self, data, fields=None, units="cm",
-                 center=None, scale=None, wcs=None):
+    def __init__(self, data, fields=None, units="cm", wcs=None):
         r""" Initialize a FITSImageBuffer object.
 
         FITSImageBuffer contains a list of FITS ImageHDU instances, and
@@ -49,29 +49,32 @@ class FITSImageBuffer(HDUList):
             keys, it will use these for the fields. If *data* is just a
             single array one field name must be specified.
         units : string
-            The units of the WCS coordinates, default "cm". 
-        center : array_like, optional
-            The coordinates [xctr,yctr] of the images in units
-            *units*. If *units* is not specified, defaults to the origin. 
-        scale : tuple of floats, optional
-            Pixel scale in unit *units*. Will be ignored if *data* is
-            a FixedResolutionBuffer or a YTCoveringGrid. Must be
-            specified otherwise, or if *units* is "deg".
+            The units of the WCS coordinates. Only applies
+            to FixedResolutionBuffers or YTCoveringGrids. Defaults to "cm".
         wcs : `astropy.wcs.WCS` instance, optional
-            Supply an AstroPy WCS instance to override automatic WCS creation.
+            Supply an AstroPy WCS instance. Will override automatic WCS
+            creation from FixedResolutionBuffers and YTCoveringGrids.
 
         Examples
         --------
 
+        >>> # This example uses a FRB.
         >>> ds = load("sloshing_nomag2_hdf5_plt_cnt_0150")
         >>> prj = ds.proj(2, "kT", weight_field="density")
         >>> frb = prj.to_frb((0.5, "Mpc"), 800)
         >>> # This example just uses the FRB and puts the coords in kpc.
         >>> f_kpc = FITSImageBuffer(frb, fields="kT", units="kpc")
-        >>> # This example specifies sky coordinates.
-        >>> scale = [1./3600.]*2 # One arcsec per pixel
-        >>> f_deg = FITSImageBuffer(frb, fields="kT", units="deg",
-                                    scale=scale, center=(30., 45.))
+        >>> # This example specifies a specific WCS.
+        >>> from astropy.wcs import WCS
+        >>> w = WCS(naxis=self.dimensionality)
+        >>> w.wcs.crval = [30., 45.] # RA, Dec in degrees
+        >>> w.wcs.cunit = ["deg"]*2
+        >>> nx, ny = 800, 800
+        >>> w.wcs.crpix = [0.5*(nx+1), 0.5*(ny+1)]
+        >>> w.wcs.ctype = ["RA---TAN","DEC--TAN"]
+        >>> scale = 1./3600. # One arcsec per pixel
+        >>> w.wcs.cdelt = [-scale, scale]
+        >>> f_deg = FITSImageBuffer(frb, fields="kT", wcs=w)
         >>> f_deg.writeto("temp.fits")
         """
         
@@ -98,8 +101,14 @@ class FITSImageBuffer(HDUList):
 
         first = True
 
+        self.field_units = {}
+
         for key in fields:
             if key not in exclude_fields:
+                if hasattr(img_data[key], "units"):
+                    self.field_units[key] = str(img_data[key].units)
+                else:
+                    self.field_units[key] = "dimensionless"
                 mylog.info("Making a FITS image of field %s" % (key))
                 if first:
                     hdu = pyfits.PrimaryHDU(np.array(img_data[key]))
@@ -109,7 +118,7 @@ class FITSImageBuffer(HDUList):
                 hdu.name = key
                 hdu.header["btype"] = key
                 if hasattr(img_data[key], "units"):
-                    hdu.header["bunit"] = str(img_data[key].units)
+                    hdu.header["bunit"] = re.sub('()', '', str(img_data[key].units))
                 self.append(hdu)
 
         self.dimensionality = len(self[0].data.shape)
@@ -121,25 +130,11 @@ class FITSImageBuffer(HDUList):
 
         has_coords = (isinstance(img_data, FixedResolutionBuffer) or
                       isinstance(img_data, YTCoveringGridBase))
-        
-        if center is None:
-            if units == "deg":
-                mylog.error("Please specify center=(RA, Dec) in degrees.")
-                raise ValueError
-            elif not has_coords:
-                mylog.warning("Setting center to the origin.")
-                center = [0.0]*self.dimensionality
-
-        if scale is None:
-            if units == "deg" or not has_coords and wcs is None:
-                mylog.error("Please specify scale=(dx,dy[,dz]) in %s." % (units))
-                raise ValueError
 
         if wcs is None:
             w = pywcs.WCS(header=self[0].header, naxis=self.dimensionality)
             w.wcs.crpix = 0.5*(np.array(self.shape)+1)
-            proj_type = ["linear"]*self.dimensionality
-            if isinstance(img_data, FixedResolutionBuffer) and units != "deg":
+            if isinstance(img_data, FixedResolutionBuffer):
                 # FRBs are a special case where we have coordinate
                 # information, so we take advantage of this and
                 # construct the WCS object
@@ -151,28 +146,20 @@ class FITSImageBuffer(HDUList):
             elif isinstance(img_data, YTCoveringGridBase):
                 dx, dy, dz = img_data.dds.in_units(units)
                 center = 0.5*(img_data.left_edge+img_data.right_edge).in_units(units)
-            elif units == "deg" and self.dimensionality == 2:
-                dx = -scale[0]
-                dy = scale[1]
-                proj_type = ["RA---TAN","DEC--TAN"]
             else:
-                dx = scale[0]
-                dy = scale[1]
-                if self.dimensionality == 3: dz = scale[2]
-            
+                # We default to pixel coordinates if nothing is provided
+                dx, dy, dz = 1.0, 1.0, 1.0
+                center = 0.5*(np.array(self.shape)+1)
             w.wcs.crval = center
-            w.wcs.cunit = [units]*self.dimensionality
-            w.wcs.ctype = proj_type
-        
+            if has_coords:
+                w.wcs.cunit = [units]*self.dimensionality
             if self.dimensionality == 2:
                 w.wcs.cdelt = [dx,dy]
             elif self.dimensionality == 3:
                 w.wcs.cdelt = [dx,dy,dz]
-
+            w.wcs.ctype = ["linear"]*self.dimensionality
             self._set_wcs(w)
-
         else:
-
             self._set_wcs(wcs)
 
     def _set_wcs(self, wcs):
@@ -194,7 +181,7 @@ class FITSImageBuffer(HDUList):
         for img in self: img.header[key] = value
             
     def keys(self):
-        return [f.name for f in self]
+        return [f.name.lower() for f in self]
 
     def has_key(self, key):
         return key in self.keys()
@@ -249,33 +236,71 @@ class FITSImageBuffer(HDUList):
         import aplpy
         return aplpy.FITSFigure(self, **kwargs)
 
+    def get_data(self, field):
+        return YTArray(self[field].data, self.field_units[field])
+
+    def set_unit(self, field, units):
+        """
+        Set the units of *field* to *units*.
+        """
+        new_data = YTArray(self[field].data, self.field_units[field]).in_units(units)
+        self[field].data = new_data.v
+        self[field].header["bunit"] = units
+        self.field_units[field] = units
+        
 axis_wcs = [[1,2],[0,2],[0,1]]
 
-def construct_image(data_source, center=None):
+def sanitize_fits_unit(unit):
+    if unit == "Mpc":
+        mylog.info("Changing FITS file unit to kpc.")
+        unit = "kpc"
+    elif unit == "au":
+        unit = "AU"
+    return unit
+
+def construct_image(data_source, center=None, width=None, image_res=None):
     ds = data_source.ds
     axis = data_source.axis
+    if center is None or width is None:
+        center = ds.domain_center[axis_wcs[axis]]
+    if width is None:
+        width = ds.domain_width[axis_wcs[axis]]
+        mylog.info("Making an image of the entire domain, "+
+                   "so setting the center to the domain center.")
+    else:
+        width = ds.coordinates.sanitize_width(axis, width, None)
+    if image_res is None:
+        dd = ds.all_data()
+        dx, dy = [dd.quantities.extrema("d%s" % "xyz"[idx])[0]
+                  for idx in axis_wcs[axis]]
+        nx = int((width[0]/dx).in_units("dimensionless"))
+        ny = int((width[1]/dy).in_units("dimensionless"))
+    else:
+        if iterable(image_res):
+            nx, ny = image_res
+        else:
+            nx, ny = image_res, image_res
+        dx, dy = width[0]/nx, width[1]/ny
+    crpix = [0.5*(nx+1), 0.5*(ny+1)]
     if hasattr(ds, "wcs"):
-        # This is a FITS dataset
-        nx, ny = ds.domain_dimensions[axis_wcs[axis]]
-        crpix = [ds.wcs.wcs.crpix[idx] for idx in axis_wcs[axis]]
-        cdelt = [ds.wcs.wcs.cdelt[idx] for idx in axis_wcs[axis]]
-        crval = [ds.wcs.wcs.crval[idx] for idx in axis_wcs[axis]]
+        # This is a FITS dataset, so we use it to construct the WCS
         cunit = [str(ds.wcs.wcs.cunit[idx]) for idx in axis_wcs[axis]]
         ctype = [ds.wcs.wcs.ctype[idx] for idx in axis_wcs[axis]]
+        cdelt = [ds.wcs.wcs.cdelt[idx] for idx in axis_wcs[axis]]
+        ctr_pix = center.in_units("code_length")[:self.dimensionality].v
+        crval = ds.wcs.wcs_pix2world(ctr_pix.reshape(1,self.dimensionality))[0]
+        crval = [crval[idx] for idx in axis_wcs[axis]]
     else:
-        # This is some other kind of dataset
-        unit = ds.get_smallest_appropriate_unit(ds.domain_width.max())
-        if center is None:
-            crval = [0.0,0.0]
-        else:
-            crval = [(ds.domain_center-center)[idx].in_units(unit) for idx in axis_wcs[axis]]
-        dx = ds.index.get_smallest_dx()
-        nx, ny = (ds.domain_width[axis_wcs[axis]]/dx).ndarray_view().astype("int")
-        crpix = [0.5*(nx+1), 0.5*(ny+1)]
-        cdelt = [dx.in_units(unit)]*2
+        # This is some other kind of dataset                                                                                    
+        unit = str(width[0].units)
+        if unit == "unitary":
+            unit = ds.get_smallest_appropriate_unit(ds.domain_width.max())
+        unit = sanitize_fits_unit(unit)
         cunit = [unit]*2
         ctype = ["LINEAR"]*2
-    frb = data_source.to_frb((1.0,"unitary"), (nx,ny))
+        cdelt = [dx.in_units(unit)]*2
+        crval = [center[idx].in_units(unit) for idx in axis_wcs[axis]]
+    frb = data_source.to_frb(width[0], (nx,ny), center=center, height=width[1])
     w = pywcs.WCS(naxis=2)
     w.wcs.crpix = crpix
     w.wcs.cdelt = cdelt
@@ -296,21 +321,47 @@ class FITSSlice(FITSImageBuffer):
         The axis of the slice. One of "x","y","z", or 0,1,2.
     fields : string or list of strings
         The fields to slice
-    center : A sequence floats, a string, or a tuple.
-         The coordinate of the origin of the image. If set to 'c', 'center' or
+    center : A sequence of floats, a string, or a tuple.
+         The coordinate of the center of the image. If set to 'c', 'center' or
          left blank, the plot is centered on the middle of the domain. If set to
          'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Units can be specified by passing in center
+         ('gas', 'density') field. Centering on the max or min of a specific
+         field is supported by providing a tuple such as ("min","temperature") or
+         ("max","dark_matter_density"). Units can be specified by passing in *center*
          as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray.  If a list or unitless array is supplied, code units are
+         in a YTArray. If a list or unitless array is supplied, code units are
          assumed.
+    width : tuple or a float.
+         Width can have four different formats to support windows with variable
+         x and y widths.  They are:
+
+         ==================================     =======================
+         format                                 example
+         ==================================     =======================
+         (float, string)                        (10,'kpc')
+         ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+         float                                  0.2
+         (float, float)                         (0.2, 0.3)
+         ==================================     =======================
+
+         For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
+         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
+         window that is 10 kiloparsecs wide along the x axis and 15
+         kiloparsecs wide along the y axis.  In the other two examples, code
+         units are assumed, for example (0.2, 0.3) requests a plot that has an
+         x width of 0.2 and a y width of 0.3 in code units.  If units are
+         provided the resulting plot axis labels will use the supplied units.
+    image_res : an int or 2-tuple of ints
+        Specify the resolution of the resulting image. If not provided, it will be
+        determined based on the minimum cell size of the dataset.
     """
-    def __init__(self, ds, axis, fields, center="c", **kwargs):
+    def __init__(self, ds, axis, fields, center="c", width=None, **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis, ds)
-        center = ds.coordinates.sanitize_center(center, axis)
+        center, dcenter = ds.coordinates.sanitize_center(center, axis)
         slc = ds.slice(axis, center[axis], **kwargs)
-        w, frb = construct_image(slc, center=center)
+        w, frb = construct_image(slc, center=dcenter, width=width,
+                                 image_res=image_res)
         super(FITSSlice, self).__init__(frb, fields=fields, wcs=w)
         for i, field in enumerate(fields):
             self[i].header["bunit"] = str(frb[field].units)
@@ -329,21 +380,48 @@ class FITSProjection(FITSImageBuffer):
         The fields to project
     weight_field : string
         The field used to weight the projection.
-    center : A sequence floats, a string, or a tuple.
-        The coordinate of the origin of the image. If set to 'c', 'center' or
-        left blank, the plot is centered on the middle of the domain. If set to
-        'max' or 'm', the center will be located at the maximum of the
-        ('gas', 'density') field. Units can be specified by passing in center
-        as a tuple containing a coordinate and string unit name or by passing
-        in a YTArray.  If a list or unitless array is supplied, code units are
-        assumed.
+    center : A sequence of floats, a string, or a tuple.
+         The coordinate of the center of the image. If set to 'c', 'center' or
+         left blank, the plot is centered on the middle of the domain. If set to
+         'max' or 'm', the center will be located at the maximum of the
+         ('gas', 'density') field. Centering on the max or min of a specific
+         field is supported by providing a tuple such as ("min","temperature") or
+         ("max","dark_matter_density"). Units can be specified by passing in *center*
+         as a tuple containing a coordinate and string unit name or by passing
+         in a YTArray. If a list or unitless array is supplied, code units are
+         assumed.
+    width : tuple or a float.
+         Width can have four different formats to support windows with variable
+         x and y widths.  They are:
+
+         ==================================     =======================
+         format                                 example
+         ==================================     =======================
+         (float, string)                        (10,'kpc')
+         ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+         float                                  0.2
+         (float, float)                         (0.2, 0.3)
+         ==================================     =======================
+
+         For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
+         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
+         window that is 10 kiloparsecs wide along the x axis and 15
+         kiloparsecs wide along the y axis.  In the other two examples, code
+         units are assumed, for example (0.2, 0.3) requests a plot that has an
+         x width of 0.2 and a y width of 0.3 in code units.  If units are
+         provided the resulting plot axis labels will use the supplied units.
+    image_res : an int or 2-tuple of ints
+        Specify the resolution of the resulting image. If not provided, it will be
+        determined based on the minimum cell size of the dataset.
     """
-    def __init__(self, ds, axis, fields, center="c", weight_field=None, **kwargs):
+    def __init__(self, ds, axis, fields, center="c", width=None, 
+                 weight_field=None, image_res=None, **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis, ds)
-        center = ds.coordinates.sanitize_center(center, axis)
+        center, dcenter = ds.coordinates.sanitize_center(center, axis)
         prj = ds.proj(fields[0], axis, weight_field=weight_field, **kwargs)
-        w, frb = construct_image(prj, center=center)
+        w, frb = construct_image(prj, center=dcenter, width=width,
+                                 image_res=image_res)
         super(FITSProjection, self).__init__(frb, fields=fields, wcs=w)
         for i, field in enumerate(fields):
             self[i].header["bunit"] = str(frb[field].units)

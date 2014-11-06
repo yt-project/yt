@@ -26,7 +26,8 @@ from yt.units.dimensions import \
 from yt.units.unit_lookup_table import \
     latex_symbol_lut, unit_prefixes, \
     prefixable_units, cgs_base_units, \
-    mks_base_units, cgs_conversions
+    mks_base_units, latex_prefixes, \
+    cgs_conversions
 from yt.units.unit_registry import UnitRegistry
 
 import copy
@@ -544,9 +545,14 @@ def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
             prefix_value = unit_prefixes[possible_prefix]
 
             if symbol_str not in latex_symbol_lut:
+                if possible_prefix in latex_prefixes:
+                    sstr = symbol_str.replace(possible_prefix, 
+                                              '{'+latex_prefixes[possible_prefix]+'}')
+                else:
+                    sstr = symbol_str
                 latex_symbol_lut[symbol_str] = \
                     latex_symbol_lut[symbol_wo_prefix].replace(
-                                   '{'+symbol_wo_prefix+'}', '{'+symbol_str+'}')
+                                   '{'+symbol_wo_prefix+'}', '{'+sstr+'}')
 
             # don't forget to account for the prefix value!
             return (unit_data[0] * prefix_value, unit_data[1])

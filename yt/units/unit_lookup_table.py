@@ -172,6 +172,10 @@ unit_prefixes = {
     'y': 1e-24,  # yocto
 }
 
+latex_prefixes = {
+    "u" : "\\mu",
+    }
+
 prefixable_units = (
     "m",
     "pc",

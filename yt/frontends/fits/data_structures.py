@@ -42,11 +42,11 @@ from yt.units.unit_lookup_table import \
     unit_prefixes
 from yt.units import dimensions
 from yt.units.yt_array import YTQuantity
-from yt.utilities.on_demand_imports import _astropy
+from yt.utilities.on_demand_imports import _astropy, NotAModule
 
-lon_prefixes = ["X","RA","GLON"]
-lat_prefixes = ["Y","DEC","GLAT"]
-delimiters = ["*", "/", "-", "^"]
+lon_prefixes = ["X","RA","GLON","LINEAR"]
+lat_prefixes = ["Y","DEC","GLAT","LINEAR"]
+delimiters = ["*", "/", "-", "^", "(", ")"]
 delimiters += [str(i) for i in xrange(10)]
 regex_pattern = '|'.join(re.escape(_) for _ in delimiters)
 
@@ -552,7 +552,7 @@ class FITSDataset(Dataset):
         x = 0
         for p in lon_prefixes+lat_prefixes+spec_names.keys():
             y = np_char.startswith(self.axis_names[:self.dimensionality], p)
-            x += y.sum()
+            x += np.any(y)
         if x == self.dimensionality: self._setup_spec_cube()
 
     def _setup_spec_cube(self):
@@ -581,6 +581,12 @@ class FITSDataset(Dataset):
             self.lon_axis += np_char.startswith(ctypes, p)
         self.lon_axis = np.where(self.lon_axis)[0][0]
         self.lon_name = ctypes[self.lon_axis].split("-")[0].lower()
+
+        if self.lat_axis == self.lon_axis and self.lat_name == self.lon_name:
+            self.lat_axis = 1
+            self.lon_axis = 0
+            self.lat_name = "Y"
+            self.lon_name = "X"
 
         if self.wcs.naxis > 2:
 
@@ -658,6 +664,8 @@ class FITSDataset(Dataset):
             ext = args[0].rsplit(".", 1)[0].rsplit(".", 1)[-1]
         if ext.upper() not in ("FITS", "FTS"):
             return False
+        elif isinstance(_astropy.pyfits, NotAModule):
+            raise RuntimeError("This appears to be a FITS file, but AstroPy is not installed.")
         try:
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore', category=UserWarning, append=True)
