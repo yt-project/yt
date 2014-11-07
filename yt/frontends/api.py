@@ -31,6 +31,7 @@ _frontends = [
     'http_stream',
     'moab',
     'owls',
+    'owls_subfind',
     #'pluto',
     'ramses',
     'rockstar',
