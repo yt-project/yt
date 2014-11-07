@@ -33,6 +33,7 @@ _frontends = [
     'owls',
     #'pluto',
     'ramses',
+    'rockstar',
     'sdf',
     'stream',
     'tipsy',
