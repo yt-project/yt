@@ -206,14 +206,24 @@ class RAMSESDomainFile(object):
            The most important is finding all the information to feed
            oct_handler.add
         """
+        from sys import version
+        if version >= '3':
+            from yt.extern.six import stringIOReplace
         self.oct_handler = RAMSESOctreeContainer(self.ds.domain_dimensions/2,
                 self.ds.domain_left_edge, self.ds.domain_right_edge)
         root_nodes = self.amr_header['numbl'][self.ds.min_level,:].sum()
         self.oct_handler.allocate_domains(self.total_oct_count, root_nodes)
         fb = open(self.amr_fn, "rb")
         fb.seek(self.amr_offset)
-        f = cStringIO.StringIO()
-        f.write(fb.read())
+        if version < '3':
+            f = cStringIO.StringIO()
+        else:
+            f = stringIOReplace()
+        if version < '3':
+            f.write(fb.read())
+        else:
+#            f.write(fb.read().decode('utf-8'))
+            f.write(fb.read().decode('iso-8859-1'))
         f.seek(0)
         mylog.debug("Reading domain AMR % 4i (%0.3e, %0.3e)",
             self.domain_id, self.total_oct_count.sum(), self.ngridbound.sum())
@@ -233,6 +243,8 @@ class RAMSESDomainFile(object):
                 #ng is the number of octs on this level on this domain
                 ng = _ng(cpu, level)
                 if ng == 0: continue
+                print(fpu)
+                print(fpu.read_vector(f, b"I"))
                 ind = fpu.read_vector(f, "I").astype("int64")
                 fpu.skip(f, 2)
                 pos = np.empty((ng, 3), dtype='float64')

@@ -166,8 +166,15 @@ def read_vector(f, d, endian='='):
     >>> rv = read_vector(f, 'd')
     """
     pad_fmt = "%sI" % (endian)
+    if version >= '3':
+        pad_fmt.encode('iso-8859-1')
     pad_size = struct.calcsize(pad_fmt)
     vec_len = struct.unpack(pad_fmt,f.read(pad_size))[0] # bytes
+    if version < '3':
+        vec_len = struct.unpack(pad_fmt,f.read(pad_size))[0] # bytes
+    else:
+        #vec_len = struct.unpack(pad_fmt,bytes(f.read(pad_size).decode('iso-8859-1'),'utf-8'))[0] # bytes
+        vec_len = struct.unpack(pad_fmt,f.read(pad_size))[0] # bytes
     vec_fmt = "%s%s" % (endian, d)
     vec_size = struct.calcsize(vec_fmt)
     if vec_len % vec_size != 0:
@@ -180,10 +187,16 @@ def read_vector(f, d, endian='='):
     else:
         from io import IOBase
         checker = IOBase
+        vec_fmt.encode('iso-8859-1')
     if isinstance(f, checker): # Needs to be explicitly a file
         tr = np.fromfile(f, vec_fmt, count=int(vec_num))
     else:
         tr = np.fromstring(f.read(vec_len), vec_fmt, count=int(vec_num))
+    print("HERE 1.1")
+    print(pad_fmt)
+    print(pad_size)
+    print(f.read(pad_size))
+    #vec_len2 = struct.unpack(pad_fmt,bytes(f.read(pad_size).decode('iso-8859-1'),'utf-8'))[0]
     vec_len2 = struct.unpack(pad_fmt,f.read(pad_size))[0]
     assert(vec_len == vec_len2)
     return tr
