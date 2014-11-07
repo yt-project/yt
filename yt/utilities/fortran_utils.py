@@ -181,9 +181,9 @@ def read_vector(f, d, endian='='):
         from io import IOBase
         checker = IOBase
     if isinstance(f, checker): # Needs to be explicitly a file
-        tr = np.fromfile(f, vec_fmt, count=vec_num)
+        tr = np.fromfile(f, vec_fmt, count=int(vec_num))
     else:
-        tr = np.fromstring(f.read(vec_len), vec_fmt, count=vec_num)
+        tr = np.fromstring(f.read(vec_len), vec_fmt, count=int(vec_num))
     vec_len2 = struct.unpack(pad_fmt,f.read(pad_size))[0]
     assert(vec_len == vec_len2)
     return tr
