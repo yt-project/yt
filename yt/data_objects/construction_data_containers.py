@@ -1083,10 +1083,13 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
 
         """
         if self.vertices is None:
-            self.get_data(color_field,"face")
+            if color_field is not None:
+                self.get_data(color_field,"face")
         elif color_field is not None:
             if color_field not in self.field_data:
                 self[color_field]
+        if color_field is None:
+            self.get_data(self.surface_field,'face')
         if emit_field is not None:
             if color_field not in self.field_data:
                 self[emit_field]
@@ -1121,7 +1124,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
                 if color_log: ma = np.log10(ma)            
             cs = (cs - mi) / (ma - mi)
         else:
-            cs = np.zeros(len(cs))
+            cs[:] = 1.0
         # to get color indicies for OBJ formatting
         from yt.visualization._colormap_data import color_map_luts
         lut = color_map_luts[color_map]
@@ -1130,11 +1133,17 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         # now, get emission
         if emit_field is not None:
             if emit_field_min is None:
+                if version >= '3':
+                    em = [float(field) for field in em]
+                    em = np.array(em)
                 emi = em.min()
             else:
                 emi = emit_field_min
                 if emit_log: emi = np.log10(emi)
             if emit_field_max is None:
+                if version >= '3':
+                    em = [float(field) for field in em]
+                    em = np.array(em)
                 ema = em.max()
             else:
                 ema = emit_field_max
@@ -1329,10 +1338,13 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
 
         """
         if self.vertices is None:
-            self.get_data(color_field,"face")
+            if color_field is not None:
+                self.get_data(color_field,"face")
         elif color_field is not None:
             if color_field not in self.field_data:
                 self[color_field]
+        if color_field is None:
+            self.get_data(self.surface_field,'face')
         if emit_field is not None:
             if color_field not in self.field_data:
                 self[emit_field]
