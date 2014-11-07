@@ -81,24 +81,13 @@ class ThermalPhotonModel(PhotonModel):
         start_c = comm.rank*num_cells/comm.size
         end_c = (comm.rank+1)*num_cells/comm.size
         
-        kT = (kboltz*data_source["temperature"][start_c:end_c]).in_units("keV").to_ndarray()
-        vol = data_source["cell_volume"][start_c:end_c].in_cgs().to_ndarray()
-        EM = (data_source["density"][start_c:end_c]/mp).to_ndarray()**2
+        kT = data_source["kT"][start_c:end_c].v
+        vol = data_source["cell_volume"][start_c:end_c].in_cgs().v
+        EM = (data_source["density"][start_c:end_c]/mp).v**2
         EM *= 0.5*(1.+self.X_H)*self.X_H*vol
 
         data_source.clear_data()
-    
-        x = data_source["x"][start_c:end_c].copy()
-        y = data_source["y"][start_c:end_c].copy()
-        z = data_source["z"][start_c:end_c].copy()
-        dx = data_source["dx"][start_c:end_c].copy()
 
-        data_source.clear_data()
-        
-        vx = data_source["velocity_x"][start_c:end_c].copy()
-        vy = data_source["velocity_y"][start_c:end_c].copy()
-        vz = data_source["velocity_z"][start_c:end_c].copy()
-    
         if isinstance(self.Zmet, basestring):
             metalZ = data_source[self.Zmet][start_c:end_c].to_ndarray()
         else:
@@ -189,7 +178,20 @@ class ThermalPhotonModel(PhotonModel):
         photons = {}
 
         src_ctr = parameters["center"]
-        
+
+        x = data_source["x"][start_c:end_c][idxs]
+        y = data_source["y"][start_c:end_c][idxs]
+        z = data_source["z"][start_c:end_c][idxs]
+        dx = data_source["dx"][start_c:end_c][idxs]
+
+        data_source.clear_data()
+
+        vx = data_source["velocity_x"][start_c:end_c][idxs]
+        vy = data_source["velocity_y"][start_c:end_c][idxs]
+        vz = data_source["velocity_z"][start_c:end_c][idxs]
+
+        data_source.clear_data()
+
         photons["x"] = (x[idxs]-src_ctr[0]).in_units("kpc")
         photons["y"] = (y[idxs]-src_ctr[1]).in_units("kpc")
         photons["z"] = (z[idxs]-src_ctr[2]).in_units("kpc")
