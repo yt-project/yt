@@ -28,7 +28,7 @@ def test_fields_g8():
     ds = data_dir_load(g8)
     yield assert_equal, str(ds), "group_008.0.hdf5"
     for field in _fields:
-        yield FieldValuesTest(g8, field)
+        yield FieldValuesTest(g8, field, particle_type=True)
 
 # a dataset with empty files
 g3 = "owls_fof_halos/groups_003/group_003.0.hdf5"
@@ -37,4 +37,4 @@ def test_fields_g3():
     ds = data_dir_load(g3)
     yield assert_equal, str(ds), "group_003.0.hdf5"
     for field in _fields:
-        yield FieldValuesTest(g3, field)
+        yield FieldValuesTest(g3, field, particle_type=True)
