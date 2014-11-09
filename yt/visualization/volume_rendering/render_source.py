@@ -20,9 +20,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from transfer_function_helper import TransferFunctionHelper
-from transfer_functions import TransferFunction
+from transfer_functions import TransferFunction, ProjectionTransferFunction
 from utils import new_volume_render_sampler, data_source_or_all, \
-    get_corners
+    get_corners, new_projection_sampler
 
 from zbuffer_array import ZBuffer
 from yt.utilities.lib.misc_utilities import \
@@ -78,6 +78,7 @@ class VolumeSource(RenderSource):
         self.double_check = False
         self.num_threads = 0
         self.num_samples = 10
+        self.sampler_type = 'volume-render'
 
         # Error checking
         assert(self.field is not None)
@@ -97,8 +98,11 @@ class VolumeSource(RenderSource):
         """
         Set transfer function for this source
         """
-        if not isinstance(transfer_function, TransferFunction):
+        if not isinstance(transfer_function, (TransferFunction, ProjectionTransferFunction)):
             raise RuntimeError("transfer_function not of correct type")
+        if isinstance(transfer_function, ProjectionTransferFunction):
+            self.sampler_type = 'projection'
+
         self.transfer_function = transfer_function
         return self
 
@@ -134,14 +138,23 @@ class VolumeSource(RenderSource):
         self.volume = volume
 
     def set_field(self, field, no_ghost=True):
+        field = self.data_source._determine_fields(field)[0]
         log_field = self.data_source.pf.field_info[field].take_log
-        self.volume.set_fields([field], [log_field], no_ghost)
+        self.volume.set_fields(field, [log_field], no_ghost)
         self.field = field
 
-    def set_sampler(self, camera, sampler_type='volume-render'):
+    def set_fields(self, fields, no_ghost=True):
+        fields = self.data_source._determine_fields(fields)
+        log_fields = [self.data_source.pf.field_info[f].take_log for f in fields]
+        self.volume.set_fields(fields, log_fields, no_ghost)
+        self.field = fields
+
+    def set_sampler(self, camera):
         """docstring for add_sampler"""
-        if sampler_type == 'volume-render':
+        if self.sampler_type == 'volume-render':
             sampler = new_volume_render_sampler(camera, self)
+        elif self.sampler_type == 'projection':
+            sampler = new_projection_sampler(camera, self)
         else:
             NotImplementedError("%s not implemented yet" % sampler_type)
         self.sampler = sampler
@@ -162,6 +175,7 @@ class VolumeSource(RenderSource):
                         raise RuntimeError
 
         for brick in self.volume.traverse(camera.lens.viewpoint):
+            mylog.debug("Using sampler %s" % self.sampler)
             self.sampler(brick, num_threads=self.num_threads)
             total_cells += np.prod(brick.my_data[0].shape)
         mylog.debug("Done casting rays")
