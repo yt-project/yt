@@ -2342,6 +2342,74 @@ class ProjectionCamera(Camera):
 
 data_object_registry["projection_camera"] = ProjectionCamera
 
+class SphericalCamera(Camera):
+    #expand_factor = 1.0
+    def __init__(self, *args, **kwargs):
+    #    self.expand_factor = kwargs.pop('expand_factor', 1.0)
+        Camera.__init__(self, *args, **kwargs)
+
+    def get_sampler_args(self, image):
+
+        px = np.linspace(-np.pi, np.pi, self.resolution[0], endpoint=True)[:,None]
+        py = np.linspace(-np.pi/2, np.pi/2., self.resolution[1], endpoint=True)[None,:]
+
+        vectors = np.zeros((self.resolution[0], self.resolution[1], 3), dtype='float64', order='C')
+        vectors[:,:,0] = np.cos(px) * np.cos(py)
+        vectors[:,:,1] = np.sin(px) * np.cos(py)
+        vectors[:,:,2] = np.sin(py)
+
+        vectors = vectors * self.width[0]
+        positions = self.center + vectors * 0
+
+        R1 = get_rotation_matrix(0.5*np.pi, [1,0,0])
+        R2 = get_rotation_matrix(0.5*np.pi, [0,0,1])
+        uv = np.dot(R1, self.orienter.unit_vectors)
+        uv = np.dot(R2, uv)
+
+        vectors.reshape((self.resolution[0]*self.resolution[1], 3))
+        vectors = np.dot(vectors, uv)
+        vectors.reshape((self.resolution[0], self.resolution[1], 3))
+
+        dummy = np.ones(3, dtype='float64')
+        image.shape = (self.resolution[0]*self.resolution[1],1,4)
+        vectors.shape = (self.resolution[0]*self.resolution[1],1,3)
+        positions.shape = (self.resolution[0]*self.resolution[1],1,3)
+        args = (positions, vectors, self.back_center,
+                (0.0,1.0,0.0,1.0),
+                image, dummy, dummy,
+                np.zeros(3, dtype='float64'),
+                self.transfer_function, self.sub_samples)
+        return args
+
+    def _render(self, double_check, num_threads, image, sampler):
+        pbar = get_pbar("Ray casting", (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+        total_cells = 0
+        if double_check:
+            for brick in self.volume.bricks:
+                for data in brick.my_data:
+                    if np.any(np.isnan(data)):
+                        raise RuntimeError
+
+        for brick in self.volume.traverse(self.front_center):
+            sampler(brick, num_threads=num_threads)
+            total_cells += np.prod(brick.my_data[0].shape)
+            pbar.update(total_cells)
+
+        pbar.finish()
+        image = self.finalize_image(sampler.aimage)
+        return image
+
+    def finalize_image(self, image):
+        view_pos = self.front_center
+        image.shape = self.resolution[0], self.resolution[1], 4
+        image = self.volume.reduce_tree_images(image, view_pos)
+        if self.transfer_function.grey_opacity is False:
+            image[:,:,3]=1.0
+        image = image[1:-1,1:-1,:]
+        return image
+
+data_object_registry["spherical_camera"] = SphericalCamera
+
 def off_axis_projection(ds, center, normal_vector, width, resolution,
                         field, weight = None, 
                         volume = None, no_ghost = False, interpolated = False,
