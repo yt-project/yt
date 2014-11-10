@@ -99,6 +99,8 @@ class ThermalPhotonModel(PhotonModel):
         for chunk in parallel_objects(citer):
 
             kT = chunk["kT"].v
+            if len(kT) == 0:
+                continue
             vol = chunk["cell_volume"].in_cgs().v
             EM = (chunk["density"]/mp).v**2
             EM *= 0.5*(1.+self.X_H)*self.X_H*vol
