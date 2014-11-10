@@ -309,6 +309,9 @@ class AthenaHierarchy(GridIndex):
             new_gridfilenames = []
             file_offsets = []
             for i in range(levels.shape[0]):
+                if gdims[i][2] % self.ds.nprocs != 0:
+                    raise RuntimeError("Grid %04d cannot be split into virtual grids " % i +
+                                       "since it is not an integer multiple of nprocs!")
                 dx = dx_root/self.dataset.refine_by**(levels[i])
                 gle_orig = self.ds.arr(np.round(dle + dx*glis[i], decimals=12),
                                        "code_length")
@@ -322,7 +325,7 @@ class AthenaHierarchy(GridIndex):
                 shapes_all += shapes
                 levels_all += [levels[i]]*self.dataset.nprocs
                 new_gridfilenames += [self.grid_filenames[i]]*self.dataset.nprocs
-                file_offsets += [(slc[0].start + slc[1].start*shp[0]+slc[2].start*shp[0]*shp[1])*float_size
+                file_offsets += [[slc[0], slc[1], slc[2].start*shp[0]*shp[1]*float_size]
                                  for slc, shp in zip(slices, shapes)]
             self.num_grids *= self.dataset.nprocs
             self.grids = np.empty(self.num_grids, dtype='object')
@@ -341,7 +344,7 @@ class AthenaHierarchy(GridIndex):
             self.grids = np.empty(self.num_grids, dtype='object')
             for i in range(levels.shape[0]):
                 self.grids[i] = self.grid(i,self,levels[i],
-                                          glis[i], gdims[i], 0)
+                                          glis[i], gdims[i], [0]*3)
                 dx = dx_root/self.dataset.refine_by**(levels[i])
                 dxs.append(dx)
 
@@ -479,6 +482,8 @@ class AthenaDataset(Dataset):
             dimensionality = 1
         if dimensionality <= 2 : self.domain_dimensions[2] = np.int32(1)
         if dimensionality == 1 : self.domain_dimensions[1] = np.int32(1)
+        if dimensionality != 3 and self.nprocs > 1:
+            raise RuntimeError("Virtual grids are only supported for 3D outputs!")
         self.dimensionality = dimensionality
         self.current_time = grid["time"]
         self.unique_identifier = self.parameter_filename.__hash__()

@@ -50,7 +50,7 @@ class IOHandlerAthena(BaseIOHandler):
                     offset = offsetr + ((grid_ncells-grid0_ncells) * (offsetr//grid0_ncells))
                 if grid_ncells == grid0_ncells:
                     offset = offsetr
-                f.seek(read_table_offset+offset+grid.file_offset)
+                f.seek(read_table_offset+offset+grid.file_offset[2])
                 if dtype == 'scalar':
                     v = np.fromfile(f, dtype='>f4',
                                     count=grid_ncells).reshape(grid_dims,order='F')

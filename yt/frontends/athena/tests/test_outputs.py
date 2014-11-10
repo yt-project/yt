@@ -20,6 +20,8 @@ from yt.utilities.answer_testing.framework import \
     big_patch_amr, \
     data_dir_load
 from yt.frontends.athena.api import AthenaDataset
+from yt.config import ytcfg
+from yt.convenience import load
 
 _fields_cloud = ("scalar[0]", "density", "total_energy")
 
@@ -58,6 +60,27 @@ def test_stripping():
         test_stripping.__name__ = test.description
         yield test
 
+sloshing = "MHDSloshing/virgo_low_res.0054.vtk"
+
+uo_sloshing = {"length_unit":(1.0,"Mpc"),
+               "time_unit":(1.0,"Myr"),
+               "mass_unit":(1.0e14,"Msun")}
+
+@requires_file(sloshing)
+def test_nprocs():
+    ytcfg["yt","skip_dataset_cache"] = "True"
+
+    ds1 = load(sloshing, units_override=uo_sloshing)
+    sp1 = ds1.sphere("c", (100.,"kpc"))
+    prj1 = ds1.proj("density",0)
+    ds2 = load(sloshing, units_override=uo_sloshing, nprocs=8)
+    sp2 = ds2.sphere("c", (100.,"kpc"))
+    prj2 = ds1.proj("density",0)
+
+    yield assert_equal, sp1.quantities.extrema("pressure"), sp2.quantities.extrema("pressure")
+    yield assert_equal, prj1["density"], prj2["density"]
+
+    ytcfg["yt","skip_dataset_cache"] = "False"
 
 @requires_file(cloud)
 def test_AthenaDataset():
