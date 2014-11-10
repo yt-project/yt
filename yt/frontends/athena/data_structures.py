@@ -301,7 +301,6 @@ class AthenaHierarchy(GridIndex):
                    self.dataset.domain_left_edge)/self.dataset.domain_dimensions
 
         if self.dataset.nprocs > 1:
-            float_size = np.dtype(">f4").itemsize
             gle_all = []
             gre_all = []
             shapes_all = []
@@ -325,8 +324,7 @@ class AthenaHierarchy(GridIndex):
                 shapes_all += shapes
                 levels_all += [levels[i]]*self.dataset.nprocs
                 new_gridfilenames += [self.grid_filenames[i]]*self.dataset.nprocs
-                file_offsets += [[slc[0], slc[1], slc[2].start*shp[0]*shp[1]*float_size]
-                                 for slc, shp in zip(slices, shapes)]
+                file_offsets += [[slc[0].start, slc[1].start, slc[2].start] for slc in slices]
             self.num_grids *= self.dataset.nprocs
             self.grids = np.empty(self.num_grids, dtype='object')
             self.grid_filenames = new_gridfilenames

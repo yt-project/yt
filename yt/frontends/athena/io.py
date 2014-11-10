@@ -17,6 +17,8 @@ from yt.utilities.io_handler import \
 import numpy as np
 from yt.funcs import mylog, defaultdict
 
+float_size = np.dtype(">f4").itemsize
+
 class IOHandlerAthena(BaseIOHandler):
     _dataset_type = "athena"
     _offset_string = 'data:offsets=0'
@@ -40,8 +42,8 @@ class IOHandlerAthena(BaseIOHandler):
                 continue
             f = open(grid.filename, "rb")
             data[grid.id] = {}
-            grid_ncells = np.prod(grid.ActiveDimensions)
             grid_dims = grid.ActiveDimensions
+            grid_ncells = np.prod(grid_dims)
             grid0_ncells = np.prod(grid.index.grid_dimensions[0,:])
             read_table_offset = get_read_table_offset(f)
             for field in fields:
@@ -50,7 +52,8 @@ class IOHandlerAthena(BaseIOHandler):
                     offset = offsetr + ((grid_ncells-grid0_ncells) * (offsetr//grid0_ncells))
                 if grid_ncells == grid0_ncells:
                     offset = offsetr
-                f.seek(read_table_offset+offset+grid.file_offset[2])
+                file_offset = grid.file_offset[2]*grid_dims[0]*grid_dims[1]*float_size
+                f.seek(read_table_offset+offset+file_offset)
                 if dtype == 'scalar':
                     v = np.fromfile(f, dtype='>f4',
                                     count=grid_ncells).reshape(grid_dims,order='F')
