@@ -2347,26 +2347,24 @@ class SphericalCamera(Camera):
         Camera.__init__(self, *args, **kwargs)
         if(self.resolution[0]/self.resolution[1] != 2):
             mylog.info('Warning: It\'s recommended to set the aspect ratio to 2:1')
-        self.resolution = np.asarray(self.resolution)+2
+        self.resolution = np.asarray(self.resolution) + 2
 
     def get_sampler_args(self, image):
-
         px = np.linspace(-np.pi, np.pi, self.resolution[0], endpoint=True)[:,None]
         py = np.linspace(-np.pi/2., np.pi/2., self.resolution[1], endpoint=True)[None,:]
-
-        vectors = np.zeros((self.resolution[0], self.resolution[1], 3), dtype='float64', order='C')
+        
+        vectors = np.zeros((self.resolution[0], self.resolution[1], 3),
+                           dtype='float64', order='C')
         vectors[:,:,0] = np.cos(px) * np.cos(py)
         vectors[:,:,1] = np.sin(px) * np.cos(py)
         vectors[:,:,2] = np.sin(py)
 
         vectors = vectors * self.width[0]
         positions = self.center + vectors * 0
-
         R1 = get_rotation_matrix(0.5*np.pi, [1,0,0])
         R2 = get_rotation_matrix(0.5*np.pi, [0,0,1])
         uv = np.dot(R1, self.orienter.unit_vectors)
         uv = np.dot(R2, uv)
-
         vectors.reshape((self.resolution[0]*self.resolution[1], 3))
         vectors = np.dot(vectors, uv)
         vectors.reshape((self.resolution[0], self.resolution[1], 3))
@@ -2416,37 +2414,37 @@ class StereoSphericalCamera(Camera):
     def __init__(self, *args, **kwargs):
         self.disparity = kwargs.pop('disparity', 0.)
         Camera.__init__(self, *args, **kwargs)
-	self.disparity = self.ds.arr(self.disparity, input_units="code_length")
+        self.disparity = self.ds.arr(self.disparity, input_units="code_length")
         self.disparity_s = self.ds.arr(0., input_units="code_length")
         if(self.resolution[0]/self.resolution[1] != 2):
             mylog.info('Warning: It\'s recommended to set the aspect ratio to be 2:1')
-        self.resolution = np.asarray(self.resolution)+2
+        self.resolution = np.asarray(self.resolution) + 2
         if(self.disparity<=0.):
             self.disparity = self.width[0]/1000.
-            mylog.info('Warning: Invalid value of disparity; now reset it to %f' % self.disparity)
+            mylog.info('Warning: Invalid value of disparity; ' \
+                       'now reset it to %f' % self.disparity)
 
     def get_sampler_args(self, image):
-
         px = np.linspace(-np.pi, np.pi, self.resolution[0], endpoint=True)[:,None]
         py = np.linspace(-np.pi/2., np.pi/2., self.resolution[1], endpoint=True)[None,:]
 
-        vectors = np.zeros((self.resolution[0], self.resolution[1], 3), dtype='float64', order='C')
+        vectors = np.zeros((self.resolution[0], self.resolution[1], 3),
+                           dtype='float64', order='C')
         vectors[:,:,0] = np.cos(px) * np.cos(py)
         vectors[:,:,1] = np.sin(px) * np.cos(py)
         vectors[:,:,2] = np.sin(py)
-        vectors2 = np.zeros((self.resolution[0], self.resolution[1], 3), dtype='float64', order='C')
+        vectors2 = np.zeros((self.resolution[0], self.resolution[1], 3), 
+                            dtype='float64', order='C')
         vectors2[:,:,0] = -np.sin(px) * np.ones((1, self.resolution[1]))
         vectors2[:,:,1] = np.cos(px) * np.ones((1, self.resolution[1]))
         vectors2[:,:,2] = 0
 
         positions = self.center + vectors2 * self.disparity_s
         vectors = vectors * self.width[0]
-
         R1 = get_rotation_matrix(0.5*np.pi, [1,0,0])
         R2 = get_rotation_matrix(0.5*np.pi, [0,0,1])
         uv = np.dot(R1, self.orienter.unit_vectors)
         uv = np.dot(R2, uv)
-
         vectors.reshape((self.resolution[0]*self.resolution[1], 3))
         vectors = np.dot(vectors, uv)
         vectors.reshape((self.resolution[0], self.resolution[1], 3))
