@@ -28,8 +28,7 @@ from yt.utilities.orientation import Orientation
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only, get_mpi_type, \
      parallel_capable
-from yt import units
-from yt.units.yt_array import YTQuantity
+from yt.units.yt_array import YTQuantity, YTArray
 import h5py
 from yt.utilities.on_demand_imports import _astropy
 pyfits = _astropy.pyfits
@@ -93,12 +92,12 @@ class PhotonList(object):
         
         f = h5py.File(filename, "r")
 
-        parameters["FiducialExposureTime"] = f["/fid_exp_time"].value*units.s
-        parameters["FiducialArea"] = f["/fid_area"].value*units.cm*units.cm
+        parameters["FiducialExposureTime"] = YTQuantity(f["/fid_exp_time"].value, "s")
+        parameters["FiducialArea"] = YTQuantity(f["/fid_area"].value, "cm**2")
         parameters["FiducialRedshift"] = f["/fid_redshift"].value
-        parameters["FiducialAngularDiameterDistance"] = f["/fid_d_a"].value*units.Mpc
+        parameters["FiducialAngularDiameterDistance"] = YTQuantity(f["/fid_d_a"].value, "Mpc")
         parameters["Dimension"] = f["/dimension"].value
-        parameters["Width"] = f["/width"].value*units.kpc
+        parameters["Width"] = YTQuantity(f["/width"].value, "kpc")
         parameters["HubbleConstant"] = f["/hubble"].value
         parameters["OmegaMatter"] = f["/omega_matter"].value
         parameters["OmegaLambda"] = f["/omega_lambda"].value
@@ -107,13 +106,13 @@ class PhotonList(object):
         start_c = comm.rank*num_cells/comm.size
         end_c = (comm.rank+1)*num_cells/comm.size
         
-        photons["x"] = f["/x"][start_c:end_c]*units.kpc
-        photons["y"] = f["/y"][start_c:end_c]*units.kpc
-        photons["z"] = f["/z"][start_c:end_c]*units.kpc
-        photons["dx"] = f["/dx"][start_c:end_c]*units.kpc
-        photons["vx"] = f["/vx"][start_c:end_c]*units.km/units.s
-        photons["vy"] = f["/vy"][start_c:end_c]*units.km/units.s
-        photons["vz"] = f["/vz"][start_c:end_c]*units.km/units.s
+        photons["x"] = YTArray(f["/x"][start_c:end_c], "kpc")
+        photons["y"] = YTArray(f["/y"][start_c:end_c], "kpc")
+        photons["z"] = YTArray(f["/z"][start_c:end_c], "kpc")
+        photons["dx"] = YTArray(f["/dx"][start_c:end_c], "kpc")
+        photons["vx"] = YTArray(f["/vx"][start_c:end_c], "km/s")
+        photons["vy"] = YTArray(f["/vy"][start_c:end_c], "km/s")
+        photons["vz"] = YTArray(f["/vz"][start_c:end_c], "km/s")
 
         n_ph = f["/num_photons"][:]
         
@@ -128,7 +127,7 @@ class PhotonList(object):
         p_bins = np.cumsum(photons["NumberOfPhotons"])
         p_bins = np.insert(p_bins, 0, [np.uint64(0)])
         
-        photons["Energy"] = f["/energy"][start_e:end_e]*units.keV
+        photons["Energy"] = YTArray(f["/energy"][start_e:end_e], "keV")
         
         f.close()
 
@@ -296,12 +295,12 @@ class PhotonList(object):
         dimension = 0
         width = 0.0
         for i, ax in enumerate("xyz"):
-            pos = data_source[ax]
-            delta = data_source["d%s"%(ax)]
-            le = np.min(pos-0.5*delta)
-            re = np.max(pos+0.5*delta)
+            le, re = data_source.quantities.extrema(ax)
+            delta_min, delta_max = data_source.quantities.extrema("d%s"%ax)
+            le -= 0.5*delta_max
+            re += 0.5*delta_max
             width = max(width, re-parameters["center"][i], parameters["center"][i]-le)
-            dimension = max(dimension, int(width/delta.min()))
+            dimension = max(dimension, int(width/delta_min))
         parameters["Dimension"] = 2*dimension
         parameters["Width"] = 2.*width.in_units("kpc")
                 
@@ -332,15 +331,15 @@ class PhotonList(object):
                 num_photons = sum(sizes_p)        
                 disps_c = [sum(sizes_c[:i]) for i in range(len(sizes_c))]
                 disps_p = [sum(sizes_p[:i]) for i in range(len(sizes_p))]
-                x = np.zeros((num_cells))
-                y = np.zeros((num_cells))
-                z = np.zeros((num_cells))
-                vx = np.zeros((num_cells))
-                vy = np.zeros((num_cells))
-                vz = np.zeros((num_cells))
-                dx = np.zeros((num_cells))
-                n_ph = np.zeros((num_cells), dtype="uint64")
-                e = np.zeros((num_photons))
+                x = np.zeros(num_cells)
+                y = np.zeros(num_cells)
+                z = np.zeros(num_cells)
+                vx = np.zeros(num_cells)
+                vy = np.zeros(num_cells)
+                vz = np.zeros(num_cells)
+                dx = np.zeros(num_cells)
+                n_ph = np.zeros(num_cells, dtype="uint64")
+                e = np.zeros(num_photons)
             else:
                 sizes_c = []
                 sizes_p = []
@@ -377,15 +376,15 @@ class PhotonList(object):
 
         else:
 
-            x = self.photons["x"].ndarray_view()
-            y = self.photons["y"].ndarray_view()
-            z = self.photons["z"].ndarray_view()
-            vx = self.photons["vx"].ndarray_view()
-            vy = self.photons["vy"].ndarray_view()
-            vz = self.photons["vz"].ndarray_view()
-            dx = self.photons["dx"].ndarray_view()
+            x = self.photons["x"].d
+            y = self.photons["y"].d
+            z = self.photons["z"].d
+            vx = self.photons["vx"].d
+            vy = self.photons["vy"].d
+            vz = self.photons["vz"].d
+            dx = self.photons["dx"].d
             n_ph = self.photons["NumberOfPhotons"]
-            e = self.photons["Energy"].ndarray_view()
+            e = self.photons["Energy"].d
                                                 
         if comm.rank == 0:
             
@@ -472,7 +471,7 @@ class PhotonList(object):
         else:
             sky_center = YTArray(sky_center, "degree")
 
-        dx = self.photons["dx"].ndarray_view()
+        dx = self.photons["dx"].d
         nx = self.parameters["Dimension"]
         if psf_sigma is not None:
              psf_sigma = parse_value(psf_sigma, "degree")
@@ -611,7 +610,7 @@ class PhotonList(object):
         events = {}
 
         dx_min = self.parameters["Width"].value/self.parameters["Dimension"]
-        dtheta = np.rad2deg(dx_min/D_A.value)*units.degree
+        dtheta = YTQuantity(np.rad2deg(dx_min/D_A.value), "degree")
         
         events["xpix"] = xsky[detected]/dx_min + 0.5*(nx+1)
         events["ypix"] = ysky[detected]/dx_min + 0.5*(nx+1)
@@ -749,8 +748,8 @@ class EventList(object) :
         self.wcs.wcs.ctype = ["RA---TAN","DEC--TAN"]
         self.wcs.wcs.cunit = ["deg"]*2                                                
         x,y = self.wcs.wcs_pix2world(self.events["xpix"], self.events["ypix"], 1)
-        self.events["xsky"] = x*units.degree
-        self.events["ysky"] = y*units.degree
+        self.events["xsky"] = YTArray(x, "degree")
+        self.events["ysky"] = YTArray(y, "degree")
 
     def keys(self):
         return self.events.keys()
@@ -780,10 +779,10 @@ class EventList(object) :
         
         f = h5py.File(h5file, "r")
 
-        parameters["ExposureTime"] = f["/exp_time"].value*units.s
-        parameters["Area"] = f["/area"].value*units.cm*units.cm
+        parameters["ExposureTime"] = YTQuantity(f["/exp_time"].value, "s")
+        parameters["Area"] = YTQuantity(f["/area"].value, "cm**2")
         parameters["Redshift"] = f["/redshift"].value
-        parameters["AngularDiameterDistance"] = f["/d_a"].value*units.Mpc
+        parameters["AngularDiameterDistance"] = YTQuantity(f["/d_a"].value, "Mpc")
         if "rmf" in f:
             parameters["RMF"] = f["/rmf"].value
         if "arf" in f:
@@ -799,13 +798,13 @@ class EventList(object) :
 
         events["xpix"] = f["/xpix"][:]
         events["ypix"] = f["/ypix"][:]
-        events["eobs"] = f["/eobs"][:]*units.keV
+        events["eobs"] = YTArray(f["/eobs"][:], "keV")
         if "pi" in f:
             events["PI"] = f["/pi"][:]
         if "pha" in f:
             events["PHA"] = f["/pha"][:]
-        parameters["sky_center"] = f["/sky_center"][:]*units.deg
-        parameters["dtheta"] = f["/dtheta"].value*units.deg
+        parameters["sky_center"] = YTArray(f["/sky_center"][:], "deg")
+        parameters["dtheta"] = YTQuantity(f["/dtheta"].value, "deg")
         parameters["pix_center"] = f["/pix_center"][:]
         
         f.close()
@@ -824,10 +823,10 @@ class EventList(object) :
         events = {}
         parameters = {}
         
-        parameters["ExposureTime"] = tblhdu.header["EXPOSURE"]*units.s
-        parameters["Area"] = tblhdu.header["AREA"]*units.cm*units.cm
+        parameters["ExposureTime"] = YTQuantity(tblhdu.header["EXPOSURE"], "s")
+        parameters["Area"] = YTQuantity(tblhdu.header["AREA"], "cm**2")
         parameters["Redshift"] = tblhdu.header["REDSHIFT"]
-        parameters["AngularDiameterDistance"] = tblhdu.header["D_A"]*units.Mpc
+        parameters["AngularDiameterDistance"] = YTQuantity(tblhdu.header["D_A"], "Mpc")
         if "RMF" in tblhdu.header:
             parameters["RMF"] = tblhdu["RMF"]
         if "ARF" in tblhdu.header:
@@ -840,12 +839,12 @@ class EventList(object) :
             parameters["Telescope"] = tblhdu["TELESCOP"]
         if "INSTRUME" in tblhdu.header:
             parameters["Instrument"] = tblhdu["INSTRUME"]
-        parameters["sky_center"] = np.array([tblhdu["TCRVL2"],tblhdu["TCRVL3"]])*units.deg
+        parameters["sky_center"] = YTArray([tblhdu["TCRVL2"],tblhdu["TCRVL3"]], "deg")
         parameters["pix_center"] = np.array([tblhdu["TCRVL2"],tblhdu["TCRVL3"]])
-        parameters["dtheta"] = tblhdu["TCRVL3"]*units.deg
+        parameters["dtheta"] = YTQuantity(tblhdu["TCRVL3"], "deg")
         events["xpix"] = tblhdu.data.field("X")
         events["ypix"] = tblhdu.data.field("Y")
-        events["eobs"] = (tblhdu.data.field("ENERGY")/1000.)*units.keV # Convert to keV
+        events["eobs"] = YTArray(tblhdu.data.field("ENERGY")/1000., "keV")
         if "PI" in tblhdu.columns.names:
             events["PI"] = tblhdu.data.field("PI")
         if "PHA" in tblhdu.columns.names:

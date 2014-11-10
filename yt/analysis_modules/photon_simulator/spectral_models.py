@@ -14,7 +14,7 @@ photon simulator.
 import numpy as np
 import os
 from yt.funcs import *
-from yt import units
+from yt.units.yt_array import YTQuantity
 import h5py
 
 try:
@@ -30,15 +30,14 @@ stats = _scipy.stats
 from yt.utilities.physical_constants import hcgs, clight, erg_per_keV, amu_cgs
 
 hc = (hcgs*clight).in_units("keV*angstrom")
-cm3 = units.cm*units.cm*units.cm
 
 class SpectralModel(object):
 
     def __init__(self, emin, emax, nchan):
-        self.emin = emin*units.keV
-        self.emax = emax*units.keV
+        self.emin = YTQuantity(emin, "keV")
+        self.emax = YTQuantity(emax, "keV")
         self.nchan = nchan
-        self.ebins = np.linspace(emin, emax, nchan+1)*units.keV
+        self.ebins = np.linspace(emin, emax, nchan+1)
         self.de = np.diff(self.ebins)
         self.emid = 0.5*(self.ebins[1:]+self.ebins[:-1])
         
@@ -100,7 +99,7 @@ class XSpecThermalModel(SpectralModel):
             metal_spec = np.zeros((self.nchan))
         else:
             metal_spec = self.norm*np.array(self.model.values(0)) - cosmic_spec
-        return cosmic_spec*cm3/units.s, metal_spec*cm3/units.s
+        return YTArray(cosmic_spec, "cm**3/s"), YTArray(metal_spec, "cm**3/s")
         
 class XSpecAbsorbModel(SpectralModel):
     r"""
@@ -275,7 +274,7 @@ class TableApecModel(SpectralModel):
         mspec_r = np.zeros(self.nchan)
         tindex = np.searchsorted(self.Tvals, kT)-1
         if tindex >= self.Tvals.shape[0]-1 or tindex < 0:
-            return cspec_l*cm3/units.s, mspec_l*cm3/units.s
+            return YTArray(cspec_l, "cm**3/s"), YTArray(mspec_l, "cm**3/s")
         dT = (kT-self.Tvals[tindex])/self.dTvals[tindex]
         # First do H,He, and trace elements
         for elem in self.cosmic_elem:
@@ -285,8 +284,8 @@ class TableApecModel(SpectralModel):
         for elem in self.metal_elem:
             mspec_l += self._make_spectrum(elem, tindex+2)
             mspec_r += self._make_spectrum(elem, tindex+3)
-        cosmic_spec = (cspec_l*(1.-dT)+cspec_r*dT)*cm3/units.s
-        metal_spec = (mspec_l*(1.-dT)+mspec_r*dT)*cm3/units.s
+        cosmic_spec = YTArray(cspec_l*(1.-dT)+cspec_r*dT, "cm**3/s")
+        metal_spec = YTArray(mspec_l*(1.-dT)+mspec_r*dT, "cm**3/s")
         return cosmic_spec, metal_spec
 
 class TableAbsorbModel(SpectralModel):
@@ -313,11 +312,11 @@ class TableAbsorbModel(SpectralModel):
         f = h5py.File(self.filename,"r")
         emin = f["energy"][:].min()
         emax = f["energy"][:].max()
-        self.sigma = f["cross_section"][:]*units.cm*units.cm
+        self.sigma = YTArray(f["cross_section"][:], "cm**2")
         nchan = self.sigma.shape[0]
         f.close()
         SpectralModel.__init__(self, emin, emax, nchan)
-        self.nH = nH*1.0e22/(units.cm*units.cm)
+        self.nH = YTQuantity(nH*1.0e22, "cm**-2")
         
     def prepare(self):
         """
