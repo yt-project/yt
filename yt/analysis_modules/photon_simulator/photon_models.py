@@ -73,7 +73,8 @@ class ThermalPhotonModel(PhotonModel):
         redshift = parameters["FiducialRedshift"]
         D_A = parameters["FiducialAngularDiameterDistance"].in_cgs()
         dist_fac = 1.0/(4.*np.pi*D_A.value*D_A.value*(1.+redshift)**3)
-                
+        src_ctr = parameters["center"]
+
         vol_scale = 1.0/np.prod(ds.domain_width.in_cgs().to_ndarray())
 
         my_kT_min, my_kT_max = data_source.quantities.extrema("kT")
@@ -99,7 +100,8 @@ class ThermalPhotonModel(PhotonModel):
         for chunk in parallel_objects(citer):
 
             kT = chunk["kT"].v
-            if len(kT) == 0:
+            num_cells = len(kT)
+            if num_cells == 0:
                 continue
             vol = chunk["cell_volume"].in_cgs().v
             EM = (chunk["density"]/mp).v**2
@@ -111,7 +113,6 @@ class ThermalPhotonModel(PhotonModel):
                 metalZ = self.Zmet*chunk["ones"]
 
             idxs = np.argsort(kT)
-            dshape = idxs.shape
 
             kT_bins = np.linspace(kT_min, max(my_kT_max, kT_max), num=n_kT+1)
             dkT = kT_bins[1]-kT_bins[0]
@@ -131,6 +132,9 @@ class ThermalPhotonModel(PhotonModel):
             cell_em = EM[idxs]*vol_scale
 
             u = np.random.random(cell_em.shape)
+
+            number_of_photons = np.zeros(num_cells)
+            energies = []
 
             pbar = get_pbar("Generating Photons", n_kT)
 
@@ -158,7 +162,7 @@ class ThermalPhotonModel(PhotonModel):
                 tot_ph_m = cumspec_m[-1]*area.value*exp_time.value
 
                 for icell in xrange(ibegin, iend):
-            
+
                     cell_norm_c = tot_ph_c*cell_em[icell]/em_sum_c
                     cell_n_c = np.uint64(cell_norm_c) + np.uint64(np.modf(cell_norm_c)[0] >= u[icell])
             
@@ -168,36 +172,33 @@ class ThermalPhotonModel(PhotonModel):
                     cell_n = cell_n_c + cell_n_m
 
                     if cell_n > 0:
+                        number_of_photons[icell] = cell_n
                         randvec_c = np.random.uniform(size=cell_n_c)
                         randvec_c.sort()
                         randvec_m = np.random.uniform(size=cell_n_m)
                         randvec_m.sort()
                         cell_e_c = np.interp(randvec_c, counts_c, energy)
                         cell_e_m = np.interp(randvec_m, counts_m, energy)
-                        photons["x"].append(chunk["x"][icell])
-                        photons["y"].append(chunk["y"][icell])
-                        photons["z"].append(chunk["z"][icell])
-                        photons["dx"].append(chunk["dx"][icell])
-                        photons["vx"].append(chunk["velocity_x"][icell])
-                        photons["vy"].append(chunk["velocity_y"][icell])
-                        photons["vz"].append(chunk["velocity_z"][icell])
-                        photons["NumberOfPhotons"].append(cell_n)
-                        photons["Energy"].append(np.concatenate([cell_e_c,cell_e_m]))
-
+                        energies.append(np.concatenate([cell_e_c,cell_e_m]))
             
                 pbar.update(i)
 
             pbar.finish()
 
-        src_ctr = parameters["center"]
+            active_cells = number_of_photons > 0
+            idxs = idxs[active_cells]
 
-        photons["x"] = (ds.arr(photons["x"])-src_ctr[0]).in_units("kpc")
-        photons["y"] = (ds.arr(photons["y"])-src_ctr[1]).in_units("kpc")
-        photons["z"] = (ds.arr(photons["z"])-src_ctr[2]).in_units("kpc")
-        photons["vx"] = ds.arr(photons["vx"]).in_units("km/s")
-        photons["vy"] = ds.arr(photons["vy"]).in_units("km/s")
-        photons["vz"] = ds.arr(photons["vz"]).in_units("km/s")
-        photons["dx"] = ds.arr(photons["dx"]).in_units("kpc")
-        photons["Energy"] = ds.arr(np.concatenate(photons["Energy"]), "keV")
-    
+            photons["NumberOfPhotons"].append(number_of_photons[active_cells])
+            photons["Energy"].append(np.concatenate(energies))
+            photons["x"].append((chunk["x"][idxs]-src_ctr[0]).in_units("kpc"))
+            photons["y"].append((chunk["y"][idxs]-src_ctr[1]).in_units("kpc"))
+            photons["z"].append((chunk["z"][idxs]-src_ctr[2]).in_units("kpc"))
+            photons["vx"].append(chunk["velocity_x"][idxs].in_units("km/s"))
+            photons["vx"].append(chunk["velocity_y"][idxs].in_units("km/s"))
+            photons["vx"].append(chunk["velocity_z"][idxs].in_units("km/s"))
+            photons["dx"].append(chunk["dx"][idxs].in_units("kpc"))
+
+        for key in photons:
+            photons[key] = np.concatenate(photons[key])
+
         return photons
