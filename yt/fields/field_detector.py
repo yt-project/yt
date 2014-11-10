@@ -158,6 +158,9 @@ class FieldDetector(defaultdict):
     def smooth(self, *args, **kwargs):
         return np.random.random((self.nd, self.nd, self.nd))
 
+    def particle_operation(self, *args, **kwargs):
+        return None
+
     def _read_data(self, field_name):
         self.requested.append(field_name)
         if hasattr(self.ds, "field_info"):
