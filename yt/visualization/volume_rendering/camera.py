@@ -2347,11 +2347,12 @@ class SphericalCamera(Camera):
         Camera.__init__(self, *args, **kwargs)
         if(self.resolution[0]/self.resolution[1] != 2):
             mylog.info('Warning: It\'s recommended to set the aspect ratio to 2:1')
+        self.resolution = np.asarray(self.resolution)+2
 
     def get_sampler_args(self, image):
 
-        px = np.linspace(-np.pi, np.pi, self.resolution[0], endpoint=False)[:,None]
-        py = np.linspace(-np.pi/2, np.pi/2., self.resolution[1], endpoint=False)[None,:]
+        px = np.linspace(-np.pi, np.pi, self.resolution[0], endpoint=True)[:,None]
+        py = np.linspace(-np.pi/2., np.pi/2., self.resolution[1], endpoint=True)[None,:]
 
         vectors = np.zeros((self.resolution[0], self.resolution[1], 3), dtype='float64', order='C')
         vectors[:,:,0] = np.cos(px) * np.cos(py)
@@ -2406,6 +2407,7 @@ class SphericalCamera(Camera):
         image = self.volume.reduce_tree_images(image, view_pos)
         if self.transfer_function.grey_opacity is False:
             image[:,:,3]=1.0
+        image = image[1:-1,1:-1,:]
         return image
 
 data_object_registry["spherical_camera"] = SphericalCamera
@@ -2418,14 +2420,15 @@ class StereoSphericalCamera(Camera):
         self.disparity_s = self.ds.arr(0., input_units="code_length")
         if(self.resolution[0]/self.resolution[1] != 2):
             mylog.info('Warning: It\'s recommended to set the aspect ratio to be 2:1')
+        self.resolution = np.asarray(self.resolution)+2
         if(self.disparity<=0.):
             self.disparity = self.width[0]/1000.
             mylog.info('Warning: Invalid value of disparity; now reset it to %f' % self.disparity)
 
     def get_sampler_args(self, image):
 
-        px = np.linspace(-np.pi, np.pi, self.resolution[0], endpoint=False)[:,None]
-        py = np.linspace(-np.pi/2, np.pi/2., self.resolution[1], endpoint=False)[None,:]
+        px = np.linspace(-np.pi, np.pi, self.resolution[0], endpoint=True)[:,None]
+        py = np.linspace(-np.pi/2., np.pi/2., self.resolution[1], endpoint=True)[None,:]
 
         vectors = np.zeros((self.resolution[0], self.resolution[1], 3), dtype='float64', order='C')
         vectors[:,:,0] = np.cos(px) * np.cos(py)
@@ -2471,7 +2474,7 @@ class StereoSphericalCamera(Camera):
         sampler1 = self.get_sampler(args1)
         self.initialize_source()
         image1 = self._render(double_check, num_threads,
-                              image1, sampler1, '(Left)')
+                              image1, sampler1, '(Left) ')
 
         self.disparity_s = -self.disparity
         image2 = self.new_image()
@@ -2509,6 +2512,7 @@ class StereoSphericalCamera(Camera):
         image.shape = self.resolution[0], self.resolution[1], 4
         if self.transfer_function.grey_opacity is False:
             image[:,:,3]=1.0
+        image = image[1:-1,1:-1,:]
         return image
 
 data_object_registry["stereospherical_camera"] = StereoSphericalCamera
