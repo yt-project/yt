@@ -575,7 +575,7 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
     return [field_name]
 
 def add_nearest_neighbor_field(ptype, coord_name, registry, nneighbors = 64):
-    field_name = (ptype, "nearest_neighbor_%s" % (nneighbors))
+    field_name = (ptype, "nearest_neighbor_distance_%s" % (nneighbors))
     def _nth_neighbor(field, data):
         pos = data[ptype, coord_name].in_units("code_length")
         distances = 0.0 * pos[:,0]

@@ -352,7 +352,7 @@ defined as such: ``("deposit", "particletype_smoothed_fieldname")``, where
 field ``("gas", "temperature")`` for convenience.
 
 Computing the Nth Nearest Neighbor
-------------------------------
+----------------------------------
 
 One particularly useful field that can be created is that of the distance to
 the Nth-nearest neighbor.  This field can then be used as input to smoothing
@@ -374,8 +374,8 @@ yt defines this field as a plugin, and it can be added like so:
    print dd[fn]
 
 Note that ``fn`` here is the "field name" that yt adds.  It will be of the form
-``(ptype, nearest_neighbor_NN)`` where ``NN`` is the integer.  By default this
-is 64, but it can be supplied as the final argument to
+``(ptype, nearest_neighbor_distance_NN)`` where ``NN`` is the integer.  By
+default this is 64, but it can be supplied as the final argument to
 ``add_nearest_neighbor_field``.  For the example above, it would be
 ``nearest_neighbor_64``.
 

@@ -160,7 +160,9 @@ class OctreeSubset(YTSelectionContainer):
             instance, this might include mass, velocity, etc.  
         method : string
             This is the "method name" which will be looked up in the
-            `particle_deposit` namespace as `methodname_deposit`.
+            `particle_deposit` namespace as `methodname_deposit`.  Current
+            methods include `count`, `simple_smooth`, `sum`, `std`, `cic`,
+            `weighted_mean`, `mesh_id`, and `nearest`.
 
         Returns
         -------
@@ -212,7 +214,9 @@ class OctreeSubset(YTSelectionContainer):
             the operation.
         method : string
             This is the "method name" which will be looked up in the
-            `particle_smooth` namespace as `methodname_smooth`.
+            `particle_smooth` namespace as `methodname_smooth`.  Current
+            methods include `volume_weighted`, `nearest`, `idw`,
+            `nth_neighbor`, and `density`.
         create_octree : bool
             Should we construct a new octree for indexing the particles?  In
             cases where we are applying an operation on a subset of the

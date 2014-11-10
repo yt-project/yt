@@ -263,6 +263,13 @@ cdef class ParticleSmoothOperation:
                      int domain_offset = 0,
                      periodicity = (True, True, True),
                      geometry = "cartesian"):
+        # The other functions in this base class process particles in a way
+        # that results in a modification to the *mesh*.  This function is
+        # designed to process neighboring particles in such a way that a new
+        # *particle* field is defined -- this means that new particle
+        # attributes (*not* mesh attributes) can be created that rely on the
+        # values of nearby particles.  For instance, a smoothing kernel, or a
+        # nearest-neighbor field.
         cdef int nf, i, j, k, dims[3], n
         cdef np.float64_t **field_pointers, *field_vals, pos[3], *ppos, dds[3]
         cdef np.float64_t **octree_field_pointers
