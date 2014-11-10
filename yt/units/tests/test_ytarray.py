@@ -697,7 +697,12 @@ def binary_ufunc_comparison(ufunc, a, b):
         assert_true(not isinstance(ret, YTArray) and
                     isinstance(ret, np.ndarray))
     assert_array_equal(ret, out)
-    assert_array_equal(ret, ufunc(np.array(a), np.array(b)))
+    if (ufunc in (np.divide, np.true_divide, np.arctan2) and
+        (a.units.dimensions == b.units.dimensions)):
+        assert_array_almost_equal(
+            np.array(ret), ufunc(np.array(a.in_cgs()), np.array(b.in_cgs())))
+    else:
+        assert_array_almost_equal(np.array(ret), ufunc(np.array(a), np.array(b)))
 
 
 def test_ufuncs():
@@ -994,3 +999,19 @@ def test_dimensionless_conversion():
     a.convert_to_units('Zsun')
     yield assert_true, a.units.cgs_value == metallicity_sun
     yield assert_true, b.units.cgs_value == metallicity_sun
+
+def test_modified_unit_division():
+    ds1 = fake_random_ds(64)
+    ds2 = fake_random_ds(64)
+
+    # this mocks comoving coordinates without going through the trouble
+    # of setting up a fake cosmological dataset
+    ds1.unit_registry.modify('m', 50)
+
+    a = ds1.quan(3, 'm')
+    b = ds2.quan(3, 'm')
+
+    ret = a/b
+    yield assert_true, ret == 0.5
+    yield assert_true, ret.units.is_dimensionless
+    yield assert_true, ret.units.cgs_value == 1.0
