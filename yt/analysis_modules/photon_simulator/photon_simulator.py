@@ -305,7 +305,9 @@ class PhotonList(object):
         parameters["Width"] = 2.*width.in_units("kpc")
                 
         photons = photon_model(data_source, parameters)
-        
+
+        mylog.info("Finished generating photons.")
+
         p_bins = np.cumsum(photons["NumberOfPhotons"])
         p_bins = np.insert(p_bins, 0, [np.uint64(0)])
                         
