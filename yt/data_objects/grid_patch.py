@@ -338,6 +338,9 @@ class AMRGridPatch(YTSelectionContainer):
     def smooth(self, *args, **kwargs):
         raise NotImplementedError
 
+    def particle_operation(self, *args, **kwargs):
+        raise NotImplementedError
+
     def deposit(self, positions, fields = None, method = None):
         # Here we perform our particle deposition.
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
