@@ -35,7 +35,6 @@ class IOHandlerAthena(BaseIOHandler):
         data = {}
         grids_by_file = defaultdict(list)
         if len(chunk.objs) == 0: return data
-        field_list = set(f[1] for f in fields)
         for grid in chunk.objs:
             if grid.filename is None:
                 continue
@@ -45,13 +44,13 @@ class IOHandlerAthena(BaseIOHandler):
             grid_dims = grid.ActiveDimensions
             grid0_ncells = np.prod(grid.index.grid_dimensions[0,:])
             read_table_offset = get_read_table_offset(f)
-            for field in self.ds.field_list:
+            for field in fields:
                 dtype, offsetr = grid.index._field_map[field]
                 if grid_ncells != grid0_ncells:
                     offset = offsetr + ((grid_ncells-grid0_ncells) * (offsetr//grid0_ncells))
                 if grid_ncells == grid0_ncells:
                     offset = offsetr
-                f.seek(read_table_offset+offset)
+                f.seek(read_table_offset+offset+grid.file_offset)
                 if dtype == 'scalar':
                     v = np.fromfile(f, dtype='>f4',
                                     count=grid_ncells).reshape(grid_dims,order='F')
