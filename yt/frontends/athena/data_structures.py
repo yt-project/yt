@@ -28,6 +28,8 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
+from yt.geometry.geometry_handler import \
+    YTDataChunk
 
 from .fields import AthenaFieldInfo
 from yt.units.yt_array import YTQuantity
@@ -390,6 +392,14 @@ class AthenaHierarchy(GridIndex):
         grids, grid_ind = self.get_box_grids(grid.LeftEdge, grid.RightEdge)
         mask[grid_ind] = True
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
+
+    def _chunk_io(self, dobj, cache = True, local_only = False):
+        gfiles = defaultdict(list)
+        gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+        for subset in gobjs:
+            yield YTDataChunk(dobj, "io", [subset],
+                              self._count_selection(dobj, [subset]),
+                              cache = cache)
 
 class AthenaDataset(Dataset):
     _index_class = AthenaHierarchy

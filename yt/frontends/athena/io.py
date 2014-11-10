@@ -35,7 +35,6 @@ class IOHandlerAthena(BaseIOHandler):
 
     def _read_chunk_data(self,chunk,fields):
         data = {}
-        grids_by_file = defaultdict(list)
         if len(chunk.objs) == 0: return data
         for grid in chunk.objs:
             if grid.filename is None:
