@@ -81,11 +81,9 @@ class ThermalPhotonModel(PhotonModel):
         self.spectral_model.prepare()
         energy = self.spectral_model.ebins
 
-        citer = self.data_source.chunks(["kT","cell_volume","density"], "io")
-        num_chunks = len(citer)
-        pbar = get_pbar("Generating Photons", num_chunks)
-
-        ck = 0
+        citer = data_source.chunks(["kT","cell_volume","density",
+                                    "x","y","z","dx","velocity_x",
+                                    "velocity_y","velocity_z"], "io")
 
         photons = {}
         photons["x"] = []
@@ -132,6 +130,8 @@ class ThermalPhotonModel(PhotonModel):
 
             u = np.random.random(cell_em.shape)
 
+            pbar = get_pbar("Generating Photons", n_kT)
+
             for i, ikT in enumerate(kT_idxs):
 
                 ibegin = bcell[i]
@@ -175,16 +175,17 @@ class ThermalPhotonModel(PhotonModel):
                         photons["x"].append(chunk["x"][icell])
                         photons["y"].append(chunk["y"][icell])
                         photons["z"].append(chunk["z"][icell])
+                        photons["dx"].append(chunk["dx"][icell])
                         photons["vx"].append(chunk["velocity_x"][icell])
                         photons["vy"].append(chunk["velocity_y"][icell])
                         photons["vz"].append(chunk["velocity_z"][icell])
                         photons["NumberOfPhotons"].append(cell_n)
                         photons["Energy"].append(np.concatenate([cell_e_c,cell_e_m]))
 
-            ck += 1
-            pbar.update(ck)
+            
+                pbar.update(i)
 
-        pbar.finish()
+            pbar.finish()
 
         src_ctr = parameters["center"]
 

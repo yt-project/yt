@@ -296,12 +296,12 @@ class PhotonList(object):
         dimension = 0
         width = 0.0
         for i, ax in enumerate("xyz"):
-            pos = data_source[ax]
-            delta = data_source["d%s"%(ax)]
-            le = np.min(pos-0.5*delta)
-            re = np.max(pos+0.5*delta)
+            le, re = data_source.quantities.extrema(ax)
+            delta_min, delta_max = data_source.quantities.extrema("d%s"%ax)
+            le -= 0.5*delta_max
+            re += 0.5*delta_max
             width = max(width, re-parameters["center"][i], parameters["center"][i]-le)
-            dimension = max(dimension, int(width/delta.min()))
+            dimension = max(dimension, int(width/delta_min))
         parameters["Dimension"] = 2*dimension
         parameters["Width"] = 2.*width.in_units("kpc")
                 
@@ -332,15 +332,15 @@ class PhotonList(object):
                 num_photons = sum(sizes_p)        
                 disps_c = [sum(sizes_c[:i]) for i in range(len(sizes_c))]
                 disps_p = [sum(sizes_p[:i]) for i in range(len(sizes_p))]
-                x = np.zeros((num_cells))
-                y = np.zeros((num_cells))
-                z = np.zeros((num_cells))
-                vx = np.zeros((num_cells))
-                vy = np.zeros((num_cells))
-                vz = np.zeros((num_cells))
-                dx = np.zeros((num_cells))
-                n_ph = np.zeros((num_cells), dtype="uint64")
-                e = np.zeros((num_photons))
+                x = np.zeros(num_cells)
+                y = np.zeros(num_cells)
+                z = np.zeros(num_cells)
+                vx = np.zeros(num_cells)
+                vy = np.zeros(num_cells)
+                vz = np.zeros(num_cells)
+                dx = np.zeros(num_cells)
+                n_ph = np.zeros(num_cells, dtype="uint64")
+                e = np.zeros(num_photons)
             else:
                 sizes_c = []
                 sizes_p = []
@@ -377,15 +377,15 @@ class PhotonList(object):
 
         else:
 
-            x = self.photons["x"].ndarray_view()
-            y = self.photons["y"].ndarray_view()
-            z = self.photons["z"].ndarray_view()
-            vx = self.photons["vx"].ndarray_view()
-            vy = self.photons["vy"].ndarray_view()
-            vz = self.photons["vz"].ndarray_view()
-            dx = self.photons["dx"].ndarray_view()
+            x = self.photons["x"].d
+            y = self.photons["y"].d
+            z = self.photons["z"].d
+            vx = self.photons["vx"].d
+            vy = self.photons["vy"].d
+            vz = self.photons["vz"].d
+            dx = self.photons["dx"].d
             n_ph = self.photons["NumberOfPhotons"]
-            e = self.photons["Energy"].ndarray_view()
+            e = self.photons["Energy"].d
                                                 
         if comm.rank == 0:
             
@@ -472,7 +472,7 @@ class PhotonList(object):
         else:
             sky_center = YTArray(sky_center, "degree")
 
-        dx = self.photons["dx"].ndarray_view()
+        dx = self.photons["dx"].d
         nx = self.parameters["Dimension"]
         if psf_sigma is not None:
              psf_sigma = parse_value(psf_sigma, "degree")
