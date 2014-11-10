@@ -27,7 +27,7 @@ from yt.funcs import *
 from yt.utilities.physical_constants import mp, kboltz
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_objects
-from IPython import embed
+from  yt.units.yt_array import uconcatenate
 
 n_kT = 10000
 kT_min = 8.08e-2
@@ -206,6 +206,6 @@ class ThermalPhotonModel(PhotonModel):
             photons["dx"].append(chunk["dx"][idxs].in_units("kpc"))
 
         for key in photons:
-            photons[key] = np.concatenate(photons[key])
+            photons[key] = uconcatenate(photons[key])
 
         return photons
