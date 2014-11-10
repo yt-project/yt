@@ -42,6 +42,8 @@ from yt.testing import fake_random_ds, requires_module
 from yt.funcs import fix_length
 from yt.units.unit_symbols import \
     cm, m, g
+from yt.utilities.physical_ratios import \
+    metallicity_sun
 
 def operate_and_compare(a, b, op, answer):
     # Test generator for YTArrays tests
@@ -985,3 +987,10 @@ def test_numpy_wrappers():
 
     yield assert_array_equal, YTArray(union_answer, 'cm'), uunion1d(a1, a2)
     yield assert_array_equal, union_answer, np.union1d(a1, a2)
+
+def test_dimensionless_conversion():
+    a = YTQuantity(1, 'Zsun')
+    b = a.in_units('Zsun')
+    a.convert_to_units('Zsun')
+    yield assert_true, a.units.cgs_value == metallicity_sun
+    yield assert_true, b.units.cgs_value == metallicity_sun
