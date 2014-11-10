@@ -141,12 +141,11 @@ one can pass in the `nprocs` parameter:
 
    ds = yt.load("sloshing.0000.vtk", nprocs=8)
 
-which will subdivide each original grid into `nprocs` grids along the z-axis.
+which will subdivide each original grid into `nprocs` grids.
 
 .. note::
 
-    Virtual grids are only supported for 3D data, and each original grid's dimensions along the z-axis must
-    be an integer multiple of `nprocs`.
+    Virtual grids are only supported (and really only necessary) for 3D data.
 
 Alternative values for the following simulation parameters may be specified using a ``parameters``
 dict, accepting the following keys:

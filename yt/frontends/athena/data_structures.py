@@ -34,7 +34,7 @@ from yt.geometry.geometry_handler import \
 from .fields import AthenaFieldInfo
 from yt.units.yt_array import YTQuantity
 from yt.utilities.decompose import \
-    decompose_array
+    decompose_array, get_psize
 
 def _get_convert(fname):
     def _conv(data):
@@ -43,7 +43,8 @@ def _get_convert(fname):
 
 class AthenaGrid(AMRGridPatch):
     _id_offset = 0
-    def __init__(self, id, index, level, start, dimensions, file_offset):
+    def __init__(self, id, index, level, start, dimensions,
+                 file_offset, read_dims):
         df = index.dataset.filename[4:-4]
         gname = index.grid_filenames[id]
         AMRGridPatch.__init__(self, id, filename = gname,
@@ -56,6 +57,7 @@ class AthenaGrid(AMRGridPatch):
         self.stop_index = self.start_index + dimensions
         self.ActiveDimensions = dimensions.copy()
         self.file_offset = file_offset
+        self.read_dims = read_dims
 
     def _setup_dx(self):
         # So first we figure out what the index is.  We don't assume
@@ -309,17 +311,15 @@ class AthenaHierarchy(GridIndex):
             levels_all = []
             new_gridfilenames = []
             file_offsets = []
+            read_dims = []
             for i in range(levels.shape[0]):
-                if gdims[i][2] % self.ds.nprocs != 0:
-                    raise RuntimeError("Grid %04d cannot be split into virtual grids " % i +
-                                       "since it is not an integer multiple of nprocs!")
                 dx = dx_root/self.dataset.refine_by**(levels[i])
                 gle_orig = self.ds.arr(np.round(dle + dx*glis[i], decimals=12),
                                        "code_length")
                 gre_orig = self.ds.arr(np.round(gle_orig + dx*gdims[i], decimals=12),
                                        "code_length")
                 bbox = np.array([[le,re] for le, re in zip(gle_orig, gre_orig)])
-                psize = np.array([1,1,self.ds.nprocs])
+                psize = get_psize(self.ds.domain_dimensions, self.ds.nprocs)
                 gle, gre, shapes, slices = decompose_array(gdims[i], psize, bbox)
                 gle_all += gle
                 gre_all += gre
@@ -327,6 +327,7 @@ class AthenaHierarchy(GridIndex):
                 levels_all += [levels[i]]*self.dataset.nprocs
                 new_gridfilenames += [self.grid_filenames[i]]*self.dataset.nprocs
                 file_offsets += [[slc[0].start, slc[1].start, slc[2].start] for slc in slices]
+                read_dims += [np.array([gdims[i][0], gdims[i][1], shape[2]], dtype="int") for shape in shapes]
             self.num_grids *= self.dataset.nprocs
             self.grids = np.empty(self.num_grids, dtype='object')
             self.grid_filenames = new_gridfilenames
@@ -339,12 +340,13 @@ class AthenaHierarchy(GridIndex):
             for i in range(self.num_grids):
                 self.grids[i] = self.grid(i,self,levels_all[i],
                                           glis[i], shapes_all[i],
-                                          file_offsets[i])
+                                          file_offsets[i], read_dims[i])
         else:
             self.grids = np.empty(self.num_grids, dtype='object')
             for i in range(levels.shape[0]):
                 self.grids[i] = self.grid(i,self,levels[i],
-                                          glis[i], gdims[i], [0]*3)
+                                          glis[i], gdims[i], [0]*3,
+                                          gdims[i])
                 dx = dx_root/self.dataset.refine_by**(levels[i])
                 dxs.append(dx)
 

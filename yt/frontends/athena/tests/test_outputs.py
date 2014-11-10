@@ -78,6 +78,10 @@ def test_nprocs():
     prj2 = ds1.proj("density",0)
 
     yield assert_equal, sp1.quantities.extrema("pressure"), sp2.quantities.extrema("pressure")
+    yield assert_allclose, sp1.quantities.total_quantity("pressure"), sp2.quantities.total_quantity("pressure")
+    for ax in "xyz":
+        yield assert_equal, sp1.quantities.extrema("velocity_%s" % ax), sp2.quantities.extrema("velocity_%s" % ax)
+    yield assert_allclose, sp1.quantities.bulk_velocity(), sp2.quantities.bulk_velocity()
     yield assert_equal, prj1["density"], prj2["density"]
 
     ytcfg["yt","skip_dataset_cache"] = "False"

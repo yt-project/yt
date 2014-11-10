@@ -18,6 +18,7 @@ import numpy as np
 from yt.funcs import mylog, defaultdict
 
 float_size = np.dtype(">f4").itemsize
+axis_list = ["_x","_y","_z"]
 
 class IOHandlerAthena(BaseIOHandler):
     _dataset_type = "athena"
@@ -42,8 +43,9 @@ class IOHandlerAthena(BaseIOHandler):
             f = open(grid.filename, "rb")
             data[grid.id] = {}
             grid_dims = grid.ActiveDimensions
-            grid_ncells = np.prod(grid_dims)
-            grid0_ncells = np.prod(grid.index.grid_dimensions[0,:])
+            read_dims = grid.read_dims
+            grid_ncells = np.int(np.prod(read_dims))
+            grid0_ncells = np.int(np.prod(grid.index.grids[0].read_dims))
             read_table_offset = get_read_table_offset(f)
             for field in fields:
                 dtype, offsetr = grid.index._field_map[field]
@@ -51,23 +53,23 @@ class IOHandlerAthena(BaseIOHandler):
                     offset = offsetr + ((grid_ncells-grid0_ncells) * (offsetr//grid0_ncells))
                 if grid_ncells == grid0_ncells:
                     offset = offsetr
-                file_offset = grid.file_offset[2]*grid_dims[0]*grid_dims[1]*float_size
+                file_offset = grid.file_offset[2]*read_dims[0]*read_dims[1]*float_size
+                xread = slice(grid.file_offset[0],grid.file_offset[0]+grid_dims[0])
+                yread = slice(grid.file_offset[1],grid.file_offset[1]+grid_dims[1])
                 f.seek(read_table_offset+offset+file_offset)
                 if dtype == 'scalar':
+                    f.seek(read_table_offset+offset+file_offset)
                     v = np.fromfile(f, dtype='>f4',
-                                    count=grid_ncells).reshape(grid_dims,order='F')
+                                    count=grid_ncells).reshape(read_dims,order='F')
                 if dtype == 'vector':
+                    vec_offset = axis_list.index(field[-1][-2:])
+                    f.seek(read_table_offset+offset+3*file_offset)
                     v = np.fromfile(f, dtype='>f4', count=3*grid_ncells)
-                if '_x' in field[-1]:
-                    v = v[0::3].reshape(grid_dims,order='F')
-                elif '_y' in field[-1]:
-                    v = v[1::3].reshape(grid_dims,order='F')
-                elif '_z' in field[-1]:
-                    v = v[2::3].reshape(grid_dims,order='F')
+                    v = v[vec_offset::3].reshape(read_dims,order='F')
                 if grid.ds.field_ordering == 1:
-                    data[grid.id][field] = v.T.astype("float64")
+                    data[grid.id][field] = v[xread,yread,:].T.astype("float64")
                 else:
-                    data[grid.id][field] = v.astype("float64")
+                    data[grid.id][field] = v[xread,yread,:].astype("float64")
             f.close()
         return data
     
