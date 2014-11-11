@@ -224,7 +224,7 @@ class RAMSESDomainFile(object):
                                 self.amr_header['nboundary']*l]
             return ng
         min_level = self.ds.min_level
-        max_level = self.ds.max_level
+        max_level = min_level
         nx, ny, nz = (((i-1.0)/2.0) for i in self.amr_header['nx'])
         for level in range(self.amr_header['nlevelmax']):
             # Easier if do this 1-indexed
@@ -540,7 +540,7 @@ class RAMSESDataset(Dataset):
         self.current_time = self.parameters['time'] * self.parameters['unit_t']
         self.domain_left_edge = np.zeros(3, dtype='float64')
         self.domain_dimensions = np.ones(3, dtype='int32') * \
-                        2**(self.min_level + 1)
+                        2**(self.min_level+1)
         self.domain_right_edge = np.ones(3, dtype='float64')
         # This is likely not true, but I am not sure how to otherwise
         # distinguish them.
