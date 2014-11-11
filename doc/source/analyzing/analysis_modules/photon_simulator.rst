@@ -67,7 +67,7 @@ temperature and metallicity.
 
     def _density_squared(field, data):
         return data["density"]**2
-    ds.add_field("density_squared", function=_density_squared)
+    ds.add_field("density_squared", function=_density_squared, units="g**2/cm**6")
 
 Then we'll project this field along the z-axis.
 
