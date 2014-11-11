@@ -192,15 +192,15 @@ class PhotonList(object):
         determine them, the *photons* dict needs to have the following items, corresponding
         to cells which have photons:
 
-        "x" : the x-position of the cell relative to the source center in kpc, NumPy array of floats
-        "y" : the y-position of the cell relative to the source center in kpc, NumPy array of floats
-        "z" : the z-position of the cell relative to the source center in kpc, NumPy array of floats
-        "vx" : the x-velocity of the cell in km/s, NumPy array of floats
-        "vy" : the y-velocity of the cell in km/s, NumPy array of floats
-        "vz" : the z-velocity of the cell in km/s, NumPy array of floats
-        "dx" : the width of the cell in kpc, NumPy array of floats
+        "x" : the x-position of the cell relative to the source center in kpc, YTArray
+        "y" : the y-position of the cell relative to the source center in kpc, YTArray
+        "z" : the z-position of the cell relative to the source center in kpc, YTArray
+        "vx" : the x-velocity of the cell in km/s, YTArray
+        "vy" : the y-velocity of the cell in km/s, YTArray
+        "vz" : the z-velocity of the cell in km/s, YTArray
+        "dx" : the width of the cell in kpc, YTArray
         "NumberOfPhotons" : the number of photons in the cell, NumPy array of integers
-        "Energy" : the source rest-frame energies of the photons, NumPy array of floats
+        "Energy" : the source rest-frame energies of the photons, YTArray
 
         The last array is not the same size as the others because it contains the energies in all of
         the cells in a single 1-D array. The first photons["NumberOfPhotons"][0] elements are
@@ -211,6 +211,9 @@ class PhotonList(object):
         create photons based on the fields in the dataset could be created. 
 
         >>> from scipy.stats import powerlaw
+        >>> import numpy as np
+        >>> import yt
+        >>> from yt.analysis_modules.photon_simulator import *
         >>> def line_func(source, parameters):
         ...
         ...     ds = source.ds
@@ -218,18 +221,20 @@ class PhotonList(object):
         ...     num_photons = parameters["num_photons"]
         ...     E0  = parameters["line_energy"] # Energies are in keV
         ...     sigE = parameters["line_sigma"] 
+        ...     src_ctr = parameters["center"]
         ...
         ...     energies = norm.rvs(loc=E0, scale=sigE, size=num_photons)
-        ...     
-        ...     photons["x"] = np.zeros((1)) # Place everything in the center cell
-        ...     photons["y"] = np.zeros((1))
-        ...     photons["z"] = np.zeros((1))
-        ...     photons["vx"] = np.zeros((1))
-        ...     photons["vy"] = np.zeros((1))
-        ...     photons["vz"] = 100.*np.ones((1))
-        ...     photons["dx"] = source["dx"][0]*ds.units["kpc"]*np.ones((1)) 
-        ...     photons["NumberOfPhotons"] = num_photons*np.ones((1))
-        ...     photons["Energy"] = np.array(energies)
+        ...
+        ...     # Place everything in the center cell
+        ...     for i, ax in enumerate("xyz"):
+        ...         photons[ax] = (ds.domain_center[0]-src_ctr[0]).in_units("kpc")
+        ...     photons["vx"] = ds.arr([0], "km/s")
+        ...     photons["vy"] = ds.arr([0], "km/s")
+        ...     photons["vz"] = ds.arr([100.0], "km/s")
+        ...     ds.find_field_value_at_point
+        ...     photons["dx"] = ds.find_field_values_at_point("dx", ds.domain_center).in_units("kpc")
+        ...     photons["NumberOfPhotons"] = np.array(num_photons*np.ones((1))
+        ...     photons["Energy"] = ds.arr(energies, "keV")
         >>>
         >>> redshift = 0.05
         >>> area = 6000.0
@@ -237,11 +242,12 @@ class PhotonList(object):
         >>> parameters = {"num_photons" : 10000, "line_energy" : 5.0,
         ...               "line_sigma" : 0.1}
         >>> ddims = (128,128,128)
-        >>> random_data = {"Density":np.random.random(ddims)}
-        >>> ds = load_uniform_grid(random_data, ddims)
+        >>> random_data = {"density":(np.random.random(ddims),"g/cm**3")}
+        >>> ds = yt.load_uniform_grid(random_data, ddims)
         >>> dd = ds.all_data
         >>> my_photons = PhotonList.from_user_model(dd, redshift, area,
-        ...                                         time, line_func)
+        ...                                         time, line_func,
+        ...                                         parameters=parameters)
 
         """
 
@@ -626,7 +632,7 @@ class PhotonList(object):
         
         num_events = len(events["xpix"])
             
-        if comm.rank == 0: mylog.info("Total number of observed photons: %d" % (num_events))
+        if comm.rank == 0: mylog.info("Total number of observed photons: %d" % num_events)
 
         if "RMF" in parameters and convolve_energies:
             events, info = self._convolve_with_rmf(parameters["RMF"], events)
