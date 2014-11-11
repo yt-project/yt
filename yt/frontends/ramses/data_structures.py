@@ -161,8 +161,10 @@ class RAMSESDomainFile(object):
                 ("particle_identifier", "I"),
                 ("particle_refinement_level", "I")]
         if hvals["nstar_tot"] > 0:
-            particle_fields += [("particle_age", "d"),
+                particle_fields += [("particle_age", "d"),
                                 ("particle_metallicity", "d")]
+
+             
         field_offsets = {}
         _pfields = {}
         for field, vtype in particle_fields:
@@ -224,7 +226,7 @@ class RAMSESDomainFile(object):
                                 self.amr_header['nboundary']*l]
             return ng
         min_level = self.ds.min_level
-        max_level = min_level
+        max_level = self.ds.max_level
         nx, ny, nz = (((i-1.0)/2.0) for i in self.amr_header['nx'])
         for level in range(self.amr_header['nlevelmax']):
             # Easier if do this 1-indexed
@@ -331,6 +333,7 @@ class RAMSESDomainSubset(OctreeSubset):
 class RAMSESIndex(OctreeIndex):
 
     def __init__(self, ds, dataset_type='ramses'):
+        self._ds = ds # TODO: Figure out the class composition better!
         self.fluid_field_list = ds._fields_in_file
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
@@ -348,6 +351,7 @@ class RAMSESIndex(OctreeIndex):
                          for dom in self.domains)
         self.max_level = max(dom.max_level for dom in self.domains)
         self.num_grids = total_octs
+#	print self.max_level
 
     def _detect_output_fields(self):
         # Do we want to attempt to figure out what the fields are in the file?
@@ -369,12 +373,12 @@ class RAMSESIndex(OctreeIndex):
         
 
         # TODO: copy/pasted from DomainFile; needs refactoring!
-        num = os.path.basename(self.dataset.parameter_filename).split("."
+        num = os.path.basename(self._ds.parameter_filename).split("."
                 )[0].split("_")[1]
         testdomain = 1 # Just pick the first domain file to read
         basename = "%s/%%s_%s.out%05i" % (
             os.path.abspath(
-              os.path.dirname(self.dataset.parameter_filename)),
+              os.path.dirname(self._ds.parameter_filename)),
             num, testdomain)
         hydro_fn = basename % "hydro"
         # Do we have a hydro file?
@@ -422,6 +426,7 @@ class RAMSESIndex(OctreeIndex):
                       "Pressure","Metallicity"]
         while len(fields) < nvar:
             fields.append("var"+str(len(fields)))
+
         mylog.debug("No fields specified by user; automatically setting fields array to %s", str(fields))
         self.fluid_field_list = fields
 
@@ -455,14 +460,23 @@ class RAMSESIndex(OctreeIndex):
         for subset in oobjs:
             yield YTDataChunk(dobj, "io", [subset], None, cache = cache)
 
+    # since RAMSES works in indexing of 1, we want 2**self.max_level rather than 2**self.max_level+1
+    def get_smallest_dx(self):
+        """
+        Returns (in code units) the smallest cell size in the simulation.
+        """
+        return (self.dataset.domain_width /
+                (2**(self.max_level))).min()    
+
+
+
 class RAMSESDataset(Dataset):
     _index_class = RAMSESIndex
     _field_info_class = RAMSESFieldInfo
     gamma = 1.4 # This will get replaced on hydro_fn open
     
     def __init__(self, filename, dataset_type='ramses',
-                 fields = None, storage_filename = None,
-                 units_override=None):
+                 fields = None, storage_filename = None):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, types.StringTypes):
             fields = field_aliases[fields]
@@ -472,7 +486,7 @@ class RAMSESDataset(Dataset):
         '''
         self.fluid_types += ("ramses",)
         self._fields_in_file = fields
-        Dataset.__init__(self, filename, dataset_type, units_override=units_override)
+        Dataset.__init__(self, filename, dataset_type)
         self.storage_filename = storage_filename
 
     def __repr__(self):
@@ -528,7 +542,7 @@ class RAMSESDataset(Dataset):
         # one-indexed, but it also does refer to the *oct* dimensions -- so
         # this means that a levelmin of 1 would have *1* oct in it.  So a
         # levelmin of 2 would have 8 octs at the root mesh level.
-        self.min_level = rheader['levelmin'] - 1
+        self.min_level = rheader['levelmin']
         # Now we read the hilbert indices
         self.hilbert_indices = {}
         if rheader['ordering type'] == "hilbert":
@@ -540,7 +554,7 @@ class RAMSESDataset(Dataset):
         self.current_time = self.parameters['time'] * self.parameters['unit_t']
         self.domain_left_edge = np.zeros(3, dtype='float64')
         self.domain_dimensions = np.ones(3, dtype='int32') * \
-                        2**(self.min_level+1)
+                        2**(self.min_level)
         self.domain_right_edge = np.ones(3, dtype='float64')
         # This is likely not true, but I am not sure how to otherwise
         # distinguish them.
@@ -551,8 +565,8 @@ class RAMSESDataset(Dataset):
         self.omega_lambda = rheader["omega_l"]
         self.omega_matter = rheader["omega_m"]
         self.hubble_constant = rheader["H0"] / 100.0 # This is H100
-        self.max_level = rheader['levelmax'] - self.min_level
-        f.close()
+#        self.max_level = rheader['levelmax'] - self.min_level
+	self.max_level = rheader['levelmax'] ### change
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
