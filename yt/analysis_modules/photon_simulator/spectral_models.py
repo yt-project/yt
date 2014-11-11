@@ -37,7 +37,7 @@ class SpectralModel(object):
         self.emin = YTQuantity(emin, "keV")
         self.emax = YTQuantity(emax, "keV")
         self.nchan = nchan
-        self.ebins = np.linspace(emin, emax, nchan+1)
+        self.ebins = np.linspace(self.emin, self.emax, nchan+1)
         self.de = np.diff(self.ebins)
         self.emid = 0.5*(self.ebins[1:]+self.ebins[:-1])
         
@@ -231,7 +231,7 @@ class TableApecModel(SpectralModel):
         vec = np.zeros(self.nchan)
         E0 = hc.value/self.line_handle[tindex].data.field('lambda')[i]
         amp = self.line_handle[tindex].data.field('epsilon')[i]
-        ebins = self.ebins.ndarray_view()
+        ebins = self.ebins.d
         if self.thermal_broad:
             vec = np.zeros(self.nchan)
             sigma = E0*np.sqrt(self.Tvals[tindex]*erg_per_keV/(self.A[element]*amu_cgs))/clight.value
