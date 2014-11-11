@@ -630,12 +630,31 @@ class Orion2Dataset(ChomboDataset):
         # read the file line by line, storing important parameters
         for lineI, line in enumerate(lines):
             try:
-                param, sep, vals = [v.rstrip() for v in line.partition(' ')]
-                #param, sep, vals = map(rstrip,line.partition(' '))
+                param, sep, vals = line.partition('=')
+                if sep == '':
+                    # No = sign present, so split by space instead
+                    param, sep, vals = line.partition(' ')
+                for i, p in enumerate(param):
+                    param = param.strip()
+                    vals = vals.strip()
+                if len(param) == 0:  # skip blank lines
+                    continue
+                if param[0] == '#':  # skip comment lines
+                    continue
+                if param[0] == '[':  # skip stanza headers
+                    continue
+                vals = vals.partition("#")[0] # strip trailing comments
+                try:
+                    self.parameters[param] = np.int64(vals)
+                except ValueError:
+                    try:
+                        self.parameters[param] = np.float64(vals)
+                    except ValueError:
+                        self.parameters[param] = vals
             except ValueError:
                 mylog.error("ValueError: '%s'", line)
             if param == "GAMMA":
-                self.gamma = vals
+                self.gamma = np.float64(vals)
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
