@@ -210,7 +210,6 @@ class PhotonList(object):
         spectrum of photons is created. More complicated examples which actually
         create photons based on the fields in the dataset could be created. 
 
-        >>> from scipy.stats import powerlaw
         >>> import numpy as np
         >>> import yt
         >>> from yt.analysis_modules.photon_simulator import *
