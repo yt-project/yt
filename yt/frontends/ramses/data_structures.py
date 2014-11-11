@@ -547,7 +547,7 @@ class RAMSESDataset(Dataset):
         mylog.warning("RAMSES frontend assumes all simulations are cosmological!")
         self.cosmological_simulation = 1
         self.periodicity = (True, True, True)
-        self.current_redshift = (1.0 / r.header["aexp"]) - 1.0
+        self.current_redshift = (1.0 / rheader["aexp"]) - 1.0
         self.omega_lambda = rheader["omega_l"]
         self.omega_matter = rheader["omega_m"]
         self.hubble_constant = rheader["H0"] / 100.0 # This is H100
