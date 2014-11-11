@@ -69,8 +69,9 @@ class XSpecThermalModel(SpectralModel):
     --------
     >>> mekal_model = XSpecThermalModel("mekal", 0.05, 50.0, 1000)
     """
-    def __init__(self, model_name, emin, emax, nchan):
+    def __init__(self, model_name, emin, emax, nchan, thermal_broad=False):
         self.model_name = model_name
+        self.thermal_broad = thermal_broad
         SpectralModel.__init__(self, emin, emax, nchan)
         
     def prepare(self):
@@ -88,6 +89,8 @@ class XSpecThermalModel(SpectralModel):
             self.norm = 1.0e-14
         self.thermal_comp.norm = 1.0
         self.thermal_comp.Redshift = 0.0
+        if self.thermal_broad:
+            xspec.Xset.addModelString("APECTHERMAL","yes")
 
     def get_spectrum(self, kT):
         """
