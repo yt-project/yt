@@ -27,7 +27,7 @@ from yt.funcs import *
 from yt.utilities.physical_constants import mp, kboltz
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_objects
-from  yt.units.yt_array import uconcatenate
+from yt.units.yt_array import uconcatenate
 
 n_kT = 10000
 kT_min = 8.08e-2
@@ -59,11 +59,15 @@ class ThermalPhotonModel(PhotonModel):
     Zmet : float or string, optional
         The metallicity. If a float, assumes a constant metallicity throughout.
         If a string, is taken to be the name of the metallicity field.
+    photons_per_chunk : integer
+        The maximum number of photons that are allocated per chunk. Increase or decrease
+        as needed.
     """
-    def __init__(self, spectral_model, X_H=0.75, Zmet=0.3):
+    def __init__(self, spectral_model, X_H=0.75, Zmet=0.3, photons_per_chunk=10000000):
         self.X_H = X_H
         self.Zmet = Zmet
         self.spectral_model = spectral_model
+        self.photons_per_chunk = photons_per_chunk
 
     def __call__(self, data_source, parameters):
         
@@ -134,60 +138,64 @@ class ThermalPhotonModel(PhotonModel):
 
             cell_em = EM[idxs]*vol_scale
 
-            u = np.random.random(cell_em.shape)
-
             number_of_photons = np.zeros(num_cells)
-            energies = []
+            energies = np.zeros(self.photons_per_chunk)
+
+            start_e = 0
+            end_e = 0
 
             pbar = get_pbar("Generating photons for chunk ", num_cells)
 
             for ibegin, iend, ikT in zip(bcell, ecell, kT_idxs):
 
                 kT = kT_bins[ikT] + 0.5*dkT
-        
-                em_sum_c = cell_em[ibegin:iend].sum()
+
+                n_current = iend-ibegin
+
+                cem = cell_em[ibegin:iend]
+
+                em_sum_c = cem.sum()
                 if isinstance(self.Zmet, basestring):
-                    em_sum_m = (metalZ*cell_em)[ibegin:iend].sum()
+                    em_sum_m = (metalZ[ibegin:iend]*cem).sum()
                 else:
                     em_sum_m = metalZ*em_sum_c
 
                 cspec, mspec = self.spectral_model.get_spectrum(kT)
 
                 cumspec_c = np.cumsum(cspec.d)
-                counts_c = cumspec_c[:]/cumspec_c[-1]
-                counts_c = np.insert(counts_c, 0, 0.0)
                 tot_ph_c = cumspec_c[-1]*spectral_norm*em_sum_c
+                cumspec_c /= cumspec_c[-1]
+                cumspec_c = np.insert(cumspec_c, 0, 0.0)
 
                 cumspec_m = np.cumsum(mspec.d)
-                counts_m = cumspec_m[:]/cumspec_m[-1]
-                counts_m = np.insert(counts_m, 0, 0.0)
                 tot_ph_m = cumspec_m[-1]*spectral_norm*em_sum_m
+                cumspec_m /= cumspec_m[-1]
+                cumspec_m = np.insert(cumspec_m, 0, 0.0)
 
-                v = u[ibegin:iend]
+                u = np.random.random(size=n_current)
 
-                cell_norm_c = tot_ph_c*cell_em[ibegin:iend]/em_sum_c
-                cell_n_c = np.uint64(cell_norm_c) + np.uint64(np.modf(cell_norm_c)[0] >= v)
+                cell_norm_c = tot_ph_c*cem/em_sum_c
+                cell_n_c = np.uint64(cell_norm_c) + np.uint64(np.modf(cell_norm_c)[0] >= u)
             
                 if isinstance(self.Zmet, basestring):
-                    cell_norm_m = tot_ph_m*metalZ[ibegin:iend]*cell_em[ibegin:iend]/em_sum_m
+                    cell_norm_m = tot_ph_m*metalZ[ibegin:iend]*cem/em_sum_m
                 else:
-                    cell_norm_m = tot_ph_m*metalZ*cell_em[ibegin:iend]/em_sum_m
-                cell_n_m = np.uint64(cell_norm_m) + np.uint64(np.modf(cell_norm_m)[0] >= v)
+                    cell_norm_m = tot_ph_m*metalZ*cem/em_sum_m
+                cell_n_m = np.uint64(cell_norm_m) + np.uint64(np.modf(cell_norm_m)[0] >= u)
             
-                cell_n = cell_n_c + cell_n_m
+                number_of_photons[ibegin:iend] = cell_n_c + cell_n_m
 
-                number_of_photons[ibegin:iend] = cell_n
+                end_e += int((cell_n_c+cell_n_m).sum())
 
-                for cn, cn_c, cn_m in zip(cell_n, cell_n_c, cell_n_m):
-                    if cn > 0:
-                        randvec_c = np.random.uniform(size=cn_c)
-                        randvec_c.sort()
-                        randvec_m = np.random.uniform(size=cn_m)
-                        randvec_m.sort()
-                        cell_e_c = np.interp(randvec_c, counts_c, energy)
-                        cell_e_m = np.interp(randvec_m, counts_m, energy)
-                        energies.append(np.concatenate([cell_e_c,cell_e_m]))
+                if end_e > self.photons_per_chunk:
+                    raise RuntimeError("Number of photons generated for this chunk "+
+                                       "exceeds photons_per_chunk (%d)! " % self.photons_per_chunk +
+                                       "Increase photons_per_chunk!")
+
+                energies[start_e:end_e] = _generate_energies(cell_n_c, cell_n_m, cumspec_c, cumspec_m, energy)
             
+                start_e = end_e
+
                 pbar.update(iend)
 
             pbar.finish()
@@ -196,7 +204,7 @@ class ThermalPhotonModel(PhotonModel):
             idxs = idxs[active_cells]
 
             photons["NumberOfPhotons"].append(number_of_photons[active_cells])
-            photons["Energy"].append(ds.arr(np.concatenate(energies), "keV"))
+            photons["Energy"].append(ds.arr(energies[:end_e].copy(), "keV"))
             photons["x"].append((chunk["x"][idxs]-src_ctr[0]).in_units("kpc"))
             photons["y"].append((chunk["y"][idxs]-src_ctr[1]).in_units("kpc"))
             photons["z"].append((chunk["z"][idxs]-src_ctr[2]).in_units("kpc"))
@@ -209,3 +217,18 @@ class ThermalPhotonModel(PhotonModel):
             photons[key] = uconcatenate(photons[key])
 
         return photons
+
+def _generate_energies(cell_n_c, cell_n_m, counts_c, counts_m, energy):
+    energies = np.array([])
+    for cn_c, cn_m in zip(cell_n_c, cell_n_m):
+        if cn_c > 0:
+            randvec_c = np.random.uniform(size=cn_c)
+            randvec_c.sort()
+            cell_e_c = np.interp(randvec_c, counts_c, energy)
+            energies = np.append(energies, cell_e_c)
+        if cn_m > 0: 
+            randvec_m = np.random.uniform(size=cn_m)
+            randvec_m.sort()
+            cell_e_m = np.interp(randvec_m, counts_m, energy)
+            energies = np.append(energies, cell_e_m)
+    return energies

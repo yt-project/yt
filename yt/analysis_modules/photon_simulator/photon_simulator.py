@@ -323,6 +323,7 @@ class PhotonList(object):
         """
         Write the photons to the HDF5 file *photonfile*.
         """
+
         if parallel_capable:
             
             mpi_long = get_mpi_type("int64")
