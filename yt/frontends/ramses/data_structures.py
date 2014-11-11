@@ -18,7 +18,6 @@ import numpy as np
 import stat
 import weakref
 import cStringIO
-
 from yt.funcs import *
 from yt.geometry.oct_geometry_handler import \
     OctreeIndex
@@ -456,16 +455,6 @@ class RAMSESIndex(OctreeIndex):
         for subset in oobjs:
             yield YTDataChunk(dobj, "io", [subset], None, cache = cache)
 
-    # since RAMSES works in indexing of 1, we want 2**self.max_level rather than 2**self.max_level+1
-    def get_smallest_dx(self):
-        """
-        Returns (in code units) the smallest cell size in the simulation.
-        """
-        return (self.dataset.domain_width /
-                (2**(self.max_level))).min()    
-
-
-
 class RAMSESDataset(Dataset):
     _index_class = RAMSESIndex
     _field_info_class = RAMSESFieldInfo
@@ -539,7 +528,7 @@ class RAMSESDataset(Dataset):
         # one-indexed, but it also does refer to the *oct* dimensions -- so
         # this means that a levelmin of 1 would have *1* oct in it.  So a
         # levelmin of 2 would have 8 octs at the root mesh level.
-        self.min_level = rheader['levelmin']
+        self.min_level = rheader['levelmin'] - 1
         # Now we read the hilbert indices
         self.hilbert_indices = {}
         if rheader['ordering type'] == "hilbert":
@@ -551,7 +540,7 @@ class RAMSESDataset(Dataset):
         self.current_time = self.parameters['time'] * self.parameters['unit_t']
         self.domain_left_edge = np.zeros(3, dtype='float64')
         self.domain_dimensions = np.ones(3, dtype='int32') * \
-                        2**(self.min_level)
+                        2**(self.min_level + 1)
         self.domain_right_edge = np.ones(3, dtype='float64')
         # This is likely not true, but I am not sure how to otherwise
         # distinguish them.
@@ -562,7 +551,7 @@ class RAMSESDataset(Dataset):
         self.omega_lambda = rheader["omega_l"]
         self.omega_matter = rheader["omega_m"]
         self.hubble_constant = rheader["H0"] / 100.0 # This is H100
-        self.max_level = rheader['levelmax']
+        self.max_level = rheader['levelmax'] - 1
         f.close()
 
     @classmethod
