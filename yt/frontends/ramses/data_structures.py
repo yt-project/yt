@@ -551,7 +551,7 @@ class RAMSESDataset(Dataset):
         self.omega_lambda = rheader["omega_l"]
         self.omega_matter = rheader["omega_m"]
         self.hubble_constant = rheader["H0"] / 100.0 # This is H100
-        self.max_level = rheader['levelmax'] - 1
+        self.max_level = rheader['levelmax'] - self.min_level
         f.close()
 
     @classmethod
