@@ -161,7 +161,7 @@ class RAMSESDomainFile(object):
                 ("particle_identifier", "I"),
                 ("particle_refinement_level", "I")]
         if hvals["nstar_tot"] > 0:
-             particle_fields += [("particle_age", "d"),
+            particle_fields += [("particle_age", "d"),
                                 ("particle_metallicity", "d")]
 
         field_offsets = {}
