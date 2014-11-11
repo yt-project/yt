@@ -141,7 +141,8 @@ photons. For thermal spectra, we have a special ``PhotonModel`` called
 
 .. code:: python
 
-    thermal_model = ThermalPhotonModel(apec_model, X_H=0.75, Zmet=0.3)
+    thermal_model = ThermalPhotonModel(apec_model, X_H=0.75, Zmet=0.3,
+                                       photons_per_chunk=100000000)
 
 Where we pass in the ``SpectralModel``, and can optionally set values for
 the hydrogen mass fraction ``X_H`` and metallicity ``Z_met``. If
@@ -149,6 +150,14 @@ the hydrogen mass fraction ``X_H`` and metallicity ``Z_met``. If
 everywhere in terms of the solar metallicity. If it is a string, it will
 assume that is the name of the metallicity field (which may be spatially
 varying).
+
+The ``ThermalPhotonModel`` iterates over "chunks" of the supplied data source
+to generate the photons, to reduce memory usage and make parallelization more
+efficient. For each chunk, memory is set aside for the photon energies that will
+be generated. ``photons_per_chunk`` is an optional keyword argument which controls
+the size of this array. For large numbers of photons, you may find that
+this parameter needs to be set higher, or if you are looking to decrease memory
+usage, you might set this parameter lower.
 
 Next, we need to specify "fiducial" values for the telescope collecting
 area, exposure time, and cosmological redshift. Remember, the initial
