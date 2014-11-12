@@ -43,6 +43,7 @@ class BaseIOHandler(object):
         self.ds = ds
         self._last_selector_id = None
         self._last_selector_counts = None
+        self._array_fields = {}
 
     # We need a function for reading a list of sets
     # and a function for *popping* from a queue all the appropriate sets
@@ -160,6 +161,8 @@ class BaseIOHandler(object):
         for field in fields:
             if field[1] in self._vector_fields:
                 shape = (fsize[field], 3)
+            elif field[1] in self._array_fields:
+                shape = (fsize[field],)+self._array_fields[field[1]]
             else:
                 shape = (fsize[field], )
             rv[field] = np.empty(shape, dtype="float64")

@@ -83,6 +83,9 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                             r"particle_position_%s")
                     x, y, z = (np.asarray(pds.get(pn % ax).value, dtype="=f8")
                                for ax in 'xyz')
+                    for field in field_list:
+                        if np.asarray(pds[field]).ndim > 1:
+                            self._array_fields[field] = pds[field].shape
                     yield ptype, (x, y, z)
             if f: f.close()
 
