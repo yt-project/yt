@@ -631,13 +631,12 @@ class Orion2Dataset(ChomboDataset):
         for lineI, line in enumerate(lines):
             try:
                 param, sep, vals = line.partition('=')
-                if sep == '':
+                if not sep:
                     # No = sign present, so split by space instead
                     param, sep, vals = line.partition(' ')
-                for i, p in enumerate(param):
-                    param = param.strip()
-                    vals = vals.strip()
-                if len(param) == 0:  # skip blank lines
+                param = param.strip()
+                vals = vals.strip()
+                if not param:  # skip blank lines
                     continue
                 if param[0] == '#':  # skip comment lines
                     continue
