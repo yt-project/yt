@@ -430,7 +430,7 @@ class PhotonList(object):
                         redshift_new=None, dist_new=None,
                         absorb_model=None, psf_sigma=None,
                         sky_center=None, responses=None,
-                        convolve_energies=False):
+                        convolve_energies=False, no_shifting=False):
         r"""
         Projects photons onto an image plane given a line of sight.
 
@@ -461,6 +461,8 @@ class PhotonList(object):
             The names of the ARF and/or RMF files to convolve the photons with.
         convolve_energies : boolean, optional
             If this is set, the photon energies will be convolved with the RMF.
+        no_shifting : boolean, optional
+            If set, the photon energies will not be Doppler shifted.
             
         Examples
         --------
@@ -567,12 +569,13 @@ class PhotonList(object):
         x = np.random.uniform(low=-0.5,high=0.5,size=my_n_obs)
         y = np.random.uniform(low=-0.5,high=0.5,size=my_n_obs)
         z = np.random.uniform(low=-0.5,high=0.5,size=my_n_obs)
-                    
-        vz = self.photons["vx"]*z_hat[0] + \
-             self.photons["vy"]*z_hat[1] + \
-             self.photons["vz"]*z_hat[2]
-        shift = -vz.in_cgs()/clight
-        shift = np.sqrt((1.-shift)/(1.+shift))
+
+        if not no_shifting:
+            vz = self.photons["vx"]*z_hat[0] + \
+                 self.photons["vy"]*z_hat[1] + \
+                 self.photons["vz"]*z_hat[2]
+            shift = -vz.in_cgs()/clight
+            shift = np.sqrt((1.-shift)/(1.+shift))
 
         if my_n_obs == n_ph_tot:
             idxs = np.arange(my_n_obs,dtype='uint64')
@@ -586,8 +589,11 @@ class PhotonList(object):
         z *= delta
         x += self.photons["x"][obs_cells]
         y += self.photons["y"][obs_cells]
-        z += self.photons["z"][obs_cells]  
-        eobs = self.photons["Energy"][idxs]*shift[obs_cells]
+        z += self.photons["z"][obs_cells]
+        if no_shifting:
+            eobs = self.photons["Energy"][idxs]
+        else:
+            eobs = self.photons["Energy"][idxs]*shift[obs_cells]
 
         xsky = x*x_hat[0] + y*x_hat[1] + z*x_hat[2]
         ysky = x*y_hat[0] + y*y_hat[1] + z*y_hat[2]
