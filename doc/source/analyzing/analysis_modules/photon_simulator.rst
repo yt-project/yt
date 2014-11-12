@@ -46,17 +46,23 @@ Creating an X-ray observation of a dataset on disk
 .. code:: python
 
     import yt
+    #yt.enable_parallelism() # If you want to run in parallel this should go here!
     from yt.analysis_modules.photon_simulator.api import *
     from yt.utilities.cosmology import Cosmology
+
+.. note::
+
+    For parallel runs using ``mpi4py``, the call to ``yt.enable_parallelism`` should go *before*
+    the import of the ``photon_simulator`` module, as shown above.
 
 We're going to load up an Athena dataset of a galaxy cluster core:
 
 .. code:: python
 
     ds = yt.load("MHDSloshing/virgo_low_res.0054.vtk",
-                 parameters={"time_unit":(1.0,"Myr"),
-                            "length_unit":(1.0,"Mpc"),
-                            "mass_unit":(1.0e14,"Msun")}) 
+                 units_override={"time_unit":(1.0,"Myr"),
+                                 "length_unit":(1.0,"Mpc"),
+                                 "mass_unit":(1.0e14,"Msun")})
 
 First, to get a sense of what the resulting image will look like, let's
 make a new yt field called ``"density_squared"``, since the X-ray
@@ -443,11 +449,11 @@ Now, we create a yt Dataset object out of this dataset:
 .. code:: python
 
    data = {}
-   data["density"] = dens
-   data["temperature"] = temp
-   data["velocity_x"] = np.zeros(ddims)
-   data["velocity_y"] = np.zeros(ddims)
-   data["velocity_z"] = np.zeros(ddims)
+   data["density"] = (dens, "g/cm**3")
+   data["temperature"] = (temp, "K")
+   data["velocity_x"] = (np.zeros(ddims), "cm/s")
+   data["velocity_y"] = (np.zeros(ddims), "cm/s")
+   data["velocity_z"] = (np.zeros(ddims), "cm/s")
 
    bbox = np.array([[-0.5,0.5],[-0.5,0.5],[-0.5,0.5]])
 
@@ -460,7 +466,7 @@ example:
 
 .. code:: python
 
-   sphere = ds.sphere(ds.domain_center, (1.0,"Mpc"))
+   sphere = ds.sphere("c", (1.0,"Mpc"))
        
    A = 6000.
    exp_time = 2.0e5

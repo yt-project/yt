@@ -1165,7 +1165,7 @@ class EventList(object) :
 
         if energy_bins:
             spectype = "energy"
-            espec = self.events["eobs"].ndarray_view()
+            espec = self.events["eobs"].d
             range = (emin, emax)
             spec, ee = np.histogram(espec, bins=nchan, range=range)
             bins = 0.5*(ee[1:]+ee[:-1])
