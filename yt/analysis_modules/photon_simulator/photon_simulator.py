@@ -230,7 +230,6 @@ class PhotonList(object):
         ...     photons["vx"] = ds.arr([0], "km/s")
         ...     photons["vy"] = ds.arr([0], "km/s")
         ...     photons["vz"] = ds.arr([100.0], "km/s")
-        ...     ds.find_field_value_at_point
         ...     photons["dx"] = ds.find_field_values_at_point("dx", ds.domain_center).in_units("kpc")
         ...     photons["NumberOfPhotons"] = np.array(num_photons*np.ones((1))
         ...     photons["Energy"] = ds.arr(energies, "keV")

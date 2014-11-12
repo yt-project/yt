@@ -389,8 +389,9 @@ Two ``EventList`` instances can be joined togther like this:
 
     events3 = EventList.join_events(events1, events2)
 
-**WARNING**: This doesn't check for parameter consistency between the
-two lists!
+.. warning:: This doesn't check for parameter consistency between the
+   two lists! It will simply assume that they are the same and use the
+   `parameters` dictionary from the first `EventList`.
 
 Creating a X-ray observation from an in-memory dataset
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
