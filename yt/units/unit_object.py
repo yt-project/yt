@@ -220,7 +220,8 @@ class Unit(Expr):
             conversions = []
             for atom in check_atoms:
                 conversions.append((atom,symbols(cgs_conversions[str(atom)])))
-            conversion = Unit(unit_expr=unit_expr.subs(conversions))
+            conversion = Unit(unit_expr=unit_expr.subs(conversions),
+                              registry=registry)
             is_mks = True
         else:
             conversion = None
