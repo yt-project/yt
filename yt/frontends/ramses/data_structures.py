@@ -226,7 +226,9 @@ class RAMSESDomainFile(object):
         min_level = self.ds.min_level
         # yt max level is not the same as the RAMSES one.
         # yt max level is the maximum number of additional refinement levels
-        # so for a uni grid run with no refinement, it would be 0. So we initially assume that.
+        # so for a uni grid run with no refinement, it would be 0. 
+        # So we initially assume that.
+        max_level = 0
         nx, ny, nz = (((i-1.0)/2.0) for i in self.amr_header['nx'])
         for level in range(self.amr_header['nlevelmax']):
             # Easier if do this 1-indexed
