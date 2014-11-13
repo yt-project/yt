@@ -224,7 +224,9 @@ class RAMSESDomainFile(object):
                                 self.amr_header['nboundary']*l]
             return ng
         min_level = self.ds.min_level
-        max_level = 0 # yt max level is not the same as the RAMSES one.. it is the maximum extra refinement levels ... so for a uni grid run with no refinement, it would be 0... so we start off assuming that
+        # yt max level is not the same as the RAMSES one.
+        # yt max level is the maximum number of additional refinement levels
+        # so for a uni grid run with no refinement, it would be 0. So we initially assume that.
         nx, ny, nz = (((i-1.0)/2.0) for i in self.amr_header['nx'])
         for level in range(self.amr_header['nlevelmax']):
             # Easier if do this 1-indexed
