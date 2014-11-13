@@ -203,6 +203,9 @@ class ThermalPhotonModel(PhotonModel):
             active_cells = number_of_photons > 0
             idxs = idxs[active_cells]
 
+            mylog.info("Number of photons generated for this chunk: %d" % int(number_of_photons.sum()))
+            mylog.info("Number of cells with photons: %d" % int(active_cells.sum()))
+
             photons["NumberOfPhotons"].append(number_of_photons[active_cells])
             photons["Energy"].append(ds.arr(energies[:end_e].copy(), "keV"))
             photons["x"].append((chunk["x"][idxs]-src_ctr[0]).in_units("kpc"))
