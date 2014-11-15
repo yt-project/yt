@@ -107,17 +107,13 @@ class SphericalCoordinateHandler(CoordinateHandler):
 
     def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
                         dim, periodic):
-        # We should be using fcoords
-        period = self.period[:2].copy() # dummy here
-        period[0] = self.period[self.x_axis[dim]]
-        period[1] = self.period[self.y_axis[dim]]
-        period = period.in_units("code_length").d
-        buff = _MPL.Pixelize(data_source['px'], data_source['py'],
-                             data_source['pdx'], data_source['pdy'],
-                             data_source[field], size[0], size[1],
-                             bounds, int(antialias),
-                             period, int(periodic)).transpose()
+        buff = pixelize_aitoff(data_source["py"], data_source["pdy"],
+                               data_source["px"], data_source["pdx"],
+                               size, data_source[field], None,
+                               None, theta_offset = 0,
+                               phi_offset = 0).transpose()
         return buff
+
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias,
                       dimension):
