@@ -73,6 +73,26 @@ class SphericalCoordinateHandler(CoordinateHandler):
                  function=_SphericalVolume,
                  units = "code_length**3")
 
+        def _path_r(field, data):
+            return data["index", "dr"]
+        registry.add_field(("index", "path_r"),
+                 function = _path_r,
+                 units = "code_length")
+        def _path_theta(field, data):
+            # Note: this already assumes cell-centered
+            return data["index", "r"] * data["index", "dtheta"]
+        registry.add_field(("index", "path_theta"),
+                 function = _path_theta,
+                 units = "code_length")
+        def _path_phi(field, data):
+            # Note: this already assumes cell-centered
+            return data["index", "r"] \
+                    * data["index", "dphi"] \
+                    * np.sin(data["index", "theta"])
+        registry.add_field(("index", "path_phi"),
+                 function = _path_phi,
+                 units = "code_length")
+
     def pixelize(self, dimension, data_source, field, bounds, size,
                  antialias = True, periodic = True):
         self.period
@@ -102,16 +122,16 @@ class SphericalCoordinateHandler(CoordinateHandler):
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias,
                       dimension):
         if dimension == 1:
-            buff = pixelize_cylinder(data_source['r'],
-                                     data_source['dr'] / 2.0,
-                                     data_source['phi'],
-                                     data_source['dphi'] / 2.0, # half-widths
+            buff = pixelize_cylinder(data_source['px'],
+                                     data_source['pdx'],
+                                     data_source['py'],
+                                     data_source['pdy'],
                                      size, data_source[field], bounds)
         elif dimension == 2:
-            buff = pixelize_cylinder(data_source['r'],
-                                     data_source['dr'] / 2.0,
-                                     data_source['theta'],
-                                     data_source['dtheta'] / 2.0, # half-widths
+            buff = pixelize_cylinder(data_source['px'],
+                                     data_source['pdx'],
+                                     data_source['py'],
+                                     data_source['pdy'],
                                      size, data_source[field], bounds)
             buff = buff.transpose()
         else:
