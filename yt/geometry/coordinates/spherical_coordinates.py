@@ -219,3 +219,15 @@ class SphericalCoordinateHandler(CoordinateHandler):
             width = [self.ds.domain_width[0],
                      2.0*self.ds.domain_width[0]]
         return width
+
+    def _sanity_check(self):
+        # We just check a few things here.
+        dd = self.ds.all_data()
+        r0 = self.ds.domain_left_edge[0]
+        r1 = self.ds.domain_right_edge[0]
+        v1 = 4.0 * np.pi / 3.0 * (r1**3 - r0**3)
+        print "Total volume should be 4*pi*r**3 = %0.16e" % (v1)
+        v2 = dd.quantities.total_quantity("cell_volume")
+        print "Actual volume is                   %0.16e" % (v2)
+        print "Relative difference: %0.16e" % (np.abs(v2-v1)/(v2+v1))
+
