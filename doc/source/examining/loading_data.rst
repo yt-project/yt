@@ -132,7 +132,7 @@ This means that the yt fields, e.g. ``("gas","density")``, ``("gas","x-velocity"
 in code units.
 
 Some 3D Athena outputs may have large grids (especially parallel datasets subsequently joined with
-the `join_vtk` script, and may benefit from being subdivided into "virtual grids". For this purpose,
+the `join_vtk` script), and may benefit from being subdivided into "virtual grids". For this purpose,
 one can pass in the `nprocs` parameter:
 
 .. code-block:: python
