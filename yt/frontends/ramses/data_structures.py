@@ -18,7 +18,6 @@ import numpy as np
 import stat
 import weakref
 import cStringIO
-
 from yt.funcs import *
 from yt.geometry.oct_geometry_handler import \
     OctreeIndex
@@ -163,6 +162,7 @@ class RAMSESDomainFile(object):
         if hvals["nstar_tot"] > 0:
             particle_fields += [("particle_age", "d"),
                                 ("particle_metallicity", "d")]
+
         field_offsets = {}
         _pfields = {}
         for field, vtype in particle_fields:
@@ -224,7 +224,11 @@ class RAMSESDomainFile(object):
                                 self.amr_header['nboundary']*l]
             return ng
         min_level = self.ds.min_level
-        max_level = min_level
+        # yt max level is not the same as the RAMSES one.
+        # yt max level is the maximum number of additional refinement levels
+        # so for a uni grid run with no refinement, it would be 0. 
+        # So we initially assume that.
+        max_level = 0
         nx, ny, nz = (((i-1.0)/2.0) for i in self.amr_header['nx'])
         for level in range(self.amr_header['nlevelmax']):
             # Easier if do this 1-indexed
@@ -551,7 +555,7 @@ class RAMSESDataset(Dataset):
         self.omega_lambda = rheader["omega_l"]
         self.omega_matter = rheader["omega_m"]
         self.hubble_constant = rheader["H0"] / 100.0 # This is H100
-        self.max_level = rheader['levelmax'] - self.min_level
+        self.max_level = rheader['levelmax'] - self.min_level - 1
         f.close()
 
     @classmethod
