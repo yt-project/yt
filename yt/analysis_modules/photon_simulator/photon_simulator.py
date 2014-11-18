@@ -752,7 +752,7 @@ class PhotonList(object):
     
 class EventList(object) :
 
-    def __init__(self, events, parameters) :
+    def __init__(self, events, parameters):
 
         self.events = events
         self.parameters = parameters
