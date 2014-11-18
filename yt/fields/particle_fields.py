@@ -522,9 +522,10 @@ def standard_particle_fields(registry, ptype,
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
                           
+
     def _particle_cylindrical_r(field, data):
         normal = data.get_field_parameter("normal")
-        return get_cyl_r((data["particle_position"].T, normal), "code_length").in_cgs()
+        return get_cyl_r(data["particle_position"].T, normal)
 
     registry.add_field((ptype, "particle_cylindrical_r"),
               function=_particle_cylindrical_r,
@@ -534,7 +535,7 @@ def standard_particle_fields(registry, ptype,
 
     def _particle_cylindrical_z(field, data):
         normal = data.get_field_parameter("normal")
-        return get_cyl_z((data["particle_position"].T,normal), "code_length").in_cgs()
+        return get_cyl_z(data["particle_position"].T,normal)
 
     registry.add_field((ptype, "particle_cylindrical_z"),
               function=_particle_cylindrical_z,
@@ -542,6 +543,7 @@ def standard_particle_fields(registry, ptype,
                           ValidateParameter("normal")],
                           display_name = "Particle Cylindrical Z",
               units="cm", particle_type = True)
+
 
 
 def add_particle_average(registry, ptype, field_name, 
