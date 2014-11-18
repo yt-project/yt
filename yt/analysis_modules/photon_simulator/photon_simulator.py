@@ -796,7 +796,7 @@ class EventList(object) :
             v1 = self.parameters[k1]
             v2 = other.parameters[k2]
             if np.all(v1 != v2):
-                raise RuntimeError("The values for the parameter %s in the two EventLists" % k1 +
+                raise RuntimeError("The values for the parameter '%s' in the two EventLists" % k1 +
                                    " are not identical (%s vs. %s)!" % (v1, v2))
         events = {}
         for item1, item2 in zip(self.items(), other.items()):
