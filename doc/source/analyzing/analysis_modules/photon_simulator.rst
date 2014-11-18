@@ -303,11 +303,11 @@ Let's just take a quick look at the raw events object:
             187.49897546,  187.47307048]) degree, 
      'ysky': YTArray([ 12.33519996,  12.3544496 ,  12.32750903, ...,  12.34907707,
             12.33327653,  12.32955225]) degree, 
-     'ypix': YTArray([ 133.85374195,  180.68583074,  115.14110561, ...,  167.61447493,
-            129.17278711,  120.11508562]) (dimensionless), 
+     'ypix': array([ 133.85374195,  180.68583074,  115.14110561, ...,  167.61447493,
+            129.17278711,  120.11508562]), 
      'PI': array([ 27,  15,  25, ..., 609, 611, 672]), 
-     'xpix': YTArray([  86.26331108,  155.15934197,  111.06337043, ...,  114.39586907,
-            130.93509652,  192.50639633]) (dimensionless)}
+     'xpix': array([  86.26331108,  155.15934197,  111.06337043, ...,  114.39586907,
+            130.93509652,  192.50639633])}
 
 
 We can bin up the events into an image and save it to a FITS file. The
@@ -377,11 +377,11 @@ standard X-ray analysis:
    files in subtle ways that we haven't been able to identify. Please email
    jzuhone@gmail.com if you find any bugs!
 
-Two ``EventList`` instances can be joined togther like this:
+Two ``EventList`` instances can be added together:
 
 .. code:: python
 
-    events3 = EventList.join_events(events1, events2)
+    events3 = events1+events2
 
 **WARNING**: This doesn't check for parameter consistency between the
 two lists!

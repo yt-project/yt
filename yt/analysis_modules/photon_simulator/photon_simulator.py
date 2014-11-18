@@ -199,7 +199,7 @@ class PhotonList(object):
         "vy" : the y-velocity of the cell in km/s, YTArray
         "vz" : the z-velocity of the cell in km/s, YTArray
         "dx" : the width of the cell in kpc, YTArray
-        "NumberOfPhotons" : the number of photons in the cell, NumPy array of integers
+        "NumberOfPhotons" : the number of photons in the cell, NumPy array of unsigned 64-bit integers
         "Energy" : the source rest-frame energies of the photons, YTArray
 
         The last array is not the same size as the others because it contains the energies in all of
@@ -230,9 +230,8 @@ class PhotonList(object):
         ...     photons["vx"] = ds.arr([0], "km/s")
         ...     photons["vy"] = ds.arr([0], "km/s")
         ...     photons["vz"] = ds.arr([100.0], "km/s")
-        ...     ds.find_field_value_at_point
         ...     photons["dx"] = ds.find_field_values_at_point("dx", ds.domain_center).in_units("kpc")
-        ...     photons["NumberOfPhotons"] = np.array(num_photons*np.ones((1))
+        ...     photons["NumberOfPhotons"] = np.array(num_photons*np.ones(1), dtype="uint64")
         ...     photons["Energy"] = ds.arr(energies, "keV")
         >>>
         >>> redshift = 0.05
@@ -782,6 +781,33 @@ class EventList(object) :
 
     def __repr__(self):
         return self.events.__repr__()
+
+    def __add__(self, other):
+        events = {}
+        for item1, item2 in zip(self.items(), other.items()):
+            k1, v1 = item1
+            k2, v2 = item2
+            events[k1] = uconcatenate([v1,v2])
+        return EventList(events, self.parameters)
+
+    def filter_events(self, region):
+        """                                                                                                                                 
+        Filter events using a ds9 region. Requires the pyregion package.                                                                    
+        Returns a new EventList.                                                                                                            
+        """
+        import pyregion
+        import os
+        if os.path.exists(region):
+            reg = pyregion.open(region)
+        else:
+            reg = pyregion.parse(region)
+        r = reg.as_imagecoord(header=self.wcs.to_header())
+        f = r.get_filter()
+        idxs = f.inside_x_y(self.events["xpix"], self.events["ypix"])
+        new_events = {}
+        for k, v in self.events.items():
+            new_events[k] = v[idxs]
+        return EventList(new_events, self.parameters)
    
     @classmethod
     def from_h5_file(cls, h5file):

@@ -138,7 +138,7 @@ class ThermalPhotonModel(PhotonModel):
 
             cell_em = EM[idxs]*vol_scale
 
-            number_of_photons = np.zeros(num_cells)
+            number_of_photons = np.zeros(num_cells, dtype="uint64")
             energies = np.zeros(self.photons_per_chunk)
 
             start_e = 0
