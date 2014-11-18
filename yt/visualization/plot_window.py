@@ -1015,6 +1015,9 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
          fields.
+    data_source : YTSelectionContainer Object
+         Object to be used for data selection.  Defaults to a region covering
+         the entire simulation.
 
     Examples
     --------
@@ -1032,7 +1035,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
 
     def __init__(self, ds, axis, fields, center='c', width=None, axes_unit=None,
                  origin='center-window', fontsize=18, field_parameters=None,
-                 window_size=8.0, aspect=None):
+                 window_size=8.0, aspect=None, data_source=None):
         # this will handle time series data and controllers
         ts = self._initialize_dataset(ds)
         self.ts = ts
@@ -1041,8 +1044,8 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         (bounds, center, display_center) = \
                 get_window_parameters(axis, center, width, ds)
         if field_parameters is None: field_parameters = {}
-        slc = ds.slice(axis, center[axis],
-            field_parameters = field_parameters, center=center)
+        slc = ds.slice(axis, center[axis], field_parameters = field_parameters, 
+                       center=center, data_source=data_source)
         slc.get_data(fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin,
                              fontsize=fontsize, fields=fields,

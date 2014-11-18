@@ -562,7 +562,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             if data_source.ds is not self.ds:
                 raise RuntimeError("Attempted to construct a DataContainer with a data_source from a different DataSet", ds, data_source.ds)
             else:
-                print "DataSets: ", self.ds, data_source.ds
+                pass
             if data_source._dimensionality < self._dimensionality:
                 raise RuntimeError("Attempted to construct a DataContainer with a data_source of lower dimensionality (%u vs %u)" %
                                     (data_source._dimensionality, self._dimensionality))
