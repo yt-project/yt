@@ -393,6 +393,14 @@ created using different data sources:
 .. warning:: This only works if the two event lists were generated using
     the same parameters!
 
+Finally, a new ``EventList`` can be created from a subset of an existing ``EventList``,
+defined by a ds9 region (this functionality requires the
+`pyregion <http://pyregion.readthedocs.org>`_ package to be installed):
+
+.. code:: python
+
+    circle_events = events.filter_events("circle.reg")
+
 Creating a X-ray observation from an in-memory dataset
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
