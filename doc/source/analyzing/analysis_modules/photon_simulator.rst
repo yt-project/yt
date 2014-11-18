@@ -383,15 +383,15 @@ standard X-ray analysis:
    files in subtle ways that we haven't been able to identify. Please email
    jzuhone@gmail.com if you find any bugs!
 
-Two ``EventList`` instances can be added together:
+Two ``EventList`` instances can be added together, which is useful if they were
+created using different data sources:
 
 .. code:: python
 
     events3 = events1+events2
 
-.. warning:: This doesn't check for parameter consistency between the
-   two lists! It will simply assume that they are the same and use the
-   `parameters` dictionary from the first `EventList`.
+.. warning:: This only works if the two event lists were generated using
+    the same parameters!
 
 Creating a X-ray observation from an in-memory dataset
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++

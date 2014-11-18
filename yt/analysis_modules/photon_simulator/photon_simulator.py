@@ -80,7 +80,10 @@ class PhotonList(object):
                     for i in xrange(self.num_cells)]
         else:
             return self.photons[key]
-    
+
+    def __repr__(self):
+        return self.photons.__repr__()
+
     @classmethod
     def from_file(cls, filename):
         r"""
@@ -783,6 +786,18 @@ class EventList(object) :
         return self.events.__repr__()
 
     def __add__(self, other):
+        keys1 = self.parameters.keys()
+        keys2 = other.parameters.keys()
+        keys1.sort()
+        keys2.sort()
+        if keys1 != keys2:
+            raise RuntimeError("The two EventLists do not have the same parameters!")
+        for k1, k2 in zip(keys1, keys2):
+            v1 = self.parameters[k1]
+            v2 = other.parameters[k2]
+            if v1 != v2:
+                raise RuntimeError("The values for the parameter %s in the two EventLists" % k1 +
+                                   " are not identical (%s vs. %s)!" % (v1, v2))
         events = {}
         for item1, item2 in zip(self.items(), other.items()):
             k1, v1 = item1
