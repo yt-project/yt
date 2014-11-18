@@ -28,7 +28,7 @@ from yt.utilities.orientation import Orientation
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only, get_mpi_type, \
      parallel_capable
-from yt.units.yt_array import YTQuantity, YTArray
+from yt.units.yt_array import YTQuantity, YTArray, uconcatenate
 import h5py
 from yt.utilities.on_demand_imports import _astropy
 pyfits = _astropy.pyfits
