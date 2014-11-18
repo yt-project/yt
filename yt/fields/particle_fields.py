@@ -525,9 +525,12 @@ def standard_particle_fields(registry, ptype,
 
     def _particle_cylindrical_r(field, data):
         normal = data.get_field_parameter("normal")
-        return data.ds.arr(get_cyl_r(data["particle_position"].T, normal),
+        center = data.get_field_parameter('center')
+        pos = YTArray([data[ptype, spos % ax] for ax in "xyz"])
+        pos = pos - np.reshape(center, (3, 1))
+        return data.ds.arr(get_cyl_r(pos, normal),
                            'code_length')
-
+                           
     registry.add_field((ptype, "particle_cylindrical_r"),
               function=_particle_cylindrical_r,
               validators=[ValidateParameter("normal")],
@@ -536,8 +539,12 @@ def standard_particle_fields(registry, ptype,
 
     def _particle_cylindrical_z(field, data):
         normal = data.get_field_parameter("normal")
-        return data.ds.arr(get_cyl_z(data["particle_position"].T, normal),
+        center = data.get_field_parameter('center')
+        pos = YTArray([data[ptype, spos % ax] for ax in "xyz"])
+        pos = pos - np.reshape(center, (3, 1))
+        return data.ds.arr(get_cyl_z(pos,normal),
                            'code_length')
+
 
     registry.add_field((ptype, "particle_cylindrical_z"),
               function=_particle_cylindrical_z,
