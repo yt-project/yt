@@ -823,6 +823,8 @@ class EventList(object) :
         r = reg.as_imagecoord(header=self.wcs.to_header())
         f = r.get_filter()
         idxs = f.inside_x_y(self.events["xpix"], self.events["ypix"])
+        if idxs.sum() == 0:
+            raise RuntimeError("No events are inside this region!")
         new_events = {}
         for k, v in self.events.items():
             new_events[k] = v[idxs]
