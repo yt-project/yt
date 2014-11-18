@@ -795,7 +795,7 @@ class EventList(object) :
         for k1, k2 in zip(keys1, keys2):
             v1 = self.parameters[k1]
             v2 = other.parameters[k2]
-            if v1 != v2:
+            if np.all(v1 != v2):
                 raise RuntimeError("The values for the parameter %s in the two EventLists" % k1 +
                                    " are not identical (%s vs. %s)!" % (v1, v2))
         events = {}
@@ -907,19 +907,6 @@ class EventList(object) :
         
         return cls(events, parameters)
 
-    @classmethod
-    def join_events(cls, events1, events2):
-        """
-        Join two sets of events, *events1* and *events2*.
-        """
-        events = {}
-        for item1, item2 in zip(events1.items(), events2.items()):
-            k1, v1 = item1
-            k2, v2 = item2
-            events[k1] = np.concatenate([v1,v2])
-        
-        return cls(events, events1.parameters)
-                
     @parallel_root_only
     def write_fits_file(self, fitsfile, clobber=False):
         """
