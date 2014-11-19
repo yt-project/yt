@@ -721,10 +721,6 @@ class YTCutRegionBase(YTSelectionContainer3D):
         # Need to interpose for __getitem__, fwidth, fcoords, icoords, iwidth,
         # ires and get_data
 
-    @property
-    def selector(self):
-        raise NotImplementedError
-
     def chunks(self, fields, chunking_style, **kwargs):
         # We actually want to chunk the sub-chunk, not ourselves.  We have no
         # chunks to speak of, as we do not data IO.

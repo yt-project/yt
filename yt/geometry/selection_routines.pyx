@@ -783,6 +783,43 @@ cdef class RegionSelector(SelectorObject):
 
 region_selector = RegionSelector
 
+cdef class CutRegionSelector(SelectorObject):
+    cdef SelectorObject base_selector
+    cdef dict _positions
+
+    def __init__(self, dobj):
+        self.base_selector = <SelectorObject>dobj.base_object.selector
+        positions = np.array([dobj['x'], dobj['y'], dobj['z']]).T
+        self._positions = {}
+        for position in positions:
+            self._positions[tuple(position)] = 1
+
+    cdef int select_bbox(self,  np.float64_t left_edge[3],
+                     np.float64_t right_edge[3]) nogil:
+        return self.base_selector.select_bbox(left_edge, right_edge)
+
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        ret = self.base_selector.select_cell(pos, dds)
+        if ret:
+            with gil:
+                if (pos[0], pos[1], pos[2]) in self._positions:
+                    return 1
+                else:
+                    return 0
+        else:
+            return ret
+
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
+        return self.base_selector.select_point(pos)
+
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+        return self.base_selector.select_sphere(pos, radius)
+
+    def _hash_vals(self):
+        return self.base_selector._hash_vals()
+
+cut_region_selector = CutRegionSelector
+
 cdef class DiskSelector(SelectorObject):
     cdef np.float64_t norm_vec[3]
     cdef np.float64_t center[3]
