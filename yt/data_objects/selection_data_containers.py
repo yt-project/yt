@@ -762,9 +762,6 @@ class YTCutRegionBase(YTSelectionContainer3D):
             if not np.any(m): continue
             yield obj, m
 
-    def cut_region(self, *args, **kwargs):
-        raise NotImplementedError
-
     @property
     def _cond_ind(self):
         ind = None
