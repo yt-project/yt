@@ -785,14 +785,12 @@ region_selector = RegionSelector
 
 cdef class CutRegionSelector(SelectorObject):
     cdef SelectorObject base_selector
-    cdef dict _positions
+    cdef set _positions
 
     def __init__(self, dobj):
         self.base_selector = <SelectorObject>dobj.base_object.selector
         positions = np.array([dobj['x'], dobj['y'], dobj['z']]).T
-        self._positions = {}
-        for position in positions:
-            self._positions[tuple(position)] = 1
+        self._positions = set(tuple(position) for position in positions)
 
     cdef int select_bbox(self,  np.float64_t left_edge[3],
                      np.float64_t right_edge[3]) nogil:
