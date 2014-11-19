@@ -1042,9 +1042,10 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         ds = self.ds = ts[0]
         axis = fix_axis(axis, ds)
         (bounds, center, display_center) = \
-                get_window_parameters(axis, center, width, ds)
-        if field_parameters is None: field_parameters = {}
-        slc = ds.slice(axis, center[axis], field_parameters = field_parameters, 
+            get_window_parameters(axis, center, width, ds)
+        if field_parameters is None:
+            field_parameters = {}
+        slc = ds.slice(axis, center[axis], field_parameters=field_parameters,
                        center=center, data_source=data_source)
         slc.get_data(fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin,
@@ -1279,6 +1280,9 @@ class OffAxisSlicePlot(PWViewerMPL):
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
          fields.
+    data_source : YTSelectionContainer Object
+         Object to be used for data selection.  Defaults to a region covering
+         the entire simulation.
     """
 
     _plot_type = 'OffAxisSlice'
@@ -1286,11 +1290,13 @@ class OffAxisSlicePlot(PWViewerMPL):
 
     def __init__(self, ds, normal, fields, center='c', width=None,
                  axes_unit=None, north_vector=None, fontsize=18,
-                 field_parameters=None):
+                 field_parameters=None, data_source=None):
         (bounds, center_rot) = get_oblique_window_parameters(normal,center,width,ds)
-        if field_parameters is None: field_parameters = {}
-        cutting = ds.cutting(normal, center, north_vector = north_vector,
-                              field_parameters = field_parameters)
+        if field_parameters is None:
+            field_parameters = {}
+        cutting = ds.cutting(normal, center, north_vector=north_vector,
+                             field_parameters=field_parameters,
+                             data_source=data_source)
         cutting.get_data(fields)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
@@ -1840,6 +1846,9 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
          fields.
+    data_source : YTSelectionContainer Object
+         Object to be used for data selection.  Defaults to a region covering
+         the entire simulation.
 
     Raises
     ------
