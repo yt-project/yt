@@ -28,32 +28,56 @@ JPN Notes:
 SKIP: chombo & boxlib
 
 -----boxlib---------
+
 - castro
+
 - then maestro
+
 - then nyx
+
 - then orion
+
 ---------------------
+
 -----chombo--------
+
 - then orion 2
+
 - then pluto
+
 -------------------
 
 
 MISSING test files: art?  stream? sph?... check it out...
 
 frontends supported in python3:
+
 -enzo
+
 -flash
+
 -artio is done, but there are no surfaces... yet
+
 -athena is done
+
 - fits is done -> just need astropy installed, no surfaces
+
 - grid data format is done, but no surfaces
+
 - then owls - COME BACK TO, DON'T GET IT, but seems to load
+
 - then rockstar - COME BACK TO, DON'T GET IT, but seems to load, halos might need extra data
-- working on moab
-- then ramses
+
+- working on moab... one file loads, the other does not... SO CONFUSED -> COME BACK TO
+
+- working on ramses
+
 - then gadget
+
 - then gasoline
+
 - then pkdgrav
+
 - then tipsy
+
 - ... check out test_outputs?
