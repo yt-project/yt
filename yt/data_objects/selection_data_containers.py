@@ -721,7 +721,7 @@ class YTCutRegionBase(YTSelectionContainer3D):
                     "Cannot use both base_object and data_source")
             data_source=base_object
         super(YTCutRegionBase, self).__init__(
-            data_source.center, ds, field_parameters)
+            data_source.center, ds, field_parameters, data_source=data_source)
         self.conditionals = ensure_list(conditionals)
         self.base_object = data_source
         self._selector = None
