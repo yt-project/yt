@@ -199,7 +199,7 @@ class ARTDataset(Dataset):
         """
         base_prefix, base_suffix = filename_pattern['amr']
         aexpstr = 'a'+file_amr.rsplit('a',1)[1].replace(base_suffix,'')
-        possibles = glob.glob(os.path.dirname(file_amr)+"/*")
+        possibles = glob.glob(os.path.dirname(os.path.abspath(file_amr))+"/*")
         for filetype, (prefix, suffix) in filename_pattern.iteritems():
             # if this attribute is already set skip it
             if getattr(self, "_file_"+filetype, None) is not None:
@@ -439,7 +439,7 @@ class DarkMatterARTDataset(ARTDataset):
         """
         base_prefix, base_suffix = filename_pattern['particle_data']
         aexpstr = file_particle.rsplit('s0',1)[1].replace(base_suffix,'')
-        possibles = glob.glob(os.path.dirname(file_particle)+"/*")
+        possibles = glob.glob(os.path.dirname(os.path.abspath(file_particle))+"/*")
         for filetype, (prefix, suffix) in filename_pattern.iteritems():
             # if this attribute is already set skip it
             if getattr(self, "_file_"+filetype, None) is not None:
@@ -623,6 +623,15 @@ class DarkMatterARTDataset(ARTDataset):
         if not f.endswith(suffix):
             return False
         with open(f, 'rb') as fh:
+            try:
+                amr_prefix, amr_suffix = filename_pattern['amr']
+                possibles = glob.glob(os.path.dirname(os.path.abspath(f))+"/*")
+                for possible in possibles:
+                    if possible.endswith(amr_suffix):
+                        if os.path.basename(possible).startswith(amr_prefix):
+                            return False
+            except:
+                pass
             try:
                 seek = 4
                 fh.seek(seek)
