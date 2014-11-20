@@ -49,7 +49,6 @@ def get_radius(data, field_prefix):
 
 def get_periodic_rvec(data):
     coords = obtain_rvec(data)
-   # return coords
     if sum(data.ds.periodicity) == 0: return coords
     le = data.ds.domain_left_edge.in_units("code_length").d
     dw = data.ds.domain_width.in_units("code_length").d
