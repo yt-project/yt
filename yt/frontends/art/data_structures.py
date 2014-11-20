@@ -581,7 +581,7 @@ class DarkMatterARTDataset(ARTDataset):
         self.parameters['boxh'] = self.parameters['boxsize']
         self.parameters['total_particles'] = ls_nonzero
         self.domain_dimensions = np.ones(3,
-                        dtype='int64')*self.parameters['ng']
+                        dtype='int64')*2 # NOT ng
 
         # setup standard simulation params yt expects to see
         self.current_redshift = self.parameters["aexpn"]**-1.0 - 1.0

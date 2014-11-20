@@ -229,7 +229,8 @@ class IOHandlerDarkMatterART(IOHandlerART):
             idxb=idxb, fields=ax)
         for i, ax in enumerate('xyz'):
             if fname.startswith("particle_position_%s" % ax):
-                dd = self.ds.domain_dimensions[0]
+                # This is not the same as domain_dimensions
+                dd = self.ds.parameters['ng']
                 off = 1.0/dd
                 tr[field] = rp([ax])[0]/dd - off
             if fname.startswith("particle_velocity_%s" % ax):
