@@ -26,8 +26,11 @@ import re
 import ppv_utils
 from yt.funcs import is_root
 
-def create_vlos(normal):
-    if isinstance(normal, basestring):
+def create_vlos(normal, no_shifting):
+    if no_shifting:
+        def _v_los(field, data):
+            return data.ds.arr(data["zeros"], "cm/s")
+    elif isinstance(normal, basestring):
         def _v_los(field, data): 
             return -data["velocity_%s" % normal]
     else:
@@ -48,7 +51,7 @@ fits_info = {"velocity":("m/s","VELOCITY","v"),
 class PPVCube(object):
     def __init__(self, ds, normal, field, center="c", width=(1.0,"unitary"),
                  dims=(100,100,100), velocity_bounds=None, thermal_broad=False,
-                 atomic_weight=56., method="integrate"):
+                 atomic_weight=56., method="integrate", no_shifting=False):
         r""" Initialize a PPVCube object.
 
         Parameters
@@ -88,6 +91,9 @@ class PPVCube(object):
             Set the projection method to be used.
             "integrate" : line of sight integration over the line element.
             "sum" : straight summation over the line of sight.
+        no_shifting : boolean, optional
+            If set, no shifting due to velocity will occur but only thermal broadening.
+            Should not be set when *thermal_broad* is False, otherwise nothing happens!
 
         Examples
         --------
@@ -102,6 +108,10 @@ class PPVCube(object):
         self.width = width
         self.particle_mass = atomic_weight*mh
         self.thermal_broad = thermal_broad
+        self.no_shifting = no_shifting
+
+        if no_shifting and not thermal_broad:
+            raise RuntimeError("no_shifting cannot be True when thermal_broad is False!")
 
         self.center = ds.coordinates.sanitize_center(center, normal)[0]
 
@@ -135,7 +145,7 @@ class PPVCube(object):
 
         self.current_v = 0.0
 
-        _vlos = create_vlos(normal)
+        _vlos = create_vlos(normal, self.no_shifting)
         self.ds.add_field(("gas","v_los"), function=_vlos, units="cm/s")
 
         _intensity = self.create_intensity()
@@ -287,7 +297,7 @@ class PPVCube(object):
         w.wcs.cunit = [units,units,vunit]
         w.wcs.ctype = [types[0],types[1],vtype]
 
-        fib = FITSImageBuffer(self.data.transpose(), fields=self.field, wcs=w)
+        fib = FITSImageBuffer(self.data.transpose(2,0,1), fields=self.field, wcs=w)
         fib[0].header["bunit"] = re.sub('()', '', str(self.proj_units))
         fib[0].header["btype"] = self.field
 
