@@ -62,7 +62,7 @@ def get_periodic_rvec(data):
         temp_coords = np.mod(coords[i, ...], dw[i])
 
         #Where second measure is better, updating temporary coords
-        ii = np.where(mins==1)
+        ii = mins==1
         temp_coords[ii] = np.mod(coords[i, ...], -dw[i])[ii]
 
         # Putting the temporary coords into the actual storage
