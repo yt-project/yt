@@ -317,7 +317,12 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         np.add(py, oy, py)
         np.multiply(pdy, self.ds.domain_width[yax], pdy)
         if self.weight_field is not None:
-            np.divide(nvals, nwvals[:,None], nvals)
+            # If there are 0s remaining in the weight vals
+            # this will not throw an error, but silently
+            # return nans for vals where dividing by 0
+            # Leave as NaNs to be auto-masked by Matplotlib
+            with np.errstate(invalid='ignore'):
+                np.divide(nvals, nwvals[:,None], nvals)
         # We now convert to half-widths and center-points
         data = {}
         #non_nan = ~np.any(np.isnan(nvals), axis=-1)
