@@ -1,7 +1,7 @@
-.. _symbolic_units:
+.. _unit_equivalencies:
 
-Symbolic units: :code:`yt.units`
-================================
+Unit Equivalencies
+==================
 
 .. notebook:: 6)_Unit_Equivalencies.ipynb
    :skip_exceptions:
