@@ -693,7 +693,7 @@ class YTCutRegionBase(YTSelectionContainer3D):
 
     Parameters
     ----------
-    base_object : YTSelectionContainer3D
+    data_source : YTSelectionContainer3D
         The object to which cuts will be applied.
     conditionals : list of strings
         A list of conditionals that will be evaluated.  In the namespace
@@ -710,13 +710,20 @@ class YTCutRegionBase(YTSelectionContainer3D):
     >>> cr = ds.cut_region(sp, ["obj['temperature'] < 1e3"])
     """
     _type_name = "cut_region"
-    _con_args = ("base_object", "conditionals")
-    def __init__(self, base_object, conditionals, ds=None,
-                 field_parameters=None, data_source=None):
-        super(YTCutRegionBase, self).__init__(base_object.center, ds,
-                                              field_parameters, data_source)
+    _con_args = ("data_source", "conditionals")
+    def __init__(self, data_source, conditionals, ds=None,
+                 field_parameters=None, base_object=None):
+        if base_object is not None:
+            # passing base_object explicitly has been deprecated,
+            # but we handle it here for backward compatibility
+            if data_source is not None:
+                raise RuntimeError(
+                    "Cannot use both base_object and data_source")
+            data_source=base_object
+        super(YTCutRegionBase, self).__init__(
+            data_source.center, ds, field_parameters, data_source=data_source)
         self.conditionals = ensure_list(conditionals)
-        self.base_object = base_object
+        self.base_object = data_source
         self._selector = None
         # Need to interpose for __getitem__, fwidth, fcoords, icoords, iwidth,
         # ires and get_data
@@ -725,8 +732,8 @@ class YTCutRegionBase(YTSelectionContainer3D):
         # We actually want to chunk the sub-chunk, not ourselves.  We have no
         # chunks to speak of, as we do not data IO.
         for chunk in self.index._chunk(self.base_object,
-                                           chunking_style,
-                                           **kwargs):
+                                       chunking_style,
+                                       **kwargs):
             with self.base_object._chunked_read(chunk):
                 with self._chunked_read(chunk):
                     self.get_data(fields)
@@ -754,9 +761,6 @@ class YTCutRegionBase(YTSelectionContainer3D):
                     m = np.logical_and(m, ss, m)
             if not np.any(m): continue
             yield obj, m
-
-    def cut_region(self, *args, **kwargs):
-        raise NotImplementedError
 
     @property
     def _cond_ind(self):

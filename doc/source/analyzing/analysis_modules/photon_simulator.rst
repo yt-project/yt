@@ -46,17 +46,23 @@ Creating an X-ray observation of a dataset on disk
 .. code:: python
 
     import yt
+    #yt.enable_parallelism() # If you want to run in parallel this should go here!
     from yt.analysis_modules.photon_simulator.api import *
     from yt.utilities.cosmology import Cosmology
+
+.. note::
+
+    For parallel runs using ``mpi4py``, the call to ``yt.enable_parallelism`` should go *before*
+    the import of the ``photon_simulator`` module, as shown above.
 
 We're going to load up an Athena dataset of a galaxy cluster core:
 
 .. code:: python
 
     ds = yt.load("MHDSloshing/virgo_low_res.0054.vtk",
-                 parameters={"time_unit":(1.0,"Myr"),
-                            "length_unit":(1.0,"Mpc"),
-                            "mass_unit":(1.0e14,"Msun")}) 
+                 units_override={"time_unit":(1.0,"Myr"),
+                                 "length_unit":(1.0,"Mpc"),
+                                 "mass_unit":(1.0e14,"Msun")})
 
 First, to get a sense of what the resulting image will look like, let's
 make a new yt field called ``"density_squared"``, since the X-ray
@@ -67,7 +73,7 @@ temperature and metallicity.
 
     def _density_squared(field, data):
         return data["density"]**2
-    add_field("density_squared", function=_density_squared)
+    ds.add_field("density_squared", function=_density_squared, units="g**2/cm**6")
 
 Then we'll project this field along the z-axis.
 
@@ -141,7 +147,8 @@ photons. For thermal spectra, we have a special ``PhotonModel`` called
 
 .. code:: python
 
-    thermal_model = ThermalPhotonModel(apec_model, X_H=0.75, Zmet=0.3)
+    thermal_model = ThermalPhotonModel(apec_model, X_H=0.75, Zmet=0.3,
+                                       photons_per_chunk=100000000)
 
 Where we pass in the ``SpectralModel``, and can optionally set values for
 the hydrogen mass fraction ``X_H`` and metallicity ``Z_met``. If
@@ -149,6 +156,14 @@ the hydrogen mass fraction ``X_H`` and metallicity ``Z_met``. If
 everywhere in terms of the solar metallicity. If it is a string, it will
 assume that is the name of the metallicity field (which may be spatially
 varying).
+
+The ``ThermalPhotonModel`` iterates over "chunks" of the supplied data source
+to generate the photons, to reduce memory usage and make parallelization more
+efficient. For each chunk, memory is set aside for the photon energies that will
+be generated. ``photons_per_chunk`` is an optional keyword argument which controls
+the size of this array. For large numbers of photons, you may find that
+this parameter needs to be set higher, or if you are looking to decrease memory
+usage, you might set this parameter lower.
 
 Next, we need to specify "fiducial" values for the telescope collecting
 area, exposure time, and cosmological redshift. Remember, the initial
@@ -294,11 +309,11 @@ Let's just take a quick look at the raw events object:
             187.49897546,  187.47307048]) degree, 
      'ysky': YTArray([ 12.33519996,  12.3544496 ,  12.32750903, ...,  12.34907707,
             12.33327653,  12.32955225]) degree, 
-     'ypix': YTArray([ 133.85374195,  180.68583074,  115.14110561, ...,  167.61447493,
-            129.17278711,  120.11508562]) (dimensionless), 
+     'ypix': array([ 133.85374195,  180.68583074,  115.14110561, ...,  167.61447493,
+            129.17278711,  120.11508562]), 
      'PI': array([ 27,  15,  25, ..., 609, 611, 672]), 
-     'xpix': YTArray([  86.26331108,  155.15934197,  111.06337043, ...,  114.39586907,
-            130.93509652,  192.50639633]) (dimensionless)}
+     'xpix': array([  86.26331108,  155.15934197,  111.06337043, ...,  114.39586907,
+            130.93509652,  192.50639633])}
 
 
 We can bin up the events into an image and save it to a FITS file. The
@@ -368,14 +383,23 @@ standard X-ray analysis:
    files in subtle ways that we haven't been able to identify. Please email
    jzuhone@gmail.com if you find any bugs!
 
-Two ``EventList`` instances can be joined togther like this:
+Two ``EventList`` instances can be added together, which is useful if they were
+created using different data sources:
 
 .. code:: python
 
-    events3 = EventList.join_events(events1, events2)
+    events3 = events1+events2
 
-**WARNING**: This doesn't check for parameter consistency between the
-two lists!
+.. warning:: This only works if the two event lists were generated using
+    the same parameters!
+
+Finally, a new ``EventList`` can be created from a subset of an existing ``EventList``,
+defined by a ds9 region (this functionality requires the
+`pyregion <http://pyregion.readthedocs.org>`_ package to be installed):
+
+.. code:: python
+
+    circle_events = events.filter_events("circle.reg")
 
 Creating a X-ray observation from an in-memory dataset
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -434,11 +458,11 @@ Now, we create a yt Dataset object out of this dataset:
 .. code:: python
 
    data = {}
-   data["density"] = dens
-   data["temperature"] = temp
-   data["velocity_x"] = np.zeros(ddims)
-   data["velocity_y"] = np.zeros(ddims)
-   data["velocity_z"] = np.zeros(ddims)
+   data["density"] = (dens, "g/cm**3")
+   data["temperature"] = (temp, "K")
+   data["velocity_x"] = (np.zeros(ddims), "cm/s")
+   data["velocity_y"] = (np.zeros(ddims), "cm/s")
+   data["velocity_z"] = (np.zeros(ddims), "cm/s")
 
    bbox = np.array([[-0.5,0.5],[-0.5,0.5],[-0.5,0.5]])
 
@@ -451,7 +475,7 @@ example:
 
 .. code:: python
 
-   sphere = ds.sphere(ds.domain_center, (1.0,"Mpc"))
+   sphere = ds.sphere("c", (1.0,"Mpc"))
        
    A = 6000.
    exp_time = 2.0e5
