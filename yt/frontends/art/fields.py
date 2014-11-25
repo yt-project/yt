@@ -37,7 +37,7 @@ class ARTFieldInfo(FieldInfoContainer):
         ("YMomentumDensity", (mom_units, ["momentum_y"], None)),
         ("ZMomentumDensity", (mom_units, ["momentum_z"], None)),
         ("Pressure", ("", ["pressure"], None)), # Unused
-        ("Gamma", ("", "gamma", None)),
+        ("Gamma", ("", ["gamma"], None)),
         ("GasEnergy", (en_units, ["thermal_energy"], None)),
         ("MetalDensitySNII", (rho_units, ["metal_ii_density"], None)),
         ("MetalDensitySNIa", (rho_units, ["metal_ia_density"], None)),

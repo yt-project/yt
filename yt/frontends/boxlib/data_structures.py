@@ -249,6 +249,7 @@ class BoxlibHierarchy(GridIndex):
             grid_counter += ngrids
             # already read the filenames above...
         self.float_type = 'float64'
+        self.max_level = self.grid_levels.max()
 
     def _cache_endianness(self, test_grid):
         """
