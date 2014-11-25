@@ -176,7 +176,7 @@ class FieldInfo:
         self.aliases = " ".join(a)
         self.dname = ""
         if field[1][2] is not None:
-            self.dname = ":math: {}".format(field[1][2])
+            self.dname = ":math:`{}`".format(field[1][2])
 
         if ftype is not "particle_type":
             ftype = "'"+ftype+"'"
