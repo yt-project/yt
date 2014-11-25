@@ -202,7 +202,7 @@ class MaestroFieldInfo(FieldInfoContainer):
         ("magvel", ("cm/s", ["velocity_magnitude"],
                     r"|\tilde{\mathbf{U}} + w_0 \mathbf{e}_r|")),
         ("radial_velocity", ("cm/s", ["radial_velocity"], r"U\cdot e_r")),
-        ("circum_velocity", ("cm/s", ["tangential_velocity"], r"U\cdot e_r")),
+        ("circum_velocity", ("cm/s", ["tangential_velocity"], r"U - U\cdot e_r")),
         ("tfromp", ("K", [], "T(\\rho,p,X)")),
         ("tfromh", ("K", [], "T(\\rho,h,X)")),
         ("Machnumber", ("", ["mach_number"], "Mach Number")),
