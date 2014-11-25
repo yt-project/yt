@@ -309,7 +309,8 @@ class GadgetHDF5Dataset(GadgetDataset):
         self.cosmological_simulation = 1
         self.periodicity = (True, True, True)
 
-        prefix = os.path.abspath(self.parameter_filename.split(".", 1)[0])
+        prefix = self.parameter_filename.rsplit("/", 1)
+        prefix = os.path.abspath(prefix[0]+"/"+prefix[-1].split(".", 1)[0])
         suffix = self.parameter_filename.rsplit(".", 1)[-1]
         self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
         self.file_count = self.parameters["NumFilesPerSnapshot"]
