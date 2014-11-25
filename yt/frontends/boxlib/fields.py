@@ -211,16 +211,16 @@ class MaestroFieldInfo(FieldInfoContainer):
         ("deltaT", ("", [], "[T(\\rho,h,X) - T(\\rho,p,X)]/T(\\rho,h,X)")),
         ("deltagamma", ("", [], "\Gamma_1 - \overline{\Gamma_1}")),
         ("deltap", ("", [], "[p(\\rho,h,X) - p_0] / p_0")),
-        ("divw0", ("1/s", [], "\nabla \cdot \mathbf{w}_0")),
+        ("divw0", ("1/s", [], r"\nabla \cdot \mathbf{w}_0")),
         # Specific entropy
         ("entropy", ("erg/(g*K)", ["entropy"], "s")),
         ("entropypert", ("", [], "[s - \overline{s}] / \overline{s}")),
         ("enucdot", ("erg/(g*s)", [], "\dot{\epsilon_{nuc}}")),
         ("Hext", ("erg/(g*s)", [], "H_{ext}")),
         # Perturbational pressure grad
-        ("gpi_x", ("dyne/cm**3", [], "\left(\nabla\pi\right)_x")),
-        ("gpi_y", ("dyne/cm**3", [], "\left(\nabla\pi\right)_y")),
-        ("gpi_z", ("dyne/cm**3", [], "\left(\nabla\pi\right)_z")),
+        ("gpi_x", ("dyne/cm**3", [], r"\left(\nabla\pi\right)_x")),
+        ("gpi_y", ("dyne/cm**3", [], r"\left(\nabla\pi\right)_y")),
+        ("gpi_z", ("dyne/cm**3", [], r"\left(\nabla\pi\right)_z")),
         ("h", ("erg/g", [], "h")),
         ("h0", ("erg/g", [], "h_0")),
         # Momentum cannot be computed because we need to include base and
@@ -241,7 +241,7 @@ class MaestroFieldInfo(FieldInfoContainer):
         ("sponge", ("", [], None)),
         ("tpert", ("K", [], "T - \overline{T}")),
         # Again, base state -- so we can't compute ourselves.
-        ("vort", ("1/s", ["vorticity_magnitude"], "|\nabla\times\tilde{U}|")),
+        ("vort", ("1/s", ["vorticity_magnitude"], r"|\nabla\times\tilde{U}|")),
         # Base state
         ("w0_x", ("cm/s", [], "(w_0)_x")),
         ("w0_y", ("cm/s", [], "(w_0)_y")),
