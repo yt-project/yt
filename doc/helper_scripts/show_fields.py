@@ -190,9 +190,11 @@ for frontend in current_frontends:
     field_info_names = [fi for fi in dir(this_f) if "FieldInfo" in fi]
     dataset_names = [dset for dset in dir(this_f) if "Dataset" in dset]
 
-    if frontend == "sph":
-        field_info_names = \
-          ['TipsyFieldInfo' if 'Tipsy' in d else 'SPHFieldInfo' for d in dataset_names]
+    if frontend == "gadget":
+        # Drop duplicate entry for GadgetHDF5, add special case for FieldInfo
+        # entry
+        dataset_names = ['GadgetDataset']
+        field_info_names = ['SPHFieldInfo']
     elif frontend == "boxlib":
         field_info_names = []
         for d in dataset_names:

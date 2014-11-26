@@ -2913,6 +2913,42 @@ field name               units                                                  
 ('io', 'particle_tag')                                                                                                         ``particle_index``                   1                                                     
 ('io', 'particle_mass')  :math:`\mathrm{\rm{code}~\rm{mass}}`                                                                  ``particle_mass``                    1                                                     
 =======================  ====================================================================================================  ===========================  =========  ===================================================
+.. _Gadget_specific_fields:
+
+Gadget-Specific Fields
+----------------------
+
+============================  ======================================================================  =====================  =========  ============
+field name                    units                                                                   aliases                particle?  display name
+============================  ======================================================================  =====================  =========  ============
+('io', 'Mass')                :math:`\mathrm{\rm{code}~\rm{mass}}`                                    ``particle_mass``              1              
+('io', 'Masses')              :math:`\mathrm{\rm{code}~\rm{mass}}`                                    ``particle_mass``              1              
+('io', 'Coordinates')         :math:`\mathrm{\rm{code}~\rm{length}}`                                  ``particle_position``          1              
+('io', 'Velocity')            :math:`\mathrm{\rm{code}~\rm{velocity}}`                                ``particle_velocity``          1              
+('io', 'Velocities')          :math:`\mathrm{\rm{code}~\rm{velocity}}`                                ``particle_velocity``          1              
+('io', 'ParticleIDs')                                                                                 ``particle_index``             1              
+('io', 'InternalEnergy')                                                                              ``thermal_energy``             1              
+('io', 'SmoothingLength')     :math:`\mathrm{\rm{code}~\rm{length}}`                                  ``smoothing_length``           1              
+('io', 'Density')             :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`  ``density``                    1              
+('io', 'MaximumTemperature')  :math:`\mathrm{\rm{K}}`                                                                                1              
+('io', 'Temperature')         :math:`\mathrm{\rm{K}}`                                                 ``temperature``                1              
+('io', 'Epsilon')             :math:`\mathrm{\rm{code}~\rm{length}}`                                                                 1              
+('io', 'Metals')              :math:`\mathrm{\rm{code}~\rm{metallicity}}`                             ``metallicity``                1              
+('io', 'Metallicity')         :math:`\mathrm{\rm{code}~\rm{metallicity}}`                             ``metallicity``                1              
+('io', 'Phi')                 :math:`\mathrm{\rm{code}~\rm{length}}`                                                                 1              
+('io', 'FormationTime')       :math:`\mathrm{\rm{code}~\rm{time}}`                                    ``creation_time``              1              
+('io', 'Metallicity_00')                                                                              ``metallicity``                1              
+('io', 'Metallicity_01')                                                                              ``He_fraction``                1              
+('io', 'Metallicity_02')                                                                              ``C_fraction``                 1              
+('io', 'Metallicity_03')                                                                              ``N_fraction``                 1              
+('io', 'Metallicity_04')                                                                              ``O_fraction``                 1              
+('io', 'Metallicity_05')                                                                              ``Ne_fraction``                1              
+('io', 'Metallicity_06')                                                                              ``Mg_fraction``                1              
+('io', 'Metallicity_07')                                                                              ``Si_fraction``                1              
+('io', 'Metallicity_08')                                                                              ``S_fraction``                 1              
+('io', 'Metallicity_09')                                                                              ``Ca_fraction``                1              
+('io', 'Metallicity_10')                                                                              ``Fe_fraction``                1              
+============================  ======================================================================  =====================  =========  ============
 .. _GDF_specific_fields:
 
 GDF-Specific Fields
