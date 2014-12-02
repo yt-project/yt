@@ -896,8 +896,6 @@ class PWViewerMPL(PlotWindow):
             else:
                 self.plots[f].cax.minorticks_off()
 
-            self.run_callbacks(f)
-
             if draw_axes is False:
                 self.plots[f]._toggle_axes(draw_axes)
 
