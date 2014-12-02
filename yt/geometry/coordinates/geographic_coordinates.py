@@ -74,6 +74,27 @@ class GeographicCoordinateHandler(CoordinateHandler):
                  function=_SphericalVolume,
                  units = "code_length**3")
 
+        def _path_altitude(field, data):
+            return data["index", "daltitude"]
+        registry.add_field(("index", "path_element_altitude"),
+                 function = _path_r,
+                 units = "code_length")
+        def _path_longitude(field, data):
+            # We use r here explicitly
+            return data["index", "r"] * \
+                data["index", "dlongitude"] * np.pi/180.0
+        registry.add_field(("index", "path_element_longitude"),
+                 function = _path_longitude,
+                 units = "code_length")
+        def _path_latitude(field, data):
+            # We use r here explicitly
+            return data["index", "r"] \
+                    * data["index", "dlatitude"] * np.pi/180.0 \
+                    * np.sin(data["index", "longitude"] * np.pi/180.0)
+        registry.add_field(("index", "path_element_latitude"),
+                 function = _path_latitude,
+                 units = "code_length")
+
         # Altitude is the radius from the central zone minus the radius of the
         # surface.
         def _altitude_to_radius(field, data):
