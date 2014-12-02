@@ -43,6 +43,1046 @@ To figure out out what all of the field types here mean, see
 Universal Fields
 ----------------
 
+('all', 'mesh_id')
+^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def particle_mesh_ids(field, data):
+          pos = data[ptype, coord_name]
+          ids = np.zeros(pos.shape[0], dtype="float64") - 1
+          # This is float64 in name only.  It will be properly cast inside the
+          # deposit operation.
+          #_ids = ids.view("float64")
+          data.deposit(pos, [ids], method = "mesh_id")
+          return data.apply_units(ids, "")
+  
+
+('all', 'particle_angular_momentum')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_angular_momentum(field, data):
+          return data[ptype, "particle_mass"] \
+              * data[ptype, "particle_specific_angular_momentum"]
+  
+
+('all', 'particle_angular_momentum_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _magnitude(field, data):
+          fn = field_components[0]
+          mag = data[fn] * data[fn]
+          for idim in range(1, registry.ds.dimensionality):
+              fn = field_components[idim]
+              mag += data[fn] * data[fn]
+          return np.sqrt(mag)
+  
+
+('all', 'particle_angular_momentum_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_angular_momentum_x(field, data):
+          return data[ptype, "particle_mass"] * \
+                 data[ptype, "particle_specific_angular_momentum_x"]
+  
+
+('all', 'particle_angular_momentum_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_angular_momentum_y(field, data):
+          return data[ptype, "particle_mass"] * \
+                 data[ptype, "particle_specific_angular_momentum_y"]
+  
+
+('all', 'particle_angular_momentum_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_angular_momentum_z(field, data):
+          return data[ptype, "particle_mass"] * \
+                 data[ptype, "particle_specific_angular_momentum_z"]
+  
+
+('all', 'particle_mass')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{g}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
+('all', 'particle_ones')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def particle_ones(field, data):
+          v = np.ones(data[ptype, mass_name].shape, dtype="float64")
+          return data.apply_units(v, field.units)
+  
+
+('all', 'particle_position')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{code}~\rm{length}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+          def particle_vectors(field, data):
+              v = [data[_ptype, name].in_units(field.units)
+                    for name in names]
+              c = np.column_stack(v)
+              return data.apply_units(c, field.units)
+  
+
+('all', 'particle_position_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{code}~\rm{length}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
+('all', 'particle_position_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{code}~\rm{length}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
+('all', 'particle_position_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{code}~\rm{length}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
+('all', 'particle_radial_velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_spherical_velocity_radius(field, data):
+          """
+          Radial component of the particles' velocity vectors in spherical coords
+          based on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          vel = svel
+          vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          vel = vel - np.reshape(bv, (3, 1))
+          sphr = get_sph_r_component(vel, theta, phi, normal)
+          return sphr
+  
+
+('all', 'particle_radius')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_radius(field, data):
+          return get_radius(data, "particle_position_")
+  
+
+('all', 'particle_specific_angular_momentum')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_specific_angular_momentum(field, data):
+          """
+          Calculate the angular of a particle velocity.  Returns a vector for each
+          particle.
+          """
+          if data.has_field_parameter("bulk_velocity"):
+              bv = data.get_field_parameter("bulk_velocity")
+          else: bv = np.zeros(3, dtype=np.float64)
+          xv = data[ptype, svel % 'x'] - bv[0]
+          yv = data[ptype, svel % 'y'] - bv[1]
+          zv = data[ptype, svel % 'z'] - bv[2]
+          center = data.get_field_parameter('center')
+          coords = YTArray([data[ptype, spos % 'x'],
+                             data[ptype, spos % 'y'],
+                             data[ptype, spos % 'z']], dtype=np.float64)
+          new_shape = tuple([3] + [1]*(len(coords.shape)-1))
+          r_vec = coords - np.reshape(center,new_shape)
+          v_vec = YTArray([xv,yv,zv], dtype=np.float64)
+          return np.cross(r_vec, v_vec, axis=0)
+  
+
+('all', 'particle_specific_angular_momentum_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _magnitude(field, data):
+          fn = field_components[0]
+          mag = data[fn] * data[fn]
+          for idim in range(1, registry.ds.dimensionality):
+              fn = field_components[idim]
+              mag += data[fn] * data[fn]
+          return np.sqrt(mag)
+  
+
+('all', 'particle_specific_angular_momentum_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_specific_angular_momentum_x(field, data):
+          if data.has_field_parameter("bulk_velocity"):
+              bv = data.get_field_parameter("bulk_velocity")
+          else: bv = np.zeros(3, dtype=np.float64)
+          center = data.get_field_parameter('center')
+          y = data[ptype, spos % "y"] - center[1]
+          z = data[ptype, spos % "z"] - center[2]
+          yv = data[ptype, svel % "y"] - bv[1]
+          zv = data[ptype, svel % "z"] - bv[2]
+          return yv*z - zv*y
+  
+
+('all', 'particle_specific_angular_momentum_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_specific_angular_momentum_y(field, data):
+          if data.has_field_parameter("bulk_velocity"):
+              bv = data.get_field_parameter("bulk_velocity")
+          else: bv = np.zeros(3, dtype=np.float64)
+          center = data.get_field_parameter('center')
+          x = data[ptype, spos % "x"] - center[0]
+          z = data[ptype, spos % "z"] - center[2]
+          xv = data[ptype, svel % "x"] - bv[0]
+          zv = data[ptype, svel % "z"] - bv[2]
+          return -(xv*z - zv*x)
+  
+
+('all', 'particle_specific_angular_momentum_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_specific_angular_momentum_z(field, data):
+          if data.has_field_parameter("bulk_velocity"):
+              bv = data.get_field_parameter("bulk_velocity")
+          else: bv = np.zeros(3, dtype=np.float64)
+          center = data.get_field_parameter('center')
+          x = data[ptype, spos % "x"] - center[0]
+          y = data[ptype, spos % "y"] - center[1]
+          xv = data[ptype, svel % "x"] - bv[0]
+          yv = data[ptype, svel % "y"] - bv[1]
+          return xv*y - yv*x
+  
+
+('all', 'particle_spherical_position_phi')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_spherical_position_phi(field, data):
+          """
+          Phi component of the particles' position vectors in spherical coords
+          on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          sphp = get_sph_phi_component(pos, phi, normal)
+          return sphp
+  
+
+('all', 'particle_spherical_position_radius')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_spherical_position_radius(field, data):
+          """
+          Radial component of the particles' position vectors in spherical coords
+          on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          sphr = get_sph_r_component(pos, theta, phi, normal)
+          return sphr
+  
+
+('all', 'particle_spherical_position_theta')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_spherical_position_theta(field, data):
+          """
+          Theta component of the particles' position vectors in spherical coords
+          on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          spht = get_sph_theta_component(pos, theta, phi, normal)
+          return spht
+  
+
+('all', 'particle_spherical_velocity_phi')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_spherical_velocity_phi(field, data):
+          """
+          Phi component of the particles' velocity vectors in spherical coords
+          based on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = YTArray([data[ptype, spos % ax] for ax in "xyz"])
+          vel = YTArray([data[ptype, svel % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          vel = vel - np.reshape(bv, (3, 1))
+          sphp = get_sph_phi_component(vel, phi, normal)
+          return sphp
+  
+
+('all', 'particle_spherical_velocity_radius')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_spherical_velocity_radius(field, data):
+          """
+          Radial component of the particles' velocity vectors in spherical coords
+          based on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          vel = svel
+          vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          vel = vel - np.reshape(bv, (3, 1))
+          sphr = get_sph_r_component(vel, theta, phi, normal)
+          return sphr
+  
+
+('all', 'particle_spherical_velocity_theta')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_spherical_velocity_theta(field, data):
+          """
+          Theta component of the particles' velocity vectors in spherical coords
+          based on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          vel = svel
+          vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          vel = vel - np.reshape(bv, (3, 1))
+          spht = get_sph_theta_component(vel, theta, phi, normal)
+          return spht
+  
+
+('all', 'particle_velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+          def particle_vectors(field, data):
+              v = [data[_ptype, name].in_units(field.units)
+                    for name in names]
+              c = np.column_stack(v)
+              return data.apply_units(c, field.units)
+  
+
+('all', 'particle_velocity_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_velocity_magnitude(field, data):
+          """ M{|v|} """
+          bulk_velocity = data.get_field_parameter("bulk_velocity")
+          if bulk_velocity is None:
+              bulk_velocity = np.zeros(3)
+          return np.sqrt((data[ptype, svel % 'x'] - bulk_velocity[0])**2
+                       + (data[ptype, svel % 'y'] - bulk_velocity[1])**2
+                       + (data[ptype, svel % 'z'] - bulk_velocity[2])**2 )
+  
+
+('all', 'particle_velocity_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
+('all', 'particle_velocity_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
+('all', 'particle_velocity_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
+('deposit', 'all_cic')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def particle_cic(field, data):
+          pos = data[ptype, coord_name]
+          d = data.deposit(pos, [data[ptype, mass_name]], method = "cic")
+          d = data.apply_units(d, data[ptype, mass_name].units)
+          d /= data["index", "cell_volume"]
+          return d
+  
+
+('deposit', 'all_cic_velocity_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
+  
+
+('deposit', 'all_cic_velocity_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
+  
+
+('deposit', 'all_cic_velocity_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
+  
+
+('deposit', 'all_count')
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def particle_count(field, data):
+          pos = data[ptype, coord_name]
+          d = data.deposit(pos, method = "count")
+          d = data.ds.arr(d, input_units = "cm**-3")
+          return data.apply_units(d, field.units)
+  
+
+('deposit', 'all_density')
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def particle_density(field, data):
+          pos = data[ptype, coord_name]
+          mass = data[ptype, mass_name]
+          pos.convert_to_units("code_length")
+          mass.convert_to_units("code_mass")
+          d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
+          d = data.ds.arr(d, "code_mass")
+          d /= data["index", "cell_volume"]
+          return d
+  
+
+('deposit', 'all_mass')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{g}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def particle_mass(field, data):
+          pos = data[ptype, coord_name]
+          pmass = data[ptype, mass_name].in_units(field.units)
+          d = data.deposit(pos, [pmass], method = "sum")
+          return data.apply_units(d, field.units)
+  
+
+('deposit', 'all_nn_velocity_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
+  
+
+('deposit', 'all_nn_velocity_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
+  
+
+('deposit', 'all_nn_velocity_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
+  
+
+('deposit', 'io_cic')
+^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def particle_cic(field, data):
+          pos = data[ptype, coord_name]
+          d = data.deposit(pos, [data[ptype, mass_name]], method = "cic")
+          d = data.apply_units(d, data[ptype, mass_name].units)
+          d /= data["index", "cell_volume"]
+          return d
+  
+
+('deposit', 'io_cic_velocity_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
+  
+
+('deposit', 'io_cic_velocity_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
+  
+
+('deposit', 'io_cic_velocity_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
+  
+
+('deposit', 'io_count')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def particle_count(field, data):
+          pos = data[ptype, coord_name]
+          d = data.deposit(pos, method = "count")
+          d = data.ds.arr(d, input_units = "cm**-3")
+          return data.apply_units(d, field.units)
+  
+
+('deposit', 'io_density')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\frac{\rm{g}}{\rm{cm}^{3}}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def particle_density(field, data):
+          pos = data[ptype, coord_name]
+          mass = data[ptype, mass_name]
+          pos.convert_to_units("code_length")
+          mass.convert_to_units("code_mass")
+          d = data.deposit(pos, [data[ptype, mass_name]], method = "sum")
+          d = data.ds.arr(d, "code_mass")
+          d /= data["index", "cell_volume"]
+          return d
+  
+
+('deposit', 'io_mass')
+^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{g}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+      def particle_mass(field, data):
+          pos = data[ptype, coord_name]
+          pmass = data[ptype, mass_name].in_units(field.units)
+          d = data.deposit(pos, [pmass], method = "sum")
+          return data.apply_units(d, field.units)
+  
+
+('deposit', 'io_nn_velocity_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
+  
+
+('deposit', 'io_nn_velocity_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
+  
+
+('deposit', 'io_nn_velocity_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: False
+
+**Field Source**
+
+.. code-block:: python
+
+          def _deposit_field(field, data):
+              """
+              Create a grid field for particle quantities weighted by particle
+              mass, using cloud-in-cell deposit.
+              """
+              pos = data[ptype, "particle_position"]
+              # Get back into density
+              pden = data[ptype, 'particle_mass']
+              top = data.deposit(pos, [data[(ptype, fname)]*pden], method=method)
+              bottom = data.deposit(pos, [pden], method=method)
+              top[bottom == 0] = 0.0
+              bnz = bottom.nonzero()
+              top[bnz] /= bottom[bnz]
+              d = data.ds.arr(top, input_units=units)
+              return d
+  
+
 ('gas', 'H_nuclei_density')
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -2474,6 +3514,578 @@ No source available.
           arr = np.zeros(data["index", "ones"].shape, dtype='float64')
           return data.apply_units(arr, field.units)
   
+
+('io', 'mesh_id')
+^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def particle_mesh_ids(field, data):
+          pos = data[ptype, coord_name]
+          ids = np.zeros(pos.shape[0], dtype="float64") - 1
+          # This is float64 in name only.  It will be properly cast inside the
+          # deposit operation.
+          #_ids = ids.view("float64")
+          data.deposit(pos, [ids], method = "mesh_id")
+          return data.apply_units(ids, "")
+  
+
+('io', 'particle_angular_momentum')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_angular_momentum(field, data):
+          return data[ptype, "particle_mass"] \
+              * data[ptype, "particle_specific_angular_momentum"]
+  
+
+('io', 'particle_angular_momentum_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _magnitude(field, data):
+          fn = field_components[0]
+          mag = data[fn] * data[fn]
+          for idim in range(1, registry.ds.dimensionality):
+              fn = field_components[idim]
+              mag += data[fn] * data[fn]
+          return np.sqrt(mag)
+  
+
+('io', 'particle_angular_momentum_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_angular_momentum_x(field, data):
+          return data[ptype, "particle_mass"] * \
+                 data[ptype, "particle_specific_angular_momentum_x"]
+  
+
+('io', 'particle_angular_momentum_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_angular_momentum_y(field, data):
+          return data[ptype, "particle_mass"] * \
+                 data[ptype, "particle_specific_angular_momentum_y"]
+  
+
+('io', 'particle_angular_momentum_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} \cdot \rm{g} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_angular_momentum_z(field, data):
+          return data[ptype, "particle_mass"] * \
+                 data[ptype, "particle_specific_angular_momentum_z"]
+  
+
+('io', 'particle_mass')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{g}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
+('io', 'particle_ones')
+^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def particle_ones(field, data):
+          v = np.ones(data[ptype, mass_name].shape, dtype="float64")
+          return data.apply_units(v, field.units)
+  
+
+('io', 'particle_position')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{code}~\rm{length}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+          def particle_vectors(field, data):
+              v = [data[_ptype, name].in_units(field.units)
+                    for name in names]
+              c = np.column_stack(v)
+              return data.apply_units(c, field.units)
+  
+
+('io', 'particle_position_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{code}~\rm{length}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
+('io', 'particle_position_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{code}~\rm{length}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
+('io', 'particle_position_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{code}~\rm{length}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
+('io', 'particle_radial_velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_spherical_velocity_radius(field, data):
+          """
+          Radial component of the particles' velocity vectors in spherical coords
+          based on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          vel = svel
+          vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          vel = vel - np.reshape(bv, (3, 1))
+          sphr = get_sph_r_component(vel, theta, phi, normal)
+          return sphr
+  
+
+('io', 'particle_radius')
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_radius(field, data):
+          return get_radius(data, "particle_position_")
+  
+
+('io', 'particle_specific_angular_momentum')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_specific_angular_momentum(field, data):
+          """
+          Calculate the angular of a particle velocity.  Returns a vector for each
+          particle.
+          """
+          if data.has_field_parameter("bulk_velocity"):
+              bv = data.get_field_parameter("bulk_velocity")
+          else: bv = np.zeros(3, dtype=np.float64)
+          xv = data[ptype, svel % 'x'] - bv[0]
+          yv = data[ptype, svel % 'y'] - bv[1]
+          zv = data[ptype, svel % 'z'] - bv[2]
+          center = data.get_field_parameter('center')
+          coords = YTArray([data[ptype, spos % 'x'],
+                             data[ptype, spos % 'y'],
+                             data[ptype, spos % 'z']], dtype=np.float64)
+          new_shape = tuple([3] + [1]*(len(coords.shape)-1))
+          r_vec = coords - np.reshape(center,new_shape)
+          v_vec = YTArray([xv,yv,zv], dtype=np.float64)
+          return np.cross(r_vec, v_vec, axis=0)
+  
+
+('io', 'particle_specific_angular_momentum_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _magnitude(field, data):
+          fn = field_components[0]
+          mag = data[fn] * data[fn]
+          for idim in range(1, registry.ds.dimensionality):
+              fn = field_components[idim]
+              mag += data[fn] * data[fn]
+          return np.sqrt(mag)
+  
+
+('io', 'particle_specific_angular_momentum_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_specific_angular_momentum_x(field, data):
+          if data.has_field_parameter("bulk_velocity"):
+              bv = data.get_field_parameter("bulk_velocity")
+          else: bv = np.zeros(3, dtype=np.float64)
+          center = data.get_field_parameter('center')
+          y = data[ptype, spos % "y"] - center[1]
+          z = data[ptype, spos % "z"] - center[2]
+          yv = data[ptype, svel % "y"] - bv[1]
+          zv = data[ptype, svel % "z"] - bv[2]
+          return yv*z - zv*y
+  
+
+('io', 'particle_specific_angular_momentum_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_specific_angular_momentum_y(field, data):
+          if data.has_field_parameter("bulk_velocity"):
+              bv = data.get_field_parameter("bulk_velocity")
+          else: bv = np.zeros(3, dtype=np.float64)
+          center = data.get_field_parameter('center')
+          x = data[ptype, spos % "x"] - center[0]
+          z = data[ptype, spos % "z"] - center[2]
+          xv = data[ptype, svel % "x"] - bv[0]
+          zv = data[ptype, svel % "z"] - bv[2]
+          return -(xv*z - zv*x)
+  
+
+('io', 'particle_specific_angular_momentum_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}^{2} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_specific_angular_momentum_z(field, data):
+          if data.has_field_parameter("bulk_velocity"):
+              bv = data.get_field_parameter("bulk_velocity")
+          else: bv = np.zeros(3, dtype=np.float64)
+          center = data.get_field_parameter('center')
+          x = data[ptype, spos % "x"] - center[0]
+          y = data[ptype, spos % "y"] - center[1]
+          xv = data[ptype, svel % "x"] - bv[0]
+          yv = data[ptype, svel % "y"] - bv[1]
+          return xv*y - yv*x
+  
+
+('io', 'particle_spherical_position_phi')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_spherical_position_phi(field, data):
+          """
+          Phi component of the particles' position vectors in spherical coords
+          on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          sphp = get_sph_phi_component(pos, phi, normal)
+          return sphp
+  
+
+('io', 'particle_spherical_position_radius')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_spherical_position_radius(field, data):
+          """
+          Radial component of the particles' position vectors in spherical coords
+          on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          sphr = get_sph_r_component(pos, theta, phi, normal)
+          return sphr
+  
+
+('io', 'particle_spherical_position_theta')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_spherical_position_theta(field, data):
+          """
+          Theta component of the particles' position vectors in spherical coords
+          on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          spht = get_sph_theta_component(pos, theta, phi, normal)
+          return spht
+  
+
+('io', 'particle_spherical_velocity_phi')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_spherical_velocity_phi(field, data):
+          """
+          Phi component of the particles' velocity vectors in spherical coords
+          based on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = YTArray([data[ptype, spos % ax] for ax in "xyz"])
+          vel = YTArray([data[ptype, svel % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          vel = vel - np.reshape(bv, (3, 1))
+          sphp = get_sph_phi_component(vel, phi, normal)
+          return sphp
+  
+
+('io', 'particle_spherical_velocity_radius')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_spherical_velocity_radius(field, data):
+          """
+          Radial component of the particles' velocity vectors in spherical coords
+          based on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          vel = svel
+          vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          vel = vel - np.reshape(bv, (3, 1))
+          sphr = get_sph_r_component(vel, theta, phi, normal)
+          return sphr
+  
+
+('io', 'particle_spherical_velocity_theta')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_spherical_velocity_theta(field, data):
+          """
+          Theta component of the particles' velocity vectors in spherical coords
+          based on the provided field parameters for 'normal', 'center', and 
+          'bulk_velocity', 
+          """
+          normal = data.get_field_parameter('normal')
+          center = data.get_field_parameter('center')
+          bv = data.get_field_parameter("bulk_velocity")
+          pos = spos
+          pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+          vel = svel
+          vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+          theta = get_sph_theta(pos, center)
+          phi = get_sph_phi(pos, center)
+          pos = pos - np.reshape(center, (3, 1))
+          vel = vel - np.reshape(bv, (3, 1))
+          spht = get_sph_theta_component(vel, theta, phi, normal)
+          return spht
+  
+
+('io', 'particle_velocity')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+          def particle_vectors(field, data):
+              v = [data[_ptype, name].in_units(field.units)
+                    for name in names]
+              c = np.column_stack(v)
+              return data.apply_units(c, field.units)
+  
+
+('io', 'particle_velocity_magnitude')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+.. code-block:: python
+
+      def _particle_velocity_magnitude(field, data):
+          """ M{|v|} """
+          bulk_velocity = data.get_field_parameter("bulk_velocity")
+          if bulk_velocity is None:
+              bulk_velocity = np.zeros(3)
+          return np.sqrt((data[ptype, svel % 'x'] - bulk_velocity[0])**2
+                       + (data[ptype, svel % 'y'] - bulk_velocity[1])**2
+                       + (data[ptype, svel % 'z'] - bulk_velocity[2])**2 )
+  
+
+('io', 'particle_velocity_x')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
+('io', 'particle_velocity_y')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
+
+('io', 'particle_velocity_z')
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   * Units: :math:`\rm{cm} / \rm{s}`
+   * Particle Type: True
+
+**Field Source**
+
+No source available.
 
 .. _ART_specific_fields:
 

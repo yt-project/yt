@@ -38,7 +38,7 @@ def _strip_ftype(field):
 np.random.seed(int(0x4d3d3d3))
 units = [base_ds._get_field_info(*f).units for f in fields]
 fields = [_strip_ftype(f) for f in fields]
-ds = fake_random_ds(16, fields = fields, units = units)
+ds = fake_random_ds(16, fields=fields, units=units, particles=True)
 ds.parameters["HydroMethod"] = "streaming"
 ds.parameters["EOSType"] = 1.0
 ds.parameters["EOSSoundSpeed"] = 1.0
