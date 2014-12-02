@@ -72,6 +72,22 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                  function=_CylindricalVolume,
                  units = "code_length**3")
 
+        def _path_r(field, data):
+            return data["index", "dr"]
+        registry.add_field(("index", "path_element_r"),
+                 function = _path_r,
+                 units = "code_length")
+        def _path_theta(field, data):
+            # Note: this already assumes cell-centered
+            return data["index", "r"] * data["index", "dtheta"]
+        registry.add_field(("index", "path_element_theta"),
+                 function = _path_theta,
+                 units = "code_length")
+        def _path_z(field, data):
+            return data["index", "dz"]
+        registry.add_field(("index", "path_element_z"),
+                 function = _path_z,
+                 units = "code_length")
 
     def pixelize(self, dimension, data_source, field, bounds, size,
                  antialias = True, periodic = True):
