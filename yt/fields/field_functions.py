@@ -55,8 +55,19 @@ def get_periodic_rvec(data):
     for i in range(coords.shape[0]):
         if not data.ds.periodicity[i]: continue
         coords[i, ...] -= le[i]
-        coords[i, ...] = np.min([np.abs(np.mod(coords[i, ...],  dw[i])),
-                                 np.abs(np.mod(coords[i, ...], -dw[i]))],
-                                 axis=0)
-        coords[i, ...] += le[i]
+        #figure out which measure is less
+        mins = np.argmin([np.abs(np.mod(coords[i, ...],  dw[i])),
+                         np.abs(np.mod(coords[i, ...], -dw[i]))],
+                         axis=0)
+        temp_coords = np.mod(coords[i, ...], dw[i])
+
+        #Where second measure is better, updating temporary coords
+        ii = mins==1
+        temp_coords[ii] = np.mod(coords[i, ...], -dw[i])[ii]
+
+        # Putting the temporary coords into the actual storage
+        coords[i, ...] = temp_coords
+
+        coords[i, ...] + le[i]
+
     return coords
