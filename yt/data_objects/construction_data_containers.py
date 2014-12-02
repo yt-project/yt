@@ -376,7 +376,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         else:
             # This gets explicitly converted to cm
             ax_name = self.ds.coordinates.axis_name[self.axis]
-            dl = chunk["index", "path_%s" % (ax_name)]
+            dl = chunk["index", "path_element_%s" % (ax_name)]
             #dl = chunk.fwidth[:, self.axis]
             dl.convert_to_units("cm")
         v = np.empty((chunk.ires.size, len(fields)), dtype="float64")

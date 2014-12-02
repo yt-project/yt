@@ -75,13 +75,13 @@ class SphericalCoordinateHandler(CoordinateHandler):
 
         def _path_r(field, data):
             return data["index", "dr"]
-        registry.add_field(("index", "path_r"),
+        registry.add_field(("index", "path_element_r"),
                  function = _path_r,
                  units = "code_length")
         def _path_theta(field, data):
             # Note: this already assumes cell-centered
             return data["index", "r"] * data["index", "dtheta"]
-        registry.add_field(("index", "path_theta"),
+        registry.add_field(("index", "path_element_theta"),
                  function = _path_theta,
                  units = "code_length")
         def _path_phi(field, data):
@@ -89,7 +89,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
             return data["index", "r"] \
                     * data["index", "dphi"] \
                     * np.sin(data["index", "theta"])
-        registry.add_field(("index", "path_phi"),
+        registry.add_field(("index", "path_element_phi"),
                  function = _path_phi,
                  units = "code_length")
 
