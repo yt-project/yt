@@ -25,8 +25,8 @@ class LocalFieldInfoContainer(FieldInfoContainer):
     def add_field(self, name, function=None, **kwargs):
         if not isinstance(name, tuple):
             name = ('gas', name)
-        super(LocalFieldInfoContainer,
-              self).add_field(name, function, **kwargs)
+        return super(LocalFieldInfoContainer,
+                     self).add_field(name, function, **kwargs)
 
 # Empty FieldInfoContainer
 local_fields = LocalFieldInfoContainer(None, [], None)
