@@ -316,18 +316,16 @@ class SZProjection(object):
         >>> sky_center = (30., 45., "deg")
         >>> szprj.write_fits("SZbullet.fits", sky_center=sky_center, sky_scale=sky_scale)
         """
-        from yt.utilities.fits_image import FITSImageBuffer, sanitize_fits_unit, create_sky_wcs
+        from yt.utilities.fits_image import FITSImageBuffer, create_sky_wcs
 
-        units = self.ds.get_smallest_appropriate_unit(self.width)
-        units = sanitize_fits_unit(units)
-        dx = self.dx.in_units(units)
+        dx = self.dx.in_units("kpc")
         dy = dx
 
         w = _astropy.pywcs.WCS(naxis=2)
         w.wcs.crpix = [0.5*(self.nx+1)]*2
         w.wcs.cdelt = [dx.v,dy.v]
         w.wcs.crval = [0.0,0.0]
-        w.wcs.cunit = [units]*2
+        w.wcs.cunit = ["kpc"]*2
         w.wcs.ctype = ["LINEAR"]*2
 
         if sky_scale is not None and sky_center is not None:
