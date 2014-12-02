@@ -17,6 +17,8 @@ OWLS fields
 import os
 import numpy as np
 
+from yt.funcs import \
+    mylog, download_file
 from yt.config import ytcfg
 from yt.fields.particle_fields import \
     add_volume_weighted_smoothed_field
