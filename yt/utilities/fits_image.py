@@ -279,10 +279,10 @@ def create_sky_wcs(old_wcs, sky_center, sky_scale,
     naxis = old_wcs.naxis
     crval = [sky_center[0], sky_center[1]]
     scaleq = YTQuantity(sky_scale[0],sky_scale[1])
-    dx, dy = old_wcs.wcs.cdelt
-    xunit, yunit = [str(unit) for unit in old_wcs.wcs.cunit]
-    new_dx = (YTQuantity(-dx, xunit)*scaleq).in_units("deg")
-    new_dy = (YTQuantity(dy, yunit)*scaleq).in_units("deg")
+    deltas = old_wcs.wcs.cdelt
+    units = [str(unit) for unit in old_wcs.wcs.cunit]
+    new_dx = (YTQuantity(-deltas[0], units[0])*scaleq).in_units("deg")
+    new_dy = (YTQuantity(deltas[1], units[1])*scaleq).in_units("deg")
     new_wcs = pywcs.WCS(naxis=naxis)
     cdelt = [new_dx.v, new_dy.v]
     if naxis == 3:
