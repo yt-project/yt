@@ -283,19 +283,19 @@ Halo Catalogs
 .. autosummary::
    :toctree: generated/
 
-   ~yt.frontends.halo_catalogs.halo_catalog.data_structures.HaloCatalogHDF5File
-   ~yt.frontends.halo_catalogs.halo_catalog.data_structures.HaloCatalogDataset
-   ~yt.frontends.halo_catalogs.halo_catalog.fields.HaloCatalogFieldInfo
-   ~yt.frontends.halo_catalogs.halo_catalog.io.IOHandlerHaloCatalogHDF5
-   ~yt.frontends.halo_catalogs.owls_subfind.data_structures.OWLSSubfindParticleIndex
-   ~yt.frontends.halo_catalogs.owls_subfind.data_structures.OWLSSubfindHDF5File
-   ~yt.frontends.halo_catalogs.owls_subfind.data_structures.OWLSSubfindDataset
-   ~yt.frontends.halo_catalogs.owls_subfind.fields.OWLSSubfindFieldInfo
-   ~yt.frontends.halo_catalogs.owls_subfind.io.IOHandlerOWLSSubfindHDF5
-   ~yt.frontends.halo_catalogs.rockstar.data_structures.RockstarBinaryFile
-   ~yt.frontends.halo_catalogs.rockstar.data_structures.RockstarDataset
-   ~yt.frontends.halo_catalogs.rockstar.fields.RockstarFieldInfo
-   ~yt.frontends.halo_catalogs.rockstar.io.IOHandlerRockstarBinary
+   ~yt.frontends.halo_catalog.data_structures.HaloCatalogHDF5File
+   ~yt.frontends.halo_catalog.data_structures.HaloCatalogDataset
+   ~yt.frontends.halo_catalog.fields.HaloCatalogFieldInfo
+   ~yt.frontends.halo_catalog.io.IOHandlerHaloCatalogHDF5
+   ~yt.frontends.owls_subfind.data_structures.OWLSSubfindParticleIndex
+   ~yt.frontends.owls_subfind.data_structures.OWLSSubfindHDF5File
+   ~yt.frontends.owls_subfind.data_structures.OWLSSubfindDataset
+   ~yt.frontends.owls_subfind.fields.OWLSSubfindFieldInfo
+   ~yt.frontends.owls_subfind.io.IOHandlerOWLSSubfindHDF5
+   ~yt.frontends.rockstar.data_structures.RockstarBinaryFile
+   ~yt.frontends.rockstar.data_structures.RockstarDataset
+   ~yt.frontends.rockstar.fields.RockstarFieldInfo
+   ~yt.frontends.rockstar.io.IOHandlerRockstarBinary
 
 MOAB
 ^^^^
