@@ -179,6 +179,9 @@ class PPVCube(object):
         else:
             self.width = ds.quan(self.width, "code_length")
 
+        self.ds.field_info.pop(("gas","intensity"))
+        self.ds.field_info.pop(("gas","v_los"))
+
     def create_intensity(self):
         def _intensity(field, data):
             v = self.current_v-data["v_los"].v
