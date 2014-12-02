@@ -164,7 +164,6 @@ class YTDataContainer(object):
     def _set_center(self, center):
         if center is None:
             self.center = None
-            self.set_field_parameter('center', self.center)
             return
         elif isinstance(center, YTArray):
             self.center = self.ds.arr(center.in_cgs())
