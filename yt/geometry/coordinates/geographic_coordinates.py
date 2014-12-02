@@ -131,20 +131,16 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias,
                       dimension):
-        if dimension == 0:
-            buff = pixelize_cylinder(data_source['r'],
-                                     data_source['dr'] / 2.0,
-                                     data_source['theta'],
-                                     data_source['dtheta'] / 2.0, # half-widths
-                                     size, data_source[field], bounds)
-        elif dimension == 1:
-            buff = pixelize_cylinder(data_source['r'],
-                                     data_source['dr'] / 2.0,
-                                     data_source['phi'],
-                                     data_source['dphi'] / 2.0, # half-widths
-                                     size, data_source[field], bounds)
-        else:
-            raise RuntimeError
+        surface_height = data_source.get_field_parameter("surface_height")
+        if surface_height is None:
+            surface_height = getattr(data_source.ds, "surface_height", 0.0)
+        r = data_source['py'] + surface_height
+        # Because of the axis-ordering, dimensions 0 and 1 both have r as py
+        # and the angular coordinate as px.
+        buff = pixelize_cylinder(r, data_source['pdy'],
+                                 data_source['px'],
+                                 data_source['pdx'], # half-widths
+                                 size, data_source[field], bounds)
         return buff
 
 

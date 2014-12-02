@@ -101,10 +101,10 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         return buff
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias):
-        buff = pixelize_cylinder(data_source['r'],
-                                 data_source['dr'],
-                                 data_source['theta'],
-                                 data_source['dtheta']/2.0, # half-widths
+        buff = pixelize_cylinder(data_source['px'],
+                                 data_source['pdx'],
+                                 data_source['py'],
+                                 data_source['pdy'],
                                  size, data_source[field], bounds)
         return buff
 

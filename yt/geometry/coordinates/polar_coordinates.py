@@ -88,10 +88,10 @@ class PolarCoordinateHandler(CoordinateHandler):
     def _polar_pixelize(self, data_source, field, bounds, size, antialias):
         # Out bounds here will *always* be what plot window thinks are x0, x1,
         # y0, y1, but which will actually be rmin, rmax, thetamin, thetamax.
-        buff = pixelize_cylinder(data_source['r'],
-                                 data_source['dr'],
-                                 data_source['theta'],
-                                 data_source['dtheta'] / 2.0, # half-widths
+        buff = pixelize_cylinder(data_source['px'],
+                                 data_source['pdx'],
+                                 data_source['py'],
+                                 data_source['pdy'], # half-widths
                                  size, data_source[field], bounds)
         return buff
 
