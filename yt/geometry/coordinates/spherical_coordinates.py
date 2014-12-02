@@ -237,6 +237,8 @@ class SphericalCoordinateHandler(CoordinateHandler):
         return width
 
     def _sanity_check(self):
+        """This prints out a handful of diagnostics that help verify the
+        dataset is well formed."""
         # We just check a few things here.
         dd = self.ds.all_data()
         r0 = self.ds.domain_left_edge[0]
