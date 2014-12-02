@@ -775,7 +775,7 @@ class PWViewerMPL(PlotWindow):
                                    "%s_axis" % ("xy"[i]))[axis_index]
                     unn = self.ds.coordinates.default_unit_label.get(axax, "")
                     if unn != "":
-                        axes_unit_labels[i] = '\/\/\left('+unn+'\right)'
+                        axes_unit_labels[i] = r'\/\/\left('+unn+r'\right)'
                         continue
                 # Use sympy to factor h out of the unit.  In this context 'un'
                 # is a string, so we call the Unit constructor.
