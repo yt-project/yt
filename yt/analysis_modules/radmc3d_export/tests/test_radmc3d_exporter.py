@@ -12,10 +12,8 @@ Unit test for the RADMC3D Exporter analysis module
 
 import yt
 from yt.analysis_modules.radmc3d_export.api import RadMC3DWriter
-from yt.units.yt_array import YTQuantity
-from yt.testing import *
 
-def test_radmc3d_exporter():
+def test_radmc3d_exporter_continuum():
     """
     This test is simply following the description in the docs for how to
     generate the necessary output files to run a continuum emission map from
