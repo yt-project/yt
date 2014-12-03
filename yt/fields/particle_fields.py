@@ -466,7 +466,7 @@ def standard_particle_fields(registry, ptype,
                           ValidateParameter("center")])
 
 
-   def _particle_spherical_phi(field,data):
+    def _particle_spherical_phi(field,data):
         normal = data.get_field_parameter("normal")
         coords = get_periodic_rvec(data)
         return get_sph_phi(coords, normal)
