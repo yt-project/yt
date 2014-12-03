@@ -80,7 +80,7 @@ environment can use readline, run the following command:
 
 .. code-block:: bash
 
-   $ ~/yt/bin/pip install readline
+   $ ~/yt/bin/pip install gnureadline
 
 .. _faq-new-field:
 
