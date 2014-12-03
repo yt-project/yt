@@ -1,4 +1,4 @@
-.. _examining_data:
+.. _examining-data:
 
 Loading and Examining Data
 ==========================
