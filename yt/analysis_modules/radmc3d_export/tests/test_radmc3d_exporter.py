@@ -24,14 +24,14 @@ def test_radmc3d_exporter_continuum():
     dust_to_gas = 0.01
     def _DustDensity(field, data):
         return dust_to_gas * data["density"]
-    yt.add_field(("gas", "dust_density"), function=_DustDensity, units="g/cm**3")
     
     # Make up a dust temperature field where temp = 10K everywhere
     def _DustTemperature(field, data):
         return 0.*data["temperature"] + data.ds.quan(10,'K')
-    yt.add_field(("gas", "dust_temperature"), function=_DustTemperature, units="K")
     
     ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    ds.add_field(("gas", "dust_density"), function=_DustDensity, units="g/cm**3")
+    ds.add_field(("gas", "dust_temperature"), function=_DustTemperature, units="K")
     writer = RadMC3DWriter(ds)
     
     writer.write_amr_grid()
