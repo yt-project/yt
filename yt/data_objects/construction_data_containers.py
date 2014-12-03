@@ -317,7 +317,12 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         np.add(py, oy, py)
         np.multiply(pdy, self.ds.domain_width[yax], pdy)
         if self.weight_field is not None:
-            np.divide(nvals, nwvals[:,None], nvals)
+            # If there are 0s remaining in the weight vals
+            # this will not throw an error, but silently
+            # return nans for vals where dividing by 0
+            # Leave as NaNs to be auto-masked by Matplotlib
+            with np.errstate(invalid='ignore'):
+                np.divide(nvals, nwvals[:,None], nvals)
         # We now convert to half-widths and center-points
         data = {}
         #non_nan = ~np.any(np.isnan(nvals), axis=-1)
@@ -715,6 +720,16 @@ class LevelState(object):
     fields = None
     data_source = None
 
+    # These are all cached here as numpy arrays, without units, in
+    # code_lengths.
+    domain_width = None
+    domain_left_edge = None
+    domain_right_edge = None
+    left_edge = None
+    right_edge = None
+    base_dx = None
+    dds = None
+
 class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     """A 3D region with all data extracted and interpolated to a
     single, specified resolution. (Identical to covering_grid,
@@ -758,14 +773,14 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         # interpolation but are not directly inside our bounds
         level_state.data_source = self.ds.region(
             self.center,
-            self.left_edge - level_state.current_dx,
-            self.right_edge + level_state.current_dx)
+            level_state.left_edge - level_state.current_dx,
+            level_state.right_edge + level_state.current_dx)
         level_state.data_source.min_level = level_state.current_level
         level_state.data_source.max_level = level_state.current_level
         self._pdata_source = self.ds.region(
             self.center,
-            self.left_edge - level_state.current_dx,
-            self.right_edge + level_state.current_dx)
+            level_state.left_edge - level_state.current_dx,
+            level_state.right_edge + level_state.current_dx)
         self._pdata_source.min_level = level_state.current_level
         self._pdata_source.max_level = level_state.current_level
 
@@ -791,7 +806,17 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
 
     def _initialize_level_state(self, fields):
         ls = LevelState()
-        ls.current_dx = self._base_dx
+        ls.domain_width = self.ds.domain_width
+        ls.domain_left_edge = self.ds.domain_left_edge
+        ls.domain_right_edge = self.ds.domain_right_edge
+        ls.left_edge = self.left_edge
+        ls.right_edge = self.right_edge
+        ls.base_dx = self._base_dx
+        ls.dds = self.dds
+        for att in ("domain_width", "domain_left_edge", "domain_right_edge",
+                    "left_edge", "right_edge", "base_dx", "dds"):
+            setattr(ls, att, getattr(ls, att).in_units("code_length").d)
+        ls.current_dx = ls.base_dx
         ls.current_level = 0
         LL = self.left_edge - self.ds.domain_left_edge
         ls.global_startindex = np.rint(LL / ls.current_dx).astype('int64') - 1
@@ -815,15 +840,15 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         rf = float(self.ds.relative_refinement(
                     ls.current_level, ls.current_level + 1))
         ls.current_level += 1
-        ls.current_dx = self._base_dx / \
+        ls.current_dx = ls.base_dx / \
             self.ds.relative_refinement(0, ls.current_level)
         self._setup_data_source(ls)
-        LL = self.left_edge - self.ds.domain_left_edge
+        LL = ls.left_edge - ls.domain_left_edge
         ls.old_global_startindex = ls.global_startindex
         ls.global_startindex = np.rint(LL / ls.current_dx).astype('int64') - 1
-        ls.domain_iwidth = np.rint(self.ds.domain_width/ls.current_dx).astype('int64') 
+        ls.domain_iwidth = np.rint(ls.domain_width/ls.current_dx).astype('int64') 
         input_left = (level_state.old_global_startindex + 0.5) * rf 
-        width = (self.ActiveDimensions*self.dds)
+        width = (self.ActiveDimensions*ls.dds)
         output_dims = np.rint(width/level_state.current_dx+0.5).astype("int32") + 2
         level_state.current_dims = output_dims
         new_fields = []

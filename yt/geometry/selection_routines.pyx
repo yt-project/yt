@@ -53,7 +53,9 @@ grid_eps = 0.0
 # sometimes also accepting level and mask information.
 
 def _ensure_code(arr):
-    if hasattr(arr, "convert_to_units"):
+    if hasattr(arr, "units"):
+        if "code_length" == str(arr.units):
+            return arr
         arr.convert_to_units("code_length")
     return arr
 
@@ -417,14 +419,16 @@ cdef class SelectorObject:
         _ensure_code(gobj.dds)
         _ensure_code(gobj.LeftEdge)
         _ensure_code(gobj.RightEdge)
-        cdef np.ndarray[np.float64_t, ndim=1] odds = gobj.dds
-        cdef np.ndarray[np.float64_t, ndim=1] left_edge = gobj.LeftEdge
-        cdef np.ndarray[np.float64_t, ndim=1] right_edge = gobj.RightEdge
+        cdef np.ndarray[np.float64_t, ndim=1] odds = gobj.dds.d
+        cdef np.ndarray[np.float64_t, ndim=1] oleft_edge = gobj.LeftEdge.d
+        cdef np.ndarray[np.float64_t, ndim=1] oright_edge = gobj.RightEdge.d
         cdef int i, j, k
-        cdef np.float64_t dds[3], pos[3]
+        cdef np.float64_t dds[3], pos[3], left_edge[3], right_edge[3]
         for i in range(3):
             dds[i] = odds[i]
             dim[i] = gobj.ActiveDimensions[i]
+            left_edge[i] = oleft_edge[i]
+            right_edge[i] = oright_edge[i]
         mask = np.zeros(gobj.ActiveDimensions, dtype='uint8')
         cdef int total = 0
         cdef int temp
@@ -698,34 +702,41 @@ cdef class RegionSelector(SelectorObject):
     cdef np.float64_t right_edge[3]
     cdef np.float64_t right_edge_shift[3]
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def __init__(self, dobj):
         cdef int i
         # We are modifying dobj.left_edge and dobj.right_edge , so here we will
         # do an in-place conversion of those arrays.
-        _ensure_code(dobj.right_edge)
-        _ensure_code(dobj.left_edge)
-        DW = _ensure_code(dobj.ds.domain_width.copy())
+        cdef np.ndarray[np.float64_t, ndim=1] RE = _ensure_code(dobj.right_edge)
+        cdef np.ndarray[np.float64_t, ndim=1] LE = _ensure_code(dobj.left_edge)
+        cdef np.ndarray[np.float64_t, ndim=1] DW = _ensure_code(dobj.ds.domain_width)
+        cdef np.ndarray[np.float64_t, ndim=1] DLE = _ensure_code(dobj.ds.domain_left_edge)
+        cdef np.ndarray[np.float64_t, ndim=1] DRE = _ensure_code(dobj.ds.domain_right_edge)
+        cdef np.float64_t region_width[3]
+        cdef bint p[3]
 
         for i in range(3):
-            region_width = dobj.right_edge[i] - dobj.left_edge[i]
-            domain_width = DW[i]
-
-            if region_width <= 0:
+            region_width[i] = RE[i] - LE[i]
+            p[i] = dobj.ds.periodicity[i]
+            DW[i] = DW[i]
+            if region_width[i] <= 0:
                 raise RuntimeError(
-                    "Region right edge < left edge: width = %s" % region_width
-                    )
+                    "Region right edge[%s] < left edge: width = %s" % (
+                        i, region_width[i]))
 
-            if dobj.ds.periodicity[i]:
+        for i in range(3):
+
+            if p[i]:
                 # shift so left_edge guaranteed in domain
-                if dobj.left_edge[i] < dobj.ds.domain_left_edge[i]:
-                    dobj.left_edge[i] += domain_width
-                    dobj.right_edge[i] += domain_width
-                elif dobj.left_edge[i] > dobj.ds.domain_right_edge[i]:
-                    dobj.left_edge[i] += domain_width
-                    dobj.right_edge[i] += domain_width
+                if LE[i] < DLE[i]:
+                    LE[i] += DW[i]
+                    RE[i] += DW[i]
+                elif LE[i] > DRE[i]:
+                    LE[i] -= DW[i]
+                    RE[i] -= DW[i]
             else:
-                if dobj.left_edge[i] < dobj.ds.domain_left_edge[i] or \
-                   dobj.right_edge[i] > dobj.ds.domain_right_edge[i]:
+                if LE[i] < DLE[i] or RE[i] > DRE[i]:
                     raise RuntimeError(
                         "Error: yt attempted to read outside the boundaries of "
                         "a non-periodic domain along dimension %s.\n"
@@ -739,10 +750,9 @@ cdef class RegionSelector(SelectorObject):
                          dobj.ds.domain_left_edge[i], dobj.ds.domain_right_edge[i])
                     )
             # Already ensured in code
-            self.left_edge[i] = dobj.left_edge[i]
-            self.right_edge[i] = dobj.right_edge[i]
-            self.right_edge_shift[i] = \
-                (dobj.right_edge).to_ndarray()[i] - domain_width.to_ndarray()
+            self.left_edge[i] = LE[i]
+            self.right_edge[i] = RE[i]
+            self.right_edge_shift[i] = RE[i] - DW[i]
             if not self.periodicity[i]:
                 self.right_edge_shift[i] = -np.inf
 
@@ -782,6 +792,37 @@ cdef class RegionSelector(SelectorObject):
                 self.right_edge[0], self.right_edge[1], self.right_edge[2])
 
 region_selector = RegionSelector
+
+cdef class CutRegionSelector(SelectorObject):
+    cdef set _positions
+    cdef tuple _conditionals
+
+    def __init__(self, dobj):
+        positions = np.array([dobj['x'], dobj['y'], dobj['z']]).T
+        self._conditionals = tuple(dobj.conditionals)
+        self._positions = set(tuple(position) for position in positions)
+
+    cdef int select_bbox(self,  np.float64_t left_edge[3],
+                     np.float64_t right_edge[3]) nogil:
+        return 1
+
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        with gil:
+            if (pos[0], pos[1], pos[2]) in self._positions:
+                return 1
+            else:
+                return 0
+
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
+        return 1
+
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+        return 1
+
+    def _hash_vals(self):
+        return self._conditionals
+
+cut_region_selector = CutRegionSelector
 
 cdef class DiskSelector(SelectorObject):
     cdef np.float64_t norm_vec[3]

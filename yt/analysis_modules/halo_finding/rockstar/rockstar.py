@@ -195,7 +195,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
     def __init__(self, ts, num_readers = 1, num_writers = None,
             outbase="rockstar_halos", particle_type="all",
             force_res=None, total_particles=None, dm_only=False,
-            particle_mass=None):
+            particle_mass=None, min_halo_size=25):
         if is_root():
             mylog.info("The citation for the Rockstar halo finder can be found at")
             mylog.info("http://adsabs.harvard.edu/abs/2013ApJ...762..109B")
@@ -217,6 +217,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
         self.ts = ts
         self.particle_type = particle_type
         self.outbase = outbase
+        self.min_halo_size = min_halo_size
         if force_res is None:
             tds = ts[-1] # Cache a reference
             self.force_res = tds.index.get_smallest_dx().in_units("Mpc/h")
@@ -263,9 +264,9 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             tp = dd.quantities.total_quantity((ptype, "particle_ones"))
             p['total_particles'] = int(tp)
             mylog.warning("Total Particle Count: %0.3e", int(tp))
-        p['left_edge'] = tds.domain_left_edge
-        p['right_edge'] = tds.domain_right_edge
-        p['center'] = (tds.domain_right_edge + tds.domain_left_edge)/2.0
+        p['left_edge'] = tds.domain_left_edge.in_units("Mpccm/h")
+        p['right_edge'] = tds.domain_right_edge.in_units("Mpccm/h")
+        p['center'] = (tds.domain_right_edge.in_units("Mpccm/h") + tds.domain_left_edge.in_units("Mpccm/h"))/2.0
         p['particle_mass'] = self.particle_mass = particle_mass
         p['particle_mass'].convert_to_units("Msun / h")
         del tds
@@ -342,7 +343,8 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                     outbase = self.outbase,
                     force_res = self.force_res,
                     callbacks = callbacks,
-                    restart_num = restart_num)
+                    restart_num = restart_num,
+                    min_halo_size = self.min_halo_size)
         # Make the directory to store the halo lists in.
         if not self.outbase:
             self.outbase = os.getcwd()

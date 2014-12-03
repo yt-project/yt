@@ -16,6 +16,7 @@ OWLS data-file handling function
 
 import h5py
 import numpy as np
+import os
 
 from yt.utilities.io_handler import \
     BaseIOHandler

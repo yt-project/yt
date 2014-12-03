@@ -172,6 +172,10 @@ With these sorts of manipulations, one can easily pan and zoom onto an
 interesting region in the simulation and adjust the boundaries of the
 region to visualize on the fly.
 
+If you want to slice through a subset of the full dataset volume,
+you can use the ``data_source`` keyword with a :ref:`data object <data-objects>`
+or a :ref:`cut region <cut-regions>`.
+
 See :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot` for the 
 full class description.
 

@@ -560,13 +560,14 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         self._data_source = data_source
         if data_source is not None:
             if data_source.ds is not self.ds:
-                raise RuntimeError("Attempted to construct a DataContainer with a data_source from a different DataSet", ds, data_source.ds)
-            else:
-                print "DataSets: ", self.ds, data_source.ds
+                raise RuntimeError("Attempted to construct a DataContainer with a data_source "
+                                   "from a different DataSet", ds, data_source.ds)
             if data_source._dimensionality < self._dimensionality:
-                raise RuntimeError("Attempted to construct a DataContainer with a data_source of lower dimensionality (%u vs %u)" %
+                raise RuntimeError("Attempted to construct a DataContainer with a data_source "
+                                   "of lower dimensionality (%u vs %u)" %
                                     (data_source._dimensionality, self._dimensionality))
- 
+            self.field_parameters.update(data_source.field_parameters)
+
     @property
     def selector(self):
         if self._selector is not None: return self._selector

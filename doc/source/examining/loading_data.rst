@@ -131,6 +131,22 @@ This means that the yt fields, e.g. ``("gas","density")``, ``("gas","x-velocity"
 ``("athena","density")``, ``("athena","velocity_x")``, ``("athena","cell_centered_B_x")``, will be
 in code units.
 
+Some 3D Athena outputs may have large grids (especially parallel datasets subsequently joined with
+the `join_vtk` script), and may benefit from being subdivided into "virtual grids". For this purpose,
+one can pass in the `nprocs` parameter:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load("sloshing.0000.vtk", nprocs=8)
+
+which will subdivide each original grid into `nprocs` grids.
+
+.. note::
+
+    Virtual grids are only supported (and really only necessary) for 3D data.
+
 Alternative values for the following simulation parameters may be specified using a ``parameters``
 dict, accepting the following keys:
 
