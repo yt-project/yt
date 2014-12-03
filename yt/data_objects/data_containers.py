@@ -601,11 +601,6 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             if inspected >= len(fields_to_get): break
             inspected += 1
             fi = self.ds._get_field_info(*field)
-            if not spatial and any(
-                    isinstance(v, ValidateSpatial) for v in fi.validators):
-                # We don't want to pre-fetch anything that's spatial, as that
-                # will be done later.
-                continue
             fd = self.ds.field_dependencies.get(field, None) or \
                  self.ds.field_dependencies.get(field[1], None)
             # This is long overdue.  Any time we *can't* find a field
