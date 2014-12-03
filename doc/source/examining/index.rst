@@ -1,7 +1,7 @@
-Examining Data
-==============
+.. _examining_data:
 
-How to examine datasets.
+Loading and Examining Data
+==========================
 
 .. toctree::
    :maxdepth: 2
