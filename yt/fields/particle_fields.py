@@ -429,7 +429,7 @@ def standard_particle_fields(registry, ptype,
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
-    def _particle_cylindrical_theta(field,data)
+    def _particle_cylindrical_theta(field,data):
         normal = data.get_field_parameter("normal")
         coords = get_periodic_rvec(data)
         return get_sph_theta(coords, normal)
@@ -466,7 +466,7 @@ def standard_particle_fields(registry, ptype,
                           ValidateParameter("center")])
 
 
-   def _particle_spherical_phi(field,data)
+   def _particle_spherical_phi(field,data):
         normal = data.get_field_parameter("normal")
         coords = get_periodic_rvec(data)
         return get_sph_phi(coords, normal)
@@ -616,7 +616,7 @@ def standard_particle_fields(registry, ptype,
                           ValidateParameter("normal")],
               units="cm", particle_type = True)        
 
-    def _particle_cylindrical_theta(field,data)
+    def _particle_cylindrical_theta(field,data):
         normal = data.get_field_parameter("normal")
         coords = get_periodic_rvec(data)
         return get_cyl_theta(coords, normal)
