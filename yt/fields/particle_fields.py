@@ -567,7 +567,7 @@ def standard_particle_fields(registry, ptype,
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
-	    pos = spos
+        pos = spos
         pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
         theta = get_cyl_theta(pos, center)
         z = get_cyl_z(pos, center)
