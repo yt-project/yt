@@ -585,7 +585,7 @@ def standard_particle_fields(registry, ptype,
 
     def _particle_cylindrical_radius(field, data):
         normal = data.get_field_parameter("normal")
-	    coords = get_periodic_rvec(data)
+        coords = get_periodic_rvec(data)
         return data.ds.arr(get_cyl_r(coords, normal),
                            'code_length')
 
@@ -631,7 +631,7 @@ def standard_particle_fields(registry, ptype,
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
         bv = data.get_field_parameter("bulk_velocity")
-	    pos = spos
+        pos = spos
         pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
         theta = get_cyl_theta(pos, center)
         z = get_cyl_z(pos, center)
@@ -709,7 +709,7 @@ def standard_particle_fields(registry, ptype,
         vel = svel
         vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
         theta = get_cyl_theta(pos, center)
-	    z = get_cyl_z(pos, center)
+        z = get_cyl_z(pos, center)
         pos = pos - np.reshape(center, (3, 1))
         vel = vel - np.reshape(bv, (3, 1))
         cylt = get_cyl_theta_component(vel, theta, normal)
@@ -735,7 +735,7 @@ def standard_particle_fields(registry, ptype,
         vel = svel
         vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
         theta = get_cyl_theta(pos, center)
-	    z = get_cyl_z(pos, center)
+        z = get_cyl_z(pos, center)
         pos = pos - np.reshape(center, (3, 1))
         vel = vel - np.reshape(bv, (3, 1))
         cylz = get_cyl_z_component(vel, normal)
