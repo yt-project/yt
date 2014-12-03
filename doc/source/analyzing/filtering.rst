@@ -201,7 +201,7 @@ distributed throughout the dataset.
 
     prj.show()
 
-    slc = yt.SlicePlot(ds, "x", "density", center=c, width=(50, "Mpc"),
+    slc = yt.SlicePlot(ds, "x", "density", center=center, width=(50, "Mpc"),
                        data_source=sp)
 
     slc.show()
