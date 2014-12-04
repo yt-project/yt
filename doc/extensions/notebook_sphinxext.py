@@ -1,4 +1,7 @@
-import os, shutil, string, glob, re
+import os
+import shutil
+import string
+import re
 from sphinx.util.compat import Directive
 from docutils import nodes
 from docutils.parsers.rst import directives
@@ -14,7 +17,7 @@ class NotebookDirective(Directive):
     """
     required_arguments = 1
     optional_arguments = 1
-    option_spec = {'skip_exceptions' : directives.flag}
+    option_spec = {'skip_exceptions': directives.flag}
     final_argument_whitespace = True
 
     def run(self): # check if there are spaces in the notebook name
@@ -27,8 +30,6 @@ class NotebookDirective(Directive):
             raise self.warning('"%s" directive disabled.' % self.name)
 
         # get path to notebook
-        source_dir = os.path.dirname(
-            os.path.abspath(self.state.document.current_source))
         nb_filename = self.arguments[0]
         nb_basename = os.path.basename(nb_filename)
         rst_file = self.state_machine.document.attributes['source']
@@ -37,7 +38,6 @@ class NotebookDirective(Directive):
 
         # Move files around.
         rel_dir = os.path.relpath(rst_dir, setup.confdir)
-        rel_path = os.path.join(rel_dir, nb_basename)
         dest_dir = os.path.join(setup.app.builder.outdir, rel_dir)
         dest_path = os.path.join(dest_dir, nb_basename)
 
@@ -56,7 +56,6 @@ class NotebookDirective(Directive):
         rel_path_script = string.replace(nb_basename, '.ipynb', '.py')
 
         # Create python script vesion
-        unevaluated_text = nb_to_html(nb_abs_path)
         script_text = nb_to_python(nb_abs_path)
         f = open(dest_path_script, 'w')
         f.write(script_text.encode('utf8'))
@@ -113,7 +112,8 @@ def nb_to_html(nb_path):
 
     # http://imgur.com/eR9bMRH
     header = header.replace('<style', '<style scoped="scoped"')
-    header = header.replace('body {\n  overflow: visible;\n  padding: 8px;\n}\n', '')
+    header = header.replace('body {\n  overflow: visible;\n  padding: 8px;\n}\n',
+                            '')
     header = header.replace("code,pre{", "code{")
 
     # Filter out styles that conflict with the sphinx theme.
@@ -124,17 +124,19 @@ def nb_to_html(nb_path):
         'uneditable-input{',
         'collapse{',
     ]
+
     filter_strings.extend(['h%s{' % (i+1) for i in range(6)])
 
-    line_begin_strings = [
+    line_begin = [
         'pre{',
         'p{margin'
-        ]
+    ]
 
-    header_lines = filter(
-        lambda x: not any([s in x for s in filter_strings]), header.split('\n'))
-    header_lines = filter(
-        lambda x: not any([x.startswith(s) for s in line_begin_strings]), header_lines)
+    filterfunc = lambda x: not any([s in x for s in filter_strings])
+    header_lines = filter(filterfunc, header.split('\n'))
+
+    filterfunc = lambda x: not any([x.startswith(s) for s in line_begin])
+    header_lines = filter(filterfunc, header_lines)
 
     header = '\n'.join(header_lines)
 
@@ -147,8 +149,6 @@ def nb_to_html(nb_path):
 
 def evaluate_notebook(nb_path, dest_path=None, skip_exceptions=False):
     # Create evaluated version and save it to the dest path.
-    # Always use --pylab so figures appear inline
-    # perhaps this is questionable?
     notebook = read(open(nb_path), 'json')
     nb_runner = NotebookRunner(notebook, pylab=False)
     try:
@@ -158,8 +158,11 @@ def evaluate_notebook(nb_path, dest_path=None, skip_exceptions=False):
         print e
         # Return the traceback, filtering out ANSI color codes.
         # http://stackoverflow.com/questions/13506033/filtering-out-ansi-escape-sequences
-        return 'Notebook conversion failed with the following traceback: \n%s' % \
-            re.sub(r'\\033[\[\]]([0-9]{1,2}([;@][0-9]{0,2})*)*[mKP]?', '', str(e))
+        return "Notebook conversion failed with the " \
+               "following traceback: \n%s" % \
+            re.sub(r'\\033[\[\]]([0-9]{1,2}([;@][0-9]{0,2})*)*[mKP]?', '',
+                   str(e))
+
     if dest_path is None:
         dest_path = 'temp_evaluated.ipynb'
     write(nb_runner.nb, open(dest_path, 'w'), 'json')

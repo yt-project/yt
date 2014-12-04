@@ -1,14 +1,14 @@
-import os, shutil, string, glob, io
+import os
+import shutil
+import io
+import tempfile
 from sphinx.util.compat import Directive
 from docutils.parsers.rst import directives
-from IPython.nbconvert import html, python
 from IPython.nbformat import current
-from runipy.notebook_runner import NotebookRunner
-from jinja2 import FileSystemLoader
 from notebook_sphinxext import \
-    notebook_node, nb_to_html, nb_to_python, \
-    visit_notebook_node, depart_notebook_node, \
+    notebook_node, visit_notebook_node, depart_notebook_node, \
     evaluate_notebook
+
 
 class NotebookCellDirective(Directive):
     """Insert an evaluated notebook cell into a document
@@ -19,7 +19,7 @@ class NotebookCellDirective(Directive):
     required_arguments = 0
     optional_arguments = 1
     has_content = True
-    option_spec = {'skip_exceptions' : directives.flag}
+    option_spec = {'skip_exceptions': directives.flag}
 
     def run(self):
         # check if raw html is supported
@@ -35,7 +35,8 @@ class NotebookCellDirective(Directive):
 
         skip_exceptions = 'skip_exceptions' in self.options
 
-        evaluated_text = evaluate_notebook('temp.ipynb', skip_exceptions=skip_exceptions)
+        evaluated_text = evaluate_notebook('temp.ipynb',
+                                           skip_exceptions=skip_exceptions)
 
         # create notebook node
         attributes = {'format': 'html', 'source': 'nb_path'}
