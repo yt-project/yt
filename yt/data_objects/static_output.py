@@ -679,7 +679,9 @@ class Dataset(object):
         self.unit_registry.modify("code_time", self.time_unit)
         vel_unit = getattr(self, "velocity_unit",
                     self.length_unit / self.time_unit)
+        temperature_unit = getattr(self, "temperature_unit", 1.0)
         self.unit_registry.modify("code_velocity", vel_unit)
+        self.unit_registry.modify("code_temperature", temperature_unit)
         # domain_width does not yet exist
         if None not in (self.domain_left_edge, self.domain_right_edge):
             DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")

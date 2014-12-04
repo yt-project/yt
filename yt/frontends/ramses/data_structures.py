@@ -33,6 +33,7 @@ from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.utilities.io_handler import \
     io_registry
+from yt.utilities.physical_constants import mp, kb
 from .fields import \
     RAMSESFieldInfo
 import yt.utilities.fortran_utils as fpu
@@ -492,16 +493,17 @@ class RAMSESDataset(Dataset):
         length_unit = self.parameters['unit_l'] * self.parameters['boxlen']
         rho_u = self.parameters['unit_d']
         # We're not multiplying by the boxlength here.
-        mass_unit = rho_u * self.parameters['unit_l']**3
+        mass_unit = rho_u * length_unit**3
         time_unit = self.parameters['unit_t']
-
         magnetic_unit = np.sqrt(4*np.pi * mass_unit /
                                 (time_unit**2 * length_unit))
+
         self.magnetic_unit = self.quan(magnetic_unit, "gauss")
         self.length_unit = self.quan(length_unit, "cm")
         self.mass_unit = self.quan(mass_unit, "g")
         self.time_unit = self.quan(time_unit, "s")
         self.velocity_unit = self.length_unit / self.time_unit
+        self.temperature_unit = self.velocity_unit**2 * mp / kb
 
     def _parse_parameter_file(self):
         # hardcoded for now
