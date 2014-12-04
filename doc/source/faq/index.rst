@@ -4,10 +4,6 @@
 Frequently Asked Questions
 ==========================
 
-A few problems that people encounter when installing or running yt
-come up regularly. Here are the solutions to some of the most common
-problems.
-
 .. contents::
    :depth: 2
    :local:
@@ -71,8 +67,8 @@ in when running yt, it will also check in *that* directory.
 
 .. _faq-scroll-up:
 
-I can't scroll-up to previous commands inside iyt
--------------------------------------------------
+I can't scroll-up to previous commands inside python
+----------------------------------------------------
 
 If the up-arrow key does not recall the most recent commands, there is
 probably an issue with the readline library. To ensure the yt python
@@ -127,6 +123,13 @@ available, look at the properties ``field_list`` and ``derived_field_list``:
 
    print ds.field_list
    print ds.derived_field_list
+
+or for a more legible version, try:
+
+.. code-block:: python
+
+   for field in ds.derived_field_list: 
+       print field
 
 .. _faq-old-data:
 
@@ -192,11 +195,12 @@ values corresponding to different log levels are:
 yt complains that it needs the mpi4py module
 --------------------------------------------
 
-For yt to be able to incorporate parallelism on any of its analysis, 
-it needs to be able to use MPI libraries.  This requires the ``mpi4py``
-module to be installed in your version of python.  Unfortunately, 
-installation of ``mpi4py`` is *just* tricky enough to elude the yt
-batch installer.  So if you get an error in yt complaining about mpi4py like:
+For yt to be able to incorporate parallelism on any of its analysis (see 
+:ref:`parallel-computation`), it needs to be able to use MPI libraries.  
+This requires the ``mpi4py`` module to be installed in your version of python.  
+Unfortunately, installation of ``mpi4py`` is *just* tricky enough to elude the 
+yt batch installer.  So if you get an error in yt complaining about mpi4py 
+like:
 
 .. code-block:: bash
 
@@ -233,7 +237,9 @@ cc is the mpi-enabled C compiler (and it is in my path), so I run:
 
 And voila!  It installs!  If this *still* fails for you, then you can 
 build and install from source and specify the mpi-enabled c and c++ 
-compilers in the mpi.cfg file.  See the `mpi4py installation page <http://mpi4py.scipy.org/docs/usrman/install.html>`_ for details.
+compilers in the mpi.cfg file.  See the 
+`mpi4py installation page <http://mpi4py.scipy.org/docs/usrman/install.html>`_ 
+for details.
 
 yt fails saying that it cannot import yt modules
 ------------------------------------------------
