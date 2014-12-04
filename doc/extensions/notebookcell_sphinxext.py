@@ -64,6 +64,14 @@ def setup(app):
 
     app.add_directive('notebook-cell', NotebookCellDirective)
 
+    retdict = dict(
+        version='0.1',
+        parallel_read_safe=True,
+        parallel_write_safe=True
+    )
+
+    return retdict
+
 def convert_to_ipynb(py_file, ipynb_file):
     with io.open(py_file, 'r', encoding='utf-8') as f:
         notebook = current.reads(f.read(), format='py')

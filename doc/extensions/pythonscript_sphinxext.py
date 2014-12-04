@@ -55,6 +55,14 @@ def setup(app):
     setup.config = app.config
     setup.confdir = app.confdir
 
+    retdict = dict(
+        version='0.1',
+        parallel_read_safe=True,
+        parallel_write_safe=True
+    )
+
+    return retdict
+
 def get_image_tag(filename):
     with open(filename, "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read())
