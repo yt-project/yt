@@ -12,6 +12,10 @@ Unit test for the RADMC3D Exporter analysis module
 
 import yt
 from yt.analysis_modules.radmc3d_export.api import RadMC3DWriter
+import tempfile
+import os
+import shutil
+
 
 def test_radmc3d_exporter_continuum():
     """
@@ -19,6 +23,11 @@ def test_radmc3d_exporter_continuum():
     generate the necessary output files to run a continuum emission map from
     dust for one of our sample datasets.
     """
+
+    # Set up in a temp dir
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
 
     # Make up a dust density field where dust density is 1% of gas density
     dust_to_gas = 0.01
@@ -37,3 +46,7 @@ def test_radmc3d_exporter_continuum():
     writer.write_amr_grid()
     writer.write_dust_file(("gas", "dust_density"), "dust_density.inp")
     writer.write_dust_file(("gas", "dust_temperature"), "dust_temperature.inp")
+
+    # clean up
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)
