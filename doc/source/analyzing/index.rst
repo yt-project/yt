@@ -14,4 +14,3 @@ Analyzing Data
    time_series_analysis
    parallel_computation
    analysis_modules/index
-   external_analysis

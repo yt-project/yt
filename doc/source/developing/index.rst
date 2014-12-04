@@ -24,4 +24,5 @@ and contributing code!
    creating_derived_fields
    creating_derived_quantities
    creating_frontend
+   external_analysis
    building_the_docs
