@@ -114,6 +114,16 @@ Table of Contents
      <tr valign="top">
        <td width="25%">
          <p>
+           <a href="faq.html">Frequently Asked Questions</a>
+         </p>
+       </td>
+       <td width="75%">
+         <p class="linkdescr">Solutions for common questions and problems</p>
+       </td>
+     </tr>
+      <tr valign="top">
+       <td width="25%">
+         <p>
            <a href="help/index.html">Getting help</a>
          </p>
        </td>
