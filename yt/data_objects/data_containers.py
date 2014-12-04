@@ -903,7 +903,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
             return frb
 
         if center is None:
-            center = self.get_field_parameter("center")
+            center = self.center
             if center is None:
                 center = (self.ds.domain_right_edge
                         + self.ds.domain_left_edge)/2.0
