@@ -840,3 +840,4 @@ def add_density_kernel(ptype, coord_name, mass_name, registry, nneighbors = 64):
                        units = "g/cm**3")
     return [field_name]
 
+
