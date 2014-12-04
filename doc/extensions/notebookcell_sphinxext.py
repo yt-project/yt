@@ -26,6 +26,10 @@ class NotebookCellDirective(Directive):
         if not self.state.document.settings.raw_enabled:
             raise self.warning('"%s" directive disabled.' % self.name)
 
+        cwd = os.getcwd()
+        tmpdir = tempfile.mkdtemp()
+        os.chdir(tmpdir)
+
         # Construct notebook from cell content
         content = "\n".join(self.content)
         with open("temp.py", "w") as f:
@@ -45,9 +49,8 @@ class NotebookCellDirective(Directive):
             self.state_machine.get_source_and_line(self.lineno)
 
         # clean up
-        files = glob.glob("*.png") + ['temp.py', 'temp.ipynb']
-        for file in files:
-            os.remove(file)
+        os.chdir(cwd)
+        shutil.rmtree(tmpdir, True)
 
         return [nb_node]
 
