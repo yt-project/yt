@@ -285,14 +285,16 @@ def create_sky_wcs(old_wcs, sky_center, sky_scale,
     new_dy = (YTQuantity(deltas[1], units[1])*scaleq).in_units("deg")
     new_wcs = pywcs.WCS(naxis=naxis)
     cdelt = [new_dx.v, new_dy.v]
+    cunit = ["deg"]*2
     if naxis == 3:
         crval.append(old_wcs.wcs.crval[2])
         cdelt.append(old_wcs.wcs.cdelt[2])
         ctype.append(old_wcs.wcs.ctype[2])
+        cunit.append(old_wcs.wcs.cunit[2])
     new_wcs.wcs.crpix = old_wcs.wcs.crpix
     new_wcs.wcs.cdelt = cdelt
     new_wcs.wcs.crval = crval
-    new_wcs.wcs.cunit = ["deg"]*naxis
+    new_wcs.wcs.cunit = cunit
     new_wcs.wcs.ctype = ctype
     if crota is not None:
         new_wcs.wcs.crota = crota
