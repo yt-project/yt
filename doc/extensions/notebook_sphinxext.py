@@ -2,6 +2,7 @@ import os
 import shutil
 import string
 import re
+import tempfile
 from sphinx.util.compat import Directive
 from docutils import nodes
 from docutils.parsers.rst import directives
