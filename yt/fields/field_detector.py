@@ -207,7 +207,7 @@ class FieldDetector(defaultdict):
         elif param == "mu":
             return 1.0
         else:
-            return 0.0
+            return default
 
     _num_ghost_zones = 0
     id = 1
