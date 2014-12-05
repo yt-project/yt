@@ -4207,37 +4207,37 @@ field name                     units                                            
 Castro-Specific Fields
 ----------------------
 
-========================  ========================================================  =======================  =========  ==================================================
-field name                units                                                     aliases                  particle?  display name                                      
-========================  ========================================================  =======================  =========  ==================================================
-('boxlib', 'density')     :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{3}}}`               ``density``                      0  :math:`\rho`                                      
-('boxlib', 'xmom')        :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{2} \cdot \rm{s}}}`  ``momentum_x``                   0  :math:`\rho u`                                    
-('boxlib', 'ymom')        :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{2} \cdot \rm{s}}}`  ``momentum_y``                   0  :math:`\rho v`                                    
-('boxlib', 'zmom')        :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{2} \cdot \rm{s}}}`  ``momentum_z``                   0  :math:`\rho w`                                    
-('boxlib', 'x_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``velocity_x``                   0  :math:`u`                                         
-('boxlib', 'y_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``velocity_y``                   0  :math:`v`                                         
-('boxlib', 'z_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``velocity_z``                   0  :math:`w`                                         
-('boxlib', 'rho_E')       :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`             ``energy_density``               0  :math:`\rho E`                                    
-('boxlib', 'rho_e')       :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`                                              0  :math:`\rho e`                                    
-('boxlib', 'Temp')        :math:`\mathrm{\rm{K}}`                                   ``temperature``                  0  :math:`T`                                         
-('boxlib', 'grav_x')      :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`                                                0  :math:`\left(\mathbf{g} \cdot \mathbf{e}\right)_x`
-('boxlib', 'grav_y')      :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`                                                0  :math:`\left(\mathbf{g} \cdot \mathbf{e}\right)_y`
-('boxlib', 'grav_z')      :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`                                                0  :math:`\left(\mathbf{g} \cdot \mathbf{e}\right)_z`
-('boxlib', 'pressure')    :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{2}}}`                                             0  :math:`p`                                         
-('boxlib', 'kineng')      :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`                                              0  :math:`\frac{1}{2}\rho|\mathbf{U}|**2`            
-('boxlib', 'soundspeed')  :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``sound_speed``                  0  :math:`Sound Speed`                               
-('boxlib', 'Machnumber')                                                            ``mach_number``                  0  :math:`Mach Number`                               
-('boxlib', 'entropy')     :math:`\mathrm{\frac{\rm{erg}}{\rm{K} \cdot \rm{g}}}`     ``entropy``                      0  :math:`s`                                         
-('boxlib', 'magvort')     :math:`\mathrm{1 / \rm{s}}`                               ``vorticity_magnitude``          0  :math:`|\nabla \times \mathbf{U}|`                
-('boxlib', 'divu')        :math:`\mathrm{1 / \rm{s}}`                                                                0  :math:`\nabla \cdot \mathbf{U}`                   
-('boxlib', 'eint_E')      :math:`\mathrm{\rm{erg} / \rm{g}}`                                                         0  :math:`e(E,U)`                                    
-('boxlib', 'eint_e')      :math:`\mathrm{\rm{erg} / \rm{g}}`                                                         0  :math:`e`                                         
-('boxlib', 'magvel')      :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``velocity_magnitude``           0  :math:`|\mathbf{U}|`                              
-('boxlib', 'radvel')      :math:`\mathrm{\rm{cm} / \rm{s}}`                                                          0  :math:`\left(\mathbf{U} \cdot \mathbf{e}\right)_r`
-('boxlib', 'magmom')      :math:`\mathrm{\rm{cm} \cdot \rm{g} / \rm{s}}`            ``momentum_magnitude``           0  :math:`|\rho \mathbf{U}|`                         
-('boxlib', 'maggrav')     :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`                                                0  :math:`|\mathbf{g}|`                              
-('boxlib', 'phiGrav')     :math:`\mathrm{\rm{erg} / \rm{g}}`                                                         0  :math:`|\Phi|`                                    
-========================  ========================================================  =======================  =========  ==================================================
+========================  ========================================================  =======================  =========  =====================================
+field name                units                                                     aliases                  particle?  display name                         
+========================  ========================================================  =======================  =========  =====================================
+('boxlib', 'density')     :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{3}}}`               ``density``                      0  :math:`\rho`                         
+('boxlib', 'xmom')        :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{2} \cdot \rm{s}}}`  ``momentum_x``                   0  :math:`\rho u`                       
+('boxlib', 'ymom')        :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{2} \cdot \rm{s}}}`  ``momentum_y``                   0  :math:`\rho v`                       
+('boxlib', 'zmom')        :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{2} \cdot \rm{s}}}`  ``momentum_z``                   0  :math:`\rho w`                       
+('boxlib', 'x_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``velocity_x``                   0  :math:`u`                            
+('boxlib', 'y_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``velocity_y``                   0  :math:`v`                            
+('boxlib', 'z_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``velocity_z``                   0  :math:`w`                            
+('boxlib', 'rho_E')       :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`             ``energy_density``               0  :math:`\rho E`                       
+('boxlib', 'rho_e')       :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`                                              0  :math:`\rho e`                       
+('boxlib', 'Temp')        :math:`\mathrm{\rm{K}}`                                   ``temperature``                  0  :math:`T`                            
+('boxlib', 'grav_x')      :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`                                                0  :math:`\mathbf{g} \cdot \mathbf{e}_x`
+('boxlib', 'grav_y')      :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`                                                0  :math:`\mathbf{g} \cdot \mathbf{e}_y`
+('boxlib', 'grav_z')      :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`                                                0  :math:`\mathbf{g} \cdot \mathbf{e}_z`
+('boxlib', 'pressure')    :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{2}}}`                                             0  :math:`p`                            
+('boxlib', 'kineng')      :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`             ``kinetic_energy``               0  :math:`\frac{1}{2}\rho|\mathbf{U}|^2`
+('boxlib', 'soundspeed')  :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``sound_speed``                  0  :math:`Sound Speed`                  
+('boxlib', 'Machnumber')                                                            ``mach_number``                  0  :math:`Mach Number`                  
+('boxlib', 'entropy')     :math:`\mathrm{\frac{\rm{erg}}{\rm{K} \cdot \rm{g}}}`     ``entropy``                      0  :math:`s`                            
+('boxlib', 'magvort')     :math:`\mathrm{1 / \rm{s}}`                               ``vorticity_magnitude``          0  :math:`|\nabla \times \mathbf{U}|`   
+('boxlib', 'divu')        :math:`\mathrm{1 / \rm{s}}`                               ``velocity_divergence``          0  :math:`\nabla \cdot \mathbf{U}`      
+('boxlib', 'eint_E')      :math:`\mathrm{\rm{erg} / \rm{g}}`                                                         0  :math:`e(E,U)`                       
+('boxlib', 'eint_e')      :math:`\mathrm{\rm{erg} / \rm{g}}`                                                         0  :math:`e`                            
+('boxlib', 'magvel')      :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``velocity_magnitude``           0  :math:`|\mathbf{U}|`                 
+('boxlib', 'radvel')      :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``radial_velocity``              0  :math:`\mathbf{U} \cdot \mathbf{e}_r`
+('boxlib', 'magmom')      :math:`\mathrm{\rm{cm} \cdot \rm{g} / \rm{s}}`            ``momentum_magnitude``           0  :math:`\rho |\mathbf{U}|`            
+('boxlib', 'maggrav')     :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`                                                0  :math:`|\mathbf{g}|`                 
+('boxlib', 'phiGrav')     :math:`\mathrm{\rm{erg} / \rm{g}}`                                                         0  :math:`\Phi`                         
+========================  ========================================================  =======================  =========  =====================================
 .. _Maestro_specific_fields:
 
 Maestro-Specific Fields
@@ -4251,30 +4251,27 @@ field name                     units                                            
 ('boxlib', 'y_vel')            :math:`\mathrm{\rm{cm} / \rm{s}}`                      ``velocity_y``                   0  :math:`\tilde{v}`                              
 ('boxlib', 'z_vel')            :math:`\mathrm{\rm{cm} / \rm{s}}`                      ``velocity_z``                   0  :math:`\tilde{w}`                              
 ('boxlib', 'magvel')           :math:`\mathrm{\rm{cm} / \rm{s}}`                      ``velocity_magnitude``           0  :math:`|\tilde{\mathbf{U}} + w_0 \mathbf{e}_r|`
-('boxlib', 'radial_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                                                       0  :math:`U\cdot e_r`                             
+('boxlib', 'radial_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                      ``radial_velocity``              0  :math:`\mathbf{U}\cdot \mathbf{e}_r`           
+('boxlib', 'circum_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                      ``tangential_velocity``          0  :math:`U - U\cdot e_r`                         
 ('boxlib', 'tfromp')           :math:`\mathrm{\rm{K}}`                                                                 0  :math:`T(\rho,p,X)`                            
 ('boxlib', 'tfromh')           :math:`\mathrm{\rm{K}}`                                                                 0  :math:`T(\rho,h,X)`                            
-('boxlib', 'Machnumber')                                                              ``mach_number``                  0  :math:`Mach Number`                            
+('boxlib', 'Machnumber')                                                              ``mach_number``                  0  :math:`M`                                      
 ('boxlib', 'S')                :math:`\mathrm{1 / \rm{s}}`                                                             0                                                 
-('boxlib', 'ad_excess')                                                                                                0  :math:`Adiabatic Excess`                       
+('boxlib', 'ad_excess')                                                                                                0  :math:`\nabla - \nabla_\mathrm{ad}`            
 ('boxlib', 'deltaT')                                                                                                   0  :math:`[T(\rho,h,X) - T(\rho,p,X)]/T(\rho,h,X)`
 ('boxlib', 'deltagamma')                                                                                               0  :math:`\Gamma_1 - \overline{\Gamma_1}`         
 ('boxlib', 'deltap')                                                                                                   0  :math:`[p(\rho,h,X) - p_0] / p_0`              
-('boxlib', 'divw0')            :math:`\mathrm{1 / \rm{s}}`                                                             0  :math:`
-abla \cdot \mathbf{w}_0`               
+('boxlib', 'divw0')            :math:`\mathrm{1 / \rm{s}}`                                                             0  :math:`\nabla \cdot \mathbf{w}_0`              
 ('boxlib', 'entropy')          :math:`\mathrm{\frac{\rm{erg}}{\rm{K} \cdot \rm{g}}}`  ``entropy``                      0  :math:`s`                                      
 ('boxlib', 'entropypert')                                                                                              0  :math:`[s - \overline{s}] / \overline{s}`      
-('boxlib', 'enucdot')          :math:`\mathrm{\frac{\rm{erg}}{\rm{g} \cdot \rm{s}}}`                                   0  :math:`\dot{\epsilon_{nuc}}`                   
+('boxlib', 'enucdot')          :math:`\mathrm{\frac{\rm{erg}}{\rm{g} \cdot \rm{s}}}`                                   0  :math:`\dot{\epsilon}_{nuc}`                   
 ('boxlib', 'Hext')             :math:`\mathrm{\frac{\rm{erg}}{\rm{g} \cdot \rm{s}}}`                                   0  :math:`H_{ext}`                                
-('boxlib', 'gpi_x')            :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{3}}}`                                          0  :math:`\left(
-abla\piight)_x`                 
-('boxlib', 'gpi_y')            :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{3}}}`                                          0  :math:`\left(
-abla\piight)_y`                 
-('boxlib', 'gpi_z')            :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{3}}}`                                          0  :math:`\left(
-abla\piight)_z`                 
+('boxlib', 'gpi_x')            :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{3}}}`                                          0  :math:`\left(\nabla\pi\right)_x`               
+('boxlib', 'gpi_y')            :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{3}}}`                                          0  :math:`\left(\nabla\pi\right)_y`               
+('boxlib', 'gpi_z')            :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{3}}}`                                          0  :math:`\left(\nabla\pi\right)_z`               
 ('boxlib', 'h')                :math:`\mathrm{\rm{erg} / \rm{g}}`                                                      0  :math:`h`                                      
 ('boxlib', 'h0')               :math:`\mathrm{\rm{erg} / \rm{g}}`                                                      0  :math:`h_0`                                    
-('boxlib', 'momentum')         :math:`\mathrm{\rm{cm} \cdot \rm{g} / \rm{s}}`         ``momentum_magnitude``           0                                                 
+('boxlib', 'momentum')         :math:`\mathrm{\rm{cm} \cdot \rm{g} / \rm{s}}`         ``momentum_magnitude``           0  :math:`\rho |\mathbf{U}|`                      
 ('boxlib', 'p0')               :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`                                           0  :math:`p_0`                                    
 ('boxlib', 'p0pluspi')         :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`                                           0  :math:`p_0 + \pi`                              
 ('boxlib', 'pi')               :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`                                           0  :math:`\pi`                                    
@@ -4287,8 +4284,7 @@ abla\piight)_z`
 ('boxlib', 'soundspeed')       :math:`\mathrm{\rm{cm} / \rm{s}}`                      ``sound_speed``                  0                                                 
 ('boxlib', 'sponge')                                                                                                   0                                                 
 ('boxlib', 'tpert')            :math:`\mathrm{\rm{K}}`                                                                 0  :math:`T - \overline{T}`                       
-('boxlib', 'vort')             :math:`\mathrm{1 / \rm{s}}`                            ``vorticity_magnitude``          0  :math:`|
-abla	imes	ilde{U}|`                   
+('boxlib', 'vort')             :math:`\mathrm{1 / \rm{s}}`                            ``vorticity_magnitude``          0  :math:`|\nabla\times\tilde{U}|`                
 ('boxlib', 'w0_x')             :math:`\mathrm{\rm{cm} / \rm{s}}`                                                       0  :math:`(w_0)_x`                                
 ('boxlib', 'w0_y')             :math:`\mathrm{\rm{cm} / \rm{s}}`                                                       0  :math:`(w_0)_y`                                
 ('boxlib', 'w0_z')             :math:`\mathrm{\rm{cm} / \rm{s}}`                                                       0  :math:`(w_0)_z`                                
