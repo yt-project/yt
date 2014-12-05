@@ -493,7 +493,7 @@ class RAMSESDataset(Dataset):
         length_unit = self.parameters['unit_l']
         boxlen = self.parameters['boxlen']
         rho_u = self.parameters['unit_d']
-        mass_unit = rho_u * length_unit**3
+        mass_unit = rho_u * (length_unit * boxlen)**3
         time_unit = self.parameters['unit_t']
         magnetic_unit = np.sqrt(4*np.pi * mass_unit /
                                 (time_unit**2 * length_unit))
