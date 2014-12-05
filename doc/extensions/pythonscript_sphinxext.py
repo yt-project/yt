@@ -1,8 +1,12 @@
+import tempfile
+import os
+import glob
+import base64
+import shutil
+import subprocess
 from sphinx.util.compat import Directive
-from subprocess import Popen,PIPE
-from docutils.parsers.rst import directives
 from docutils import nodes
-import os, glob, base64
+
 
 class PythonScriptDirective(Directive):
     """Execute an inline python script and display images.
@@ -17,6 +21,10 @@ class PythonScriptDirective(Directive):
     has_content = True
 
     def run(self):
+        cwd = os.getcwd()
+        tmpdir = tempfile.mkdtemp()
+        os.chdir(tmpdir)
+
         # Construct script from cell content
         content = "\n".join(self.content)
         with open("temp.py", "w") as f:
@@ -27,27 +35,26 @@ class PythonScriptDirective(Directive):
         print content
         print ""
 
-        codeproc = Popen(['python', 'temp.py'], stdout=PIPE)
-        out = codeproc.stdout.read()
+        subprocess.call(['python', 'temp.py'])
 
-        images = sorted(glob.glob("*.png"))
-        fns = []
         text = ''
-        for im in images:
+        for im in sorted(glob.glob("*.png")):
             text += get_image_tag(im)
-            os.remove(im)
-            
-        os.remove("temp.py")
 
         code = content
 
-        literal = nodes.literal_block(code,code)
+        literal = nodes.literal_block(code, code)
         literal['language'] = 'python'
 
         attributes = {'format': 'html'}
         img_node = nodes.raw('', text, **attributes)
-        
+
+        # clean up
+        os.chdir(cwd)
+        shutil.rmtree(tmpdir, True)
+
         return [literal, img_node]
+
 
 def setup(app):
     app.add_directive('python-script', PythonScriptDirective)
@@ -63,7 +70,9 @@ def setup(app):
 
     return retdict
 
+
 def get_image_tag(filename):
     with open(filename, "rb") as image_file:
         encoded_string = base64.b64encode(image_file.read())
-        return '<img src="data:image/png;base64,%s" width="600"><br>' % encoded_string
+        return '<img src="data:image/png;base64,%s" width="600"><br>' \
+            % encoded_string
