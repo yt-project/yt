@@ -63,7 +63,7 @@ class FilterAllMessages(logging.Filter):
 
 # Set up translation table and import things
 
-def enable_parallelism(suppress_logging=False, communicator = None):
+def enable_parallelism(suppress_logging=False, communicator=None):
     """
     This method is used inside a script to turn on MPI parallelism, via 
     mpi4py.  More information about running yt in parallel can be found
@@ -226,7 +226,6 @@ def parallel_simple_proxy(func):
         # attribute, which must be an instance of MPI.Intracomm, and call bcast
         # on that.
         retval = comm.comm.bcast(retval, root=self._owner)
-        #communicator.Barrier()
         return retval
     return single_proc_results
 
