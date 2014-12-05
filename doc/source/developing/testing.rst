@@ -157,8 +157,6 @@ config file:
 More data will be added over time.  To run the tests, you can import the yt
 module and invoke ``yt.run_nose()`` with a new keyword argument:
 
-__ run_answer_testing_
-
 .. code-block:: python
 
    import yt
