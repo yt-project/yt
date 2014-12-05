@@ -415,7 +415,7 @@ class AthenaDataset(Dataset):
         self.nprocs = nprocs
         if parameters is None:
             parameters = {}
-        self.specified_parameters = parameters
+        self.specified_parameters = parameters.copy()
         if units_override is None:
             units_override = {}
         # This is for backwards-compatibility
