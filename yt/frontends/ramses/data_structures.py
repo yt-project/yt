@@ -490,19 +490,25 @@ class RAMSESDataset(Dataset):
         # Note that unit_l *already* converts to proper!
         # Also note that unit_l must be multiplied by the boxlen parameter to
         # ensure we are correctly set up for the current domain.
-        length_unit = self.parameters['unit_l'] * self.parameters['boxlen']
+        length_unit = self.parameters['unit_l']
+        boxlen = self.parameters['boxlen']
         rho_u = self.parameters['unit_d']
         mass_unit = rho_u * length_unit**3
         time_unit = self.parameters['unit_t']
         magnetic_unit = np.sqrt(4*np.pi * mass_unit /
                                 (time_unit**2 * length_unit))
+        # TODO:
+        # Generalize the temperature field to account for ionization
+        # For now assume an atomic ideal gas with cosmic abundances (x_H = 0.76)
+        mean_molecular_weight_factor = 0.76**-1
 
         self.magnetic_unit = self.quan(magnetic_unit, "gauss")
-        self.length_unit = self.quan(length_unit, "cm")
+        self.length_unit = self.quan(length_unit * boxlen, "cm")
         self.mass_unit = self.quan(mass_unit, "g")
         self.time_unit = self.quan(time_unit, "s")
-        self.velocity_unit = self.length_unit / self.time_unit
-        self.temperature_unit = self.velocity_unit**2 * mp / kb
+        self.velocity_unit = self.quan(length_unit, 'cm') / self.time_unit
+        self.temperature_unit = (self.velocity_unit**2 * mp *
+                                 mean_molecular_weight_factor / kb)
 
     def _parse_parameter_file(self):
         # hardcoded for now
