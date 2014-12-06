@@ -35,7 +35,7 @@ from yt.utilities.io_handler import \
     io_registry
 from yt.utilities.physical_constants import mp, kb
 from .fields import \
-    RAMSESFieldInfo
+    RAMSESFieldInfo, _X
 import yt.utilities.fortran_utils as fpu
 from yt.geometry.oct_container import \
     RAMSESOctreeContainer
@@ -501,7 +501,7 @@ class RAMSESDataset(Dataset):
         # TODO:
         # Generalize the temperature field to account for ionization
         # For now assume an atomic ideal gas with cosmic abundances (x_H = 0.76)
-        mean_molecular_weight_factor = 0.76**-1
+        mean_molecular_weight_factor = _X**-1
 
         self.density_unit = self.quan(density_unit, 'g/cm**3')
         self.magnetic_unit = self.quan(magnetic_unit, "gauss")
