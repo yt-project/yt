@@ -619,9 +619,11 @@ class Dataset(object):
         import yt.units.dimensions as dimensions
         self.unit_registry.add("code_length", 1.0, dimensions.length)
         self.unit_registry.add("code_mass", 1.0, dimensions.mass)
+        self.unit_registry.add("code_density", 1.0, dimensions.density)
         self.unit_registry.add("code_time", 1.0, dimensions.time)
         self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field)
         self.unit_registry.add("code_temperature", 1.0, dimensions.temperature)
+        self.unit_registry.add("code_pressure", 1.0, dimensions.pressure)
         self.unit_registry.add("code_velocity", 1.0, dimensions.velocity)
         self.unit_registry.add("code_metallicity", 1.0,
                                dimensions.dimensionless)
@@ -677,11 +679,17 @@ class Dataset(object):
         self.unit_registry.modify("code_length", self.length_unit)
         self.unit_registry.modify("code_mass", self.mass_unit)
         self.unit_registry.modify("code_time", self.time_unit)
-        vel_unit = getattr(self, "velocity_unit",
-                    self.length_unit / self.time_unit)
+        vel_unit = getattr(
+            self, "velocity_unit", self.length_unit / self.time_unit)
+        pressure_unit = getattr(
+            self, "pressure_unit",
+            self.mass_unit / (self.length_unit * self.time_unit)**2)
         temperature_unit = getattr(self, "temperature_unit", 1.0)
+        density_unit = getattr(self, "density_unit", self.mass_unit / self.length_unit**3)
         self.unit_registry.modify("code_velocity", vel_unit)
         self.unit_registry.modify("code_temperature", temperature_unit)
+        self.unit_registry.modify("code_pressure", pressure_unit)
+        self.unit_registry.modify("code_density", density_unit)
         # domain_width does not yet exist
         if None not in (self.domain_left_edge, self.domain_right_edge):
             DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")

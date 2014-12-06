@@ -42,6 +42,7 @@ area     = length * length
 volume   = area * length
 momentum = mass * velocity
 force    = mass * acceleration
+pressure = force / area
 energy   = force * length
 power    = energy / time
 flux     = power / area
