@@ -556,15 +556,21 @@ class RAMSESDataset(Dataset):
         self.domain_dimensions = np.ones(3, dtype='int32') * \
                         2**(self.min_level+1)
         self.domain_right_edge = np.ones(3, dtype='float64')
-        # This is likely not true, but I am not sure how to otherwise
-        # distinguish them.
-        mylog.warning("RAMSES frontend assumes all simulations are cosmological!")
-        self.cosmological_simulation = 1
+        # This is likely not true, but it's not clear how to determine the boundary conditions
         self.periodicity = (True, True, True)
-        self.current_redshift = (1.0 / rheader["aexp"]) - 1.0
-        self.omega_lambda = rheader["omega_l"]
-        self.omega_matter = rheader["omega_m"]
-        self.hubble_constant = rheader["H0"] / 100.0 # This is H100
+        # These conditions seem to always be true for non-cosmological datasets
+        if rheader["time"] > 0 and rheader["H0"] == 1 and rheader["aexp"] == 1:
+            self.cosmological_simulation = 0
+            self.current_redshift = 0
+            self.hubble_constant = 0
+            self.omega_matter = 0
+            self.omega_lambda = 0
+        else:
+            self.cosmological_simulation = 1
+            self.current_redshift = (1.0 / rheader["aexp"]) - 1.0
+            self.omega_lambda = rheader["omega_l"]
+            self.omega_matter = rheader["omega_m"]
+            self.hubble_constant = rheader["H0"] / 100.0 # This is H100
         self.max_level = rheader['levelmax'] - self.min_level - 1
         f.close()
 
