@@ -1106,51 +1106,56 @@ class InteractiveCamera(Camera):
 data_object_registry["interactive_camera"] = InteractiveCamera
 
 class PerspectiveCamera(Camera):
-    expand_factor = 1.0
     def __init__(self, *args, **kwargs):
-        self.expand_factor = kwargs.pop('expand_factor', 1.0)
         Camera.__init__(self, *args, **kwargs)
 
     def get_sampler_args(self, image):
-        # We should move away from pre-generation of vectors like this and into
-        # the usage of on-the-fly generation in the VolumeIntegrator module
-        # We might have a different width and back_center
-        dl = (self.back_center - self.front_center)
-        self.front_center += self.expand_factor*dl
-        self.back_center -= dl
+        east_vec = self.orienter.unit_vectors[0].reshape(3,1)
+        north_vec = self.orienter.unit_vectors[1].reshape(3,1)
+        
+        px = np.mat(np.linspace(-.5, .5, self.resolution[0]))
+        py = np.mat(np.linspace(-.5, .5, self.resolution[1]))
 
-        px = np.linspace(-self.width[0]/2.0, self.width[0]/2.0,
-                         self.resolution[0])[:,None]
-        py = np.linspace(-self.width[1]/2.0, self.width[1]/2.0,
-                         self.resolution[1])[None,:]
-        inv_mat = self.orienter.inv_mat
+        sample_x = self.width[0] * np.array(east_vec * px).transpose()
+        sample_y = self.width[1] * np.array(north_vec * py).transpose()
+
+        vectors = np.zeros((self.resolution[0], self.resolution[1], 3),
+                           dtype='float64', order='C')
+    
+        sample_x = np.repeat(sample_x.reshape(self.resolution[0],1,3), \
+                             self.resolution[1], axis=1)
+        sample_y = np.repeat(sample_y.reshape(1,self.resolution[1],3), \
+                             self.resolution[0], axis=0)
+
+        normal_vec = np.zeros((self.resolution[0], self.resolution[1], 3),
+                              dtype='float64', order='C')
+        normal_vec[:,:,0] = self.orienter.unit_vectors[2,0]
+        normal_vec[:,:,1] = self.orienter.unit_vectors[2,1]
+        normal_vec[:,:,2] = self.orienter.unit_vectors[2,2]
+
+        vectors = sample_x + sample_y + normal_vec * self.width[2]
+
         positions = np.zeros((self.resolution[0], self.resolution[1], 3),
-                          dtype='float64', order='C')
-        positions = self.ds.arr(positions, "code_length")
-        positions[:,:,0] = inv_mat[0,0]*px+inv_mat[0,1]*py+self.back_center[0]
-        positions[:,:,1] = inv_mat[1,0]*px+inv_mat[1,1]*py+self.back_center[1]
-        positions[:,:,2] = inv_mat[2,0]*px+inv_mat[2,1]*py+self.back_center[2]
-        bounds = (px.min(), px.max(), py.min(), py.max())
+                             dtype='float64', order='C')
+        positions[:,:,0] = self.center[0]
+        positions[:,:,1] = self.center[1]
+        positions[:,:,2] = self.center[2]
 
-        # We are likely adding on an odd cutting condition here
-        vectors = self.front_center - positions
-        vectors = vectors / (vectors**2).sum()**0.5
-        positions = self.front_center - 1.0*(((self.back_center-self.front_center)**2).sum())**0.5*vectors
-        vectors = (self.front_center - positions)
+        positions = self.ds.arr(positions, input_units="code_length")
 
-        uv = np.ones(3, dtype='float64')
-        image.shape = (self.resolution[0]**2,1,4)
-        vectors.shape = (self.resolution[0]**2,1,3)
-        positions.shape = (self.resolution[0]**2,1,3)
-        args = (positions, vectors, self.back_center, 
+        dummy = np.ones(3, dtype='float64')
+        image.shape = (self.resolution[0]*self.resolution[1],1,4)
+
+        args = (positions, vectors, self.back_center,
                 (0.0,1.0,0.0,1.0),
-                image, uv, uv,
-                np.zeros(3, dtype='float64'), 
+                image, dummy, dummy,
+                np.zeros(3, dtype='float64'),
                 self.transfer_function, self.sub_samples)
         return args
 
     def _render(self, double_check, num_threads, image, sampler):
-        pbar = get_pbar("Ray casting", (self.volume.brick_dimensions + 1).prod(axis=-1).sum())
+        ncells = sum(b.source_mask.size for b in self.volume.bricks)
+        pbar = get_pbar("Ray casting", ncells)
         total_cells = 0
         if double_check:
             for brick in self.volume.bricks:
@@ -1160,7 +1165,7 @@ class PerspectiveCamera(Camera):
 
         for brick in self.volume.traverse(self.front_center):
             sampler(brick, num_threads=num_threads)
-            total_cells += np.prod(brick.my_data[0].shape)
+            total_cells += brick.source_mask.size
             pbar.update(total_cells)
 
         pbar.finish()
@@ -1169,11 +1174,13 @@ class PerspectiveCamera(Camera):
 
     def finalize_image(self, image):
         view_pos = self.front_center
-        image.shape = self.resolution[0], self.resolution[0], 4
+        image.shape = self.resolution[0], self.resolution[1], 4
         image = self.volume.reduce_tree_images(image, view_pos)
         if self.transfer_function.grey_opacity is False:
             image[:,:,3]=1.0
         return image
+
+data_object_registry["perspective_camera"] = PerspectiveCamera
 
 def corners(left_edge, right_edge):
     return np.array([
