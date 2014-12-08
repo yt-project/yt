@@ -164,7 +164,6 @@ class YTDataContainer(object):
     def _set_center(self, center):
         if center is None:
             self.center = None
-            self.set_field_parameter('center', self.center)
             return
         elif isinstance(center, YTArray):
             self.center = self.ds.arr(center.in_cgs())
@@ -904,7 +903,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
             return frb
 
         if center is None:
-            center = self.get_field_parameter("center")
+            center = self.center
             if center is None:
                 center = (self.ds.domain_right_edge
                         + self.ds.domain_left_edge)/2.0
