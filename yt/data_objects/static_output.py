@@ -254,7 +254,7 @@ class Dataset(object):
     def get_smallest_appropriate_unit(self, v):
         good_u = None
         for unit in ['Mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
-            uq = YTQuantity(1.0, unit)
+            uq = self.quan(1.0, unit)
             if uq < v:
                 good_u = unit
                 break
