@@ -16,10 +16,10 @@ Christopher Moody.  Please contact the ``yt-dev`` mailing list if you are
 interested in using yt for ART data, or if you are interested in assisting with
 development of yt to work with ART data.
 
-To load an ART dataset you can use the ``yt.load`` command and provide it
- the gas mesh file. It will search for and attempt 
-to find the complementary dark matter and stellar particle header and data 
-files. However, your simulations may not follow the same naming convention.
+To load an ART dataset you can use the ``yt.load`` command and provide it the
+gas mesh file. It will search for and attempt to find the complementary dark
+matter and stellar particle header and data files. However, your simulations may
+not follow the same naming convention.
 
 So for example, a single snapshot might have a series of files looking like
 this:

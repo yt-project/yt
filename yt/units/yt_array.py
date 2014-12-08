@@ -472,7 +472,7 @@ class YTArray(np.ndarray):
             The unit that you wish to convert to.
         equiv : string
             The equivalence you wish to use. To see which equivalencies are
-            supported for this unitful quantity, try the :method:`list_equivalencies`
+            supported for this unitful quantity, try the :meth:`list_equivalencies`
             method.
 
         Examples
