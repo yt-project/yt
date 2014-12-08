@@ -39,7 +39,8 @@ from yt.utilities.math_utils import \
     get_cyl_r, get_cyl_theta, \
     get_cyl_z, get_sph_r, \
     get_sph_theta, get_sph_phi, \
-    periodic_dist, euclidean_dist
+    periodic_dist, euclidean_dist, \
+    modify_reference_frame
 
 from .vector_operations import \
      create_magnitude_field
@@ -375,10 +376,206 @@ def standard_particle_fields(registry, ptype,
               display_name = "Particle Radius")
 
 
+    def _particle_relative_position(field, data):
+        """
+        Compute the position in a rotated  reference frame relative to
+        normal vector which is set to be in the direction of z and a center
+        """
+        normal = data.get_field_parameter('normal')
+        center = data.get_field_parameter('center')
+        bv = data.get_field_parameter("bulk_velocity")
+        pos = spos
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+        vel = svel
+        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+	pos = pos.T
+	vel = vel.T
+        L, pos, vel = modify_reference_frame(center, normal, pos, vel)
+        return pos
+
+    registry.add_field((ptype, "particle_relative_position"),
+              function=_particle_relative_position,
+              particle_type=True, units="cm",
+              validators=[ValidateParameter("normal"),
+                          ValidateParameter("center")])
+
+
+    def _particle_relative_position_x(field, data):
+        """
+        Compute the value of x in a rotated reference frame relative to
+        normal vector which is set to be in the direction of z and a center
+        """
+        normal = data.get_field_parameter('normal')
+        center = data.get_field_parameter('center')
+        bv = data.get_field_parameter("bulk_velocity")
+        pos = spos
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+        vel = svel
+        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+        pos = pos.T
+        vel = vel.T
+        L, pos, vel = modify_reference_frame(center, normal, pos, vel)
+	pos = pos.T
+        return pos[0]
+
+    registry.add_field((ptype, "particle_relative_position_x"),
+              function=_particle_relative_position_x,
+              particle_type=True, units="cm",
+              validators=[ValidateParameter("normal"),
+                          ValidateParameter("center")])
+
+    def _particle_relative_position_y(field, data):
+        """
+        Compute the value of y in a rotated reference frame relative to
+        normal vector which is set to be in the direction of z and a center
+        """
+        normal = data.get_field_parameter('normal')
+        center = data.get_field_parameter('center')
+        bv = data.get_field_parameter("bulk_velocity")
+        pos = spos
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+        vel = svel
+        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+        pos = pos.T
+        vel = vel.T
+        L, pos, vel = modify_reference_frame(center, normal, pos, vel)
+	pos = pos.T
+        return pos[1]
+
+    registry.add_field((ptype, "particle_relative_position_y"),
+              function=_particle_relative_position_y,
+              particle_type=True, units="cm",
+              validators=[ValidateParameter("normal"),
+                          ValidateParameter("center")])
+
+
+    def _particle_relative_position_z(field, data):
+        """
+        Compute the value of z in a rotated reference frame relative to
+        normal vector which is set to be in the direction of z and a center
+        """
+        normal = data.get_field_parameter('normal')
+        center = data.get_field_parameter('center')
+        bv = data.get_field_parameter("bulk_velocity")
+        pos = spos
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+        vel = svel
+        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+        pos = pos.T
+        vel = vel.T
+        L, pos, vel = modify_reference_frame(center, normal, pos, vel)
+        pos = pos.T
+        return pos[2]
+
+    registry.add_field((ptype, "particle_relative_position_z"),
+              function=_particle_relative_position_z,
+              particle_type=True, units="cm",
+              validators=[ValidateParameter("normal"),
+                          ValidateParameter("center")])
+
+
+
+    def _particle_relative_velocity(field, data):
+        """
+        Compute the value of x in a rotated  reference frame relative to
+        normal vector which is set to be in the direction of z and a center
+        """
+        normal = data.get_field_parameter('normal')
+        center = data.get_field_parameter('center')
+        bv = data.get_field_parameter("bulk_velocity")
+        pos = spos
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+        vel = svel
+        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+        pos = pos.T
+        vel = vel.T
+        L, pos, vel = modify_reference_frame(center, normal, pos, vel)
+        return vel
+
+    registry.add_field((ptype, "particle_relative_velocity"),
+              function=_particle_relative_velocity,
+              particle_type=True, units="cm/s",
+              validators=[ValidateParameter("normal"),
+                          ValidateParameter("center")])
+
+
+    def _particle_relative_velocity_x(field, data):
+        """
+        Compute the value of vx in a rotated reference frame relative to
+        normal vector which is set to be in the direction of z and a center
+        """
+        normal = data.get_field_parameter('normal')
+        center = data.get_field_parameter('center')
+        bv = data.get_field_parameter("bulk_velocity")
+        pos = spos
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+        vel = svel
+        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+        pos = pos.T
+        vel = vel.T
+        L, pos, vel = modify_reference_frame(center, normal, pos, vel)
+        vel = vel.T
+        return vel[0]
+
+    registry.add_field((ptype, "particle_relative_velocity_x"),
+              function=_particle_relative_velocity_x,
+              particle_type=True, units="cm/s",
+              validators=[ValidateParameter("normal"),
+                          ValidateParameter("center")])
+
+    def _particle_relative_velocity_y(field, data):
+        """
+        Compute the value of vy in a rotated reference frame relative to
+        normal vector which is set to be in the direction of z and a center
+        """
+        normal = data.get_field_parameter('normal')
+        center = data.get_field_parameter('center')
+        bv = data.get_field_parameter("bulk_velocity")
+        pos = spos
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+        vel = svel
+        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+        pos = pos.T
+        vel = vel.T
+        L, pos, vel = modify_reference_frame(center, normal, pos, vel)
+        vel = vel.T
+        return vel[1]
+
+    registry.add_field((ptype, "particle_relative_velocity_y"),
+              function=_particle_relative_velocity_y,
+              particle_type=True, units="cm/s",
+              validators=[ValidateParameter("normal"),
+                          ValidateParameter("center")])
+
+    def _particle_relative_velocity_z(field, data):
+        """
+        Compute the value of vz in a rotated reference frame relative to
+        normal vector which is set to be in the direction of z and a center
+        """
+        normal = data.get_field_parameter('normal')
+        center = data.get_field_parameter('center')
+        bv = data.get_field_parameter("bulk_velocity")
+        pos = spos
+        pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
+        vel = svel
+        vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
+        pos = pos.T
+        vel = vel.T
+        L, pos, vel = modify_reference_frame(center, normal, pos, vel)
+        vel = vel.T
+        return vel[2]
+
+
+    registry.add_field((ptype, "particle_relative_velocity_z"),
+              function=_particle_relative_velocity_z,
+              particle_type=True, units="cm/s",
+              validators=[ValidateParameter("normal"),
+                          ValidateParameter("center")])
+
     def _particle_spherical_position_radius(field, data):
         """
         Radial component of the particles' position vectors in spherical coords
-        on the provided field parameters for 'normal', 'center', and 
+        on the provided field parameters for 'normal', 'center', 
         'bulk_velocity', 
         """
         normal = data.get_field_parameter('normal')
@@ -535,7 +732,7 @@ def standard_particle_fields(registry, ptype,
 
     registry.add_field((ptype, "particle_spherical_velocity_theta"),
               function=_particle_spherical_velocity_theta,
-              particle_type=True, units="/s",
+              particle_type=True, units="cm/s",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
@@ -585,8 +782,10 @@ def standard_particle_fields(registry, ptype,
 
     def _particle_cylindrical_radius(field, data):
         normal = data.get_field_parameter("normal")
-        coords = get_periodic_rvec(data)
-        return data.ds.arr(get_cyl_r(coords, normal),
+        center = data.get_field_parameter('center')
+        pos = YTArray([data[ptype, spos % ax] for ax in "xyz"])
+        pos = pos - np.reshape(center, (3, 1))
+        return data.ds.arr(get_cyl_r(pos, normal),
                            'code_length')
 
 
@@ -650,9 +849,12 @@ def standard_particle_fields(registry, ptype,
 
     def _particle_cylindrical_z(field,data):
         normal = data.get_field_parameter("normal")
-        coords = get_periodic_rvec(data)
-        return data.ds.arr(get_cyl_z(coords,normal),
-                          'code_length')
+        center = data.get_field_parameter('center')
+        pos = YTArray([data[ptype, spos % ax] for ax in "xyz"])
+        pos = pos - np.reshape(center, (3, 1))
+        return data.ds.arr(get_cyl_z(pos, normal),
+                           'code_length')
+
 
     registry.add_field((ptype, "particle_cylindrical_z"),
               function=_particle_cylindrical_z,
@@ -839,5 +1041,4 @@ def add_density_kernel(ptype, coord_name, mass_name, registry, nneighbors = 64):
                        particle_type = True,
                        units = "g/cm**3")
     return [field_name]
-
 
