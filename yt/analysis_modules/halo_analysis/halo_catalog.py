@@ -376,7 +376,7 @@ class HaloCatalog(ParallelAnalysisInterface):
             # Add all of the default quantities that all halos must have
             self.add_default_quantities('all')
 
-        my_index = np.argsort(self.data_source["particle_identifier"])
+        my_index = np.argsort(self.data_source["all", "particle_identifier"])
         for i in parallel_objects(my_index, njobs=njobs, dynamic=dynamic):
             new_halo = Halo(self)
             halo_filter = True
