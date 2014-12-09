@@ -32,8 +32,9 @@ from yt.units.yt_array import \
 
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"
-rho_units = "code_mass / code_length**3"
-vel_units = "code_length / code_time"
+rho_units = "code_density"
+vel_units = "code_velocity"
+pressure_units = "code_pressure"
 
 known_species_masses = dict(
   (sp, mh * v) for sp, v in [
@@ -70,7 +71,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("x-velocity", (vel_units, ["velocity_x"], None)),
         ("y-velocity", (vel_units, ["velocity_y"], None)),
         ("z-velocity", (vel_units, ["velocity_z"], None)),
-        ("Pressure", ("code_mass / (code_length * code_time**2)", ["pressure"], None)),
+        ("Pressure", (pressure_units, ["pressure"], None)),
         ("Metallicity", ("", ["metallicity"], None)),
     )
     known_particle_fields = (
