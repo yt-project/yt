@@ -64,7 +64,7 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
         if self.ds.no_cgs_equiv_length == False:
             return super(self, SpectralCubeCoordinateHandler
                     ).setup_fields(registry)
-        for axi, ax in enumerate('xyz'):
+        for axi, ax in enumerate(self.axis_name):
             f1, f2 = _get_coord_fields(axi)
             def _get_length_func():
                 def _length_func(field, data):
