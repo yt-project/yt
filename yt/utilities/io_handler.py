@@ -52,7 +52,7 @@ class BaseIOHandler(object):
     # and a function for *popping* from a queue all the appropriate sets
 
     @contextmanager
-    def preload(self, chunk, fields):
+    def preload(self, chunk, fields, max_size):
         yield self
 
     def pop(self, grid, field):

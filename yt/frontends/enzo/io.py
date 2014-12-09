@@ -14,6 +14,7 @@ Enzo-specific IO functions
 #-----------------------------------------------------------------------------
 
 import os
+import random
 from contextlib import contextmanager
 
 from yt.utilities.io_handler import \
@@ -146,6 +147,10 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     rv[(ftype, fname)] = gds.get(fname).value.swapaxes(0,2)
                 else:
                     rv[(ftype, fname)] = np.zeros(g.ActiveDimensions)
+            if self._cache_on:
+                for gid in rv:
+                    self._cached_fields.setdefault(gid, {})
+                    self._cached_fields[gid].update(rv[gid])
             f.close()
             return rv
         if size is None:
@@ -183,20 +188,24 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                         if fname == "Dark_Matter_Density": continue
                         raise
                     dg.read(h5py.h5s.ALL, h5py.h5s.ALL, data)
+                    if self._cache_on:
+                        self._cached_fields.setdefault(g.id, {})
+                        # Copy because it's a view into an empty temp array
+                        self._cached_fields[g.id][field] = data_view.copy()
                     nd = g.select(selector, data_view, rv[field], ind) # caches
                 ind += nd
             if fid: fid.close()
         return rv
 
     @contextmanager
-    def preload(self, chunk, fields, mn = None):
+    def preload(self, chunk, fields, max_size):
         if len(fields) == 0:
             yield self
             return
-        self.mn = mn
         old_cache_on = self._cache_on
         old_cached_fields = self._cached_fields
         self._cached_fields = cf = {}
+        self._cache_on = True
         for gid in old_cached_fields:
             # Will not copy numpy arrays, which is good!
             cf[gid] = old_cached_fields[gid].copy() 
@@ -210,6 +219,20 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             self._hits, self._misses)
         self._cached_fields = old_cached_fields
         self._cache_on = old_cache_on
+        # Randomly remove some grids from the cache.  Note that we're doing
+        # this on a grid basis, not a field basis.  Performance will be
+        # slightly non-deterministic as a result of this, but it should roughly
+        # be statistically alright, assuming (as we do) that this will get
+        # called during largely unbalanced stuff.
+        if len(self._cached_fields) > max_size:
+            to_remove = random.sample(self._cached_fields.keys(),
+                len(self._cached_fields) - max_size)
+            mylog.debug("Purging from cache %s", len(to_remove))
+            for k in to_remove:
+                self._cached_fields.pop(k)
+        else:
+            mylog.warning("Cache size % 10i (max % 10i)",
+                len(self._cached_fields), max_size)
 
     def _read_chunk_data(self, chunk, fields):
         fid = fn = None
@@ -255,6 +278,10 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 dg.read(h5py.h5s.ALL, h5py.h5s.ALL, data)
                 gf[field] = data_view.copy()
         if fid: fid.close()
+        if self._cache_on:
+            for gid in rv:
+                self._cached_fields.setdefault(gid, {})
+                self._cached_fields[gid].update(rv[gid])
         return rv
 
 class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):

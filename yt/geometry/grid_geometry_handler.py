@@ -345,5 +345,7 @@ class GridIndex(Index):
                 dc = YTDataChunk(dobj, "io", grids,
                         self._count_selection(dobj, grids),
                         cache = cache)
-                with self.io.preload(dc, preload_fields, fn):
+                # We allow four full chunks to be included.
+                with self.io.preload(dc, preload_fields, 
+                            4.0 * self._grid_chunksize):
                     yield dc
