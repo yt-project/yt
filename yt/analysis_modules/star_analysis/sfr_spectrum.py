@@ -47,9 +47,9 @@ class StarFormationRate(object):
         The comoving volume of the region for the specified list of stars.
     bins : Integer
         The number of time bins used for binning the stars. Default = 300.
-    filter : A user-defined filtering rule for stars. 
+    star_filter : A user-defined filtering rule for stars. 
         See: http://yt-project.org/docs/dev/analyzing/filtering.html
-        Default: particle_type == 7
+        Default: ct>0
     
     Examples
     --------
@@ -59,10 +59,10 @@ class StarFormationRate(object):
     >>> sfr = StarFormationRate(ds, sp)
     """
     def __init__(self, ds, data_source=None, star_mass=None,
-            star_creation_time=None, volume=None, bins=300,filter=None):
+            star_creation_time=None, volume=None, bins=300,star_filter=None):
         self._ds = ds
         self._data_source = data_source
-        self._filter = filter
+        self._filter = star_filter
         self.star_mass = np.array(star_mass)
         self.star_creation_time = np.array(star_creation_time)
         self.volume = volume
@@ -82,9 +82,7 @@ class StarFormationRate(object):
             self.mode = 'provided'
         else:
             self.mode = 'data_source'
-        if filter is None:
-            self.filter = 'type7'         
-        else:
+        if filter is not None:
             self.filter = 'provided'
         # Set up for time conversion.
         self.cosm = Cosmology(
@@ -105,16 +103,16 @@ class StarFormationRate(object):
         # Pick out the stars.
         if self.filter == 'provided':
           ct = self._filter['creation_time']
-          mass_stars = self._filter['particle_mass'].in_units('Msun')
+          mass_stars = self._data_source[self._filter, "particle_mass"] 
         else:
           if self.mode == 'data_source':
-            type = self._data_source['particle_type']
             ct = self._data_source['creation_time']
             if ct == None :
                 print 'data source must have particle_age!'
                 sys.exit(1)
-            ct_stars = ct[type==7]
-            mass_stars = self._data_source['particle_mass'][type==7].in_units('Msun')
+            #type = self._data_source['particle_type']
+            ct_stars = ct[ct>0]
+            mass_stars = self._data_source['particle_mass'][ct_stars].in_units('Msun')
           elif self.mode == 'provided':
             ct_stars = self.star_creation_time
             mass_stars = self.star_mass
@@ -186,7 +184,7 @@ class StarFormationRate(object):
         The columns in the output file are:
            1. Time (yrs)
            2. Look-back time (yrs)
-           3. Redshift
+           #3. Redshift
            4. Star formation rate in this bin per year (Msol/yr)
            5. Star formation rate in this bin per year per Mpc**3 (Msol/yr/Mpc**3)
            6. Stars formed in this time bin (Msol)
@@ -274,15 +272,12 @@ class SpectrumBuilder(object):
     >>> ds = load("RedshiftOutput0000")
     >>> spec = SpectrumBuilder(ds, "/home/user/bc/", model="salpeter")
     """
-    def __init__(self, ds, bcdir="", model="chabrier", time_now=None, filter = None):
+    def __init__(self, ds, bcdir="", model="chabrier", time_now=None, star_filter = None):
         self._ds = ds
         self.bcdir = bcdir
-        self._filter = filter
-        if filter is None:
-            self.filter = 'type7'         
-        else:
+        self._filter = star_filter
+        if star_filter is not None:
             self.filter = 'provided'
-        
         if model == "chabrier":
             self.model = CHABRIER
         elif model == "salpeter":
@@ -392,22 +387,23 @@ class SpectrumBuilder(object):
             # Get the data we need.
             if self.filter == 'provided':
              ct = self._filter['creation_time']
-             mass_stars = self._filter['particle_mass'].in_units('Msun')
+             mass_stars = self._data_source[self._filter, "particle_mass"] 
              if star_metallicity_constant is not None:
                 self.star_metal = np.ones(self.star_mass.size, dtype='float64') * \
                     star_metallicity_constant
              else:
-                self._filter["metallicity_fraction"].in_units('Zsun')
+                self.star_metal = self._data_source[self._filter, "metallicity_fraction"].in_units('Zsun')
             else:
               ct = self._data_source["creation_time"]
-              type = self._data_source['particle_type']
-              self.star_creation_time = ct[type==7]
-              self.star_mass = self._data_source['particle_mass'][type==7].in_units('Msun')
+              #type = self._data_source['particle_type']
+              self.star_creation_time = ct[ct>0]
+              ct_stars = ct[ct>0]
+              self.star_mass = self._data_source['particle_mass'][ct_stars].in_units('Msun')
               if star_metallicity_constant is not None:
                 self.star_metal = np.ones(self.star_mass.size, dtype='float64') * \
                     star_metallicity_constant
               else:
-                self.star_metal = self._data_source["metallicity_fraction"][type==7].in_units('Zsun')
+                self.star_metal = self._data_source["metallicity_fraction"][ct_stars].in_units('Zsun')
         # Age of star in years.
         dt = (self.time_now - self.star_creation_time).in_units('yr').tolist() 
         dt = np.maximum(dt, 0.0)
