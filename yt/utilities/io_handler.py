@@ -39,6 +39,8 @@ class BaseIOHandler(object):
     _dataset_type = None
     _particle_reader = False
     _cache_on = False
+    _misses = 0
+    _hits = 0
 
     def __init__(self, ds):
         self.queue = defaultdict(dict)
