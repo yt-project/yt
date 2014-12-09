@@ -14,6 +14,7 @@ Enzo-specific IO functions
 #-----------------------------------------------------------------------------
 
 import os
+from contextlib import contextmanager
 
 from yt.utilities.io_handler import \
     BaseIOHandler, _axis_ids
@@ -130,8 +131,17 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 raise RuntimeError
             g = chunks[0].objs[0]
             f = h5py.File(g.filename.encode('ascii'), 'r')
+            if g.id in self._cached_fields:
+                gf = self._cached_fields[g.id]
+                rv.update(gf)
+            if len(rv) == len(fields): return rv
             gds = f.get("/Grid%08i" % g.id)
-            for ftype, fname in fields:
+            for field in fields:
+                if field in rv:
+                    self._hits += 1
+                    continue
+                self._misses += 1
+                ftype, fname = field
                 if fname in gds:
                     rv[(ftype, fname)] = gds.get(fname).value.swapaxes(0,2)
                 else:
@@ -155,10 +165,16 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 if g.filename is None: continue
                 if fid is None:
                     fid = h5py.h5f.open(g.filename.encode('ascii'), h5py.h5f.ACC_RDONLY)
+                gf = self._cached_fields.get(g.id, {})
                 data = np.empty(g.ActiveDimensions[::-1], dtype="float64")
                 data_view = data.swapaxes(0,2)
                 nd = 0
                 for field in fields:
+                    if field in gf:
+                        nd = g.select(selector, gf[field], rv[field], ind)
+                        self._hits += 1
+                        continue
+                    self._misses += 1
                     ftype, fname = field
                     try:
                         node = "/Grid%08i/%s" % (g.id, fname)
@@ -171,6 +187,29 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 ind += nd
             if fid: fid.close()
         return rv
+
+    @contextmanager
+    def preload(self, chunk, fields, mn = None):
+        if len(fields) == 0:
+            yield self
+            return
+        self.mn = mn
+        old_cache_on = self._cache_on
+        old_cached_fields = self._cached_fields
+        self._cached_fields = cf = {}
+        for gid in old_cached_fields:
+            # Will not copy numpy arrays, which is good!
+            cf[gid] = old_cached_fields[gid].copy() 
+        self._hits = self._misses = 0
+        self._cached_fields = self._read_chunk_data(chunk, fields)
+        mylog.debug("(1st) Hits = % 10i Misses = % 10i",
+            self._hits, self._misses)
+        self._hits = self._misses = 0
+        yield self
+        mylog.debug("(2nd) Hits = % 10i Misses = % 10i",
+            self._hits, self._misses)
+        self._cached_fields = old_cached_fields
+        self._cache_on = old_cache_on
 
     def _read_chunk_data(self, chunk, fields):
         fid = fn = None
@@ -190,6 +229,8 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         if len(fluid_fields) == 0: return rv
         for g in chunk.objs:
             rv[g.id] = gf = {}
+            if g.id in self._cached_fields:
+                rv[g.id].update(self._cached_fields[g.id])
             if g.filename is None: continue
             elif g.filename != fn:
                 if fid is not None: fid.close()
@@ -200,6 +241,10 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             data = np.empty(g.ActiveDimensions[::-1], dtype="float64")
             data_view = data.swapaxes(0,2)
             for field in fluid_fields:
+                if field in gf:
+                    self._hits += 1
+                    continue
+                self._misses += 1
                 ftype, fname = field
                 try:
                     node = "/Grid%08i/%s" % (g.id, fname)
