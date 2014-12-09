@@ -1106,13 +1106,84 @@ class InteractiveCamera(Camera):
 data_object_registry["interactive_camera"] = InteractiveCamera
 
 class PerspectiveCamera(Camera):
+    r"""A viewpoint into a volume, for perspective volume rendering.
+
+    The camera represents the eye of an observer, which will be used to
+    generate ray-cast volume renderings of the domain. The rays start from
+    the camera and end on the image plane, which generates a perspective
+    view.
+
+    Parameters
+    ----------
+    center : array_like
+        The location of the camera
+    normal_vector : array_like
+        The vector from the camera position to the center of the image plane
+    width : float or list of floats
+        width[0] and width[1] give the width and height of the image plane, and
+        width[3] gives the depth of the image plane (distance between the camera
+        and the center of the image plane).
+        The view angles thus become:
+        2 * arctan(0.5 * width[0] / width[2]) in horizontal direction
+        2 * arctan(0.5 * width[1] / width[2]) in vertical direction
+    (The following parameters are identical with the definitions in Camera class)
+    resolution : int or list of ints
+        The number of pixels in each direction.
+    transfer_function : `yt.visualization.volume_rendering.TransferFunction`
+        The transfer function used to map values to colors in an image.  If
+        not specified, defaults to a ProjectionTransferFunction.
+    north_vector : array_like, optional
+        The 'up' direction for the plane of rays.  If not specific, calculated
+        automatically.
+    steady_north : bool, optional
+        Boolean to control whether to normalize the north_vector
+        by subtracting off the dot product of it and the normal
+        vector.  Makes it easier to do rotations along a single
+        axis.  If north_vector is specified, is switched to
+        True. Default: False
+    volume : `yt.extensions.volume_rendering.AMRKDTree`, optional
+        The volume to ray cast through.  Can be specified for finer-grained
+        control, but otherwise will be automatically generated.
+    fields : list of fields, optional
+        This is the list of fields we want to volume render; defaults to
+        Density.
+    log_fields : list of bool, optional
+        Whether we should take the log of the fields before supplying them to
+        the volume rendering mechanism.
+    sub_samples : int, optional
+        The number of samples to take inside every cell per ray.
+    ds : `~yt.data_objects.api.Dataset`
+        For now, this is a require parameter!  But in the future it will become
+        optional.  This is the dataset to volume render.
+    use_kd: bool, optional
+        Specifies whether or not to use a kd-Tree framework for
+        the Homogenized Volume and ray-casting.  Default to True.
+    max_level: int, optional
+        Specifies the maximum level to be rendered.  Also
+        specifies the maximum level used in the kd-Tree
+        construction.  Defaults to None (all levels), and only
+        applies if use_kd=True.
+    no_ghost: bool, optional
+        Optimization option.  If True, homogenized bricks will
+        extrapolate out from grid instead of interpolating from
+        ghost zones that have to first be calculated.  This can
+        lead to large speed improvements, but at a loss of
+        accuracy/smoothness in resulting image.  The effects are
+        less notable when the transfer function is smooth and
+        broad. Default: True
+    data_source: data container, optional
+        Optionally specify an arbitrary data source to the volume rendering.
+        All cells not included in the data source will be ignored during ray
+        casting. By default this will get set to ds.all_data().
+
+    """
     def __init__(self, *args, **kwargs):
         Camera.__init__(self, *args, **kwargs)
 
     def get_sampler_args(self, image):
-        east_vec = self.orienter.unit_vectors[0].reshape(3,1)
+        east_vec = -self.orienter.unit_vectors[0].reshape(3,1)
         north_vec = self.orienter.unit_vectors[1].reshape(3,1)
-        
+
         px = np.mat(np.linspace(-.5, .5, self.resolution[0]))
         py = np.mat(np.linspace(-.5, .5, self.resolution[1]))
 
