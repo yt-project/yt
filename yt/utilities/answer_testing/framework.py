@@ -504,7 +504,8 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
                               data_source = obj)
         frb = proj.to_frb((1.0, 'unitary'), 256)
         frb[self.field]
-        frb[self.weight_field]
+        if self.weight_field is not None:
+            frb[self.weight_field]
         d = frb.data
         for f in proj.field_data:
             # Sometimes f will be a tuple.
