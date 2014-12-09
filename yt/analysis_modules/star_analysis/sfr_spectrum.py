@@ -396,8 +396,8 @@ class SpectrumBuilder(object):
             else:
               ct = self._data_source["creation_time"]
               #type = self._data_source['particle_type']
-              self.star_creation_time = ct[ct>0]
               ct_stars = ct[ct>0]
+              self.star_creation_time = ct_stars
               self.star_mass = self._data_source['particle_mass'][ct_stars].in_units('Msun')
               if star_metallicity_constant is not None:
                 self.star_metal = np.ones(self.star_mass.size, dtype='float64') * \
