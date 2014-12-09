@@ -557,16 +557,6 @@ class LabelCallback(PlotCallback):
         plot._axes.set_xlabel(self.label)
         plot._axes.set_ylabel(self.label)
 
-def get_smallest_appropriate_unit(v, ds):
-    good_u = None
-    for unit in ['Mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
-        uq = YTQuantity(1.0, unit)
-        if uq < v:
-            good_u = unit
-            break
-    if good_u is None : good_u = 'cm'
-    return good_u
-
 class LinePlotCallback(PlotCallback):
     """
     annotate_line(x, y, plot_args = None)

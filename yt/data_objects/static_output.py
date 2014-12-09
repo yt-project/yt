@@ -252,13 +252,12 @@ class Dataset(object):
       for i in self.parameters: yield i
 
     def get_smallest_appropriate_unit(self, v):
-        max_nu = 1e30
         good_u = None
         for unit in ['Mpc', 'kpc', 'pc', 'au', 'rsun', 'km', 'cm']:
-            vv = v * self.length_unit.in_units(unit)
-            if vv < max_nu and vv > 1.0:
+            uq = self.quan(1.0, unit)
+            if uq < v:
                 good_u = unit
-                max_nu = v * self.length_unit.in_units(unit)
+                break
         if good_u is None : good_u = 'cm'
         return good_u
 

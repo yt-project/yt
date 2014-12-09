@@ -30,8 +30,7 @@ from .fixed_resolution import \
     FixedResolutionBuffer, \
     ObliqueFixedResolutionBuffer, \
     OffAxisProjectionFixedResolutionBuffer
-from .plot_modifications import get_smallest_appropriate_unit, \
-    callback_registry
+from .plot_modifications import callback_registry
 from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform, symlog_transform, \
@@ -691,8 +690,8 @@ class PWViewerMPL(PlotWindow):
             xc, yc = self._setup_origin()
 
             if self._axes_unit_names is None:
-                unit = get_smallest_appropriate_unit(
-                    self.xlim[1] - self.xlim[0], self.ds)
+                unit = self.ds.get_smallest_appropriate_unit(
+                    self.xlim[1] - self.xlim[0])
                 (unit_x, unit_y) = (unit, unit)
             else:
                 (unit_x, unit_y) = self._axes_unit_names
@@ -1647,7 +1646,7 @@ class PWViewerExtJS(PlotWindow):
         x_width = self.xlim[1] - self.xlim[0]
         y_width = self.ylim[1] - self.ylim[0]
         if self._axes_unit_names is None:
-            unit = get_smallest_appropriate_unit(x_width, self.ds)
+            unit = self.ds.get_smallest_appropriate_unit(x_width)
             unit = (unit, unit)
         else:
             unit = self._axes_unit_names

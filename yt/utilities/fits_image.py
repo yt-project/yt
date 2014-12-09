@@ -183,7 +183,7 @@ class FITSImageBuffer(HDUList):
         same *key*, *value* pair.
         """
         for img in self: img.header[key] = value
-            
+
     def keys(self):
         return [f.name.lower() for f in self]
 
@@ -251,7 +251,7 @@ class FITSImageBuffer(HDUList):
         self[field].data = new_data.v
         self[field].header["bunit"] = units
         self.field_units[field] = units
-        
+
 axis_wcs = [[1,2],[0,2],[0,1]]
 
 def create_sky_wcs(old_wcs, sky_center, sky_scale,
@@ -341,10 +341,12 @@ def construct_image(data_source, center=None, width=None, image_res=None):
         crval = ds.wcs.wcs_pix2world(ctr_pix.reshape(1,self.dimensionality))[0]
         crval = [crval[idx] for idx in axis_wcs[axis]]
     else:
-        # This is some other kind of dataset                                                                                    
+        # This is some other kind of dataset                                                                      
         unit = str(width[0].units)
         if unit == "unitary":
             unit = ds.get_smallest_appropriate_unit(ds.domain_width.max())
+        elif unit == "code_length":
+            unit = ds.get_smallest_appropriate_unit(ds.quan(1.0,"code_length"))
         unit = sanitize_fits_unit(unit)
         cunit = [unit]*2
         ctype = ["LINEAR"]*2
