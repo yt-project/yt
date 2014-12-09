@@ -491,7 +491,7 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
         super(PixelizedProjectionValuesTest, self).__init__(ds_fn)
         self.axis = axis
         self.field = field
-        self.weight_field = field
+        self.weight_field = weight_field
         self.obj_type = obj_type
 
     def run(self):
