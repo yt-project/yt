@@ -1121,7 +1121,7 @@ class PerspectiveCamera(Camera):
         The vector from the camera position to the center of the image plane
     width : float or list of floats
         width[0] and width[1] give the width and height of the image plane, and
-        width[3] gives the depth of the image plane (distance between the camera
+        width[2] gives the depth of the image plane (distance between the camera
         and the center of the image plane).
         The view angles thus become:
         2 * arctan(0.5 * width[0] / width[2]) in horizontal direction
