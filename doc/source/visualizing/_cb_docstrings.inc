@@ -201,7 +201,7 @@ Overplot a Straight Line
    :class:`~yt.visualization.plot_modifications.ImageLineCallback`.)
 
    Plot from ``p1`` to ``p2`` (normalized image plane coordinates) with
-  ``plot_args`` fed into the plot.
+   ``plot_args`` fed into the plot.
 
 .. python-script::
 

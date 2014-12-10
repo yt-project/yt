@@ -573,7 +573,9 @@ Gadget Data
 yt has support for reading Gadget data in both raw binary and HDF5 formats.  It
 is able to access the particles as it would any other particle dataset, and it
 can apply smoothing kernels to the data to produce both quantitative analysis
-and visualization. See :ref:`loading-sph-data` for more details.
+and visualization. See :ref:`loading-sph-data` for more details and
+:ref:`gadget-notebook` for a detailed example of loading, analyzing, and
+visualizing a Gadget dataset.
 
 Gadget data in HDF5 format can be loaded with the ``load`` command:
 
@@ -1025,8 +1027,6 @@ smoothing length do not typically see each other in SPH simulations.  By
 changing the value of the ``smoothing_length`` and then re-depositing particles
 onto the grid, you can also effectively mimic what your data would look like at
 lower resolution.
-
-See :ref:`gadget-notebook` for an example.
 
 .. _loading-tipsy-data:
 
