@@ -271,5 +271,6 @@ for frontend in current_frontends:
                                   dp=f.dname, dw=len_disp)
                 
             print div
+            print ""
 
 print footer

@@ -13,7 +13,8 @@ Code to export from yt to RadMC3D
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.mods import *
+import yt
+import numpy as np
 from yt.utilities.lib.write_array import \
     write_3D_array, write_3D_vector_array
 
@@ -86,40 +87,42 @@ class RadMC3DWriter:
     file "dust_density.inp" in a form readable by radmc3d. It will also write
     a "dust_temperature.inp" file with everything set to 10.0 K: 
 
-    >>> from yt.mods import *
-    >>> from yt.analysis_modules.radmc3d_export.api import *
+    >>> import yt
+    >>> from yt.analysis_modules.radmc3d_export.api import RadMC3DWriter
 
     >>> dust_to_gas = 0.01
     >>> def _DustDensity(field, data):
     ...     return dust_to_gas*data["Density"]
-    >>> add_field("DustDensity", function=_DustDensity)
+    >>> yt.add_field("DustDensity", function=_DustDensity)
 
     >>> def _DustTemperature(field, data):
     ...     return 10.0*data["Ones"]
-    >>> add_field("DustTemperature", function=_DustTemperature)
+    >>> yt.add_field("DustTemperature", function=_DustTemperature)
     
-    >>> ds = load("galaxy0030/galaxy0030")
+    >>> ds = yt.load("galaxy0030/galaxy0030")
     >>> writer = RadMC3DWriter(ds)
     
     >>> writer.write_amr_grid()
     >>> writer.write_dust_file("DustDensity", "dust_density.inp")
     >>> writer.write_dust_file("DustTemperature", "dust_temperature.inp")
 
-    This will create a field called "NumberDensityCO" and write it out to
+    ---
+
+    This example will create a field called "NumberDensityCO" and write it out to
     the file "numberdens_co.inp". It will also write out information about
     the gas velocity to "gas_velocity.inp" so that this broadening may be
     included in the radiative transfer calculation by radmc3d:
 
-    >>> from yt.mods import *
-    >>> from yt.analysis_modules.radmc3d_export.api import *
+    >>> import yt
+    >>> from yt.analysis_modules.radmc3d_export.api import RadMC3DWriter
 
     >>> x_co = 1.0e-4
     >>> mu_h = 2.34e-24
     >>> def _NumberDensityCO(field, data):
     ...     return (x_co/mu_h)*data["Density"]
-    >>> add_field("NumberDensityCO", function=_NumberDensityCO)
+    >>> yt.add_field("NumberDensityCO", function=_NumberDensityCO)
     
-    >>> ds = load("galaxy0030/galaxy0030")
+    >>> ds = yt.load("galaxy0030/galaxy0030")
     >>> writer = RadMC3DWriter(ds)
     
     >>> writer.write_amr_grid()
@@ -183,8 +186,8 @@ class RadMC3DWriter:
         RE   = self.domain_right_edge
 
         # Radmc3D wants the cell wall positions in cgs. Convert here:
-        LE_cgs = LE * self.ds.units['cm']
-        RE_cgs = RE * self.ds.units['cm']
+        LE_cgs = LE.in_units('cm')
+        RE_cgs = RE.in_units('cm')
 
         # calculate cell wall positions
         xs = [str(x) for x in np.linspace(LE_cgs[0], RE_cgs[0], dims[0]+1)]
