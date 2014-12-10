@@ -11,9 +11,6 @@ yt supports :ref:`many different code formats <code-support>`, and we provide
 :ref:`sample data for each format <getting-sample-data>` with 
 :ref:`instructions on how to load and examine each data type <examining-data>`.
 
-If you're coming to yt 3.0 from previous versions of yt, be sure to
-check out :ref:`yt3differences`.
-
 Table of Contents
 -----------------
 
