@@ -16,7 +16,7 @@ Table of Contents
 
 .. raw:: html
 
-   <table class="contentstable" align="center">
+   <table class="contentstable" align="left">
 
      <tr valign="top">
        <td width="25%">
