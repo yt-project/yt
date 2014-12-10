@@ -127,13 +127,14 @@ the optional argument: ``origin="native"``
 If supplied without units, the center is assumed by in code units.  There are also
 the following alternative options for the `center` keyword:
 
-* `"center"`, "c"`: the domain center
-* `"max"`, `"m"`: the position of the maximum density
-* `("min", field)`: the position of the minimum of `field`
-* `("max", field)`: the position of the maximum of `field`
+* ``"center"``, ``"c"``: the domain center
+* ``"max"``, ``"m"``: the position of the maximum density
+* ``("min", field)``: the position of the minimum of ``field``
+* ``("max", field)``: the position of the maximum of ``field``
 
-where for the last two objects any spatial field, such as `"density"`, `"velocity_z"`,
-etc., may be used, e.g. `center=("min","temperature")`
+where for the last two objects any spatial field, such as ``"density"``,
+``"velocity_z"``,
+etc., may be used, e.g. ``center=("min","temperature")``.
 
 Here is an example that combines all of the options we just discussed.
 
