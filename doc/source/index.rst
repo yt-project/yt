@@ -111,7 +111,7 @@ Table of Contents
      <tr valign="top">
        <td width="25%">
          <p>
-           <a href="faq.html">Frequently Asked Questions</a>
+           <a href="faq/index.html">Frequently Asked Questions</a>
          </p>
        </td>
        <td width="75%">
