@@ -159,8 +159,8 @@ class PlotWindow(ImagePlotContainer):
 
     Parameters
     ----------
-    data_source : :class:`yt.data_objects.data_containers.YTProjBase` or
-                  :class:`yt.data_objects.data_containers.YTSliceBase`
+
+    data_source : :class:`yt.data_objects.data_containers.YTProjBase` or :class:`yt.data_objects.data_containers.YTSliceBase`
         This is the source to be pixelized, which can be a projection or a
         slice.  (For cutting planes, see
         `yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`.)
