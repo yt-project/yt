@@ -215,14 +215,13 @@ cdef class RockstarGroupiesInterface:
         global OUTPUT_FORMAT, EXTRA_PROFILING
         global STRICT_SO_MASSES, EXACT_LL_CALC
         global LIGHTCONE, LIGHTCONE_ORIGIN
-        global PARALLEL_IO, TEMPORAL_HALO_FINDING
-        global FOF_FRACTION
-        global UNBOUND_THRESHOLD
 
         if force_res is not None:
             FORCE_RES=np.float64(force_res)
 
         OVERLAP_LENGTH = 0.0
+        
+        global UNBOUND_THRESHOLD
         if unbound_threshold is not None:
             UNBOUND_THRESHOLD = unbound_threshold
         
