@@ -221,6 +221,10 @@ cdef class RockstarGroupiesInterface:
 
         OVERLAP_LENGTH = 0.0
         
+        # Set to 0.0 if you plan on calculating spherical overdensity masses.
+        # Otherwise filtering of halos in rockstar meta_io.c _should_print
+        # will filter the wrong halos when halo mass is re-calculated before
+        # output_halos
         global UNBOUND_THRESHOLD
         if unbound_threshold is not None:
             UNBOUND_THRESHOLD = unbound_threshold
@@ -279,7 +283,29 @@ cdef class RockstarGroupiesInterface:
     def assign_masses(self, h, np.ndarray[np.float32_t, ndim=1] r, float force_res, \
                       double pmass, np.ndarray[np.float64_t, ndim=1] dens_thresh,
                       early_termination=False):
-        """Assign spherical overdensity masses to halos.  r must be sorted"""
+        """
+        Assign spherical overdensity masses to halos.  r must be sorted
+
+        Parameters
+        ----------
+        h: struct haloflat
+            Assign masses to this halo
+        r: np.ndarray
+            Sorted array of particle radii
+        force_res: float
+            Force resolution, below which density is smoothed.
+        dens_thresh: np.ndarray
+            Thresholds for spherical overdensity mass calculation
+        early_termination: bool
+            Specifies whether or not to terminate mass calculation when
+            first particle density is below the lowest density threshold.
+            If False, may lead to overestimate of SO masses for subhalos,
+            but gives a better comparison to plain rockstar masses with
+            STRICT_SO=1. Default: False
+        Returns
+        -------
+        None
+        """
         cdef double total_mass = 0.0
         cdef double m = 0.0
         cdef double alt_m1 = 0.0
