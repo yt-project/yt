@@ -713,6 +713,7 @@ Function List
    ~yt.funcs.rootonly
    ~yt.funcs.time_execution
    ~yt.analysis_modules.level_sets.contour_finder.identify_contours
+   ~yt.utilities.parallel_tools.parallel_analysis_interface.enable_parallelism
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_blocking_call
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_objects
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_passthrough
