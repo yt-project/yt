@@ -263,6 +263,21 @@ or for a more legible version, try:
 
    for field in ds.derived_field_list: 
        print field
+
+Developing
+----------
+
+.. _making-a-PR:
+
+Someone asked me to make a Pull Request (PR) to yt.  How do I do that?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A pull request is the action by which you contribute code to yt.  You make
+modifications in your local copy of the source code, then *request* that
+other yt developers review and accept your changes to the main code base.
+For a full description of the steps necessary to successfully contribute
+code and issue a pull request (or manage multiple versions of the source code)
+please see :ref:`sharing-changes`.
     
 Miscellaneous
 -------------
