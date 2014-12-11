@@ -9,10 +9,13 @@ Frequently Asked Questions
    :local:
    :backlinks: none
 
+Version & Installation
+----------------------
+
 .. _determining-version:
 
 How can I tell what version of yt I'm using?
---------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you run into problems with yt and you're writing to the mailing list
 or contacting developers on IRC, they will likely want to know what version of
@@ -45,30 +48,10 @@ To reveal this, go to a command line and type:
 If the changeset is displayed followed by a "+", it means you have made 
 modifications to the code since the last changeset.
 
-.. _getting-sample-data:
-
-How can I get some sample data for yt?
---------------------------------------
-
-Many different sample datasets can be found at http://yt-project.org/data/ .
-These can be downloaded, unarchived, and they will each create their own
-directory.  It is generally straight forward to load these datasets, but if
-you have any questions about loading data from a code with which you are 
-unfamiliar, please visit :ref:`loading-data`.
-
-To make things easier to load these sample datasets, you can add the parent
-directory to your downloaded sample data to your *yt path*.
-If you set the option ``test_data_dir``, in the section ``[yt]``,
-in ``~/.yt/config``, yt will search this path for them.
-
-This means you can download these datasets to ``/big_drive/data_for_yt`` , add
-the appropriate item to ``~/.yt/config``, and no matter which directory you are
-in when running yt, it will also check in *that* directory.
-
 .. _yt-3.0-problems:
 
 I upgraded to yt 3.0 but my code no longer works.  What do I do?
-----------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Because there are a lot of backwards-incompatible changes in yt 3.0 (see 
 :ref:`yt3differences`, it can
@@ -78,124 +61,21 @@ in :ref:`transitioning-to-3.0`.  If you just want to change back to yt 2.x
 for a while until you're ready to make the transition, you can follow
 the instructions in :ref:`switching-between-yt-versions`.
 
-.. _conversion-factors:
+Code Errors and Failures
+------------------------
 
-How do I get get the conversion factors between code units and X units for my dataset?
---------------------------------------------------------------------------------------
+yt fails saying that it cannot import yt modules
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Conversion factors are easy to get in the new yt-3.0 unit system.
-
-.. code-block:: python
-
-    print "Length unit: ", ds.length_unit
-    print "Time unit: ", ds.time_unit
-    print "Mass unit: ", ds.mass_unit
-    print "Velocity unit: ", ds.velocity_unit
-
-Or you can get this in whatever arbitrary unit you want:
-
-.. code-block:: python
-
-    print "Length unit: ", ds.length_unit.in_units('code_length')
-    print "Time unit: ", ds.time_unit.in_units('code_time')
-    print "Mass unit: ", ds.mass_unit.in_units('kg')
-    print "Velocity unit: ", ds.velocity_unit.in_units('Mpc/year')
-
-If you want to create a variable or array that is tied to a particular dataset
-(and its specific conversion factor to code units), use the ``ds.quan`` (for 
-variable quantities) and ``ds.arr`` (for variable arrays):
-
-.. code-block:: python
-
-    import yt
-    ds = yt.load(filename)
-    mpc = ds.quan(1, 'Mpc')
-    code_unit = ds.quan(1, 'code_length')
-    three_cm = ds.arr([1,1,1], 'cm')
-    
-.. _faq-scroll-up:
-
-I can't scroll-up to previous commands inside python
-----------------------------------------------------
-
-If the up-arrow key does not recall the most recent commands, there is
-probably an issue with the readline library. To ensure the yt python
-environment can use readline, run the following command:
+This is likely because you need to rebuild the source.  You can do 
+this automatically by running:
 
 .. code-block:: bash
 
-   $ ~/yt/bin/pip install gnureadline
+    cd $YT_HG
+    python setup.py develop
 
-.. _faq-new-field:
-
-How do I modify whether or not yt takes the log of a particular field?
-----------------------------------------------------------------------
-
-yt sets up defaults for many fields for whether or not a field is presented
-in log or linear space. To override this behavior, you can modify the
-``field_info`` dictionary.  For example, if you prefer that ``density`` not be
-logged, you could type:
-
-.. code-block:: python
-    
-    ds = load("my_data")
-    ds.index
-    ds.field_info['density'].take_log = False
-
-From that point forward, data products such as slices, projections, etc., would
-be presented in linear space. Note that you have to instantiate ds.index before 
-you can access ds.field info.
-
-.. _faq-handling-log-vs-linear-space:
-
-I added a new field to my simulation data, can yt see it?
--------------------------------------------------------------
-
-Yes! yt identifies all the fields in the simulation's output file
-and will add them to its ``field_list`` even if they aren't listed in
-:ref:`field-list`. These can then be accessed in the usual manner. For
-example, if you have created a field for the potential called
-``PotentialField``, you could type:
-
-.. code-block:: python
-
-   ds = load("my_data")
-   ad = ds.all_data()
-   potential_field = ad["PotentialField"]
-
-The same applies to fields you might derive inside your yt script
-via :ref:`creating-derived-fields`. To check what fields are
-available, look at the properties ``field_list`` and ``derived_field_list``:
-
-.. code-block:: python
-
-   print ds.field_list
-   print ds.derived_field_list
-
-or for a more legible version, try:
-
-.. code-block:: python
-
-   for field in ds.derived_field_list: 
-       print field
-
-.. _faq-old-data:
-
-yt seems to be plotting from old data
---------------------------------------
-
-yt does check the time stamp of the simulation so that if you
-overwrite your data outputs, the new set will be read in fresh by
-yt. However, if you have problems or the yt output seems to be
-in someway corrupted, try deleting the ``.yt`` and
-``.harray`` files from inside your data directory. If this proves to
-be a persistent problem add the line:
-
-.. code-block:: python
-
-   from yt.config import ytcfg; ytcfg["yt","serialize"] = "False"
-
-to the very top of your yt script. 
+where ``$YT_HG`` is the path to the yt mercurial repository.
 
 .. _faq-mpi4py:
 
@@ -241,7 +121,7 @@ values corresponding to different log levels are:
 +----------+---------------+
 
 yt complains that it needs the mpi4py module
---------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 For yt to be able to incorporate parallelism on any of its analysis (see 
 :ref:`parallel-computation`), it needs to be able to use MPI libraries.  
@@ -289,23 +169,160 @@ compilers in the mpi.cfg file.  See the
 `mpi4py installation page <http://mpi4py.scipy.org/docs/usrman/install.html>`_ 
 for details.
 
-yt fails saying that it cannot import yt modules
-------------------------------------------------
 
-This is likely because you need to rebuild the source.  You can do 
-this automatically by running:
+Units
+-----
+
+.. _conversion-factors:
+
+How do I get get the conversion factors between code units and X units for my dataset?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Conversion factors are easy to get in the new yt-3.0 unit system.
+
+.. code-block:: python
+
+    print "Length unit: ", ds.length_unit
+    print "Time unit: ", ds.time_unit
+    print "Mass unit: ", ds.mass_unit
+    print "Velocity unit: ", ds.velocity_unit
+
+Or you can get this in whatever arbitrary unit you want:
+
+.. code-block:: python
+
+    print "Length unit: ", ds.length_unit.in_units('code_length')
+    print "Time unit: ", ds.time_unit.in_units('code_time')
+    print "Mass unit: ", ds.mass_unit.in_units('kg')
+    print "Velocity unit: ", ds.velocity_unit.in_units('Mpc/year')
+
+If you want to create a variable or array that is tied to a particular dataset
+(and its specific conversion factor to code units), use the ``ds.quan`` (for 
+variable quantities) and ``ds.arr`` (for variable arrays):
+
+.. code-block:: python
+
+    import yt
+    ds = yt.load(filename)
+    mpc = ds.quan(1, 'Mpc')
+    code_unit = ds.quan(1, 'code_length')
+    three_cm = ds.arr([1,1,1], 'cm')
+
+Fields
+------
+
+.. _faq-new-field:
+
+How do I modify whether or not yt takes the log of a particular field?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+yt sets up defaults for many fields for whether or not a field is presented
+in log or linear space. To override this behavior, you can modify the
+``field_info`` dictionary.  For example, if you prefer that ``density`` not be
+logged, you could type:
+
+.. code-block:: python
+    
+    ds = load("my_data")
+    ds.index
+    ds.field_info['density'].take_log = False
+
+From that point forward, data products such as slices, projections, etc., would
+be presented in linear space. Note that you have to instantiate ds.index before 
+you can access ds.field info.
+
+.. _faq-handling-log-vs-linear-space:
+
+I added a new field to my simulation data, can yt see it?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Yes! yt identifies all the fields in the simulation's output file
+and will add them to its ``field_list`` even if they aren't listed in
+:ref:`field-list`. These can then be accessed in the usual manner. For
+example, if you have created a field for the potential called
+``PotentialField``, you could type:
+
+.. code-block:: python
+
+   ds = load("my_data")
+   ad = ds.all_data()
+   potential_field = ad["PotentialField"]
+
+The same applies to fields you might derive inside your yt script
+via :ref:`creating-derived-fields`. To check what fields are
+available, look at the properties ``field_list`` and ``derived_field_list``:
+
+.. code-block:: python
+
+   print ds.field_list
+   print ds.derived_field_list
+
+or for a more legible version, try:
+
+.. code-block:: python
+
+   for field in ds.derived_field_list: 
+       print field
+    
+Miscellaneous
+-------------
+
+.. _getting-sample-data:
+
+How can I get some sample data for yt?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Many different sample datasets can be found at http://yt-project.org/data/ .
+These can be downloaded, unarchived, and they will each create their own
+directory.  It is generally straight forward to load these datasets, but if
+you have any questions about loading data from a code with which you are 
+unfamiliar, please visit :ref:`loading-data`.
+
+To make things easier to load these sample datasets, you can add the parent
+directory to your downloaded sample data to your *yt path*.
+If you set the option ``test_data_dir``, in the section ``[yt]``,
+in ``~/.yt/config``, yt will search this path for them.
+
+This means you can download these datasets to ``/big_drive/data_for_yt`` , add
+the appropriate item to ``~/.yt/config``, and no matter which directory you are
+in when running yt, it will also check in *that* directory.
+
+
+.. _faq-scroll-up:
+
+I can't scroll-up to previous commands inside python
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If the up-arrow key does not recall the most recent commands, there is
+probably an issue with the readline library. To ensure the yt python
+environment can use readline, run the following command:
 
 .. code-block:: bash
 
-    cd $YT_HG
-    python setup.py develop
+   $ ~/yt/bin/pip install gnureadline
 
-where ``$YT_HG`` is the path to the yt mercurial repository.
+.. _faq-old-data:
+
+yt seems to be plotting from old data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+yt does check the time stamp of the simulation so that if you
+overwrite your data outputs, the new set will be read in fresh by
+yt. However, if you have problems or the yt output seems to be
+in someway corrupted, try deleting the ``.yt`` and
+``.harray`` files from inside your data directory. If this proves to
+be a persistent problem add the line:
+
+.. code-block:: python
+
+   from yt.config import ytcfg; ytcfg["yt","serialize"] = "False"
+
+to the very top of your yt script. 
 
 .. _plugin-file:
 
 What is the "Plugin File"?
---------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The plugin file is a means of modifying the available fields, quantities, data
 objects and so on without modifying the source code of yt.  The plugin file
@@ -371,7 +388,7 @@ And because we have imported from ``yt.mods`` we have access to the
 ``load_run`` function defined in our plugin file.
 
 How do I cite yt?
------------------
+^^^^^^^^^^^^^^^^^
 
 If you use yt in a publication, we'd very much appreciate a citation!  You
 should feel free to cite the `ApJS paper
