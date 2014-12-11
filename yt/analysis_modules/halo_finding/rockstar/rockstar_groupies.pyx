@@ -206,7 +206,7 @@ cdef class RockstarGroupiesInterface:
                        int min_halo_size = 25, outbase = "None",
                        write_config = False,  exact_ll_calc = False,
                        lightcone = False, lightcone_origin = [0,0,0],
-                       callbacks = None):
+                       callbacks = None, unbound_threshold=None):
         global FILENAME, FILE_FORMAT, NUM_SNAPS, STARTING_SNAP, h0, Ol, Om
         global BOX_SIZE, PERIODIC, PARTICLE_MASS, NUM_BLOCKS, NUM_READERS
         global FORK_READERS_FROM_WRITERS, PARALLEL_IO_WRITER_PORT, NUM_WRITERS
@@ -215,11 +215,16 @@ cdef class RockstarGroupiesInterface:
         global OUTPUT_FORMAT, EXTRA_PROFILING
         global STRICT_SO_MASSES, EXACT_LL_CALC
         global LIGHTCONE, LIGHTCONE_ORIGIN
+        global PARALLEL_IO, TEMPORAL_HALO_FINDING
+        global FOF_FRACTION
+        global UNBOUND_THRESHOLD
 
         if force_res is not None:
             FORCE_RES=np.float64(force_res)
 
         OVERLAP_LENGTH = 0.0
+        if unbound_threshold is not None:
+            UNBOUND_THRESHOLD = unbound_threshold
         
         FILENAME = "inline.<block>"
         FILE_FORMAT = "GENERIC"
@@ -273,7 +278,8 @@ cdef class RockstarGroupiesInterface:
         return d
 
     def assign_masses(self, h, np.ndarray[np.float32_t, ndim=1] r, float force_res, \
-                      double pmass, np.ndarray[np.float64_t, ndim=1] dens_thresh):
+                      double pmass, np.ndarray[np.float64_t, ndim=1] dens_thresh,
+                      early_termination=False):
         """Assign spherical overdensity masses to halos.  r must be sorted"""
         cdef double total_mass = 0.0
         cdef double m = 0.0
@@ -283,6 +289,8 @@ cdef class RockstarGroupiesInterface:
         cdef double alt_m4 = 0.0
         cdef double rr
         cdef double cur_dens
+        cdef int min_ind = np.argmin(dens_thresh)
+        cdef int eterm = early_termination
         for rr in r:
             if rr < force_res: rr = force_res
             total_mass += pmass
@@ -292,7 +300,7 @@ cdef class RockstarGroupiesInterface:
             if cur_dens > dens_thresh[2]: alt_m2 = total_mass
             if cur_dens > dens_thresh[3]: alt_m3 = total_mass
             if cur_dens > dens_thresh[4]: alt_m4 = total_mass
-            if cur_dens <= dens_thresh[1]:
+            if eterm and cur_dens <= dens_thresh[min_ind]:
                 break
         h['m'] = m
         h['alt_m1'] = alt_m1
