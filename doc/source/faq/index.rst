@@ -65,6 +65,54 @@ This means you can download these datasets to ``/big_drive/data_for_yt`` , add
 the appropriate item to ``~/.yt/config``, and no matter which directory you are
 in when running yt, it will also check in *that* directory.
 
+.. _yt-3.0-problems:
+
+I upgraded to yt 3.0 but my code no longer works.  What do I do?
+----------------------------------------------------------------
+
+Because there are a lot of backwards-incompatible changes in yt 3.0 (see 
+:ref:`yt3differences`, it can
+be a daunting effort in transitioning old scripts from yt 2.x to 3.0.
+We have tried to describe the basic process of making that transition
+in :ref:`transitioning-to-3.0`.  If you just want to change back to yt 2.x
+for a while until you're ready to make the transition, you can follow
+the instructions in :ref:`switching-between-yt-versions`.
+
+.. _conversion-factors:
+
+How do I get get the conversion factors between code units and X units for my dataset?
+--------------------------------------------------------------------------------------
+
+Conversion factors are easy to get in the new yt-3.0 unit system.
+
+.. code-block:: python
+
+    print "Length unit: ", ds.length_unit
+    print "Time unit: ", ds.time_unit
+    print "Mass unit: ", ds.mass_unit
+    print "Velocity unit: ", ds.velocity_unit
+
+Or you can get this in whatever arbitrary unit you want:
+
+.. code-block:: python
+
+    print "Length unit: ", ds.length_unit.in_units('code_length')
+    print "Time unit: ", ds.time_unit.in_units('code_time')
+    print "Mass unit: ", ds.mass_unit.in_units('kg')
+    print "Velocity unit: ", ds.velocity_unit.in_units('Mpc/year')
+
+If you want to create a variable or array that is tied to a particular dataset
+(and its specific conversion factor to code units), use the ``ds.quan`` (for 
+variable quantities) and ``ds.arr`` (for variable arrays):
+
+.. code-block:: python
+
+    import yt
+    ds = yt.load(filename)
+    mpc = ds.quan(1, 'Mpc')
+    code_unit = ds.quan(1, 'code_length')
+    three_cm = ds.arr([1,1,1], 'cm')
+    
 .. _faq-scroll-up:
 
 I can't scroll-up to previous commands inside python
