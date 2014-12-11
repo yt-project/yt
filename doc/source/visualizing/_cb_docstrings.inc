@@ -58,8 +58,9 @@ Clump Finder Callback
 Overplot Contours
 ~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_contour(self, field, ncont=5, factor=4, take_log=False,
-                               clim=None, plot_args=None):
+.. function:: annotate_contour(self, field, ncont=5, factor=4, take_log=False,\
+                               clim=None, plot_args=None, label=False, \
+                               label_args=None, data_source=None):
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ContourCallback`.)
@@ -128,14 +129,16 @@ Off-axis Data Sources
 Overplot grids
 ~~~~~~~~~~~~~~
 
-.. function:: annotate_grids(self, alpha=1.0, min_pix=1, annotate=False, \
-                             periodic=True):
+.. function:: annotate_grids(self, alpha=0.7, min_pix=1, min_pix_ids=20, 
+                             draw_ids=False, periodic=True, min_level=None, 
+                             max_level=None, cmap='B-W Linear_r', 
+                             edgecolors=None, linewidth=1.0):
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.GridBoundaryCallback`.)
 
    Adds grid boundaries to a plot, optionally with alpha-blending via the
-   ``alpha`` keyword. Cuttoff for display is at ``min_pix`` wide. ``annotate``
+   ``alpha`` keyword. Cuttoff for display is at ``min_pix`` wide. ``draw_ids``
    puts the grid id in the corner of the grid.  (Not so great in projections...)
 
 .. python-script::
@@ -198,7 +201,7 @@ Overplot a Straight Line
    :class:`~yt.visualization.plot_modifications.ImageLineCallback`.)
 
    Plot from ``p1`` to ``p2`` (normalized image plane coordinates) with
-  ``plot_args`` fed into the plot.
+   ``plot_args`` fed into the plot.
 
 .. python-script::
 
@@ -282,7 +285,8 @@ Overplotting Particle Positions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_particles(self, width, p_size=1.0, col='k', marker='o', \
-                                 stride=1.0, ptype=None, minimum_mass=None):
+                                 stride=1.0, ptype=None, minimum_mass=None, \
+                                 alpha=1.0):
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ParticleCallback`.)
@@ -345,10 +349,8 @@ Overplot a circle on a plot
 Overplot streamlines
 ~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_streamlines(self, field_x, field_y, factor=6.0, nx=16, \
-                                   ny=16, xstart=(0, 1), ystart=(0, 1), \
-                                   nsample=256, start_at_xedge=False, \
-                                   start_at_yedge=False, plot_args=None):
+.. function:: annotate_streamlines(self, field_x, field_y, factor=16, \
+                                   density = 1, plot_args=None):
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.StreamlineCallback`.)

@@ -16,10 +16,10 @@ Christopher Moody.  Please contact the ``yt-dev`` mailing list if you are
 interested in using yt for ART data, or if you are interested in assisting with
 development of yt to work with ART data.
 
-To load an ART dataset you can use the ``yt.load`` command and provide it
- the gas mesh file. It will search for and attempt 
-to find the complementary dark matter and stellar particle header and data 
-files. However, your simulations may not follow the same naming convention.
+To load an ART dataset you can use the ``yt.load`` command and provide it the
+gas mesh file. It will search for and attempt to find the complementary dark
+matter and stellar particle header and data files. However, your simulations may
+not follow the same naming convention.
 
 So for example, a single snapshot might have a series of files looking like
 this:
@@ -573,7 +573,9 @@ Gadget Data
 yt has support for reading Gadget data in both raw binary and HDF5 formats.  It
 is able to access the particles as it would any other particle dataset, and it
 can apply smoothing kernels to the data to produce both quantitative analysis
-and visualization. See :ref:`loading-sph-data` for more details.
+and visualization. See :ref:`loading-sph-data` for more details and
+:ref:`gadget-notebook` for a detailed example of loading, analyzing, and
+visualizing a Gadget dataset.
 
 Gadget data in HDF5 format can be loaded with the ``load`` command:
 
@@ -1025,8 +1027,6 @@ smoothing length do not typically see each other in SPH simulations.  By
 changing the value of the ``smoothing_length`` and then re-depositing particles
 onto the grid, you can also effectively mimic what your data would look like at
 lower resolution.
-
-See :ref:`gadget-notebook` for an example.
 
 .. _loading-tipsy-data:
 
