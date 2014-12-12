@@ -13,10 +13,10 @@ Code to export from yt to RadMC3D
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import yt
 import numpy as np
 from yt.utilities.lib.write_array import \
     write_3D_array, write_3D_vector_array
+
 
 class RadMC3DLayer:
     '''
@@ -24,7 +24,7 @@ class RadMC3DLayer:
     This class represents an AMR "layer" of the style described in
     the radmc3d manual. Unlike yt grids, layers may not have more
     than one parent, so level L grids will need to be split up
-    if they straddle two or more level L - 1 grids. 
+    if they straddle two or more level L - 1 grids.
 
     '''
     def __init__(self, level, parent, unique_id, LE, RE, dim):
@@ -51,13 +51,14 @@ class RadMC3DLayer:
         '''
 
         Returns whether or not this layer overlaps a given grid
-        
+
         '''
         LE, RE = self.get_overlap_with(grid)
         if np.any(RE <= LE):
             return False
         else:
             return True
+
 
 class RadMC3DWriter:
     '''
@@ -78,14 +79,14 @@ class RadMC3DWriter:
         An int corresponding to the maximum number of levels of refinement
         to include in the output. Often, this does not need to be very large
         as information on very high levels is frequently unobservable.
-        Default = 2. 
+        Default = 2.
 
     Examples
     --------
 
     This will create a field called "DustDensity" and write it out to the
     file "dust_density.inp" in a form readable by radmc3d. It will also write
-    a "dust_temperature.inp" file with everything set to 10.0 K: 
+    a "dust_temperature.inp" file with everything set to 10.0 K:
 
     >>> import yt
     >>> from yt.analysis_modules.radmc3d_export.api import RadMC3DWriter
@@ -98,18 +99,18 @@ class RadMC3DWriter:
     >>> def _DustTemperature(field, data):
     ...     return 10.0*data["Ones"]
     >>> yt.add_field("DustTemperature", function=_DustTemperature)
-    
+
     >>> ds = yt.load("galaxy0030/galaxy0030")
     >>> writer = RadMC3DWriter(ds)
-    
+
     >>> writer.write_amr_grid()
     >>> writer.write_dust_file("DustDensity", "dust_density.inp")
     >>> writer.write_dust_file("DustTemperature", "dust_temperature.inp")
 
     ---
 
-    This example will create a field called "NumberDensityCO" and write it out to
-    the file "numberdens_co.inp". It will also write out information about
+    This example will create a field called "NumberDensityCO" and write it out
+    to the file "numberdens_co.inp". It will also write out information about
     the gas velocity to "gas_velocity.inp" so that this broadening may be
     included in the radiative transfer calculation by radmc3d:
 
@@ -121,30 +122,30 @@ class RadMC3DWriter:
     >>> def _NumberDensityCO(field, data):
     ...     return (x_co/mu_h)*data["Density"]
     >>> yt.add_field("NumberDensityCO", function=_NumberDensityCO)
-    
+
     >>> ds = yt.load("galaxy0030/galaxy0030")
     >>> writer = RadMC3DWriter(ds)
-    
+
     >>> writer.write_amr_grid()
     >>> writer.write_line_file("NumberDensityCO", "numberdens_co.inp")
     >>> velocity_fields = ["velocity_x", "velocity_y", "velocity_z"]
-    >>> writer.write_line_file(velocity_fields, "gas_velocity.inp") 
+    >>> writer.write_line_file(velocity_fields, "gas_velocity.inp")
 
     '''
 
     def __init__(self, ds, max_level=2):
         self.max_level = max_level
-        self.cell_count = 0 
+        self.cell_count = 0
         self.layers = []
         self.domain_dimensions = ds.domain_dimensions
-        self.domain_left_edge  = ds.domain_left_edge
+        self.domain_left_edge = ds.domain_left_edge
         self.domain_right_edge = ds.domain_right_edge
         self.grid_filename = "amr_grid.inp"
         self.ds = ds
 
-        base_layer = RadMC3DLayer(0, None, 0, \
-                                  self.domain_left_edge, \
-                                  self.domain_right_edge, \
+        base_layer = RadMC3DLayer(0, None, 0,
+                                  self.domain_left_edge,
+                                  self.domain_right_edge,
                                   self.domain_dimensions)
 
         self.layers.append(base_layer)
@@ -156,7 +157,7 @@ class RadMC3DWriter:
                 self._add_grid_to_layers(grid)
 
     def _get_parents(self, grid):
-        parents = []  
+        parents = []
         for potential_parent in self.layers:
             if potential_parent.level == grid.Level - 1:
                 if potential_parent.overlaps(grid):
@@ -169,12 +170,12 @@ class RadMC3DWriter:
             LE, RE = parent.get_overlap_with(grid)
             N = (RE - LE) / grid.dds
             N = np.array([int(n + 0.5) for n in N])
-            new_layer = RadMC3DLayer(grid.Level, parent.id, \
-                                     len(self.layers), \
+            new_layer = RadMC3DLayer(grid.Level, parent.id,
+                                     len(self.layers),
                                      LE, RE, N)
             self.layers.append(new_layer)
             self.cell_count += np.product(N)
-            
+
     def write_amr_grid(self):
         '''
         This routine writes the "amr_grid.inp" file that describes the mesh
@@ -182,12 +183,12 @@ class RadMC3DWriter:
 
         '''
         dims = self.domain_dimensions
-        LE   = self.domain_left_edge
-        RE   = self.domain_right_edge
+        LE = self.domain_left_edge
+        RE = self.domain_right_edge
 
-        # Radmc3D wants the cell wall positions in cgs. Convert here:
-        LE_cgs = LE.in_units('cm')
-        RE_cgs = RE.in_units('cm')
+        # RadMC-3D wants the cell wall positions in cgs. Convert here:
+        LE_cgs = LE.in_units('cm').d  # don't write the units, though
+        RE_cgs = RE.in_units('cm').d
 
         # calculate cell wall positions
         xs = [str(x) for x in np.linspace(LE_cgs[0], RE_cgs[0], dims[0]+1)]
@@ -196,14 +197,14 @@ class RadMC3DWriter:
 
         # writer file header
         grid_file = open(self.grid_filename, 'w')
-        grid_file.write('1 \n') # iformat is always 1
+        grid_file.write('1 \n')  # iformat is always 1
         if self.max_level == 0:
             grid_file.write('0 \n')
         else:
-            grid_file.write('10 \n') # only layer-style AMR files are supported
-        grid_file.write('1 \n') # only cartesian coordinates are supported
-        grid_file.write('0 \n') 
-        grid_file.write('{}    {}    {} \n'.format(1, 1, 1)) # assume 3D
+            grid_file.write('10 \n')  # only layer-style files are supported
+        grid_file.write('1 \n')  # only cartesian coordinates are supported
+        grid_file.write('0 \n')
+        grid_file.write('{}    {}    {} \n'.format(1, 1, 1))  # assume 3D
         grid_file.write('{}    {}    {} \n'.format(dims[0], dims[1], dims[2]))
         if self.max_level != 0:
             s = str(self.max_level) + '    ' + str(len(self.layers)-1) + '\n'
@@ -234,9 +235,9 @@ class RadMC3DWriter:
                     if potential_parent.id == p:
                         parent_LE = potential_parent.LeftEdge
                 ind = (layer.LeftEdge - parent_LE) / (2.0*dds) + 1
-            ix  = int(ind[0]+0.5)
-            iy  = int(ind[1]+0.5)
-            iz  = int(ind[2]+0.5)
+            ix = int(ind[0]+0.5)
+            iy = int(ind[1]+0.5)
+            iz = int(ind[2]+0.5)
             nx, ny, nz = layer.ActiveDimensions / 2
             s = '{}    {}    {}    {}    {}    {}    {} \n'
             s = s.format(p, ix, iy, iz, nx, ny, nz)
@@ -284,13 +285,13 @@ class RadMC3DWriter:
             lev = layer.level
             if lev == 0:
                 LE = self.domain_left_edge
-                N  = self.domain_dimensions
+                N = self.domain_dimensions
             else:
                 LE = layer.LeftEdge
-                N  = layer.ActiveDimensions
+                N = layer.ActiveDimensions
 
             self._write_layer_data_to_file(fhandle, field, lev, LE, N)
-            
+
         fhandle.close()
 
     def write_line_file(self, field, filename):
@@ -321,10 +322,10 @@ class RadMC3DWriter:
             lev = layer.level
             if lev == 0:
                 LE = self.domain_left_edge
-                N  = self.domain_dimensions
+                N = self.domain_dimensions
             else:
                 LE = layer.LeftEdge
-                N  = layer.ActiveDimensions
+                N = layer.ActiveDimensions
 
             self._write_layer_data_to_file(fhandle, field, lev, LE, N)
 
