@@ -21,6 +21,26 @@ Table of Contents
      <tr valign="top">
        <td width="25%">
          <p>
+           <a href="intro/index.html">Introduction to yt</a>
+         </p>
+       </td>
+       <td width="75%">
+         <p class="linkdescr">What can I do in yt and how do I do it?</p>
+       </td>
+     </tr>
+      <tr valign="top">
+       <td width="25%">
+         <p>
+           <a href="yt3differences.html">yt 3.0</a>
+         </p>
+       </td>
+       <td width="75%">
+         <p class="linkdescr">How yt-3.0 differs from past versions</p>
+       </td>
+     </tr>
+      <tr valign="top">
+       <td width="25%">
+         <p>
            <a href="installing.html">Installation</a>
          </p>
        </td>
@@ -135,7 +155,7 @@ Table of Contents
          </p>
        </td>
        <td width="75%">
-         <p class="linkdescr">What and who is yt?
+         <p class="linkdescr">What is yt?</p>
        </td>
      </tr>
    </table>

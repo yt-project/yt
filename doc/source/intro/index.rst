@@ -1,33 +1,7 @@
-yt Concepts and History
-=======================
+Introduction to yt
+==================
 
 .. sectionauthor:: J. S. Oishi <jsoishi@gmail.com>
-
-History
--------
-
-yt was originally written by Matthew Turk in the course of his graduate
-studies.  However, it is now a community-developed project with contributions
-from many people, the hospitality of several institutions, and benefiting from
-many different grants.  With this community-driven approach and contributions
-from many external developers, it has evolved from a simple data-reader and
-exporter into what a fully-featured toolkit for analysis and visualization of
-adaptive mesh refinement data.
-
-yt was designed to be a completely Free (as in beer *and* as in freedom --
-"free and libre" as the saying goes) user-extensible framework for analyzing
-and visualizing astrophysical data, currently working with several different
-codes, including the "flagship" codes Enzo, Orion, Nyx and FLASH.  It relies on
-no proprietary software -- although it can be and has been extended to
-interface with proprietary software and libraries -- and has been designed from
-the ground up to enable users to be as immersed in the data as they desire.
-
-yt is currently being developed by a team of developers.  We used to include
-the entire list here, but it got too long, so now the best place to find it is
-to take a look at the current `CREDITS
-<http://hg.yt-project.org/yt/src/yt/CREDITS>`_ file.  All development is
-conducted in the open, accessible at http://yt-project.org/ .
-
 
 What functionality does yt offer?
 ---------------------------------
@@ -67,7 +41,7 @@ yt has evolved substantially over the time of its development.  Here is a
 
 * Analysis Modules
 
-  * `Parallel Halo Finding <http://adsabs.harvard.edu/abs/2010ApJS..191...43S>`_
+  * Halo Finding 
   * Light cone generation
   * Halo merger tree creation
   * Level set extraction and clump identification
@@ -94,11 +68,11 @@ yt has evolved substantially over the time of its development.  Here is a
 The Goals and Design of yt
 --------------------------
 
-There are many tools available for analysis and visualization of AMR
-data; there are many just for ``enzo``. So why yt? Along the road
+There are many tools available for analysis and visualization of 
+volumetric data.  So why yt? Along the road
 to answering that question, we shall take a somewhat philosophical
 scenic route. For the more pragmatically minded, the answer is simple:
-what yt does not yet do, you can make it do so. This is not as
+what yt does not yet do, you can make it do. This is not as
 glib as it may seem: it is in fact the main philosophical tennant that
 underlies yt. In this section, it is not our goal to show you just
 how much yt already does. Instead, we will discuss how it is that
@@ -113,18 +87,14 @@ if your favorite scientific language is python. Instead, yt
 provides a series of objects, some common AMR code structures (such as
 hierarchies and levels in a nested mesh) and some physical (a
 cylinder, cube, or sphere somewhere in the problem domain), that allow
-you to process AMR data in order to get at the fundamental underlying
-physics. 
+you to process volumetric  data in order to get at the fundamental 
+underlying physics. 
 
-
-yt evolved naturally out of three design goals, though when Matt
-was busy writing it, he never really thought about them.  Over
-time, it became clear that they are real and furthermore that they
-are important to understanding how to use yt.  These three goals
-are directed analysis, repeatability, and data exploration. 
+yt evolved naturally out of three design goals: 
+directed analysis, repeatability, and data exploration. 
 
 Directed Analysis: Answering a Question
-+++++++++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 One of the main motivators for yt is to make it possible to sit
 down with a definite question about an AMR dataset and code up a
@@ -139,7 +109,7 @@ manipulate that data in such a way to answer a question related to
 your research.
 
 Repeatability
-+++++++++++++
+^^^^^^^^^^^^^
 
 In any scientific analysis, being able to repeat the set of steps that
 prepared an answer or physical quantity is essential.  To that end,
@@ -154,7 +124,7 @@ which our preliminary tests suggest is a nice compromise between
 interactivity and repeatability. 
 
 Exploration
-+++++++++++
+^^^^^^^^^^^
 
 However, it is the serendipitous nature of science that often finding
 the right question is not obvious at first. This is certainly true for
@@ -180,7 +150,7 @@ global state of yt; all state is contained within objects that
 encapsulate an AMR code object or physical region.
 
 Physical Objects vs Code Objects
-++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The best way to think about doing things with yt is to think first
 of objects. The AMR code puts a number of objects on disk, and yt
@@ -230,7 +200,7 @@ In list form,
 .. _intro_to_projections:
 
 Flexible Projections: an Example of Reusable Data Reduction
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 AMR data is best applied when the dynamic range in a quantity of
 interest (length or mass scales, typically) is large, but the volume
