@@ -6,7 +6,7 @@ Reference Materials
 
    code_support
    command-line
+   api/api
    configuration
    field_list
-   api/api
    changelog

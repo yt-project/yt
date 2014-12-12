@@ -25,7 +25,7 @@ Table of Contents
          </p>
        </td>
        <td width="75%">
-         <p class="linkdescr">What can I do in yt and how do I do it?</p>
+         <p class="linkdescr">What does yt offer? How can I use it? How to think in yt?</p>
        </td>
      </tr>
       <tr valign="top">
