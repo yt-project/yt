@@ -84,25 +84,3 @@ entry: ::
       adsurl = {http://adsabs.harvard.edu/abs/2011ApJS..192....9T},
      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
    }
-
-If you use the Parallel Halo Finder, we have a 
-`separate paper <http://adsabs.harvard.edu/abs/2010ApJS..191...43S>`_ that describes
-its implementation: ::
-
-   @ARTICLE{2010ApJS..191...43S,
-      author = {{Skory}, S. and {Turk}, M.~J. and {Norman}, M.~L. and {Coil}, A.~L.
-   	},
-       title = "{Parallel HOP: A Scalable Halo Finder for Massive Cosmological Data Sets}",
-     journal = {\apjs},
-   archivePrefix = "arXiv",
-      eprint = {1001.3411},
-    primaryClass = "astro-ph.CO",
-    keywords = {galaxies: halos, methods: data analysis, methods: numerical },
-        year = 2010,
-       month = nov,
-      volume = 191,
-       pages = {43-57},
-         doi = {10.1088/0067-0049/191/1/43},
-      adsurl = {http://adsabs.harvard.edu/abs/2010ApJS..191...43S},
-     adsnote = {Provided by the SAO/NASA Astrophysics Data System}
-   }
