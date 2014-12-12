@@ -111,7 +111,7 @@ Table of Contents
      <tr valign="top">
        <td width="25%">
          <p>
-           <a href="developing/index.html">Developing in yt</a>
+           <a href="developing/index.html">Developer Guide</a>
          </p>
        </td>
        <td width="75%">
