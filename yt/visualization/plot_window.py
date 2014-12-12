@@ -249,7 +249,7 @@ class PlotWindow(ImagePlotContainer):
         else:
             bounds = self.xlim+self.ylim
         if self._frb_generator is ObliqueFixedResolutionBuffer:
-            bounds = np.array(bounds)
+            bounds = np.array([b.in_units('code_length') for b in bounds])
 
         self.frb = self._frb_generator(self.data_source, bounds, self.buff_size,
                                        self.antialias, periodic=self._periodic)
