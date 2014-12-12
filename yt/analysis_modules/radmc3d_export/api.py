@@ -16,3 +16,6 @@ API for RadMC3D Export code
 from .RadMC3DInterface import \
     RadMC3DWriter, \
     RadMC3DSource
+
+from .RadMC3DImageUtilities import \
+    read_radmc3d_image \
