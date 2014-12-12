@@ -85,8 +85,7 @@ class RadMC3DWriter:
     --------
 
     This will create a field called "DustDensity" and write it out to the
-    file "dust_density.inp" in a form readable by radmc3d. It will also write
-    a "dust_temperature.inp" file with everything set to 10.0 K:
+    file "dust_density.inp" in a form readable by RadMC3D.
 
     >>> import yt
     >>> from yt.analysis_modules.radmc3d_export.api import RadMC3DWriter
@@ -96,16 +95,11 @@ class RadMC3DWriter:
     ...     return dust_to_gas*data["Density"]
     >>> yt.add_field("DustDensity", function=_DustDensity)
 
-    >>> def _DustTemperature(field, data):
-    ...     return 10.0*data["Ones"]
-    >>> yt.add_field("DustTemperature", function=_DustTemperature)
-
     >>> ds = yt.load("galaxy0030/galaxy0030")
-    >>> writer = RadMC3DWriter(ds)
 
+    >>> writer = RadMC3DWriter(ds)
     >>> writer.write_amr_grid()
     >>> writer.write_dust_file("DustDensity", "dust_density.inp")
-    >>> writer.write_dust_file("DustTemperature", "dust_temperature.inp")
 
     ---
 
@@ -330,3 +324,100 @@ class RadMC3DWriter:
             self._write_layer_data_to_file(fhandle, field, lev, LE, N)
 
         fhandle.close()
+
+    def write_source_files(self, sources, wavelengths):
+        '''
+
+        This function creates the stars.inp and wavelength_micron.inp
+        files that RadMC3D uses for its dust continuum calculations.
+
+        Parameters
+        ----------
+
+        sources: a list of RadMC3DSource objects
+            A list that contains all the sources you would like yt
+            to create
+        wavelengths: np.array of float values
+            An array listing the wavelength points you would like to
+            use the radiative transfer calculation
+
+        '''
+
+        nstars = len(sources)
+        nlam = len(wavelengths)
+
+        filename = 'stars.inp'
+        fhandle = open(filename, 'w')
+
+        # write header
+        fhandle.write('2 \n')  # a format flag that should always be 2
+        fhandle.write('%d    %d \n' % (nstars, nlam))
+
+        # write source information
+        for source in sources:
+            fhandle.write(str(source.radius) + ' ')
+            fhandle.write(str(source.mass) + ' ')
+            fhandle.write('%f %f %f' %(source.position[0], \
+                                       source.position[1], \
+                                       source.position[2]))
+            fhandle.write('\n')
+
+        # write wavelength informaton
+        for wavelength in wavelengths:
+            fhandle.write('%f \n' % wavelength)
+
+        # finally write blackbody temperature for each source
+        for source in sources:
+            # the negative sign is a flag used internally
+            # by RadMC3D to indicate that this is a blackbody
+            # source
+            fhandle.write('%f \n' % -source.temperature)
+
+        # done with stars.inp
+        fhandle.close()
+
+        # now do the wavelength_micron.inp file
+        filename = 'wavelength_micron.inp'
+        fhandle = open(filename, 'w')
+
+        fhandle.write('%d \n' % nlam)
+        for wavelength in wavelengths:
+            fhandle.write('%f \n' % wavelength)
+
+        # done with both
+        fhandle.close()
+
+
+class RadMC3DSource():
+    '''
+
+    A class that contains the data associated with a single RadMC3D photon source.
+    This is designed to help export data about the stars in a dataset into a format 
+    that can be read in by RadMC3D. Although RadMC3D can handle non-blackbody 
+    sources, here we assume that the source is a blackbody with a given temperature.
+
+    Parameters
+    ----------
+
+    radius: float
+        The size of the source in cm
+    mass: float 
+        The mass of the source in g
+    position: list of floats
+        The x, y, and z coordinates of the source, in cm
+    temperature: float
+        The blackbody temperature of the source, in K
+
+    '''
+
+    def __init__(self, radius, mass, position, temperature):
+        self.radius = radius
+        self.mass = mass
+        self.position = position
+        self.temperature = temperature
+
+        # some basic sanity checks
+        assert(self.radius > 0.0)
+        assert(self.mass > 0.0)
+        assert(self.temperature > 0)
+        assert(len(self.position) == 3)  # 3D only, please
