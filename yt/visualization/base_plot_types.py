@@ -72,6 +72,8 @@ class PlotMPL(object):
         """Choose backend and save image to disk"""
         if mpl_kwargs is None:
             mpl_kwargs = {}
+        if 'papertype' not in mpl_kwargs:
+            mpl_kwargs['papertype'] = 'auto'
 
         suffix = get_image_suffix(name)
         if suffix == '':
