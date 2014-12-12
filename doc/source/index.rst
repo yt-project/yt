@@ -128,6 +128,16 @@ Table of Contents
          <p class="linkdescr">What to do if you run into problems</p>
        </td>
      </tr>
+      <tr valign="top">
+       <td width="25%">
+         <p>
+           <a href="about/index.html">About yt</a>
+         </p>
+       </td>
+       <td width="75%">
+         <p class="linkdescr">What and who is yt?
+       </td>
+     </tr>
    </table>
 
 .. toctree::
@@ -143,3 +153,4 @@ Table of Contents
    developing/index
    reference/index
    Getting Help <help/index>
+   about/index

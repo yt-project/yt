@@ -18,6 +18,7 @@ and contributing code!
     
    intro
    developing
+   building_the_docs
    testing
    debugdrive
    creating_datatypes
@@ -25,4 +26,3 @@ and contributing code!
    creating_derived_quantities
    creating_frontend
    external_analysis
-   building_the_docs
