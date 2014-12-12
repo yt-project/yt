@@ -175,7 +175,7 @@ Units
 
 .. _conversion-factors:
 
-How do I get get the conversion factors between code units and X units for my dataset?
+How do I get the conversion factors between code units and X units for my dataset?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Conversion factors are easy to get in the new yt-3.0 unit system.
