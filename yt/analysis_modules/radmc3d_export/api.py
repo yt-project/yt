@@ -18,4 +18,4 @@ from .RadMC3DInterface import \
     RadMC3DSource
 
 from .RadMC3DImageUtilities import \
-    read_radmc3d_image \
+    read_radmc3d_image

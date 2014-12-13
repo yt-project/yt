@@ -388,7 +388,7 @@ class RadMC3DWriter:
         fhandle.close()
 
 
-class RadMC3DSource():
+class RadMC3DSource:
     '''
 
     A class that contains the data associated with a single RadMC3D photon source.
