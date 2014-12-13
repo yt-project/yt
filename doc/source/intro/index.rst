@@ -1,6 +1,11 @@
 Introduction to yt
 ==================
 
+.. contents::
+   :depth: 2
+   :local:
+   :backlinks: none
+
 .. sectionauthor:: J. S. Oishi <jsoishi@gmail.com>
 
 What functionality does yt offer?

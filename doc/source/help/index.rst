@@ -1,6 +1,6 @@
 .. _asking-for-help:
 
-What to Do If You Run into Problems
+What to do if you run into problems
 ===================================
 
 If you run into problems with yt, there are a number of steps to follow
@@ -11,18 +11,14 @@ problem together.
 
 To summarize, here are the steps in order:
 
-#. Don’t panic and don’t give up
-#. Update to the latest version
-#. Search the yt documentation and mailing list archives
-#. Look at the yt source
-#. Isolate & document your problem 
-#. Go on IRC and ask a question
-#. Ask the mailing list
-#. Submit a bug report
+.. contents::
+   :depth: 1
+   :local:
+   :backlinks: none
 
 .. _dont-panic:
 
-Don't Panic and Don't Give up
+Don't panic and don't give up
 -----------------------------
 
 This may seem silly, but it's effective.  While yt is a robust code with
@@ -34,8 +30,8 @@ to help you succeed!
 
 .. _update-the-code:
 
-Try Updating yt
----------------
+Update to the latest version
+----------------------------
 
 Sometimes the pace of development is pretty fast on yt, particularly in the
 development branch, so a fix to your problem may have already been developed
@@ -55,7 +51,7 @@ or you could update yt's source as well as any software dependencies by running:
 
 .. _update-errors:
 
-Update Errors
+Update errors
 ^^^^^^^^^^^^^
 
 If for some reason the ``update`` command fails with errors, or any attempt at 
@@ -81,8 +77,8 @@ but you may have to reinstall yt (see :ref:`getting-and-installing-yt`).
 
 .. _search-the-documentation:
 
-Search the Documentation and Mailing Lists
-------------------------------------------
+Search the documentation, FAQ, and mailing lists
+------------------------------------------------
 
 The documentation has a lot of the answers to everyday problems.  This doesn't 
 mean you have to read all of the docs top-to-bottom, but you should at least 
@@ -110,7 +106,7 @@ use the search field below).
 
 .. _look-at-the-source:
 
-Look at the Source Code
+Look at the source code
 -----------------------
 
 We've done our best to make the source clean, and it is easily searchable from 
@@ -151,7 +147,7 @@ inspect their contents for problems or clarification.
 
 .. _isolate_and_document:
 
-Isolate and Document Your Problem
+Isolate and document your problem
 ---------------------------------
 
 As you gear up to take your question to the rest of the community, try to distill
@@ -174,8 +170,8 @@ the problem!
 
 .. _irc:
 
-IRC
----
+Go on IRC to ask a question
+---------------------------
 
 If you want a fast, interactive experience, you could try jumping into our IRC 
 channel to get your questions answered in a chatroom style environment.  You 
@@ -188,7 +184,7 @@ your answers quickly.  Remember to bring the information from the
 
 .. _mailing-list:
 
-Ask the Mailing List
+Ask the mailing list
 --------------------
 
 If you still haven't yet found a solution, feel free to 
@@ -209,7 +205,7 @@ difficult to help out!
 
 .. _reporting-a-bug:
 
-How to Report a Bug
+Submit a bug report
 -------------------
 
 If you have gone through all of the above steps, and you're still encountering 
@@ -221,8 +217,11 @@ Alternatively, email the ``yt-users`` mailing list and we will construct a new
 ticket in your stead.  Remember to include the information
 about your problem you identified in :ref:`this step <isolate_and_document>`.
 
+Special Issues
+--------------
+
 Installation Issues
--------------------
+^^^^^^^^^^^^^^^^^^^
 
 If you are having installation issues and nothing from the 
 :ref:`installation instructions <getting-and-installing-yt>` seems to work, you should 
@@ -232,9 +231,9 @@ about the host, the version of the code you are using, and the output of
 sure that yt installs everywhere!
 
 Customization and Scripting Issues
-----------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you have customized yt in some way, or created your own plugins file (as
-described in :ref:`plugin-file`) then it may be necessary to supply both your
-patches to the source, the plugin file, and perhaps even the datafile on which
-you're running.
+described in :ref:`plugin-file`) then it may be necessary to supply users
+willing to help you (or the mailing list) with both your patches to the 
+source, the plugin file, and perhaps even the datafile on which you're running.

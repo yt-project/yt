@@ -9,6 +9,11 @@ than what you are used to.  We have tried to build compatibility layers to
 minimize disruption to existing scripts, but necessarily things will be
 different in some ways.
 
+.. contents::
+   :depth: 2
+   :local:
+   :backlinks: none
+
 Updating to yt 3.0 from Old Versions (and going back)
 -----------------------------------------------------
 
