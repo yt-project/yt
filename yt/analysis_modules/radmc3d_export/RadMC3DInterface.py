@@ -112,7 +112,7 @@ class RadMC3DWriter:
     >>> from yt.analysis_modules.radmc3d_export.api import RadMC3DWriter
 
     >>> x_co = 1.0e-4
-    >>> mu_h = 2.34e-24
+    >>> mu_h = yt.Quantity(2.34e-24, 'g')
     >>> def _NumberDensityCO(field, data):
     ...     return (x_co/mu_h)*data["Density"]
     >>> yt.add_field("NumberDensityCO", function=_NumberDensityCO)

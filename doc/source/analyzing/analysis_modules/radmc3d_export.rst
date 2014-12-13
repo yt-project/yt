@@ -184,10 +184,10 @@ doppler broadening.
 .. code-block:: python
 
     import yt
-    from yt.analysis_modules.radmc3d_export.api import RADMC-3DWriter
+    from yt.analysis_modules.radmc3d_export.api import RadMC3DWriter
 
     x_co = 1.0e-4
-    mu_h = 2.34e-24
+    mu_h = yt.YTQuantity(2.34e-24, 'g')
     def _NumberDensityCO(field, data):
         return (x_co/mu_h)*data["density"]
     yt.add_field(("gas", "number_density_CO"), function=_NumberDensityCO, units="cm**-3")
