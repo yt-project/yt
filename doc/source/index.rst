@@ -65,7 +65,7 @@ Table of Contents
          </p>
        </td>
        <td width="75%">
-         <p class="linkdescr">How to load and examine all dataset types in yt</p>
+         <p class="linkdescr">How to load all dataset types in yt and examine raw data</p>
        </td>
      </tr>
     <tr valign="top">
