@@ -32,7 +32,6 @@ _frontends = [
     'moab',
     'owls',
     'owls_subfind',
-    #'pluto',
     'ramses',
     'rockstar',
     'sdf',
