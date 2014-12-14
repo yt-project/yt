@@ -548,9 +548,6 @@ def test_selecting():
     # .base points to the original array for a numpy view.  If it is not a
     # view, .base is None.
     yield assert_true, a_slice.base is a
-    yield assert_true, a_fancy_index.base is None
-    yield assert_true, a_array_fancy_index.base is None
-    yield assert_true, a_boolean_index.base is None
 
 
 def test_fix_length():
