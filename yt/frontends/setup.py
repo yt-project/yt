@@ -23,7 +23,6 @@ def configuration(parent_package='', top_path=None):
     config.add_subpackage("moab")
     config.add_subpackage("owls")
     config.add_subpackage("owls_subfind")
-    config.add_subpackage("pluto")
     config.add_subpackage("ramses")
     config.add_subpackage("rockstar")
     config.add_subpackage("sdf")
