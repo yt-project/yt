@@ -18,7 +18,7 @@ from yt.units.yt_array import YTArray
 cimport numpy as np
 cimport cython
 cimport libc.math as math
-from fp_utils cimport fmin, fmax
+from fp_utils cimport fmin, fmax, i64min, i64max
 
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
@@ -664,6 +664,151 @@ def pixelize_aitoff(np.ndarray[np.float64_t, ndim=1] theta,
                 if not (phi_p - dphi_p <= phi0 <= phi_p + dphi_p):
                     continue
                 img[i, j] = field[fi]
+    return img
+
+# Six faces, two vectors for each, two indices for each vector.  The function
+# below unrolls how these are defined.  Order is bottom, front, right, left,
+# back, top.
+# This is [6][2][2]
+cdef np.uint8_t ***face_defs = [
+               [[0, 1], [2, 1]],
+               [[0, 1], [5, 1]],
+               [[2, 1], [5, 1]],
+               [[4, 0], [3, 0]],
+               [[6, 2], [3, 2]],
+               [[4, 5], [6, 5]]
+]
+
+# This function accepts a set of eight vertices (for a hexahedron) that are
+# assumed to be in order for bottom, then top, in the same clockwise or
+# counterclockwise direction (i.e., like points 1-8 in Figure 4 of the ExodusII
+# manual).  It will then either *match* or *fill* the results.  If it is
+# matching, it will early terminate with a 0 or final-terminate with a 1 if the
+# results match.  Otherwise, it will fill the signs with -1's and 1's to show
+# the sign of the dot product of the point with the cross product of the face.
+cdef int check_face_dot(np.float64_t point[3],
+                        np.float64_t vertices[8][3],
+                        np.int8_t signs[6],
+                        int match):
+    # Because of how we are doing this, we do not *care* what the signs are or
+    # how the faces are ordered, we only care if they match between the point
+    # and the centroid.
+    # The faces are defined by vectors spanned (1-indexed):
+    #   Bottom: 2->1, 2->3 (i.e., p1-p2, p3-p2)
+    #   Front:  2->1, 2->6 (i.e., p1-p2, p6-p2)
+    #   Right:  2->3, 2->6 (i.e., p3-p2, p6-p2)
+    #   Left:   1->5, 1->4 (i.e., p5-p1, p4-p1)
+    #   Back:   3->7, 3->4 (i.e., p7-p3, p4-p3)
+    #   Top:    6->5, 6->7 (i.e., p5-p6, p7-p6)
+    # So, let's compute these vectors.  See above where these are written out
+    # for ease of use.
+    cdef np.float64_t vec1[3], vec2[3], cp_vec[3], dp
+    cdef int i, j, n, vi1a, vi1b, vi2a, vi2b
+    for n in range(6):
+        vi1a = face_defs[n][0][0]
+        vi1b = face_defs[n][0][1]
+        vi2a = face_defs[n][1][0]
+        vi2b = face_defs[n][1][1]
+        for i in range(3):
+            vec1[i] = vertices[vi1b][i] - vertices[vi1a][i]
+            vec2[i] = vertices[vi2b][i] - vertices[vi2a][i]
+        # Now the cross product of vec1 x vec2
+        cp_vec[0] = vec1[1] * vec2[2] - vec1[2] * vec2[1]
+        cp_vec[1] = vec1[2] * vec2[0] - vec1[0] * vec2[2]
+        cp_vec[2] = vec1[0] * vec2[1] - vec1[1] * vec2[0]
+        dp = 0.0
+        for j in range(3):
+            dp += cp_vec[j] * point[j]
+        if match == 0:
+            if dp < 0:
+                signs[n] = -1
+            else:
+                signs[n] = 1
+        else:
+            if dp < 0 and signs[n] < 0:
+                continue
+            elif dp > 0 and signs[n] > 0:
+                continue
+            else: # mismatch!
+                return 0
+    return 1
+
+def pixelize_hex_mesh(np.ndarray[np.float64_t, ndim=2] coords,
+                      np.ndarray[np.int64_t, ndim=2] conn,
+                      buff_size,
+                      np.ndarray[np.float64_t, ndim=1] field,
+                      extents, int index_offset = 0):
+    cdef np.ndarray[np.float64_t, ndim=3] img
+    img = np.zeros(buff_size, dtype="float64")
+    # Two steps:
+    #  1. Is image point within the mesh bounding box?
+    #  2. Is image point within the mesh element?
+    # Second is more intensive.  It will require a bunch of dot and cross
+    # products.  We are not guaranteed that the elements will be in the correct
+    # order such that cross products are pointing in right direction, so we
+    # compare against the centroid of the (assumed convex) element.
+    # Note that we have to have a pseudo-3D pixel buffer.  One dimension will
+    # always be 1.
+    cdef np.float64_t pLE[3], pRE[3]
+    cdef np.float64_t LE[3], RE[3]
+    cdef int use
+    cdef np.int8_t signs[6]
+    cdef np.int64_t n, i, j, k, pi, pj, pk, ci, cj, ck
+    cdef np.int64_t pstart[3], pend[3]
+    cdef np.float64_t ppoint[3], centroid[3], idds[3], dds[3]
+    cdef np.float64_t vertices[8][3]
+    if conn.shape[1] != 8: # Hexahedral meshes must have 8 vertices
+        raise RuntimeError
+    for i in range(3):
+        pLE[i] = extents[i][0]
+        pRE[i] = extents[i][1]
+        dds[i] = (pRE[i] - pLE[i])/buff_size[i]
+        if dds[i] == 0.0:
+            idds[i] = 0.0
+        else:
+            idds[i] = 1.0 / dds[i]
+    for ci in range(conn.shape[0]):
+        # Fill the vertices and compute the centroid
+        centroid[0] = centroid[1] = centroid[2] = 0
+        LE[0] = LE[1] = LE[2] = 1e60
+        RE[0] = RE[1] = RE[2] = -1e60
+        for n in range(conn.shape[1]): # 8
+            cj = conn[ci, n] - index_offset
+            for i in range(3):
+                vertices[n][i] = coords[cj, i]
+                centroid[i] += coords[cj, i]
+                LE[i] = fmin(LE[i], vertices[n][i])
+                RE[i] = fmax(RE[i], vertices[n][i])
+        centroid[0] /= conn.shape[1]
+        centroid[1] /= conn.shape[1]
+        centroid[2] /= conn.shape[1]
+        use = 1
+        for i in range(3):
+            if RE[i] < pLE[i] or LE[i] >= pRE[i]:
+                use = 0
+                break
+            pstart[i] = i64max(<np.int64_t> ((LE[i] - pLE[i])*idds[i]), 0)
+            pend[i] = i64min(<np.int64_t> ((RE[i] - pLE[i])*idds[i]), img.shape[i]-1)
+        if use == 0:
+            continue
+        # Now our bounding box intersects, so we get the extents of our pixel
+        # region which overlaps with the bounding box, and we'll check each
+        # pixel in there.
+        # First, we figure out the dot product of the centroid with all the
+        # faces.
+        check_face_dot(centroid, vertices, signs, 0)
+        for pi in range(pstart[0], pend[0] + 1):
+            ppoint[0] = pi * dds[0] + pLE[0]
+            for pj in range(pstart[1], pend[1] + 1):
+                ppoint[1] = pj * dds[1] + pLE[1]
+                for pk in range(pstart[2], pend[2] + 1):
+                    ppoint[2] = pk * dds[2] + pLE[2]
+                    # Now we just need to figure out if our ppoint is within
+                    # our set of vertices.
+                    if check_face_dot(ppoint, vertices, signs, 1) == 0:
+                        continue
+                    # Else, we deposit!
+                    img[pi, pj, pk] = field[ci]
     return img
 
 #@cython.cdivision(True)
