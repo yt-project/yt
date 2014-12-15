@@ -3,11 +3,13 @@ import shutil
 import string
 import re
 import tempfile
+import uuid
 from sphinx.util.compat import Directive
 from docutils import nodes
 from docutils.parsers.rst import directives
+from IPython.config import Config
 from IPython.nbconvert import html, python
-from IPython.nbformat.current import read, write
+from IPython.nbformat import current as nbformat
 from runipy.notebook_runner import NotebookRunner, NotebookError
 
 class NotebookDirective(Directive):
@@ -45,7 +47,10 @@ class NotebookDirective(Directive):
         rel_dir = os.path.relpath(rst_dir, setup.confdir)
         dest_dir = os.path.join(setup.app.builder.outdir, rel_dir)
         dest_path = os.path.join(dest_dir, nb_basename)
-
+        image_dir = setup.app.builder.outdir+os.path.sep+'_images'
+        image_rel_dir = os.path.relpath(setup.confdir, rst_dir) + os.path.sep + '_images'
+        if not os.path.exists(image_dir):
+            os.makedirs(image_dir)
         if not os.path.exists(dest_dir):
             os.makedirs(dest_dir)
 
@@ -68,8 +73,16 @@ class NotebookDirective(Directive):
 
         skip_exceptions = 'skip_exceptions' in self.options
 
-        evaluated_text = evaluate_notebook(nb_abs_path, dest_path_eval,
-                                           skip_exceptions=skip_exceptions)
+        evaluated_text, resources = evaluate_notebook(
+            nb_abs_path, dest_path_eval, skip_exceptions=skip_exceptions)
+        my_uuid = uuid.uuid4().hex
+
+        for output in resources['outputs']:
+            new_name = image_dir+os.path.sep+my_uuid+output
+            new_relative_name = image_rel_dir+os.path.sep+my_uuid+output
+            evaluated_text = evaluated_text.replace(output, new_relative_name)
+            with open(new_name, 'wb') as f:
+                f.write(resources['outputs'][output])
 
         # Create link to notebook and script files
         link_rst = "(" + \
@@ -107,8 +120,11 @@ def nb_to_python(nb_path):
 
 def nb_to_html(nb_path):
     """convert notebook to html"""
-    exporter = html.HTMLExporter(template_file='full')
-    output, resources = exporter.from_filename(nb_path)
+    c = Config({'ExtractOutputPreprocessor':{'enabled':True}})
+
+    exporter = html.HTMLExporter(template_file='full', config=c)
+    notebook = nbformat.read(open(nb_path), 'json')
+    output, resources = exporter.from_notebook_node(notebook)
     header = output.split('<head>', 1)[1].split('</head>',1)[0]
     body = output.split('<body>', 1)[1].split('</body>',1)[0]
 
@@ -147,11 +163,11 @@ def nb_to_html(nb_path):
     lines.append(header)
     lines.append(body)
     lines.append('</div>')
-    return '\n'.join(lines)
+    return '\n'.join(lines), resources
 
 def evaluate_notebook(nb_path, dest_path=None, skip_exceptions=False):
     # Create evaluated version and save it to the dest path.
-    notebook = read(open(nb_path), 'json')
+    notebook = nbformat.read(open(nb_path), 'json')
     nb_runner = NotebookRunner(notebook, pylab=False)
     try:
         nb_runner.run_notebook(skip_exceptions=skip_exceptions)
@@ -167,7 +183,7 @@ def evaluate_notebook(nb_path, dest_path=None, skip_exceptions=False):
 
     if dest_path is None:
         dest_path = 'temp_evaluated.ipynb'
-    write(nb_runner.nb, open(dest_path, 'w'), 'json')
+    nbformat.write(nb_runner.nb, open(dest_path, 'w'), 'json')
     ret = nb_to_html(dest_path)
     if dest_path is 'temp_evaluated.ipynb':
         os.remove(dest_path)

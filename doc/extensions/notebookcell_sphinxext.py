@@ -2,6 +2,7 @@ import os
 import shutil
 import io
 import tempfile
+import uuid
 from sphinx.util.compat import Directive
 from docutils.parsers.rst import directives
 from IPython.nbformat import current
@@ -30,6 +31,13 @@ class NotebookCellDirective(Directive):
         tmpdir = tempfile.mkdtemp()
         os.chdir(tmpdir)
 
+        rst_file = self.state_machine.document.attributes['source']
+        rst_dir = os.path.abspath(os.path.dirname(rst_file))
+        image_dir = setup.app.builder.outdir+os.path.sep+'_images'
+        image_rel_dir = os.path.relpath(setup.confdir, rst_dir) + os.path.sep + '_images'
+        if not os.path.exists(image_dir):
+            os.makedirs(image_dir)
+
         # Construct notebook from cell content
         content = "\n".join(self.content)
         with open("temp.py", "w") as f:
@@ -39,8 +47,16 @@ class NotebookCellDirective(Directive):
 
         skip_exceptions = 'skip_exceptions' in self.options
 
-        evaluated_text = evaluate_notebook('temp.ipynb',
-                                           skip_exceptions=skip_exceptions)
+        evaluated_text, resources = evaluate_notebook(
+            'temp.ipynb', skip_exceptions=skip_exceptions)
+
+        my_uuid = uuid.uuid4().hex
+        for output in resources['outputs']:
+            new_name = image_dir+os.path.sep+my_uuid+output
+            new_relative_name = image_rel_dir+os.path.sep+my_uuid+output
+            evaluated_text = evaluated_text.replace(output, new_relative_name)
+            with open(new_name, 'wb') as f:
+                f.write(resources['outputs'][output])
 
         # create notebook node
         attributes = {'format': 'html', 'source': 'nb_path'}
