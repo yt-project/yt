@@ -79,9 +79,11 @@ class PPVCube(object):
         width : float, tuple, or YTQuantity.
             The width of the projection. A float will assume the width is in code units.
             A (value, unit) tuple or YTQuantity allows for the units of the width to be
-            specified.
+            specified. Implies width = height, e.g. the aspect ratio of the PPVCube's 
+            spatial dimensions is 1. 
         resolution : tuple, optional
-            A 2-tuple of dimensions (nx,nv) for the cube. Implies nx = ny. 
+            A 2-tuple of dimensions (nx,nv) for the cube. Implies nx = ny, e.g. the aspect
+            ratio of the PPVCube's spatial dimensions is 1. 
         velocity_bounds : tuple, optional
             A 3-tuple of (vmin, vmax, units) for the velocity bounds to
             integrate over. If None, the largest velocity of the
