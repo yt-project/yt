@@ -809,8 +809,8 @@ def pixelize_hex_mesh(np.ndarray[np.float64_t, ndim=2] coords,
             if RE[i] < pLE[i] or LE[i] >= pRE[i]:
                 use = 0
                 break
-            pstart[i] = i64max(<np.int64_t> ((LE[i] - pLE[i])*idds[i]), 0)
-            pend[i] = i64min(<np.int64_t> ((RE[i] - pLE[i])*idds[i]), img.shape[i]-1)
+            pstart[i] = i64max(<np.int64_t> ((LE[i] - pLE[i])*idds[i]) - 1, 0)
+            pend[i] = i64min(<np.int64_t> ((RE[i] - pLE[i])*idds[i]) + 1, img.shape[i]-1)
         if use == 0:
             continue
         # Now our bounding box intersects, so we get the extents of our pixel
