@@ -287,8 +287,8 @@ class DualEPS(object):
             width = plot.width[0]
             if units == None:
                 units = get_smallest_appropriate_unit(width, plot.ds)
-            _xrange = (0, width * plot.ds[units])
-            _yrange = (0, width * plot.ds[units])
+            _xrange = (0, width.in_units(str(units)))
+            _yrange = (0, width.in_units(str(units)))
             _xlog = False
             _ylog = False
             axis_names = plot.ds.coordinates.axis_name
@@ -446,20 +446,20 @@ class DualEPS(object):
         shift = 0.0
         if self.canvas is None:
             self.canvas = pyx.canvas.canvas()
-        elif isinstance(plot, (PlotWindow, PhasePlot)):
+        if isinstance(plot, (PlotWindow, PhasePlot)):
             self.field = field
             if self.field == None:
                 self.field = plot.plots.keys()[0]
                 mylog.warning("No field specified.  Choosing first field (%s)" % \
-                              self.field)
-            if self.field not in plot.plots.keys():
+                              self.field[1])
+            if self.field[1] not in plot.plots.keys()[0][1]:
                 raise RuntimeError("Field '%s' does not exist!" % str(self.field))
             plot.plots[self.field].hide_colorbar()
             plot.refresh()
             _p1 = plot.plots[self.field].figure
             # hack to account for non-square display ratios (not sure why)
-            if isinstance(plot, PlotWindow):
-                shift = 12.0 / 340
+            #if isinstance(plot, PlotWindow):
+            #    shift = 12.0 / 340
         elif isinstance(plot, np.ndarray):
             fig = plt.figure()
             iplot = plt.figimage(plot)
@@ -478,7 +478,6 @@ class DualEPS(object):
         size = (_p1.get_size_inches() * _p1.dpi).astype('int')
         image = pyx.bitmap.image(size[0], size[1], "RGB",
                                  figure_canvas.tostring_rgb())
-        #figure_canvas.print_png('test.png')
         self.canvas.insert(pyx.bitmap.bitmap(pos[0], pos[1], image,
                                              width=(1.0+2*shift)*scale*self.figsize[0],
                                              height=scale*self.figsize[1]))
@@ -613,7 +612,7 @@ class DualEPS(object):
 
 #=============================================================================
 
-    def colorbar_yt(self, plot, field=None, **kwargs):
+    def colorbar_yt(self, plot, field=None, cb_labels = None, **kwargs):
         r"""Wrapper around DualEPS.colorbar to take information from a yt plot.
 
         Accepts all parameters that DualEPS.colorbar takes.
@@ -664,6 +663,8 @@ class DualEPS(object):
             _zlabel = plot._z_label.replace("_","\;")
             _zlog = plot._log_z
             _zrange = (plot.norm.vmin, plot.norm.vmax)
+        if cb_labels != None:  #Overrides deduced labels
+            _zlabel = cb_labels.pop()
         self.colorbar(_cmap, zrange=_zrange, label=_zlabel, log=_zlog, **kwargs)
 
 #=============================================================================
@@ -891,7 +892,7 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
               shrink_cb=0.95, figsize=(8,8), margins=(0,0), titles=None,
               savefig=None, format="eps", yt_nocbar=False, bare_axes=False,
               xaxis_flags=None, yaxis_flags=None,
-              cb_flags=None, cb_location=None):
+              cb_flags=None, cb_location=None, cb_labels=None):
     r"""Convenience routine to create a multi-panel figure from yt plots or
     JPEGs.  The images are first placed from the origin, and then
     bottom-to-top and left-to-right.
@@ -963,6 +964,8 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
     yt plots.
     """
     # Error check
+    if(cb_labels != None):
+        cb_labels.reverse()   #Because I pop the list
     npanels = ncol*nrow
     if images != None:
         if len(images) != npanels:
@@ -1115,11 +1118,13 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
                         # Set field if undefined
                         if fields[index] == None:
                             fields[index] = d.return_field(yt_plots[index])
+                                              
                         d.colorbar_yt(yt_plots[index],
                                       field=fields[index],
                                       pos=[xpos,ypos],
                                       shrink=shrink_cb,
-                                      orientation=orientation)
+                                      orientation=orientation,
+                                      cb_labels=cb_labels)
                     else:
                         d.colorbar(colorbars[index]["cmap"],
                                    zrange=colorbars[index]["range"],
