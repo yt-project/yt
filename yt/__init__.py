@@ -152,7 +152,7 @@ from yt.visualization.api import \
 
 from yt.visualization.volume_rendering.api import \
     off_axis_projection, ColorTransferFunction, \
-    TransferFunctionHelper
+    TransferFunctionHelper, TransferFunction, MultiVariateTransferFunction
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, enable_parallelism, communication_system

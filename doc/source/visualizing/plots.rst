@@ -127,13 +127,14 @@ the optional argument: ``origin="native"``
 If supplied without units, the center is assumed by in code units.  There are also
 the following alternative options for the `center` keyword:
 
-* `"center"`, "c"`: the domain center
-* `"max"`, `"m"`: the position of the maximum density
-* `("min", field)`: the position of the minimum of `field`
-* `("max", field)`: the position of the maximum of `field`
+* ``"center"``, ``"c"``: the domain center
+* ``"max"``, ``"m"``: the position of the maximum density
+* ``("min", field)``: the position of the minimum of ``field``
+* ``("max", field)``: the position of the maximum of ``field``
 
-where for the last two objects any spatial field, such as `"density"`, `"velocity_z"`,
-etc., may be used, e.g. `center=("min","temperature")`
+where for the last two objects any spatial field, such as ``"density"``,
+``"velocity_z"``,
+etc., may be used, e.g. ``center=("min","temperature")``.
 
 Here is an example that combines all of the options we just discussed.
 
@@ -171,6 +172,10 @@ image. Both plots will be centered on the center of the simulation box.
 With these sorts of manipulations, one can easily pan and zoom onto an 
 interesting region in the simulation and adjust the boundaries of the
 region to visualize on the fly.
+
+If you want to slice through a subset of the full dataset volume,
+you can use the ``data_source`` keyword with a :ref:`data object <data-objects>`
+or a :ref:`cut region <cut-regions>`.
 
 See :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot` for the 
 full class description.

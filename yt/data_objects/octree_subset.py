@@ -265,7 +265,12 @@ class OctreeSubset(YTSelectionContainer):
             self.fcoords, fields,
             self.domain_id, self._domain_offset, self.ds.periodicity,
             index_fields, particle_octree, pdom_ind, self.ds.geometry)
-        vals = op.finalize()
+        # If there are 0s in the smoothing field this will not throw an error, 
+        # but silently return nans for vals where dividing by 0
+        # Same as what is currently occurring, but suppressing the div by zero
+        # error.
+        with np.errstate(invalid='ignore'):
+            vals = op.finalize()
         if vals is None: return
         if isinstance(vals, list):
             vals = [np.asfortranarray(v) for v in vals]

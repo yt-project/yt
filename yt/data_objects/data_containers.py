@@ -164,7 +164,6 @@ class YTDataContainer(object):
     def _set_center(self, center):
         if center is None:
             self.center = None
-            self.set_field_parameter('center', self.center)
             return
         elif isinstance(center, YTArray):
             self.center = self.ds.arr(center.in_cgs())
@@ -560,13 +559,14 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         self._data_source = data_source
         if data_source is not None:
             if data_source.ds is not self.ds:
-                raise RuntimeError("Attempted to construct a DataContainer with a data_source from a different DataSet", ds, data_source.ds)
-            else:
-                print "DataSets: ", self.ds, data_source.ds
+                raise RuntimeError("Attempted to construct a DataContainer with a data_source "
+                                   "from a different DataSet", ds, data_source.ds)
             if data_source._dimensionality < self._dimensionality:
-                raise RuntimeError("Attempted to construct a DataContainer with a data_source of lower dimensionality (%u vs %u)" %
+                raise RuntimeError("Attempted to construct a DataContainer with a data_source "
+                                   "of lower dimensionality (%u vs %u)" %
                                     (data_source._dimensionality, self._dimensionality))
- 
+            self.field_parameters.update(data_source.field_parameters)
+
     @property
     def selector(self):
         if self._selector is not None: return self._selector
@@ -600,11 +600,6 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             if inspected >= len(fields_to_get): break
             inspected += 1
             fi = self.ds._get_field_info(*field)
-            if not spatial and any(
-                    isinstance(v, ValidateSpatial) for v in fi.validators):
-                # We don't want to pre-fetch anything that's spatial, as that
-                # will be done later.
-                continue
             fd = self.ds.field_dependencies.get(field, None) or \
                  self.ds.field_dependencies.get(field[1], None)
             # This is long overdue.  Any time we *can't* find a field
@@ -903,7 +898,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
             return frb
 
         if center is None:
-            center = self.get_field_parameter("center")
+            center = self.center
             if center is None:
                 center = (self.ds.domain_right_edge
                         + self.ds.domain_left_edge)/2.0

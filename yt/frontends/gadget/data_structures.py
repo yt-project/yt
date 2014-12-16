@@ -178,7 +178,9 @@ class GadgetDataset(ParticleDataset):
                        hvals["Time"], self.current_time)
         self.parameters = hvals
 
-        prefix = self.parameter_filename.split(".", 1)[0]
+        prefix = os.path.abspath(
+            os.path.join(os.path.dirname(self.parameter_filename),
+                         os.path.basename(self.parameter_filename).split(".", 1)[0]))
 
         if hvals["NumFiles"] > 1:
             self.filename_template = "%s.%%(num)s%s" % (prefix, self._suffix)
@@ -309,7 +311,10 @@ class GadgetHDF5Dataset(GadgetDataset):
         self.cosmological_simulation = 1
         self.periodicity = (True, True, True)
 
-        prefix = os.path.abspath(self.parameter_filename.split(".", 1)[0])
+        prefix = os.path.abspath(
+            os.path.join(os.path.dirname(self.parameter_filename),
+                         os.path.basename(self.parameter_filename).split(".", 1)[0]))
+
         suffix = self.parameter_filename.rsplit(".", 1)[-1]
         self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
         self.file_count = self.parameters["NumFilesPerSnapshot"]

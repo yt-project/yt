@@ -22,7 +22,8 @@ from sympy.parsing.sympy_parser import \
     parse_expr, auto_number, rationalize
 from keyword import iskeyword
 from yt.units.dimensions import \
-    base_dimensions, temperature
+    base_dimensions, temperature, \
+    dimensionless
 from yt.units.unit_lookup_table import \
     latex_symbol_lut, unit_prefixes, \
     prefixable_units, cgs_base_units, \
@@ -164,6 +165,9 @@ class Unit(Expr):
                                  "sympy Expr. %s has type %s." \
                                  % (unit_expr, type(unit_expr)))
 
+        if unit_expr == sympy_one and dimensions is None:
+            dimensions = dimensionless
+
         if registry is None:
             # Caller did not set the registry, so use the default.
             registry = default_unit_registry
@@ -179,7 +183,7 @@ class Unit(Expr):
         # check cgs_value and dimensions
         #
 
-        if cgs_value is not None and dimensions is not None:
+        if cgs_value is not None:
             # check that cgs_value is a float or can be converted to one
             try:
                 cgs_value = float(cgs_value)
@@ -189,7 +193,8 @@ class Unit(Expr):
                                      % (cgs_value, type(cgs_value)) )
 
             # check that dimensions is valid
-            validate_dimensions(dimensions)
+            if dimensions is not None:
+                validate_dimensions(dimensions)
         else:
             # lookup the unit symbols
             unit_data = _get_unit_data_from_expr(unit_expr, registry.lut)
@@ -215,9 +220,8 @@ class Unit(Expr):
             conversions = []
             for atom in check_atoms:
                 conversions.append((atom,symbols(cgs_conversions[str(atom)])))
-            conversion = unit_expr.subs(conversions)
-            conversion = Unit(unit_expr=conversion, cgs_value=1.0,
-                               dimensions=None, registry=registry)
+            conversion = Unit(unit_expr=unit_expr.subs(conversions),
+                              registry=registry)
             is_mks = True
         else:
             conversion = None

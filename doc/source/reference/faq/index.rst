@@ -146,6 +146,44 @@ be a persistent problem add the line:
 
 to the very top of your yt script. 
 
+.. _faq-log-level:
+
+How can I change yt's log level? 
+--------------------------------
+
+yt's default log level is ``INFO``. However, you may want less voluminous logging, especially
+if you are in an IPython notebook or running a long or parallel script. On the other
+hand, you may want it to output a lot more, since you can't figure out exactly what's going 
+wrong, and you want to output some debugging information. The yt log level can be 
+changed using the :ref:`configuration`, either by setting it in the ``$HOME/.yt/config``
+file:
+
+.. code-block:: bash
+
+   [yt]
+   loglevel = 10 # This sets the log level to "DEBUG"
+   
+which would produce debug (as well as info, warning, and error) messages, or at runtime:
+
+.. code-block:: python
+
+   from yt.config import ytcfg
+   ytcfg["yt","loglevel"] = "40" # This sets the log level to "ERROR"
+   
+which in this case would suppress everything below error messages. For reference, the numerical 
+values corresponding to different log levels are:
+
+.. csv-table:: 
+   :header: Level, Numeric Value
+   :widths: 10, 10
+   
+   ``CRITICAL``,50
+   ``ERROR``,40
+   ``WARNING``,30
+   ``INFO``,20
+   ``DEBUG``,10
+   ``NOTSET``,0
+   
 .. _faq-mpi4py:
 
 yt complains that it needs the mpi4py module
@@ -322,3 +360,4 @@ its implementation: ::
       adsurl = {http://adsabs.harvard.edu/abs/2010ApJS..191...43S},
      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
    }
+

@@ -298,13 +298,12 @@ class SZProjection(object):
         ----------
         filename : string
             The name of the FITS file to be written. 
-        sky_scale : tuple or YTQuantity
+        sky_scale : tuple
             Conversion between an angle unit and a length unit, if sky
-            coordinates are desired.
-            Examples: (1.0, "arcsec/kpc"), YTQuantity(0.001, "deg/kpc")
+            coordinates are desired, e.g. (1.0, "arcsec/kpc")
         sky_center : tuple, optional
-            The (RA, Dec) coordinate in degrees of the central pixel if
-            *sky_scale* has been specified.
+            The (RA, Dec) coordinate in degrees of the central pixel. Must
+            be specified with *sky_scale*.
         clobber : boolean, optional
             If the file already exists, do we overwrite?
 
@@ -314,40 +313,23 @@ class SZProjection(object):
         >>> szprj.write_fits("SZbullet.fits", clobber=False)
         >>> # This example uses sky coords
         >>> sky_scale = (1., "arcsec/kpc") # One arcsec per kpc
-        >>> sky_center = (30., 45.) # In degrees
+        >>> sky_center = (30., 45., "deg")
         >>> szprj.write_fits("SZbullet.fits", sky_center=sky_center, sky_scale=sky_scale)
         """
-        from yt.utilities.fits_image import FITSImageBuffer, sanitize_fits_unit
+        from yt.utilities.fits_image import FITSImageBuffer, create_sky_wcs
 
-        if sky_scale is None:
-            center = (0.0,0.0)
-            types = ["LINEAR","LINEAR"]
-        else:
-            if iterable(sky_scale):
-                sky_scale = self.ds.quan(sky_scale[0], sky_scale[1])
-            if sky_center is None:
-                center = (30.,45.)
-            else:
-                center = sky_center
-            types = ["RA---TAN","DEC--TAN"]
-
-        units = self.ds.get_smallest_appropriate_unit(self.width)
-        units = sanitize_fits_unit(units)
-        # Hack because FITS is stupid and doesn't understand case
-        dx = self.dx.in_units(units)
-        if sky_scale:
-            dx = (dx*sky_scale).in_units("deg")
-            units = "deg"
+        dx = self.dx.in_units("kpc")
         dy = dx
-        if sky_scale:
-            dx *= -1.
 
         w = _astropy.pywcs.WCS(naxis=2)
         w.wcs.crpix = [0.5*(self.nx+1)]*2
         w.wcs.cdelt = [dx.v,dy.v]
-        w.wcs.crval = center
-        w.wcs.cunit = [units]*2
-        w.wcs.ctype = types
+        w.wcs.crval = [0.0,0.0]
+        w.wcs.cunit = ["kpc"]*2
+        w.wcs.ctype = ["LINEAR"]*2
+
+        if sky_scale is not None and sky_center is not None:
+            w = create_sky_wcs(w, sky_center, sky_scale)
 
         fib = FITSImageBuffer(self.data, fields=self.data.keys(), wcs=w)
         fib.writeto(filename, clobber=clobber)
