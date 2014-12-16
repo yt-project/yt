@@ -693,12 +693,13 @@ def pixelize_aitoff(np.ndarray[np.float64_t, ndim=1] theta,
 # E12   5 8
 # Now we unroll these here ...
 cdef np.uint8_t ***face_defs = [
-   [[0, 1], [1, 5]],
-   [[3, 2], [2, 6]],
-   [[0, 1], [1, 2]],
-   [[1, 5], [5, 6]],
-   [[5, 4], [4, 7]],
-   [[4, 0], [0, 3]],
+   # Note that the first of each pair is the shared vertex
+   [[1, 0], [1, 5]],
+   [[2, 3], [2, 6]],
+   [[1, 0], [1, 2]],
+   [[5, 1], [5, 6]],
+   [[4, 5], [4, 7]],
+   [[0, 4], [0, 3]],
 ]
 
 # This function accepts a set of eight vertices (for a hexahedron) that are
@@ -724,23 +725,25 @@ cdef int check_face_dot(np.float64_t point[3],
     #   Top:    6->5, 6->7 (i.e., p5-p6, p7-p6)
     # So, let's compute these vectors.  See above where these are written out
     # for ease of use.
-    cdef np.float64_t vec1[3], vec2[3], cp_vec[3], dp
+    cdef np.float64_t vec1[3], vec2[3], cp_vec[3], dp, npoint[3]
     cdef int i, j, n, vi1a, vi1b, vi2a, vi2b
     for n in range(6):
         vi1a = face_defs[n][0][0]
         vi1b = face_defs[n][0][1]
         vi2a = face_defs[n][1][0]
         vi2b = face_defs[n][1][1]
+        # Shared vertex is vi1b and vi2b
         for i in range(3):
             vec1[i] = vertices[vi1b][i] - vertices[vi1a][i]
             vec2[i] = vertices[vi2b][i] - vertices[vi2a][i]
+            npoint[i] = point[i] - vertices[vi1b][i]
         # Now the cross product of vec1 x vec2
         cp_vec[0] = vec1[1] * vec2[2] - vec1[2] * vec2[1]
         cp_vec[1] = vec1[2] * vec2[0] - vec1[0] * vec2[2]
         cp_vec[2] = vec1[0] * vec2[1] - vec1[1] * vec2[0]
         dp = 0.0
         for j in range(3):
-            dp += cp_vec[j] * point[j]
+            dp += cp_vec[j] * npoint[j]
         if match == 0:
             if dp < 0:
                 signs[n] = -1
@@ -749,7 +752,7 @@ cdef int check_face_dot(np.float64_t point[3],
         else:
             if dp < 0 and signs[n] < 0:
                 continue
-            elif dp > 0 and signs[n] > 0:
+            elif dp >= 0 and signs[n] > 0:
                 continue
             else: # mismatch!
                 return 0
@@ -820,11 +823,11 @@ def pixelize_hex_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         # faces.
         check_face_dot(centroid, vertices, signs, 0)
         for pi in range(pstart[0], pend[0] + 1):
-            ppoint[0] = pi * dds[0] + pLE[0]
+            ppoint[0] = (pi + 0.5) * dds[0] + pLE[0]
             for pj in range(pstart[1], pend[1] + 1):
-                ppoint[1] = pj * dds[1] + pLE[1]
+                ppoint[1] = (pj + 0.5) * dds[1] + pLE[1]
                 for pk in range(pstart[2], pend[2] + 1):
-                    ppoint[2] = pk * dds[2] + pLE[2]
+                    ppoint[2] = (pk + 0.5) * dds[2] + pLE[2]
                     # Now we just need to figure out if our ppoint is within
                     # our set of vertices.
                     if check_face_dot(ppoint, vertices, signs, 1) == 0:
