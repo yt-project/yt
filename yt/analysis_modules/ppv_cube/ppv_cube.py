@@ -81,7 +81,7 @@ class PPVCube(object):
             A (value, unit) tuple or YTQuantity allows for the units of the width to be
             specified. Implies width = height, e.g. the aspect ratio of the PPVCube's 
             spatial dimensions is 1. 
-        resolution : tuple, optional
+        dims : tuple, optional
             A 2-tuple of dimensions (nx,nv) for the cube. Implies nx = ny, e.g. the aspect
             ratio of the PPVCube's spatial dimensions is 1. 
         velocity_bounds : tuple, optional
