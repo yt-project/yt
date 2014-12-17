@@ -113,8 +113,8 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     # we reset it again so that it includes the processor.
     f = logging.Formatter("P%03i %s" % (communicator.rank,
                                         yt.utilities.logger.ufstring))
-    if len(yt.utilities.logger.rootLogger.handlers) > 0:
-        yt.utilities.logger.rootLogger.handlers[0].setFormatter(f)
+    if len(yt.utilities.logger.ytLogger.handlers) > 0:
+        yt.utilities.logger.ytLogger.handlers[0].setFormatter(f)
     if ytcfg.getboolean("yt", "parallel_traceback"):
         sys.excepthook = traceback_writer_hook("_%03i" % communicator.rank)
     if ytcfg.getint("yt","LogLevel") < 20:

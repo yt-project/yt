@@ -206,7 +206,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     --------
 
     >>> ds = load("RedshiftOutput0005")
-    >>> prj = ds.proj(0, "density")
+    >>> prj = ds.proj("density", 0)
     >>> print proj["density"]
     """
     _key_fields = YTSelectionContainer2D._key_fields + ['weight_field']

@@ -233,6 +233,33 @@ would have a ``job_info`` file in the plotfile directory.
   ``mach_number`` will always use the on-disk value, and not have yt 
   derive it, due to the complex interplay of the base state velocity.
 
+.. _loading-pluto-data:
+
+Pluto Data
+----------
+
+Support for Pluto AMR data is provided through the Chombo frontend, which
+is currently maintained by Andrew Myers. Pluto output files that don't use
+the Chombo HDF5 format are currently not supported. To load a Pluto dataset, 
+you can use the ``yt.load`` command on the *.hdf5 file. For example, the 
+KelvinHelmholtz sample dataset is a directory that contains the following
+files:
+
+.. code-block:: none
+
+   data.0004.hdf5
+   pluto.ini
+
+To load it, you can navigate into that directory and do:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("data.0004.hdf5")
+
+The ``pluto.ini`` file must also be present alongside the HDF5 file.
+By default, all of the Pluto fields will be in code units.
+
 .. _loading-enzo-data:
 
 Enzo Data

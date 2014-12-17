@@ -264,7 +264,7 @@ function host_specific
         echo "Alternatively, download the Xcode command line tools from"
         echo "the Apple developer tools website."
         echo
-	echo "OS X 10.8.4, 10.9, and 10.10: download the appropriate version of 
+	echo "OS X 10.8.4, 10.9, and 10.10: download the appropriate version of"
 	echo "Xcode from the mac app store (search for Xcode)."
     echo
 	echo "Additionally, you will have to manually install the Xcode"
