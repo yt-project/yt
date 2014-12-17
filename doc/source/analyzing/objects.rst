@@ -107,12 +107,15 @@ for the grid cell to be incorporated.
     | Usage: ``ortho_ray(axis, coord, ds=None, field_parameters=None, data_source=None)``
     | A line (of data cells) stretching through the full domain 
       aligned with one of the x,y,z axes.  Defined by an axis and a point
-      to be intersected.
+      to be intersected.  Please see this 
+      :ref:`note about ray data value ordering <ray-data-ordering>`.
 
 **Ray (Arbitrarily-Aligned)** 
     | Class :class:`~yt.data_objects.selection_data_containers.YTRayBase`
     | Usage: ``ray(start_coord, end_coord, ds=None, field_parameters=None, data_source=None)``
     | A line (of data cells) defined by arbitrary start and end coordinates. 
+      Please see this 
+      :ref:`note about ray data value ordering <ray-data-ordering>`.
 
 2D Objects
 """"""""""

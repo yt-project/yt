@@ -223,6 +223,35 @@ or for a more legible version, try:
    for field in ds.derived_field_list: 
        print field
 
+Data Objects
+------------
+
+.. _ray-data-ordering:
+
+Why are the values in my Ray object out of order?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Using the Ray objects 
+(:class:`~yt.data_objects.selection_data_containers.YTOrthoRayBase` and 
+:class:`~yt.data_objects.selection_data_containers.YTRayBase`) with AMR data 
+gives non-contiguous cell information in the Ray's data array. The 
+higher-resolution cells are appended to the end of the array.  Unfortunately, 
+due to how data is loaded by chunks for data containers, there is really no 
+easy way to fix this internally.  However, there is an easy workaround.  
+
+One can sort the ``Ray`` array data by the ``t`` field, which is the value of 
+the parametric variable that goes from 0 at the start of the ray to 1 at the 
+end. That way the data will always be ordered correctly. As an example you can:
+
+.. code-block:: python
+
+    my_ray = ds.ray(...)
+    ray_sort = np.argsort(my_ray["t"])
+    density = my_ray["density"][ray_sort]
+
+There is also a full example in the :ref:`manual-line-plots` section of the 
+docs.
+
 Developing
 ----------
 
