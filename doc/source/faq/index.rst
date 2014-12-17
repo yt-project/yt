@@ -48,6 +48,8 @@ To reveal this, go to a command line and type:
 If the changeset is displayed followed by a "+", it means you have made 
 modifications to the code since the last changeset.
 
+For more information on this topic, see :ref:`updating-yt`.
+
 .. _yt-3.0-problems:
 
 I upgraded to yt 3.0 but my code no longer works.  What do I do?
@@ -67,15 +69,21 @@ Code Errors and Failures
 yt fails saying that it cannot import yt modules
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This is likely because you need to rebuild the source.  You can do 
-this automatically by running:
+This is commonly exhibited with this error: 
+``ImportError: cannot import name obtain_rvec``.  This is likely because 
+you need to rebuild the source.  You can do this automatically by running:
 
 .. code-block:: bash
 
     cd $YT_HG
     python setup.py develop
 
-where ``$YT_HG`` is the path to the yt mercurial repository.
+where ``$YT_HG`` is the path to the yt mercurial repository.  
+
+This error tends to occur when there are changes in the underlying cython
+files that need to be rebuilt, like after a major code update or in switching
+from 2.x to 3.x.  For more information on this, see 
+:ref:`switching-between-yt-versions`.
 
 .. _faq-mpi4py:
 
@@ -239,7 +247,7 @@ For more information about units, see :ref:`units`.
 Fields
 ------
 
-.. _faq-new-field:
+.. _faq-handling-log-vs-linear-space:
 
 How do I modify whether or not yt takes the log of a particular field?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -257,9 +265,10 @@ logged, you could type:
 
 From that point forward, data products such as slices, projections, etc., would
 be presented in linear space. Note that you have to instantiate ds.index before 
-you can access ds.field info.
+you can access ds.field info.  For more information see the documentation on
+:ref:`fields` and :ref:`creating-derived-fields`.
 
-.. _faq-handling-log-vs-linear-space:
+.. _faq-new-field:
 
 I added a new field to my simulation data, can yt see it?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -291,6 +300,13 @@ or for a more legible version, try:
 
    for field in ds.derived_field_list: 
        print field
+
+What is the difference between ``yt.add_field()`` and ``ds.add_field()``?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
+
+The global ``yt.add_field()`` function is for adding a field for every
+subsequent dataset that is loaded in a particular python session, whereas
+``ds.add_field()`` will only add it to dataset ``ds``.
 
 Data Objects
 ------------
@@ -341,7 +357,7 @@ please see :ref:`sharing-changes`.
 Someone asked me to file an issue or a bug report for a bug I found.  How?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     
-See :ref:`reporting-a-bug`.
+See :ref:`reporting-a-bug` and :ref:`sharing-changes`.
 
 Miscellaneous
 -------------
@@ -436,14 +452,11 @@ values corresponding to different log levels are:
    ``DEBUG``,10
    ``NOTSET``,0
    
-.. _faq-mpi4py:
-
-
 
 .. _plugin-file:
 
-What is the "Plugin File"?
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+Can I always load custom data objects, fields, and quantities with every dataset?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The plugin file is a means of modifying the available fields, quantities, data
 objects and so on without modifying the source code of yt.  The plugin file
