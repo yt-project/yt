@@ -266,7 +266,14 @@ other yt developers review and accept your changes to the main code base.
 For a full description of the steps necessary to successfully contribute
 code and issue a pull request (or manage multiple versions of the source code)
 please see :ref:`sharing-changes`.
+
+.. _making-an-issue:
+
+Someone asked me to file an issue or a bug report for a bug I found.  How?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     
+See :ref:`reporting-a-bug`.
+
 Miscellaneous
 -------------
 
