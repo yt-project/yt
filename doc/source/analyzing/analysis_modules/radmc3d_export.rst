@@ -32,12 +32,13 @@ by default:
 .. code-block:: python
 
     import yt
+    import numpy as np
     from yt.analysis_modules.radmc3d_export.api import RadMC3DWriter, RadMC3DSource
 
 Next, load up a dataset and instantiate the :class:`~yt.analysis_modules.radmc3d_export.RadMC3DInterface.RadMC3DWriter`.
 For this example, we'll use the "StarParticle" dataset,
 available `here
-<http://http://yt-project.org/data/>`_. 
+<http://yt-project.org/data/>`_. 
 
 .. code-block:: python
 
@@ -60,7 +61,7 @@ assume a constant dust-to-gas mass ratio of 0.01:
     dust_to_gas = 0.01
     def _DustDensity(field, data):
         return dust_to_gas * data["density"]
-    yt.add_field(("gas", "dust_density"), function=_DustDensity, units="g/cm**3")
+    ds.add_field(("gas", "dust_density"), function=_DustDensity, units="g/cm**3")
 
 We save this information into a file called "dust_density.inp".
 
@@ -106,7 +107,7 @@ yt cannot make these files for you; in the example that follows, we used a
     nphot_scat = 1000000
 
 which basically tells RADMC-3D to use 1,000,000 photon packets instead of the default 100,000. The 
-"dust_opac.inp" file looked like:
+"dustopac.inp" file looked like:
 
 ::
 
@@ -140,7 +141,8 @@ and an np.array containing the image values. To plot this image in pyplot, you c
 
 .. code-block:: python
 
-   import pyplot as plt
+   import matplotlib.pyplot as plt
+   import numpy as np
    from yt.analysis_modules.radmc3d_export.api import read_radmc3d_image
    header, image = read_radmc3d_image("image.out")
 
