@@ -36,6 +36,11 @@ available.  The :func:`add_field` function is the means of doing this; it has a
 number of fairly specific parameters that can be passed in, but here we'll only
 look at the most basic ones needed for a simple scalar baryon field.
 
+.. note::
+
+    There are two different :func:`add_field` functions.  For the differences, 
+    see :ref:`faq-add-field-diffs`.
+
 .. code-block:: python
 
    yt.add_field("pressure", function=_pressure, units="dyne/cm**2")
@@ -210,6 +215,8 @@ And you wanted to debug it, you could do:
 
 And now, when that derived field is actually used, you will be placed into a
 debugger.
+
+.. _cosmological-units:
 
 Units for Cosmological Datasets
 -------------------------------

@@ -479,6 +479,15 @@ Field Types
    ~yt.fields.derived_field.ValidateProperty
    ~yt.fields.derived_field.ValidateSpatial
 
+Field Functions
+---------------
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.fields.field_info_container.FieldInfoContainer.add_field
+   ~yt.data_objects.static_output.Dataset.add_field
+
 Image Handling
 --------------
 

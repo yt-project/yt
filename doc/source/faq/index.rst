@@ -301,12 +301,17 @@ or for a more legible version, try:
    for field in ds.derived_field_list: 
        print field
 
+.. _faq-add-field-diffs:
+
 What is the difference between ``yt.add_field()`` and ``ds.add_field()``?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
 
-The global ``yt.add_field()`` function is for adding a field for every
-subsequent dataset that is loaded in a particular python session, whereas
-``ds.add_field()`` will only add it to dataset ``ds``.
+The global ``yt.add_field()`` 
+(:meth:`~yt.fields.field_info_container.FieldInfoContainer.add_field`) 
+function is for adding a field for every subsequent dataset that is loaded 
+in a particular python session, whereas ``ds.add_field()`` 
+(:meth:`~yt.data_objects.static_output.Dataset.add_field`) will only add it 
+to dataset ``ds``.
 
 Data Objects
 ------------
