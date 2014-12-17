@@ -134,10 +134,21 @@ Units
 
 .. _conversion-factors:
 
-How do I get the conversion factors between code units and X units for my dataset?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+How do I get the convert between code units and physical units for my dataset?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Conversion factors are easy to get in the new yt-3.0 unit system.
+Converting between physical units and code units is a common task.  In yt-2.x,
+the syntax for getting conversion factors was in the units dictionary 
+(``pf.units['kpc']``). So in order to convert a vector ``x`` in code units to
+kpc, you might run:
+
+.. code-block:: python
+
+    x = x*pf.units['kpc']
+
+In yt-3.0, this no longer works.  Conversion factors are tied up in the 
+``length_unit``, ``times_unit``, ``mass_unit``, and ``velocity_unit`` 
+attributes, which can be converted to any arbitrary desired physical unit:
 
 .. code-block:: python
 
@@ -146,26 +157,84 @@ Conversion factors are easy to get in the new yt-3.0 unit system.
     print "Mass unit: ", ds.mass_unit
     print "Velocity unit: ", ds.velocity_unit
 
-Or you can get this in whatever arbitrary unit you want:
-
-.. code-block:: python
-
     print "Length unit: ", ds.length_unit.in_units('code_length')
     print "Time unit: ", ds.time_unit.in_units('code_time')
     print "Mass unit: ", ds.mass_unit.in_units('kg')
     print "Velocity unit: ", ds.velocity_unit.in_units('Mpc/year')
 
+So to accomplish the example task of converting a vector ``x`` in 
+code units to kpc in yt-3.0, you run:
+
+.. code-block:: python
+
+    x = x*ds.length_unit.in_units('kpc')
+
+For more information about unit conversion, see :ref:`data_selection_and_fields`.
+
+How do I make a YTQuantity tied to a specific dataset's units?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 If you want to create a variable or array that is tied to a particular dataset
 (and its specific conversion factor to code units), use the ``ds.quan`` (for 
-variable quantities) and ``ds.arr`` (for variable arrays):
+individual variables) and ``ds.arr`` (for arrays):
 
 .. code-block:: python
 
     import yt
     ds = yt.load(filename)
-    mpc = ds.quan(1, 'Mpc')
-    code_unit = ds.quan(1, 'code_length')
-    three_cm = ds.arr([1,1,1], 'cm')
+    one_Mpc = ds.quan(1, 'Mpc')
+    x_vector = ds.arr([1,0,0], 'code_length')
+
+You can then naturally exploit the units system:
+
+.. code-block:: python
+
+    print "One Mpc in code_units:", one_Mpc.in_units('code_length')
+    print "One Mpc in AU:", one_Mpc.in_units('AU')
+    print "One Mpc in comoving kpc:", one_Mpc.in_units('kpccm')
+
+For more information about unit conversion, see :ref:`data_selection_and_fields`.
+
+.. _accessing-unitless-data:
+
+How do I access the unitless data in a YTQuantity or YTArray?
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+While there are numerous benefits to having units tied to individual 
+quantities in yt, they can also produce issues when simply trying to combine
+YTQuantities with numpy arrays or native python floats that lack units.  A
+simple example of this is:
+
+.. code-block:: python
+
+    # Create a YTQuantity that is 1 kpc in length and tied to the units of 
+    # dataset ds
+    x = ds.quan(1, 'kpc')
+
+    # Try to add this to some non-dimensional quantity
+    print x + 1
+    
+    YTUnitOperationError: The addition operator for YTArrays with units (kpc) and (1) is not well defined.
+
+The solution to this means using the YTQuantity and YTArray objects for all 
+of one's computations, but this isn't always feasible.  A quick fix for this 
+is to just grab the unitless data out of a YTQuantity or YTArray object with
+the ``value``, ``v``, or ``d`` attribute:
+
+.. code-block:: python
+
+    x = ds.quan(1, 'kpc')
+    x_val = x.v
+    print x_val 
+
+    array(1.0)
+
+    # Try to add this to some non-dimensional quantity
+    print x + 1
+
+    2.0 
+
+For more information about units, see :ref:`units`.
 
 Fields
 ------
