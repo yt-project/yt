@@ -175,7 +175,7 @@ class PPVCube(object):
                 buf = off_axis_projection(ds, self.center, normal, width,
                                           (self.nx, self.ny), "intensity",
                                           north_vector=north_vector,
-                                          no_ghost=True, method=method)[::-1]
+                                          no_ghost=True, method=method).swapaxes(0,1)
             sto.result_id = i
             sto.result = buf
             pbar.update(i)
