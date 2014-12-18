@@ -388,8 +388,8 @@ def standard_particle_fields(registry, ptype,
         pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
         vel = svel
         vel = YTArray([data[ptype, vel % ax] for ax in "xyz"])
-	pos = pos.T
-	vel = vel.T
+        pos = pos.T
+        vel = vel.T
         L, pos, vel = modify_reference_frame(center, normal, pos, vel)
         return pos
 
@@ -439,7 +439,7 @@ def standard_particle_fields(registry, ptype,
         pos = pos.T
         vel = vel.T
         L, pos, vel = modify_reference_frame(center, normal, pos, vel)
-	pos = pos.T
+        pos = pos.T
         return pos[1]
 
     registry.add_field((ptype, "particle_relative_position_y"),
