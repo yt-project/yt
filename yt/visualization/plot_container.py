@@ -638,13 +638,13 @@ class ImagePlotContainer(object):
             return self.save(name=name, mpl_kwargs=mpl_kwargs)
 
     @ensure_callbacks
-    def _ipython_display_(self):
+    def _repr_html_(self):
         """Return an html representation of the plot object. Will display as a
         png for each WindowPlotMPL instance in self.plots"""
-        from IPython.display import display
         ret = ''
         for field in self.plots:
-            display(self.plots[field])
+            img = base64.b64encode(self.plots[field]._repr_png_())
+            ret += '<img src="data:image/png;base64,%s"><br>' % img
         return ret
 
     @invalidate_plot
