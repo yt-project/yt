@@ -629,13 +629,13 @@ def standard_particle_fields(registry, ptype,
     def _particle_spherical_theta(field,data):
         normal = data.get_field_parameter("normal")
         coords = get_periodic_rvec(data)
-        return data.ds.arr(get_sph_theta(coords, normal),"radians")
+        return data.ds.arr(get_sph_theta(coords, normal),"radian")
 
     registry.add_field((ptype, "particle_spherical_theta"),
              function=_particle_spherical_theta,
              validators=[ValidateParameter("center"),
                          ValidateParameter("normal")],
-             units = "radians")
+             units = "radian")
 
 
 
@@ -666,13 +666,13 @@ def standard_particle_fields(registry, ptype,
     def _particle_spherical_phi(field,data):
         normal = data.get_field_parameter("normal")
         coords = get_periodic_rvec(data)
-        return data.ds.arr(get_sph_phi(coords, normal),"radians")
+        return data.ds.arr(get_sph_phi(coords, normal),"radian")
 
     registry.add_field((ptype, "particle_spherical_phi"),
              function=_particle_spherical_phi,
              validators=[ValidateParameter("center"),
                          ValidateParameter("normal")],
-             units = "radians")
+             units = "radian")
 
 
     
@@ -818,13 +818,13 @@ def standard_particle_fields(registry, ptype,
     def _particle_cylindrical_theta(field,data):
         normal = data.get_field_parameter("normal")
         coords = get_periodic_rvec(data)
-        return data.ds.array(get_cyl_theta(coords, normal),"radians")
+        return data.ds.array(get_cyl_theta(coords, normal),"radian")
         
     registry.add_field((ptype, "particle_cylindrical_theta"),
              function=_particle_cylindrical_theta,
              validators=[ValidateParameter("center"),
                          ValidateParameter("normal")],
-             units = "radians")
+             units = "radian")
 
     def _particle_cylindrical_position_z(field, data):	
         normal = data.get_field_parameter('normal')
