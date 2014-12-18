@@ -337,8 +337,8 @@ def construct_image(data_source, center=None, width=None, image_res=None):
         cunit = [str(ds.wcs.wcs.cunit[idx]) for idx in axis_wcs[axis]]
         ctype = [ds.wcs.wcs.ctype[idx] for idx in axis_wcs[axis]]
         cdelt = [ds.wcs.wcs.cdelt[idx] for idx in axis_wcs[axis]]
-        ctr_pix = center.in_units("code_length")[:self.dimensionality].v
-        crval = ds.wcs.wcs_pix2world(ctr_pix.reshape(1,self.dimensionality))[0]
+        ctr_pix = center.in_units("code_length")[:ds.dimensionality].v
+        crval = ds.wcs.wcs_pix2world(ctr_pix.reshape(1,ds.dimensionality))[0]
         crval = [crval[idx] for idx in axis_wcs[axis]]
     else:
         # This is some other kind of dataset                                                                      
