@@ -83,6 +83,8 @@ into:
 If you want to create your own custom data object type, see 
 :ref:`creating-objects`.
 
+.. _geometric-objects:
+
 Geometric Objects
 ^^^^^^^^^^^^^^^^^
 
@@ -173,6 +175,7 @@ for the grid cell to be incorporated.
     | Usage: ``sphere(center, radius, ds=None, field_parameters=None, data_source=None)``
     | A sphere defined by a central coordinate and a radius.
 
+.. _collection-objects:
 
 Filtering and Collection Objects
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -204,6 +207,8 @@ See also the section on :ref:`filtering-data`.
     | Usage: ``data_collection(center, obj_list, ds=None, field_parameters=None)``
     | A ``data_collection`` is a list of data objects that can be 
       sampled and processed as a whole in a single data object.
+
+.. _construction-objects:
 
 Construction Objects
 ^^^^^^^^^^^^^^^^^^^^

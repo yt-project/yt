@@ -32,6 +32,8 @@ Example Scripts
    cosmological_analysis
    constructing_data_objects
 
+.. _example-notebooks:
+
 Example Notebooks
 -----------------
 .. toctree::

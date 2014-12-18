@@ -18,6 +18,8 @@ yt is an Python-based open source project and is open for anyone to use or
 contribute code.  The entire source code and history is available to all 
 at https://bitbucket.org/yt_analysis/yt .
 
+.. _who-is-yt:
+
 Who is yt?
 ----------
 
