@@ -19,7 +19,7 @@ from .coordinate_handler import \
     CoordinateHandler, \
     _unknown_coord, \
     _get_coord_fields
-from yt.utilities.lib.misc_utilities import \
+from yt.utilities.lib.pixelization_routines import \
     pixelize_cylinder
 
 class PolarCoordinateHandler(CoordinateHandler):
