@@ -670,6 +670,7 @@ def standard_particle_fields(registry, ptype,
 
     registry.add_field((ptype, "particle_spherical_phi"),
              function=_particle_spherical_phi,
+             particle_type=True, units = "radian",
              validators=[ValidateParameter("center"),
                          ValidateParameter("normal")])
 
