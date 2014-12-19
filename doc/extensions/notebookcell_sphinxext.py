@@ -2,13 +2,12 @@ import os
 import shutil
 import io
 import tempfile
-import uuid
 from sphinx.util.compat import Directive
 from docutils.parsers.rst import directives
 from IPython.nbformat import current
 from notebook_sphinxext import \
     notebook_node, visit_notebook_node, depart_notebook_node, \
-    evaluate_notebook
+    evaluate_notebook, make_image_dir, write_notebook_output
 
 
 class NotebookCellDirective(Directive):
@@ -33,10 +32,8 @@ class NotebookCellDirective(Directive):
 
         rst_file = self.state_machine.document.attributes['source']
         rst_dir = os.path.abspath(os.path.dirname(rst_file))
-        image_dir = setup.app.builder.outdir+os.path.sep+'_images'
-        image_rel_dir = os.path.relpath(setup.confdir, rst_dir) + os.path.sep + '_images'
-        if not os.path.exists(image_dir):
-            os.makedirs(image_dir)
+
+        image_dir, image_rel_dir = make_image_dir(setup, rst_dir)
 
         # Construct notebook from cell content
         content = "\n".join(self.content)
@@ -50,13 +47,8 @@ class NotebookCellDirective(Directive):
         evaluated_text, resources = evaluate_notebook(
             'temp.ipynb', skip_exceptions=skip_exceptions)
 
-        my_uuid = uuid.uuid4().hex
-        for output in resources['outputs']:
-            new_name = image_dir+os.path.sep+my_uuid+output
-            new_relative_name = image_rel_dir+os.path.sep+my_uuid+output
-            evaluated_text = evaluated_text.replace(output, new_relative_name)
-            with open(new_name, 'wb') as f:
-                f.write(resources['outputs'][output])
+        write_notebook_output(resources, image_dir, image_rel_dir,
+                              evaluated_text)
 
         # create notebook node
         attributes = {'format': 'html', 'source': 'nb_path'}

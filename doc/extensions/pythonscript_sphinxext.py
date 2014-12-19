@@ -6,6 +6,7 @@ import subprocess
 import uuid
 from sphinx.util.compat import Directive
 from docutils import nodes
+from notebook_sphinxext import make_image_dir
 
 
 class PythonScriptDirective(Directive):
@@ -27,11 +28,8 @@ class PythonScriptDirective(Directive):
 
         rst_file = self.state_machine.document.attributes['source']
         rst_dir = os.path.abspath(os.path.dirname(rst_file))
-        rel_dir = os.path.relpath(setup.confdir, rst_dir)
-        image_dir = setup.app.builder.outdir+os.path.sep+'_images'
-        image_rel_dir = rel_dir + os.path.sep + '_images'
-        if not os.path.exists(image_dir):
-            os.makedirs(image_dir)
+
+        image_dir, image_rel_dir = make_image_dir(setup, rst_dir)
 
         # Construct script from cell content
         content = "\n".join(self.content)
