@@ -21,8 +21,8 @@ from _mpl_imports import FigureCanvasAgg
 from yt.utilities.logger import ytLogger as mylog
 from .plot_window import PlotWindow
 from .profile_plotter import PhasePlot
-from .plot_modifications import get_smallest_appropriate_unit
-
+#from yt.data_objects import get_smallest_appropriate_unit
+from yt.units.yt_array import YTQuantity
 
 class DualEPS(object):
     def __init__(self, figsize=(12,12)):
@@ -102,6 +102,7 @@ class DualEPS(object):
         >>> d.axis_box(xrange=(0,100), yrange=(1e-3,1), ylog=True)
         >>> d.save_fig()
         """
+        
         if tickcolor is None:
             c1 = pyx.graph.axis.painter.regular\
                  (tickattrs=[pyx.color.cmyk.black])
@@ -151,7 +152,9 @@ class DualEPS(object):
             yrightlabel = ""
             c1y = c1
             c2y = c2
+        
 
+     
         if xlog:
             if xticklabels:
                 xaxis = pyx.graph.axis.log(min=xrange[0],max=xrange[1],
@@ -278,17 +281,19 @@ class DualEPS(object):
         >>> d.axis_box_yt(p)
         >>> d.save_fig()
         """
+       
         if isinstance(plot, (PlotWindow, PhasePlot)):
             plot.refresh()
         else:
             plot._redraw_image()
         if isinstance(plot, PlotWindow):
-            data = plot._frb
+            data = plot.frb
             width = plot.width[0]
             if units == None:
-                units = get_smallest_appropriate_unit(width, plot.ds)
-            _xrange = (0, width.in_units(str(units)))
-            _yrange = (0, width.in_units(str(units)))
+                units = plot.ds.get_smallest_appropriate_unit(width)
+            width = width.in_units(str(units))
+            _xrange = (0, float(width))
+            _yrange = (0, float(width))
             _xlog = False
             _ylog = False
             axis_names = plot.ds.coordinates.axis_name
@@ -309,7 +314,7 @@ class DualEPS(object):
                     _ylabel = ylabel
                 else:
                     if data.axis != 4:
-                        yax = plot.ds.coordinatesyx_axis[data.axis]
+                        yax = plot.ds.coordinates.y_axis[data.axis]
                         _ylabel = '%s (%s)' % (axis_names[yax], units)
                     else:
                         _ylabel = 'Image y (%s)' % (units)
@@ -335,6 +340,7 @@ class DualEPS(object):
                     _ylabel = plot[k].axes.get_ylabel()
             if tickcolor == None:
                 _tickcolor = None
+            print "xlabel = ", _xlabel
         elif isinstance(plot, np.ndarray):
             ax = plt.gca()
             _xrange = ax.get_xlim()
@@ -645,7 +651,11 @@ class DualEPS(object):
             proj = plot._plot_type.endswith("Projection") and \
                 plot.data_source.weight_field == None
             if isinstance(plot, PlotWindow):
-                _zlabel = plot.ds.field_info[self.field].get_label(proj)
+                try:
+                    _zlabel = plot.ds.field_info[self.field].get_label(proj)
+                except NotImplementedError: 
+                    print "Colorbar label not available"
+                    _zlabel = ''
             else:
                 _zlabel = plot.data_source.ds.field_info[self.field].get_label(proj)
             _zlabel = _zlabel.replace("_","\;")
@@ -940,6 +950,8 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
     cb_location : list of strings
         Strings to control the location of the colorbar (left, right, 
         top, bottom)
+    cb_labels : list of labels for the colorbars. List should be the same
+                size as the number of colorbars used.
 
     Examples
     --------
@@ -964,9 +976,10 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
     yt plots.
     """
     # Error check
+    npanels = ncol*nrow
     if(cb_labels != None):
         cb_labels.reverse()   #Because I pop the list
-    npanels = ncol*nrow
+    
     if images != None:
         if len(images) != npanels:
             raise RuntimeError("Number of images (%d) doesn't match nrow(%d)"\
