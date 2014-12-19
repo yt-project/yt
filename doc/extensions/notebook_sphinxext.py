@@ -51,12 +51,13 @@ class NotebookDirective(Directive):
 
         image_dir, image_rel_dir = make_image_dir(setup, rst_dir)
 
-        # Copy unevaluated script
-        try:
-            shutil.copyfile(nb_abs_path, dest_path)
-        except IOError:
-            raise RuntimeError("Unable to copy notebook to build destination.")
+        # Ensure desination build directory exists
+        thread_safe_mkdir(os.path.dirname(dest_path))
 
+        # Copy unevaluated notebook
+        shutil.copyfile(nb_abs_path, dest_path)
+
+        # Construct paths to versions getting copied over
         dest_path_eval = string.replace(dest_path, '.ipynb', '_evaluated.ipynb')
         dest_path_script = string.replace(dest_path, '.ipynb', '.py')
         rel_path_eval = string.replace(nb_basename, '.ipynb', '_evaluated.ipynb')
@@ -212,12 +213,7 @@ def make_image_dir(setup, rst_dir):
     image_dir = setup.app.builder.outdir + os.path.sep + '_images'
     rel_dir = os.path.relpath(setup.confdir, rst_dir)
     image_rel_dir = rel_dir + os.path.sep + '_images'
-    try:
-        os.makedirs(image_dir)
-    except OSError as e:
-        if e.errno != errno.EEXIST:
-            raise
-        pass
+    thread_safe_mkdir(image_dir)
     return image_dir, image_rel_dir
 
 def write_notebook_output(resources, image_dir, image_rel_dir, evaluated_text):
@@ -229,3 +225,10 @@ def write_notebook_output(resources, image_dir, image_rel_dir, evaluated_text):
         evaluated_text = evaluated_text.replace(output, new_relative_name)
         with open(new_name, 'wb') as f:
             f.write(resources['outputs'][output])
+def thread_safe_mkdir(dirname):
+    try:
+        os.makedirs(dirname)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+        pass
