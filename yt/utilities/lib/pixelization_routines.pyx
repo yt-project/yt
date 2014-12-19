@@ -18,6 +18,10 @@ cimport numpy as np
 cimport cython
 cimport libc.math as math
 from fp_utils cimport fmin, fmax, i64min, i64max
+cdef extern from "stdlib.h":
+    # NOTE that size_t might not be int
+    void *alloca(int)
+
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
@@ -234,7 +238,7 @@ def pixelize_aitoff(np.ndarray[np.float64_t, ndim=1] theta,
 # E11   6 7
 # E12   5 8
 # Now we unroll these here ...
-cdef np.uint8_t ***face_defs = [
+cdef np.uint8_t ***hex_face_defs = [
    # Note that the first of each pair is the shared vertex
    [[1, 0], [1, 5]],
    [[2, 3], [2, 6]],
@@ -244,36 +248,103 @@ cdef np.uint8_t ***face_defs = [
    [[0, 4], [0, 3]],
 ]
 
-# This function accepts a set of eight vertices (for a hexahedron) that are
+# http://www.mscsoftware.com/training_videos/patran/Reverb_help/index.html#page/Finite%2520Element%2520Modeling/elem_lib_topics.16.6.html
+#
+# F1    1   2   3
+# F2    1   5   4
+# F3    2   6   5
+# F4    3   4   6
+#
+# The edges are then defined by:
+# E1    1   2
+# E2    2   3
+# E3    3   1
+# E4    1   4
+# E5    2   4
+# E6    3   4
+cdef np.uint8_t ***tetra_face_defs = [
+   # Like above, first is shared vertex
+   [[1, 0], [1, 2]],
+   [[1, 0], [1, 3]],
+   [[2, 1], [2, 3]],
+   [[3, 0], [3, 2]]
+]
+
+# http://www.mscsoftware.com/training_videos/patran/Reverb_help/index.html#page/Finite%2520Element%2520Modeling/elem_lib_topics.16.7.html
+# F1    1   2   3   *
+# F2    4   5   6   *
+# F3    1   8   4   7
+# F4    2   9   5   8
+# F5    3   7   6   9
+#
+# The edges are then defined by:
+# E1    2   1
+# E2    1   3
+# E3    3   2
+# E4    5   4
+# E5    4   6
+# E6    6   5
+# E7    2   5
+# E8    1   4
+# E9    3   6
+cdef np.uint8_t ***wedge_face_defs = [
+   # As always, first is shared vertex
+   [[0, 1], [0, 2]],
+   [[3, 4], [3, 5]],
+   [[0, 1], [0, 3]],
+   [[2, 0], [2, 5]],
+   [[4, 5], [4, 1]],
+]
+
+cdef np.uint8_t ****face_defs = [
+  hex_face_defs,
+  tetra_face_defs,
+  wedge_face_defs
+]
+
+DEF HEX_IND = 0
+DEF HEX_NF = 6
+DEF TETRA_IND = 1
+DEF TETRA_NF = 4
+DEF WEDGE_IND = 2
+DEF WEDGE_NF = 5
+
+# This function accepts a set of vertices (for a polyhedron) that are
 # assumed to be in order for bottom, then top, in the same clockwise or
 # counterclockwise direction (i.e., like points 1-8 in Figure 4 of the ExodusII
 # manual).  It will then either *match* or *fill* the results.  If it is
 # matching, it will early terminate with a 0 or final-terminate with a 1 if the
 # results match.  Otherwise, it will fill the signs with -1's and 1's to show
 # the sign of the dot product of the point with the cross product of the face.
-cdef int check_face_dot(np.float64_t point[3],
-                        np.float64_t vertices[8][3],
-                        np.int8_t signs[6],
+cdef int check_face_dot(int nvertices,
+                        np.float64_t point[3],
+                        np.float64_t **vertices,
+                        np.int8_t *signs,
                         int match):
     # Because of how we are doing this, we do not *care* what the signs are or
     # how the faces are ordered, we only care if they match between the point
     # and the centroid.
-    # The faces are defined by vectors spanned (1-indexed):
-    #   Bottom: 2->1, 2->3 (i.e., p1-p2, p3-p2)
-    #   Front:  2->1, 2->6 (i.e., p1-p2, p6-p2)
-    #   Right:  2->3, 2->6 (i.e., p3-p2, p6-p2)
-    #   Left:   1->5, 1->4 (i.e., p5-p1, p4-p1)
-    #   Back:   3->7, 3->4 (i.e., p7-p3, p4-p3)
-    #   Top:    6->5, 6->7 (i.e., p5-p6, p7-p6)
     # So, let's compute these vectors.  See above where these are written out
     # for ease of use.
     cdef np.float64_t vec1[3], vec2[3], cp_vec[3], dp, npoint[3]
+    cdef np.uint8_t ***faces, nf
+    if nvertices == 4:
+        faces = face_defs[TETRA_IND]
+        nf = TETRA_NF
+    elif nvertices == 6:
+        faces = face_defs[WEDGE_IND]
+        nf = WEDGE_NF
+    elif nvertices == 8:
+        faces = face_defs[HEX_IND]
+        nf = HEX_NF
+    else:
+        return -1
     cdef int i, j, n, vi1a, vi1b, vi2a, vi2b
-    for n in range(6):
-        vi1a = face_defs[n][0][0]
-        vi1b = face_defs[n][0][1]
-        vi2a = face_defs[n][1][0]
-        vi2b = face_defs[n][1][1]
+    for n in range(nf):
+        vi1a = faces[n][0][0]
+        vi1b = faces[n][0][1]
+        vi2a = faces[n][1][0]
+        vi2b = faces[n][1][1]
         # Shared vertex is vi1b and vi2b
         for i in range(3):
             vec1[i] = vertices[vi1b][i] - vertices[vi1a][i]
@@ -300,7 +371,7 @@ cdef int check_face_dot(np.float64_t point[3],
                 return 0
     return 1
 
-def pixelize_hex_mesh(np.ndarray[np.float64_t, ndim=2] coords,
+def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                       np.ndarray[np.int64_t, ndim=2] conn,
                       buff_size,
                       np.ndarray[np.float64_t, ndim=1] field,
@@ -319,13 +390,26 @@ def pixelize_hex_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     cdef np.float64_t pLE[3], pRE[3]
     cdef np.float64_t LE[3], RE[3]
     cdef int use
-    cdef np.int8_t signs[6]
+    cdef np.int8_t *signs
     cdef np.int64_t n, i, j, k, pi, pj, pk, ci, cj, ck
     cdef np.int64_t pstart[3], pend[3]
     cdef np.float64_t ppoint[3], centroid[3], idds[3], dds[3]
-    cdef np.float64_t vertices[8][3]
-    if conn.shape[1] != 8: # Hexahedral meshes must have 8 vertices
+    cdef np.float64_t **vertices
+    cdef int nvertices = conn.shape[1]
+    cdef int nf
+    # Allocate our signs array
+    if nvertices == 4:
+        nf = TETRA_NF
+    elif nvertices == 6:
+        nf = WEDGE_NF
+    elif nvertices == 8:
+        nf = HEX_NF
+    else:
         raise RuntimeError
+    signs = <np.int8_t *> alloca(sizeof(np.int8_t) * nf)
+    vertices = <np.float64_t **> alloca(sizeof(np.float64_t *) * nvertices)
+    for i in range(nvertices):
+        vertices[i] = <np.float64_t *> alloca(sizeof(np.float64_t) * 3)
     for i in range(3):
         pLE[i] = extents[i][0]
         pRE[i] = extents[i][1]
@@ -339,16 +423,16 @@ def pixelize_hex_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         centroid[0] = centroid[1] = centroid[2] = 0
         LE[0] = LE[1] = LE[2] = 1e60
         RE[0] = RE[1] = RE[2] = -1e60
-        for n in range(conn.shape[1]): # 8
+        for n in range(nvertices): # 8
             cj = conn[ci, n] - index_offset
             for i in range(3):
                 vertices[n][i] = coords[cj, i]
                 centroid[i] += coords[cj, i]
                 LE[i] = fmin(LE[i], vertices[n][i])
                 RE[i] = fmax(RE[i], vertices[n][i])
-        centroid[0] /= conn.shape[1]
-        centroid[1] /= conn.shape[1]
-        centroid[2] /= conn.shape[1]
+        centroid[0] /= nvertices
+        centroid[1] /= nvertices
+        centroid[2] /= nvertices
         use = 1
         for i in range(3):
             if RE[i] < pLE[i] or LE[i] >= pRE[i]:
@@ -363,7 +447,7 @@ def pixelize_hex_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         # pixel in there.
         # First, we figure out the dot product of the centroid with all the
         # faces.
-        check_face_dot(centroid, vertices, signs, 0)
+        check_face_dot(nvertices, centroid, vertices, signs, 0)
         for pi in range(pstart[0], pend[0] + 1):
             ppoint[0] = (pi + 0.5) * dds[0] + pLE[0]
             for pj in range(pstart[1], pend[1] + 1):
@@ -372,7 +456,7 @@ def pixelize_hex_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                     ppoint[2] = (pk + 0.5) * dds[2] + pLE[2]
                     # Now we just need to figure out if our ppoint is within
                     # our set of vertices.
-                    if check_face_dot(ppoint, vertices, signs, 1) == 0:
+                    if check_face_dot(nvertices, ppoint, vertices, signs, 1) == 0:
                         continue
                     # Else, we deposit!
                     img[pi, pj, pk] = field[ci]
