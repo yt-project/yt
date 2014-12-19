@@ -633,9 +633,9 @@ def standard_particle_fields(registry, ptype,
 
     registry.add_field((ptype, "particle_spherical_theta"),
              function=_particle_spherical_theta,
+             particle_type=True, units = "radian",
              validators=[ValidateParameter("center"),
-                         ValidateParameter("normal")],
-             units = "radian")
+                         ValidateParameter("normal")])
 
 
 
@@ -671,8 +671,7 @@ def standard_particle_fields(registry, ptype,
     registry.add_field((ptype, "particle_spherical_phi"),
              function=_particle_spherical_phi,
              validators=[ValidateParameter("center"),
-                         ValidateParameter("normal")],
-             units = "radian")
+                         ValidateParameter("normal")])
 
 
     
@@ -699,6 +698,7 @@ def standard_particle_fields(registry, ptype,
     registry.add_field((ptype, "particle_spherical_velocity_radius"),
               function=_particle_spherical_velocity_radius,
               particle_type=True, units="cm/s",
+              particle_type=True, units = "radian",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
@@ -822,9 +822,9 @@ def standard_particle_fields(registry, ptype,
         
     registry.add_field((ptype, "particle_cylindrical_theta"),
              function=_particle_cylindrical_theta,
+             particle_type=True, units = "radian",
              validators=[ValidateParameter("center"),
-                         ValidateParameter("normal")],
-             units = "radian")
+                         ValidateParameter("normal")])
 
     def _particle_cylindrical_position_z(field, data):	
         normal = data.get_field_parameter('normal')
