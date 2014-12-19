@@ -38,7 +38,10 @@ from yt.utilities.exceptions import \
 def ensure_callbacks(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
-        args[0].run_callbacks()
+        try:
+            args[0].run_callbacks()
+        except NotImplementedError:
+            pass
         return f(*args, **kwargs)
     return newfunc
 
