@@ -699,7 +699,6 @@ def standard_particle_fields(registry, ptype,
     registry.add_field((ptype, "particle_spherical_velocity_radius"),
               function=_particle_spherical_velocity_radius,
               particle_type=True, units="cm/s",
-              particle_type=True, units = "radian",
               validators=[ValidateParameter("normal"), 
                           ValidateParameter("center")])
 
