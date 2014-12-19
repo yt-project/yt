@@ -74,8 +74,8 @@ class NotebookDirective(Directive):
         evaluated_text, resources = evaluate_notebook(
             nb_abs_path, dest_path_eval, skip_exceptions=skip_exceptions)
 
-        write_notebook_output(resources, image_dir, image_rel_dir,
-                              evaluated_text)
+        evaluated_text = write_notebook_output(
+            resources, image_dir, image_rel_dir, evaluated_text)
 
         # Create link to notebook and script files
         link_rst = "(" + \
@@ -225,6 +225,8 @@ def write_notebook_output(resources, image_dir, image_rel_dir, evaluated_text):
         evaluated_text = evaluated_text.replace(output, new_relative_name)
         with open(new_name, 'wb') as f:
             f.write(resources['outputs'][output])
+    return evaluated_text
+
 def thread_safe_mkdir(dirname):
     try:
         os.makedirs(dirname)

@@ -47,8 +47,8 @@ class NotebookCellDirective(Directive):
         evaluated_text, resources = evaluate_notebook(
             'temp.ipynb', skip_exceptions=skip_exceptions)
 
-        write_notebook_output(resources, image_dir, image_rel_dir,
-                              evaluated_text)
+        evaluated_text = write_notebook_output(
+            resources, image_dir, image_rel_dir, evaluated_text)
 
         # create notebook node
         attributes = {'format': 'html', 'source': 'nb_path'}
