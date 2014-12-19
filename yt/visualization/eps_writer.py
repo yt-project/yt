@@ -21,7 +21,6 @@ from _mpl_imports import FigureCanvasAgg
 from yt.utilities.logger import ytLogger as mylog
 from .plot_window import PlotWindow
 from .profile_plotter import PhasePlot
-#from yt.data_objects import get_smallest_appropriate_unit
 from yt.units.yt_array import YTQuantity
 
 class DualEPS(object):
@@ -340,7 +339,6 @@ class DualEPS(object):
                     _ylabel = plot[k].axes.get_ylabel()
             if tickcolor == None:
                 _tickcolor = None
-            print "xlabel = ", _xlabel
         elif isinstance(plot, np.ndarray):
             ax = plt.gca()
             _xrange = ax.get_xlim()
