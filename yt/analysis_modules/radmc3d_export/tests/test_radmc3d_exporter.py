@@ -13,7 +13,9 @@ Unit test for the RADMC3D Exporter analysis module
 import yt
 from yt.testing import *
 from yt.analysis_modules.radmc3d_export.api import RadMC3DWriter
-from yt.utilities.answer_testing.framework import AnswerTestingTest
+from yt.utilities.answer_testing.framework import \
+    AnswerTestingTest, \
+    requires_ds
 from yt.config import ytcfg
 import tempfile
 import os
@@ -75,7 +77,7 @@ class RadMC3DValuesTest(AnswerTestingTest):
 ISO_GAL = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 
-@requires_file(ISO_GAL)
+@requires_ds(ISO_GAL)
 def test_radmc3d_exporter_continuum():
     """
     This test is simply following the description in the docs for how to
