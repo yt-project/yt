@@ -415,7 +415,7 @@ def standard_particle_fields(registry, ptype,
         pos = pos.T
         vel = vel.T
         L, pos, vel = modify_reference_frame(center, normal, pos, vel)
-	pos = pos.T
+        pos = pos.T
         return pos[0]
 
     registry.add_field((ptype, "particle_relative_position_x"),
