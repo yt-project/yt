@@ -3,63 +3,72 @@
 ChangeLog
 =========
 
-
-This is a non-comprehensive log of changes to the code.
+This is a non-comprehensive log of changes to yt over its many releases.
 
 Contributors
 ------------
 
-Here are all of the contributors to the code base, in alphabetical order.
+The `CREDITS file <http://hg.yt-project.org/yt/src/yt/CREDITS>`_ contains the
+most up-to-date list of everyone who has contributed to the yt source code.
 
- * Tom Abel
- * David Collins
- * Brian Crosby
- * Andrew Cunningham
- * Hilary Egan
- * John Forbes
- * Nathan Goldbaum
- * Markus Haider
- * Cameron Hummels
- * Christian Karch
- * Ji-hoon Kim
- * Steffen Klemer
- * Kacper Kowalik
- * Michael Kuhlen
- * Eve Lee
- * Sam Leitner
- * Yuan Li
- * Chris Malone
- * Josh Moloney
- * Chris Moody
- * Andrew Myers
- * Jill Naiman
- * Kaylea Nelson
- * Jeﬀ Oishi
- * Jean-Claude Passy
- * Mark Richardson
- * Thomass Robitaille
- * Anna Rosen
- * Douglas Rudd
- * Anthony Scopatz
- * Noel Scudder
- * Devin Silvia
- * Sam Skillman
- * Stephen Skory
- * Britton Smith
- * Geoffrey So
- * Casey Stark
- * Elizabeth Tasker
- * Stephanie Tonnesen
- * Matthew Turk
- * Rick Wagner
- * Andrew Wetzel
- * John Wise
- * John ZuHone
+Version 3.0
+-----------
+
+This release of yt features an entirely rewritten infrastructure for
+data ingestion, indexing, and representation.  While past versions of
+yt were focused on analysis and visualization of data structured as
+regular grids, this release features full support for particle
+(discrete point) data such as N-body and SPH data, irregular
+hexahedral mesh data, and data organized via octrees.  This
+infrastructure will be extended in future versions for high-fidelity
+representation of unstructured mesh datasets.
+
+Highlighted changes in yt 3.0:
+
+ * Units now permeate the code base, enabling self-consistent unit
+   transformations of all arrays and quantities returned by yt.
+ * Particle data is now supported using a lightweight octree.  SPH
+   data can be smoothed onto an adaptively-defined mesh using standard
+   SPH smoothing
+ * Support for octree AMR codes
+ * Preliminary Support for non-Cartesian data, such as cylindrical,
+   spherical, and geographical
+ * Revamped analysis framework for halos and halo catalogs, including
+   direct ingestion and analysis of halo catalogs of several different
+   formats
+ * Support for multi-fluid datasets and datasets containing multiple
+   particle types
+ * Flexible support for dynamically defining new particle types using
+   filters on existing particle types or by combining different particle
+   types.
+ * Vastly improved support for loading generic grid, AMR, hexahedral
+   mesh, and particle without hand-coding a frontend for a particular
+   data format.
+ * New frontends for ART, ARTIO, Boxlib, Chombo, FITS, GDF, Subfind,
+   Rockstar, Pluto, RAMSES, SDF, Gadget, OWLS, PyNE, Tipsy, as well as
+   rewritten frontends for Enzo, FLASH, Athena, and generic data.
+ * First release to support installation of yt on Windows
+ * Extended capabilities for construction of simulated observations,
+   and new facilities for analyzing and visualizing FITS images and cube
+   data
+ * Many performance improvements
+
+This release is the first of several; while most functionality from
+the previous generation of yt has been updated to work with yt 3.0, it
+does not yet have feature parity in all respects.  While the core of
+yt is stable, we suggest the support for analysis modules and volume
+rendering be viewed as a late-stage beta, with a series of additional
+releases (3.1, 3.2, etc) appearing over the course of the next year to
+improve support in these areas.
+
+For a description of how to bring your 2.x scripts up to date to 3.0, 
+and a summary of common gotchas in this transition, please see 
+:ref:`yt3differences`.
 
 Version 2.6
 -----------
 
-This is a scheduled release, bringing to a close the development in the 2.5
+This is a scheduled release, bringing to a close the development in the 2.x
 series.  Below are the itemized, aggregate changes since version 2.5.
 
 Major changes:

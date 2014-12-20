@@ -19,8 +19,8 @@ which are described below.
 
 .. _simple-inspection:
 
-Visual Inspection
------------------
+Slices & Projections
+--------------------
 
 If you need to take a quick look at a single simulation output, yt
 provides the ``PlotWindow`` interface for generating annotated 2D
@@ -349,8 +349,8 @@ OffAxisProjectionPlots can also be created with a number of
 keyword arguments, as described in
 :class:`~yt.visualization.plot_window.OffAxisProjectionPlot`
 
-Plot Customization
-------------------
+Plot Customization: Recentering, Resizing, Colormaps, and More
+--------------------------------------------------------------
 
 You can customize each of the four plot types above in identical ways.  We'll go
 over each of the customizations methods below.  For each of the examples below we

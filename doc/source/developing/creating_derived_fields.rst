@@ -36,20 +36,27 @@ available.  The :func:`add_field` function is the means of doing this; it has a
 number of fairly specific parameters that can be passed in, but here we'll only
 look at the most basic ones needed for a simple scalar baryon field.
 
+.. note::
+
+    There are two different :func:`add_field` functions.  For the differences, 
+    see :ref:`faq-add-field-diffs`.
+
 .. code-block:: python
 
    yt.add_field("pressure", function=_pressure, units="dyne/cm**2")
 
 We feed it the name of the field, the name of the function, and the
-units.  Note that the units parameter is a "raw" string, in the format that yt uses
-in its `symbolic units implementation <units>`_ (e.g., employing only unit names, numbers,
-and mathematical operators in the string, and using ``"**"`` for exponentiation). We suggest
-that you name the function that creates a derived field with the intended field name prefixed
-by a single underscore, as in the ``_pressure`` example above.
+units.  Note that the units parameter is a "raw" string, in the format that yt 
+uses in its `symbolic units implementation <units>`_ (e.g., employing only 
+unit names, numbers, and mathematical operators in the string, and using 
+``"**"`` for exponentiation). For cosmological datasets and fields, see 
+:ref:`cosmological-units`.  We suggest that you name the function that creates 
+a derived field with the intended field name prefixed by a single underscore, 
+as in the ``_pressure`` example above.
 
-:func:`add_field` can be invoked in two other ways. The first is by the function
-decorator :func:`derived_field`. The following code is equivalent to the previous
-example:
+:func:`add_field` can be invoked in two other ways. The first is by the 
+function decorator :func:`derived_field`. The following code is equivalent to 
+the previous example:
 
 .. code-block:: python
 
@@ -60,15 +67,16 @@ example:
        return (data.ds.gamma - 1.0) * \
               data["density"] * data["thermal_energy"]
 
-The :func:`derived_field` decorator takes the same arguments as :func:`add_field`,
-and is often a more convenient shorthand in cases where you want to quickly set up
-a new field.
+The :func:`derived_field` decorator takes the same arguments as 
+:func:`add_field`, and is often a more convenient shorthand in cases where 
+you want to quickly set up a new field.
 
-Defining derived fields in the above fashion must be done before a dataset is loaded,
-in order for the dataset to recognize it. If you want to set up a derived field after you
-have loaded a dataset, or if you only want to set up a derived field for a particular
-dataset, there is an :func:`~yt.data_objects.static_output.Dataset.add_field` 
-method that hangs off dataset objects. The calling syntax is the same:
+Defining derived fields in the above fashion must be done before a dataset is 
+loaded, in order for the dataset to recognize it. If you want to set up a 
+derived field after you have loaded a dataset, or if you only want to set up 
+a derived field for a particular dataset, there is an 
+:func:`~yt.data_objects.static_output.Dataset.add_field` method that hangs off 
+dataset objects. The calling syntax is the same:
 
 .. code-block:: python
 
@@ -210,33 +218,3 @@ And you wanted to debug it, you could do:
 
 And now, when that derived field is actually used, you will be placed into a
 debugger.
-
-Units for Cosmological Datasets
--------------------------------
-
-yt has additional capabilities to handle the comoving coordinate system used
-internally in cosmological simulations. Simulations that use comoving
-coordinates, all length units have three other counterparts correspoding to
-comoving units, scaled comoving units, and scaled proper units. In all cases
-'scaled' units refer to scaling by the reduced Hubble parameter - i.e. the length
-unit is what it would be in a universe where Hubble's parameter is 100 km/s/Mpc.
-
-To access these different units, yt has a common naming system. Scaled units are denoted by
-dividing by the scaled Hubble parameter ``h`` (which is in itself a unit). Comoving
-units are denoted by appending ``cm`` to the end of the unit name.
-
-Using the parsec as an example,
-
-``pc``
-    Proper parsecs, :math:`\rm{pc}`.
-
-``pccm``
-    Comoving parsecs, :math:`\rm{pc}/(1+z)`.
-
-``pccm/h``
-    Comoving parsecs normalized by the scaled hubble constant, :math:`\rm{pc}/h/(1+z)`.
-
-``pc/h``
-    Proper parsecs, normalized by the scaled hubble constant, :math:`\rm{pc}/h`.
-
-Further examples of this functionality are shown in :ref:`comoving_units_and_code_units`.
