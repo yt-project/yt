@@ -147,7 +147,7 @@ How do I get the convert between code units and physical units for my dataset?
 
 Converting between physical units and code units is a common task.  In yt-2.x,
 the syntax for getting conversion factors was in the units dictionary 
-(``pf.units['kpc']``). So in order to convert a vector ``x`` in code units to
+(``pf.units['kpc']``). So in order to convert a variable ``x`` in code units to
 kpc, you might run:
 
 .. code-block:: python
@@ -170,8 +170,16 @@ attributes, which can be converted to any arbitrary desired physical unit:
     print "Mass unit: ", ds.mass_unit.in_units('kg')
     print "Velocity unit: ", ds.velocity_unit.in_units('Mpc/year')
 
-So to accomplish the example task of converting a vector ``x`` in 
-code units to kpc in yt-3.0, you run:
+So to accomplish the example task of converting a scalar variable ``x`` in 
+code units to kpc in yt-3.0, you can do one of two things.  If ``x`` is 
+already a YTQuantity with units in ``code_length``, you can run:
+
+.. code-block:: python
+
+    x.in_units('kpc')
+
+However, if ``x`` is just a numpy array or native python variable without
+units, you can convert it to a YTQuantity with units of ``kpc`` by running:
 
 .. code-block:: python
 
@@ -211,23 +219,22 @@ How do I access the unitless data in a YTQuantity or YTArray?
 While there are numerous benefits to having units tied to individual 
 quantities in yt, they can also produce issues when simply trying to combine
 YTQuantities with numpy arrays or native python floats that lack units.  A
-simple example of this is:
-
-.. code-block:: python
+simple example of this is::
 
     # Create a YTQuantity that is 1 kpc in length and tied to the units of 
     # dataset ds
-    x = ds.quan(1, 'kpc')
+    >>> x = ds.quan(1, 'kpc')
 
     # Try to add this to some non-dimensional quantity
-    print x + 1
+    >>> print x + 1
     
     YTUnitOperationError: The addition operator for YTArrays with units (kpc) and (1) is not well defined.
 
 The solution to this means using the YTQuantity and YTArray objects for all 
 of one's computations, but this isn't always feasible.  A quick fix for this 
 is to just grab the unitless data out of a YTQuantity or YTArray object with
-the ``value``, ``v``, or ``d`` attribute:
+the ``value`` and ``v`` attributes, which return a copy, or with the ``d`` 
+attribute, which returns the data itself:
 
 .. code-block:: python
 
@@ -242,7 +249,7 @@ the ``value``, ``v``, or ``d`` attribute:
 
     2.0 
 
-For more information about units, see :ref:`units`.
+For more information about this functionality with units, see :ref:`data_selection_and_fields`.
 
 Fields
 ------
@@ -417,7 +424,8 @@ be a persistent problem add the line:
 
    from yt.config import ytcfg; ytcfg["yt","serialize"] = "False"
 
-to the very top of your yt script. 
+to the very top of your yt script.  Turning off serialization is the default 
+behavior in yt-3.0.
 
 .. _faq-log-level:
 
@@ -428,8 +436,8 @@ yt's default log level is ``INFO``. However, you may want less voluminous loggin
 if you are in an IPython notebook or running a long or parallel script. On the other
 hand, you may want it to output a lot more, since you can't figure out exactly what's going 
 wrong, and you want to output some debugging information. The yt log level can be 
-changed using the :ref:`configuration`, either by setting it in the ``$HOME/.yt/config``
-file:
+changed using the :ref:`configuration-file`, either by setting it in the 
+``$HOME/.yt/config`` file:
 
 .. code-block:: bash
 

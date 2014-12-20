@@ -1,8 +1,8 @@
 
 .. _how-to-make-plots:
 
-How to Make Images
-==================
+How to Make Plots
+=================
 
 In this section we explain how to use yt to create visualizations
 of simulation data, derived fields, and the data produced by yt

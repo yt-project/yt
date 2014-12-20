@@ -162,5 +162,6 @@ Table of Contents
    examining/index
    developing/index
    reference/index
+   faq/index
    Getting Help <help/index>
    about/index
