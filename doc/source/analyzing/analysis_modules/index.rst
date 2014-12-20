@@ -1,12 +1,13 @@
 .. _analysis-modules:
 
-Analysis Modules
-================
+Topic-Specific Analysis Modules
+===============================
 
-These are "canned" analysis modules that can operate on datasets, performing a
-sequence of operations that result in a final result.  This functionality 
-interoperates with yt, but one needs to import the functions associated
-with each specific analysis module into python before using them.
+These semi-autonomous analysis modules are unique to specific subject matter
+like tracking halos, generating synthetic observations, exporting output to
+external visualization routines, and more.  Because they are somewhat 
+specialized, they exist in their own corners of yt, and they do not get loaded
+by default when you "import yt".  Read up on these advanced tools below.
 
 .. toctree::
    :maxdepth: 2
