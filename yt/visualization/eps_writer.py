@@ -83,7 +83,7 @@ class DualEPS(object):
 #=============================================================================
 
     def return_field(self, plot):
-        if isinstance(plot, PlotWindow) or isinstance(plot, PhasePlot):
+        if isinstance(plot, (PlotWindow, PhasePlot)):
             return plot.plots.keys()[0]
         else:
             return None
@@ -337,7 +337,6 @@ class DualEPS(object):
                 if xlabel != None:
                     _xlabel = xlabel
                 else:
-                    import pdb; pdb.set_trace()
                     if data.axis != 4:
                         xi = plot.ds.coordinates.x_axis[data.axis]
                         x_name = plot.ds.coordinates.axis_name[xi]
@@ -489,12 +488,13 @@ class DualEPS(object):
         if self.canvas is None:
             self.canvas = pyx.canvas.canvas()
         if isinstance(plot, (PlotWindow, PhasePlot)):
-            self.field = field
-            if self.field == None:
+            if field == None:
                 self.field = plot.plots.keys()[0]
                 mylog.warning("No field specified.  Choosing first field (%s)" % \
                               str(self.field))
-            if self.field[1] not in plot.plots.keys()[0][1]:
+            else:
+                self.field = plot.data_source._determine_fields(field)[0]
+            if self.field not in plot.plots.keys():
                 raise RuntimeError("Field '%s' does not exist!" % str(self.field))
             plot.plots[self.field].hide_colorbar()
             plot.refresh()
@@ -687,7 +687,7 @@ class DualEPS(object):
         """
         _cmap = None
         if field != None:
-            self.field = field
+            self.field = plot.data_source._determine_fields(field)[0]
         if isinstance(plot, (PlotWindow, PhasePlot)):
             _cmap = plot._colormaps[self.field]
         else:
@@ -700,20 +700,18 @@ class DualEPS(object):
                 plot.data_source.weight_field == None
             if isinstance(plot, PlotWindow):
                 try:
-                    _zlabel = plot._frb[self.field].info["label"]
-                    _unit = Unit(plot._frb[self.field].units, 
+                    _zlabel = plot.frb[self.field].info["label"]
+                    _unit = Unit(plot.frb[self.field].units, 
                                  registry=plot.ds.unit_registry)
                     units = _unit.latex_representation()
                     # PyX does not support \frac because it's based on TeX.
-                    if units.find('frac') >= 0:
-                        units = convert_frac_to_tex(units)
+                    units = pyxize_label(units)
                     _zlabel += r' (' + units + r')'
                 except NotImplementedError: 
                     print "Colorbar label not available"
                     _zlabel = ''
             else:
-                _zlabel = plot.data_source.ds.field_info[self.field].get_label(proj)
-                _zlabel = pyxize_label(_zlabel)
+                _zlabel = pyxize_label(plot.z_title)
             _zlabel = _zlabel.replace("_","\;")
             _zlog = plot.get_log(self.field)[self.field]
             if plot.plots[self.field].zmin == None:
@@ -1075,6 +1073,10 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
         for i in range(ncol):
             xpos = i*(figsize[0] + margins[0])
             index = j*ncol + i
+            if isinstance(yt_plots, list):
+                this_plot = yt_plots[index]
+            else:
+                this_plot = yt_plots
             if j == nrow-1:
                 xaxis = 1
             elif j == 0:
@@ -1110,9 +1112,9 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
                     ylabel = ylabels[j]
                 else:
                     ylabel = None
-                d.insert_image_yt(yt_plots[index], pos=(xpos, ypos),
+                d.insert_image_yt(this_plot, pos=(xpos, ypos),
                                   field=fields[index])
-                d.axis_box_yt(yt_plots[index], pos=(xpos, ypos),
+                d.axis_box_yt(this_plot, pos=(xpos, ypos),
                               bare_axes=bare_axes, xaxis_side=xaxis,
                               yaxis_side=yaxis,
                               xlabel=xlabel, ylabel=ylabel,
@@ -1193,7 +1195,7 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
                         if fields[index] == None:
                             fields[index] = d.return_field(yt_plots[index])
                                               
-                        d.colorbar_yt(yt_plots[index],
+                        d.colorbar_yt(this_plot,
                                       field=fields[index],
                                       pos=[xpos,ypos],
                                       shrink=shrink_cb,

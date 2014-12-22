@@ -813,6 +813,7 @@ class PhasePlot(ImagePlotContainer):
 
             x_scale, y_scale, z_scale = self._get_field_log(f, self.profile)
             x_title, y_title, z_title = self._get_field_title(f, self.profile)
+            self.z_title = z_title  # Save for easy access
 
             if zlim == (None, None):
                 if z_scale == 'log':
