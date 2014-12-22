@@ -16,17 +16,7 @@ import os
 from yt.funcs import *
 from yt.units.yt_array import YTQuantity
 import h5py
-
-try:
-    import xspec
-except ImportError:
-    pass
-
 from yt.utilities.on_demand_imports import _astropy, _scipy
-
-pyfits = _astropy.pyfits
-stats = _scipy.stats
-
 from yt.utilities.physical_constants import hcgs, clight, erg_per_keV, amu_cgs
 
 hc = (hcgs*clight).in_units("keV*angstrom").v
@@ -78,6 +68,7 @@ class XSpecThermalModel(SpectralModel):
         """
         Prepare the thermal model for execution.
         """
+        import xspec
         xspec.Xset.chatter = 0
         xspec.AllModels.setEnergies("%f %f %d lin" %
                                     (self.emin.value, self.emax.value, self.nchan))
@@ -137,6 +128,7 @@ class XSpecAbsorbModel(SpectralModel):
         """
         Prepare the absorption model for execution.
         """
+        import xspec
         xspec.Xset.chatter = 0
         xspec.AllModels.setEnergies("%f %f %d lin" %
                                     (self.emin.value, self.emax.value, self.nchan))
@@ -210,12 +202,12 @@ class TableApecModel(SpectralModel):
         Prepare the thermal model for execution.
         """
         try:
-            self.line_handle = pyfits.open(self.linefile)
+            self.line_handle = _astropy.pyfits.open(self.linefile)
         except IOError:
             mylog.error("LINE file %s does not exist" % self.linefile)
             raise IOError("LINE file %s does not exist" % self.linefile)
         try:
-            self.coco_handle = pyfits.open(self.cocofile)
+            self.coco_handle = _astropy.pyfits.open(self.cocofile)
         except IOError:
             mylog.error("COCO file %s does not exist" % self.cocofile)
             raise IOError("COCO file %s does not exist" % self.cocofile)
@@ -241,7 +233,7 @@ class TableApecModel(SpectralModel):
             vec = np.zeros(self.nchan)
             sigma = E0*np.sqrt(self.Tvals[tindex]*erg_per_keV/(self.A[element]*amu_cgs))/cl
             for E, sig, a in zip(E0, sigma, amp):
-                cdf = stats.norm(E,sig).cdf(ebins)
+                cdf = _scipy.stats.norm(E,sig).cdf(ebins)
                 vec += np.diff(cdf)*a
         else:
             ie = np.searchsorted(ebins, E0, side='right')-1

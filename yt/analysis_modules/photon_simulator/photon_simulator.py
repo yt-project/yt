@@ -31,8 +31,6 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.units.yt_array import YTQuantity, YTArray, uconcatenate
 import h5py
 from yt.utilities.on_demand_imports import _astropy
-pyfits = _astropy.pyfits
-pywcs = _astropy.pywcs
 
 comm = communication_system.communicators[-1]
 
@@ -529,7 +527,7 @@ class PhotonList(object):
             elif isinstance(area_new, basestring):
                 if comm.rank == 0:
                     mylog.info("Using energy-dependent effective area: %s" % (parameters["ARF"]))
-                f = pyfits.open(area_new)
+                f = _astropy.pyfits.open(area_new)
                 elo = f["SPECRESP"].data.field("ENERG_LO")
                 ehi = f["SPECRESP"].data.field("ENERG_HI")
                 eff_area = np.nan_to_num(f["SPECRESP"].data.field("SPECRESP"))
@@ -663,7 +661,7 @@ class PhotonList(object):
         return EventList(events, parameters)
 
     def _normalize_arf(self, respfile):
-        rmf = pyfits.open(respfile)
+        rmf = _astropy.pyfits.open(respfile)
         table = rmf["MATRIX"]
         weights = np.array([w.sum() for w in table.data["MATRIX"]])
         rmf.close()
@@ -676,7 +674,7 @@ class PhotonList(object):
         mylog.warning("This routine has not been tested to work with all RMFs. YMMV.")
         mylog.info("Reading response matrix file (RMF): %s" % (respfile))
         
-        hdulist = pyfits.open(respfile)
+        hdulist = _astropy.pyfits.open(respfile)
 
         tblhdu = hdulist["MATRIX"]
         n_de = len(tblhdu.data["ENERG_LO"])
@@ -757,7 +755,7 @@ class EventList(object) :
         self.events = events
         self.parameters = parameters
         self.num_events = events["xpix"].shape[0]
-        self.wcs = pywcs.WCS(naxis=2)
+        self.wcs = _astropy.pywcs.WCS(naxis=2)
         self.wcs.wcs.crpix = parameters["pix_center"]
         self.wcs.wcs.crval = parameters["sky_center"].ndarray_view()
         self.wcs.wcs.cdelt = [-parameters["dtheta"].value, parameters["dtheta"].value]
@@ -877,7 +875,7 @@ class EventList(object) :
         """
         Initialize an EventList from a FITS file with filename *fitsfile*.
         """
-        hdulist = pyfits.open(fitsfile)
+        hdulist = _astropy.pyfits.open(fitsfile)
 
         tblhdu = hdulist["EVENTS"]
         
@@ -919,6 +917,7 @@ class EventList(object) :
         Write events to a FITS binary table file with filename *fitsfile*.
         Set *clobber* to True if you need to overwrite a previous file.
         """
+        pyfits = _astropy.pyfits
         
         cols = []
 
@@ -1004,7 +1003,7 @@ class EventList(object) :
         e_max : float, optional
             The maximum energy of the photons to save in keV.
         """
-
+        pyfits = _astropy.pyfits
         if isinstance(self.parameters["Area"], basestring):
              mylog.error("Writing SIMPUT files is only supported if you didn't convolve with an ARF.")
              raise TypeError("Writing SIMPUT files is only supported if you didn't convolve with an ARF.")
@@ -1156,7 +1155,7 @@ class EventList(object) :
                                            self.events["ypix"][mask],
                                            bins=[xbins,ybins])
         
-        hdu = pyfits.PrimaryHDU(H.T)
+        hdu = _astropy.pyfits.PrimaryHDU(H.T)
         
         hdu.header["MTYPE1"] = "EQPOS"
         hdu.header["MFORM1"] = "RA,DEC"
@@ -1196,7 +1195,7 @@ class EventList(object) :
         nchan : integer, optional
             The number of channels. Only used if binning on energy.
         """
-
+        pyfits = _astropy.pyfits
         if energy_bins:
             spectype = "energy"
             espec = self.events["eobs"].d

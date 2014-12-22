@@ -42,7 +42,7 @@ def test_etc():
     A = 3000.
     exp_time = 1.0e5
     redshift = 0.1
-    
+
     apec_model = TableApecModel(APEC, 0.1, 20.0, 2000)
     tbabs_model = TableAbsorbModel(TBABS, 0.1)
 
@@ -51,7 +51,7 @@ def test_etc():
     thermal_model = ThermalPhotonModel(apec_model, Zmet=0.3)
     photons = PhotonList.from_scratch(sphere, redshift, A, exp_time,
                                       thermal_model)
-    
+
     events = photons.project_photons([0.0,0.0,1.0],
                                      responses=[ARF,RMF],
                                      absorb_model=tbabs_model)
