@@ -91,14 +91,24 @@ Table of Contents
      <tr valign="top">
        <td width="25%">
          <p>
-           <a href="analyzing/index.html">Analyzing Data</a>
+           <a href="analyzing/index.html">General Data Analysis</a>
          </p>
        </td>
        <td width="75%">
-         <p class="linkdescr">Use analysis  tools to extract results from your data</p>
+         <p class="linkdescr">The nuts and bolts of manipulating yt datasets</p>
        </td>
      </tr>
      <tr valign="top">
+       <td width="25%">
+         <p>
+           <a href="analyzing/analysis_modules/index.html">Topic-Specific Analysis Modules</a>
+         </p>
+       </td>
+       <td width="75%">
+         <p class="linkdescr">Track halos, make synthetic observations, find clumps, and more</p>
+       </td>
+     </tr>
+      <tr valign="top">
        <td width="25%">
          <p>
            <a href="developing/index.html">Developer Guide</a>
@@ -159,6 +169,7 @@ Table of Contents
    cookbook/index
    visualizing/index
    analyzing/index
+   analyzing/analysis_modules/index
    examining/index
    developing/index
    reference/index
