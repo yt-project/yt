@@ -31,6 +31,8 @@ from yt.utilities.parameter_file_storage import \
     output_type_registry
 from yt.units.unit_object import Unit
 from yt.units.unit_registry import UnitRegistry
+from yt.fields.derived_field import \
+    ValidateSpatial
 from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.data_objects.particle_filters import \
@@ -768,6 +770,39 @@ class Dataset(object):
         self.field_info._show_field_errors.append(name)
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
+
+    def add_deposited_particle_field(self, deposit_field, method):
+        self.index
+        if isinstance(deposit_field, tuple):
+            ptype, deposit_field = deposit_field[0], deposit_field[1]
+        else:
+            raise RuntimeError
+        units = self.field_info[ptype, deposit_field].units
+
+        def _deposit_field(field, data):
+            """
+            Create a grid field for particle wuantities weighted by particle
+            mass, using cloud-in-cell deposition.
+            """
+            pos = data[ptype, "particle_position"]
+            # get back into density
+            pden = data[ptype, "particle_mass"]
+            top = data.deposit(pos, [data[(ptype, deposit_field)]*pden],
+                               method=method)
+            bottom = data.deposit(pos, [pden], method=method)
+            top[bottom == 0] = 0.0
+            bnz = bottom.nonzero()
+            top[bnz] /= bottom[bnz]
+            d = data.ds.arr(top, input_units=units)
+            return d
+        field_name = "%s_"+ {"cic": "cic", "sum": "nn"}[method] + "_%s"
+        field_name = field_name % (ptype, deposit_field.replace('particle_', ''))
+        self.add_field(
+            ("deposit", field_name),
+            function=_deposit_field,
+            units=units,
+            take_log=False,
+            validators=[ValidateSpatial()])
 
 def _reconstruct_ds(*args, **kwargs):
     datasets = ParameterFileStore()
