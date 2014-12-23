@@ -362,7 +362,7 @@ def standard_particle_fields(registry, ptype,
         """The spherical radial component of the particle positions
 
         Relative to the coordinate system defined by the *normal* vector,
-        *bulk_velocity* vector and *center* field parameters.
+        and *center* field parameters.
         """        
         return get_radius(data, "particle_position_")
 
@@ -373,7 +373,7 @@ def standard_particle_fields(registry, ptype,
         particle_type=True,
         validators=[ValidateParameter("center")])
 
-    def _particle_relative_position(field, data):
+    def _particle_position_relative(field, data):
         """The cartesian particle positions in a rotated reference frame
 
         Relative to the coordinate system defined by the *normal* vector and
@@ -388,13 +388,13 @@ def standard_particle_fields(registry, ptype,
         return pos
 
     registry.add_field(
-        (ptype, "particle_relative_position"),
-        function=_particle_relative_position,
+        (ptype, "particle_position_relative"),
+        function=_particle_position_relative,
         particle_type=True,
         units="cm",
         validators=[ValidateParameter("normal"), ValidateParameter("center")])
 
-    def _particle_relative_position_x(field, data):
+    def _particle_position_relative_x(field, data):
         """The x component of the  particle positions in a rotated reference
         frame
 
@@ -411,13 +411,13 @@ def standard_particle_fields(registry, ptype,
         return pos[0]
 
     registry.add_field(
-        (ptype, "particle_relative_position_x"),
-        function=_particle_relative_position_x,
+        (ptype, "particle_position_relative_x"),
+        function=_particle_position_relative_x,
         particle_type=True,
         units="cm",
         validators=[ValidateParameter("normal"), ValidateParameter("center")])
 
-    def _particle_relative_position_y(field, data):
+    def _particle_position_relative_y(field, data):
         """The y component of the  particle positions in a rotated reference
         frame
 
@@ -433,14 +433,14 @@ def standard_particle_fields(registry, ptype,
         pos = pos.T
         return pos[1]
 
-    registry.add_field((ptype, "particle_relative_position_y"),
-              function=_particle_relative_position_y,
+    registry.add_field((ptype, "particle_position_relative_y"),
+              function=_particle_position_relative_y,
               particle_type=True, units="cm",
               validators=[ValidateParameter("normal"),
                           ValidateParameter("center")])
 
 
-    def _particle_relative_position_z(field, data):
+    def _particle_position_relative_z(field, data):
         """The z component of the  particle positions in a rotated reference
         frame
 
@@ -457,13 +457,13 @@ def standard_particle_fields(registry, ptype,
         pos = pos.T
         return pos[2]
 
-    registry.add_field((ptype, "particle_relative_position_z"),
-              function=_particle_relative_position_z,
+    registry.add_field((ptype, "particle_position_relative_z"),
+              function=_particle_position_relative_z,
               particle_type=True, units="cm",
               validators=[ValidateParameter("normal"),
                           ValidateParameter("center")])
 
-    def _particle_relative_velocity(field, data):
+    def _particle_velocity_relative(field, data):
         """The vector particle velocities in an arbitrary coordinate system
 
         Relative to the coordinate system defined by the *normal* vector,
@@ -479,13 +479,13 @@ def standard_particle_fields(registry, ptype,
         L, vel = modify_reference_frame(center, normal, V=vel)
         return vel
 
-    registry.add_field((ptype, "particle_relative_velocity"),
-              function=_particle_relative_velocity,
+    registry.add_field((ptype, "particle_velocity_relative"),
+              function=_particle_velocity_relative,
               particle_type=True, units="cm/s",
               validators=[ValidateParameter("normal"),
                           ValidateParameter("center")])
 
-    def _particle_relative_velocity_x(field, data):
+    def _particle_velocity_relative_x(field, data):
         """The x component of the particle velocities in an arbitrary coordinate
         system
 
@@ -503,13 +503,13 @@ def standard_particle_fields(registry, ptype,
         vel = vel.T
         return vel[0]
 
-    registry.add_field((ptype, "particle_relative_velocity_x"),
-              function=_particle_relative_velocity_x,
+    registry.add_field((ptype, "particle_velocity_relative_x"),
+              function=_particle_velocity_relative_x,
               particle_type=True, units="cm/s",
               validators=[ValidateParameter("normal"),
                           ValidateParameter("center")])
 
-    def _particle_relative_velocity_y(field, data):
+    def _particle_velocity_relative_y(field, data):
         """The y component of the particle velocities in an arbitrary coordinate
         system
 
@@ -527,13 +527,13 @@ def standard_particle_fields(registry, ptype,
         vel = vel.T
         return vel[1]
 
-    registry.add_field((ptype, "particle_relative_velocity_y"),
-              function=_particle_relative_velocity_y,
+    registry.add_field((ptype, "particle_velocity_relative_y"),
+              function=_particle_velocity_relative_y,
               particle_type=True, units="cm/s",
               validators=[ValidateParameter("normal"),
                           ValidateParameter("center")])
 
-    def _particle_relative_velocity_z(field, data):
+    def _particle_velocity_relative_z(field, data):
         """The z component of the particle velocities in an arbitrary coordinate
         system
 
@@ -551,8 +551,8 @@ def standard_particle_fields(registry, ptype,
         vel = vel.T
         return vel[2]
 
-    registry.add_field((ptype, "particle_relative_velocity_z"),
-              function=_particle_relative_velocity_z,
+    registry.add_field((ptype, "particle_velocity_relative_z"),
+              function=_particle_velocity_relative_z,
               particle_type=True, units="cm/s",
               validators=[ValidateParameter("normal"),
                           ValidateParameter("center")])
