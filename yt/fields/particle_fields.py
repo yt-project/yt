@@ -477,7 +477,7 @@ def standard_particle_fields(registry, ptype,
 
     def _particle_relative_velocity(field, data):
         """
-        Compute the value of the velocity turple in a rotated reference frame relative to
+        Compute the value of the velocity tuple in a rotated reference frame relative to
         normal vector which is set to be in the direction of z and a center
         """
         normal = data.get_field_parameter('normal')
@@ -779,7 +779,7 @@ def standard_particle_fields(registry, ptype,
     def _particle_cylindrical_theta(field,data):
         normal = data.get_field_parameter("normal")
         coords = get_periodic_rvec(data)
-        return data.ds.array(get_cyl_theta(coords, normal),"radian")
+        return data.ds.arr(get_cyl_theta(coords, normal),"radian")
         
     registry.add_field((ptype, "particle_cylindrical_theta"),
              function=_particle_cylindrical_theta,
