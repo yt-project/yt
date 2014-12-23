@@ -1,7 +1,5 @@
 """
-Orion-specific fields
-
-
+BoxLib code fields
 
 """
 
@@ -13,12 +11,11 @@ Orion-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
 import string
 import re
 
 from yt.utilities.physical_constants import \
-    mh, boltzmann_constant_cgs, amu_cgs
+    boltzmann_constant_cgs, amu_cgs
 from yt.fields.field_info_container import \
     FieldInfoContainer
 

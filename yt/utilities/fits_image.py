@@ -28,7 +28,7 @@ else:
 
 class FITSImageBuffer(HDUList):
 
-    def __init__(self, data, fields=None, units="cm", wcs=None):
+    def __init__(self, data, fields=None, units=None, pixel_scale=None, wcs=None):
         r""" Initialize a FITSImageBuffer object.
 
         FITSImageBuffer contains a list of FITS ImageHDU instances, and
@@ -49,8 +49,11 @@ class FITSImageBuffer(HDUList):
             keys, it will use these for the fields. If *data* is just a
             single array one field name must be specified.
         units : string
-            The units of the WCS coordinates. Only applies
-            to FixedResolutionBuffers or YTCoveringGrids. Defaults to "cm".
+            The units of the WCS coordinates. Defaults to "cm".
+        pixel_scale : float
+            The scale of the pixel, in *units*. Either a single float or
+            iterable of floats. Only used if this information is not already
+            provided by *data*.
         wcs : `astropy.wcs.WCS` instance, optional
             Supply an AstroPy WCS instance. Will override automatic WCS
             creation from FixedResolutionBuffers and YTCoveringGrids.
@@ -77,7 +80,10 @@ class FITSImageBuffer(HDUList):
         >>> f_deg = FITSImageBuffer(frb, fields="kT", wcs=w)
         >>> f_deg.writeto("temp.fits")
         """
-        
+
+        if units is None: units = "cm"
+        if pixel_scale is None: pixel_scale = 1.0
+
         super(FITSImageBuffer, self).__init__()
 
         if isinstance(fields, basestring): fields = [fields]
@@ -91,13 +97,13 @@ class FITSImageBuffer(HDUList):
             img_data = {}
             if fields is None:
                 mylog.error("Please specify a field name for this array.")
-                raise KeyError
+                raise KeyError("Please specify a field name for this array.")
             img_data[fields[0]] = data
 
         if fields is None: fields = img_data.keys()
         if len(fields) == 0:
             mylog.error("Please specify one or more fields to write.")
-            raise KeyError
+            raise KeyError("Please specify one or more fields to write.")
 
         first = True
 
@@ -128,12 +134,8 @@ class FITSImageBuffer(HDUList):
         elif self.dimensionality == 3:
             self.nx, self.ny, self.nz = self[0].data.shape
 
-        has_coords = (isinstance(img_data, FixedResolutionBuffer) or
-                      isinstance(img_data, YTCoveringGridBase))
-
         if wcs is None:
             w = pywcs.WCS(header=self[0].header, naxis=self.dimensionality)
-            w.wcs.crpix = 0.5*(np.array(self.shape)+1)
             if isinstance(img_data, FixedResolutionBuffer):
                 # FRBs are a special case where we have coordinate
                 # information, so we take advantage of this and
@@ -143,26 +145,28 @@ class FITSImageBuffer(HDUList):
                 xctr = 0.5*(img_data.bounds[1]+img_data.bounds[0]).in_units(units)
                 yctr = 0.5*(img_data.bounds[3]+img_data.bounds[2]).in_units(units)
                 center = [xctr, yctr]
+                cdelt = [dx,dy]
             elif isinstance(img_data, YTCoveringGridBase):
-                dx, dy, dz = img_data.dds.in_units(units)
+                cdelt = img_data.dds.in_units(units).v
                 center = 0.5*(img_data.left_edge+img_data.right_edge).in_units(units)
             else:
-                # We default to pixel coordinates if nothing is provided
-                dx, dy, dz = 1.0, 1.0, 1.0
-                center = 0.5*(np.array(self.shape)+1)
+                # If img_data is just an array, we assume the center is the origin
+                # and use *pixel_scale* to determine the cell widths
+                if iterable(pixel_scale):
+                    cdelt = pixel_scale
+                else:
+                    cdelt = [pixel_scale]*self.dimensionality
+                center = [0.0]*self.dimensionality
+            w.wcs.crpix = 0.5*(np.array(self.shape)+1)
             w.wcs.crval = center
-            if has_coords:
-                w.wcs.cunit = [units]*self.dimensionality
-            if self.dimensionality == 2:
-                w.wcs.cdelt = [dx,dy]
-            elif self.dimensionality == 3:
-                w.wcs.cdelt = [dx,dy,dz]
+            w.wcs.cdelt = cdelt
             w.wcs.ctype = ["linear"]*self.dimensionality
-            self._set_wcs(w)
+            w.wcs.cunit = [units]*self.dimensionality
+            self.set_wcs(w)
         else:
-            self._set_wcs(wcs)
+            self.set_wcs(wcs)
 
-    def _set_wcs(self, wcs):
+    def set_wcs(self, wcs):
         """
         Set the WCS coordinate information for all images
         with a WCS object *wcs*.
@@ -179,7 +183,7 @@ class FITSImageBuffer(HDUList):
         same *key*, *value* pair.
         """
         for img in self: img.header[key] = value
-            
+
     def keys(self):
         return [f.name.lower() for f in self]
 
@@ -247,8 +251,54 @@ class FITSImageBuffer(HDUList):
         self[field].data = new_data.v
         self[field].header["bunit"] = units
         self.field_units[field] = units
-        
+
 axis_wcs = [[1,2],[0,2],[0,1]]
+
+def create_sky_wcs(old_wcs, sky_center, sky_scale,
+                   ctype=["RA---TAN","DEC--TAN"], crota=None):
+    """
+    Takes an astropy.wcs.WCS instance created in yt from a
+    simulation that has a Cartesian coordinate system and
+    converts it to one in a celestial coordinate system.
+
+    Parameters
+    ----------
+    old_wcs : astropy.wcs.WCS
+        The original WCS to be converted.
+    sky_center : tuple
+        Reference coordinates of the WCS in degrees.
+    sky_scale : tuple
+        Conversion between an angle unit and a length unit,
+        e.g. (3.0, "arcsec/kpc")
+    ctype : list of strings, optional
+        The type of the coordinate system to create.
+    crota : list of floats, optional
+        Rotation angles between cartesian coordinates and
+        the celestial coordinates.
+    """
+    naxis = old_wcs.naxis
+    crval = [sky_center[0], sky_center[1]]
+    scaleq = YTQuantity(sky_scale[0],sky_scale[1])
+    deltas = old_wcs.wcs.cdelt
+    units = [str(unit) for unit in old_wcs.wcs.cunit]
+    new_dx = (YTQuantity(-deltas[0], units[0])*scaleq).in_units("deg")
+    new_dy = (YTQuantity(deltas[1], units[1])*scaleq).in_units("deg")
+    new_wcs = pywcs.WCS(naxis=naxis)
+    cdelt = [new_dx.v, new_dy.v]
+    cunit = ["deg"]*2
+    if naxis == 3:
+        crval.append(old_wcs.wcs.crval[2])
+        cdelt.append(old_wcs.wcs.cdelt[2])
+        ctype.append(old_wcs.wcs.ctype[2])
+        cunit.append(old_wcs.wcs.cunit[2])
+    new_wcs.wcs.crpix = old_wcs.wcs.crpix
+    new_wcs.wcs.cdelt = cdelt
+    new_wcs.wcs.crval = crval
+    new_wcs.wcs.cunit = cunit
+    new_wcs.wcs.ctype = ctype
+    if crota is not None:
+        new_wcs.wcs.crota = crota
+    return new_wcs
 
 def sanitize_fits_unit(unit):
     if unit == "Mpc":
@@ -291,10 +341,12 @@ def construct_image(data_source, center=None, width=None, image_res=None):
         crval = ds.wcs.wcs_pix2world(ctr_pix.reshape(1,self.dimensionality))[0]
         crval = [crval[idx] for idx in axis_wcs[axis]]
     else:
-        # This is some other kind of dataset                                                                                    
+        # This is some other kind of dataset                                                                      
         unit = str(width[0].units)
         if unit == "unitary":
             unit = ds.get_smallest_appropriate_unit(ds.domain_width.max())
+        elif unit == "code_length":
+            unit = ds.get_smallest_appropriate_unit(ds.quan(1.0,"code_length"))
         unit = sanitize_fits_unit(unit)
         cunit = [unit]*2
         ctype = ["LINEAR"]*2

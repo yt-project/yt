@@ -83,3 +83,7 @@ class TestProfilePlotSave(unittest.TestCase):
     def test_phase_plot(self, fname):
         for p in self.phases:
             assert assert_fname(p.save(fname)[0])
+
+    def test_ipython_repr(self):
+        self.profiles[0]._repr_html_()
+        self.phases[0]._repr_html_()

@@ -16,8 +16,7 @@ Orion data-file handling functions
 import os
 import numpy as np
 from yt.utilities.lib.fortran_reader import \
-    read_castro_particles, \
-    read_and_seek
+    read_castro_particles
 from yt.utilities.io_handler import \
            BaseIOHandler
 from yt.funcs import mylog, defaultdict

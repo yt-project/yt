@@ -1,7 +1,7 @@
 .. _volume_rendering:
 
-Volume Rendering
-================
+Volume Rendering: Making 3D Photorealistic Isocontoured Images
+==============================================================
 
 Volume rendering, as implemented in yt, is a mechanism by which rays are cast
 through a domain, converting field values to emission and absorption, and producing a final image.

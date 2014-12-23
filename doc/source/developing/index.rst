@@ -18,10 +18,11 @@ and contributing code!
     
    intro
    developing
+   building_the_docs
    testing
    debugdrive
    creating_datatypes
    creating_derived_fields
    creating_derived_quantities
    creating_frontend
-   building_the_docs
+   external_analysis
