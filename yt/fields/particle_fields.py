@@ -363,7 +363,7 @@ def standard_particle_fields(registry, ptype,
 
         Relative to the coordinate system defined by the *normal* vector,
         and *center* field parameters.
-        """        
+        """
         return get_radius(data, "particle_position_")
 
     registry.add_field(
@@ -378,6 +378,8 @@ def standard_particle_fields(registry, ptype,
 
         Relative to the coordinate system defined by the *normal* vector and
         *center* field parameters.
+
+        Note that the orientation of the x and y axes are arbitrary.
         """
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
@@ -400,6 +402,8 @@ def standard_particle_fields(registry, ptype,
 
         Relative to the coordinate system defined by the *normal* vector and
         *center* field parameters.
+
+        Note that the orientation of the x and y axes are arbitrary.
         """
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
@@ -423,6 +427,8 @@ def standard_particle_fields(registry, ptype,
 
         Relative to the coordinate system defined by the *normal* vector and
         *center* field parameters.
+
+        Note that the orientation of the x and y axes are arbitrary.
         """
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
@@ -446,6 +452,8 @@ def standard_particle_fields(registry, ptype,
 
         Relative to the coordinate system defined by the *normal* vector and
         *center* field parameters.
+
+        Note that the orientation of the x and y axes are arbitrary.
         """
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
@@ -468,6 +476,8 @@ def standard_particle_fields(registry, ptype,
 
         Relative to the coordinate system defined by the *normal* vector,
         *bulk_velocity* vector and *center* field parameters.
+
+        Note that the orientation of the x and y axes are arbitrary.
         """
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
@@ -491,6 +501,8 @@ def standard_particle_fields(registry, ptype,
 
         Relative to the coordinate system defined by the *normal* vector,
         *bulk_velocity* vector and *center* field parameters.
+
+        Note that the orientation of the x and y axes are arbitrary.
         """
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
@@ -515,6 +527,8 @@ def standard_particle_fields(registry, ptype,
 
         Relative to the coordinate system defined by the *normal* vector,
         *bulk_velocity* vector and *center* field parameters.
+
+        Note that the orientation of the x and y axes are arbitrary.
         """
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
@@ -539,6 +553,8 @@ def standard_particle_fields(registry, ptype,
 
         Relative to the coordinate system defined by the *normal* vector,
         *bulk_velocity* vector and *center* field parameters.
+
+        Note that the orientation of the x and y axes are arbitrary.
         """
         normal = data.get_field_parameter('normal')
         center = data.get_field_parameter('center')
