@@ -20,6 +20,11 @@ from .transfer_functions import TransferFunction, ColorTransferFunction, \
 from .image_handling import export_rgba, import_rgba, \
                            plot_channel, plot_rgb
 
+# Need to re-implement (Stereo)SphericalCamera
+#from .camera import Camera, PerspectiveCamera, StereoPairCamera, \
+#    off_axis_projection, FisheyeCamera, MosaicFisheyeCamera, \
+#    HEALpixCamera, InteractiveCamera, ProjectionCamera, \
+#    SphericalCamera, StereoSphericalCamera
 from .camera import Camera
 from .transfer_function_helper import TransferFunctionHelper
 from .volume_rendering import volume_render

@@ -16,10 +16,10 @@ Christopher Moody.  Please contact the ``yt-dev`` mailing list if you are
 interested in using yt for ART data, or if you are interested in assisting with
 development of yt to work with ART data.
 
-To load an ART dataset you can use the ``yt.load`` command and provide it
- the gas mesh file. It will search for and attempt 
-to find the complementary dark matter and stellar particle header and data 
-files. However, your simulations may not follow the same naming convention.
+To load an ART dataset you can use the ``yt.load`` command and provide it the
+gas mesh file. It will search for and attempt to find the complementary dark
+matter and stellar particle header and data files. However, your simulations may
+not follow the same naming convention.
 
 So for example, a single snapshot might have a series of files looking like
 this:
@@ -113,28 +113,71 @@ the entire dataset.
 
 yt works in cgs ("Gaussian") units by default, but Athena data is not
 normally stored in these units. If you would like to convert data to
-cgs units, you may supply conversions for length, time, and mass to ``load``:
+cgs units, you may supply conversions for length, time, and mass to ``load`` using
+the ``units_override`` functionality:
 
 .. code-block:: python
 
    import yt
-   ds = yt.load("id0/cluster_merger.0250.vtk",
-                parameters={"length_unit":(1.0,"Mpc"),
-                            "time_unit"(1.0,"Myr"),
-                            "mass_unit":(1.0e14,"Msun")})
+
+   units_override = {"length_unit":(1.0,"Mpc"),
+                     "time_unit"(1.0,"Myr"),
+                     "mass_unit":(1.0e14,"Msun")}
+
+   ds = yt.load("id0/cluster_merger.0250.vtk", units_override=units_override)
 
 This means that the yt fields, e.g. ``("gas","density")``, ``("gas","x-velocity")``,
 ``("gas","magnetic_field_x")``, will be in cgs units, but the Athena fields, e.g.,
 ``("athena","density")``, ``("athena","velocity_x")``, ``("athena","cell_centered_B_x")``, will be
 in code units.
 
+Some 3D Athena outputs may have large grids (especially parallel datasets subsequently joined with
+the `join_vtk` script), and may benefit from being subdivided into "virtual grids". For this purpose,
+one can pass in the `nprocs` parameter:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load("sloshing.0000.vtk", nprocs=8)
+
+which will subdivide each original grid into `nprocs` grids.
+
+.. note::
+
+    Virtual grids are only supported (and really only necessary) for 3D data.
+
+Alternative values for the following simulation parameters may be specified using a ``parameters``
+dict, accepting the following keys:
+
+* ``Gamma``: ratio of specific heats, Type: Float
+* ``geometry``: Geometry type, currently accepts ``"cartesian"`` or ``"cylindrical"``
+* ``periodicity``: Is the domain periodic? Type: Tuple of boolean values corresponding to each dimension
+
+.. code-block:: python
+
+   import yt
+
+   parameters = {"gamma":4./3., "geometry":"cylindrical", "periodicity":(False,False,False)}
+
+   ds = yt.load("relativistic_jet_0000.vtk", parameters=parameters)
+
 .. rubric:: Caveats
 
 * yt primarily works with primitive variables. If the Athena
   dataset contains conservative variables, the yt primitive fields will be generated from the
   conserved variables on disk.
+* Special relativistic datasets may be loaded, but are not fully supported. In particular, the relationships between
+  quantities such as pressure and thermal energy will be incorrect, as it is currently assumed that their relationship
+  is that of an ideal a :math:`\gamma`-law equation of state.
 * Domains may be visualized assuming periodicity.
 * Particle list data is currently unsupported.
+
+.. note::
+
+   The old behavior of supplying unit conversions using a ``parameters``
+   dict supplied to ``load`` for Athena datasets is still supported, but is being deprecated in
+   favor of ``units_override``, which provides the same functionality.
 
 .. _loading-orion-data:
 
@@ -189,6 +232,33 @@ would have a ``job_info`` file in the plotfile directory.
 * For Maestro, some velocity fields like ``velocity_magnitude`` or 
   ``mach_number`` will always use the on-disk value, and not have yt 
   derive it, due to the complex interplay of the base state velocity.
+
+.. _loading-pluto-data:
+
+Pluto Data
+----------
+
+Support for Pluto AMR data is provided through the Chombo frontend, which
+is currently maintained by Andrew Myers. Pluto output files that don't use
+the Chombo HDF5 format are currently not supported. To load a Pluto dataset, 
+you can use the ``yt.load`` command on the *.hdf5 file. For example, the 
+KelvinHelmholtz sample dataset is a directory that contains the following
+files:
+
+.. code-block:: none
+
+   data.0004.hdf5
+   pluto.ini
+
+To load it, you can navigate into that directory and do:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("data.0004.hdf5")
+
+The ``pluto.ini`` file must also be present alongside the HDF5 file.
+By default, all of the Pluto fields will be in code units.
 
 .. _loading-enzo-data:
 
@@ -530,7 +600,9 @@ Gadget Data
 yt has support for reading Gadget data in both raw binary and HDF5 formats.  It
 is able to access the particles as it would any other particle dataset, and it
 can apply smoothing kernels to the data to produce both quantitative analysis
-and visualization. See :ref:`loading-sph-data` for more details.
+and visualization. See :ref:`loading-sph-data` for more details and
+:ref:`gadget-notebook` for a detailed example of loading, analyzing, and
+visualizing a Gadget dataset.
 
 Gadget data in HDF5 format can be loaded with the ``load`` command:
 

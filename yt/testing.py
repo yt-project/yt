@@ -26,6 +26,7 @@ from numpy.testing import assert_array_equal, assert_almost_equal, \
     assert_allclose, assert_raises
 from yt.units.yt_array import uconcatenate
 import yt.fields.api as field_api
+from yt.convenience import load
 
 def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):
     # We have nan checks in here because occasionally we have fields that get
@@ -192,6 +193,40 @@ def fake_amr_ds(fields = ("Density",)):
         data.append(gdata)
     return load_amr_grids(data, [32, 32, 32], 1.0)
 
+def fake_particle_ds(
+        fields = ("particle_position_x",
+                  "particle_position_y",
+                  "particle_position_z",
+                  "particle_mass", 
+                  "particle_velocity_x",
+                  "particle_velocity_y",
+                  "particle_velocity_z"),
+        units = ('cm', 'cm', 'cm', 'g', 'cm/s', 'cm/s', 'cm/s'),
+        negative = (False, False, False, False, True, True, True),
+        npart = 16**3, length_unit=1.0):
+    from yt.frontends.stream.api import load_particles
+    if not iterable(negative):
+        negative = [negative for f in fields]
+    assert(len(fields) == len(negative))
+    offsets = []
+    for n in negative:
+        if n:
+            offsets.append(0.5)
+        else:
+            offsets.append(0.0)
+    data = {}
+    for field, offset, u in zip(fields, offsets, units):
+        if "position" in field:
+            v = np.random.normal(npart, 0.5, 0.25)
+            np.clip(v, 0.0, 1.0, v)
+        v = (np.random.random(npart) - offset)
+        data[field] = (v, u)
+    bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]])
+    ds = load_particles(data, 1.0, bbox=bbox)
+    return ds
+
+
+
 def expand_keywords(keywords, full=False):
     """
     expand_keywords is a means for testing all possible keyword
@@ -321,7 +356,30 @@ def requires_file(req_file):
             return ftrue
         else:
             return ffalse
-                                        
+
+def units_override_check(fn):
+    ytcfg["yt","skip_dataset_cache"] = "True"
+    units_list = ["length","time","mass","velocity",
+                  "magnetic","temperature"]
+    ds1 = load(fn)
+    units_override = {}
+    attrs1 = []
+    attrs2 = []
+    for u in units_list:
+        unit_attr = getattr(ds1, "%s_unit" % u, None)
+        if unit_attr is not None:
+            attrs1.append(unit_attr)
+            units_override["%s_unit" % u] = (unit_attr.v, str(unit_attr.units))
+    del ds1
+    ds2 = load(fn, units_override=units_override)
+    ytcfg["yt","skip_dataset_cache"] = "False"
+    assert(len(ds2.units_override) > 0)
+    for u in units_list:
+        unit_attr = getattr(ds2, "%s_unit" % u, None)
+        if unit_attr is not None:
+            attrs2.append(unit_attr)
+    yield assert_equal, attrs1, attrs2
+
 # This is an export of the 40 grids in IsolatedGalaxy that are of level 4 or
 # lower.  It's just designed to give a sample AMR index to deal with.
 _amr_grid_index = [

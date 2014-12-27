@@ -98,7 +98,12 @@ from yt.utilities.logger import ytLogger as mylog
 
 import yt.utilities.physical_constants as physical_constants
 import yt.units as units
-from yt.units.yt_array import YTArray, YTQuantity
+from yt.units.yt_array import \
+    YTArray, \
+    YTQuantity, \
+    uconcatenate, \
+    uintersect1d, \
+    uunion1d
 
 from yt.fields.api import \
     field_plugins, \
@@ -131,9 +136,9 @@ from yt.frontends.stream.api import \
     hexahedral_connectivity
 
 # For backwards compatibility
-GadgetDataset = frontends.sph.GadgetDataset
+GadgetDataset = frontends.gadget.GadgetDataset
 GadgetStaticOutput = deprecated_class(GadgetDataset)
-TipsyDataset = frontends.sph.TipsyDataset
+TipsyDataset = frontends.tipsy.TipsyDataset
 TipsyStaticOutput = deprecated_class(TipsyDataset)
 
 # Now individual component imports from the visualization API
@@ -146,9 +151,9 @@ from yt.visualization.api import \
     show_colormaps, ProfilePlot, PhasePlot
 
 from yt.visualization.volume_rendering.api import \
-    volume_render, ColorTransferFunction
-#    off_axis_projection, ColorTransferFunction, \
-#    TransferFunctionHelper
+    volume_render, ColorTransferFunction \
+    TransferFunctionHelper, TransferFunction, MultiVariateTransferFunction
+#    off_axis_projection
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, enable_parallelism, communication_system

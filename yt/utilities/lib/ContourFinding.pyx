@@ -576,7 +576,8 @@ cdef class ParticleContourTree(ContourTree):
             if oct == NULL or (domain_id > 0 and oct.domain != domain_id):
                 continue
             # Now we have our primary oct, so we will get its neighbors.
-            neighbors = octree.neighbors(&oi, &nneighbors, oct)
+            neighbors = octree.neighbors(&oi, &nneighbors, oct,
+                                self.periodicity)
             # Now we have all our neighbors.  And, we should be set for what
             # else we need to do.
             if nneighbors > nsize:

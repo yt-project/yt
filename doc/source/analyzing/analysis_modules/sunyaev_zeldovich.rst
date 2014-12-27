@@ -1,3 +1,5 @@
+.. _sunyaev-zeldovich:
+
 Mock Observations of the Sunyaev-Zeldovich Effect
 -------------------------------------------------
 

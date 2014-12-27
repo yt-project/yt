@@ -85,7 +85,7 @@ Gyr  = Gigayear = gigayear = quan(1.0, "Gyr")
 # Kelvin
 #
 
-degree_kelvin = Kelvin = quan(1.0, "K")
+degree_kelvin = Kelvin = K = quan(1.0, "K")
 
 #
 # Misc CGS
@@ -140,8 +140,8 @@ keV = kilo_electron_volt = quan(1.0, "keV")
 MeV = mega_electron_volt = quan(1.0, "MeV")
 GeV = giga_electron_volt = quan(1.0, "GeV")
 amu = atomic_mass_unit = quan(1.0, "amu")
-me  = electron_mass = quan(1.0, "me")
 angstrom = quan(1.0, "angstrom")
+me  = electron_mass = quan(1.0, "me")
 
 #
 # Angle units

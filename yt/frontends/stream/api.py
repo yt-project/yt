@@ -31,3 +31,5 @@ from .fields import \
 
 from .io import \
       IOHandlerStream
+
+from . import tests

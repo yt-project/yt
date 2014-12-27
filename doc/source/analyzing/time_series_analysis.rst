@@ -50,7 +50,7 @@ initializer:
 .. code-block:: python
 
    import yt
-   ts = DatasetSeries(["DD0030/DD0030", "DD0040/DD0040")
+   ts = yt.DatasetSeries(["DD0030/DD0030", "DD0040/DD0040")
 
 Analyzing Each Dataset In Sequence
 ----------------------------------

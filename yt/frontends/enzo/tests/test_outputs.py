@@ -91,6 +91,11 @@ def test_ecp():
     # Now we test our species fields
     yield check_color_conservation(ds)
 
+@requires_file(enzotiny)
+def test_units_override():
+    for test in units_override_check(enzotiny):
+        yield test
+
 @requires_ds(ecp, big_data=True)
 def test_nuclei_density_fields():
     ds = data_dir_load(ecp)

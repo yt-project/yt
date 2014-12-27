@@ -38,7 +38,7 @@ def _strip_ftype(field):
 np.random.seed(int(0x4d3d3d3))
 units = [base_ds._get_field_info(*f).units for f in fields]
 fields = [_strip_ftype(f) for f in fields]
-ds = fake_random_ds(16, fields = fields, units = units)
+ds = fake_random_ds(16, fields=fields, units=units, particles=True)
 ds.parameters["HydroMethod"] = "streaming"
 ds.parameters["EOSType"] = 1.0
 ds.parameters["EOSSoundSpeed"] = 1.0
@@ -126,7 +126,7 @@ def fix_units(units, in_cgs=False):
     if in_cgs:
         unit_object = unit_object.get_cgs_equivalent()
     latex = unit_object.latex_representation()
-    return latex.replace('\/','~')
+    return latex.replace('\/', '~')
 
 def print_all_fields(fl):
     for fn in sorted(fl):
@@ -163,22 +163,25 @@ def print_all_fields(fl):
 ds.index
 print_all_fields(ds.field_info)
 
-def print_frontend_field(ftype, field, ptype):
-    name = field[0]
-    units = field[1][0]
-    aliases = ["``%s``" % f for f in field[1][1]]
-    if ftype is not "particle_type":
-        ftype = "'"+ftype+"'"
-    s = "(%s, '%s')" % (ftype, name)
-    print s
-    print "^" * len(s)
-    print
-    if len(units) > 0:
-        print "   * Units: :math:`\mathrm{%s}`" % fix_units(units)
-    if len(aliases) > 0:
-        print "   * Aliased to: %s" % " ".join(aliases)
-    print "   * Particle Type: %s" % (ptype)
-    print
+
+class FieldInfo:
+    """ a simple container to hold the information about fields """
+    def __init__(self, ftype, field, ptype):
+        name = field[0]
+        self.units = ""
+        u = field[1][0]
+        if len(u) > 0:
+            self.units = ":math:`\mathrm{%s}`" % fix_units(u)
+        a = ["``%s``" % f for f in field[1][1]]
+        self.aliases = " ".join(a)
+        self.dname = ""
+        if field[1][2] is not None:
+            self.dname = ":math:`{}`".format(field[1][2])
+
+        if ftype is not "particle_type":
+            ftype = "'"+ftype+"'"
+        self.name = "(%s, '%s')" % (ftype, name)
+        self.ptype = ptype
 
 current_frontends = [f for f in _frontends if f not in ["stream"]]
 
@@ -187,9 +190,11 @@ for frontend in current_frontends:
     field_info_names = [fi for fi in dir(this_f) if "FieldInfo" in fi]
     dataset_names = [dset for dset in dir(this_f) if "Dataset" in dset]
 
-    if frontend == "sph":
-        field_info_names = \
-          ['TipsyFieldInfo' if 'Tipsy' in d else 'SPHFieldInfo' for d in dataset_names]
+    if frontend == "gadget":
+        # Drop duplicate entry for GadgetHDF5, add special case for FieldInfo
+        # entry
+        dataset_names = ['GadgetDataset']
+        field_info_names = ['SPHFieldInfo']
     elif frontend == "boxlib":
         field_info_names = []
         for d in dataset_names:
@@ -199,6 +204,10 @@ for frontend in current_frontends:
                 field_info_names.append("CastroFieldInfo")
             else: 
                 field_info_names.append("BoxlibFieldInfo")
+    elif frontend == "chombo":
+        # remove low dimensional field info containters for ChomboPIC
+        field_info_names = [f for f in field_info_names if '1D' not in f
+                            and '2D' not in f]
 
     for dset_name, fi_name in zip(dataset_names, field_info_names):
         fi = getattr(this_f, fi_name)
@@ -220,12 +229,52 @@ for frontend in current_frontends:
             h = "%s-Specific Fields" % dset_name.replace("Dataset", "")
             print h
             print "-" * len(h) + "\n"
+
+            field_stuff = []
             for field in known_other_fields:
-                print_frontend_field(frontend, field, False)
+                field_stuff.append(FieldInfo(frontend, field, False))
             for field in known_particle_fields:
                 if frontend in ["sph", "halo_catalogs", "sdf"]:
-                    print_frontend_field("particle_type", field, True)
+                    field_stuff.append(FieldInfo("particle_type", field, True))
                 else:
-                    print_frontend_field("io", field, True)
+                    field_stuff.append(FieldInfo("io", field, True))
+
+            # output
+            len_name = 10
+            len_units = 5
+            len_aliases = 7
+            len_part = 9
+            len_disp = 12
+            for f in field_stuff:
+                len_name = max(len_name, len(f.name))
+                len_aliases = max(len_aliases, len(f.aliases))
+                len_units = max(len_units, len(f.units))
+                len_disp = max(len_disp, len(f.dname))
+
+            fstr = "{nm:{nw}}  {un:{uw}}  {al:{aw}}  {pt:{pw}}  {dp:{dw}}"
+            header = fstr.format(nm="field name", nw=len_name,
+                                 un="units", uw=len_units,
+                                 al="aliases", aw=len_aliases,
+                                 pt="particle?", pw=len_part,
+                                 dp="display name", dw=len_disp)
+
+            div = fstr.format(nm="="*len_name, nw=len_name,
+                              un="="*len_units, uw=len_units,
+                              al="="*len_aliases, aw=len_aliases,
+                              pt="="*len_part, pw=len_part,
+                              dp="="*len_disp, dw=len_disp)
+            print div
+            print header
+            print div
+
+            for f in field_stuff:
+                print fstr.format(nm=f.name, nw=len_name,
+                                  un=f.units, uw=len_units,
+                                  al=f.aliases, aw=len_aliases,
+                                  pt=f.ptype, pw=len_part,
+                                  dp=f.dname, dw=len_disp)
+                
+            print div
+            print ""
 
 print footer

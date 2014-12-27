@@ -218,7 +218,8 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
           np.ndarray[np.int64_t, ndim=1] ys,
           np.ndarray[np.float64_t, ndim=2] colors,
           int points_per_color=1,
-          int thick=1):
+          int thick=1,
+	  int flip=0):
 
     cdef int nx = image.shape[0]
     cdef int ny = image.shape[1]
@@ -266,20 +267,25 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
             if x0 >= thick and x0 < nx-thick and y0 >= thick and y0 < ny-thick:
                 for xi in range(x0-thick/2, x0+(1+thick)/2):
                     for yi in range(y0-thick/2, y0+(1+thick)/2):
+                        if flip: 
+                            yi0 = ny - yi
+                        else:
+                            yi0 = yi
+
                         if no_color:
-                            image[xi, yi, 0] = fmin(alpha[i], image[xi, yi, 0])
+                            image[xi, yi0, 0] = fmin(alpha[i], image[xi, yi0, 0])
                         elif has_alpha:
-                            image[xi, yi, 3] = outa = alpha[3] + image[xi, yi, 3]*(1-alpha[3])
+                            image[xi, yi0, 3] = outa = alpha[3] + image[xi, yi0, 3]*(1-alpha[3])
                             if outa != 0.0:
                                 outa = 1.0/outa
                             for i in range(3):
-                                image[xi, yi, i] = \
-                                        ((1.-alpha[3])*image[xi, yi, i]*image[xi, yi, 3]
+                                image[xi, yi0, i] = \
+                                        ((1.-alpha[3])*image[xi, yi0, i]*image[xi, yi0, 3]
                                          + alpha[3]*alpha[i])*outa
                         else:
                             for i in range(3):
-                                image[xi, yi, i] = \
-                                        (1.-alpha[i])*image[xi,yi,i] + alpha[i]
+                                image[xi, yi0, i] = \
+                                        (1.-alpha[i])*image[xi,yi0,i] + alpha[i]
 
 
             if (x0 == x1 and y0 == y1):

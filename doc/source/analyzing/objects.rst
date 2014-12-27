@@ -83,6 +83,8 @@ into:
 If you want to create your own custom data object type, see 
 :ref:`creating-objects`.
 
+.. _geometric-objects:
+
 Geometric Objects
 ^^^^^^^^^^^^^^^^^
 
@@ -96,7 +98,7 @@ for the grid cell to be incorporated.
 
 **Point** 
     | Class :class:`~yt.data_objects.selection_data_containers.YTPointBase`    
-    | Usage: ``point(coord, ds=None, field_parameters=None)``
+    | Usage: ``point(coord, ds=None, field_parameters=None, data_source=None)``
     | A point defined by a single cell at specified coordinates.
 
 1D Objects
@@ -104,28 +106,31 @@ for the grid cell to be incorporated.
 
 **Ray (Axis-Aligned)** 
     | Class :class:`~yt.data_objects.selection_data_containers.YTOrthoRayBase`
-    | Usage: ``ortho_ray(axis, coord, ds=None, field_parameters=None)``
+    | Usage: ``ortho_ray(axis, coord, ds=None, field_parameters=None, data_source=None)``
     | A line (of data cells) stretching through the full domain 
       aligned with one of the x,y,z axes.  Defined by an axis and a point
-      to be intersected.
+      to be intersected.  Please see this 
+      :ref:`note about ray data value ordering <ray-data-ordering>`.
 
 **Ray (Arbitrarily-Aligned)** 
     | Class :class:`~yt.data_objects.selection_data_containers.YTRayBase`
-    | Usage: ``ray(start_coord, end_coord, ds=None, field_parameters=None)``
+    | Usage: ``ray(start_coord, end_coord, ds=None, field_parameters=None, data_source=None)``
     | A line (of data cells) defined by arbitrary start and end coordinates. 
+      Please see this 
+      :ref:`note about ray data value ordering <ray-data-ordering>`.
 
 2D Objects
 """"""""""
 
 **Slice (Axis-Aligned)** 
     | Class :class:`~yt.data_objects.selection_data_containers.YTSliceBase`
-    | Usage: ``slice(axis, coord, center=None, ds=None, field_parameters=None)``
+    | Usage: ``slice(axis, coord, center=None, ds=None, field_parameters=None, data_source=None)``
     | A plane normal to one of the axes and intersecting a particular 
       coordinate.
 
 **Slice (Arbitrarily-Aligned)** 
     | Class :class:`~yt.data_objects.selection_data_containers.YTCuttingPlaneBase`
-    | Usage: ``cutting(normal, coord, north_vector=None, ds=None, field_parameters=None)``
+    | Usage: ``cutting(normal, coord, north_vector=None, ds=None, field_parameters=None, data_source=None)``
     | A plane normal to a specified vector and intersecting a particular 
       coordinate.
 
@@ -141,8 +146,8 @@ for the grid cell to be incorporated.
 
 **Box Region** 
     | Class :class:`~yt.data_objects.selection_data_containers.YTRegionBase`
-    | Usage: ``region(center, left_edge, right_edge, fields=None, ds=None, field_parameters=None)``
-    | Alternatively: ``box(left_edge, right_edge, fields=None, ds=None, field_parameters=None)``
+    | Usage: ``region(center, left_edge, right_edge, fields=None, ds=None, field_parameters=None, data_source=None)``
+    | Alternatively: ``box(left_edge, right_edge, fields=None, ds=None, field_parameters=None, data_source=None)``
     | A box-like region aligned with the grid axis orientation.  It is 
       defined by a left_edge, a right_edge, and a center.  The left_edge
       and right_edge are the minimum and maximum bounds in the three axes
@@ -152,14 +157,14 @@ for the grid cell to be incorporated.
 
 **Disk/Cylinder** 
     | Class: :class:`~yt.data_objects.selection_data_containers.YTDiskBase`
-    | Usage: ``disk(center, normal, radius, height, fields=None, ds=None, field_parameters=None)``
+    | Usage: ``disk(center, normal, radius, height, fields=None, ds=None, field_parameters=None, data_source=None)``
     | A cylinder defined by a point at the center of one of the circular bases,
       a normal vector to it defining the orientation of the length of the
       cylinder, and radius and height values for the cylinder's dimensions.
 
 **Ellipsoid** 
     | Class :class:`~yt.data_objects.selection_data_containers.YTEllipsoidBase`
-    | Usage: ``ellipsoid(center, semi_major_axis_length, semi_medium_axis_length, semi_minor_axis_length, semi_major_vector, tilt, fields=None, ds=None, field_parameters=None)``
+    | Usage: ``ellipsoid(center, semi_major_axis_length, semi_medium_axis_length, semi_minor_axis_length, semi_major_vector, tilt, fields=None, ds=None, field_parameters=None, data_source=None)``
     | An ellipsoid with axis magnitudes set by semi_major_axis_length, 
      semi_medium_axis_length, and semi_minor_axis_length.  semi_major_vector 
      sets the direction of the semi_major_axis.  tilt defines the orientation 
@@ -167,14 +172,21 @@ for the grid cell to be incorporated.
 
 **Sphere** 
     | Class :class:`~yt.data_objects.selection_data_containers.YTSphereBase`
-    | Usage: ``sphere(center, radius, ds=None, field_parameters=None)``
+    | Usage: ``sphere(center, radius, ds=None, field_parameters=None, data_source=None)``
     | A sphere defined by a central coordinate and a radius.
 
+.. _collection-objects:
 
 Filtering and Collection Objects
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 See also the section on :ref:`filtering-data`.
+
+**Intersecting Regions**
+    | Most Region objects provide a data_source parameter, which allows you to subselect
+    | one region from another (in the coordinate system of the DataSet). Note, this can
+    | easily lead to empty data for non-intersecting regions.
+    | Usage: ``slice(axis, coord, ds, data_source=sph)``
 
 **Boolean Regions** 
     | **Note: not yet implemented in yt 3.0**
@@ -195,6 +207,8 @@ See also the section on :ref:`filtering-data`.
     | Usage: ``data_collection(center, obj_list, ds=None, field_parameters=None)``
     | A ``data_collection`` is a list of data objects that can be 
       sampled and processed as a whole in a single data object.
+
+.. _construction-objects:
 
 Construction Objects
 ^^^^^^^^^^^^^^^^^^^^

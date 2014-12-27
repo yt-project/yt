@@ -24,3 +24,5 @@ from .fields import \
 
 from .io import \
       IOHandlerART
+
+from . import tests

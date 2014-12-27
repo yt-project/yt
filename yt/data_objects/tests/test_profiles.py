@@ -1,7 +1,7 @@
 from yt.testing import *
 from yt.data_objects.profiles import \
     BinnedProfile1D, BinnedProfile2D, BinnedProfile3D, \
-    Profile1D, Profile2D, Profile3D
+    Profile1D, Profile2D, Profile3D, create_profile
 
 _fields = ("density", "temperature", "dinosaurs", "tribbles")
 _units = ("g/cm**3", "K", "dyne", "erg")
@@ -87,13 +87,26 @@ def test_profiles():
     for nb in [8, 16, 32, 64]:
         # We log all the fields or don't log 'em all.  No need to do them
         # individually.
-        for lf in [True, False]: 
-            p1d = Profile1D(dd, 
-                "density",     nb, rmi*e1, rma*e2, lf,
-                weight_field = None)
-            p1d.add_fields(["ones", "temperature"])
-            yield assert_equal, p1d["ones"].sum(), nv
-            yield assert_rel_equal, tt, p1d["temperature"].sum(), 7
+        for lf in [True, False]:
+            direct_profile = Profile1D(
+                dd, "density", nb, rmi*e1, rma*e2, lf, weight_field = None)
+            direct_profile.add_fields(["ones", "temperature"])
+
+            indirect_profile_s = create_profile(
+                dd, "density", ["ones", "temperature"], n_bins=nb,
+                extrema={'density': (rmi*e1, rma*e2)}, logs={'density': lf}, 
+                weight_field=None)
+
+            indirect_profile_t = create_profile(
+                dd, ("gas", "density"),
+                [("index", "ones"), ("gas", "temperature")], n_bins=nb,
+                extrema={'density': (rmi*e1, rma*e2)}, logs={'density': lf}, 
+                weight_field=None)
+
+            for p1d in [direct_profile, indirect_profile_s,
+                        indirect_profile_t]:
+                yield assert_equal, p1d["index", "ones"].sum(), nv
+                yield assert_rel_equal, tt, p1d["gas", "temperature"].sum(), 7
 
             p2d = Profile2D(dd, 
                 "density",     nb, rmi*e1, rma*e2, lf,
@@ -154,6 +167,12 @@ def test_profiles():
         p3d.add_fields(["ones"])
         yield assert_equal, p3d["ones"], np.ones((nb,nb,nb))
 
+extrema_s = {'particle_position_x': (0, 1)}
+logs_s = {'particle_position_x': False}
+
+extrema_t = {('all', 'particle_position_x'): (0, 1)}
+logs_t = {('all', 'particle_position_x'): False}
+
 def test_particle_profiles():
     for nproc in [1, 2, 4, 8]:
         ds = fake_random_ds(32, nprocs=nproc, particles = 32**3)
@@ -162,6 +181,18 @@ def test_particle_profiles():
         p1d = Profile1D(dd, "particle_position_x", 128,
                         0.0, 1.0, False, weight_field = None)
         p1d.add_fields(["particle_ones"])
+        yield assert_equal, p1d["particle_ones"].sum(), 32**3
+
+        p1d = create_profile(dd, ["particle_position_x"], ["particle_ones"],
+                             weight_field=None, n_bins=128, extrema=extrema_s,
+                             logs=logs_s)
+        yield assert_equal, p1d["particle_ones"].sum(), 32**3
+
+        p1d = create_profile(dd,
+                             [("all", "particle_position_x")],
+                             [("all", "particle_ones")],
+                             weight_field=None, n_bins=128, extrema=extrema_t,
+                             logs=logs_t)
         yield assert_equal, p1d["particle_ones"].sum(), 32**3
 
         p2d = Profile2D(dd, "particle_position_x", 128, 0.0, 1.0, False,

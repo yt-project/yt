@@ -6,7 +6,8 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.frontends.stream.fields import \
     StreamFieldInfo
-from yt.units.yt_array import YTArray
+from yt.units.yt_array import \
+     YTArray, YTQuantity
 
 def setup():
     global base_ds
@@ -42,6 +43,7 @@ def get_params(ds):
         omega_baryon = 0.04,
         observer_redshift = 0.0,
         source_redshift = 3.0,
+        virial_radius = YTQuantity(1.0, "cm"),
     )
 
 _base_fields = (("gas", "density"),

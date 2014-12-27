@@ -169,7 +169,7 @@ class LightRay(CosmologySplice):
                                 (self.light_ray_solution[q]['redshift'], z_next,
                                  self.light_ray_solution[q]['traversal_box_fraction']))
                     mylog.error("Full box delta z is %f, but it is %f to the next data dump." %
-                                (self.light_ray_solution[q]['deltazMax'],
+                                (self.light_ray_solution[q]['dz_max'],
                                  self.light_ray_solution[q]['redshift']-z_next))
 
                 # Get dataset axis and center.
@@ -210,7 +210,7 @@ class LightRay(CosmologySplice):
     def make_light_ray(self, seed=None,
                        start_position=None, end_position=None,
                        trajectory=None,
-                       fields=None,
+                       fields=None, setup_function=None,
                        solution_filename=None, data_filename=None,
                        get_los_velocity=True,
                        njobs=-1):
@@ -240,6 +240,11 @@ class LightRay(CosmologySplice):
             Default: None.
         fields : list
             A list of fields for which to get data.
+            Default: None.
+        setup_function : callable, accepts a ds
+            This function will be called on each dataset that is loaded 
+            to create the light ray.  For, example, this can be used to 
+            add new derived fields.
             Default: None.
         solution_filename : string
             Path to a text file where the trajectories of each
@@ -299,6 +304,10 @@ class LightRay(CosmologySplice):
 
             # Load dataset for segment.
             ds = load(my_segment['filename'])
+
+            if setup_function is not None:
+                setup_function(ds)
+            
             my_segment["start"] = ds.domain_width * my_segment["start"] + \
                 ds.domain_left_edge
             my_segment["end"] = ds.domain_width * my_segment["end"] + \

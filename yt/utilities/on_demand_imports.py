@@ -132,4 +132,15 @@ class scipy_imports:
             self._interpolate = interpolate
         return self._interpolate
 
+    _special = None
+    @property
+    def special(self):
+        if self._special is None:
+            try:
+                import scipy.special as special
+            except ImportError:
+                special = NotAModule(self._name)
+            self._special = special
+        return self._special
+
 _scipy = scipy_imports()

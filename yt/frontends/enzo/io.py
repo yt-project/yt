@@ -36,7 +36,10 @@ class IOHandlerPackedHDF5(BaseIOHandler):
     def _read_field_names(self, grid):
         if grid.filename is None: return []
         f = h5py.File(grid.filename, "r")
-        group = f["/Grid%08i" % grid.id]
+        try:
+            group = f["/Grid%08i" % grid.id]
+        except KeyError:
+            group = f
         fields = []
         add_io = "io" in grid.ds.particle_types
         for name, v in group.iteritems():
@@ -80,6 +83,9 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                             r"particle_position_%s")
                     x, y, z = (np.asarray(pds.get(pn % ax).value, dtype="=f8")
                                for ax in 'xyz')
+                    for field in field_list:
+                        if np.asarray(pds[field]).ndim > 1:
+                            self._array_fields[field] = pds[field].shape
                     yield ptype, (x, y, z)
             if f: f.close()
 
@@ -366,6 +372,8 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
                     #print "Opening (count) %s" % g.filename
                     f = h5py.File(g.filename, "r")
                 gds = f.get("/Grid%08i" % g.id)
+                if gds is None:
+                    gds = f
                 for field in fields:
                     ftype, fname = field
                     ds = np.atleast_3d(gds.get(fname).value.transpose())

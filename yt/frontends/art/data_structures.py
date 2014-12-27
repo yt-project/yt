@@ -166,7 +166,8 @@ class ARTDataset(Dataset):
                  skip_particles=False, skip_stars=False,
                  limit_level=None, spread_age=True,
                  force_max_level=None, file_particle_header=None,
-                 file_particle_data=None, file_particle_stars=None):
+                 file_particle_data=None, file_particle_stars=None,
+                 units_override=None):
         self.fluid_types += ("art", )
         if fields is None:
             fields = fluid_fields
@@ -186,7 +187,8 @@ class ARTDataset(Dataset):
         self.spread_age = spread_age
         self.domain_left_edge = np.zeros(3, dtype='float')
         self.domain_right_edge = np.zeros(3, dtype='float')+1.0
-        Dataset.__init__(self, filename, dataset_type)
+        Dataset.__init__(self, filename, dataset_type,
+                         units_override=units_override)
         self.storage_filename = storage_filename
 
     def _find_files(self, file_amr):

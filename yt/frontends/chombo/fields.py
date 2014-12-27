@@ -24,10 +24,9 @@ from yt.fields.field_info_container import \
 from yt.frontends.boxlib.fields import \
     rho_units, \
     mom_units, \
-    eden_units, \
-    _thermal_energy_density, \
-    _thermal_energy, \
-    _temperature
+    eden_units
+
+from yt.utilities.exceptions import YTFieldNotFound
 
 rho_units = "code_mass / code_length**3"
 mom_units = "code_mass / (code_time * code_length**2)"
@@ -82,20 +81,70 @@ class Orion2FieldInfo(ChomboFieldInfo):
     )
 
     def setup_fluid_fields(self):
+        def _thermal_energy_density(field, data):
+            try:
+                return data['energy-density'] - data['kinetic_energy_density'] - \
+                    data["magnetic_energy_density"]
+            except YTFieldNotFound:
+                return data['energy-density'] - data['kinetic_energy_density']
+
+        def _thermal_energy(field, data):
+            return data['thermal_energy_density']/data['density']
+
+        def _magnetic_energy_density(field, data):
+            ret = data["X-magnfield"]**2
+            if data.ds.dimensionality > 1:
+                ret = ret + data["Y-magnfield"]**2
+            if data.ds.dimensionality > 2:
+                ret = ret + data["Z-magnfield"]**2
+            return ret/2.0
+
+        def _magnetic_energy(field, data):
+            return data['magnetic_energy_density']/data['density']
+
+        def _kinetic_energy_density(field, data):
+            p2 = data['X-momentum']**2
+            if data.ds.dimensionality > 1:
+                p2 = p2 + data["Y-momentum"]**2
+            if data.ds.dimensionality > 2:
+                p2 = p2 + data["Z-momentum"]**2
+            return 0.5 * p2/data['density']
+
+        def _kinetic_energy(field, data):
+            return data['kinetic_energy_density']/data['density']
+
+        def _temperature(field, data):
+            c_v = data.ds.quan(data.ds.parameters['radiation.const_cv'], 
+                               'erg/g/K')
+            return (data["thermal_energy"]/c_v)
+
         def _get_vel(axis):
             def velocity(field, data):
                 return data["momentum_%s" % ax]/data["density"]
             return velocity
+
         for ax in 'xyz':
-            self.add_field("velocity_%s" % ax, function = _get_vel(ax),
+            self.add_field(("gas", "velocity_%s" % ax), function = _get_vel(ax),
                            units = "cm/s")
-        self.add_field("thermal_energy",
+        self.add_field(("gas", "thermal_energy"),
                        function = _thermal_energy,
                        units = "erg/g")
-        self.add_field("thermal_energy_density",
+        self.add_field(("gas", "thermal_energy_density"),
                        function = _thermal_energy_density,
                        units = "erg/cm**3")
-        self.add_field("temperature", function=_temperature,
+        self.add_field(("gas", "kinetic_energy"),
+                       function = _kinetic_energy,
+                       units = "erg/g")
+        self.add_field(("gas", "kinetic_energy_density"),
+                       function = _kinetic_energy_density,
+                       units = "erg/cm**3")
+        self.add_field(("gas", "magnetic_energy"),
+                       function = _magnetic_energy,
+                       units = "erg/g")
+        self.add_field(("gas", "magnetic_energy_density"),
+                       function = _magnetic_energy_density,
+                       units = "erg/cm**3")
+        self.add_field(("gas", "temperature"), function=_temperature,
                        units="K")
 
 

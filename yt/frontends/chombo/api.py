@@ -35,3 +35,5 @@ from .fields import \
 from .io import \
     IOHandlerChomboHDF5,\
     IOHandlerPlutoHDF5
+
+from . import tests

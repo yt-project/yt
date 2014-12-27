@@ -35,3 +35,5 @@ from .io import \
       IOHandlerInMemory, \
       IOHandlerPacked2D, \
       IOHandlerPacked1D
+
+from . import tests

@@ -30,10 +30,11 @@ from .fixed_resolution import \
     FixedResolutionBuffer, \
     ObliqueFixedResolutionBuffer, \
     OffAxisProjectionFixedResolutionBuffer
-from .plot_modifications import get_smallest_appropriate_unit, \
-    callback_registry
+from .plot_modifications import callback_registry
 from .plot_container import \
-    ImagePlotContainer, log_transform, linear_transform, \
+    ImagePlotContainer, \
+    log_transform, linear_transform, symlog_transform, \
+    get_log_minorticks, get_symlog_minorticks, \
     invalidate_data, invalidate_plot, apply_callback
 
 from yt.data_objects.time_series import \
@@ -48,6 +49,8 @@ from yt.units.unit_object import \
     Unit
 from yt.units.unit_registry import \
     UnitParseError
+from yt.units.unit_lookup_table import \
+    prefixable_units, latex_prefixes
 from yt.units.yt_array import \
     YTArray, YTQuantity
 from yt.utilities.png_writer import \
@@ -156,8 +159,8 @@ class PlotWindow(ImagePlotContainer):
 
     Parameters
     ----------
-    data_source : :class:`yt.data_objects.data_containers.AMRProjBase` or
-                  :class:`yt.data_objects.data_containers.AMRSliceBase`
+
+    data_source : :class:`yt.data_objects.data_containers.YTProjBase` or :class:`yt.data_objects.data_containers.YTSliceBase`
         This is the source to be pixelized, which can be a projection or a
         slice.  (For cutting planes, see
         `yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`.)
@@ -246,7 +249,7 @@ class PlotWindow(ImagePlotContainer):
         else:
             bounds = self.xlim+self.ylim
         if self._frb_generator is ObliqueFixedResolutionBuffer:
-            bounds = np.array(bounds)
+            bounds = np.array([b.in_units('code_length') for b in bounds])
 
         self.frb = self._frb_generator(self.data_source, bounds, self.buff_size,
                                        self.antialias, periodic=self._periodic)
@@ -687,8 +690,8 @@ class PWViewerMPL(PlotWindow):
             xc, yc = self._setup_origin()
 
             if self._axes_unit_names is None:
-                unit = get_smallest_appropriate_unit(
-                    self.xlim[1] - self.xlim[0], self.ds)
+                unit = self.ds.get_smallest_appropriate_unit(
+                    self.xlim[1] - self.xlim[0])
                 (unit_x, unit_y) = (unit, unit)
             else:
                 (unit_x, unit_y) = self._axes_unit_names
@@ -697,8 +700,8 @@ class PWViewerMPL(PlotWindow):
             # This will likely be replaced at some point by the coordinate handler
             # setting plot aspect.
             if self.aspect is None:
-                self.aspect = np.float64((self.ds.quan(1.0, unit_y) /
-                                         self.ds.quan(1.0, unit_x)).in_cgs())
+                self.aspect = float((self.ds.quan(1.0, unit_y) /
+                                     self.ds.quan(1.0, unit_x)).in_cgs())
 
             extentx = [(self.xlim[i] - xc).in_units(unit_x) for i in (0, 1)]
             extenty = [(self.ylim[i] - yc).in_units(unit_y) for i in (0, 1)]
@@ -711,9 +714,9 @@ class PWViewerMPL(PlotWindow):
                 zlim = (None, None)
 
             image = self.frb[f]
-
             if self._field_transform[f] == log_transform:
                 msg = None
+                use_symlog = False
                 if zlim != (None, None):
                     pass
                 elif np.nanmax(image) == np.nanmin(image):
@@ -724,12 +727,23 @@ class PWViewerMPL(PlotWindow):
                           "values.  Max = %f." % (f, np.nanmax(image))
                 elif not np.any(np.isfinite(image)):
                     msg = "Plot image for field %s is filled with NaNs." % (f,)
+                elif np.nanmax(image) > 0. and np.nanmin(image) < 0:
+                    msg = "Plot image for field %s has both positive "\
+                          "and negative values. Min = %f, Max = %f."\
+                          % (f, np.nanmin(image), np.nanmax(image))
+                    use_symlog = True
                 if msg is not None:
                     mylog.warning(msg)
-                    mylog.warning("Switching to linear colorbar scaling.")
-                    self._field_transform[f] = linear_transform
+                    if use_symlog:
+                        mylog.warning("Switching to symlog colorbar scaling "\
+                                      "unless linear scaling is specified later")
+                        self._field_transform[f] = symlog_transform
+                        self._field_transform[f].func = None
+                    else:
+                        mylog.warning("Switching to linear colorbar scaling.")
+                        self._field_transform[f] = linear_transform
 
-            fp = self._font_properties
+            font_size = self._font_properties.get_size()
 
             fig = None
             axes = None
@@ -746,8 +760,9 @@ class PWViewerMPL(PlotWindow):
 
             self.plots[f] = WindowPlotMPL(
                 image, self._field_transform[f].name,
+                self._field_transform[f].func,
                 self._colormaps[f], extent, zlim,
-                self.figure_size, fp.get_size(),
+                self.figure_size, font_size,
                 self.aspect, fig, axes, cax)
 
             axes_unit_labels = ['', '']
@@ -757,9 +772,10 @@ class PWViewerMPL(PlotWindow):
                 if hasattr(self.ds.coordinates, "default_unit_label"):
                     axax = getattr(self.ds.coordinates,
                                    "%s_axis" % ("xy"[i]))[axis_index]
-                    un = self.ds.coordinates.default_unit_label[axax]
-                    axes_unit_labels[i] = '\/\/\left('+un+'\right)'
-                    continue
+                    unn = self.ds.coordinates.default_unit_label.get(axax, "")
+                    if unn != "":
+                        axes_unit_labels[i] = r'\/\/\left('+unn+r'\right)'
+                        continue
                 # Use sympy to factor h out of the unit.  In this context 'un'
                 # is a string, so we call the Unit constructor.
                 expr = Unit(un, registry=self.ds.unit_registry).expr
@@ -780,6 +796,11 @@ class PWViewerMPL(PlotWindow):
                     raise RuntimeError
                 if un in formatted_length_unit_names:
                     un = formatted_length_unit_names[un]
+                pp = un[0]
+                if pp in latex_prefixes:
+                    symbol_wo_prefix = un[1:]
+                    if symbol_wo_prefix in prefixable_units:
+                        un = un.replace(pp, "{"+latex_prefixes[pp]+"}", 1)
                 if un not in ['1', 'u', 'unitary']:
                     if hinv:
                         un = un + '\,h^{-1}'
@@ -824,14 +845,8 @@ class PWViewerMPL(PlotWindow):
             if y_label is not None:
                 labels[1] = y_label
 
-            self.plots[f].axes.set_xlabel(labels[0],fontproperties=fp)
-            self.plots[f].axes.set_ylabel(labels[1],fontproperties=fp)
-
-            for label in (self.plots[f].axes.get_xticklabels() +
-                          self.plots[f].axes.get_yticklabels() +
-                          [self.plots[f].axes.xaxis.get_offset_text(),
-                           self.plots[f].axes.yaxis.get_offset_text()]):
-                label.set_fontproperties(fp)
+            self.plots[f].axes.set_xlabel(labels[0])
+            self.plots[f].axes.set_ylabel(labels[1])
 
             # Determine the units of the data
             units = Unit(self.frb[f].units, registry=self.ds.unit_registry)
@@ -852,15 +867,33 @@ class PWViewerMPL(PlotWindow):
             except ParseFatalException, err:
                 raise YTCannotParseUnitDisplayName(f, colorbar_label, str(err))
 
-            self.plots[f].cb.set_label(colorbar_label, fontproperties=fp)
+            self.plots[f].cb.set_label(colorbar_label)
 
-            for label in (self.plots[f].cb.ax.get_xticklabels() +
-                          self.plots[f].cb.ax.get_yticklabels() +
-                          [self.plots[f].cb.ax.axes.xaxis.get_offset_text(),
-                           self.plots[f].cb.ax.axes.yaxis.get_offset_text()]):
-                label.set_fontproperties(fp)
+            # x-y axes minorticks
+            if f not in self._minorticks:
+                self._minorticks[f] = True
+            if self._minorticks[f] is True:
+                self.plots[f].axes.minorticks_on()
+            else:
+                self.plots[f].axes.minorticks_off()
 
-            self.run_callbacks(f)
+            # colorbar minorticks
+            if f not in self._cbar_minorticks:
+                self._cbar_minorticks[f] = True
+            if self._cbar_minorticks[f] is True:
+                if self._field_transform[f] == linear_transform:
+                    self.plots[f].cax.minorticks_on()
+                else:
+                    vmin = np.float64( self.plots[f].cb.norm.vmin )
+                    vmax = np.float64( self.plots[f].cb.norm.vmax )
+                    if self._field_transform[f] == log_transform:
+                        mticks = self.plots[f].image.norm( get_log_minorticks(vmin, vmax) )
+                    else: # symlog_transform
+                        flinthresh = 10**np.floor( np.log10( self.plots[f].cb.norm.linthresh ) )
+                        mticks = self.plots[f].image.norm( get_symlog_minorticks(flinthresh, vmin, vmax) )
+                    self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
+            else:
+                self.plots[f].cax.minorticks_off()
 
             if draw_axes is False:
                 self.plots[f]._toggle_axes(draw_axes)
@@ -868,14 +901,7 @@ class PWViewerMPL(PlotWindow):
             if draw_colorbar is False:
                 self.plots[f]._toggle_colorbar(draw_colorbar)
 
-            if self._font_color is not None:
-                ax = self.plots[f].axes
-                cbax = self.plots[f].cb.ax
-                labels = ax.xaxis.get_ticklabels() + ax.yaxis.get_ticklabels()
-                labels += cbax.yaxis.get_ticklabels()
-                labels += [ax.xaxis.label, ax.yaxis.label, cbax.yaxis.label]
-                for label in labels:
-                    label.set_color(self._font_color)
+        self._set_font_properties()
 
         self._plot_valid = True
 
@@ -919,13 +945,15 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          or the axis name itself
     fields : string
          The name of the field(s) to be plotted.
-    center : A sequence floats, a string, or a tuple.
+    center : A sequence of floats, a string, or a tuple.
          The coordinate of the center of the image. If set to 'c', 'center' or
          left blank, the plot is centered on the middle of the domain. If set to
          'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Units can be specified by passing in center
+         ('gas', 'density') field. Centering on the max or min of a specific
+         field is supported by providing a tuple such as ("min","temperature") or
+         ("max","dark_matter_density"). Units can be specified by passing in *center*
          as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray.  If a list or unitless array is supplied, code units are
+         in a YTArray. If a list or unitless array is supplied, code units are
          assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
@@ -984,6 +1012,9 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
          fields.
+    data_source : YTSelectionContainer Object
+         Object to be used for data selection.  Defaults to a region covering
+         the entire simulation.
 
     Examples
     --------
@@ -1001,17 +1032,18 @@ class AxisAlignedSlicePlot(PWViewerMPL):
 
     def __init__(self, ds, axis, fields, center='c', width=None, axes_unit=None,
                  origin='center-window', fontsize=18, field_parameters=None,
-                 window_size=8.0, aspect=None):
+                 window_size=8.0, aspect=None, data_source=None):
         # this will handle time series data and controllers
         ts = self._initialize_dataset(ds)
         self.ts = ts
         ds = self.ds = ts[0]
         axis = fix_axis(axis, ds)
         (bounds, center, display_center) = \
-                get_window_parameters(axis, center, width, ds)
-        if field_parameters is None: field_parameters = {}
-        slc = ds.slice(axis, center[axis],
-            field_parameters = field_parameters, center=center)
+            get_window_parameters(axis, center, width, ds)
+        if field_parameters is None:
+            field_parameters = {}
+        slc = ds.slice(axis, center[axis], field_parameters=field_parameters,
+                       center=center, data_source=data_source)
         slc.get_data(fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin,
                              fontsize=fontsize, fields=fields,
@@ -1040,13 +1072,15 @@ class ProjectionPlot(PWViewerMPL):
          or the axis name itself
     fields : string
          The name of the field(s) to be plotted.
-    center : A sequence floats, a string, or a tuple.
+    center : A sequence of floats, a string, or a tuple.
          The coordinate of the center of the image. If set to 'c', 'center' or
          left blank, the plot is centered on the middle of the domain. If set to
          'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Units can be specified by passing in center
+         ('gas', 'density') field. Centering on the max or min of a specific
+         field is supported by providing a tuple such as ("min","temperature") or
+         ("max","dark_matter_density"). Units can be specified by passing in *center*
          as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray.  If a list or unitless array is supplied, code units are
+         in a YTArray. If a list or unitless array is supplied, code units are
          assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
@@ -1101,7 +1135,7 @@ class ProjectionPlot(PWViewerMPL):
          ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
          ==================================     ============================
 
-    data_source : AMR3DData Object
+    data_source : YTSelectionContainer Object
          Object to be used for data selection.  Defaults to a region covering
          the entire simulation.
     weight_field : string
@@ -1123,7 +1157,9 @@ class ProjectionPlot(PWViewerMPL):
 
          "sum" : This method is the same as integrate, except that it does not 
          multiply by a path length when performing the integration, and is 
-         just a straight summation of the field along the given axis. 
+         just a straight summation of the field along the given axis. WARNING:
+         This should only be used for uniform resolution grid datasets, as other
+         datasets may result in unphysical images.
     proj_style : string
          The method of projection--same as method keyword.  Deprecated as of 
          version 3.0.2.  Please use method instead.
@@ -1197,13 +1233,15 @@ class OffAxisSlicePlot(PWViewerMPL):
          The vector normal to the slicing plane.
     fields : string
          The name of the field(s) to be plotted.
-    center : A sequence floats, a string, or a tuple.
+    center : A sequence of floats, a string, or a tuple.
          The coordinate of the center of the image. If set to 'c', 'center' or
          left blank, the plot is centered on the middle of the domain. If set to
          'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Units can be specified by passing in center
+         ('gas', 'density') field. Centering on the max or min of a specific
+         field is supported by providing a tuple such as ("min","temperature") or
+         ("max","dark_matter_density"). Units can be specified by passing in *center*
          as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray.  If a list or unitless array is supplied, code units are
+         in a YTArray. If a list or unitless array is supplied, code units are
          assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
@@ -1239,6 +1277,9 @@ class OffAxisSlicePlot(PWViewerMPL):
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
          fields.
+    data_source : YTSelectionContainer Object
+         Object to be used for data selection.  Defaults to a region covering
+         the entire simulation.
     """
 
     _plot_type = 'OffAxisSlice'
@@ -1246,11 +1287,13 @@ class OffAxisSlicePlot(PWViewerMPL):
 
     def __init__(self, ds, normal, fields, center='c', width=None,
                  axes_unit=None, north_vector=None, fontsize=18,
-                 field_parameters=None):
+                 field_parameters=None, data_source=None):
         (bounds, center_rot) = get_oblique_window_parameters(normal,center,width,ds)
-        if field_parameters is None: field_parameters = {}
-        cutting = ds.cutting(normal, center, north_vector = north_vector,
-                              field_parameters = field_parameters)
+        if field_parameters is None:
+            field_parameters = {}
+        cutting = ds.cutting(normal, center, north_vector=north_vector,
+                             field_parameters=field_parameters,
+                             data_source=data_source)
         cutting.get_data(fields)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
@@ -1263,12 +1306,11 @@ class OffAxisSlicePlot(PWViewerMPL):
 
 class OffAxisProjectionDummyDataSource(object):
     _type_name = 'proj'
-    method = 'integrate'
     _key_fields = []
     def __init__(self, center, ds, normal_vector, width, fields,
                  interpolated, resolution = (800,800), weight=None,
                  volume=None, no_ghost=False, le=None, re=None,
-                 north_vector=None):
+                 north_vector=None, method="integrate"):
         self.center = center
         self.ds = ds
         self.axis = 4 # always true for oblique data objects
@@ -1285,6 +1327,7 @@ class OffAxisProjectionDummyDataSource(object):
         self.le = le
         self.re = re
         self.north_vector = north_vector
+        self.method = method
 
     def _determine_fields(self, *args):
         return self.dd._determine_fields(*args)
@@ -1308,13 +1351,15 @@ class OffAxisProjectionPlot(PWViewerMPL):
         The vector normal to the slicing plane.
     fields : string
         The name of the field(s) to be plotted.
-    center : A sequence floats, a string, or a tuple.
+    center : A sequence of floats, a string, or a tuple.
          The coordinate of the center of the image. If set to 'c', 'center' or
          left blank, the plot is centered on the middle of the domain. If set to
          'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Units can be specified by passing in center
+         ('gas', 'density') field. Centering on the max or min of a specific
+         field is supported by providing a tuple such as ("min","temperature") or
+         ("max","dark_matter_density"). Units can be specified by passing in *center*
          as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray.  If a list or unitless array is supplied, code units are
+         in a YTArray. If a list or unitless array is supplied, code units are
          assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
@@ -1355,7 +1400,20 @@ class OffAxisProjectionPlot(PWViewerMPL):
          set, an arbitrary grid-aligned north-vector is chosen.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
+    method : string
+         The method of projection.  Valid methods are:
 
+         "integrate" with no weight_field specified : integrate the requested
+         field along the line of sight.
+
+         "integrate" with a weight_field specified : weight the requested
+         field by the weighting field and integrate along the line of sight.
+
+         "sum" : This method is the same as integrate, except that it does not
+         multiply by a path length when performing the integration, and is
+         just a straight summation of the field along the given axis. WARNING:
+         This should only be used for uniform resolution grid datasets, as other
+         datasets may result in unphysical images.
     """
     _plot_type = 'OffAxisProjection'
     _frb_generator = OffAxisProjectionFixedResolutionBuffer
@@ -1363,7 +1421,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
     def __init__(self, ds, normal, fields, center='c', width=None,
                  depth=(1, '1'), axes_unit=None, weight_field=None,
                  max_level=None, north_vector=None, volume=None, no_ghost=False,
-                 le=None, re=None, interpolated=False, fontsize=18):
+                 le=None, re=None, interpolated=False, fontsize=18, method="integrate"):
         (bounds, center_rot) = \
           get_oblique_window_parameters(normal,center,width,ds,depth=depth)
         fields = ensure_list(fields)[:]
@@ -1373,7 +1431,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
         OffAxisProj = OffAxisProjectionDummyDataSource(
             center_rot, ds, normal, oap_width, fields, interpolated,
             weight=weight_field,  volume=volume, no_ghost=no_ghost,
-            le=le, re=re, north_vector=north_vector)
+            le=le, re=re, north_vector=north_vector, method=method)
         # If a non-weighted, integral projection, assure field-label reflects that
         if weight_field is None and OffAxisProj.method == "integrate":
             self.projected = True
@@ -1586,7 +1644,7 @@ class PWViewerExtJS(PlotWindow):
         x_width = self.xlim[1] - self.xlim[0]
         y_width = self.ylim[1] - self.ylim[0]
         if self._axes_unit_names is None:
-            unit = get_smallest_appropriate_unit(x_width, self.ds)
+            unit = self.ds.get_smallest_appropriate_unit(x_width)
             unit = (unit, unit)
         else:
             unit = self._axes_unit_names
@@ -1643,7 +1701,7 @@ class PWViewerExtJS(PlotWindow):
 
 class WindowPlotMPL(ImagePlotMPL):
     """A container for a single PlotWindow matplotlib figure and axes"""
-    def __init__(self, data, cbname, cmap, extent, zlim, figure_size, fontsize,
+    def __init__(self, data, cbname, cblinthresh, cmap, extent, zlim, figure_size, fontsize,
                  unit_aspect, figure, axes, cax):
         self._draw_colorbar = True
         self._draw_axes = True
@@ -1669,7 +1727,7 @@ class WindowPlotMPL(ImagePlotMPL):
         super(WindowPlotMPL, self).__init__(
             size, axrect, caxrect, zlim, figure, axes, cax)
 
-        self._init_image(data, cbname, cmap, extent, unit_aspect)
+        self._init_image(data, cbname, cblinthresh, cmap, extent, unit_aspect)
 
         self.image.axes.ticklabel_format(scilimits=(-2, 3))
         if cbname == 'linear':
@@ -1715,9 +1773,11 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
          The coordinate of the center of the image. If set to 'c', 'center' or
          left blank, the plot is centered on the middle of the domain. If set to
          'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Units can be specified by passing in center
+         ('gas', 'density') field. Centering on the max or min of a specific
+         field is supported by providing a tuple such as ("min","temperature") or
+         ("max","dark_matter_density"). Units can be specified by passing in *center*
          as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray.  If a list or unitless array is supplied, code units are
+         in a YTArray. If a list or unitless array is supplied, code units are
          assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
@@ -1783,6 +1843,9 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
          fields.
+    data_source : YTSelectionContainer Object
+         Object to be used for data selection.  Defaults to a region covering
+         the entire simulation.
 
     Raises
     ------

@@ -16,7 +16,8 @@ ART frontend tests using D9p a=0.500
 
 from yt.testing import \
     requires_file, \
-    assert_equal
+    assert_equal, \
+    units_override_check
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     big_patch_amr, \
@@ -48,3 +49,9 @@ def test_d9p():
 @requires_file(d9p)
 def test_ARTDataset():
     assert isinstance(data_dir_load(d9p), ARTDataset)
+
+@requires_file(d9p)
+def test_units_override():
+    for test in units_override_check(d9p):
+        yield test
+
