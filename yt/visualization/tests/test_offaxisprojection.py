@@ -38,10 +38,10 @@ def test_oap(tmpdir=True):
 
     # args for off_axis_projection
     test_ds = fake_random_ds(64)
-    c = [0.5, 0.5, 0.5]
+    c = test_ds.domain_center 
     norm = [0.5, 0.5, 0.5]
-    W = [0.5,0.5,1.0]
-    N = 64 
+    W = test_ds.arr([0.5,0.5,1.0], 'unitary')
+    N = 256
     field = ("gas","density")
     oap_args = [test_ds, c, norm, W, N, field]
 
@@ -72,7 +72,7 @@ def test_oap(tmpdir=True):
     # make sure they are able to be projected, then remove and try next
     # iteration
     for oap_kwargs in oap_kwargs_list:
-        image = off_axis_projection(*oap_args, **oap_kwargs)
+        image, sc = off_axis_projection(*oap_args, **oap_kwargs)
         for wp_kwargs in wp_kwargs_list:
             write_projection(image, fn % oap_kwargs, **wp_kwargs)
             yield assert_equal, os.path.exists(fn % oap_kwargs), True

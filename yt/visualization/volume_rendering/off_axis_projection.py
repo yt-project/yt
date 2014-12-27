@@ -64,15 +64,17 @@ def off_axis_projection(data_source, center, normal_vector,
     east_vector = camera.unit_vectors[1]
     normal_vector = camera.unit_vectors[2]
     fields = vol.field 
+    if len(width) == 1:
+        width = data_source.ds.arr([width]*3)
 
     mi = ds.domain_right_edge.copy()
     ma = ds.domain_left_edge.copy()
     for off1 in [-1, 1]:
         for off2 in [-1, 1]:
             for off3 in [-1, 1]:
-                this_point = (center + width/2. * off1 * north_vector
-                                     + width/2. * off2 * east_vector
-                                     + width/2. * off3 * normal_vector)
+                this_point = (center + width[0]/2. * off1 * north_vector
+                                     + width[1]/2. * off2 * east_vector
+                                     + width[2]/2. * off3 * normal_vector)
                 np.minimum(mi, this_point, mi)
                 np.maximum(ma, this_point, ma)
     # Now we have a bounding box.
@@ -90,7 +92,7 @@ def off_axis_projection(data_source, center, normal_vector,
     image = vol.finalize_image(camera, vol.sampler.aimage)
 
     if weight is None:
-        dl = width
+        dl = width[2]
         image *= dl
     else:
         image[:,:,0] /= image[:,:,1]
