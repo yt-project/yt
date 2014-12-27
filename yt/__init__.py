@@ -151,8 +151,8 @@ from yt.visualization.api import \
     show_colormaps, ProfilePlot, PhasePlot
 
 from yt.visualization.volume_rendering.api import \
-    volume_render, ColorTransferFunction \
-    TransferFunctionHelper, TransferFunction, MultiVariateTransferFunction
+    volume_render, ColorTransferFunction, TransferFunction#, \
+#    TransferFunctionHelper, MultiVariateTransferFunction
 #    off_axis_projection
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
