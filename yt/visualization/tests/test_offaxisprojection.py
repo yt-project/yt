@@ -28,20 +28,21 @@ def setup():
     ytcfg["yt", "__withintesting"] = "True"
 
 
-def test_write_projection():
+def test_oap(tmpdir=True):
     """Tests functionality of off_axis_projection and write_projection."""
     # Perform I/O in safe place instead of yt main dir
-    tmpdir = tempfile.mkdtemp()
-    curdir = os.getcwd()
-    os.chdir(tmpdir)
+    if tmpdir:
+        tmpdir = tempfile.mkdtemp()
+        curdir = os.getcwd()
+        os.chdir(tmpdir)
 
     # args for off_axis_projection
     test_ds = fake_random_ds(64)
     c = [0.5, 0.5, 0.5]
     norm = [0.5, 0.5, 0.5]
     W = [0.5,0.5,1.0]
-    N = 64
-    field = "density"
+    N = 64 
+    field = ("gas","density")
     oap_args = [test_ds, c, norm, W, N, field]
 
     # kwargs for off_axis_projection
@@ -52,8 +53,8 @@ def test_write_projection():
     oap_kwargs['north_vector'] = ((1,0,0), (0,0.5,1.0))
     oap_kwargs_list = expand_keywords(oap_kwargs)
 
-    # args for write_projection
-    fn = "test.png"
+    # args or write_projection
+    fn = "test_%s.png"
 
     # kwargs for write_projection
     wp_kwargs = {}
@@ -73,10 +74,14 @@ def test_write_projection():
     for oap_kwargs in oap_kwargs_list:
         image = off_axis_projection(*oap_args, **oap_kwargs)
         for wp_kwargs in wp_kwargs_list:
-            write_projection(image, fn, **wp_kwargs)
-            yield assert_equal, os.path.exists(fn), True
-            os.remove(fn)
+            write_projection(image, fn % oap_kwargs, **wp_kwargs)
+            yield assert_equal, os.path.exists(fn % oap_kwargs), True
 
-    os.chdir(curdir)
-    # clean up
-    shutil.rmtree(tmpdir)
+    if tmpdir:
+        os.chdir(curdir)
+        # clean up
+        shutil.rmtree(tmpdir)
+
+if __name__ == "__main__":
+    for test in test_oap(tmpdir=False):
+        pass
