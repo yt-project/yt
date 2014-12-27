@@ -38,7 +38,7 @@ header_dt = (
 # Note the final field here, which is a field for min/max format revision in
 # which the field appears.
 
-KNOWN_REVISIONS=[0, 1]
+KNOWN_REVISIONS=[0, 1, 2]
 
 halo_dt = [
     ('particle_identifier', np.int64),
@@ -101,6 +101,12 @@ halo_dt = [
     ('min_pos_err', np.float32),
     ('min_vel_err', np.float32),
     ('min_bulkvel_err', np.float32),
+    ('type', np.int32, (2, 100)),
+    ('sm', np.float32, (2, 100)),
+    ('gas', np.float32, (2, 100)),
+    ('bh', np.float32, (2, 100)),
+    ('peak_density', np.float32, (2, 100)),
+    ('av_density', np.float32, (2, 100)),
 ]
 
 halo_dts = {}
