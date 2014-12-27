@@ -17,7 +17,7 @@ from .camera import Camera
 from .render_source import VolumeSource
 from .transfer_functions import ProjectionTransferFunction
 from .utils import data_source_or_all
-from yt.funcs import mylog
+from yt.funcs import mylog, iterable
 from yt.utilities.lib.grid_traversal import \
         PartitionedGrid
 import numpy as np
@@ -64,8 +64,8 @@ def off_axis_projection(data_source, center, normal_vector,
     east_vector = camera.unit_vectors[1]
     normal_vector = camera.unit_vectors[2]
     fields = vol.field 
-    if len(width) == 1:
-        width = data_source.ds.arr([width]*3)
+    if not iterable(width):
+        width = data_source.ds.arr([width]*3) 
 
     mi = ds.domain_right_edge.copy()
     ma = ds.domain_left_edge.copy()
