@@ -63,8 +63,17 @@ def volume_render(data_source, field=None, fname=None, clip_ratio=None):
     data_source = data_source_or_all(data_source)
     sc = Scene()
     if field is None:
-        data_source.pf.index
-        field = data_source.pf.field_list[0]
+        data_source.ds.index
+        for ftype, f in sorted(data_source.ds.field_list):
+            if ftype == "all": continue
+            print ftype, f
+            if f == 'Density': field = (ftype, f)
+            elif f == 'density': field = (ftype, f)
+            elif ftype != 'index' and not 'particle' in f:
+                field = (ftype, f)
+                break
+        else:
+            raise RuntimeError("Could not find default field. Please set explicitly in volume_render call")
         mylog.info('Setting default field to %s' % field.__repr__())
 
     vol = VolumeSource(data_source, field=field)

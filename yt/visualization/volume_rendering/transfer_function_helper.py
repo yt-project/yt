@@ -64,7 +64,7 @@ class TransferFunctionHelper(object):
             in the dataset.  This can be slow for very large datasets.
         """
         if bounds is None:
-            bounds = self.ds.h.all_data().quantities['Extrema'](self.field)
+            bounds = self.ds.h.all_data().quantities['Extrema'](self.field, non_zero=True)
             bounds = [b.ndarray_view() for b in bounds]
         self.bounds = bounds
 
