@@ -452,7 +452,10 @@ class SpectrumBuilder(object):
         self.total_mass = self.star_mass.sum()
         self.avg_mass = self.star_mass.mean()
         tot_metal = (self.star_metal * self.star_mass).sum()
-        self.avg_metal = math.log10((tot_metal / self.total_mass).in_units('Zsun'))
+        if total_metal > 0:
+          self.avg_metal = math.log10((tot_metal / self.total_mass).in_units('Zsun'))
+        else:
+          self.avg_metal = -99 
 
         # Below is an attempt to do the loop using vectors and matrices,
         # however it doesn't appear to be much faster, probably due to all
