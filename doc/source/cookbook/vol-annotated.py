@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+raise NotImplementedError("Annotation needs to be implemented in scene VR refactor")
 
 import numpy as np
 import pylab

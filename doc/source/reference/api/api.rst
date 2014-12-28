@@ -567,9 +567,12 @@ Here are the primary entry points:
 .. autosummary::
    :toctree: generated/
 
+   ~yt.visualization.volume_rendering.volume_rendering.volume_render
+   ~yt.visualization.volume_rendering.off_axis_projection.off_axis_projection
+   ~yt.visualization.volume_rendering.scene.Scene
    ~yt.visualization.volume_rendering.camera.Camera
-   ~yt.visualization.volume_rendering.camera.off_axis_projection
-   ~yt.visualization.volume_rendering.camera.allsky_projection
+   ~yt.visualization.volume_rendering.lens.Lens
+   ~yt.visualization.volume_rendering.render_source.RenderSource
 
 These objects set up the way the image looks:
 
