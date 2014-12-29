@@ -378,7 +378,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             ax_name = self.ds.coordinates.axis_name[self.axis]
             dl = chunk["index", "path_element_%s" % (ax_name)]
             #dl = chunk.fwidth[:, self.axis]
-            dl.convert_to_units("cm")
+            if not dl.units.is_dimensionless:
+                dl.convert_to_units("cm")
         v = np.empty((chunk.ires.size, len(fields)), dtype="float64")
         for i in range(len(fields)):
             v[:,i] = chunk[fields[i]] * dl
