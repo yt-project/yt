@@ -378,8 +378,9 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             ax_name = self.ds.coordinates.axis_name[self.axis]
             dl = chunk["index", "path_element_%s" % (ax_name)]
             # This is done for cases where our path element does not have a CGS
-            # equivalent.  Eventually it would be nice if we could avoid any
-            # conversion at all.
+            # equivalent.  Once "preferred units" have been implemented, this
+            # will not be necessary at all, as the final conversion will occur
+            # at the display layer.
             if not dl.units.is_dimensionless:
                 dl.convert_to_units("cm")
         v = np.empty((chunk.ires.size, len(fields)), dtype="float64")
