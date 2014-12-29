@@ -68,7 +68,10 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
             f1, f2 = _get_coord_fields(axi)
             def _get_length_func():
                 def _length_func(field, data):
-                    return 1.0
+                    # Just use axis 0
+                    rv = data.ds.arr(data.fcoords[...,0].copy(), field.units)
+                    rv[:] = 1.0
+                    return rv
                 return _length_func
             registry.add_field(("index", "d%s" % ax), function = f1,
                                display_field = False,
