@@ -23,3 +23,5 @@ def test_cartesian_coordinates():
         yield assert_equal, dd[fd].min(), ds.index.get_smallest_dx()
         yield assert_equal, dd[fd].max(), (ds.domain_width/ds.domain_dimensions)[i]
         yield assert_equal, dd[fd], dd[fp]
+    yield assert_equal, dd["cell_volume"].sum(dtype="float64"), \
+                        ds.domain_width.prod()
