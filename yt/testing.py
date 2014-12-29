@@ -179,11 +179,24 @@ def fake_random_ds(
     ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs)
     return ug
 
-def fake_amr_ds(fields = ("Density",)):
+_geom_transforms = {
+    # These are the bounds we want.  Cartesian we just assume goes 0 .. 1.
+    'cartesian'  : ( (0.0, 0.0, 0.0), (1.0, 1.0, 1.0) ),
+    'spherical'  : ( (0.0, 0.0, 0.0), (1.0, np.pi, 2*np.pi) ),
+    'cylindrical': ( (0.0, 0.0, 0.0), (1.0, 1.0, 2.0*np.pi) ), # rzt
+    'polar'      : ( (0.0, 0.0, 0.0), (1.0, 2.0*np.pi, 1.0) ), # rtz
+}
+
+def fake_amr_ds(fields = ("Density",), geometry = "cartesian"):
     from yt.frontends.stream.api import load_amr_grids
+    LE, RE = _geom_transforms[geometry]
+    LE = np.array(LE)
+    RE = np.array(RE)
     data = []
     for gspec in _amr_grid_index:
         level, left_edge, right_edge, dims = gspec
+        left_edge = left_edge * (RE - LE) + LE
+        right_edge = right_edge * (RE - LE) + LE
         gdata = dict(level = level,
                      left_edge = left_edge,
                      right_edge = right_edge,
@@ -191,7 +204,8 @@ def fake_amr_ds(fields = ("Density",)):
         for f in fields:
             gdata[f] = np.random.random(dims)
         data.append(gdata)
-    return load_amr_grids(data, [32, 32, 32], 1.0)
+    bbox = np.array([LE, RE]).T
+    return load_amr_grids(data, [32, 32, 32], 1.0, geometry=geometry, bbox=bbox)
 
 def fake_particle_ds(
         fields = ("particle_position_x",
@@ -224,8 +238,6 @@ def fake_particle_ds(
     bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]])
     ds = load_particles(data, 1.0, bbox=bbox)
     return ds
-
-
 
 def expand_keywords(keywords, full=False):
     """
