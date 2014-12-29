@@ -47,7 +47,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                            display_field = False,
                            units = "code_length")
 
-        f1, f2 = _get_coord_fields(1)
+        f1, f2 = _get_coord_fields(self.axis_id['z'])
         registry.add_field(("index", "dz"), function = f1,
                            display_field = False,
                            units = "code_length")
@@ -55,7 +55,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                            display_field = False,
                            units = "code_length")
 
-        f1, f2 = _get_coord_fields(2, "")
+        f1, f2 = _get_coord_fields(self.axis_id['theta'], "")
         registry.add_field(("index", "dtheta"), function = f1,
                            display_field = False,
                            units = "")
