@@ -186,7 +186,7 @@ class FieldDetector(defaultdict):
         'z_hat': '',
         }
 
-    def get_field_parameter(self, param, default = None):
+    def get_field_parameter(self, param, default = 0.0):
         self.requested_parameters.append(param)
         if param in ['bulk_velocity', 'center', 'normal']:
             return self.ds.arr(np.random.random(3) * 1e-2, self.fp_units[param])
@@ -209,7 +209,7 @@ class FieldDetector(defaultdict):
         elif param == "mu":
             return 1.0
         else:
-            return 0.0
+            return default
 
     _num_ghost_zones = 0
     id = 1

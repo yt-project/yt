@@ -21,8 +21,6 @@ from _mpl_imports import FigureCanvasAgg
 from yt.utilities.logger import ytLogger as mylog
 from .plot_window import PlotWindow
 from .profile_plotter import PhasePlot
-from .plot_modifications import get_smallest_appropriate_unit
-
 
 class DualEPS(object):
     def __init__(self, figsize=(12,12)):
@@ -286,7 +284,7 @@ class DualEPS(object):
             data = plot._frb
             width = plot.width[0]
             if units == None:
-                units = get_smallest_appropriate_unit(width, plot.ds)
+                units = plot.ds.get_smallest_appropriate_unit(width)
             _xrange = (0, width * plot.ds[units])
             _yrange = (0, width * plot.ds[units])
             _xlog = False

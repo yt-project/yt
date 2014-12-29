@@ -203,9 +203,9 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
 
     p[0] = <particle *> malloc(sizeof(particle) * local_parts)
 
-    left_edge[0] = ds.domain_left_edge[0]
-    left_edge[1] = ds.domain_left_edge[1]
-    left_edge[2] = ds.domain_left_edge[2]
+    left_edge[0] = ds.domain_left_edge.in_units('Mpccm/h')[0]
+    left_edge[1] = ds.domain_left_edge.in_units('Mpccm/h')[1]
+    left_edge[2] = ds.domain_left_edge.in_units('Mpccm/h')[2]
     left_edge[3] = left_edge[4] = left_edge[5] = 0.0
     pi = 0
     fields = [ (rh.particle_type, f) for f in

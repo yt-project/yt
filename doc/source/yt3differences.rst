@@ -9,8 +9,13 @@ than what you are used to.  We have tried to build compatibility layers to
 minimize disruption to existing scripts, but necessarily things will be
 different in some ways.
 
-Updating to yt 3.0 from Old Versions
-------------------------------------
+.. contents::
+   :depth: 2
+   :local:
+   :backlinks: none
+
+Updating to yt 3.0 from Old Versions (and going back)
+-----------------------------------------------------
 
 First off, you need to update your version of yt to yt 3.0.  If you're
 installing yt for the first time, please visit :ref:`getting-and-installing-yt`.
@@ -31,55 +36,82 @@ to make sure yt is running, try:
     $ yt --help
 
 If you receive no errors, then you are ready to go.  If you have
-an error, then consult :ref:`update-errors` for solutions.  We also
-provide instructions for :ref:`switching-between-yt-versions`.
+an error, then consult :ref:`update-errors` for solutions.  
 
-Cheat Sheet
------------
+If you want to switch back to an old version of yt (2.x), see 
+:ref:`switching-between-yt-versions`.
 
-Here's a quick reference for how to update your code to work with yt-3.0.
+.. _transitioning-to-3.0:
 
-* We have reworked yt's import system so that most commonly-used yt functions
+Converting Old Scripts to Work with yt 3.0
+------------------------------------------
+
+After installing yt-3.0, you'll want to change your old scripts in a few key
+ways.  After accounting for the changes described in the list below, try 
+running your script.  If it still fails, the callback failures in python are
+fairly descriptive and it may be possible to deduce what remaining changes are
+necessary.  If you continue to have trouble, please don't hesitate to 
+:ref:`request help <asking-for-help>`.
+
+The list below is arranged in order of most important changes to least 
+important changes.
+
+* **Replace** ``from yt.mods import *`` **with** ``import yt`` **and prepend yt 
+  classes and functions with** ``yt.``
+  We have reworked yt's import system so that most commonly-used yt functions
   and classes live in the top-level yt namespace. That means you can now
   import yt with ``import yt``, load a dataset with ``ds = yt.load(filename)``
   and create a plot with ``yt.SlicePlot``.  See :ref:`api-reference` for a full
   API listing.  You can still import using ``from yt.mods import *`` to get a
   pylab-like experience.
-* Fields and metadata for data objects and datasets now have units.  The unit
+* **Unit conversions are different**
+  Fields and metadata for data objects and datasets now have units.  The unit
   system keeps you from making weird things like ``ergs`` + ``g`` and can
   handle things like ``g`` + ``kg`` or ``kg*m/s**2 == Newton``.  See
-  :ref:`units` for more information.
-* Previously, yt would use "Enzo-isms" for field names. We now very
+  :ref:`units` and :ref:`conversion-factors` for more information.
+* **Change field names from CamelCase to lower_case_with_underscores** 
+  Previously, yt would use "Enzo-isms" for field names. We now very
   specifically define fields as lowercase with underscores.  For instance,
   what used to be ``VelocityMagnitude`` would now be ``velocity_magnitude``.
   Axis names are now at the *end* of field names, not the beginning.
   ``x-velocity`` is now ``velocity_x``.  For a full list of all of the fields, 
   see :ref:`field-list`.
-* Fields can be accessed by a name, but are named internally as ``(field_type,
-  field_name)``.  See :ref:`fields`.
-* Mesh fields that exist on-disk in an output file can be read in using whatever
+* **Full field names have two parts now**
+  Fields can be accessed by a single name, but they are named internally as 
+  ``(field_type, field_name)`` for more explicit designation which can address 
+  particles, deposited fluid quantities, and more.  See :ref:`fields`.
+* **Code-specific field names can be accessed by the name defined by the 
+  external code**
+  Mesh fields that exist on-disk in an output file can be read in using whatever
   name is used by the output file.  On-disk fields are always returned in code
   units.  The full field name will be will be ``(code_name, field_name)``. See
-  :ref:`fields`.
-* Particle fields on-disk will also be in code units, and will be named
+  :ref:`field-list`.
+* **Particle fields are now more obviously different than mesh fields**
+  Particle fields on-disk will also be in code units, and will be named
   ``(particle_type, field_name)``.  If there is only one particle type in the
   output file, all particles will use ``io`` as the particle type. See 
   :ref:`fields`.
-* The objects we used to refer to as "parameter files" we now refer to as a
-  dataset.  Instead of ``pf``, we now suggest you use ``ds`` to refer to an
+* **Change** ``pf`` **to** ``ds``
+  The objects we used to refer to as "parameter files" we now refer to as 
+  datasets.  Instead of ``pf``, we now suggest you use ``ds`` to refer to an
   object returned by ``yt.load``.
-* You can now create data objects without referring to hierarchy: instead of
-  ``pf.h.all_data()``, you can now say ``ds.all_data()``.
-* The hierarchy is still there, but it is now called the index: ``ds.index``.
-* Command line arguments are only parsed when yt is imported using ``from
+* **Remove any references to** ``pf.h`` **with** ``ds``
+  You can now create data objects without referring to the hierarchy. Instead 
+  of ``pf.h.all_data()``, you can now say ``ds.all_data()``.  The hierarchy is 
+  still there, but it is now called the index: ``ds.index``.
+* **Use** ``yt.enable_parallelism()`` **to make a script parallel-compatible**
+  Command line arguments are only parsed when yt is imported using ``from
   yt.mods import *``. Since command line arguments are not parsed when using
   ``import yt``, it is no longer necessary to specify ``--parallel`` at the
   command line when running a parallel computation. Use
   ``yt.enable_parallelism()`` in your script instead.  See
   :ref:`parallel-computation` for more details.
-* Derived quantities have been reworked.  You can now do
+* **Change your derived quantities to the new syntax**
+  Derived quantities have been reworked.  You can now do
   ``dd.quantities.total_mass()`` instead of ``dd.quantities['TotalMass']()``.
-* The ``grids`` attribute of data objects no longer exists.  To get this
+  See :ref:`derived-quantities`.
+* **Change your method of accessing the** ``grids`` **attribute**
+  The ``grids`` attribute of data objects no longer exists.  To get this
   information, you have to use spatial chunking and then access them.  See
   :ref:`here <grid-chunking>` for an example.  For datasets that use grid
   hierarchies, you can also access the grids for the entire dataset via
@@ -312,3 +344,10 @@ Halo Catalogs
 
 The ``Halo Profiler`` infrastructure has been fundamentally rewritten and now
 exists using the ``Halo Catalog`` framework.  See :ref:`halo-analysis`.
+
+Analysis Modules
+^^^^^^^^^^^^^^^^
+
+While we're trying to port over all of the old analysis modules, we have not
+gotten all of them working in 3.0 yet.  The docs pages for those modules 
+not-yet-functioning are clearly marked.  

@@ -68,15 +68,17 @@ resilient) tracking of substructure. The code is prepackaged with yt,
 but also `separately available <http://code.google.com/p/rockstar>`_. The lead 
 developer is Peter Behroozi, and the methods are described in `Behroozi
 et al. 2011 <http://rockstar.googlecode.com/files/rockstar_ap101911.pdf>`_. 
+In order to run the Rockstar halo finder in yt, make sure you've 
+:ref:`installed it so that it can integrate with yt <rockstar-installation>`.
 
-.. note:: At the moment, Rockstar does not support multiple particle masses, 
-  instead using a fixed particle mass. This will not affect most dark matter 
-  simulations, but does make it less useful for finding halos from the stellar
-  mass. In simulations where the highest-resolution particles all have the 
-  same mass (ie: zoom-in grid based simulations), one can set up a particle
-  filter to select the lowest mass particles and perform the halo finding
-  only on those.  See the this cookbook recipe for an example: 
-  :ref:`cookbook-rockstar-nested-grid`.
+At the moment, Rockstar does not support multiple particle masses, 
+instead using a fixed particle mass. This will not affect most dark matter 
+simulations, but does make it less useful for finding halos from the stellar
+mass. In simulations where the highest-resolution particles all have the 
+same mass (ie: zoom-in grid based simulations), one can set up a particle
+filter to select the lowest mass particles and perform the halo finding
+only on those.  See the this cookbook recipe for an example: 
+:ref:`cookbook-rockstar-nested-grid`.
 
 To run the Rockstar Halo finding, you must launch python with MPI and 
 parallelization enabled. While Rockstar itself does not require MPI to run, 
@@ -201,11 +203,29 @@ doesn't change it).  It may be worth your time to run the parallel
 halo finder at a few paddings to find the right amount, especially 
 if you're analyzing many similar datasets.
 
+.. _rockstar-installation:
+
 Rockstar Installation
 ---------------------
 
-The Rockstar is slightly patched and modified to run as a library inside of 
-yt. By default it will be built with yt using the ``install_script.sh``.
-If it wasn't installed, please make sure that the installation setting
-``INST_ROCKSTAR=1`` is defined in the ``install_script.sh`` and re-run
-the installation script.
+Because of changes in the Rockstar API over time, yt only currently works with
+a slightly older version of Rockstar.  This version of Rockstar has been 
+slightly patched and modified to run as a library inside of yt. By default it 
+is not installed with yt, but installation is very easy.  The 
+:ref:`install-script` used to install yt from source has a line: 
+``INST_ROCKSTAR=0`` that must be changed to ``INST_ROCKSTAR=1``.  You can
+rerun this installer script over the top of an existing installation, and
+it will only install components missing from the existing installation.  
+You can do this as follows.  Put your freshly modified install_script in
+the parent directory of the yt installation directory (e.g. the parent of 
+``$YT_DEST``, ``yt-x86_64``, ``yt-i386``, etc.), and rerun the installer:
+
+.. code-block:: bash
+
+    cd $YT_DEST
+    cd ..
+    vi install_script.sh  // or your favorite editor to change INST_ROCKSTAR=1
+    bash < install_script.sh
+
+This will download Rockstar and install it as a library in yt.  You should now
+be able to use Rockstar and yt together.

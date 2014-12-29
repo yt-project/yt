@@ -28,9 +28,13 @@ from yt.utilities.definitions import \
     mpc_conversion, sec_conversion
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
+from yt.geometry.geometry_handler import \
+    YTDataChunk
 
 from .fields import AthenaFieldInfo
 from yt.units.yt_array import YTQuantity
+from yt.utilities.decompose import \
+    decompose_array, get_psize
 
 def _get_convert(fname):
     def _conv(data):
@@ -39,7 +43,8 @@ def _get_convert(fname):
 
 class AthenaGrid(AMRGridPatch):
     _id_offset = 0
-    def __init__(self, id, index, level, start, dimensions):
+    def __init__(self, id, index, level, start, dimensions,
+                 file_offset, read_dims):
         df = index.dataset.filename[4:-4]
         gname = index.grid_filenames[id]
         AMRGridPatch.__init__(self, id, filename = gname,
@@ -51,6 +56,8 @@ class AthenaGrid(AMRGridPatch):
         self.start_index = start.copy()
         self.stop_index = self.start_index + dimensions
         self.ActiveDimensions = dimensions.copy()
+        self.file_offset = file_offset
+        self.read_dims = read_dims
 
     def _setup_dx(self):
         # So first we figure out what the index is.  We don't assume
@@ -172,7 +179,7 @@ class AthenaHierarchy(GridIndex):
         self._field_map = field_map
 
     def _count_grids(self):
-        self.num_grids = self.dataset.nvtk
+        self.num_grids = self.dataset.nvtk*self.dataset.nprocs
 
     def _parse_index(self):
         f = open(self.index_filename,'rb')
@@ -220,7 +227,6 @@ class AthenaHierarchy(GridIndex):
         gridlistread = [fn for fn in gridlistread if os.path.basename(fn).count(".") == ndots]
         self.num_grids = len(gridlistread)
         dxs=[]
-        self.grids = np.empty(self.num_grids, dtype='object')
         levels = np.zeros(self.num_grids, dtype='int32')
         glis = np.empty((self.num_grids,3), dtype='float64')
         gdds = np.empty((self.num_grids,3), dtype='float64')
@@ -292,24 +298,66 @@ class AthenaHierarchy(GridIndex):
             self.dataset.domain_dimensions[2] = np.int(1)
         if self.dataset.dimensionality == 1 :
             self.dataset.domain_dimensions[1] = np.int(1)
-        for i in range(levels.shape[0]):
-            self.grids[i] = self.grid(i,self,levels[i],
-                                      glis[i],
-                                      gdims[i])
-            dx = (self.dataset.domain_right_edge-
-                  self.dataset.domain_left_edge)/self.dataset.domain_dimensions
-            dx = dx/self.dataset.refine_by**(levels[i])
-            dxs.append(dx)
 
-        dx = self.ds.arr(dxs, "code_length")
         dle = self.dataset.domain_left_edge
         dre = self.dataset.domain_right_edge
-        self.grid_left_edge = self.ds.arr(np.round(dle + dx*glis, decimals=12), "code_length")
-        self.grid_dimensions = gdims.astype("int32")
-        self.grid_right_edge = self.ds.arr(np.round(self.grid_left_edge +
-                                                    dx*self.grid_dimensions,
-                                                    decimals=12),
-                                            "code_length")
+        dx_root = (self.dataset.domain_right_edge-
+                   self.dataset.domain_left_edge)/self.dataset.domain_dimensions
+
+        if self.dataset.nprocs > 1:
+            gle_all = []
+            gre_all = []
+            shapes_all = []
+            levels_all = []
+            new_gridfilenames = []
+            file_offsets = []
+            read_dims = []
+            for i in range(levels.shape[0]):
+                dx = dx_root/self.dataset.refine_by**(levels[i])
+                gle_orig = self.ds.arr(np.round(dle + dx*glis[i], decimals=12),
+                                       "code_length")
+                gre_orig = self.ds.arr(np.round(gle_orig + dx*gdims[i], decimals=12),
+                                       "code_length")
+                bbox = np.array([[le,re] for le, re in zip(gle_orig, gre_orig)])
+                psize = get_psize(self.ds.domain_dimensions, self.ds.nprocs)
+                gle, gre, shapes, slices = decompose_array(gdims[i], psize, bbox)
+                gle_all += gle
+                gre_all += gre
+                shapes_all += shapes
+                levels_all += [levels[i]]*self.dataset.nprocs
+                new_gridfilenames += [self.grid_filenames[i]]*self.dataset.nprocs
+                file_offsets += [[slc[0].start, slc[1].start, slc[2].start] for slc in slices]
+                read_dims += [np.array([gdims[i][0], gdims[i][1], shape[2]], dtype="int") for shape in shapes]
+            self.num_grids *= self.dataset.nprocs
+            self.grids = np.empty(self.num_grids, dtype='object')
+            self.grid_filenames = new_gridfilenames
+            self.grid_left_edge = self.ds.arr(gle_all, "code_length")
+            self.grid_right_edge = self.ds.arr(gre_all, "code_length")
+            self.grid_dimensions = np.array([shape for shape in shapes_all],
+                                            dtype="int32")
+            gdds = (self.grid_right_edge-self.grid_left_edge)/self.grid_dimensions
+            glis = np.round((self.grid_left_edge - self.ds.domain_left_edge)/gdds).astype('int')
+            for i in range(self.num_grids):
+                self.grids[i] = self.grid(i,self,levels_all[i],
+                                          glis[i], shapes_all[i],
+                                          file_offsets[i], read_dims[i])
+        else:
+            self.grids = np.empty(self.num_grids, dtype='object')
+            for i in range(levels.shape[0]):
+                self.grids[i] = self.grid(i,self,levels[i],
+                                          glis[i], gdims[i], [0]*3,
+                                          gdims[i])
+                dx = dx_root/self.dataset.refine_by**(levels[i])
+                dxs.append(dx)
+
+            dx = self.ds.arr(dxs, "code_length")
+            self.grid_left_edge = self.ds.arr(np.round(dle + dx*glis, decimals=12),
+                                              "code_length")
+            self.grid_dimensions = gdims.astype("int32")
+            self.grid_right_edge = self.ds.arr(np.round(self.grid_left_edge +
+                                                        dx*self.grid_dimensions,
+                                                        decimals=12),
+                                               "code_length")
         
         if self.dataset.dimensionality <= 2:
             self.grid_right_edge[:,2] = dre[2]
@@ -347,6 +395,14 @@ class AthenaHierarchy(GridIndex):
         mask[grid_ind] = True
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
 
+    def _chunk_io(self, dobj, cache = True, local_only = False):
+        gfiles = defaultdict(list)
+        gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+        for subset in gobjs:
+            yield YTDataChunk(dobj, "io", [subset],
+                              self._count_selection(dobj, [subset]),
+                              cache = cache)
+
 class AthenaDataset(Dataset):
     _index_class = AthenaHierarchy
     _field_info_class = AthenaFieldInfo
@@ -354,11 +410,12 @@ class AthenaDataset(Dataset):
 
     def __init__(self, filename, dataset_type='athena',
                  storage_filename=None, parameters=None,
-                 units_override=None):
+                 units_override=None, nprocs=1):
         self.fluid_types += ("athena",)
+        self.nprocs = nprocs
         if parameters is None:
             parameters = {}
-        self.specified_parameters = parameters
+        self.specified_parameters = parameters.copy()
         if units_override is None:
             units_override = {}
         # This is for backwards-compatibility
@@ -435,6 +492,8 @@ class AthenaDataset(Dataset):
             dimensionality = 1
         if dimensionality <= 2 : self.domain_dimensions[2] = np.int32(1)
         if dimensionality == 1 : self.domain_dimensions[1] = np.int32(1)
+        if dimensionality != 3 and self.nprocs > 1:
+            raise RuntimeError("Virtual grids are only supported for 3D outputs!")
         self.dimensionality = dimensionality
         self.current_time = grid["time"]
         self.unique_identifier = self.parameter_filename.__hash__()

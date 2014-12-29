@@ -13,7 +13,8 @@ Generating PPV FITS cubes
 import numpy as np
 from yt.utilities.on_demand_imports import _astropy
 from yt.utilities.orientation import Orientation
-from yt.utilities.fits_image import FITSImageBuffer, sanitize_fits_unit
+from yt.utilities.fits_image import FITSImageBuffer, sanitize_fits_unit, \
+    create_sky_wcs
 from yt.visualization.volume_rendering.camera import off_axis_projection
 from yt.funcs import get_pbar
 from yt.utilities.physical_constants import clight, mh
@@ -26,8 +27,11 @@ import re
 import ppv_utils
 from yt.funcs import is_root
 
-def create_vlos(normal):
-    if isinstance(normal, basestring):
+def create_vlos(normal, no_shifting):
+    if no_shifting:
+        def _v_los(field, data):
+            return data.ds.arr(data["zeros"], "cm/s")
+    elif isinstance(normal, basestring):
         def _v_los(field, data): 
             return -data["velocity_%s" % normal]
     else:
@@ -48,7 +52,7 @@ fits_info = {"velocity":("m/s","VELOCITY","v"),
 class PPVCube(object):
     def __init__(self, ds, normal, field, center="c", width=(1.0,"unitary"),
                  dims=(100,100,100), velocity_bounds=None, thermal_broad=False,
-                 atomic_weight=56., method="integrate"):
+                 atomic_weight=56., method="integrate", no_shifting=False):
         r""" Initialize a PPVCube object.
 
         Parameters
@@ -88,6 +92,9 @@ class PPVCube(object):
             Set the projection method to be used.
             "integrate" : line of sight integration over the line element.
             "sum" : straight summation over the line of sight.
+        no_shifting : boolean, optional
+            If set, no shifting due to velocity will occur but only thermal broadening.
+            Should not be set when *thermal_broad* is False, otherwise nothing happens!
 
         Examples
         --------
@@ -102,6 +109,10 @@ class PPVCube(object):
         self.width = width
         self.particle_mass = atomic_weight*mh
         self.thermal_broad = thermal_broad
+        self.no_shifting = no_shifting
+
+        if no_shifting and not thermal_broad:
+            raise RuntimeError("no_shifting cannot be True when thermal_broad is False!")
 
         self.center = ds.coordinates.sanitize_center(center, normal)[0]
 
@@ -135,7 +146,7 @@ class PPVCube(object):
 
         self.current_v = 0.0
 
-        _vlos = create_vlos(normal)
+        _vlos = create_vlos(normal, self.no_shifting)
         self.ds.add_field(("gas","v_los"), function=_vlos, units="cm/s")
 
         _intensity = self.create_intensity()
@@ -146,7 +157,6 @@ class PPVCube(object):
         elif method == "sum":
             self.proj_units = self.field_units
 
-        self.data = ds.arr(np.zeros((self.nx,self.ny,self.nv)), self.proj_units)
         storage = {}
         pbar = get_pbar("Generating cube.", self.nv)
         for sto, i in parallel_objects(xrange(self.nv), storage=storage):
@@ -177,6 +187,9 @@ class PPVCube(object):
             self.width = width
         else:
             self.width = ds.quan(self.width, "code_length")
+
+        self.ds.field_info.pop(("gas","intensity"))
+        self.ds.field_info.pop(("gas","v_los"))
 
     def create_intensity(self):
         def _intensity(field, data):
@@ -235,59 +248,42 @@ class PPVCube(object):
             Whether or not to clobber an existing file with the same name.
         length_unit : string
             The units to convert the coordinates to in the file.
-        sky_scale : tuple or YTQuantity
+        sky_scale : tuple, optional
             Conversion between an angle unit and a length unit, if sky
-            coordinates are desired.
-            Examples: (1.0, "arcsec/kpc"), YTQuantity(0.001, "deg/kpc")
+            coordinates are desired, e.g. (1.0, "arcsec/kpc")
         sky_center : tuple, optional
-            The (RA, Dec) coordinate in degrees of the central pixel if
-            *sky_scale* has been specified.
+            The (RA, Dec) coordinate in degrees of the central pixel. Must
+            be specified with *sky_scale*.
 
         Examples
         --------
         >>> cube.write_fits("my_cube.fits", clobber=False, sky_scale=(1.0,"arcsec/kpc"))
         """
-        if sky_scale is None:
-            center = (0.0,0.0)
-            types = ["LINEAR","LINEAR"]
-        else:
-            if iterable(sky_scale):
-                sky_scale = self.ds.quan(sky_scale[0], sky_scale[1])
-            if sky_center is None:
-                center = (30.,45.)
-            else:
-                center = sky_center
-            types = ["RA---TAN","DEC--TAN"]
-
         vunit = fits_info[self.axis_type][0]
         vtype = fits_info[self.axis_type][1]
 
         v_center = 0.5*(self.vbins[0]+self.vbins[-1]).in_units(vunit).value
 
-        if sky_scale:
-            dx = (self.width*sky_scale).in_units("deg").v/self.nx
-            units = "deg"
+        if length_unit is None:
+            units = str(self.ds.get_smallest_appropriate_unit(self.width))
         else:
-            if length_unit is None:
-                units = str(self.ds.get_smallest_appropriate_unit(self.width))
-            else:
-                units = length_unit
+            units = length_unit
         units = sanitize_fits_unit(units)
         dx = self.width.in_units(units).v/self.nx
-        dy = dx
+        dy = self.width.in_units(units).v/self.ny
         dv = self.dv.in_units(vunit).v
-
-        if sky_scale:
-            dx *= -1.
 
         w = _astropy.pywcs.WCS(naxis=3)
         w.wcs.crpix = [0.5*(self.nx+1), 0.5*(self.ny+1), 0.5*(self.nv+1)]
         w.wcs.cdelt = [dx,dy,dv]
-        w.wcs.crval = [center[0],center[1],v_center]
+        w.wcs.crval = [0.0,0.0,v_center]
         w.wcs.cunit = [units,units,vunit]
-        w.wcs.ctype = [types[0],types[1],vtype]
+        w.wcs.ctype = ["LINEAR","LINEAR",vtype]
 
-        fib = FITSImageBuffer(self.data.transpose(), fields=self.field, wcs=w)
+        if sky_scale is not None and sky_center is not None:
+            w = create_sky_wcs(w, sky_center, sky_scale)
+
+        fib = FITSImageBuffer(self.data.transpose(2,0,1), fields=self.field, wcs=w)
         fib[0].header["bunit"] = re.sub('()', '', str(self.proj_units))
         fib[0].header["btype"] = self.field
 

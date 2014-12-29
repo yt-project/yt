@@ -35,6 +35,15 @@ from yt.funcs import \
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 
+def ensure_callbacks(f):
+    @wraps(f)
+    def newfunc(*args, **kwargs):
+        try:
+            args[0].run_callbacks()
+        except NotImplementedError:
+            pass
+        return f(*args, **kwargs)
+    return newfunc
 
 def invalidate_data(f):
     @wraps(f)
@@ -416,16 +425,17 @@ class ImagePlotContainer(object):
     def __getitem__(self, item):
         return self.plots[item]
 
-    def run_callbacks(self, f):
-        keys = self.frb.keys()
-        for name, (args, kwargs) in self._callbacks:
-            cbw = CallbackWrapper(self, self.plots[f], self.frb, f)
-            CallbackMaker = callback_registry[name]
-            callback = CallbackMaker(*args[1:], **kwargs)
-            callback(cbw)
-        for key in self.frb.keys():
-            if key not in keys:
-                del self.frb[key]
+    def run_callbacks(self):
+        for f in self.fields:
+            keys = self.frb.keys()
+            for name, (args, kwargs) in self._callbacks:
+                cbw = CallbackWrapper(self, self.plots[f], self.frb, f)
+                CallbackMaker = callback_registry[name]
+                callback = CallbackMaker(*args[1:], **kwargs)
+                callback(cbw)
+            for key in self.frb.keys():
+                if key not in keys:
+                    del self.frb[key]
 
     def _set_font_properties(self):
         for f in self.plots:
@@ -434,7 +444,7 @@ class ImagePlotContainer(object):
             labels = ax.xaxis.get_ticklabels() + ax.yaxis.get_ticklabels()
             labels += cbax.yaxis.get_ticklabels()
             labels += [ax.title, ax.xaxis.label, ax.yaxis.label,
-                       cbax.yaxis.label]
+                       cbax.yaxis.label, cbax.yaxis.get_offset_text()]
             for label in labels:
                 label.set_fontproperties(self._font_properties)
                 if self._font_color is not None:
@@ -524,6 +534,7 @@ class ImagePlotContainer(object):
         self.figure_size = float(size)
         return self
 
+    @ensure_callbacks
     def save(self, name=None, mpl_kwargs=None):
         """saves the plot to disk.
 
@@ -629,6 +640,7 @@ class ImagePlotContainer(object):
         except YTNotInsideNotebook:
             return self.save(name=name, mpl_kwargs=mpl_kwargs)
 
+    @ensure_callbacks
     def _repr_html_(self):
         """Return an html representation of the plot object. Will display as a
         png for each WindowPlotMPL instance in self.plots"""

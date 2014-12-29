@@ -25,7 +25,7 @@ from yt.config import ytcfg
 def add_coloring_to_emit_ansi(fn):
     # add methods we need to the class
     def new(*args):
-        levelno = args[1].levelno
+        levelno = args[0].levelno
         if(levelno >= 50):
             color = '\x1b[31m'  # red
         elif(levelno >= 40):
@@ -38,8 +38,8 @@ def add_coloring_to_emit_ansi(fn):
             color = '\x1b[35m'  # pink
         else:
             color = '\x1b[0m'  # normal
-        ln = color + args[1].levelname + '\x1b[0m'
-        args[1].levelname = ln
+        ln = color + args[0].levelname + '\x1b[0m'
+        args[0].levelname = ln
         return fn(*args)
     return new
 
@@ -52,39 +52,33 @@ if ytcfg.getboolean("yt", "stdoutStreamLogging"):
 else:
     stream = sys.stderr
 
-logging.basicConfig(
-    format=ufstring,
-    level=level,
-    stream=stream,
-)
-
-rootLogger = logging.getLogger()
 ytLogger = logging.getLogger("yt")
 
+yt_sh = logging.StreamHandler(stream=stream)
+# create formatter and add it to the handlers
+formatter = logging.Formatter(ufstring)
+yt_sh.setFormatter(formatter)
+# add the handler to the logger
+ytLogger.addHandler(yt_sh)
+ytLogger.setLevel(level)
+ytLogger.propagate = False
+ 
 def disable_stream_logging():
-    # We just remove the root logger's handlers
-    for handler in rootLogger.handlers:
-        if isinstance(handler, logging.StreamHandler):
-            rootLogger.removeHandler(handler)
+    ytLogger.removeHandler(ytLogger.handlers[0])
     h = logging.NullHandler()
     ytLogger.addHandler(h)
 
-original_emitter = logging.StreamHandler.emit
-
+original_emitter = yt_sh.emit
 
 def colorize_logging():
     f = logging.Formatter(cfstring)
-    if len(rootLogger.handlers) > 0:
-        rootLogger.handlers[0].setFormatter(f)
-    logging.StreamHandler.emit = add_coloring_to_emit_ansi(
-        logging.StreamHandler.emit)
-
+    ytLogger.handlers[0].setFormatter(f)
+    yt_sh.emit = add_coloring_to_emit_ansi(yt_sh.emit)
 
 def uncolorize_logging():
     f = logging.Formatter(ufstring)
-    if len(rootLogger.handlers) > 0:
-        rootLogger.handlers[0].setFormatter(f)
-    logging.StreamHandler.emit = original_emitter
+    ytLogger.handlers[0].setFormatter(f)
+    yt_sh.emit = original_emitter
 
 if ytcfg.getboolean("yt", "coloredlogs"):
     colorize_logging()

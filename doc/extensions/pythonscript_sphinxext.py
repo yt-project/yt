@@ -1,8 +1,13 @@
+import tempfile
+import os
+import glob
+import shutil
+import subprocess
+import uuid
 from sphinx.util.compat import Directive
-from subprocess import Popen,PIPE
-from docutils.parsers.rst import directives
 from docutils import nodes
-import os, glob, base64
+from notebook_sphinxext import make_image_dir
+
 
 class PythonScriptDirective(Directive):
     """Execute an inline python script and display images.
@@ -17,6 +22,15 @@ class PythonScriptDirective(Directive):
     has_content = True
 
     def run(self):
+        cwd = os.getcwd()
+        tmpdir = tempfile.mkdtemp()
+        os.chdir(tmpdir)
+
+        rst_file = self.state_machine.document.attributes['source']
+        rst_dir = os.path.abspath(os.path.dirname(rst_file))
+
+        image_dir, image_rel_dir = make_image_dir(setup, rst_dir)
+
         # Construct script from cell content
         content = "\n".join(self.content)
         with open("temp.py", "w") as f:
@@ -27,27 +41,26 @@ class PythonScriptDirective(Directive):
         print content
         print ""
 
-        codeproc = Popen(['python', 'temp.py'], stdout=PIPE)
-        out = codeproc.stdout.read()
+        subprocess.call(['python', 'temp.py'])
 
-        images = sorted(glob.glob("*.png"))
-        fns = []
         text = ''
-        for im in images:
-            text += get_image_tag(im)
-            os.remove(im)
-            
-        os.remove("temp.py")
+        for im in sorted(glob.glob("*.png")):
+            text += get_image_tag(im, image_dir, image_rel_dir)
 
         code = content
 
-        literal = nodes.literal_block(code,code)
+        literal = nodes.literal_block(code, code)
         literal['language'] = 'python'
 
         attributes = {'format': 'html'}
         img_node = nodes.raw('', text, **attributes)
-        
+
+        # clean up
+        os.chdir(cwd)
+        shutil.rmtree(tmpdir, True)
+
         return [literal, img_node]
+
 
 def setup(app):
     app.add_directive('python-script', PythonScriptDirective)
@@ -55,7 +68,17 @@ def setup(app):
     setup.config = app.config
     setup.confdir = app.confdir
 
-def get_image_tag(filename):
-    with open(filename, "rb") as image_file:
-        encoded_string = base64.b64encode(image_file.read())
-        return '<img src="data:image/png;base64,%s" width="600"><br>' % encoded_string
+    retdict = dict(
+        version='0.1',
+        parallel_read_safe=True,
+        parallel_write_safe=True
+    )
+
+    return retdict
+
+
+def get_image_tag(filename, image_dir, image_rel_dir):
+    my_uuid = uuid.uuid4().hex
+    shutil.move(filename, image_dir + os.path.sep + my_uuid + filename)
+    relative_filename = image_rel_dir + os.path.sep + my_uuid + filename
+    return '<img src="%s" width="600"><br>' % relative_filename

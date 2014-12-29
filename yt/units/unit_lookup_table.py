@@ -94,6 +94,7 @@ default_unit_symbol_lut = {
     "arcmin": (np.pi/10800., dimensions.angle), # arcminutes
     "arcsec": (np.pi/648000., dimensions.angle), # arcseconds
     "mas": (np.pi/648000000., dimensions.angle), # millarcseconds
+    "hourangle": (np.pi/12., dimensions.angle), # hour angle
     "steradian": (1.0, dimensions.solid_angle),
 
     # misc
@@ -138,6 +139,7 @@ latex_symbol_lut = {
     "code_temperature" : "\\rm{code}\/\\rm{temperature}",
     "code_metallicity" : "\\rm{code}\/\\rm{metallicity}",
     "code_velocity" : "\\rm{code}\/\\rm{velocity}",
+    "code_magnetic" : "\\rm{code}\/\\rm{magnetic}",
     "Msun" : "\\rm{M}_\\odot",
     "msun" : "\\rm{M}_\\odot",
     "Rsun" : "\\rm{R}_\\odot",

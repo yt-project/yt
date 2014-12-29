@@ -1,7 +1,5 @@
 """
-Orion-specific fields
-
-
+BoxLib code fields
 
 """
 
@@ -13,12 +11,11 @@ Orion-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
 import string
 import re
 
 from yt.utilities.physical_constants import \
-    mh, boltzmann_constant_cgs, amu_cgs
+    boltzmann_constant_cgs, amu_cgs
 from yt.fields.field_info_container import \
     FieldInfoContainer
 
@@ -147,27 +144,27 @@ class CastroFieldInfo(FieldInfoContainer):
         ("rho_e", ("erg/cm**3", [], r"\rho e")),
         ("Temp", ("K", ["temperature"], r"T")),
         ("grav_x", ("cm/s**2", [],
-                    r"\left(\mathbf{g} \cdot \mathbf{e}\right)_x")),
+                    r"\mathbf{g} \cdot \mathbf{e}_x")),
         ("grav_y", ("cm/s**2", [],
-                    r"\left(\mathbf{g} \cdot \mathbf{e}\right)_y")),
+                    r"\mathbf{g} \cdot \mathbf{e}_y")),
         ("grav_z", ("cm/s**2", [],
-                    r"\left(\mathbf{g} \cdot \mathbf{e}\right)_z")),
+                    r"\mathbf{g} \cdot \mathbf{e}_z")),
         ("pressure", ("dyne/cm**2", [], r"p")),
-        ("kineng", ("erg/cm**3", [], r"\frac{1}{2}\rho|\mathbf{U}|**2")),
+        ("kineng", ("erg/cm**3", ["kinetic_energy"], r"\frac{1}{2}\rho|\mathbf{U}|^2")),
         ("soundspeed", ("cm/s", ["sound_speed"], "Sound Speed")),
         ("Machnumber", ("", ["mach_number"], "Mach Number")),
         ("entropy", ("erg/(g*K)", ["entropy"], r"s")),
         ("magvort", ("1/s", ["vorticity_magnitude"],
                      r"|\nabla \times \mathbf{U}|")),
-        ("divu", ("1/s", [], r"\nabla \cdot \mathbf{U}")),
+        ("divu", ("1/s", ["velocity_divergence"], r"\nabla \cdot \mathbf{U}")),
         ("eint_E", ("erg/g", [], r"e(E,U)")),
         ("eint_e", ("erg/g", [], r"e")),
         ("magvel", ("cm/s", ["velocity_magnitude"], r"|\mathbf{U}|")),
-        ("radvel", ("cm/s", [],
-                    r"\left(\mathbf{U} \cdot \mathbf{e}\right)_r")),
-        ("magmom", ("g*cm/s", ["momentum_magnitude"], r"|\rho \mathbf{U}|")),
+        ("radvel", ("cm/s", ["radial_velocity"],
+                    r"\mathbf{U} \cdot \mathbf{e}_r")),
+        ("magmom", ("g*cm/s", ["momentum_magnitude"], r"\rho |\mathbf{U}|")),
         ("maggrav", ("cm/s**2", [], r"|\mathbf{g}|")),
-        ("phiGrav", ("erg/g", [], r"|\Phi|")),
+        ("phiGrav", ("erg/g", [], r"\Phi")),
     )
 
     def setup_fluid_fields(self):
@@ -201,30 +198,31 @@ class MaestroFieldInfo(FieldInfoContainer):
         ("z_vel", ("cm/s", ["velocity_z"], r"\tilde{w}")),
         ("magvel", ("cm/s", ["velocity_magnitude"],
                     r"|\tilde{\mathbf{U}} + w_0 \mathbf{e}_r|")),
-        ("radial_velocity", ("cm/s", [], r"U\cdot e_r")),
+        ("radial_velocity", ("cm/s", ["radial_velocity"], r"\mathbf{U}\cdot \mathbf{e}_r")),
+        ("circum_velocity", ("cm/s", ["tangential_velocity"], r"U - U\cdot e_r")),
         ("tfromp", ("K", [], "T(\\rho,p,X)")),
         ("tfromh", ("K", [], "T(\\rho,h,X)")),
-        ("Machnumber", ("", ["mach_number"], "Mach Number")),
+        ("Machnumber", ("", ["mach_number"], "M")),
         ("S", ("1/s", [], None)),
-        ("ad_excess", ("", [], "Adiabatic Excess")),
+        ("ad_excess", ("", [], r"\nabla - \nabla_\mathrm{ad}")),
         ("deltaT", ("", [], "[T(\\rho,h,X) - T(\\rho,p,X)]/T(\\rho,h,X)")),
         ("deltagamma", ("", [], "\Gamma_1 - \overline{\Gamma_1}")),
         ("deltap", ("", [], "[p(\\rho,h,X) - p_0] / p_0")),
-        ("divw0", ("1/s", [], "\nabla \cdot \mathbf{w}_0")),
+        ("divw0", ("1/s", [], r"\nabla \cdot \mathbf{w}_0")),
         # Specific entropy
         ("entropy", ("erg/(g*K)", ["entropy"], "s")),
         ("entropypert", ("", [], "[s - \overline{s}] / \overline{s}")),
-        ("enucdot", ("erg/(g*s)", [], "\dot{\epsilon_{nuc}}")),
+        ("enucdot", ("erg/(g*s)", [], "\dot{\epsilon}_{nuc}")),
         ("Hext", ("erg/(g*s)", [], "H_{ext}")),
         # Perturbational pressure grad
-        ("gpi_x", ("dyne/cm**3", [], "\left(\nabla\pi\right)_x")),
-        ("gpi_y", ("dyne/cm**3", [], "\left(\nabla\pi\right)_y")),
-        ("gpi_z", ("dyne/cm**3", [], "\left(\nabla\pi\right)_z")),
+        ("gpi_x", ("dyne/cm**3", [], r"\left(\nabla\pi\right)_x")),
+        ("gpi_y", ("dyne/cm**3", [], r"\left(\nabla\pi\right)_y")),
+        ("gpi_z", ("dyne/cm**3", [], r"\left(\nabla\pi\right)_z")),
         ("h", ("erg/g", [], "h")),
         ("h0", ("erg/g", [], "h_0")),
         # Momentum cannot be computed because we need to include base and
         # full state.
-        ("momentum", ("g*cm/s", ["momentum_magnitude"], None)),
+        ("momentum", ("g*cm/s", ["momentum_magnitude"], r"\rho |\mathbf{U}|")),
         ("p0", ("erg/cm**3", [], "p_0")),
         ("p0pluspi", ("erg/cm**3", [], "p_0 + \pi")),
         ("pi", ("erg/cm**3", [], "\pi")),
@@ -240,7 +238,7 @@ class MaestroFieldInfo(FieldInfoContainer):
         ("sponge", ("", [], None)),
         ("tpert", ("K", [], "T - \overline{T}")),
         # Again, base state -- so we can't compute ourselves.
-        ("vort", ("1/s", ["vorticity_magnitude"], "|\nabla\times\tilde{U}|")),
+        ("vort", ("1/s", ["vorticity_magnitude"], r"|\nabla\times\tilde{U}|")),
         # Base state
         ("w0_x", ("cm/s", [], "(w_0)_x")),
         ("w0_y", ("cm/s", [], "(w_0)_y")),

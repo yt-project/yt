@@ -283,19 +283,19 @@ Halo Catalogs
 .. autosummary::
    :toctree: generated/
 
-   ~yt.frontends.halo_catalogs.halo_catalog.data_structures.HaloCatalogHDF5File
-   ~yt.frontends.halo_catalogs.halo_catalog.data_structures.HaloCatalogDataset
-   ~yt.frontends.halo_catalogs.halo_catalog.fields.HaloCatalogFieldInfo
-   ~yt.frontends.halo_catalogs.halo_catalog.io.IOHandlerHaloCatalogHDF5
-   ~yt.frontends.halo_catalogs.owls_subfind.data_structures.OWLSSubfindParticleIndex
-   ~yt.frontends.halo_catalogs.owls_subfind.data_structures.OWLSSubfindHDF5File
-   ~yt.frontends.halo_catalogs.owls_subfind.data_structures.OWLSSubfindDataset
-   ~yt.frontends.halo_catalogs.owls_subfind.fields.OWLSSubfindFieldInfo
-   ~yt.frontends.halo_catalogs.owls_subfind.io.IOHandlerOWLSSubfindHDF5
-   ~yt.frontends.halo_catalogs.rockstar.data_structures.RockstarBinaryFile
-   ~yt.frontends.halo_catalogs.rockstar.data_structures.RockstarDataset
-   ~yt.frontends.halo_catalogs.rockstar.fields.RockstarFieldInfo
-   ~yt.frontends.halo_catalogs.rockstar.io.IOHandlerRockstarBinary
+   ~yt.frontends.halo_catalog.data_structures.HaloCatalogHDF5File
+   ~yt.frontends.halo_catalog.data_structures.HaloCatalogDataset
+   ~yt.frontends.halo_catalog.fields.HaloCatalogFieldInfo
+   ~yt.frontends.halo_catalog.io.IOHandlerHaloCatalogHDF5
+   ~yt.frontends.owls_subfind.data_structures.OWLSSubfindParticleIndex
+   ~yt.frontends.owls_subfind.data_structures.OWLSSubfindHDF5File
+   ~yt.frontends.owls_subfind.data_structures.OWLSSubfindDataset
+   ~yt.frontends.owls_subfind.fields.OWLSSubfindFieldInfo
+   ~yt.frontends.owls_subfind.io.IOHandlerOWLSSubfindHDF5
+   ~yt.frontends.rockstar.data_structures.RockstarBinaryFile
+   ~yt.frontends.rockstar.data_structures.RockstarDataset
+   ~yt.frontends.rockstar.fields.RockstarFieldInfo
+   ~yt.frontends.rockstar.io.IOHandlerRockstarBinary
 
 MOAB
 ^^^^
@@ -331,21 +331,21 @@ SPH and Particle Codes
 .. autosummary::
    :toctree: generated/
 
-   ~yt.frontends.sph.data_structures.GadgetBinaryFile
-   ~yt.frontends.sph.data_structures.GadgetHDF5Dataset
-   ~yt.frontends.sph.data_structures.GadgetDataset
-   ~yt.frontends.sph.data_structures.HTTPParticleFile
-   ~yt.frontends.sph.data_structures.HTTPStreamDataset
-   ~yt.frontends.sph.data_structures.OWLSDataset
+   ~yt.frontends.gadget.data_structures.GadgetBinaryFile
+   ~yt.frontends.gadget.data_structures.GadgetHDF5Dataset
+   ~yt.frontends.gadget.data_structures.GadgetDataset
+   ~yt.frontends.http_stream.data_structures.HTTPParticleFile
+   ~yt.frontends.http_stream.data_structures.HTTPStreamDataset
+   ~yt.frontends.owls.data_structures.OWLSDataset
    ~yt.frontends.sph.data_structures.ParticleDataset
-   ~yt.frontends.sph.data_structures.TipsyFile
-   ~yt.frontends.sph.data_structures.TipsyDataset
+   ~yt.frontends.tipsy.data_structures.TipsyFile
+   ~yt.frontends.tipsy.data_structures.TipsyDataset
    ~yt.frontends.sph.fields.SPHFieldInfo
-   ~yt.frontends.sph.io.IOHandlerGadgetBinary
-   ~yt.frontends.sph.io.IOHandlerGadgetHDF5
-   ~yt.frontends.sph.io.IOHandlerHTTPStream
-   ~yt.frontends.sph.io.IOHandlerOWLS
-   ~yt.frontends.sph.io.IOHandlerTipsyBinary
+   ~yt.frontends.gadget.io.IOHandlerGadgetBinary
+   ~yt.frontends.gadget.io.IOHandlerGadgetHDF5
+   ~yt.frontends.http_stream.io.IOHandlerHTTPStream
+   ~yt.frontends.owls.io.IOHandlerOWLS
+   ~yt.frontends.tipsy.io.IOHandlerTipsyBinary
 
 Stream
 ^^^^^^
@@ -478,6 +478,15 @@ Field Types
    ~yt.fields.derived_field.ValidateParameter
    ~yt.fields.derived_field.ValidateProperty
    ~yt.fields.derived_field.ValidateSpatial
+
+Field Functions
+---------------
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.fields.field_info_container.FieldInfoContainer.add_field
+   ~yt.data_objects.static_output.Dataset.add_field
 
 Image Handling
 --------------
@@ -713,6 +722,7 @@ Function List
    ~yt.funcs.rootonly
    ~yt.funcs.time_execution
    ~yt.analysis_modules.level_sets.contour_finder.identify_contours
+   ~yt.utilities.parallel_tools.parallel_analysis_interface.enable_parallelism
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_blocking_call
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_objects
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_passthrough

@@ -30,8 +30,7 @@ from .fixed_resolution import \
     FixedResolutionBuffer, \
     ObliqueFixedResolutionBuffer, \
     OffAxisProjectionFixedResolutionBuffer
-from .plot_modifications import get_smallest_appropriate_unit, \
-    callback_registry
+from .plot_modifications import callback_registry
 from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform, symlog_transform, \
@@ -168,8 +167,8 @@ class PlotWindow(ImagePlotContainer):
 
     Parameters
     ----------
-    data_source : :class:`yt.data_objects.data_containers.YTProjBase` or
-                  :class:`yt.data_objects.data_containers.YTSliceBase`
+
+    data_source : :class:`yt.data_objects.data_containers.YTProjBase` or :class:`yt.data_objects.data_containers.YTSliceBase`
         This is the source to be pixelized, which can be a projection or a
         slice.  (For cutting planes, see
         `yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`.)
@@ -258,7 +257,7 @@ class PlotWindow(ImagePlotContainer):
         else:
             bounds = self.xlim+self.ylim
         if self._frb_generator is ObliqueFixedResolutionBuffer:
-            bounds = np.array(bounds)
+            bounds = np.array([b.in_units('code_length') for b in bounds])
 
         self.frb = self._frb_generator(self.data_source, bounds, self.buff_size,
                                        self.antialias, periodic=self._periodic)
@@ -699,8 +698,8 @@ class PWViewerMPL(PlotWindow):
             xc, yc = self._setup_origin()
 
             if self._axes_unit_names is None:
-                unit = get_smallest_appropriate_unit(
-                    self.xlim[1] - self.xlim[0], self.ds)
+                unit = self.ds.get_smallest_appropriate_unit(
+                    self.xlim[1] - self.xlim[0])
                 (unit_x, unit_y) = (unit, unit)
             else:
                 (unit_x, unit_y) = self._axes_unit_names
@@ -709,8 +708,8 @@ class PWViewerMPL(PlotWindow):
             # This will likely be replaced at some point by the coordinate handler
             # setting plot aspect.
             if self.aspect is None:
-                self.aspect = np.float64((self.ds.quan(1.0, unit_y) /
-                                         self.ds.quan(1.0, unit_x)).in_cgs())
+                self.aspect = float((self.ds.quan(1.0, unit_y) /
+                                     self.ds.quan(1.0, unit_x)).in_cgs())
 
             extentx = [(self.xlim[i] - xc).in_units(unit_x) for i in (0, 1)]
             extenty = [(self.ylim[i] - yc).in_units(unit_y) for i in (0, 1)]
@@ -783,7 +782,7 @@ class PWViewerMPL(PlotWindow):
                                    "%s_axis" % ("xy"[i]))[axis_index]
                     unn = self.ds.coordinates.default_unit_label.get(axax, "")
                     if unn != "":
-                        axes_unit_labels[i] = '\/\/\left('+unn+'\right)'
+                        axes_unit_labels[i] = r'\/\/\left('+unn+r'\right)'
                         continue
                 # Use sympy to factor h out of the unit.  In this context 'un'
                 # is a string, so we call the Unit constructor.
@@ -904,8 +903,6 @@ class PWViewerMPL(PlotWindow):
             else:
                 self.plots[f].cax.minorticks_off()
 
-            self.run_callbacks(f)
-
             if draw_axes is False:
                 self.plots[f]._toggle_axes(draw_axes)
 
@@ -1023,6 +1020,9 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
          fields.
+    data_source : YTSelectionContainer Object
+         Object to be used for data selection.  Defaults to a region covering
+         the entire simulation.
 
     Examples
     --------
@@ -1040,17 +1040,18 @@ class AxisAlignedSlicePlot(PWViewerMPL):
 
     def __init__(self, ds, axis, fields, center='c', width=None, axes_unit=None,
                  origin='center-window', fontsize=18, field_parameters=None,
-                 window_size=8.0, aspect=None):
+                 window_size=8.0, aspect=None, data_source=None):
         # this will handle time series data and controllers
         ts = self._initialize_dataset(ds)
         self.ts = ts
         ds = self.ds = ts[0]
         axis = fix_axis(axis, ds)
         (bounds, center, display_center) = \
-                get_window_parameters(axis, center, width, ds)
-        if field_parameters is None: field_parameters = {}
-        slc = ds.slice(axis, center[axis],
-            field_parameters = field_parameters, center=center)
+            get_window_parameters(axis, center, width, ds)
+        if field_parameters is None:
+            field_parameters = {}
+        slc = ds.slice(axis, center[axis], field_parameters=field_parameters,
+                       center=center, data_source=data_source)
         slc.get_data(fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin,
                              fontsize=fontsize, fields=fields,
@@ -1284,6 +1285,9 @@ class OffAxisSlicePlot(PWViewerMPL):
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
          fields.
+    data_source : YTSelectionContainer Object
+         Object to be used for data selection.  Defaults to a region covering
+         the entire simulation.
     """
 
     _plot_type = 'OffAxisSlice'
@@ -1291,11 +1295,13 @@ class OffAxisSlicePlot(PWViewerMPL):
 
     def __init__(self, ds, normal, fields, center='c', width=None,
                  axes_unit=None, north_vector=None, fontsize=18,
-                 field_parameters=None):
+                 field_parameters=None, data_source=None):
         (bounds, center_rot) = get_oblique_window_parameters(normal,center,width,ds)
-        if field_parameters is None: field_parameters = {}
-        cutting = ds.cutting(normal, center, north_vector = north_vector,
-                              field_parameters = field_parameters)
+        if field_parameters is None:
+            field_parameters = {}
+        cutting = ds.cutting(normal, center, north_vector=north_vector,
+                             field_parameters=field_parameters,
+                             data_source=data_source)
         cutting.get_data(fields)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
@@ -1646,7 +1652,7 @@ class PWViewerExtJS(PlotWindow):
         x_width = self.xlim[1] - self.xlim[0]
         y_width = self.ylim[1] - self.ylim[0]
         if self._axes_unit_names is None:
-            unit = get_smallest_appropriate_unit(x_width, self.ds)
+            unit = self.ds.get_smallest_appropriate_unit(x_width)
             unit = (unit, unit)
         else:
             unit = self._axes_unit_names
@@ -1845,6 +1851,9 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
          fields.
+    data_source : YTSelectionContainer Object
+         Object to be used for data selection.  Defaults to a region covering
+         the entire simulation.
 
     Raises
     ------

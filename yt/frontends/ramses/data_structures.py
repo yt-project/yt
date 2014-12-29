@@ -18,7 +18,6 @@ import numpy as np
 import stat
 import weakref
 import cStringIO
-
 from yt.funcs import *
 from yt.geometry.oct_geometry_handler import \
     OctreeIndex
@@ -34,8 +33,9 @@ from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.utilities.io_handler import \
     io_registry
+from yt.utilities.physical_constants import mp, kb
 from .fields import \
-    RAMSESFieldInfo
+    RAMSESFieldInfo, _X
 import yt.utilities.fortran_utils as fpu
 from yt.geometry.oct_container import \
     RAMSESOctreeContainer
@@ -163,6 +163,7 @@ class RAMSESDomainFile(object):
         if hvals["nstar_tot"] > 0:
             particle_fields += [("particle_age", "d"),
                                 ("particle_metallicity", "d")]
+
         field_offsets = {}
         _pfields = {}
         for field, vtype in particle_fields:
@@ -224,7 +225,11 @@ class RAMSESDomainFile(object):
                                 self.amr_header['nboundary']*l]
             return ng
         min_level = self.ds.min_level
-        max_level = min_level
+        # yt max level is not the same as the RAMSES one.
+        # yt max level is the maximum number of additional refinement levels
+        # so for a uni grid run with no refinement, it would be 0. 
+        # So we initially assume that.
+        max_level = 0
         nx, ny, nz = (((i-1.0)/2.0) for i in self.amr_header['nx'])
         for level in range(self.amr_header['nlevelmax']):
             # Easier if do this 1-indexed
@@ -485,19 +490,28 @@ class RAMSESDataset(Dataset):
         # Note that unit_l *already* converts to proper!
         # Also note that unit_l must be multiplied by the boxlen parameter to
         # ensure we are correctly set up for the current domain.
-        length_unit = self.parameters['unit_l'] * self.parameters['boxlen']
-        rho_u = self.parameters['unit_d']
-        # We're not multiplying by the boxlength here.
-        mass_unit = rho_u * self.parameters['unit_l']**3
+        length_unit = self.parameters['unit_l']
+        boxlen = self.parameters['boxlen']
+        density_unit = self.parameters['unit_d']
+        mass_unit = density_unit * (length_unit * boxlen)**3
         time_unit = self.parameters['unit_t']
-
         magnetic_unit = np.sqrt(4*np.pi * mass_unit /
                                 (time_unit**2 * length_unit))
+        pressure_unit = density_unit * (length_unit / time_unit)**2
+        # TODO:
+        # Generalize the temperature field to account for ionization
+        # For now assume an atomic ideal gas with cosmic abundances (x_H = 0.76)
+        mean_molecular_weight_factor = _X**-1
+
+        self.density_unit = self.quan(density_unit, 'g/cm**3')
         self.magnetic_unit = self.quan(magnetic_unit, "gauss")
-        self.length_unit = self.quan(length_unit, "cm")
+        self.length_unit = self.quan(length_unit * boxlen, "cm")
         self.mass_unit = self.quan(mass_unit, "g")
         self.time_unit = self.quan(time_unit, "s")
-        self.velocity_unit = self.length_unit / self.time_unit
+        self.velocity_unit = self.quan(length_unit, 'cm') / self.time_unit
+        self.temperature_unit = (self.velocity_unit**2 * mp *
+                                 mean_molecular_weight_factor / kb)
+        self.pressure_unit = self.quan(pressure_unit, 'dyne/cm**2')
 
     def _parse_parameter_file(self):
         # hardcoded for now
@@ -542,16 +556,22 @@ class RAMSESDataset(Dataset):
         self.domain_dimensions = np.ones(3, dtype='int32') * \
                         2**(self.min_level+1)
         self.domain_right_edge = np.ones(3, dtype='float64')
-        # This is likely not true, but I am not sure how to otherwise
-        # distinguish them.
-        mylog.warning("RAMSES frontend assumes all simulations are cosmological!")
-        self.cosmological_simulation = 1
+        # This is likely not true, but it's not clear how to determine the boundary conditions
         self.periodicity = (True, True, True)
-        self.current_redshift = (1.0 / rheader["aexp"]) - 1.0
-        self.omega_lambda = rheader["omega_l"]
-        self.omega_matter = rheader["omega_m"]
-        self.hubble_constant = rheader["H0"] / 100.0 # This is H100
-        self.max_level = rheader['levelmax'] - self.min_level
+        # These conditions seem to always be true for non-cosmological datasets
+        if rheader["time"] > 0 and rheader["H0"] == 1 and rheader["aexp"] == 1:
+            self.cosmological_simulation = 0
+            self.current_redshift = 0
+            self.hubble_constant = 0
+            self.omega_matter = 0
+            self.omega_lambda = 0
+        else:
+            self.cosmological_simulation = 1
+            self.current_redshift = (1.0 / rheader["aexp"]) - 1.0
+            self.omega_lambda = rheader["omega_l"]
+            self.omega_matter = rheader["omega_m"]
+            self.hubble_constant = rheader["H0"] / 100.0 # This is H100
+        self.max_level = rheader['levelmax'] - self.min_level - 1
         f.close()
 
     @classmethod
