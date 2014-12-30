@@ -102,7 +102,6 @@ cdef class QuadTree:
     cdef int nvals
     # Hardcode to a maximum 80 levels of refinement.
     # TODO: Update when we get to yottascale.
-    cdef np.int64_t po2[80] 
     cdef QuadTreeNode ***root_nodes
     cdef np.int64_t top_grid_dims[2]
     cdef int merged
@@ -137,9 +136,6 @@ cdef class QuadTree:
         self.dds[0] = (self.bounds[1] - self.bounds[0])/self.top_grid_dims[0]
         self.dds[1] = (self.bounds[3] - self.bounds[2])/self.top_grid_dims[1]
 
-        # This wouldn't be necessary if we did bitshifting...
-        for i in range(80):
-            self.po2[i] = 2**i
         self.root_nodes = <QuadTreeNode ***> \
             malloc(sizeof(QuadTreeNode **) * top_grid_dims[0])
 
@@ -264,9 +260,8 @@ cdef class QuadTree:
                 QTN_refine(node, self.nvals)
                 self.num_cells += 4
             # Maybe we should use bitwise operators?
-            fac = self.po2[level - L - 1]
-            i = (pos[0] >= fac*(2*node.pos[0]+1))
-            j = (pos[1] >= fac*(2*node.pos[1]+1))
+            i = (pos[0] >> (level - L - 1)) & 1
+            j = (pos[1] >> (level - L - 1)) & 1
             node = node.children[i][j]
         if skip == 1: return 0
         self.combine(node, val, weight_val, self.nvals)
@@ -277,8 +272,8 @@ cdef class QuadTree:
         # We need this because the root level won't just have four children
         # So we find on the root level, then we traverse the tree.
         cdef np.int64_t i, j
-        i = <np.int64_t> (pos[0] / self.po2[level])
-        j = <np.int64_t> (pos[1] / self.po2[level])
+        i = pos[0] >> level
+        j = pos[1] >> level
         if i > self.top_grid_dims[0] or i < 0 or \
            j > self.top_grid_dims[1] or j < 0:
             self.last_dims[0] = i
