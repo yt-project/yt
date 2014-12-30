@@ -14,7 +14,7 @@ RenderSource Class
 #-----------------------------------------------------------------------------
 
 import numpy as np
-from yt.funcs import mylog
+from yt.funcs import mylog, ensure_numpy_array
 from yt.units import yt_array
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
@@ -98,7 +98,7 @@ class VolumeSource(RenderSource):
         """
         Set transfer function for this source
         """
-        if not isinstance(transfer_function, (TransferFunction, ProjectionTransferFunction)):
+        if not isinstance(transfer_function, (TransferFunction, ColorTransferFunction, ProjectionTransferFunction)):
             raise RuntimeError("transfer_function not of correct type")
         if isinstance(transfer_function, ProjectionTransferFunction):
             self.sampler_type = 'projection'
@@ -256,6 +256,7 @@ class BoxSource(LineSource):
     def __init__(self, left_edge, right_edge, color=None):
         if color is None:
             color = np.array([1.0,1.0,1.0,1.0]) 
+        color = ensure_numpy_array(color)
         color.shape = (1, 4)
         corners = get_corners(left_edge.copy(), right_edge.copy())
         order  = [0, 1, 1, 2, 2, 3, 3, 0]

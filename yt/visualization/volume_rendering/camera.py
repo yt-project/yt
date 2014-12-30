@@ -29,7 +29,8 @@ class Camera(Orientation):
 
     _moved = True
 
-    def __init__(self, data_source=None, lens_type='plane-parallel'):
+    def __init__(self, data_source=None, lens_type='plane-parallel',
+            auto=False):
         """
         Initialize a Camera Instance
 
@@ -42,21 +43,25 @@ class Camera(Orientation):
             are 'plane-parallel', 'perspective', and 'fisheye'. See
             :class:`yt.visualization.volume_rendering.lens.Lens` for details.
             Default: 'plane-parallel'
+        auto: boolean
+            If True, build smart defaults using the data source extent. This
+            can be time-consuming to iterate over the entire dataset to find
+            the positional bounds. Default: False 
 
         """
         #mylog.debug("Entering %s" % str(self))
         self.lens = None
-        self.position = None
         self.north_vector = None
-        self.resolution = (256, 256)
+        self.resolution = (512, 512)
         self.light = None
-        self.width = None
-        self.focus = np.zeros(3)
-        self.position = np.ones(3)
+        self.width = data_source.ds.domain_width
+        self.focus = data_source.ds.domain_center
+        self.position = data_source.ds.domain_right_edge 
         self.set_lens(lens_type)
         if data_source is not None:
             data_source = data_source_or_all(data_source)
-        self.set_defaults_from_data_source(data_source)
+        if auto:
+            self.set_defaults_from_data_source(data_source)
 
         super(Camera, self).__init__(self.focus - self.position,
                                      self.north_vector, steady_north=False)
