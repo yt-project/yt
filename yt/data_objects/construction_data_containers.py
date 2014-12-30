@@ -284,9 +284,11 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         if self.weight_field is not None:
             chunk_fields.append(self.weight_field)
         tree = self._get_tree(len(fields))
-        # We do this once
-        for chunk in self.data_source.chunks([], "io", local_only = False):
-            self._initialize_chunk(chunk, tree)
+        # This only needs to be done if we are in parallel; otherwise, we can
+        # safely build the mesh as we go.
+        if ytcfg["yt","__topcomm_parallel_size"] > 1:
+            for chunk in self.data_source.chunks([], "io", local_only = False):
+                self._initialize_chunk(chunk, tree)
         # This needs to be parallel_objects-ified
         with self.data_source._field_parameter_state(self.field_parameters):
             for chunk in parallel_objects(self.data_source.chunks(
