@@ -236,6 +236,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         else:
             raise NotImplementedError(self.method)
         self._set_center(center)
+        self._projected_units = {}
         if data_source is None: data_source = self.ds.all_data()
         for k, v in data_source.field_parameters.items():
             if k not in self.field_parameters or \
@@ -287,7 +288,6 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         # We do this once
         for chunk in self.data_source.chunks([], "io", local_only = False):
             self._initialize_chunk(chunk, tree)
-        # This needs to be parallel_objects-ified
         with self.data_source._field_parameter_state(self.field_parameters):
             for chunk in parallel_objects(self.data_source.chunks(
                                           chunk_fields, "io", local_only = True)): 
@@ -327,7 +327,6 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
                 np.divide(nvals, nwvals[:,None], nvals)
         # We now convert to half-widths and center-points
         data = {}
-        #non_nan = ~np.any(np.isnan(nvals), axis=-1)
         code_length = self.ds.domain_width.units
         data['px'] = self.ds.arr(px, code_length)
         data['py'] = self.ds.arr(py, code_length)
@@ -341,30 +340,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         for fi, field in enumerate(fields):
             finfo = self.ds._get_field_info(*field)
             mylog.debug("Setting field %s", field)
-            units = finfo.units
-            # add length units to "projected units" if non-weighted 
-            # integral projection
-            if self.weight_field is None and not self._sum_only and \
-               self.method == 'integrate':
-                # See _handle_chunk where we mandate cm
-                if units == '':
-                    input_units = "cm"
-                else:
-                    input_units = "(%s) * cm" % units
-            else:
-                input_units = units
-            # Don't forget [non_nan] somewhere here.
-            self[field] = YTArray(field_data[fi].ravel(),
-                                  input_units=input_units,
-                                  registry=self.ds.unit_registry)
-            # convert units if non-weighted integral projection
-            if self.weight_field is None and not self._sum_only and \
-               self.method == 'integrate':
-                u_obj = Unit(units, registry=self.ds.unit_registry)
-                if ((u_obj.is_code_unit or self.ds.no_cgs_equiv_length) and
-                    not u_obj.is_dimensionless) and input_units != units:
-                    final_unit = "(%s) * code_length" % units
-                    self[field].convert_to_units(final_unit)
+            input_units = self._projected_units[field].units
+            self[field] = self.ds.arr(field_data[fi].ravel(), input_units)
         for i in data.keys(): self[i] = data.pop(i)
         mylog.info("Projection completed")
 
@@ -379,7 +356,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
 
     def _handle_chunk(self, chunk, fields, tree):
         if self.method == "mip" or self._sum_only:
-            dl = 1.0
+            dl = self.ds.quan(1.0, "")
         else:
             # This gets explicitly converted to cm
             ax_name = self.ds.coordinates.axis_name[self.axis]
@@ -391,12 +368,22 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
             if not dl.units.is_dimensionless:
                 dl.convert_to_units("cm")
         v = np.empty((chunk.ires.size, len(fields)), dtype="float64")
-        for i in range(len(fields)):
-            v[:,i] = chunk[fields[i]] * dl
+        for i, field in enumerate(fields):
+            d = chunk[field] * dl
+            v[:,i] = d
+            self._projected_units[field] = d.uq
         if self.weight_field is not None:
             w = chunk[self.weight_field]
             np.multiply(v, w[:,None], v)
             np.multiply(w, dl, w)
+            for field in fields:
+                # Note that this removes the dl integration, which is
+                # *correct*, but we are not fully self-consistently carrying it
+                # all through.  So if interrupted, the process will have
+                # incorrect units assigned in the projected units.  This should
+                # not be a problem, since the weight division occurs
+                # self-consistently with unitfree arrays.
+                self._projected_units[field] /= dl.uq
         else:
             w = np.ones(chunk.ires.size, dtype="float64")
         icoords = chunk.icoords
