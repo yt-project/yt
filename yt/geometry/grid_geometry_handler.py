@@ -273,6 +273,7 @@ class GridIndex(Index):
         return self.dataset.conversion_factors[unit]
 
     def _identify_base_chunk(self, dobj):
+        fast_index = None
         if dobj._type_name == "grid":
             dobj._chunk_info = np.empty(1, dtype='object')
             dobj._chunk_info[0] = dobj
@@ -285,12 +286,14 @@ class GridIndex(Index):
             for i, g in enumerate(grids):
                 dobj._chunk_info[i] = g
         if getattr(dobj, "size", None) is None:
-            dobj.size = self._count_selection(dobj)
+            dobj.size = self._count_selection(dobj, fast_index = fast_index)
         if getattr(dobj, "shape", None) is None:
             dobj.shape = (dobj.size,)
         dobj._current_chunk = list(self._chunk_all(dobj, cache = False))[0]
 
-    def _count_selection(self, dobj, grids = None):
+    def _count_selection(self, dobj, grids = None, fast_index = None):
+        if fast_index is not None:
+            return fast_index.count(dobj.selector)
         if grids is None: grids = dobj._chunk_info
         count = sum((g.count(dobj.selector) for g in grids))
         return count

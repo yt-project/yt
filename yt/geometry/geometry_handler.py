@@ -286,20 +286,21 @@ def cached_property(func):
 class YTDataChunk(object):
 
     def __init__(self, dobj, chunk_type, objs, data_size = None,
-                 field_type = None, cache = False):
+                 field_type = None, cache = False, fast_index = None):
         self.dobj = dobj
         self.chunk_type = chunk_type
         self.objs = objs
         self.data_size = data_size
         self._field_type = field_type
         self._cache = cache
+        self._fast_index = fast_index
 
     def _accumulate_values(self, method):
         # We call this generically.  It's somewhat slower, since we're doing
         # costly getattr functions, but this allows us to generalize.
         mname = "select_%s" % method
         arrs = []
-        for obj in self.objs:
+        for obj in self._fast_index or self.objs:
             f = getattr(obj, mname)
             arrs.append(f(self.dobj))
         if method == "dtcoords":
@@ -317,7 +318,7 @@ class YTDataChunk(object):
                      registry = self.dobj.ds.unit_registry)
         if self.data_size == 0: return ci
         ind = 0
-        for obj in self.objs:
+        for obj in self._fast_index or self.objs:
             c = obj.select_fcoords(self.dobj)
             if c.shape[0] == 0: continue
             ci[ind:ind+c.shape[0], :] = c
@@ -329,7 +330,7 @@ class YTDataChunk(object):
         ci = np.empty((self.data_size, 3), dtype='int64')
         if self.data_size == 0: return ci
         ind = 0
-        for obj in self.objs:
+        for obj in self._fast_index or self.objs:
             c = obj.select_icoords(self.dobj)
             if c.shape[0] == 0: continue
             ci[ind:ind+c.shape[0], :] = c
@@ -343,7 +344,7 @@ class YTDataChunk(object):
                      registry = self.dobj.ds.unit_registry)
         if self.data_size == 0: return ci
         ind = 0
-        for obj in self.objs:
+        for obj in self._fast_index or self.objs:
             c = obj.select_fwidth(self.dobj)
             if c.shape[0] == 0: continue
             ci[ind:ind+c.shape[0], :] = c
@@ -355,7 +356,7 @@ class YTDataChunk(object):
         ci = np.empty(self.data_size, dtype='int64')
         if self.data_size == 0: return ci
         ind = 0
-        for obj in self.objs:
+        for obj in self._fast_index or self.objs:
             c = obj.select_ires(self.dobj)
             if c.shape == 0: continue
             ci[ind:ind+c.size] = c
@@ -374,7 +375,7 @@ class YTDataChunk(object):
         self._tcoords = ct # Se this for tcoords
         if self.data_size == 0: return cdt
         ind = 0
-        for obj in self.objs:
+        for obj in self._fast_index or self.objs:
             gdt, gt = obj.select_tcoords(self.dobj)
             if gt.shape == 0: continue
             ct[ind:ind+gt.size] = gt
