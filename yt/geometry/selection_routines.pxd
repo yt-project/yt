@@ -47,6 +47,12 @@ cdef class SelectorObject:
     cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil
+    cdef int fill_mask_selector(self, np.float64_t left_edge[3],
+                                np.float64_t right_edge[3], 
+                                np.float64_t dds[3], int dim[3],
+                                np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
+                                np.ndarray[np.uint8_t, ndim=3] mask,
+                                int this_level)
 
     # compute periodic distance (if periodicity set) assuming 0->domain_width[i] coordinates
     cdef np.float64_t difference(self, np.float64_t x1, np.float64_t x2, int d) nogil

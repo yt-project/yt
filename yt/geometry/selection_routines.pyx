@@ -423,15 +423,13 @@ cdef class SelectorObject:
         cdef np.ndarray[np.float64_t, ndim=1] oleft_edge = gobj.LeftEdge.d
         cdef np.ndarray[np.float64_t, ndim=1] oright_edge = gobj.RightEdge.d
         cdef int i, j, k
-        cdef np.float64_t dds[3], pos[3], left_edge[3], right_edge[3]
+        cdef np.float64_t dds[3], left_edge[3], right_edge[3]
         for i in range(3):
             dds[i] = odds[i]
             dim[i] = gobj.ActiveDimensions[i]
             left_edge[i] = oleft_edge[i]
             right_edge[i] = oright_edge[i]
         mask = np.zeros(gobj.ActiveDimensions, dtype='uint8')
-        cdef int total = 0
-        cdef int temp
         # Check for the level bounds
         cdef np.int32_t level = gobj.Level
         if level < self.min_level or level > self.max_level:
@@ -440,6 +438,23 @@ cdef class SelectorObject:
         cdef int this_level = 0
         if level == self.max_level:
             this_level = 1
+        cdef int total
+        total = self.fill_mask_selector(left_edge, right_edge, dds, dim,
+                                        child_mask, mask, this_level)
+        if total == 0: return None
+        return mask.astype("bool")
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int fill_mask_selector(self, np.float64_t left_edge[3],
+                                np.float64_t right_edge[3], 
+                                np.float64_t dds[3], int dim[3],
+                                np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
+                                np.ndarray[np.uint8_t, ndim=3] mask,
+                                int this_level):
+        cdef int total = 0
+        cdef np.float64_t pos[3]
         with nogil:
             pos[0] = left_edge[0] + dds[0] * 0.5
             for i in range(dim[0]):
@@ -453,8 +468,7 @@ cdef class SelectorObject:
                         pos[2] += dds[2]
                     pos[1] += dds[1]
                 pos[0] += dds[0]
-        if total == 0: return None
-        return mask.astype("bool")
+        return total
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
