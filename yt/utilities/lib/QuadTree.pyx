@@ -252,7 +252,7 @@ cdef class QuadTree:
     cdef int add_to_position(self,
                  int level, np.int64_t pos[2],
                  np.float64_t *val,
-                 np.float64_t weight_val, skip = 0):
+                 np.float64_t weight_val, int skip = 0):
         cdef int i, j, L
         cdef QuadTreeNode *node
         node = self.find_on_root_level(pos, level)
