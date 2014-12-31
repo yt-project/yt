@@ -32,7 +32,8 @@ from yt.utilities.physical_constants import sec_per_year
 from yt.utilities.io_handler import io_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
-from yt.utilities.lib.GridTree import GridTree, MatchPointsToGrids
+from .grid_container import \
+    GridTree, MatchPointsToGrids
 
 from yt.data_objects.data_containers import data_object_registry
 

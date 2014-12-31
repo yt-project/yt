@@ -20,7 +20,7 @@ from yt.funcs import *
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level, \
     get_box_grids_below_level
-from yt.utilities.lib.GridTree import \
+from yt.geometry.grid_container import \
     MatchPointsToGrids, \
     GridTree
 from yt.utilities.physical_constants import \

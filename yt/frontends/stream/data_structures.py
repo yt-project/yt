@@ -58,7 +58,7 @@ from yt.fields.field_info_container import \
     FieldInfoContainer, NullFunc
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
-from yt.utilities.lib.GridTree import \
+from yt.geometry.grid_container import \
     GridTree, \
     MatchPointsToGrids
 from yt.utilities.decompose import \

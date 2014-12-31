@@ -8,6 +8,12 @@ def configuration(parent_package='',top_path=None):
     from numpy.distutils.misc_util import Configuration
     config = Configuration('geometry',parent_package,top_path)
     config.add_subpackage('coordinates')
+    config.add_extension("grid_container", 
+                ["yt/geometry/grid_container.pyx"],
+                include_dirs=["yt/utilities/lib/"],
+                libraries=["m"],
+                depends=["yt/utilities/lib/fp_utils.pxd",
+                         "yt/geometry/grid_container.pxd"])
     config.add_extension("oct_container", 
                 ["yt/geometry/oct_container.pyx"],
                 include_dirs=["yt/utilities/lib/"],

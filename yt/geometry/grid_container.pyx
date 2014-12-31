@@ -17,19 +17,6 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
-from libc.stdlib cimport malloc, free
-from libc.math cimport nearbyint, rint
-from yt.geometry.selection_routines cimport SelectorObject, _ensure_code
-from yt.utilities.lib.fp_utils cimport iclip
-
-cdef struct GridTreeNode :
-    int num_children
-    int level
-    int index
-    np.float64_t left_edge[3]
-    np.float64_t right_edge[3]
-    GridTreeNode **children
-                
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -58,12 +45,6 @@ cdef GridTreeNode Grid_initialize(np.ndarray[np.float64_t, ndim=1] le,
     return node
 
 cdef class GridTree :
-
-    cdef GridTreeNode *grids
-    cdef GridTreeNode *root_grids
-    cdef int num_grids
-    cdef int num_root_grids
-    cdef int num_leaf_grids
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -149,13 +130,6 @@ cdef class GridTree :
         return indices, levels, nchild, children
     
 cdef class MatchPointsToGrids :
-
-    cdef int num_points
-    cdef np.float64_t * xp
-    cdef np.float64_t * yp
-    cdef np.float64_t * zp
-    cdef GridTree tree
-    cdef np.int64_t * point_grids
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -271,8 +245,6 @@ cdef class MatchPointsToGrids :
 
 
 cdef class FastGridSelectionHelper:
-    cdef public object index
-    cdef public object grid_ind
 
     def __init__(self, index, grid_ind):
         self.index = index
