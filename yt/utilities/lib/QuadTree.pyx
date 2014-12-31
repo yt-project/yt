@@ -59,15 +59,16 @@ cdef void QTN_refine(QuadTreeNode *self, int nvals):
     cdef int i, j, i1, j1
     cdef np.int64_t npos[2]
     cdef QuadTreeNode *node
+    cdef np.float64_t *tvals = <np.float64_t *> alloca(
+            sizeof(np.float64_t) * nvals)
+    for i in range(nvals): tvals[i] = 0.0
     for i in range(2):
         npos[0] = self.pos[0] * 2 + i
         for j in range(2):
             npos[1] = self.pos[1] * 2 + j
             # We have to be careful with allocation...
             self.children[i][j] = QTN_initialize(
-                        npos, nvals, self.val, self.weight_val)
-    for i in range(nvals): self.val[i] = 0.0
-    self.weight_val = 0.0
+                        npos, nvals, tvals, 0.0)
 
 cdef QuadTreeNode *QTN_initialize(np.int64_t pos[2], int nvals,
                         np.float64_t *val, np.float64_t weight_val):
