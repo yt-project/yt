@@ -52,13 +52,6 @@ grid_eps = 0.0
 # These all respect the interface "dobj" and a set of left_edges, right_edges,
 # sometimes also accepting level and mask information.
 
-def _ensure_code(arr):
-    if hasattr(arr, "units"):
-        if "code_length" == str(arr.units):
-            return arr
-        arr.convert_to_units("code_length")
-    return arr
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -432,15 +425,10 @@ cdef class SelectorObject:
         mask = np.zeros(gobj.ActiveDimensions, dtype='uint8')
         # Check for the level bounds
         cdef np.int32_t level = gobj.Level
-        if level < self.min_level or level > self.max_level:
-            return mask.astype("bool")
         # We set this to 1 if we ignore child_mask
-        cdef int this_level = 0
-        if level == self.max_level:
-            this_level = 1
         cdef int total
         total = self.fill_mask_selector(left_edge, right_edge, dds, dim,
-                                        child_mask, mask, this_level)
+                                        child_mask, mask, level)
         if total == 0: return None
         return mask.astype("bool")
 
@@ -452,9 +440,13 @@ cdef class SelectorObject:
                                 np.float64_t dds[3], int dim[3],
                                 np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
                                 np.ndarray[np.uint8_t, ndim=3] mask,
-                                int this_level):
-        cdef int total = 0
+                                int level):
+        cdef int total = 0, this_level = 0
         cdef np.float64_t pos[3]
+        if level < self.min_level or level > self.max_level:
+            return 0
+        if level == self.max_level:
+            this_level = 1
         with nogil:
             pos[0] = left_edge[0] + dds[0] * 0.5
             for i in range(dim[0]):

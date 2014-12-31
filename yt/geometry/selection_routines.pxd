@@ -22,6 +22,13 @@ ctypedef fused anyfloat:
     np.float32_t
     np.float64_t
 
+cdef inline _ensure_code(arr):
+    if hasattr(arr, "units"):
+        if "code_length" == str(arr.units):
+            return arr
+        arr.convert_to_units("code_length")
+    return arr
+
 cdef class SelectorObject:
     cdef public np.int32_t min_level
     cdef public np.int32_t max_level
@@ -52,7 +59,7 @@ cdef class SelectorObject:
                                 np.float64_t dds[3], int dim[3],
                                 np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
                                 np.ndarray[np.uint8_t, ndim=3] mask,
-                                int this_level)
+                                int level)
 
     # compute periodic distance (if periodicity set) assuming 0->domain_width[i] coordinates
     cdef np.float64_t difference(self, np.float64_t x1, np.float64_t x2, int d) nogil

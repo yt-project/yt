@@ -18,6 +18,9 @@ cimport numpy as np
 cimport cython
 
 from libc.stdlib cimport malloc, free
+from libc.math cimport nearbyint, rint
+from yt.geometry.selection_routines cimport SelectorObject, _ensure_code
+from yt.utilities.lib.fp_utils cimport iclip
 
 cdef struct GridTreeNode :
     int num_children
@@ -265,3 +268,60 @@ cdef class MatchPointsToGrids :
         cond = cond and zcond
 
         return cond
+
+
+cdef class FastGridSelectionHelper:
+    cdef public object index
+    cdef public object grid_ind
+
+    def __init__(self, index, grid_ind):
+        self.index = index
+        self.grid_ind = grid_ind
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def count(self, SelectorObject selector):
+        cdef int gi, i, level, total
+        #cdef np.ndarray[
+        cdef np.ndarray[np.uint8_t, ndim=1, cast=True] gind = self.grid_ind
+        cdef np.ndarray[np.float64_t, ndim=2] grid_left_edges
+        cdef np.ndarray[np.float64_t, ndim=2] grid_right_edges
+        cdef np.ndarray[np.int32_t, ndim=2] grid_dimensions
+        cdef np.ndarray[np.int32_t, ndim=2] grid_levels
+        cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
+        cdef np.ndarray[np.uint8_t, ndim=3] mask
+        cdef np.float64_t left_edge[3], right_edge[3], dds[3]
+        cdef int dim[3]
+        _ensure_code(self.index.grid_left_edge)
+        _ensure_code(self.index.grid_right_edge)
+        grid_left_edges = self.index.grid_left_edge.d
+        grid_right_edges = self.index.grid_right_edge.d
+        grid_dimensions = self.index.grid_dimensions
+        grid_levels = self.index.grid_levels
+        cdef int max_dim[3]
+        max_dim[0] = max_dim[1] = max_dim[2] = 0
+        for gi in range(gind.shape[0]):
+            if gind[gi] == 0: continue
+            for i in range(3):
+                if grid_dimensions[gi, i] > max_dim[i]:
+                    max_dim[i] = grid_dimensions[gi, i]
+        mask = np.zeros((max_dim[0], max_dim[1], max_dim[2]), dtype = "uint8")
+        # We can now just call fill_mask_selector repeatedly.
+        total = 0
+        for gi in range(gind.shape[0]):
+            if gind[gi] == 0: continue
+            for i in range(3):
+                left_edge[i] = grid_left_edges[gi, i]
+                right_edge[i] = grid_right_edges[gi, i]
+                dim[i] = grid_dimensions[gi, i]
+                dds[i] = (right_edge[i] - left_edge[i])/dim[i]
+            level = grid_levels[gi]
+            # This will be expensive.
+            child_mask = self.index.grids[gi].child_mask
+            total += selector.fill_mask_selector(
+                left_edge, right_edge, dds, dim, child_mask, mask, level)
+        return total
+
+    def __iter__(self):
+        yield self
