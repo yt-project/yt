@@ -30,8 +30,7 @@ from .fixed_resolution import \
     FixedResolutionBuffer, \
     ObliqueFixedResolutionBuffer, \
     OffAxisProjectionFixedResolutionBuffer
-from .plot_modifications import get_smallest_appropriate_unit, \
-    callback_registry
+from .plot_modifications import callback_registry
 from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform, symlog_transform, \
@@ -160,8 +159,8 @@ class PlotWindow(ImagePlotContainer):
 
     Parameters
     ----------
-    data_source : :class:`yt.data_objects.data_containers.YTProjBase` or
-                  :class:`yt.data_objects.data_containers.YTSliceBase`
+
+    data_source : :class:`yt.data_objects.data_containers.YTProjBase` or :class:`yt.data_objects.data_containers.YTSliceBase`
         This is the source to be pixelized, which can be a projection or a
         slice.  (For cutting planes, see
         `yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`.)
@@ -250,7 +249,7 @@ class PlotWindow(ImagePlotContainer):
         else:
             bounds = self.xlim+self.ylim
         if self._frb_generator is ObliqueFixedResolutionBuffer:
-            bounds = np.array(bounds)
+            bounds = np.array([b.in_units('code_length') for b in bounds])
 
         self.frb = self._frb_generator(self.data_source, bounds, self.buff_size,
                                        self.antialias, periodic=self._periodic)
@@ -691,8 +690,8 @@ class PWViewerMPL(PlotWindow):
             xc, yc = self._setup_origin()
 
             if self._axes_unit_names is None:
-                unit = get_smallest_appropriate_unit(
-                    self.xlim[1] - self.xlim[0], self.ds)
+                unit = self.ds.get_smallest_appropriate_unit(
+                    self.xlim[1] - self.xlim[0])
                 (unit_x, unit_y) = (unit, unit)
             else:
                 (unit_x, unit_y) = self._axes_unit_names
@@ -701,8 +700,8 @@ class PWViewerMPL(PlotWindow):
             # This will likely be replaced at some point by the coordinate handler
             # setting plot aspect.
             if self.aspect is None:
-                self.aspect = np.float64((self.ds.quan(1.0, unit_y) /
-                                         self.ds.quan(1.0, unit_x)).in_cgs())
+                self.aspect = float((self.ds.quan(1.0, unit_y) /
+                                     self.ds.quan(1.0, unit_x)).in_cgs())
 
             extentx = [(self.xlim[i] - xc).in_units(unit_x) for i in (0, 1)]
             extenty = [(self.ylim[i] - yc).in_units(unit_y) for i in (0, 1)]
@@ -895,8 +894,6 @@ class PWViewerMPL(PlotWindow):
                     self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
             else:
                 self.plots[f].cax.minorticks_off()
-
-            self.run_callbacks(f)
 
             if draw_axes is False:
                 self.plots[f]._toggle_axes(draw_axes)
@@ -1647,7 +1644,7 @@ class PWViewerExtJS(PlotWindow):
         x_width = self.xlim[1] - self.xlim[0]
         y_width = self.ylim[1] - self.ylim[0]
         if self._axes_unit_names is None:
-            unit = get_smallest_appropriate_unit(x_width, self.ds)
+            unit = self.ds.get_smallest_appropriate_unit(x_width)
             unit = (unit, unit)
         else:
             unit = self._axes_unit_names

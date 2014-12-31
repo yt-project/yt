@@ -105,6 +105,14 @@ processes using the following Bash command:
    If you run into problems, the you can use :ref:`remote-debugging` to examine
    what went wrong.
 
+How do I run my yt job on a subset of available processes
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+You can set the ``communicator`` keyword in the 
+:func:`~yt.utilities.parallel_tools.parallel_analysis_interface.enable_parallelism` 
+call to a specific MPI communicator to specify a subset of availble MPI 
+processes.  If none is specified, it defaults to ``COMM_WORLD``.
+
 Creating Parallel and Serial Sections in a Script
 +++++++++++++++++++++++++++++++++++++++++++++++++
 

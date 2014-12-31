@@ -157,7 +157,6 @@ class PPVCube(object):
         elif method == "sum":
             self.proj_units = self.field_units
 
-        self.data = ds.arr(np.zeros((self.nx,self.ny,self.nv)), self.proj_units)
         storage = {}
         pbar = get_pbar("Generating cube.", self.nv)
         for sto, i in parallel_objects(xrange(self.nv), storage=storage):

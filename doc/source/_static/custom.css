@@ -99,3 +99,13 @@ See: https://github.com/twbs/bootstrap/issues/1768
   height: 45px; 
   visibility: hidden; 
 }
+
+/*
+
+Make tables span only half the page. 
+
+*/
+
+.table {
+    width: 50%
+}

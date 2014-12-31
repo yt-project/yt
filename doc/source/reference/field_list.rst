@@ -4121,6 +4121,7 @@ field name                        units                                         
 ('io', 'particle_metallicity1')                                                                                                                                           1              
 ('io', 'particle_metallicity2')                                                                                                                                           1              
 ================================  ========================================================================================================  ====================  =========  ============
+
 .. _ARTIO_specific_fields:
 
 ARTIO-Specific Fields
@@ -4155,6 +4156,7 @@ field name                          units                                       
 ('io', 'METALLICITY_SNIa')                                                                                                                    ``metallicity_snia``             1              
 ('io', 'METALLICITY_SNII')                                                                                                                    ``metallicity_snii``             1              
 ==================================  ========================================================================================================  =======================  =========  ============
+
 .. _Athena_specific_fields:
 
 Athena-Specific Fields
@@ -4164,10 +4166,11 @@ Athena-Specific Fields
 field name                       units                                                                   aliases               particle?  display name
 ===============================  ======================================================================  ====================  =========  ============
 ('athena', 'density')            :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`  ``density``                   0              
-('athena', 'cell_centered_B_x')  :math:`\mathrm{\rm{code_magnetic}}`                                     ``magnetic_field_x``          0              
-('athena', 'cell_centered_B_y')  :math:`\mathrm{\rm{code_magnetic}}`                                     ``magnetic_field_y``          0              
-('athena', 'cell_centered_B_z')  :math:`\mathrm{\rm{code_magnetic}}`                                     ``magnetic_field_z``          0              
+('athena', 'cell_centered_B_x')  :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                ``magnetic_field_x``          0              
+('athena', 'cell_centered_B_y')  :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                ``magnetic_field_y``          0              
+('athena', 'cell_centered_B_z')  :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                ``magnetic_field_z``          0              
 ===============================  ======================================================================  ====================  =========  ============
+
 .. _Boxlib_specific_fields:
 
 Boxlib-Specific Fields
@@ -4202,42 +4205,44 @@ field name                     units                                            
 ('io', 'particle_id')                                                                                                            ``particle_index``          1              
 ('io', 'particle_mdot')        :math:`\mathrm{\rm{code}~\rm{mass} / \rm{code}~\rm{time}}`                                                                    1              
 =============================  ================================================================================================  ==================  =========  ============
+
 .. _Castro_specific_fields:
 
 Castro-Specific Fields
 ----------------------
 
-========================  ========================================================  =======================  =========  ==================================================
-field name                units                                                     aliases                  particle?  display name                                      
-========================  ========================================================  =======================  =========  ==================================================
-('boxlib', 'density')     :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{3}}}`               ``density``                      0  :math:`\rho`                                      
-('boxlib', 'xmom')        :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{2} \cdot \rm{s}}}`  ``momentum_x``                   0  :math:`\rho u`                                    
-('boxlib', 'ymom')        :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{2} \cdot \rm{s}}}`  ``momentum_y``                   0  :math:`\rho v`                                    
-('boxlib', 'zmom')        :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{2} \cdot \rm{s}}}`  ``momentum_z``                   0  :math:`\rho w`                                    
-('boxlib', 'x_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``velocity_x``                   0  :math:`u`                                         
-('boxlib', 'y_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``velocity_y``                   0  :math:`v`                                         
-('boxlib', 'z_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``velocity_z``                   0  :math:`w`                                         
-('boxlib', 'rho_E')       :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`             ``energy_density``               0  :math:`\rho E`                                    
-('boxlib', 'rho_e')       :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`                                              0  :math:`\rho e`                                    
-('boxlib', 'Temp')        :math:`\mathrm{\rm{K}}`                                   ``temperature``                  0  :math:`T`                                         
-('boxlib', 'grav_x')      :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`                                                0  :math:`\left(\mathbf{g} \cdot \mathbf{e}\right)_x`
-('boxlib', 'grav_y')      :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`                                                0  :math:`\left(\mathbf{g} \cdot \mathbf{e}\right)_y`
-('boxlib', 'grav_z')      :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`                                                0  :math:`\left(\mathbf{g} \cdot \mathbf{e}\right)_z`
-('boxlib', 'pressure')    :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{2}}}`                                             0  :math:`p`                                         
-('boxlib', 'kineng')      :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`                                              0  :math:`\frac{1}{2}\rho|\mathbf{U}|**2`            
-('boxlib', 'soundspeed')  :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``sound_speed``                  0  :math:`Sound Speed`                               
-('boxlib', 'Machnumber')                                                            ``mach_number``                  0  :math:`Mach Number`                               
-('boxlib', 'entropy')     :math:`\mathrm{\frac{\rm{erg}}{\rm{K} \cdot \rm{g}}}`     ``entropy``                      0  :math:`s`                                         
-('boxlib', 'magvort')     :math:`\mathrm{1 / \rm{s}}`                               ``vorticity_magnitude``          0  :math:`|\nabla \times \mathbf{U}|`                
-('boxlib', 'divu')        :math:`\mathrm{1 / \rm{s}}`                                                                0  :math:`\nabla \cdot \mathbf{U}`                   
-('boxlib', 'eint_E')      :math:`\mathrm{\rm{erg} / \rm{g}}`                                                         0  :math:`e(E,U)`                                    
-('boxlib', 'eint_e')      :math:`\mathrm{\rm{erg} / \rm{g}}`                                                         0  :math:`e`                                         
-('boxlib', 'magvel')      :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``velocity_magnitude``           0  :math:`|\mathbf{U}|`                              
-('boxlib', 'radvel')      :math:`\mathrm{\rm{cm} / \rm{s}}`                                                          0  :math:`\left(\mathbf{U} \cdot \mathbf{e}\right)_r`
-('boxlib', 'magmom')      :math:`\mathrm{\rm{cm} \cdot \rm{g} / \rm{s}}`            ``momentum_magnitude``           0  :math:`|\rho \mathbf{U}|`                         
-('boxlib', 'maggrav')     :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`                                                0  :math:`|\mathbf{g}|`                              
-('boxlib', 'phiGrav')     :math:`\mathrm{\rm{erg} / \rm{g}}`                                                         0  :math:`|\Phi|`                                    
-========================  ========================================================  =======================  =========  ==================================================
+========================  ========================================================  =======================  =========  =====================================
+field name                units                                                     aliases                  particle?  display name                         
+========================  ========================================================  =======================  =========  =====================================
+('boxlib', 'density')     :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{3}}}`               ``density``                      0  :math:`\rho`                         
+('boxlib', 'xmom')        :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{2} \cdot \rm{s}}}`  ``momentum_x``                   0  :math:`\rho u`                       
+('boxlib', 'ymom')        :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{2} \cdot \rm{s}}}`  ``momentum_y``                   0  :math:`\rho v`                       
+('boxlib', 'zmom')        :math:`\mathrm{\frac{\rm{g}}{\rm{cm}^{2} \cdot \rm{s}}}`  ``momentum_z``                   0  :math:`\rho w`                       
+('boxlib', 'x_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``velocity_x``                   0  :math:`u`                            
+('boxlib', 'y_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``velocity_y``                   0  :math:`v`                            
+('boxlib', 'z_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``velocity_z``                   0  :math:`w`                            
+('boxlib', 'rho_E')       :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`             ``energy_density``               0  :math:`\rho E`                       
+('boxlib', 'rho_e')       :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`                                              0  :math:`\rho e`                       
+('boxlib', 'Temp')        :math:`\mathrm{\rm{K}}`                                   ``temperature``                  0  :math:`T`                            
+('boxlib', 'grav_x')      :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`                                                0  :math:`\mathbf{g} \cdot \mathbf{e}_x`
+('boxlib', 'grav_y')      :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`                                                0  :math:`\mathbf{g} \cdot \mathbf{e}_y`
+('boxlib', 'grav_z')      :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`                                                0  :math:`\mathbf{g} \cdot \mathbf{e}_z`
+('boxlib', 'pressure')    :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{2}}}`                                             0  :math:`p`                            
+('boxlib', 'kineng')      :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`             ``kinetic_energy``               0  :math:`\frac{1}{2}\rho|\mathbf{U}|^2`
+('boxlib', 'soundspeed')  :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``sound_speed``                  0  :math:`Sound Speed`                  
+('boxlib', 'Machnumber')                                                            ``mach_number``                  0  :math:`Mach Number`                  
+('boxlib', 'entropy')     :math:`\mathrm{\frac{\rm{erg}}{\rm{K} \cdot \rm{g}}}`     ``entropy``                      0  :math:`s`                            
+('boxlib', 'magvort')     :math:`\mathrm{1 / \rm{s}}`                               ``vorticity_magnitude``          0  :math:`|\nabla \times \mathbf{U}|`   
+('boxlib', 'divu')        :math:`\mathrm{1 / \rm{s}}`                               ``velocity_divergence``          0  :math:`\nabla \cdot \mathbf{U}`      
+('boxlib', 'eint_E')      :math:`\mathrm{\rm{erg} / \rm{g}}`                                                         0  :math:`e(E,U)`                       
+('boxlib', 'eint_e')      :math:`\mathrm{\rm{erg} / \rm{g}}`                                                         0  :math:`e`                            
+('boxlib', 'magvel')      :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``velocity_magnitude``           0  :math:`|\mathbf{U}|`                 
+('boxlib', 'radvel')      :math:`\mathrm{\rm{cm} / \rm{s}}`                         ``radial_velocity``              0  :math:`\mathbf{U} \cdot \mathbf{e}_r`
+('boxlib', 'magmom')      :math:`\mathrm{\rm{cm} \cdot \rm{g} / \rm{s}}`            ``momentum_magnitude``           0  :math:`\rho |\mathbf{U}|`            
+('boxlib', 'maggrav')     :math:`\mathrm{\frac{\rm{cm}}{\rm{s}^{2}}}`                                                0  :math:`|\mathbf{g}|`                 
+('boxlib', 'phiGrav')     :math:`\mathrm{\rm{erg} / \rm{g}}`                                                         0  :math:`\Phi`                         
+========================  ========================================================  =======================  =========  =====================================
+
 .. _Maestro_specific_fields:
 
 Maestro-Specific Fields
@@ -4251,30 +4256,27 @@ field name                     units                                            
 ('boxlib', 'y_vel')            :math:`\mathrm{\rm{cm} / \rm{s}}`                      ``velocity_y``                   0  :math:`\tilde{v}`                              
 ('boxlib', 'z_vel')            :math:`\mathrm{\rm{cm} / \rm{s}}`                      ``velocity_z``                   0  :math:`\tilde{w}`                              
 ('boxlib', 'magvel')           :math:`\mathrm{\rm{cm} / \rm{s}}`                      ``velocity_magnitude``           0  :math:`|\tilde{\mathbf{U}} + w_0 \mathbf{e}_r|`
-('boxlib', 'radial_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                                                       0  :math:`U\cdot e_r`                             
+('boxlib', 'radial_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                      ``radial_velocity``              0  :math:`\mathbf{U}\cdot \mathbf{e}_r`           
+('boxlib', 'circum_velocity')  :math:`\mathrm{\rm{cm} / \rm{s}}`                      ``tangential_velocity``          0  :math:`U - U\cdot e_r`                         
 ('boxlib', 'tfromp')           :math:`\mathrm{\rm{K}}`                                                                 0  :math:`T(\rho,p,X)`                            
 ('boxlib', 'tfromh')           :math:`\mathrm{\rm{K}}`                                                                 0  :math:`T(\rho,h,X)`                            
-('boxlib', 'Machnumber')                                                              ``mach_number``                  0  :math:`Mach Number`                            
+('boxlib', 'Machnumber')                                                              ``mach_number``                  0  :math:`M`                                      
 ('boxlib', 'S')                :math:`\mathrm{1 / \rm{s}}`                                                             0                                                 
-('boxlib', 'ad_excess')                                                                                                0  :math:`Adiabatic Excess`                       
+('boxlib', 'ad_excess')                                                                                                0  :math:`\nabla - \nabla_\mathrm{ad}`            
 ('boxlib', 'deltaT')                                                                                                   0  :math:`[T(\rho,h,X) - T(\rho,p,X)]/T(\rho,h,X)`
 ('boxlib', 'deltagamma')                                                                                               0  :math:`\Gamma_1 - \overline{\Gamma_1}`         
 ('boxlib', 'deltap')                                                                                                   0  :math:`[p(\rho,h,X) - p_0] / p_0`              
-('boxlib', 'divw0')            :math:`\mathrm{1 / \rm{s}}`                                                             0  :math:`
-abla \cdot \mathbf{w}_0`               
+('boxlib', 'divw0')            :math:`\mathrm{1 / \rm{s}}`                                                             0  :math:`\nabla \cdot \mathbf{w}_0`              
 ('boxlib', 'entropy')          :math:`\mathrm{\frac{\rm{erg}}{\rm{K} \cdot \rm{g}}}`  ``entropy``                      0  :math:`s`                                      
 ('boxlib', 'entropypert')                                                                                              0  :math:`[s - \overline{s}] / \overline{s}`      
-('boxlib', 'enucdot')          :math:`\mathrm{\frac{\rm{erg}}{\rm{g} \cdot \rm{s}}}`                                   0  :math:`\dot{\epsilon_{nuc}}`                   
+('boxlib', 'enucdot')          :math:`\mathrm{\frac{\rm{erg}}{\rm{g} \cdot \rm{s}}}`                                   0  :math:`\dot{\epsilon}_{nuc}`                   
 ('boxlib', 'Hext')             :math:`\mathrm{\frac{\rm{erg}}{\rm{g} \cdot \rm{s}}}`                                   0  :math:`H_{ext}`                                
-('boxlib', 'gpi_x')            :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{3}}}`                                          0  :math:`\left(
-abla\piight)_x`                 
-('boxlib', 'gpi_y')            :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{3}}}`                                          0  :math:`\left(
-abla\piight)_y`                 
-('boxlib', 'gpi_z')            :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{3}}}`                                          0  :math:`\left(
-abla\piight)_z`                 
+('boxlib', 'gpi_x')            :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{3}}}`                                          0  :math:`\left(\nabla\pi\right)_x`               
+('boxlib', 'gpi_y')            :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{3}}}`                                          0  :math:`\left(\nabla\pi\right)_y`               
+('boxlib', 'gpi_z')            :math:`\mathrm{\frac{\rm{dyne}}{\rm{cm}^{3}}}`                                          0  :math:`\left(\nabla\pi\right)_z`               
 ('boxlib', 'h')                :math:`\mathrm{\rm{erg} / \rm{g}}`                                                      0  :math:`h`                                      
 ('boxlib', 'h0')               :math:`\mathrm{\rm{erg} / \rm{g}}`                                                      0  :math:`h_0`                                    
-('boxlib', 'momentum')         :math:`\mathrm{\rm{cm} \cdot \rm{g} / \rm{s}}`         ``momentum_magnitude``           0                                                 
+('boxlib', 'momentum')         :math:`\mathrm{\rm{cm} \cdot \rm{g} / \rm{s}}`         ``momentum_magnitude``           0  :math:`\rho |\mathbf{U}|`                      
 ('boxlib', 'p0')               :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`                                           0  :math:`p_0`                                    
 ('boxlib', 'p0pluspi')         :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`                                           0  :math:`p_0 + \pi`                              
 ('boxlib', 'pi')               :math:`\mathrm{\frac{\rm{erg}}{\rm{cm}^{3}}}`                                           0  :math:`\pi`                                    
@@ -4287,12 +4289,12 @@ abla\piight)_z`
 ('boxlib', 'soundspeed')       :math:`\mathrm{\rm{cm} / \rm{s}}`                      ``sound_speed``                  0                                                 
 ('boxlib', 'sponge')                                                                                                   0                                                 
 ('boxlib', 'tpert')            :math:`\mathrm{\rm{K}}`                                                                 0  :math:`T - \overline{T}`                       
-('boxlib', 'vort')             :math:`\mathrm{1 / \rm{s}}`                            ``vorticity_magnitude``          0  :math:`|
-abla	imes	ilde{U}|`                   
+('boxlib', 'vort')             :math:`\mathrm{1 / \rm{s}}`                            ``vorticity_magnitude``          0  :math:`|\nabla\times\tilde{U}|`                
 ('boxlib', 'w0_x')             :math:`\mathrm{\rm{cm} / \rm{s}}`                                                       0  :math:`(w_0)_x`                                
 ('boxlib', 'w0_y')             :math:`\mathrm{\rm{cm} / \rm{s}}`                                                       0  :math:`(w_0)_y`                                
 ('boxlib', 'w0_z')             :math:`\mathrm{\rm{cm} / \rm{s}}`                                                       0  :math:`(w_0)_z`                                
 =============================  =====================================================  =======================  =========  ===============================================
+
 .. _Orion_specific_fields:
 
 Orion-Specific Fields
@@ -4327,43 +4329,11 @@ field name                     units                                            
 ('io', 'particle_id')                                                                                                            ``particle_index``          1              
 ('io', 'particle_mdot')        :math:`\mathrm{\rm{code}~\rm{mass} / \rm{code}~\rm{time}}`                                                                    1              
 =============================  ================================================================================================  ==================  =========  ============
+
 .. _ChomboPIC_specific_fields:
 
 ChomboPIC-Specific Fields
 -------------------------
-
-===================================  ==========================================================================  ===========================  =========  ============
-field name                           units                                                                       aliases                      particle?  display name
-===================================  ==========================================================================  ===========================  =========  ============
-('chombo', 'density')                :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`      ``density`` ``Density``              0              
-('chombo', 'potential')              :math:`\mathrm{\frac{\rm{code}~\rm{length}^{2}}{\rm{code}~\rm{time}^{2}}}`  ``potential`` ``Potential``          0              
-('chombo', 'gravitational_field_x')  :math:`\mathrm{\frac{\rm{code}~\rm{length}}{\rm{code}~\rm{time}^{2}}}`                                           0              
-('io', 'particle_mass')              :math:`\mathrm{\rm{code}~\rm{mass}}`                                                                             1              
-('io', 'particle_position_x')        :math:`\mathrm{\rm{code}~\rm{length}}`                                                                           1              
-('io', 'particle_velocity_x')        :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                                     1              
-===================================  ==========================================================================  ===========================  =========  ============
-.. _Orion2_specific_fields:
-
-Orion2-Specific Fields
-----------------------
-
-===================================  ==========================================================================  ===========================  =========  ============
-field name                           units                                                                       aliases                      particle?  display name
-===================================  ==========================================================================  ===========================  =========  ============
-('chombo', 'density')                :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`      ``density`` ``Density``              0              
-('chombo', 'potential')              :math:`\mathrm{\frac{\rm{code}~\rm{length}^{2}}{\rm{code}~\rm{time}^{2}}}`  ``potential`` ``Potential``          0              
-('chombo', 'gravitational_field_x')  :math:`\mathrm{\frac{\rm{code}~\rm{length}}{\rm{code}~\rm{time}^{2}}}`                                           0              
-('chombo', 'gravitational_field_y')  :math:`\mathrm{\frac{\rm{code}~\rm{length}}{\rm{code}~\rm{time}^{2}}}`                                           0              
-('io', 'particle_mass')              :math:`\mathrm{\rm{code}~\rm{mass}}`                                                                             1              
-('io', 'particle_position_x')        :math:`\mathrm{\rm{code}~\rm{length}}`                                                                           1              
-('io', 'particle_position_y')        :math:`\mathrm{\rm{code}~\rm{length}}`                                                                           1              
-('io', 'particle_velocity_x')        :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                                     1              
-('io', 'particle_velocity_y')        :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                                     1              
-===================================  ==========================================================================  ===========================  =========  ============
-.. _Pluto_specific_fields:
-
-Pluto-Specific Fields
----------------------
 
 ===================================  ==========================================================================  ===========================  =========  ============
 field name                           units                                                                       aliases                      particle?  display name
@@ -4381,6 +4351,63 @@ field name                           units                                      
 ('io', 'particle_velocity_y')        :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                                     1              
 ('io', 'particle_velocity_z')        :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                                     1              
 ===================================  ==========================================================================  ===========================  =========  ============
+
+.. _Orion2_specific_fields:
+
+Orion2-Specific Fields
+----------------------
+
+======================================  ================================================================================================  ============================  =========  ============
+field name                              units                                                                                             aliases                       particle?  display name
+======================================  ================================================================================================  ============================  =========  ============
+('chombo', 'density')                   :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`                            ``density``                           0              
+('chombo', 'energy-density')            :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`  ``energy_density``                    0              
+('chombo', 'radiation-energy-density')  :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`  ``radiation_energy_density``          0              
+('chombo', 'X-momentum')                :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`  ``momentum_x``                        0              
+('chombo', 'Y-momentum')                :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`  ``momentum_y``                        0              
+('chombo', 'Z-momentum')                :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`  ``momentum_z``                        0              
+('chombo', 'temperature')               :math:`\mathrm{\rm{K}}`                                                                           ``temperature``                       0              
+('chombo', 'X-magnfield')               :math:`\mathrm{\rm{gauss}}`                                                                       ``magnetic_field_x``                  0              
+('chombo', 'Y-magnfield')               :math:`\mathrm{\rm{gauss}}`                                                                       ``magnetic_field_y``                  0              
+('chombo', 'Z-magnfield')               :math:`\mathrm{\rm{gauss}}`                                                                       ``magnetic_field_z``                  0              
+('io', 'particle_mass')                 :math:`\mathrm{\rm{code}~\rm{mass}}`                                                                                                    1              
+('io', 'particle_position_x')           :math:`\mathrm{\rm{code}~\rm{length}}`                                                                                                  1              
+('io', 'particle_position_y')           :math:`\mathrm{\rm{code}~\rm{length}}`                                                                                                  1              
+('io', 'particle_position_z')           :math:`\mathrm{\rm{code}~\rm{length}}`                                                                                                  1              
+('io', 'particle_momentum_x')           :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`                                        1              
+('io', 'particle_momentum_y')           :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`                                        1              
+('io', 'particle_momentum_z')           :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{2} \cdot \rm{code}~\rm{time}}}`                                        1              
+('io', 'particle_angmomen_x')           :math:`\mathrm{\rm{code}~\rm{length}^{2} / \rm{code}~\rm{time}}`                                                                        1              
+('io', 'particle_angmomen_y')           :math:`\mathrm{\rm{code}~\rm{length}^{2} / \rm{code}~\rm{time}}`                                                                        1              
+('io', 'particle_angmomen_z')           :math:`\mathrm{\rm{code}~\rm{length}^{2} / \rm{code}~\rm{time}}`                                                                        1              
+('io', 'particle_mlast')                :math:`\mathrm{\rm{code}~\rm{mass}}`                                                                                                    1              
+('io', 'particle_r')                    :math:`\mathrm{\rm{code}~\rm{length}}`                                                                                                  1              
+('io', 'particle_mdeut')                :math:`\mathrm{\rm{code}~\rm{mass}}`                                                                                                    1              
+('io', 'particle_n')                                                                                                                                                            1              
+('io', 'particle_mdot')                 :math:`\mathrm{\rm{code}~\rm{mass} / \rm{code}~\rm{time}}`                                                                              1              
+('io', 'particle_burnstate')                                                                                                                                                    1              
+('io', 'particle_luminosity')                                                                                                                                                   1              
+('io', 'particle_id')                                                                                                                     ``particle_index``                    1              
+======================================  ================================================================================================  ============================  =========  ============
+
+.. _Pluto_specific_fields:
+
+Pluto-Specific Fields
+---------------------
+
+=================  ================================================================================================  ====================  =========  ============
+field name         units                                                                                             aliases               particle?  display name
+=================  ================================================================================================  ====================  =========  ============
+('chombo', 'rho')  :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`                            ``density``                   0              
+('chombo', 'prs')  :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`  ``pressure``                  0              
+('chombo', 'vx1')  :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                      ``velocity_x``                0              
+('chombo', 'vx2')  :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                      ``velocity_y``                0              
+('chombo', 'vx3')  :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                      ``velocity_z``                0              
+('chombo', 'bx1')  :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                                          ``magnetic_field_x``          0              
+('chombo', 'bx2')  :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                                          ``magnetic_field_y``          0              
+('chombo', 'bx3')  :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                                          ``magnetic_field_z``          0              
+=================  ================================================================================================  ====================  =========  ============
+
 .. _Eagle_specific_fields:
 
 Eagle-Specific Fields
@@ -4417,6 +4444,7 @@ field name                    units                                             
 ('io', 'Metallicity_09')                                                                              ``Ca_fraction``                1              
 ('io', 'Metallicity_10')                                                                              ``Fe_fraction``                1              
 ============================  ======================================================================  =====================  =========  ============
+
 .. _Enzo_specific_fields:
 
 Enzo-Specific Fields
@@ -4432,9 +4460,9 @@ field name                        units                                         
 ('enzo', 'HeI_kph')               :math:`\mathrm{1 / \rm{code}~\rm{time}}`                                                                      0              
 ('enzo', 'HeII_kph')              :math:`\mathrm{1 / \rm{code}~\rm{time}}`                                                                      0              
 ('enzo', 'H2I_kdiss')             :math:`\mathrm{1 / \rm{code}~\rm{time}}`                                                                      0              
-('enzo', 'Bx')                    :math:`\mathrm{\rm{code_magnetic}}`                                     ``magnetic_field_x``                  0              
-('enzo', 'By')                    :math:`\mathrm{\rm{code_magnetic}}`                                     ``magnetic_field_y``                  0              
-('enzo', 'Bz')                    :math:`\mathrm{\rm{code_magnetic}}`                                     ``magnetic_field_z``                  0              
+('enzo', 'Bx')                    :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                ``magnetic_field_x``                  0              
+('enzo', 'By')                    :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                ``magnetic_field_y``                  0              
+('enzo', 'Bz')                    :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                ``magnetic_field_z``                  0              
 ('enzo', 'RadAccel1')             :math:`\mathrm{\frac{\rm{code}~\rm{length}}{\rm{code}~\rm{time}^{2}}}`  ``radiation_acceleration_x``          0              
 ('enzo', 'RadAccel2')             :math:`\mathrm{\frac{\rm{code}~\rm{length}}{\rm{code}~\rm{time}^{2}}}`  ``radiation_acceleration_y``          0              
 ('enzo', 'RadAccel3')             :math:`\mathrm{\frac{\rm{code}~\rm{length}}{\rm{code}~\rm{time}^{2}}}`  ``radiation_acceleration_z``          0              
@@ -4468,6 +4496,7 @@ field name                        units                                         
 ('io', 'identifier')                                                                                      ``particle_index``                    1              
 ('io', 'level')                                                                                                                                 1              
 ================================  ======================================================================  ============================  =========  ============
+
 .. _FLASH_specific_fields:
 
 FLASH-Specific Fields
@@ -4497,7 +4526,7 @@ field name               units                                                  
 ('flash', 'depo')        :math:`\mathrm{\frac{\rm{code}~\rm{length}^{2}}{\rm{code}~\rm{time}^{2}}}`                                                                 0                                                     
 ('flash', 'ye')                                                                                                                                                     0  :math:`Y_e`                                        
 ('flash', 'magp')        :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`                                           0                                                     
-('flash', 'divb')        :math:`\mathrm{\rm{code}~\rm{length} \cdot \rm{code_magnetic}}`                                                                            0                                                     
+('flash', 'divb')        :math:`\mathrm{\rm{code}~\rm{length} \cdot \rm{code}~\rm{magnetic}}`                                                                       0                                                     
 ('flash', 'game')                                                                                                                                                   0  :math:`\gamma_e\/\rm{(ratio\/of\/specific\/heats)}`
 ('flash', 'gamc')                                                                                                                                                   0  :math:`\gamma_c\/\rm{(ratio\/of\/specific\/heats)}`
 ('flash', 'flam')                                                                                                                                                   0                                                     
@@ -4513,9 +4542,9 @@ field name               units                                                  
 ('flash', 'targ')                                                                                                                                                   0  :math:`Target Material Fraction`                   
 ('flash', 'sumy')                                                                                                                                                   0                                                     
 ('flash', 'mgdc')                                                                                                                                                   0  :math:`Emission Minus Absorption Diffusion Terms`  
-('flash', 'magx')        :math:`\mathrm{\rm{code_magnetic}}`                                                                   ``magnetic_field_x``                 0  :math:`B_x`                                        
-('flash', 'magy')        :math:`\mathrm{\rm{code_magnetic}}`                                                                   ``magnetic_field_y``                 0  :math:`B_y`                                        
-('flash', 'magz')        :math:`\mathrm{\rm{code_magnetic}}`                                                                   ``magnetic_field_z``                 0  :math:`B_z`                                        
+('flash', 'magx')        :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                                              ``magnetic_field_x``                 0  :math:`B_x`                                        
+('flash', 'magy')        :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                                              ``magnetic_field_y``                 0  :math:`B_y`                                        
+('flash', 'magz')        :math:`\mathrm{\rm{code}~\rm{magnetic}}`                                                              ``magnetic_field_z``                 0  :math:`B_z`                                        
 ('io', 'particle_posx')  :math:`\mathrm{\rm{code}~\rm{length}}`                                                                ``particle_position_x``              1                                                     
 ('io', 'particle_posy')  :math:`\mathrm{\rm{code}~\rm{length}}`                                                                ``particle_position_y``              1                                                     
 ('io', 'particle_posz')  :math:`\mathrm{\rm{code}~\rm{length}}`                                                                ``particle_position_z``              1                                                     
@@ -4525,6 +4554,7 @@ field name               units                                                  
 ('io', 'particle_tag')                                                                                                         ``particle_index``                   1                                                     
 ('io', 'particle_mass')  :math:`\mathrm{\rm{code}~\rm{mass}}`                                                                  ``particle_mass``                    1                                                     
 =======================  ====================================================================================================  ===========================  =========  ===================================================
+
 .. _Gadget_specific_fields:
 
 Gadget-Specific Fields
@@ -4561,6 +4591,7 @@ field name                    units                                             
 ('io', 'Metallicity_09')                                                                              ``Ca_fraction``                1              
 ('io', 'Metallicity_10')                                                                              ``Fe_fraction``                1              
 ============================  ======================================================================  =====================  =========  ============
+
 .. _GDF_specific_fields:
 
 GDF-Specific Fields
@@ -4580,6 +4611,7 @@ field name                  units                                          alias
 ('gdf', 'mag_field_y')      :math:`\mathrm{\rm{gauss}}`                    ``magnetic_field_y``          0              
 ('gdf', 'mag_field_z')      :math:`\mathrm{\rm{gauss}}`                    ``magnetic_field_z``          0              
 ==========================  =============================================  ====================  =========  ============
+
 .. _HaloCatalog_specific_fields:
 
 HaloCatalog-Specific Fields
@@ -4598,6 +4630,7 @@ field name                     units                              aliases  parti
 ('io', 'particle_mass')        :math:`\mathrm{\rm{g}}`                             1  :math:`Virial Mass`  
 ('io', 'virial_radius')        :math:`\mathrm{\rm{cm}}`                            1  :math:`Virial Radius`
 =============================  =================================  =======  =========  =====================
+
 .. _OWLS_specific_fields:
 
 OWLS-Specific Fields
@@ -4634,6 +4667,7 @@ field name                    units                                             
 ('io', 'Metallicity_09')                                                                              ``Ca_fraction``                1              
 ('io', 'Metallicity_10')                                                                              ``Fe_fraction``                1              
 ============================  ======================================================================  =====================  =========  ============
+
 .. _OWLSSubfind_specific_fields:
 
 OWLSSubfind-Specific Fields
@@ -4668,32 +4702,34 @@ field name                        units                                         
 ('io', 'BH_Mdot')                 :math:`\mathrm{\rm{code}~\rm{mass} / \rm{code}~\rm{time}}`                                   1              
 ('io', 'StarFormationRate')       :math:`\mathrm{\rm{code}~\rm{mass} / \rm{code}~\rm{time}}`                                   1              
 ================================  ==========================================================  =======================  =========  ============
+
 .. _RAMSES_specific_fields:
 
 RAMSES-Specific Fields
 ----------------------
 
-===================================  ================================================================================================  ==================  =========  ============
-field name                           units                                                                                             aliases             particle?  display name
-===================================  ================================================================================================  ==================  =========  ============
-('ramses', 'Density')                :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length}^{3}}}`                            ``density``                 0              
-('ramses', 'x-velocity')             :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                      ``velocity_x``              0              
-('ramses', 'y-velocity')             :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                      ``velocity_y``              0              
-('ramses', 'z-velocity')             :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                      ``velocity_z``              0              
-('ramses', 'Pressure')               :math:`\mathrm{\frac{\rm{code}~\rm{mass}}{\rm{code}~\rm{length} \cdot \rm{code}~\rm{time}^{2}}}`  ``pressure``                0              
-('ramses', 'Metallicity')                                                                                                              ``metallicity``             0              
-('io', 'particle_position_x')        :math:`\mathrm{\rm{code}~\rm{length}}`                                                                                        1              
-('io', 'particle_position_y')        :math:`\mathrm{\rm{code}~\rm{length}}`                                                                                        1              
-('io', 'particle_position_z')        :math:`\mathrm{\rm{code}~\rm{length}}`                                                                                        1              
-('io', 'particle_velocity_x')        :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                                                  1              
-('io', 'particle_velocity_y')        :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                                                  1              
-('io', 'particle_velocity_z')        :math:`\mathrm{\rm{code}~\rm{length} / \rm{code}~\rm{time}}`                                                                  1              
-('io', 'particle_mass')              :math:`\mathrm{\rm{code}~\rm{mass}}`                                                                                          1              
-('io', 'particle_identifier')                                                                                                          ``particle_index``          1              
-('io', 'particle_refinement_level')                                                                                                                                1              
-('io', 'particle_age')               :math:`\mathrm{\rm{code}~\rm{time}}`                                                                                          1              
-('io', 'particle_metallicity')                                                                                                                                     1              
-===================================  ================================================================================================  ==================  =========  ============
+===================================  ========================================  ==================  =========  ============
+field name                           units                                     aliases             particle?  display name
+===================================  ========================================  ==================  =========  ============
+('ramses', 'Density')                :math:`\mathrm{\rm{code_density}}`        ``density``                 0              
+('ramses', 'x-velocity')             :math:`\mathrm{\rm{code}~\rm{velocity}}`  ``velocity_x``              0              
+('ramses', 'y-velocity')             :math:`\mathrm{\rm{code}~\rm{velocity}}`  ``velocity_y``              0              
+('ramses', 'z-velocity')             :math:`\mathrm{\rm{code}~\rm{velocity}}`  ``velocity_z``              0              
+('ramses', 'Pressure')               :math:`\mathrm{\rm{code_pressure}}`       ``pressure``                0              
+('ramses', 'Metallicity')                                                      ``metallicity``             0              
+('io', 'particle_position_x')        :math:`\mathrm{\rm{code}~\rm{length}}`                                1              
+('io', 'particle_position_y')        :math:`\mathrm{\rm{code}~\rm{length}}`                                1              
+('io', 'particle_position_z')        :math:`\mathrm{\rm{code}~\rm{length}}`                                1              
+('io', 'particle_velocity_x')        :math:`\mathrm{\rm{code}~\rm{velocity}}`                              1              
+('io', 'particle_velocity_y')        :math:`\mathrm{\rm{code}~\rm{velocity}}`                              1              
+('io', 'particle_velocity_z')        :math:`\mathrm{\rm{code}~\rm{velocity}}`                              1              
+('io', 'particle_mass')              :math:`\mathrm{\rm{code}~\rm{mass}}`                                  1              
+('io', 'particle_identifier')                                                  ``particle_index``          1              
+('io', 'particle_refinement_level')                                                                        1              
+('io', 'particle_age')               :math:`\mathrm{\rm{code}~\rm{time}}`                                  1              
+('io', 'particle_metallicity')                                                                             1              
+===================================  ========================================  ==================  =========  ============
+
 .. _Rockstar_specific_fields:
 
 Rockstar-Specific Fields
@@ -4760,6 +4796,7 @@ field name                     units                                    aliases 
 ('io', 'min_vel_err')                                                                    1                                   
 ('io', 'min_bulkvel_err')                                                                1                                   
 =============================  =======================================  =======  =========  =================================
+
 .. _Tipsy_specific_fields:
 
 Tipsy-Specific Fields
@@ -4814,6 +4851,7 @@ field name                    units                                             
 ('io', 'OxMassFrac')          :math:`\mathrm{}`                                                       ``OxMassFrac``                 1              
 ('io', 'HeI')                 :math:`\mathrm{}`                                                       ``HeI``                        1              
 ============================  ======================================================================  =====================  =========  ============
+
 
 
 Index of Fields

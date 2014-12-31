@@ -54,6 +54,8 @@ from yt.fields.field_exceptions import \
     NeedsDataField,\
     NeedsProperty,\
     NeedsParameter
+from yt.fields.derived_field import \
+    TranslationFunc
 
 class YTStreamlineBase(YTSelectionContainer1D):
     """
@@ -204,7 +206,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     --------
 
     >>> ds = load("RedshiftOutput0005")
-    >>> prj = ds.proj(0, "density")
+    >>> prj = ds.proj("density", 0)
     >>> print proj["density"]
     """
     _key_fields = YTSelectionContainer2D._key_fields + ['weight_field']
@@ -525,19 +527,26 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         fields_to_get = [f for f in fields if f not in self.field_data]
         fields_to_get = self._identify_dependencies(fields_to_get)
         if len(fields_to_get) == 0: return
-        fill, gen, part = self._split_fields(fields_to_get)
+        fill, gen, part, alias = self._split_fields(fields_to_get)
         if len(part) > 0: self._fill_particles(part)
         if len(fill) > 0: self._fill_fields(fill)
+        for a, f in sorted(alias.items()):
+            self[a] = f(self)
+            self.field_data[a].convert_to_units(f.output_units)
         if len(gen) > 0: self._generate_fields(gen)
 
     def _split_fields(self, fields_to_get):
         fill, gen = self.index._split_fields(fields_to_get)
         particles = []
+        alias = {}
         for field in gen:
             if field[0] == 'deposit':
                 fill.append(field)
                 continue
             finfo = self.ds._get_field_info(*field)
+            if finfo._function.func_name == "_TranslationFunc":
+                alias[field] = finfo
+                continue
             try:
                 finfo.check_available(self)
             except NeedsOriginalGrid:
@@ -546,15 +555,17 @@ class YTCoveringGridBase(YTSelectionContainer3D):
             finfo = self.ds._get_field_info(*field)
             if finfo.particle_type:
                 particles.append(field)
-        gen = [f for f in gen if f not in fill]
+        gen = [f for f in gen if f not in fill and f not in alias]
         fill = [f for f in fill if f not in particles]
-        return fill, gen, particles
+        return fill, gen, particles, alias
 
     def _fill_particles(self, part):
         for p in part:
             self[p] = self._pdata_source[p]
 
     def _fill_fields(self, fields):
+        fields = [f for f in fields if f not in self.field_data]
+        if len(fields) == 0: return
         output_fields = [np.zeros(self.ActiveDimensions, dtype="float64")
                          for field in fields]
         domain_dims = self.ds.domain_dimensions.astype("int64") \
@@ -786,6 +797,8 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
 
 
     def _fill_fields(self, fields):
+        fields = [f for f in fields if f not in self.field_data]
+        if len(fields) == 0: return
         ls = self._initialize_level_state(fields)
         for level in range(self.level + 1):
             domain_dims = self.ds.domain_dimensions.astype("int64") \

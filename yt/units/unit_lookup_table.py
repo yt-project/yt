@@ -139,6 +139,7 @@ latex_symbol_lut = {
     "code_temperature" : "\\rm{code}\/\\rm{temperature}",
     "code_metallicity" : "\\rm{code}\/\\rm{metallicity}",
     "code_velocity" : "\\rm{code}\/\\rm{velocity}",
+    "code_magnetic" : "\\rm{code}\/\\rm{magnetic}",
     "Msun" : "\\rm{M}_\\odot",
     "msun" : "\\rm{M}_\\odot",
     "Rsun" : "\\rm{R}_\\odot",

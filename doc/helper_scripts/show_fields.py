@@ -126,7 +126,7 @@ def fix_units(units, in_cgs=False):
     if in_cgs:
         unit_object = unit_object.get_cgs_equivalent()
     latex = unit_object.latex_representation()
-    return latex.replace('\/','~')
+    return latex.replace('\/', '~')
 
 def print_all_fields(fl):
     for fn in sorted(fl):
@@ -204,6 +204,10 @@ for frontend in current_frontends:
                 field_info_names.append("CastroFieldInfo")
             else: 
                 field_info_names.append("BoxlibFieldInfo")
+    elif frontend == "chombo":
+        # remove low dimensional field info containters for ChomboPIC
+        field_info_names = [f for f in field_info_names if '1D' not in f
+                            and '2D' not in f]
 
     for dset_name, fi_name in zip(dataset_names, field_info_names):
         fi = getattr(this_f, fi_name)
@@ -271,5 +275,6 @@ for frontend in current_frontends:
                                   dp=f.dname, dw=len_disp)
                 
             print div
+            print ""
 
 print footer
