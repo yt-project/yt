@@ -16,8 +16,6 @@ A refine-by-two AMR-specific quadtree
 
 import numpy as np
 cimport numpy as np
-# Double up here for def'd functions
-cimport numpy as cnp
 cimport cython
 from fp_utils cimport fmax
 
@@ -272,8 +270,8 @@ cdef class QuadTree:
         cdef np.int64_t i, j
         i = pos[0] >> level
         j = pos[1] >> level
-        if i > self.top_grid_dims[0] or i < 0 or \
-           j > self.top_grid_dims[1] or j < 0:
+        if i >= self.top_grid_dims[0] or i < 0 or \
+           j >= self.top_grid_dims[1] or j < 0:
             self.last_dims[0] = i
             self.last_dims[1] = j
             return NULL
@@ -286,12 +284,11 @@ cdef class QuadTree:
             np.ndarray[np.float64_t, ndim=2] pvals,
             np.ndarray[np.float64_t, ndim=1] pweight_vals,
             int skip = 0):
-        cdef int np = pxs.shape[0]
         cdef int p
-        cdef cnp.float64_t *vals
-        cdef cnp.float64_t *data = <cnp.float64_t *> pvals.data
-        cdef cnp.int64_t pos[2]
-        for p in range(np):
+        cdef np.float64_t *vals
+        cdef np.float64_t *data = <np.float64_t *> pvals.data
+        cdef np.int64_t pos[2]
+        for p in range(pxs.shape[0]):
             vals = data + self.nvals*p
             pos[0] = pxs[p]
             pos[1] = pys[p]
@@ -307,15 +304,19 @@ cdef class QuadTree:
             np.ndarray[np.float64_t, ndim=2] pvals,
             np.ndarray[np.float64_t, ndim=1] pweight_vals):
         cdef int ps = pxs.shape[0]
-        cdef int p
-        cdef cnp.float64_t *vals
-        cdef cnp.float64_t *data = <cnp.float64_t *> pvals.data
-        cdef cnp.int64_t pos[2]
+        cdef int p, rv
+        cdef np.float64_t *vals
+        cdef np.float64_t *data = <np.float64_t *> pvals.data
+        cdef np.int64_t pos[2]
         for p in range(ps):
             vals = data + self.nvals*p
             pos[0] = pxs[p]
             pos[1] = pys[p]
-            self.add_to_position(level[p], pos, vals, pweight_vals[p])
+            rv = self.add_to_position(level[p], pos, vals, pweight_vals[p])
+            if rv == -1:
+                raise YTIntDomainOverflow(
+                    (self.last_dims[0], self.last_dims[1]),
+                    (self.top_grid_dims[0], self.top_grid_dims[1]))
         return
 
     @cython.boundscheck(False)
@@ -326,8 +327,8 @@ cdef class QuadTree:
             np.ndarray[np.int64_t, ndim=1] level):
         cdef int num = pxs.shape[0]
         cdef int p, rv
-        cdef cnp.float64_t *vals
-        cdef cnp.int64_t pos[2]
+        cdef np.float64_t *vals
+        cdef np.int64_t pos[2]
         for p in range(num):
             pos[0] = pxs[p]
             pos[1] = pys[p]
