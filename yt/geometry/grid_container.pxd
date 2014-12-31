@@ -22,7 +22,7 @@ from libc.math cimport nearbyint, rint
 from yt.geometry.selection_routines cimport SelectorObject, _ensure_code
 from yt.utilities.lib.fp_utils cimport iclip
 
-cdef struct GridTreeNode :
+cdef struct GridTreeNode:
     int num_children
     int level
     int index
@@ -37,26 +37,26 @@ cdef class GridTree:
     cdef int num_root_grids
     cdef int num_leaf_grids
 
-cdef class MatchPointsToGrids :
+cdef class MatchPointsToGrids:
 
     cdef int num_points
-    cdef np.float64_t * xp
-    cdef np.float64_t * yp
-    cdef np.float64_t * zp
+    cdef np.float64_t *xp
+    cdef np.float64_t *yp
+    cdef np.float64_t *zp
     cdef GridTree tree
-    cdef np.int64_t * point_grids
+    cdef np.int64_t *point_grids
     cdef np.uint8_t check_position(self,
                                    np.int64_t pt_index, 
                                    np.float64_t x,
                                    np.float64_t y,
                                    np.float64_t z,
-                                   GridTreeNode * grid)
+                                   GridTreeNode *grid)
 
     cdef np.uint8_t is_in_grid(self,
 			 np.float64_t x,
 			 np.float64_t y,
 			 np.float64_t z,
-			 GridTreeNode * grid)
+			 GridTreeNode *grid)
 
 cdef class FastGridSelectionHelper:
     cdef public object index
