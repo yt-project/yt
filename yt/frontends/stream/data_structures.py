@@ -432,6 +432,7 @@ def assign_particle_data(ds, pdata) :
         grid_tree = GridTree(num_grids, 
                              ds.stream_handler.left_edges,
                              ds.stream_handler.right_edges,
+                             ds.stream_handler.dimensions,
                              ds.stream_handler.parent_ids,
                              levels, num_children)
 

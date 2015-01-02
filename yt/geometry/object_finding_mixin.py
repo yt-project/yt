@@ -271,6 +271,7 @@ class ObjectFindingMixin(object) :
         level = np.zeros((self.num_grids), dtype='int64')
         parent_ind = np.zeros((self.num_grids), dtype='int64')
         num_children = np.zeros((self.num_grids), dtype='int64')
+        dimensions = np.zeros((self.num_grids, 3), dtype="int32")
 
         for i, grid in enumerate(self.grids) :
 
@@ -282,6 +283,7 @@ class ObjectFindingMixin(object) :
             else :
                 parent_ind[i] = grid.Parent.id - grid.Parent._id_offset
             num_children[i] = np.int64(len(grid.Children))
+            dimensions[i,:] = grid.ActiveDimensions
 
-        return GridTree(self.num_grids, left_edge, right_edge, parent_ind,
-                        level, num_children)
+        return GridTree(self.num_grids, left_edge, right_edge, dimensions,
+                        parent_ind, level, num_children)
