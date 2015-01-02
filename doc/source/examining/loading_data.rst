@@ -602,7 +602,8 @@ is able to access the particles as it would any other particle dataset, and it
 can apply smoothing kernels to the data to produce both quantitative analysis
 and visualization. See :ref:`loading-sph-data` for more details and
 :ref:`gadget-notebook` for a detailed example of loading, analyzing, and
-visualizing a Gadget dataset.
+visualizing a Gadget dataset.  An example which makes use of a Gadget snapshot
+from the OWLS project can be found at :ref:`owls-notebook`.  
 
 Gadget data in HDF5 format can be loaded with the ``load`` command:
 
