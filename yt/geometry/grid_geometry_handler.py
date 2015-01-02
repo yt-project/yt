@@ -246,7 +246,7 @@ class GridIndex(Index):
         ind = pts.find_points_in_tree()
         return self.grids[ind], ind
 
-    def _get_grid_tree(self) :
+    def _get_grid_tree(self):
 
         left_edge = self.ds.arr(np.zeros((self.num_grids, 3)),
                                'code_length')
@@ -255,6 +255,7 @@ class GridIndex(Index):
         level = np.zeros((self.num_grids), dtype='int64')
         parent_ind = np.zeros((self.num_grids), dtype='int64')
         num_children = np.zeros((self.num_grids), dtype='int64')
+        dimensions = np.zeros((self.num_grids, 3), dtype="int32")
 
         for i, grid in enumerate(self.grids) :
 
@@ -266,9 +267,10 @@ class GridIndex(Index):
             else :
                 parent_ind[i] = grid.Parent.id - grid.Parent._id_offset
             num_children[i] = np.int64(len(grid.Children))
+            dimensions[i,:] = grid.ActiveDimensions
 
-        return GridTree(self.num_grids, left_edge, right_edge, parent_ind,
-                        level, num_children)
+        return GridTree(self.num_grids, left_edge, right_edge, dimensions,
+                        parent_ind, level, num_children)
 
     def convert(self, unit):
         return self.dataset.conversion_factors[unit]
@@ -286,11 +288,14 @@ class GridIndex(Index):
             dobj._chunk_info = np.empty(len(grids), dtype='object')
             for i, g in enumerate(grids):
                 dobj._chunk_info[i] = g
+        #if dobj._type_name != "grid":
+        #    fast_index = self._get_grid_tree()
         if getattr(dobj, "size", None) is None:
             dobj.size = self._count_selection(dobj, fast_index = fast_index)
         if getattr(dobj, "shape", None) is None:
             dobj.shape = (dobj.size,)
-        dobj._current_chunk = list(self._chunk_all(dobj, cache = False))[0]
+        dobj._current_chunk = list(self._chunk_all(dobj, cache = False,
+                                   fast_index = fast_index))[0]
 
     def _count_selection(self, dobj, grids = None, fast_index = None):
         if fast_index is not None:
@@ -299,9 +304,12 @@ class GridIndex(Index):
         count = sum((g.count(dobj.selector) for g in grids))
         return count
 
-    def _chunk_all(self, dobj, cache = True):
+    def _chunk_all(self, dobj, cache = True, fast_index = None):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        yield YTDataChunk(dobj, "all", gobjs, dobj.size, cache)
+        fast_index = fast_index or getattr(dobj._current_chunk, "_fast_index",
+            None)
+        yield YTDataChunk(dobj, "all", gobjs, dobj.size, 
+                        cache, fast_index = fast_index)
         
     def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
@@ -332,6 +340,7 @@ class GridIndex(Index):
         # implementation by subclasses.
         gfiles = defaultdict(list)
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+        fast_index = dobj._current_chunk._fast_index
         for g in gobjs:
             gfiles[g.filename].append(g)
         for fn in sorted(gfiles):
@@ -344,5 +353,5 @@ class GridIndex(Index):
                           in xrange(0, len(gs), size)):
                 yield YTDataChunk(dobj, "io", grids,
                         self._count_selection(dobj, grids),
-                        cache = cache)
+                        cache = cache, fast_index = fast_index)
 

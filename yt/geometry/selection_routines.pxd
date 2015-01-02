@@ -17,6 +17,8 @@ Geometry selection routine imports.
 cimport numpy as np
 from oct_visitors cimport Oct, OctVisitorData, \
     oct_visitor_function
+from grid_visitors cimport GridTreeNode, GridVisitorData, \
+    grid_visitor_function, check_child_masked
 
 ctypedef fused anyfloat:
     np.float32_t
@@ -60,6 +62,8 @@ cdef class SelectorObject:
                                 np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
                                 np.ndarray[np.uint8_t, ndim=3] mask,
                                 int level)
+    cdef void visit_grid_cells(self, GridVisitorData *data,
+                    grid_visitor_function *func)
 
     # compute periodic distance (if periodicity set) assuming 0->domain_width[i] coordinates
     cdef np.float64_t difference(self, np.float64_t x1, np.float64_t x2, int d) nogil

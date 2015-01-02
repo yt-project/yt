@@ -21,21 +21,24 @@ from libc.stdlib cimport malloc, free
 from libc.math cimport nearbyint, rint
 from yt.geometry.selection_routines cimport SelectorObject, _ensure_code
 from yt.utilities.lib.fp_utils cimport iclip
+from grid_visitors cimport GridTreeNode, GridVisitorData, grid_visitor_function
+cimport grid_visitors 
 
-cdef struct GridTreeNode:
-    int num_children
-    int level
-    int index
-    np.float64_t left_edge[3]
-    np.float64_t right_edge[3]
-    GridTreeNode **children
-                
 cdef class GridTree:
     cdef GridTreeNode *grids
     cdef GridTreeNode *root_grids
     cdef int num_grids
     cdef int num_root_grids
     cdef int num_leaf_grids
+    cdef void setup_data(self, GridVisitorData *data)
+    cdef void visit_grids(self, GridVisitorData *data,
+                          grid_visitor_function *func,
+                          SelectorObject selector)
+    cdef void recursively_visit_grid(self,
+                          GridVisitorData *data,
+                          grid_visitor_function *func,
+                          SelectorObject selector,
+                          GridTreeNode *grid)
 
 cdef class MatchPointsToGrids:
 
@@ -57,8 +60,3 @@ cdef class MatchPointsToGrids:
 			 np.float64_t y,
 			 np.float64_t z,
 			 GridTreeNode *grid)
-
-cdef class FastGridSelectionHelper:
-    cdef public object index
-    cdef public object grid_ind
-

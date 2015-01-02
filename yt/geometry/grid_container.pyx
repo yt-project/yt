@@ -16,12 +16,14 @@ Matching points on the grid to specific grids
 import numpy as np
 cimport numpy as np
 cimport cython
+from libc.math cimport rint
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef GridTreeNode Grid_initialize(np.ndarray[np.float64_t, ndim=1] le,
                                   np.ndarray[np.float64_t, ndim=1] re,
+                                  np.ndarray[np.int32_t, ndim=1] dims,
                                   int num_children, int level, int index):
 
     cdef GridTreeNode node
@@ -32,6 +34,9 @@ cdef GridTreeNode Grid_initialize(np.ndarray[np.float64_t, ndim=1] le,
     for i in range(3):
         node.left_edge[i] = le[i]
         node.right_edge[i] = re[i]
+        node.dims[i] = dims[i]
+        node.dds[i] = (re[i] - le[i])/dims[i]
+        node.start_index[i] = <np.int64_t> rint(le[i] / node.dds[i])
     node.num_children = num_children
     if num_children <= 0:
         node.children = NULL
@@ -51,6 +56,7 @@ cdef class GridTree:
     def __cinit__(self, int num_grids, 
                   np.ndarray[np.float64_t, ndim=2] left_edge,
                   np.ndarray[np.float64_t, ndim=2] right_edge,
+                  np.ndarray[np.int32_t, ndim=2] dimensions,
                   np.ndarray[np.int64_t, ndim=1] parent_ind,
                   np.ndarray[np.int64_t, ndim=1] level,
                   np.ndarray[np.int64_t, ndim=1] num_children):
@@ -70,6 +76,7 @@ cdef class GridTree:
         for i in range(num_grids):
             self.grids[i] = Grid_initialize(left_edge[i,:],
                                             right_edge[i,:],
+                                            dimensions[i,:],
                                             num_children[i],
                                             level[i], i)
             if level[i] == 0:
@@ -90,6 +97,9 @@ cdef class GridTree:
                     raise RuntimeError
                 self.root_grids[k] = self.grids[i] 
                 k = k + 1
+
+    def __iter__(self):
+        yield self
     
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -109,6 +119,98 @@ cdef class GridTree:
                 childs.append(self.grids[i].children[j].index)
             children.append(childs)
         return indices, levels, nchild, children
+
+    cdef void setup_data(self, GridVisitorData *data):
+        data.index = 0
+        data.n_tuples = 0
+        data.child_tuples = NULL
+        data.array = NULL
+        data.ref_factor = 2 #### FIX THIS
+
+    cdef void visit_grids(self, GridVisitorData *data,
+                          grid_visitor_function *func,
+                          SelectorObject selector):
+        cdef int i, n
+        # Because of confusion about mapping of children to parents, we are
+        # going to do this the stupid way for now.
+        cdef GridTreeNode *grid
+        for i in range(self.num_root_grids):
+            grid = &self.root_grids[i]
+            self.recursively_visit_grid(data, func, selector, grid)
+        grid_visitors.free_tuples(data)
+
+    cdef void recursively_visit_grid(self, GridVisitorData *data,
+                                     grid_visitor_function *func,
+                                     SelectorObject selector,
+                                     GridTreeNode *grid):
+        cdef int i
+        data.grid = grid
+        if selector.select_bbox(grid.left_edge, grid.right_edge) == 0:
+            return
+        grid_visitors.setup_tuples(data)
+        selector.visit_grid_cells(data, func)
+        for i in range(grid.num_children):
+            self.recursively_visit_grid(data, func, selector, grid.children[i])
+
+    def count(self, SelectorObject selector):
+        cdef GridVisitorData data
+        self.setup_data(&data)
+        cdef np.uint64_t size = 0
+        data.array = <void*>(&size)
+        self.visit_grids(&data,  grid_visitors.count_cells, selector)
+        return size
+
+    def select_icoords(self, SelectorObject selector, np.uint64_t size = -1):
+        cdef GridVisitorData data
+        self.setup_data(&data)
+        if size == -1:
+            size = 0
+            data.array = <void*>(&size)
+            self.visit_grids(&data,  grid_visitors.count_cells, selector)
+        cdef np.ndarray[np.int64_t, ndim=2] icoords 
+        icoords = np.zeros((size, 3), dtype="int64")
+        data.array = icoords.data
+        self.visit_grids(&data, grid_visitors.icoords_cells, selector)
+        return icoords
+
+    def select_ires(self, SelectorObject selector, np.uint64_t size = -1):
+        cdef GridVisitorData data
+        self.setup_data(&data)
+        if size == -1:
+            size = 0
+            data.array = <void*>(&size)
+            self.visit_grids(&data,  grid_visitors.count_cells, selector)
+        cdef np.ndarray[np.int64_t, ndim=1] ires 
+        ires = np.zeros(size, dtype="int64")
+        data.array = ires.data
+        self.visit_grids(&data, grid_visitors.ires_cells, selector)
+        return ires
+
+    def select_fcoords(self, SelectorObject selector, np.uint64_t size = -1):
+        cdef GridVisitorData data
+        self.setup_data(&data)
+        if size == -1:
+            size = 0
+            data.array = <void*>(&size)
+            self.visit_grids(&data,  grid_visitors.count_cells, selector)
+        cdef np.ndarray[np.float64_t, ndim=2] fcoords 
+        fcoords = np.zeros((size, 3), dtype="float64")
+        data.array = fcoords.data
+        self.visit_grids(&data, grid_visitors.fcoords_cells, selector)
+        return fcoords
+
+    def select_fwidth(self, SelectorObject selector, np.uint64_t size = -1):
+        cdef GridVisitorData data
+        self.setup_data(&data)
+        if size == -1:
+            size = 0
+            data.array = <void*>(&size)
+            self.visit_grids(&data,  grid_visitors.count_cells, selector)
+        cdef np.ndarray[np.float64_t, ndim=2] fwidth 
+        fwidth = np.zeros((size, 3), dtype="float64")
+        data.array = fwidth.data
+        self.visit_grids(&data, grid_visitors.fwidth_cells, selector)
+        return fwidth
     
 cdef class MatchPointsToGrids:
 
@@ -197,56 +299,3 @@ cdef class MatchPointsToGrids:
         if z < grid.left_edge[2]: return 0
         return 1
 
-cdef class FastGridSelectionHelper:
-
-    def __init__(self, index, grid_ind):
-        self.index = index
-        self.grid_ind = grid_ind
-
-    @cython.cdivision(True)
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    def count(self, SelectorObject selector):
-        cdef int gi, i, level, total
-        #cdef np.ndarray[
-        cdef np.ndarray[np.uint8_t, ndim=1, cast=True] gind = self.grid_ind
-        cdef np.ndarray[np.float64_t, ndim=2] grid_left_edges
-        cdef np.ndarray[np.float64_t, ndim=2] grid_right_edges
-        cdef np.ndarray[np.int32_t, ndim=2] grid_dimensions
-        cdef np.ndarray[np.int32_t, ndim=2] grid_levels
-        cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
-        cdef np.ndarray[np.uint8_t, ndim=3] mask
-        cdef np.float64_t left_edge[3], right_edge[3], dds[3]
-        cdef int dim[3]
-        _ensure_code(self.index.grid_left_edge)
-        _ensure_code(self.index.grid_right_edge)
-        grid_left_edges = self.index.grid_left_edge.d
-        grid_right_edges = self.index.grid_right_edge.d
-        grid_dimensions = self.index.grid_dimensions
-        grid_levels = self.index.grid_levels
-        cdef int max_dim[3]
-        max_dim[0] = max_dim[1] = max_dim[2] = 0
-        for gi in range(gind.shape[0]):
-            if gind[gi] == 0: continue
-            for i in range(3):
-                if grid_dimensions[gi, i] > max_dim[i]:
-                    max_dim[i] = grid_dimensions[gi, i]
-        mask = np.zeros((max_dim[0], max_dim[1], max_dim[2]), dtype = "uint8")
-        # We can now just call fill_mask_selector repeatedly.
-        total = 0
-        for gi in range(gind.shape[0]):
-            if gind[gi] == 0: continue
-            for i in range(3):
-                left_edge[i] = grid_left_edges[gi, i]
-                right_edge[i] = grid_right_edges[gi, i]
-                dim[i] = grid_dimensions[gi, i]
-                dds[i] = (right_edge[i] - left_edge[i])/dim[i]
-            level = grid_levels[gi]
-            # This will be expensive.
-            child_mask = self.index.grids[gi].child_mask
-            total += selector.fill_mask_selector(
-                left_edge, right_edge, dds, dim, child_mask, mask, level)
-        return total
-
-    def __iter__(self):
-        yield self

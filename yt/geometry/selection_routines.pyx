@@ -441,6 +441,7 @@ cdef class SelectorObject:
                                 np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
                                 np.ndarray[np.uint8_t, ndim=3] mask,
                                 int level):
+        cdef int i, j, k
         cdef int total = 0, this_level = 0
         cdef np.float64_t pos[3]
         if level < self.min_level or level > self.max_level:
@@ -461,6 +462,50 @@ cdef class SelectorObject:
                     pos[1] += dds[1]
                 pos[0] += dds[0]
         return total
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void visit_grid_cells(self, GridVisitorData *data,
+                              grid_visitor_function *func):
+        cdef np.float64_t left_edge[3], right_edge[3]
+        cdef np.float64_t dds[3]
+        cdef int dim[3], level, i
+        cdef int total = 0, this_level = 0
+        cdef np.float64_t pos[3]
+        level = data.grid.level
+        if level < self.min_level or level > self.max_level:
+            return
+        if level == self.max_level:
+            this_level = 1
+        cdef np.uint8_t child_masked, selected
+        for i in range(3):
+            left_edge[i] = data.grid.left_edge[i]
+            right_edge[i] = data.grid.right_edge[i]
+            dds[i] = (right_edge[i] - left_edge[i])/data.grid.dims[i]
+            dim[i] = data.grid.dims[i]
+        with nogil:
+            pos[0] = left_edge[0] + dds[0] * 0.5
+            data.pos[0] = 0
+            for i in range(dim[0]):
+                pos[1] = left_edge[1] + dds[1] * 0.5
+                data.pos[1] = 0
+                for j in range(dim[1]):
+                    pos[2] = left_edge[2] + dds[2] * 0.5
+                    data.pos[2] = 0
+                    for k in range(dim[2]):
+                        if this_level == 1:
+                            child_masked = 0
+                        else:
+                            child_masked = check_child_masked(data)
+                        selected = self.select_cell(pos, dds)
+                        func(data, selected, child_masked)
+                        pos[2] += dds[2]
+                        data.pos[2] += 1
+                    pos[1] += dds[1]
+                    data.pos[1] += 1
+                pos[0] += dds[0]
+                data.pos[0] += 1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
