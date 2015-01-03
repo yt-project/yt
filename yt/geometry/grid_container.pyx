@@ -190,7 +190,7 @@ cdef class GridTree:
             data.array = <void*>(&size)
             self.visit_grids(&data,  grid_visitors.count_cells, selector)
         cdef np.ndarray[np.int64_t, ndim=2] icoords 
-        icoords = np.zeros((size, 3), dtype="int64")
+        icoords = np.empty((size, 3), dtype="int64")
         data.array = icoords.data
         self.visit_grids(&data, grid_visitors.icoords_cells, selector)
         return icoords
@@ -203,7 +203,7 @@ cdef class GridTree:
             data.array = <void*>(&size)
             self.visit_grids(&data,  grid_visitors.count_cells, selector)
         cdef np.ndarray[np.int64_t, ndim=1] ires 
-        ires = np.zeros(size, dtype="int64")
+        ires = np.empty(size, dtype="int64")
         data.array = ires.data
         self.visit_grids(&data, grid_visitors.ires_cells, selector)
         return ires
@@ -216,7 +216,7 @@ cdef class GridTree:
             data.array = <void*>(&size)
             self.visit_grids(&data,  grid_visitors.count_cells, selector)
         cdef np.ndarray[np.float64_t, ndim=2] fcoords 
-        fcoords = np.zeros((size, 3), dtype="float64")
+        fcoords = np.empty((size, 3), dtype="float64")
         data.array = fcoords.data
         self.visit_grids(&data, grid_visitors.fcoords_cells, selector)
         return fcoords
@@ -229,7 +229,7 @@ cdef class GridTree:
             data.array = <void*>(&size)
             self.visit_grids(&data,  grid_visitors.count_cells, selector)
         cdef np.ndarray[np.float64_t, ndim=2] fwidth 
-        fwidth = np.zeros((size, 3), dtype="float64")
+        fwidth = np.empty((size, 3), dtype="float64")
         data.array = fwidth.data
         self.visit_grids(&data, grid_visitors.fwidth_cells, selector)
         return fwidth
