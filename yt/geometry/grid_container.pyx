@@ -99,6 +99,9 @@ cdef class GridTree:
                 self.root_grids[k] = self.grids[i] 
                 k = k + 1
 
+    def __init__(self, *args, **kwargs):
+        self.mask = None
+
     def __iter__(self):
         yield self
     
@@ -136,29 +139,45 @@ cdef class GridTree:
         # Because of confusion about mapping of children to parents, we are
         # going to do this the stupid way for now.
         cdef GridTreeNode *grid
+        cdef np.uint8_t *buf = NULL
+        if self.mask is not None:
+            buf = self.mask.buf
         for i in range(self.num_root_grids):
             grid = &self.root_grids[i]
-            self.recursively_visit_grid(data, func, selector, grid)
+            self.recursively_visit_grid(data, func, selector, grid, buf)
         grid_visitors.free_tuples(data)
 
     cdef void recursively_visit_grid(self, GridVisitorData *data,
                                      grid_visitor_function *func,
                                      SelectorObject selector,
-                                     GridTreeNode *grid):
+                                     GridTreeNode *grid,
+                                     np.uint8_t *buf = NULL):
         cdef int i
         data.grid = grid
         if selector.select_bbox(grid.left_edge, grid.right_edge) == 0:
             # Note that this does not increment the global_index.
             return
         grid_visitors.setup_tuples(data)
-        selector.visit_grid_cells(data, func)
+        selector.visit_grid_cells(data, func, buf)
         for i in range(grid.num_children):
-            self.recursively_visit_grid(data, func, selector, grid.children[i])
+            self.recursively_visit_grid(data, func, selector, grid.children[i],
+                                        buf)
 
     def count(self, SelectorObject selector):
         cdef GridVisitorData data
         self.setup_data(&data)
         cdef np.uint64_t size = 0
+        cdef int i
+        for i in range(self.num_grids):
+            size += (self.grids[i].dims[0] *
+                     self.grids[i].dims[1] *
+                     self.grids[i].dims[2])
+        cdef bitarray mask = bitarray(size)
+        data.array = <void*>mask.buf
+        self.visit_grids(&data, grid_visitors.mask_cells, selector)
+        self.mask = mask
+        size = 0
+        self.setup_data(&data)
         data.array = <void*>(&size)
         self.visit_grids(&data,  grid_visitors.count_cells, selector)
         return size

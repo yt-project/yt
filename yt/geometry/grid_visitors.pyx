@@ -81,8 +81,8 @@ cdef void count_cells(GridVisitorData *data, np.uint8_t selected) nogil:
 cdef void mask_cells(GridVisitorData *data, np.uint8_t selected) nogil:
     if selected == 0: return
     cdef np.uint8_t *mask = <np.uint8_t*> data.array
-    ba_set_value(mask, data.index, 1)
-    data.index += 1
+    ba_set_value(mask, data.global_index, 1)
+    # No need to increment anything.
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

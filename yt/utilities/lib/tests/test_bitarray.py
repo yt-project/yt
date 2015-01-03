@@ -19,6 +19,12 @@ def test_inout_bitarray():
         arr_out = b.as_bool_array()
         yield assert_equal, arr_in, arr_out
 
+    # Try a big array
+    arr_in = (np.random.random(32**3 + i) > 0.5)
+    b = ba.bitarray(arr = arr_in)
+    arr_out = b.as_bool_array()
+    yield assert_equal, arr_in, arr_out
+
     # Let's check we can do something interesting.
     arr_in1 = (np.random.random(32**3) > 0.5)
     arr_in2 = (np.random.random(32**3) > 0.5)

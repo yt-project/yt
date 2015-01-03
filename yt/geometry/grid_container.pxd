@@ -23,6 +23,7 @@ from yt.geometry.selection_routines cimport SelectorObject, _ensure_code
 from yt.utilities.lib.fp_utils cimport iclip
 from grid_visitors cimport GridTreeNode, GridVisitorData, grid_visitor_function
 cimport grid_visitors 
+from yt.utilities.lib.bitarray cimport bitarray
 
 cdef class GridTree:
     cdef GridTreeNode *grids
@@ -30,6 +31,7 @@ cdef class GridTree:
     cdef int num_grids
     cdef int num_root_grids
     cdef int num_leaf_grids
+    cdef public bitarray mask
     cdef void setup_data(self, GridVisitorData *data)
     cdef void visit_grids(self, GridVisitorData *data,
                           grid_visitor_function *func,
@@ -38,7 +40,8 @@ cdef class GridTree:
                           GridVisitorData *data,
                           grid_visitor_function *func,
                           SelectorObject selector,
-                          GridTreeNode *grid)
+                          GridTreeNode *grid,
+                          np.uint8_t *buf = ?)
 
 cdef class MatchPointsToGrids:
 
