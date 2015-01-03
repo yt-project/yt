@@ -18,6 +18,7 @@ cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free
 from yt.utilities.lib.fp_utils cimport iclip
+from yt.utilities.lib.bitarray cimport ba_set_value, ba_get_value
 
 cdef void free_tuples(GridVisitorData *data) nogil:
     cdef int i
@@ -69,19 +70,26 @@ cdef np.uint8_t check_child_masked(GridVisitorData *data) nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void count_cells(GridVisitorData *data, np.uint8_t selected,
-                      np.uint8_t child_masked) nogil:
-    if selected == 0 or child_masked == 1: return
+cdef void count_cells(GridVisitorData *data, np.uint8_t selected) nogil:
+    if selected == 0: return
     cdef np.uint64_t *count = <np.uint64_t*> data.array
     count[0] += 1
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void icoords_cells(GridVisitorData *data, np.uint8_t selected,
-                        np.uint8_t child_masked) nogil:
+cdef void mask_cells(GridVisitorData *data, np.uint8_t selected) nogil:
+    if selected == 0: return
+    cdef np.uint8_t *mask = <np.uint8_t*> data.array
+    ba_set_value(mask, data.index, 1)
+    data.index += 1
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void icoords_cells(GridVisitorData *data, np.uint8_t selected) nogil:
+    if selected == 0: return
     cdef int i
-    if selected == 0 or child_masked == 1: return
     cdef np.int64_t *icoords = <np.int64_t*> data.array 
     for i in range(3):
         icoords[data.index * 3 + i] = data.pos[i] + data.grid.start_index[i]
@@ -90,10 +98,9 @@ cdef void icoords_cells(GridVisitorData *data, np.uint8_t selected,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void ires_cells(GridVisitorData *data, np.uint8_t selected,
-                     np.uint8_t child_masked) nogil:
+cdef void ires_cells(GridVisitorData *data, np.uint8_t selected) nogil:
+    if selected == 0: return
     cdef int i
-    if selected == 0 or child_masked == 1: return
     cdef np.int64_t *ires = <np.int64_t*> data.array
     ires[data.index] = data.grid.level
     data.index += 1
@@ -101,10 +108,9 @@ cdef void ires_cells(GridVisitorData *data, np.uint8_t selected,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void fwidth_cells(GridVisitorData *data, np.uint8_t selected,
-                        np.uint8_t child_masked) nogil:
+cdef void fwidth_cells(GridVisitorData *data, np.uint8_t selected) nogil:
+    if selected == 0: return
     cdef int i
-    if selected == 0 or child_masked == 1: return
     cdef np.float64_t *fwidth = <np.float64_t*> data.array 
     for i in range(3):
         fwidth[data.index * 3 + i] = data.grid.dds[i]
@@ -113,10 +119,9 @@ cdef void fwidth_cells(GridVisitorData *data, np.uint8_t selected,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void fcoords_cells(GridVisitorData *data, np.uint8_t selected,
-                        np.uint8_t child_masked) nogil:
+cdef void fcoords_cells(GridVisitorData *data, np.uint8_t selected) nogil:
+    if selected == 0: return
     cdef int i
-    if selected == 0 or child_masked == 1: return
     cdef np.float64_t *fcoords = <np.float64_t*> data.array 
     for i in range(3):
         fcoords[data.index * 3 + i] = data.grid.left_edge[i] + \

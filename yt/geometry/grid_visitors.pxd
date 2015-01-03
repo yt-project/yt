@@ -30,6 +30,7 @@ cdef struct GridTreeNode:
 cdef struct GridVisitorData:
     GridTreeNode *grid
     np.uint64_t index
+    np.uint64_t global_index
     np.int64_t pos[3]       # position in ints
     int n_tuples
     int **child_tuples # [N_child][6], where 0-1 are x_start, x_end, etc.
@@ -43,8 +44,7 @@ cdef void setup_tuples(GridVisitorData *data) nogil
 cdef np.uint8_t check_child_masked(GridVisitorData *data) nogil
 
 ctypedef void grid_visitor_function(GridVisitorData *data,
-                                         np.uint8_t selected,
-                                         np.uint8_t child_masked) nogil
+                                         np.uint8_t selected) nogil
 # This is similar in spirit to the way oct visitor functions work.  However,
 # there are a few important differences.  Because the grid objects are expected
 # to be bigger, we don't need to pass them along -- we will not be recursively
@@ -56,6 +56,7 @@ ctypedef void grid_visitor_function(GridVisitorData *data,
 # covered by child cells.
 
 cdef grid_visitor_function count_cells
+cdef grid_visitor_function mask_cells
 cdef grid_visitor_function icoords_cells
 cdef grid_visitor_function ires_cells
 cdef grid_visitor_function fcoords_cells

@@ -24,6 +24,7 @@ cimport oct_visitors
 from .oct_visitors cimport cind
 from yt.utilities.lib.grid_traversal cimport \
     VolumeContainer, sample_function, walk_volume
+from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
 
 cdef extern from "math.h":
     double exp(double x) nogil
@@ -467,7 +468,8 @@ cdef class SelectorObject:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void visit_grid_cells(self, GridVisitorData *data,
-                              grid_visitor_function *func):
+                              grid_visitor_function *func,
+                              np.uint8_t *cached_mask = NULL):
         cdef np.float64_t left_edge[3], right_edge[3]
         cdef np.float64_t dds[3]
         cdef int dim[3], level, i
@@ -494,12 +496,23 @@ cdef class SelectorObject:
                     pos[2] = left_edge[2] + dds[2] * 0.5
                     data.pos[2] = 0
                     for k in range(dim[2]):
-                        if this_level == 1:
-                            child_masked = 0
+                        # We short-circuit if we have a cache; if we don't, we
+                        # only set selected to true if it's *not* masked by a
+                        # child and it *is* selected.
+                        if cached_mask != NULL:
+                            selected = ba_get_value(cached_mask,
+                                                    data.global_index)
                         else:
-                            child_masked = check_child_masked(data)
-                        selected = self.select_cell(pos, dds)
-                        func(data, selected, child_masked)
+                            if this_level == 1:
+                                child_masked = 0
+                            else:
+                                child_masked = check_child_masked(data)
+                            if child_masked == 0:
+                                selected = self.select_cell(pos, dds)
+                            else:
+                                selected = 0
+                        func(data, selected)
+                        data.global_index += 1
                         pos[2] += dds[2]
                         data.pos[2] += 1
                     pos[1] += dds[1]

@@ -18,12 +18,12 @@ cimport numpy as np
 cimport cython
 
 cdef inline void ba_set_value(np.uint8_t *buf, np.uint64_t ind,
-                              np.uint8_t val):
+                              np.uint8_t val) nogil:
     if val > 0: val = 1
     buf[ind >> 3] |= (val << (7 - (ind & 7)))
 
-cdef inline np.uint8_t ba_get_value(np.uint8_t *buf, np.uint64_t ind):
-    cdef rv = (buf[ind >> 3] & (1 << (ind & 7)))
+cdef inline np.uint8_t ba_get_value(np.uint8_t *buf, np.uint64_t ind) nogil:
+    cdef np.uint8_t rv = (buf[ind >> 3] & (1 << (ind & 7)))
     if rv == 0: return 0
     return 1
 

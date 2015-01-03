@@ -17,6 +17,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from libc.math cimport rint
+from yt.utilities.lib.bitarray cimport bitarray
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -122,6 +123,7 @@ cdef class GridTree:
 
     cdef void setup_data(self, GridVisitorData *data):
         data.index = 0
+        data.global_index = 0
         data.n_tuples = 0
         data.child_tuples = NULL
         data.array = NULL
@@ -146,6 +148,7 @@ cdef class GridTree:
         cdef int i
         data.grid = grid
         if selector.select_bbox(grid.left_edge, grid.right_edge) == 0:
+            # Note that this does not increment the global_index.
             return
         grid_visitors.setup_tuples(data)
         selector.visit_grid_cells(data, func)
