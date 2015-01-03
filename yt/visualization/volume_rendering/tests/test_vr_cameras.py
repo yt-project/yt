@@ -78,6 +78,11 @@ class CameraTest(TestCase):
         cam.snapshot('camera.png')
         assert_fname('camera.png')
 
+        im = cam.snapshot()
+        im = cam.draw_domain(im)
+        cam.draw_coordinate_vectors(im)
+        cam.draw_line(im, [0,0,0], [1,1,0])
+
     def test_data_source_camera(self):
         ds = self.ds
         tf = self.setup_transfer_function('camera')

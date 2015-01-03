@@ -13,14 +13,71 @@ Unit test for the RADMC3D Exporter analysis module
 import yt
 from yt.testing import *
 from yt.analysis_modules.radmc3d_export.api import RadMC3DWriter
+from yt.utilities.answer_testing.framework import \
+    AnswerTestingTest, \
+    requires_ds
 from yt.config import ytcfg
 import tempfile
 import os
 import shutil
 
+
+class RadMC3DValuesTest(AnswerTestingTest):
+    '''
+
+    This test writes out a "dust_density.inp" file, 
+    reads it back in, and checks the sum of the 
+    values for degradation.
+
+    '''
+    _type_name = "RadMC3DValuesTest"
+    _attrs = ("field", )
+
+    def __init__(self, ds_fn, field, decimals=10):
+        super(RadMC3DValuesTest, self).__init__(ds_fn)
+        self.field = field
+        self.decimals = decimals
+
+    def run(self):
+
+        # Set up in a temp dir
+        tmpdir = tempfile.mkdtemp()
+        curdir = os.getcwd()
+        os.chdir(tmpdir)
+
+        # try to write the output files
+        writer = RadMC3DWriter(self.ds)
+        writer.write_amr_grid()
+        writer.write_dust_file(self.field, "dust_density.inp")
+
+        # compute the sum of the values in the resulting file
+        total = 0.0
+        with open('dust_density.inp', 'r') as f:
+            for i, line in enumerate(f):
+
+                # skip header
+                if i < 3:
+                    continue
+
+                line = line.rstrip()
+                total += np.float64(line)
+
+        # clean up
+        os.chdir(curdir)
+        shutil.rmtree(tmpdir)
+
+        return total
+
+    def compare(self, new_result, old_result):
+        err_msg = "Total value for %s not equal." % (self.field,)
+        assert_allclose(new_result, old_result, 10.**(-self.decimals),
+                        err_msg=err_msg, verbose=True)
+
+
 ISO_GAL = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
-@requires_file(ISO_GAL)
+
+@requires_ds(ISO_GAL)
 def test_radmc3d_exporter_continuum():
     """
     This test is simply following the description in the docs for how to
@@ -28,29 +85,12 @@ def test_radmc3d_exporter_continuum():
     dust for one of our sample datasets.
     """
 
-    # Set up in a temp dir
-    tmpdir = tempfile.mkdtemp()
-    curdir = os.getcwd()
-    os.chdir(tmpdir)
+    ds = yt.load(ISO_GAL)
 
     # Make up a dust density field where dust density is 1% of gas density
     dust_to_gas = 0.01
     def _DustDensity(field, data):
         return dust_to_gas * data["density"]
-    
-    # Make up a dust temperature field where temp = 10K everywhere
-    def _DustTemperature(field, data):
-        return 0.*data["temperature"] + data.ds.quan(10,'K')
-    
-    ds = yt.load(ISO_GAL)
     ds.add_field(("gas", "dust_density"), function=_DustDensity, units="g/cm**3")
-    ds.add_field(("gas", "dust_temperature"), function=_DustTemperature, units="K")
-    writer = RadMC3DWriter(ds)
-    
-    writer.write_amr_grid()
-    writer.write_dust_file(("gas", "dust_density"), "dust_density.inp")
-    writer.write_dust_file(("gas", "dust_temperature"), "dust_temperature.inp")
 
-    # clean up
-    os.chdir(curdir)
-    shutil.rmtree(tmpdir)
+    yield RadMC3DValuesTest(ds, ("gas", "dust_density"))
