@@ -42,7 +42,7 @@ from yt.utilities.data_point_utilities import CombineGrids,\
 from yt.utilities.minimal_representation import \
     MinimalProjectionData
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_objects, parallel_root_only 
+    parallel_objects, parallel_root_only, communication_system
 from yt.units.unit_object import Unit
 import yt.geometry.particle_deposit as particle_deposit
 from yt.utilities.grid_data_format.writer import write_to_gdf
@@ -285,9 +285,11 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         if self.weight_field is not None:
             chunk_fields.append(self.weight_field)
         tree = self._get_tree(len(fields))
-        # We do this once
-        for chunk in self.data_source.chunks([], "io", local_only = False):
-            self._initialize_chunk(chunk, tree)
+        # This only needs to be done if we are in parallel; otherwise, we can
+        # safely build the mesh as we go.
+        if communication_system.communicators[-1].size > 1:
+            for chunk in self.data_source.chunks([], "io", local_only = False):
+                self._initialize_chunk(chunk, tree)
         with self.data_source._field_parameter_state(self.field_parameters):
             for chunk in parallel_objects(self.data_source.chunks(
                                           chunk_fields, "io", local_only = True)): 

@@ -38,6 +38,7 @@ class SPHFieldInfo(FieldInfoContainer):
         ("Metals", ("code_metallicity", ["metallicity"], None)),
         ("Metallicity", ("code_metallicity", ["metallicity"], None)),
         ("Phi", ("code_length", [], None)),
+        ("StarFormationRate", ("code_mass / code_time", [], None)),
         ("FormationTime", ("code_time", ["creation_time"], None)),
         # These are metallicity fields that get discovered for FIRE simulations
         ("Metallicity_00", ("", ["metallicity"], None)),

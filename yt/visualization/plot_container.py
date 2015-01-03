@@ -444,7 +444,8 @@ class ImagePlotContainer(object):
             labels = ax.xaxis.get_ticklabels() + ax.yaxis.get_ticklabels()
             labels += cbax.yaxis.get_ticklabels()
             labels += [ax.title, ax.xaxis.label, ax.yaxis.label,
-                       cbax.yaxis.label, cbax.yaxis.get_offset_text()]
+                       cbax.yaxis.label, cbax.yaxis.get_offset_text(),
+                       ax.xaxis.get_offset_text(), ax.yaxis.get_offset_text()]
             for label in labels:
                 label.set_fontproperties(self._font_properties)
                 if self._font_color is not None:
