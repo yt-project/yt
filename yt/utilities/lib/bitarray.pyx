@@ -77,18 +77,13 @@ cdef class bitarray:
         return output.astype("bool")
 
     cdef void _set_value(self, np.uint64_t ind, np.uint8_t val):
-        if val > 0:
-            val = 1
-        self.buf[ind >> 3] |= (val << (7 - (ind & 7)))
+        ba_set_value(self.buf, ind, val)
 
     def set_value(self, np.uint64_t ind, np.uint8_t val):
-        self._set_value(ind, val)
+        ba_set_value(self.buf, ind, val)
 
     cdef np.uint8_t _query_value(self, np.uint64_t ind):
-        cdef np.uint8_t val = 1 << (ind & 7)
-        cdef rv = (self.buf[ind >> 3] & val)
-        if rv == 0: return 0
-        return 1
+        return ba_get_value(self.buf, ind)
 
     def query_value(self, np.uint64_t ind):
-        return self._query_value(ind)
+        return ba_get_value(self.buf, ind)
