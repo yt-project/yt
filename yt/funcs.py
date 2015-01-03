@@ -384,7 +384,7 @@ def is_root():
     cfg_option = "__topcomm_parallel_rank"
     if not ytcfg.getboolean("yt","__parallel"):
         return True
-    if ytcfg.getint("yt", cfg_option) > 0: 
+    if ytcfg.getint("yt", cfg_option) > 0:
         return False
     return True
 
@@ -440,15 +440,6 @@ def paste_traceback_detailed(exc_type, exc, tb):
     print
     print "Traceback pasted to http://paste.yt-project.org/show/%s" % (ret)
     print
-
-def traceback_writer_hook(file_suffix = ""):
-    def write_to_file(exc_type, exc, tb):
-        sys.__excepthook__(exc_type, exc, tb)
-        fn = "yt_traceback%s" % file_suffix
-        f = open(fn, "w")
-        traceback.print_exception(exc_type, exc, tb, file=f)
-        print "Wrote traceback to %s" % fn
-    return write_to_file
 
 _ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfABNN\nC0ZEXw1YUURHCxMXVlFERwxWCQw=\n"
 def _rdbeta(key):
