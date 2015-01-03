@@ -20,6 +20,9 @@ from libc.stdlib cimport malloc, free
 
 cdef class bitarray:
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def __init__(self, size = -1, arr = None):
         cdef np.uint64_t i
         if size == -1 and arr is None:
@@ -43,6 +46,9 @@ cdef class bitarray:
             for i in range(self.buf_size):
                 self.buf[i] = 0
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def set_from_array(self, np.ndarray[np.uint8_t, cast=True] arr):
         cdef np.uint64_t i, j, elem
         cdef np.uint8_t *btemp = self.buf
@@ -54,6 +60,9 @@ cdef class bitarray:
             if j == 8:
                 j = 0
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def as_bool_array(self):
         cdef np.uint64_t i, j, elem
         cdef np.uint8_t *btemp = self.buf
@@ -65,4 +74,21 @@ cdef class bitarray:
             j += 1
             if j == 8:
                 j = 0
-        return output
+        return output.astype("bool")
+
+    cdef void _set_value(self, np.uint64_t ind, np.uint8_t val):
+        if val > 0:
+            val = 1
+        self.buf[ind >> 3] |= (val << (7 - (ind & 7)))
+
+    def set_value(self, np.uint64_t ind, np.uint8_t val):
+        self._set_value(ind, val)
+
+    cdef np.uint8_t _query_value(self, np.uint64_t ind):
+        cdef np.uint8_t val = 1 << (ind & 7)
+        cdef rv = (self.buf[ind >> 3] & val)
+        if rv == 0: return 0
+        return 1
+
+    def query_value(self, np.uint64_t ind):
+        return self._query_value(ind)

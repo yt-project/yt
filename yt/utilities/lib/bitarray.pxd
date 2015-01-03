@@ -23,7 +23,7 @@ cdef class bitarray:
     cdef np.uint64_t buf_size # Not exactly the same
     cdef public object ibuf
 
-    #cpdef int set_value(self, np.uint64_t ind, int val)
-    #cpdef int query_value(self, np.uint64_t ind)
-    #cpdef int set_range(self, np.uint64_t ind, np.uint64_t count, int val)
-    #cpdef int query_range(self, np.uint64_t ind, np.uint64_t count, int *val)
+    cdef void _set_value(self, np.uint64_t ind, np.uint8_t val)
+    cdef np.uint8_t _query_value(self, np.uint64_t ind)
+    #cdef void set_range(self, np.uint64_t ind, np.uint64_t count, int val)
+    #cdef int query_range(self, np.uint64_t ind, np.uint64_t count, int *val)
