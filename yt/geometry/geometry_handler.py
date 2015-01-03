@@ -316,6 +316,8 @@ class YTDataChunk(object):
         if self._fast_index is not None:
             ci = self._fast_index.select_fcoords(
                 self.dobj.selector, self.data_size)
+            ci = YTArray(ci, input_units = "code_length",
+                         registry = self.dobj.ds.unit_registry)
             return ci
         ci = np.empty((self.data_size, 3), dtype='float64')
         ci = YTArray(ci, input_units = "code_length",
@@ -350,6 +352,8 @@ class YTDataChunk(object):
         if self._fast_index is not None:
             ci = self._fast_index.select_fwidth(
                 self.dobj.selector, self.data_size)
+            ci = YTArray(ci, input_units = "code_length",
+                         registry = self.dobj.ds.unit_registry)
             return ci
         ci = np.empty((self.data_size, 3), dtype='float64')
         ci = YTArray(ci, input_units = "code_length",
