@@ -323,9 +323,13 @@ class GridIndex(Index):
             yield YTDataChunk(dobj, "spatial", [g], size, cache = False)
 
     _grid_chunksize = 1000
-    def _chunk_io(self, dobj, cache = True, local_only = False):
+    def _chunk_io(self, dobj, cache = True, local_only = False,
+                  preload_fields = None):
         # local_only is only useful for inline datasets and requires
         # implementation by subclasses.
+        if preload_fields is None:
+            preload_fields = []
+        preload_fields, _ = self._split_fields(preload_fields)
         gfiles = defaultdict(list)
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for g in gobjs:
@@ -338,7 +342,10 @@ class GridIndex(Index):
             
             for grids in (gs[pos:pos + size] for pos
                           in xrange(0, len(gs), size)):
-                yield YTDataChunk(dobj, "io", grids,
+                dc = YTDataChunk(dobj, "io", grids,
                         self._count_selection(dobj, grids),
                         cache = cache)
-
+                # We allow four full chunks to be included.
+                with self.io.preload(dc, preload_fields, 
+                            4.0 * self._grid_chunksize):
+                    yield dc

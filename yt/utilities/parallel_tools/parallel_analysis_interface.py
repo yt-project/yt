@@ -814,12 +814,8 @@ class Communicator(object):
             return data
 
     def preload(self, grids, fields, io_handler):
-        # This will preload if it detects we are parallel capable and
-        # if so, we load *everything* that we need.  Use with some care.
-        if len(fields) == 0: return
-        mylog.debug("Preloading %s from %s grids", fields, len(grids))
-        if not self._distributed: return
-        io_handler.preload(grids, fields)
+        # This is non-functional.
+        return
 
     @parallel_passthrough
     def mpi_allreduce(self, data, dtype=None, op='sum'):

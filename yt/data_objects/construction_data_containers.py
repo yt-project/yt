@@ -470,7 +470,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         self.domain_width = np.rint((self.ds.domain_right_edge -
                     self.ds.domain_left_edge)/self.dds).astype('int64')
         self._setup_data_source()
-                
+
     @property
     def icoords(self):
         ic = np.indices(self.ActiveDimensions).astype("int64")
@@ -950,14 +950,18 @@ class YTSurfaceBase(YTSelectionContainer3D):
         mylog.info("Extracting (sampling: %s)" % (fields,))
         verts = []
         samples = []
-        for block, mask in parallel_objects(self.data_source.blocks):
-            my_verts = self._extract_isocontours_from_grid(
-                            block, self.surface_field, self.field_value,
-                            mask, fields, sample_type)
-            if fields is not None:
-                my_verts, svals = my_verts
-                samples.append(svals)
-            verts.append(my_verts)
+        deps = self._determine_fields(self.surface_field)
+        deps = self._identify_dependencies(deps, spatial=True)
+        for io_chunk in parallel_objects(self.data_source.chunks(deps, "io",
+                                         preload_fields = deps)):
+            for block, mask in self.data_source.blocks:
+                my_verts = self._extract_isocontours_from_grid(
+                                block, self.surface_field, self.field_value,
+                                mask, fields, sample_type)
+                if fields is not None:
+                    my_verts, svals = my_verts
+                    samples.append(svals)
+                verts.append(my_verts)
         verts = np.concatenate(verts).transpose()
         verts = self.comm.par_combine_object(verts, op='cat', datatype='array')
         self.vertices = verts
@@ -1040,21 +1044,27 @@ class YTSurfaceBase(YTSelectionContainer3D):
         """
         flux = 0.0
         mylog.info("Fluxing %s", fluxing_field)
-        for block, mask in parallel_objects(self.data_source.blocks):
-            flux += self._calculate_flux_in_grid(block, mask,
-                    field_x, field_y, field_z, fluxing_field)
+        deps = [field_x, field_y, field_z]
+        if fluxing_field is not None: deps.append(fluxing_field)
+        deps = self._determine_fields(deps)
+        deps = self._identify_dependencies(deps)
+        for io_chunk in parallel_objects(self.data_source.chunks(deps, "io",
+                                preload_fields = deps)):
+            for block, mask in self.data_source.blocks:
+                flux += self._calculate_flux_in_grid(block, mask,
+                        field_x, field_y, field_z, fluxing_field)
         flux = self.comm.mpi_allreduce(flux, op="sum")
         return flux
 
     def _calculate_flux_in_grid(self, grid, mask,
-                    field_x, field_y, field_z, fluxing_field = None):
+            field_x, field_y, field_z, fluxing_field = None):
         vals = grid.get_vertex_centered_data(self.surface_field)
         if fluxing_field is None:
             ff = np.ones(vals.shape, dtype="float64")
         else:
             ff = grid.get_vertex_centered_data(fluxing_field)
-        xv, yv, zv = [grid.get_vertex_centered_data(f) for f in 
-                     [field_x, field_y, field_z]]
+        xv, yv, zv = [grid.get_vertex_centered_data(f)
+                      for f in [field_x, field_y, field_z]]
         return march_cubes_grid_flux(self.field_value, vals, xv, yv, zv,
                     ff, mask, grid.LeftEdge, grid.dds)
 
