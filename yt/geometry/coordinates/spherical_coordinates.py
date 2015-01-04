@@ -73,6 +73,26 @@ class SphericalCoordinateHandler(CoordinateHandler):
                  function=_SphericalVolume,
                  units = "code_length**3")
 
+        def _path_r(field, data):
+            return data["index", "dr"]
+        registry.add_field(("index", "path_element_r"),
+                 function = _path_r,
+                 units = "code_length")
+        def _path_theta(field, data):
+            # Note: this already assumes cell-centered
+            return data["index", "r"] * data["index", "dtheta"]
+        registry.add_field(("index", "path_element_theta"),
+                 function = _path_theta,
+                 units = "code_length")
+        def _path_phi(field, data):
+            # Note: this already assumes cell-centered
+            return data["index", "r"] \
+                    * data["index", "dphi"] \
+                    * np.sin(data["index", "theta"])
+        registry.add_field(("index", "path_element_phi"),
+                 function = _path_phi,
+                 units = "code_length")
+
     def pixelize(self, dimension, data_source, field, bounds, size,
                  antialias = True, periodic = True):
         self.period
@@ -87,31 +107,27 @@ class SphericalCoordinateHandler(CoordinateHandler):
 
     def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
                         dim, periodic):
-        # We should be using fcoords
-        period = self.period[:2].copy() # dummy here
-        period[0] = self.period[self.x_axis[dim]]
-        period[1] = self.period[self.y_axis[dim]]
-        period = period.in_units("code_length").d
-        buff = _MPL.Pixelize(data_source['px'], data_source['py'],
-                             data_source['pdx'], data_source['pdy'],
-                             data_source[field], size[0], size[1],
-                             bounds, int(antialias),
-                             period, int(periodic)).transpose()
+        buff = pixelize_aitoff(data_source["py"], data_source["pdy"],
+                               data_source["px"], data_source["pdx"],
+                               size, data_source[field], None,
+                               None, theta_offset = 0,
+                               phi_offset = 0).transpose()
         return buff
+
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias,
                       dimension):
         if dimension == 1:
-            buff = pixelize_cylinder(data_source['r'],
-                                     data_source['dr'] / 2.0,
-                                     data_source['phi'],
-                                     data_source['dphi'] / 2.0, # half-widths
+            buff = pixelize_cylinder(data_source['px'],
+                                     data_source['pdx'],
+                                     data_source['py'],
+                                     data_source['pdy'],
                                      size, data_source[field], bounds)
         elif dimension == 2:
-            buff = pixelize_cylinder(data_source['r'],
-                                     data_source['dr'] / 2.0,
-                                     data_source['theta'],
-                                     data_source['dtheta'] / 2.0, # half-widths
+            buff = pixelize_cylinder(data_source['px'],
+                                     data_source['pdx'],
+                                     data_source['py'],
+                                     data_source['pdy'],
                                      size, data_source[field], bounds)
             buff = buff.transpose()
         else:
@@ -219,3 +235,17 @@ class SphericalCoordinateHandler(CoordinateHandler):
             width = [self.ds.domain_width[0],
                      2.0*self.ds.domain_width[0]]
         return width
+
+    def _sanity_check(self):
+        """This prints out a handful of diagnostics that help verify the
+        dataset is well formed."""
+        # We just check a few things here.
+        dd = self.ds.all_data()
+        r0 = self.ds.domain_left_edge[0]
+        r1 = self.ds.domain_right_edge[0]
+        v1 = 4.0 * np.pi / 3.0 * (r1**3 - r0**3)
+        print "Total volume should be 4*pi*r**3 = %0.16e" % (v1)
+        v2 = dd.quantities.total_quantity("cell_volume")
+        print "Actual volume is                   %0.16e" % (v2)
+        print "Relative difference: %0.16e" % (np.abs(v2-v1)/(v2+v1))
+

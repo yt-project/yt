@@ -32,6 +32,9 @@ class CartesianCoordinateHandler(CoordinateHandler):
             registry.add_field(("index", "d%s" % ax), function = f1,
                                display_field = False,
                                units = "code_length")
+            registry.add_field(("index", "path_element_%s" % ax), function = f1,
+                               display_field = False,
+                               units = "code_length")
             registry.add_field(("index", "%s" % ax), function = f2,
                                display_field = False,
                                units = "code_length")
