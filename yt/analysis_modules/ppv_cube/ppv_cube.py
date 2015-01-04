@@ -51,8 +51,9 @@ fits_info = {"velocity":("m/s","VELOCITY","v"),
 
 class PPVCube(object):
     def __init__(self, ds, normal, field, center="c", width=(1.0,"unitary"),
-                 dims=(100,100,100), velocity_bounds=None, thermal_broad=False,
-                 atomic_weight=56., method="integrate", no_shifting=False):
+                 dims=(100,100), velocity_bounds=None, thermal_broad=False,
+                 atomic_weight=56., method="integrate", no_shifting=False,
+                 north_vector=None):
         r""" Initialize a PPVCube object.
 
         Parameters
@@ -62,7 +63,7 @@ class PPVCube(object):
         normal : array_like or string
             The normal vector along with to make the projections. If an array, it
             will be normalized. If a string, it will be assumed to be along one of the
-            principal axes of the domain ("x","y", or "z").
+            principal axes of the domain ("x", "y", or "z").
         field : string
             The field to project.
         center : A sequence of floats, a string, or a tuple.
@@ -78,9 +79,11 @@ class PPVCube(object):
         width : float, tuple, or YTQuantity.
             The width of the projection. A float will assume the width is in code units.
             A (value, unit) tuple or YTQuantity allows for the units of the width to be
-            specified.
+            specified. Implies width = height, e.g. the aspect ratio of the PPVCube's 
+            spatial dimensions is 1. 
         dims : tuple, optional
-            A 3-tuple of dimensions (nx,ny,nv) for the cube.
+            A 2-tuple of dimensions (nx,nv) for the cube. Implies nx = ny, e.g. the aspect
+            ratio of the PPVCube's spatial dimensions is 1. 
         velocity_bounds : tuple, optional
             A 3-tuple of (vmin, vmax, units) for the velocity bounds to
             integrate over. If None, the largest velocity of the
@@ -95,6 +98,10 @@ class PPVCube(object):
         no_shifting : boolean, optional
             If set, no shifting due to velocity will occur but only thermal broadening.
             Should not be set when *thermal_broad* is False, otherwise nothing happens!
+        north_vector : a sequence of floats
+            A vector defining the 'up' direction. This option sets the orientation of 
+            the plane of projection. If not set, an arbitrary grid-aligned north_vector 
+            is chosen. Ignored in the case of on-axis plots.
 
         Examples
         --------
@@ -117,8 +124,8 @@ class PPVCube(object):
         self.center = ds.coordinates.sanitize_center(center, normal)[0]
 
         self.nx = dims[0]
-        self.ny = dims[1]
-        self.nv = dims[2]
+        self.ny = dims[0]
+        self.nv = dims[1]
 
         if method not in ["integrate","sum"]:
             raise RuntimeError("Only the 'integrate' and 'sum' projection +"
@@ -167,7 +174,8 @@ class PPVCube(object):
             else:
                 buf = off_axis_projection(ds, self.center, normal, width,
                                           (self.nx, self.ny), "intensity",
-                                          no_ghost=True, method=method)[::-1]
+                                          north_vector=north_vector,
+                                          no_ghost=True, method=method).swapaxes(0,1)
             sto.result_id = i
             sto.result = buf
             pbar.update(i)
@@ -176,7 +184,7 @@ class PPVCube(object):
         self.data = ds.arr(np.zeros((self.nx,self.ny,self.nv)), self.proj_units)
         if is_root():
             for i, buf in sorted(storage.items()):
-                self.data[:,:,i] = buf[:,:]
+                self.data[:,:,i] = buf.transpose()
 
         self.axis_type = "velocity"
 
@@ -197,8 +205,8 @@ class PPVCube(object):
             T = data["temperature"].v
             w = ppv_utils.compute_weight(self.thermal_broad, self.dv_cgs,
                                          self.particle_mass, v.flatten(), T.flatten())
-            w[np.isnan(w)] = 0.0                                                                                                                        
-            return data[self.field]*w.reshape(v.shape)                                                                                                  
+            w[np.isnan(w)] = 0.0
+            return data[self.field]*w.reshape(v.shape)
         return _intensity
 
     def transform_spectral_axis(self, rest_value, units):
@@ -283,7 +291,7 @@ class PPVCube(object):
         if sky_scale is not None and sky_center is not None:
             w = create_sky_wcs(w, sky_center, sky_scale)
 
-        fib = FITSImageBuffer(self.data.transpose(2,0,1), fields=self.field, wcs=w)
+        fib = FITSImageBuffer(self.data.transpose(), fields=self.field, wcs=w)
         fib[0].header["bunit"] = re.sub('()', '', str(self.proj_units))
         fib[0].header["btype"] = self.field
 

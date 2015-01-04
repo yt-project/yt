@@ -38,7 +38,7 @@ def test_ppv():
 
     ds = load_uniform_grid(data, dims)
 
-    cube = PPVCube(ds, "z", "density", dims=dims,
+    cube = PPVCube(ds, "z", "density", dims=(8,1024),
                    velocity_bounds=(-300., 300., "km/s"),
                    thermal_broad=True)
 
