@@ -94,6 +94,21 @@ particle_header_struct = [
      '45sffffi'+'fffffff'+'iiii'+'ffffff'+'396s'+'f')
 ]
 
+dmparticle_header_struct = [
+     ('header',
+     'aexpn', 'aexp0', 'amplt', 'astep',
+     'istep',
+     'partw', 'tintg',
+     'Ekin', 'Ekin1', 'Ekin2',
+     'au0', 'aeu0',
+     'Nrow', 'Ngridc', 'Nspecies', 'Nseed',
+     'Om0', 'Oml0', 'hubble', 'Wp5', 'Ocurv',
+     'wspecies','lspecies',
+     'extras', 'boxsize'),
+     (1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+     1,1,1,10,10,79,1)
+]
+
 star_struct = [
     ('>d', ('tdum', 'adum')),
     ('>i', 'nstars'),

@@ -11,32 +11,46 @@ some important caveats about different data formats.
 ART Data
 --------
 
-ART data enjoys preliminary support and has been supported in the past by
-Christopher Moody.  Please contact the ``yt-dev`` mailing list if you are
-interested in using yt for ART data, or if you are interested in assisting with
-development of yt to work with ART data.
+ART data has been supported in the past by Christopher Moody and is currently
+cared for by Kenza Arraki.  Please contact the ``yt-dev`` mailing list if you
+are interested in using yt for ART data, or if you are interested in assisting
+with development of yt to work with ART data.
 
 To load an ART dataset you can use the ``yt.load`` command and provide it the
 gas mesh file. It will search for and attempt to find the complementary dark
 matter and stellar particle header and data files. However, your simulations may
 not follow the same naming convention.
 
-So for example, a single snapshot might have a series of files looking like
-this:
+.. code-block:: python
+    
+   import yt
+
+   ds = yt.load("D9p_500/10MpcBox_HartGal_csf_a0.500.d")
+
+
+It will search for and attempt to find the complementary dark matter and stellar
+particle header and data files. However, your simulations may not follow the
+same naming convention.
+
+For example, the single snapshot given in the sample data has a series of files
+that look like this:
 
 .. code-block:: none
 
-   10MpcBox_csf512_a0.300.d    #Gas mesh
-   PMcrda0.300.DAT             #Particle header
-   PMcrs0a0.300.DAT            #Particle data (positions,velocities)
-   stars_a0.300.dat            #Stellar data (metallicities, ages, etc.)
+   10MpcBox_HartGal_csf_a0.500.d  #Gas mesh
+   PMcrda0.500.DAT                #Particle header
+   PMcrs0a0.500.DAT               #Particle data (positions,velocities)
+   stars_a0.500.dat               #Stellar data (metallicities, ages, etc.)
 
-The ART frontend tries to find the associated files matching the above, but
-if that fails you can specify ``file_particle_data``,``file_particle_data``,
-``file_star_data`` in addition to the specifying the gas mesh. You also have 
-the option of gridding particles, and assigning them onto the meshes.
-This process is in beta, and for the time being it's probably  best to leave
-``do_grid_particles=False`` as the default.
+The ART frontend tries to find the associated files matching the
+above, but if that fails you can specify ``file_particle_header``,
+``file_particle_data``, and ``file_particle_stars``, in addition to
+specifying the gas mesh. Note that the ``pta0.500.dat`` or ``pt.dat``
+file containing particle time steps is not loaded by yt.
+
+You also have the option of gridding particles and assigning them onto the
+meshes.  This process is in beta, and for the time being it's probably best to
+leave ``do_grid_particles=False`` as the default.
 
 To speed up the loading of an ART file, you have a few options. You can turn 
 off the particles entirely by setting ``discover_particles=False``. You can
@@ -46,13 +60,22 @@ when debugging by artificially creating a 'smaller' dataset to work with.
 Finally, when stellar ages are computed we 'spread' the ages evenly within a
 smoothing window. By default this is turned on and set to 10Myr. To turn this 
 off you can set ``spread=False``, and you can tweak the age smoothing window
-by specifying the window in seconds, ``spread=1.0e7*265*24*3600``. 
+by specifying the window in seconds, ``spread=1.0e7*365*24*3600``. 
+
+There is currently preliminary support for dark matter only ART data. To load a
+dataset use the ``yt.load`` command and provide it the particle data file. It
+will search for the complementary particle header file.
 
 .. code-block:: python
     
    import yt
 
-   ds = yt.load("SFG1/10MpcBox_csf512_a0.460.d")
+   ds = yt.load("PMcrs0a0.500.DAT")
+
+Important: This should not be used for loading just the dark matter
+data for a 'regular' hydrodynamical data set as the units and IO are
+different!
+
 
 .. _loading-artio-data:
 
