@@ -1019,16 +1019,13 @@ class YTSelectionContainer3D(YTSelectionContainer):
         """
         verts = []
         samples = []
-        pb = get_pbar("Extracting ", len(list(self._get_grid_objs())))
-        for i, g in enumerate(self._get_grid_objs()):
-            pb.update(i)
+        for block, mask in self.blocks:
             my_verts = self._extract_isocontours_from_grid(
-                            g, field, value, sample_values)
+                block, mask, field, value, sample_values)
             if sample_values is not None:
                 my_verts, svals = my_verts
                 samples.append(svals)
             verts.append(my_verts)
-        pb.finish()
         verts = np.concatenate(verts).transpose()
         verts = self.comm.par_combine_object(verts, op='cat', datatype='array')
         verts = verts.transpose()
@@ -1052,11 +1049,9 @@ class YTSelectionContainer3D(YTSelectionContainer):
             return verts, samples
         return verts
 
-
-    def _extract_isocontours_from_grid(self, grid, field, value,
-                                       sample_values = None):
-        mask = self._get_cut_mask(grid) * grid.child_mask
-        vals = grid.get_vertex_centered_data(field, no_ghost = False)
+    def _extract_isocontours_from_grid(self, grid, mask, field, value,
+                                       sample_values=None):
+        vals = grid.get_vertex_centered_data(field, no_ghost=False)
         if sample_values is not None:
             svals = grid.get_vertex_centered_data(sample_values)
         else:
@@ -1130,15 +1125,14 @@ class YTSelectionContainer3D(YTSelectionContainer):
         ...     "velocity_x", "velocity_y", "velocity_z", "Metal_Density")
         """
         flux = 0.0
-        for g in self._get_grid_objs():
-            flux += self._calculate_flux_in_grid(g, field, value,
-                    field_x, field_y, field_z, fluxing_field)
+        for block, mask in self.blocks:
+            flux += self._calculate_flux_in_grid(block, mask, field, value, field_x,
+                                                 field_y, field_z, fluxing_field)
         flux = self.comm.mpi_allreduce(flux, op="sum")
         return flux
 
-    def _calculate_flux_in_grid(self, grid, field, value,
+    def _calculate_flux_in_grid(self, grid, mask, field, value,
                     field_x, field_y, field_z, fluxing_field = None):
-        mask = self._get_cut_mask(grid) * grid.child_mask
         vals = grid.get_vertex_centered_data(field)
         if fluxing_field is None:
             ff = np.ones(vals.shape, dtype="float64")

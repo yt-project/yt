@@ -217,7 +217,8 @@ class ThermalPhotonModel(PhotonModel):
             photons["dx"].append(chunk["dx"][idxs].in_units("kpc"))
 
         for key in photons:
-            photons[key] = uconcatenate(photons[key])
+            if len(photons[key]) > 0:
+                photons[key] = uconcatenate(photons[key])
 
         return photons
 

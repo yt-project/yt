@@ -71,11 +71,16 @@ class NotebookDirective(Directive):
 
         skip_exceptions = 'skip_exceptions' in self.options
 
-        evaluated_text, resources = evaluate_notebook(
+        ret = evaluate_notebook(
             nb_abs_path, dest_path_eval, skip_exceptions=skip_exceptions)
 
-        evaluated_text = write_notebook_output(
-            resources, image_dir, image_rel_dir, evaluated_text)
+        try:
+            evaluated_text, resources = ret
+            evaluated_text = write_notebook_output(
+                resources, image_dir, image_rel_dir, evaluated_text)
+        except ValueError:
+            # This happens when a notebook raises an unhandled exception
+            evaluated_text = ret
 
         # Create link to notebook and script files
         link_rst = "(" + \

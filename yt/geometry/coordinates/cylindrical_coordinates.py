@@ -47,7 +47,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                            display_field = False,
                            units = "code_length")
 
-        f1, f2 = _get_coord_fields(1)
+        f1, f2 = _get_coord_fields(self.axis_id['z'])
         registry.add_field(("index", "dz"), function = f1,
                            display_field = False,
                            units = "code_length")
@@ -55,7 +55,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                            display_field = False,
                            units = "code_length")
 
-        f1, f2 = _get_coord_fields(2, "")
+        f1, f2 = _get_coord_fields(self.axis_id['theta'], "")
         registry.add_field(("index", "dtheta"), function = f1,
                            display_field = False,
                            units = "")
@@ -72,6 +72,22 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                  function=_CylindricalVolume,
                  units = "code_length**3")
 
+        def _path_r(field, data):
+            return data["index", "dr"]
+        registry.add_field(("index", "path_element_r"),
+                 function = _path_r,
+                 units = "code_length")
+        def _path_theta(field, data):
+            # Note: this already assumes cell-centered
+            return data["index", "r"] * data["index", "dtheta"]
+        registry.add_field(("index", "path_element_theta"),
+                 function = _path_theta,
+                 units = "code_length")
+        def _path_z(field, data):
+            return data["index", "dz"]
+        registry.add_field(("index", "path_element_z"),
+                 function = _path_z,
+                 units = "code_length")
 
     def pixelize(self, dimension, data_source, field, bounds, size,
                  antialias = True, periodic = True):
@@ -101,10 +117,10 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         return buff
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias):
-        buff = pixelize_cylinder(data_source['r'],
-                                 data_source['dr'],
-                                 data_source['theta'],
-                                 data_source['dtheta']/2.0, # half-widths
+        buff = pixelize_cylinder(data_source['px'],
+                                 data_source['pdx'],
+                                 data_source['py'],
+                                 data_source['pdy'],
                                  size, data_source[field], bounds)
         return buff
 

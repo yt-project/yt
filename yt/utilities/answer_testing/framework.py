@@ -491,7 +491,7 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
         super(PixelizedProjectionValuesTest, self).__init__(ds_fn)
         self.axis = axis
         self.field = field
-        self.weight_field = field
+        self.weight_field = weight_field
         self.obj_type = obj_type
 
     def run(self):
@@ -504,7 +504,8 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
                               data_source = obj)
         frb = proj.to_frb((1.0, 'unitary'), 256)
         frb[self.field]
-        frb[self.weight_field]
+        if self.weight_field is not None:
+            frb[self.weight_field]
         d = frb.data
         for f in proj.field_data:
             # Sometimes f will be a tuple.
