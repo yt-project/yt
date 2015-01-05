@@ -602,13 +602,13 @@ def standard_particle_fields(registry, ptype,
         pos = spos
         pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
         pos = pos - np.reshape(center, (3, 1))
-        return data.ds.arr(get_sph_theta(pos, normal), "radian")
+        return data.ds.arr(get_sph_theta(pos, normal), "")
 
     registry.add_field(
         (ptype, "particle_position_spherical_theta"),
         function=_particle_position_spherical_theta,
         particle_type=True,
-        units="radian",
+        units="",
         validators=[ValidateParameter("center"), ValidateParameter("normal")])
 
     def _particle_spherical_position_theta(field, data):
@@ -632,13 +632,13 @@ def standard_particle_fields(registry, ptype,
         pos = spos
         pos = YTArray([data[ptype, pos % ax] for ax in "xyz"])
         pos = pos - np.reshape(center, (3, 1))
-        return data.ds.arr(get_sph_phi(pos, normal), "radian")
+        return data.ds.arr(get_sph_phi(pos, normal), "")
 
     registry.add_field(
         (ptype, "particle_position_spherical_phi"),
         function=_particle_position_spherical_phi,
         particle_type=True,
-        units="radian",
+        units="",
         validators=[ValidateParameter("normal"), ValidateParameter("center")])
 
     def _particle_spherical_position_phi(field, data):
@@ -647,7 +647,7 @@ def standard_particle_fields(registry, ptype,
 
     registry.add_field((ptype, "particle_spherical_position_phi"),
              function=_particle_spherical_position_phi,
-             particle_type=True, units="radian",
+             particle_type=True, units="",
              validators=[ValidateParameter("center"),
                          ValidateParameter("normal")])
 
@@ -798,13 +798,13 @@ def standard_particle_fields(registry, ptype,
         center = data.get_field_parameter('center')
         pos = YTArray([data[ptype, spos % ax] for ax in "xyz"])
         pos = pos - np.reshape(center, (3, 1))
-        return data.ds.arr(get_cyl_theta(pos, normal), "radian")
+        return data.ds.arr(get_cyl_theta(pos, normal), "")
 
     registry.add_field(
         (ptype, "particle_position_cylindrical_theta"),
         function=_particle_position_cylindrical_theta,
         particle_type=True,
-        units="radian",
+        units="",
         validators=[ValidateParameter("center"), ValidateParameter("normal")])
 
     def _particle_position_cylindrical_z(field,data):
