@@ -359,7 +359,7 @@ def standard_particle_fields(registry, ptype,
                            "g*cm**2/s", ftype=ptype, particle_type=True)
 
     def _particle_radius(field, data):
-        """The spherical radial component of the particle positions
+        """The spherical radius component of the particle positions
 
         Relative to the coordinate system defined by the *normal* vector,
         and *center* field parameters.
@@ -735,7 +735,7 @@ def standard_particle_fields(registry, ptype,
                           ValidateParameter("center")])
 
     def _particle_velocity_spherical_phi(field, data):
-        """The cylindrical radial component of the particles velocities
+        """The spherical phi component of the particle velocities
 
         Relative to the coordinate system defined by the *normal* vector,
         *bulk_velocity* vector and *center* field parameters.
@@ -752,7 +752,7 @@ def standard_particle_fields(registry, ptype,
         return sphp
 
     registry.add_field(
-        (ptype, "particle_spherical_velocity_phi"),
+        (ptype, "particle_velocity_spherical_phi"),
         function=_particle_velocity_spherical_phi,
         particle_type=True,
         units="cm/s",
@@ -828,7 +828,7 @@ def standard_particle_fields(registry, ptype,
         validators=[ValidateParameter("normal"), ValidateParameter("center")])
 
     def _particle_velocity_cylindrical_radius(field, data):
-        """The cylindrical radial component of the particles velocities
+        """The cylindrical radius component of the particle velocities
 
         Relative to the coordinate system defined by the *normal* vector,
         *bulk_velocity* vector and *center* field parameters.
@@ -854,7 +854,7 @@ def standard_particle_fields(registry, ptype,
         validators=[ValidateParameter("normal"), ValidateParameter("center")])
 
     def _particle_velocity_cylindrical_theta(field, data):
-        """The cylindrical theta component of the particles velocities
+        """The cylindrical theta component of the particle velocities
 
         Relative to the coordinate system defined by the *normal* vector,
         *bulk_velocity* vector and *center* field parameters.
@@ -890,7 +890,7 @@ def standard_particle_fields(registry, ptype,
                           ValidateParameter("center")])
 
     def _particle_velocity_cylindrical_z(field, data):
-        """The cylindrical z component of the particles velocities
+        """The cylindrical z component of the particle velocities
 
         Relative to the coordinate system defined by the *normal* vector,
         *bulk_velocity* vector and *center* field parameters.
