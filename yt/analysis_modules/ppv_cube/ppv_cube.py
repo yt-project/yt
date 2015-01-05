@@ -50,8 +50,8 @@ fits_info = {"velocity":("m/s","VELOCITY","v"),
              "wavelength":("angstrom","WAVELENG","lambda")}
 
 class PPVCube(object):
-    def __init__(self, ds, normal, field, center="c", width=(1.0,"unitary"),
-                 dims=(100,100), velocity_bounds=None, thermal_broad=False,
+    def __init__(self, ds, normal, field, velocity_bounds, center="c", 
+                 width=(1.0,"unitary"), dims=100, thermal_broad=False,
                  atomic_weight=56., method="integrate", no_shifting=False,
                  north_vector=None):
         r""" Initialize a PPVCube object.
@@ -66,6 +66,9 @@ class PPVCube(object):
             principal axes of the domain ("x", "y", or "z").
         field : string
             The field to project.
+        velocity_bounds : tuple
+            A 4-tuple of (vmin, vmax, nbins, units) for the velocity bounds to
+            integrate over. 
         center : A sequence of floats, a string, or a tuple.
             The coordinate of the center of the image. If set to 'c', 'center' or
             left blank, the plot is centered on the middle of the domain. If set to
@@ -80,14 +83,10 @@ class PPVCube(object):
             The width of the projection. A float will assume the width is in code units.
             A (value, unit) tuple or YTQuantity allows for the units of the width to be
             specified. Implies width = height, e.g. the aspect ratio of the PPVCube's 
-            spatial dimensions is 1. 
-        dims : tuple, optional
-            A 2-tuple of dimensions (nx,nv) for the cube. Implies nx = ny, e.g. the aspect
-            ratio of the PPVCube's spatial dimensions is 1. 
-        velocity_bounds : tuple, optional
-            A 3-tuple of (vmin, vmax, units) for the velocity bounds to
-            integrate over. If None, the largest velocity of the
-            dataset will be used, e.g. velocity_bounds = (-v.max(), v.max())
+            spatial dimensions is 1.
+        dims : integer, optional
+            The spatial resolution of the cube. Implies nx = ny, e.g. the 
+            aspect ratio of the PPVCube's spatial dimensions is 1.
         atomic_weight : float, optional
             Set this value to the atomic weight of the particle that is emitting the line
             if *thermal_broad* is True. Defaults to 56 (Fe).
@@ -107,8 +106,7 @@ class PPVCube(object):
         --------
         >>> i = 60*np.pi/180.
         >>> L = [0.0,np.sin(i),np.cos(i)]
-        >>> cube = PPVCube(ds, L, "density", width=(10.,"kpc"),
-        ...                velocity_bounds=(-5.,4.,"km/s"))
+        >>> cube = PPVCube(ds, L, "density", (-5.,4.,100,"km/s"), width=(10.,"kpc"))
         """
 
         self.ds = ds
@@ -123,9 +121,9 @@ class PPVCube(object):
 
         self.center = ds.coordinates.sanitize_center(center, normal)[0]
 
-        self.nx = dims[0]
-        self.ny = dims[0]
-        self.nv = dims[1]
+        self.nx = dims
+        self.ny = dims
+        self.nv = velocity_bounds[2]
 
         if method not in ["integrate","sum"]:
             raise RuntimeError("Only the 'integrate' and 'sum' projection +"
@@ -137,14 +135,10 @@ class PPVCube(object):
 
         self.field_units = ds._get_field_info(fd).units
 
-        if velocity_bounds is None:
-            vmin, vmax = dd.quantities.extrema("velocity_magnitude")
-            self.v_bnd = -vmax, vmax
-        else:
-            self.v_bnd = (ds.quan(velocity_bounds[0], velocity_bounds[2]),
-                          ds.quan(velocity_bounds[1], velocity_bounds[2]))
+        self.vbins = ds.arr(np.linspace(velocity_bounds[0],
+                                        velocity_bounds[1],
+                                        velocity_bounds[2]+1), velocity_bounds[3])
 
-        self.vbins = np.linspace(self.v_bnd[0], self.v_bnd[1], num=self.nv+1)
         self._vbins = self.vbins.copy()
         self.vmid = 0.5*(self.vbins[1:]+self.vbins[:-1])
         self.vmid_cgs = self.vmid.in_cgs().v
