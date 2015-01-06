@@ -195,9 +195,10 @@ def read_vector(f, d, endian='='):
     print("HERE 1.1")
     print(pad_fmt)
     print(pad_size)
-    print(f.read(pad_size))
+    #print(f.read(pad_size))
     #vec_len2 = struct.unpack(pad_fmt,bytes(f.read(pad_size).decode('iso-8859-1'),'utf-8'))[0]
-    vec_len2 = struct.unpack(pad_fmt,f.read(pad_size))[0]
+    vec_len2 = struct.unpack(pad_fmt,bytes(f.read(pad_size)))[0]
+    #vec_len2 = struct.unpack(pad_fmt,f.read(1))[0]
     assert(vec_len == vec_len2)
     return tr
 

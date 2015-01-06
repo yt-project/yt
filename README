@@ -48,6 +48,20 @@ SKIP: chombo & boxlib
 -------------------
 
 
+++++++++++++++++++++++++++++++++++++++++++++
+
+File for testing is located at:
+
+use this ipython: ~/yt-x86_64/bin/ipython3
+
+to recompile, in ~/yt-x86_64/src/yt-hg do:
+../../bin/python3.4 setup.py install
+then restart ipython3
+
+
+++++++++++++++++++++++++++++++++++++++++++++
+
+
 MISSING test files: art?  stream? sph?... check it out...
 
 frontends supported in python3:
@@ -70,13 +84,13 @@ frontends supported in python3:
 
 - working on moab... one file loads, the other does not... SO CONFUSED -> COME BACK TO
 
-- working on ramses
+- working on ramses -> DON'T GET IT... something about struct.unpack expecting a byte of lenght 4, but I couldn't get the ramses data to load in yt3 anyway.. wait, maybe the last file... maybe I need some examples of what people are actually doing with Ramses data..
 
 - then gadget
 
 - then gasoline
 
-- then pkdgrav
+- then pkdgrav -> kd tree... maybe won't work...
 
 - then tipsy
 
