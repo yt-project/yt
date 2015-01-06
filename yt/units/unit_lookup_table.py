@@ -200,6 +200,7 @@ prefixable_units = (
     "T",
     "A",
     "C",
+    "statA",
 )
 
 cgs_base_units = {
