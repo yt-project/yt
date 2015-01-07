@@ -17,10 +17,16 @@ def smooth_particles(
         np.ndarray[np.float64_t, ndim=1] hsml):
 
     cdef np.int64_t ngas
-    cdef np.float64_t dds[3], sdds[3], pos[3], idist[3], kern
-    cdef int p, i, j, k, d, ind[3], ib0[3], ib1[3], dims[3]
-    cdef int nf, half_len, skip, gi
-    cdef np.float64_t dist
+    cdef np.float64_t dds[3]
+    cdef np.float64_t sdds[3]
+    cdef np.float64_t pos[3]
+    cdef np.float64_t idist[3]
+    cdef int ind[3]
+    cdef int ib0[3]
+    cdef int ib1[3]
+    cdef int dims[3]
+    cdef int nf, half_len, skip, gi, p, i, j, k, d
+    cdef np.float64_t dist, kern
     cdef np.ndarray[np.float64_t, ndim=1] gas_arr
     cdef np.ndarray[np.float64_t, ndim=3] grid_arr
 
@@ -78,7 +84,7 @@ def smooth_particles(
         for i from ib0[0] <= i <= ib1[0]:
             idist[0] = (ind[0] - i) * (ind[0] - i) * sdds[0]
             for j from ib0[1] <= j <= ib1[1]:
-                idist[1] = (ind[1] - j) * (ind[1] - j) * sdds[1] 
+                idist[1] = (ind[1] - j) * (ind[1] - j) * sdds[1]
                 for k from ib0[2] <= k <= ib1[2]:
                     idist[2] = (ind[2] - k) * (ind[2] - k) * sdds[2]
                     dist = idist[0] + idist[1] + idist[2]

@@ -122,9 +122,12 @@ def ghost_zone_interpolate(int rf,
                            np.ndarray[np.float64_t, ndim=1] output_left):
     cdef int oi, oj, ok
     cdef int ii, ij, ik
-    cdef np.float64_t xp, xm, yp, ym, zp, zm
-    cdef np.float64_t ods[3], ids[3], iids[3]
-    cdef np.float64_t opos[3], ropos[3], temp
+    cdef np.float64_t xp, xm, yp, ym, zp, zm, temp
+    cdef np.float64_t ods[3]
+    cdef np.float64_t ids[3]
+    cdef np.float64_t iids[3]
+    cdef np.float64_t opos[3]
+    cdef np.float64_t ropos[3]
     cdef int i, j
     for i in range(3):
         temp = input_left[i] + (rf * (input_field.shape[i] - 1))

@@ -446,7 +446,7 @@ cdef int march_cubes(
         n += 3
         if tri_table[cubeindex][n] == -1: break
     return nt
-    
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -459,14 +459,18 @@ def march_cubes_grid(np.float64_t isovalue,
     cdef int dims[3]
     cdef int i, j, k, n, m, nt
     cdef int offset
-    cdef np.float64_t gv[8], pos[3], point[3], idds[3]
+    cdef np.float64_t gv[8]
+    cdef np.float64_t pos[3]
+    cdef np.float64_t point[3]
+    cdef np.float64_t idds[3]
     cdef np.float64_t *intdata = NULL
     cdef np.float64_t *sdata = NULL
     cdef np.float64_t x, y, z, do_sample
     cdef np.ndarray[np.float64_t, ndim=3] sample
     cdef np.ndarray[np.float64_t, ndim=1] sampled
     cdef TriangleCollection triangles
-    cdef Triangle *last, *current
+    cdef Triangle *last
+    cdef Triangle *current
     if obj_sample is not None:
         sample = obj_sample
         sdata = <np.float64_t *> sample.data
@@ -531,7 +535,7 @@ def march_cubes_grid(np.float64_t isovalue,
             pos[1] += dds[1]
         pos[0] += dds[0]
     # Hallo, we are all done.
-    cdef np.ndarray[np.float64_t, ndim=2] vertices 
+    cdef np.ndarray[np.float64_t, ndim=2] vertices
     vertices = np.zeros((triangles.count*3,3), dtype='float64')
     if do_sample == 0:
         FillAndWipeTriangles(vertices, triangles.first)
@@ -574,8 +578,13 @@ def march_cubes_grid_flux(
     cdef np.float64_t *fdata = <np.float64_t *> flux_field.data
     cdef np.float64_t *dds = <np.float64_t *> dxs.data
     cdef np.float64_t flux = 0.0
-    cdef np.float64_t center[3], point[3], wval, temp, area, s
-    cdef np.float64_t cell_pos[3], fv[3], idds[3], normal[3]
+    cdef np.float64_t temp, area, s
+    cdef np.float64_t center[3]
+    cdef np.float64_t point[3]
+    cdef np.float64_t cell_pos[3]
+    cdef np.float64_t fv[3]
+    cdef np.float64_t idds[3]
+    cdef np.float64_t normal[3]
     for i in range(3):
         dims[i] = values.shape[i] - 1
         idds[i] = 1.0 / dds[i]
