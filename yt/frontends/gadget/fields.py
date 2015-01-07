@@ -24,6 +24,8 @@ class GadgetFieldInfo(SPHFieldInfo):
     def setup_particle_fields(self, ptype, *args, **kwargs):
         super(GadgetFieldInfo, self).setup_particle_fields(
             ptype, *args, **kwargs)
+
+        # Only add the Temperature field for SPH particles
         if ptype not in ("PartType0", "Gas"):
             return
 
