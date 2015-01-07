@@ -24,8 +24,6 @@ from yt.data_objects.static_output import \
     ParticleFile
 from yt.frontends.sph.data_structures import \
     ParticleDataset
-from yt.frontends.sph.fields import \
-    SPHFieldInfo
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.utilities.cosmology import \
@@ -39,6 +37,9 @@ from .definitions import \
     gadget_header_specs, \
     gadget_field_specs, \
     gadget_ptype_specs
+
+from .fields import \
+    GadgetFieldInfo
 
 def _fix_unit_ordering(unit):
     if isinstance(unit[0], types.StringTypes):
@@ -63,7 +64,7 @@ class GadgetBinaryFile(ParticleFile):
 class GadgetDataset(ParticleDataset):
     _index_class = ParticleIndex
     _file_class = GadgetBinaryFile
-    _field_info_class = SPHFieldInfo
+    _field_info_class = GadgetFieldInfo
     _particle_mass_name = "Mass"
     _particle_coordinates_name = "Coordinates"
     _particle_velocity_name = "Velocities"
@@ -247,7 +248,7 @@ class GadgetDataset(ParticleDataset):
 
 class GadgetHDF5Dataset(GadgetDataset):
     _file_class = ParticleFile
-    _field_info_class = SPHFieldInfo
+    _field_info_class = GadgetFieldInfo
     _particle_mass_name = "Masses"
     _suffix = ".hdf5"
 

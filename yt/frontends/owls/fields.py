@@ -25,12 +25,12 @@ from yt.fields.particle_fields import \
 from yt.fields.species_fields import \
     add_species_field_by_fraction, \
     add_species_field_by_density
-from yt.frontends.sph.fields import \
-    SPHFieldInfo
+from yt.frontends.gadget.fields import \
+    GadgetFieldInfo
 
 import owls_ion_tables as oit
 
-class OWLSFieldInfo(SPHFieldInfo):
+class OWLSFieldInfo(GadgetFieldInfo):
 
     _ions = ("c1", "c2", "c3", "c4", "c5", "c6",
              "fe2", "fe17", "h1", "he1", "he2", "mg1", "mg2", "n2", 
