@@ -59,6 +59,10 @@ class OpaqueSource(RenderSource):
 
     def render(self, camera, zbuffer=None):
         # This is definitely wrong for now
+        if zbuffer is not None and self.zbuffer is not None:
+            zbuffer.rgba = self.zbuffer.rgba
+            zbuffer.z = self.zbuffer.z
+            self.zbuffer = zbuffer
         return self.zbuffer
 
 
@@ -207,6 +211,7 @@ class VolumeSource(RenderSource):
 class PointSource(OpaqueSource):
 
     """Add set of opaque points to a scene."""
+
 
 class LineSource(OpaqueSource):
 
