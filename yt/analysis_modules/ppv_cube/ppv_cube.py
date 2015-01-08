@@ -94,7 +94,7 @@ class PPVCube(object):
         depth : A tuple or a float, optional
             A tuple containing the depth to project through and the string
             key of the unit: (width, 'unit').  If set to a float, code units
-            are assumed
+            are assumed. Only for off-axis cubes.
         depth_res : integer, optional
             The resolution of integration along the line of sight for off-axis cubes. Default: 256
         method : string, optional
