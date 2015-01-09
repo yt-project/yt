@@ -14,7 +14,7 @@ most up-to-date list of everyone who has contributed to the yt source code.
 Version 3.1
 -----------
 
-This is a scheduled feature release.  Below are the itimized, aggregate changes
+This is a scheduled feature release.  Below are the itemized, aggregate changes
 since version 3.0.
 
 
@@ -53,17 +53,17 @@ Minor or bugfix changes:
   coordinate systems. `PR 1307 <https://bitbucket.org/yt_analysis/yt/pull-request/1307>`_.
 
 * An example notebook for simulations using the OWLS data format has been added
-  to the doumentation. `PR 1386 <https://bitbucket.org/yt_analysis/yt/pull-request/1386>`_.
+  to the documentation. `PR 1386 <https://bitbucket.org/yt_analysis/yt/pull-request/1386>`_.
 
 * Fix for the camera.draw_line function. `PR 1380 <https://bitbucket.org/yt_analysis/yt/pull-request/1380>`_.
 
 * Minor fixes and improvements for yt plots. `PR 1376 <https://bitbucket.org/yt_analysis/yt/pull-request/1376>`_, `PR 1374 <https://bitbucket.org/yt_analysis/yt/pull-request/1374>`_, `PR 1288 <https://bitbucket.org/yt_analysis/yt/pull-request/1288>`_, `PR 1290 <https://bitbucket.org/yt_analysis/yt/pull-request/1290>`_.
 
-* Documentation fixes and impovements. `PR 1383 <https://bitbucket.org/yt_analysis/yt/pull-request/1383>`_, `PR 1373 <https://bitbucket.org/yt_analysis/yt/pull-request/1373>`_, `PR 1364 <https://bitbucket.org/yt_analysis/yt/pull-request/1364>`_, `PR 1351 <https://bitbucket.org/yt_analysis/yt/pull-request/1351>`_, `PR 1345 <https://bitbucket.org/yt_analysis/yt/pull-request/1345>`_. `PR 1333 <https://bitbucket.org/yt_analysis/yt/pull-request/1333>`_, `PR 1342 <https://bitbucket.org/yt_analysis/yt/pull-request/1342>`_, `PR 1338 <https://bitbucket.org/yt_analysis/yt/pull-request/1338>`_, `PR 1330 <https://bitbucket.org/yt_analysis/yt/pull-request/1330>`_, `PR 1326 <https://bitbucket.org/yt_analysis/yt/pull-request/1326>`_, `PR 1323 <https://bitbucket.org/yt_analysis/yt/pull-request/1323>`_, `PR 1315 <https://bitbucket.org/yt_analysis/yt/pull-request/1315>`_, `PR 1305 <https://bitbucket.org/yt_analysis/yt/pull-request/1305>`_, `PR 1289 <https://bitbucket.org/yt_analysis/yt/pull-request/1289>`_, `PR 1276 <https://bitbucket.org/yt_analysis/yt/pull-request/1276>`_.
+* Documentation fixes and improvements. `PR 1383 <https://bitbucket.org/yt_analysis/yt/pull-request/1383>`_, `PR 1373 <https://bitbucket.org/yt_analysis/yt/pull-request/1373>`_, `PR 1364 <https://bitbucket.org/yt_analysis/yt/pull-request/1364>`_, `PR 1351 <https://bitbucket.org/yt_analysis/yt/pull-request/1351>`_, `PR 1345 <https://bitbucket.org/yt_analysis/yt/pull-request/1345>`_. `PR 1333 <https://bitbucket.org/yt_analysis/yt/pull-request/1333>`_, `PR 1342 <https://bitbucket.org/yt_analysis/yt/pull-request/1342>`_, `PR 1338 <https://bitbucket.org/yt_analysis/yt/pull-request/1338>`_, `PR 1330 <https://bitbucket.org/yt_analysis/yt/pull-request/1330>`_, `PR 1326 <https://bitbucket.org/yt_analysis/yt/pull-request/1326>`_, `PR 1323 <https://bitbucket.org/yt_analysis/yt/pull-request/1323>`_, `PR 1315 <https://bitbucket.org/yt_analysis/yt/pull-request/1315>`_, `PR 1305 <https://bitbucket.org/yt_analysis/yt/pull-request/1305>`_, `PR 1289 <https://bitbucket.org/yt_analysis/yt/pull-request/1289>`_, `PR 1276 <https://bitbucket.org/yt_analysis/yt/pull-request/1276>`_.
 
 * Significant documentation reorganization and improvment. `PR 1375 <https://bitbucket.org/yt_analysis/yt/pull-request/1375>`_, `PR 1359 <https://bitbucket.org/yt_analysis/yt/pull-request/1359>`_.
 
-* Fixed a conflict in the CFITSIO library used by the x-ray analyis module. `PR 1365 <https://bitbucket.org/yt_analysis/yt/pull-request/1365>`_.
+* Fixed a conflict in the CFITSIO library used by the x-ray analysis module. `PR 1365 <https://bitbucket.org/yt_analysis/yt/pull-request/1365>`_.
 
 * Miscellaneous code cleanup. `PR 1371 <https://bitbucket.org/yt_analysis/yt/pull-request/1371>`_, `PR 1361 <https://bitbucket.org/yt_analysis/yt/pull-request/1361>`_.
 
@@ -123,7 +123,7 @@ Minor or bugfix changes:
 
 * Nearest neighbor distance field added.  `PR 1138 <https://bitbucket.org/yt_analysis/yt/pull-request/1138>`_.
 
-* Improvements for the ORION2 frotend. `PR 1303 <https://bitbucket.org/yt_analysis/yt/pull-request/1303>`_
+* Improvements for the ORION2 frontend. `PR 1303 <https://bitbucket.org/yt_analysis/yt/pull-request/1303>`_
 
 * Enzo 3.0 frontend can now read active particle attributes that are arrays of any shape. `PR 1248 <https://bitbucket.org/yt_analysis/yt/pull-request/1248>`_.
 
