@@ -38,6 +38,8 @@ Major changes:
 
 * Added the ability to manually override the simulation unit system. `PR 1236 <https://bitbucket.org/yt_analysis/yt/pull-request/1236>`_.
 
+* The documentation has been reorganized and has seen substantial improvements. `PR 1383 <https://bitbucket.org/yt_analysis/yt/pull-request/1383>`_, `PR 1373 <https://bitbucket.org/yt_analysis/yt/pull-request/1373>`_, `PR 1364 <https://bitbucket.org/yt_analysis/yt/pull-request/1364>`_, `PR 1351 <https://bitbucket.org/yt_analysis/yt/pull-request/1351>`_, `PR 1345 <https://bitbucket.org/yt_analysis/yt/pull-request/1345>`_. `PR 1333 <https://bitbucket.org/yt_analysis/yt/pull-request/1333>`_, `PR 1342 <https://bitbucket.org/yt_analysis/yt/pull-request/1342>`_, `PR 1338 <https://bitbucket.org/yt_analysis/yt/pull-request/1338>`_, `PR 1330 <https://bitbucket.org/yt_analysis/yt/pull-request/1330>`_, `PR 1326 <https://bitbucket.org/yt_analysis/yt/pull-request/1326>`_, `PR 1323 <https://bitbucket.org/yt_analysis/yt/pull-request/1323>`_, `PR 1315 <https://bitbucket.org/yt_analysis/yt/pull-request/1315>`_, `PR 1305 <https://bitbucket.org/yt_analysis/yt/pull-request/1305>`_, `PR 1289 <https://bitbucket.org/yt_analysis/yt/pull-request/1289>`_, `PR 1276 <https://bitbucket.org/yt_analysis/yt/pull-request/1276>`_.
+
 Minor or bugfix changes:
 ++++++++++++++++++++++++
 
@@ -58,8 +60,6 @@ Minor or bugfix changes:
 * Fix for the camera.draw_line function. `PR 1380 <https://bitbucket.org/yt_analysis/yt/pull-request/1380>`_.
 
 * Minor fixes and improvements for yt plots. `PR 1376 <https://bitbucket.org/yt_analysis/yt/pull-request/1376>`_, `PR 1374 <https://bitbucket.org/yt_analysis/yt/pull-request/1374>`_, `PR 1288 <https://bitbucket.org/yt_analysis/yt/pull-request/1288>`_, `PR 1290 <https://bitbucket.org/yt_analysis/yt/pull-request/1290>`_.
-
-* Documentation fixes and improvements. `PR 1383 <https://bitbucket.org/yt_analysis/yt/pull-request/1383>`_, `PR 1373 <https://bitbucket.org/yt_analysis/yt/pull-request/1373>`_, `PR 1364 <https://bitbucket.org/yt_analysis/yt/pull-request/1364>`_, `PR 1351 <https://bitbucket.org/yt_analysis/yt/pull-request/1351>`_, `PR 1345 <https://bitbucket.org/yt_analysis/yt/pull-request/1345>`_. `PR 1333 <https://bitbucket.org/yt_analysis/yt/pull-request/1333>`_, `PR 1342 <https://bitbucket.org/yt_analysis/yt/pull-request/1342>`_, `PR 1338 <https://bitbucket.org/yt_analysis/yt/pull-request/1338>`_, `PR 1330 <https://bitbucket.org/yt_analysis/yt/pull-request/1330>`_, `PR 1326 <https://bitbucket.org/yt_analysis/yt/pull-request/1326>`_, `PR 1323 <https://bitbucket.org/yt_analysis/yt/pull-request/1323>`_, `PR 1315 <https://bitbucket.org/yt_analysis/yt/pull-request/1315>`_, `PR 1305 <https://bitbucket.org/yt_analysis/yt/pull-request/1305>`_, `PR 1289 <https://bitbucket.org/yt_analysis/yt/pull-request/1289>`_, `PR 1276 <https://bitbucket.org/yt_analysis/yt/pull-request/1276>`_.
 
 * Significant documentation reorganization and improvment. `PR 1375 <https://bitbucket.org/yt_analysis/yt/pull-request/1375>`_, `PR 1359 <https://bitbucket.org/yt_analysis/yt/pull-request/1359>`_.
 
