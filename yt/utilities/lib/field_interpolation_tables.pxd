@@ -22,7 +22,7 @@ DEF Nch = 4
 cdef struct FieldInterpolationTable:
     # Note that we make an assumption about retaining a reference to values
     # externally.
-    np.float64_t *values 
+    np.float64_t *values
     np.float64_t bounds[2]
     np.float64_t dbin
     np.float64_t idbin
@@ -31,8 +31,8 @@ cdef struct FieldInterpolationTable:
     int weight_table_id
     int nbins
 
-cdef extern from "math.h": 
-    double expf(double x) nogil 
+cdef extern from "math.h":
+    double expf(double x) nogil
     int isnormal(double x) nogil
 
 @cython.boundscheck(False)
@@ -77,7 +77,9 @@ cdef inline void FIT_eval_transfer(np.float64_t dt, np.float64_t *dvs,
                             FieldInterpolationTable fits[6],
                             int field_table_ids[6], int grey_opacity) nogil:
     cdef int i, fid, use
-    cdef np.float64_t ta, tf, ttot, istorage[6], trgba[6], dot_prod
+    cdef np.float64_t ta, tf, ttot, dot_prod
+    cdef np.float64_t istorage[6]
+    cdef np.float64_t trgba[6]
     for i in range(6): istorage[i] = 0.0
     for i in range(n_fits):
         istorage[i] = FIT_get_value(&fits[i], dvs)
@@ -99,13 +101,15 @@ cdef inline void FIT_eval_transfer(np.float64_t dt, np.float64_t *dvs,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline void FIT_eval_transfer_with_light(np.float64_t dt, np.float64_t *dvs, 
+cdef inline void FIT_eval_transfer_with_light(np.float64_t dt, np.float64_t *dvs,
         np.float64_t *grad, np.float64_t *l_dir, np.float64_t *l_rgba,
         np.float64_t *rgba, int n_fits,
         FieldInterpolationTable fits[6],
         int field_table_ids[6], int grey_opacity) nogil:
     cdef int i, fid, use
-    cdef np.float64_t ta, tf, istorage[6], trgba[6], dot_prod
+    cdef np.float64_t ta, tf, dot_prod
+    cdef np.float64_t istorage[6]
+    cdef np.float64_t trgba[6]
     dot_prod = 0.0
     for i in range(3):
         dot_prod += l_dir[i]*grad[i]
