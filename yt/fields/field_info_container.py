@@ -212,10 +212,10 @@ class FieldInfoContainer(dict):
         """
         override = kwargs.pop("force_override", False)
         if not override and name in self:
+            mylog.warning("Field %s already exists. To override use " +
+                          "force_override=True.", name)
             if function is None:
                 def create_function(function):
-                    mylog.warning("Field %s already exists. To override use " +
-                                  "force_override=True.", name)
                     return function
                 return create_function
             return
