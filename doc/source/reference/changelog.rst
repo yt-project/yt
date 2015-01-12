@@ -113,9 +113,7 @@ Minor or bugfix changes:
 
 * Improved memory footprint in the photon_simulator. `PR 1304 <https://bitbucket.org/yt_analysis/yt/pull-request/1304>`_.
 
-* Large grids in Athena datasets produced by the join_vtk script are now automatically split,
-  improving parallel performance.
-  `PR 1304 <https://bitbucket.org/yt_analysis/yt/pull-request/1304>`_.
+* Large grids in Athena datasets produced by the join_vtk script can now be optionally split, improving parallel performance.  `PR 1304 <https://bitbucket.org/yt_analysis/yt/pull-request/1304>`_.
 
 * Slice plots now accept a ``data_source`` keyword argument. `PR 1310 <https://bitbucket.org/yt_analysis/yt/pull-request/1310>`_.
 
