@@ -15,11 +15,12 @@ Cylindrical fields
 #-----------------------------------------------------------------------------
 
 import numpy as np
-from yt.units.yt_array import YTArray
 from .coordinate_handler import \
     CoordinateHandler, \
     _unknown_coord, \
-    _get_coord_fields
+    _get_coord_fields, \
+    cylindrical_to_cartesian, \
+    cartesian_to_cylindrical
 import yt.visualization._MPL as _MPL
 from yt.utilities.lib.misc_utilities import \
     pixelize_cylinder

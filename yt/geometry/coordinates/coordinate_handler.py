@@ -204,6 +204,8 @@ class CoordinateHandler(object):
 
 def cartesian_to_cylindrical(coord, center = (0,0,0)):
     c2 = np.zeros_like(coord)
+    if not isinstance(center, YTArray):
+        center = center * coord.uq
     c2[...,0] = ((coord[...,0] - center[0])**2.0
               +  (coord[...,1] - center[1])**2.0)**0.5
     c2[...,1] = coord[...,2] # rzt
@@ -213,6 +215,8 @@ def cartesian_to_cylindrical(coord, center = (0,0,0)):
 
 def cylindrical_to_cartesian(coord, center = (0,0,0)):
     c2 = np.zeros_like(coord)
+    if not isinstance(center, YTArray):
+        center = center * coord.uq
     c2[...,0] = np.cos(coord[...,0]) * coord[...,1] + center[0]
     c2[...,1] = np.sin(coord[...,0]) * coord[...,1] + center[1]
     c2[...,2] = coord[...,2]
