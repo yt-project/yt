@@ -47,7 +47,9 @@ Minor or bugfix changes:
 
 * The Gadget InternalEnergy and StarFormationRate fields are now read in with the correct units.  `PR 1392 <https://bitbucket.org/yt_analysis/yt/pull-request/1392>`_, `PR 1379 <https://bitbucket.org/yt_analysis/yt/pull-request/1379>`_.
 
-* Substantial improvements for the PPVCube analysis module and support for FITS dataset. `PR 1390 <https://bitbucket.org/yt_analysis/yt/pull-request/1390>`_, `PR 1367 <https://bitbucket.org/yt_analysis/yt/pull-request/1367>`_, `PR 1347 <https://bitbucket.org/yt_analysis/yt/pull-request/1347>`_, `PR 1326 <https://bitbucket.org/yt_analysis/yt/pull-request/1326>`_, `PR 1280 <https://bitbucket.org/yt_analysis/yt/pull-request/1280>`_. `PR 1336 <https://bitbucket.org/yt_analysis/yt/pull-request/1336>`_.
+* Substantial improvements for the PPVCube analysis module and support for FITS dataset. `PR 1390 <https://bitbucket.org/yt_analysis/yt/pull-request/1390>`_, `PR 1367 <https://bitbucket.org/yt_analysis/yt/pull-request/1367>`_, `PR 1347 <https://bitbucket.org/yt_analysis/yt/pull-request/1347>`_, `PR 1326 <https://bitbucket.org/yt_analysis/yt/pull-request/1326>`_, `PR 1280 <https://bitbucket.org/yt_analysis/yt/pull-request/1280>`_, `PR 1336 <https://bitbucket.org/yt_analysis/yt/pull-request/1336>`_.
+
+* The center of a PlotWindow plot can now be set to the maximum or minimum of any field. `PR 1280 <https://bitbucket.org/yt_analysis/yt/pull-request/1280>`_.
 
 * Fixes for yt testing infrastructure. `PR 1388 <https://bitbucket.org/yt_analysis/yt/pull-request/1388>`_, `PR 1348 <https://bitbucket.org/yt_analysis/yt/pull-request/1348>`_.
 
