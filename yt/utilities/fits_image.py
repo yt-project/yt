@@ -14,14 +14,14 @@ import numpy as np
 from yt.funcs import mylog, iterable, fix_axis, ensure_list
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
 from yt.data_objects.construction_data_containers import YTCoveringGridBase
-from yt.utilities.on_demand_imports import _astropy
+from yt.utilities.on_demand_imports import _astropy, NotAModule
 from yt.units.yt_array import YTQuantity, YTArray
 import re
 
 pyfits = _astropy.pyfits
 pywcs = _astropy.pywcs
 
-if pyfits is None:
+if isinstance(pyfits, NotAModule):
     HDUList = object
 else:
     HDUList = pyfits.HDUList
