@@ -101,13 +101,6 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
     def image_axis_name(self):
         return self._image_axis_name
 
-    axis_name = { 0  : 'x',  1  : 'y',  2  : 'z',
-                  'x' : 'x', 'y' : 'y', 'z' : 'z',
-                  'X' : 'x', 'Y' : 'y', 'Z' : 'z'}
-
-    axis_id = { 'x' : 0, 'y' : 1, 'z' : 2,
-                0  : 0,  1  : 1,  2  : 2}
-
     x_axis = { 'x' : 1, 'y' : 0, 'z' : 0,
                 0  : 1,  1  : 0,  2  : 0}
 
