@@ -97,8 +97,8 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
         r = pyregion.open(reg)
     else:
         r = pyregion.parse(reg)
+    reg_name = reg
     filter = r.get_filter(header=ds.wcs_2d.to_header())
-    reg_name = reg.split(".")[0]
     nx = ds.domain_dimensions[ds.lon_axis]
     ny = ds.domain_dimensions[ds.lat_axis]
     mask = filter.mask((ny,nx)).transpose()
