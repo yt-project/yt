@@ -211,18 +211,26 @@ class FieldInfoContainer(dict):
 
         """
         override = kwargs.pop("force_override", False)
+        # Handle the case where the field has already been added.
         if not override and name in self:
             mylog.warning("Field %s already exists. To override use " +
                           "force_override=True.", name)
+            # See below.
             if function is None:
-                def create_function(function):
-                    return function
+                def create_function(f):
+                    return f
                 return create_function
             return
+        # add_field can be used in two different ways: it can be called
+        # directly, or used as a decorator. If called directly, the
+        # function will be passed in as an argument, and we simply create
+        # the derived field and exit. If used as a decorator, function will
+        # be None. In that case, we return a function that will be applied
+        # to the function that the decorator is applied to.
         if function is None:
-            def create_function(function):
-                self[name] = DerivedField(name, function, **kwargs)
-                return function
+            def create_function(f):
+                self[name] = DerivedField(name, f, **kwargs)
+                return f
             return create_function
         self[name] = DerivedField(name, function, **kwargs)
 
