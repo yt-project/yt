@@ -52,8 +52,9 @@ fits_info = {"velocity":("m/s","VELOCITY","v"),
 class PPVCube(object):
     def __init__(self, ds, normal, field, velocity_bounds, center="c", 
                  width=(1.0,"unitary"), dims=100, thermal_broad=False,
-                 atomic_weight=56., method="integrate", no_shifting=False,
-                 north_vector=None):
+                 atomic_weight=56., depth=(1.0,"unitary"), depth_res=256,
+                 method="integrate", no_shifting=False,
+                 north_vector=None, no_ghost=True):
         r""" Initialize a PPVCube object.
 
         Parameters
@@ -90,6 +91,12 @@ class PPVCube(object):
         atomic_weight : float, optional
             Set this value to the atomic weight of the particle that is emitting the line
             if *thermal_broad* is True. Defaults to 56 (Fe).
+        depth : A tuple or a float, optional
+            A tuple containing the depth to project through and the string
+            key of the unit: (width, 'unit').  If set to a float, code units
+            are assumed. Only for off-axis cubes.
+        depth_res : integer, optional
+            The resolution of integration along the line of sight for off-axis cubes. Default: 256
         method : string, optional
             Set the projection method to be used.
             "integrate" : line of sight integration over the line element.
@@ -100,7 +107,15 @@ class PPVCube(object):
         north_vector : a sequence of floats
             A vector defining the 'up' direction. This option sets the orientation of 
             the plane of projection. If not set, an arbitrary grid-aligned north_vector 
-            is chosen. Ignored in the case of on-axis plots.
+            is chosen. Ignored in the case of on-axis cubes.
+        no_ghost: bool, optional
+            Optimization option for off-axis cases. If True, homogenized bricks will
+            extrapolate out from grid instead of interpolating from
+            ghost zones that have to first be calculated.  This can
+            lead to large speed improvements, but at a loss of
+            accuracy/smoothness in resulting image.  The effects are
+            less notable when the transfer function is smooth and
+            broad. Default: True
 
         Examples
         --------
@@ -115,6 +130,10 @@ class PPVCube(object):
         self.particle_mass = atomic_weight*mh
         self.thermal_broad = thermal_broad
         self.no_shifting = no_shifting
+
+        if not isinstance(normal, basestring):
+            width = ds.coordinates.sanitize_width(normal, width, depth)
+            width = tuple(el.in_units('code_length').v for el in width)
 
         if no_shifting and not thermal_broad:
             raise RuntimeError("no_shifting cannot be True when thermal_broad is False!")
@@ -167,9 +186,9 @@ class PPVCube(object):
                 buf = prj.to_frb(width, self.nx, center=self.center)["intensity"]
             else:
                 buf = off_axis_projection(ds, self.center, normal, width,
-                                          (self.nx, self.ny), "intensity",
-                                          north_vector=north_vector,
-                                          no_ghost=True, method=method).swapaxes(0,1)
+                                          (self.nx, self.ny, depth_res), "intensity",
+                                          north_vector=north_vector, no_ghost=no_ghost,
+                                          method=method).swapaxes(0,1)
             sto.result_id = i
             sto.result = buf
             pbar.update(i)
@@ -185,9 +204,7 @@ class PPVCube(object):
         # Now fix the width
         if iterable(self.width):
             self.width = ds.quan(self.width[0], self.width[1])
-        elif isinstance(self.width, YTQuantity):
-            self.width = width
-        else:
+        elif not isinstance(self.width, YTQuantity):
             self.width = ds.quan(self.width, "code_length")
 
         self.ds.field_info.pop(("gas","intensity"))
