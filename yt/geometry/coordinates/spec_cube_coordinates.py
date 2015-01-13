@@ -25,9 +25,6 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
     def __init__(self, ds):
         super(SpectralCubeCoordinateHandler, self).__init__(ds)
 
-        self.axis_name = {}
-        self.axis_id = {}
-
         self.default_unit_label = {}
         if ds.lon_name == "X" and ds.lat_name == "Y":
             names = ["x","y"]
@@ -39,19 +36,18 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
         axes = [ds.lon_axis, ds.lat_axis, ds.spec_axis]
         self.default_unit_label[ds.spec_axis] = ds.spec_unit
 
-        for axis, axis_name in zip(axes, names):
+        self._image_axis_name = {}
+
+        for axis in axes:
 
             lower_ax = "xyz"[axis]
             upper_ax = lower_ax.upper()
 
-            self.axis_name[axis] = axis_name
-            self.axis_name[lower_ax] = axis_name
-            self.axis_name[upper_ax] = axis_name
-            self.axis_name[axis_name] = axis_name
+            ax_names = (names[self.x_axis[axis]], names[self.y_axis[axis]])
 
-            self.axis_id[lower_ax] = axis
-            self.axis_id[axis] = axis
-            self.axis_id[axis_name] = axis
+            self._image_axis_name[axis] = ax_names
+            self._image_axis_name[lower_ax] = ax_names
+            self._image_axis_name[upper_ax] = ax_names
 
         def _spec_axis(ax, x, y):
             p = (x,y)[ax]
@@ -64,7 +60,7 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
         if self.ds.no_cgs_equiv_length == False:
             return super(SpectralCubeCoordinateHandler, self
                     ).setup_fields(registry)
-        for axi, ax in enumerate(self.axis_name):
+        for axi, ax in enumerate("xyz"):
             f1, f2 = _get_coord_fields(axi)
             def _get_length_func():
                 def _length_func(field, data):
@@ -100,6 +96,10 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
 
     def convert_from_cylindrical(self, coord):
         raise NotImplementedError
+
+    @property
+    def image_axis_name(self):
+        return self._image_axis_name
 
     x_axis = { 'x' : 1, 'y' : 0, 'z' : 0,
                 0  : 1,  1  : 0,  2  : 0}
