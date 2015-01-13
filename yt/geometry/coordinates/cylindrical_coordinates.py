@@ -15,11 +15,12 @@ Cylindrical fields
 #-----------------------------------------------------------------------------
 
 import numpy as np
-from yt.units.yt_array import YTArray
 from .coordinate_handler import \
     CoordinateHandler, \
     _unknown_coord, \
-    _get_coord_fields
+    _get_coord_fields, \
+    cylindrical_to_cartesian, \
+    cartesian_to_cylindrical
 import yt.visualization._MPL as _MPL
 from yt.utilities.lib.misc_utilities import \
     pixelize_cylinder
@@ -131,11 +132,11 @@ class CylindricalCoordinateHandler(CoordinateHandler):
     axis_id = { 'r' : 0, 'z' : 1, 'theta' : 2,
                  0  : 0,  1  : 1,  2  : 2}
 
-    x_axis = { 'r' : 1, 'z' : 0, 'theta' : 0,
-                0  : 1,  1  : 0,  2  : 0}
+    x_axis = { 'r' : 2, 'z' : 0, 'theta' : 0,
+                0  : 2,  1  : 0,  2  : 0}
 
-    y_axis = { 'r' : 2, 'z' : 2, 'theta' : 1,
-                0  : 2,  1  : 2,  2  : 1}
+    y_axis = { 'r' : 1, 'z' : 2, 'theta' : 1,
+                0  : 1,  1  : 2,  2  : 1}
 
     _image_axis_name = None
 
@@ -146,9 +147,9 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         # This is the x and y axes labels that get displayed.  For
         # non-Cartesian coordinates, we usually want to override these for
         # Cartesian coordinates, since we transform them.
-        rv = {0: ('z', 'theta'),
-              1: ('x', 'y'),
-              2: ('r', 'z')}
+        rv = {self.axis_id['r']: ('theta', 'z'),
+              self.axis_id['z']: ('x', 'y'),
+              self.axis_id['theta']: ('r', 'z')}
         for i in rv.keys():
             rv[self.axis_name[i]] = rv[i]
             rv[self.axis_name[i].upper()] = rv[i]
@@ -176,3 +177,25 @@ class CylindricalCoordinateHandler(CoordinateHandler):
     @property
     def period(self):
         return np.array([0.0, 0.0, 2.0*np.pi])
+
+    def sanitize_center(self, center, axis):
+        center, display_center = super(
+            CylindricalCoordinateHandler, self).sanitize_center(center, axis)
+        display_center = [0.0 * display_center[0],
+                          0.0 * display_center[1],
+                          0.0 * display_center[2]]
+        ax_name = self.axis_name[axis]
+        r_ax = self.axis_id['r']
+        theta_ax = self.axis_id['theta']
+        z_ax = self.axis_id['z']
+        if ax_name == "r":
+            # zeros everywhere
+            display_center[theta_ax] = self.ds.domain_center[theta_ax]
+            display_center[z_ax] = self.ds.domain_center[z_ax]
+        elif ax_name == "theta":
+            # Note we are using domain_right_edge, not domain_width, so that in
+            # cases where DLE is not zero we go to the inner edge.
+            display_center[r_ax] = self.ds.domain_right_edge[r_ax]/2.0
+            display_center[z_ax] = self.ds.domain_center[z_ax]
+            # zeros for the others
+        return center, display_center
