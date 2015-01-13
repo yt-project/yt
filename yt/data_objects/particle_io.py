@@ -134,8 +134,8 @@ class ParticleIOHandlerDisk(ParticleIOHandlerImplemented):
     def __init__(self, ds, source):
         self.center = source.center
         self.normal = source._norm_vec
-        self.radius = source._radius
-        self.height = source._height
+        self.radius = source.radius
+        self.height = source.height
         ParticleIOHandler.__init__(self, ds, source)
     
     def _get_args(self):

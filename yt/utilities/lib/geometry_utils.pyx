@@ -47,8 +47,8 @@ def find_values_at_point(np.ndarray[np.float64_t, ndim=1] point,
     # level to lowest, you will find the correct grid without consulting child
     # masking.  Note also that we will do a few relatively slow operations on
     # strings and whatnot, but they should not be terribly slow.
-    cdef int ind[3], gi, fi
-    cdef int nf = len(field_names)
+    cdef int ind[3]
+    cdef int gi, fi, nf = len(field_names)
     cdef np.float64_t dds
     cdef np.ndarray[np.float64_t, ndim=3] field
     cdef np.ndarray[np.float64_t, ndim=1] rv = np.zeros(nf, dtype='float64')
@@ -359,7 +359,8 @@ cdef np.int64_t position_to_morton(np.ndarray[anyfloat, ndim=1] pos_x,
                         np.float64_t DRE[3],
                         np.ndarray[np.uint64_t, ndim=1] ind,
                         int filter):
-    cdef np.uint64_t mi, ii[3]
+    cdef np.uint64_t mi
+    cdef np.uint64_t ii[3]
     cdef np.float64_t p[3]
     cdef np.int64_t i, j, use
     cdef np.uint64_t DD[3]
@@ -380,7 +381,7 @@ cdef np.int64_t position_to_morton(np.ndarray[anyfloat, ndim=1] pos_x,
                 return i
             ii[j] = <np.uint64_t> ((p[j] - DLE[j])/dds[j])
             ii[j] = i64clip(ii[j], 0, DD[j] - 1)
-        if use == 0: 
+        if use == 0:
             ind[i] = FLAG
             continue
         mi = 0
@@ -391,7 +392,7 @@ cdef np.int64_t position_to_morton(np.ndarray[anyfloat, ndim=1] pos_x,
     return pos_x.shape[0]
 
 DEF ORDER_MAX=20
-        
+
 def compute_morton(np.ndarray pos_x, np.ndarray pos_y, np.ndarray pos_z,
                    domain_left_edge, domain_right_edge, filter_bbox = False):
     cdef int i
@@ -400,7 +401,9 @@ def compute_morton(np.ndarray pos_x, np.ndarray pos_y, np.ndarray pos_z,
         filter = 1
     else:
         filter = 0
-    cdef np.float64_t dds[3], DLE[3], DRE[3]
+    cdef np.float64_t dds[3]
+    cdef np.float64_t DLE[3]
+    cdef np.float64_t DRE[3]
     for i in range(3):
         DLE[i] = domain_left_edge[i]
         DRE[i] = domain_right_edge[i]
@@ -480,7 +483,8 @@ cdef struct PointSet:
 
 cdef inline void get_intersection(np.float64_t p0[3], np.float64_t p1[3],
                                   int ax, np.float64_t coord, PointSet *p):
-    cdef np.float64_t vec[3], t
+    cdef np.float64_t vec[3]
+    cdef np.float64_t t
     for j in range(3):
         vec[j] = p1[j] - p0[j]
     t = (coord - p0[ax])/vec[ax]
@@ -492,11 +496,16 @@ cdef inline void get_intersection(np.float64_t p0[3], np.float64_t p1[3],
 
 def triangle_plane_intersect(int ax, np.float64_t coord,
                              np.ndarray[np.float64_t, ndim=3] triangles):
-    cdef np.float64_t p0[3], p1[3], p2[3], p3[3]
+    cdef np.float64_t p0[3]
+    cdef np.float64_t p1[3]
+    cdef np.float64_t p2[3]
+    cdef np.float64_t p3[3]
     cdef int i, j, k, count, i0, i1, i2, ntri, nlines
     nlines = 0
     ntri = triangles.shape[0]
-    cdef PointSet *first, *last, *points
+    cdef PointSet *first
+    cdef PointSet *last
+    cdef PointSet *points
     first = last = points = NULL
     for i in range(ntri):
         count = 0

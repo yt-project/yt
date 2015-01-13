@@ -226,7 +226,7 @@ cdef class QuadTree:
         # Refined or not (total,) int32
         # Values in each node (total, nvals) float64
         # Weight values in each node (total,) float64
-        cdef np.ndarray[np.int32_t, ndim=1] refined 
+        cdef np.ndarray[np.int32_t, ndim=1] refined
         refined = np.zeros(total, dtype='int32')
         cdef np.ndarray[np.float64_t, ndim=2] values
         values = np.zeros((total, self.nvals), dtype='float64')
@@ -263,7 +263,7 @@ cdef class QuadTree:
         if skip == 1: return 0
         self.combine(node, val, weight_val, self.nvals)
         return 0
-            
+
     @cython.cdivision(True)
     cdef QuadTreeNode *find_on_root_level(self, np.int64_t pos[2], int level):
         # We need this because the root level won't just have four children
@@ -277,7 +277,7 @@ cdef class QuadTree:
             self.last_dims[1] = j
             return NULL
         return self.root_nodes[i][j]
-    
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def add_array_to_tree(self, int level, np.ndarray[np.int64_t, ndim=1] pxs,
@@ -298,7 +298,7 @@ cdef class QuadTree:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def add_chunk_to_tree(self, 
+    def add_chunk_to_tree(self,
             np.ndarray[np.int64_t, ndim=1] pxs,
             np.ndarray[np.int64_t, ndim=1] pys,
             np.ndarray[np.int64_t, ndim=1] level,
@@ -322,7 +322,7 @@ cdef class QuadTree:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def initialize_chunk(self, 
+    def initialize_chunk(self,
             np.ndarray[np.int64_t, ndim=1] pxs,
             np.ndarray[np.int64_t, ndim=1] pys,
             np.ndarray[np.int64_t, ndim=1] level):
@@ -394,7 +394,7 @@ cdef class QuadTree:
         return count
 
     @cython.cdivision(True)
-    cdef int fill(self, QuadTreeNode *node, 
+    cdef int fill(self, QuadTreeNode *node,
                         np.int64_t curpos,
                         np.float64_t *px,
                         np.float64_t *py,
@@ -453,8 +453,10 @@ cdef class QuadTree:
     @cython.cdivision(True)
     def fill_image(self, np.ndarray[np.float64_t, ndim=2] buffer, _bounds,
                    int val_index = 0):
-        cdef np.float64_t dds[2], pos[2]
-        cdef int nn[2], i, j
+        cdef np.float64_t pos[2]
+        cdef np.float64_t dds[2]
+        cdef int nn[2]
+        cdef int i, j
         cdef np.float64_t bounds[4]
         for i in range(4):
             bounds[i] = _bounds[i]
@@ -493,7 +495,7 @@ cdef class QuadTree:
                 dds[i] = dds[i] / 2.0
                 if cp[i] < pos[i]:
                     ind[i] = 0
-                    cp[i] -= dds[i] / 2.0 
+                    cp[i] -= dds[i] / 2.0
                 else:
                     ind[i] = 1
                     cp[i] += dds[i] / 2.0

@@ -19,6 +19,7 @@ from yt.units.yt_array import YTArray
 from .coordinate_handler import \
     CoordinateHandler, \
     _unknown_coord, \
+    cylindrical_to_cartesian, \
     _get_coord_fields
 from .cylindrical_coordinates import CylindricalCoordinateHandler
 import yt.visualization._MPL as _MPL
