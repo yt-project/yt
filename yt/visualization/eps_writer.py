@@ -1198,7 +1198,7 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
                         if fields[index] == None:
                             fields[index] = d.return_field(yt_plots[index])
                                               
-                        d.colorbar_yt(this_plot,
+                        d.colorbar_yt(yt_plots[index],
                                       field=fields[index],
                                       pos=[xpos,ypos],
                                       shrink=shrink_cb,
