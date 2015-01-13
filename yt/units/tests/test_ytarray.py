@@ -28,17 +28,22 @@ from numpy.testing import \
     assert_array_equal, \
     assert_equal, assert_raises, \
     assert_array_almost_equal_nulp, \
-    assert_array_almost_equal
+    assert_array_almost_equal, \
+    assert_allclose
 from numpy import array
 from yt.units.yt_array import \
     YTArray, YTQuantity, \
-    unary_operators, binary_operators
+    unary_operators, binary_operators, \
+    uconcatenate, uintersect1d, \
+    uunion1d
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUfuncUnitError
 from yt.testing import fake_random_ds, requires_module
 from yt.funcs import fix_length
 from yt.units.unit_symbols import \
     cm, m, g
+from yt.utilities.physical_ratios import \
+    metallicity_sun
 
 def operate_and_compare(a, b, op, answer):
     # Test generator for YTArrays tests
@@ -469,21 +474,21 @@ def test_temperature_conversions():
 
     km = YTQuantity(1, 'km')
     balmy = YTQuantity(300, 'K')
-    balmy_F = YTQuantity(80.33, 'F')
-    balmy_C = YTQuantity(26.85, 'C')
+    balmy_F = YTQuantity(80.33, 'degF')
+    balmy_C = YTQuantity(26.85, 'degC')
     balmy_R = YTQuantity(540, 'R')
 
-    assert_array_almost_equal(balmy.in_units('F'), balmy_F)
-    assert_array_almost_equal(balmy.in_units('C'), balmy_C)
+    assert_array_almost_equal(balmy.in_units('degF'), balmy_F)
+    assert_array_almost_equal(balmy.in_units('degC'), balmy_C)
     assert_array_almost_equal(balmy.in_units('R'), balmy_R)
 
     balmy_view = balmy.ndarray_view()
 
-    balmy.convert_to_units('F')
+    balmy.convert_to_units('degF')
     yield assert_true, balmy_view.base is balmy.base
     yield assert_array_almost_equal, np.array(balmy), np.array(balmy_F)
 
-    balmy.convert_to_units('C')
+    balmy.convert_to_units('degC')
     yield assert_true, balmy_view.base is balmy.base
     yield assert_array_almost_equal, np.array(balmy), np.array(balmy_C)
 
@@ -491,13 +496,13 @@ def test_temperature_conversions():
     yield assert_true, balmy_view.base is balmy.base
     yield assert_array_almost_equal, np.array(balmy), np.array(balmy_R)
 
-    balmy.convert_to_units('F')
+    balmy.convert_to_units('degF')
     yield assert_true, balmy_view.base is balmy.base
     yield assert_array_almost_equal, np.array(balmy), np.array(balmy_F)
 
     yield assert_raises, InvalidUnitOperation, np.multiply, balmy, km
 
-    # Does CGS convergion from F to K work?
+    # Does CGS conversion from F to K work?
     yield assert_array_almost_equal, balmy.in_cgs(), YTQuantity(300, 'K')
 
 
@@ -543,9 +548,6 @@ def test_selecting():
     # .base points to the original array for a numpy view.  If it is not a
     # view, .base is None.
     yield assert_true, a_slice.base is a
-    yield assert_true, a_fancy_index.base is None
-    yield assert_true, a_array_fancy_index.base is None
-    yield assert_true, a_boolean_index.base is None
 
 
 def test_fix_length():
@@ -692,7 +694,12 @@ def binary_ufunc_comparison(ufunc, a, b):
         assert_true(not isinstance(ret, YTArray) and
                     isinstance(ret, np.ndarray))
     assert_array_equal(ret, out)
-    assert_array_equal(ret, ufunc(np.array(a), np.array(b)))
+    if (ufunc in (np.divide, np.true_divide, np.arctan2) and
+        (a.units.dimensions == b.units.dimensions)):
+        assert_array_almost_equal(
+            np.array(ret), ufunc(np.array(a.in_cgs()), np.array(b.in_cgs())))
+    else:
+        assert_array_almost_equal(np.array(ret), ufunc(np.array(a), np.array(b)))
 
 
 def test_ufuncs():
@@ -856,3 +863,152 @@ def test_h5_io():
 
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
+
+def test_cgs_conversions():
+    from yt.utilities.physical_constants import qp, eps_0, clight
+    from yt.units.dimensions import current_mks, time
+
+    qp_mks = qp.in_units("C")
+    yield assert_equal, qp_mks.units.dimensions, current_mks*time
+    yield assert_array_almost_equal, qp_mks.in_cgs(), qp
+    qp_mks_k = qp_mks.in_units("kC")
+    yield assert_equal, qp_mks.units.dimensions, current_mks*time
+    yield assert_array_almost_equal, qp_mks_k.in_cgs(), qp
+    yield assert_array_almost_equal, qp_mks_k.in_units("kesu"), qp.in_units("kesu")
+
+    K = 1.0/(4*np.pi*eps_0)
+    yield assert_array_almost_equal, K.in_cgs(), 1.0
+
+    B = YTQuantity(1.0, "T")
+    yield assert_array_almost_equal, B.in_units("gauss"), YTQuantity(1.0e4, "gauss")
+
+    I = YTQuantity(1.0, "A")
+    yield assert_array_almost_equal, I.in_units("statA"), YTQuantity(0.1*clight, "statA")
+
+def test_equivalencies():
+    from yt.utilities.physical_constants import clight, mp, kboltz, hcgs, mh, me, \
+        mass_sun_cgs, G, stefan_boltzmann_constant_cgs
+    import yt.units as u
+
+    # Mass-energy
+
+    E = mp.to_equivalent("keV","mass_energy")
+    yield assert_equal, E, mp*clight*clight
+    yield assert_allclose, mp, E.to_equivalent("g", "mass_energy")
+
+    # Thermal
+
+    T = YTQuantity(1.0e8,"K")
+    E = T.to_equivalent("W*hr","thermal")
+    yield assert_equal, E, (kboltz*T).in_units("W*hr")
+    yield assert_allclose, T, E.to_equivalent("K", "thermal")
+
+    # Spectral
+
+    l = YTQuantity(4000.,"angstrom")
+    nu = l.to_equivalent("Hz","spectral")
+    yield assert_equal, nu, clight/l
+    E = hcgs*nu
+    l2 = E.to_equivalent("angstrom", "spectral")
+    yield assert_allclose, l, l2
+    nu2 = clight/l2.in_units("cm")
+    yield assert_allclose, nu, nu2
+    E2 = nu2.to_equivalent("keV", "spectral")
+    yield assert_allclose, E2, E.in_units("keV")
+
+    # Sound-speed
+
+    mu = 0.6
+    gg = 5./3.
+    c_s = T.to_equivalent("km/s","sound_speed")
+    yield assert_equal, c_s, np.sqrt(gg*kboltz*T/(mu*mh))
+    yield assert_allclose, T, c_s.to_equivalent("K","sound_speed")
+
+    mu = 0.5
+    gg = 4./3.
+    c_s = T.to_equivalent("km/s","sound_speed", mu=mu, gamma=gg)
+    yield assert_equal, c_s, np.sqrt(gg*kboltz*T/(mu*mh))
+    yield assert_allclose, T, c_s.to_equivalent("K","sound_speed",
+                                                    mu=mu, gamma=gg)
+
+    # Lorentz
+
+    v = 0.8*clight
+    g = v.to_equivalent("dimensionless","lorentz")
+    g2 = YTQuantity(1./np.sqrt(1.-0.8*0.8), "dimensionless")
+    yield assert_allclose, g, g2
+    v2 = g2.to_equivalent("mile/hr", "lorentz")
+    yield assert_allclose, v2, v.in_units("mile/hr")
+
+    # Schwarzschild
+
+    R = mass_sun_cgs.to_equivalent("kpc","schwarzschild")
+    yield assert_equal, R.in_cgs(), 2*G*mass_sun_cgs/(clight*clight)
+    yield assert_allclose, mass_sun_cgs, R.to_equivalent("g", "schwarzschild")
+
+    # Compton
+
+    l = me.to_equivalent("angstrom","compton")
+    yield assert_equal, l, hcgs/(me*clight)
+    yield assert_allclose, me, l.to_equivalent("g", "compton")
+
+    # Number density
+
+    rho = mp/u.cm**3
+
+    n = rho.to_equivalent("cm**-3","number_density")
+    yield assert_equal, n, rho/(mh*0.6)
+    yield assert_allclose, rho, n.to_equivalent("g/cm**3","number_density")
+
+    n = rho.to_equivalent("cm**-3","number_density", mu=0.75)
+    yield assert_equal, n, rho/(mh*0.75)
+    yield assert_allclose, rho, n.to_equivalent("g/cm**3","number_density", mu=0.75)
+
+    # Effective temperature
+
+    T = YTQuantity(1.0e4, "K")
+    F = T.to_equivalent("erg/s/cm**2","effective_temperature")
+    yield assert_equal, F, stefan_boltzmann_constant_cgs*T**4
+    yield assert_allclose, T, F.to_equivalent("K", "effective_temperature")
+
+
+def test_numpy_wrappers():
+    a1 = YTArray([1, 2, 3], 'cm')
+    a2 = YTArray([2, 3, 4, 5, 6], 'cm')
+    catenate_answer = [1, 2, 3, 2, 3, 4, 5, 6]
+    intersect_answer = [2, 3]
+    union_answer = [1, 2, 3, 4, 5, 6]
+
+    yield (assert_array_equal, YTArray(catenate_answer, 'cm'),
+           uconcatenate((a1, a2)))
+    yield assert_array_equal, catenate_answer, np.concatenate((a1, a2))
+
+    yield (assert_array_equal, YTArray(intersect_answer, 'cm'),
+           uintersect1d(a1, a2))
+    yield assert_array_equal, intersect_answer, np.intersect1d(a1, a2)
+
+    yield assert_array_equal, YTArray(union_answer, 'cm'), uunion1d(a1, a2)
+    yield assert_array_equal, union_answer, np.union1d(a1, a2)
+
+def test_dimensionless_conversion():
+    a = YTQuantity(1, 'Zsun')
+    b = a.in_units('Zsun')
+    a.convert_to_units('Zsun')
+    yield assert_true, a.units.cgs_value == metallicity_sun
+    yield assert_true, b.units.cgs_value == metallicity_sun
+
+def test_modified_unit_division():
+    ds1 = fake_random_ds(64)
+    ds2 = fake_random_ds(64)
+
+    # this mocks comoving coordinates without going through the trouble
+    # of setting up a fake cosmological dataset
+    ds1.unit_registry.modify('m', 50)
+
+    a = ds1.quan(3, 'm')
+    b = ds2.quan(3, 'm')
+
+    ret = a/b
+    yield assert_true, ret == 0.5
+    yield assert_true, ret.units.is_dimensionless
+    yield assert_true, ret.units.cgs_value == 1.0

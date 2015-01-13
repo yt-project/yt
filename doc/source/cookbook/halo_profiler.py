@@ -21,7 +21,7 @@ hc.add_callback("sphere", factor=2.0)
 hc.add_callback("profile", ["radius"],
                 [("gas", "overdensity")],
                 weight_field="cell_volume",
-                accumulation=False,
+                accumulation=True,
                 storage="virial_quantities_profiles")
 
 
@@ -32,7 +32,7 @@ hc.add_callback('delete_attribute', 'virial_quantities_profiles')
 field_params = dict(virial_radius=('quantity', 'radius_200'))
 hc.add_callback('sphere', radius_field='radius_200', factor=5,
                 field_parameters=field_params)
-hc.add_callback('profile', ['virial_radius'], 
+hc.add_callback('profile', ['virial_radius_fraction'], 
                 [('gas', 'temperature')],
                 storage='virial_profiles',
                 weight_field='cell_mass',

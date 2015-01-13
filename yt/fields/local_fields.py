@@ -21,8 +21,15 @@ from .field_plugin_registry import \
 from .field_info_container import \
     FieldInfoContainer
 
+class LocalFieldInfoContainer(FieldInfoContainer):
+    def add_field(self, name, function=None, **kwargs):
+        if not isinstance(name, tuple):
+            name = ('gas', name)
+        return super(LocalFieldInfoContainer,
+                     self).add_field(name, function, **kwargs)
+
 # Empty FieldInfoContainer
-local_fields = FieldInfoContainer(None, [], None)
+local_fields = LocalFieldInfoContainer(None, [], None)
 
 add_field = derived_field = local_fields.add_field
 

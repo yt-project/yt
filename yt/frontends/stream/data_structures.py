@@ -292,8 +292,8 @@ class StreamDataset(Dataset):
     _field_info_class = StreamFieldInfo
     _dataset_type = 'stream'
 
-    def __init__(self, stream_handler, storage_filename = None,
-                 geometry = "cartesian"):
+    def __init__(self, stream_handler, storage_filename=None,
+                 geometry="cartesian"):
         #if parameter_override is None: parameter_override = {}
         #self._parameter_override = parameter_override
         #if conversion_override is None: conversion_override = {}
@@ -364,8 +364,10 @@ class StreamDictFieldHandler(dict):
     _additional_fields = ()
 
     @property
-    def all_fields(self): 
-        fields = list(self._additional_fields) + self[0].keys()
+    def all_fields(self):
+        self_fields = chain.from_iterable(s.keys() for s in self.values())
+        self_fields = list(set(self_fields))
+        fields = list(self._additional_fields) + self_fields
         fields = list(set(fields))
         return fields
 
@@ -471,9 +473,8 @@ def unitify_data(data):
             field_units[k] = v.units
             new_data[k] = v.copy().d
         data = new_data
-    elif all([isinstance(val, np.ndarray) for val in data.values()]):
-        field_units = {field:'' for field in data.keys()}
-    elif all([(len(val) == 2) for val in data.values()]):
+    elif all([((not isinstance(val, np.ndarray)) and (len(val) == 2))
+             for val in data.values()]):
         new_data, field_units = {}, {}
         for field in data:
             try:
@@ -489,6 +490,9 @@ def unitify_data(data):
                 raise RuntimeError("The data dict appears to be invalid.\n" +
                                    str(e))
         data = new_data
+    elif all([iterable(val) for val in data.values()]):
+        field_units = {field:'' for field in data.keys()}
+        data = dict((field, np.asarray(val)) for field, val in data.iteritems())
     else:
         raise RuntimeError("The data dict appears to be invalid. "
                            "The data dictionary must map from field "
@@ -697,7 +701,7 @@ def load_amr_grids(grid_data, domain_dimensions,
                    field_units=None, bbox=None, sim_time=0.0, length_unit=None,
                    mass_unit=None, time_unit=None, velocity_unit=None,
                    magnetic_unit=None, periodicity=(True, True, True),
-                   geometry = "cartesian"):
+                   geometry = "cartesian", refine_by=2):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
     This should allow a sequence of grids of varying resolution of data to be
@@ -747,6 +751,8 @@ def load_amr_grids(grid_data, domain_dimensions,
         each axis
     geometry : string
         "cartesian", "cylindrical" or "polar"
+    refine_by : integer
+        Specifies the refinement ratio between levels.  Defaults to 2.
 
     Examples
     --------
@@ -763,12 +769,13 @@ def load_amr_grids(grid_data, domain_dimensions,
     ...          dimensions = [32, 32, 32],
     ...          number_of_particles = 0)
     ... ]
-    ... 
-    >>> for g in grid_data:
-    ...     g["Density"] = np.random.random(g["dimensions"]) * 2**g["level"]
     ...
-    >>> units = dict(Density='g/cm**3')
-    >>> ds = load_amr_grids(grid_data, [32, 32, 32], 1.0)
+    >>> for g in grid_data:
+    ...     g["density"] = np.random.random(g["dimensions"]) * 2**g["level"]
+    ...
+    >>> units = dict(density='g/cm**3')
+    >>> ds = load_amr_grids(grid_data, [32, 32, 32], field_units=units,
+    ...                     length_unit=1.0)
     """
 
     domain_dimensions = np.array(domain_dimensions)
@@ -822,6 +829,11 @@ def load_amr_grids(grid_data, domain_dimensions,
     if magnetic_unit is None:
         magnetic_unit = 'code_magnetic'
 
+    particle_types = {}
+
+    for grid in grid_data:
+        particle_types.update(set_particle_types(grid))
+
     handler = StreamHandler(
         grid_left_edges,
         grid_right_edges,
@@ -833,13 +845,13 @@ def load_amr_grids(grid_data, domain_dimensions,
         sfh,
         field_units,
         (length_unit, mass_unit, time_unit, velocity_unit, magnetic_unit),
-        particle_types=set_particle_types(grid_data[0])
+        particle_types=particle_types
     )
 
     handler.name = "AMRGridData"
     handler.domain_left_edge = domain_left_edge
     handler.domain_right_edge = domain_right_edge
-    handler.refine_by = 2
+    handler.refine_by = refine_by
     handler.dimensionality = 3
     handler.domain_dimensions = domain_dimensions
     handler.simulation_time = sim_time
@@ -1018,7 +1030,7 @@ def load_particles(data, length_unit = None, bbox=None,
     magnetic_unit : float
         Conversion factor from simulation magnetic units to gauss
     bbox : array_like (xdim:zdim, LE:RE), optional
-        Size of computational domain in units sim_unit_to_cm
+        Size of computational domain in units of the length_unit
     sim_time : float, optional
         The simulation time in seconds
     periodicity : tuple of booleans
@@ -1191,10 +1203,8 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
     coordinates : array_like
         This should be of size (M,3) where M is the number of vertices
         indicated in the connectivity matrix.
-    sim_unit_to_cm : float
-        Conversion factor from simulation units to centimeters
     bbox : array_like (xdim:zdim, LE:RE), optional
-        Size of computational domain in units sim_unit_to_cm
+        Size of computational domain in units of the length unit.
     sim_time : float, optional
         The simulation time in seconds
     mass_unit : string

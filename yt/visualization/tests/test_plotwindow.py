@@ -323,6 +323,9 @@ class TestPlotWindowSave(unittest.TestCase):
     def test_offaxis_projection_plot(self, fname):
         assert assert_fname(self.offaxis_proj.save(fname)[0])
 
+    def test_ipython_repr(self):
+        self.slices[0]._repr_html_()
+
     @parameterized.expand(
         param.explicit((width, ))
         for width in WIDTH_SPECS)

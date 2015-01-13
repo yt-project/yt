@@ -14,6 +14,7 @@ The data-file handling functions
 #-----------------------------------------------------------------------------
 
 from collections import defaultdict
+from contextlib import contextmanager
 
 from yt.funcs import mylog
 import cPickle
@@ -37,18 +38,24 @@ class BaseIOHandler(object):
     _vector_fields = ()
     _dataset_type = None
     _particle_reader = False
+    _cache_on = False
+    _misses = 0
+    _hits = 0
 
     def __init__(self, ds):
         self.queue = defaultdict(dict)
         self.ds = ds
         self._last_selector_id = None
         self._last_selector_counts = None
+        self._array_fields = {}
+        self._cached_fields = {}
 
     # We need a function for reading a list of sets
     # and a function for *popping* from a queue all the appropriate sets
 
-    def preload(self, grids, sets):
-        pass
+    @contextmanager
+    def preload(self, chunk, fields, max_size):
+        yield self
 
     def pop(self, grid, field):
         if grid.id in self.queue and field in self.queue[grid.id]:
@@ -160,6 +167,8 @@ class BaseIOHandler(object):
         for field in fields:
             if field[1] in self._vector_fields:
                 shape = (fsize[field], 3)
+            elif field[1] in self._array_fields:
+                shape = (fsize[field],)+self._array_fields[field[1]]
             else:
                 shape = (fsize[field], )
             rv[field] = np.empty(shape, dtype="float64")

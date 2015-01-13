@@ -92,7 +92,7 @@ mass_earth_grams = mass_sun_grams / 328900.56
 mass_mars_grams = mass_sun_grams / 3098708.0
 mass_saturn_grams = mass_sun_grams / 3497.898
 mass_uranus_grams = mass_sun_grams / 22902.98
-mass_neptun_grams = mass_sun_grams / 19412.24
+mass_neptune_grams = mass_sun_grams / 19412.24
 
 # flux
 jansky_cgs = 1.0e-23
@@ -109,3 +109,11 @@ mass_mean_atomic_galactic = 2.3
 # Miscellaneous
 HUGE = 1.0e90
 TINY = 1.0e-40
+
+# Planck units
+planck_mass_grams = 2.17650925245e-05
+planck_length_cm = 1.6161992557e-33
+planck_time_s = planck_length_cm / speed_of_light_cm_per_s
+planck_energy_erg = planck_mass_grams * speed_of_light_cm_per_s * speed_of_light_cm_per_s
+planck_temperature_K = planck_energy_erg / boltzmann_constant_erg_per_K
+planck_charge_esu = 5.62274532302e-09

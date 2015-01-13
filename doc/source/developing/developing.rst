@@ -220,6 +220,12 @@ Here's a more detailed flowchart of how to submit changes.
 #. Commit these changes, using ``hg commit``.  This can take an argument
    which is a series of filenames, if you have some changes you do not want
    to commit.
+#. Remember that this is a large development effort and to keep the code 
+   accessible to everyone, good documentation is a must.  Add in source code 
+   comments for what you are doing.  Add in docstrings
+   if you are adding a new function or class or keyword to a function.  
+   Add documentation to the appropriate section of the online docs so that
+   people other than yourself know how to use your new code.  
 #. If your changes include new functionality or cover an untested area of the
    code, add a test.  (See :ref:`testing` for more information.)  Commit
    these changes as well.
@@ -244,6 +250,9 @@ Here's a more detailed flowchart of how to submit changes.
 
 #. Issue a pull request at
    https://bitbucket.org/YourUsername/yt/pull-request/new
+   A pull request is essentially just asking people to review and accept the 
+   modifications you have made to your personal version of the code.
+
 
 During the course of your pull request you may be asked to make changes.  These
 changes may be related to style issues, correctness issues, or even requesting
@@ -253,7 +262,7 @@ straightforward.
 #. Make requested changes, or leave a comment indicating why you don't think
    they should be made.
 #. Commit those changes to your local repository.
-#. Push the changes to your fork::
+#. Push the changes to your fork:
 
       hg push https://bitbucket.org/YourUsername/yt/
 
@@ -302,7 +311,7 @@ and your ``hgrc`` file:
 
    .. code-block:: bash
 
-      $ hg pull
+      $ hg pull upstream
       $ hg update -r "remote(tip,'upstream')"
 
 After the above steps, your local repository should be at the tip of
@@ -312,13 +321,13 @@ be worth aliasing this task in your ``hgrc`` file by adding something like::
   [alias]
   myupdate = update -r "remote(tip,'upstream')"
 
-And then you can just issue ``hg myupdate`` to get at the tip of the yt
-branch of the main yt repository.
+And then you can just issue ``hg myupdate`` to get at the tip of the main yt repository.
 
-You can then make changes and ``hg commit`` them.  If you prefer
-working with `bookmarks <http://mercurial.selenic.com/wiki/Bookmarks>`_, you may
-want to make a bookmark before committing your changes, such as
-``hg bookmark mybookmark``.
+Make sure you are on the branch you want to be on, and then you can
+make changes and ``hg commit`` them.  If you prefer working with
+`bookmarks <http://mercurial.selenic.com/wiki/Bookmarks>`_, you may
+want to make a bookmark before committing your changes, such as ``hg
+bookmark mybookmark``.
 
 To push to your fork on BitBucket if you didn't use a bookmark, you issue the following:
 

@@ -64,14 +64,15 @@ cdef class OctreeContainer:
     cdef int level_offset
     cdef int nn[3]
     cdef np.uint8_t oref
-    cdef np.float64_t DLE[3], DRE[3]
+    cdef np.float64_t DLE[3]
+    cdef np.float64_t DRE[3]
     cdef public np.int64_t nocts
     cdef public int num_domains
     cdef Oct *get(self, np.float64_t ppos[3], OctInfo *oinfo = ?,
                   int max_level = ?)
     cdef int get_root(self, int ind[3], Oct **o)
     cdef Oct **neighbors(self, OctInfo *oinfo, np.int64_t *nneighbors,
-                         Oct *o)
+                         Oct *o, bint periodicity[3])
     cdef void oct_bounds(self, Oct *, np.float64_t *, np.float64_t *)
     # This function must return the offset from global-to-local domains; i.e.,
     # OctAllocationContainer.offset if such a thing exists.

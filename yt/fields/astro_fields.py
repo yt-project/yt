@@ -102,6 +102,15 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
                        function=_xray_emissivity,
                        units="") # add correct units here
 
+    def _mazzotta_weighting(field, data):
+        # Spectroscopic-like weighting field for galaxy clusters
+        # Only useful as a weight_field for temperature, metallicity, velocity
+        return data["density"]*data["density"]*data["kT"]**-0.25/mh/mh
+
+    registry.add_field((ftype,"mazzotta_weighting"),
+                       function=_mazzotta_weighting,
+                       units="keV**-0.25*cm**-6")
+    
     def _sz_kinetic(field, data):
         scale = 0.88 * sigma_thompson / mh / clight
         vel_axis = data.get_field_parameter("axis")

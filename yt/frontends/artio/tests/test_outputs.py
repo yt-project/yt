@@ -50,3 +50,8 @@ def test_sizmbhloz():
 @requires_file(sizmbhloz)
 def test_ARTIODataset():
     assert isinstance(data_dir_load(sizmbhloz), ARTIODataset)
+
+@requires_file(sizmbhloz)
+def test_units_override():
+    for test in units_override_check(sizmbhloz):
+        yield test

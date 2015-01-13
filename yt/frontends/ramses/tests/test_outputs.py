@@ -49,3 +49,8 @@ def test_output_00080():
 @requires_file(output_00080)
 def test_RAMSESDataset():
     assert isinstance(data_dir_load(output_00080), RAMSESDataset)
+
+@requires_file(output_00080)
+def test_units_override():
+    for test in units_override_check(output_00080):
+        yield test

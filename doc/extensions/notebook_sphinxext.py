@@ -1,9 +1,16 @@
-import os, shutil, string, glob, re
+import errno
+import os
+import shutil
+import string
+import re
+import tempfile
+import uuid
 from sphinx.util.compat import Directive
 from docutils import nodes
 from docutils.parsers.rst import directives
+from IPython.config import Config
 from IPython.nbconvert import html, python
-from IPython.nbformat.current import read, write
+from IPython.nbformat import current as nbformat
 from runipy.notebook_runner import NotebookRunner, NotebookError
 
 class NotebookDirective(Directive):
@@ -14,7 +21,7 @@ class NotebookDirective(Directive):
     """
     required_arguments = 1
     optional_arguments = 1
-    option_spec = {'skip_exceptions' : directives.flag}
+    option_spec = {'skip_exceptions': directives.flag}
     final_argument_whitespace = True
 
     def run(self): # check if there are spaces in the notebook name
@@ -26,9 +33,11 @@ class NotebookDirective(Directive):
         if not self.state.document.settings.raw_enabled:
             raise self.warning('"%s" directive disabled.' % self.name)
 
+        cwd = os.getcwd()
+        tmpdir = tempfile.mkdtemp()
+        os.chdir(tmpdir)
+
         # get path to notebook
-        source_dir = os.path.dirname(
-            os.path.abspath(self.state.document.current_source))
         nb_filename = self.arguments[0]
         nb_basename = os.path.basename(nb_filename)
         rst_file = self.state_machine.document.attributes['source']
@@ -37,26 +46,24 @@ class NotebookDirective(Directive):
 
         # Move files around.
         rel_dir = os.path.relpath(rst_dir, setup.confdir)
-        rel_path = os.path.join(rel_dir, nb_basename)
         dest_dir = os.path.join(setup.app.builder.outdir, rel_dir)
         dest_path = os.path.join(dest_dir, nb_basename)
 
-        if not os.path.exists(dest_dir):
-            os.makedirs(dest_dir)
+        image_dir, image_rel_dir = make_image_dir(setup, rst_dir)
 
-        # Copy unevaluated script
-        try:
-            shutil.copyfile(nb_abs_path, dest_path)
-        except IOError:
-            raise RuntimeError("Unable to copy notebook to build destination.")
+        # Ensure desination build directory exists
+        thread_safe_mkdir(os.path.dirname(dest_path))
 
+        # Copy unevaluated notebook
+        shutil.copyfile(nb_abs_path, dest_path)
+
+        # Construct paths to versions getting copied over
         dest_path_eval = string.replace(dest_path, '.ipynb', '_evaluated.ipynb')
         dest_path_script = string.replace(dest_path, '.ipynb', '.py')
         rel_path_eval = string.replace(nb_basename, '.ipynb', '_evaluated.ipynb')
         rel_path_script = string.replace(nb_basename, '.ipynb', '.py')
 
         # Create python script vesion
-        unevaluated_text = nb_to_html(nb_abs_path)
         script_text = nb_to_python(nb_abs_path)
         f = open(dest_path_script, 'w')
         f.write(script_text.encode('utf8'))
@@ -64,8 +71,16 @@ class NotebookDirective(Directive):
 
         skip_exceptions = 'skip_exceptions' in self.options
 
-        evaluated_text = evaluate_notebook(nb_abs_path, dest_path_eval,
-                                           skip_exceptions=skip_exceptions)
+        ret = evaluate_notebook(
+            nb_abs_path, dest_path_eval, skip_exceptions=skip_exceptions)
+
+        try:
+            evaluated_text, resources = ret
+            evaluated_text = write_notebook_output(
+                resources, image_dir, image_rel_dir, evaluated_text)
+        except ValueError:
+            # This happens when a notebook raises an unhandled exception
+            evaluated_text = ret
 
         # Create link to notebook and script files
         link_rst = "(" + \
@@ -85,12 +100,9 @@ class NotebookDirective(Directive):
         # add dependency
         self.state.document.settings.record_dependencies.add(nb_abs_path)
 
-        # clean up png files left behind by notebooks.
-        png_files = glob.glob("*.png")
-        fits_files = glob.glob("*.fits")
-        h5_files = glob.glob("*.h5")
-        for file in png_files:
-            os.remove(file)
+        # clean up
+        os.chdir(cwd)
+        shutil.rmtree(tmpdir, True)
 
         return [nb_node]
 
@@ -106,14 +118,18 @@ def nb_to_python(nb_path):
 
 def nb_to_html(nb_path):
     """convert notebook to html"""
-    exporter = html.HTMLExporter(template_file='full')
-    output, resources = exporter.from_filename(nb_path)
+    c = Config({'ExtractOutputPreprocessor':{'enabled':True}})
+
+    exporter = html.HTMLExporter(template_file='full', config=c)
+    notebook = nbformat.read(open(nb_path), 'json')
+    output, resources = exporter.from_notebook_node(notebook)
     header = output.split('<head>', 1)[1].split('</head>',1)[0]
     body = output.split('<body>', 1)[1].split('</body>',1)[0]
 
     # http://imgur.com/eR9bMRH
     header = header.replace('<style', '<style scoped="scoped"')
-    header = header.replace('body {\n  overflow: visible;\n  padding: 8px;\n}\n', '')
+    header = header.replace('body {\n  overflow: visible;\n  padding: 8px;\n}\n',
+                            '')
     header = header.replace("code,pre{", "code{")
 
     # Filter out styles that conflict with the sphinx theme.
@@ -124,17 +140,19 @@ def nb_to_html(nb_path):
         'uneditable-input{',
         'collapse{',
     ]
+
     filter_strings.extend(['h%s{' % (i+1) for i in range(6)])
 
-    line_begin_strings = [
+    line_begin = [
         'pre{',
         'p{margin'
-        ]
+    ]
 
-    header_lines = filter(
-        lambda x: not any([s in x for s in filter_strings]), header.split('\n'))
-    header_lines = filter(
-        lambda x: not any([x.startswith(s) for s in line_begin_strings]), header_lines)
+    filterfunc = lambda x: not any([s in x for s in filter_strings])
+    header_lines = filter(filterfunc, header.split('\n'))
+
+    filterfunc = lambda x: not any([x.startswith(s) for s in line_begin])
+    header_lines = filter(filterfunc, header_lines)
 
     header = '\n'.join(header_lines)
 
@@ -143,13 +161,11 @@ def nb_to_html(nb_path):
     lines.append(header)
     lines.append(body)
     lines.append('</div>')
-    return '\n'.join(lines)
+    return '\n'.join(lines), resources
 
 def evaluate_notebook(nb_path, dest_path=None, skip_exceptions=False):
     # Create evaluated version and save it to the dest path.
-    # Always use --pylab so figures appear inline
-    # perhaps this is questionable?
-    notebook = read(open(nb_path), 'json')
+    notebook = nbformat.read(open(nb_path), 'json')
     nb_runner = NotebookRunner(notebook, pylab=False)
     try:
         nb_runner.run_notebook(skip_exceptions=skip_exceptions)
@@ -158,11 +174,14 @@ def evaluate_notebook(nb_path, dest_path=None, skip_exceptions=False):
         print e
         # Return the traceback, filtering out ANSI color codes.
         # http://stackoverflow.com/questions/13506033/filtering-out-ansi-escape-sequences
-        return 'Notebook conversion failed with the following traceback: \n%s' % \
-            re.sub(r'\\033[\[\]]([0-9]{1,2}([;@][0-9]{0,2})*)*[mKP]?', '', str(e))
+        return "Notebook conversion failed with the " \
+               "following traceback: \n%s" % \
+            re.sub(r'\\033[\[\]]([0-9]{1,2}([;@][0-9]{0,2})*)*[mKP]?', '',
+                   str(e))
+
     if dest_path is None:
         dest_path = 'temp_evaluated.ipynb'
-    write(nb_runner.nb, open(dest_path, 'w'), 'json')
+    nbformat.write(nb_runner.nb, open(dest_path, 'w'), 'json')
     ret = nb_to_html(dest_path)
     if dest_path is 'temp_evaluated.ipynb':
         os.remove(dest_path)
@@ -186,3 +205,37 @@ def setup(app):
                  html=(visit_notebook_node, depart_notebook_node))
 
     app.add_directive('notebook', NotebookDirective)
+
+    retdict = dict(
+        version='0.1',
+        parallel_read_safe=True,
+        parallel_write_safe=True
+    )
+
+    return retdict
+
+def make_image_dir(setup, rst_dir):
+    image_dir = setup.app.builder.outdir + os.path.sep + '_images'
+    rel_dir = os.path.relpath(setup.confdir, rst_dir)
+    image_rel_dir = rel_dir + os.path.sep + '_images'
+    thread_safe_mkdir(image_dir)
+    return image_dir, image_rel_dir
+
+def write_notebook_output(resources, image_dir, image_rel_dir, evaluated_text):
+    my_uuid = uuid.uuid4().hex
+
+    for output in resources['outputs']:
+        new_name = image_dir + os.path.sep + my_uuid + output
+        new_relative_name = image_rel_dir + os.path.sep + my_uuid + output
+        evaluated_text = evaluated_text.replace(output, new_relative_name)
+        with open(new_name, 'wb') as f:
+            f.write(resources['outputs'][output])
+    return evaluated_text
+
+def thread_safe_mkdir(dirname):
+    try:
+        os.makedirs(dirname)
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
+        pass

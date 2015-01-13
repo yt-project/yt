@@ -41,6 +41,8 @@ from yt.fields.field_exceptions import \
 from yt.fields.derived_field import \
     ValidateSpatial
 import yt.geometry.selection_routines
+from yt.geometry.selection_routines import \
+    compose_selector
 from yt.extern.six import add_metaclass
 
 def force_array(item, shape):
@@ -101,8 +103,15 @@ class YTDataContainer(object):
         sets its initial set of fields, and the remainder of the arguments
         are passed as field_parameters.
         """
-        if ds != None:
+        # ds is typically set in the new object type created in Dataset._add_object_class
+        # but it can also be passed as a parameter to the constructor, in which case it will 
+        # override the default. This code ensures it is never not set.
+        if ds is not None:
             self.ds = ds
+        else:
+            if not hasattr(self, "ds"):
+                raise RuntimeError("Error: ds must be set either through class type or parameter to the constructor")
+
         self._current_particle_type = "all"
         self._current_fluid_type = self.ds.default_fluid_type
         self.ds.objects.append(weakref.proxy(self))
@@ -155,7 +164,6 @@ class YTDataContainer(object):
     def _set_center(self, center):
         if center is None:
             self.center = None
-            self.set_field_parameter('center', self.center)
             return
         elif isinstance(center, YTArray):
             self.center = self.ds.arr(center.in_cgs())
@@ -542,9 +550,22 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     _sort_by = None
     _selector = None
     _current_chunk = None
+    _data_source = None
+    _dimensionality = None
 
-    def __init__(self, *args, **kwargs):
-        super(YTSelectionContainer, self).__init__(*args, **kwargs)
+    def __init__(self, ds, field_parameters, data_source=None):
+        ParallelAnalysisInterface.__init__(self)
+        super(YTSelectionContainer, self).__init__(ds, field_parameters)
+        self._data_source = data_source
+        if data_source is not None:
+            if data_source.ds is not self.ds:
+                raise RuntimeError("Attempted to construct a DataContainer with a data_source "
+                                   "from a different DataSet", ds, data_source.ds)
+            if data_source._dimensionality < self._dimensionality:
+                raise RuntimeError("Attempted to construct a DataContainer with a data_source "
+                                   "of lower dimensionality (%u vs %u)" %
+                                    (data_source._dimensionality, self._dimensionality))
+            self.field_parameters.update(data_source.field_parameters)
 
     @property
     def selector(self):
@@ -555,7 +576,11 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                          "%s_selector" % self._type_name, None)
         if sclass is None:
             raise YTDataSelectorNotImplemented(self._type_name)
-        self._selector = sclass(self)
+
+        if self._data_source is not None:
+            self._selector = compose_selector(self, self._data_source.selector, sclass(self))
+        else:
+            self._selector = sclass(self)
         return self._selector
 
     def chunks(self, fields, chunking_style, **kwargs):
@@ -575,11 +600,6 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             if inspected >= len(fields_to_get): break
             inspected += 1
             fi = self.ds._get_field_info(*field)
-            if not spatial and any(
-                    isinstance(v, ValidateSpatial) for v in fi.validators):
-                # We don't want to pre-fetch anything that's spatial, as that
-                # will be done later.
-                continue
             fd = self.ds.field_dependencies.get(field, None) or \
                  self.ds.field_dependencies.get(field[1], None)
             # This is long overdue.  Any time we *can't* find a field
@@ -765,30 +785,32 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
 
 class YTSelectionContainer0D(YTSelectionContainer):
     _spatial = False
-    def __init__(self, ds, field_parameters):
+    _dimensionality = 0
+    def __init__(self, ds, field_parameters = None, data_source = None):
         super(YTSelectionContainer0D, self).__init__(
-            ds, field_parameters)
+            ds, field_parameters, data_source)
 
 class YTSelectionContainer1D(YTSelectionContainer):
     _spatial = False
-    def __init__(self, ds, field_parameters):
+    _dimensionality = 1
+    def __init__(self, ds, field_parameters = None, data_source = None):
         super(YTSelectionContainer1D, self).__init__(
-            ds, field_parameters)
+            ds, field_parameters, data_source)
         self._grids = None
         self._sortkey = None
         self._sorted = {}
 
 class YTSelectionContainer2D(YTSelectionContainer):
     _key_fields = ['px','py','pdx','pdy']
+    _dimensionality = 2
     """
     Prepares the YTSelectionContainer2D, normal to *axis*.  If *axis* is 4, we are not
     aligned with any axis.
     """
     _spatial = False
-    def __init__(self, axis, ds, field_parameters):
-        ParallelAnalysisInterface.__init__(self)
+    def __init__(self, axis, ds, field_parameters = None, data_source = None):
         super(YTSelectionContainer2D, self).__init__(
-            ds, field_parameters)
+            ds, field_parameters, data_source)
         # We need the ds, which will exist by now, for fix_axis.
         self.axis = fix_axis(axis, self.ds)
         self.set_field_parameter("axis", axis)
@@ -807,6 +829,8 @@ class YTSelectionContainer2D(YTSelectionContainer):
         self.fields = [k for k in self.field_data if k not in skip]
         if fields is not None:
             self.fields = ensure_list(fields) + self.fields
+        if len(self.fields) == 0:
+            raise ValueError("No fields found to plot in get_pw")
         (bounds, center, display_center) = \
             get_window_parameters(axis, center, width, self.ds)
         pw = PWViewerMPL(self, bounds, fields=self.fields, origin=origin,
@@ -874,7 +898,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
             return frb
 
         if center is None:
-            center = self.get_field_parameter("center")
+            center = self.center
             if center is None:
                 center = (self.ds.domain_right_edge
                         + self.ds.domain_left_edge)/2.0
@@ -908,9 +932,9 @@ class YTSelectionContainer3D(YTSelectionContainer):
     _key_fields = ['x','y','z','dx','dy','dz']
     _spatial = False
     _num_ghost_zones = 0
-    def __init__(self, center, ds = None, field_parameters = None):
-        ParallelAnalysisInterface.__init__(self)
-        super(YTSelectionContainer3D, self).__init__(ds, field_parameters)
+    _dimensionality = 3
+    def __init__(self, center, ds, field_parameters = None, data_source = None):
+        super(YTSelectionContainer3D, self).__init__(ds, field_parameters, data_source)
         self._set_center(center)
         self.coords = None
         self._grids = None
@@ -995,16 +1019,13 @@ class YTSelectionContainer3D(YTSelectionContainer):
         """
         verts = []
         samples = []
-        pb = get_pbar("Extracting ", len(list(self._get_grid_objs())))
-        for i, g in enumerate(self._get_grid_objs()):
-            pb.update(i)
+        for block, mask in self.blocks:
             my_verts = self._extract_isocontours_from_grid(
-                            g, field, value, sample_values)
+                block, mask, field, value, sample_values)
             if sample_values is not None:
                 my_verts, svals = my_verts
                 samples.append(svals)
             verts.append(my_verts)
-        pb.finish()
         verts = np.concatenate(verts).transpose()
         verts = self.comm.par_combine_object(verts, op='cat', datatype='array')
         verts = verts.transpose()
@@ -1028,11 +1049,9 @@ class YTSelectionContainer3D(YTSelectionContainer):
             return verts, samples
         return verts
 
-
-    def _extract_isocontours_from_grid(self, grid, field, value,
-                                       sample_values = None):
-        mask = self._get_cut_mask(grid) * grid.child_mask
-        vals = grid.get_vertex_centered_data(field, no_ghost = False)
+    def _extract_isocontours_from_grid(self, grid, mask, field, value,
+                                       sample_values=None):
+        vals = grid.get_vertex_centered_data(field, no_ghost=False)
         if sample_values is not None:
             svals = grid.get_vertex_centered_data(sample_values)
         else:
@@ -1106,15 +1125,14 @@ class YTSelectionContainer3D(YTSelectionContainer):
         ...     "velocity_x", "velocity_y", "velocity_z", "Metal_Density")
         """
         flux = 0.0
-        for g in self._get_grid_objs():
-            flux += self._calculate_flux_in_grid(g, field, value,
-                    field_x, field_y, field_z, fluxing_field)
+        for block, mask in self.blocks:
+            flux += self._calculate_flux_in_grid(block, mask, field, value, field_x,
+                                                 field_y, field_z, fluxing_field)
         flux = self.comm.mpi_allreduce(flux, op="sum")
         return flux
 
-    def _calculate_flux_in_grid(self, grid, field, value,
+    def _calculate_flux_in_grid(self, grid, mask, field, value,
                     field_x, field_y, field_z, fluxing_field = None):
-        mask = self._get_cut_mask(grid) * grid.child_mask
         vals = grid.get_vertex_centered_data(field)
         if fluxing_field is None:
             ff = np.ones(vals.shape, dtype="float64")
@@ -1271,9 +1289,9 @@ class YTBooleanRegionBase(YTSelectionContainer3D):
     """
     _type_name = "boolean"
     _con_args = ("regions",)
-    def __init__(self, regions, fields = None, ds = None, **kwargs):
+    def __init__(self, regions, fields = None, ds = None, field_parameters = None, data_source = None):
         # Center is meaningless, but we'll define it all the same.
-        YTSelectionContainer3D.__init__(self, [0.5]*3, fields, ds, **kwargs)
+        YTSelectionContainer3D.__init__(self, [0.5]*3, fields, ds, field_parameters, data_source)
         self.regions = regions
         self._all_regions = []
         self._some_overlap = []

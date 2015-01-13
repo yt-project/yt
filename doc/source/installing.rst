@@ -3,6 +3,11 @@
 Getting and Installing yt
 =========================
 
+.. contents::
+   :depth: 2
+   :local:
+   :backlinks: none
+
 .. _getting-yt:
 
 Getting yt

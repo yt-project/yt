@@ -3,6 +3,11 @@
 Visualizing Data
 ================
 
+yt comes with a number of ways for visualizing one's data including slices,
+projections, line plots, profiles, phase plots, volume rendering, 3D surfaces,
+streamlines, and a google-maps-like interface for exploring one's dataset 
+interactively.  
+
 .. toctree::
    :maxdepth: 2
 

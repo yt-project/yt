@@ -1,18 +1,18 @@
 Reference Materials
 ===================
 
-These are reference materials for using yt.
+Here we include reference materials for yt with a list of all the code formats
+supported, a description of how to use yt at the command line, a detailed
+listing of individual classes and functions, a description of the useful 
+config file, and finally a list of changes between each major release of the 
+code.
 
 .. toctree::
    :maxdepth: 2
 
    code_support
    command-line
-   sharing_data
-   configuration
-   faq/index.rst
-   overview
-   python_introduction
-   field_list
    api/api
+   configuration
+   field_list
    changelog

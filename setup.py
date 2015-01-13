@@ -6,6 +6,12 @@ import time
 import subprocess
 import shutil
 import glob
+
+if sys.version_info < (2, 7):
+    print("yt currently requires Python version 2.7")
+    print("certain features may fail unexpectedly and silently with older versions.")
+    sys.exit(1)
+
 import setuptools
 from distutils.version import StrictVersion
 if StrictVersion(setuptools.__version__) < StrictVersion('0.7.0'):

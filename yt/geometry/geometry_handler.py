@@ -252,7 +252,6 @@ class Index(ParallelAnalysisInterface):
             chunk_size)
         return fields_to_return, fields_to_generate
 
-
     def _chunk(self, dobj, chunking_style, ngz = 0, **kwargs):
         # A chunk is either None or (grids, size)
         if dobj._current_chunk is None:

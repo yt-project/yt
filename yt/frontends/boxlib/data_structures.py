@@ -366,7 +366,8 @@ class BoxlibDataset(Dataset):
                  cparam_filename="inputs",
                  fparam_filename="probin",
                  dataset_type='boxlib_native',
-                 storage_filename=None):
+                 storage_filename=None,
+                 units_override=None):
         """
         The paramfile is usually called "inputs"
         and there may be a fortran inputs file usually called "probin"
@@ -380,7 +381,8 @@ class BoxlibDataset(Dataset):
         self.fparam_filename = self._localize_check(fparam_filename)
         self.storage_filename = storage_filename
 
-        Dataset.__init__(self, output_dir, dataset_type)
+        Dataset.__init__(self, output_dir, dataset_type,
+                         units_override=units_override)
 
         # These are still used in a few places.
         if "HydroMethod" not in self.parameters.keys():
@@ -721,10 +723,12 @@ class OrionDataset(BoxlibDataset):
                  cparam_filename="inputs",
                  fparam_filename="probin",
                  dataset_type='orion_native',
-                 storage_filename=None):
+                 storage_filename=None,
+                 units_override=None):
 
         BoxlibDataset.__init__(self, output_dir,
-                               cparam_filename, fparam_filename, dataset_type)
+                               cparam_filename, fparam_filename,
+                               dataset_type, units_override=units_override)
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):

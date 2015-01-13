@@ -15,11 +15,12 @@ Cylindrical fields
 #-----------------------------------------------------------------------------
 
 import numpy as np
-from yt.units.yt_array import YTArray
 from .coordinate_handler import \
     CoordinateHandler, \
     _unknown_coord, \
-    _get_coord_fields
+    _get_coord_fields, \
+    cylindrical_to_cartesian, \
+    cartesian_to_cylindrical
 import yt.visualization._MPL as _MPL
 from yt.utilities.lib.misc_utilities import \
     pixelize_cylinder
@@ -47,7 +48,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                            display_field = False,
                            units = "code_length")
 
-        f1, f2 = _get_coord_fields(1)
+        f1, f2 = _get_coord_fields(self.axis_id['z'])
         registry.add_field(("index", "dz"), function = f1,
                            display_field = False,
                            units = "code_length")
@@ -55,7 +56,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                            display_field = False,
                            units = "code_length")
 
-        f1, f2 = _get_coord_fields(2, "")
+        f1, f2 = _get_coord_fields(self.axis_id['theta'], "")
         registry.add_field(("index", "dtheta"), function = f1,
                            display_field = False,
                            units = "")
@@ -72,6 +73,22 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                  function=_CylindricalVolume,
                  units = "code_length**3")
 
+        def _path_r(field, data):
+            return data["index", "dr"]
+        registry.add_field(("index", "path_element_r"),
+                 function = _path_r,
+                 units = "code_length")
+        def _path_theta(field, data):
+            # Note: this already assumes cell-centered
+            return data["index", "r"] * data["index", "dtheta"]
+        registry.add_field(("index", "path_element_theta"),
+                 function = _path_theta,
+                 units = "code_length")
+        def _path_z(field, data):
+            return data["index", "dz"]
+        registry.add_field(("index", "path_element_z"),
+                 function = _path_z,
+                 units = "code_length")
 
     def pixelize(self, dimension, data_source, field, bounds, size,
                  antialias = True, periodic = True):
@@ -101,10 +118,10 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         return buff
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias):
-        buff = pixelize_cylinder(data_source['r'],
-                                 data_source['dr'],
-                                 data_source['theta'],
-                                 data_source['dtheta']/2.0, # half-widths
+        buff = pixelize_cylinder(data_source['px'],
+                                 data_source['pdx'],
+                                 data_source['py'],
+                                 data_source['pdy'],
                                  size, data_source[field], bounds)
         return buff
 
@@ -115,11 +132,11 @@ class CylindricalCoordinateHandler(CoordinateHandler):
     axis_id = { 'r' : 0, 'z' : 1, 'theta' : 2,
                  0  : 0,  1  : 1,  2  : 2}
 
-    x_axis = { 'r' : 1, 'z' : 0, 'theta' : 0,
-                0  : 1,  1  : 0,  2  : 0}
+    x_axis = { 'r' : 2, 'z' : 0, 'theta' : 0,
+                0  : 2,  1  : 0,  2  : 0}
 
-    y_axis = { 'r' : 2, 'z' : 2, 'theta' : 1,
-                0  : 2,  1  : 2,  2  : 1}
+    y_axis = { 'r' : 1, 'z' : 2, 'theta' : 1,
+                0  : 1,  1  : 2,  2  : 1}
 
     _image_axis_name = None
 
@@ -130,9 +147,9 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         # This is the x and y axes labels that get displayed.  For
         # non-Cartesian coordinates, we usually want to override these for
         # Cartesian coordinates, since we transform them.
-        rv = {0: ('z', 'theta'),
-              1: ('x', 'y'),
-              2: ('r', 'z')}
+        rv = {self.axis_id['r']: ('theta', 'z'),
+              self.axis_id['z']: ('x', 'y'),
+              self.axis_id['theta']: ('r', 'z')}
         for i in rv.keys():
             rv[self.axis_name[i]] = rv[i]
             rv[self.axis_name[i].upper()] = rv[i]
@@ -160,3 +177,25 @@ class CylindricalCoordinateHandler(CoordinateHandler):
     @property
     def period(self):
         return np.array([0.0, 0.0, 2.0*np.pi])
+
+    def sanitize_center(self, center, axis):
+        center, display_center = super(
+            CylindricalCoordinateHandler, self).sanitize_center(center, axis)
+        display_center = [0.0 * display_center[0],
+                          0.0 * display_center[1],
+                          0.0 * display_center[2]]
+        ax_name = self.axis_name[axis]
+        r_ax = self.axis_id['r']
+        theta_ax = self.axis_id['theta']
+        z_ax = self.axis_id['z']
+        if ax_name == "r":
+            # zeros everywhere
+            display_center[theta_ax] = self.ds.domain_center[theta_ax]
+            display_center[z_ax] = self.ds.domain_center[z_ax]
+        elif ax_name == "theta":
+            # Note we are using domain_right_edge, not domain_width, so that in
+            # cases where DLE is not zero we go to the inner edge.
+            display_center[r_ax] = self.ds.domain_right_edge[r_ax]/2.0
+            display_center[z_ax] = self.ds.domain_center[z_ax]
+            # zeros for the others
+        return center, display_center

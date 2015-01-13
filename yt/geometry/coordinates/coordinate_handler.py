@@ -183,7 +183,15 @@ class CoordinateHandler(object):
         elif isinstance(center, YTArray):
             return self.ds.arr(center), self.convert_to_cartesian(center)
         elif iterable(center):
-            if iterable(center[0]) and isinstance(center[1], basestring):
+            if isinstance(center[0], basestring) and isinstance(center[1], basestring):
+                if center[0].lower() == "min":
+                    v, center = self.ds.find_min(center[1])
+                elif center[0].lower() == "max":
+                    v, center = self.ds.find_max(center[1])
+                else:
+                    raise RuntimeError("center keyword \"%s\" not recognized" % center)
+                center = self.ds.arr(center, 'code_length')
+            elif iterable(center[0]) and isinstance(center[1], basestring):
                 center = self.ds.arr(center[0], center[1])
             else:
                 center = self.ds.arr(center, 'code_length')
@@ -196,6 +204,8 @@ class CoordinateHandler(object):
 
 def cartesian_to_cylindrical(coord, center = (0,0,0)):
     c2 = np.zeros_like(coord)
+    if not isinstance(center, YTArray):
+        center = center * coord.uq
     c2[...,0] = ((coord[...,0] - center[0])**2.0
               +  (coord[...,1] - center[1])**2.0)**0.5
     c2[...,1] = coord[...,2] # rzt
@@ -205,6 +215,8 @@ def cartesian_to_cylindrical(coord, center = (0,0,0)):
 
 def cylindrical_to_cartesian(coord, center = (0,0,0)):
     c2 = np.zeros_like(coord)
+    if not isinstance(center, YTArray):
+        center = center * coord.uq
     c2[...,0] = np.cos(coord[...,0]) * coord[...,1] + center[0]
     c2[...,1] = np.sin(coord[...,0]) * coord[...,1] + center[1]
     c2[...,2] = coord[...,2]

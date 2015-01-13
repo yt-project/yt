@@ -106,6 +106,16 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
     registry.add_field((ftype, "matter_overdensity"),
                        function=_matter_overdensity,
                        units="")
+
+    # r / r_vir
+    def _virial_radius_fraction(field, data):
+        virial_radius = data.get_field_parameter("virial_radius")
+        return data["radius"] / virial_radius
+
+    registry.add_field(("index", "virial_radius_fraction"),
+                       function=_virial_radius_fraction,
+                       validators=[ValidateParameter("virial_radius")],
+                       units="")
     
     # Weak lensing convergence.
     # Eqn 4 of Metzler, White, & Loken (2001, ApJ, 547, 560).

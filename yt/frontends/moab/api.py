@@ -25,3 +25,5 @@ from .fields import \
 
 from .io import \
       IOHandlerMoabH5MHex8
+
+from . import tests

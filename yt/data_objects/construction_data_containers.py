@@ -42,7 +42,7 @@ from yt.utilities.data_point_utilities import CombineGrids,\
 from yt.utilities.minimal_representation import \
     MinimalProjectionData
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_objects, parallel_root_only, ParallelAnalysisInterface
+    parallel_objects, parallel_root_only, communication_system
 from yt.units.unit_object import Unit
 import yt.geometry.particle_deposit as particle_deposit
 from yt.utilities.grid_data_format.writer import write_to_gdf
@@ -54,6 +54,8 @@ from yt.fields.field_exceptions import \
     NeedsDataField,\
     NeedsProperty,\
     NeedsParameter
+from yt.fields.derived_field import \
+    TranslationFunc
 
 class YTStreamlineBase(YTSelectionContainer1D):
     """
@@ -183,7 +185,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     center : array_like, optional
         The 'center' supplied to fields that use it.  Note that this does
         not have to have `coord` as one value.  Strictly optional.
-    data_source : `yt.data_objects.api.AMRData`, optional
+    data_source : `yt.data_objects.data_containers.YTSelectionContainer`, optional
         If specified, this will be the data source used for selecting
         regions to project.
     method : string, optional
@@ -191,6 +193,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         "integrate" : integration along the axis
         "mip" : maximum intensity projection
         "sum" : same as "integrate", except that we don't multiply by the path length
+        WARNING: The "sum" option should only be used for uniform resolution grid
+        datasets, as other datasets may result in unphysical images.
     style : string, optional
         The same as the method keyword.  Deprecated as of version 3.0.2.  
         Please use method keyword instead.
@@ -202,7 +206,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
     --------
 
     >>> ds = load("RedshiftOutput0005")
-    >>> prj = ds.proj(0, "density")
+    >>> prj = ds.proj("density", 0)
     >>> print proj["density"]
     """
     _key_fields = YTSelectionContainer2D._key_fields + ['weight_field']
@@ -232,6 +236,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         else:
             raise NotImplementedError(self.method)
         self._set_center(center)
+        self._projected_units = {}
         if data_source is None: data_source = self.ds.all_data()
         for k, v in data_source.field_parameters.items():
             if k not in self.field_parameters or \
@@ -280,10 +285,11 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         if self.weight_field is not None:
             chunk_fields.append(self.weight_field)
         tree = self._get_tree(len(fields))
-        # We do this once
-        for chunk in self.data_source.chunks([], "io", local_only = False):
-            self._initialize_chunk(chunk, tree)
-        # This needs to be parallel_objects-ified
+        # This only needs to be done if we are in parallel; otherwise, we can
+        # safely build the mesh as we go.
+        if communication_system.communicators[-1].size > 1:
+            for chunk in self.data_source.chunks([], "io", local_only = False):
+                self._initialize_chunk(chunk, tree)
         with self.data_source._field_parameter_state(self.field_parameters):
             for chunk in parallel_objects(self.data_source.chunks(
                                           chunk_fields, "io", local_only = True)): 
@@ -315,10 +321,14 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         np.add(py, oy, py)
         np.multiply(pdy, self.ds.domain_width[yax], pdy)
         if self.weight_field is not None:
-            np.divide(nvals, nwvals[:,None], nvals)
+            # If there are 0s remaining in the weight vals
+            # this will not throw an error, but silently
+            # return nans for vals where dividing by 0
+            # Leave as NaNs to be auto-masked by Matplotlib
+            with np.errstate(invalid='ignore'):
+                np.divide(nvals, nwvals[:,None], nvals)
         # We now convert to half-widths and center-points
         data = {}
-        #non_nan = ~np.any(np.isnan(nvals), axis=-1)
         code_length = self.ds.domain_width.units
         data['px'] = self.ds.arr(px, code_length)
         data['py'] = self.ds.arr(py, code_length)
@@ -332,30 +342,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         for fi, field in enumerate(fields):
             finfo = self.ds._get_field_info(*field)
             mylog.debug("Setting field %s", field)
-            units = finfo.units
-            # add length units to "projected units" if non-weighted 
-            # integral projection
-            if self.weight_field is None and not self._sum_only and \
-               self.method == 'integrate':
-                # See _handle_chunk where we mandate cm
-                if units == '':
-                    input_units = "cm"
-                else:
-                    input_units = "(%s) * cm" % units
-            else:
-                input_units = units
-            # Don't forget [non_nan] somewhere here.
-            self[field] = YTArray(field_data[fi].ravel(),
-                                  input_units=input_units,
-                                  registry=self.ds.unit_registry)
-            # convert units if non-weighted integral projection
-            if self.weight_field is None and not self._sum_only and \
-               self.method == 'integrate':
-                u_obj = Unit(units, registry=self.ds.unit_registry)
-                if ((u_obj.is_code_unit or self.ds.no_cgs_equiv_length) and
-                    not u_obj.is_dimensionless) and input_units != units:
-                    final_unit = "(%s) * code_length" % units
-                    self[field].convert_to_units(final_unit)
+            input_units = self._projected_units[field].units
+            self[field] = self.ds.arr(field_data[fi].ravel(), input_units)
         for i in data.keys(): self[i] = data.pop(i)
         mylog.info("Projection completed")
 
@@ -370,18 +358,34 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
 
     def _handle_chunk(self, chunk, fields, tree):
         if self.method == "mip" or self._sum_only:
-            dl = 1.0
+            dl = self.ds.quan(1.0, "")
         else:
             # This gets explicitly converted to cm
-            dl = chunk.fwidth[:, self.axis]
-            dl.convert_to_units("cm")
+            ax_name = self.ds.coordinates.axis_name[self.axis]
+            dl = chunk["index", "path_element_%s" % (ax_name)]
+            # This is done for cases where our path element does not have a CGS
+            # equivalent.  Once "preferred units" have been implemented, this
+            # will not be necessary at all, as the final conversion will occur
+            # at the display layer.
+            if not dl.units.is_dimensionless:
+                dl.convert_to_units("cm")
         v = np.empty((chunk.ires.size, len(fields)), dtype="float64")
-        for i in range(len(fields)):
-            v[:,i] = chunk[fields[i]] * dl
+        for i, field in enumerate(fields):
+            d = chunk[field] * dl
+            v[:,i] = d
+            self._projected_units[field] = d.uq
         if self.weight_field is not None:
             w = chunk[self.weight_field]
             np.multiply(v, w[:,None], v)
             np.multiply(w, dl, w)
+            for field in fields:
+                # Note that this removes the dl integration, which is
+                # *correct*, but we are not fully self-consistently carrying it
+                # all through.  So if interrupted, the process will have
+                # incorrect units assigned in the projected units.  This should
+                # not be a problem, since the weight division occurs
+                # self-consistently with unitfree arrays.
+                self._projected_units[field] /= dl.uq
         else:
             w = np.ones(chunk.ires.size, dtype="float64")
         icoords = chunk.icoords
@@ -459,7 +463,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         self.domain_width = np.rint((self.ds.domain_right_edge -
                     self.ds.domain_left_edge)/self.dds).astype('int64')
         self._setup_data_source()
-                
+
     @property
     def icoords(self):
         ic = np.indices(self.ActiveDimensions).astype("int64")
@@ -518,19 +522,26 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         fields_to_get = [f for f in fields if f not in self.field_data]
         fields_to_get = self._identify_dependencies(fields_to_get)
         if len(fields_to_get) == 0: return
-        fill, gen, part = self._split_fields(fields_to_get)
+        fill, gen, part, alias = self._split_fields(fields_to_get)
         if len(part) > 0: self._fill_particles(part)
         if len(fill) > 0: self._fill_fields(fill)
+        for a, f in sorted(alias.items()):
+            self[a] = f(self)
+            self.field_data[a].convert_to_units(f.output_units)
         if len(gen) > 0: self._generate_fields(gen)
 
     def _split_fields(self, fields_to_get):
         fill, gen = self.index._split_fields(fields_to_get)
         particles = []
+        alias = {}
         for field in gen:
             if field[0] == 'deposit':
                 fill.append(field)
                 continue
             finfo = self.ds._get_field_info(*field)
+            if finfo._function.func_name == "_TranslationFunc":
+                alias[field] = finfo
+                continue
             try:
                 finfo.check_available(self)
             except NeedsOriginalGrid:
@@ -539,15 +550,17 @@ class YTCoveringGridBase(YTSelectionContainer3D):
             finfo = self.ds._get_field_info(*field)
             if finfo.particle_type:
                 particles.append(field)
-        gen = [f for f in gen if f not in fill]
+        gen = [f for f in gen if f not in fill and f not in alias]
         fill = [f for f in fill if f not in particles]
-        return fill, gen, particles
+        return fill, gen, particles, alias
 
     def _fill_particles(self, part):
         for p in part:
             self[p] = self._pdata_source[p]
 
     def _fill_fields(self, fields):
+        fields = [f for f in fields if f not in self.field_data]
+        if len(fields) == 0: return
         output_fields = [np.zeros(self.ActiveDimensions, dtype="float64")
                          for field in fields]
         domain_dims = self.ds.domain_dimensions.astype("int64") \
@@ -713,6 +726,16 @@ class LevelState(object):
     fields = None
     data_source = None
 
+    # These are all cached here as numpy arrays, without units, in
+    # code_lengths.
+    domain_width = None
+    domain_left_edge = None
+    domain_right_edge = None
+    left_edge = None
+    right_edge = None
+    base_dx = None
+    dds = None
+
 class YTSmoothedCoveringGridBase(YTCoveringGridBase):
     """A 3D region with all data extracted and interpolated to a
     single, specified resolution. (Identical to covering_grid,
@@ -756,19 +779,21 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         # interpolation but are not directly inside our bounds
         level_state.data_source = self.ds.region(
             self.center,
-            self.left_edge - level_state.current_dx,
-            self.right_edge + level_state.current_dx)
+            level_state.left_edge - level_state.current_dx,
+            level_state.right_edge + level_state.current_dx)
         level_state.data_source.min_level = level_state.current_level
         level_state.data_source.max_level = level_state.current_level
         self._pdata_source = self.ds.region(
             self.center,
-            self.left_edge - level_state.current_dx,
-            self.right_edge + level_state.current_dx)
+            level_state.left_edge - level_state.current_dx,
+            level_state.right_edge + level_state.current_dx)
         self._pdata_source.min_level = level_state.current_level
         self._pdata_source.max_level = level_state.current_level
 
 
     def _fill_fields(self, fields):
+        fields = [f for f in fields if f not in self.field_data]
+        if len(fields) == 0: return
         ls = self._initialize_level_state(fields)
         for level in range(self.level + 1):
             domain_dims = self.ds.domain_dimensions.astype("int64") \
@@ -789,7 +814,17 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
 
     def _initialize_level_state(self, fields):
         ls = LevelState()
-        ls.current_dx = self._base_dx
+        ls.domain_width = self.ds.domain_width
+        ls.domain_left_edge = self.ds.domain_left_edge
+        ls.domain_right_edge = self.ds.domain_right_edge
+        ls.left_edge = self.left_edge
+        ls.right_edge = self.right_edge
+        ls.base_dx = self._base_dx
+        ls.dds = self.dds
+        for att in ("domain_width", "domain_left_edge", "domain_right_edge",
+                    "left_edge", "right_edge", "base_dx", "dds"):
+            setattr(ls, att, getattr(ls, att).in_units("code_length").d)
+        ls.current_dx = ls.base_dx
         ls.current_level = 0
         LL = self.left_edge - self.ds.domain_left_edge
         ls.global_startindex = np.rint(LL / ls.current_dx).astype('int64') - 1
@@ -813,15 +848,15 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
         rf = float(self.ds.relative_refinement(
                     ls.current_level, ls.current_level + 1))
         ls.current_level += 1
-        ls.current_dx = self._base_dx / \
+        ls.current_dx = ls.base_dx / \
             self.ds.relative_refinement(0, ls.current_level)
         self._setup_data_source(ls)
-        LL = self.left_edge - self.ds.domain_left_edge
+        LL = ls.left_edge - ls.domain_left_edge
         ls.old_global_startindex = ls.global_startindex
         ls.global_startindex = np.rint(LL / ls.current_dx).astype('int64') - 1
-        ls.domain_iwidth = np.rint(self.ds.domain_width/ls.current_dx).astype('int64') 
+        ls.domain_iwidth = np.rint(ls.domain_width/ls.current_dx).astype('int64') 
         input_left = (level_state.old_global_startindex + 0.5) * rf 
-        width = (self.ActiveDimensions*self.dds)
+        width = (self.ActiveDimensions*ls.dds)
         output_dims = np.rint(width/level_state.current_dx+0.5).astype("int32") + 2
         level_state.current_dims = output_dims
         new_fields = []
@@ -833,7 +868,7 @@ class YTSmoothedCoveringGridBase(YTCoveringGridBase):
             new_fields.append(output_field)
         level_state.fields = new_fields
 
-class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
+class YTSurfaceBase(YTSelectionContainer3D):
     r"""This surface object identifies isocontours on a cell-by-cell basis,
     with no consideration of global connectedness, and returns the vertices
     of the Triangles in that isocontour.
@@ -850,7 +885,7 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
     
     Parameters
     ----------
-    data_source : AMR3DDataObject
+    data_source : YTSelectionContainer
         This is the object which will used as a source
     surface_field : string
         Any field that can be obtained in a data object.  This is the field
@@ -886,7 +921,6 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
                          ("index", "z"))
     vertices = None
     def __init__(self, data_source, surface_field, field_value):
-        ParallelAnalysisInterface.__init__(self)
         self.data_source = data_source
         self.surface_field = surface_field
         self.field_value = field_value
@@ -909,14 +943,18 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         mylog.info("Extracting (sampling: %s)" % (fields,))
         verts = []
         samples = []
-        for block, mask in parallel_objects(self.data_source.blocks):
-            my_verts = self._extract_isocontours_from_grid(
-                            block, self.surface_field, self.field_value,
-                            mask, fields, sample_type)
-            if fields is not None:
-                my_verts, svals = my_verts
-                samples.append(svals)
-            verts.append(my_verts)
+        deps = self._determine_fields(self.surface_field)
+        deps = self._identify_dependencies(deps, spatial=True)
+        for io_chunk in parallel_objects(self.data_source.chunks(deps, "io",
+                                         preload_fields = deps)):
+            for block, mask in self.data_source.blocks:
+                my_verts = self._extract_isocontours_from_grid(
+                                block, self.surface_field, self.field_value,
+                                mask, fields, sample_type)
+                if fields is not None:
+                    my_verts, svals = my_verts
+                    samples.append(svals)
+                verts.append(my_verts)
         verts = np.concatenate(verts).transpose()
         verts = self.comm.par_combine_object(verts, op='cat', datatype='array')
         self.vertices = verts
@@ -999,21 +1037,27 @@ class YTSurfaceBase(YTSelectionContainer3D, ParallelAnalysisInterface):
         """
         flux = 0.0
         mylog.info("Fluxing %s", fluxing_field)
-        for block, mask in parallel_objects(self.data_source.blocks):
-            flux += self._calculate_flux_in_grid(block, mask,
-                    field_x, field_y, field_z, fluxing_field)
+        deps = [field_x, field_y, field_z]
+        if fluxing_field is not None: deps.append(fluxing_field)
+        deps = self._determine_fields(deps)
+        deps = self._identify_dependencies(deps)
+        for io_chunk in parallel_objects(self.data_source.chunks(deps, "io",
+                                preload_fields = deps)):
+            for block, mask in self.data_source.blocks:
+                flux += self._calculate_flux_in_grid(block, mask,
+                        field_x, field_y, field_z, fluxing_field)
         flux = self.comm.mpi_allreduce(flux, op="sum")
         return flux
 
     def _calculate_flux_in_grid(self, grid, mask,
-                    field_x, field_y, field_z, fluxing_field = None):
+            field_x, field_y, field_z, fluxing_field = None):
         vals = grid.get_vertex_centered_data(self.surface_field)
         if fluxing_field is None:
             ff = np.ones(vals.shape, dtype="float64")
         else:
             ff = grid.get_vertex_centered_data(fluxing_field)
-        xv, yv, zv = [grid.get_vertex_centered_data(f) for f in 
-                     [field_x, field_y, field_z]]
+        xv, yv, zv = [grid.get_vertex_centered_data(f)
+                      for f in [field_x, field_y, field_z]]
         return march_cubes_grid_flux(self.field_value, vals, xv, yv, zv,
                     ff, mask, grid.LeftEdge, grid.dds)
 

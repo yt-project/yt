@@ -186,13 +186,13 @@ class LightCone(CosmologySplice):
             # Simple error check to make sure more than 100% of box depth
             # is never required.
             if self.light_cone_solution[q]["box_depth_fraction"] > 1.0:
-                mylog.debug(("Warning: box fraction required to go from " +
+                mylog.error(("Warning: box fraction required to go from " +
                              "z = %f to %f is %f") %
                             (self.light_cone_solution[q]["redshift"], z_next,
                              self.light_cone_solution[q]["box_depth_fraction"]))
-                mylog.debug(("Full box delta z is %f, but it is %f to the " +
+                mylog.error(("Full box delta z is %f, but it is %f to the " +
                              "next data dump.") %
-                            (self.light_cone_solution[q]["deltazMax"],
+                            (self.light_cone_solution[q]["dz_max"],
                              self.light_cone_solution[q]["redshift"]-z_next))
 
             # Get projection axis and center.

@@ -206,7 +206,7 @@ cdef class RockstarGroupiesInterface:
                        int min_halo_size = 25, outbase = "None",
                        write_config = False,  exact_ll_calc = False,
                        lightcone = False, lightcone_origin = [0,0,0],
-                       callbacks = None):
+                       callbacks = None, unbound_threshold=None):
         global FILENAME, FILE_FORMAT, NUM_SNAPS, STARTING_SNAP, h0, Ol, Om
         global BOX_SIZE, PERIODIC, PARTICLE_MASS, NUM_BLOCKS, NUM_READERS
         global FORK_READERS_FROM_WRITERS, PARALLEL_IO_WRITER_PORT, NUM_WRITERS
@@ -220,6 +220,14 @@ cdef class RockstarGroupiesInterface:
             FORCE_RES=np.float64(force_res)
 
         OVERLAP_LENGTH = 0.0
+        
+        # Set to 0.0 if you plan on calculating spherical overdensity masses.
+        # Otherwise filtering of halos in rockstar meta_io.c _should_print
+        # will filter the wrong halos when halo mass is re-calculated before
+        # output_halos
+        global UNBOUND_THRESHOLD
+        if unbound_threshold is not None:
+            UNBOUND_THRESHOLD = unbound_threshold
         
         FILENAME = "inline.<block>"
         FILE_FORMAT = "GENERIC"
@@ -273,8 +281,31 @@ cdef class RockstarGroupiesInterface:
         return d
 
     def assign_masses(self, h, np.ndarray[np.float32_t, ndim=1] r, float force_res, \
-                      double pmass, np.ndarray[np.float64_t, ndim=1] dens_thresh):
-        """Assign spherical overdensity masses to halos.  r must be sorted"""
+                      double pmass, np.ndarray[np.float64_t, ndim=1] dens_thresh,
+                      early_termination=False):
+        """
+        Assign spherical overdensity masses to halos.  r must be sorted
+
+        Parameters
+        ----------
+        h: struct haloflat
+            Assign masses to this halo
+        r: np.ndarray
+            Sorted array of particle radii
+        force_res: float
+            Force resolution, below which density is smoothed.
+        dens_thresh: np.ndarray
+            Thresholds for spherical overdensity mass calculation
+        early_termination: bool
+            Specifies whether or not to terminate mass calculation when
+            first particle density is below the lowest density threshold.
+            If False, may lead to overestimate of SO masses for subhalos,
+            but gives a better comparison to plain rockstar masses with
+            STRICT_SO=1. Default: False
+        Returns
+        -------
+        None
+        """
         cdef double total_mass = 0.0
         cdef double m = 0.0
         cdef double alt_m1 = 0.0
@@ -283,6 +314,8 @@ cdef class RockstarGroupiesInterface:
         cdef double alt_m4 = 0.0
         cdef double rr
         cdef double cur_dens
+        cdef int min_ind = np.argmin(dens_thresh)
+        cdef int eterm = early_termination
         for rr in r:
             if rr < force_res: rr = force_res
             total_mass += pmass
@@ -292,7 +325,7 @@ cdef class RockstarGroupiesInterface:
             if cur_dens > dens_thresh[2]: alt_m2 = total_mass
             if cur_dens > dens_thresh[3]: alt_m3 = total_mass
             if cur_dens > dens_thresh[4]: alt_m4 = total_mass
-            if cur_dens <= dens_thresh[1]:
+            if eterm and cur_dens <= dens_thresh[min_ind]:
                 break
         h['m'] = m
         h['alt_m1'] = alt_m1

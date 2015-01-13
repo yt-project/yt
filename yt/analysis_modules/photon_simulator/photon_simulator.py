@@ -28,12 +28,9 @@ from yt.utilities.orientation import Orientation
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
      communication_system, parallel_root_only, get_mpi_type, \
      parallel_capable
-from yt import units
-from yt.units.yt_array import YTQuantity
+from yt.units.yt_array import YTQuantity, YTArray, uconcatenate
 import h5py
 from yt.utilities.on_demand_imports import _astropy
-pyfits = _astropy.pyfits
-pywcs = _astropy.pywcs
 
 comm = communication_system.communicators[-1]
 
@@ -81,7 +78,10 @@ class PhotonList(object):
                     for i in xrange(self.num_cells)]
         else:
             return self.photons[key]
-    
+
+    def __repr__(self):
+        return self.photons.__repr__()
+
     @classmethod
     def from_file(cls, filename):
         r"""
@@ -93,12 +93,12 @@ class PhotonList(object):
         
         f = h5py.File(filename, "r")
 
-        parameters["FiducialExposureTime"] = f["/fid_exp_time"].value*units.s
-        parameters["FiducialArea"] = f["/fid_area"].value*units.cm*units.cm
+        parameters["FiducialExposureTime"] = YTQuantity(f["/fid_exp_time"].value, "s")
+        parameters["FiducialArea"] = YTQuantity(f["/fid_area"].value, "cm**2")
         parameters["FiducialRedshift"] = f["/fid_redshift"].value
-        parameters["FiducialAngularDiameterDistance"] = f["/fid_d_a"].value*units.Mpc
+        parameters["FiducialAngularDiameterDistance"] = YTQuantity(f["/fid_d_a"].value, "Mpc")
         parameters["Dimension"] = f["/dimension"].value
-        parameters["Width"] = f["/width"].value*units.kpc
+        parameters["Width"] = YTQuantity(f["/width"].value, "kpc")
         parameters["HubbleConstant"] = f["/hubble"].value
         parameters["OmegaMatter"] = f["/omega_matter"].value
         parameters["OmegaLambda"] = f["/omega_lambda"].value
@@ -107,13 +107,13 @@ class PhotonList(object):
         start_c = comm.rank*num_cells/comm.size
         end_c = (comm.rank+1)*num_cells/comm.size
         
-        photons["x"] = f["/x"][start_c:end_c]*units.kpc
-        photons["y"] = f["/y"][start_c:end_c]*units.kpc
-        photons["z"] = f["/z"][start_c:end_c]*units.kpc
-        photons["dx"] = f["/dx"][start_c:end_c]*units.kpc
-        photons["vx"] = f["/vx"][start_c:end_c]*units.km/units.s
-        photons["vy"] = f["/vy"][start_c:end_c]*units.km/units.s
-        photons["vz"] = f["/vz"][start_c:end_c]*units.km/units.s
+        photons["x"] = YTArray(f["/x"][start_c:end_c], "kpc")
+        photons["y"] = YTArray(f["/y"][start_c:end_c], "kpc")
+        photons["z"] = YTArray(f["/z"][start_c:end_c], "kpc")
+        photons["dx"] = YTArray(f["/dx"][start_c:end_c], "kpc")
+        photons["vx"] = YTArray(f["/vx"][start_c:end_c], "km/s")
+        photons["vy"] = YTArray(f["/vy"][start_c:end_c], "km/s")
+        photons["vz"] = YTArray(f["/vz"][start_c:end_c], "km/s")
 
         n_ph = f["/num_photons"][:]
         
@@ -128,7 +128,7 @@ class PhotonList(object):
         p_bins = np.cumsum(photons["NumberOfPhotons"])
         p_bins = np.insert(p_bins, 0, [np.uint64(0)])
         
-        photons["Energy"] = f["/energy"][start_e:end_e]*units.keV
+        photons["Energy"] = YTArray(f["/energy"][start_e:end_e], "keV")
         
         f.close()
 
@@ -150,7 +150,7 @@ class PhotonList(object):
         Parameters
         ----------
 
-        data_source : `yt.data_objects.api.AMRData`
+        data_source : `yt.data_objects.data_containers.YTSelectionContainer`
             The data source from which the photons will be generated.
         redshift : float
             The cosmological redshift for the photons.
@@ -193,15 +193,15 @@ class PhotonList(object):
         determine them, the *photons* dict needs to have the following items, corresponding
         to cells which have photons:
 
-        "x" : the x-position of the cell relative to the source center in kpc, NumPy array of floats
-        "y" : the y-position of the cell relative to the source center in kpc, NumPy array of floats
-        "z" : the z-position of the cell relative to the source center in kpc, NumPy array of floats
-        "vx" : the x-velocity of the cell in km/s, NumPy array of floats
-        "vy" : the y-velocity of the cell in km/s, NumPy array of floats
-        "vz" : the z-velocity of the cell in km/s, NumPy array of floats
-        "dx" : the width of the cell in kpc, NumPy array of floats
-        "NumberOfPhotons" : the number of photons in the cell, NumPy array of integers
-        "Energy" : the source rest-frame energies of the photons, NumPy array of floats
+        "x" : the x-position of the cell relative to the source center in kpc, YTArray
+        "y" : the y-position of the cell relative to the source center in kpc, YTArray
+        "z" : the z-position of the cell relative to the source center in kpc, YTArray
+        "vx" : the x-velocity of the cell in km/s, YTArray
+        "vy" : the y-velocity of the cell in km/s, YTArray
+        "vz" : the z-velocity of the cell in km/s, YTArray
+        "dx" : the width of the cell in kpc, YTArray
+        "NumberOfPhotons" : the number of photons in the cell, NumPy array of unsigned 64-bit integers
+        "Energy" : the source rest-frame energies of the photons, YTArray
 
         The last array is not the same size as the others because it contains the energies in all of
         the cells in a single 1-D array. The first photons["NumberOfPhotons"][0] elements are
@@ -211,7 +211,9 @@ class PhotonList(object):
         spectrum of photons is created. More complicated examples which actually
         create photons based on the fields in the dataset could be created. 
 
-        >>> from scipy.stats import powerlaw
+        >>> import numpy as np
+        >>> import yt
+        >>> from yt.analysis_modules.photon_simulator import *
         >>> def line_func(source, parameters):
         ...
         ...     ds = source.ds
@@ -219,18 +221,19 @@ class PhotonList(object):
         ...     num_photons = parameters["num_photons"]
         ...     E0  = parameters["line_energy"] # Energies are in keV
         ...     sigE = parameters["line_sigma"] 
+        ...     src_ctr = parameters["center"]
         ...
         ...     energies = norm.rvs(loc=E0, scale=sigE, size=num_photons)
-        ...     
-        ...     photons["x"] = np.zeros((1)) # Place everything in the center cell
-        ...     photons["y"] = np.zeros((1))
-        ...     photons["z"] = np.zeros((1))
-        ...     photons["vx"] = np.zeros((1))
-        ...     photons["vy"] = np.zeros((1))
-        ...     photons["vz"] = 100.*np.ones((1))
-        ...     photons["dx"] = source["dx"][0]*ds.units["kpc"]*np.ones((1)) 
-        ...     photons["NumberOfPhotons"] = num_photons*np.ones((1))
-        ...     photons["Energy"] = np.array(energies)
+        ...
+        ...     # Place everything in the center cell
+        ...     for i, ax in enumerate("xyz"):
+        ...         photons[ax] = (ds.domain_center[0]-src_ctr[0]).in_units("kpc")
+        ...     photons["vx"] = ds.arr([0], "km/s")
+        ...     photons["vy"] = ds.arr([0], "km/s")
+        ...     photons["vz"] = ds.arr([100.0], "km/s")
+        ...     photons["dx"] = ds.find_field_values_at_point("dx", ds.domain_center).in_units("kpc")
+        ...     photons["NumberOfPhotons"] = np.array(num_photons*np.ones(1), dtype="uint64")
+        ...     photons["Energy"] = ds.arr(energies, "keV")
         >>>
         >>> redshift = 0.05
         >>> area = 6000.0
@@ -238,11 +241,12 @@ class PhotonList(object):
         >>> parameters = {"num_photons" : 10000, "line_energy" : 5.0,
         ...               "line_sigma" : 0.1}
         >>> ddims = (128,128,128)
-        >>> random_data = {"Density":np.random.random(ddims)}
-        >>> ds = load_uniform_grid(random_data, ddims)
+        >>> random_data = {"density":(np.random.random(ddims),"g/cm**3")}
+        >>> ds = yt.load_uniform_grid(random_data, ddims)
         >>> dd = ds.all_data
         >>> my_photons = PhotonList.from_user_model(dd, redshift, area,
-        ...                                         time, line_func)
+        ...                                         time, line_func,
+        ...                                         parameters=parameters)
 
         """
 
@@ -296,17 +300,19 @@ class PhotonList(object):
         dimension = 0
         width = 0.0
         for i, ax in enumerate("xyz"):
-            pos = data_source[ax]
-            delta = data_source["d%s"%(ax)]
-            le = np.min(pos-0.5*delta)
-            re = np.max(pos+0.5*delta)
+            le, re = data_source.quantities.extrema(ax)
+            delta_min, delta_max = data_source.quantities.extrema("d%s"%ax)
+            le -= 0.5*delta_max
+            re += 0.5*delta_max
             width = max(width, re-parameters["center"][i], parameters["center"][i]-le)
-            dimension = max(dimension, int(width/delta.min()))
+            dimension = max(dimension, int(width/delta_min))
         parameters["Dimension"] = 2*dimension
         parameters["Width"] = 2.*width.in_units("kpc")
                 
         photons = photon_model(data_source, parameters)
-        
+
+        mylog.info("Finished generating photons.")
+
         p_bins = np.cumsum(photons["NumberOfPhotons"])
         p_bins = np.insert(p_bins, 0, [np.uint64(0)])
                         
@@ -316,6 +322,7 @@ class PhotonList(object):
         """
         Write the photons to the HDF5 file *photonfile*.
         """
+
         if parallel_capable:
             
             mpi_long = get_mpi_type("int64")
@@ -332,15 +339,15 @@ class PhotonList(object):
                 num_photons = sum(sizes_p)        
                 disps_c = [sum(sizes_c[:i]) for i in range(len(sizes_c))]
                 disps_p = [sum(sizes_p[:i]) for i in range(len(sizes_p))]
-                x = np.zeros((num_cells))
-                y = np.zeros((num_cells))
-                z = np.zeros((num_cells))
-                vx = np.zeros((num_cells))
-                vy = np.zeros((num_cells))
-                vz = np.zeros((num_cells))
-                dx = np.zeros((num_cells))
-                n_ph = np.zeros((num_cells), dtype="uint64")
-                e = np.zeros((num_photons))
+                x = np.zeros(num_cells)
+                y = np.zeros(num_cells)
+                z = np.zeros(num_cells)
+                vx = np.zeros(num_cells)
+                vy = np.zeros(num_cells)
+                vz = np.zeros(num_cells)
+                dx = np.zeros(num_cells)
+                n_ph = np.zeros(num_cells, dtype="uint64")
+                e = np.zeros(num_photons)
             else:
                 sizes_c = []
                 sizes_p = []
@@ -377,15 +384,15 @@ class PhotonList(object):
 
         else:
 
-            x = self.photons["x"].ndarray_view()
-            y = self.photons["y"].ndarray_view()
-            z = self.photons["z"].ndarray_view()
-            vx = self.photons["vx"].ndarray_view()
-            vy = self.photons["vy"].ndarray_view()
-            vz = self.photons["vz"].ndarray_view()
-            dx = self.photons["dx"].ndarray_view()
+            x = self.photons["x"].d
+            y = self.photons["y"].d
+            z = self.photons["z"].d
+            vx = self.photons["vx"].d
+            vy = self.photons["vy"].d
+            vz = self.photons["vz"].d
+            dx = self.photons["dx"].d
             n_ph = self.photons["NumberOfPhotons"]
-            e = self.photons["Energy"].ndarray_view()
+            e = self.photons["Energy"].d
                                                 
         if comm.rank == 0:
             
@@ -423,7 +430,7 @@ class PhotonList(object):
                         redshift_new=None, dist_new=None,
                         absorb_model=None, psf_sigma=None,
                         sky_center=None, responses=None,
-                        convolve_energies=False):
+                        convolve_energies=False, no_shifting=False):
         r"""
         Projects photons onto an image plane given a line of sight.
 
@@ -454,6 +461,8 @@ class PhotonList(object):
             The names of the ARF and/or RMF files to convolve the photons with.
         convolve_energies : boolean, optional
             If this is set, the photon energies will be convolved with the RMF.
+        no_shifting : boolean, optional
+            If set, the photon energies will not be Doppler shifted.
             
         Examples
         --------
@@ -472,7 +481,7 @@ class PhotonList(object):
         else:
             sky_center = YTArray(sky_center, "degree")
 
-        dx = self.photons["dx"].ndarray_view()
+        dx = self.photons["dx"].d
         nx = self.parameters["Dimension"]
         if psf_sigma is not None:
              psf_sigma = parse_value(psf_sigma, "degree")
@@ -518,7 +527,7 @@ class PhotonList(object):
             elif isinstance(area_new, basestring):
                 if comm.rank == 0:
                     mylog.info("Using energy-dependent effective area: %s" % (parameters["ARF"]))
-                f = pyfits.open(area_new)
+                f = _astropy.pyfits.open(area_new)
                 elo = f["SPECRESP"].data.field("ENERG_LO")
                 ehi = f["SPECRESP"].data.field("ENERG_HI")
                 eff_area = np.nan_to_num(f["SPECRESP"].data.field("SPECRESP"))
@@ -560,12 +569,13 @@ class PhotonList(object):
         x = np.random.uniform(low=-0.5,high=0.5,size=my_n_obs)
         y = np.random.uniform(low=-0.5,high=0.5,size=my_n_obs)
         z = np.random.uniform(low=-0.5,high=0.5,size=my_n_obs)
-                    
-        vz = self.photons["vx"]*z_hat[0] + \
-             self.photons["vy"]*z_hat[1] + \
-             self.photons["vz"]*z_hat[2]
-        shift = -vz.in_cgs()/clight
-        shift = np.sqrt((1.-shift)/(1.+shift))
+
+        if not no_shifting:
+            vz = self.photons["vx"]*z_hat[0] + \
+                 self.photons["vy"]*z_hat[1] + \
+                 self.photons["vz"]*z_hat[2]
+            shift = -vz.in_cgs()/clight
+            shift = np.sqrt((1.-shift)/(1.+shift))
 
         if my_n_obs == n_ph_tot:
             idxs = np.arange(my_n_obs,dtype='uint64')
@@ -579,8 +589,11 @@ class PhotonList(object):
         z *= delta
         x += self.photons["x"][obs_cells]
         y += self.photons["y"][obs_cells]
-        z += self.photons["z"][obs_cells]  
-        eobs = self.photons["Energy"][idxs]*shift[obs_cells]
+        z += self.photons["z"][obs_cells]
+        if no_shifting:
+            eobs = self.photons["Energy"][idxs]
+        else:
+            eobs = self.photons["Energy"][idxs]*shift[obs_cells]
 
         xsky = x*x_hat[0] + y*x_hat[1] + z*x_hat[2]
         ysky = x*y_hat[0] + y*y_hat[1] + z*y_hat[2]
@@ -611,7 +624,7 @@ class PhotonList(object):
         events = {}
 
         dx_min = self.parameters["Width"].value/self.parameters["Dimension"]
-        dtheta = np.rad2deg(dx_min/D_A.value)*units.degree
+        dtheta = YTQuantity(np.rad2deg(dx_min/D_A.value), "degree")
         
         events["xpix"] = xsky[detected]/dx_min + 0.5*(nx+1)
         events["ypix"] = ysky[detected]/dx_min + 0.5*(nx+1)
@@ -625,7 +638,7 @@ class PhotonList(object):
         
         num_events = len(events["xpix"])
             
-        if comm.rank == 0: mylog.info("Total number of observed photons: %d" % (num_events))
+        if comm.rank == 0: mylog.info("Total number of observed photons: %d" % num_events)
 
         if "RMF" in parameters and convolve_energies:
             events, info = self._convolve_with_rmf(parameters["RMF"], events)
@@ -648,7 +661,7 @@ class PhotonList(object):
         return EventList(events, parameters)
 
     def _normalize_arf(self, respfile):
-        rmf = pyfits.open(respfile)
+        rmf = _astropy.pyfits.open(respfile)
         table = rmf["MATRIX"]
         weights = np.array([w.sum() for w in table.data["MATRIX"]])
         rmf.close()
@@ -661,7 +674,7 @@ class PhotonList(object):
         mylog.warning("This routine has not been tested to work with all RMFs. YMMV.")
         mylog.info("Reading response matrix file (RMF): %s" % (respfile))
         
-        hdulist = pyfits.open(respfile)
+        hdulist = _astropy.pyfits.open(respfile)
 
         tblhdu = hdulist["MATRIX"]
         n_de = len(tblhdu.data["ENERG_LO"])
@@ -729,6 +742,7 @@ class PhotonList(object):
         events[tblhdu.header["CHANTYPE"]] = dchannel.astype(int)
 
         info = {"ChannelType" : tblhdu.header["CHANTYPE"],
+                "Mission" : tblhdu.header["MISSION"],
                 "Telescope" : tblhdu.header["TELESCOP"],
                 "Instrument" : tblhdu.header["INSTRUME"]}
         
@@ -736,20 +750,20 @@ class PhotonList(object):
     
 class EventList(object) :
 
-    def __init__(self, events, parameters) :
+    def __init__(self, events, parameters):
 
         self.events = events
         self.parameters = parameters
         self.num_events = events["xpix"].shape[0]
-        self.wcs = pywcs.WCS(naxis=2)
+        self.wcs = _astropy.pywcs.WCS(naxis=2)
         self.wcs.wcs.crpix = parameters["pix_center"]
         self.wcs.wcs.crval = parameters["sky_center"].ndarray_view()
         self.wcs.wcs.cdelt = [-parameters["dtheta"].value, parameters["dtheta"].value]
         self.wcs.wcs.ctype = ["RA---TAN","DEC--TAN"]
         self.wcs.wcs.cunit = ["deg"]*2                                                
         x,y = self.wcs.wcs_pix2world(self.events["xpix"], self.events["ypix"], 1)
-        self.events["xsky"] = x*units.degree
-        self.events["ysky"] = y*units.degree
+        self.events["xsky"] = YTArray(x, "degree")
+        self.events["ysky"] = YTArray(y, "degree")
 
     def keys(self):
         return self.events.keys()
@@ -768,6 +782,51 @@ class EventList(object) :
 
     def __repr__(self):
         return self.events.__repr__()
+
+    def __add__(self, other):
+        keys1 = self.parameters.keys()
+        keys2 = other.parameters.keys()
+        keys1.sort()
+        keys2.sort()
+        if keys1 != keys2:
+            raise RuntimeError("The two EventLists do not have the same parameters!")
+        for k1, k2 in zip(keys1, keys2):
+            v1 = self.parameters[k1]
+            v2 = other.parameters[k2]
+            if isinstance(v1, basestring) or isinstance(v2, basestring):
+                check_equal = v1 == v2
+            else:
+                check_equal = np.allclose(v1, v2, rtol=0.0, atol=1.0e-10)
+            if not check_equal:
+                raise RuntimeError("The values for the parameter '%s' in the two EventLists" % k1 +
+                                   " are not identical (%s vs. %s)!" % (v1, v2))
+        events = {}
+        for item1, item2 in zip(self.items(), other.items()):
+            k1, v1 = item1
+            k2, v2 = item2
+            events[k1] = uconcatenate([v1,v2])
+        return EventList(events, self.parameters)
+
+    def filter_events(self, region):
+        """                                                                                                                                 
+        Filter events using a ds9 region. Requires the pyregion package.                                                                    
+        Returns a new EventList.                                                                                                            
+        """
+        import pyregion
+        import os
+        if os.path.exists(region):
+            reg = pyregion.open(region)
+        else:
+            reg = pyregion.parse(region)
+        r = reg.as_imagecoord(header=self.wcs.to_header())
+        f = r.get_filter()
+        idxs = f.inside_x_y(self.events["xpix"], self.events["ypix"])
+        if idxs.sum() == 0:
+            raise RuntimeError("No events are inside this region!")
+        new_events = {}
+        for k, v in self.events.items():
+            new_events[k] = v[idxs]
+        return EventList(new_events, self.parameters)
    
     @classmethod
     def from_h5_file(cls, h5file):
@@ -779,16 +838,18 @@ class EventList(object) :
         
         f = h5py.File(h5file, "r")
 
-        parameters["ExposureTime"] = f["/exp_time"].value*units.s
-        parameters["Area"] = f["/area"].value*units.cm*units.cm
+        parameters["ExposureTime"] = YTQuantity(f["/exp_time"].value, "s")
+        parameters["Area"] = YTQuantity(f["/area"].value, "cm**2")
         parameters["Redshift"] = f["/redshift"].value
-        parameters["AngularDiameterDistance"] = f["/d_a"].value*units.Mpc
+        parameters["AngularDiameterDistance"] = YTQuantity(f["/d_a"].value, "Mpc")
         if "rmf" in f:
             parameters["RMF"] = f["/rmf"].value
         if "arf" in f:
             parameters["ARF"] = f["/arf"].value
         if "channel_type" in f:
             parameters["ChannelType"] = f["/channel_type"].value
+        if "mission" in f:
+            parameters["Mission"] = f["/mission"].value
         if "telescope" in f:
             parameters["Telescope"] = f["/telescope"].value
         if "instrument" in f:
@@ -796,13 +857,13 @@ class EventList(object) :
 
         events["xpix"] = f["/xpix"][:]
         events["ypix"] = f["/ypix"][:]
-        events["eobs"] = f["/eobs"][:]*units.keV
+        events["eobs"] = YTArray(f["/eobs"][:], "keV")
         if "pi" in f:
             events["PI"] = f["/pi"][:]
         if "pha" in f:
             events["PHA"] = f["/pha"][:]
-        parameters["sky_center"] = f["/sky_center"][:]*units.deg
-        parameters["dtheta"] = f["/dtheta"].value*units.deg
+        parameters["sky_center"] = YTArray(f["/sky_center"][:], "deg")
+        parameters["dtheta"] = YTQuantity(f["/dtheta"].value, "deg")
         parameters["pix_center"] = f["/pix_center"][:]
         
         f.close()
@@ -814,33 +875,35 @@ class EventList(object) :
         """
         Initialize an EventList from a FITS file with filename *fitsfile*.
         """
-        hdulist = pyfits.open(fitsfile)
+        hdulist = _astropy.pyfits.open(fitsfile)
 
         tblhdu = hdulist["EVENTS"]
         
         events = {}
         parameters = {}
         
-        parameters["ExposureTime"] = tblhdu.header["EXPOSURE"]*units.s
-        parameters["Area"] = tblhdu.header["AREA"]*units.cm*units.cm
+        parameters["ExposureTime"] = YTQuantity(tblhdu.header["EXPOSURE"], "s")
+        parameters["Area"] = YTQuantity(tblhdu.header["AREA"], "cm**2")
         parameters["Redshift"] = tblhdu.header["REDSHIFT"]
-        parameters["AngularDiameterDistance"] = tblhdu.header["D_A"]*units.Mpc
+        parameters["AngularDiameterDistance"] = YTQuantity(tblhdu.header["D_A"], "Mpc")
         if "RMF" in tblhdu.header:
             parameters["RMF"] = tblhdu["RMF"]
         if "ARF" in tblhdu.header:
             parameters["ARF"] = tblhdu["ARF"]
         if "CHANTYPE" in tblhdu.header:
             parameters["ChannelType"] = tblhdu["CHANTYPE"]
+        if "MISSION" in tblhdu.header:
+            parameters["Mission"] = tblhdu["MISSION"]
         if "TELESCOP" in tblhdu.header:
             parameters["Telescope"] = tblhdu["TELESCOP"]
         if "INSTRUME" in tblhdu.header:
             parameters["Instrument"] = tblhdu["INSTRUME"]
-        parameters["sky_center"] = np.array([tblhdu["TCRVL2"],tblhdu["TCRVL3"]])*units.deg
+        parameters["sky_center"] = YTArray([tblhdu["TCRVL2"],tblhdu["TCRVL3"]], "deg")
         parameters["pix_center"] = np.array([tblhdu["TCRVL2"],tblhdu["TCRVL3"]])
-        parameters["dtheta"] = tblhdu["TCRVL3"]*units.deg
+        parameters["dtheta"] = YTQuantity(tblhdu["TCRVL3"], "deg")
         events["xpix"] = tblhdu.data.field("X")
         events["ypix"] = tblhdu.data.field("Y")
-        events["eobs"] = (tblhdu.data.field("ENERGY")/1000.)*units.keV # Convert to keV
+        events["eobs"] = YTArray(tblhdu.data.field("ENERGY")/1000., "keV")
         if "PI" in tblhdu.columns.names:
             events["PI"] = tblhdu.data.field("PI")
         if "PHA" in tblhdu.columns.names:
@@ -848,25 +911,13 @@ class EventList(object) :
         
         return cls(events, parameters)
 
-    @classmethod
-    def join_events(cls, events1, events2):
-        """
-        Join two sets of events, *events1* and *events2*.
-        """
-        events = {}
-        for item1, item2 in zip(events1.items(), events2.items()):
-            k1, v1 = item1
-            k2, v2 = item2
-            events[k1] = np.concatenate([v1,v2])
-        
-        return cls(events, events1.parameters)
-                
     @parallel_root_only
     def write_fits_file(self, fitsfile, clobber=False):
         """
         Write events to a FITS binary table file with filename *fitsfile*.
         Set *clobber* to True if you need to overwrite a previous file.
         """
+        pyfits = _astropy.pyfits
         
         cols = []
 
@@ -920,11 +971,13 @@ class EventList(object) :
         tbhdu.header["RADECSYS"] = "FK5"
         tbhdu.header["EQUINOX"] = 2000.0
         if "RMF" in self.parameters:
-            tbhdu.header["RMF"] = self.parameters["RMF"]
+            tbhdu.header["RESPFILE"] = self.parameters["RMF"]
         if "ARF" in self.parameters:
-            tbhdu.header["ARF"] = self.parameters["ARF"]
+            tbhdu.header["ANCRFILE"] = self.parameters["ARF"]
         if "ChannelType" in self.parameters:
             tbhdu.header["CHANTYPE"] = self.parameters["ChannelType"]
+        if "Mission" in self.parameters:
+            tbhdu.header["MISSION"] = self.parameters["Mission"]
         if "Telescope" in self.parameters:
             tbhdu.header["TELESCOP"] = self.parameters["Telescope"]
         if "Instrument" in self.parameters:
@@ -950,7 +1003,7 @@ class EventList(object) :
         e_max : float, optional
             The maximum energy of the photons to save in keV.
         """
-
+        pyfits = _astropy.pyfits
         if isinstance(self.parameters["Area"], basestring):
              mylog.error("Writing SIMPUT files is only supported if you didn't convolve with an ARF.")
              raise TypeError("Writing SIMPUT files is only supported if you didn't convolve with an ARF.")
@@ -1041,6 +1094,8 @@ class EventList(object) :
             f.create_dataset("/rmf", data=self.parameters["RMF"])
         if "ChannelType" in self.parameters:
             f.create_dataset("/channel_type", data=self.parameters["ChannelType"])
+        if "Mission" in self.parameters:
+            f.create_dataset("/mission", data=self.parameters["Mission"]) 
         if "Telescope" in self.parameters:
             f.create_dataset("/telescope", data=self.parameters["Telescope"])
         if "Instrument" in self.parameters:
@@ -1100,7 +1155,7 @@ class EventList(object) :
                                            self.events["ypix"][mask],
                                            bins=[xbins,ybins])
         
-        hdu = pyfits.PrimaryHDU(H.T)
+        hdu = _astropy.pyfits.PrimaryHDU(H.T)
         
         hdu.header["MTYPE1"] = "EQPOS"
         hdu.header["MFORM1"] = "RA,DEC"
@@ -1140,10 +1195,10 @@ class EventList(object) :
         nchan : integer, optional
             The number of channels. Only used if binning on energy.
         """
-
+        pyfits = _astropy.pyfits
         if energy_bins:
             spectype = "energy"
-            espec = self.events["eobs"].ndarray_view()
+            espec = self.events["eobs"].d
             range = (emin, emax)
             spec, ee = np.histogram(espec, bins=nchan, range=range)
             bins = 0.5*(ee[1:]+ee[:-1])
@@ -1209,6 +1264,10 @@ class EventList(object) :
                 tbhdu.header["ANCRFILE"] = self.parameters["ARF"]
             else:        
                 tbhdu.header["ANCRFILE"] = "none"
+            if self.parameters.has_key("Mission"):
+                tbhdu.header["MISSION"] = self.parameters["Mission"]
+            else:
+                tbhdu.header["MISSION"] = "none"
             if self.parameters.has_key("Telescope"):
                 tbhdu.header["TELESCOP"] = self.parameters["Telescope"]
             else:

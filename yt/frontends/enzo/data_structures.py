@@ -406,6 +406,10 @@ class EnzoHierarchy(GridIndex):
         for ptype in self.dataset["AppendActiveParticleType"]:
             select_grids = self.grid_active_particle_count[ptype].flat
             if np.any(select_grids) == False:
+                current_ptypes = self.dataset.particle_types
+                new_ptypes = [p for p in current_ptypes if p != ptype]
+                self.dataset.particle_types = new_ptypes
+                self.dataset.particle_types_raw = new_ptypes
                 continue
             gs = self.grids[select_grids > 0]
             g = gs[0]
@@ -444,8 +448,7 @@ class EnzoHierarchy(GridIndex):
                 try:
                     gf = self.io._read_field_names(grid)
                 except self.io._read_exception:
-                    mylog.debug("Grid %s is a bit funky?", grid.id)
-                    continue
+                    raise IOError("Grid %s is a bit funky?", grid.id)
                 mylog.debug("Grid %s has: %s", grid.id, gf)
                 field_list = field_list.union(gf)
             if "AppendActiveParticleType" in self.dataset.parameters:
@@ -665,7 +668,8 @@ class EnzoDataset(Dataset):
                  file_style = None,
                  parameter_override = None,
                  conversion_override = None,
-                 storage_filename = None):
+                 storage_filename = None,
+                 units_override=None):
         """
         This class is a stripped down class that simply reads and parses
         *filename* without looking at the index.  *dataset_type* gets passed
@@ -682,8 +686,8 @@ class EnzoDataset(Dataset):
         if conversion_override is None: conversion_override = {}
         self._conversion_override = conversion_override
         self.storage_filename = storage_filename
-
-        Dataset.__init__(self, filename, dataset_type, file_style=file_style)
+        Dataset.__init__(self, filename, dataset_type, file_style=file_style,
+                         units_override=units_override)
 
     def _setup_1d(self):
         self._index_class = EnzoHierarchy1D
@@ -925,6 +929,8 @@ class EnzoDataset(Dataset):
                                 (self.time_unit**2 * self.length_unit))
         magnetic_unit = np.float64(magnetic_unit.in_cgs())
         self.magnetic_unit = self.quan(magnetic_unit, "gauss")
+
+        self._override_code_units()
 
         self.unit_registry.modify("code_magnetic", self.magnetic_unit)
         self.unit_registry.modify("code_length", self.length_unit)
