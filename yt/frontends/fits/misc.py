@@ -151,8 +151,8 @@ class PlotWindowWCS(object):
             ylabel = "%s (%s)" % (wcs.ctype[yax].split("-")[0],
                                   wcs.cunit[yax])
             fp = pw._font_properties
-            wcs_ax.coords[0].set_axislabel(xlabel, fontproperties=fp)
-            wcs_ax.coords[1].set_axislabel(ylabel, fontproperties=fp)
+            wcs_ax.coords[0].set_axislabel(xlabel, fontproperties=fp, minpad=0.5)
+            wcs_ax.coords[1].set_axislabel(ylabel, fontproperties=fp, minpad=0.4)
             wcs_ax.coords[0].ticklabels.set_fontproperties(fp)
             wcs_ax.coords[1].ticklabels.set_fontproperties(fp)
             ax.xaxis.set_visible(False)
