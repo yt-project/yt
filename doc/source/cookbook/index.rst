@@ -32,6 +32,8 @@ Example Scripts
    cosmological_analysis
    constructing_data_objects
 
+.. _example-notebooks:
+
 Example Notebooks
 -----------------
 .. toctree::
@@ -42,6 +44,7 @@ Example Notebooks
    embedded_javascript_animation
    embedded_webm_animation
    gadget_notebook
+   owls_notebook
    ../analyzing/analysis_modules/sunyaev_zeldovich
    fits_radio_cubes
    fits_xray_images

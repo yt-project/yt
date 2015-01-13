@@ -49,19 +49,20 @@ def create_fake_octree(RAMSESOctreeContainer oct_handler,
         cur_leaf = subdivide(oct_handler, parent, ind, dd, cur_leaf, 0,
                              max_noct, max_level, fsubdivide, mask)
     return cur_leaf
-                             
 
-cdef long subdivide(RAMSESOctreeContainer oct_handler, 
+
+cdef long subdivide(RAMSESOctreeContainer oct_handler,
                     Oct *parent,
-                    int ind[3], int dd[3], 
-                    long cur_leaf, long cur_level, 
+                    int ind[3], int dd[3],
+                    long cur_leaf, long cur_level,
                     long max_noct, long max_level, float fsubdivide,
                     np.ndarray[np.uint8_t, ndim=2] mask):
     print "child", parent.file_ind, ind[0], ind[1], ind[2], cur_leaf, cur_level
-    cdef int ddr[3], ii
+    cdef int ddr[3]
+    cdef int ii
     cdef long i,j,k
     cdef float rf #random float from 0-1
-    if cur_level >= max_level: 
+    if cur_level >= max_level:
         return cur_leaf
     if oct_handler.domains[0].n_assigned >= max_noct:
         return cur_leaf
@@ -72,10 +73,10 @@ cdef long subdivide(RAMSESOctreeContainer oct_handler,
     if rf > fsubdivide:
         ii = cind(ind[0], ind[1], ind[2])
         if parent.children[ii] == NULL:
-            cur_leaf += 7 
+            cur_leaf += 7
         oct = oct_handler.next_child(1, ind, parent)
         oct.domain = 1
-        cur_leaf = subdivide(oct_handler, oct, ind, ddr, cur_leaf, 
-                             cur_level + 1, max_noct, max_level, 
+        cur_leaf = subdivide(oct_handler, oct, ind, ddr, cur_leaf,
+                             cur_level + 1, max_noct, max_level,
                              fsubdivide, mask)
     return cur_leaf

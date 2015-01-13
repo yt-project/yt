@@ -42,7 +42,7 @@ from yt.utilities.data_point_utilities import CombineGrids,\
 from yt.utilities.minimal_representation import \
     MinimalProjectionData
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_objects, parallel_root_only 
+    parallel_objects, parallel_root_only, communication_system
 from yt.units.unit_object import Unit
 import yt.geometry.particle_deposit as particle_deposit
 from yt.utilities.grid_data_format.writer import write_to_gdf
@@ -236,6 +236,7 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         else:
             raise NotImplementedError(self.method)
         self._set_center(center)
+        self._projected_units = {}
         if data_source is None: data_source = self.ds.all_data()
         for k, v in data_source.field_parameters.items():
             if k not in self.field_parameters or \
@@ -284,10 +285,11 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         if self.weight_field is not None:
             chunk_fields.append(self.weight_field)
         tree = self._get_tree(len(fields))
-        # We do this once
-        for chunk in self.data_source.chunks([], "io", local_only = False):
-            self._initialize_chunk(chunk, tree)
-        # This needs to be parallel_objects-ified
+        # This only needs to be done if we are in parallel; otherwise, we can
+        # safely build the mesh as we go.
+        if communication_system.communicators[-1].size > 1:
+            for chunk in self.data_source.chunks([], "io", local_only = False):
+                self._initialize_chunk(chunk, tree)
         with self.data_source._field_parameter_state(self.field_parameters):
             for chunk in parallel_objects(self.data_source.chunks(
                                           chunk_fields, "io", local_only = True)): 
@@ -327,7 +329,6 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
                 np.divide(nvals, nwvals[:,None], nvals)
         # We now convert to half-widths and center-points
         data = {}
-        #non_nan = ~np.any(np.isnan(nvals), axis=-1)
         code_length = self.ds.domain_width.units
         data['px'] = self.ds.arr(px, code_length)
         data['py'] = self.ds.arr(py, code_length)
@@ -341,30 +342,8 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
         for fi, field in enumerate(fields):
             finfo = self.ds._get_field_info(*field)
             mylog.debug("Setting field %s", field)
-            units = finfo.units
-            # add length units to "projected units" if non-weighted 
-            # integral projection
-            if self.weight_field is None and not self._sum_only and \
-               self.method == 'integrate':
-                # See _handle_chunk where we mandate cm
-                if units == '':
-                    input_units = "cm"
-                else:
-                    input_units = "(%s) * cm" % units
-            else:
-                input_units = units
-            # Don't forget [non_nan] somewhere here.
-            self[field] = YTArray(field_data[fi].ravel(),
-                                  input_units=input_units,
-                                  registry=self.ds.unit_registry)
-            # convert units if non-weighted integral projection
-            if self.weight_field is None and not self._sum_only and \
-               self.method == 'integrate':
-                u_obj = Unit(units, registry=self.ds.unit_registry)
-                if ((u_obj.is_code_unit or self.ds.no_cgs_equiv_length) and
-                    not u_obj.is_dimensionless) and input_units != units:
-                    final_unit = "(%s) * code_length" % units
-                    self[field].convert_to_units(final_unit)
+            input_units = self._projected_units[field].units
+            self[field] = self.ds.arr(field_data[fi].ravel(), input_units)
         for i in data.keys(): self[i] = data.pop(i)
         mylog.info("Projection completed")
 
@@ -379,18 +358,34 @@ class YTQuadTreeProjBase(YTSelectionContainer2D):
 
     def _handle_chunk(self, chunk, fields, tree):
         if self.method == "mip" or self._sum_only:
-            dl = 1.0
+            dl = self.ds.quan(1.0, "")
         else:
             # This gets explicitly converted to cm
-            dl = chunk.fwidth[:, self.axis]
-            dl.convert_to_units("cm")
+            ax_name = self.ds.coordinates.axis_name[self.axis]
+            dl = chunk["index", "path_element_%s" % (ax_name)]
+            # This is done for cases where our path element does not have a CGS
+            # equivalent.  Once "preferred units" have been implemented, this
+            # will not be necessary at all, as the final conversion will occur
+            # at the display layer.
+            if not dl.units.is_dimensionless:
+                dl.convert_to_units("cm")
         v = np.empty((chunk.ires.size, len(fields)), dtype="float64")
-        for i in range(len(fields)):
-            v[:,i] = chunk[fields[i]] * dl
+        for i, field in enumerate(fields):
+            d = chunk[field] * dl
+            v[:,i] = d
+            self._projected_units[field] = d.uq
         if self.weight_field is not None:
             w = chunk[self.weight_field]
             np.multiply(v, w[:,None], v)
             np.multiply(w, dl, w)
+            for field in fields:
+                # Note that this removes the dl integration, which is
+                # *correct*, but we are not fully self-consistently carrying it
+                # all through.  So if interrupted, the process will have
+                # incorrect units assigned in the projected units.  This should
+                # not be a problem, since the weight division occurs
+                # self-consistently with unitfree arrays.
+                self._projected_units[field] /= dl.uq
         else:
             w = np.ones(chunk.ires.size, dtype="float64")
         icoords = chunk.icoords
@@ -468,7 +463,7 @@ class YTCoveringGridBase(YTSelectionContainer3D):
         self.domain_width = np.rint((self.ds.domain_right_edge -
                     self.ds.domain_left_edge)/self.dds).astype('int64')
         self._setup_data_source()
-                
+
     @property
     def icoords(self):
         ic = np.indices(self.ActiveDimensions).astype("int64")
@@ -948,14 +943,18 @@ class YTSurfaceBase(YTSelectionContainer3D):
         mylog.info("Extracting (sampling: %s)" % (fields,))
         verts = []
         samples = []
-        for block, mask in parallel_objects(self.data_source.blocks):
-            my_verts = self._extract_isocontours_from_grid(
-                            block, self.surface_field, self.field_value,
-                            mask, fields, sample_type)
-            if fields is not None:
-                my_verts, svals = my_verts
-                samples.append(svals)
-            verts.append(my_verts)
+        deps = self._determine_fields(self.surface_field)
+        deps = self._identify_dependencies(deps, spatial=True)
+        for io_chunk in parallel_objects(self.data_source.chunks(deps, "io",
+                                         preload_fields = deps)):
+            for block, mask in self.data_source.blocks:
+                my_verts = self._extract_isocontours_from_grid(
+                                block, self.surface_field, self.field_value,
+                                mask, fields, sample_type)
+                if fields is not None:
+                    my_verts, svals = my_verts
+                    samples.append(svals)
+                verts.append(my_verts)
         verts = np.concatenate(verts).transpose()
         verts = self.comm.par_combine_object(verts, op='cat', datatype='array')
         self.vertices = verts
@@ -1038,21 +1037,27 @@ class YTSurfaceBase(YTSelectionContainer3D):
         """
         flux = 0.0
         mylog.info("Fluxing %s", fluxing_field)
-        for block, mask in parallel_objects(self.data_source.blocks):
-            flux += self._calculate_flux_in_grid(block, mask,
-                    field_x, field_y, field_z, fluxing_field)
+        deps = [field_x, field_y, field_z]
+        if fluxing_field is not None: deps.append(fluxing_field)
+        deps = self._determine_fields(deps)
+        deps = self._identify_dependencies(deps)
+        for io_chunk in parallel_objects(self.data_source.chunks(deps, "io",
+                                preload_fields = deps)):
+            for block, mask in self.data_source.blocks:
+                flux += self._calculate_flux_in_grid(block, mask,
+                        field_x, field_y, field_z, fluxing_field)
         flux = self.comm.mpi_allreduce(flux, op="sum")
         return flux
 
     def _calculate_flux_in_grid(self, grid, mask,
-                    field_x, field_y, field_z, fluxing_field = None):
+            field_x, field_y, field_z, fluxing_field = None):
         vals = grid.get_vertex_centered_data(self.surface_field)
         if fluxing_field is None:
             ff = np.ones(vals.shape, dtype="float64")
         else:
             ff = grid.get_vertex_centered_data(fluxing_field)
-        xv, yv, zv = [grid.get_vertex_centered_data(f) for f in 
-                     [field_x, field_y, field_z]]
+        xv, yv, zv = [grid.get_vertex_centered_data(f)
+                      for f in [field_x, field_y, field_z]]
         return march_cubes_grid_flux(self.field_value, vals, xv, yv, zv,
                     ff, mask, grid.LeftEdge, grid.dds)
 

@@ -1,7 +1,7 @@
 .. _callbacks:
 
-Plot Modification Mechanisms
-============================
+Plot Modifications: Overplotting Contours, Velocities, Particles, and More
+==========================================================================
 
 Adding callbacks to plots
 -------------------------

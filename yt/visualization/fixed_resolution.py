@@ -80,7 +80,11 @@ class FixedResolutionBuffer(object):
     104923.1
     """
     _exclude_fields = ('pz','pdz','dx','x','y','z',
-                       ('index','dx'),('index','x'),('index','y'),('index','z'))
+        'r', 'dr', 'phi', 'dphi', 'theta', 'dtheta',
+                       ('index','dx'),('index','x'),('index','y'),('index','z'),
+                       ('index', 'r'), ('index', 'dr'),
+                       ('index', 'phi'), ('index', 'dphi'),
+                       ('index', 'theta'), ('index', 'dtheta'))
     def __init__(self, data_source, bounds, buff_size, antialias = True,
                  periodic = False):
         self.data_source = data_source

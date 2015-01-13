@@ -64,7 +64,8 @@ cdef class OctreeContainer:
     cdef int level_offset
     cdef int nn[3]
     cdef np.uint8_t oref
-    cdef np.float64_t DLE[3], DRE[3]
+    cdef np.float64_t DLE[3]
+    cdef np.float64_t DRE[3]
     cdef public np.int64_t nocts
     cdef public int num_domains
     cdef Oct *get(self, np.float64_t ppos[3], OctInfo *oinfo = ?,

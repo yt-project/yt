@@ -47,7 +47,8 @@ cdef inline void contour_delete(ContourID *node):
     free(node)
 
 cdef inline ContourID *contour_find(ContourID *node):
-    cdef ContourID *temp, *root
+    cdef ContourID *temp
+    cdef ContourID *root
     root = node
     # First we find the root
     while root.parent != NULL and root.parent != root:
@@ -71,7 +72,8 @@ cdef inline void contour_union(ContourID *node1, ContourID *node2):
     node2 = contour_find(node2)
     if node1 == node2:
         return
-    cdef ContourID *pri, *sec
+    cdef ContourID *pri
+    cdef ContourID *sec
     if node1.count > node2.count:
         pri = node1
         sec = node2
@@ -130,7 +132,8 @@ cdef class ContourTree:
 
     def clear(self):
         # Here, we wipe out ALL of our contours, but not the pointers to them
-        cdef ContourID *cur, *next
+        cdef ContourID *cur
+        cdef ContourID *next
         cur = self.first
         while cur != NULL:
             next = cur.next
@@ -228,7 +231,9 @@ cdef class ContourTree:
         cdef int i, n, ins
         cdef np.int64_t cid1, cid2
         # Okay, this requires lots of iteration, unfortunately
-        cdef ContourID *cur, *c1, *c2
+        cdef ContourID *cur
+        cdef ContourID *c1
+        cdef ContourID *c2
         n = join_tree.shape[0]
         #print "Counting"
         #print "Checking", self.count()
@@ -268,9 +273,10 @@ cdef class ContourTree:
     @cython.wraparound(False)
     def export(self):
         cdef int n = self.count()
-        cdef ContourID *cur, *root
+        cdef ContourID *cur
+        cdef ContourID *root
         cur = self.first
-        cdef np.ndarray[np.int64_t, ndim=2] joins 
+        cdef np.ndarray[np.int64_t, ndim=2] joins
         joins = np.empty((n, 2), dtype="int64")
         n = 0
         while cur != NULL:
@@ -280,7 +286,7 @@ cdef class ContourTree:
             cur = cur.next
             n += 1
         return joins
-    
+
     def __dealloc__(self):
         self.clear()
 
@@ -303,7 +309,8 @@ cdef class TileContourTree:
         cdef int i, j, k, ni, nj, nk, offset
         cdef int off_i, off_j, off_k, oi, ok, oj
         cdef ContourID *cur = NULL
-        cdef ContourID *c1, *c2
+        cdef ContourID *c1
+        cdef ContourID *c2
         cdef np.float64_t v
         cdef np.int64_t nc
         ni = values.shape[0]
@@ -348,8 +355,8 @@ cdef class TileContourTree:
                     if c1 == NULL: continue
                     c1 = contour_find(c1)
                     contour_ids[i,j,k] = c1.contour_id
-        
-        for i in range(ni*nj*nk): 
+
+        for i in range(ni*nj*nk):
             if container[i] != NULL: free(container[i])
         free(container)
         return nc
@@ -390,7 +397,7 @@ cdef inline int spos_contained(VolumeContainer *vc, np.float64_t *spos):
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void construct_boundary_relationships(Node trunk, ContourTree tree, 
+cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
                 np.int64_t nid, np.ndarray[np.uint8_t, ndim=1] examined,
                 VolumeContainer **vcs,
                 np.ndarray[np.int64_t, ndim=1] node_ids):
@@ -399,14 +406,16 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
     cdef int i, j, off_i, off_j, oi, oj, level, ax, ax0, ax1, n1, n2
     cdef np.int64_t c1, c2
     cdef Node adj_node
-    cdef VolumeContainer *vc1, *vc0 = vcs[nid]
+    cdef VolumeContainer *vc1
+    cdef VolumeContainer *vc0 = vcs[nid]
     cdef int s = (vc0.dims[1]*vc0.dims[0]
                 + vc0.dims[0]*vc0.dims[2]
                 + vc0.dims[1]*vc0.dims[2]) * 18
     # We allocate an array of fixed (maximum) size
     cdef np.ndarray[np.int64_t, ndim=2] joins = np.zeros((s, 2), dtype="int64")
-    cdef int ti = 0, side, m1, m2
-    cdef int index, pos[3], my_pos[3]
+    cdef int ti = 0, side, m1, m2, index
+    cdef int pos[3]
+    cdef int my_pos[3]
     cdef np.float64_t spos[3]
 
     for ax in range(3):
@@ -440,7 +449,7 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
                             adj_node = _find_node(trunk, spos)
                             vc1 = vcs[adj_node.node_ind]
                             if spos_contained(vc1, spos):
-                                index = vc_index(vc0, my_pos[0], 
+                                index = vc_index(vc0, my_pos[0],
                                                  my_pos[1], my_pos[2])
                                 m1 = vc0.mask[index]
                                 c1 = (<np.int64_t*>vc0.data[0])[index]
@@ -491,7 +500,9 @@ cdef class FOFNode:
 
 cdef class ParticleContourTree(ContourTree):
     cdef np.float64_t linking_length, linking_length2
-    cdef np.float64_t DW[3], DLE[3], DRE[3]
+    cdef np.float64_t DW[3]
+    cdef np.float64_t DLE[3]
+    cdef np.float64_t DRE[3]
     cdef bint periodicity[3]
     cdef int minimum_count
 
@@ -515,9 +526,11 @@ cdef class ParticleContourTree(ContourTree):
                                 int domain_id, int domain_offset):
         cdef np.ndarray[np.int64_t, ndim=1] pdoms, pcount, pind, doff
         cdef np.float64_t pos[3]
-        cdef Oct *oct = NULL, **neighbors = NULL
+        cdef Oct *oct = NULL
+        cdef Oct **neighbors = NULL
         cdef OctInfo oi
-        cdef ContourID *c0, *c1
+        cdef ContourID *c0
+        cdef ContourID *c1
         cdef np.int64_t moff = octree.get_domain_offset(domain_id + domain_offset)
         cdef np.int64_t i, j, k, n, nneighbors, pind0, offset
         cdef int counter = 0
@@ -607,8 +620,8 @@ cdef class ParticleContourTree(ContourTree):
                     # accessing.
                     self.link_particles(container,
                                         fpos, ipind,
-                                        pcount[nind[k]], 
-                                        offset, pind0, 
+                                        pcount[nind[k]],
+                                        offset, pind0,
                                         doff[i] + j)
         cdef np.ndarray[np.int64_t, ndim=1] contour_ids
         contour_ids = np.ones(positions.shape[0], dtype="int64")
@@ -630,21 +643,24 @@ cdef class ParticleContourTree(ContourTree):
     @cython.cdivision(True)
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    cdef void link_particles(self, ContourID **container, 
+    cdef void link_particles(self, ContourID **container,
                                    anyfloat *positions,
                                    np.int64_t *pind,
-                                   np.int64_t pcount, 
+                                   np.int64_t pcount,
                                    np.int64_t noffset,
                                    np.int64_t pind0,
                                    np.int64_t poffset):
         # Now we look at each particle and evaluate it
-        cdef np.float64_t pos0[3], pos1[3], edges[2][3]
+        cdef np.float64_t pos0[3]
+        cdef np.float64_t pos1[3]
+        cdef np.float64_t edges[2][3]
         cdef int link
-        cdef ContourID *c0, *c1
+        cdef ContourID *c0
+        cdef ContourID *c1
         cdef np.int64_t pind1
         cdef int i, j, k
         # We use pid here so that we strictly take new ones.
-        # Note that pind0 will not monotonically increase, but 
+        # Note that pind0 will not monotonically increase, but
         c0 = container[pind0]
         if c0 == NULL:
             c0 = container[pind0] = contour_create(poffset, self.last)

@@ -1,4 +1,4 @@
-""" 
+"""
 Simle integrators for the radiative transfer equation
 
 
@@ -50,7 +50,7 @@ def Transfer3D(np.ndarray[np.float64_t, ndim=3] i_s,
             jj = j + jmin*jstride
             # Not sure about the ordering of the loops here
             for n in range(nn):
-                temp[n] = i_s[ii,jj,n] 
+                temp[n] = i_s[ii,jj,n]
             for k in range(kmax-kmin):
                 kk = k + kmin#*kstride, which doesn't make any sense
                 for n in range(nn):
@@ -128,8 +128,12 @@ def VoxelTraversal(np.ndarray[np.int_t, ndim=3] grid_mask,
     # Do left edge then right edge in each dim
     cdef int i, x, y
     cdef np.float64_t tl, tr, intersect_t, enter_t, exit_t, dt_tolerance
-    cdef np.float64_t iv_dir[3], tdelta[3], tmax[3], intersect[3]
-    cdef np.int64_t step[3], cur_ind[3]
+    cdef np.float64_t iv_dir[3]
+    cdef np.float64_t tdelta[3]
+    cdef np.float64_t tmax[3]
+    cdef np.float64_t intersect[3]
+    cdef np.int64_t cur_ind[3]
+    cdef np.int64_t step[3]
     intersect_t = 1
     dt_tolerance = 1e-6
     # recall p = v * t + u
@@ -241,7 +245,7 @@ def PlaneVoxelIntegration(np.ndarray[np.float64_t, ndim=1] left_edge,
     # Copy things into temporary location for passing between functions
     for vi in range(nv):
         for i in range(3): u[i] = ug[vi, i]
-        integrate_ray(u, v, left_edge, right_edge, dx, 
+        integrate_ray(u, v, left_edge, right_edge, dx,
                       nshells, vi, data, shells, image)
 
 @cython.wraparound(False)
@@ -255,7 +259,8 @@ def integrate_ray(np.ndarray[np.float64_t, ndim=1] u,
                   np.ndarray[np.float64_t, ndim=3] data,
                   np.ndarray[np.float64_t, ndim=2] shells,
                   np.ndarray[np.float64_t, ndim=2] image):
-    cdef int step[3], x, y, i, n
+    cdef int x, y, i, n
+    cdef int step[3]
     cdef np.float64_t intersect_t = 1
     cdef np.float64_t dt_tolerance = 1e-6
     cdef np.float64_t tl, tr, enter_t, exit_t
@@ -267,7 +272,8 @@ def integrate_ray(np.ndarray[np.float64_t, ndim=1] u,
     cdef np.float64_t dist, alpha
     cdef np.float64_t one = 1.0
     cdef int dims[3]
-    cdef np.float64_t rgba[4], temp_x, temp_y
+    cdef np.float64_t rgba[4]
+    cdef np.float64_t temp_x, temp_y
     for i in range(3):
         # As long as we're iterating, set some other stuff, too
         dims[i] = data.shape[i]

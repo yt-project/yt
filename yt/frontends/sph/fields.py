@@ -29,7 +29,7 @@ class SPHFieldInfo(FieldInfoContainer):
         ("Velocity", ("code_velocity", ["particle_velocity"], None)),
         ("Velocities", ("code_velocity", ["particle_velocity"], None)),
         ("ParticleIDs", ("", ["particle_index"], None)),
-        ("InternalEnergy", ("", ["thermal_energy"], None)),
+        ("InternalEnergy", ("code_velocity ** 2", ["thermal_energy"], None)),
         ("SmoothingLength", ("code_length", ["smoothing_length"], None)),
         ("Density", ("code_mass / code_length**3", ["density"], None)),
         ("MaximumTemperature", ("K", [], None)),
@@ -38,6 +38,7 @@ class SPHFieldInfo(FieldInfoContainer):
         ("Metals", ("code_metallicity", ["metallicity"], None)),
         ("Metallicity", ("code_metallicity", ["metallicity"], None)),
         ("Phi", ("code_length", [], None)),
+        ("StarFormationRate", ("code_mass / code_time", [], None)),
         ("FormationTime", ("code_time", ["creation_time"], None)),
         # These are metallicity fields that get discovered for FIRE simulations
         ("Metallicity_00", ("", ["metallicity"], None)),

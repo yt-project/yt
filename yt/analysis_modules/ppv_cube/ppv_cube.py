@@ -50,9 +50,11 @@ fits_info = {"velocity":("m/s","VELOCITY","v"),
              "wavelength":("angstrom","WAVELENG","lambda")}
 
 class PPVCube(object):
-    def __init__(self, ds, normal, field, center="c", width=(1.0,"unitary"),
-                 dims=(100,100,100), velocity_bounds=None, thermal_broad=False,
-                 atomic_weight=56., method="integrate", no_shifting=False):
+    def __init__(self, ds, normal, field, velocity_bounds, center="c", 
+                 width=(1.0,"unitary"), dims=100, thermal_broad=False,
+                 atomic_weight=56., depth=(1.0,"unitary"), depth_res=256,
+                 method="integrate", no_shifting=False,
+                 north_vector=None, no_ghost=True):
         r""" Initialize a PPVCube object.
 
         Parameters
@@ -62,9 +64,12 @@ class PPVCube(object):
         normal : array_like or string
             The normal vector along with to make the projections. If an array, it
             will be normalized. If a string, it will be assumed to be along one of the
-            principal axes of the domain ("x","y", or "z").
+            principal axes of the domain ("x", "y", or "z").
         field : string
             The field to project.
+        velocity_bounds : tuple
+            A 4-tuple of (vmin, vmax, nbins, units) for the velocity bounds to
+            integrate over. 
         center : A sequence of floats, a string, or a tuple.
             The coordinate of the center of the image. If set to 'c', 'center' or
             left blank, the plot is centered on the middle of the domain. If set to
@@ -78,16 +83,20 @@ class PPVCube(object):
         width : float, tuple, or YTQuantity.
             The width of the projection. A float will assume the width is in code units.
             A (value, unit) tuple or YTQuantity allows for the units of the width to be
-            specified.
-        dims : tuple, optional
-            A 3-tuple of dimensions (nx,ny,nv) for the cube.
-        velocity_bounds : tuple, optional
-            A 3-tuple of (vmin, vmax, units) for the velocity bounds to
-            integrate over. If None, the largest velocity of the
-            dataset will be used, e.g. velocity_bounds = (-v.max(), v.max())
+            specified. Implies width = height, e.g. the aspect ratio of the PPVCube's 
+            spatial dimensions is 1.
+        dims : integer, optional
+            The spatial resolution of the cube. Implies nx = ny, e.g. the 
+            aspect ratio of the PPVCube's spatial dimensions is 1.
         atomic_weight : float, optional
             Set this value to the atomic weight of the particle that is emitting the line
             if *thermal_broad* is True. Defaults to 56 (Fe).
+        depth : A tuple or a float, optional
+            A tuple containing the depth to project through and the string
+            key of the unit: (width, 'unit').  If set to a float, code units
+            are assumed. Only for off-axis cubes.
+        depth_res : integer, optional
+            The resolution of integration along the line of sight for off-axis cubes. Default: 256
         method : string, optional
             Set the projection method to be used.
             "integrate" : line of sight integration over the line element.
@@ -95,13 +104,24 @@ class PPVCube(object):
         no_shifting : boolean, optional
             If set, no shifting due to velocity will occur but only thermal broadening.
             Should not be set when *thermal_broad* is False, otherwise nothing happens!
+        north_vector : a sequence of floats
+            A vector defining the 'up' direction. This option sets the orientation of 
+            the plane of projection. If not set, an arbitrary grid-aligned north_vector 
+            is chosen. Ignored in the case of on-axis cubes.
+        no_ghost: bool, optional
+            Optimization option for off-axis cases. If True, homogenized bricks will
+            extrapolate out from grid instead of interpolating from
+            ghost zones that have to first be calculated.  This can
+            lead to large speed improvements, but at a loss of
+            accuracy/smoothness in resulting image.  The effects are
+            less notable when the transfer function is smooth and
+            broad. Default: True
 
         Examples
         --------
         >>> i = 60*np.pi/180.
         >>> L = [0.0,np.sin(i),np.cos(i)]
-        >>> cube = PPVCube(ds, L, "density", width=(10.,"kpc"),
-        ...                velocity_bounds=(-5.,4.,"km/s"))
+        >>> cube = PPVCube(ds, L, "density", (-5.,4.,100,"km/s"), width=(10.,"kpc"))
         """
 
         self.ds = ds
@@ -111,14 +131,18 @@ class PPVCube(object):
         self.thermal_broad = thermal_broad
         self.no_shifting = no_shifting
 
+        if not isinstance(normal, basestring):
+            width = ds.coordinates.sanitize_width(normal, width, depth)
+            width = tuple(el.in_units('code_length').v for el in width)
+
         if no_shifting and not thermal_broad:
             raise RuntimeError("no_shifting cannot be True when thermal_broad is False!")
 
         self.center = ds.coordinates.sanitize_center(center, normal)[0]
 
-        self.nx = dims[0]
-        self.ny = dims[1]
-        self.nv = dims[2]
+        self.nx = dims
+        self.ny = dims
+        self.nv = velocity_bounds[2]
 
         if method not in ["integrate","sum"]:
             raise RuntimeError("Only the 'integrate' and 'sum' projection +"
@@ -130,14 +154,10 @@ class PPVCube(object):
 
         self.field_units = ds._get_field_info(fd).units
 
-        if velocity_bounds is None:
-            vmin, vmax = dd.quantities.extrema("velocity_magnitude")
-            self.v_bnd = -vmax, vmax
-        else:
-            self.v_bnd = (ds.quan(velocity_bounds[0], velocity_bounds[2]),
-                          ds.quan(velocity_bounds[1], velocity_bounds[2]))
+        self.vbins = ds.arr(np.linspace(velocity_bounds[0],
+                                        velocity_bounds[1],
+                                        velocity_bounds[2]+1), velocity_bounds[3])
 
-        self.vbins = np.linspace(self.v_bnd[0], self.v_bnd[1], num=self.nv+1)
         self._vbins = self.vbins.copy()
         self.vmid = 0.5*(self.vbins[1:]+self.vbins[:-1])
         self.vmid_cgs = self.vmid.in_cgs().v
@@ -166,8 +186,9 @@ class PPVCube(object):
                 buf = prj.to_frb(width, self.nx, center=self.center)["intensity"]
             else:
                 buf = off_axis_projection(ds, self.center, normal, width,
-                                          (self.nx, self.ny), "intensity",
-                                          no_ghost=True, method=method)[::-1]
+                                          (self.nx, self.ny, depth_res), "intensity",
+                                          north_vector=north_vector, no_ghost=no_ghost,
+                                          method=method).swapaxes(0,1)
             sto.result_id = i
             sto.result = buf
             pbar.update(i)
@@ -176,16 +197,14 @@ class PPVCube(object):
         self.data = ds.arr(np.zeros((self.nx,self.ny,self.nv)), self.proj_units)
         if is_root():
             for i, buf in sorted(storage.items()):
-                self.data[:,:,i] = buf[:,:]
+                self.data[:,:,i] = buf.transpose()
 
         self.axis_type = "velocity"
 
         # Now fix the width
         if iterable(self.width):
             self.width = ds.quan(self.width[0], self.width[1])
-        elif isinstance(self.width, YTQuantity):
-            self.width = width
-        else:
+        elif not isinstance(self.width, YTQuantity):
             self.width = ds.quan(self.width, "code_length")
 
         self.ds.field_info.pop(("gas","intensity"))
@@ -197,8 +216,8 @@ class PPVCube(object):
             T = data["temperature"].v
             w = ppv_utils.compute_weight(self.thermal_broad, self.dv_cgs,
                                          self.particle_mass, v.flatten(), T.flatten())
-            w[np.isnan(w)] = 0.0                                                                                                                        
-            return data[self.field]*w.reshape(v.shape)                                                                                                  
+            w[np.isnan(w)] = 0.0
+            return data[self.field]*w.reshape(v.shape)
         return _intensity
 
     def transform_spectral_axis(self, rest_value, units):
@@ -283,7 +302,7 @@ class PPVCube(object):
         if sky_scale is not None and sky_center is not None:
             w = create_sky_wcs(w, sky_center, sky_scale)
 
-        fib = FITSImageBuffer(self.data.transpose(2,0,1), fields=self.field, wcs=w)
+        fib = FITSImageBuffer(self.data.transpose(), fields=self.field, wcs=w)
         fib[0].header["bunit"] = re.sub('()', '', str(self.proj_units))
         fib[0].header["btype"] = self.field
 
