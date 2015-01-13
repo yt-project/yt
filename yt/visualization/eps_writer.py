@@ -20,8 +20,39 @@ from _mpl_imports import FigureCanvasAgg
 
 from yt.utilities.logger import ytLogger as mylog
 from .plot_window import PlotWindow
-from .profile_plotter import PhasePlot
-from yt.units.yt_array import YTQuantity
+from .profile_plotter import PhasePlot, ProfilePlot
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.units.unit_object import Unit
+
+def convert_frac_to_tex(string):
+    frac_pos = string.find(r'\frac')
+    result = string[frac_pos+5:]
+    level = [0]*len(result)
+    clevel = 0
+    for i in range(len(result)):
+        if result[i] == "{":
+            clevel += 1
+        elif result[i] == "}":
+            clevel -= 1
+        level[i] = clevel
+    div_pos = level.index(0)
+    end_pos = level.index(0,div_pos+1)
+    result = r'${' + result[:div_pos+1] + r'\over' + result[div_pos+1:end_pos] + \
+             r'}$' + result[end_pos:]
+    result = result.replace(r'\/', r'\;')
+    return result
+
+def pyxize_label(string):
+    frac_pos = string.find(r'\frac')
+    if frac_pos >= 0:
+        pre = string[:frac_pos]
+        result = pre + convert_frac_to_tex(string)
+    else:
+        result = string
+    result = result.replace('$', '')
+    result = r'$' + result + r'$'
+    return result
+
 
 class DualEPS(object):
     def __init__(self, figsize=(12,12)):
@@ -52,7 +83,7 @@ class DualEPS(object):
 #=============================================================================
 
     def return_field(self, plot):
-        if isinstance(plot, PlotWindow) or isinstance(plot, PhasePlot):
+        if isinstance(plot, (PlotWindow, PhasePlot)):
             return plot.plots.keys()[0]
         else:
             return None
@@ -102,6 +133,10 @@ class DualEPS(object):
         >>> d.save_fig()
         """
         
+        if isinstance(xrange[0], YTQuantity):
+            xrange = (xrange[0].value, xrange[1].value)
+        if isinstance(yrange[0], YTQuantity):
+            yrange = (yrange[0].value, yrange[1].value)
         if tickcolor is None:
             c1 = pyx.graph.axis.painter.regular\
                  (tickattrs=[pyx.color.cmyk.black])
@@ -229,7 +264,7 @@ class DualEPS(object):
                 xaxis2 = pyx.graph.axis.lin(min=xrange[0], max=xrange[1],
                                             title=xrightlabel, parter=None)
 
-        blank_data = pyx.graph.data.points([(-10,-10),(-9.99,-9.99)], x=1,y=2)
+        blank_data = pyx.graph.data.points([(-1e20,-1e20),(-1e19,-1e19)], x=1,y=2)
         if self.canvas is None:
             self.canvas = pyx.graph.graphxy \
                           (width=psize[0], height=psize[1],
@@ -283,43 +318,43 @@ class DualEPS(object):
        
         if isinstance(plot, (PlotWindow, PhasePlot)):
             plot.refresh()
-        else:
-            plot._redraw_image()
         if isinstance(plot, PlotWindow):
             data = plot.frb
             width = plot.width[0]
             if units == None:
                 units = plot.ds.get_smallest_appropriate_unit(width)
             width = width.in_units(str(units))
-            _xrange = (0, float(width))
-            _yrange = (0, float(width))
+            xc = 0.5*(plot.xlim[0] + plot.xlim[1])
+            yc = 0.5*(plot.ylim[0] + plot.ylim[1])
+            _xrange = [(plot.xlim[i] - xc).in_units(units) for i in (0, 1)]
+            _yrange = [(plot.ylim[i] - yc).in_units(units) for i in (0, 1)]
             _xlog = False
             _ylog = False
-            axis_names = plot.ds.coordinates.axis_name
             if bare_axes:
                 _xlabel = ""
                 _ylabel = ""
             else:
-                units = units.replace('mpc', 'Mpc')
                 if xlabel != None:
                     _xlabel = xlabel
                 else:
                     if data.axis != 4:
-                        xax = plot.ds.coordinates.x_axis[data.axis]
-                        _xlabel = '%s (%s)' % (axis_names[xax], units)
+                        xi = plot.ds.coordinates.x_axis[data.axis]
+                        x_name = plot.ds.coordinates.axis_name[xi]
+                        _xlabel = '%s (%s)' % (x_name, units)
                     else:
-                        _xlabel = 'Image x (%s)' % (units)
+                        _xlabel = 'x (%s)' % (units)
                 if ylabel != None:
                     _ylabel = ylabel
                 else:
                     if data.axis != 4:
-                        yax = plot.ds.coordinates.y_axis[data.axis]
-                        _ylabel = '%s (%s)' % (axis_names[yax], units)
+                        yi = plot.ds.coordinates.y_axis[data.axis]
+                        y_name = plot.ds.coordinates.axis_name[yi]
+                        _ylabel = '%s (%s)' % (y_name, units)
                     else:
-                        _ylabel = 'Image y (%s)' % (units)
+                        _ylabel = 'y (%s)' % (units)
             if tickcolor == None:
                 _tickcolor = pyx.color.cmyk.white
-        elif isinstance(plot, PhasePlot):
+        elif isinstance(plot, (ProfilePlot, PhasePlot)):
             k = plot.plots.keys()[0]
             _xrange = plot[k].axes.get_xlim()
             _yrange = plot[k].axes.get_ylim()
@@ -337,6 +372,8 @@ class DualEPS(object):
                     _ylabel = ylabel
                 else:
                     _ylabel = plot[k].axes.get_ylabel()
+                _xlabel = pyxize_label(_xlabel)
+                _ylabel = pyxize_label(_ylabel)
             if tickcolor == None:
                 _tickcolor = None
         elif isinstance(plot, np.ndarray):
@@ -447,23 +484,27 @@ class DualEPS(object):
         
         # We need to remove the colorbar (if necessary), remove the
         # axes, and resize the figure to span the entire figure
-        shift = 0.0
+        force_square = False
         if self.canvas is None:
             self.canvas = pyx.canvas.canvas()
         if isinstance(plot, (PlotWindow, PhasePlot)):
-            self.field = field
-            if self.field == None:
+            if field == None:
                 self.field = plot.plots.keys()[0]
                 mylog.warning("No field specified.  Choosing first field (%s)" % \
-                              self.field[1])
-            if self.field[1] not in plot.plots.keys()[0][1]:
+                              str(self.field))
+            else:
+                self.field = plot.data_source._determine_fields(field)[0]
+            if self.field not in plot.plots.keys():
                 raise RuntimeError("Field '%s' does not exist!" % str(self.field))
             plot.plots[self.field].hide_colorbar()
             plot.refresh()
             _p1 = plot.plots[self.field].figure
-            # hack to account for non-square display ratios (not sure why)
-            #if isinstance(plot, PlotWindow):
-            #    shift = 12.0 / 340
+            force_square = True
+        elif isinstance(plot, ProfilePlot):
+            plot._redraw_image()
+            # Remove colorbar
+            _p1 = plot._figure
+            _p1.delaxes(_p1.axes[1])
         elif isinstance(plot, np.ndarray):
             fig = plt.figure()
             iplot = plt.figimage(plot)
@@ -475,16 +516,25 @@ class DualEPS(object):
             raise RuntimeError("Unknown plot type")
 
         _p1.axes[0].set_axis_off()  # remove axes
-        _p1.axes[0].set_position([-shift,0,1,1])  # rescale figure
+        _p1.axes[0].set_position([0,0,1,1])  # rescale figure
         _p1.set_facecolor('w')  # set background color
         figure_canvas = FigureCanvasAgg(_p1)
         figure_canvas.draw()
         size = (_p1.get_size_inches() * _p1.dpi).astype('int')
+
+        # Account for 1 pixel line width of the axis box and
+        # non-square images after removing the colorbar.
+        yshift = -1.0 / _p1.dpi * 2.54
+        scale *= 1.0 - 1.0 / (_p1.dpi * self.figsize[0])
+        if force_square:
+            yscale = scale * float(size[1]) / float(size[0])
+        else:
+            yscale = scale
         image = pyx.bitmap.image(size[0], size[1], "RGB",
                                  figure_canvas.tostring_rgb())
-        self.canvas.insert(pyx.bitmap.bitmap(pos[0], pos[1], image,
-                                             width=(1.0+2*shift)*scale*self.figsize[0],
-                                             height=scale*self.figsize[1]))
+        self.canvas.insert(pyx.bitmap.bitmap(pos[0], pos[1]+yshift, image,
+                                             width=scale*self.figsize[0],
+                                             height=yscale*self.figsize[1]))
 
 #=============================================================================
 
@@ -640,7 +690,7 @@ class DualEPS(object):
         """
         _cmap = None
         if field != None:
-            self.field = field
+            self.field = plot.data_source._determine_fields(field)[0]
         if isinstance(plot, (PlotWindow, PhasePlot)):
             _cmap = plot._colormaps[self.field]
         else:
@@ -653,12 +703,18 @@ class DualEPS(object):
                 plot.data_source.weight_field == None
             if isinstance(plot, PlotWindow):
                 try:
-                    _zlabel = plot.ds.field_info[self.field].get_label(proj)
+                    _zlabel = plot.frb[self.field].info["label"]
+                    _unit = Unit(plot.frb[self.field].units, 
+                                 registry=plot.ds.unit_registry)
+                    units = _unit.latex_representation()
+                    # PyX does not support \frac because it's based on TeX.
+                    units = pyxize_label(units)
+                    _zlabel += r' (' + units + r')'
                 except NotImplementedError: 
                     print "Colorbar label not available"
                     _zlabel = ''
             else:
-                _zlabel = plot.data_source.ds.field_info[self.field].get_label(proj)
+                _zlabel = pyxize_label(plot.z_title)
             _zlabel = _zlabel.replace("_","\;")
             _zlog = plot.get_log(self.field)[self.field]
             if plot.plots[self.field].zmin == None:
@@ -1020,6 +1076,10 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
         for i in range(ncol):
             xpos = i*(figsize[0] + margins[0])
             index = j*ncol + i
+            if isinstance(yt_plots, list):
+                this_plot = yt_plots[index]
+            else:
+                this_plot = yt_plots
             if j == nrow-1:
                 xaxis = 1
             elif j == 0:
@@ -1055,9 +1115,9 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
                     ylabel = ylabels[j]
                 else:
                     ylabel = None
-                d.insert_image_yt(yt_plots[index], pos=(xpos, ypos),
+                d.insert_image_yt(this_plot, pos=(xpos, ypos),
                                   field=fields[index])
-                d.axis_box_yt(yt_plots[index], pos=(xpos, ypos),
+                d.axis_box_yt(this_plot, pos=(xpos, ypos),
                               bare_axes=bare_axes, xaxis_side=xaxis,
                               yaxis_side=yaxis,
                               xlabel=xlabel, ylabel=ylabel,
@@ -1105,11 +1165,16 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
                     else:
                         orientation = None  # Marker for interior plot
                 else:
-                    if fields[index] not in cb_location.keys():
-                        raise RuntimeError("%s not found in cb_location dict" %
-                                           fields[index])
-                        return
-                    orientation = cb_location[fields[index]]
+                    if isinstance(cb_location, dict):
+                        if fields[index] not in cb_location.keys():
+                            raise RuntimeError("%s not found in cb_location dict" %
+                                               fields[index])
+                            return
+                        orientation = cb_location[fields[index]]
+                    elif isinstance(cb_location, list):
+                        orientation = cb_location[index]
+                    else:
+                        raise RuntimeError("Bad format: cb_location")
                 if orientation == "right":
                     xpos = bbox[1]
                     ypos = ypos0
@@ -1133,7 +1198,7 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
                         if fields[index] == None:
                             fields[index] = d.return_field(yt_plots[index])
                                               
-                        d.colorbar_yt(yt_plots[index],
+                        d.colorbar_yt(this_plot,
                                       field=fields[index],
                                       pos=[xpos,ypos],
                                       shrink=shrink_cb,
@@ -1186,7 +1251,9 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
     >>> mp = multiplot_yt(2,2,pc,savefig="yt",shrink_cb=0.9, bare_axes=False,
     >>>                   yt_nocbar=False, margins=(0.5,0.5))
     """
-    if isinstance(plots, PlotWindow):
+    # Determine whether the plots are organized in a PlotWindow, or list 
+    # of PlotWindows
+    if isinstance(plots, (PlotWindow, PhasePlot)):
         if fields == None:
             fields = plots.fields
         if len(fields) < nrow*ncol:
@@ -1195,7 +1262,7 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
                                (len(fields), nrow, ncol))
             return
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
-    elif isinstance(plots, list) and isinstance(plots[0], PlotWindow):
+    elif isinstance(plots, list) and isinstance(plots[0], (PlotWindow, PhasePlot)):
         if len(plots) < nrow*ncol:
             raise RuntimeError("Number of plots is less "\
                                "than nrow(%d) x ncol(%d)." % \
@@ -1270,55 +1337,3 @@ def return_cmap(cmap="algae", label="", range=(0,1), log=False):
     """
     return {'cmap': cmap, 'name': label, 'range': range, 'log': log}
     
-#=============================================================================
-
-#if __name__ == "__main__":
-#    ds = load('/Users/jwise/runs/16Jul09_Pop3/DD0019/output_0019')
-#    pc = PlotCollection(ds)
-#    p = pc.add_slice('Density',0,use_colorbar=False)
-#    p.set_width(0.1,'kpc')
-#    p1 = pc.add_slice('Temperature',0,use_colorbar=False)
-#    p1.set_width(0.1,'kpc')
-#    p1.set_cmap('hot')
-#    p1 = pc.add_phase_sphere(0.1, 'kpc', ['Radius', 'Density', 'H2I_Fraction'],
-#                            weight='CellMassMsun')
-#    p1.set_xlim(1e18,3e20)
-#    p1 = pc.add_phase_sphere(0.1, 'kpc', ['Radius', 'Density', 'Temperature'],
-#                            weight='CellMassMsun')
-#    p1.set_xlim(1e18,3e20)
-#    mp = multiplot_yt(2,2,pc,savefig="yt",shrink_cb=0.9, bare_axes=False,
-#                      yt_nocbar=False, margins=(0.5,0.5))
-#    #d = DualEPS()
-#    #d.axis_box(xrange=(0,20.7), yrange=(0,20.7), xlabel='x [kpc]',
-#    #           ylabel='y [kpc]')
-#    #d.axis_box_yt(p)
-#    #d.insert_image_yt(p)
-#    #d.colorbar_yt(p)
-#    #d.title_box("Halo 1", loc=(0.02,0.02), valign=pyx.text.valign.bottom)
-#    #d.circle()
-#    #d.save_fig('yt')
-#    
-#    images = ["density.jpg", "density.jpg", "density.jpg", "density.jpg"]
-#    cbs=[]
-#    cbs.append(return_cmap("algae", "Density [cm$^{-3}$]", (0,10), False))
-#    cbs.append(return_cmap("jet", "HI Density", (0,5), False))
-#    cbs.append(return_cmap("hot", r"Entropy [K cm$^2$]", (1e-2,1e6), True))
-#    cbs.append(return_cmap("Spectral", "Stuff$_x$!", (1,300), True))
-#    
-#    mp = multiplot(images,2,2, margins=(0.1,0.1), titles=["1","2","3","4"],
-#                   xlabels=["one","two"], ylabels=None, colorbars=cbs,
-#                   shrink_cb=0.95)
-#    mp.scale_line(label="$r_{vir}$", labelloc="top")
-#    mp.save_fig("multiplot")
-
-#    d = DualEPS()
-#    d.axis_box(xrange=(0,250), yrange=(0,250), xlabel="x [pc]", ylabel="y [pc]",
-#               xlog=False, ylog=False, tickcolor=pyx.color.cmyk.White,
-#               bare_axes=False, xaxis_side=1, yaxis_side=0)
-#    d.insert_image("density.jpg")
-#    d.colorbar("algae", zrange=(1e-2,1e4), log=True,
-#               label="Density [cm$^{-3}$]", orientation='right')
-#    d.scale_line(label="$r_{vir}$", labelloc="top")
-#    d.circle()
-#    d.title_box(r"$z=17$")
-#    d.save_fig(format='eps')
