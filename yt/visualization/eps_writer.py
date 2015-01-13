@@ -625,6 +625,9 @@ class DualEPS(object):
         ----------
         plot : A yt plot
             yt plot from which the information is taken.
+        cb_labels : list of labels for the colorbars. List should be the same
+                    size as the number of colorbars used. Should be passed 
+                    into this function by either the singleplot or multiplot api.
 
         Examples
         --------
