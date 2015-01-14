@@ -200,7 +200,7 @@ class SDFDataset(Dataset):
             # Grab a whole 4k page.
             line = next(hreq.iter_content(4096))
         elif os.path.isfile(sdf_header):
-            with open(sdf_header, "r") as f:
+            with open(sdf_header, "rt") as f:
                 line = f.read(10).strip()
         else:
             return False

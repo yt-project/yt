@@ -159,7 +159,7 @@ class BoxlibHierarchy(GridIndex):
 
         dx = []
         for i in range(self.max_level + 1):
-            dx.append([float(v) for v in header_file.next().split()])
+            dx.append([float(v) for v in next(header_file).split()])
             # account for non-3d data sets
             if self.dimensionality < 2:
                 dx[i].append(DRE[1] - DLE[1])
@@ -186,25 +186,25 @@ class BoxlibHierarchy(GridIndex):
         self.grids = []
         grid_counter = 0
         for level in range(self.max_level + 1):
-            vals = header_file.next().split()
+            vals = next(header_file).split()
             lev, ngrids = int(vals[0]), int(vals[1])
             assert(lev == level)
             nsteps = int(next(header_file))
             for gi in range(ngrids):
-                xlo, xhi = [float(v) for v in header_file.next().split()]
+                xlo, xhi = [float(v) for v in next(header_file).split()]
                 if self.dimensionality > 1:
-                    ylo, yhi = [float(v) for v in header_file.next().split()]
+                    ylo, yhi = [float(v) for v in next(header_file).split()]
                 else:
                     ylo, yhi = default_ybounds
                 if self.dimensionality > 2:
-                    zlo, zhi = [float(v) for v in header_file.next().split()]
+                    zlo, zhi = [float(v) for v in next(header_file).split()]
                 else:
                     zlo, zhi = default_zbounds
                 self.grid_left_edge[grid_counter + gi, :] = [xlo, ylo, zlo]
                 self.grid_right_edge[grid_counter + gi, :] = [xhi, yhi, zhi]
             # Now we get to the level header filename, which we open and parse.
             fn = os.path.join(self.dataset.output_dir,
-                              header_file.next().strip())
+                              next(header_file).strip())
             level_header_file = open(fn + "_H")
             level_dir = os.path.dirname(fn)
             # We skip the first two lines, which contain BoxLib header file
@@ -218,7 +218,7 @@ class BoxlibHierarchy(GridIndex):
             # To decipher this next line, we expect something like:
             # (8 0
             # where the first is the number of FABs in this level.
-            ngrids = int(level_header_file.next().split()[0][1:])
+            ngrids = int(next(level_header_file).split()[0][1:])
             # Now we can iterate over each and get the indices.
             for gi in range(ngrids):
                 # components within it
@@ -241,7 +241,7 @@ class BoxlibHierarchy(GridIndex):
             for gi in range(ngrids):
                 # Now we get the data file, at which point we're ready to
                 # create the grid.
-                dummy, filename, offset = level_header_file.next().split()
+                dummy, filename, offset = next(level_header_file).split()
                 filename = os.path.join(level_dir, filename)
                 go = self.grid(grid_counter + gi, int(offset), filename, self)
                 go.Level = self.grid_levels[grid_counter + gi,:] = level
@@ -500,7 +500,7 @@ class BoxlibDataset(Dataset):
         necessary for orientation of the data in space.
         """
 
-        # Note: Python uses a read-ahead buffer, so using .next(), which would
+        # Note: Python uses a read-ahead buffer, so using next(), which would
         # be my preferred solution, won't work here.  We have to explicitly
         # call readline() if we want to end up with an offset at the very end.
         # Fortunately, elsewhere we don't care about the offset, so we're fine

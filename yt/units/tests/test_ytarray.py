@@ -784,8 +784,11 @@ def test_registry_association():
         assert_equal(id(c.units.registry), id(ds.unit_registry))
         assert_equal(id(d.units.registry), id(b.units.registry))
 
-    for op in [operator.add, operator.sub, operator.mul, operator.div,
-               operator.truediv]:
+    binary_ops = [operator.add, operator.sub, operator.mul, 
+                  operator.truediv]
+    if hasattr(operator, "div"):
+        binary_ops.append(operator.div)
+    for op in binary_ops:
         yield binary_op_registry_comparison, op
 
     for op in [operator.abs, operator.neg, operator.pos]:
@@ -832,7 +835,10 @@ def test_subclass():
         assert_isinstance(op(inst1, inst2), compare_class)
         assert_isinstance(op(inst2, inst1), compare_class)
 
-    for op in (operator.mul, operator.div, operator.truediv):
+    ops = [operator.mul, operator.truediv]
+    if hasattr(operator, "div"):
+        ops.append(operator.div)
+    for op in ops:
         for inst in (b, ytq, ndf, yta, nda, loq):
             yield op_comparison, op, a, inst, YTASubclass
 

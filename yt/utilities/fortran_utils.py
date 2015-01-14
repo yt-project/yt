@@ -18,6 +18,14 @@ import struct
 import numpy as np
 import os
 
+# This may not be the correct way to do this.  We should investigate what NumPy
+# does.
+try:
+  file
+except NameError:
+  import io
+  file = io.IOBase
+
 def read_attrs(f, attrs,endian='='):
     r"""This function accepts a file pointer and reads from that file pointer
     according to a definition of attributes, returning a dictionary.
