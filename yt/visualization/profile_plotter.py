@@ -310,7 +310,7 @@ class ProfilePlot(object):
             iters = self.figures.iteritems()
         for uid, fig in iters:
             canvas = mpl.FigureCanvasAgg(fig)
-            f = cStringIO.StringIO()
+            f = cStringIO()
             canvas.print_figure(f)
             f.seek(0)
             img = base64.b64encode(f.read())
