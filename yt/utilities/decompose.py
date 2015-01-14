@@ -125,6 +125,7 @@ def split_array(gle, gre, shape, psize):
                 piece = np.array((i, j, k), dtype=np.int64)
                 lei = n_d * piece / psize
                 rei = n_d * (piece + np.ones(3, dtype=np.int64)) / psize
+                rei = np.ceil(rei).astype("int64")
                 lle = gle + lei*dds
                 lre = gle + rei*dds
                 left_edges.append(lle)
