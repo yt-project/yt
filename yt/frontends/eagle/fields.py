@@ -17,7 +17,6 @@ from __future__ import absolute_import
 
 import os
 import numpy as np
-from . import owls_ion_tables as oit
 
 from yt.funcs import *
 
@@ -25,6 +24,7 @@ from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.frontends.owls.fields import \
     OWLSFieldInfo
+import yt.frontends.owls.owls_ion_tables as oit
 from yt.units.yt_array import YTQuantity
 
 from .definitions import \
