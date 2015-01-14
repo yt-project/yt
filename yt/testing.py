@@ -716,13 +716,16 @@ def periodicity_cases(ds):
                 center = dx * np.array([i,j,k]) + ds.domain_left_edge
                 yield center
 
-def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False):
+def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
+             call_pdb = False):
     import nose, os, sys, yt
     from yt.funcs import mylog
     orig_level = mylog.getEffectiveLevel()
     mylog.setLevel(50)
     nose_argv = sys.argv
     nose_argv += ['--exclude=answer_testing','--detailed-errors', '--exe']
+    if call_pdb:
+        nose_argv += ["--pdb", "--pdb-failures"]
     if verbose:
         nose_argv.append('-v')
     if run_answer_tests:
